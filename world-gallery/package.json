@@ -15,7 +15,8 @@
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
-    "@galacean/engine-toolkit-controls": "latest"
+    "@galacean/engine-toolkit-controls": "latest",
+    "@galacean/engine-toolkit-stats": "latest"
   },
   "devDependencies": {
     "@types/dat.gui": "^0.7.13",

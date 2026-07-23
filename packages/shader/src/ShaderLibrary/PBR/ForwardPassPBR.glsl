@@ -56,6 +56,17 @@ Varyings PBRVertex(Attributes attributes) {
   // normalWS、tangentWS、bitangentWS
   #ifdef RENDERER_HAS_NORMAL
     varyings.normalWS = vertexInputs.normalWS;
+    #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+      vec3 probeIrradiance;
+      bool hasProbe = sampleProbeVolume(
+        vertexInputs.positionWS,
+        vertexInputs.normalWS,
+        normalize(camera_Position - vertexInputs.positionWS),
+        probeIrradiance
+      );
+      varyings.probeIrradiance = probeIrradiance;
+      varyings.probeWeight = hasProbe ? 1.0 : 0.0;
+    #endif
     #ifdef NEED_VERTEX_TANGENT
       varyings.tangentWS = vertexInputs.tangentWS;
       varyings.bitangentWS = vertexInputs.bitangentWS;
@@ -126,6 +137,10 @@ void PBRFragment(Varyings varyings) {
 
   #if SCENE_FOG_MODE != 0
       color = fog(color, varyings.positionVS);
+  #endif
+
+  #ifdef SCENE_PROBE_BAKE_CAPTURE
+      color.a = length(varyings.positionWS - camera_Position) + 1.0;
   #endif
 
   gl_FragColor = color;

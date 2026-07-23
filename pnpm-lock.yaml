@@ -379,6 +379,9 @@ importers:
       '@galacean/engine-toolkit-controls':
         specifier: latest
         version: 1.6.0(@galacean/engine@packages+galacean)
+      '@galacean/engine-toolkit-stats':
+        specifier: latest
+        version: 1.6.0(@galacean/engine@packages+galacean)
     devDependencies:
       '@types/dat.gui':
         specifier: ^0.7.13

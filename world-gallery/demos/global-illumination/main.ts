@@ -3,10 +3,13 @@
  * @category Light
  */
 import * as dat from "dat.gui";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { FreeControl } from "@galacean/engine-toolkit-controls";
+import { Stats } from "@galacean/engine-toolkit-stats";
 import {
   AssetType,
   Camera,
+  DirectLight,
+  Keys,
   Logger,
   Material,
   Matrix,
@@ -16,18 +19,46 @@ import {
   ProbeBrickProbeCountPerDimension,
   ProbeVolume,
   ProbeVolumeBaker,
+  ProbeVolumeBinary,
   ProbeVolumeRegion,
+  ProbeVolumeSamplingMode,
+  Renderer,
+  Script,
   Shader,
   ShaderProperty,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import type { Entity, ProbeVolumeJSON, Scene } from "@galacean/engine";
-import probeVolumeData from "./light-probe-data.json";
+import type { Entity, Scene } from "@galacean/engine";
+import probeVolumeUrl from "./light-probe-data.pvol?url";
 
-const projectUrl = "https://mdn.alipayobjects.com/oasis_be/afts/file/A*IaYLSLgt64QAAAAAQYAAAAgAekp5AQ/project.json";
+const projectUrl = "https://mdn.alipayobjects.com/oasis_be/afts/file/A*vK1cRZW88ucAAAAAQYAAAAgAekp5AQ/project.json";
 const probeMarkerSHProperty = ShaderProperty.getByName("renderer_ProbeSH");
+
+class VerticalRoamControl extends Script {
+  movementSpeed = 3;
+
+  onUpdate(deltaTime: number): void {
+    const input = this.engine.inputManager;
+    let direction = 0;
+    if (input.isKeyHeldDown(Keys.KeyE) || input.isKeyHeldDown(Keys.Space)) {
+      direction += 1;
+    }
+    if (input.isKeyHeldDown(Keys.KeyQ) || input.isKeyHeldDown(Keys.ShiftLeft) || input.isKeyHeldDown(Keys.ShiftRight)) {
+      direction -= 1;
+    }
+
+    if (direction !== 0) {
+      const position = this.entity.transform.position;
+      this.entity.transform.setPosition(
+        position.x,
+        position.y + direction * this.movementSpeed * deltaTime,
+        position.z
+      );
+    }
+  }
+}
 
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
@@ -46,16 +77,39 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
     })
     .then(() => {
       const scene = engine.sceneManager.activeScene;
-      installOrbitControl(scene);
+      setDirectLightIntensity(scene, 5);
+      installFreeControl(scene);
       normalizeProbeDemoMaterials(engine, scene);
-      installLightProbe(engine, scene);
+      return installLightProbe(engine, scene);
     })
     .catch((error) => {
       Logger.error("light", error);
+      console.error("light", error);
     });
 });
 
-function installOrbitControl(scene: Scene): void {
+function setDirectLightIntensity(scene: Scene, intensity: number): void {
+  const lights: DirectLight[] = [];
+  for (const root of scene.rootEntities) {
+    const rootLights: DirectLight[] = [];
+    root.getComponentsIncludeChildren(DirectLight, rootLights);
+    lights.push(...rootLights);
+  }
+
+  const light = scene.sun ?? lights.find((candidate) => candidate.enabled);
+  if (!light) {
+    return;
+  }
+
+  const color = light.color;
+  const currentIntensity = color.getBrightness();
+  if (currentIntensity > 0) {
+    const scale = intensity / currentIntensity;
+    color.set(color.r * scale, color.g * scale, color.b * scale, color.a);
+  }
+}
+
+function installFreeControl(scene: Scene): void {
   const camera = scene.rootEntities
     .map((entity) => entity.getComponent(Camera))
     .find((component): component is Camera => Boolean(component?.enabled));
@@ -63,8 +117,63 @@ function installOrbitControl(scene: Scene): void {
     throw new Error("The light demo requires an enabled scene camera.");
   }
 
-  const control = camera.entity.getComponent(OrbitControl) ?? camera.entity.addComponent(OrbitControl);
-  control.target = new Vector3(0, 0, -18);
+  const control = camera.entity.getComponent(FreeControl) ?? camera.entity.addComponent(FreeControl);
+  control.movementSpeed = 3;
+  control.floorMock = false;
+
+  const verticalControl =
+    camera.entity.getComponent(VerticalRoamControl) ?? camera.entity.addComponent(VerticalRoamControl);
+  verticalControl.movementSpeed = control.movementSpeed;
+
+  camera.entity.getComponent(Stats) ?? camera.entity.addComponent(Stats);
+  installStatsPanelStyle();
+}
+
+function installStatsPanelStyle(): void {
+  const style = document.createElement("style");
+  style.textContent = `
+    body .gl-perf {
+      top: auto;
+      bottom: 12px;
+      left: 12px;
+      z-index: 10;
+      min-width: 156px;
+      padding: 9px 11px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 4px;
+      background: rgba(12, 15, 18, 0.82);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+      color: #f3f5f7;
+      font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    body .gl-perf dl {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3px 14px;
+    }
+
+    body .gl-perf dt,
+    body .gl-perf dd {
+      color: inherit;
+      font-size: 11px;
+      line-height: 1.35;
+      text-shadow: none;
+    }
+
+    body .gl-perf dt .unit {
+      font-size: 10px;
+      color: #aeb7c0;
+    }
+
+    body .gl-perf dd {
+      padding: 0;
+      text-align: right;
+      color: #76d6a5;
+      font-variant-numeric: tabular-nums;
+    }
+  `;
+  document.head.appendChild(style);
 }
 
 function normalizeProbeDemoMaterials(engine: WebGLEngine, scene: Scene): void {
@@ -82,7 +191,7 @@ function normalizeProbeDemoMaterials(engine: WebGLEngine, scene: Scene): void {
   });
 }
 
-function installLightProbe(engine: WebGLEngine, scene: Scene): void {
+async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<void> {
   const camera = scene.rootEntities
     .map((entity) => entity.getComponent(Camera))
     .find((component): component is Camera => Boolean(component?.enabled));
@@ -90,18 +199,25 @@ function installLightProbe(engine: WebGLEngine, scene: Scene): void {
     throw new Error("The probe demo requires an enabled scene camera.");
   }
   const regionEntity = scene.createRootEntity("probe_volume_region");
-  regionEntity.transform.position.set(3, 4, -14);
-  regionEntity.transform.scale.set(2, 2, 2);
   const region = regionEntity.addComponent(ProbeVolumeRegion);
-  region.size.set(12, 8, 12);
-  region.minBrickSize = probeVolumeData.minBrickSize;
+  region.size.set(32, 14, 20);
+  const probeArtifact = await fetch(probeVolumeUrl).then((response) => response.arrayBuffer());
+  let probeVolume = ProbeVolumeBinary.decode(probeArtifact);
+  region.minBrickSize = Math.max(probeVolume.minBrickSize, 8);
+  fitProbeRegionToScene(scene, region);
 
-  let probeVolume = ProbeVolume.fromJSON(probeVolumeData);
+  probeVolume.samplingMode = ProbeVolumeSamplingMode.PerFragment;
   updateProbeVolumeTransform(region, probeVolume);
-  let markerRoot = createProbeMarkers(engine, region, probeVolume);
+  let markerRoot = createProbeMarkers(engine, scene, probeVolume);
   let bakedLightingEnabled = true;
+  let isBaking = false;
+  let previewRequest = 0;
   const controls = {
     showMarkers: false,
+    sampling: "Per Fragment",
+    placement: "Uniform",
+    maxSubdivisionLevel: 1,
+    bakeStatus: "Loaded",
     get bakedLightingEnabled(): boolean {
       return bakedLightingEnabled;
     },
@@ -110,36 +226,92 @@ function installLightProbe(engine: WebGLEngine, scene: Scene): void {
       scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
       camera.render();
     },
-    bake: () => {
+    updateSampling: (value: string) => {
+      probeVolume.samplingMode = samplingModes[value];
+      scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
+      camera.render();
+    },
+    bake: async () => {
+      if (isBaking) {
+        return;
+      }
+      if (previewRequest) {
+        cancelAnimationFrame(previewRequest);
+        previewRequest = 0;
+      }
+      isBaking = true;
+      controls.bakeStatus = "Preparing";
       const previousVolume = probeVolume;
       markerRoot.destroy();
       try {
-        probeVolume = ProbeVolumeBaker.bakeRegion(scene, region, {
+        probeVolume = await ProbeVolumeBaker.bakeRegion(scene, region, {
           camera,
           resolution: 8,
           nearClipPlane: 0.05,
           farClipPlane: 60,
-          bounceCount: 1
+          bounceCount: 2,
+          indirectIntensity: 2,
+          separateEnvironment: false,
+          bakeSunIndirect: true,
+          placementMode: controls.placement === "Adaptive" ? "adaptive" : "uniform",
+          maxSubdivisionLevel: controls.maxSubdivisionLevel,
+          probesPerBatch: 1,
+          onProgress: ({ completedProbes, totalProbes, bounce, bounceCount }) => {
+            const percentage = totalProbes > 0 ? Math.round((completedProbes / totalProbes) * 100) : 0;
+            controls.bakeStatus = `${completedProbes}/${totalProbes} (${percentage}%) - Bounce ${bounce}/${bounceCount}`;
+          }
         });
         probeVolume.normalBias = 0.2;
-        markerRoot = createProbeMarkers(engine, region, probeVolume);
+        probeVolume.samplingMode = samplingModes[controls.sampling];
+        markerRoot = createProbeMarkers(engine, scene, probeVolume);
         markerRoot.isActive = controls.showMarkers;
         scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
         downloadProbeVolumeArtifact(probeVolume);
         previousVolume.dispose();
+        controls.bakeStatus = "Completed";
         camera.render();
       } catch (error) {
         probeVolume = previousVolume;
-        markerRoot = createProbeMarkers(engine, region, probeVolume);
+        markerRoot = createProbeMarkers(engine, scene, probeVolume);
         markerRoot.isActive = controls.showMarkers;
         scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
+        controls.bakeStatus = `Failed: ${error instanceof Error ? error.message : String(error)}`;
         Logger.error("probe bake", error);
+        console.error("probe bake", error);
+      } finally {
+        isBaking = false;
       }
     }
+  };
+  const refreshLayoutPreview = () => {
+    controls.bakeStatus = "Modified";
+    if (previewRequest || isBaking) {
+      return;
+    }
+    previewRequest = requestAnimationFrame(() => {
+      previewRequest = 0;
+      if (isBaking) {
+        return;
+      }
+      try {
+        const layout = ProbeVolumeBaker.createRegionLayout(scene, region, {
+          placementMode: controls.placement === "Adaptive" ? "adaptive" : "uniform",
+          maxSubdivisionLevel: controls.maxSubdivisionLevel
+        });
+        const nextMarkerRoot = createProbeLayoutMarkers(engine, scene, layout);
+        nextMarkerRoot.isActive = controls.showMarkers;
+        markerRoot.destroy();
+        markerRoot = nextMarkerRoot;
+      } catch (error) {
+        controls.bakeStatus = `Invalid: ${error instanceof Error ? error.message : String(error)}`;
+      }
+      camera.render();
+    });
   };
   markerRoot.isActive = controls.showMarkers;
 
   scene.environmentLighting.probeVolume = probeVolume;
+  scene.environmentLighting.probeVolumeAnchor = camera.entity.transform;
   camera.render();
   createProbeDebug(
     region,
@@ -147,34 +319,48 @@ function installLightProbe(engine: WebGLEngine, scene: Scene): void {
     (visible) => {
       markerRoot.isActive = visible;
     },
-    () => {
-      if (!updateProbeMarkerPositions(markerRoot, region)) {
-        markerRoot.destroy();
-        markerRoot = createProbeMarkers(engine, region, probeVolume);
-        markerRoot.isActive = controls.showMarkers;
-      }
-      camera.render();
-    }
+    refreshLayoutPreview
   );
 }
 
+function fitProbeRegionToScene(scene: Scene, region: ProbeVolumeRegion): void {
+  const renderers: Renderer[] = [];
+  for (const root of scene.rootEntities) {
+    const rootRenderers: Renderer[] = [];
+    root.getComponentsIncludeChildren(Renderer, rootRenderers);
+    renderers.push(...rootRenderers);
+  }
+
+  const min = new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  const max = new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+  for (const renderer of renderers) {
+    if (!renderer.enabled) {
+      continue;
+    }
+    const bounds = renderer.bounds;
+    if (![bounds.min.x, bounds.min.y, bounds.min.z, bounds.max.x, bounds.max.y, bounds.max.z].every(Number.isFinite)) {
+      continue;
+    }
+    min.x = Math.min(min.x, bounds.min.x);
+    min.y = Math.min(min.y, bounds.min.y);
+    min.z = Math.min(min.z, bounds.min.z);
+    max.x = Math.max(max.x, bounds.max.x);
+    max.y = Math.max(max.y, bounds.max.y);
+    max.z = Math.max(max.z, bounds.max.z);
+  }
+
+  if (!Number.isFinite(min.x)) {
+    throw new Error("The probe demo requires at least one enabled renderer.");
+  }
+
+  region.entity.transform.position.set((min.x + max.x) * 0.5, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5);
+}
+
 function downloadProbeVolumeArtifact(volume: ProbeVolume): void {
-  const data: ProbeVolumeJSON = {
-    minBrickSize: volume.minBrickSize,
-    normalBias: volume.normalBias,
-    viewBias: volume.viewBias,
-    localToWorldMatrix: Array.from(volume.localToWorldMatrix.elements),
-    bricks: volume.bricks.map((brick) => ({
-      position: [brick.position.x, brick.position.y, brick.position.z],
-      subdivisionLevel: brick.subdivisionLevel,
-      sphericalHarmonics: brick.sphericalHarmonics.map((sh) => Array.from(sh.coefficients)),
-      validity: brick.validity ? Array.from(brick.validity) : undefined
-    }))
-  };
-  const url = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" }));
+  const url = URL.createObjectURL(new Blob([ProbeVolumeBinary.encode(volume)], { type: "application/octet-stream" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "probe-volume.json";
+  anchor.download = "probe-volume.pvol";
   anchor.click();
   URL.revokeObjectURL(url);
 }
@@ -219,109 +405,103 @@ function updateProbeVolumeTransform(region: ProbeVolumeRegion, volume: ProbeVolu
   volume.localToWorldMatrix = localToWorld;
 }
 
-function createProbeMarkers(engine: WebGLEngine, region: ProbeVolumeRegion, volume: ProbeVolume): Entity {
-  const markerRoot = region.entity.createChild("probe_markers");
+function createProbeMarkers(engine: WebGLEngine, scene: Scene, volume: ProbeVolume): Entity {
+  const markerRoot = scene.createRootEntity("probe_markers");
   const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 8);
   const markerMaterial = createProbeMarkerMaterial(engine);
-  const hasMatchingLayout = volume.bricks.length === getProbeBrickCount(region);
+  const minimumProbeStep = volume.minBrickSize / (ProbeBrickProbeCountPerDimension - 1);
+  const createdProbeKeys = new Set<string>();
+  const localPosition = new Vector3();
+  const worldPosition = new Vector3();
 
-  forEachProbeMarkerPosition(region, (x, y, z, gridX, gridY, gridZ) => {
-    const marker = markerRoot.createChild("probe");
-    marker.transform.position.set(x, y, z);
+  for (const brick of volume.bricks) {
+    const brickSize = volume.minBrickSize * Math.pow(ProbeBrickProbeCountPerDimension - 1, brick.subdivisionLevel);
+    const probeStep = brickSize / (ProbeBrickProbeCountPerDimension - 1);
+    for (let z = 0; z < ProbeBrickProbeCountPerDimension; z++) {
+      for (let y = 0; y < ProbeBrickProbeCountPerDimension; y++) {
+        for (let x = 0; x < ProbeBrickProbeCountPerDimension; x++) {
+          localPosition.set(
+            brick.position.x + x * probeStep,
+            brick.position.y + y * probeStep,
+            brick.position.z + z * probeStep
+          );
+          const key = `${Math.round(localPosition.x / minimumProbeStep)},${Math.round(
+            localPosition.y / minimumProbeStep
+          )},${Math.round(localPosition.z / minimumProbeStep)}`;
+          if (createdProbeKeys.has(key)) {
+            continue;
+          }
+          createdProbeKeys.add(key);
 
-    const renderer = marker.addComponent(MeshRenderer);
-    renderer.mesh = markerMesh;
-    renderer.setMaterial(markerMaterial);
-    renderer.shaderData.setFloatArray(
-      probeMarkerSHProperty,
-      hasMatchingLayout ? getProbeSphericalHarmonics(volume, region, gridX, gridY, gridZ) : neutralProbeSH
-    );
-  });
+          Vector3.transformCoordinate(localPosition, volume.localToWorldMatrix, worldPosition);
+          const marker = markerRoot.createChild("probe");
+          marker.transform.position.copyFrom(worldPosition);
+
+          const renderer = marker.addComponent(MeshRenderer);
+          renderer.mesh = markerMesh;
+          renderer.setMaterial(markerMaterial);
+          const probeIndex = x + ProbeBrickProbeCountPerDimension * (y + ProbeBrickProbeCountPerDimension * z);
+          renderer.shaderData.setFloatArray(probeMarkerSHProperty, brick.sphericalHarmonics[probeIndex].coefficients);
+        }
+      }
+    }
+  }
 
   return markerRoot;
 }
 
-function updateProbeMarkerPositions(markerRoot: Entity, region: ProbeVolumeRegion): boolean {
-  if (markerRoot.children.length !== getProbeMarkerCount(region)) {
-    return false;
-  }
+function createProbeLayoutMarkers(
+  engine: WebGLEngine,
+  scene: Scene,
+  layout: ReturnType<typeof ProbeVolumeBaker.createRegionLayout>
+): Entity {
+  const markerRoot = scene.createRootEntity("probe_layout_preview");
+  const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 8);
+  const markerMaterial = createProbeMarkerMaterial(engine);
+  const minimumProbeStep = layout.minBrickSize / (ProbeBrickProbeCountPerDimension - 1);
+  const createdProbeKeys = new Set<string>();
+  const localPosition = new Vector3();
+  const worldPosition = new Vector3();
+  const previewSH = new Float32Array(27);
+  previewSH[0] = previewSH[1] = previewSH[2] = 0.55;
 
-  let markerIndex = 0;
-  forEachProbeMarkerPosition(region, (x, y, z) => {
-    markerRoot.children[markerIndex++].transform.position.set(x, y, z);
-  });
-  return true;
-}
+  for (const brick of layout.layouts) {
+    const brickSize = layout.minBrickSize * Math.pow(ProbeBrickProbeCountPerDimension - 1, brick.subdivisionLevel);
+    const probeStep = brickSize / (ProbeBrickProbeCountPerDimension - 1);
+    for (let z = 0; z < ProbeBrickProbeCountPerDimension; z++) {
+      for (let y = 0; y < ProbeBrickProbeCountPerDimension; y++) {
+        for (let x = 0; x < ProbeBrickProbeCountPerDimension; x++) {
+          localPosition.set(
+            brick.position.x + x * probeStep,
+            brick.position.y + y * probeStep,
+            brick.position.z + z * probeStep
+          );
+          const key = `${Math.round(localPosition.x / minimumProbeStep)},${Math.round(
+            localPosition.y / minimumProbeStep
+          )},${Math.round(localPosition.z / minimumProbeStep)}`;
+          if (createdProbeKeys.has(key)) {
+            continue;
+          }
+          createdProbeKeys.add(key);
 
-function getProbeMarkerCount(region: ProbeVolumeRegion): number {
-  const cellsPerBrick = ProbeBrickProbeCountPerDimension - 1;
-  const x = Math.ceil(region.size.x / region.minBrickSize) * cellsPerBrick + 1;
-  const y = Math.ceil(region.size.y / region.minBrickSize) * cellsPerBrick + 1;
-  const z = Math.ceil(region.size.z / region.minBrickSize) * cellsPerBrick + 1;
-  return x * y * z;
-}
-
-function getProbeBrickCount(region: ProbeVolumeRegion): number {
-  return (
-    Math.ceil(region.size.x / region.minBrickSize) *
-    Math.ceil(region.size.y / region.minBrickSize) *
-    Math.ceil(region.size.z / region.minBrickSize)
-  );
-}
-
-function getProbeSphericalHarmonics(
-  volume: ProbeVolume,
-  region: ProbeVolumeRegion,
-  gridX: number,
-  gridY: number,
-  gridZ: number
-): Float32Array {
-  const cellsPerBrick = ProbeBrickProbeCountPerDimension - 1;
-  const brickCountX = Math.ceil(region.size.x / region.minBrickSize);
-  const brickCountY = Math.ceil(region.size.y / region.minBrickSize);
-  const brickCountZ = Math.ceil(region.size.z / region.minBrickSize);
-  const brickX = Math.min(Math.floor(gridX / cellsPerBrick), brickCountX - 1);
-  const brickY = Math.min(Math.floor(gridY / cellsPerBrick), brickCountY - 1);
-  const brickZ = Math.min(Math.floor(gridZ / cellsPerBrick), brickCountZ - 1);
-  const probeX = gridX - brickX * cellsPerBrick;
-  const probeY = gridY - brickY * cellsPerBrick;
-  const probeZ = gridZ - brickZ * cellsPerBrick;
-  const brickIndex = brickX + brickCountX * (brickY + brickCountY * brickZ);
-  const probeIndex = probeX + ProbeBrickProbeCountPerDimension * (probeY + ProbeBrickProbeCountPerDimension * probeZ);
-  return volume.bricks[brickIndex].sphericalHarmonics[probeIndex].coefficients;
-}
-
-function forEachProbeMarkerPosition(
-  region: ProbeVolumeRegion,
-  callback: (x: number, y: number, z: number, gridX: number, gridY: number, gridZ: number) => void
-): void {
-  const cellsPerBrick = ProbeBrickProbeCountPerDimension - 1;
-  const cellCountX = Math.ceil(region.size.x / region.minBrickSize) * cellsPerBrick;
-  const cellCountY = Math.ceil(region.size.y / region.minBrickSize) * cellsPerBrick;
-  const cellCountZ = Math.ceil(region.size.z / region.minBrickSize) * cellsPerBrick;
-  for (let z = 0; z <= cellCountZ; z++) {
-    for (let y = 0; y <= cellCountY; y++) {
-      for (let x = 0; x <= cellCountX; x++) {
-        callback(
-          (x / cellCountX - 0.5) * region.size.x,
-          (y / cellCountY - 0.5) * region.size.y,
-          (z / cellCountZ - 0.5) * region.size.z,
-          x,
-          y,
-          z
-        );
+          Vector3.transformCoordinate(localPosition, layout.localToWorldMatrix, worldPosition);
+          const marker = markerRoot.createChild("probe_preview");
+          marker.transform.position.copyFrom(worldPosition);
+          const renderer = marker.addComponent(MeshRenderer);
+          renderer.mesh = markerMesh;
+          renderer.setMaterial(markerMaterial);
+          renderer.shaderData.setFloatArray(probeMarkerSHProperty, previewSH);
+        }
       }
     }
   }
+  return markerRoot;
 }
 
 function createProbeMarkerMaterial(engine: WebGLEngine): Material {
   const shader = Shader.find("Debug/ProbeMarker") ?? Shader.create(probeMarkerShaderSource);
   return new Material(engine, shader);
 }
-
-const neutralProbeSH = new Float32Array(27);
-neutralProbeSH[0] = neutralProbeSH[1] = neutralProbeSH[2] = 0.18;
 
 const probeMarkerShaderSource = `Shader "Debug/ProbeMarker" {
   SubShader "Default" {
@@ -351,19 +531,17 @@ const probeMarkerShaderSource = `Shader "Debug/ProbeMarker" {
 
       vec4 frag(Varyings input) {
         vec3 normal = normalize(input.normalWS);
-        vec3 irradiance =
-          renderer_ProbeSH[0] * 0.886227 +
-          renderer_ProbeSH[1] * (-1.023327 * normal.y) +
-          renderer_ProbeSH[2] * ( 1.023327 * normal.z) +
-          renderer_ProbeSH[3] * (-1.023327 * normal.x) +
-          renderer_ProbeSH[4] * ( 0.858086 * normal.y * normal.x) +
-          renderer_ProbeSH[5] * (-0.858086 * normal.y * normal.z) +
-          renderer_ProbeSH[6] * ( 0.247708 * (3.0 * normal.z * normal.z - 1.0)) +
-          renderer_ProbeSH[7] * (-0.858086 * normal.z * normal.x) +
-          renderer_ProbeSH[8] * ( 0.429042 * (normal.x * normal.x - normal.y * normal.y));
-        irradiance = max(irradiance, vec3(0.0));
-        vec3 displayColor = irradiance / (vec3(1.0) + irradiance * 0.35);
-        return vec4(displayColor, 1.0);
+        vec3 l0 = max(renderer_ProbeSH[0] * 0.886227, vec3(0.0));
+        vec3 l1Y = renderer_ProbeSH[1] * -1.023327;
+        vec3 l1Z = renderer_ProbeSH[2] * 1.023327;
+        vec3 l1X = renderer_ProbeSH[3] * -1.023327;
+        vec3 l1Length = sqrt(l1X * l1X + l1Y * l1Y + l1Z * l1Z);
+        vec3 l1Scale = min(vec3(1.0), l0 / max(l1Length, vec3(1e-4)));
+        vec3 irradiance = max(
+          l0 + l1Y * l1Scale * normal.y + l1Z * l1Scale * normal.z + l1X * l1Scale * normal.x,
+          vec3(0.0)
+        );
+        return vec4(irradiance, 1.0);
       }
     }
   }
@@ -373,9 +551,14 @@ function createProbeDebug(
   region: ProbeVolumeRegion,
   controls: {
     showMarkers: boolean;
+    sampling: string;
+    placement: string;
+    maxSubdivisionLevel: number;
+    bakeStatus: string;
     bakedLightingEnabled: boolean;
     toggleBakedLighting: () => void;
-    bake: () => void;
+    updateSampling: (value: string) => void;
+    bake: () => Promise<void>;
   },
   onMarkersChange: (visible: boolean) => void,
   onMarkerGridChange: () => void
@@ -383,6 +566,7 @@ function createProbeDebug(
   const gui = new dat.GUI();
   const folder = gui.addFolder("Probe");
   folder.add(controls, "showMarkers").onChange(onMarkersChange);
+  folder.add(controls, "sampling", Object.keys(samplingModes)).name("Sampling").onChange(controls.updateSampling);
 
   const regionFolder = folder.addFolder("Region");
   const positionFolder = regionFolder.addFolder("Position");
@@ -405,6 +589,10 @@ function createProbeDebug(
   sizeFolder.add(region.size, "y", 1, 40, 1).onChange(onMarkerGridChange);
   sizeFolder.add(region.size, "z", 1, 40, 1).onChange(onMarkerGridChange);
   regionFolder.add(region, "minBrickSize", 1, 12, 1).onChange(onMarkerGridChange);
+  regionFolder.add(controls, "placement", ["Uniform", "Adaptive"]).name("Placement").onChange(onMarkerGridChange);
+  regionFolder.add(controls, "maxSubdivisionLevel", 0, 3, 1).name("Max Subdivision").onChange(onMarkerGridChange);
+  const bakeStatus = regionFolder.add(controls, "bakeStatus").name("Bake Status").listen();
+  bakeStatus.domElement.style.pointerEvents = "none";
   regionFolder.add(controls, "bake").name("Bake");
   const bakedLightingControl = {
     toggle: () => {
@@ -421,3 +609,9 @@ function createProbeDebug(
   regionFolder.open();
   folder.open();
 }
+
+const samplingModes: Record<string, ProbeVolumeSamplingMode> = {
+  "Per Renderer": ProbeVolumeSamplingMode.PerRenderer,
+  "Per Vertex": ProbeVolumeSamplingMode.PerVertex,
+  "Per Fragment": ProbeVolumeSamplingMode.PerFragment
+};

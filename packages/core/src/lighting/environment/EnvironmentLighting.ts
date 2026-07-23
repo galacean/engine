@@ -1,5 +1,8 @@
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 import type { Scene } from "../../Scene";
+import type { Transform } from "../../Transform";
+import type { ShaderData } from "../../shader/ShaderData";
+import type { SkyProceduralMaterial } from "../../sky/SkyProceduralMaterial";
 import { FogMode } from "../../enums/FogMode";
 import { DiffuseMode } from "../enums/DiffuseMode";
 import { EnvironmentState, EnvironmentWeather } from "./EnvironmentState";
@@ -12,6 +15,7 @@ export class EnvironmentLighting {
   private static _up = new Vector3(0, 1, 0);
   private static _defaultSunDirection = new Vector3(0.35, -0.8, 0.35);
   private static _tempSunTarget = new Vector3();
+  private static _tempSkySunDirection = new Vector3();
 
   /** Current environment state. */
   state: EnvironmentState;
@@ -19,6 +23,8 @@ export class EnvironmentLighting {
   enabled: boolean = false;
   private _scene: Scene;
   private _probeVolume?: ProbeVolume;
+  /** Camera or player transform used to stream nearby probe cells. */
+  probeVolumeAnchor?: Transform;
   private _generatedSH = new SphericalHarmonics3();
   private _transitionFrom: EnvironmentState | null = null;
   private _transitionTo: EnvironmentState | null = null;
@@ -85,12 +91,20 @@ export class EnvironmentLighting {
    * @param deltaTime - Delta time in seconds
    */
   update(deltaTime: number): void {
+    if (this._probeVolume && this.probeVolumeAnchor) {
+      this._probeVolume.updateStreamingAnchor(this.probeVolumeAnchor.worldPosition);
+    }
     this._probeVolume?._updateShaderData(this._scene.engine, this._scene.shaderData);
     if (!this.enabled) {
       return;
     }
     this._updateTransition(deltaTime);
     this._applyToScene(this.state);
+  }
+
+  /** @internal */
+  _updateRendererProbeData(shaderData: ShaderData, position: Vector3): void {
+    this._probeVolume?._updateRendererShaderData(shaderData, position);
   }
 
   /**
@@ -153,7 +167,7 @@ export class EnvironmentLighting {
 
     const skyMaterial = scene.background.sky.material;
     if (skyMaterial && "skyTint" in skyMaterial) {
-      const proceduralSkyMaterial = skyMaterial as any;
+      const proceduralSkyMaterial = skyMaterial as SkyProceduralMaterial;
       proceduralSkyMaterial.skyTint = state.skyTint;
       proceduralSkyMaterial.groundTint = state.groundTint;
       proceduralSkyMaterial.exposure = state.skyExposure;
@@ -184,15 +198,11 @@ export class EnvironmentLighting {
     const weather = getWeatherProfile(state.weather);
     const dayFactor = getDayFactor(state.timeOfDay);
     const directionality = weather.directionality * (0.35 + 0.65 * dayFactor);
-    const skyColor = copyColor(
-      EnvironmentLightingSkyTemp.sky,
-      state.skyTint,
-      state.ambientIntensity * weather.sky * (0.25 + dayFactor)
-    );
+    const skyColor = copyColor(EnvironmentLightingSkyTemp.sky, state.skyTint, weather.sky * (0.25 + dayFactor));
     const groundColor = copyColor(
       EnvironmentLightingSkyTemp.ground,
       state.groundTint,
-      state.ambientIntensity * weather.ground * (0.18 + 0.6 * dayFactor)
+      weather.ground * (0.18 + 0.6 * dayFactor)
     );
     const sunColor = copyColor(
       EnvironmentLightingSkyTemp.sun,
@@ -202,7 +212,12 @@ export class EnvironmentLighting {
 
     out.addLight(EnvironmentLightingSkyTemp.up, skyColor, Math.PI * (1.0 - 0.25 * directionality));
     out.addLight(EnvironmentLightingSkyTemp.down, groundColor, Math.PI * 0.7);
-    out.addLight(normalizeOrDefault(state.sunDirection, EnvironmentLighting._defaultSunDirection), sunColor, 0.45);
+    Vector3.scale(
+      normalizeOrDefault(state.sunDirection, EnvironmentLighting._defaultSunDirection),
+      -1,
+      EnvironmentLighting._tempSkySunDirection
+    );
+    out.addLight(EnvironmentLighting._tempSkySunDirection, sunColor, 0.45);
     return out;
   }
 }

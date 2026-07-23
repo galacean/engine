@@ -19,6 +19,10 @@ struct Varyings{
 
 	#ifdef RENDERER_HAS_NORMAL
 	    vec3 normalWS;
+	    #if defined(SCENE_USE_PROBE_VOLUME) && defined(SCENE_PROBE_VOLUME_PER_VERTEX)
+	        vec3 probeIrradiance;
+	        float probeWeight;
+	    #endif
 	    #ifdef NEED_VERTEX_TANGENT
 			vec3 tangentWS;
 			vec3 bitangentWS;

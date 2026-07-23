@@ -18,15 +18,29 @@
 #include "ShaderLibrary/PBR/LightIndirectFunctions.glsl"
 
 #ifdef SCENE_USE_PROBE_VOLUME
-    highp sampler2DArray scene_ProbeVolumeSHRTexture;
-    highp sampler2DArray scene_ProbeVolumeSHGTexture;
-    highp sampler2DArray scene_ProbeVolumeSHBTexture;
-    vec3 scene_ProbeVolumeOrigin;
-    vec3 scene_ProbeVolumeDimensions;
+    #define PROBE_VOLUME_MAX_ACTIVE_CELLS 16
+    #ifndef SCENE_PROBE_VOLUME_PER_RENDERER
+        highp sampler2DArray scene_ProbeVolumeSHRTexture;
+        highp sampler2DArray scene_ProbeVolumeSHGTexture;
+        highp sampler2DArray scene_ProbeVolumeSHBTexture;
+        highp sampler2DArray scene_ProbeVolumeSkyTexture;
+    #endif
+    vec4 scene_ProbeVolumeCellOrigins[PROBE_VOLUME_MAX_ACTIVE_CELLS];
+    vec4 scene_ProbeVolumeCellParameters[PROBE_VOLUME_MAX_ACTIVE_CELLS];
+    int scene_ProbeVolumeCellCount;
+    vec3 scene_ProbeVolumeAtlasDimensions;
     float scene_ProbeVolumeInverseSpacing;
     float scene_ProbeVolumeNormalBias;
     float scene_ProbeVolumeViewBias;
     mat4 scene_ProbeVolumeWorldToLocal;
+    mat4 scene_ProbeVolumeLocalToWorld;
+    #ifdef SCENE_PROBE_VOLUME_PER_RENDERER
+        vec4 renderer_ProbeVolumeSHR;
+        vec4 renderer_ProbeVolumeSHG;
+        vec4 renderer_ProbeVolumeSHB;
+        vec4 renderer_ProbeVolumeSky;
+        float renderer_ProbeVolumeWeight;
+    #endif
 #endif
 
 // ------------------------Diffuse------------------------
@@ -50,60 +64,121 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 }
 
 #ifdef SCENE_USE_PROBE_VOLUME
-vec4 sampleProbeVolumeTexture(highp sampler2DArray probeTexture, vec2 uv, float probeZ){
+#ifndef SCENE_PROBE_VOLUME_PER_RENDERER
+vec4 sampleProbeVolumeTexture(highp sampler2DArray probeTexture, vec2 uv, float probeZ, float cellDepth){
     float z0 = floor(probeZ);
-    float z1 = min(z0 + 1.0, scene_ProbeVolumeDimensions.z - 1.0);
+    float z1 = min(z0 + 1.0, cellDepth - 1.0);
     vec4 sample0 = textureLod(probeTexture, vec3(uv, z0), 0.0);
     vec4 sample1 = textureLod(probeTexture, vec3(uv, z1), 0.0);
     return mix(sample0, sample1, probeZ - z0);
 }
+#endif
 
-bool sampleProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 irradiance){
-    vec3 biasedPositionWS = positionWS + normalWS * scene_ProbeVolumeNormalBias + viewDirWS * scene_ProbeVolumeViewBias;
-    vec3 samplePosition = (scene_ProbeVolumeWorldToLocal * vec4(biasedPositionWS, 1.0)).xyz;
-    vec3 probeCoord = (samplePosition - scene_ProbeVolumeOrigin) * scene_ProbeVolumeInverseSpacing;
-    vec3 maxProbeCoord = scene_ProbeVolumeDimensions - 1.0;
-    if (any(lessThan(probeCoord, vec3(0.0))) || any(greaterThan(probeCoord, maxProbeCoord))) {
-        irradiance = vec3(0.0);
-        return false;
-    }
-
-    vec2 uv = (probeCoord.xy + 0.5) / scene_ProbeVolumeDimensions.xy;
-    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z);
-    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z);
-    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z);
+vec3 evaluateProbeL1(vec4 shR, vec4 shG, vec4 shB, vec3 normalWS){
     vec3 l0 = max(vec3(shR.x, shG.x, shB.x), vec3(0.0));
     vec3 l1Y = vec3(shR.y, shG.y, shB.y);
     vec3 l1Z = vec3(shR.z, shG.z, shB.z);
     vec3 l1X = vec3(shR.w, shG.w, shB.w);
     vec3 l1Length = sqrt(l1X * l1X + l1Y * l1Y + l1Z * l1Z);
     vec3 l1Scale = min(vec3(1.0), l0 / max(l1Length, vec3(1e-4)));
-    irradiance = l0 +
-        l1Y * l1Scale * normalWS.y +
-        l1Z * l1Scale * normalWS.z +
-        l1X * l1Scale * normalWS.x;
+    return max(l0 + l1Y * l1Scale * normalWS.y + l1Z * l1Scale * normalWS.z + l1X * l1Scale * normalWS.x, vec3(0.0));
+}
+
+vec3 getGlobalDiffuseIrradiance(vec3 normalWS){
+    #ifdef SCENE_USE_SH
+        return getLightProbeIrradiance(scene_EnvSH, normalWS);
+    #else
+        return scene_EnvMapLight.diffuse * PI;
+    #endif
+}
+
+vec3 addDynamicSkyIrradiance(vec3 staticIrradiance, vec4 skyData, vec3 normalWS){
+    float skyOcclusion = clamp(
+        skyData.x + skyData.y * normalWS.y + skyData.z * normalWS.z + skyData.w * normalWS.x,
+        0.0,
+        1.0
+    );
+    if (skyOcclusion <= 0.0) {
+        return staticIrradiance;
+    }
+    return staticIrradiance +
+        getGlobalDiffuseIrradiance(normalWS) * scene_EnvMapLight.diffuseIntensity * skyOcclusion;
+}
+
+bool sampleProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 irradiance){
+    #ifdef SCENE_PROBE_VOLUME_PER_RENDERER
+        irradiance = addDynamicSkyIrradiance(
+            evaluateProbeL1(renderer_ProbeVolumeSHR, renderer_ProbeVolumeSHG, renderer_ProbeVolumeSHB, normalWS),
+            renderer_ProbeVolumeSky,
+            normalWS
+        );
+        return renderer_ProbeVolumeWeight > 0.0;
+    #else
+    vec3 biasedPositionWS = positionWS + normalWS * scene_ProbeVolumeNormalBias + viewDirWS * scene_ProbeVolumeViewBias;
+    vec3 samplePosition = (scene_ProbeVolumeWorldToLocal * vec4(biasedPositionWS, 1.0)).xyz;
+    vec3 probeCoord = vec3(0.0);
+    vec4 cellParameters = vec4(0.0);
+    bool foundCell = false;
+    float nearestCellDistance = 1e20;
+    for (int cellIndex = 0; cellIndex < PROBE_VOLUME_MAX_ACTIVE_CELLS; cellIndex++) {
+        if (cellIndex >= scene_ProbeVolumeCellCount) {
+            break;
+        }
+        vec3 candidateCoord = (samplePosition - scene_ProbeVolumeCellOrigins[cellIndex].xyz) * scene_ProbeVolumeInverseSpacing;
+        vec3 maxProbeCoord = scene_ProbeVolumeCellParameters[cellIndex].xyz - 1.0;
+        vec3 clampedCoord = clamp(candidateCoord, vec3(0.0), maxProbeCoord);
+        float cellDistance = length(candidateCoord - clampedCoord);
+        if (cellDistance <= 1.0 && cellDistance < nearestCellDistance) {
+            probeCoord = clampedCoord;
+            cellParameters = scene_ProbeVolumeCellParameters[cellIndex];
+            foundCell = true;
+            nearestCellDistance = cellDistance;
+        }
+    }
+    if (!foundCell) {
+        irradiance = vec3(0.0);
+        return false;
+    }
+    vec2 atlasCoord = vec2(probeCoord.x, probeCoord.y + cellParameters.w);
+    vec2 uv = (atlasCoord + 0.5) / scene_ProbeVolumeAtlasDimensions.xy;
+    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z, cellParameters.z);
+    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z, cellParameters.z);
+    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z, cellParameters.z);
+    vec4 skyData = sampleProbeVolumeTexture(scene_ProbeVolumeSkyTexture, uv, probeCoord.z, cellParameters.z);
+    irradiance = addDynamicSkyIrradiance(evaluateProbeL1(shR, shG, shB, normalWS), skyData, normalWS);
     return true;
+    #endif
 }
 #endif
 
 
 void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 diffuseColor){
+    #ifdef SCENE_USE_PROBE_VOLUME
+        vec3 irradiance = getGlobalDiffuseIrradiance(surfaceData.normal);
+    #elif defined(SCENE_USE_SH)
+        vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
+    #else
+        vec3 irradiance = scene_EnvMapLight.diffuse * PI;
+    #endif
+    irradiance *= scene_EnvMapLight.diffuseIntensity;
+
     #if defined(SCENE_USE_PROBE_VOLUME) && !defined(MATERIAL_DISABLE_PROBE_VOLUME)
     vec3 probeIrradiance;
-    if (sampleProbeVolume(surfaceData.position, surfaceData.normal, surfaceData.viewDir, probeIrradiance)) {
-        vec3 irradiance = probeIrradiance;
-        irradiance *= scene_EnvMapLight.diffuseIntensity;
-        diffuseColor += bsdfData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( bsdfData.diffuseColor );
-        return;
-    }
-    #endif
-
-    #ifdef SCENE_USE_SH
-        vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
-        irradiance *= scene_EnvMapLight.diffuseIntensity;
+    bool hasProbe;
+    #if defined(SCENE_PROBE_VOLUME_PER_VERTEX) && defined(RENDERER_HAS_NORMAL)
+        probeIrradiance = varyings.probeIrradiance;
+        hasProbe = varyings.probeWeight > 0.999 && dot(probeIrradiance, vec3(1.0)) > 1e-5;
+        if (!hasProbe) {
+            // Large editor meshes can have every vertex outside the volume even
+            // when most fragments are inside. Keep those boundary primitives correct.
+            hasProbe = sampleProbeVolume(surfaceData.position, surfaceData.normal, surfaceData.viewDir, probeIrradiance);
+        }
     #else
-       vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
-       irradiance *= PI;
+        hasProbe = sampleProbeVolume(surfaceData.position, surfaceData.normal, surfaceData.viewDir, probeIrradiance);
+    #endif
+    if (hasProbe) {
+        irradiance = probeIrradiance;
+    }
     #endif
     diffuseColor += bsdfData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( bsdfData.diffuseColor );
 }

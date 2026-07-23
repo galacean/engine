@@ -1,4 +1,4 @@
-import { Matrix, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
+import { Matrix, SphericalHarmonics3, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -6,11 +6,14 @@ import { Texture2DArray } from "../../texture/Texture2DArray";
 import { TextureFilterMode } from "../../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../../texture/enums/TextureWrapMode";
+import { ProbeVolumeSamplingMode } from "./ProbeVolumeSamplingMode";
 
 const _halfF32 = new Float32Array(1);
 const _halfI32 = new Int32Array(_halfF32.buffer);
 const _l1CoefficientCount = 12;
+const _probeDataStride = 16;
 const _webGL2MinimumArrayTextureLayers = 256;
+const _maximumActiveCells = 16;
 
 /** Number of cells covered by a probe brick on each axis. */
 export const ProbeBrickCellCount = 3;
@@ -34,6 +37,11 @@ export interface ProbeBrickData {
   visibility?: Float32Array[];
   /** Optional bake-time probe confidence in the range [0, 1]. */
   validity?: Float32Array;
+  /**
+   * Pre-convolved directional sky occlusion for each probe.
+   * Four values are stored per probe in constant, y, z, x order.
+   */
+  skyOcclusionSH?: Float32Array;
 }
 
 /** Serializable probe brick data. */
@@ -43,12 +51,29 @@ export interface ProbeBrickDataJSON {
   sphericalHarmonics: (SphericalHarmonics3 | number[])[];
   visibility?: (Float32Array | number[])[];
   validity?: Float32Array | number[];
+  skyOcclusionSH?: Float32Array | number[];
+}
+
+/** Independently streamable group of probe bricks. */
+export interface ProbeVolumeCellData {
+  /** Integer cell coordinate in probe-local space. */
+  coordinate: Vector3;
+  bricks: ProbeBrickData[];
+}
+
+/** Serializable independently streamable probe cell. */
+export interface ProbeVolumeCellDataJSON {
+  coordinate: Vector3 | number[] | { x: number; y: number; z: number };
+  bricks: ProbeBrickDataJSON[];
 }
 
 /** Serializable probe volume data. */
 export interface ProbeVolumeJSON {
+  version?: number;
   minBrickSize: number;
-  bricks: ProbeBrickDataJSON[];
+  bricks?: ProbeBrickDataJSON[];
+  cellSize?: number;
+  cells?: ProbeVolumeCellDataJSON[];
   localToWorldMatrix?: Matrix | number[];
   normalBias?: number;
   viewBias?: number;
@@ -56,22 +81,23 @@ export interface ProbeVolumeJSON {
   visibilityBias?: number;
 }
 
-interface ProbeVolumeGPUResources {
-  shRTexture: Texture2DArray;
-  shGTexture: Texture2DArray;
-  shBTexture: Texture2DArray;
-  origin: Vector3;
-  dimensions: Vector3;
+interface ProbeVolumeRuntimeResources {
+  shRTexture: Texture2DArray | null;
+  shGTexture: Texture2DArray | null;
+  shBTexture: Texture2DArray | null;
+  skyTexture: Texture2DArray | null;
+  cells: RuntimeProbeCell[];
+  atlasDimensions: Vector3;
   inverseSpacing: number;
+  cellOrigins: Float32Array;
+  cellParameters: Float32Array;
 }
 
-interface DenseProbeGrid {
+interface RuntimeProbeCell {
   origin: Vector3;
   dimensions: Vector3;
-  inverseSpacing: number;
-  shRData: Uint16Array;
-  shGData: Uint16Array;
-  shBData: Uint16Array;
+  atlasYOffset: number;
+  probeData: Float32Array;
 }
 
 /**
@@ -81,15 +107,28 @@ interface DenseProbeGrid {
  */
 export class ProbeVolume {
   private static _enableMacro = "SCENE_USE_PROBE_VOLUME";
+  private static _perRendererMacro = "SCENE_PROBE_VOLUME_PER_RENDERER";
+  private static _perVertexMacro = "SCENE_PROBE_VOLUME_PER_VERTEX";
   private static _shRTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSHRTexture");
   private static _shGTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSHGTexture");
   private static _shBTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSHBTexture");
-  private static _originProperty = ShaderProperty.getByName("scene_ProbeVolumeOrigin");
-  private static _dimensionsProperty = ShaderProperty.getByName("scene_ProbeVolumeDimensions");
+  private static _skyTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSkyTexture");
+  private static _cellOriginsProperty = ShaderProperty.getByName("scene_ProbeVolumeCellOrigins");
+  private static _cellParametersProperty = ShaderProperty.getByName("scene_ProbeVolumeCellParameters");
+  private static _cellCountProperty = ShaderProperty.getByName("scene_ProbeVolumeCellCount");
+  private static _atlasDimensionsProperty = ShaderProperty.getByName("scene_ProbeVolumeAtlasDimensions");
   private static _inverseSpacingProperty = ShaderProperty.getByName("scene_ProbeVolumeInverseSpacing");
   private static _normalBiasProperty = ShaderProperty.getByName("scene_ProbeVolumeNormalBias");
   private static _viewBiasProperty = ShaderProperty.getByName("scene_ProbeVolumeViewBias");
   private static _worldToLocalProperty = ShaderProperty.getByName("scene_ProbeVolumeWorldToLocal");
+  private static _localToWorldProperty = ShaderProperty.getByName("scene_ProbeVolumeLocalToWorld");
+  private static _rendererSHRProperty = ShaderProperty.getByName("renderer_ProbeVolumeSHR");
+  private static _rendererSHGProperty = ShaderProperty.getByName("renderer_ProbeVolumeSHG");
+  private static _rendererSHBProperty = ShaderProperty.getByName("renderer_ProbeVolumeSHB");
+  private static _rendererSkyProperty = ShaderProperty.getByName("renderer_ProbeVolumeSky");
+  private static _rendererWeightProperty = ShaderProperty.getByName("renderer_ProbeVolumeWeight");
+  private static _rendererLocalPosition = new Vector3();
+  private static _rendererSample = new Float32Array(_probeDataStride);
 
   /** Smallest brick size in probe-local units. */
   minBrickSize: number;
@@ -101,11 +140,23 @@ export class ProbeVolume {
   visibilityBias: number;
   /** Probe bricks. */
   bricks: ProbeBrickData[];
+  /** Independently streamable probe cells. */
+  cells: ProbeVolumeCellData[];
+  /** Size of one streaming cell in probe-local units. */
+  cellSize: number;
+  private _samplingMode: ProbeVolumeSamplingMode = ProbeVolumeSamplingMode.PerVertex;
+  /** Maximum Chebyshev distance, in cells, loaded around the streaming anchor. */
+  streamingRadius = 1;
+  /** Maximum number of cells resident on the GPU. */
+  maxActiveCells = _maximumActiveCells;
 
   private _localToWorldMatrix: Matrix;
   private _worldToLocalMatrix = new Matrix();
   private _engine: Engine | null = null;
-  private _resources: ProbeVolumeGPUResources | null = null;
+  private _resources: ProbeVolumeRuntimeResources | null = null;
+  private _streamingAnchor = new Vector3();
+  private _hasStreamingAnchor = false;
+  private _activeCellIndices: number[] = [];
   private _dirty = true;
 
   /**
@@ -123,8 +174,11 @@ export class ProbeVolume {
     this.viewBias = 0;
     this.visibilityBias = minBrickSize * 0.05;
     this.bricks = normalizeBricks(bricks);
+    this.cellSize = minBrickSize * 12;
+    this.cells = partitionBricks(this.bricks, this.cellSize);
     this._localToWorldMatrix = localToWorldMatrix.clone();
     this._validateTransform();
+    this._selectActiveCells();
   }
 
   /** Transform from probe-local space to world space. Re-bake lighting after changing it. */
@@ -139,10 +193,46 @@ export class ProbeVolume {
     this._localToWorldMatrix.copyFrom(value);
   }
 
+  /** Runtime sampling quality. Per-vertex is the mobile default. */
+  get samplingMode(): ProbeVolumeSamplingMode {
+    return this._samplingMode;
+  }
+
+  set samplingMode(value: ProbeVolumeSamplingMode) {
+    if (this._samplingMode !== value) {
+      this._samplingMode = value;
+      this._dirty = true;
+    }
+  }
+
   /** Replace all brick data and rebuild GPU resources before the next render. */
   setBricks(bricks: ProbeBrickData[]): void {
     this.bricks = normalizeBricks(bricks);
+    this.cells = partitionBricks(this.bricks, this.cellSize);
+    this._selectActiveCells();
     this._dirty = true;
+  }
+
+  /** Replace streamable cells and rebuild runtime resources before the next render. */
+  setCells(cells: ProbeVolumeCellData[], cellSize: number = this.cellSize): void {
+    if (!(cellSize > 0)) {
+      throw new Error("ProbeVolume cellSize must be greater than zero.");
+    }
+    this.cellSize = cellSize;
+    this.cells = normalizeCells(cells);
+    this.bricks = this.cells.flatMap((cell) => cell.bricks);
+    this._selectActiveCells();
+    this._dirty = true;
+  }
+
+  /** Select nearby streamable cells around a world-space anchor. */
+  updateStreamingAnchor(position: Vector3): void {
+    Matrix.invert(this._localToWorldMatrix, this._worldToLocalMatrix);
+    Vector3.transformCoordinate(position, this._worldToLocalMatrix, this._streamingAnchor);
+    this._hasStreamingAnchor = true;
+    if (this._selectActiveCells()) {
+      this._dirty = true;
+    }
   }
 
   /** Mark mutated brick SH data for GPU re-upload. */
@@ -160,15 +250,21 @@ export class ProbeVolume {
   static fromJSON(data: ProbeVolumeJSON): ProbeVolume {
     const volume = new ProbeVolume(
       data.minBrickSize,
-      data.bricks.map((brick) => ({
-        position: toVector3(brick.position),
-        subdivisionLevel: brick.subdivisionLevel,
-        sphericalHarmonics: brick.sphericalHarmonics.map(toSphericalHarmonics3),
-        visibility: brick.visibility?.map((distances) => new Float32Array(distances)),
-        validity: brick.validity ? new Float32Array(brick.validity) : undefined
-      })),
+      (data.bricks || []).map(parseBrickJSON),
       toMatrix(data.localToWorldMatrix)
     );
+    if (data.cells) {
+      volume.setCells(
+        data.cells.map((cell) => ({
+          coordinate: toVector3(cell.coordinate),
+          bricks: cell.bricks.map(parseBrickJSON)
+        })),
+        data.cellSize ?? volume.cellSize
+      );
+    } else if (data.cellSize) {
+      volume.cellSize = data.cellSize;
+      volume.setBricks(volume.bricks);
+    }
     volume.normalBias = data.normalBias ?? volume.normalBias;
     volume.viewBias = data.viewBias ?? volume.viewBias;
     volume.visibilityBias = data.visibilityBias ?? volume.visibilityBias;
@@ -177,7 +273,10 @@ export class ProbeVolume {
 
   /** @internal */
   _updateShaderData(engine: Engine, shaderData: ShaderData): boolean {
-    if (!engine._hardwareRenderer.isWebGL2 || this.bricks.length === 0) {
+    if (
+      (!engine._hardwareRenderer.isWebGL2 && this.samplingMode !== ProbeVolumeSamplingMode.PerRenderer) ||
+      this.bricks.length === 0
+    ) {
       this._unbindShaderData(shaderData);
       return false;
     }
@@ -188,7 +287,9 @@ export class ProbeVolume {
     const resources = this._resources;
     if (
       resources &&
-      (resources.shRTexture.isContentLost || resources.shGTexture.isContentLost || resources.shBTexture.isContentLost)
+      [resources.shRTexture, resources.shGTexture, resources.shBTexture, resources.skyTexture].some(
+        (texture) => texture?.isContentLost
+      )
     ) {
       this._dirty = true;
     }
@@ -208,23 +309,58 @@ export class ProbeVolume {
   /** @internal */
   _unbindShaderData(shaderData: ShaderData): void {
     shaderData.disableMacro(ProbeVolume._enableMacro);
+    shaderData.disableMacro(ProbeVolume._perRendererMacro);
+    shaderData.disableMacro(ProbeVolume._perVertexMacro);
     shaderData.setTexture(ProbeVolume._shRTextureProperty, null);
     shaderData.setTexture(ProbeVolume._shGTextureProperty, null);
     shaderData.setTexture(ProbeVolume._shBTextureProperty, null);
+    shaderData.setTexture(ProbeVolume._skyTextureProperty, null);
   }
 
-  private _bindShaderData(shaderData: ShaderData, resources: ProbeVolumeGPUResources): void {
+  /** @internal */
+  _updateRendererShaderData(shaderData: ShaderData, position: Vector3): void {
+    if (this.samplingMode !== ProbeVolumeSamplingMode.PerRenderer || !this._resources) {
+      return;
+    }
+    Matrix.invert(this._localToWorldMatrix, this._worldToLocalMatrix);
+    const localPosition = ProbeVolume._rendererLocalPosition;
+    Vector3.transformCoordinate(position, this._worldToLocalMatrix, localPosition);
+    const sample = ProbeVolume._rendererSample;
+    const weight = sampleRuntimeCells(this._resources.cells, this._resources.inverseSpacing, localPosition, sample);
+    const shR = getOrCreateVector4(shaderData, ProbeVolume._rendererSHRProperty);
+    const shG = getOrCreateVector4(shaderData, ProbeVolume._rendererSHGProperty);
+    const shB = getOrCreateVector4(shaderData, ProbeVolume._rendererSHBProperty);
+    writeL1Vector(shR, sample, 0);
+    writeL1Vector(shG, sample, 1);
+    writeL1Vector(shB, sample, 2);
+    const sky = getOrCreateVector4(shaderData, ProbeVolume._rendererSkyProperty);
+    sky.set(sample[12], sample[13], sample[14], sample[15]);
+    shaderData.setFloat(ProbeVolume._rendererWeightProperty, weight);
+  }
+
+  private _bindShaderData(shaderData: ShaderData, resources: ProbeVolumeRuntimeResources): void {
     this._validateTransform();
     shaderData.setTexture(ProbeVolume._shRTextureProperty, resources.shRTexture);
     shaderData.setTexture(ProbeVolume._shGTextureProperty, resources.shGTexture);
     shaderData.setTexture(ProbeVolume._shBTextureProperty, resources.shBTexture);
-    shaderData.setVector3(ProbeVolume._originProperty, resources.origin);
-    shaderData.setVector3(ProbeVolume._dimensionsProperty, resources.dimensions);
+    shaderData.setTexture(ProbeVolume._skyTextureProperty, resources.skyTexture);
+    shaderData.setFloatArray(ProbeVolume._cellOriginsProperty, resources.cellOrigins);
+    shaderData.setFloatArray(ProbeVolume._cellParametersProperty, resources.cellParameters);
+    shaderData.setInt(ProbeVolume._cellCountProperty, resources.cells.length);
+    shaderData.setVector3(ProbeVolume._atlasDimensionsProperty, resources.atlasDimensions);
     shaderData.setFloat(ProbeVolume._inverseSpacingProperty, resources.inverseSpacing);
     shaderData.setFloat(ProbeVolume._normalBiasProperty, this.normalBias);
     shaderData.setFloat(ProbeVolume._viewBiasProperty, this.viewBias);
     Matrix.invert(this._localToWorldMatrix, this._worldToLocalMatrix);
     shaderData.setMatrix(ProbeVolume._worldToLocalProperty, this._worldToLocalMatrix);
+    shaderData.setMatrix(ProbeVolume._localToWorldProperty, this._localToWorldMatrix);
+    shaderData.disableMacro(ProbeVolume._perRendererMacro);
+    shaderData.disableMacro(ProbeVolume._perVertexMacro);
+    if (this.samplingMode === ProbeVolumeSamplingMode.PerRenderer) {
+      shaderData.enableMacro(ProbeVolume._perRendererMacro);
+    } else if (this.samplingMode === ProbeVolumeSamplingMode.PerVertex) {
+      shaderData.enableMacro(ProbeVolume._perVertexMacro);
+    }
     shaderData.enableMacro(ProbeVolume._enableMacro);
   }
 
@@ -234,28 +370,90 @@ export class ProbeVolume {
     }
   }
 
-  private _createResources(engine: Engine): ProbeVolumeGPUResources {
-    const grid = buildDenseProbeGrid(this.bricks, this.minBrickSize);
+  private _createResources(engine: Engine): ProbeVolumeRuntimeResources {
+    const grids = this._activeCellIndices.map((index) =>
+      buildDenseProbeGrid(this.cells[index].bricks, this.minBrickSize)
+    );
+    if (grids.length === 0) {
+      return {
+        shRTexture: null,
+        shGTexture: null,
+        shBTexture: null,
+        skyTexture: null,
+        cells: [],
+        atlasDimensions: new Vector3(1, 1, 1),
+        inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
+        cellOrigins: new Float32Array(_maximumActiveCells * 4),
+        cellParameters: new Float32Array(_maximumActiveCells * 4)
+      };
+    }
+    const atlasWidth = Math.max(...grids.map((grid) => grid.dimensions.x));
+    const atlasHeight = grids.reduce((sum, grid) => sum + grid.dimensions.y, 0);
+    const atlasLayers = Math.max(...grids.map((grid) => grid.dimensions.z));
+    const atlasDimensions = new Vector3(atlasWidth, atlasHeight, atlasLayers);
     const maxTextureSize = Number(engine._hardwareRenderer.capability.maxTextureSize);
-    if (grid.dimensions.x > maxTextureSize || grid.dimensions.y > maxTextureSize) {
+    if (atlasWidth > maxTextureSize || atlasHeight > maxTextureSize) {
       throw new Error(
-        `ProbeVolume grid ${grid.dimensions.x}x${grid.dimensions.y} exceeds the device texture size limit ${maxTextureSize}.`
+        `ProbeVolume atlas ${atlasWidth}x${atlasHeight} exceeds the device texture size limit ${maxTextureSize}. Reduce the streaming radius or cell size.`
       );
     }
-    if (grid.dimensions.z > _webGL2MinimumArrayTextureLayers) {
+    if (atlasLayers > _webGL2MinimumArrayTextureLayers) {
       throw new Error(
-        `ProbeVolume grid requires ${grid.dimensions.z} array layers; this runtime supports up to ${_webGL2MinimumArrayTextureLayers}.`
+        `ProbeVolume cell requires ${atlasLayers} array layers; this runtime supports up to ${_webGL2MinimumArrayTextureLayers}.`
       );
     }
-
+    let yOffset = 0;
+    for (const grid of grids) {
+      grid.atlasYOffset = yOffset;
+      yOffset += grid.dimensions.y;
+    }
+    const { cellOrigins, cellParameters } = createCellMetadata(grids);
+    if (this.samplingMode === ProbeVolumeSamplingMode.PerRenderer) {
+      return {
+        shRTexture: null,
+        shGTexture: null,
+        shBTexture: null,
+        skyTexture: null,
+        cells: grids,
+        atlasDimensions,
+        inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
+        cellOrigins,
+        cellParameters
+      };
+    }
+    const atlas = packProbeAtlas(grids, atlasDimensions);
     return {
-      shRTexture: createSHTexture(engine, grid.dimensions, grid.shRData),
-      shGTexture: createSHTexture(engine, grid.dimensions, grid.shGData),
-      shBTexture: createSHTexture(engine, grid.dimensions, grid.shBData),
-      origin: grid.origin,
-      dimensions: grid.dimensions,
-      inverseSpacing: grid.inverseSpacing
+      shRTexture: createSHTexture(engine, atlasDimensions, atlas.shR),
+      shGTexture: createSHTexture(engine, atlasDimensions, atlas.shG),
+      shBTexture: createSHTexture(engine, atlasDimensions, atlas.shB),
+      skyTexture: createSkyTexture(engine, atlasDimensions, atlas.sky),
+      cells: grids,
+      atlasDimensions,
+      inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
+      cellOrigins,
+      cellParameters
     };
+  }
+
+  private _selectActiveCells(): boolean {
+    const previous = this._activeCellIndices.join(",");
+    const candidates = this.cells.map((cell, index) => {
+      const dx = Math.abs(cell.coordinate.x - Math.floor(this._streamingAnchor.x / this.cellSize));
+      const dy = Math.abs(cell.coordinate.y - Math.floor(this._streamingAnchor.y / this.cellSize));
+      const dz = Math.abs(cell.coordinate.z - Math.floor(this._streamingAnchor.z / this.cellSize));
+      return { index, horizontalDistance: Math.max(dx, dz), verticalDistance: dy };
+    });
+    candidates.sort(
+      (a, b) =>
+        a.horizontalDistance - b.horizontalDistance || a.verticalDistance - b.verticalDistance || a.index - b.index
+    );
+    const selected = this._hasStreamingAnchor
+      ? candidates.filter((candidate) => candidate.horizontalDistance <= this.streamingRadius)
+      : candidates;
+    this._activeCellIndices = selected
+      .slice(0, Math.min(this.maxActiveCells, _maximumActiveCells))
+      .map((candidate) => candidate.index);
+    return previous !== this._activeCellIndices.join(",");
   }
 
   private _releaseResources(): void {
@@ -263,14 +461,15 @@ export class ProbeVolume {
     if (!resources) {
       return;
     }
-    resources.shRTexture.destroy(true);
-    resources.shGTexture.destroy(true);
-    resources.shBTexture.destroy(true);
+    resources.shRTexture?.destroy(true);
+    resources.shGTexture?.destroy(true);
+    resources.shBTexture?.destroy(true);
+    resources.skyTexture?.destroy(true);
     this._resources = null;
   }
 }
 
-function buildDenseProbeGrid(bricks: ProbeBrickData[], minBrickSize: number): DenseProbeGrid {
+function buildDenseProbeGrid(bricks: ProbeBrickData[], minBrickSize: number): RuntimeProbeCell {
   const origin = new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
   const boundsMax = new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
   for (let i = 0; i < bricks.length; i++) {
@@ -334,12 +533,8 @@ function buildDenseProbeGrid(bricks: ProbeBrickData[], minBrickSize: number): De
     }
   }
 
-  const dataLength = dimensions.x * dimensions.y * dimensions.z * 4;
-  const shRData = new Uint16Array(dataLength);
-  const shGData = new Uint16Array(dataLength);
-  const shBData = new Uint16Array(dataLength);
   const probeCount = dimensions.x * dimensions.y * dimensions.z;
-  const coefficientData = new Float32Array(probeCount * _l1CoefficientCount);
+  const probeData = new Float32Array(probeCount * _probeDataStride);
   const confidenceData = new Float32Array(probeCount);
   for (let z = 0; z < dimensions.z; z++) {
     const localZ = origin.z + z / inverseSpacing;
@@ -355,34 +550,24 @@ function buildDenseProbeGrid(bricks: ProbeBrickData[], minBrickSize: number): De
           continue;
         }
         const probeIndex = x + dimensions.x * (y + dimensions.y * z);
-        confidenceData[probeIndex] = sampleBrickL1(
+        confidenceData[probeIndex] = sampleBrickData(
           bricks[ownerIndex],
           minBrickSize,
           localX,
           localY,
           localZ,
-          coefficientData.subarray(probeIndex * _l1CoefficientCount, (probeIndex + 1) * _l1CoefficientCount)
+          probeData.subarray(probeIndex * _probeDataStride, (probeIndex + 1) * _probeDataStride)
         );
       }
     }
   }
 
-  dilateInvalidProbeL1(coefficientData, confidenceData, dimensions);
-  for (let probeIndex = 0; probeIndex < probeCount; probeIndex++) {
-    const coefficients = coefficientData.subarray(
-      probeIndex * _l1CoefficientCount,
-      (probeIndex + 1) * _l1CoefficientCount
-    );
-    const offset = probeIndex * 4;
-    writeL1Channel(shRData, offset, coefficients, 0);
-    writeL1Channel(shGData, offset, coefficients, 1);
-    writeL1Channel(shBData, offset, coefficients, 2);
-  }
+  dilateInvalidProbeData(probeData, confidenceData, dimensions);
 
-  return { origin, dimensions, inverseSpacing, shRData, shGData, shBData };
+  return { origin, dimensions, atlasYOffset: 0, probeData };
 }
 
-function sampleBrickL1(
+function sampleBrickData(
   brick: ProbeBrickData,
   minBrickSize: number,
   localX: number,
@@ -391,7 +576,7 @@ function sampleBrickL1(
   out: Float32Array
 ): number {
   out.fill(0);
-  const validityWeighted = new Float32Array(_l1CoefficientCount);
+  const validityWeighted = new Float32Array(_probeDataStride);
   const brickSize = minBrickSize * Math.pow(ProbeBrickCellCount, brick.subdivisionLevel);
   const probeX = Math.max(
     0,
@@ -429,13 +614,19 @@ function sampleBrickL1(
           out[coefficient] += source[coefficient] * weight;
           validityWeighted[coefficient] += source[coefficient] * validityWeight;
         }
+        const skyOffset = probeIndex * 4;
+        for (let coefficient = 0; coefficient < 4; coefficient++) {
+          const value = brick.skyOcclusionSH?.[skyOffset + coefficient] ?? 0;
+          out[12 + coefficient] += value * weight;
+          validityWeighted[12 + coefficient] += value * validityWeight;
+        }
         totalValidityWeight += validityWeight;
       }
     }
   }
 
   if (totalValidityWeight > 1e-5) {
-    for (let coefficient = 0; coefficient < _l1CoefficientCount; coefficient++) {
+    for (let coefficient = 0; coefficient < _probeDataStride; coefficient++) {
       out[coefficient] = validityWeighted[coefficient] / totalValidityWeight;
     }
     return Math.min(totalValidityWeight, 1);
@@ -446,7 +637,7 @@ function sampleBrickL1(
   return 0;
 }
 
-function dilateInvalidProbeL1(coefficients: Float32Array, confidence: Float32Array, dimensions: Vector3): void {
+function dilateInvalidProbeData(data: Float32Array, confidence: Float32Array, dimensions: Vector3): void {
   const confidenceThreshold = 0.5;
   const probeCount = confidence.length;
   const nearestValid = new Int32Array(probeCount);
@@ -480,7 +671,7 @@ function dilateInvalidProbeL1(coefficients: Float32Array, confidence: Float32Arr
     if (z + 1 < dimensions.z) assignNearest(index + strideZ, index);
   }
 
-  const source = coefficients.slice();
+  const source = data.slice();
   for (let i = 0; i < probeCount; i++) {
     if (confidence[i] >= confidenceThreshold) {
       continue;
@@ -490,10 +681,10 @@ function dilateInvalidProbeL1(coefficients: Float32Array, confidence: Float32Arr
       continue;
     }
     const retainedWeight = Math.max(0, confidence[i] / confidenceThreshold);
-    const destinationOffset = i * _l1CoefficientCount;
-    const sourceOffset = sourceIndex * _l1CoefficientCount;
-    for (let coefficient = 0; coefficient < _l1CoefficientCount; coefficient++) {
-      coefficients[destinationOffset + coefficient] =
+    const destinationOffset = i * _probeDataStride;
+    const sourceOffset = sourceIndex * _probeDataStride;
+    for (let coefficient = 0; coefficient < _probeDataStride; coefficient++) {
+      data[destinationOffset + coefficient] =
         source[sourceOffset + coefficient] * (1 - retainedWeight) +
         source[destinationOffset + coefficient] * retainedWeight;
     }
@@ -521,9 +712,39 @@ function normalizeBricks(bricks: ProbeBrickData[]): ProbeBrickData[] {
       subdivisionLevel: brick.subdivisionLevel,
       sphericalHarmonics: brick.sphericalHarmonics.map((sh) => sh.clone()),
       visibility: normalizeVisibility(brick.visibility, index),
-      validity: normalizeValidity(brick.validity, index)
+      validity: normalizeValidity(brick.validity, index),
+      skyOcclusionSH: normalizeSkyOcclusionSH(brick.skyOcclusionSH, index)
     };
   });
+}
+
+function normalizeCells(cells: ProbeVolumeCellData[]): ProbeVolumeCellData[] {
+  return cells.map((cell, index) => {
+    const coordinate = cell.coordinate.clone();
+    if (![coordinate.x, coordinate.y, coordinate.z].every(Number.isInteger)) {
+      throw new Error(`ProbeVolume cell ${index} coordinate must contain integers.`);
+    }
+    return { coordinate, bricks: normalizeBricks(cell.bricks) };
+  });
+}
+
+function partitionBricks(bricks: ProbeBrickData[], cellSize: number): ProbeVolumeCellData[] {
+  const cells = new Map<string, ProbeVolumeCellData>();
+  for (const brick of bricks) {
+    const coordinate = new Vector3(
+      Math.floor(brick.position.x / cellSize),
+      Math.floor(brick.position.y / cellSize),
+      Math.floor(brick.position.z / cellSize)
+    );
+    const key = `${coordinate.x},${coordinate.y},${coordinate.z}`;
+    let cell = cells.get(key);
+    if (!cell) {
+      cell = { coordinate, bricks: [] };
+      cells.set(key, cell);
+    }
+    cell.bricks.push(brick);
+  }
+  return Array.from(cells.values());
 }
 
 function normalizeValidity(validity: Float32Array | undefined, brickIndex: number): Float32Array | undefined {
@@ -537,6 +758,25 @@ function normalizeValidity(validity: Float32Array | undefined, brickIndex: numbe
   for (let i = 0; i < copy.length; i++) {
     if (!Number.isFinite(copy[i]) || copy[i] < 0 || copy[i] > 1) {
       throw new Error(`ProbeVolume brick ${brickIndex} validity value ${i} must be in the range [0, 1].`);
+    }
+  }
+  return copy;
+}
+
+function normalizeSkyOcclusionSH(values: Float32Array | undefined, brickIndex: number): Float32Array | undefined {
+  if (!values) {
+    return undefined;
+  }
+  const coefficientCount = ProbeBrickProbeCount * 4;
+  if (values.length !== coefficientCount) {
+    throw new Error(
+      `ProbeVolume brick ${brickIndex} must contain exactly ${coefficientCount} directional sky occlusion values.`
+    );
+  }
+  const copy = new Float32Array(values);
+  for (let i = 0; i < copy.length; i++) {
+    if (!Number.isFinite(copy[i])) {
+      throw new Error(`ProbeVolume brick ${brickIndex} directional sky occlusion value ${i} must be finite.`);
     }
   }
   return copy;
@@ -576,6 +816,143 @@ function createSHTexture(engine: Engine, dimensions: Vector3, data: Uint16Array)
   return texture;
 }
 
+function createSkyTexture(engine: Engine, dimensions: Vector3, data: Uint16Array): Texture2DArray {
+  const texture = new Texture2DArray(
+    engine,
+    dimensions.x,
+    dimensions.y,
+    dimensions.z,
+    TextureFormat.R16G16B16A16,
+    false,
+    false
+  );
+  texture.filterMode = TextureFilterMode.Bilinear;
+  texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
+  texture.setPixelBuffer(0, data, 0, 0, 0, dimensions.x, dimensions.y, dimensions.z);
+  return texture;
+}
+
+function packProbeAtlas(
+  cells: RuntimeProbeCell[],
+  dimensions: Vector3
+): { shR: Uint16Array; shG: Uint16Array; shB: Uint16Array; sky: Uint16Array } {
+  const texelCount = dimensions.x * dimensions.y * dimensions.z;
+  const shR = new Uint16Array(texelCount * 4);
+  const shG = new Uint16Array(texelCount * 4);
+  const shB = new Uint16Array(texelCount * 4);
+  const sky = new Uint16Array(texelCount * 4);
+  for (const cell of cells) {
+    for (let z = 0; z < cell.dimensions.z; z++) {
+      for (let y = 0; y < cell.dimensions.y; y++) {
+        for (let x = 0; x < cell.dimensions.x; x++) {
+          const sourceIndex = x + cell.dimensions.x * (y + cell.dimensions.y * z);
+          const destinationIndex = x + dimensions.x * (y + cell.atlasYOffset + dimensions.y * z);
+          const sourceOffset = sourceIndex * _probeDataStride;
+          const destinationOffset = destinationIndex * 4;
+          const values = cell.probeData.subarray(sourceOffset, sourceOffset + _probeDataStride);
+          writeL1Channel(shR, destinationOffset, values, 0);
+          writeL1Channel(shG, destinationOffset, values, 1);
+          writeL1Channel(shB, destinationOffset, values, 2);
+          sky[destinationOffset] = toHalf(values[12]);
+          sky[destinationOffset + 1] = toHalf(values[13]);
+          sky[destinationOffset + 2] = toHalf(values[14]);
+          sky[destinationOffset + 3] = toHalf(values[15]);
+        }
+      }
+    }
+  }
+  return { shR, shG, shB, sky };
+}
+
+function createCellMetadata(cells: RuntimeProbeCell[]): { cellOrigins: Float32Array; cellParameters: Float32Array } {
+  const cellOrigins = new Float32Array(_maximumActiveCells * 4);
+  const cellParameters = new Float32Array(_maximumActiveCells * 4);
+  for (let i = 0; i < cells.length; i++) {
+    const cell = cells[i];
+    const offset = i * 4;
+    cellOrigins[offset] = cell.origin.x;
+    cellOrigins[offset + 1] = cell.origin.y;
+    cellOrigins[offset + 2] = cell.origin.z;
+    cellParameters[offset] = cell.dimensions.x;
+    cellParameters[offset + 1] = cell.dimensions.y;
+    cellParameters[offset + 2] = cell.dimensions.z;
+    cellParameters[offset + 3] = cell.atlasYOffset;
+  }
+  return { cellOrigins, cellParameters };
+}
+
+function sampleRuntimeCells(
+  cells: RuntimeProbeCell[],
+  inverseSpacing: number,
+  position: Vector3,
+  out: Float32Array
+): number {
+  out.fill(0);
+  let selectedCell: RuntimeProbeCell | undefined;
+  let selectedX = 0;
+  let selectedY = 0;
+  let selectedZ = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (const cell of cells) {
+    const px = (position.x - cell.origin.x) * inverseSpacing;
+    const py = (position.y - cell.origin.y) * inverseSpacing;
+    const pz = (position.z - cell.origin.z) * inverseSpacing;
+    const cx = Math.max(0, Math.min(cell.dimensions.x - 1, px));
+    const cy = Math.max(0, Math.min(cell.dimensions.y - 1, py));
+    const cz = Math.max(0, Math.min(cell.dimensions.z - 1, pz));
+    const distance = Math.hypot(px - cx, py - cy, pz - cz);
+    if (distance <= 1 && distance < nearestDistance) {
+      selectedCell = cell;
+      selectedX = cx;
+      selectedY = cy;
+      selectedZ = cz;
+      nearestDistance = distance;
+    }
+  }
+  if (selectedCell) {
+    const x0 = Math.min(Math.floor(selectedX), selectedCell.dimensions.x - 2);
+    const y0 = Math.min(Math.floor(selectedY), selectedCell.dimensions.y - 2);
+    const z0 = Math.min(Math.floor(selectedZ), selectedCell.dimensions.z - 2);
+    const fx = selectedX - x0;
+    const fy = selectedY - y0;
+    const fz = selectedZ - z0;
+    for (let z = 0; z < 2; z++) {
+      const wz = z ? fz : 1 - fz;
+      for (let y = 0; y < 2; y++) {
+        const wy = y ? fy : 1 - fy;
+        for (let x = 0; x < 2; x++) {
+          const weight = (x ? fx : 1 - fx) * wy * wz;
+          const index = x0 + x + selectedCell.dimensions.x * (y0 + y + selectedCell.dimensions.y * (z0 + z));
+          const offset = index * _probeDataStride;
+          for (let component = 0; component < _probeDataStride; component++) {
+            out[component] += selectedCell.probeData[offset + component] * weight;
+          }
+        }
+      }
+    }
+    return 1;
+  }
+  return 0;
+}
+
+function writeL1Vector(out: Vector4, coefficients: Float32Array, channel: number): void {
+  out.set(
+    coefficients[channel] * 0.886227,
+    coefficients[3 + channel] * -1.023327,
+    coefficients[6 + channel] * 1.023327,
+    coefficients[9 + channel] * -1.023327
+  );
+}
+
+function getOrCreateVector4(shaderData: ShaderData, property: ShaderProperty): Vector4 {
+  let value = shaderData.getVector4(property);
+  if (!value) {
+    value = new Vector4();
+    shaderData.setVector4(property, value);
+  }
+  return value;
+}
+
 function writeL1Channel(out: Uint16Array, offset: number, coefficients: Float32Array, channel: number): void {
   out[offset] = toHalf(coefficients[channel] * 0.886227);
   out[offset + 1] = toHalf(coefficients[3 + channel] * -1.023327);
@@ -588,6 +965,17 @@ function toVector3(value: Vector3 | number[] | { x: number; y: number; z: number
     return value.clone();
   }
   return Array.isArray(value) ? new Vector3(value[0], value[1], value[2]) : new Vector3(value.x, value.y, value.z);
+}
+
+function parseBrickJSON(brick: ProbeBrickDataJSON): ProbeBrickData {
+  return {
+    position: toVector3(brick.position),
+    subdivisionLevel: brick.subdivisionLevel,
+    sphericalHarmonics: brick.sphericalHarmonics.map(toSphericalHarmonics3),
+    visibility: brick.visibility?.map((distances) => new Float32Array(distances)),
+    validity: brick.validity ? new Float32Array(brick.validity) : undefined,
+    skyOcclusionSH: brick.skyOcclusionSH ? new Float32Array(brick.skyOcclusionSH) : undefined
+  };
 }
 
 function toSphericalHarmonics3(value: SphericalHarmonics3 | number[]): SphericalHarmonics3 {

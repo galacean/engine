@@ -7,8 +7,16 @@ export {
   ProbeVisibilityResolution,
   ProbeVolume
 } from "./ProbeVolume";
-export type { ProbeBrickData, ProbeBrickDataJSON, ProbeVolumeJSON } from "./ProbeVolume";
+export type {
+  ProbeBrickData,
+  ProbeBrickDataJSON,
+  ProbeVolumeCellData,
+  ProbeVolumeCellDataJSON,
+  ProbeVolumeJSON
+} from "./ProbeVolume";
+export { ProbeVolumeBinary } from "./ProbeVolumeBinary";
+export { ProbeVolumeSamplingMode } from "./ProbeVolumeSamplingMode";
 export { ProbeVolumeBaker } from "./ProbeVolumeBaker";
-export type { ProbeBrickLayout, ProbeVolumeBakeOptions } from "./ProbeVolumeBaker";
+export type { ProbeBrickLayout, ProbeVolumeBakeOptions, ProbeVolumeBakeProgress } from "./ProbeVolumeBaker";
 export { ProbeVolumeRegion } from "./ProbeVolumeRegion";
 export type { EnvironmentState, EnvironmentWeather } from "./EnvironmentState";

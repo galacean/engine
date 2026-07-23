@@ -431,6 +431,7 @@ export class Renderer extends Component {
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+    this.scene.environmentLighting._updateRendererProbeData(this.shaderData, this.entity.transform.worldPosition);
   }
 
   /**
