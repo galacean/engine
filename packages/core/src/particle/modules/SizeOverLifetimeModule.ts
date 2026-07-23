@@ -136,7 +136,7 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
       const sizeZ = this.sizeZ;
 
       const separateAxes = this.separateAxes;
-      const isRandomCurveMode = this._isRandomMode();
+      const isRandomCurveMode = this._isRandomCurveMode();
 
       const isCurveMode =
         isRandomCurveMode ||
@@ -176,13 +176,11 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _isRandomMode(): boolean {
+  _isRandomCurveMode(): boolean {
     const { sizeX, sizeY, sizeZ, separateAxes } = this;
     return separateAxes
-      ? sizeX.mode === ParticleCurveMode.TwoCurves &&
-          sizeY.mode === ParticleCurveMode.TwoCurves &&
-          sizeZ.mode === ParticleCurveMode.TwoCurves
-      : sizeX.mode === ParticleCurveMode.TwoCurves;
+      ? sizeX._isRandomCurveMode() && sizeY._isRandomCurveMode() && sizeZ._isRandomCurveMode()
+      : sizeX._isRandomCurveMode();
   }
 
   /**

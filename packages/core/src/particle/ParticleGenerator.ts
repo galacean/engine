@@ -1014,7 +1014,7 @@ export class ParticleGenerator {
     const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
-    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomMode()) {
+    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomCurveMode()) {
       instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
     }
 
