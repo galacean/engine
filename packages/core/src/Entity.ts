@@ -21,6 +21,11 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
+
+  private static _isTransformType(type: ComponentConstructor): boolean {
+    return type === Transform || type.prototype instanceof Transform;
+  }
+
   /**
    * @internal
    */
@@ -233,10 +238,22 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name ?? "Entity";
-    for (let i = 0, n = components.length; i < n; i++) {
-      this.addComponent(components[i]);
+    let transformType: ComponentConstructor = Transform;
+    const n = components.length;
+    for (let i = n - 1; i >= 0; i--) {
+      const componentType = components[i];
+      if (Entity._isTransformType(componentType)) {
+        transformType = componentType;
+        break;
+      }
     }
-    !this._transform && this.addComponent(Transform);
+    this._transform = <Transform>this.addComponent(transformType);
+    for (let i = 0; i < n; i++) {
+      const componentType = components[i];
+      if (!Entity._isTransformType(componentType)) {
+        this.addComponent(componentType);
+      }
+    }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
@@ -247,12 +264,16 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
+    const needReplaceTransform = Entity._isTransformType(type) && this._transform;
+    if (needReplaceTransform)
+      ComponentsDependencies._removeCheck(this, <ComponentConstructor>this._transform.constructor, type);
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
-    this._components.push(component);
-
-    // @todo: temporary solution
-    if (component instanceof Transform) this._setTransform(component);
+    if (needReplaceTransform) {
+      this._replaceTransform(<Transform>component);
+    } else {
+      this._components.push(component);
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -510,9 +531,13 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
-    components.splice(components.indexOf(component), 1);
+    const index = components.indexOf(component);
+    // A replaced Transform is detached from the component slot immediately but
+    // can still reach here later because object destruction may be deferred.
+    if (index < 0) return;
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
+    components.splice(index, 1);
   }
 
   /**
@@ -743,15 +768,18 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransform(value: Transform): void {
+  private _replaceTransform(value: Transform): void {
     const previous = this._transform;
-    if (previous) {
-      value.position.copyFrom(previous.position);
-      value.rotationQuaternion.copyFrom(previous.rotationQuaternion);
-      value.scale.copyFrom(previous.scale);
-      previous.destroy();
-    }
+    value.position.copyFrom(previous.position);
+    value.rotationQuaternion.copyFrom(previous.rotationQuaternion);
+    value.scale.copyFrom(previous.scale);
+    // Keep the unique Transform in the same component slot. Detach the old
+    // instance before destroy because destroy can be deferred during a frame.
+    const components = this._components;
+    const previousIndex = components.indexOf(previous);
+    components[previousIndex] = value;
     this._transform = value;
+    previous.destroy();
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform?._parentChange();

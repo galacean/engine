@@ -1,5 +1,5 @@
-import { WebGLEngine } from "@galacean/engine";
-import { HorizontalAlignmentMode, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
+import { Entity, MeshRenderer, WebGLEngine } from "@galacean/engine";
+import { HorizontalAlignmentMode, Image, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UITransform", async () => {
@@ -404,6 +404,23 @@ describe("UITransform", async () => {
   });
 
   describe("clone", () => {
+    it("keeps component mapping after a renderer replaces Transform with UITransform", () => {
+      const original = new Entity(engine, "clone-transform-replacement");
+      original.addComponent(MeshRenderer);
+      original.addComponent(Image);
+
+      expect(original.transform).to.be.instanceOf(UITransform);
+      expect(original._components[0]).to.equal(original.transform);
+
+      const cloned = original.clone();
+      expect(cloned.transform).to.be.instanceOf(UITransform);
+      expect(cloned.getComponent(MeshRenderer)).not.to.equal(null);
+      expect(cloned.getComponent(Image)).not.to.equal(null);
+      expect(cloned._components.map((component) => component.constructor)).to.deep.equal(
+        original._components.map((component) => component.constructor)
+      );
+    });
+
     it("clones basic properties correctly", () => {
       const parent = root.createChild("clone-parent");
       parent.addComponent(UICanvas);
