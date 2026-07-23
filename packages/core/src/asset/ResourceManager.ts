@@ -631,7 +631,9 @@ const rePropName = RegExp(
 
 type VirtualPath = string;
 export interface VirtualResource {
+  /** Stable project-facing asset path, independent of build encoding and deployment. */
   virtualPath: string;
+  /** Physical load path or URL for the current build. */
   path: string;
   type: string;
   dependentAssetMap?: { [key: string]: string };
