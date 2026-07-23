@@ -1,7 +1,7 @@
 import { CloneMode } from "./enums/CloneMode";
 
 /** @internal */
-export const fieldModesKey = Symbol("fieldModes");
+export const fieldCloneModesKey = Symbol("fieldCloneModes");
 
 /**
  * Property decorator — deep clone this field's whole subtree, overriding the value type's default
@@ -42,12 +42,12 @@ export class CloneManager {
   static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
     // Each class gets its own field modes, prototypally chained to its parent's, so property
     // lookup resolves inheritance: a subclass re-decorating a field shadows the ancestor's.
-    if (!Object.prototype.hasOwnProperty.call(target, fieldModesKey)) {
-      Object.defineProperty(target, fieldModesKey, {
-        value: Object.create(target[fieldModesKey] ?? null),
+    if (!Object.prototype.hasOwnProperty.call(target, fieldCloneModesKey)) {
+      Object.defineProperty(target, fieldCloneModesKey, {
+        value: Object.create(target[fieldCloneModesKey] ?? null),
         configurable: true
       });
     }
-    target[fieldModesKey][propertyKey] = mode;
+    target[fieldCloneModesKey][propertyKey] = mode;
   }
 }

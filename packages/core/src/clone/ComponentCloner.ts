@@ -1,6 +1,6 @@
 import { Component } from "../Component";
 import { CloneUtil } from "./CloneUtil";
-import { fieldModesKey } from "./CloneManager";
+import { fieldCloneModesKey } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -27,7 +27,7 @@ export class ComponentCloner {
    * @param cloneMap - Identity map of the cloned subtree (source object → clone)
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    const fieldModes = (<any>source)[fieldModesKey];
+    const fieldModes = (<any>source)[fieldCloneModesKey];
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];

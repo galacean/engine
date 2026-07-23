@@ -10,7 +10,7 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
 import { ICustomClone } from "./ComponentCloner";
-import { fieldModesKey } from "./CloneManager";
+import { fieldCloneModesKey } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -22,7 +22,7 @@ export class CloneUtil {
    * @internal
    */
   static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>, forceDeepClone = false): void {
-    const fieldModes = source[fieldModesKey];
+    const fieldModes = source[fieldCloneModesKey];
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
