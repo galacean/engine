@@ -157,6 +157,22 @@ export class Collider extends Component implements ICustomClone {
     }
   }
 
+  /**
+   * @internal
+   */
+  _setNativeShapeAttached(shape: ColliderShape, attached: boolean): void {
+    const nativeShape = shape._nativeShape;
+    if (nativeShape && shape._isShapeAttached !== attached) {
+      if (attached) {
+        nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
+        this._nativeCollider.addShape(nativeShape);
+      } else {
+        this._nativeCollider.removeShape(nativeShape);
+      }
+      shape._isShapeAttached = attached;
+    }
+  }
+
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
@@ -181,18 +197,11 @@ export class Collider extends Component implements ICustomClone {
 
   protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
-    // A shape may already be attached by its own rebuild path (MeshColliderShape's mesh setter
-    // during clone) — attaching twice would duplicate it on the native actor.
-    if (shape._nativeShape && !shape._isShapeAttached) {
-      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      shape._attachToCollider();
-    }
+    this._setNativeShapeAttached(shape, true);
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
-    if (shape._nativeShape && shape._isShapeAttached) {
-      shape._detachFromCollider();
-    }
+    this._setNativeShapeAttached(shape, false);
     shape._collider = null;
   }
 

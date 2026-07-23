@@ -15,6 +15,7 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
+  @ignoreClone
   _collider: Collider;
   /** @internal */
   @ignoreClone
@@ -180,22 +181,6 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
       this._nativeShape = null;
     }
     delete Engine._physicalObjectsMap[this._id];
-  }
-
-  /**
-   * @internal
-   */
-  _attachToCollider(): void {
-    this._collider._nativeCollider.addShape(this._nativeShape);
-    this._isShapeAttached = true;
-  }
-
-  /**
-   * @internal
-   */
-  _detachFromCollider(): void {
-    this._collider._nativeCollider.removeShape(this._nativeShape);
-    this._isShapeAttached = false;
   }
 
   protected _syncNative(): void {

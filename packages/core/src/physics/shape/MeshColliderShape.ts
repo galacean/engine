@@ -128,9 +128,7 @@ export class MeshColliderShape extends ColliderShape {
 
   private _destroyNativeShape(): void {
     if (this._nativeShape) {
-      if (this._isShapeAttached) {
-        this._detachFromCollider();
-      }
+      this._collider?._setNativeShapeAttached(this, false);
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
@@ -164,21 +162,13 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   private _updateNativeShapeData(): void {
-    if (
-      (<IMeshColliderShape>this._nativeShape).setMeshData(
-        this._positions,
-        this._indices,
-        this._isConvex,
-        this._cookingFlags
-      )
-    ) {
-      // Re-add to collider if previously removed due to cooking failure
-      if (this._collider && !this._isShapeAttached) {
-        this._attachToCollider();
-      }
-    } else if (this._isShapeAttached) {
-      this._detachFromCollider();
-    }
+    const succeeded = (<IMeshColliderShape>this._nativeShape).setMeshData(
+      this._positions,
+      this._indices,
+      this._isConvex,
+      this._cookingFlags
+    );
+    this._collider?._setNativeShapeAttached(this, succeeded);
   }
 
   private _createNativeShape(): void {
@@ -206,10 +196,6 @@ export class MeshColliderShape extends ColliderShape {
     // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
 
-    // If already attached to a collider, add the newly created native shape to it
-    if (this._collider) {
-      nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-      this._attachToCollider();
-    }
+    this._collider?._setNativeShapeAttached(this, true);
   }
 }

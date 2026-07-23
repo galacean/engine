@@ -490,6 +490,31 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
     });
 
+    it("should clone triangle mesh after the kinematic owner state is copied", () => {
+      const entity = root.createChild("clonedKinematicMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = true;
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      meshShape.mesh = mesh;
+      dynamicCollider.addShape(meshShape);
+
+      const errorSpy = vi.spyOn(console, "error");
+      const clone = entity.clone();
+      root.addChild(clone);
+      const clonedCollider = clone.getComponent(DynamicCollider);
+
+      expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining("Non-convex MeshColliderShape"));
+      expect((clonedCollider as any)._nativeCollider._shapes.length).toBe(1);
+
+      errorSpy.mockRestore();
+      clone.destroy();
+      entity.destroy();
+      meshMaterial?.destroy();
+    });
+
     it("should NOT log error when adding convex mesh to non-kinematic DynamicCollider", () => {
       const errorSpy = vi.spyOn(console, "error");
 
@@ -782,7 +807,7 @@ describe("MeshColliderShape PhysX", () => {
 
       const clonedShape = clone.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
       expect(clonedShape).not.toBe(shape);
-      // The rebuilt native shape must be attached exactly once (setter attaches; _syncNative skips).
+      // The cloned collider establishes the owner backlink and attaches the rebuilt shape once
       expect((clone.getComponent(StaticCollider) as any)._nativeCollider._shapes.length).toBe(1);
       clonedShape.mesh = meshB;
       expect(meshA.refCount).toBe(1);
