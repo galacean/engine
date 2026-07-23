@@ -2,28 +2,58 @@
 import { Engine, Entity, MeshRenderer, Texture2D } from "@galacean/engine-core";
 import { Vector4 } from "@galacean/engine-math";
 import type { HeightfieldWaterMaterialConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
+import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type {
   HeightfieldWaterCompiledChunk,
   HeightfieldWaterCompiledData
 } from "../../compiler/heightfield/HeightfieldWaterCompiledTypes";
+import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../optics/WaterOpticalProfile";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
+import type {
+  WaterOpticsTier,
+  WaterSurfaceOpticsBinding,
+  WaterSurfaceOpticsBindingReadback
+} from "../optics/WaterSurfaceOpticsTypes";
 import {
   createHeightfieldWaterMaterial,
-  setHeightfieldWaterDebugMode,
+  setHeightfieldWaterCompositionMode,
+  setHeightfieldWaterDepthWriteEnabled,
   setHeightfieldWaterFeatureFlags,
+  setHeightfieldWaterLocalFoamMask,
+  setHeightfieldWaterOpticsCalibrationMode,
+  setHeightfieldWaterSurfaceOpticsBinding,
   setHeightfieldWaterSurfaceTimeOverride,
   updateHeightfieldWaterMaterial
 } from "./HeightfieldWaterMaterialFactory";
-import { HeightfieldWaterDebugMode } from "./HeightfieldWaterRuntimeEnums";
+import {
+  HeightfieldWaterCompositionMode,
+  HeightfieldWaterDebugMode,
+  HeightfieldWaterOpticsCalibrationMode
+} from "./HeightfieldWaterRuntimeEnums";
 import { createHeightfieldWaterLocalMapTexture } from "./HeightfieldWaterLocalMapTextureFactory";
 import { uploadHeightfieldWaterMesh } from "./HeightfieldWaterMeshUploader";
 import { HeightfieldWaterBaseQueryService } from "./HeightfieldWaterQueryService";
 import { HeightfieldWaterSurfaceProvider } from "./HeightfieldWaterSurfaceProvider";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
-import { HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS, HEIGHTFIELD_WATER_SHADER_PROPERTY } from "./constants";
+import {
+  DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
+  writeHeightfieldWaterReflectionSamplingSettings,
+  type HeightfieldWaterReflectionSamplingConfig,
+  type HeightfieldWaterReflectionSamplingReadback,
+  type HeightfieldWaterReflectionSamplingSettings
+} from "./HeightfieldWaterReflectionSampling";
+import {
+  DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK,
+  HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS,
+  HEIGHTFIELD_WATER_SHADER_PROPERTY
+} from "./constants";
 import type {
   HeightfieldWaterFeatureFlags,
+  HeightfieldWaterLocalFoamMask,
   HeightfieldWaterMaterialState,
-  HeightfieldWaterMeshBuildResult
+  HeightfieldWaterMeshBuildResult,
+  HeightfieldWaterOpticsCalibrationReadback,
+  MutableHeightfieldWaterSurfaceOpticsBinding
 } from "./types";
 
 interface MutableHeightfieldWaterChunk {
@@ -41,6 +71,8 @@ interface MutableHeightfieldWaterRuntimeSet {
   readonly localMapTexture: Texture2D;
   readonly queryService: HeightfieldWaterBaseQueryService;
   readonly surfaceProvider: HeightfieldWaterSurfaceProvider;
+  reflectionSampling: Readonly<HeightfieldWaterReflectionSamplingReadback>;
+  surfaceOpticsReadback: Readonly<WaterSurfaceOpticsBindingReadback>;
 }
 
 export interface HeightfieldWaterRuntimeActivation {
@@ -78,12 +110,32 @@ export class HeightfieldWaterRuntimeController {
   private _destroyed = false;
   private _meshUploadCount = 0;
   private _debugMode = HeightfieldWaterDebugMode.Final;
+  private _refractionEnabled = true;
+  private _compositionMode = HeightfieldWaterCompositionMode.LegacyAlpha;
+  private _depthWriteEnabled = false;
+  private _renderPriority = 0;
+  private _opticsCalibrationMode = HeightfieldWaterOpticsCalibrationMode.None;
   private _featureFlags: HeightfieldWaterFeatureFlags = Object.freeze({
     waves: true,
     microNormals: true,
     foam: true
   });
+  private _localFoamMask: Readonly<HeightfieldWaterLocalFoamMask> = DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK;
   private _surfaceTimeOverride?: number;
+  private _requestedOpticsTier?: WaterOpticsTier;
+  private _opticalProfile: WaterOpticalProfile = DEFAULT_WATER_OPTICAL_PROFILE;
+  private _reflectionBinding?: Readonly<WaterReflectionBinding>;
+  private readonly _reflectionSamplingSettings: HeightfieldWaterReflectionSamplingSettings = {
+    ...DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
+  };
+  private readonly _surfaceOpticsBinding: MutableHeightfieldWaterSurfaceOpticsBinding = {
+    tier: "medium",
+    opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+    refractionEnabled: true,
+    reflection: undefined,
+    reflectionSampling: DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
+    debugView: HeightfieldWaterDebugMode.Final
+  };
 
   constructor(
     private readonly _engine: Engine,
@@ -108,6 +160,71 @@ export class HeightfieldWaterRuntimeController {
 
   get activeChunkCount(): number {
     return this._activeSet?.chunks.length ?? 0;
+  }
+
+  /** Exact shared profile reference currently applied to every retained runtime set. */
+  get opticalProfile(): WaterOpticalProfile {
+    return this._opticalProfile;
+  }
+
+  get refractionEnabled(): boolean {
+    return this._refractionEnabled;
+  }
+
+  get localFoamMask(): Readonly<HeightfieldWaterLocalFoamMask> {
+    return this._localFoamMask;
+  }
+
+  /** Exact service binding reference most recently applied to every retained runtime set. */
+  get reflectionBinding(): Readonly<WaterReflectionBinding> | undefined {
+    return this._reflectionBinding;
+  }
+
+  /** Sanitized requested sampling settings, including the High-only filter request. */
+  get reflectionSamplingSettings(): Readonly<HeightfieldWaterReflectionSamplingSettings> {
+    return this._reflectionSamplingSettings;
+  }
+
+  /** Exact effective source, texture size, fades, distortion, and sample count of the active material. */
+  get activeReflectionSampling(): Readonly<HeightfieldWaterReflectionSamplingReadback> | undefined {
+    return this._activeSet?.reflectionSampling;
+  }
+
+  /** Stable shared P1 readback owned by the active Heightfield material. */
+  get activeSurfaceOpticsReadback(): Readonly<WaterSurfaceOpticsBindingReadback> | undefined {
+    return this._activeSet?.surfaceOpticsReadback;
+  }
+
+  get compositionMode(): HeightfieldWaterCompositionMode {
+    return this._compositionMode;
+  }
+
+  get depthWriteEnabled(): boolean {
+    return this._depthWriteEnabled;
+  }
+
+  /** Configured renderer priority retained for both active and future chunks. */
+  get renderPriority(): number {
+    return this._renderPriority;
+  }
+
+  /** Actual active priority when every submitted chunk agrees; absent before activation or on drift. */
+  get activeRenderPriority(): number | undefined {
+    const chunks = this._activeSet?.chunks;
+    if (!chunks || chunks.length === 0) return undefined;
+    const priority = chunks[0].renderer.priority;
+    return chunks.every((chunk) => chunk.renderer.priority === priority) ? priority : undefined;
+  }
+
+  /** Actual active material Blend state, used by the deterministic composition/order Gate. */
+  get activeBlendEnabled(): boolean | undefined {
+    const material = this._activeSet?.material.material;
+    return material ? material.shaderData.getInt(HEIGHTFIELD_WATER_SHADER_PROPERTY.blendEnabled) !== 0 : undefined;
+  }
+
+  /** Stable calibration readback of the active material; absent before first activation. */
+  get activeOpticsCalibrationReadback(): Readonly<HeightfieldWaterOpticsCalibrationReadback> | undefined {
+    return this._activeSet?.material.opticsCalibrationReadback;
   }
 
   /** Monotonic upload count; it changes only when a new chunk mesh is submitted. */
@@ -136,6 +253,7 @@ export class HeightfieldWaterRuntimeController {
       resource.release();
       throw error;
     }
+    root.layer = this._root.layer;
     root.isActive = false;
     let localMapTexture: Texture2D | undefined;
     let material: HeightfieldWaterMaterialState | undefined;
@@ -157,9 +275,14 @@ export class HeightfieldWaterRuntimeController {
         localMapTexture
       );
       material.material.isGCIgnored = true;
-      setHeightfieldWaterDebugMode(material, this._debugMode);
+      const surfaceOpticsReadback = this._applySurfaceOpticsBinding(material);
+      setHeightfieldWaterCompositionMode(material, this._compositionMode);
+      setHeightfieldWaterDepthWriteEnabled(material, this._depthWriteEnabled);
+      setHeightfieldWaterOpticsCalibrationMode(material, this._opticsCalibrationMode);
       setHeightfieldWaterFeatureFlags(material, this._featureFlags);
+      setHeightfieldWaterLocalFoamMask(material, this._localFoamMask);
       setHeightfieldWaterSurfaceTimeOverride(material, this._surfaceTimeOverride);
+      const reflectionSampling = material.heightfieldReflectionReadback;
       let sliceStart = now();
       for (const chunk of data.chunks) {
         if (isCancelled()) throw new HeightfieldWaterRuntimeSubmissionCancelledError();
@@ -199,7 +322,9 @@ export class HeightfieldWaterRuntimeController {
         material,
         localMapTexture,
         queryService,
-        surfaceProvider
+        surfaceProvider,
+        reflectionSampling,
+        surfaceOpticsReadback
       };
       if (isCancelled()) throw new HeightfieldWaterRuntimeSubmissionCancelledError();
       this._deactivateAll();
@@ -237,10 +362,76 @@ export class HeightfieldWaterRuntimeController {
     this._activeSet.surfaceProvider.setMaterial(config);
   }
 
+  setOpticalProfile(profile: WaterOpticalProfile): void {
+    this._opticalProfile = profile;
+    this._refreshSurfaceOpticsBindings();
+  }
+
+  /** Applies a fresh service binding even when the service mutates and reuses the same object. */
+  setReflectionBinding(binding?: Readonly<WaterReflectionBinding>): void {
+    this._reflectionBinding = binding;
+    this._refreshSurfaceOpticsBindings();
+  }
+
+  setReflectionSamplingConfig(config: HeightfieldWaterReflectionSamplingConfig): void {
+    writeHeightfieldWaterReflectionSamplingSettings(config, this._reflectionSamplingSettings);
+    this._refreshSurfaceOpticsBindings();
+  }
+
   setDebugMode(mode: HeightfieldWaterDebugMode): void {
     this._debugMode = mode;
+    this._refreshSurfaceOpticsBindings();
+  }
+
+  setRefractionEnabled(enabled: boolean): void {
+    this._refractionEnabled = enabled;
+    this._refreshSurfaceOpticsBindings();
+  }
+
+  /** Replaces the complete shared P1 contract; legacy setters update the same cached binding. */
+  setSurfaceOpticsBinding(binding: Readonly<WaterSurfaceOpticsBinding>): void {
+    this._requestedOpticsTier = binding.tier;
+    this._opticalProfile = binding.opticalProfile;
+    this._refractionEnabled = binding.refractionEnabled;
+    this._reflectionBinding = binding.reflection;
+    writeHeightfieldWaterReflectionSamplingSettings(
+      binding.reflectionSampling ?? DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
+      this._reflectionSamplingSettings
+    );
+    this._debugMode = binding.debugView as HeightfieldWaterDebugMode;
+    this._refreshSurfaceOpticsBindings();
+  }
+
+  setCompositionMode(mode: HeightfieldWaterCompositionMode): void {
+    this._compositionMode = mode;
     for (const runtimeSet of this._runtimeSets.values()) {
-      setHeightfieldWaterDebugMode(runtimeSet.material, mode);
+      setHeightfieldWaterCompositionMode(runtimeSet.material, mode);
+    }
+  }
+
+  setDepthWriteEnabled(enabled: boolean): void {
+    this._depthWriteEnabled = enabled;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      setHeightfieldWaterDepthWriteEnabled(runtimeSet.material, enabled);
+    }
+  }
+
+  setRenderPriority(priority: number): void {
+    if (!Number.isFinite(priority)) throw new RangeError("Heightfield water render priority must be finite.");
+    this._renderPriority = priority;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const chunk of runtimeSet.chunks) chunk.renderer.priority = priority;
+    }
+  }
+
+  setOpticsCalibrationMode(mode: HeightfieldWaterOpticsCalibrationMode): void {
+    this._opticsCalibrationMode =
+      mode === HeightfieldWaterOpticsCalibrationMode.CpuReference ||
+      mode === HeightfieldWaterOpticsCalibrationMode.PureTransmission
+        ? mode
+        : HeightfieldWaterOpticsCalibrationMode.None;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      setHeightfieldWaterOpticsCalibrationMode(runtimeSet.material, this._opticsCalibrationMode);
     }
   }
 
@@ -250,6 +441,27 @@ export class HeightfieldWaterRuntimeController {
       setHeightfieldWaterFeatureFlags(runtimeSet.material, flags);
       runtimeSet.surfaceProvider.setWavesEnabled(flags.waves);
     }
+  }
+
+  setLocalFoamMask(mask: Readonly<HeightfieldWaterLocalFoamMask>): void {
+    const snapshot = Object.freeze({
+      enabled: mask.enabled === true,
+      centerXZ: Object.freeze([mask.centerXZ[0], mask.centerXZ[1]] as const),
+      halfSizeXZ: Object.freeze([mask.halfSizeXZ[0], mask.halfSizeXZ[1]] as const),
+      featherMeters: mask.featherMeters
+    });
+    const values = [...snapshot.centerXZ, ...snapshot.halfSizeXZ, snapshot.featherMeters];
+    if (
+      values.some((value) => !Number.isFinite(value)) ||
+      snapshot.halfSizeXZ[0] < 0 ||
+      snapshot.halfSizeXZ[1] < 0 ||
+      snapshot.featherMeters < 0
+    ) {
+      throw new RangeError("Heightfield local foam mask values must be finite and non-negative.");
+    }
+    for (const runtimeSet of this._runtimeSets.values())
+      setHeightfieldWaterLocalFoamMask(runtimeSet.material, snapshot);
+    this._localFoamMask = snapshot;
   }
 
   setSurfaceTimeOverride(elapsedTime?: number): void {
@@ -277,6 +489,26 @@ export class HeightfieldWaterRuntimeController {
     this._pendingResourceGc = true;
   }
 
+  private _applySurfaceOpticsBinding(
+    material: HeightfieldWaterMaterialState
+  ): Readonly<WaterSurfaceOpticsBindingReadback> {
+    const binding = this._surfaceOpticsBinding;
+    binding.tier = this._requestedOpticsTier ?? (material.quality === WaterQualityTier.High ? "high" : "medium");
+    binding.opticalProfile = this._opticalProfile;
+    binding.refractionEnabled = this._refractionEnabled;
+    binding.reflection = this._reflectionBinding;
+    binding.reflectionSampling = this._reflectionSamplingSettings;
+    binding.debugView = this._debugMode;
+    return setHeightfieldWaterSurfaceOpticsBinding(material, binding);
+  }
+
+  private _refreshSurfaceOpticsBindings(): void {
+    for (const runtimeSet of this._runtimeSets.values()) {
+      runtimeSet.surfaceOpticsReadback = this._applySurfaceOpticsBinding(runtimeSet.material);
+      runtimeSet.reflectionSampling = runtimeSet.material.heightfieldReflectionReadback;
+    }
+  }
+
   private _createChunk(
     chunk: HeightfieldWaterCompiledChunk,
     runtimeRoot: Entity,
@@ -285,8 +517,10 @@ export class HeightfieldWaterRuntimeController {
     boundsPadding: number
   ): MutableHeightfieldWaterChunk {
     const root = runtimeRoot.createChild(`heightfield-water-chunk-${chunk.id}`);
+    root.layer = runtimeRoot.layer;
     root.transform.setPosition(chunk.localOrigin[0], chunk.localOrigin[1], chunk.localOrigin[2]);
     const renderer = root.addComponent(MeshRenderer);
+    renderer.priority = this._renderPriority;
     const meshes = uploadHeightfieldWaterMesh(this._engine, chunk.geometry, { releaseCpuData, boundsPadding });
     meshes.surfaceMesh.isGCIgnored = true;
     renderer.mesh = meshes.surfaceMesh;

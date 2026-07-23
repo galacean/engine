@@ -35,7 +35,8 @@ function notifyGallery(caseId: string): void {
 
 notifyGallery(activeCase.id);
 
-const template = document.getElementById(`water-pcg-${activeCase.kind}-template`);
+const templateKind = activeCase.kind === "p1-showcase" ? "interactive-pool" : activeCase.kind;
+const template = document.getElementById(`water-pcg-${templateKind}-template`);
 if (!(template instanceof HTMLTemplateElement)) {
   throw new Error(`Water PCG ${activeCase.kind} template is missing.`);
 }
@@ -55,6 +56,9 @@ switch (activeCase.kind) {
   case "wiki":
     void import("./wiki/main");
     break;
+  case "optics-lab":
+    void import("./examples/water-optics-lab/main");
+    break;
   case "heightfield":
     void import("./heightfield/main");
     break;
@@ -62,6 +66,7 @@ switch (activeCase.kind) {
     void import("./buoyancy/main");
     break;
   case "interactive-pool":
+  case "p1-showcase":
     void import("./pool/main");
     break;
   default:

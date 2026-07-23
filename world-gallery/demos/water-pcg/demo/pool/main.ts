@@ -16,21 +16,148 @@ import { WaterDecorationStyle } from "../decoration/constants";
 import { indoorReflectivePoolExample } from "../examples/pool/indoorReflectivePool";
 import { InteractivePoolSurfaceController } from "./InteractivePoolSurfaceController";
 import { PoolBallSpawner } from "./PoolBallSpawner";
+import { PoolBodyFleet } from "./PoolBodyFleet";
+import {
+  POOL_P1_BODY_COUNTS,
+  resolvePoolP1DeviceDefaults,
+  resolvePoolP1ShowcaseConfig,
+  type PoolLocalEffectsDebugView,
+  type PoolP1BodyCount
+} from "./PoolP1ShowcaseConfig";
 import { PoolPhysicsSceneController } from "./PoolPhysicsSceneController";
-import type { InteractivePoolGridQuality, InteractivePoolMetrics } from "./types";
+import { TemporalFoamTextureService } from "./TemporalFoamTextureService";
+import type {
+  InteractivePoolGridQuality,
+  InteractivePoolMetrics,
+  InteractivePoolOpticalContinuityReadback,
+  InteractivePoolOpticalMediumReadback,
+  InteractivePoolP1Metrics,
+  InteractivePoolUnderwaterPreset
+} from "./types";
 import { getWaterBodyCapabilities } from "../../runtime/body/WaterBodyCapabilities";
 import { WaterBodyRuntimeAdapter } from "../../runtime/body/WaterBodyRuntime";
 import { WaterP0DebugController } from "../../runtime/body/WaterP0DebugApi";
 import { WaterWorld } from "../../runtime/body/WaterWorld";
+import { SurfaceDepthWaterVolumeProvider } from "../../runtime/body/SurfaceDepthWaterVolumeProvider";
+import { CameraWaterFeatureBroker } from "../../runtime/optics/CameraWaterFeatureBroker";
+import { UnderwaterController } from "../../runtime/optics/UnderwaterController";
+import {
+  createResolvedWaterOpticalProfileFingerprint,
+  UnderwaterPostProcessPass
+} from "../../runtime/optics/UnderwaterPostProcessPass";
+import { evaluateWaterOpticalMedium, type WaterOpticalProfile } from "../../runtime/optics/WaterOpticalProfile";
+import { resolveWaterSurfaceOpticalProfile } from "../../runtime/optics/WaterSurfaceOpticsBinding";
+import {
+  WaterOpticsDebugView,
+  type ResolvedWaterOpticalProfile,
+  type WaterOpticsTier
+} from "../../runtime/optics/WaterSurfaceOpticsTypes";
+import { RectangularWaterDeformationProvider } from "../../runtime/interaction/RectangularWaterDeformationProvider";
+import { TemporalFoamField } from "../../runtime/interaction/TemporalFoamField";
+import {
+  PoolSurfaceUploadStrategy,
+  resolvePoolSurfaceUploadPolicy
+} from "../../runtime/interaction/PoolSurfaceUploadPolicy";
+import {
+  WaterInteractionEventKind,
+  WaterInteractionEventQueue,
+  createWaterInteractionEvent,
+  type WaterInteractionEventConsumer
+} from "../../runtime/interaction/WaterInteractionEventQueue";
+import { WaterInteractionSinkAdapter } from "../../runtime/interaction/WaterInteractionSinkAdapter";
+import { WaterLocalFieldComposer } from "../../runtime/interaction/WaterLocalFieldComposer";
+import { WaterLocalModifierChannel } from "../../runtime/interaction/WaterLocalFieldProvider";
+import { WaterLocalModifierBlendMode } from "../../runtime/interaction/WaterLocalModifier";
+import { WaterSurfaceCurrentFieldProvider } from "../../runtime/interaction/WaterSurfaceCurrentFieldProvider";
+import { createUniformWaterCurrentFieldSnapshot } from "../../runtime/interaction/WaterCurrentFieldSnapshot";
+import { POOL_WATER_OPTICAL_PROFILE } from "./PoolWaterOptics";
 
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] };
 
 const search = new URLSearchParams(window.location.search);
-const quality: InteractivePoolGridQuality = search.get("quality") === "low" ? "low" : "medium";
+const browserDevice = navigator as Navigator & { readonly deviceMemory?: number };
+const p1DeviceDefaults = resolvePoolP1DeviceDefaults({
+  hardwareConcurrency: navigator.hardwareConcurrency,
+  deviceMemoryGb: browserDevice.deviceMemory
+});
+const p1RouteSelected = window.location.hash.replace(/^#/, "") === "p1-water-showcase";
+const requestedQuality = search.get("quality");
+const quality: InteractivePoolGridQuality =
+  requestedQuality === "low" || requestedQuality === "medium" || requestedQuality === "high"
+    ? requestedQuality
+    : p1RouteSelected
+      ? p1DeviceDefaults.quality
+      : "medium";
+const p1Config = resolvePoolP1ShowcaseConfig(window.location, p1DeviceDefaults.bodyCount);
 const resolutionX = quality === "low" ? 65 : 129;
 const resolutionZ = quality === "low" ? 27 : 53;
+const P1_EVENT_QUEUE_CAPACITY = 128;
+const P1_EMITTER_CAPACITY = 16;
+const P1_FOAM_RESOLUTION_X = 128;
+const P1_FOAM_RESOLUTION_Z = 64;
+const POOL_UNIFORM_CURRENT_EPSILON = 1e-5;
+const OPTICAL_CONTINUITY_DISTANCE_METERS = 1.25;
+const OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR = Object.freeze([0.62, 0.48, 0.31] as const);
 const centerQueryPosition = new Vector3();
 const centerSurfaceSample = createWaterSurfaceSample();
+
+function snapshotResolvedOpticalProfile(
+  profile: Readonly<ResolvedWaterOpticalProfile>
+): Readonly<ResolvedWaterOpticalProfile> {
+  return Object.freeze({
+    absorptionCoefficient: Object.freeze([...profile.absorptionCoefficient] as [number, number, number]),
+    scatteringColor: Object.freeze([...profile.scatteringColor] as [number, number, number]),
+    scatteringCoefficient: profile.scatteringCoefficient,
+    maximumViewDistance: profile.maximumViewDistance,
+    indexOfRefraction: profile.indexOfRefraction,
+    fresnelF0: profile.fresnelF0,
+    maximumSurfaceOpticalDistance: profile.maximumSurfaceOpticalDistance,
+    refractionStrength: profile.refractionStrength,
+    roughness: profile.roughness,
+    reflectionIntensity: profile.reflectionIntensity
+  });
+}
+
+function resolvedProfileValues(profile: Readonly<ResolvedWaterOpticalProfile>): readonly number[] {
+  return [
+    ...profile.absorptionCoefficient,
+    ...profile.scatteringColor,
+    profile.scatteringCoefficient,
+    profile.maximumViewDistance,
+    profile.indexOfRefraction,
+    profile.fresnelF0,
+    profile.maximumSurfaceOpticalDistance,
+    profile.refractionStrength,
+    profile.roughness,
+    profile.reflectionIntensity
+  ];
+}
+
+function maximumAbsoluteDelta(left: readonly number[], right: readonly number[]): number {
+  if (left.length !== right.length) return Number.POSITIVE_INFINITY;
+  let maximum = 0;
+  for (let index = 0; index < left.length; index++) maximum = Math.max(maximum, Math.abs(left[index] - right[index]));
+  return maximum;
+}
+
+function evaluateOpticalContinuityMedium(profile: WaterOpticalProfile): Readonly<InteractivePoolOpticalMediumReadback> {
+  const outColor = { red: 0, green: 0, blue: 0 };
+  evaluateWaterOpticalMedium(
+    profile,
+    OPTICAL_CONTINUITY_DISTANCE_METERS,
+    {
+      red: OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR[0],
+      green: OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR[1],
+      blue: OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR[2]
+    },
+    outColor
+  );
+  return Object.freeze({
+    opticalDistanceMeters: OPTICAL_CONTINUITY_DISTANCE_METERS,
+    sourceLinearColor: OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR,
+    mediumLinearColor: Object.freeze([outColor.red, outColor.green, outColor.blue] as const)
+  });
+}
 
 const metrics: Mutable<InteractivePoolMetrics> = {
   ready: false,
@@ -66,6 +193,58 @@ const metrics: Mutable<InteractivePoolMetrics> = {
   physicsFixedTimeStep: 0,
   renderFrameCount: 0,
   targetFrameRate: 60
+};
+
+const p1Metrics: Mutable<InteractivePoolP1Metrics> = {
+  enabled: p1Config.enabled,
+  bodyCount: p1Config.bodyCount,
+  bodyCountSelection: p1Config.bodyCountSelection,
+  additionalBodyCount: 0,
+  drivingBodyCount: 0,
+  submergedBodyCount: 0,
+  maximumHorizontalSpeed: 0,
+  dynamicEffectsEnabled: p1Config.enabled,
+  modifierCount: 0,
+  queueCapacity: P1_EVENT_QUEUE_CAPACITY,
+  emitterCapacity: P1_EMITTER_CAPACITY,
+  queuedEventCount: 0,
+  acceptedEventCount: 0,
+  droppedEventCount: 0,
+  aggregatedEventCount: 0,
+  stationaryRejectedEventCount: 0,
+  peakQueuedEventCount: 0,
+  debugView: p1Config.localEffectsDebugView,
+  temporalFoamEnabled: p1Config.temporalFoamEnabled && quality !== "low",
+  foamSourceInjectionCount: 0,
+  foamActiveHistoryPixelCount: 0,
+  foamPeakHistoryValue: 0,
+  foamHistoryEnergy: 0,
+  foamActiveLifetimeSeconds: 0,
+  foamMaximumLifetimeSeconds: 0,
+  foamCentroidDriftDistance: 0,
+  foamUpdateCount: 0,
+  foamIdleSkipCount: 0,
+  foamTextureUploadsPerRenderFrame: 0,
+  foamTextureUploadCount: 0,
+  foamResourceBytes: 0,
+  foamCurrentSnapshotKind: "none",
+  foamCurrentSnapshotRevision: -1,
+  foamCurrentSnapshotBuildCount: 0,
+  foamCurrentLookupCount: 0,
+  foamFullSurfaceQueryCount: 0,
+  foamTargetUpdateRateHz: 0,
+  foamRateLimitedFrameCount: 0,
+  foamLastStepDeltaSeconds: 0,
+  surfaceUploadStrategy: PoolSurfaceUploadStrategy.CpuInterpolated,
+  surfaceUploadPolicySelection: "caller-fallback",
+  estimatedSurfaceUploadBytesPerFrame: 0,
+  querySource: "cpu-height-field",
+  requiresGpuReadback: false,
+  surfaceOpticsRequestedTier: "medium",
+  surfaceOpticsResolvedTier: "medium",
+  surfaceReflectionSource: "sky",
+  surfaceRefractionEnabled: true,
+  sharesUnderwaterOpticalProfile: true
 };
 
 function createMetricsSnapshot(): InteractivePoolMetrics {
@@ -152,8 +331,16 @@ async function bootstrapInteractivePool(): Promise<void> {
   orbit.target.set(...indoorReflectivePoolExample.view.cameraTarget);
   orbit.minDistance = 8;
   orbit.maxDistance = 150;
-  const cameraFeatures = new RiverCameraFeatureController(camera);
+  const cameraFeatureBroker = new CameraWaterFeatureBroker(camera);
+  cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
+  const syncCameraFeatureViewport = (): void =>
+    cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
+  window.addEventListener("resize", syncCameraFeatureViewport);
+  const cameraFeatures = new RiverCameraFeatureController(camera, cameraFeatureBroker);
   cameraFeatures.apply(true, reach.config.quality.material.level);
+  const underwaterPass = new UnderwaterPostProcessPass(engine);
+  underwaterPass.setOpticalProfile(POOL_WATER_OPTICAL_PROFILE);
+  engine.addPostProcessPass(underwaterPass);
 
   const riverRoot = root.createChild("interactive-pool-river-base");
   const riverRuntime = new RiverRuntimeController(engine, riverRoot);
@@ -174,6 +361,30 @@ async function bootstrapInteractivePool(): Promise<void> {
   const axisZ = lastSample.position[2] - firstSample.position[2];
   const axisLength = Math.hypot(axisX, axisZ);
   if (axisLength <= Number.EPSILON) throw new Error("Indoor pool reach has no horizontal direction.");
+  const referenceCurrentX = firstSample.tangent[0] * firstSample.flowSpeed;
+  const referenceCurrentZ = firstSample.tangent[2] * firstSample.flowSpeed;
+  if (
+    p1Config.enabled &&
+    samples.some(
+      (sample) =>
+        Math.hypot(
+          sample.tangent[0] * sample.flowSpeed - referenceCurrentX,
+          sample.tangent[2] * sample.flowSpeed - referenceCurrentZ
+        ) > POOL_UNIFORM_CURRENT_EPSILON
+    )
+  ) {
+    throw new Error("Interactive pool temporal foam requires one uniform compiled horizontal current.");
+  }
+  const temporalFoamCurrentSnapshot = p1Config.enabled
+    ? createUniformWaterCurrentFieldSnapshot({
+        revision: 0,
+        currentX: referenceCurrentX,
+        currentZ: referenceCurrentZ
+      })
+    : undefined;
+  p1Metrics.foamCurrentSnapshotKind = temporalFoamCurrentSnapshot?.kind ?? "none";
+  p1Metrics.foamCurrentSnapshotRevision = temporalFoamCurrentSnapshot?.revision ?? -1;
+  p1Metrics.foamCurrentSnapshotBuildCount = temporalFoamCurrentSnapshot ? 1 : 0;
   const heightField = new RectangularWaterHeightField({
     centerX: layout.position[0],
     centerZ: layout.position[2],
@@ -190,23 +401,55 @@ async function bootstrapInteractivePool(): Promise<void> {
     interactionQueueCapacity: 8
   });
   const provider = new InteractivePoolSurfaceProvider(baseProvider, heightField);
-  const waterWorld = new WaterWorld();
+  const volumeProvider = new SurfaceDepthWaterVolumeProvider(provider);
   const halfLength = layout.length * 0.5;
   const halfWidth = layout.width * 0.5;
   const extentX = Math.abs(axisX / axisLength) * halfLength + Math.abs(axisZ / axisLength) * halfWidth;
   const extentZ = Math.abs(axisZ / axisLength) * halfLength + Math.abs(axisX / axisLength) * halfWidth;
+  const poolBounds = Object.freeze({
+    minX: layout.position[0] - extentX,
+    minZ: layout.position[2] - extentZ,
+    maxX: layout.position[0] + extentX,
+    maxZ: layout.position[2] + extentZ
+  });
+  const localField = new WaterLocalFieldComposer("interactive-pool");
+  const deformationProvider = new RectangularWaterDeformationProvider(heightField);
+  const currentProvider = new WaterSurfaceCurrentFieldProvider(provider);
+  localField.register(
+    {
+      id: "interactive-pool-current",
+      bodyId: "interactive-pool",
+      bounds: poolBounds,
+      channels: WaterLocalModifierChannel.CurrentLarge,
+      priority: 0,
+      blendMode: WaterLocalModifierBlendMode.Add,
+      dynamic: false
+    },
+    currentProvider
+  );
+  localField.register(
+    {
+      id: "interactive-pool-deformation",
+      bodyId: "interactive-pool",
+      bounds: poolBounds,
+      channels: WaterLocalModifierChannel.DisplacementY,
+      priority: 10,
+      blendMode: WaterLocalModifierBlendMode.Add,
+      dynamic: true
+    },
+    deformationProvider
+  );
+  const waterWorld = new WaterWorld();
   waterWorld.register(
     new WaterBodyRuntimeAdapter({
       id: "interactive-pool",
       type: "pool",
       capabilities: getWaterBodyCapabilities("pool"),
       surface: provider,
-      bounds: {
-        minX: layout.position[0] - extentX,
-        minZ: layout.position[2] - extentZ,
-        maxX: layout.position[0] + extentX,
-        maxZ: layout.position[2] + extentZ
-      },
+      localField,
+      volume: volumeProvider,
+      opticalProfile: POOL_WATER_OPTICAL_PROFILE,
+      bounds: poolBounds,
       priority: 20,
       metrics: {
         meshUploadCount: 0,
@@ -224,15 +467,329 @@ async function bootstrapInteractivePool(): Promise<void> {
   const surfaceDriverEntity = root.createChild("interactive-pool-surface-driver");
   const surfaceController = surfaceDriverEntity.addComponent(InteractivePoolSurfaceController);
   surfaceController.configure({ engine, parent: root, compiledData: data, heightField });
+  const surfaceOpticsTier: WaterOpticsTier = quality === "high" ? "high" : "medium";
+  const surfaceOpticsReadback = surfaceController.setSurfaceOpticsBinding({
+    tier: surfaceOpticsTier,
+    opticalProfile: POOL_WATER_OPTICAL_PROFILE,
+    refractionEnabled: true,
+    reflection: undefined,
+    debugView: WaterOpticsDebugView.Final
+  });
+  if (!surfaceOpticsReadback) throw new Error("Interactive pool surface optics binding was not applied.");
+  p1Metrics.surfaceOpticsRequestedTier = surfaceOpticsReadback.requestedTier;
+  p1Metrics.surfaceOpticsResolvedTier = surfaceOpticsReadback.resolvedTier;
+  p1Metrics.surfaceReflectionSource = surfaceOpticsReadback.effectiveSource;
+  p1Metrics.surfaceRefractionEnabled = surfaceOpticsReadback.refractionEnabled;
+  surfaceController.configureTemporalFoamRegion({
+    minX: poolBounds.minX,
+    minZ: poolBounds.minZ,
+    inverseSizeX: 1 / (poolBounds.maxX - poolBounds.minX),
+    inverseSizeZ: 1 / (poolBounds.maxZ - poolBounds.minZ)
+  });
+  const uploadPolicy = resolvePoolSurfaceUploadPolicy({
+    simulationSampleCount: heightField.sampleCount,
+    renderVertexCount: surfaceController.surfaceVertexCount,
+    capabilities: { vertexTextureFetch: true, r8TextureUpload: true },
+    fallbackStrategy: PoolSurfaceUploadStrategy.CpuInterpolated
+  });
+  p1Metrics.surfaceUploadStrategy = uploadPolicy.strategy;
+  p1Metrics.surfaceUploadPolicySelection = uploadPolicy.selection;
+  p1Metrics.estimatedSurfaceUploadBytesPerFrame = uploadPolicy.estimatedUploadBytesPerFrame;
+  p1Metrics.modifierCount = localField.modifierCount;
+
+  const interactionQueue = new WaterInteractionEventQueue(P1_EVENT_QUEUE_CAPACITY, P1_EMITTER_CAPACITY);
+  const interactionSinks = new Map<number, WaterInteractionSinkAdapter>();
+  const createInteractionSink = (emitterId: number): WaterInteractionSinkAdapter => {
+    const existing = interactionSinks.get(emitterId);
+    if (existing) return existing;
+    const sink = new WaterInteractionSinkAdapter({
+      queue: interactionQueue,
+      emitterId,
+      deformationSink: heightField,
+      minimumTrailDistance: 0.28,
+      minimumTrailSpeed: 0.18
+    });
+    interactionSinks.set(emitterId, sink);
+    return sink;
+  };
+  const temporalFoamField = p1Config.enabled
+    ? new TemporalFoamField({
+        centerX: layout.position[0],
+        centerZ: layout.position[2],
+        length: poolBounds.maxX - poolBounds.minX,
+        width: poolBounds.maxZ - poolBounds.minZ,
+        resolutionX: P1_FOAM_RESOLUTION_X,
+        resolutionZ: P1_FOAM_RESOLUTION_Z,
+        decayRatePerSecond: 0.8
+      })
+    : null;
+  const temporalFoamTextures = temporalFoamField
+    ? new TemporalFoamTextureService(engine, temporalFoamField, {
+        enabled: p1Config.temporalFoamEnabled,
+        quality: quality === "high" ? "medium" : quality,
+        debugView: p1Config.localEffectsDebugView
+      })
+    : null;
+  let dynamicEffectsEnabled = p1Config.enabled;
+  const interactionEvent = createWaterInteractionEvent();
+  const foamConsumer: WaterInteractionEventConsumer = {
+    consumeInteractionEvent(queue, index): void {
+      if (
+        !dynamicEffectsEnabled ||
+        !temporalFoamField ||
+        !temporalFoamTextures?.metrics.enabled ||
+        !queue.read(index, interactionEvent)
+      )
+        return;
+      const entryScale = interactionEvent.kind === WaterInteractionEventKind.Entry ? 1.55 : 1.1;
+      const strengthScale = interactionEvent.kind === WaterInteractionEventKind.Entry ? 0.34 : 0.48;
+      temporalFoamField.addSourceWorld(
+        interactionEvent.worldX,
+        interactionEvent.worldZ,
+        interactionEvent.radius * entryScale,
+        Math.min(1, interactionEvent.strength * strengthScale)
+      );
+    }
+  };
   const ballSpawnerEntity = root.createChild("interactive-pool-ball-spawner");
   const ballSpawner = ballSpawnerEntity.addComponent(PoolBallSpawner);
   ballSpawner.configure({
     engine,
     surfaceProvider: provider,
-    interactionSink: heightField,
+    interactionSink: p1Config.enabled ? createInteractionSink(0) : heightField,
     spawnCenterX: layout.position[0],
     spawnCenterZ: layout.position[2]
   });
+  const fleetEntity = root.createChild("p1-pool-body-fleet");
+  const bodyFleet = fleetEntity.addComponent(PoolBodyFleet);
+  bodyFleet.configure({
+    engine,
+    surfaceProvider: provider,
+    createInteractionSink,
+    centerX: layout.position[0],
+    centerZ: layout.position[2],
+    lengthAxisX: axisX / axisLength,
+    lengthAxisZ: axisZ / axisLength,
+    length: layout.length,
+    width: layout.width
+  });
+  bodyFleet.setAdditionalBodyCount(p1Config.enabled ? p1Config.bodyCount - 1 : 0);
+  const underwaterController = new UnderwaterController({
+    world: waterWorld,
+    getCameraPosition: () => cameraEntity.transform.worldPosition,
+    cameraFeatures: cameraFeatureBroker,
+    postProcess: underwaterPass,
+    fallbackOpticalProfile: POOL_WATER_OPTICAL_PROFILE,
+    quality
+  });
+
+  const createOpticalContinuityReadback = (): Readonly<InteractivePoolOpticalContinuityReadback> => {
+    const surfaceResolvedProfile = snapshotResolvedOpticalProfile(surfaceOpticsReadback.opticalProfile);
+    const underwaterResolvedProfile = snapshotResolvedOpticalProfile(underwaterPass.resolvedOpticalProfile);
+    const activeProfile = underwaterController.activeOpticalProfile;
+    const activeResolvedProfile = activeProfile ? resolveWaterSurfaceOpticalProfile(activeProfile) : undefined;
+    const surfaceProfileFingerprint = createResolvedWaterOpticalProfileFingerprint(surfaceResolvedProfile);
+    const underwaterProfileFingerprint = createResolvedWaterOpticalProfileFingerprint(underwaterResolvedProfile);
+    const surfaceMediumReadback = evaluateOpticalContinuityMedium(surfaceResolvedProfile);
+    const underwaterMediumReadback = evaluateOpticalContinuityMedium(underwaterResolvedProfile);
+    const maximumResolvedProfileDelta = maximumAbsoluteDelta(
+      resolvedProfileValues(surfaceResolvedProfile),
+      resolvedProfileValues(underwaterResolvedProfile)
+    );
+    const maximumMediumColorDelta = maximumAbsoluteDelta(
+      surfaceMediumReadback.mediumLinearColor,
+      underwaterMediumReadback.mediumLinearColor
+    );
+    const postProcessMetrics = underwaterPass.metrics;
+    const finiteValues = [
+      ...resolvedProfileValues(surfaceResolvedProfile),
+      ...resolvedProfileValues(underwaterResolvedProfile),
+      ...surfaceMediumReadback.mediumLinearColor,
+      ...underwaterMediumReadback.mediumLinearColor,
+      maximumResolvedProfileDelta,
+      maximumMediumColorDelta
+    ];
+    return Object.freeze({
+      quality,
+      surfaceResolvedProfile,
+      underwaterResolvedProfile,
+      surfaceProfileFingerprint,
+      underwaterProfileFingerprint,
+      shaderBoundUnderwaterProfileFingerprint: postProcessMetrics.shaderBoundOpticalProfileFingerprint,
+      underwaterShaderProfileBindCount: postProcessMetrics.opticalProfileBindCount,
+      configuredReferenceConsistent: underwaterPass.sourceOpticalProfile === POOL_WATER_OPTICAL_PROFILE,
+      activeReferenceConsistent: activeProfile ? activeProfile === POOL_WATER_OPTICAL_PROFILE : null,
+      activeProfileFingerprint: activeResolvedProfile
+        ? createResolvedWaterOpticalProfileFingerprint(activeResolvedProfile)
+        : "",
+      maximumResolvedProfileDelta,
+      surfaceMediumReadback,
+      underwaterMediumReadback,
+      maximumMediumColorDelta,
+      finite: finiteValues.every(Number.isFinite)
+    });
+  };
+
+  const setUnderwaterPreset = (preset: InteractivePoolUnderwaterPreset): void => {
+    if (preset === "outside") {
+      cameraEntity.transform.setPosition(...indoorReflectivePoolExample.view.cameraPosition);
+      orbit.target.set(...indoorReflectivePoolExample.view.cameraTarget);
+    } else {
+      const lengthDirectionX = axisX / axisLength;
+      const lengthDirectionZ = axisZ / axisLength;
+      const cameraX = layout.position[0] - lengthDirectionX * 4.5;
+      const cameraZ = layout.position[2] - lengthDirectionZ * 4.5;
+      centerQueryPosition.set(cameraX, 0, cameraZ);
+      if (!provider.sampleSurface(centerQueryPosition, centerSurfaceSample)) return;
+      const surfaceHeight = centerSurfaceSample.surfacePosition.y;
+      const cameraY =
+        preset === "inside"
+          ? Math.max(surfaceHeight - centerSurfaceSample.waterDepth + 0.45, surfaceHeight - 1.45)
+          : surfaceHeight + 0.02;
+      const targetY = preset === "inside" ? cameraY - 0.18 : surfaceHeight;
+      cameraEntity.transform.setPosition(cameraX, cameraY, cameraZ);
+      orbit.target.set(layout.position[0] + lengthDirectionX * 3, targetY, layout.position[2] + lengthDirectionZ * 3);
+    }
+    cameraEntity.transform.lookAt(orbit.target);
+    underwaterController.update();
+  };
+  window.waterPcgUnderwater = {
+    get isUnderwater() {
+      return underwaterController.isUnderwater;
+    },
+    get activeBodyId() {
+      return underwaterController.activeBodyId;
+    },
+    get signedSurfaceDistance() {
+      return underwaterController.metrics.signedSurfaceDistance;
+    },
+    get submergedDepth() {
+      return underwaterController.metrics.submergedDepth;
+    },
+    get transitionCount() {
+      const underwaterMetrics = underwaterController.metrics;
+      return underwaterMetrics.enterCount + underwaterMetrics.exitCount + underwaterMetrics.bodySwitchCount;
+    },
+    get passExecutionCount() {
+      return underwaterController.metrics.postProcessExecutionCount;
+    },
+    get passMaterialAllocated() {
+      return underwaterPass.metrics.materialAllocated;
+    },
+    get passMaterialCreateCount() {
+      return underwaterPass.metrics.materialCreateCount;
+    },
+    get passMaterialDestroyCount() {
+      return underwaterPass.metrics.materialDestroyCount;
+    },
+    get opticalContinuity() {
+      return createOpticalContinuityReadback();
+    },
+    setPreset: setUnderwaterPreset
+  };
+  const underwaterPresetButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-underwater-preset]"));
+  const handleUnderwaterPresetClick = (event: Event): void => {
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const preset = target.dataset.underwaterPreset;
+    if (preset !== "outside" && preset !== "surface" && preset !== "inside") return;
+    setUnderwaterPreset(preset);
+    for (const button of underwaterPresetButtons) {
+      button.dataset.active = String(button.dataset.underwaterPreset === preset);
+    }
+  };
+  for (const button of underwaterPresetButtons) button.addEventListener("click", handleUnderwaterPresetClick);
+
+  const p1Controls = document.querySelector<HTMLElement>("[data-p1-controls]");
+  const p1BodyButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-p1-body-count]"));
+  const p1DebugButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-p1-debug-view]"));
+  const p1DynamicButton = document.querySelector<HTMLButtonElement>("[data-p1-dynamic-effects]");
+  const poolHeading = document.querySelector<HTMLElement>("#interactive-pool-hud .hud-heading strong");
+  const fixtureMark = document.getElementById("fixture-mark");
+  if (p1Controls) p1Controls.hidden = !p1Config.enabled;
+  if (p1Config.enabled) {
+    if (poolHeading) poolHeading.textContent = "P1 水效果 / Wake · Foam · Underwater";
+    if (fixtureMark) fixtureMark.textContent = "有界尾迹队列 · 时序泡沫 · 水下介质 · 同源 CPU Query";
+  }
+
+  const syncP1Controls = (): void => {
+    for (const button of p1BodyButtons) {
+      button.dataset.active = String(Number(button.dataset.p1BodyCount) === p1Metrics.bodyCount);
+    }
+    for (const button of p1DebugButtons) {
+      button.dataset.active = String(button.dataset.p1DebugView === p1Metrics.debugView);
+    }
+    if (p1DynamicButton) {
+      p1DynamicButton.dataset.active = String(dynamicEffectsEnabled);
+      p1DynamicButton.textContent = dynamicEffectsEnabled ? "动态效果：开" : "动态效果：关";
+    }
+  };
+  const setP1BodyCount = (count: PoolP1BodyCount): void => {
+    if (!POOL_P1_BODY_COUNTS.includes(count)) throw new Error(`Unsupported P1 pool body count: ${count}.`);
+    bodyFleet.setAdditionalBodyCount(count - 1);
+    bodyFleet.restartDrives();
+    interactionQueue.reset();
+    temporalFoamTextures?.clear();
+    p1Metrics.bodyCount = count;
+    p1Metrics.bodyCountSelection = "manual";
+    syncP1Controls();
+  };
+  const setP1DebugView = (view: PoolLocalEffectsDebugView): void => {
+    if (view !== "source" && view !== "history" && view !== "final") {
+      throw new Error(`Unsupported P1 local-effects debug view: ${view}.`);
+    }
+    p1Metrics.debugView = view;
+    temporalFoamTextures?.setDebugView(view);
+    surfaceController.setTemporalFoamTexture(
+      temporalFoamTextures?.texture ?? null,
+      dynamicEffectsEnabled && Boolean(temporalFoamTextures?.metrics.enabled),
+      view
+    );
+    syncP1Controls();
+  };
+  const setP1DynamicEffectsEnabled = (enabled: boolean): void => {
+    dynamicEffectsEnabled = enabled && p1Config.enabled;
+    p1Metrics.dynamicEffectsEnabled = dynamicEffectsEnabled;
+    interactionQueue.clearEvents();
+    if (!dynamicEffectsEnabled) temporalFoamTextures?.clear();
+    surfaceController.setTemporalFoamTexture(
+      temporalFoamTextures?.texture ?? null,
+      dynamicEffectsEnabled && Boolean(temporalFoamTextures?.metrics.enabled),
+      p1Metrics.debugView
+    );
+    syncP1Controls();
+  };
+  const handleP1BodyCountClick = (event: Event): void => {
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const count = Number(target.dataset.p1BodyCount);
+    if (!POOL_P1_BODY_COUNTS.some((candidate) => candidate === count)) return;
+    setP1BodyCount(count as PoolP1BodyCount);
+  };
+  const handleP1DebugViewClick = (event: Event): void => {
+    const target = event.currentTarget;
+    if (!(target instanceof HTMLButtonElement)) return;
+    const view = target.dataset.p1DebugView;
+    if (view !== "source" && view !== "history" && view !== "final") return;
+    setP1DebugView(view);
+  };
+  const handleP1DynamicClick = (): void => setP1DynamicEffectsEnabled(!dynamicEffectsEnabled);
+  for (const button of p1BodyButtons) button.addEventListener("click", handleP1BodyCountClick);
+  for (const button of p1DebugButtons) button.addEventListener("click", handleP1DebugViewClick);
+  p1DynamicButton?.addEventListener("click", handleP1DynamicClick);
+  p1Metrics.additionalBodyCount = bodyFleet.metrics.bodyCount;
+  syncP1Controls();
+  window.waterPcgP1 = {
+    get metrics() {
+      return Object.freeze({ ...p1Metrics });
+    },
+    setBodyCount: setP1BodyCount,
+    setDebugView: setP1DebugView,
+    setDynamicEffectsEnabled: setP1DynamicEffectsEnabled,
+    restartWakes(): void {
+      bodyFleet.restartDrives();
+    }
+  };
 
   let entryInteractionBaseline = heightField.entryInteractionCount;
   let continuousInteractionBaseline = heightField.continuousInteractionCount;
@@ -266,6 +823,9 @@ async function bootstrapInteractivePool(): Promise<void> {
   };
   const reset = (): void => {
     heightField.reset();
+    interactionQueue.reset();
+    temporalFoamTextures?.clear();
+    bodyFleet.restartDrives();
     resetObservationState();
     ballSpawner.scheduleSpawn();
     setStatus("releasing ball", "loading");
@@ -284,6 +844,50 @@ async function bootstrapInteractivePool(): Promise<void> {
   const metricsScript = root.addComponent(PoolMetricsUpdateScript);
   metricsScript.callback = (deltaTime: number): void => {
     metrics.renderFrameCount++;
+    underwaterController.update();
+    const interactionTime = engine.time.elapsedTime;
+    for (const sink of interactionSinks.values()) sink.timeSeconds = interactionTime;
+    p1Metrics.queuedEventCount = interactionQueue.count;
+    interactionQueue.drain(foamConsumer);
+    const foamSurfaceQueryCountBefore = provider.sampleCount;
+    temporalFoamTextures?.updateFrame(metrics.renderFrameCount, deltaTime, temporalFoamCurrentSnapshot);
+    p1Metrics.foamFullSurfaceQueryCount += provider.sampleCount - foamSurfaceQueryCountBefore;
+    surfaceController.setTemporalFoamTexture(
+      temporalFoamTextures?.texture ?? null,
+      dynamicEffectsEnabled && Boolean(temporalFoamTextures?.metrics.enabled),
+      p1Metrics.debugView
+    );
+    const fleetMetrics = bodyFleet.metrics;
+    const queueMetrics = interactionQueue.metrics;
+    const foamMetrics = temporalFoamField?.metrics;
+    const foamTextureMetrics = temporalFoamTextures?.metrics;
+    p1Metrics.additionalBodyCount = fleetMetrics.bodyCount;
+    p1Metrics.drivingBodyCount = fleetMetrics.drivingBodyCount;
+    p1Metrics.submergedBodyCount = fleetMetrics.submergedBodyCount;
+    p1Metrics.maximumHorizontalSpeed = fleetMetrics.maximumHorizontalSpeed;
+    p1Metrics.acceptedEventCount = queueMetrics.acceptedCount;
+    p1Metrics.droppedEventCount = queueMetrics.droppedCount;
+    p1Metrics.aggregatedEventCount = queueMetrics.aggregatedCount;
+    p1Metrics.stationaryRejectedEventCount = queueMetrics.stationaryRejectedCount;
+    p1Metrics.peakQueuedEventCount = queueMetrics.peakCount;
+    p1Metrics.foamSourceInjectionCount = foamMetrics?.sourceInjectionCount ?? 0;
+    p1Metrics.foamActiveHistoryPixelCount = foamMetrics?.activeHistoryPixelCount ?? 0;
+    p1Metrics.foamPeakHistoryValue = foamMetrics?.peakHistoryValue ?? 0;
+    p1Metrics.foamHistoryEnergy = foamMetrics?.historyEnergy ?? 0;
+    p1Metrics.foamActiveLifetimeSeconds = foamMetrics?.activeLifetimeSeconds ?? 0;
+    p1Metrics.foamMaximumLifetimeSeconds = foamMetrics?.maximumLifetimeSeconds ?? 0;
+    p1Metrics.foamCentroidDriftDistance = foamMetrics?.centroidDriftDistance ?? 0;
+    p1Metrics.foamUpdateCount = foamMetrics?.updateCount ?? 0;
+    p1Metrics.foamIdleSkipCount = foamMetrics?.idleSkipCount ?? 0;
+    p1Metrics.foamTextureUploadsPerRenderFrame = foamTextureMetrics?.lastFrameUploadCount ?? 0;
+    p1Metrics.foamTextureUploadCount = foamTextureMetrics?.uploadCount ?? 0;
+    p1Metrics.foamResourceBytes = foamTextureMetrics?.resourceBytes ?? 0;
+    p1Metrics.foamCurrentSnapshotKind = temporalFoamCurrentSnapshot?.kind ?? "none";
+    p1Metrics.foamCurrentSnapshotRevision = temporalFoamCurrentSnapshot?.revision ?? -1;
+    p1Metrics.foamCurrentLookupCount = foamMetrics?.currentLookupCount ?? 0;
+    p1Metrics.foamTargetUpdateRateHz = foamTextureMetrics?.targetUpdateRateHz ?? 0;
+    p1Metrics.foamRateLimitedFrameCount = foamTextureMetrics?.rateLimitedFrameCount ?? 0;
+    p1Metrics.foamLastStepDeltaSeconds = foamTextureMetrics?.lastStepDeltaSeconds ?? 0;
     const ballEntity = ballSpawner.ballEntity;
     const collider = ballSpawner.collider;
     const buoyancy = ballSpawner.buoyancy;
@@ -369,6 +973,84 @@ async function bootstrapInteractivePool(): Promise<void> {
     writeMetric("vertices", String(metrics.surfaceVertexCount));
     writeMetric("uploads", String(metrics.meshUploadsPerRenderFrame));
     writeMetric("error", metrics.runtimeError || "none");
+    writeMetric("p1-bodies", `${p1Metrics.bodyCount} / ${p1Metrics.drivingBodyCount} moving`);
+    writeMetric(
+      "p1-events",
+      `${p1Metrics.acceptedEventCount} / ${p1Metrics.aggregatedEventCount} / ${p1Metrics.droppedEventCount}`
+    );
+    writeMetric(
+      "p1-foam",
+      p1Metrics.temporalFoamEnabled
+        ? `${p1Metrics.foamActiveHistoryPixelCount} px / ${p1Metrics.foamPeakHistoryValue.toFixed(2)}`
+        : "analytic fallback"
+    );
+    writeMetric(
+      "p1-budget",
+      `${p1Metrics.foamTextureUploadsPerRenderFrame} tex / ${(p1Metrics.foamResourceBytes / 1024).toFixed(0)} KiB`
+    );
+    writeMetric(
+      "p1-foam-motion",
+      `${p1Metrics.foamActiveLifetimeSeconds.toFixed(1)} s / ${p1Metrics.foamCentroidDriftDistance.toFixed(2)} m`
+    );
+    writeMetric("p1-upload", `${p1Metrics.surfaceUploadStrategy} / ${p1Metrics.surfaceUploadPolicySelection}`);
+    const underwaterMetrics = underwaterController.metrics;
+    writeMetric(
+      "underwater",
+      underwaterController.isUnderwater
+        ? `${underwaterMetrics.activeBodyId} / ${underwaterMetrics.submergedDepth.toFixed(2)} m`
+        : "outside"
+    );
+    metricsElement.dataset.underwater = String(underwaterController.isUnderwater);
+    metricsElement.dataset.underwaterBodyId = underwaterMetrics.activeBodyId;
+    metricsElement.dataset.underwaterSignedDistance = underwaterMetrics.signedSurfaceDistance.toFixed(4);
+    metricsElement.dataset.underwaterPassExecutions = String(underwaterMetrics.postProcessExecutionCount);
+    metricsElement.dataset.underwaterMaterialAllocated = String(underwaterPass.metrics.materialAllocated);
+    metricsElement.dataset.underwaterMaterialCreateCount = String(underwaterPass.metrics.materialCreateCount);
+    metricsElement.dataset.underwaterMaterialDestroyCount = String(underwaterPass.metrics.materialDestroyCount);
+    metricsElement.dataset.underwaterRenderTargetBytes = String(
+      cameraFeatureBroker.metrics.underwaterRequested ? cameraFeatureBroker.metrics.estimatedRenderTargetBytes : 0
+    );
+    metricsElement.dataset.p1Enabled = String(p1Metrics.enabled);
+    metricsElement.dataset.p1BodyCount = String(p1Metrics.bodyCount);
+    metricsElement.dataset.p1BodyCountSelection = p1Metrics.bodyCountSelection;
+    metricsElement.dataset.p1DrivingBodyCount = String(p1Metrics.drivingBodyCount);
+    metricsElement.dataset.p1DynamicEffectsEnabled = String(p1Metrics.dynamicEffectsEnabled);
+    metricsElement.dataset.p1ModifierCount = String(p1Metrics.modifierCount);
+    metricsElement.dataset.p1QueueCapacity = String(p1Metrics.queueCapacity);
+    metricsElement.dataset.p1QueuedEventCount = String(p1Metrics.queuedEventCount);
+    metricsElement.dataset.p1AcceptedEventCount = String(p1Metrics.acceptedEventCount);
+    metricsElement.dataset.p1DroppedEventCount = String(p1Metrics.droppedEventCount);
+    metricsElement.dataset.p1AggregatedEventCount = String(p1Metrics.aggregatedEventCount);
+    metricsElement.dataset.p1StationaryRejectedEventCount = String(p1Metrics.stationaryRejectedEventCount);
+    metricsElement.dataset.p1DebugView = p1Metrics.debugView;
+    metricsElement.dataset.p1TemporalFoamEnabled = String(p1Metrics.temporalFoamEnabled);
+    metricsElement.dataset.p1FoamActivePixels = String(p1Metrics.foamActiveHistoryPixelCount);
+    metricsElement.dataset.p1FoamPeak = p1Metrics.foamPeakHistoryValue.toFixed(4);
+    metricsElement.dataset.p1FoamEnergy = p1Metrics.foamHistoryEnergy.toFixed(4);
+    metricsElement.dataset.p1FoamActiveLifetime = p1Metrics.foamActiveLifetimeSeconds.toFixed(3);
+    metricsElement.dataset.p1FoamMaximumLifetime = p1Metrics.foamMaximumLifetimeSeconds.toFixed(3);
+    metricsElement.dataset.p1FoamCentroidDrift = p1Metrics.foamCentroidDriftDistance.toFixed(4);
+    metricsElement.dataset.p1FoamUpdateCount = String(p1Metrics.foamUpdateCount);
+    metricsElement.dataset.p1FoamTextureUploadCount = String(p1Metrics.foamTextureUploadCount);
+    metricsElement.dataset.p1FoamUploadsPerFrame = String(p1Metrics.foamTextureUploadsPerRenderFrame);
+    metricsElement.dataset.p1FoamResourceBytes = String(p1Metrics.foamResourceBytes);
+    metricsElement.dataset.p1FoamCurrentSnapshotKind = p1Metrics.foamCurrentSnapshotKind;
+    metricsElement.dataset.p1FoamCurrentSnapshotRevision = String(p1Metrics.foamCurrentSnapshotRevision);
+    metricsElement.dataset.p1FoamCurrentSnapshotBuildCount = String(p1Metrics.foamCurrentSnapshotBuildCount);
+    metricsElement.dataset.p1FoamCurrentLookupCount = String(p1Metrics.foamCurrentLookupCount);
+    metricsElement.dataset.p1FoamFullSurfaceQueryCount = String(p1Metrics.foamFullSurfaceQueryCount);
+    metricsElement.dataset.p1FoamTargetUpdateRateHz = String(p1Metrics.foamTargetUpdateRateHz);
+    metricsElement.dataset.p1FoamRateLimitedFrameCount = String(p1Metrics.foamRateLimitedFrameCount);
+    metricsElement.dataset.p1FoamLastStepDeltaSeconds = p1Metrics.foamLastStepDeltaSeconds.toFixed(4);
+    metricsElement.dataset.p1SurfaceUploadStrategy = p1Metrics.surfaceUploadStrategy;
+    metricsElement.dataset.p1SurfaceUploadBytes = String(p1Metrics.estimatedSurfaceUploadBytesPerFrame);
+    metricsElement.dataset.p1QuerySource = p1Metrics.querySource;
+    metricsElement.dataset.p1GpuReadback = String(p1Metrics.requiresGpuReadback);
+    metricsElement.dataset.p1SurfaceOpticsRequestedTier = p1Metrics.surfaceOpticsRequestedTier;
+    metricsElement.dataset.p1SurfaceOpticsResolvedTier = p1Metrics.surfaceOpticsResolvedTier;
+    metricsElement.dataset.p1SurfaceReflectionSource = p1Metrics.surfaceReflectionSource;
+    metricsElement.dataset.p1SurfaceRefractionEnabled = String(p1Metrics.surfaceRefractionEnabled);
+    metricsElement.dataset.p1SharedUnderwaterOpticalProfile = String(p1Metrics.sharesUnderwaterOpticalProfile);
     if (metrics.runtimeError) setStatus("runtime failed", "error");
     else if (metrics.settled) setStatus("stable floating", "ready");
     else if (metrics.entryImpactCount > 0) setStatus("two-way wave coupling", "ready");
@@ -385,10 +1067,20 @@ async function bootstrapInteractivePool(): Promise<void> {
 
   const cleanup = (): void => {
     window.removeEventListener("resize", resizeCanvas);
+    window.removeEventListener("resize", syncCameraFeatureViewport);
     resetButton.removeEventListener("click", reset);
+    for (const button of underwaterPresetButtons) button.removeEventListener("click", handleUnderwaterPresetClick);
+    for (const button of p1BodyButtons) button.removeEventListener("click", handleP1BodyCountClick);
+    for (const button of p1DebugButtons) button.removeEventListener("click", handleP1DebugViewClick);
+    p1DynamicButton?.removeEventListener("click", handleP1DynamicClick);
     metricsScript.callback = null;
+    underwaterController.destroy();
+    underwaterPass.destroy();
     ballSpawner.dispose();
+    bodyFleet.dispose();
     surfaceController.dispose();
+    temporalFoamTextures?.destroy();
+    interactionQueue.clearEvents();
     poolPhysics.destroy();
     poolScene.destroy();
     riverBed.destroy();
@@ -396,11 +1088,14 @@ async function bootstrapInteractivePool(): Promise<void> {
     riverResource.dispose();
     compileWorker.dispose();
     cameraFeatures.destroy();
+    cameraFeatureBroker.destroy();
     waterWorld.destroy();
     window.waterPcgP0 = undefined;
     root.destroy();
     delete window.waterPcgResetInteractivePool;
     delete window.waterPcgSetInteractivePoolTargetFrameRate;
+    delete window.waterPcgUnderwater;
+    delete window.waterPcgP1;
   };
   window.addEventListener("beforeunload", cleanup, { once: true });
 }

@@ -4,6 +4,10 @@ import { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier
 export const OCEAN_PREVIEW_MIN_SEGMENT_COUNT = 1;
 export const OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS = 100;
 export const OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE = 0;
+export const OCEAN_PREVIEW_PATCH_SEGMENT_DIVISOR = 8;
+export const OCEAN_PREVIEW_MIN_PATCH_SEGMENTS = 4;
+export const OCEAN_PREVIEW_MAX_PATCH_SEGMENTS = 16;
+export const OCEAN_PREVIEW_RING_SKIRT_DEPTH = 1.5;
 
 export const OCEAN_PREVIEW_GUI_LIMITS = {
   waterLevel: { min: -2, max: 3, step: 0.05 },

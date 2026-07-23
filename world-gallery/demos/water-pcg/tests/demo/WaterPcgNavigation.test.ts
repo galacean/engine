@@ -13,6 +13,8 @@ describe("Water PCG navigation", () => {
       kind: "interactive-pool"
     });
     expect(WATER_PCG_CASES.slice(3)).toEqual([
+      { id: "water-optics-lab", label: "水反射与折射", kind: "optics-lab" },
+      { id: "p1-water-showcase", label: "P1 水效果", kind: "p1-showcase" },
       { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
       { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" },
       { id: "water-wiki", label: "开发文档", kind: "wiki" }
@@ -25,6 +27,9 @@ describe("Water PCG navigation", () => {
     );
     expect(resolveWaterPcgCase({ hash: "", search: "?example=multi-tributary-river" }).id).toBe(
       "multi-tributary-river"
+    );
+    expect(resolveWaterPcgCase({ hash: "#water-optics-lab", search: "?example=curved-main-river" }).id).toBe(
+      "water-optics-lab"
     );
     expect(resolveWaterPcgCase({ hash: "#unknown", search: "" }).id).toBe("curved-main-river");
   });
@@ -42,5 +47,13 @@ describe("Water PCG navigation", () => {
         "curved-main-river"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high#curved-main-river");
+    expect(
+      getWaterPcgCaseHref(
+        "http://127.0.0.1:4179/demos/water-pcg/?waterOptics=experimental&opticsPreset=ssr-fallback&surfaceTime=12.5&stats=0",
+        "water-optics-lab"
+      )
+    ).toBe(
+      "http://127.0.0.1:4179/demos/water-pcg/?waterOptics=experimental&opticsPreset=ssr-fallback&surfaceTime=12.5&stats=0#water-optics-lab"
+    );
   });
 });

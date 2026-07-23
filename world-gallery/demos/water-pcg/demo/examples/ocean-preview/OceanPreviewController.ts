@@ -1,29 +1,42 @@
-/** Static-grid Ocean preview displaced by a fixed-count Gerstner vertex shader. */
-import { Engine, Entity, MeshRenderer, ModelMesh } from "@galacean/engine-core";
-import { Vector2, Vector3 } from "@galacean/engine-math";
+/** Camera-relative Ocean rings displaced by a fixed-count Gerstner vertex shader. */
+import { Downsampling, Engine, Entity, Layer } from "@galacean/engine-core";
 import { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
+import { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier";
 import type { WaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 import { compileWaterWaveAsset } from "../../../compiler/wave/WaterWaveCompiler";
 import type { CompiledWaterWaveSet } from "../../../compiler/wave/CompiledWaterWaveTypes";
 import {
   createWaterWaveMaterial,
+  setWaterWaveSurfaceOpticsBinding,
   setWaterWaveSurfaceTimeOverride,
   updateWaterWaveMaterial
 } from "../../../runtime/wave/WaterWaveMaterialFactory";
 import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "../../../runtime/wave/WaterWaveRuntimeTypes";
 import { OceanWaterSurfaceProvider } from "../../../runtime/ocean/OceanWaterSurfaceProvider";
+import { OceanRingGeometry } from "../../../runtime/ocean/OceanRingGeometry";
+import type { WaterReflectionBinding, WaterReflectionService } from "../../../runtime/optics/WaterReflectionService";
+import type { WaterReflectionSource } from "../../../runtime/optics/WaterReflectionPolicy";
+import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../../../runtime/optics/WaterOpticalProfile";
+import type { CameraWaterFeatureBroker } from "../../../runtime/optics/CameraWaterFeatureBroker";
+import {
+  WaterOpticsDebugView,
+  type WaterOpticsTier,
+  type WaterSurfaceOpticsBindingReadback
+} from "../../../runtime/optics/WaterSurfaceOpticsTypes";
 import {
   OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS,
+  OCEAN_PREVIEW_MAX_PATCH_SEGMENTS,
   OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE,
-  OCEAN_PREVIEW_MIN_SEGMENT_COUNT,
+  OCEAN_PREVIEW_MIN_PATCH_SEGMENTS,
+  OCEAN_PREVIEW_PATCH_SEGMENT_DIVISOR,
+  OCEAN_PREVIEW_RING_SKIRT_DEPTH,
   OCEAN_PREVIEW_STRESS_QUALITY_SEQUENCE
 } from "./constants";
 import type { OceanPreviewConfig, OceanPreviewMetrics, OceanPreviewStressResult } from "./types";
 
-interface OceanGridTopology {
-  readonly positions: Vector3[];
-  readonly uvs: Vector2[];
-  readonly indices: Uint16Array | Uint32Array;
+export interface OceanCameraPositionXZ {
+  readonly x: number;
+  readonly z: number;
 }
 
 function createScaledWaveAsset(config: OceanPreviewConfig): WaterWaveAssetV1 {
@@ -43,21 +56,29 @@ function createScaledWaveAsset(config: OceanPreviewConfig): WaterWaveAssetV1 {
 export class OceanPreviewController {
   readonly root: Entity;
   readonly surfaceProvider: OceanWaterSurfaceProvider;
-  private readonly _renderer: MeshRenderer;
-  private _mesh: ModelMesh;
+  readonly reflectionConsumerId = "ocean-preview";
+  readonly opticsConsumerId = "ocean-preview-optics";
+  private _ringGeometry: OceanRingGeometry;
   private _materialState: WaterWaveMaterialState;
   private _waveSet: CompiledWaterWaveSet;
-  private _meshResolution: number;
-  private _meshSize: number;
+  private _topologyKey: string;
   private _surfaceTimeOverride?: number;
   private _meshUploadCount = 0;
   private _meshCreateCount = 0;
   private _meshDestroyCount = 0;
   private _materialCreateCount = 0;
   private _materialDestroyCount = 0;
-  private _vertexCount = 0;
   private _frameCount = 0;
   private _destroyed = false;
+  private _reflectionService?: WaterReflectionService;
+  private _reflectionBinding?: Readonly<WaterReflectionBinding>;
+  private _reflectionSource: WaterReflectionSource;
+  private _reflectionVisible = true;
+  private _cameraFeatureBroker?: CameraWaterFeatureBroker;
+  private _cameraFeatureRequested = false;
+  private _opticalProfile: WaterOpticalProfile = DEFAULT_WATER_OPTICAL_PROFILE;
+  private _refractionEnabled = true;
+  private _opticsReadback?: Readonly<WaterSurfaceOpticsBindingReadback>;
 
   constructor(
     private readonly _engine: Engine,
@@ -65,25 +86,30 @@ export class OceanPreviewController {
     private _config: OceanPreviewConfig
   ) {
     this.root = parent.createChild("ocean-preview");
-    this._renderer = this.root.createChild("ocean-surface").addComponent(MeshRenderer);
     this._waveSet = this._compileWaveSet();
+    this._reflectionSource = _config.reflectionSource ?? "sky";
+    this._opticalProfile = _config.opticalProfile ?? DEFAULT_WATER_OPTICAL_PROFILE;
+    this._refractionEnabled = _config.refractionEnabled ?? true;
     this.surfaceProvider = new OceanWaterSurfaceProvider({
       waterBodyId: "ocean-preview",
       waveSet: this._waveSet,
       size: _config.size,
       waterLevel: _config.waterLevel,
       timeScale: _config.timeScale,
+      unbounded: true,
       getElapsedTime: () => this._surfaceTimeOverride ?? this._engine.time.elapsedTime
     });
-    this._mesh = this._createGridMesh();
-    this._meshResolution = _config.resolution;
-    this._meshSize = _config.size;
     this._materialState = this._createMaterialState();
-    this._renderer.mesh = this._mesh;
-    this._renderer.setMaterial(this._materialState.material);
+    this._ringGeometry = this._createRingGeometry();
+    this._topologyKey = this._getTopologyKey();
+    const geometryMetrics = this._ringGeometry.metrics;
+    this._meshCreateCount += geometryMetrics.meshCreateCount;
+    this._meshUploadCount += geometryMetrics.meshUploadCount;
+    this._applySurfaceOpticsBinding();
   }
 
   get metrics(): OceanPreviewMetrics {
+    const geometry = this._ringGeometry.metrics;
     return Object.freeze({
       waveModel: this._waveSet.model,
       quality: this._waveSet.quality,
@@ -95,9 +121,26 @@ export class OceanPreviewController {
       meshDestroyCount: this._meshDestroyCount,
       materialCreateCount: this._materialCreateCount,
       materialDestroyCount: this._materialDestroyCount,
-      activeMeshCount: this._meshCreateCount - this._meshDestroyCount,
+      activeMeshCount: geometry.patchCount,
       activeMaterialCount: this._materialCreateCount - this._materialDestroyCount,
-      vertexCount: this._vertexCount,
+      vertexCount: geometry.vertexCount,
+      ringCount: geometry.ringCount,
+      patchCount: geometry.patchCount,
+      visiblePatchCount: geometry.visiblePatchCount,
+      drawCount: geometry.drawCount,
+      triangleCount: geometry.triangleCount,
+      visibleTriangleCount: geometry.visibleTriangleCount,
+      originSnapCount: geometry.originSnapCount,
+      originX: geometry.originX,
+      originZ: geometry.originZ,
+      baseCellSize: geometry.baseCellSize,
+      coverageHalfExtent: geometry.coverageHalfExtent,
+      reflectionSource: this._opticsReadback?.effectiveSource ?? "sky",
+      requestedOpticsTier: this._resolveOpticsTier(),
+      resolvedOpticsTier: this._resolveOpticsTier() ? this._opticsReadback?.resolvedTier : undefined,
+      compiledOpticsTier: this._materialState.opticsTier,
+      refractionEnabled: this._opticsReadback?.refractionEnabled ?? false,
+      cameraFeatureRequested: this._cameraFeatureRequested,
       frameCount: this._frameCount,
       perFrameMeshUpload: false
     });
@@ -105,31 +148,47 @@ export class OceanPreviewController {
 
   setConfig(config: OceanPreviewConfig): void {
     this._config = config;
+    this._reflectionSource = config.reflectionSource ?? this._reflectionSource;
+    this._opticalProfile = config.opticalProfile ?? this._opticalProfile;
+    this._refractionEnabled = config.refractionEnabled ?? this._refractionEnabled;
     this._waveSet = this._compileWaveSet();
     this._updateSurfaceProvider();
     this.rebuildMesh();
+    this._updateCameraFeatureRequest();
     this._applyMaterialState();
   }
 
   rebuildMesh(): void {
-    const topologyChanged = this._meshResolution !== this._config.resolution || this._meshSize !== this._config.size;
+    const nextTopologyKey = this._getTopologyKey();
+    const topologyChanged = this._topologyKey !== nextTopologyKey;
     if (!topologyChanged) {
-      this._setConservativeBounds(this._mesh);
+      this._ringGeometry.setWaveBounds(
+        this._config.waterLevel,
+        this._waveSet.maxHorizontalDisplacement,
+        this._waveSet.maxVerticalDisplacement
+      );
       return;
     }
-    const previousMesh = this._mesh;
-    this._mesh = this._createGridMesh();
-    this._meshResolution = this._config.resolution;
-    this._meshSize = this._config.size;
-    this._renderer.mesh = this._mesh;
-    previousMesh.destroy(true);
-    this._meshDestroyCount++;
+    const previousGeometry = this._ringGeometry;
+    const previousPatchCount = previousGeometry.metrics.patchCount;
+    this._ringGeometry = this._createRingGeometry();
+    this._topologyKey = nextTopologyKey;
+    const nextMetrics = this._ringGeometry.metrics;
+    this._meshCreateCount += nextMetrics.meshCreateCount;
+    this._meshUploadCount += nextMetrics.meshUploadCount;
+    this._meshDestroyCount += previousPatchCount;
+    previousGeometry.destroy();
+    this._updateReflectionRequest();
   }
 
   updateMaterial(): void {
     this._waveSet = this._compileWaveSet();
     this._updateSurfaceProvider();
-    this._setConservativeBounds(this._mesh);
+    this._ringGeometry.setWaveBounds(
+      this._config.waterLevel,
+      this._waveSet.maxHorizontalDisplacement,
+      this._waveSet.maxVerticalDisplacement
+    );
     this._applyMaterialState();
   }
 
@@ -138,9 +197,81 @@ export class OceanPreviewController {
     setWaterWaveSurfaceTimeOverride(this._materialState, elapsedTime);
   }
 
-  update(_deltaTime: number): void {
+  update(_deltaTime: number, cameraWorldPosition?: Readonly<OceanCameraPositionXZ>): void {
     if (!this.root.isActive || this._destroyed) return;
+    if (cameraWorldPosition) this._ringGeometry.updateCameraPosition(cameraWorldPosition.x, cameraWorldPosition.z);
     this._frameCount++;
+  }
+
+  setCameraPosition(worldX: number, worldZ: number): boolean {
+    return this._ringGeometry.updateCameraPosition(worldX, worldZ);
+  }
+
+  setLodDebug(enabled: boolean): void {
+    this._ringGeometry.setLodDebug(enabled);
+  }
+
+  setCameraFeatureBroker(broker?: CameraWaterFeatureBroker): void {
+    if (broker === this._cameraFeatureBroker) return;
+    this._cameraFeatureBroker?.removeRequest(this.opticsConsumerId);
+    this._cameraFeatureBroker = broker;
+    this._updateCameraFeatureRequest();
+    this._applySurfaceOpticsBinding();
+  }
+
+  setOpticsTier(tier?: WaterOpticsTier): void {
+    if (tier === this._config.opticsTier) return;
+    this._config = { ...this._config, opticsTier: tier };
+    this._updateCameraFeatureRequest();
+    this._applyMaterialState();
+  }
+
+  setOpticalProfile(profile: WaterOpticalProfile): void {
+    this._opticalProfile = profile;
+    this._config = { ...this._config, opticalProfile: profile };
+    this._applySurfaceOpticsBinding();
+  }
+
+  setRefractionEnabled(enabled: boolean): void {
+    this._refractionEnabled = enabled;
+    this._config = { ...this._config, refractionEnabled: enabled };
+    this._applySurfaceOpticsBinding();
+  }
+
+  setReflectionService(service?: WaterReflectionService): void {
+    if (service === this._reflectionService) return;
+    this._reflectionService?.removeRequest(this.reflectionConsumerId);
+    this._reflectionService = service;
+    this._updateReflectionRequest();
+    this.refreshReflectionBinding();
+  }
+
+  setReflectionSource(source: WaterReflectionSource): void {
+    if (source === this._reflectionSource) return;
+    this._reflectionSource = source;
+    this._updateReflectionRequest();
+    this._updateCameraFeatureRequest();
+    this.refreshReflectionBinding();
+  }
+
+  setReflectionVisible(visible: boolean): void {
+    if (visible === this._reflectionVisible) return;
+    this._reflectionVisible = visible;
+    this._updateReflectionRequest();
+    this._updateCameraFeatureRequest();
+    this.refreshReflectionBinding();
+  }
+
+  refreshReflectionBinding(): void {
+    if (this._destroyed) return;
+    if (!this._reflectionVisible || !this.root.isActive) {
+      this._reflectionBinding = undefined;
+      this._applySurfaceOpticsBinding();
+      return;
+    }
+    const binding = this._reflectionService?.getBinding(this.reflectionConsumerId);
+    this._reflectionBinding = binding;
+    this._applySurfaceOpticsBinding();
   }
 
   stressReconfigure(iterations = OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS): OceanPreviewStressResult {
@@ -168,9 +299,12 @@ export class OceanPreviewController {
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
+    this._reflectionService?.removeRequest(this.reflectionConsumerId);
+    this._cameraFeatureBroker?.removeRequest(this.opticsConsumerId);
+    this._cameraFeatureRequested = false;
     this.root.destroy();
-    this._mesh.destroy(true);
-    this._meshDestroyCount++;
+    this._meshDestroyCount += this._ringGeometry.metrics.patchCount;
+    this._ringGeometry.destroy();
     this._materialState.material.destroy(true);
     this._materialDestroyCount++;
   }
@@ -185,8 +319,10 @@ export class OceanPreviewController {
       waveSet: this._waveSet,
       size: this._config.size,
       waterLevel: this._config.waterLevel,
-      timeScale: this._config.timeScale
+      timeScale: this._config.timeScale,
+      unbounded: true
     });
+    this._updateReflectionRequest();
   }
 
   private _createMaterialConfig(): WaterWaveMaterialConfig {
@@ -196,6 +332,8 @@ export class OceanPreviewController {
       waterLevel: this._config.waterLevel,
       timeScale: this._config.timeScale,
       crestIntensity: this._config.foamIntensity,
+      reflectionIntensity: 0.46,
+      opticsTier: this._resolveOpticsTier(),
       surfaceTimeOverride: this._surfaceTimeOverride
     };
   }
@@ -207,75 +345,116 @@ export class OceanPreviewController {
   }
 
   private _applyMaterialState(): void {
-    if (Number(this._materialState.variant) === this._waveSet.shaderWaveCount) {
+    const requestedOpticsTier = this._resolveOpticsTier();
+    const resolvedOpticsTier =
+      requestedOpticsTier === undefined ? undefined : requestedOpticsTier === "medium" ? "medium" : "high";
+    if (
+      Number(this._materialState.variant) === this._waveSet.shaderWaveCount &&
+      this._materialState.opticsTier === resolvedOpticsTier
+    ) {
       this._materialState = updateWaterWaveMaterial(this._materialState, this._waveSet, this._createMaterialConfig());
+      this._applySurfaceOpticsBinding();
       return;
     }
     const previousMaterial = this._materialState.material;
     this._materialState = this._createMaterialState();
-    this._renderer.setMaterial(this._materialState.material);
+    this._ringGeometry.setMaterial(this._materialState.material);
+    this._applySurfaceOpticsBinding();
     previousMaterial.destroy(true);
     this._materialDestroyCount++;
   }
 
-  private _createGridTopology(): OceanGridTopology {
-    const segmentCount = Math.max(OCEAN_PREVIEW_MIN_SEGMENT_COUNT, Math.floor(this._config.resolution));
-    const vertexSide = segmentCount + 1;
-    const halfSize = this._config.size * 0.5;
-    const positions: Vector3[] = [];
-    const uvs: Vector2[] = [];
-    const indexValues: number[] = [];
-    for (let z = 0; z <= segmentCount; z++) {
-      for (let x = 0; x <= segmentCount; x++) {
-        positions.push(
-          new Vector3(
-            (x / segmentCount) * this._config.size - halfSize,
-            0,
-            (z / segmentCount) * this._config.size - halfSize
-          )
-        );
-        uvs.push(new Vector2(x / segmentCount, z / segmentCount));
-      }
-    }
-    for (let z = 0; z < segmentCount; z++) {
-      for (let x = 0; x < segmentCount; x++) {
-        const a = z * vertexSide + x;
-        const b = a + 1;
-        const c = a + vertexSide;
-        const d = c + 1;
-        indexValues.push(a, c, b, b, c, d);
-      }
-    }
-    const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
-    return { positions, uvs, indices };
+  private _resolveRingCount(): 2 | 3 {
+    return this._config.quality === WaterQualityTier.Low ? 2 : 3;
   }
 
-  private _createGridMesh(): ModelMesh {
-    const topology = this._createGridTopology();
-    const mesh = new ModelMesh(this._engine);
-    mesh.setPositions(topology.positions);
-    mesh.setUVs(topology.uvs);
-    mesh.setIndices(topology.indices);
-    mesh.addSubMesh(0, topology.indices.length);
-    this._setConservativeBounds(mesh);
-    mesh.uploadData(true);
-    this._vertexCount = topology.positions.length;
-    this._meshCreateCount++;
-    this._meshUploadCount++;
-    return mesh;
+  private _resolvePatchSegments(): number {
+    return Math.min(
+      OCEAN_PREVIEW_MAX_PATCH_SEGMENTS,
+      Math.max(
+        OCEAN_PREVIEW_MIN_PATCH_SEGMENTS,
+        Math.round(this._config.resolution / OCEAN_PREVIEW_PATCH_SEGMENT_DIVISOR)
+      )
+    );
   }
 
-  private _setConservativeBounds(mesh: ModelMesh): void {
-    const horizontalExtent = this._config.size * 0.5 + this._waveSet.maxHorizontalDisplacement;
-    mesh.bounds.min.set(
-      -horizontalExtent,
-      this._config.waterLevel - this._waveSet.maxVerticalDisplacement,
-      -horizontalExtent
-    );
-    mesh.bounds.max.set(
-      horizontalExtent,
-      this._config.waterLevel + this._waveSet.maxVerticalDisplacement,
-      horizontalExtent
-    );
+  private _getTopologyKey(): string {
+    return `${this._config.size}:${this._resolveRingCount()}:${this._resolvePatchSegments()}`;
+  }
+
+  private _createRingGeometry(): OceanRingGeometry {
+    return new OceanRingGeometry(this._engine, this.root, this._materialState.material, {
+      size: this._config.size,
+      ringCount: this._resolveRingCount(),
+      patchSegments: this._resolvePatchSegments(),
+      waterLevel: this._config.waterLevel,
+      maxHorizontalDisplacement: this._waveSet.maxHorizontalDisplacement,
+      maxVerticalDisplacement: this._waveSet.maxVerticalDisplacement,
+      skirtDepth: OCEAN_PREVIEW_RING_SKIRT_DEPTH
+    });
+  }
+
+  private _updateReflectionRequest(): void {
+    const service = this._reflectionService;
+    if (!service) return;
+    service.setRequest({
+      id: this.reflectionConsumerId,
+      preferredSource: this._reflectionSource,
+      quality: this._config.quality,
+      visible: this._reflectionVisible && this.root.isActive,
+      priority: 0,
+      planeY: this._config.waterLevel,
+      cullingMask: Layer.Everything,
+      waterLayerMask: this._ringGeometry.layer
+    });
+  }
+
+  private _resolveOpticsTier(): WaterOpticsTier | undefined {
+    if (this._config.opticsTier) return this._config.opticsTier;
+    if (this._config.quality === WaterQualityTier.Medium) return "medium";
+    if (this._config.quality === WaterQualityTier.High) return "high";
+    return undefined;
+  }
+
+  private _updateCameraFeatureRequest(): void {
+    const broker = this._cameraFeatureBroker;
+    if (!broker) {
+      this._cameraFeatureRequested = false;
+      return;
+    }
+    const tier = this._resolveOpticsTier();
+    const visible = this._reflectionVisible && this.root.isActive && !this._destroyed;
+    if (!tier || !visible) {
+      broker.removeRequest(this.opticsConsumerId);
+      this._cameraFeatureRequested = false;
+      return;
+    }
+    const quality = tier === "medium" ? "medium" : "high";
+    broker.setRequest(this.opticsConsumerId, {
+      depthTexture: true,
+      opaqueTexture: true,
+      reflection: this._reflectionSource === "sky" ? "none" : this._reflectionSource,
+      caustics: false,
+      underwater: false,
+      quality,
+      opaqueDownsampling: quality === "medium" ? Downsampling.TwoX : Downsampling.None
+    });
+    this._cameraFeatureRequested = true;
+  }
+
+  private _applySurfaceOpticsBinding(): void {
+    const tier = this._resolveOpticsTier();
+    this._opticsReadback = setWaterWaveSurfaceOpticsBinding(this._materialState, {
+      tier: tier ?? "medium",
+      opticalProfile: this._opticalProfile,
+      refractionEnabled:
+        tier !== undefined &&
+        this._refractionEnabled &&
+        this._cameraFeatureRequested &&
+        this._reflectionVisible &&
+        this.root.isActive,
+      reflection: this._reflectionBinding,
+      debugView: WaterOpticsDebugView.Final
+    });
   }
 }

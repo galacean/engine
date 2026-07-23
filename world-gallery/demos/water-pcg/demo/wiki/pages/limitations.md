@@ -25,20 +25,24 @@ P0 是正确性底座，不是完整商业水系统。开发新能力前，应�
 - 保留候选水体硬上限，并监控溢出计数。
 - 批量查询使用连续 `Float32Array`。
 - 动态水面每个渲染帧最多一次有界 Mesh upload；解析波面不逐帧重建 Mesh。
+- P1 交互事件使用固定 SoA 容量和 emitter 聚合；时序泡沫空闲时跳过更新。
+- Ocean Ring 只移动根节点，正常镜头移动不重建或上传 Patch Mesh。
+- 每个主相机最多一个 Planar reflection camera，失败必须回 Probe/Sky。
 
 性能问题应通过 P95、候选数和上传次数定位，不要只观察平均帧率。
 
 ## 当前没有承诺的能力
 
 - FFT 或频谱海洋。
-- 无限 Ocean 世界分块。
-- 完整水下体积所有权。
-- 时间累积泡沫。
+- 真正无限几何、地球曲率或大世界 Ocean streaming。
+- 半潜水线、任意网格水体积与无限 Ocean 水下体积。
+- GPU Compute 时序泡沫和跨水体全局局部场 Atlas。
 - 通用岸线冲刷与焦散系统。
 - 正式编辑器工作流和资产包。
 - 向后兼容的公共 npm API。
 - 正式 Terrain consumer、Terrain streaming 和大世界 Water Zone。
-- 多刚体通用交互高度场或完整 3D 流体。
+- 超过 16 个活跃 emitter 的质量承诺、船体涡旋或完整 3D 流体。
+- SSR、自动环境 Probe 生成和粗糙度卷积反射。
 
 这些能力进入后续阶段时，仍应继续使用统一水面查询和 WaterBody 能力声明，而不是建立第二套旁路。
 

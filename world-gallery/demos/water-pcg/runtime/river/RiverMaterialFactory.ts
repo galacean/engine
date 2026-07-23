@@ -16,6 +16,18 @@ import {
   RIVER_SURFACE_REFERENCE_FLOW_SPEED
 } from "../../compiler/river/constants";
 import type { RiverCompiledSurfaceMotionData } from "../../compiler/river/types";
+import { DEFAULT_WATER_OPTICAL_PROFILE } from "../optics/WaterOpticalProfile";
+import {
+  applyWaterSurfaceOpticsBinding,
+  createWaterSurfaceOpticsBindingState
+} from "../optics/WaterSurfaceOpticsBinding";
+import {
+  WaterOpticsDebugView,
+  type WaterSurfaceOpticsBinding,
+  type WaterSurfaceOpticsBindingReadback,
+  type WaterSurfaceOpticsBindingState
+} from "../optics/WaterSurfaceOpticsTypes";
+import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 import {
   RIVER_LOW_OPTICAL_SHADER_TUNING,
@@ -34,6 +46,43 @@ function glsl(value: number, digits = 8): string {
 const RIVER_FLOW_UV_SCALE_GLSL = glsl(RIVER_FLOW_UV_SCALE);
 const RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL = glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maxOpticalDepth, 1);
 const RIVER_SURFACE_NOISE_PERIOD_GLSL = glsl(RIVER_SURFACE_NOISE_PERIOD, 1);
+
+const DEFAULT_RIVER_SURFACE_OPTICS_BINDING: Readonly<WaterSurfaceOpticsBinding> = Object.freeze({
+  tier: "medium",
+  opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+  refractionEnabled: true,
+  reflection: undefined,
+  debugView: WaterOpticsDebugView.Final
+});
+
+const riverSurfaceOpticsBindingStates = new WeakMap<Material, WaterSurfaceOpticsBindingState>();
+
+function getRiverSurfaceOpticsBindingState(material: Material): WaterSurfaceOpticsBindingState {
+  const existing = riverSurfaceOpticsBindingStates.get(material);
+  if (existing) return existing;
+  const state = createWaterSurfaceOpticsBindingState();
+  riverSurfaceOpticsBindingStates.set(material, state);
+  return state;
+}
+
+/** River intentionally consumes only analytic Sky or one Cube Probe; Planar falls back without sampling its RT. */
+function resolveRiverReflectionBinding(
+  reflection: Readonly<WaterReflectionBinding> | undefined
+): Readonly<WaterReflectionBinding> | undefined {
+  if (reflection?.resolvedSource !== "planar") return reflection;
+  return reflection.probeTexture
+    ? {
+        requestedSource: reflection.requestedSource,
+        resolvedSource: "probe",
+        fallbackReason: reflection.fallbackReason ?? "planar-ineligible",
+        probeTexture: reflection.probeTexture
+      }
+    : {
+        requestedSource: reflection.requestedSource,
+        resolvedSource: "sky",
+        fallbackReason: reflection.fallbackReason ?? "planar-ineligible"
+      };
+}
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {
@@ -329,6 +378,17 @@ Shader "${shaderName}" {
       float material_MacroDisplacementEnabled;
       float material_MicroSurfaceEnabled;
       float material_SurfaceTimeOverride;
+      float material_RefractionEnabled;
+      vec3 material_AbsorptionCoefficient;
+      vec3 material_ScatteringColor;
+      float material_ScatteringCoefficient;
+      float material_MaximumSurfaceOpticalDistance;
+      float material_IndexOfRefraction;
+      float material_RefractionStrength;
+      float material_Roughness;
+      float material_ReflectionIntensity;
+      float material_ReflectionSource;
+      samplerCube material_ReflectionCubeTexture;
 
       struct Attributes {
         vec4 POSITION;
@@ -545,25 +605,13 @@ Shader "${shaderName}" {
           0.0,
           ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL}
         );
-        vec3 absorption = mix(
-          vec3(
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[0])},
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[1])},
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[2])}
-          ),
-          vec3(
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[0])},
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[1])},
-            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[2])}
-          ),
-          clarity
-        );
+        opticalDepth = min(opticalDepth, max(material_MaximumSurfaceOpticalDistance, 0.0));
+        vec3 absorption = max(material_AbsorptionCoefficient, vec3(0.0));
         vec3 transmittance = exp(-absorption * opticalDepth);
-        float absorptionAlpha = 1.0 - exp(-mix(
-          ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAlphaAbsorption)},
-          ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAlphaAbsorption)},
-          clarity
-        ) * opticalDepth);
+        float averageAbsorption = dot(absorption, vec3(0.33333333));
+        float absorptionAlpha = 1.0 - exp(-averageAbsorption * opticalDepth);
+        float scatteringWeight = 1.0 - exp(-max(material_ScatteringCoefficient, 0.0) * opticalDepth);
+        vec3 profileScattering = max(material_ScatteringColor, vec3(0.0)) * scatteringWeight;
         float waterAlpha = clamp(
           mix(
             ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.shallowAlpha)},
@@ -719,8 +767,11 @@ Shader "${shaderName}" {
         float normalFacing = step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
         surfaceNormalWS *= normalFacing;
         float normalDotView = saturate(dot(surfaceNormalWS, viewDirection));
-        float fresnel = ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelF0)}
-          + (1.0 - ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelF0)})
+        float indexOfRefraction = clamp(material_IndexOfRefraction, 1.0, 4.0);
+        float fresnelRatio = (1.0 - indexOfRefraction) / (1.0 + indexOfRefraction);
+        float fresnelF0 = fresnelRatio * fresnelRatio;
+        float fresnel = fresnelF0
+          + (1.0 - fresnelF0)
             * pow(1.0 - normalDotView, ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelPower)});
         vec3 lightDirection = normalize(vec3(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.lightDirection[0])},
@@ -859,6 +910,7 @@ Shader "${shaderName}" {
           ${glsl(RIVER_SURFACE_SHADER_TUNING.transmittedBrightnessLight)},
           transmittance.g
         );
+        color += profileScattering;
         color += material_BaseColor.rgb
           * input.macroHeight
           * ${glsl(RIVER_SURFACE_SHADER_TUNING.macroHeightBrightness)};
@@ -885,7 +937,10 @@ Shader "${shaderName}" {
           opticalDepth
         );
         vec2 displacedScreenUv = screenUv
-          + refractionNormalDelta * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionUvScale)} * refractionDepthWeight;
+          + refractionNormalDelta
+            * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionUvScale)}
+            * max(material_RefractionStrength, 0.0)
+            * refractionDepthWeight;
         float refractionScreenInterior = step(0.002, displacedScreenUv.x)
           * step(displacedScreenUv.x, 0.998)
           * step(0.002, displacedScreenUv.y)
@@ -911,15 +966,15 @@ Shader "${shaderName}" {
         vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
         vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
         vec3 refractedSceneColor = mix(centeredSceneColor, displacedSceneColor, refractionSampleValidity);
-        float depthRatio = saturate(opticalDepth / ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL});
-        vec3 refractionTint = mix(vec3(0.82, 0.95, 0.97), vec3(0.63, 0.84, 0.88), depthRatio);
         float refractionAmount = ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionMix)}
           * clarity
           * transmittance.g
           * refractionDepthWeight
           * input.shoreDamping
+          * step(0.5, material_RefractionEnabled)
           * (1.0 - foamTint * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionFoamSuppression)});
-        color = mix(color, refractedSceneColor * refractionTint, refractionAmount);
+        vec3 refractedWaterColor = refractedSceneColor * transmittance + profileScattering;
+        color = mix(color, refractedWaterColor, refractionAmount);
         vec3 skyReflection = mix(
           vec3(
             ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionDark[0])},
@@ -933,7 +988,19 @@ Shader "${shaderName}" {
           ),
           saturate(surfaceNormalWS.y * 0.5 + 0.5)
         );
-        color = mix(color, skyReflection, fresnel * ${glsl(RIVER_SURFACE_SHADER_TUNING.reflectionWeight)});
+        vec3 reflectionColor = skyReflection;
+        if (material_ReflectionSource > 0.5) {
+          reflectionColor = textureCube(
+            material_ReflectionCubeTexture,
+            reflect(-viewDirection, surfaceNormalWS)
+          ).rgb;
+        }
+        float reflectionIntensity = max(material_ReflectionIntensity, 0.0);
+        color = mix(
+          color,
+          reflectionColor,
+          saturate(fresnel * ${glsl(RIVER_SURFACE_SHADER_TUNING.reflectionWeight)} * reflectionIntensity)
+        );
         float sparkleMask = mix(0.72, 1.28, flowSurface.w);
         color += vec3(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularColor[0])},
@@ -1048,6 +1115,7 @@ function configureSurfaceMaterial(
   setRiverSurfaceDebugMode(material, RiverSurfaceDebugMode.Off);
   setRiverSurfaceFeatureFlags(material, true, true);
   setRiverSurfaceTimeOverride(material);
+  setRiverSurfaceOpticsBinding(material);
   return material;
 }
 
@@ -1122,6 +1190,26 @@ export function updateRiverSurfaceMotion(material: Material, motion: RiverCompil
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.surfaceTurbulence, motion.turbulence);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.crestIntensity, motion.crestIntensity);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.microNormalStrength, motion.microNormalStrength);
+}
+
+/** Applies the shared P1 profile/refraction contract while intentionally rejecting Planar for River. */
+export function setRiverSurfaceOpticsBinding(
+  material: Material,
+  binding: Readonly<WaterSurfaceOpticsBinding> = DEFAULT_RIVER_SURFACE_OPTICS_BINDING
+): Readonly<WaterSurfaceOpticsBindingReadback> {
+  const reflection = resolveRiverReflectionBinding(binding.reflection);
+  const resolvedBinding =
+    reflection === binding.reflection
+      ? binding
+      : {
+          ...binding,
+          reflection
+        };
+  return applyWaterSurfaceOpticsBinding(
+    material.shaderData,
+    getRiverSurfaceOpticsBindingState(material),
+    resolvedBinding
+  );
 }
 
 export function setRiverSurfaceOpacityScale(material: Material, opacityScale: number): void {

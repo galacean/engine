@@ -47,7 +47,7 @@ export class RiverCameraFeatureController {
             caustics: false,
             underwater: false,
             quality: materialQuality === RiverQualityLevel.High ? "high" : "medium",
-            opaqueDownsampling: Downsampling.None
+            opaqueDownsampling: materialQuality === RiverQualityLevel.High ? Downsampling.None : Downsampling.TwoX
           }
         : undefined
     );

@@ -40,7 +40,8 @@ module.exports = {
       "@galacean/engine-physics-physx",
       "@galacean/engine-shader",
       "@galacean/engine-shader-compiler",
-      "@galacean/engine-toolkit-controls"
+      "@galacean/engine-toolkit-controls",
+      "@galacean/engine-toolkit-stats"
     ]
   }
 };

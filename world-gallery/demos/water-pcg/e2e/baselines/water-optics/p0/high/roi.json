@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 3,
+  "capturedAt": "2026-07-22T19:45:15.079Z",
+  "browser": "Chromium 140.0.7339.16",
+  "viewport": {
+    "width": 1280,
+    "height": 720,
+    "devicePixelRatio": 1
+  },
+  "analysisSize": {
+    "width": 256,
+    "height": 144
+  },
+  "surfaceTime": 12.5,
+  "tier": "high",
+  "statsEnabled": false,
+  "compositionMode": "precomposed",
+  "fixtureVisualState": {
+    "markerLayout": "four-asymmetric-markers-v1",
+    "planarOrientationMarkersVisible": true,
+    "localFoamMaskEnabled": true,
+    "localFoamMaskCenterXZ": [-6, 1.5],
+    "localFoamMaskHalfSizeXZ": [3.25, 4.25],
+    "localFoamMaskFeatherMeters": 0.45,
+    "reflectorLayout": "moving-reflector-boat-v1",
+    "reflectorVisible": true,
+    "reflectorTime": 12.5,
+    "featureFlags": { "waves": true, "microNormals": true, "foam": true }
+  },
+  "fixtureVisualHash": "0349ff4d5df5f19b07e99e6b05eeac8887e71712bad839c2599dbaae29111e8b",
+  "regions": {
+    "shallowBed": [0.15, 0.48, 0.2, 0.24],
+    "mediumBed": [0.4, 0.48, 0.2, 0.24],
+    "deepBed": [0.65, 0.48, 0.2, 0.24],
+    "foregroundRail": [0.23, 0.785, 0.54, 0.03],
+    "aboveWaterColumns": [
+      [0.235, 0.25, 0.02, 0.1],
+      [0.492, 0.25, 0.02, 0.1],
+      [0.742, 0.25, 0.02, 0.1]
+    ],
+    "planarClipSentinel": [0.78, 0.56, 0.18, 0.09],
+    "borderWidthAnalysisPixels": 2
+  },
+  "frozenThresholds": {
+    "goldenMaximumDiffPixelRatio": 0.005,
+    "goldenPerChannelByteTolerance": 2,
+    "refractionMinimumLinearMad": 0.015,
+    "aboveWaterMaximumLinearMad": 0.006,
+    "foregroundRailMaximumLinearMad": 0.008,
+    "foregroundRailMaximumLeakRatio": 0.005,
+    "borderMaximumSentinelToWaterRatio": 0.001,
+    "planarClipOffMinimumCoverage": 0.05,
+    "planarClipOnMaximumCoverage": 0.005,
+    "probeMinimumLinearMad": 0.02,
+    "transmittanceMinimumDepthStep": 0.05
+  },
+  "baselines": {
+    "refraction-final.png": {
+      "file": "refraction-final.png",
+      "state": "Refraction On, Sky reflection, depth-steps camera",
+      "sha256": "473872ea303dfd9205146ddc060df9fd903f74fd6289701f4e7fc44ce42cb237"
+    },
+    "reflection-final.png": {
+      "file": "reflection-final.png",
+      "state": "Planar reflection, reflection-front camera, oblique clip on",
+      "sha256": "85d86759f80ee6522c9f53def989f3fb167e0a952781ee5c5d90d21e31f4a2f7"
+    },
+    "planar-clip-mask.png": {
+      "file": "planar-clip-mask.png",
+      "state": "Planar reflection, refraction off, oblique clip on",
+      "sha256": "5529d9f93c58cd76c17f8f59b647246bab865fc0774c0c1c5be870d4e6aa26fb"
+    }
+  }
+}

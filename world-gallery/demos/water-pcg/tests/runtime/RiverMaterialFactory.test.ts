@@ -1,12 +1,55 @@
-import { describe, expect, it } from "vitest";
+import type { Material, ShaderData, TextureCube } from "@galacean/engine-core";
+import { ShaderLanguage } from "@galacean/engine-core";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { describe, expect, it, vi } from "vitest";
+import { DEFAULT_WATER_OPTICAL_PROFILE } from "../../runtime/optics/WaterOpticalProfile";
+import { WaterOpticsDebugView } from "../../runtime/optics/WaterSurfaceOpticsTypes";
+import { WATER_OPTICS_SHADER_PROPERTY } from "../../runtime/optics/constants/WaterOpticsShaderConstants";
 import {
   lowRiverShaderSource,
   riverSurfaceLocalMapShaderSource,
-  riverSurfaceShaderSource
+  riverSurfaceShaderSource,
+  setRiverSurfaceOpticsBinding
 } from "../../runtime/river/RiverMaterialFactory";
 import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../../runtime/river/constants";
 
+interface GlesShaderPrecompiler {
+  _precompile(source: string, language: ShaderLanguage, basePath: string): unknown;
+}
+
+function createOpticsHarness(): {
+  readonly material: Material;
+  readonly setFloat: ReturnType<typeof vi.fn>;
+  readonly setVector3: ReturnType<typeof vi.fn>;
+  readonly setTexture: ReturnType<typeof vi.fn>;
+} {
+  const setFloat = vi.fn();
+  const setVector3 = vi.fn();
+  const setTexture = vi.fn();
+  const shaderData = {
+    setFloat,
+    setVector3,
+    setVector4: vi.fn(),
+    setTexture,
+    setMatrix: vi.fn()
+  } as unknown as ShaderData;
+  return {
+    material: { shaderData } as unknown as Material,
+    setFloat,
+    setVector3,
+    setTexture
+  };
+}
+
 describe("RiverMaterialFactory shaders", () => {
+  it.each([
+    ["surface", riverSurfaceShaderSource],
+    ["local-map surface", riverSurfaceLocalMapShaderSource]
+  ])("precompiles the %s shader to GLES100", (_label, source) => {
+    const compiler = new ShaderCompiler() as unknown as GlesShaderPrecompiler;
+    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, "")).not.toThrow();
+  });
+
   it("uses one pass, one texture sample, and no FBM loop", () => {
     expect(lowRiverShaderSource.match(/Pass \"/g) ?? []).toHaveLength(1);
     expect(lowRiverShaderSource.match(/texture2D\(/g) ?? []).toHaveLength(1);
@@ -75,14 +118,19 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).toContain("+ localWakeFoam *");
     expect(riverSurfaceShaderSource).toContain("+ obstacleEdgeFoam *");
     expect(riverSurfaceShaderSource).toContain("vec3 softFoamColor");
-    expect(RIVER_SURFACE_TEXTURE_SAMPLE_COUNT).toEqual({ low: 1, regular: 10, localMap: 11 });
+    expect(RIVER_SURFACE_TEXTURE_SAMPLE_COUNT).toEqual({ low: 1, regular: 11, localMap: 12 });
   });
 
-  it("uses heightfield-style Schlick reflection and two-scale sunlight on the river surface", () => {
-    expect(riverSurfaceShaderSource).toContain("float fresnel = 0.02200000");
+  it("uses profile-driven Schlick reflection, one optional Probe, and two-scale sunlight", () => {
+    expect(riverSurfaceShaderSource).toContain("float fresnelRatio = (1.0 - indexOfRefraction)");
+    expect(riverSurfaceShaderSource).toContain("float fresnelF0 = fresnelRatio * fresnelRatio");
+    expect(riverSurfaceShaderSource).not.toContain("float fresnel = 0.02200000");
     expect(riverSurfaceShaderSource).toContain("float broadSpecular = pow(");
     expect(riverSurfaceShaderSource).toContain("float tightSpecular = pow(");
     expect(riverSurfaceShaderSource).toContain("vec3 skyReflection = mix(");
+    expect(riverSurfaceShaderSource).toContain("samplerCube material_ReflectionCubeTexture");
+    expect(riverSurfaceShaderSource).toContain("textureCube(");
+    expect(riverSurfaceShaderSource).not.toContain("material_PlanarReflectionTexture");
     expect(riverSurfaceShaderSource).toContain("float sparkleMask = mix(");
     expect(riverSurfaceShaderSource).toContain("sampler2D camera_OpaqueTexture");
     expect(riverSurfaceShaderSource).toContain("vec2 displacedScreenUv = screenUv");
@@ -119,8 +167,15 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).toContain("input.authoredDepth * input.shoreDamping");
     expect(riverSurfaceShaderSource).toContain("float authoredDepthAvailable = step(");
     expect(riverSurfaceShaderSource).toContain("min(sampledOpticalDepth, authoredOpticalDepth)");
+    expect(riverSurfaceShaderSource).toContain(
+      "opticalDepth = min(opticalDepth, max(material_MaximumSurfaceOpticalDistance, 0.0))"
+    );
+    expect(riverSurfaceShaderSource).toContain("vec3 absorption = max(material_AbsorptionCoefficient, vec3(0.0))");
     expect(riverSurfaceShaderSource).toContain("vec3 transmittance = exp(-absorption * opticalDepth)");
-    expect(riverSurfaceShaderSource).toContain("float absorptionAlpha = 1.0 - exp(-mix(");
+    expect(riverSurfaceShaderSource).toContain("vec3 profileScattering = max(material_ScatteringColor");
+    expect(riverSurfaceShaderSource).toContain("step(0.5, material_RefractionEnabled)");
+    expect(riverSurfaceShaderSource).toContain("max(material_RefractionStrength, 0.0)");
+    expect(riverSurfaceShaderSource).toContain("float absorptionAlpha = 1.0 - exp(-averageAbsorption");
     expect(riverSurfaceShaderSource).toContain("float waterAlpha = clamp(");
     expect(riverSurfaceShaderSource).toContain("alpha * material_OpacityScale");
     expect(riverSurfaceShaderSource).toContain("saturate(material_TintWeight)");
@@ -143,5 +198,103 @@ describe("RiverMaterialFactory shaders", () => {
     expect(varyingBlock).toContain("float authoredDepth");
     expect(varyingBlock).not.toContain("motionData");
     expect(varyingBlock).not.toContain("surfaceData");
+  });
+
+  it("applies the shared profile and explicit refraction toggle", () => {
+    const harness = createOpticsHarness();
+    const profile = {
+      ...DEFAULT_WATER_OPTICAL_PROFILE,
+      absorptionCoefficient: [0.4, 0.2, 0.1] as const,
+      scatteringColor: [0.08, 0.3, 0.36] as const,
+      scatteringCoefficient: 0.22,
+      maximumSurfaceOpticalDistance: 9,
+      indexOfRefraction: 1.5,
+      refractionStrength: 1.75
+    };
+
+    const enabled = setRiverSurfaceOpticsBinding(harness.material, {
+      tier: "medium",
+      opticalProfile: profile,
+      refractionEnabled: true,
+      reflection: undefined,
+      debugView: WaterOpticsDebugView.Final
+    });
+    expect(enabled.opticalProfile.fresnelF0).toBeCloseTo(0.04);
+    expect(enabled.opticalProfile.maximumSurfaceOpticalDistance).toBe(9);
+    expect(harness.setVector3).toHaveBeenCalledWith(
+      WATER_OPTICS_SHADER_PROPERTY.absorptionCoefficient,
+      expect.objectContaining({ x: 0.4, y: 0.2, z: 0.1 })
+    );
+    expect(harness.setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.scatteringCoefficient, 0.22);
+    expect(harness.setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.indexOfRefraction, 1.5);
+    expect(harness.setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.refractionStrength, 1.75);
+    expect(harness.setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.refractionEnabled, 1);
+
+    setRiverSurfaceOpticsBinding(harness.material, {
+      tier: "high",
+      opticalProfile: profile,
+      refractionEnabled: false,
+      reflection: undefined,
+      debugView: WaterOpticsDebugView.Final
+    });
+    expect(harness.setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.refractionEnabled, 0);
+  });
+
+  it("binds Probe but makes Planar fail closed to Probe or Sky and clears stale textures", () => {
+    const harness = createOpticsHarness();
+    const probeTexture = {} as TextureCube;
+    const base = {
+      tier: "high" as const,
+      opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+      refractionEnabled: true,
+      debugView: WaterOpticsDebugView.Final
+    };
+
+    const probe = setRiverSurfaceOpticsBinding(harness.material, {
+      ...base,
+      reflection: {
+        requestedSource: "probe",
+        resolvedSource: "probe",
+        probeTexture
+      }
+    });
+    expect(probe.effectiveSource).toBe("probe");
+    expect(harness.setTexture).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.reflectionCubeTexture, probeTexture);
+    expect(harness.setTexture).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture, null);
+
+    const planarToProbe = setRiverSurfaceOpticsBinding(harness.material, {
+      ...base,
+      reflection: {
+        requestedSource: "planar",
+        resolvedSource: "planar",
+        probeTexture
+      }
+    });
+    expect(planarToProbe).toMatchObject({
+      requestedSource: "planar",
+      bindingResolvedSource: "probe",
+      effectiveSource: "probe",
+      fallbackReason: "planar-ineligible"
+    });
+    expect(harness.setTexture).toHaveBeenLastCalledWith(WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture, null);
+
+    const planarToSky = setRiverSurfaceOpticsBinding(harness.material, {
+      ...base,
+      reflection: {
+        requestedSource: "planar",
+        resolvedSource: "planar"
+      }
+    });
+    expect(planarToSky).toMatchObject({
+      requestedSource: "planar",
+      bindingResolvedSource: "sky",
+      effectiveSource: "sky",
+      fallbackReason: "planar-ineligible"
+    });
+    expect(harness.setTexture).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.reflectionCubeTexture, null);
+
+    const cleared = setRiverSurfaceOpticsBinding(harness.material);
+    expect(cleared.effectiveSource).toBe("sky");
+    expect(harness.setTexture).toHaveBeenLastCalledWith(WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture, null);
   });
 });

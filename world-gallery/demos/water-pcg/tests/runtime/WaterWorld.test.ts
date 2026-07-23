@@ -2,7 +2,9 @@ import { Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
 import { getWaterBodyCapabilities } from "../../runtime/body/WaterBodyCapabilities";
 import { WaterBodyRuntimeAdapter } from "../../runtime/body/WaterBodyRuntime";
-import { WaterWorld } from "../../runtime/body/WaterWorld";
+import { SurfaceDepthWaterVolumeProvider } from "../../runtime/body/SurfaceDepthWaterVolumeProvider";
+import { WaterWorld, createWaterWorldVolumeSample } from "../../runtime/body/WaterWorld";
+import { DEFAULT_WATER_OPTICAL_PROFILE } from "../../runtime/optics/WaterOpticalProfile";
 import {
   createWaterSurfaceSample,
   resetWaterSurfaceSample,
@@ -30,6 +32,22 @@ function createBody(id: string, height: number, priority: number) {
     bounds: { minX: -10, minZ: -10, maxX: 10, maxZ: 10 },
     priority,
     metrics: { meshUploadCount: 0, drawCount: 1, triangleCount: 2, resourceBytes: 0 }
+  });
+}
+
+function createVolumeBody(id: string, height: number, depth: number, priority: number) {
+  const surface = createFlatProvider(id, height);
+  return new WaterBodyRuntimeAdapter({
+    ...createBody(id, height, priority),
+    surface,
+    volume: new SurfaceDepthWaterVolumeProvider({
+      sampleSurface(position, out): boolean {
+        surface.sampleSurface(position, out);
+        out.waterDepth = depth;
+        return true;
+      }
+    }),
+    opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE
   });
 }
 
@@ -106,5 +124,40 @@ describe("WaterWorld", () => {
     expect(world.sampleSurface(new Vector3(), sample)).toBe(true);
     expect(sample.waterBodyId).toBe("registry-id");
     expect(world.lastSelectedBodyId).toBe("registry-id");
+  });
+
+  it("selects only vertically containing volumes before applying priority", () => {
+    const world = new WaterWorld({ now: () => 0 });
+    world.register(createVolumeBody("shallow-high-priority", 5, 1, 20));
+    world.register(createVolumeBody("deep-low-priority", 4, 6, 0));
+    const sample = createWaterWorldVolumeSample();
+
+    expect(world.findContainingVolume(new Vector3(0, 2, 0), sample)).toBe(true);
+    expect(sample.waterBodyId).toBe("deep-low-priority");
+    expect(sample.bottomHeight).toBe(-2);
+    expect(sample.opticalProfile).toBe(DEFAULT_WATER_OPTICAL_PROFILE);
+
+    expect(world.findContainingVolume(new Vector3(0, 4.5, 0), sample)).toBe(true);
+    expect(sample.waterBodyId).toBe("shallow-high-priority");
+    expect(sample.priority).toBe(20);
+    expect(world.metrics.volumeQueryCount).toBe(2);
+    expect(world.metrics.volumeHitCount).toBe(2);
+  });
+
+  it("supports retained-body hysteresis samples while honoring exclusion and lifecycle", () => {
+    const world = new WaterWorld({ now: () => 0 });
+    const body = new WaterBodyRuntimeAdapter({
+      ...createVolumeBody("finite", 2, 3, 10),
+      exclusionBounds: [{ minX: 1, minZ: 1, maxX: 2, maxZ: 2 }]
+    });
+    world.register(body);
+    const sample = createWaterWorldVolumeSample();
+
+    expect(world.findContainingVolume(new Vector3(1.5, 1, 1.5), sample)).toBe(false);
+    expect(world.sampleBodyVolume("finite", new Vector3(0, 2.05, 0), sample)).toBe(true);
+    expect(sample.insideVolume).toBe(false);
+    expect(sample.signedSurfaceDistance).toBeCloseTo(0.05);
+    expect(world.unregister("finite")).toBe(true);
+    expect(world.sampleBodyVolume("finite", new Vector3(0, 1, 0), sample)).toBe(false);
   });
 });

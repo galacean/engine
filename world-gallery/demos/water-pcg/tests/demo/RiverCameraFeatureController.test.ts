@@ -4,7 +4,7 @@ import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverCameraFeatureController, type RiverCameraFeatureTarget } from "../../demo/RiverCameraFeatureController";
 
 describe("RiverCameraFeatureController", () => {
-  it("enables full-resolution depth and opaque color only for a visible Medium or High river", () => {
+  it("uses TwoX opaque color for Medium and full resolution only for High", () => {
     const camera: RiverCameraFeatureTarget = {
       depthTextureMode: DepthTextureMode.None,
       opaqueTextureEnabled: false,
@@ -22,6 +22,10 @@ describe("RiverCameraFeatureController", () => {
     expect(camera.depthTextureMode).toBe(DepthTextureMode.PrePass);
     expect(controller.depthTextureRequested).toBe(true);
     expect(camera.opaqueTextureEnabled).toBe(true);
+    expect(camera.opaqueTextureDownsampling).toBe(Downsampling.TwoX);
+    expect(controller.opaqueTextureRequested).toBe(true);
+
+    controller.apply(true, RiverQualityLevel.High);
     expect(camera.opaqueTextureDownsampling).toBe(Downsampling.None);
     expect(controller.opaqueTextureRequested).toBe(true);
 

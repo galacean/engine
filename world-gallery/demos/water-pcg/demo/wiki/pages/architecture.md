@@ -14,6 +14,15 @@ AI / JSON / 示例配置
 
 River 已完整走通 Descriptor、Compiler、Resource、Worker、Runtime 和 Query。Heightfield 也有独立 Descriptor、Validator、Compiler 与 Worker；Pool 和 Ocean 当前通过薄 Adapter 接入统一运行时契约，不应因此宣称四种水体已经有完全相同的资产管线。
 
+同一份权威 Current 会按消费者密度分成两条读路径：
+
+```text
+Compiled / Runtime Current -> SurfaceProvider -> WaterWorld -> gameplay / buoyancy / underwater
+                         └-> Uniform/Grid Snapshot(revision) -> Foam <=30Hz -> latest R8 -> material
+```
+
+第一条服务少量精确点查；第二条是密集视觉读模型。Snapshot 当前由 Pool consumer 显式持有，还没有进入 `WaterBodyRuntime` 公共契约，以免在只有一个实际消费者时过早冻结 API。
+
 ## 四层分别做什么
 
 | 层 | 职责 | 当前源码入口 |
@@ -42,17 +51,25 @@ River 的 `RiverResource` 目前仍是 `world-gallery` 内部引用资源，带�
 5. Terrain、水面、河床分别拥有自己的数据和生命周期。
 6. 多水体只通过 `WaterWorld` 统一选择，不让每个玩法系统重复判断水体类型。
 7. Camera scene texture 由一个 Broker 合并和恢复，不能由单片水直接永久修改相机。
+8. 稀疏玩法查询可以读取精确 Surface/Local Provider；密集视觉场必须消费带 revision 的只读 Snapshot，禁止在 texel 循环中调用完整 Surface Query。
+9. 静态 Current 的 revision 不变时不得重复构建 Snapshot；未来动态 Grid 由数据 owner 按 revision/dirty 发布，不能让 Foam 自己反查权威 Surface。
+10. 视觉模拟频率与渲染频率解耦；当前 Foam 以不超过 30 Hz 的 CPU 更新复用最新纹理，卡顿后不循环追帧。
+
+P1 在 `WaterBodyRuntime` 上增加了两个可选能力入口：`localField` 表达静态或动态的局部位移、流向、泡沫源与模拟 mask；`volume + opticalProfile` 表达有限水下体积和光学介质。它们是同一水体注册记录的一部分，不应另建脱离 WaterWorld 生命周期的全局单例。
 
 ## 扩展新能力时放在哪
 
-| 新需求               | 推荐落点                                                         |
-| -------------------- | ---------------------------------------------------------------- |
-| 新增可序列化参数     | Authoring 类型、Decoder、Validator 与版本迁移                    |
-| 可离线计算的几何或场 | Compiler，并进入不可变资源和 hash                                |
-| 新水体的最终表面     | 实现 `WaterSurfaceProvider`，再声明真实 capabilities             |
-| 多水体选择规则       | `WaterWorld`，不要写在角色或浮力组件中                           |
-| 动态局部水面状态     | 独立 Interaction/Simulation 层，并让 Render 与 Query 共享        |
-| 相机深度、颜色纹理   | `CameraWaterFeatureBroker` 请求，不在 MaterialFactory 中隐式开启 |
+| 新需求 | 推荐落点 |
+| --- | --- |
+| 新增可序列化参数 | Authoring 类型、Decoder、Validator 与版本迁移 |
+| 可离线计算的几何或场 | Compiler，并进入不可变资源和 hash |
+| 新水体的最终表面 | 实现 `WaterSurfaceProvider`，再声明真实 capabilities |
+| 多水体选择规则 | `WaterWorld`，不要写在角色或浮力组件中 |
+| 动态局部水面状态 | 独立 Interaction/Simulation 层，并让 Render 与 Query 共享 |
+| 静态与动态局部效果 | `WaterLocalModifier` + `WaterLocalFieldComposer`，显式 bounds、通道和混合 |
+| 泡沫等密集 Current 消费 | `WaterCurrentFieldSnapshot`；静态 Uniform 构建一次，动态 Grid 只在 revision/dirty 变化时刷新 |
+| 相机深度、颜色纹理 | `CameraWaterFeatureBroker` 请求，不在 MaterialFactory 中隐式开启 |
+| Sky/Probe/Planar 反射 | 每相机 `WaterReflectionService`，最多一个 Planar owner |
 
 ## 当前产品化边界
 

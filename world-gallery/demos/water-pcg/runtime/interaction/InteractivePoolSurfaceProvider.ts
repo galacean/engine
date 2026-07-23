@@ -8,6 +8,8 @@ import type {
 
 /** Combines the existing River surface with one shared interactive pool height field. */
 export class InteractivePoolSurfaceProvider implements WaterSurfaceProvider {
+  sampleCount = 0;
+
   private readonly _fieldSample: RectangularWaterHeightFieldSample = {
     height: 0,
     verticalVelocity: 0,
@@ -22,6 +24,7 @@ export class InteractivePoolSurfaceProvider implements WaterSurfaceProvider {
   ) {}
 
   sampleSurface(worldPosition: Vector3, outSample: WaterSurfaceSample): boolean {
+    this.sampleCount++;
     if (!this._baseProvider.sampleSurface(worldPosition, outSample)) return false;
     if (!this.heightField.sampleWorld(worldPosition.x, worldPosition.z, this._fieldSample)) return true;
 
@@ -29,11 +32,7 @@ export class InteractivePoolSurfaceProvider implements WaterSurfaceProvider {
     outSample.surfacePosition.y += fieldSample.height;
     outSample.waterVelocity.y += fieldSample.verticalVelocity;
     outSample.waterDepth = Math.max(0, outSample.waterDepth + fieldSample.height);
-    this.heightField.localGradientToWorld(
-      fieldSample.gradientLocalX,
-      fieldSample.gradientLocalZ,
-      this._worldGradient
-    );
+    this.heightField.localGradientToWorld(fieldSample.gradientLocalX, fieldSample.gradientLocalZ, this._worldGradient);
     const normal = outSample.surfaceNormal;
     normal.set(normal.x - this._worldGradient.x, normal.y, normal.z - this._worldGradient.z);
     const normalLength = normal.length();

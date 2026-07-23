@@ -24,6 +24,8 @@ export interface OceanWaterSurfaceProviderConfig {
   readonly timeScale: number;
   readonly getElapsedTime: () => number;
   readonly accuracy?: WaterQueryAccuracy;
+  /** Camera-relative ring geometry represents an unbounded ocean domain. */
+  readonly unbounded?: boolean;
   /** The preview has no compiled bed; infinity states that assumption explicitly. */
   readonly waterDepth?: number;
 }
@@ -42,6 +44,7 @@ export class OceanWaterSurfaceProvider implements BatchWaterSurfaceProvider {
   private _getElapsedTime: () => number;
   private _accuracy: WaterQueryAccuracy;
   private _waterDepth: number;
+  private _unbounded: boolean;
 
   constructor(config: OceanWaterSurfaceProviderConfig) {
     this._waterBodyId = config.waterBodyId;
@@ -52,6 +55,7 @@ export class OceanWaterSurfaceProvider implements BatchWaterSurfaceProvider {
     this._getElapsedTime = config.getElapsedTime;
     this._accuracy = config.accuracy ?? WaterQueryAccuracy.Precise;
     this._waterDepth = config.waterDepth ?? Number.POSITIVE_INFINITY;
+    this._unbounded = config.unbounded ?? false;
   }
 
   get lastQueryStatus(): Readonly<WaterSurfaceQueryStatus> {
@@ -59,7 +63,7 @@ export class OceanWaterSurfaceProvider implements BatchWaterSurfaceProvider {
   }
 
   get horizontalExtent(): number {
-    return this._halfSize + this._waveSet.maxHorizontalDisplacement;
+    return this._unbounded ? Number.POSITIVE_INFINITY : this._halfSize + this._waveSet.maxHorizontalDisplacement;
   }
 
   setConfig(config: Omit<OceanWaterSurfaceProviderConfig, "getElapsedTime">): void {
@@ -70,6 +74,7 @@ export class OceanWaterSurfaceProvider implements BatchWaterSurfaceProvider {
     this._timeScale = config.timeScale;
     this._accuracy = config.accuracy ?? WaterQueryAccuracy.Precise;
     this._waterDepth = config.waterDepth ?? Number.POSITIVE_INFINITY;
+    this._unbounded = config.unbounded ?? false;
   }
 
   setElapsedTimeSource(getElapsedTime: () => number): void {
@@ -100,10 +105,11 @@ export class OceanWaterSurfaceProvider implements BatchWaterSurfaceProvider {
     );
     if (!converged) return false;
     if (
-      this._inverse.restX < -this._halfSize ||
-      this._inverse.restX > this._halfSize ||
-      this._inverse.restZ < -this._halfSize ||
-      this._inverse.restZ > this._halfSize
+      !this._unbounded &&
+      (this._inverse.restX < -this._halfSize ||
+        this._inverse.restX > this._halfSize ||
+        this._inverse.restZ < -this._halfSize ||
+        this._inverse.restZ > this._halfSize)
     ) {
       resetWaterSurfaceQueryStatus(outStatus);
       outStatus.converged = true;

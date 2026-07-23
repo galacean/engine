@@ -63,4 +63,22 @@ describe("OceanWaterSurfaceProvider", () => {
     expect(batch.waterBodyIds[0]).toBe("bounded-ocean");
     expect(batch.capabilityFallbacks[1]).toBe(WaterSurfaceQueryFallback.OutsideFootprint);
   });
+
+  it("samples world-space waves outside the old preview footprint for camera-relative rings", () => {
+    const waveSet = compileWaterWaveAsset(directionalWaterWaveFixture, WaterQualityTier.Medium);
+    const provider = new OceanWaterSurfaceProvider({
+      waterBodyId: "unbounded-ocean",
+      waveSet,
+      size: 20,
+      waterLevel: 0,
+      timeScale: 1,
+      unbounded: true,
+      getElapsedTime: () => 2
+    });
+    const sample = createWaterSurfaceSample();
+
+    expect(provider.horizontalExtent).toBe(Number.POSITIVE_INFINITY);
+    expect(provider.sampleSurface(new Vector3(10_000, 0, -8_000), sample)).toBe(true);
+    expect(sample.waterBodyId).toBe("unbounded-ocean");
+  });
 });

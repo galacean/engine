@@ -9,7 +9,8 @@ import {
   Vector2,
   Vector3,
   Vector4,
-  type Engine
+  type Engine,
+  type Texture2D
 } from "@galacean/engine";
 import { RIVER_FLOW_UV_SCALE, RIVER_GEOMETRY_Y_OFFSET } from "../../compiler/river/constants";
 import type { RiverCompiledData, RiverCompiledSample } from "../../compiler/river/types";
@@ -20,11 +21,22 @@ import type {
 } from "../../runtime/interaction/RectangularWaterHeightField";
 import {
   createRiverMaterial,
+  setRiverSurfaceOpticsBinding,
   setRiverSurfaceOpacityScale,
   setRiverSurfaceTintWeight
 } from "../../runtime/river/RiverMaterialFactory";
-import { createInteractivePoolRippleMaterial } from "./InteractivePoolRippleMaterial";
+import type {
+  WaterSurfaceOpticsBinding,
+  WaterSurfaceOpticsBindingReadback
+} from "../../runtime/optics/WaterSurfaceOpticsTypes";
+import {
+  configureInteractivePoolTemporalFoamRegion,
+  createInteractivePoolRippleMaterial,
+  setInteractivePoolTemporalFoamTexture,
+  type InteractivePoolTemporalFoamRegion
+} from "./InteractivePoolRippleMaterial";
 import { computeInteractivePoolRippleVisibility } from "./InteractivePoolRippleStyle";
+import type { PoolLocalEffectsDebugView } from "./PoolP1ShowcaseConfig";
 
 const RIPPLE_HIGHLIGHT_THRESHOLD = 0.16;
 const RIPPLE_TROUGH_COLOR = [0.04, 0.42, 0.52] as const;
@@ -121,6 +133,8 @@ export class InteractivePoolSurfaceController extends Script {
   private _mesh: ModelMesh | null = null;
   private _material: Material | null = null;
   private _rippleMaterial: Material | null = null;
+  private _surfaceOpticsBinding?: Readonly<WaterSurfaceOpticsBinding>;
+  private _surfaceOpticsReadback?: Readonly<WaterSurfaceOpticsBindingReadback>;
   private _positions: Vector3[] = [];
   private _normals: Vector3[] = [];
   private _rippleColors: Color[] = [];
@@ -162,6 +176,31 @@ export class InteractivePoolSurfaceController extends Script {
 
   get rippleHighlightPeak(): number {
     return this._rippleHighlightPeak;
+  }
+
+  get surfaceOpticsReadback(): Readonly<WaterSurfaceOpticsBindingReadback> | undefined {
+    return this._surfaceOpticsReadback;
+  }
+
+  /** May be called before or after configure; subsequent materials consume the same complete snapshot. */
+  setSurfaceOpticsBinding(
+    binding?: Readonly<WaterSurfaceOpticsBinding>
+  ): Readonly<WaterSurfaceOpticsBindingReadback> | undefined {
+    this._surfaceOpticsBinding = binding;
+    const material = this._material;
+    if (!material) return undefined;
+    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, binding);
+    return this._surfaceOpticsReadback;
+  }
+
+  configureTemporalFoamRegion(region: InteractivePoolTemporalFoamRegion): void {
+    if (!this._rippleMaterial) throw new Error("Interactive pool surface must be configured first.");
+    configureInteractivePoolTemporalFoamRegion(this._rippleMaterial, region);
+  }
+
+  setTemporalFoamTexture(texture: Texture2D | null, enabled: boolean, debugView: PoolLocalEffectsDebugView): void {
+    if (!this._rippleMaterial) return;
+    setInteractivePoolTemporalFoamTexture(this._rippleMaterial, texture, enabled, debugView);
   }
 
   configure(options: InteractivePoolSurfaceOptions): void {
@@ -275,6 +314,7 @@ export class InteractivePoolSurfaceController extends Script {
     material.name = "InteractivePoolRiverSurfaceMaterial";
     material.isGCIgnored = true;
     this._material = material;
+    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, this._surfaceOpticsBinding);
     const rippleMaterial = createInteractivePoolRippleMaterial(options.engine);
     this._rippleMaterial = rippleMaterial;
     const surfaceEntity = options.parent.createChild("interactive-pool-dynamic-surface");
@@ -354,6 +394,7 @@ export class InteractivePoolSurfaceController extends Script {
   }
 
   dispose(): void {
+    if (this._material) setRiverSurfaceOpticsBinding(this._material);
     this._surfaceEntity?.destroy();
     this._mesh?.destroy(true);
     this._material?.destroy(true);
@@ -362,6 +403,8 @@ export class InteractivePoolSurfaceController extends Script {
     this._mesh = null;
     this._material = null;
     this._rippleMaterial = null;
+    this._surfaceOpticsBinding = undefined;
+    this._surfaceOpticsReadback = undefined;
     this._heightField = null;
     this._positions = [];
     this._normals = [];

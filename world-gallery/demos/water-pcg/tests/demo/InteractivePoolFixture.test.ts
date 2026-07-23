@@ -5,6 +5,7 @@ import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler"
 import { createPoolSceneLayout } from "../../demo/decoration/PoolSceneController";
 import { indoorReflectivePoolExample } from "../../demo/examples/pool/indoorReflectivePool";
 import { findWaterPcgCase } from "../../demo/navigation";
+import { POOL_WATER_OPTICAL_PROFILE } from "../../demo/pool/PoolWaterOptics";
 import { computeInteractivePoolRippleVisibility } from "../../demo/pool/InteractivePoolRippleStyle";
 import { RectangularWaterHeightField } from "../../runtime/interaction/RectangularWaterHeightField";
 
@@ -101,6 +102,31 @@ describe("interactive indoor pool fixture", () => {
     expect(surfaceSource).toContain("field.sampleLocal(localX, localZ, this._fieldSample)");
     expect(surfaceSource).toContain("setRiverSurfaceOpacityScale(material, POOL_WATER_OPACITY_SCALE)");
     expect(surfaceSource).toContain("setRiverSurfaceTintWeight(material, POOL_WATER_TINT_WEIGHT)");
+  });
+
+  it("shares one immutable optical profile between the real River surface and underwater pass", () => {
+    const mainSource = readDemoSource("demo/pool/main.ts");
+    const surfaceSource = readDemoSource("demo/pool/InteractivePoolSurfaceController.ts");
+
+    expect(Object.isFrozen(POOL_WATER_OPTICAL_PROFILE)).toBe(true);
+    expect(POOL_WATER_OPTICAL_PROFILE).toMatchObject({
+      absorptionCoefficient: [0.2, 0.075, 0.035],
+      scatteringColor: [0.045, 0.28, 0.34],
+      scatteringCoefficient: 0.18,
+      maximumViewDistance: 32,
+      indexOfRefraction: 1.333,
+      maximumSurfaceOpticalDistance: 2.6,
+      refractionStrength: 1,
+      roughness: 0.12,
+      reflectionIntensity: 0.72
+    });
+    expect(mainSource).toContain("underwaterPass.setOpticalProfile(POOL_WATER_OPTICAL_PROFILE)");
+    expect(mainSource).toContain("fallbackOpticalProfile: POOL_WATER_OPTICAL_PROFILE");
+    expect(mainSource).toContain("surfaceController.setSurfaceOpticsBinding({");
+    expect(mainSource).toContain("opticalProfile: POOL_WATER_OPTICAL_PROFILE");
+    expect(mainSource).toContain("refractionEnabled: true");
+    expect(surfaceSource).toContain("setSurfaceOpticsBinding(");
+    expect(surfaceSource).toContain("setRiverSurfaceOpticsBinding(material, binding)");
   });
 
   it("suppresses the settled pressure trough while preserving moving crests", () => {

@@ -1,6 +1,9 @@
 /** Adapter-first water-body contract kept inside the demo during P0 incubation. */
+import type { WaterLocalFieldProvider } from "../interaction/WaterLocalFieldProvider";
+import type { WaterOpticalProfile } from "../optics/WaterOpticalProfile";
 import type { WaterSurfaceProvider } from "../query/WaterSurfaceProvider";
 import type { WaterBodyCapabilities, WaterBodyType } from "./WaterBodyCapabilities";
+import type { WaterVolumeProvider } from "./WaterVolumeProvider";
 
 export interface WaterBoundsXZ {
   readonly minX: number;
@@ -21,6 +24,9 @@ export interface WaterBodyRuntime {
   readonly type: WaterBodyType;
   readonly capabilities: WaterBodyCapabilities;
   readonly surface: WaterSurfaceProvider;
+  readonly localField?: WaterLocalFieldProvider;
+  readonly volume?: WaterVolumeProvider;
+  readonly opticalProfile?: WaterOpticalProfile;
   readonly bounds: WaterBoundsXZ;
   readonly exclusionBounds: readonly WaterBoundsXZ[];
   readonly priority: number;
@@ -38,6 +44,9 @@ export class WaterBodyRuntimeAdapter implements WaterBodyRuntime {
   readonly type: WaterBodyType;
   readonly capabilities: WaterBodyCapabilities;
   readonly surface: WaterSurfaceProvider;
+  readonly localField?: WaterLocalFieldProvider;
+  readonly volume?: WaterVolumeProvider;
+  readonly opticalProfile?: WaterOpticalProfile;
   readonly bounds: WaterBoundsXZ;
   readonly exclusionBounds: readonly WaterBoundsXZ[];
   readonly priority: number;
@@ -49,6 +58,9 @@ export class WaterBodyRuntimeAdapter implements WaterBodyRuntime {
     this.type = config.type;
     this.capabilities = config.capabilities;
     this.surface = config.surface;
+    this.localField = config.localField;
+    this.volume = config.volume;
+    this.opticalProfile = config.opticalProfile;
     this.bounds = config.bounds;
     this.exclusionBounds = config.exclusionBounds ?? Object.freeze([]);
     this.priority = config.priority;

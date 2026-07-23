@@ -25,6 +25,34 @@ Broker 会：
 
 水体销毁时应调用 `removeRequest(id)`。相机整体销毁前调用 `destroy()`。
 
+## 反射不是 CameraWaterFeatureBroker 的职责
+
+Broker 中的 `reflection` 字段只表达水体相机功能需求；Sky、Probe、Planar 的真实纹理、镜像相机和预算由每相机 `WaterReflectionService` 管理。两者不要合并成一个“万能相机控制器”：scene texture copy 需要合并布尔需求，而 Planar 必须在多个水体间选唯一 owner。
+
+Ocean 可通过以下入口观察当前 resolved source 和 Ring 成本：
+
+```js
+window.waterPcgGetOceanMetrics();
+window.waterPcgGetReflectionMetrics();
+window.waterPcgSetOceanReflectionSource("planar");
+window.waterPcgSetOceanLodDebug(true);
+window.waterPcgSetOceanCameraPosition(48, 32);
+window.waterPcgStressOcean(100);
+```
+
+重点检查 `reflectionSource`、`visiblePatchCount`、`drawCount`、`originSnapCount`、`meshUploadCount` 与固定为 false 的 `perFrameMeshUpload`。Planar 的 RT、失败回退和 CPU P95 则读取 `WaterReflectionService.metrics`。
+
+交互泳池 P1 页面提供：
+
+```js
+window.waterPcgP1.metrics;
+window.waterPcgP1.setBodyCount(16);
+window.waterPcgP1.setDebugView("source");
+window.waterPcgP1.restartWakes();
+```
+
+Source 用于查“事件有没有生成”，History 用于查“是否平流和衰减”，Final 才用于判断最终视觉合成。
+
 ## 浏览器查询探针
 
 P0 Demo 在浏览器暴露只读调试入口：
@@ -69,3 +97,6 @@ window.waterPcgP0.capabilityMatrix;
 - 每片水的三角形、绘制、资源字节和上传次数。
 - CopyDepth、CopyColor 是否各为 0 或 1。
 - 估算 RenderTarget 内存是否随质量档位合理变化。
+- 单相机 `planarCameraCount` 是否始终为 0 或 1，失败后是否回 Probe/Sky。
+- 局部事件是否保持在 128-event / 16-emitter 上限内，静止尾迹是否被拒绝。
+- 泡沫与 Pool Mesh 是否分别保持每渲染帧最多一次上传。

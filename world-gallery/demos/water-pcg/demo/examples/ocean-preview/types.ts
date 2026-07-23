@@ -2,6 +2,9 @@
 import type { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier";
 import type { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
 import type { WaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
+import type { WaterReflectionSource } from "../../../runtime/optics/WaterReflectionPolicy";
+import type { WaterOpticalProfile } from "../../../runtime/optics/WaterOpticalProfile";
+import type { ResolvedWaterOpticsTier, WaterOpticsTier } from "../../../runtime/optics/WaterSurfaceOpticsTypes";
 
 export interface OceanPreviewConfig {
   size: number;
@@ -14,6 +17,12 @@ export interface OceanPreviewConfig {
   alpha: number;
   foamIntensity: number;
   oceanColor: string;
+  /** Defaults to sky until a per-camera WaterReflectionService is attached. */
+  reflectionSource?: WaterReflectionSource;
+  /** Independent optics tier; Experimental deliberately resolves through High. */
+  opticsTier?: WaterOpticsTier;
+  opticalProfile?: WaterOpticalProfile;
+  refractionEnabled?: boolean;
 }
 
 export interface OceanPreviewMetrics {
@@ -30,6 +39,23 @@ export interface OceanPreviewMetrics {
   readonly activeMeshCount: number;
   readonly activeMaterialCount: number;
   readonly vertexCount: number;
+  readonly ringCount: number;
+  readonly patchCount: number;
+  readonly visiblePatchCount: number;
+  readonly drawCount: number;
+  readonly triangleCount: number;
+  readonly visibleTriangleCount: number;
+  readonly originSnapCount: number;
+  readonly originX: number;
+  readonly originZ: number;
+  readonly baseCellSize: number;
+  readonly coverageHalfExtent: number;
+  readonly reflectionSource: WaterReflectionSource;
+  readonly requestedOpticsTier?: WaterOpticsTier;
+  readonly resolvedOpticsTier?: ResolvedWaterOpticsTier;
+  readonly compiledOpticsTier?: ResolvedWaterOpticsTier;
+  readonly refractionEnabled: boolean;
+  readonly cameraFeatureRequested: boolean;
   readonly frameCount: number;
   readonly perFrameMeshUpload: false;
 }

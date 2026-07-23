@@ -38,14 +38,7 @@ describe("InteractivePoolSurfaceProvider", () => {
       }
     };
     const field = createField();
-    field.registerInteraction(
-      new Vector3(4.5, 2, -3),
-      new Vector3(0, 1, 0),
-      new Vector3(0, -5, 0),
-      0.72,
-      0.2,
-      true
-    );
+    field.registerInteraction(new Vector3(4.5, 2, -3), new Vector3(0, 1, 0), new Vector3(0, -5, 0), 0.72, 0.2, true);
     field.step(1 / 60);
     const provider = new InteractivePoolSurfaceProvider(baseProvider, field);
     const sample = createWaterSurfaceSample();
@@ -53,6 +46,7 @@ describe("InteractivePoolSurfaceProvider", () => {
     expect(field.sampleWorld(4.5, -3, fieldSample)).toBe(true);
 
     expect(provider.sampleSurface(new Vector3(4.5, 0, -3), sample)).toBe(true);
+    expect(provider.sampleCount).toBe(1);
     expect(sample.waterBodyId).toBe("pool");
     expect(sample.surfacePosition.y).toBeCloseTo(2 + fieldSample.height, 7);
     expect(sample.waterVelocity).toMatchObject({ x: 0.04, z: 0 });
@@ -79,6 +73,7 @@ describe("InteractivePoolSurfaceProvider", () => {
 
     expect(provider.sampleSurface(new Vector3(-1, 0, 0), sample)).toBe(false);
     expect(provider.sampleSurface(new Vector3(20, 0, 20), sample)).toBe(true);
+    expect(provider.sampleCount).toBe(2);
     expect(sample.surfacePosition.y).toBe(2);
     expect(sample.surfaceNormal).toMatchObject({ x: 0, y: 1, z: 0 });
     expect(sample.waterVelocity).toMatchObject({ x: 0.04, y: 0, z: 0 });

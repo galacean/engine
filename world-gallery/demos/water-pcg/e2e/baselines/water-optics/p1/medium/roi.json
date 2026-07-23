@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 2,
+  "gate": "water-optics-p1-acceptance",
+  "tier": "medium",
+  "fixedEnvironment": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "deviceScaleFactor": 1,
+    "surfaceTime": 12.5,
+    "statsEnabled": false,
+    "browser": "local Chromium",
+    "browserVersion": "140.0.7339.16",
+    "rendererLane": "canonical-golden",
+    "launchArgument": "--use-angle=swiftshader",
+    "requiredRendererSubstring": "SwiftShader",
+    "unsupportedClaims": [
+      "Safari",
+      "Android real device",
+      "iOS real device"
+    ]
+  },
+  "rois": {
+    "bodyMatrix": {
+      "river": [
+        0.02,
+        0.31,
+        0.29,
+        0.46
+      ],
+      "poolHeightfield": [
+        0.31,
+        0.34,
+        0.38,
+        0.43
+      ],
+      "ocean": [
+        0.69,
+        0.31,
+        0.29,
+        0.46
+      ]
+    },
+    "dualPool": {
+      "primaryPool": [
+        0.08,
+        0.31,
+        0.39,
+        0.46
+      ],
+      "secondaryPool": [
+        0.53,
+        0.31,
+        0.39,
+        0.46
+      ],
+      "river": [
+        0.4,
+        0.23,
+        0.2,
+        0.22
+      ]
+    },
+    "ownerHud": [
+      0,
+      0,
+      0.43,
+      0.32
+    ]
+  },
+  "thresholds": {
+    "maximumDiffPixelRatio": 0.005,
+    "perChannelByteTolerance": 2,
+    "maximumRoiMeanAbsoluteDifference": 0.035,
+    "minimumRoiLuminanceVariance": 0.0005
+  },
+  "captures": {
+    "body-matrix-final": {
+      "file": "body-matrix-final.png",
+      "sha256": "b0707a7e7619d476d6f26b351d2c0ef223c2deef9cbb781aa7918a89b664b3c4"
+    },
+    "dual-owner-debug": {
+      "file": "dual-owner-debug.png",
+      "sha256": "f65c5d5078038c585e155ab9d1ea2d7d332152fa61a95354b98cac2494ec22b0"
+    }
+  },
+  "lastBaselineUpdate": {
+    "reason": "Add real Pool River Ocean optics local foam moving reflector and deterministic multi-owner evidence",
+    "previousCaptures": {
+      "body-matrix-final": "2b0dac8ae234f17532dac761de851ba0ccf9fa8273a71c82667a8c6b3154833c",
+      "dual-owner-debug": "0831c9b08af887a76ff74b4ab98dce26386b79dd368a3c98ccc4e6349fe15f40"
+    }
+  }
+}

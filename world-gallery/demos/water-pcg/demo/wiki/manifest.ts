@@ -2,6 +2,8 @@ import architectureMarkdown from "./pages/architecture.md?raw";
 import buoyancyMarkdown from "./pages/buoyancy.md?raw";
 import cameraAndDebugMarkdown from "./pages/camera-and-debug.md?raw";
 import limitationsMarkdown from "./pages/limitations.md?raw";
+import localEffectsAndFoamMarkdown from "./pages/local-effects-and-foam.md?raw";
+import oceanRingsAndReflectionMarkdown from "./pages/ocean-rings-and-reflection.md?raw";
 import overviewMarkdown from "./pages/overview.md?raw";
 import providersMarkdown from "./pages/providers.md?raw";
 import quickStartMarkdown from "./pages/quick-start.md?raw";
@@ -9,6 +11,8 @@ import riverPipelineMarkdown from "./pages/river-pipeline.md?raw";
 import surfaceQueryMarkdown from "./pages/surface-query.md?raw";
 import terrainAndFlowMapMarkdown from "./pages/terrain-and-flow-map.md?raw";
 import testingAndTroubleshootingMarkdown from "./pages/testing-and-troubleshooting.md?raw";
+import underwaterMarkdown from "./pages/underwater.md?raw";
+import waterOpticsMarkdown from "./pages/water-optics.md?raw";
 import waterWorldMarkdown from "./pages/water-world.md?raw";
 import wavesAndQualityMarkdown from "./pages/waves-and-quality.md?raw";
 import type { WaterWikiPage } from "./model";
@@ -114,6 +118,86 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     relatedCaseId: "heightfield-water",
     relatedCaseLabel: "查看高度场宏观波浪",
     markdown: wavesAndQualityMarkdown
+  }),
+  Object.freeze({
+    slug: "local-effects-and-foam",
+    title: "局部水效果、尾迹与时序泡沫",
+    summary: "统一静态与动态局部场，用有界事件队列承接多刚体尾迹，并在固定 R8 预算内保存泡沫历史。",
+    category: "运行时",
+    keywords: Object.freeze([
+      "WaterLocalModifier",
+      "WaterInteractionEventQueue",
+      "TemporalFoamField",
+      "WaterCurrentFieldSnapshot",
+      "Current Snapshot",
+      "30Hz",
+      "Surface Query",
+      "尾迹",
+      "时序泡沫",
+      "1 4 8 16",
+      "upload policy"
+    ]),
+    telemetry: Object.freeze(["128 EVENTS", "16 EMITTERS", "1 UPLOAD / FRAME"]),
+    relatedCaseId: "p1-water-showcase",
+    relatedCaseLabel: "查看 P1 尾迹与泡沫",
+    markdown: localEffectsAndFoamMarkdown
+  }),
+  Object.freeze({
+    slug: "ocean-rings-and-reflection",
+    title: "海洋环带与反射层级",
+    summary: "用相机相对的不可变环带覆盖远景海面，并让 Sky、Probe、Planar 在每相机固定预算内选择和降级。",
+    category: "运行时",
+    keywords: Object.freeze([
+      "OceanRingGeometry",
+      "camera relative",
+      "WaterReflectionService",
+      "Planar",
+      "Probe",
+      "LOD",
+      "反射"
+    ]),
+    telemetry: Object.freeze(["25 / 37 PATCHES", "ONE PLANAR / CAMERA", "ZERO FRAME UPLOAD"]),
+    relatedCaseId: "curved-main-river",
+    relatedCaseLabel: "打开 Ocean Preview",
+    markdown: oceanRingsAndReflectionMarkdown
+  }),
+  Object.freeze({
+    slug: "water-optics",
+    title: "水面折射、Probe 与 Planar",
+    summary: "理解 Heightfield P0 的折射门控、三路反射、precomposed 合成、Stats 性能证据和固定视觉 Gate。",
+    category: "运行时",
+    keywords: Object.freeze([
+      "Water Optics",
+      "refraction",
+      "Planar",
+      "Probe",
+      "precomposed",
+      "WaterOpticalProfile",
+      "Stats"
+    ]),
+    telemetry: Object.freeze(["SCENE COLOR + DEPTH", "ONE PLANAR / CAMERA", "OFF ON OFF"]),
+    relatedCaseId: "water-optics-lab",
+    relatedCaseLabel: "打开 Water Optics Lab",
+    markdown: waterOpticsMarkdown
+  }),
+  Object.freeze({
+    slug: "underwater",
+    title: "水下体积与后处理",
+    summary: "用有限水体、确定性重叠选择和滞回状态稳定判定相机入水，并按需启用统一光学后处理。",
+    category: "运行时",
+    keywords: Object.freeze([
+      "Underwater",
+      "水下",
+      "WaterVolumeProvider",
+      "SurfaceDepthWaterVolumeProvider",
+      "WaterOpticalProfile",
+      "hysteresis",
+      "PostProcess"
+    ]),
+    telemetry: Object.freeze(["FINITE VOLUME", "HYSTERESIS", "DEPTH + FULLSCREEN"]),
+    relatedCaseId: "indoor-reflective-pool",
+    relatedCaseLabel: "查看交互泳池水下效果",
+    markdown: underwaterMarkdown
   }),
   Object.freeze({
     slug: "buoyancy",

@@ -1,4 +1,11 @@
-export type WaterPcgCaseKind = "river" | "heightfield" | "buoyancy" | "interactive-pool" | "wiki";
+export type WaterPcgCaseKind =
+  | "river"
+  | "heightfield"
+  | "buoyancy"
+  | "interactive-pool"
+  | "p1-showcase"
+  | "optics-lab"
+  | "wiki";
 
 export interface WaterPcgCaseNavigationItem {
   readonly id: string;
@@ -10,6 +17,8 @@ export const WATER_PCG_CASES: readonly WaterPcgCaseNavigationItem[] = [
   { id: "curved-main-river", label: "高差河流", kind: "river" },
   { id: "multi-tributary-river", label: "双支流汇流", kind: "river" },
   { id: "indoor-reflective-pool", label: "交互式泳池", kind: "interactive-pool" },
+  { id: "water-optics-lab", label: "水反射与折射", kind: "optics-lab" },
+  { id: "p1-water-showcase", label: "P1 水效果", kind: "p1-showcase" },
   { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
   { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" },
   { id: "water-wiki", label: "开发文档", kind: "wiki" }

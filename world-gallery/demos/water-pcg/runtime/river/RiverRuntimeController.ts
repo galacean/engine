@@ -7,6 +7,8 @@ import { RiverChunkSourceKind, RiverLocalMapRegionKind } from "../../compiler/ri
 import { RIVER_GEOMETRY_Y_OFFSET } from "../../compiler/river/constants";
 import { cloneCompiledRiverConfig } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverCompiledChunk, RiverCompiledData, RiverReachArtifact } from "../../compiler/river/types";
+import { DEFAULT_WATER_OPTICAL_PROFILE } from "../optics/WaterOpticalProfile";
+import { WaterOpticsDebugView, type WaterSurfaceOpticsBinding } from "../optics/WaterSurfaceOpticsTypes";
 import {
   createLowRiverMaterial,
   createRiverFoamMaterial,
@@ -14,6 +16,7 @@ import {
   createRiverMaterial,
   setRiverSurfaceDebugMode,
   setRiverSurfaceFeatureFlags,
+  setRiverSurfaceOpticsBinding,
   setRiverSurfaceTimeOverride,
   updateRiverFoamMaterial,
   updateRiverMaterial
@@ -81,6 +84,29 @@ interface MutableRiverRuntimeSet {
   readonly localMapTexture?: Texture2D;
 }
 
+const DEFAULT_RIVER_RUNTIME_SURFACE_OPTICS_BINDING = Object.freeze({
+  medium: Object.freeze({
+    tier: "medium",
+    opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+    refractionEnabled: true,
+    reflection: undefined,
+    debugView: WaterOpticsDebugView.Final
+  }),
+  high: Object.freeze({
+    tier: "high",
+    opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+    refractionEnabled: true,
+    reflection: undefined,
+    debugView: WaterOpticsDebugView.Final
+  })
+} satisfies Readonly<Record<"medium" | "high", Readonly<WaterSurfaceOpticsBinding>>>);
+
+function defaultSurfaceOpticsBindingForQuality(quality: RiverQualityLevel): Readonly<WaterSurfaceOpticsBinding> {
+  return quality === RiverQualityLevel.High
+    ? DEFAULT_RIVER_RUNTIME_SURFACE_OPTICS_BINDING.high
+    : DEFAULT_RIVER_RUNTIME_SURFACE_OPTICS_BINDING.medium;
+}
+
 export interface RiverRuntimeActivation {
   created: boolean;
   reaches: readonly RiverRuntimeReach[];
@@ -122,6 +148,7 @@ export class RiverRuntimeController {
   private _macroDisplacementEnabled = true;
   private _microSurfaceEnabled = true;
   private _surfaceTimeOverride?: number;
+  private _surfaceOpticsBinding?: Readonly<WaterSurfaceOpticsBinding>;
   private _debugTarget: RiverRuntimeDebugTarget = { kind: "network" };
 
   constructor(
@@ -345,6 +372,13 @@ export class RiverRuntimeController {
       updateRiverMaterial(reach.materials.low, config.material, 1);
       updateRiverFoamMaterial(reach.materials.foam, config.material, 1);
     }
+    if (!this._surfaceOpticsBinding) {
+      const defaultBinding = defaultSurfaceOpticsBindingForQuality(config.quality.material.level);
+      setRiverSurfaceOpticsBinding(reach.materials.surface, defaultBinding);
+      if (reach.materials.surfaceLocalMap) {
+        setRiverSurfaceOpticsBinding(reach.materials.surfaceLocalMap, defaultBinding);
+      }
+    }
     return reach;
   }
 
@@ -406,6 +440,20 @@ export class RiverRuntimeController {
     }
   }
 
+  /** Applies one complete binding to active and inactive cached River surface variants. */
+  setSurfaceOpticsBinding(binding?: Readonly<WaterSurfaceOpticsBinding>): void {
+    this._surfaceOpticsBinding = binding;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const reach of runtimeSet.reaches) {
+        const resolvedBinding = binding ?? defaultSurfaceOpticsBindingForQuality(reach.config.quality.material.level);
+        setRiverSurfaceOpticsBinding(reach.materials.surface, resolvedBinding);
+        if (reach.materials.surfaceLocalMap) {
+          setRiverSurfaceOpticsBinding(reach.materials.surfaceLocalMap, resolvedBinding);
+        }
+      }
+    }
+  }
+
   flushDeferredResources(): void {
     if (!this._pendingResourceGc) return;
     this._engine.resourceManager.gc();
@@ -413,6 +461,7 @@ export class RiverRuntimeController {
   }
 
   destroy(): void {
+    this.setSurfaceOpticsBinding();
     for (const runtimeSet of this._runtimeSets.values()) this._destroyRuntimeSet(runtimeSet);
     this._runtimeSets.clear();
     this._activeReaches = [];
@@ -477,6 +526,9 @@ export class RiverRuntimeController {
       setRiverSurfaceDebugMode(materials.surface, this._surfaceDebugMode);
       setRiverSurfaceFeatureFlags(materials.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
       setRiverSurfaceTimeOverride(materials.surface, this._surfaceTimeOverride);
+      const surfaceOpticsBinding =
+        this._surfaceOpticsBinding ?? defaultSurfaceOpticsBindingForQuality(config.quality.material.level);
+      setRiverSurfaceOpticsBinding(materials.surface, surfaceOpticsBinding);
       if (materials.surfaceLocalMap) {
         setRiverSurfaceDebugMode(materials.surfaceLocalMap, this._surfaceDebugMode);
         setRiverSurfaceFeatureFlags(
@@ -485,6 +537,7 @@ export class RiverRuntimeController {
           this._microSurfaceEnabled
         );
         setRiverSurfaceTimeOverride(materials.surfaceLocalMap, this._surfaceTimeOverride);
+        setRiverSurfaceOpticsBinding(materials.surfaceLocalMap, surfaceOpticsBinding);
       }
       return {
         root: root.createChild(`river-reach-${reach.id}`),
@@ -582,6 +635,8 @@ export class RiverRuntimeController {
 
   private _destroyReach(reach: MutableRiverRuntimeReach): void {
     reach.root.destroy();
+    setRiverSurfaceOpticsBinding(reach.materials.surface);
+    if (reach.materials.surfaceLocalMap) setRiverSurfaceOpticsBinding(reach.materials.surfaceLocalMap);
     reach.materials.surface.destroy(true);
     reach.materials.surfaceLocalMap?.destroy(true);
     reach.materials.low.destroy(true);

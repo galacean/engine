@@ -10,6 +10,8 @@
         --deep-water: #041116;
         --instrument-panel: rgb(5 21 27 / 88%);
         --instrument-line: rgb(122 207 215 / 22%);
+        --instrument-bay: rgb(3 17 23 / 70%);
+        --instrument-bay-line: rgb(91 211 213 / 14%);
         --foam-ink: #e2f4f3;
         --water-muted: #83a8aa;
         --current-cyan: #5bd3d5;
@@ -90,7 +92,8 @@
 
       #heightfield-hud,
       #buoyancy-hud,
-      #interactive-pool-hud {
+      #interactive-pool-hud,
+      #water-optics-hud {
         position: fixed;
         top: 56px;
         left: 14px;
@@ -114,7 +117,107 @@
       }
 
       #interactive-pool-hud {
-        width: min(390px, calc(100vw - 28px));
+        width: min(520px, calc(100vw - 28px));
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+      }
+
+      #water-optics-hud {
+        width: min(620px, calc(100vw - 28px));
+        max-height: calc(100vh - 72px);
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
+      }
+
+      .optics-control-groups {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .optics-control-group {
+        min-width: 0;
+        padding: 8px;
+        border: 1px solid var(--instrument-bay-line);
+        border-radius: 4px;
+        background: var(--instrument-bay);
+      }
+
+      .optics-control-group--wide {
+        grid-column: 1 / -1;
+      }
+
+      .optics-control-group h2 {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 7px;
+        color: var(--foam-ink);
+        font-size: 9px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .optics-control-group h2::after {
+        width: 100%;
+        height: 1px;
+        background: var(--instrument-bay-line);
+        content: "";
+      }
+
+      .optics-control-group h2 small {
+        flex: 0 0 auto;
+        color: var(--water-muted);
+        font-size: 7px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+      }
+
+      .optics-control-group .hud-controls {
+        gap: 5px;
+        padding: 0;
+      }
+
+      .optics-control-group .hud-controls + .hud-controls {
+        margin-top: 7px;
+        padding-top: 7px;
+        border-top: 1px solid var(--instrument-bay-line);
+      }
+
+      .optics-control-label {
+        flex: 0 0 100%;
+        color: var(--water-muted);
+        font-size: 7px;
+        letter-spacing: 0.07em;
+        line-height: 1;
+        text-transform: uppercase;
+      }
+
+      .optics-control-group select {
+        min-width: 0;
+        flex: 1 1 180px;
+      }
+
+      .optics-metrics-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+        padding-top: 9px;
+        border-top: 1px solid var(--instrument-line);
+        color: var(--water-muted);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .optics-metrics-heading span:last-child {
+        color: var(--ready-green);
+        font-size: 7px;
       }
 
       .hud-heading,
@@ -140,7 +243,8 @@
 
       #heightfield-status,
       #buoyancy-status,
-      #interactive-pool-status {
+      #interactive-pool-status,
+      #water-optics-status {
         color: var(--current-cyan);
         font-size: 10px;
         letter-spacing: 0.04em;
@@ -151,13 +255,15 @@
       }
 
       #buoyancy-status[data-state="ready"],
-      #interactive-pool-status[data-state="ready"] {
+      #interactive-pool-status[data-state="ready"],
+      #water-optics-status[data-state="ready"] {
         color: var(--ready-green);
       }
 
       #heightfield-status[data-state="error"],
       #buoyancy-status[data-state="error"],
-      #interactive-pool-status[data-state="error"] {
+      #interactive-pool-status[data-state="error"],
+      #water-optics-status[data-state="error"] {
         color: var(--fault-coral);
       }
 
@@ -167,7 +273,12 @@
         padding: 9px 0;
       }
 
-      .hud-controls button {
+      .hud-controls[hidden] {
+        display: none;
+      }
+
+      .hud-controls button,
+      .hud-controls select {
         padding: 5px 8px;
         border: 1px solid var(--instrument-line);
         border-radius: 3px;
@@ -176,6 +287,9 @@
         font: inherit;
         font-size: 9px;
         letter-spacing: 0.04em;
+      }
+
+      .hud-controls button {
         cursor: pointer;
       }
 
@@ -185,6 +299,16 @@
         color: var(--foam-ink);
       }
 
+      #water-optics-hud .hud-controls button[data-active="true"] {
+        background: rgb(21 80 86 / 78%);
+      }
+
+      #water-optics-hud .hud-controls button:focus-visible,
+      #water-optics-hud .hud-controls select:focus-visible {
+        outline: 2px solid var(--current-cyan);
+        outline-offset: 2px;
+      }
+
       .hud-controls button:disabled {
         cursor: not-allowed;
         opacity: 0.42;
@@ -192,7 +316,8 @@
 
       #heightfield-metrics,
       #buoyancy-metrics,
-      #interactive-pool-metrics {
+      #interactive-pool-metrics,
+      #water-optics-metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 7px 12px;
@@ -207,15 +332,21 @@
         margin-top: 9px;
       }
 
+      #water-optics-metrics {
+        margin-top: 9px;
+      }
+
       #heightfield-metrics div,
       #buoyancy-metrics div,
-      #interactive-pool-metrics div {
+      #interactive-pool-metrics div,
+      #water-optics-metrics div {
         min-width: 0;
       }
 
       #heightfield-metrics dt,
       #buoyancy-metrics dt,
-      #interactive-pool-metrics dt {
+      #interactive-pool-metrics dt,
+      #water-optics-metrics dt {
         overflow: hidden;
         margin: 0 0 2px;
         color: var(--water-muted);
@@ -228,7 +359,8 @@
 
       #heightfield-metrics dd,
       #buoyancy-metrics dd,
-      #interactive-pool-metrics dd {
+      #interactive-pool-metrics dd,
+      #water-optics-metrics dd {
         overflow: hidden;
         margin: 0;
         color: var(--foam-ink);
@@ -260,6 +392,52 @@
 
       .dg.ac {
         z-index: 4 !important;
+      }
+
+      html[data-water-pcg-kind="optics-lab"] .gl-perf {
+        top: 56px !important;
+        right: 14px !important;
+        left: auto !important;
+        z-index: 4 !important;
+      }
+
+      html[data-water-optics-screenshot="true"] #example-bar,
+      html[data-water-optics-screenshot="true"] #water-optics-hud,
+      html[data-water-optics-screenshot="true"] #fixture-mark,
+      html[data-water-optics-screenshot="true"] .gl-perf {
+        display: none !important;
+      }
+
+      @media (max-width: 680px) {
+        #water-optics-hud {
+          right: 8px;
+          left: 8px;
+          width: auto;
+          max-height: calc(100dvh - 64px);
+        }
+
+        .optics-control-groups {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .optics-control-group--wide {
+          grid-column: auto;
+        }
+
+        #water-optics-metrics {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        #water-optics-hud .hud-controls button,
+        #water-optics-hud .hud-controls select {
+          min-height: 34px;
+        }
+      }
+
+      @media (max-width: 360px) {
+        #water-optics-metrics {
+          grid-template-columns: minmax(0, 1fr);
+        }
       }
     </style>
   </head>
@@ -316,6 +494,252 @@
       <canvas id="canvas"></canvas>
     </template>
 
+    <template id="water-pcg-optics-lab-template">
+      <aside id="water-optics-hud" aria-label="Water Optics debug controls">
+        <div class="hud-heading">
+          <strong>Water Optics Lab / Fixed Golden Scene</strong>
+          <span id="water-optics-status" data-state="loading" role="status" aria-live="polite">initializing</span>
+        </div>
+        <div class="optics-control-groups">
+          <section class="optics-control-group" aria-labelledby="optics-quality-heading">
+            <h2 id="optics-quality-heading">Quality <small>High default</small></h2>
+            <div class="hud-controls">
+              <button type="button" data-optics-tier="medium">Medium</button>
+              <button type="button" data-optics-tier="high">High</button>
+              <button type="button" data-optics-tier="experimental">Experimental</button>
+            </div>
+          </section>
+
+          <section class="optics-control-group" aria-labelledby="optics-time-heading">
+            <h2 id="optics-time-heading">Time &amp; Motion</h2>
+            <div class="hud-controls">
+              <button type="button" data-optics-freeze>Freeze time</button>
+              <button type="button" data-optics-step>Step frame</button>
+              <button type="button" data-optics-move-reflector>Move Reflector</button>
+              <button type="button" data-optics-local-foam-mask>Local Foam Mask</button>
+            </div>
+          </section>
+
+          <section class="optics-control-group optics-control-group--wide" aria-labelledby="optics-camera-heading">
+            <h2 id="optics-camera-heading">Camera</h2>
+            <div class="hud-controls">
+              <button type="button" data-optics-move-camera>Auto Camera</button>
+              <button
+                type="button"
+                data-optics-free-camera
+                title="Drag on the scene to look; use WASD or arrow keys to move"
+              >
+                Free Camera
+              </button>
+              <button type="button" data-optics-camera-cut>Camera Cut</button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Fixed camera preset</span>
+              <select data-optics-camera aria-label="Camera preset">
+                <option value="overview">Overview</option>
+                <option value="refraction-edge">Refraction Edge</option>
+                <option value="depth-steps">Depth Steps</option>
+                <option value="reflection-front">Reflection Front</option>
+                <option value="reflection-offscreen">Reflection Offscreen</option>
+                <option value="grazing-angle">Grazing Angle</option>
+                <option value="multi-water">Multi Water</option>
+                <option value="multi-pool">Dual Pool</option>
+                <option value="planar-too-close">Planar Too Close Gate</option>
+                <option value="planar-underwater">Planar Underwater Gate</option>
+                <option value="planar-back-facing">Planar Back Facing Gate</option>
+                <option value="surface-crossing">Surface Crossing</option>
+              </select>
+            </div>
+          </section>
+
+          <section class="optics-control-group optics-control-group--wide" aria-labelledby="optics-scene-heading">
+            <h2 id="optics-scene-heading">Test Scene</h2>
+            <div class="hud-controls">
+              <span class="optics-control-label">Scenario</span>
+              <button type="button" data-optics-preset="refraction-correctness">Refraction</button>
+              <button type="button" data-optics-preset="reflection-correctness">Reflection</button>
+              <button type="button" data-optics-preset="cross-body-optics">P1 Body Matrix</button>
+              <button type="button" data-optics-preset="multi-water-arbitration">P1 Owner Debug</button>
+              <button type="button" data-optics-preset="lifecycle-stress">P1 Lifecycle Stress</button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Water body</span>
+              <button type="button" data-optics-water-body="pool">Pool</button>
+              <button type="button" data-optics-water-body="river">River</button>
+              <button type="button" data-optics-water-body="ocean">Ocean</button>
+              <button type="button" data-optics-water-body="multi">Multi</button>
+            </div>
+          </section>
+
+          <section class="optics-control-group" aria-labelledby="optics-reflection-heading">
+            <h2 id="optics-reflection-heading">Reflection <small>Planar default</small></h2>
+            <div class="hud-controls">
+              <button type="button" data-optics-reflection="auto">Auto</button>
+              <button type="button" data-optics-reflection="sky">Sky</button>
+              <button type="button" data-optics-reflection="probe">Probe</button>
+              <button type="button" data-optics-reflection="planar">Planar</button>
+              <button type="button" data-optics-reflection="ssr" disabled title="Requires approved P2 Engine Core RFC">
+                SSR (P2)
+              </button>
+            </div>
+          </section>
+
+          <section class="optics-control-group" aria-labelledby="optics-composition-heading">
+            <h2 id="optics-composition-heading">Refraction &amp; Composite</h2>
+            <div class="hud-controls">
+              <span class="optics-control-label">Refraction</span>
+              <button type="button" data-optics-refraction="on">Refraction On</button>
+              <button type="button" data-optics-refraction="off">Refraction Off</button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Composition</span>
+              <button type="button" data-optics-composition="legacy">Legacy Alpha</button>
+              <button type="button" data-optics-composition="precomposed">Precomposed</button>
+              <button
+                type="button"
+                data-optics-composition="dedicated"
+                disabled
+                title="Requires approved P2 Engine Core RFC"
+              >
+                Dedicated (P2)
+              </button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Water depth write</span>
+              <button type="button" data-optics-depth-write="off">DepthWrite Off</button>
+              <button type="button" data-optics-depth-write="on">DepthWrite On</button>
+            </div>
+          </section>
+
+          <section class="optics-control-group" aria-labelledby="optics-planar-heading">
+            <h2 id="optics-planar-heading">Planar <small>5 tap default</small></h2>
+            <div class="hud-controls">
+              <span class="optics-control-label">Reflection filtering</span>
+              <button type="button" data-optics-planar-filter="off">1 Tap</button>
+              <button type="button" data-optics-planar-filter="on">5 Tap</button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Oblique clipping</span>
+              <button type="button" data-optics-planar-clip="on">Clip On</button>
+              <button type="button" data-optics-planar-clip="off">Clip Off</button>
+            </div>
+          </section>
+
+          <section class="optics-control-group" aria-labelledby="optics-diagnostics-heading">
+            <h2 id="optics-diagnostics-heading">Diagnostics</h2>
+            <div class="hud-controls">
+              <button type="button" data-optics-stats-panel>Stats HUD</button>
+            </div>
+            <div class="hud-controls">
+              <span class="optics-control-label">Shader output</span>
+              <select data-optics-debug aria-label="Debug view">
+                <option value="final">Final</option>
+                <option value="centered-opaque-color">Centered B</option>
+                <option value="displaced-opaque-color">Displaced D</option>
+                <option value="refraction-uv-delta">UV Delta</option>
+                <option value="optical-depth">Optical Depth</option>
+                <option value="depth-continuity">Depth Continuity</option>
+                <option value="sample-validity">Sample Validity</option>
+                <option value="fresnel">Fresnel</option>
+                <option value="shader-composited-color">Composited C</option>
+                <option value="surface-alpha">Surface Alpha A</option>
+                <option value="reflection-source">Reflection Source</option>
+                <option value="planar-uv">Planar UV</option>
+                <option value="clip-side">Clip Side</option>
+                <option value="refraction-amount">Refraction Amount</option>
+                <option value="refraction-gates">Refraction Gates</option>
+              </select>
+            </div>
+          </section>
+        </div>
+        <div class="optics-metrics-heading"><span>Runtime Readback</span><span>Live</span></div>
+        <dl id="water-optics-metrics">
+          <div>
+            <dt>requested / resolved</dt>
+            <dd data-metric="tier">—</dd>
+          </div>
+          <div>
+            <dt>preset</dt>
+            <dd data-metric="preset">—</dd>
+          </div>
+          <div>
+            <dt>water body</dt>
+            <dd data-metric="water-body">pool</dd>
+          </div>
+          <div>
+            <dt>reflection</dt>
+            <dd data-metric="reflection">—</dd>
+          </div>
+          <div>
+            <dt>composition</dt>
+            <dd data-metric="composition">legacy</dd>
+          </div>
+          <div>
+            <dt>material reflection</dt>
+            <dd data-metric="material-reflection">sky</dd>
+          </div>
+          <div>
+            <dt>surface time</dt>
+            <dd data-metric="surface-time">—</dd>
+          </div>
+          <div>
+            <dt>motion</dt>
+            <dd data-metric="motion">—</dd>
+          </div>
+          <div>
+            <dt>camera position</dt>
+            <dd data-metric="camera-pose">—</dd>
+          </div>
+          <div>
+            <dt>local foam</dt>
+            <dd data-metric="local-foam">—</dd>
+          </div>
+          <div>
+            <dt>depth / opaque copies</dt>
+            <dd data-metric="copies">—</dd>
+          </div>
+          <div>
+            <dt>opaque sampling</dt>
+            <dd data-metric="downsampling">—</dd>
+          </div>
+          <div>
+            <dt>planar camera / RT</dt>
+            <dd data-metric="planar">—</dd>
+          </div>
+          <div>
+            <dt>water RT bytes</dt>
+            <dd data-metric="water-bytes">—</dd>
+          </div>
+          <div>
+            <dt>engine texture / buffer</dt>
+            <dd data-metric="engine-bytes">—</dd>
+          </div>
+          <div>
+            <dt>fixture objects</dt>
+            <dd data-metric="fixtures">—</dd>
+          </div>
+          <div>
+            <dt>stats role</dt>
+            <dd data-metric="stats">display only</dd>
+          </div>
+          <div>
+            <dt>P1 visible / consumers</dt>
+            <dd data-metric="p1-bodies">0 / 3</dd>
+          </div>
+          <div>
+            <dt>P1 selected / pending / rendered</dt>
+            <dd data-metric="p1-owners">—</dd>
+          </div>
+          <div>
+            <dt>runtime error</dt>
+            <dd data-metric="error">none</dd>
+          </div>
+        </dl>
+      </aside>
+      <div id="fixture-mark">24m × 14m · fixed time 12.5s · refraction / reflection validation</div>
+      <canvas id="canvas"></canvas>
+    </template>
+
     <template id="water-pcg-interactive-pool-template">
       <aside id="interactive-pool-hud" aria-live="polite">
         <div class="hud-heading">
@@ -324,6 +748,19 @@
         </div>
         <div class="hud-controls">
           <button type="button" id="interactive-pool-reset">重新投放小球</button>
+          <button type="button" data-underwater-preset="outside">水上</button>
+          <button type="button" data-underwater-preset="surface">水线附近</button>
+          <button type="button" data-underwater-preset="inside">潜入水下</button>
+        </div>
+        <div class="hud-controls" data-p1-controls hidden aria-label="P1 local water effects controls">
+          <button type="button" data-p1-body-count="1">1 物体</button>
+          <button type="button" data-p1-body-count="4">4 物体</button>
+          <button type="button" data-p1-body-count="8">8 物体</button>
+          <button type="button" data-p1-body-count="16">16 物体</button>
+          <button type="button" data-p1-debug-view="source">Source</button>
+          <button type="button" data-p1-debug-view="history">History</button>
+          <button type="button" data-p1-debug-view="final">Final</button>
+          <button type="button" data-p1-dynamic-effects>动态效果：开</button>
         </div>
         <dl id="interactive-pool-metrics">
           <div>
@@ -365,6 +802,34 @@
           <div>
             <dt>runtime error</dt>
             <dd data-metric="error">none</dd>
+          </div>
+          <div>
+            <dt>underwater / depth</dt>
+            <dd data-metric="underwater">outside</dd>
+          </div>
+          <div>
+            <dt>p1 bodies / moving</dt>
+            <dd data-metric="p1-bodies">—</dd>
+          </div>
+          <div>
+            <dt>events accepted / merged / dropped</dt>
+            <dd data-metric="p1-events">0 / 0 / 0</dd>
+          </div>
+          <div>
+            <dt>temporal foam active / peak</dt>
+            <dd data-metric="p1-foam">—</dd>
+          </div>
+          <div>
+            <dt>foam upload / memory</dt>
+            <dd data-metric="p1-budget">—</dd>
+          </div>
+          <div>
+            <dt>foam lifetime / drift</dt>
+            <dd data-metric="p1-foam-motion">—</dd>
+          </div>
+          <div>
+            <dt>surface upload policy</dt>
+            <dd data-metric="p1-upload">—</dd>
           </div>
         </dl>
       </aside>

@@ -73,6 +73,10 @@ import { WaterBodyRuntimeAdapter, type WaterBoundsXZ } from "../runtime/body/Wat
 import { WaterP0DebugController } from "../runtime/body/WaterP0DebugApi";
 import { WaterWorld } from "../runtime/body/WaterWorld";
 import { RiverWaterSurfaceProvider } from "../runtime/river/RiverWaterSurfaceProvider";
+import { WaterReflectionService, type WaterReflectionServiceMetrics } from "../runtime/optics/WaterReflectionService";
+import type { WaterReflectionSource } from "../runtime/optics/WaterReflectionPolicy";
+import { RiverStaticLocalModifierResource } from "../runtime/interaction/RiverStaticLocalModifierResource";
+import { WaterLocalFieldComposer } from "../runtime/interaction/WaterLocalFieldComposer";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -97,6 +101,12 @@ const WATER_WAVE_QUALITY_OPTIONS = {
   High: WaterQualityTier.High
 } as const;
 
+const WATER_REFLECTION_SOURCE_OPTIONS = {
+  Sky: "sky",
+  Probe: "probe",
+  Planar: "planar"
+} as const satisfies Readonly<Record<string, WaterReflectionSource>>;
+
 const RIVER_MATERIAL_OPTIONS = {
   ClearStream: RiverMaterialPreset.ClearStream,
   MuddyRiver: RiverMaterialPreset.MuddyRiver,
@@ -107,6 +117,7 @@ type PreviewModeLabel = keyof typeof PREVIEW_MODE_OPTIONS;
 type RiverPathModeLabel = keyof typeof RIVER_PATH_MODE_OPTIONS;
 type RiverQualityLabel = keyof typeof RIVER_QUALITY_OPTIONS;
 type WaterWaveQualityLabel = keyof typeof WATER_WAVE_QUALITY_OPTIONS;
+type WaterReflectionSourceLabel = keyof typeof WATER_REFLECTION_SOURCE_OPTIONS;
 type RiverMaterialLabel = keyof typeof RIVER_MATERIAL_OPTIONS;
 
 interface GuiState {
@@ -120,6 +131,10 @@ interface GuiState {
 
 function isWaterWaveQualityLabel(value: string): value is WaterWaveQualityLabel {
   return value in WATER_WAVE_QUALITY_OPTIONS;
+}
+
+function isWaterReflectionSourceLabel(value: string): value is WaterReflectionSourceLabel {
+  return value in WATER_REFLECTION_SOURCE_OPTIONS;
 }
 
 interface RiverSegmentRuntime {
@@ -179,6 +194,10 @@ declare global {
     waterPcgSetSurfaceTime?: (elapsedTime?: number) => void;
     waterPcgStressRebuild?: (iterations?: number) => Promise<WaterPcgStressResult>;
     waterPcgGetOceanMetrics?: () => OceanPreviewMetrics;
+    waterPcgGetReflectionMetrics?: () => WaterReflectionServiceMetrics;
+    waterPcgSetOceanReflectionSource?: (source: WaterReflectionSource) => void;
+    waterPcgSetOceanLodDebug?: (enabled: boolean) => void;
+    waterPcgSetOceanCameraPosition?: (worldX: number, worldZ: number) => void;
     waterPcgStressOcean?: (iterations?: number) => OceanPreviewStressResult;
     waterPcgDebug?: WaterPcgDebugApi;
   }
@@ -223,6 +242,15 @@ async function bootstrapWaterPcg(): Promise<void> {
   const startupMode = Object.values(WaterPreviewMode).find((mode) => mode === startupModeParameter);
   if (startupMode) activeMode = startupMode;
   if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
+  const startupReflectionSource = Object.values(WATER_REFLECTION_SOURCE_OPTIONS).find(
+    (source) => source === new URLSearchParams(window.location.search).get("reflection")
+  );
+  oceanConfig.reflectionSource =
+    startupReflectionSource ??
+    oceanConfig.reflectionSource ??
+    (oceanConfig.quality === WaterQualityTier.Low ? "sky" : "planar");
+  const startupOceanLodDebug = new URLSearchParams(window.location.search).get("oceanLodDebug") === "1";
+  let oceanLodDebugEnabled = startupOceanLodDebug;
   guiState.macroDisplacement = new URLSearchParams(window.location.search).get("macro") !== "0";
   guiState.microSurface = new URLSearchParams(window.location.search).get("micro") !== "0";
   const requestedSurfaceTimeParameter = new URLSearchParams(window.location.search).get("surfaceTime");
@@ -379,6 +407,17 @@ async function bootstrapWaterPcg(): Promise<void> {
 
   const oceanPreview = new OceanPreviewController(engine, rootEntity, oceanConfig);
   const oceanGroup = oceanPreview.root;
+  oceanPreview.setCameraFeatureBroker(cameraWaterFeatureBroker);
+  const reflectionServiceLease = WaterReflectionService.acquire(engine, rootEntity, camera);
+  const reflectionService = reflectionServiceLease.service;
+  const syncReflectionViewport = (): void =>
+    reflectionService.setViewportSize(engine.canvas.width, engine.canvas.height);
+  syncReflectionViewport();
+  window.addEventListener("resize", syncReflectionViewport);
+  oceanPreview.setReflectionService(reflectionService);
+  oceanPreview.setReflectionSource(oceanConfig.reflectionSource ?? "sky");
+  oceanPreview.setReflectionVisible(activeMode === WaterPreviewMode.Ocean);
+  oceanPreview.setLodDebug(oceanLodDebugEnabled);
 
   const riverGroup = rootEntity.createChild("river-preview");
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
@@ -406,6 +445,21 @@ async function bootstrapWaterPcg(): Promise<void> {
   let riverMeshUploadCount = 0;
   let riverWorldBody: WaterBodyRuntimeAdapter | undefined;
   let oceanWorldBody: WaterBodyRuntimeAdapter | undefined;
+  const riverLocalFieldCache = new WeakMap<RiverCompiledData, WaterLocalFieldComposer>();
+
+  const getRiverLocalField = (compiledData: RiverCompiledData): WaterLocalFieldComposer | undefined => {
+    const cached = riverLocalFieldCache.get(compiledData);
+    if (cached) return cached;
+    const atlas = compiledData.terrainInteraction.localMapAtlas;
+    if (!atlas) return undefined;
+    const resource = new RiverStaticLocalModifierResource(atlas);
+    const localField = new WaterLocalFieldComposer("river-network");
+    for (const binding of resource.createBindings("river-network")) {
+      localField.register(binding.modifier, binding.provider);
+    }
+    riverLocalFieldCache.set(compiledData, localField);
+    return localField;
+  };
 
   const refreshWaterWorld = (): void => {
     waterWorld.unregister("river-network");
@@ -414,11 +468,13 @@ async function bootstrapWaterPcg(): Promise<void> {
       (count, chunk) => count + chunk.surfaceGeometry.indices.length / 3,
       0
     );
+    const riverLocalField = getRiverLocalField(activeRiverCompiledData);
     riverWorldBody = new WaterBodyRuntimeAdapter({
       id: "river-network",
       type: "river",
       capabilities: getWaterBodyCapabilities("river"),
       surface: riverSurfaceProvider,
+      localField: riverLocalField,
       bounds: getRiverWaterBounds(activeRiverCompiledData),
       priority: 10,
       enabled: activeMode === WaterPreviewMode.River,
@@ -441,8 +497,8 @@ async function bootstrapWaterPcg(): Promise<void> {
       enabled: activeMode === WaterPreviewMode.Ocean,
       metrics: {
         meshUploadCount: oceanMetrics.meshUploadCount,
-        drawCount: 1,
-        triangleCount: Math.max(0, oceanConfig.resolution * oceanConfig.resolution * 2),
+        drawCount: oceanMetrics.drawCount,
+        triangleCount: oceanMetrics.triangleCount,
         resourceBytes: 0
       }
     });
@@ -450,6 +506,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     waterWorld.register(oceanWorldBody);
     exampleBarElement.dataset.waterCapabilityMatrix = JSON.stringify(waterP0Debug.capabilityMatrix);
     exampleBarElement.dataset.waterWorldBodyCount = String(waterWorld.metrics.registeredBodyCount);
+    exampleBarElement.dataset.riverLocalModifierCount = String(riverLocalField?.modifierCount ?? 0);
   };
 
   const readDebugRuntimeMetrics = (): RiverDebugRuntimeMetrics => ({
@@ -527,9 +584,36 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.oceanActiveMeshCount = String(metrics.activeMeshCount);
     exampleBarElement.dataset.oceanActiveMaterialCount = String(metrics.activeMaterialCount);
     exampleBarElement.dataset.oceanFrameCount = String(metrics.frameCount);
+    exampleBarElement.dataset.oceanRingCount = String(metrics.ringCount);
+    exampleBarElement.dataset.oceanPatchCount = String(metrics.patchCount);
+    exampleBarElement.dataset.oceanVisiblePatchCount = String(metrics.visiblePatchCount);
+    exampleBarElement.dataset.oceanDrawCount = String(metrics.drawCount);
+    exampleBarElement.dataset.oceanTriangleCount = String(metrics.triangleCount);
+    exampleBarElement.dataset.oceanVisibleTriangleCount = String(metrics.visibleTriangleCount);
+    exampleBarElement.dataset.oceanOriginSnapCount = String(metrics.originSnapCount);
+    exampleBarElement.dataset.oceanOriginX = metrics.originX.toFixed(3);
+    exampleBarElement.dataset.oceanOriginZ = metrics.originZ.toFixed(3);
+    exampleBarElement.dataset.oceanCoverageHalfExtent = metrics.coverageHalfExtent.toFixed(3);
+    exampleBarElement.dataset.oceanReflectionSource = metrics.reflectionSource;
+    exampleBarElement.dataset.oceanRequestedOpticsTier = metrics.requestedOpticsTier ?? "disabled";
+    exampleBarElement.dataset.oceanResolvedOpticsTier = metrics.resolvedOpticsTier ?? "disabled";
+    exampleBarElement.dataset.oceanRefractionEnabled = String(metrics.refractionEnabled);
+    exampleBarElement.dataset.oceanCameraFeatureRequested = String(metrics.cameraFeatureRequested);
+    const reflectionMetrics = reflectionService.metrics;
+    exampleBarElement.dataset.reflectionConsumerCount = String(reflectionMetrics.activeConsumerCount);
+    exampleBarElement.dataset.planarReflectionOwner = reflectionMetrics.planarOwnerId ?? "none";
+    exampleBarElement.dataset.planarReflectionCameraCount = String(reflectionMetrics.planarCameraCount);
+    exampleBarElement.dataset.planarReflectionUpdateCount = String(reflectionMetrics.planarUpdateCount);
+    exampleBarElement.dataset.planarReflectionSkippedUpdateCount = String(reflectionMetrics.planarSkippedUpdateCount);
+    exampleBarElement.dataset.planarReflectionFailureCount = String(reflectionMetrics.planarFailureCount);
+    exampleBarElement.dataset.planarReflectionRenderTargetBytes = String(reflectionMetrics.estimatedRenderTargetBytes);
+    exampleBarElement.dataset.planarReflectionDrawCount = String(reflectionMetrics.lastPlanarDrawCount);
+    exampleBarElement.dataset.planarReflectionCpuP95Ms = reflectionMetrics.planarRenderCpuP95Ms.toFixed(3);
   };
   const updateOceanMaterial = (): void => {
-    oceanPreview.updateMaterial();
+    oceanPreview.setConfig(oceanConfig);
+    oceanPreview.setReflectionSource(oceanConfig.reflectionSource ?? "sky");
+    refreshWaterWorld();
     writeOceanMetrics();
   };
   const createRiverSegmentRuntime = (
@@ -848,6 +932,9 @@ async function bootstrapWaterPcg(): Promise<void> {
     guiState.mode = mode === WaterPreviewMode.Ocean ? "Ocean" : "River";
     oceanGroup.isActive = mode === WaterPreviewMode.Ocean;
     riverGroup.isActive = mode === WaterPreviewMode.River;
+    oceanPreview.setReflectionVisible(mode === WaterPreviewMode.Ocean);
+    reflectionService.update();
+    oceanPreview.refreshReflectionBinding();
     if (riverWorldBody) riverWorldBody.enabled = mode === WaterPreviewMode.River;
     if (oceanWorldBody) oceanWorldBody.enabled = mode === WaterPreviewMode.Ocean;
     const view = waterPcgExamples[activeExampleIndex].view;
@@ -913,7 +1000,13 @@ async function bootstrapWaterPcg(): Promise<void> {
     document.title = `Water PCG · ${waterPcgExamples[activeExampleIndex].label}`;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
     if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
+    oceanConfig.reflectionSource =
+      startupReflectionSource ??
+      oceanConfig.reflectionSource ??
+      (oceanConfig.quality === WaterQualityTier.Low ? "sky" : "planar");
     oceanPreview.setConfig(oceanConfig);
+    oceanPreview.setReflectionSource(oceanConfig.reflectionSource);
+    oceanPreview.setLodDebug(oceanLodDebugEnabled);
     refreshWaterWorld();
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     activeRiverResource = riverResourceSets[activeExampleIndex];
@@ -983,6 +1076,37 @@ async function bootstrapWaterPcg(): Promise<void> {
           if (!isWaterWaveQualityLabel(label)) return;
           oceanConfig.quality = WATER_WAVE_QUALITY_OPTIONS[label];
           updateOceanMaterial();
+        });
+      const oceanReflectionState = {
+        source:
+          oceanConfig.reflectionSource === "planar"
+            ? "Planar"
+            : oceanConfig.reflectionSource === "probe"
+              ? "Probe"
+              : "Sky"
+      } satisfies { source: WaterReflectionSourceLabel };
+      gui
+        .add(
+          oceanReflectionState,
+          "source",
+          Object.keys(WATER_REFLECTION_SOURCE_OPTIONS) as WaterReflectionSourceLabel[]
+        )
+        .name("Reflection")
+        .onChange((label: string) => {
+          if (!isWaterReflectionSourceLabel(label)) return;
+          oceanConfig.reflectionSource = WATER_REFLECTION_SOURCE_OPTIONS[label];
+          oceanPreview.setReflectionSource(oceanConfig.reflectionSource);
+          reflectionService.update();
+          oceanPreview.refreshReflectionBinding();
+          writeOceanMetrics();
+        });
+      const oceanLodState = { debug: oceanLodDebugEnabled };
+      gui
+        .add(oceanLodState, "debug")
+        .name("LOD Debug")
+        .onChange((enabled: boolean) => {
+          oceanLodDebugEnabled = enabled;
+          oceanPreview.setLodDebug(enabled);
         });
       gui
         .add(
@@ -1136,6 +1260,31 @@ async function bootstrapWaterPcg(): Promise<void> {
     applyRiverChanges(RiverDirtyFlag.Query);
   };
   window.waterPcgGetOceanMetrics = (): OceanPreviewMetrics => oceanPreview.metrics;
+  window.waterPcgGetReflectionMetrics = (): WaterReflectionServiceMetrics => reflectionService.metrics;
+  window.waterPcgSetOceanReflectionSource = (source: WaterReflectionSource): void => {
+    if (!Object.values(WATER_REFLECTION_SOURCE_OPTIONS).some((candidate) => candidate === source)) {
+      throw new Error(`Unsupported Ocean reflection source: ${source}.`);
+    }
+    oceanConfig.reflectionSource = source;
+    oceanPreview.setReflectionSource(source);
+    reflectionService.update();
+    oceanPreview.refreshReflectionBinding();
+    writeOceanMetrics();
+  };
+  window.waterPcgSetOceanLodDebug = (enabled: boolean): void => {
+    oceanLodDebugEnabled = enabled;
+    oceanPreview.setLodDebug(enabled);
+  };
+  window.waterPcgSetOceanCameraPosition = (worldX: number, worldZ: number): void => {
+    if (!Number.isFinite(worldX) || !Number.isFinite(worldZ)) {
+      throw new Error("Ocean camera XZ position must be finite.");
+    }
+    const current = cameraEntity.transform.worldPosition;
+    cameraEntity.transform.setPosition(worldX, current.y, worldZ);
+    cameraEntity.transform.lookAt(control.target);
+    oceanPreview.setCameraPosition(worldX, worldZ);
+    writeOceanMetrics();
+  };
   window.waterPcgStressOcean = (iterations?: number): OceanPreviewStressResult => {
     const result = oceanPreview.stressReconfigure(iterations);
     writeOceanMetrics();
@@ -1192,7 +1341,14 @@ async function bootstrapWaterPcg(): Promise<void> {
         pendingRuntimeStatsRefresh = false;
         debugSession.updateContext(createDebugContext());
       }
-      if (activeMode === WaterPreviewMode.Ocean) oceanPreview.update(deltaTime);
+      if (activeMode === WaterPreviewMode.Ocean) {
+        oceanPreview.update(deltaTime, cameraEntity.transform.worldPosition);
+        reflectionService.update();
+        oceanPreview.refreshReflectionBinding();
+        writeOceanMetrics();
+      } else {
+        reflectionService.update();
+      }
       if (profilingEnabled && this._profileSamples.length < RIVER_PROFILE_SAMPLE_COUNT) {
         this._profileSamples.push(performance.now() - updateStart);
         this._frameSamples.push(deltaTime * 1000);
@@ -1221,8 +1377,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.removeEventListener("click", handleExampleBarClick);
     window.removeEventListener("popstate", handleLocationChange);
     window.removeEventListener("hashchange", handleLocationChange);
+    window.removeEventListener("resize", syncReflectionViewport);
     riverCameraFeatureController.destroy();
-    cameraWaterFeatureBroker.destroy();
     stopDebugSceneSubscription();
     stopDebugSnapshotTracking();
     waterDebugPanel.destroy();
@@ -1238,9 +1394,17 @@ async function bootstrapWaterPcg(): Promise<void> {
     for (const resource of riverResourceSets) resource.dispose();
     riverCompileWorker.dispose();
     oceanPreview.destroy();
+    cameraWaterFeatureBroker.destroy();
+    reflectionServiceLease.release();
     waterWorld.destroy();
     window.waterPcgP0 = undefined;
     window.waterPcgDebug = undefined;
+    delete window.waterPcgGetOceanMetrics;
+    delete window.waterPcgGetReflectionMetrics;
+    delete window.waterPcgSetOceanReflectionSource;
+    delete window.waterPcgSetOceanLodDebug;
+    delete window.waterPcgSetOceanCameraPosition;
+    delete window.waterPcgStressOcean;
   });
   engine.run();
 }

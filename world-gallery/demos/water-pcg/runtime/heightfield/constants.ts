@@ -1,4 +1,6 @@
 /** Heightfield-water shader bindings and runtime submission defaults. */
+import { WATER_OPTICS_SHADER_PROPERTY } from "../optics/constants/WaterOpticsShaderConstants";
+
 export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
   shallowColor: "material_ShallowColor",
   deepColor: "material_DeepColor",
@@ -11,12 +13,36 @@ export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
   foamIntensity: "material_FoamIntensity",
   shoreDampingWidth: "material_ShoreDampingWidth",
   surfaceTimeOverride: "material_SurfaceTimeOverride",
-  debugMode: "material_DebugMode",
+  debugMode: WATER_OPTICS_SHADER_PROPERTY.debugMode,
+  refractionEnabled: WATER_OPTICS_SHADER_PROPERTY.refractionEnabled,
+  compositionMode: "material_CompositionMode",
+  opticsCalibrationMode: "material_OpticsCalibrationMode",
   wavesEnabled: "material_WavesEnabled",
   microNormalsEnabled: "material_MicroNormalsEnabled",
   foamEnabled: "material_FoamEnabled",
+  localFoamMaskEnabled: "material_LocalFoamMaskEnabled",
+  localFoamMaskCenterHalfSize: "material_LocalFoamMaskCenterHalfSize",
+  localFoamMaskFeather: "material_LocalFoamMaskFeather",
+  blendEnabled: "blendEnabled",
+  depthWriteEnabled: "depthWriteEnabled",
   localMapTexture: "material_LocalMapTexture",
   surfaceTexture: "material_SurfaceTexture",
+  absorptionCoefficient: WATER_OPTICS_SHADER_PROPERTY.absorptionCoefficient,
+  scatteringColor: WATER_OPTICS_SHADER_PROPERTY.scatteringColor,
+  scatteringCoefficient: WATER_OPTICS_SHADER_PROPERTY.scatteringCoefficient,
+  maximumSurfaceOpticalDistance: WATER_OPTICS_SHADER_PROPERTY.maximumSurfaceOpticalDistance,
+  indexOfRefraction: WATER_OPTICS_SHADER_PROPERTY.indexOfRefraction,
+  refractionStrength: WATER_OPTICS_SHADER_PROPERTY.refractionStrength,
+  roughness: WATER_OPTICS_SHADER_PROPERTY.roughness,
+  reflectionIntensity: WATER_OPTICS_SHADER_PROPERTY.reflectionIntensity,
+  reflectionSource: WATER_OPTICS_SHADER_PROPERTY.reflectionSource,
+  reflectionCubeTexture: WATER_OPTICS_SHADER_PROPERTY.reflectionCubeTexture,
+  planarReflectionTexture: WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture,
+  planarReflectionViewProjection: WATER_OPTICS_SHADER_PROPERTY.planarReflectionViewProjection,
+  planarReflectionTextureSize: WATER_OPTICS_SHADER_PROPERTY.planarReflectionTextureSize,
+  planarReflectionSampling: WATER_OPTICS_SHADER_PROPERTY.planarReflectionSampling,
+  planarReflectionFade: WATER_OPTICS_SHADER_PROPERTY.planarReflectionFade,
+  planarReflectionRoughnessFootprint: WATER_OPTICS_SHADER_PROPERTY.planarReflectionRoughnessFootprint,
   localMapWorldToUv: "material_LocalMapWorldToUv",
   atlasUvRect: "renderer_AtlasUvRect",
   localMapDecode: "material_LocalMapDecode",
@@ -26,6 +52,13 @@ export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
 } as const;
 
 export const HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS = 4;
+
+export const DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK = Object.freeze({
+  enabled: false,
+  centerXZ: Object.freeze([0, 0] as const),
+  halfSizeXZ: Object.freeze([0, 0] as const),
+  featherMeters: 0
+});
 
 /** Keeps elapsed time bounded before it reaches the shader's trigonometric functions. */
 export const HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS = 4096;
@@ -109,7 +142,6 @@ export const HEIGHTFIELD_WATER_SURFACE_TUNING = {
   wakeDetailNoiseStart: 0.34,
   wakeDetailNoiseEnd: 0.6,
   wakeFoamStrength: 0.95,
-  fresnelF0: 0.022,
   fresnelPower: 5,
   broadSpecularPower: 32,
   tightSpecularPower: 128,
@@ -122,6 +154,13 @@ export const HEIGHTFIELD_WATER_SURFACE_TUNING = {
   refractionDepthToleranceMinimum: 0.18,
   refractionDepthToleranceScale: 0.45,
   refractionFoamSuppression: 0.94,
+  /**
+   * The authored shallow/deep colour model predates WaterOpticalProfile.
+   * Subtracting this exact baseline before adding profile scattering keeps the
+   * default profile visually neutral while allowing profile changes to drive it.
+   */
+  legacyScatteringColor: [0.06, 0.28, 0.32] as const,
+  legacyScatteringCoefficient: 0.16,
   maximumAlpha: 0.9
 } as const;
 

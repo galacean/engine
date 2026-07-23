@@ -16,6 +16,10 @@ describe("Water Wiki manifest", () => {
       "river-pipeline",
       "terrain-and-flow-map",
       "waves-and-quality",
+      "local-effects-and-foam",
+      "ocean-rings-and-reflection",
+      "water-optics",
+      "underwater",
       "buoyancy",
       "camera-and-debug",
       "testing-and-troubleshooting",
@@ -38,6 +42,22 @@ describe("Water Wiki manifest", () => {
     expect(markdownBySlug.get("river-pipeline")).toContain("replaceActiveIncremental");
     expect(markdownBySlug.get("terrain-and-flow-map")).toContain("不会直接修改真实 Terrain");
     expect(markdownBySlug.get("waves-and-quality")).toContain("0 / 2 / 6 / 12");
+    expect(markdownBySlug.get("local-effects-and-foam")).toContain("WaterLocalModifier");
+    expect(markdownBySlug.get("local-effects-and-foam")).toContain("128 个待消费事件、16 个 emitter");
+    expect(markdownBySlug.get("local-effects-and-foam")).toContain("foamTextureUploadsPerRenderFrame");
+    expect(markdownBySlug.get("local-effects-and-foam")).toContain("CpuInterpolated + caller-fallback");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("1 + 12 × 3 = 37");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("每相机最多选一个 Planar owner");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("Probe → Sky");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("perFrameMeshUpload");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("waterPcgGetReflectionMetrics");
+    expect(markdownBySlug.get("water-optics")).toContain("precomposed-replace");
+    expect(markdownBySlug.get("water-optics")).toContain("refraction-gates");
+    expect(markdownBySlug.get("water-optics")).toContain("@galacean/engine-toolkit-stats");
+    expect(markdownBySlug.get("underwater")).toContain("WaterVolumeProvider");
+    expect(markdownBySlug.get("underwater")).toContain("0.08 m");
+    expect(markdownBySlug.get("underwater")).toContain("BeforeUber");
+    expect(markdownBySlug.get("underwater")).toContain("Low 和 Medium");
     expect(markdownBySlug.get("surface-query")).toContain("WaterSurfaceProvider");
     expect(markdownBySlug.get("testing-and-troubleshooting")).toContain("typecheck:water-pcg");
     expect(markdownBySlug.get("limitations")).toContain("没有从 `@galacean/engine` 导出");

@@ -221,6 +221,6 @@ export const RIVER_SURFACE_SHADER_TUNING = {
 
 export const RIVER_SURFACE_TEXTURE_SAMPLE_COUNT = {
   low: 1,
-  regular: 10,
-  localMap: 11
+  regular: 11,
+  localMap: 12
 } as const;

@@ -8,7 +8,9 @@
     "test:terrain:e2e": "playwright test --config demos/terrain/e2e/playwright.config.ts",
     "typecheck:terrain": "tsc -p tsconfig.terrain.json --noEmit",
     "test:water-pcg": "vitest run --config vitest.config.ts",
-    "typecheck:water-pcg": "tsc -p tsconfig.water-pcg.json --noEmit"
+    "typecheck:water-pcg": "tsc -p tsconfig.water-pcg.json --noEmit",
+    "test:water-optics-safari-device": "node --test demos/water-pcg/e2e/water-optics-p1-safari-device-acceptance.test.mjs",
+    "acceptance:water-optics-safari-device": "node demos/water-pcg/e2e/water-optics-p1-safari-device-acceptance.mjs"
   },
   "dependencies": {
     "@galacean/engine": "workspace:*",

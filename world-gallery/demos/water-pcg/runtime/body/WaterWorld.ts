@@ -6,7 +6,9 @@ import {
   type WaterSurfaceProvider,
   type WaterSurfaceSample
 } from "../query/WaterSurfaceProvider";
+import type { WaterOpticalProfile } from "../optics/WaterOpticalProfile";
 import { containsWaterBounds, type WaterBodyRuntime } from "./WaterBodyRuntime";
+import { createWaterVolumeSample, resetWaterVolumeSample, type WaterVolumeSample } from "./WaterVolumeProvider";
 
 const DEFAULT_MAX_CANDIDATES = 16;
 const QUERY_TIMING_CAPACITY = 256;
@@ -14,6 +16,7 @@ const QUERY_TIMING_CAPACITY = 256;
 interface RegisteredWaterBody {
   readonly body: WaterBodyRuntime;
   readonly sample: WaterSurfaceSample;
+  readonly volumeSample: WaterVolumeSample;
 }
 
 export interface WaterWorldMetrics {
@@ -24,8 +27,32 @@ export interface WaterWorldMetrics {
   readonly maximumCandidateCount: number;
   readonly lastPreciseQueryCount: number;
   readonly candidateLimitExceededCount: number;
+  readonly volumeQueryCount: number;
+  readonly volumeHitCount: number;
+  readonly lastVolumeCandidateCount: number;
+  readonly lastVolumePreciseQueryCount: number;
+  readonly volumeCandidateLimitExceededCount: number;
   readonly queryP50Ms: number;
   readonly queryP95Ms: number;
+}
+
+export interface WaterWorldVolumeSample extends WaterVolumeSample {
+  priority: number;
+  opticalProfile?: WaterOpticalProfile;
+}
+
+export function createWaterWorldVolumeSample(): WaterWorldVolumeSample {
+  return {
+    ...createWaterVolumeSample(),
+    priority: Number.NEGATIVE_INFINITY,
+    opticalProfile: undefined
+  };
+}
+
+export function resetWaterWorldVolumeSample(sample: WaterWorldVolumeSample): void {
+  resetWaterVolumeSample(sample);
+  sample.priority = Number.NEGATIVE_INFINITY;
+  sample.opticalProfile = undefined;
 }
 
 export interface WaterWorldBodySnapshot {
@@ -57,6 +84,11 @@ export class WaterWorld implements WaterSurfaceProvider {
   private _maximumCandidateCount = 0;
   private _lastPreciseQueryCount = 0;
   private _candidateLimitExceededCount = 0;
+  private _volumeQueryCount = 0;
+  private _volumeHitCount = 0;
+  private _lastVolumeCandidateCount = 0;
+  private _lastVolumePreciseQueryCount = 0;
+  private _volumeCandidateLimitExceededCount = 0;
   private _lastSelectedBodyId = "";
 
   constructor(options: WaterWorldOptions = {}) {
@@ -80,6 +112,11 @@ export class WaterWorld implements WaterSurfaceProvider {
       maximumCandidateCount: this._maximumCandidateCount,
       lastPreciseQueryCount: this._lastPreciseQueryCount,
       candidateLimitExceededCount: this._candidateLimitExceededCount,
+      volumeQueryCount: this._volumeQueryCount,
+      volumeHitCount: this._volumeHitCount,
+      lastVolumeCandidateCount: this._lastVolumeCandidateCount,
+      lastVolumePreciseQueryCount: this._lastVolumePreciseQueryCount,
+      volumeCandidateLimitExceededCount: this._volumeCandidateLimitExceededCount,
       queryP50Ms: percentile(0.5),
       queryP95Ms: percentile(0.95)
     });
@@ -106,7 +143,7 @@ export class WaterWorld implements WaterSurfaceProvider {
     if (this._entries.some((entry) => entry.body.id === body.id)) {
       throw new Error(`Water body '${body.id}' is already registered.`);
     }
-    this._entries.push({ body, sample: createWaterSurfaceSample() });
+    this._entries.push({ body, sample: createWaterSurfaceSample(), volumeSample: createWaterVolumeSample() });
     this._entries.sort((a, b) => b.body.priority - a.body.priority || a.body.id.localeCompare(b.body.id));
   }
 
@@ -172,6 +209,88 @@ export class WaterWorld implements WaterSurfaceProvider {
     return true;
   }
 
+  /** Selects the highest-priority water body that vertically contains the point. */
+  findContainingVolume(worldPosition: Vector3, outSample: WaterWorldVolumeSample): boolean {
+    resetWaterWorldVolumeSample(outSample);
+    this._volumeQueryCount++;
+    this._lastVolumeCandidateCount = 0;
+    this._lastVolumePreciseQueryCount = 0;
+    let bestPriority = Number.NEGATIVE_INFINITY;
+    let bestHeight = Number.NEGATIVE_INFINITY;
+    let bestBodyId = "";
+
+    for (const entry of this._entries) {
+      const body = entry.body;
+      const volume = body.volume;
+      if (
+        !volume ||
+        !body.enabled ||
+        !containsWaterBounds(body.bounds, worldPosition.x, worldPosition.z) ||
+        this._isExcluded(body, worldPosition.x, worldPosition.z)
+      ) {
+        continue;
+      }
+      this._lastVolumeCandidateCount++;
+      if (this._lastVolumeCandidateCount > this._maxCandidates) {
+        this._volumeCandidateLimitExceededCount++;
+        break;
+      }
+      this._lastVolumePreciseQueryCount++;
+      const candidate = entry.volumeSample;
+      resetWaterVolumeSample(candidate);
+      if (!volume.sampleVolume(worldPosition, candidate) || !candidate.insideVolume) continue;
+      const wins =
+        body.priority > bestPriority ||
+        (body.priority === bestPriority && candidate.surfaceHeight > bestHeight) ||
+        (body.priority === bestPriority && candidate.surfaceHeight === bestHeight && body.id < bestBodyId);
+      if (!wins) continue;
+      bestPriority = body.priority;
+      bestHeight = candidate.surfaceHeight;
+      bestBodyId = body.id;
+      this._copyVolumeSample(candidate, outSample);
+      outSample.waterBodyId = body.id;
+      outSample.priority = body.priority;
+      outSample.opticalProfile = body.opticalProfile;
+    }
+
+    if (bestBodyId === "") return false;
+    this._volumeHitCount++;
+    return true;
+  }
+
+  /** Samples one registered body even just above its surface for controller hysteresis. */
+  sampleBodyVolume(bodyId: string, worldPosition: Vector3, outSample: WaterWorldVolumeSample): boolean {
+    resetWaterWorldVolumeSample(outSample);
+    this._volumeQueryCount++;
+    let entry: RegisteredWaterBody | undefined;
+    for (let index = 0; index < this._entries.length; index++) {
+      const candidate = this._entries[index];
+      if (candidate.body.id === bodyId) {
+        entry = candidate;
+        break;
+      }
+    }
+    if (!entry) return false;
+    const body = entry.body;
+    const volume = body.volume;
+    if (
+      !volume ||
+      !body.enabled ||
+      !containsWaterBounds(body.bounds, worldPosition.x, worldPosition.z) ||
+      this._isExcluded(body, worldPosition.x, worldPosition.z)
+    ) {
+      return false;
+    }
+    const candidate = entry.volumeSample;
+    resetWaterVolumeSample(candidate);
+    if (!volume.sampleVolume(worldPosition, candidate)) return false;
+    this._copyVolumeSample(candidate, outSample);
+    outSample.waterBodyId = body.id;
+    outSample.priority = body.priority;
+    outSample.opticalProfile = body.opticalProfile;
+    return true;
+  }
+
   destroy(): void {
     this._entries.length = 0;
     this._lastSelectedBodyId = "";
@@ -183,5 +302,23 @@ export class WaterWorld implements WaterSurfaceProvider {
     target.surfaceNormal.copyFrom(source.surfaceNormal);
     target.waterVelocity.copyFrom(source.waterVelocity);
     target.waterDepth = source.waterDepth;
+  }
+
+  private _copyVolumeSample(source: WaterVolumeSample, target: WaterVolumeSample): void {
+    target.waterBodyId = source.waterBodyId;
+    target.insideFootprint = source.insideFootprint;
+    target.insideVolume = source.insideVolume;
+    target.surfaceHeight = source.surfaceHeight;
+    target.bottomHeight = source.bottomHeight;
+    target.signedSurfaceDistance = source.signedSurfaceDistance;
+    target.submergedDepth = source.submergedDepth;
+    target.waterDepth = source.waterDepth;
+  }
+
+  private _isExcluded(body: WaterBodyRuntime, worldX: number, worldZ: number): boolean {
+    for (const bounds of body.exclusionBounds) {
+      if (containsWaterBounds(bounds, worldX, worldZ)) return true;
+    }
+    return false;
   }
 }
