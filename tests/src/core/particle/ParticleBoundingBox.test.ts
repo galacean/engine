@@ -12,7 +12,8 @@ import {
   Entity,
   ParticleCurveMode,
   Engine,
-  ParticleStopMode
+  ParticleStopMode,
+  ParticleSimulationSpace
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -91,7 +92,26 @@ describe("ParticleBoundingBox", function () {
     particleRenderer.generator.main.gravityModifier.mode = ParticleCurveMode.Constant;
     particleRenderer.generator.main.gravityModifier.constant = 0;
 
-    particleRenderer.generator.velocityOverLifetime.enabled = false;
+    const { velocityOverLifetime } = particleRenderer.generator;
+    velocityOverLifetime.enabled = false;
+    velocityOverLifetime.space = ParticleSimulationSpace.Local;
+    velocityOverLifetime.velocityX.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.velocityY.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.velocityZ.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.velocityX.constant = 0;
+    velocityOverLifetime.velocityY.constant = 0;
+    velocityOverLifetime.velocityZ.constant = 0;
+    velocityOverLifetime.orbitalX.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.orbitalY.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.orbitalZ.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.orbitalX.constant = 0;
+    velocityOverLifetime.orbitalY.constant = 0;
+    velocityOverLifetime.orbitalZ.constant = 0;
+    velocityOverLifetime.radial.mode = ParticleCurveMode.Constant;
+    velocityOverLifetime.radial.constant = 0;
+    velocityOverLifetime.centerOffset.set(0, 0, 0);
+    particleRenderer.generator.forceOverLifetime.enabled = false;
+    particleRenderer.generator.noise.enabled = false;
 
     particleRenderer.generator.emission.shape = null;
   });
@@ -399,6 +419,43 @@ describe("ParticleBoundingBox", function () {
       particleRenderer,
       { x: -1.414, y: -1.414, z: -6.414 },
       { x: 6.414, y: 6.414, z: 3.914 },
+      delta
+    );
+  });
+
+  it("Noise", function () {
+    particleRenderer.generator.main.startSpeed.mode = ParticleCurveMode.Constant;
+    particleRenderer.generator.main.startSpeed.constant = 0;
+
+    const { noise } = particleRenderer.generator;
+    noise.enabled = true;
+    noise.separateAxes = false;
+    noise.strengthX.constant = 2;
+
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -11.414, y: -11.414, z: -11.414 },
+      { x: 11.414, y: 11.414, z: 11.414 },
+      delta
+    );
+  });
+
+  it("VelocityOverLifetime orbital bounds include gravity reach", function () {
+    const { main, velocityOverLifetime } = particleRenderer.generator;
+    main.startSpeed.mode = ParticleCurveMode.Constant;
+    main.startSpeed.constant = 0;
+    main.gravityModifier.mode = ParticleCurveMode.Constant;
+    main.gravityModifier.constant = 1;
+
+    velocityOverLifetime.enabled = true;
+    velocityOverLifetime.orbitalY.constant = 1;
+
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -125.074, y: -125.074, z: -125.074 },
+      { x: 125.074, y: 125.074, z: 125.074 },
       delta
     );
   });

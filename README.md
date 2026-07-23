@@ -40,9 +40,8 @@ Create a simple scene:
 ```typescript
 import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, WebGLEngine, PrimitiveMesh } from "@galacean/engine";
 
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
+// Create engine by passing in the HTMLCanvasElement id (canvas auto-resizes by default)
 const engine = await WebGLEngine.create({ canvas: "canvas-id" });
-engine.canvas.resizeByClientSize();
 
 // Get scene and create root entity
 const scene = engine.sceneManager.activeScene;

@@ -85,8 +85,6 @@ const customParticleShaderSource = `Shader "Test/ParticleCustom" {
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   scene.background.solidColor = new Color(0.05, 0.05, 0.05, 1);

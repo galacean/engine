@@ -240,7 +240,7 @@ export class GLCapability {
     let ext = null;
 
     if ((ext = rhi.requireExtension(capabilityType))) {
-      for (let glKey in flatItem) {
+      for (const glKey in flatItem) {
         const extensionKey = flatItem[glKey];
         const extensionVal = ext[extensionKey];
 

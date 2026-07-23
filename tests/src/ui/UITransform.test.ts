@@ -1,18 +1,12 @@
 import { WebGLEngine } from "@galacean/engine";
-import {
-  HorizontalAlignmentMode,
-  UICanvas,
-  UITransform,
-  VerticalAlignmentMode,
-} from "@galacean/engine-ui";
+import { HorizontalAlignmentMode, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UITransform", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 
@@ -321,9 +315,11 @@ describe("UITransform", async () => {
         const child = parent.createChild("stretch-child-manual");
         const t = child.transform as UITransform;
         t.horizontalAlignment = HorizontalAlignmentMode.LeftAndRight;
-        t.alignLeft = 10; t.alignRight = 20;
+        t.alignLeft = 10;
+        t.alignRight = 20;
         t.verticalAlignment = VerticalAlignmentMode.TopAndBottom;
-        t.alignTop = 5; t.alignBottom = 15;
+        t.alignTop = 5;
+        t.alignBottom = 15;
 
         // Layout-driven size
         expect(t.size.x).to.eq(170);
@@ -336,7 +332,6 @@ describe("UITransform", async () => {
         expect(t.size.y).to.eq(130);
       });
     });
-
   });
 
   it("widget changes reflect in worldPosition when parent moves", () => {
@@ -375,9 +370,9 @@ describe("UITransform", async () => {
     const originX = testMatrix.elements[12];
     const originY = testMatrix.elements[13];
     const originZ = testMatrix.elements[14];
-    const modifyX = testMatrix.elements[12] = originX + 50;
-    const modifyY = testMatrix.elements[13] = originY + 50;
-    const modifyZ = testMatrix.elements[14] = originZ + 50;
+    const modifyX = (testMatrix.elements[12] = originX + 50);
+    const modifyY = (testMatrix.elements[13] = originY + 50);
+    const modifyZ = (testMatrix.elements[14] = originZ + 50);
     childTransform.localMatrix = testMatrix;
     const actualMatrix = childTransform.localMatrix;
     expect(actualMatrix.elements[12]).to.not.eq(modifyX);
@@ -449,7 +444,7 @@ describe("UITransform", async () => {
       originalTransform.alignLeft = 10;
       originalTransform.alignRight = 20;
       originalTransform.alignCenter = 5;
-      
+
       originalTransform.verticalAlignment = VerticalAlignmentMode.TopAndBottom;
       originalTransform.alignTop = 15;
       originalTransform.alignBottom = 25;
@@ -462,7 +457,7 @@ describe("UITransform", async () => {
       expect(clonedTransform.alignLeft).to.eq(10);
       expect(clonedTransform.alignRight).to.eq(20);
       expect(clonedTransform.alignCenter).to.eq(5);
-      
+
       expect(clonedTransform.verticalAlignment).to.eq(VerticalAlignmentMode.TopAndBottom);
       expect(clonedTransform.alignTop).to.eq(15);
       expect(clonedTransform.alignBottom).to.eq(25);
@@ -497,13 +492,13 @@ describe("UITransform", async () => {
       parent.addComponent(UICanvas);
       const parentTransform = parent.transform as UITransform;
       parentTransform.size.set(300, 200);
-      
+
       const original = parent.createChild("original-behavior");
       const originalTransform = original.transform as UITransform;
-      
+
       originalTransform.horizontalAlignment = HorizontalAlignmentMode.Left;
       originalTransform.alignLeft = 20;
-      
+
       const cloned = original.clone();
       parent.addChild(cloned);
       const clonedTransform = cloned.transform as UITransform;

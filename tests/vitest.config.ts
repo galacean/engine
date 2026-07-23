@@ -18,6 +18,7 @@ export default defineProject({
     browser: {
       provider: "playwright",
       enabled: true,
+      screenshotFailures: false,
       instances: [
         {
           browser: "chromium",

@@ -62,7 +62,6 @@ WebGLEngine.create({
     wasmModeUrl: "../physx.release.js"
   })
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 
