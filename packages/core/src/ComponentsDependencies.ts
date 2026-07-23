@@ -36,10 +36,12 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(entity: Entity, type: ComponentConstructor): void {
+  static _removeCheck(entity: Entity, type: ComponentConstructor, replace?: ComponentConstructor): void {
     const components = entity._components;
     const n = components.length;
     while (type !== Component) {
+      // The replacement still satisfies this type and all of its base types.
+      if (replace && (replace === type || replace.prototype instanceof type)) return;
       let count = 0;
       for (let i = 0; i < n; i++) {
         if (components[i] instanceof type && ++count > 1) return;
@@ -64,7 +66,7 @@ export class ComponentsDependencies {
     dependentComponent: ComponentConstructor,
     map: Map<DependentInfo, ComponentConstructor[]>
   ): void {
-    let components = map.get(targetInfo);
+    const components = map.get(targetInfo);
     if (!components) {
       map.set(targetInfo, [dependentComponent]);
     } else {
@@ -77,7 +79,7 @@ export class ComponentsDependencies {
    */
   static _addInvDependency(currentComponent: ComponentConstructor, dependentComponent: ComponentConstructor): void {
     const map = this._invDependenciesMap;
-    let components = map.get(currentComponent);
+    const components = map.get(currentComponent);
     if (!components) {
       map.set(currentComponent, [dependentComponent]);
     } else {
