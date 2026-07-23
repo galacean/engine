@@ -47,6 +47,8 @@ export interface ProbeVolumeBakeProgress {
 
 /** Options for rasterizing probe radiance into spherical harmonics. */
 export interface ProbeVolumeBakeOptions {
+  /** Name assigned to the baked lighting scenario. Defaults to "Default". */
+  lightingScenario?: string;
   /** Camera whose render pipeline is reused for captures. Defaults to the first enabled scene camera. */
   camera?: Camera;
   /** Cubemap face resolution. Defaults to 8. */
@@ -106,6 +108,33 @@ export class ProbeVolumeBaker {
       ...options,
       localToWorldMatrix
     });
+  }
+
+  /**
+   * Bake another named lighting scenario into an existing probe volume.
+   * @remarks Reuses the existing brick layout so all scenarios remain GPU-blendable.
+   */
+  static async bakeLightingScenario(
+    scene: Scene,
+    volume: ProbeVolume,
+    scenarioName: string,
+    options: ProbeVolumeBakeOptions = {}
+  ): Promise<ProbeVolume> {
+    const layouts = volume.bricks.map((brick) => ({
+      position: brick.position.clone(),
+      subdivisionLevel: brick.subdivisionLevel
+    }));
+    const scenarioVolume = await ProbeVolumeBaker.bake(scene, volume.minBrickSize, layouts, {
+      ...options,
+      lightingScenario: scenarioName,
+      localToWorldMatrix: volume.localToWorldMatrix
+    });
+    try {
+      volume.addLightingScenario(scenarioName, scenarioVolume);
+    } finally {
+      scenarioVolume.dispose();
+    }
+    return volume;
   }
 
   /** Generate the exact brick layout used by {@link bakeRegion} without capturing lighting. */
@@ -313,7 +342,12 @@ export class ProbeVolumeBaker {
         if (bakedVolume) {
           bakedVolume.setBricks(bricks);
         } else {
-          bakedVolume = new ProbeVolume(minBrickSize, bricks, localToWorldMatrix);
+          bakedVolume = new ProbeVolume(
+            minBrickSize,
+            bricks,
+            localToWorldMatrix,
+            options.lightingScenario ?? "Default"
+          );
           bakedVolume.samplingMode = ProbeVolumeSamplingMode.PerFragment;
           bakedVolume.normalBias = worldBrickSize * 0.05;
           bakedVolume.visibilityBias = worldBrickSize * 0.05;

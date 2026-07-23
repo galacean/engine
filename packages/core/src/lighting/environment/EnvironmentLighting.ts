@@ -55,6 +55,34 @@ export class EnvironmentLighting {
     value?._updateShaderData(this._scene.engine, this._scene.shaderData);
   }
 
+  /** Names of the baked lighting scenarios available on the active probe volume. */
+  get lightingScenarioNames(): readonly string[] {
+    return this._probeVolume?.lightingScenarioNames ?? [];
+  }
+
+  /** Active baked lighting scenario, if a probe volume is assigned. */
+  get lightingScenario(): string | undefined {
+    return this._probeVolume?.lightingScenario;
+  }
+
+  set lightingScenario(value: string) {
+    if (!this._probeVolume) {
+      throw new Error("EnvironmentLighting requires a probe volume before selecting a lighting scenario.");
+    }
+    this._probeVolume.lightingScenario = value;
+  }
+
+  /**
+   * Blend the active baked lighting scenario toward another scenario.
+   * @remarks Probe SH blending runs on the GPU for per-vertex and per-fragment sampling.
+   */
+  blendLightingScenario(target: string, factor: number): void {
+    if (!this._probeVolume) {
+      throw new Error("EnvironmentLighting requires a probe volume before blending lighting scenarios.");
+    }
+    this._probeVolume.blendLightingScenario(target, factor);
+  }
+
   /**
    * Apply a state immediately.
    * @param state - Target environment state

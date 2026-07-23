@@ -15,6 +15,7 @@ import {
   Matrix,
   MeshRenderer,
   PBRMaterial,
+  PointLight,
   PrimitiveMesh,
   ProbeBrickProbeCountPerDimension,
   ProbeVolume,
@@ -33,8 +34,15 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import type { Entity, Scene } from "@galacean/engine";
 import probeVolumeUrl from "./light-probe-data.pvol?url";
 
-const projectUrl = "https://mdn.alipayobjects.com/oasis_be/afts/file/A*vK1cRZW88ucAAAAAQYAAAAgAekp5AQ/project.json";
+const dayProjectUrl = "https://mdn.alipayobjects.com/oasis_be/afts/file/A*i5qfTbh8jfkAAAAAQYAAAAgAekp5AQ/project.json";
+const nightProjectUrl =
+  "https://mdn.alipayobjects.com/oasis_be/afts/file/A*yHxDTYCLl4sAAAAAQZAAAAgAekp5AQ/project.json";
+const isNightBakeMode = new URLSearchParams(window.location.search).get("bake") === "night";
+const projectUrl = isNightBakeMode ? nightProjectUrl : dayProjectUrl;
+const dayScenario = "Day";
+const nightScenario = "Night";
 const probeMarkerSHProperty = ShaderProperty.getByName("renderer_ProbeSH");
+const probeMarkerExposureProperty = ShaderProperty.getByName("scene_ProbeMarkerExposure");
 
 class VerticalRoamControl extends Script {
   movementSpeed = 3;
@@ -77,10 +85,11 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
     })
     .then(() => {
       const scene = engine.sceneManager.activeScene;
-      setDirectLightIntensity(scene, 5);
+      const scenarioBakeLighting = isNightBakeMode ? createNightBakeLighting(scene) : noScenarioBakeLighting;
+      scenarioBakeLighting.apply(0);
       installFreeControl(scene);
       normalizeProbeDemoMaterials(engine, scene);
-      return installLightProbe(engine, scene);
+      return installLightProbe(engine, scene, scenarioBakeLighting);
     })
     .catch((error) => {
       Logger.error("light", error);
@@ -88,25 +97,55 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
     });
 });
 
-function setDirectLightIntensity(scene: Scene, intensity: number): void {
+interface ScenarioBakeLighting {
+  apply(factor: number): void;
+}
+
+function createNightBakeLighting(scene: Scene): ScenarioBakeLighting {
   const lights: DirectLight[] = [];
+  const pointLights: PointLight[] = [];
+  const nightEmitterEntities = scene.rootEntities.filter((entity) => entity.name === "Sphere");
   for (const root of scene.rootEntities) {
     const rootLights: DirectLight[] = [];
+    const rootPointLights: PointLight[] = [];
     root.getComponentsIncludeChildren(DirectLight, rootLights);
+    root.getComponentsIncludeChildren(PointLight, rootPointLights);
     lights.push(...rootLights);
+    pointLights.push(...rootPointLights);
   }
 
-  const light = scene.sun ?? lights.find((candidate) => candidate.enabled);
-  if (!light) {
-    return;
+  const sun = scene.sun ?? lights.find((candidate) => candidate.enabled);
+  if (!sun) {
+    throw new Error("The lighting scenario demo requires an enabled directional light.");
   }
 
-  const color = light.color;
-  const currentIntensity = color.getBrightness();
-  if (currentIntensity > 0) {
-    const scale = intensity / currentIntensity;
-    color.set(color.r * scale, color.g * scale, color.b * scale, color.a);
-  }
+  const daySunTint = [1, 0.9254901960784314, 0.8784313725490196] as const;
+  const daySunBrightness = (Math.max(...daySunTint) + Math.min(...daySunTint)) * 0.5;
+  const daySunScale = 5 / daySunBrightness;
+  const daySun = daySunTint.map((value) => value * daySunScale);
+  const nightSun = [sun.color.r, sun.color.g, sun.color.b];
+  const nightPointLights = pointLights.map((light) => ({
+    light,
+    color: [light.color.r, light.color.g, light.color.b] as const
+  }));
+
+  return {
+    apply(factor: number): void {
+      factor = Math.max(0, Math.min(1, factor));
+      sun.color.set(
+        lerp(daySun[0], nightSun[0], factor),
+        lerp(daySun[1], nightSun[1], factor),
+        lerp(daySun[2], nightSun[2], factor),
+        sun.color.a
+      );
+      for (const { light, color } of nightPointLights) {
+        light.color.set(color[0] * factor, color[1] * factor, color[2] * factor, light.color.a);
+      }
+      for (const entity of nightEmitterEntities) {
+        entity.isActive = factor === 1;
+      }
+    }
+  };
 }
 
 function installFreeControl(scene: Scene): void {
@@ -191,7 +230,11 @@ function normalizeProbeDemoMaterials(engine: WebGLEngine, scene: Scene): void {
   });
 }
 
-async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<void> {
+async function installLightProbe(
+  engine: WebGLEngine,
+  scene: Scene,
+  scenarioBakeLighting: ScenarioBakeLighting
+): Promise<void> {
   const camera = scene.rootEntities
     .map((entity) => entity.getComponent(Camera))
     .find((component): component is Camera => Boolean(component?.enabled));
@@ -203,18 +246,31 @@ async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<voi
   region.size.set(32, 14, 20);
   const probeArtifact = await fetch(probeVolumeUrl).then((response) => response.arrayBuffer());
   let probeVolume = ProbeVolumeBinary.decode(probeArtifact);
+  if (!probeVolume.lightingScenarioNames.includes(dayScenario)) {
+    probeVolume.renameLightingScenario(probeVolume.lightingScenario, dayScenario);
+  }
+  probeVolume.lightingScenario = dayScenario;
   region.minBrickSize = Math.max(probeVolume.minBrickSize, 8);
   fitProbeRegionToScene(scene, region);
 
   probeVolume.samplingMode = ProbeVolumeSamplingMode.PerFragment;
   updateProbeVolumeTransform(region, probeVolume);
+  scene.shaderData.setFloat(probeMarkerExposureProperty, 0);
   let markerRoot = createProbeMarkers(engine, scene, probeVolume);
   let bakedLightingEnabled = true;
   let isBaking = false;
   let previewRequest = 0;
+  const updateAvailableScenarios = (): string => probeVolume.lightingScenarioNames.join(", ");
   const controls = {
     showMarkers: false,
+    probeExposure: 0,
     sampling: "Per Fragment",
+    projectMode: isNightBakeMode ? "Night Bake Source" : "Day View + Tonemapping + Bloom",
+    availableScenarios: updateAvailableScenarios(),
+    dayNightBlend: 0,
+    scenarioStatus: probeVolume.lightingScenarioNames.includes(nightScenario)
+      ? "Day and Night loaded"
+      : "Bake Night to enable blending",
     placement: "Uniform",
     maxSubdivisionLevel: 1,
     bakeStatus: "Loaded",
@@ -231,6 +287,88 @@ async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<voi
       scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
       camera.render();
     },
+    updateProbeExposure: (value: number) => {
+      scene.shaderData.setFloat(probeMarkerExposureProperty, value);
+      camera.render();
+    },
+    updateDayNightBlend: (value: number) => {
+      if (!probeVolume.lightingScenarioNames.includes(nightScenario)) {
+        controls.dayNightBlend = 0;
+        controls.scenarioStatus = "Bake Night to enable blending";
+        camera.render();
+        return;
+      }
+
+      const factor = Math.max(0, Math.min(1, value));
+      controls.dayNightBlend = factor;
+      if (factor === 0) {
+        probeVolume.lightingScenario = dayScenario;
+      } else if (factor === 1) {
+        probeVolume.lightingScenario = nightScenario;
+      } else {
+        if (probeVolume.lightingScenario !== dayScenario) {
+          probeVolume.lightingScenario = dayScenario;
+        }
+        probeVolume.blendLightingScenario(nightScenario, factor);
+      }
+      controls.scenarioStatus = `GPU indirect blend ${(factor * 100).toFixed(0)}% Night`;
+      camera.render();
+    },
+    bakeNightScenario: async () => {
+      if (!isNightBakeMode) {
+        controls.scenarioStatus = "Open Night Bake Source before baking Night";
+        return;
+      }
+      if (isBaking) {
+        return;
+      }
+      isBaking = true;
+      const previousBlend = controls.dayNightBlend;
+      controls.scenarioStatus = "Preparing Night bake";
+      scenarioBakeLighting.apply(1);
+      try {
+        await ProbeVolumeBaker.bakeLightingScenario(scene, probeVolume, nightScenario, {
+          camera,
+          resolution: 8,
+          nearClipPlane: 0.05,
+          farClipPlane: 60,
+          bounceCount: 2,
+          indirectIntensity: 2,
+          separateEnvironment: false,
+          bakeSunIndirect: true,
+          probesPerBatch: 1,
+          onProgress: ({ completedProbes, totalProbes, bounce, bounceCount }) => {
+            const percentage = totalProbes > 0 ? Math.round((completedProbes / totalProbes) * 100) : 0;
+            controls.scenarioStatus = `${completedProbes}/${totalProbes} (${percentage}%) - Bounce ${bounce}/${bounceCount}`;
+          }
+        });
+        controls.availableScenarios = updateAvailableScenarios();
+        controls.scenarioStatus = "Night baked; drag Day / Night Blend";
+        controls.updateDayNightBlend(previousBlend);
+        downloadProbeVolumeArtifact(probeVolume);
+      } catch (error) {
+        controls.scenarioStatus = `Failed: ${error instanceof Error ? error.message : String(error)}`;
+        Logger.error("night scenario bake", error);
+        console.error("night scenario bake", error);
+      } finally {
+        scenarioBakeLighting.apply(0);
+        isBaking = false;
+        camera.render();
+      }
+    },
+    openNightBakeScene: () => {
+      const url = new URL(window.location.href);
+      url.searchParams.set("bake", "night");
+      window.location.href = url.toString();
+    },
+    returnToDayView: () => {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("bake");
+      window.location.href = url.toString();
+    },
+    downloadScenarios: () => {
+      downloadProbeVolumeArtifact(probeVolume);
+    },
     bake: async () => {
       if (isBaking) {
         return;
@@ -243,8 +381,10 @@ async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<voi
       controls.bakeStatus = "Preparing";
       const previousVolume = probeVolume;
       markerRoot.destroy();
+      scenarioBakeLighting.apply(0);
       try {
         probeVolume = await ProbeVolumeBaker.bakeRegion(scene, region, {
+          lightingScenario: dayScenario,
           camera,
           resolution: 8,
           nearClipPlane: 0.05,
@@ -266,12 +406,16 @@ async function installLightProbe(engine: WebGLEngine, scene: Scene): Promise<voi
         markerRoot = createProbeMarkers(engine, scene, probeVolume);
         markerRoot.isActive = controls.showMarkers;
         scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
+        controls.dayNightBlend = 0;
+        controls.availableScenarios = updateAvailableScenarios();
+        controls.scenarioStatus = "Day baked; bake Night to enable blending";
         downloadProbeVolumeArtifact(probeVolume);
         previousVolume.dispose();
         controls.bakeStatus = "Completed";
         camera.render();
       } catch (error) {
         probeVolume = previousVolume;
+        controls.updateDayNightBlend(controls.dayNightBlend);
         markerRoot = createProbeMarkers(engine, scene, probeVolume);
         markerRoot.isActive = controls.showMarkers;
         scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
@@ -407,7 +551,7 @@ function updateProbeVolumeTransform(region: ProbeVolumeRegion, volume: ProbeVolu
 
 function createProbeMarkers(engine: WebGLEngine, scene: Scene, volume: ProbeVolume): Entity {
   const markerRoot = scene.createRootEntity("probe_markers");
-  const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 8);
+  const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 12);
   const markerMaterial = createProbeMarkerMaterial(engine);
   const minimumProbeStep = volume.minBrickSize / (ProbeBrickProbeCountPerDimension - 1);
   const createdProbeKeys = new Set<string>();
@@ -456,7 +600,7 @@ function createProbeLayoutMarkers(
   layout: ReturnType<typeof ProbeVolumeBaker.createRegionLayout>
 ): Entity {
   const markerRoot = scene.createRootEntity("probe_layout_preview");
-  const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 8);
+  const markerMesh = PrimitiveMesh.createSphere(engine, 0.1, 12);
   const markerMaterial = createProbeMarkerMaterial(engine);
   const minimumProbeStep = layout.minBrickSize / (ProbeBrickProbeCountPerDimension - 1);
   const createdProbeKeys = new Set<string>();
@@ -518,6 +662,7 @@ const probeMarkerShaderSource = `Shader "Debug/ProbeMarker" {
       mat4 renderer_MVPMat;
       mat4 renderer_NormalMat;
       vec3 renderer_ProbeSH[9];
+      float scene_ProbeMarkerExposure;
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -531,17 +676,19 @@ const probeMarkerShaderSource = `Shader "Debug/ProbeMarker" {
 
       vec4 frag(Varyings input) {
         vec3 normal = normalize(input.normalWS);
-        vec3 l0 = max(renderer_ProbeSH[0] * 0.886227, vec3(0.0));
-        vec3 l1Y = renderer_ProbeSH[1] * -1.023327;
-        vec3 l1Z = renderer_ProbeSH[2] * 1.023327;
-        vec3 l1X = renderer_ProbeSH[3] * -1.023327;
-        vec3 l1Length = sqrt(l1X * l1X + l1Y * l1Y + l1Z * l1Z);
-        vec3 l1Scale = min(vec3(1.0), l0 / max(l1Length, vec3(1e-4)));
         vec3 irradiance = max(
-          l0 + l1Y * l1Scale * normal.y + l1Z * l1Scale * normal.z + l1X * l1Scale * normal.x,
+          renderer_ProbeSH[0] * 0.886227 +
+          renderer_ProbeSH[1] * (-1.023327 * normal.y) +
+          renderer_ProbeSH[2] * ( 1.023327 * normal.z) +
+          renderer_ProbeSH[3] * (-1.023327 * normal.x) +
+          renderer_ProbeSH[4] * ( 0.858086 * normal.y * normal.x) +
+          renderer_ProbeSH[5] * (-0.858086 * normal.y * normal.z) +
+          renderer_ProbeSH[6] * ( 0.247708 * (3.0 * normal.z * normal.z - 1.0)) +
+          renderer_ProbeSH[7] * (-0.858086 * normal.z * normal.x) +
+          renderer_ProbeSH[8] * ( 0.429042 * (normal.x * normal.x - normal.y * normal.y)),
           vec3(0.0)
         );
-        return vec4(irradiance, 1.0);
+        return vec4(irradiance * exp2(scene_ProbeMarkerExposure), 1.0);
       }
     }
   }
@@ -551,13 +698,24 @@ function createProbeDebug(
   region: ProbeVolumeRegion,
   controls: {
     showMarkers: boolean;
+    probeExposure: number;
     sampling: string;
+    projectMode: string;
+    availableScenarios: string;
+    dayNightBlend: number;
+    scenarioStatus: string;
     placement: string;
     maxSubdivisionLevel: number;
     bakeStatus: string;
     bakedLightingEnabled: boolean;
     toggleBakedLighting: () => void;
+    updateProbeExposure: (value: number) => void;
+    updateDayNightBlend: (value: number) => void;
     updateSampling: (value: string) => void;
+    bakeNightScenario: () => Promise<void>;
+    openNightBakeScene: () => void;
+    returnToDayView: () => void;
+    downloadScenarios: () => void;
     bake: () => Promise<void>;
   },
   onMarkersChange: (visible: boolean) => void,
@@ -566,7 +724,28 @@ function createProbeDebug(
   const gui = new dat.GUI();
   const folder = gui.addFolder("Probe");
   folder.add(controls, "showMarkers").onChange(onMarkersChange);
+  folder.add(controls, "probeExposure", -5, 5, 0.1).name("Probe Exposure").onChange(controls.updateProbeExposure);
   folder.add(controls, "sampling", Object.keys(samplingModes)).name("Sampling").onChange(controls.updateSampling);
+
+  const scenarioFolder = folder.addFolder("Lighting Scenarios");
+  const projectMode = scenarioFolder.add(controls, "projectMode").name("Project").listen();
+  projectMode.domElement.style.pointerEvents = "none";
+  const availableScenarios = scenarioFolder.add(controls, "availableScenarios").name("Available").listen();
+  availableScenarios.domElement.style.pointerEvents = "none";
+  scenarioFolder
+    .add(controls, "dayNightBlend", 0, 1, 0.01)
+    .name("Indirect Day / Night")
+    .listen()
+    .onChange(controls.updateDayNightBlend);
+  const scenarioStatus = scenarioFolder.add(controls, "scenarioStatus").name("Status").listen();
+  scenarioStatus.domElement.style.pointerEvents = "none";
+  if (isNightBakeMode) {
+    scenarioFolder.add(controls, "bakeNightScenario").name("Bake Night Scenario");
+    scenarioFolder.add(controls, "returnToDayView").name("Return to Day View");
+  } else {
+    scenarioFolder.add(controls, "openNightBakeScene").name("Open Night Bake Source");
+  }
+  scenarioFolder.add(controls, "downloadScenarios").name("Download Scenarios");
 
   const regionFolder = folder.addFolder("Region");
   const positionFolder = regionFolder.addFolder("Position");
@@ -593,7 +772,7 @@ function createProbeDebug(
   regionFolder.add(controls, "maxSubdivisionLevel", 0, 3, 1).name("Max Subdivision").onChange(onMarkerGridChange);
   const bakeStatus = regionFolder.add(controls, "bakeStatus").name("Bake Status").listen();
   bakeStatus.domElement.style.pointerEvents = "none";
-  regionFolder.add(controls, "bake").name("Bake");
+  regionFolder.add(controls, "bake").name("Bake Day + Layout");
   const bakedLightingControl = {
     toggle: () => {
       controls.toggleBakedLighting();
@@ -606,6 +785,7 @@ function createProbeDebug(
   rotationFolder.open();
   scaleFolder.open();
   sizeFolder.open();
+  scenarioFolder.open();
   regionFolder.open();
   folder.open();
 }
@@ -614,4 +794,12 @@ const samplingModes: Record<string, ProbeVolumeSamplingMode> = {
   "Per Renderer": ProbeVolumeSamplingMode.PerRenderer,
   "Per Vertex": ProbeVolumeSamplingMode.PerVertex,
   "Per Fragment": ProbeVolumeSamplingMode.PerFragment
+};
+
+function lerp(from: number, to: number, factor: number): number {
+  return from + (to - from) * factor;
+}
+
+const noScenarioBakeLighting: ScenarioBakeLighting = {
+  apply(): void {}
 };

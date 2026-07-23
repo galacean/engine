@@ -23,6 +23,10 @@
         highp sampler2DArray scene_ProbeVolumeSHRTexture;
         highp sampler2DArray scene_ProbeVolumeSHGTexture;
         highp sampler2DArray scene_ProbeVolumeSHBTexture;
+        #ifdef SCENE_PROBE_VOLUME_SCENARIO_BLEND
+            float scene_ProbeVolumeScenarioBlend;
+            float scene_ProbeVolumeScenarioLayerOffset;
+        #endif
         highp sampler2DArray scene_ProbeVolumeSkyTexture;
     #endif
     vec4 scene_ProbeVolumeCellOrigins[PROBE_VOLUME_MAX_ACTIVE_CELLS];
@@ -65,11 +69,17 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 #ifdef SCENE_USE_PROBE_VOLUME
 #ifndef SCENE_PROBE_VOLUME_PER_RENDERER
-vec4 sampleProbeVolumeTexture(highp sampler2DArray probeTexture, vec2 uv, float probeZ, float cellDepth){
+vec4 sampleProbeVolumeTexture(
+    highp sampler2DArray probeTexture,
+    vec2 uv,
+    float probeZ,
+    float cellDepth,
+    float layerOffset
+){
     float z0 = floor(probeZ);
     float z1 = min(z0 + 1.0, cellDepth - 1.0);
-    vec4 sample0 = textureLod(probeTexture, vec3(uv, z0), 0.0);
-    vec4 sample1 = textureLod(probeTexture, vec3(uv, z1), 0.0);
+    vec4 sample0 = textureLod(probeTexture, vec3(uv, z0 + layerOffset), 0.0);
+    vec4 sample1 = textureLod(probeTexture, vec3(uv, z1 + layerOffset), 0.0);
     return mix(sample0, sample1, probeZ - z0);
 }
 #endif
@@ -141,10 +151,36 @@ bool sampleProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 
     }
     vec2 atlasCoord = vec2(probeCoord.x, probeCoord.y + cellParameters.w);
     vec2 uv = (atlasCoord + 0.5) / scene_ProbeVolumeAtlasDimensions.xy;
-    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z, cellParameters.z);
-    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z, cellParameters.z);
-    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z, cellParameters.z);
-    vec4 skyData = sampleProbeVolumeTexture(scene_ProbeVolumeSkyTexture, uv, probeCoord.z, cellParameters.z);
+    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z, cellParameters.z, 0.0);
+    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z, cellParameters.z, 0.0);
+    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z, cellParameters.z, 0.0);
+    #ifdef SCENE_PROBE_VOLUME_SCENARIO_BLEND
+        vec4 targetShR = sampleProbeVolumeTexture(
+            scene_ProbeVolumeSHRTexture,
+            uv,
+            probeCoord.z,
+            cellParameters.z,
+            scene_ProbeVolumeScenarioLayerOffset
+        );
+        vec4 targetShG = sampleProbeVolumeTexture(
+            scene_ProbeVolumeSHGTexture,
+            uv,
+            probeCoord.z,
+            cellParameters.z,
+            scene_ProbeVolumeScenarioLayerOffset
+        );
+        vec4 targetShB = sampleProbeVolumeTexture(
+            scene_ProbeVolumeSHBTexture,
+            uv,
+            probeCoord.z,
+            cellParameters.z,
+            scene_ProbeVolumeScenarioLayerOffset
+        );
+        shR = mix(shR, targetShR, scene_ProbeVolumeScenarioBlend);
+        shG = mix(shG, targetShG, scene_ProbeVolumeScenarioBlend);
+        shB = mix(shB, targetShB, scene_ProbeVolumeScenarioBlend);
+    #endif
+    vec4 skyData = sampleProbeVolumeTexture(scene_ProbeVolumeSkyTexture, uv, probeCoord.z, cellParameters.z, 0.0);
     irradiance = addDynamicSkyIrradiance(evaluateProbeL1(shR, shG, shB, normalWS), skyData, normalWS);
     return true;
     #endif
