@@ -1,6 +1,5 @@
 /**
- * Base class of data objects: wherever an instance is held — a component field, an array, a map —
- * cloning produces an independent deep copy instead of a shared reference. A subclass must be
- * constructible without arguments; a preset-less copy is created bare, then populated.
+ * Base class for value-semantic objects that are deep-cloned by default.
+ * Subclasses must support argument-less construction when no compatible preset exists.
  */
 export abstract class DataObject {}
