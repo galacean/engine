@@ -271,6 +271,7 @@ export namespace ASTNode {
       const typeSpecifier = fullyType.typeSpecifier;
       this.typeSpecifier = typeSpecifier;
       this.arraySpecifier = typeSpecifier.arraySpecifier;
+      typeSpecifier.validateCustomStructReference(sa);
 
       const id = children[1] as BaseToken;
       const isConst = fullyType.isConst;
@@ -398,6 +399,8 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
+    private static _structScratch: SymbolInfo[] = [];
+
     type: GalaceanDataType;
     lexeme: string;
     arraySize?: number;
@@ -417,6 +420,38 @@ export namespace ASTNode {
       this.lexeme = firstChild.lexeme;
       this.arraySize = (children?.[1] as ArraySpecifier)?.size;
       this.isCustom = typeof this.type === "string";
+    }
+
+    validateCustomStructReference(sa: SemanticAnalyzer): void {
+      if (!this.isCustom) return;
+
+      const typeName = (this.children[0] as TypeSpecifierNonArray).children[0];
+      if (!(typeName instanceof BaseToken)) return;
+
+      const lookup = SemanticAnalyzer._lookupSymbol;
+      lookup.set(typeName.lexeme, ESymbolType.STRUCT);
+      const structs = sa.symbolTableStack.lookupAll(lookup, true, TypeSpecifier._structScratch, this._branch);
+      if (!structs.length) {
+        const message = sa.symbolTableStack.hasSymbol(lookup)
+          ? `Type '${typeName.lexeme}' is declared only in macro branches that are not guaranteed at this reference.`
+          : `Type '${typeName.lexeme}' is not declared.`;
+        sa.reportError(typeName.location, message, DiagnosticType.UseBeforeDeclaration);
+        return;
+      }
+
+      if (
+        !canBranchesCoverCallsite(
+          structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
+          this._branch
+        ) &&
+        !structs.some((struct) => isSelfGuardingBranch(struct.branchSignature ?? EMPTY_BRANCH))
+      ) {
+        sa.reportError(
+          typeName.location,
+          `Type '${typeName.lexeme}' is declared only in macro branches that are not guaranteed at this reference.`,
+          DiagnosticType.UseBeforeDeclaration
+        );
+      }
     }
   }
 
@@ -666,6 +701,7 @@ export namespace ASTNode {
       const children = this.children;
       this.ident = children[1] as BaseToken;
       this.returnType = children[0] as FullySpecifiedType;
+      this.returnType.typeSpecifier.validateCustomStructReference(sa);
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -771,6 +807,7 @@ export namespace ASTNode {
       const typeSpecifier = children[0] as TypeSpecifier;
       const arraySpecifier = children[2] as ArraySpecifier;
       this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+      typeSpecifier.validateCustomStructReference(sa);
     }
   }
 
@@ -1533,6 +1570,7 @@ export namespace ASTNode {
         this._typeSpecifier = children[1] as TypeSpecifier;
         this._declaratorList = children[2] as StructDeclaratorList;
       }
+      this._typeSpecifier.validateCustomStructReference(sa);
 
       const firstChild = children[0];
       const { type, lexeme } = this._typeSpecifier;
@@ -1682,6 +1720,7 @@ export namespace ASTNode {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
+      type.typeSpecifier.validateCustomStructReference(sa);
       // GLSL ES §4.1.1 — `void` may only appear as a function return type or empty parameter list.
       if (type.type === Keyword.VOID) {
         sa.reportError(

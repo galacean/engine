@@ -137,4 +137,67 @@ describe("branch-aware SymbolTable lookup", () => {
     );
     expect(errorsOf(src, "UseBeforeDeclaration")).to.have.lengthOf(1);
   });
+
+  it("rejects a struct type that is missing on a macro path", () => {
+    const result = analyzer.analyze(
+      pass(
+        `#ifdef A
+          struct Data { float value; };
+        #endif
+        Data data;
+        void frag() { gl_FragColor = vec4(0.0); }
+        void vert() { gl_Position = vec4(0.0); }
+        VertexShader = vert; FragmentShader = frag;`
+      )
+    );
+    const errors = result.diagnostics.filter(
+      (diagnostic) => diagnostic.severity === "error" && diagnostic.code === "UseBeforeDeclaration"
+    );
+    expect(errors).to.have.lengthOf(1);
+    expect(errors[0].message).to.contain("Type 'Data'");
+    expect(result.passes, "an uncovered type declaration must block codegen").to.be.empty;
+  });
+
+  it("accepts a struct type declared by every arm of an exhaustive macro chain", () => {
+    const result = analyzer.analyze(
+      pass(
+        `#ifdef A
+          struct Data { float value; };
+        #else
+          struct Data { float value; };
+        #endif
+        Data data;
+        void frag() { gl_FragColor = vec4(0.0); }
+        void vert() { gl_Position = vec4(0.0); }
+        VertexShader = vert; FragmentShader = frag;`
+      )
+    );
+    expect(result.diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
+    expect(result.passes).to.have.lengthOf(1);
+  });
+
+  it.each([
+    ["global variable", "Data globalValue;"],
+    ["local variable", "void helper() { Data localValue; }"],
+    ["function parameter", "void helper(Data parameter) { }"],
+    ["function return", "Data helper() { return; }"],
+    ["struct member", "struct Container { Data member; };"]
+  ])("rejects an uncovered struct type in a %s declaration", (_name, declaration) => {
+    const result = analyzer.analyze(
+      pass(
+        `#ifdef A
+          struct Data { float value; };
+        #endif
+        ${declaration}
+        void frag() { gl_FragColor = vec4(0.0); }
+        void vert() { gl_Position = vec4(0.0); }
+        VertexShader = vert; FragmentShader = frag;`
+      )
+    );
+    const errors = result.diagnostics.filter(
+      (diagnostic) => diagnostic.severity === "error" && diagnostic.code === "UseBeforeDeclaration"
+    );
+    expect(errors).to.have.lengthOf(1);
+    expect(result.passes).to.be.empty;
+  });
 });
