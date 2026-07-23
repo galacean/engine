@@ -1,7 +1,7 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneManager";
-import { ICustomClone } from "../clone/ComponentCloner";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
@@ -15,7 +15,7 @@ import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Collider extends Component implements ICustomClone {
+export class Collider extends Component implements ICloneHook<Collider> {
   /** @internal */
   @ignoreClone
   _index: number = -1;
@@ -142,9 +142,9 @@ export class Collider extends Component implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Collider): void {
+  _onClone(target: Collider): void {
     target._syncNative();
   }
 

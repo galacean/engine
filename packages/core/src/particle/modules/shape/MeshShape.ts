@@ -1,6 +1,7 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
+import type { ICloneHook } from "../../../clone/ICloneHook";
 import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
@@ -10,7 +11,7 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 /**
  * Particle shape that emits particles from a mesh.
  */
-export class MeshShape extends BaseShape {
+export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   readonly shapeType = ParticleShapeType.Mesh;
 
   @ignoreClone
@@ -170,9 +171,9 @@ export class MeshShape extends BaseShape {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: MeshShape): void {
+  _onClone(target: MeshShape): void {
     target.mesh = this._mesh;
   }
 }

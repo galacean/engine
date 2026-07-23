@@ -76,10 +76,10 @@ export class MeshRenderer extends Renderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: MeshRenderer): void {
+    super._onClone(target);
     target.mesh = this._mesh;
   }
 

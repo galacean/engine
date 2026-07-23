@@ -159,7 +159,7 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
   - 字段装饰器优先级最高，并且在克隆走字段遍历的任何地方对嵌套对象的字段同样生效。
   - `deepClone` 会深克隆整棵子树：深意图会传播进成员，没有深克隆默认的成员类实例同样被拷贝（因此必须支持无参构造）。子树内的资产保持共享，实体引用被重映射，运行时状态保留克隆体自己的，嵌套字段上的装饰器依然优先。
   - `deepClone` 无法深克隆引擎绑定的对象：对 `Entity` / `Component` 引用、资产、引擎运行时状态或函数使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除该装饰器以回退到默认行为，或使用资产自身的克隆 API 得到真正的拷贝。
-  - 如果克隆装饰器不能满足诉求，可以通过实现 [\_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
+  - 如果克隆装饰器不能满足诉求，可实现 [ICloneHook.\_onClone()](/apis/core/#ICloneHook-_onClone)，在字段自动克隆完成后追加类型特有的处理。
 
 ## 克隆与资产引用计数
 

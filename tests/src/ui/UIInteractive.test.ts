@@ -304,7 +304,7 @@ describe("Button", async () => {
 
     const cloneEntity = testEntity.clone();
     canvasEntity.addChild(cloneEntity);
-    // +1 by the cloned transition (acquired in _cloneTo), +1 by the cloned Image
+    // +1 by the cloned transition (acquired in _onClone), +1 by the cloned Image
     // (transition._applyValue assigns the sprite through the Image.sprite setter on activation).
     expect(sprite.refCount).to.eq(baseline + 2);
 
@@ -330,7 +330,7 @@ describe("Button", async () => {
 
     const cloneEntity = testEntity.clone();
     canvasEntity.addChild(cloneEntity);
-    // +1 cloned transition (_cloneTo) + 1 cloned Image (applied through its sprite setter).
+    // +1 cloned transition (_onClone) + 1 cloned Image (applied through its sprite setter).
     expect(spriteA.refCount).to.eq(baselineA + 2);
 
     const cloneTransition = cloneEntity.getComponent(Button).transitions[0] as SpriteTransition;

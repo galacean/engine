@@ -4,6 +4,7 @@ import {
   DataObject,
   DisorderedArray,
   Entity,
+  ICloneHook,
   Logger,
   MeshRenderer,
   ParticleCompositeCurve,
@@ -142,10 +143,10 @@ class HandlerScript extends Script {
 }
 
 /** Data object counting how often the gate runs its post-clone hook */
-class HookCountPayload extends DataObject {
+class HookCountPayload extends DataObject implements ICloneHook<HookCountPayload> {
   static runs = 0;
   value = 0;
-  _cloneTo(): void {
+  _onClone(): void {
     HookCountPayload.runs++;
   }
 }

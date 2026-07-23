@@ -1,27 +1,12 @@
 import { Component } from "../Component";
 import { CloneUtil } from "./CloneUtil";
 import { fieldCloneModesKey } from "./CloneManager";
+import type { ICloneHook } from "./ICloneHook";
 import { CloneMode } from "./enums/CloneMode";
-
-/**
- * Clone protocol read by the clone system; every member is optional.
- */
-export interface ICustomClone {
-  /**
-   * @internal
-   * Post-clone hook; `cloneMap` maps every source object in the cloned subtree to its clone.
-   */
-  _cloneTo?(target: ICustomClone, cloneMap?: Map<object, object>): void;
-  /**
-   * @internal
-   * Value-type marker — the gate copies via this instead of walking fields.
-   */
-  copyFrom?(source: ICustomClone): void;
-}
 
 export class ComponentCloner {
   /**
-   * Clone component (opt-out: all fields cloned except @ignoreClone), then run its `_cloneTo` hook.
+   * Clone component (opt-out: all fields cloned except @ignoreClone), then run its `_onClone` hook.
    * @param source - Clone source
    * @param target - Clone target
    * @param cloneMap - Identity map of the cloned subtree (source object → clone)
@@ -38,6 +23,6 @@ export class ComponentCloner {
       const cloned = (target[k] = CloneUtil._cloneValue(sourceValue, preset, cloneMap, fieldMode));
       CloneUtil._transferSlotOwnership(cloned, sourceValue, preset);
     }
-    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
+    (<Partial<ICloneHook<Component>>>(source as unknown))._onClone?.(target, cloneMap);
   }
 }

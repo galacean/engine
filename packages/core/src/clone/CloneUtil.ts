@@ -9,8 +9,8 @@ import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { ICustomClone } from "./ComponentCloner";
 import { fieldCloneModesKey } from "./CloneManager";
+import type { ICloneHook } from "./ICloneHook";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -73,12 +73,12 @@ export class CloneUtil {
     }
 
     const ctor = (<any>source).constructor;
-    if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
+    if (ctor && ctor !== Object && typeof source.copyFrom === "function") {
       const existing = cloneMap.get(source);
       if (existing) return existing;
       const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      (<ICustomClone>dst).copyFrom(<ICustomClone>source);
-      (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
+      dst.copyFrom(source);
+      (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
       return dst;
     }
 
@@ -87,7 +87,7 @@ export class CloneUtil {
       if (existing) return existing;
       const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
       CloneUtil._deepCloneObject(source, dst, cloneMap, forceDeepClone);
-      (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
+      (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
       return dst;
     }
     return source;

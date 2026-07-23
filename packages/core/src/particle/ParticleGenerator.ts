@@ -2,6 +2,7 @@ import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { ignoreClone } from "../clone/CloneManager";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -43,7 +44,7 @@ import { SubEmittersModule } from "./modules/SubEmittersModule";
 /**
  * Particle Generator.
  */
-export class ParticleGenerator extends DataObject {
+export class ParticleGenerator extends DataObject implements ICloneHook<ParticleGenerator> {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
@@ -740,9 +741,9 @@ export class ParticleGenerator extends DataObject {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ParticleGenerator): void {
+  _onClone(target: ParticleGenerator): void {
     target._setTransformFeedback();
   }
 

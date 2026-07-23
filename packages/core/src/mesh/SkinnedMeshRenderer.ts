@@ -139,10 +139,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SkinnedMeshRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: SkinnedMeshRenderer): void {
+    super._onClone(target);
     if (this._jointTexture) {
       target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
     }

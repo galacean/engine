@@ -102,11 +102,11 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: MeshColliderShape): void {
+  override _onClone(target: MeshColliderShape): void {
     target.mesh = this._mesh;
-    super._cloneTo(target);
+    super._onClone(target);
   }
 
   /**

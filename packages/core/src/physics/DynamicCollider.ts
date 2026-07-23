@@ -462,14 +462,14 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: DynamicCollider): void {
+  override _onClone(target: DynamicCollider): void {
     target._linearVelocity.copyFrom(this.linearVelocity);
     target._angularVelocity.copyFrom(this.angularVelocity);
     target._centerOfMass.copyFrom(this.centerOfMass);
     target._inertiaTensor.copyFrom(this.inertiaTensor);
-    super._cloneTo(target);
+    super._onClone(target);
   }
 
   /**

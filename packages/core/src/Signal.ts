@@ -1,5 +1,6 @@
 import { DataObject } from "./base/DataObject";
 import { ignoreClone } from "./clone/CloneManager";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
@@ -8,8 +9,8 @@ import { SafeLoopArray } from "./utils/SafeLoopArray";
  * Signal is a typed event mechanism for Galacean Engine.
  * @typeParam T - Tuple type of the signal arguments
  */
-export class Signal<T extends any[] = []> extends DataObject {
-  // Rebuilt by `_cloneTo`; must survive even a propagated @deepClone.
+export class Signal<T extends any[] = []> extends DataObject implements ICloneHook<Signal<T>> {
+  // Rebuilt by `_onClone`; must survive even a propagated @deepClone.
   @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
@@ -126,9 +127,9 @@ export class Signal<T extends any[] = []> extends DataObject {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Signal<T>, cloneMap: Map<object, object>): void {
+  _onClone(target: Signal<T>, cloneMap: ReadonlyMap<object, object>): void {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
@@ -143,7 +144,7 @@ export class Signal<T extends any[] = []> extends DataObject {
     }
   }
 
-  private _cloneArguments(args: any[], cloneMap: Map<object, object>): any[] {
+  private _cloneArguments(args: any[], cloneMap: ReadonlyMap<object, object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);

@@ -268,10 +268,10 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: ParticleRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: ParticleRenderer): void {
+    super._onClone(target);
     target.mesh = this._mesh;
     target.renderMode = this._renderMode;
   }

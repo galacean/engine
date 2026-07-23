@@ -3,11 +3,12 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { ignoreClone } from "./clone/CloneManager";
+import type { ICloneHook } from "./clone/ICloneHook";
 
 /**
  * Used to implement transformation related functions.
  */
-export class Transform extends Component {
+export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -578,9 +579,9 @@ export class Transform extends Component {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Transform): void {
+  _onClone(target: Transform): void {
     const { _position: position, _rotation: rotation, _scale: scale } = target;
 
     // @ts-ignore

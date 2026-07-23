@@ -332,7 +332,7 @@ describe("Signal", async () => {
 
   // ---- Clone ----
 
-  /** Build the identity map (source entity/component -> clone) the engine passes to `_cloneTo`. */
+  /** Build the identity map (source entity/component -> clone) the engine passes to `_onClone`. */
   function buildCloneMap(src: Entity, target: Entity, map = new Map<Object, Object>()): Map<Object, Object> {
     map.set(src, target);
     // @ts-ignore
@@ -352,7 +352,7 @@ describe("Signal", async () => {
     const srcRoot = root.createChild("clSrc1");
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     // Closure listeners should NOT be copied to clone
     targetSignal.invoke(42);
@@ -373,7 +373,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -396,7 +396,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     targetSignal.invoke();
     expect(externalHandler.callCount).toBe(1);
@@ -419,7 +419,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -442,7 +442,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();

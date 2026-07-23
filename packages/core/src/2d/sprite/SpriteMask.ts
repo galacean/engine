@@ -185,10 +185,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteMask): void {
+    super._onClone(target);
     target.sprite = this._sprite;
   }
 

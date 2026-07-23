@@ -4,14 +4,14 @@ import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 import { ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape extends DataObject implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICloneHook<ColliderShape> {
   private static _idGenerator: number = 0;
 
   /** @internal */
@@ -166,9 +166,9 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ColliderShape) {
+  _onClone(target: ColliderShape): void {
     target._syncNative();
   }
 

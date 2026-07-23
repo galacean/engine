@@ -17,6 +17,7 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import type { ICloneHook } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIBatchSorter } from "./UIBatchSorter";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
@@ -34,7 +35,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
  * handling rendering and events based on it.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements IElement {
+export class UICanvas extends Component implements IElement, ICloneHook<UICanvas> {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
@@ -416,9 +417,9 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: UICanvas): void {
+  _onClone(target: UICanvas): void {
     target.renderMode = this._renderMode;
   }
 
