@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 

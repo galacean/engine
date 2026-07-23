@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";

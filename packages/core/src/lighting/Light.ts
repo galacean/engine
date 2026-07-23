@@ -1,7 +1,7 @@
 import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ShadowType } from "../shadow";
 
 /**

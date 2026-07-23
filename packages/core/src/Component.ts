@@ -1,6 +1,6 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";

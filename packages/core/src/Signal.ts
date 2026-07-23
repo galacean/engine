@@ -1,5 +1,5 @@
 import { DataObject } from "./base/DataObject";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 import { Component } from "./Component";
 import { Entity } from "./Entity";

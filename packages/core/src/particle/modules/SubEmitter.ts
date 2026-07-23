@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";

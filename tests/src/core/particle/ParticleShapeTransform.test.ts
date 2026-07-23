@@ -196,7 +196,7 @@ describe("ParticleShapeTransform", function () {
   });
 
   describe("Clone", function () {
-    // Simulate CloneManager: deepClone calls copyFrom, then _onClone
+    // Simulate clone traversal: deepClone calls copyFrom, then _onClone
     function simulateClone(source: BoxShape): BoxShape {
       const clone = new BoxShape();
       // @deepClone step: copyFrom on existing Vector3 (preserves constructor-bound callbacks)

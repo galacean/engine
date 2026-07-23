@@ -1,7 +1,7 @@
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { DataObject } from "../../../base/DataObject";
-import { ignoreClone } from "../../../clone/CloneManager";
+import { ignoreClone } from "../../../clone/CloneDecorators";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**

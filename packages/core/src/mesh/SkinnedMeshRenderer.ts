@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";

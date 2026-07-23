@@ -8,7 +8,7 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";

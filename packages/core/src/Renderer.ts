@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";

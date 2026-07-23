@@ -1,7 +1,12 @@
-import { CloneMode } from "./enums/CloneMode";
-
 /** @internal */
 export const fieldCloneModesKey = Symbol("fieldCloneModes");
+
+/** @internal */
+export const enum FieldCloneMode {
+  Ignore,
+  Assignment,
+  Deep
+}
 
 /**
  * Property decorator — deep clone this field's whole subtree, overriding the value type's default
@@ -11,37 +16,25 @@ export const fieldCloneModesKey = Symbol("fieldCloneModes");
  * entity reference, an asset, or a function), cloning throws rather than silently falling back.
  */
 export function deepClone(target: object, propertyKey: string): void {
-  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
+  CloneMetadata.registerFieldMode(target, propertyKey, FieldCloneMode.Deep);
 }
 
 /**
  * Property decorator — assign (share the reference) this field, overriding the value type's default clone mode.
  */
 export function assignmentClone(target: object, propertyKey: string): void {
-  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Assignment);
+  CloneMetadata.registerFieldMode(target, propertyKey, FieldCloneMode.Assignment);
 }
 
 /**
  * Property decorator — ignore this field when cloning; keep the clone's own constructor-built value.
  */
 export function ignoreClone(target: object, propertyKey: string): void {
-  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Ignore);
+  CloneMetadata.registerFieldMode(target, propertyKey, FieldCloneMode.Ignore);
 }
 
-/**
- * @internal
- * Field-level clone mode registry. Must import no engine class, directly or transitively: every
- * class carrying a clone decorator imports this module while still being defined, and pulling a
- * class in here would reorder module evaluation and break `extends` chains. Cloning itself lives
- * in `CloneUtil`.
- */
-export class CloneManager {
-  /**
-   * @internal
-   */
-  static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
-    // Each class gets its own field modes, prototypally chained to its parent's, so property
-    // lookup resolves inheritance: a subclass re-decorating a field shadows the ancestor's.
+class CloneMetadata {
+  static registerFieldMode(target: any, propertyKey: string, mode: FieldCloneMode): void {
     if (!Object.prototype.hasOwnProperty.call(target, fieldCloneModesKey)) {
       Object.defineProperty(target, fieldCloneModesKey, {
         value: Object.create(target[fieldCloneModesKey] ?? null),

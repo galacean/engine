@@ -1,6 +1,6 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";

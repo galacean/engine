@@ -1,6 +1,6 @@
 import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 
 /**
  * Particle gradient.

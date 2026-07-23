@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";

@@ -2,7 +2,7 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import type { ICloneHook } from "./clone/ICloneHook";
 
 /**

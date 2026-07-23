@@ -1,7 +1,7 @@
 import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";

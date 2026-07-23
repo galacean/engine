@@ -1,5 +1,5 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";

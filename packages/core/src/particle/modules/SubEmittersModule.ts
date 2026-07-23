@@ -1,5 +1,5 @@
 import { Color, Rand, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";

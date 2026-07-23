@@ -1,7 +1,7 @@
 import { DataObject } from "../../base/DataObject";
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TransformModifyFlags } from "../../Transform";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";

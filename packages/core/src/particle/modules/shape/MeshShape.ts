@@ -1,6 +1,6 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
-import { ignoreClone } from "../../../clone/CloneManager";
+import { ignoreClone } from "../../../clone/CloneDecorators";
 import type { ICloneHook } from "../../../clone/ICloneHook";
 import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";

@@ -1,6 +1,6 @@
 import { DataObject } from "../../base/DataObject";
 import { Vector2 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";

@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";

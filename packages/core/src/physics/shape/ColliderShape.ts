@@ -3,7 +3,7 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";

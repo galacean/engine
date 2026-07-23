@@ -1,6 +1,6 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";

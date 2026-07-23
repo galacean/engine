@@ -9,7 +9,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";

@@ -2,7 +2,7 @@ import { DataObject } from "../base/DataObject";
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { CloneUtil } from "../clone/CloneUtil";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Texture } from "../texture/Texture";

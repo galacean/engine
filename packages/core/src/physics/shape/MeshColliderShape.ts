@@ -2,7 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";

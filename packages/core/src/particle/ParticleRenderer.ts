@@ -5,7 +5,7 @@ import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";

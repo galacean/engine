@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";

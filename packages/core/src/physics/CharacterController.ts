@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * The character controllers.

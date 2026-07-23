@@ -9,13 +9,12 @@ import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { fieldCloneModesKey } from "./CloneManager";
+import { FieldCloneMode, fieldCloneModesKey } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
-import { CloneMode } from "./enums/CloneMode";
 
 /**
  * @internal
- * Split from `CloneManager`, which must stay free of engine imports.
+ * Kept separate from `CloneDecorators`, whose eager imports must remain engine-class-free.
  */
 export class CloneUtil {
   /**
@@ -27,7 +26,7 @@ export class CloneUtil {
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const fieldMode = fieldModes?.[k];
-      if (fieldMode === CloneMode.Ignore) continue;
+      if (fieldMode === FieldCloneMode.Ignore) continue;
       target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode, forceDeepClone);
     }
   }
@@ -39,11 +38,11 @@ export class CloneUtil {
     source: any,
     preset: any,
     cloneMap: Map<object, object>,
-    fieldMode?: CloneMode,
+    fieldMode?: FieldCloneMode,
     forceDeepClone = false
   ): any {
-    if (fieldMode === CloneMode.Assignment) return source;
-    if (fieldMode === CloneMode.Deep) {
+    if (fieldMode === FieldCloneMode.Assignment) return source;
+    if (fieldMode === FieldCloneMode.Deep) {
       CloneUtil._assertDeepCloneable(source);
       forceDeepClone = true;
     }

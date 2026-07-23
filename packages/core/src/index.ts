@@ -69,7 +69,7 @@ export * from "./trail/index";
 export * from "./env-probe/index";
 export * from "./shader/index";
 export * from "./Layer";
-export { deepClone, assignmentClone, ignoreClone } from "./clone/CloneManager";
+export { deepClone, assignmentClone, ignoreClone } from "./clone/CloneDecorators";
 export type { ICloneHook } from "./clone/ICloneHook";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
