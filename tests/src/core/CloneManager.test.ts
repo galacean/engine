@@ -192,6 +192,14 @@ class SubOverrideScript extends BaseOverrideScript {
   reDecorated: Entity;
 }
 
+let fieldModesCollisionId = 0;
+
+class FieldModesCollisionScript extends BaseOverrideScript {
+  _fieldModes = "user-owned";
+  @ignoreClone
+  runtimeId = ++fieldModesCollisionId;
+}
+
 /** Script holding binary data views */
 class BinaryScript extends Script {
   view: DataView;
@@ -893,6 +901,25 @@ describe("Clone remap", async () => {
 
       // The base class's own @assignmentClone on `reDecorated` must still share the source.
       expect(cs.reDecorated).eq(sibling);
+
+      rootEntity.destroy();
+    });
+
+    it("does not let a user-owned _fieldModes field shadow clone metadata", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = parent.createChild("sibling");
+      const script = parent.addComponent(FieldModesCollisionScript);
+      script.reDecorated = sibling;
+      script.inherited = sibling;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(FieldModesCollisionScript);
+
+      expect(cs._fieldModes).eq("user-owned");
+      expect(cs.runtimeId).not.eq(script.runtimeId);
+      expect(cs.reDecorated).eq(sibling);
+      expect(cs.inherited).eq(null);
 
       rootEntity.destroy();
     });
