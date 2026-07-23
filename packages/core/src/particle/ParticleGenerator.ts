@@ -1009,8 +1009,8 @@ export class ParticleGenerator {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
-    // Slot 21 (a_Random0.z) is shared by noise strength random and size-over-lifetime
-    // curve random in the shaders; noise takes precedence when both are enabled.
+    // Noise and size-over-lifetime temporarily share slot 21 (a_Random0.z), so noise takes precedence
+    // Track independent module randomness and instance layout optimization in #3075
     const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
