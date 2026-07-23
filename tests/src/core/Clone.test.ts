@@ -323,6 +323,19 @@ class PlainConfig {
   nested = { x: 1 };
 }
 
+/** Copyable class whose object tag does not identify it as a field-cloneable object. */
+class TaggedCopyValue {
+  value = 0;
+
+  get [Symbol.toStringTag](): string {
+    return "TaggedCopyValue";
+  }
+
+  copyFrom(source: TaggedCopyValue): void {
+    this.value = source.value;
+  }
+}
+
 /** Script sharing one container through an @assignmentClone field */
 class AssignedContainerScript extends Script {
   @assignmentClone
@@ -333,6 +346,12 @@ class AssignedContainerScript extends Script {
 class DeepFnScript extends Script {
   @deepClone
   onTick: () => void = () => {};
+}
+
+/** Script pointing @deepClone at a value whose state may not be field-cloneable */
+class DeepPlatformObjectScript extends Script {
+  @deepClone
+  value: object = null;
 }
 
 /** Script whose @deepClone fields hold members with no deep default of their own */
@@ -1583,6 +1602,59 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
     });
+
+    it("platform objects with internal state keep their default assignment inside a deep subtree", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const date = new Date(1234);
+      script.bag = { date };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.bag).not.eq(script.bag);
+      expect(cs.bag.date).eq(date);
+      expect(cs.bag.date.getTime()).eq(1234);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("@deepClone capability boundary", () => {
+    it.each([
+      ["Date", () => new Date(1234)],
+      ["RegExp", () => /clone/gi]
+    ])("rejects %s because its state cannot be reproduced by a field walk", (typeName, createValue) => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepPlatformObjectScript);
+      script.value = createValue();
+
+      expect(() => parent.clone()).toThrowError(
+        new RegExp(`@deepClone cannot deep clone "${typeName}".*internal state`)
+      );
+
+      rootEntity.destroy();
+    });
+
+    it("accepts a copyFrom type without maintaining a matching type whitelist", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepPlatformObjectScript);
+      const value = new TaggedCopyValue();
+      value.value = 42;
+      script.value = value;
+
+      const cloned = parent.clone();
+      const clonedValue = cloned.getComponent(DeepPlatformObjectScript).value as TaggedCopyValue;
+
+      expect(clonedValue).instanceOf(TaggedCopyValue);
+      expect(clonedValue).not.eq(value);
+      expect(clonedValue.value).eq(42);
+
+      rootEntity.destroy();
+    });
   });
 
   describe("copyFrom value types via entity.clone", () => {
@@ -1811,7 +1883,56 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Plain data carrying copyFrom-shaped keys", () => {
+  describe("Plain data classification", () => {
+    it("ignores an own constructor field when identifying plain objects", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const namedConstructor = { constructor: "payload", nested: { value: 1 } };
+      const undefinedConstructor = { constructor: undefined, nested: { value: 2 } };
+      script.config = [namedConstructor, undefinedConstructor];
+
+      const cloned = parent.clone();
+      const configs = cloned.getComponent(CopyFromDataScript).config;
+
+      expect(configs[0]).not.eq(namedConstructor);
+      expect(configs[0].constructor).eq("payload");
+      expect(configs[0].nested).not.eq(namedConstructor.nested);
+      expect(configs[1]).not.eq(undefinedConstructor);
+      expect(Object.getPrototypeOf(configs[1])).eq(Object.prototype);
+      expect(configs[1].constructor).eq(undefined);
+      expect(configs[1].nested).not.eq(undefinedConstructor.nested);
+
+      rootEntity.destroy();
+    });
+
+    it("recognizes a cross-realm plain object", () => {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      const rootEntity = scene.createRootEntity("root");
+      try {
+        const foreignWindow = <any>iframe.contentWindow;
+        const foreignObject = new foreignWindow.Object();
+        const foreignNested = new foreignWindow.Object();
+        foreignNested.value = 1;
+        foreignObject.nested = foreignNested;
+
+        const parent = rootEntity.createChild("parent");
+        const script = parent.addComponent(CopyFromDataScript);
+        script.config = foreignObject;
+
+        const cloned = parent.clone();
+        const config = cloned.getComponent(CopyFromDataScript).config;
+
+        expect(config).not.eq(foreignObject);
+        expect(config.nested).not.eq(foreignNested);
+        expect(config.nested.value).eq(1);
+      } finally {
+        rootEntity.destroy();
+        iframe.remove();
+      }
+    });
+
     it("plain object with a string copyFrom key deep-clones without crashing", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

@@ -20,7 +20,7 @@ export class ComponentCloner {
       if (fieldMode === FieldCloneMode.Ignore) continue;
       const sourceValue = source[k];
       const preset = target[k];
-      const cloned = (target[k] = CloneUtil._cloneValue(sourceValue, preset, cloneMap, fieldMode));
+      const cloned = (target[k] = CloneUtil._cloneFieldValue(sourceValue, preset, cloneMap, fieldMode));
       CloneUtil._transferSlotOwnership(cloned, sourceValue, preset);
     }
     (<Partial<ICloneHook<Component>>>(source as unknown))._onClone?.(target, cloneMap);

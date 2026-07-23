@@ -10,10 +10,10 @@ export const enum FieldCloneMode {
 
 /**
  * Property decorator — deep clone this field's whole subtree, overriding the value type's default
- * clone mode (field-level decorators have the highest priority). The deep intent carries into the
- * field's members; engine-bound members keep their defaults (assets share, entity refs remap).
- * A decorator is an explicit intent: if the decorated value itself can't be deep cloned (an
- * entity reference, an asset, or a function), cloning throws rather than silently falling back.
+ * clone mode (field-level decorators have the highest priority). The deep intent carries into
+ * field-cloneable members; engine-bound and platform objects keep their defaults. A decorator is
+ * an explicit intent: if the decorated value itself can't be deep cloned (an entity reference,
+ * asset, function, or object with opaque internal state), cloning throws rather than falling back.
  */
 export function deepClone(target: object, propertyKey: string): void {
   CloneMetadata.registerFieldMode(target, propertyKey, FieldCloneMode.Deep);

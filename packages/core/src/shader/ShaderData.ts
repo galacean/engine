@@ -612,7 +612,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   cloneTo(target: ShaderData): void {
-    CloneUtil._deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
+    CloneUtil._cloneObjectFields(this._macroCollection, target._macroCollection, new Map<object, object>());
     Object.assign(target._macroMap, this._macroMap);
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
