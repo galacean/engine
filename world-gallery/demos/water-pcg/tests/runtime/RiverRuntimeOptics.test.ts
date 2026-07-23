@@ -1,6 +1,7 @@
 import type { Engine, Entity, Material, ShaderData, TextureCube } from "@galacean/engine-core";
 import { describe, expect, it, vi } from "vitest";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
+import { RiverChunkSourceKind } from "../../compiler/river/RiverGeometryEnums";
 import { DEFAULT_WATER_OPTICAL_PROFILE } from "../../runtime/optics/WaterOpticalProfile";
 import { WaterOpticsDebugView } from "../../runtime/optics/WaterSurfaceOpticsTypes";
 import { WATER_OPTICS_SHADER_PROPERTY } from "../../runtime/optics/constants/WaterOpticsShaderConstants";
@@ -68,5 +69,38 @@ describe("RiverRuntimeController surface optics", () => {
       expect(harness.setTexture).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.reflectionCubeTexture, null);
       expect(harness.setTexture).toHaveBeenLastCalledWith(WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture, null);
     }
+  });
+
+  it("toggles generated junction chunks without hiding reach water", () => {
+    const controller = new RiverRuntimeController({} as Engine, {} as Entity);
+    const reachRoot = { isActive: true };
+    const junctionRoot = { isActive: true };
+    const internal = controller as unknown as {
+      _activeChunks: Array<{
+        root: { isActive: boolean };
+        sourceId: string;
+        compiled: { id: string; sourceKind: RiverChunkSourceKind };
+      }>;
+    };
+    internal._activeChunks = [
+      {
+        root: reachRoot,
+        sourceId: "reach",
+        compiled: { id: "reach-chunk", sourceKind: RiverChunkSourceKind.Reach }
+      },
+      {
+        root: junctionRoot,
+        sourceId: "junction",
+        compiled: { id: "junction-chunk", sourceKind: RiverChunkSourceKind.Junction }
+      }
+    ];
+
+    controller.setJunctionVisibility(false);
+    expect(reachRoot.isActive).toBe(true);
+    expect(junctionRoot.isActive).toBe(false);
+
+    controller.setJunctionVisibility(true);
+    expect(reachRoot.isActive).toBe(true);
+    expect(junctionRoot.isActive).toBe(true);
   });
 });

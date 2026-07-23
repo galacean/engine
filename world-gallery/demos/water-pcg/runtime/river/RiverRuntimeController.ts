@@ -149,6 +149,7 @@ export class RiverRuntimeController {
   private _microSurfaceEnabled = true;
   private _surfaceTimeOverride?: number;
   private _surfaceOpticsBinding?: Readonly<WaterSurfaceOpticsBinding>;
+  private _junctionVisibility = true;
   private _debugTarget: RiverRuntimeDebugTarget = { kind: "network" };
 
   constructor(
@@ -405,6 +406,13 @@ export class RiverRuntimeController {
     this._applyDebugTarget(this._activeChunks);
   }
 
+  /** Demo feature A/B hook: preserves all reach chunks while hiding generated junction surfaces. */
+  setJunctionVisibility(visible: boolean): void {
+    if (visible === this._junctionVisibility) return;
+    this._junctionVisibility = visible;
+    this._applyDebugTarget(this._activeChunks);
+  }
+
   setSurfaceDebugMode(mode: RiverSurfaceDebugMode): void {
     this._surfaceDebugMode = mode;
     for (const runtimeSet of this._runtimeSets.values()) {
@@ -600,6 +608,7 @@ export class RiverRuntimeController {
   }
 
   private _matchesDebugTarget(chunk: MutableRiverRuntimeChunk): boolean {
+    if (!this._junctionVisibility && chunk.compiled.sourceKind === RiverChunkSourceKind.Junction) return false;
     switch (this._debugTarget.kind) {
       case "reach":
         return chunk.compiled.sourceKind === RiverChunkSourceKind.Reach && chunk.sourceId === this._debugTarget.id;

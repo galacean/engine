@@ -1,70 +1,337 @@
-export type WaterPcgCaseKind =
-  | "river"
-  | "heightfield"
-  | "buoyancy"
-  | "interactive-pool"
-  | "p1-showcase"
-  | "optics-lab"
-  | "wiki";
+export type WaterDemoGroup = "showcase" | "feature" | "developer" | "docs";
 
-export interface WaterPcgCaseNavigationItem {
+export type WaterRuntimeKind = "river" | "pool" | "ocean" | "heightfield" | "buoyancy" | "optics-lab" | "wiki";
+
+export type WaterDemoPreset =
+  | "hero-river"
+  | "hero-pool"
+  | "hero-ocean"
+  | "refraction-correctness"
+  | "reflection-correctness"
+  | "ripples"
+  | "wake-foam"
+  | "underwater"
+  | "static-single"
+  | "river-drift"
+  | "gerstner-waves"
+  | "shore-foam"
+  | "heightfield"
+  | "river-confluence"
+  | "full-lab"
+  | "p1-diagnostics"
+  | "river-debug"
+  | "ocean-lod-debug"
+  | "default";
+
+export interface WaterDemoCaseDefinition {
   readonly id: string;
   readonly label: string;
-  readonly kind: WaterPcgCaseKind;
+  readonly intro: string;
+  readonly group: WaterDemoGroup;
+  readonly runtime: WaterRuntimeKind;
+  readonly preset: WaterDemoPreset;
+  readonly legacyIds?: readonly string[];
+  /**
+   * Transitional source compatibility for the former navigation contract.
+   * New routing must use `runtime`; canonical case definitions do not populate `kind`.
+   */
+  readonly kind?: WaterRuntimeKind;
 }
 
-export const WATER_PCG_CASES: readonly WaterPcgCaseNavigationItem[] = [
-  { id: "curved-main-river", label: "高差河流", kind: "river" },
-  { id: "multi-tributary-river", label: "双支流汇流", kind: "river" },
-  { id: "indoor-reflective-pool", label: "交互式泳池", kind: "interactive-pool" },
-  { id: "water-optics-lab", label: "水反射与折射", kind: "optics-lab" },
-  { id: "p1-water-showcase", label: "P1 水效果", kind: "p1-showcase" },
-  { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
-  { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" },
-  { id: "water-wiki", label: "开发文档", kind: "wiki" }
+export interface WaterDemoGroupDefinition {
+  readonly id: WaterDemoGroup;
+  readonly label: string;
+  readonly public: boolean;
+}
+
+export interface MountWaterPcgNavigationOptions {
+  readonly developerMode?: boolean;
+  readonly currentHref?: string;
+}
+
+export const WATER_PCG_GROUPS: readonly WaterDemoGroupDefinition[] = [
+  { id: "showcase", label: "场景展示", public: true },
+  { id: "feature", label: "局部功能", public: true },
+  { id: "developer", label: "开发验收", public: false },
+  { id: "docs", label: "文档", public: false }
 ];
+
+export const WATER_PCG_CASES = [
+  {
+    id: "showcase-river",
+    label: "河流",
+    intro: "山地高差、双支流汇流、局部流场、岸边泡沫与漂浮物。",
+    group: "showcase",
+    runtime: "river",
+    preset: "hero-river",
+    legacyIds: ["curved-main-river", "multi-tributary-river"]
+  },
+  {
+    id: "showcase-pool",
+    label: "泳池",
+    intro: "High 折射与反射、交互波纹、浮力、时序泡沫和水下介质。",
+    group: "showcase",
+    runtime: "pool",
+    preset: "hero-pool",
+    legacyIds: ["indoor-reflective-pool", "p1-water-showcase"]
+  },
+  {
+    id: "showcase-ocean",
+    label: "海洋",
+    intro: "大尺度 Gerstner 波、Ocean Rings、折射、Planar 反射与船只尺度。",
+    group: "showcase",
+    runtime: "ocean",
+    preset: "hero-ocean"
+  },
+  {
+    id: "feature-refraction",
+    label: "折射",
+    intro: "单独对比水面折射、深度连续性与屏幕边缘回退。",
+    group: "feature",
+    runtime: "optics-lab",
+    preset: "refraction-correctness"
+  },
+  {
+    id: "feature-reflection",
+    label: "反射",
+    intro: "单独对比 Sky、Probe 与 Planar 反射的选择和回退。",
+    group: "feature",
+    runtime: "optics-lab",
+    preset: "reflection-correctness"
+  },
+  {
+    id: "feature-ripples",
+    label: "交互波纹",
+    intro: "观察入水冲击、波纹传播、衰减和池壁反射。",
+    group: "feature",
+    runtime: "pool",
+    preset: "ripples"
+  },
+  {
+    id: "feature-wake-foam",
+    label: "尾迹与泡沫",
+    intro: "观察移动物体产生的方向性尾迹与时序泡沫。",
+    group: "feature",
+    runtime: "pool",
+    preset: "wake-foam"
+  },
+  {
+    id: "feature-underwater",
+    label: "水下",
+    intro: "观察入水判定、滞回和水面/水下共用的介质参数。",
+    group: "feature",
+    runtime: "pool",
+    preset: "underwater"
+  },
+  {
+    id: "feature-buoyancy",
+    label: "浮力",
+    intro: "观察重力入水、回弹与最终稳定漂浮。",
+    group: "feature",
+    runtime: "buoyancy",
+    preset: "static-single",
+    legacyIds: ["water-buoyancy"]
+  },
+  {
+    id: "feature-current-drift",
+    label: "水流漂移",
+    intro: "隔离 Current 对漂浮物水平运动方向与速度的影响。",
+    group: "feature",
+    runtime: "buoyancy",
+    preset: "river-drift"
+  },
+  {
+    id: "feature-gerstner-waves",
+    label: "Gerstner 波",
+    intro: "隔离宏观波形、表面法线与查询结果的一致性。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "gerstner-waves"
+  },
+  {
+    id: "feature-shore-foam",
+    label: "岸边泡沫",
+    intro: "隔离岸线距离、流速与泡沫强度之间的关系。",
+    group: "feature",
+    runtime: "heightfield",
+    preset: "shore-foam"
+  },
+  {
+    id: "feature-heightfield",
+    label: "高度场",
+    intro: "验证 CPU 高度场与渲染、查询和浮力使用同一表面。",
+    group: "feature",
+    runtime: "heightfield",
+    preset: "heightfield",
+    legacyIds: ["heightfield-water"]
+  },
+  {
+    id: "feature-river-confluence",
+    label: "河流汇流",
+    intro: "隔离多支流拓扑、流向与汇流口连续性。",
+    group: "feature",
+    runtime: "river",
+    preset: "river-confluence"
+  },
+  {
+    id: "water-optics-lab",
+    label: "光学验收实验室",
+    intro: "Golden、跨水体矩阵、Planar owner 与生命周期验收。",
+    group: "developer",
+    runtime: "optics-lab",
+    preset: "full-lab"
+  },
+  {
+    id: "developer-pool-diagnostics",
+    label: "泳池压力与纹理诊断",
+    intro: "1/4/8/16 刚体、泡沫 Source/History/Final 与压力指标。",
+    group: "developer",
+    runtime: "pool",
+    preset: "p1-diagnostics"
+  },
+  {
+    id: "developer-river-debug",
+    label: "河流编译与拓扑诊断",
+    intro: "River Debug Session、网络拓扑、查询与编译诊断。",
+    group: "developer",
+    runtime: "river",
+    preset: "river-debug"
+  },
+  {
+    id: "developer-ocean-lod",
+    label: "海洋 LOD 与资源诊断",
+    intro: "Ocean Rings、LOD、反射服务与资源生命周期指标。",
+    group: "developer",
+    runtime: "ocean",
+    preset: "ocean-lod-debug"
+  },
+  {
+    id: "water-wiki",
+    label: "开发文档",
+    intro: "Water PCG 架构、能力边界、调试方式与验收说明。",
+    group: "docs",
+    runtime: "wiki",
+    preset: "default"
+  }
+] as const satisfies readonly WaterDemoCaseDefinition[];
+
+export type WaterDemoCaseId = (typeof WATER_PCG_CASES)[number]["id"];
+
+export const WATER_PCG_LEGACY_ALIASES = Object.freeze({
+  "curved-main-river": "showcase-river",
+  "multi-tributary-river": "showcase-river",
+  "indoor-reflective-pool": "showcase-pool",
+  "p1-water-showcase": "showcase-pool",
+  "heightfield-water": "feature-heightfield",
+  "water-buoyancy": "feature-buoyancy"
+} as const satisfies Readonly<Record<string, WaterDemoCaseId>>);
+
+export const WATER_PCG_PUBLIC_CASES = WATER_PCG_CASES.filter(
+  ({ group }) => group === "showcase" || group === "feature"
+);
 
 const DEFAULT_WATER_PCG_CASE = WATER_PCG_CASES[0];
 const WATER_PCG_ROOT_MARKER = "/demos/water-pcg/";
 
-export function findWaterPcgCase(caseId: string): WaterPcgCaseNavigationItem | undefined {
+function getLegacyTarget(caseId: string): WaterDemoCaseDefinition | undefined {
+  const targetId = WATER_PCG_LEGACY_ALIASES[caseId as keyof typeof WATER_PCG_LEGACY_ALIASES];
+  return targetId ? findWaterPcgCase(targetId) : undefined;
+}
+
+function resolveCandidate(caseId: string, legacyOceanMode: boolean): WaterDemoCaseDefinition | undefined {
+  const canonical = findWaterPcgCase(caseId);
+  if (canonical) return canonical;
+  const legacy = getLegacyTarget(caseId);
+  if (legacyOceanMode && legacy?.runtime === "river") return findWaterPcgCase("showcase-ocean");
+  return legacy;
+}
+
+export function findWaterPcgCase(caseId: string): WaterDemoCaseDefinition | undefined {
   return WATER_PCG_CASES.find((item) => item.id === caseId);
 }
 
-export function resolveWaterPcgCase(location: Pick<Location, "hash" | "search">): WaterPcgCaseNavigationItem {
-  const hashCase = findWaterPcgCase(location.hash.replace(/^#/, ""));
+export function isWaterPcgDeveloperMode(location: Pick<Location, "search">): boolean {
+  return new URLSearchParams(location.search).get("dev") === "1";
+}
+
+export function resolveWaterPcgCase(location: Pick<Location, "hash" | "search">): WaterDemoCaseDefinition {
+  const parameters = new URLSearchParams(location.search);
+  const legacyOceanMode = parameters.get("mode") === "ocean";
+  const hashId = location.hash.replace(/^#/, "");
+  const hashCase = resolveCandidate(hashId, legacyOceanMode);
   if (hashCase) return hashCase;
 
-  const legacyCase = findWaterPcgCase(new URLSearchParams(location.search).get("example") ?? "");
-  return legacyCase ?? DEFAULT_WATER_PCG_CASE;
+  const queryId = parameters.get("example") ?? "";
+  const queryCase = resolveCandidate(queryId, legacyOceanMode);
+  if (queryCase) return queryCase;
+
+  if (legacyOceanMode) return findWaterPcgCase("showcase-ocean") ?? DEFAULT_WATER_PCG_CASE;
+  return DEFAULT_WATER_PCG_CASE;
+}
+
+export function getVisibleWaterPcgCases(
+  activeCaseId: string,
+  developerMode = false
+): readonly WaterDemoCaseDefinition[] {
+  if (developerMode) return WATER_PCG_CASES;
+  return WATER_PCG_CASES.filter(({ id, group }) => group === "showcase" || group === "feature" || id === activeCaseId);
 }
 
 export function getWaterPcgCaseHref(currentHref: string, caseId: string): string {
-  const selectedCase = findWaterPcgCase(caseId) ?? DEFAULT_WATER_PCG_CASE;
+  const selectedCase = findWaterPcgCase(caseId) ?? getLegacyTarget(caseId) ?? DEFAULT_WATER_PCG_CASE;
   const url = new URL(currentHref);
   const rootIndex = url.pathname.indexOf(WATER_PCG_ROOT_MARKER);
   if (rootIndex >= 0) {
     url.pathname = url.pathname.slice(0, rootIndex + WATER_PCG_ROOT_MARKER.length);
   }
   url.searchParams.delete("example");
-  if (selectedCase.kind !== "wiki") url.searchParams.delete("doc");
+  url.searchParams.delete("mode");
+  if (selectedCase.runtime !== "wiki") url.searchParams.delete("doc");
   url.hash = selectedCase.id;
   return url.href;
 }
 
-export function mountWaterPcgNavigation(container: HTMLElement, activeCaseId: string): void {
-  container.replaceChildren(
-    ...WATER_PCG_CASES.map((item) => {
+export function mountWaterPcgNavigation(
+  container: HTMLElement,
+  activeCaseId: string,
+  options: MountWaterPcgNavigationOptions = {}
+): void {
+  const currentHref = options.currentHref ?? window.location.href;
+  const visibleCases = getVisibleWaterPcgCases(activeCaseId, options.developerMode);
+  const groupElements: HTMLElement[] = [];
+
+  for (const groupDefinition of WATER_PCG_GROUPS) {
+    const groupCases = visibleCases.filter(({ group }) => group === groupDefinition.id);
+    if (groupCases.length === 0) continue;
+
+    const group = document.createElement("section");
+    group.className = "example-group";
+    group.dataset.caseGroup = groupDefinition.id;
+    group.setAttribute("aria-label", groupDefinition.label);
+
+    const label = document.createElement("span");
+    label.className = "example-group-label";
+    label.textContent = groupDefinition.label;
+
+    const links = document.createElement("div");
+    links.className = "example-group-links";
+    for (const item of groupCases) {
       const link = document.createElement("a");
       link.className = "example-tab";
-      link.href = getWaterPcgCaseHref(window.location.href, item.id);
+      link.href = getWaterPcgCaseHref(currentHref, item.id);
       link.textContent = item.label;
       link.dataset.caseId = item.id;
-      link.dataset.caseKind = item.kind;
-      link.setAttribute("role", "tab");
-      return link;
-    })
-  );
+      link.dataset.caseGroup = item.group;
+      link.dataset.caseRuntime = item.runtime;
+      link.dataset.casePreset = item.preset;
+      links.append(link);
+    }
+
+    group.append(label, links);
+    groupElements.push(group);
+  }
+
+  container.replaceChildren(...groupElements);
   syncWaterPcgNavigation(container, activeCaseId);
 }
 
@@ -72,7 +339,6 @@ export function syncWaterPcgNavigation(container: HTMLElement, activeCaseId: str
   for (const element of container.querySelectorAll<HTMLElement>("[data-case-id]")) {
     const active = element.dataset.caseId === activeCaseId;
     element.classList.toggle("is-active", active);
-    element.setAttribute("aria-selected", active ? "true" : "false");
     if (active) {
       element.setAttribute("aria-current", "page");
     } else {

@@ -6,7 +6,7 @@ import type {
   ResolvedWaterOpticsTier,
   WaterOpticsTier
 } from "../../runtime/optics/WaterSurfaceOpticsTypes";
-import type { PoolLocalEffectsDebugView, PoolP1BodyCount } from "./PoolP1ShowcaseConfig";
+import type { PoolCasePreset, PoolLocalEffectsDebugView, PoolP1BodyCount } from "./PoolP1ShowcaseConfig";
 
 export type InteractivePoolGridQuality = "low" | "medium" | "high";
 export type InteractivePoolUnderwaterPreset = "outside" | "surface" | "inside";
@@ -53,7 +53,7 @@ export interface InteractivePoolUnderwaterDebugApi {
 export interface InteractivePoolP1Metrics {
   readonly enabled: boolean;
   readonly bodyCount: PoolP1BodyCount;
-  readonly bodyCountSelection: "url" | "device-tier" | "legacy" | "manual";
+  readonly bodyCountSelection: "url" | "showcase" | "feature" | "device-tier" | "manual";
   /** Actual spawned fleet bodies, excluding the legacy interactive ball. */
   readonly additionalBodyCount: number;
   readonly drivingBodyCount: number;
@@ -111,6 +111,13 @@ export interface InteractivePoolP1DebugApi {
   restartWakes(): void;
 }
 
+export interface InteractivePoolFeatureApi {
+  readonly preset: PoolCasePreset;
+  readonly featureEnabled: boolean;
+  setFeatureEnabled(enabled: boolean): void;
+  reset(): void;
+}
+
 export interface InteractivePoolMetrics {
   readonly ready: boolean;
   readonly runtimeError: string;
@@ -154,5 +161,6 @@ declare global {
     waterPcgSetInteractivePoolTargetFrameRate?: (framesPerSecond: number) => void;
     waterPcgUnderwater?: InteractivePoolUnderwaterDebugApi;
     waterPcgP1?: InteractivePoolP1DebugApi;
+    waterPcgPoolFeature?: InteractivePoolFeatureApi;
   }
 }

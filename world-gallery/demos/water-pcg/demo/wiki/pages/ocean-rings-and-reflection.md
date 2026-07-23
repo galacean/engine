@@ -1,6 +1,6 @@
 P1 海洋能力解决两个直接相关的问题：镜头移动后怎样始终拥有足够远的水面、又不每帧重建大网格；以及 Sky、环境探针和平面反射怎样在一台相机内按固定预算选择和降级。
 
-当前实现是 **Gerstner Ocean Preview**，不是 FFT 频谱海洋，也不是已经产品化的大世界海洋包。
+当前实现是 **Gerstner Ocean Preview**：渲染端使用围绕相机移动的有限 Rings 覆盖，不是 FFT 频谱海洋，也不是真正无限或已经产品化的大世界 Streaming 海洋包。
 
 ## 相机相对环带的数据流
 
@@ -33,7 +33,7 @@ same CompiledWaterWaveSet + same time
 
 较细层在外边缘生成向下 skirt，遮住不同分辨率交界处的裂缝。Skirt 只增加初始化拓扑，不会改变水平水面采样网格。
 
-`size` 表示环带围绕相机的渲染覆盖直径。`coverageHalfExtent = size / 2`；它不是 Ocean 在世界中的固定 AABB。当前 `OceanWaterSurfaceProvider` 使用解析 Gerstner 并配置为 unbounded，所以玩法查询可以在环带移动后继续使用世界坐标求值。
+`size` 表示环带围绕相机的**有限渲染覆盖直径**。`coverageHalfExtent = size / 2`；它不是 Ocean 在世界中的固定 AABB，也不表示已经实现无限 Streaming。当前 `OceanWaterSurfaceProvider` 使用解析 Gerstner 并配置为 unbounded，所以玩法查询可以在环带移动后继续使用世界坐标求值；解析查询不受有限 Rings 覆盖约束，不等于渲染几何无限。
 
 每个 patch 都有独立 Renderer 和包含以下余量的 bounds：
 
@@ -175,7 +175,7 @@ pnpm -C world-gallery exec vite . --config vite.config.js --host 127.0.0.1 --por
 打开 Ocean 并直接指定档位：
 
 ```text
-http://127.0.0.1:4179/demos/water-pcg/?mode=ocean&quality=medium&reflection=planar&oceanLodDebug=1#curved-main-river
+http://127.0.0.1:4179/demos/water-pcg/?quality=medium&reflection=planar&oceanLodDebug=1#developer-ocean-lod
 ```
 
 建议按以下顺序检查：

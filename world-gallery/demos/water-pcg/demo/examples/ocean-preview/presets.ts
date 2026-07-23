@@ -3,6 +3,7 @@ import { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier
 import { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../../authoring/wave/enums/WaterWaveSchemaVersion";
 import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
+import type { WaterOpticalProfile } from "../../../runtime/optics/WaterOpticalProfile";
 import type { OceanPreviewConfig } from "./types";
 
 function createOceanWaveAsset(
@@ -74,4 +75,53 @@ export const indoorReflectivePoolOceanPreview: OceanPreviewConfig = {
   alpha: 0.5,
   foamIntensity: 0.08,
   oceanColor: "#159fc7"
+};
+
+export const SHOWCASE_OCEAN_OPTICAL_PROFILE = Object.freeze({
+  absorptionCoefficient: [0.16, 0.055, 0.022],
+  scatteringColor: [0.035, 0.26, 0.34],
+  scatteringCoefficient: 0.085,
+  maximumViewDistance: 34,
+  indexOfRefraction: 1.333,
+  maximumSurfaceOpticalDistance: 18,
+  refractionStrength: 1.08,
+  roughness: 0.18,
+  reflectionIntensity: 1.15
+} satisfies WaterOpticalProfile);
+
+/** Canonical High ocean used by the hero, Gerstner feature, and LOD developer presets. */
+export const showcaseOceanPreview: OceanPreviewConfig = {
+  size: 240,
+  resolution: 128,
+  waterLevel: 0,
+  amplitudeScale: 1.12,
+  timeScale: 0.82,
+  quality: WaterQualityTier.High,
+  waveAsset: createOceanWaveAsset(73129, 3.4, 48, 0.035, 0.72, -0.18, 0.82, 0.76),
+  alpha: 0.82,
+  foamIntensity: 1.42,
+  oceanColor: "#087d9b",
+  reflectionSource: "planar",
+  opticsTier: "high",
+  opticalProfile: SHOWCASE_OCEAN_OPTICAL_PROFILE,
+  refractionEnabled: true,
+  reflectionSampling: {
+    distortionStrength: 0.021,
+    edgeFadeTexels: 12,
+    roughnessFootprintTexels: 3,
+    highFilterSampleCount: 5
+  }
+};
+
+/** Isolated High wave preset: identical Gerstner source without a reflected hero environment. */
+export const gerstnerFeatureOceanPreview: OceanPreviewConfig = {
+  ...showcaseOceanPreview,
+  size: 180,
+  amplitudeScale: 1.3,
+  timeScale: 0.72,
+  reflectionSource: "sky",
+  reflectionSampling: {
+    ...showcaseOceanPreview.reflectionSampling,
+    highFilterSampleCount: 1
+  }
 };

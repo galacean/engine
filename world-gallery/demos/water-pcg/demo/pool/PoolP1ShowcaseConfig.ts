@@ -2,13 +2,18 @@ export const POOL_P1_BODY_COUNTS = Object.freeze([1, 4, 8, 16] as const);
 
 export type PoolP1BodyCount = (typeof POOL_P1_BODY_COUNTS)[number];
 export type PoolLocalEffectsDebugView = "source" | "history" | "final";
+export type PoolCasePreset = "hero-pool" | "ripples" | "wake-foam" | "underwater" | "p1-diagnostics";
 
 export interface PoolP1ShowcaseConfig {
+  readonly preset: PoolCasePreset;
   readonly enabled: boolean;
   readonly bodyCount: PoolP1BodyCount;
   readonly localEffectsDebugView: PoolLocalEffectsDebugView;
   readonly temporalFoamEnabled: boolean;
-  readonly bodyCountSelection: "url" | "device-tier" | "legacy";
+  readonly bodyCountSelection: "url" | "showcase" | "feature" | "device-tier";
+  readonly defaultQuality: "low" | "medium" | "high";
+  readonly developerControls: boolean;
+  readonly initialUnderwaterPreset: "outside" | "inside";
 }
 
 export interface PoolP1DeviceProfile {
@@ -29,23 +34,62 @@ function isDebugView(value: string | null): value is PoolLocalEffectsDebugView {
   return value === "source" || value === "history" || value === "final";
 }
 
-/** Resolves the P1 showcase without changing the legacy single-ball pool defaults. */
+function isPoolCasePreset(value: string | undefined): value is PoolCasePreset {
+  return (
+    value === "hero-pool" ||
+    value === "ripples" ||
+    value === "wake-foam" ||
+    value === "underwater" ||
+    value === "p1-diagnostics"
+  );
+}
+
+function resolvePoolCasePreset(location: Pick<Location, "hash">, explicitPreset?: string): PoolCasePreset {
+  if (isPoolCasePreset(explicitPreset)) return explicitPreset;
+  const caseId = location.hash.replace(/^#/, "");
+  if (caseId === "feature-ripples") return "ripples";
+  if (caseId === "feature-wake-foam") return "wake-foam";
+  if (caseId === "feature-underwater") return "underwater";
+  if (caseId === "developer-pool-diagnostics") return "p1-diagnostics";
+  return "hero-pool";
+}
+
+function resolvePresetBodyCount(
+  preset: PoolCasePreset,
+  deviceDefaultBodyCount: PoolP1BodyCount
+): Readonly<{ bodyCount: PoolP1BodyCount; selection: PoolP1ShowcaseConfig["bodyCountSelection"] }> {
+  if (preset === "hero-pool" || preset === "wake-foam") return { bodyCount: 4, selection: "showcase" };
+  if (preset === "p1-diagnostics") return { bodyCount: deviceDefaultBodyCount, selection: "device-tier" };
+  return { bodyCount: 1, selection: "feature" };
+}
+
+/** Resolves the merged Pool showcase and its focused feature/developer presets. */
 export function resolvePoolP1ShowcaseConfig(
   location: Pick<Location, "hash" | "search">,
-  deviceDefaultBodyCount: PoolP1BodyCount = 4
+  deviceDefaultBodyCount: PoolP1BodyCount = 4,
+  explicitPreset?: string
 ): PoolP1ShowcaseConfig {
-  const enabled = location.hash.replace(/^#/, "") === "p1-water-showcase";
+  const preset = resolvePoolCasePreset(location, explicitPreset);
   const parameters = new URLSearchParams(location.search);
   const requestedBodyCount = Number(parameters.get("bodies"));
   const explicitBodyCount = isBodyCount(requestedBodyCount);
-  const bodyCount = explicitBodyCount ? requestedBodyCount : enabled ? deviceDefaultBodyCount : 1;
+  const presetBodyCount = resolvePresetBodyCount(preset, deviceDefaultBodyCount);
+  const bodyCount = explicitBodyCount ? requestedBodyCount : presetBodyCount.bodyCount;
   const debugView = parameters.get("localEffectsDebug");
+  const enabled = preset !== "ripples";
+  const developerControls = preset === "p1-diagnostics" || parameters.get("dev") === "1";
   return Object.freeze({
+    preset,
     enabled,
     bodyCount,
     localEffectsDebugView: isDebugView(debugView) ? debugView : "final",
-    temporalFoamEnabled: enabled && parameters.get("temporalFoam") !== "0",
-    bodyCountSelection: explicitBodyCount ? "url" : enabled ? "device-tier" : "legacy"
+    temporalFoamEnabled:
+      (preset === "hero-pool" || preset === "wake-foam" || preset === "p1-diagnostics") &&
+      parameters.get("temporalFoam") !== "0",
+    bodyCountSelection: explicitBodyCount ? "url" : presetBodyCount.selection,
+    defaultQuality: preset === "p1-diagnostics" ? "medium" : "high",
+    developerControls,
+    initialUnderwaterPreset: preset === "underwater" ? "inside" : "outside"
   });
 }
 

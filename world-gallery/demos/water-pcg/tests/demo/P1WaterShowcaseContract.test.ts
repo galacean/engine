@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { findWaterPcgCase } from "../../demo/navigation";
+import { findWaterPcgCase, resolveWaterPcgCase } from "../../demo/navigation";
 import { POOL_P1_BODY_COUNTS, resolvePoolP1ShowcaseConfig } from "../../demo/pool/PoolP1ShowcaseConfig";
 
 function readWaterPcgSource(relativePath: string): string {
@@ -13,26 +13,23 @@ function readDataAttributeValues(source: string, attribute: string): string[] {
 }
 
 describe("P1 water showcase integration contract", () => {
-  it("keeps P1 and the legacy interactive pool as separate navigation entries sharing one isolated runtime", () => {
-    expect(findWaterPcgCase("p1-water-showcase")).toEqual({
-      id: "p1-water-showcase",
-      label: "P1 水效果",
-      kind: "p1-showcase"
+  it("merges P1 and the legacy interactive pool into one public pool showcase", () => {
+    expect(findWaterPcgCase("showcase-pool")).toMatchObject({
+      id: "showcase-pool",
+      label: "泳池",
+      group: "showcase",
+      runtime: "pool",
+      preset: "hero-pool"
     });
-    expect(findWaterPcgCase("indoor-reflective-pool")).toEqual({
-      id: "indoor-reflective-pool",
-      label: "交互式泳池",
-      kind: "interactive-pool"
-    });
+    expect(resolveWaterPcgCase({ hash: "#p1-water-showcase", search: "" }).id).toBe("showcase-pool");
+    expect(resolveWaterPcgCase({ hash: "#indoor-reflective-pool", search: "" }).id).toBe("showcase-pool");
 
     const routerSource = readWaterPcgSource("demo/router.ts");
-    expect(routerSource).toContain(
-      'const templateKind = activeCase.kind === "p1-showcase" ? "interactive-pool" : activeCase.kind'
-    );
-    expect(routerSource).toMatch(/case "interactive-pool":\s*case "p1-showcase":\s*void import\("\.\/pool\/main"\)/);
+    expect(routerSource).toContain('pool: "water-pcg-interactive-pool-template"');
+    expect(routerSource).toContain('pool: () => import("./pool/main")');
   });
 
-  it("exposes the bounded body-count, debug-view, and dynamic-effect controls only to the P1 configuration", () => {
+  it("shows bounded body-count and texture diagnostics in every Pool case", () => {
     const htmlSource = readWaterPcgSource("index.html");
     const poolMainSource = readWaterPcgSource("demo/pool/main.ts");
 
@@ -40,23 +37,30 @@ describe("P1 water showcase integration contract", () => {
     expect(readDataAttributeValues(htmlSource, "data-p1-body-count")).toEqual(["1", "4", "8", "16"]);
     expect(readDataAttributeValues(htmlSource, "data-p1-debug-view")).toEqual(["source", "history", "final"]);
     expect(htmlSource.match(/data-p1-dynamic-effects/g)).toHaveLength(1);
-    expect(htmlSource).toContain('<div class="hud-controls" data-p1-controls hidden');
+    expect(htmlSource).toContain('<div class="hud-controls" data-p1-controls aria-label=');
+    expect(htmlSource).not.toContain("data-p1-controls hidden");
 
     for (const bodyCount of POOL_P1_BODY_COUNTS) {
       expect(
         resolvePoolP1ShowcaseConfig({
-          hash: "#p1-water-showcase",
+          hash: "#developer-pool-diagnostics",
           search: `?bodies=${bodyCount}`
         }).bodyCount
       ).toBe(bodyCount);
     }
     expect(resolvePoolP1ShowcaseConfig({ hash: "#indoor-reflective-pool", search: "" })).toMatchObject({
-      enabled: false,
-      bodyCount: 1,
-      temporalFoamEnabled: false
+      preset: "hero-pool",
+      enabled: true,
+      bodyCount: 4,
+      temporalFoamEnabled: true,
+      developerControls: false
+    });
+    expect(resolvePoolP1ShowcaseConfig({ hash: "#developer-pool-diagnostics", search: "" })).toMatchObject({
+      preset: "p1-diagnostics",
+      developerControls: true
     });
 
-    expect(poolMainSource).toContain("if (p1Controls) p1Controls.hidden = !p1Config.enabled;");
+    expect(poolMainSource).toContain('p1Controls?.removeAttribute("hidden");');
     expect(poolMainSource).toContain("const setP1DynamicEffectsEnabled = (enabled: boolean): void => {");
     expect(poolMainSource).toContain("interactionQueue.clearEvents();");
     expect(poolMainSource).toContain("if (!dynamicEffectsEnabled) temporalFoamTextures?.clear();");
@@ -123,6 +127,19 @@ describe("P1 water showcase integration contract", () => {
     expect(poolMainSource).toContain("world: waterWorld,");
     expect(poolMainSource).toContain("cameraFeatures: cameraFeatureBroker,");
     expect(poolMainSource).toContain("postProcess: underwaterPass,");
+  });
+
+  it("binds the merged High pool to one recursion-safe planar reflection service", () => {
+    const poolMainSource = readWaterPcgSource("demo/pool/main.ts");
+    const poolSurfaceSource = readWaterPcgSource("demo/pool/InteractivePoolSurfaceController.ts");
+
+    expect(poolMainSource).toContain("WaterReflectionService.acquire(engine, root, camera)");
+    expect(poolMainSource).toContain('preferredSource: "planar"');
+    expect(poolMainSource).toContain("waterLayerMask: Layer.Layer30");
+    expect(poolMainSource).toContain('highFilterSampleCount: quality === "high" ? 5 : 1');
+    expect(poolMainSource).toContain("reflectionService.update(metrics.renderFrameCount)");
+    expect(poolMainSource).toContain("reflectionServiceLease.release()");
+    expect(poolSurfaceSource).toContain("surfaceEntity.layer = Layer.Layer30");
   });
 
   it("publishes resolved-profile identity and same-depth Medium/High continuity evidence", () => {

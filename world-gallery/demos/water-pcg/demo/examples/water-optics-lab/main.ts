@@ -32,6 +32,7 @@ import {
   WaterOpticsLabScene
 } from "./WaterOpticsLabScene";
 import type { WaterOpticsTier } from "./types";
+import { createFeatureSnapshot, type WaterFeatureCaseApi } from "../../showcase/WaterFeatureCaseApi";
 
 installWaterOpticsBrowserDiagnostics();
 
@@ -87,7 +88,8 @@ async function bootstrapWaterOpticsLab(): Promise<void> {
 
   const search = new URLSearchParams(window.location.search);
   const initialTier = parseWaterOpticsTier(search.get("waterOptics"));
-  const initialPreset = parseWaterOpticsPreset(search.get("opticsPreset"));
+  const routePreset = document.documentElement.dataset.waterPcgPreset;
+  const initialPreset = parseWaterOpticsPreset(search.get("opticsPreset") ?? routePreset ?? null);
   const initialSurfaceTime = readFiniteNonNegative(search.get("surfaceTime"), WATER_OPTICS_LAB_SURFACE_TIME);
   const statsEnabled = search.get("stats") === "1";
   const strictQuality = search.get("strictQuality") === "1";
@@ -300,6 +302,46 @@ async function bootstrapWaterOpticsLab(): Promise<void> {
     controller.setReflectionMode(requestedReflectionSource);
   }
   window.waterPcgOptics = controller;
+  if (document.documentElement.dataset.waterPcgGroup === "feature") {
+    const reflectionFeature = document.documentElement.dataset.waterPcgCase === "feature-reflection";
+    const featureApi: WaterFeatureCaseApi = {
+      caseId: document.documentElement.dataset.waterPcgCase ?? "",
+      preset: initialPreset,
+      get ready() {
+        return controller.ready;
+      },
+      get enabled() {
+        const snapshot = controller.metrics;
+        return reflectionFeature ? snapshot.reflectionSource === "planar" : snapshot.refractionEnabled;
+      },
+      setEnabled(enabled: boolean): void {
+        if (reflectionFeature) controller.setReflectionMode(enabled ? "planar" : "sky");
+        else controller.setRefractionEnabled(enabled);
+      },
+      async reset(): Promise<void> {
+        await controller.setPreset(initialPreset);
+        if (reflectionFeature) controller.setReflectionMode("planar");
+        else controller.setRefractionEnabled(true);
+      },
+      snapshot() {
+        const snapshot = controller.metrics;
+        const signal = reflectionFeature
+          ? snapshot.reflectionSource === "planar"
+            ? snapshot.planarRenderTargetBytes
+            : 0
+          : snapshot.refractionEnabled
+            ? 1
+            : 0;
+        return createFeatureSnapshot(
+          featureApi,
+          snapshot.runtimeError,
+          snapshot.ready && snapshot.runtimeError === "",
+          signal
+        );
+      }
+    };
+    window.waterPcgFeature = featureApi;
+  }
 
   // Camera render callbacks are dispatched only to Scripts on the Camera Entity.
   // Keeping update + end-render in one Script guarantees that a frame-envelope
@@ -323,6 +365,7 @@ async function bootstrapWaterOpticsLab(): Promise<void> {
     compileRevision++;
     window.removeEventListener("resize", resize);
     window.waterPcgOptics = undefined;
+    delete window.waterPcgFeature;
     window.waterPcgP0 = undefined;
     updateScript.callback = undefined;
     updateScript.gpuTimer = undefined;

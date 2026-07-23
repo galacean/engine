@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { WATER_PCG_CASES } from "../../demo/navigation";
+import { WATER_PCG_CASES, WATER_PCG_LEGACY_ALIASES } from "../../demo/navigation";
 import { WATER_WIKI_DEFAULT_SLUG, WATER_WIKI_PAGES, findWaterWikiPage } from "../../demo/wiki/manifest";
 
 describe("Water Wiki manifest", () => {
@@ -36,6 +36,7 @@ describe("Water Wiki manifest", () => {
 
   it("documents the current architecture, ownership boundaries, runtime API, and verification path", () => {
     const markdownBySlug = new Map(WATER_WIKI_PAGES.map(({ slug, markdown }) => [slug, markdown]));
+    const overview = markdownBySlug.get("overview") ?? "";
     expect(markdownBySlug.get("architecture")).toContain("Authoring");
     expect(markdownBySlug.get("architecture")).toContain("Compiler");
     expect(markdownBySlug.get("river-pipeline")).toContain("RiverResource");
@@ -51,6 +52,9 @@ describe("Water Wiki manifest", () => {
     expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("Probe → Sky");
     expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("perFrameMeshUpload");
     expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("waterPcgGetReflectionMetrics");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("有限 Rings");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("不是 FFT");
+    expect(markdownBySlug.get("ocean-rings-and-reflection")).toContain("大世界 Streaming");
     expect(markdownBySlug.get("water-optics")).toContain("precomposed-replace");
     expect(markdownBySlug.get("water-optics")).toContain("refraction-gates");
     expect(markdownBySlug.get("water-optics")).toContain("@galacean/engine-toolkit-stats");
@@ -61,12 +65,45 @@ describe("Water Wiki manifest", () => {
     expect(markdownBySlug.get("surface-query")).toContain("WaterSurfaceProvider");
     expect(markdownBySlug.get("testing-and-troubleshooting")).toContain("typecheck:water-pcg");
     expect(markdownBySlug.get("limitations")).toContain("没有从 `@galacean/engine` 导出");
+    expect(overview).toContain("3 个 Showcase 和 11 个 Feature");
+    expect(overview).toContain("有限覆盖范围的 camera-relative Rings");
   });
 
-  it("only links to registered runnable demo cases", () => {
-    const caseIds = new Set(WATER_PCG_CASES.filter(({ kind }) => kind !== "wiki").map(({ id }) => id));
+  it("links only to canonical runnable cases and documents every public entry", () => {
+    const runnableCases = WATER_PCG_CASES.filter(({ runtime }) => runtime !== "wiki");
+    const caseIds = new Set(runnableCases.map(({ id }) => id));
+    const legacyIds = new Set(Object.keys(WATER_PCG_LEGACY_ALIASES));
     for (const page of WATER_WIKI_PAGES) {
-      if (page.relatedCaseId) expect(caseIds.has(page.relatedCaseId)).toBe(true);
+      if (!page.relatedCaseId) continue;
+      expect(caseIds.has(page.relatedCaseId)).toBe(true);
+      expect(legacyIds.has(page.relatedCaseId)).toBe(false);
+    }
+
+    const showcaseCases = runnableCases.filter(({ group }) => group === "showcase");
+    const featureCases = runnableCases.filter(({ group }) => group === "feature");
+    expect(showcaseCases).toHaveLength(3);
+    expect(featureCases).toHaveLength(11);
+
+    const overview = findWaterWikiPage("overview")?.markdown ?? "";
+    for (const { id } of [...showcaseCases, ...featureCases]) {
+      expect(overview).toContain(`./#${id}`);
+    }
+  });
+
+  it("keeps legacy URLs only in the explicit compatibility section", () => {
+    const overview = findWaterWikiPage("overview")?.markdown ?? "";
+    const compatibility = overview.split("## 兼容 URL")[1]?.split("\n## ")[0] ?? "";
+    for (const legacyId of Object.keys(WATER_PCG_LEGACY_ALIASES)) {
+      expect(compatibility).toContain(`#${legacyId}`);
+    }
+    expect(compatibility).toContain("?mode=ocean");
+
+    for (const page of WATER_WIKI_PAGES) {
+      const markdown = page.slug === "overview" ? page.markdown.replace(compatibility, "") : page.markdown;
+      for (const legacyId of Object.keys(WATER_PCG_LEGACY_ALIASES)) {
+        expect(markdown).not.toContain(`#${legacyId}`);
+      }
+      expect(markdown).not.toContain("?mode=ocean");
     }
   });
 });

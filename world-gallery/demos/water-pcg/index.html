@@ -47,19 +47,53 @@
         left: 12px;
         z-index: 5;
         display: flex;
+        align-items: flex-start;
         max-width: calc(100vw - 24px);
-        gap: 4px;
+        gap: 8px;
         box-sizing: border-box;
-        padding: 4px;
+        padding: 7px 8px 6px;
         overflow-x: auto;
         border: 1px solid rgb(122 207 215 / 14%);
-        border-radius: 3px;
-        background: rgb(0 0 0 / 72%);
+        border-radius: 6px;
+        background: linear-gradient(90deg, rgb(7 35 42 / 86%), rgb(2 13 19 / 78%)), rgb(0 0 0 / 74%);
+        box-shadow:
+          0 14px 40px rgb(0 0 0 / 26%),
+          inset 0 1px rgb(255 255 255 / 3%);
+        backdrop-filter: blur(12px);
         scrollbar-width: none;
       }
 
       #example-bar::-webkit-scrollbar {
         display: none;
+      }
+
+      .example-group {
+        display: flex;
+        flex-direction: column;
+        flex: 0 0 auto;
+        align-items: flex-start;
+        gap: 2px;
+      }
+
+      .example-group + .example-group {
+        padding-left: 8px;
+        border-left: 1px solid rgb(122 207 215 / 18%);
+      }
+
+      .example-group-label {
+        padding: 0 6px;
+        color: var(--water-muted);
+        font-size: 8px;
+        letter-spacing: 0.16em;
+        line-height: 13px;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      .example-group-links {
+        display: flex;
+        align-items: center;
+        gap: 2px;
       }
 
       .example-tab {
@@ -73,8 +107,12 @@
         color: #c8c8c8;
         background: transparent;
         font:
-          12px/28px Arial,
-          sans-serif;
+          11px/28px ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
         text-decoration: none;
         white-space: nowrap;
         cursor: pointer;
@@ -82,12 +120,96 @@
 
       .example-tab:hover {
         color: #fff;
-        background: #333;
+        background: rgb(91 211 213 / 10%);
       }
 
       .example-tab.is-active {
         color: #fff;
-        background: #2f6f9f;
+        background: rgb(27 116 127 / 56%);
+        box-shadow: inset 0 -2px var(--current-cyan);
+      }
+
+      #case-intro {
+        position: fixed;
+        right: 16px;
+        bottom: 14px;
+        z-index: 2;
+        display: grid;
+        width: min(430px, calc(100vw - 32px));
+        box-sizing: border-box;
+        gap: 4px;
+        padding: 10px 12px;
+        border: 1px solid var(--instrument-line);
+        border-radius: 5px;
+        background: rgb(4 17 22 / 78%);
+        box-shadow: 0 12px 36px rgb(0 0 0 / 24%);
+        pointer-events: none;
+        backdrop-filter: blur(8px);
+      }
+
+      #case-intro[data-interactive="true"] {
+        pointer-events: auto;
+      }
+
+      #case-intro-title {
+        color: var(--foam-ink);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+      }
+
+      #case-intro-text {
+        color: var(--water-muted);
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      #feature-comparison {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 5px;
+        padding-top: 8px;
+        border-top: 1px solid var(--instrument-bay-line);
+      }
+
+      .feature-comparison-label,
+      .feature-comparison-status {
+        color: var(--water-muted);
+        font-size: 8px;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+      }
+
+      .feature-comparison-status {
+        margin-left: auto;
+      }
+
+      #feature-comparison button {
+        min-height: 27px;
+        padding: 0 8px;
+        border: 1px solid var(--instrument-line);
+        border-radius: 2px;
+        color: var(--foam-ink);
+        background: var(--instrument-bay);
+        font: inherit;
+        font-size: 9px;
+        cursor: pointer;
+      }
+
+      #feature-comparison button:hover,
+      #feature-comparison button[data-active="true"] {
+        border-color: var(--current-cyan);
+        color: #fff;
+        background: rgb(25 112 122 / 66%);
+      }
+
+      #feature-comparison button:disabled {
+        opacity: 0.45;
+        cursor: wait;
+      }
+
+      html[data-water-pcg-group="docs"] #case-intro {
+        display: none !important;
       }
 
       #heightfield-hud,
@@ -95,7 +217,7 @@
       #interactive-pool-hud,
       #water-optics-hud {
         position: fixed;
-        top: 56px;
+        top: 74px;
         left: 14px;
         z-index: 3;
         box-sizing: border-box;
@@ -118,7 +240,7 @@
 
       #interactive-pool-hud {
         width: min(520px, calc(100vw - 28px));
-        max-height: calc(100vh - 72px);
+        max-height: calc(100vh - 90px);
         overflow-y: auto;
       }
 
@@ -402,6 +524,7 @@
       }
 
       html[data-water-optics-screenshot="true"] #example-bar,
+      html[data-water-optics-screenshot="true"] #case-intro,
       html[data-water-optics-screenshot="true"] #water-optics-hud,
       html[data-water-optics-screenshot="true"] #fixture-mark,
       html[data-water-optics-screenshot="true"] .gl-perf {
@@ -409,6 +532,12 @@
       }
 
       @media (max-width: 680px) {
+        #case-intro {
+          right: 8px;
+          bottom: 8px;
+          width: min(360px, calc(100vw - 16px));
+        }
+
         #water-optics-hud {
           right: 8px;
           left: 8px;
@@ -442,15 +571,23 @@
     </style>
   </head>
   <body>
-    <nav id="example-bar" role="tablist" aria-label="Water PCG 案例"></nav>
+    <nav id="example-bar" aria-label="Water PCG 案例"></nav>
+    <aside id="case-intro" aria-live="polite">
+      <strong id="case-intro-title"></strong>
+      <span id="case-intro-text"></span>
+    </aside>
     <main id="water-pcg-view"></main>
 
     <template id="water-pcg-river-template">
       <canvas id="canvas"></canvas>
     </template>
 
+    <template id="water-pcg-ocean-template">
+      <canvas id="canvas"></canvas>
+    </template>
+
     <template id="water-pcg-heightfield-template">
-      <aside id="heightfield-hud" aria-live="polite">
+      <aside id="heightfield-hud" data-water-debug-panel aria-live="polite">
         <div class="hud-heading">
           <strong>Flow water field / 192 × 128</strong>
           <span id="heightfield-status" data-state="loading">compiling</span>
@@ -495,7 +632,7 @@
     </template>
 
     <template id="water-pcg-optics-lab-template">
-      <aside id="water-optics-hud" aria-label="Water Optics debug controls">
+      <aside id="water-optics-hud" data-water-debug-panel aria-label="Water Optics debug controls">
         <div class="hud-heading">
           <strong>Water Optics Lab / Fixed Golden Scene</strong>
           <span id="water-optics-status" data-state="loading" role="status" aria-live="polite">initializing</span>
@@ -741,7 +878,7 @@
     </template>
 
     <template id="water-pcg-interactive-pool-template">
-      <aside id="interactive-pool-hud" aria-live="polite">
+      <aside id="interactive-pool-hud" data-water-debug-panel aria-live="polite">
         <div class="hud-heading">
           <strong>交互式泳池 / 双向浮力波纹</strong>
           <span id="interactive-pool-status" data-state="loading">initializing PhysX</span>
@@ -752,7 +889,7 @@
           <button type="button" data-underwater-preset="surface">水线附近</button>
           <button type="button" data-underwater-preset="inside">潜入水下</button>
         </div>
-        <div class="hud-controls" data-p1-controls hidden aria-label="P1 local water effects controls">
+        <div class="hud-controls" data-p1-controls aria-label="P1 local water effects controls">
           <button type="button" data-p1-body-count="1">1 物体</button>
           <button type="button" data-p1-body-count="4">4 物体</button>
           <button type="button" data-p1-body-count="8">8 物体</button>
@@ -838,7 +975,7 @@
     </template>
 
     <template id="water-pcg-buoyancy-template">
-      <aside id="buoyancy-hud" aria-live="polite">
+      <aside id="buoyancy-hud" data-water-debug-panel aria-live="polite">
         <div class="hud-heading">
           <strong>Water buoyancy / River current</strong>
           <span id="buoyancy-status" data-state="loading">initializing PhysX</span>

@@ -14,6 +14,7 @@ export function resolveWaterWikiSlug(
 export function getWaterWikiHref(currentHref: string, slug: string): string {
   const url = new URL(currentHref);
   url.searchParams.delete("example");
+  url.searchParams.delete("mode");
   url.searchParams.set("doc", slug);
   url.hash = "water-wiki";
   return url.href;

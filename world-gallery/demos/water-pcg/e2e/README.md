@@ -1,5 +1,21 @@
 # Water PCG browser validation
 
+## Public Showcase and Feature acceptance
+
+Start the gallery from `world-gallery`, then run the three public acceptance gates:
+
+```sh
+pnpm exec vite . --config vite.config.js --host 127.0.0.1 --port 4179
+node demos/water-pcg/e2e/water-showcase-smoke.mjs
+node demos/water-pcg/e2e/water-showcase-camera-smoke.mjs
+node demos/water-pcg/e2e/water-feature-cases-smoke.mjs
+node demos/water-pcg/e2e/water-showcase-performance.mjs
+```
+
+The Showcase smoke loads River, Pool, and Ocean twice in fresh `1280 × 720`, DPR 1 contexts. It requires exact route identity, High quality/optics, real reflection and refraction, scene-specific signals, healthy canvas output, public-only navigation, no Stats panel, and zero page/request/WebGL errors. The camera smoke proves that all three normal Showcase routes use Galacean `FreeControl`: holding `W` moves the camera, releasing it stops movement, pointer drag rotates the view, and acceptance routes remain fixed. It also requires the River Debug panel, full Pool HUD, and Ocean Diagnostics GUI to remain visible on both interactive and deterministic automation routes. The Feature gate loads all eleven public feature routes independently, requires every runtime debug panel to be visible, and verifies the shared `window.waterPcgFeature` A/B contract: enabled state has a positive finite causal signal, disabled state returns to zero, re-enable and reset restore the feature. Refraction, reflection, Gerstner waves, shore foam, and heightfield also use a fixed-canvas causal pixel gate. Showcase Golden capture temporarily excludes debug DOM overlays from the PNG so the visual baseline continues to measure the rendered water rather than panel layout; the live page itself never hides those panels.
+
+The performance script is a formal headed, native-WebGL2 gate by default. Each Showcase receives a two-second warmup followed by at least 300 frames and five seconds of sampling; average FPS must be at least 55, frame P95 at most 20 ms, Planar ownership at most one Camera/RT, River/Ocean static mesh uploads stable, and tracked resources unchanged. Supported GPU timer queries are recorded; unsupported timers remain explicitly `unavailable`. `WATER_PCG_PERF_FAST=1` runs a short headless `smoke-only` profile and does not claim the formal FPS/P95 result. `WATER_PCG_URL` targets another server, `WATER_PCG_HEADED=1` keeps smoke/feature browsers visible, and `WATER_PCG_ACCEPTANCE_OUTPUT_DIR` overrides the default `/tmp/water-pcg-acceptance` report root. These gates do not create or update PNG Goldens.
+
 ## Water Optics P0 smoke
 
 Run the deterministic Medium Water Optics Lab gate against the local gallery server:

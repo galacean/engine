@@ -23,30 +23,27 @@ describe("Water Wiki router", () => {
     expect(resolveWaterWikiSlug({ search: "" }, validSlugs, "overview")).toBe("overview");
   });
 
-  it("builds a canonical Wiki URL without dropping unrelated quality controls", () => {
+  it("builds a canonical Wiki URL, preserving quality while removing legacy route selectors", () => {
     expect(
       getWaterWikiHref(
-        "http://127.0.0.1:4179/demos/water-pcg/?quality=medium&example=curved-main-river#curved-main-river",
+        "http://127.0.0.1:4179/demos/water-pcg/?quality=medium&example=showcase-river#showcase-river",
         "water-world"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=medium&doc=water-world#water-wiki");
     expect(
       getWaterWikiHref(
-        "http://127.0.0.1:4179/demos/water-pcg/?quality=medium&example=indoor-reflective-pool",
+        "http://127.0.0.1:4179/demos/water-pcg/?quality=medium&example=showcase-pool",
         "local-effects-and-foam"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=medium&doc=local-effects-and-foam#water-wiki");
     expect(
       getWaterWikiHref(
-        "http://127.0.0.1:4179/demos/water-pcg/?quality=high&example=curved-main-river",
+        "http://127.0.0.1:4179/demos/water-pcg/?quality=high&mode=ocean&example=showcase-ocean",
         "ocean-rings-and-reflection"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high&doc=ocean-rings-and-reflection#water-wiki");
     expect(
-      getWaterWikiHref(
-        "http://127.0.0.1:4179/demos/water-pcg/?quality=low&example=indoor-reflective-pool",
-        "underwater"
-      )
+      getWaterWikiHref("http://127.0.0.1:4179/demos/water-pcg/?quality=low&example=feature-underwater", "underwater")
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=low&doc=underwater#water-wiki");
   });
 });

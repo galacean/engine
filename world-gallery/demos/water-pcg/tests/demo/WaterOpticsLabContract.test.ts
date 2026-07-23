@@ -21,15 +21,17 @@ function readWorldGallerySource(relativePath: string): string {
 
 describe("Water Optics Lab integration contract", () => {
   it("registers an isolated hash route and template outside the River/Ocean examples registry", () => {
-    expect(findWaterPcgCase("water-optics-lab")).toEqual({
+    expect(findWaterPcgCase("water-optics-lab")).toMatchObject({
       id: "water-optics-lab",
-      label: "水反射与折射",
-      kind: "optics-lab"
+      label: "光学验收实验室",
+      group: "developer",
+      runtime: "optics-lab",
+      preset: "full-lab"
     });
     const router = readWaterPcgSource("demo/router.ts");
     const html = readWaterPcgSource("index.html");
     const registry = readWaterPcgSource("demo/examples/index.ts");
-    expect(router).toMatch(/case "optics-lab":\s*void import\("\.\/examples\/water-optics-lab\/main"\)/);
+    expect(router).toContain('"optics-lab": () => import("./examples/water-optics-lab/main")');
     expect(html).toContain('template id="water-pcg-optics-lab-template"');
     expect(registry).not.toContain("water-optics-lab");
   });

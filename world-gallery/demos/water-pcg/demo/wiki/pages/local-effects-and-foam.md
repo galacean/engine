@@ -192,7 +192,7 @@ Policy 只会从“有 benchmark 且设备支持”的策略中选最快者；�
 | --- | --- | --- | --- |
 | Low | 保留 CPU 高度场、接触和浮力 | 不创建三张 R8 纹理，使用解析水面高光/泡沫 | 当前使用较低网格预算和 CPU 路径，零 GPU readback |
 | Medium | 保留同一 CPU 高度场 | 启用 `128 × 64` source + ping-pong history | 每渲染帧至多一次泡沫纹理上传；表面仍为显式 CPU fallback |
-| High | 当前泳池入口没有独立 High 档 | 没有更高分辨率历史或 Compute 版本 | 产品若映射到 Medium 必须明确记录；不能宣称已有 High 专属实现 |
+| High | 泳池 Showcase 使用 High 光学，并保留同源 CPU 高度场与浮力 | 继续使用有界 `128 × 64` 历史；没有 Compute 版本 | 5-tap Planar / 折射走 High 展示路径，仍保持零 GPU readback |
 
 关闭动态效果只会清空事件与泡沫历史；最终水面查询和基础浮力仍继续工作。Low 的目标是先保住 gameplay correctness，而不是显示一个看似精细但查询不同步的水面。
 
@@ -204,10 +204,10 @@ Policy 只会从“有 benchmark 且设备支持”的策略中选最快者；�
 pnpm -C world-gallery exec vite . --config vite.config.js --host 127.0.0.1 --port 4179
 ```
 
-打开：
+只观察最终尾迹与泡沫时打开公共 `#feature-wake-foam`。需要 1 / 4 / 8 / 16 刚体和 Source / History / Final 控制时，打开隐藏的 Developer 诊断：
 
 ```text
-http://127.0.0.1:4179/demos/water-pcg/?quality=medium&bodies=16&localEffectsDebug=final#p1-water-showcase
+http://127.0.0.1:4179/demos/water-pcg/?quality=medium&bodies=16&localEffectsDebug=final#developer-pool-diagnostics
 ```
 
 页面中可以：

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-23T10:42:57.953Z",
+  "updateReason": "Freeze deterministic visual capture frames",
+  "environment": {
+    "viewport": {
+      "width": 1280,
+      "height": 720
+    },
+    "deviceScaleFactor": 1,
+    "quality": "high",
+    "surfaceTime": 12.5,
+    "seed": 20260723,
+    "statsEnabled": false
+  },
+  "captureStates": ["hero", "interaction", "detail"],
+  "thresholds": {
+    "perChannelByteTolerance": 8,
+    "maximumDiffPixelRatio": 0.01,
+    "maximumMeanAbsoluteChannelDifference": 1.5
+  },
+  "cases": {
+    "showcase-river": {
+      "runtime": "river",
+      "preset": "hero-river",
+      "states": {
+        "hero": {
+          "file": "showcase-river/hero.png",
+          "sha256": "1bb3a039cdafd3e2a269512511a2f2838fd21869bc345be3b21fcaf628d8d9af"
+        },
+        "interaction": {
+          "file": "showcase-river/interaction.png",
+          "sha256": "1e0a8f13e2ccf7f2da37af3cb937ea5356b14702e570a338062b6dc8247a1303"
+        },
+        "detail": {
+          "file": "showcase-river/detail.png",
+          "sha256": "c5074f8febcff07a7ebe18836d598726b2619cf405040893be8f51a49fdcb31d"
+        }
+      }
+    },
+    "showcase-pool": {
+      "runtime": "pool",
+      "preset": "hero-pool",
+      "states": {
+        "hero": {
+          "file": "showcase-pool/hero.png",
+          "sha256": "b882ec3a51e9cf1761510c50e525ca7f1ad866b1d34fe03fd8d3f6a363c93e2e"
+        },
+        "interaction": {
+          "file": "showcase-pool/interaction.png",
+          "sha256": "194065ddc8062dcc5bb095ec3ab3a8c2f26047c44a27b372266068987b9ca2e6"
+        },
+        "detail": {
+          "file": "showcase-pool/detail.png",
+          "sha256": "f7d85820ae48e4d2215e89444970494be5b30765d59972c79df8019b2d1be48b"
+        }
+      }
+    },
+    "showcase-ocean": {
+      "runtime": "ocean",
+      "preset": "hero-ocean",
+      "states": {
+        "hero": {
+          "file": "showcase-ocean/hero.png",
+          "sha256": "81366aecca332ef7e10ccfb498793ff6f2685b313ccaa8987e2facce5d1e7fde"
+        },
+        "interaction": {
+          "file": "showcase-ocean/interaction.png",
+          "sha256": "a9cb6670c157335a1c76b8df6043a5a88b0b58bec24585da2967232cf762fa20"
+        },
+        "detail": {
+          "file": "showcase-ocean/detail.png",
+          "sha256": "2e3af27f16bffd75d1d161c96f819c7f480f91bac692892c90f309f7e181480a"
+        }
+      }
+    }
+  }
+}

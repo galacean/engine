@@ -55,7 +55,7 @@ River Authoring 已把质量拆成 geometry、material、maps 和 query。更完
 | --- | --- | --- | --- |
 | Low | 0–2 主波或 River 静态低成本表面 | Pool 保留 CPU Query，关闭时序 R8 泡沫；Ocean 2 层 Ring | 默认无 Planar；按需申请水下 depth |
 | Medium | 最高 6 个 Gerstner 主波；River 开宏观位移 | Pool `128 × 64` 时序泡沫；Ocean 3 层 Ring | Planar 1/4 分辨率隔帧，失败回 Probe/Sky |
-| High | 最高 12 个 Gerstner 主波 | Ocean 3 层 Ring；Pool 尚无独立 High profile | Planar 1/2 分辨率逐帧；SSR 仍未完成 |
+| High | 最高 12 个 Gerstner 主波 | Ocean 3 层 Ring；Pool 保留 `128 × 64` 时序泡沫并启用 High 光学 | Planar 1/2 分辨率逐帧 + 5-tap；SSR 仍未完成 |
 
 当前运行入口都显式选择 WebGL2。历史设计和验收中存在 WebGL1 Low 路径证据，但不能据此把当前默认 Demo 描述成 WebGL1 产品承诺。
 

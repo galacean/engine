@@ -1,6 +1,7 @@
 import {
   Color,
   Entity,
+  Layer,
   Material,
   MeshRenderer,
   MeshTopology,
@@ -189,7 +190,7 @@ export class InteractivePoolSurfaceController extends Script {
     this._surfaceOpticsBinding = binding;
     const material = this._material;
     if (!material) return undefined;
-    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, binding);
+    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, binding, { planarEligible: true });
     return this._surfaceOpticsReadback;
   }
 
@@ -314,10 +315,15 @@ export class InteractivePoolSurfaceController extends Script {
     material.name = "InteractivePoolRiverSurfaceMaterial";
     material.isGCIgnored = true;
     this._material = material;
-    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, this._surfaceOpticsBinding);
+    this._surfaceOpticsReadback = setRiverSurfaceOpticsBinding(material, this._surfaceOpticsBinding, {
+      planarEligible: true
+    });
     const rippleMaterial = createInteractivePoolRippleMaterial(options.engine);
     this._rippleMaterial = rippleMaterial;
     const surfaceEntity = options.parent.createChild("interactive-pool-dynamic-surface");
+    // The shared planar service excludes this layer from its reflection camera,
+    // preventing the water surface from recursively reflecting itself.
+    surfaceEntity.layer = Layer.Layer30;
     const renderer = surfaceEntity.addComponent(MeshRenderer);
     renderer.enableVertexColor = true;
     renderer.mesh = mesh;

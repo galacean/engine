@@ -1,3 +1,5 @@
+import type { WaterDemoCaseId } from "../navigation";
+
 export type WaterWikiCategory = "开始" | "核心 API" | "运行时" | "接入" | "运维";
 
 export interface WaterWikiPage {
@@ -7,7 +9,7 @@ export interface WaterWikiPage {
   readonly category: WaterWikiCategory;
   readonly keywords: readonly string[];
   readonly telemetry: readonly string[];
-  readonly relatedCaseId?: string;
+  readonly relatedCaseId?: Exclude<WaterDemoCaseId, "water-wiki">;
   readonly relatedCaseLabel?: string;
   readonly markdown: string;
 }

@@ -30,7 +30,7 @@ node demos/water-pcg/e2e/p1-water-showcase-smoke.mjs
 
 浮力 Gate 验证真实 Galacean + PhysX 点施力、单点/四点稳定性、局部水流、30/60/120 渲染频率与固定物理步隔离、Render/Query parity 和启动隔离。泳池 Gate 还验证自由落体、入水、持续压力凹陷、水环、波传播、池壁反射、重置和每渲染帧最多一次 Mesh upload。
 
-P1 局部效果还需要在 `#p1-water-showcase` 检查 1 / 4 / 8 / 16 刚体、移动尾迹、静止拒绝、Source → History → Final、历史衰减归零和每帧最多一次泡沫纹理上传。活跃态性能 Gate 会对每个刚体档位做动态关闭/开启/再关闭的同机 A/B，并强制 `uniform / revision 0 / build 1`、泡沫区间完整 Surface Query 增量为 0、CPU history 不超过 30 Hz；默认相对预算为 FPS 不低于控制组 65%、P95 不高于控制组 2.5 倍。Ocean 则检查 25 / 37 patch、相机 cell snap、世界坐标相位、逐 patch 裁剪、零每帧 Mesh upload，以及 Sky / Probe / Planar 的 resolved source 与回退。
+局部效果先在 `#feature-wake-foam` 验证单一可见结果；1 / 4 / 8 / 16 刚体、Source → History → Final 和压力指标只在隐藏的 `#developer-pool-diagnostics` 中验收。该 Gate 检查移动尾迹、静止拒绝、历史衰减归零和每帧最多一次泡沫纹理上传；活跃态性能窗口会对每个刚体档位做动态关闭/开启/再关闭的同机 A/B，并强制 `uniform / revision 0 / build 1`、泡沫区间完整 Surface Query 增量为 0、CPU history 不超过 30 Hz。Ocean Showcase 验证最佳画面，`#developer-ocean-lod` 则检查 25 / 37 patch、相机 cell snap、世界坐标相位、逐 patch 裁剪、零每帧 Mesh upload，以及 Sky / Probe / Planar 的 resolved source 与回退。
 
 这个性能窗口必须在重新触发 Wake、泡沫 source/history 已经非零后测量。只在动态关闭或 history 已归零时测到高 FPS，不能证明活跃泡沫路径已经修复。平均 FPS 用于同机 A/B，P95 / max 帧间隔用于发现尖峰；只有 Snapshot、查询、频率结构指标正常后，才继续排查剩余 foam 扫描、Mesh、Physics 或 GPU 成本。
 
@@ -69,7 +69,7 @@ pnpm -C world-gallery exec vitest run --config vitest.config.ts \
 | 多水体选错 | priority、范围、可见高度和稳定 ID；不要只抬高优先级 |
 | 汇流方向不一致 | Base Flow → Local Flow → Final Flow → Query Arrow |
 | 重编译闪烁或半条河 | 是否绕过 staging 和原子 RuntimeSet 切换 |
-| 普通水面意外加载 PhysX | Router kind 与动态 import 边界 |
+| 普通水面意外加载 PhysX | Router runtime / preset 与动态 import 边界 |
 | Query P95 突升 | WaterWorld 候选数、精确查询数、候选上限溢出 |
 | 刚体静止仍不断冒泡沫 | `stationaryRejectedCount`、最小尾迹速度、emitter 聚合状态 |
 | 泡沫瞬间消失或不衰减 | Source/History 视图、decay、current 平流和 R8 upload 次数 |

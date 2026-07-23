@@ -1,5 +1,6 @@
-import type { Material, ShaderData, TextureCube } from "@galacean/engine-core";
+import type { Material, ShaderData, Texture2D, TextureCube } from "@galacean/engine-core";
 import { ShaderLanguage } from "@galacean/engine-core";
+import { Matrix } from "@galacean/engine-math";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { describe, expect, it, vi } from "vitest";
 import { DEFAULT_WATER_OPTICAL_PROFILE } from "../../runtime/optics/WaterOpticalProfile";
@@ -130,7 +131,9 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).toContain("vec3 skyReflection = mix(");
     expect(riverSurfaceShaderSource).toContain("samplerCube material_ReflectionCubeTexture");
     expect(riverSurfaceShaderSource).toContain("textureCube(");
-    expect(riverSurfaceShaderSource).not.toContain("material_PlanarReflectionTexture");
+    expect(riverSurfaceShaderSource).toContain("material_PlanarReflectionTexture");
+    expect(riverSurfaceShaderSource).toContain("material_PlanarReflectionVP");
+    expect(riverSurfaceShaderSource).toContain("material_PlanarReflectionSampling.w > 3.0");
     expect(riverSurfaceShaderSource).toContain("float sparkleMask = mix(");
     expect(riverSurfaceShaderSource).toContain("sampler2D camera_OpaqueTexture");
     expect(riverSurfaceShaderSource).toContain("vec2 displacedScreenUv = screenUv");
@@ -296,5 +299,40 @@ describe("RiverMaterialFactory shaders", () => {
     const cleared = setRiverSurfaceOpticsBinding(harness.material);
     expect(cleared.effectiveSource).toBe("sky");
     expect(harness.setTexture).toHaveBeenLastCalledWith(WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture, null);
+  });
+
+  it("lets a flat Pool adapter opt into the shared Planar binding without changing River defaults", () => {
+    const harness = createOpticsHarness();
+    const planarTexture = { width: 512, height: 360 } as Texture2D;
+    const readback = setRiverSurfaceOpticsBinding(
+      harness.material,
+      {
+        tier: "high",
+        opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+        refractionEnabled: true,
+        reflection: {
+          requestedSource: "planar",
+          resolvedSource: "planar",
+          planarTexture,
+          planarViewProjection: new Matrix()
+        },
+        reflectionSampling: {
+          highFilterSampleCount: 5
+        },
+        debugView: WaterOpticsDebugView.Final
+      },
+      { planarEligible: true }
+    );
+
+    expect(readback).toMatchObject({
+      requestedSource: "planar",
+      bindingResolvedSource: "planar",
+      effectiveSource: "planar",
+      filterSampleCount: 5
+    });
+    expect(harness.setTexture).toHaveBeenCalledWith(
+      WATER_OPTICS_SHADER_PROPERTY.planarReflectionTexture,
+      planarTexture
+    );
   });
 });

@@ -27,8 +27,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "开始",
     keywords: Object.freeze(["架构", "能力矩阵", "P0", "river", "ocean", "pool", "heightfield"]),
     telemetry: Object.freeze(["4 WATER BODY TYPES", "0-FRAME QUERY", "WEBGL2"]),
-    relatedCaseId: "curved-main-river",
-    relatedCaseLabel: "查看高差河流",
+    relatedCaseId: "showcase-river",
+    relatedCaseLabel: "打开河流 Showcase",
     markdown: overviewMarkdown
   }),
   Object.freeze({
@@ -38,8 +38,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "开始",
     keywords: Object.freeze(["quick start", "sample", "register", "示例", "查询"]),
     telemetry: Object.freeze(["REGISTER", "SAMPLE", "REUSE OUTPUT"]),
-    relatedCaseId: "water-buoyancy",
-    relatedCaseLabel: "查看浮力与水流",
+    relatedCaseId: "feature-buoyancy",
+    relatedCaseLabel: "打开浮力 Feature",
     markdown: quickStartMarkdown
   }),
   Object.freeze({
@@ -49,8 +49,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "开始",
     keywords: Object.freeze(["architecture", "authoring", "compiler", "resource", "runtime", "生命周期"]),
     telemetry: Object.freeze(["AUTHOR ONCE", "COMPILE ONCE", "QUERY MANY"]),
-    relatedCaseId: "curved-main-river",
-    relatedCaseLabel: "查看完整 River 链路",
+    relatedCaseId: "showcase-river",
+    relatedCaseLabel: "查看完整 River Showcase",
     markdown: architectureMarkdown
   }),
   Object.freeze({
@@ -60,8 +60,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "核心 API",
     keywords: Object.freeze(["WaterSurfaceProvider", "batch", "fallback", "normal", "velocity", "depth"]),
     telemetry: Object.freeze(["FINAL SURFACE", "BATCH READY", "CALLER OWNED"]),
-    relatedCaseId: "heightfield-water",
-    relatedCaseLabel: "查看高度场查询",
+    relatedCaseId: "feature-heightfield",
+    relatedCaseLabel: "打开高度场 Feature",
     markdown: surfaceQueryMarkdown
   }),
   Object.freeze({
@@ -71,8 +71,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "核心 API",
     keywords: Object.freeze(["WaterWorld", "WaterBodyRuntime", "priority", "bounds", "registry", "overlap"]),
     telemetry: Object.freeze(["AABB BROAD PHASE", "DETERMINISTIC", "P95 METRICS"]),
-    relatedCaseId: "curved-main-river",
-    relatedCaseLabel: "查看 WaterWorld 指标",
+    relatedCaseId: "showcase-river",
+    relatedCaseLabel: "查看 River WaterWorld",
     markdown: waterWorldMarkdown
   }),
   Object.freeze({
@@ -82,8 +82,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运行时",
     keywords: Object.freeze(["river", "ocean", "heightfield", "pool", "gerstner", "flow map"]),
     telemetry: Object.freeze(["RIVER", "OCEAN", "HEIGHTFIELD", "POOL"]),
-    relatedCaseId: "multi-tributary-river",
-    relatedCaseLabel: "查看双支流汇流",
+    relatedCaseId: "feature-river-confluence",
+    relatedCaseLabel: "打开河流汇流 Feature",
     markdown: providersMarkdown
   }),
   Object.freeze({
@@ -93,8 +93,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运行时",
     keywords: Object.freeze(["RiverNetworkCompiler", "RiverResource", "Worker", "chunk", "atomic", "hash"]),
     telemetry: Object.freeze(["DETERMINISTIC", "TRANSFERABLE", "ATOMIC SWAP"]),
-    relatedCaseId: "multi-tributary-river",
-    relatedCaseLabel: "查看多支流编译结果",
+    relatedCaseId: "feature-river-confluence",
+    relatedCaseLabel: "查看河流汇流编译结果",
     markdown: riverPipelineMarkdown
   }),
   Object.freeze({
@@ -104,7 +104,7 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运行时",
     keywords: Object.freeze(["Terrain", "FlowMap", "local atlas", "SDF", "corridor", "junction", "obstacle"]),
     telemetry: Object.freeze(["RGBA ATLAS", "CPU GPU PARITY", "NO TERRAIN MUTATION"]),
-    relatedCaseId: "multi-tributary-river",
+    relatedCaseId: "feature-river-confluence",
     relatedCaseLabel: "查看汇流区局部流场",
     markdown: terrainAndFlowMapMarkdown
   }),
@@ -115,8 +115,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运行时",
     keywords: Object.freeze(["WaterWaveAsset", "Gerstner", "quality", "Low", "Medium", "High", "time"]),
     telemetry: Object.freeze(["0 / 2 / 6 / 12 WAVES", "SHARED TIME", "FIXED BUDGET"]),
-    relatedCaseId: "heightfield-water",
-    relatedCaseLabel: "查看高度场宏观波浪",
+    relatedCaseId: "feature-gerstner-waves",
+    relatedCaseLabel: "打开 Gerstner 波 Feature",
     markdown: wavesAndQualityMarkdown
   }),
   Object.freeze({
@@ -138,8 +138,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
       "upload policy"
     ]),
     telemetry: Object.freeze(["128 EVENTS", "16 EMITTERS", "1 UPLOAD / FRAME"]),
-    relatedCaseId: "p1-water-showcase",
-    relatedCaseLabel: "查看 P1 尾迹与泡沫",
+    relatedCaseId: "feature-wake-foam",
+    relatedCaseLabel: "打开尾迹与泡沫 Feature",
     markdown: localEffectsAndFoamMarkdown
   }),
   Object.freeze({
@@ -157,8 +157,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
       "反射"
     ]),
     telemetry: Object.freeze(["25 / 37 PATCHES", "ONE PLANAR / CAMERA", "ZERO FRAME UPLOAD"]),
-    relatedCaseId: "curved-main-river",
-    relatedCaseLabel: "打开 Ocean Preview",
+    relatedCaseId: "showcase-ocean",
+    relatedCaseLabel: "打开海洋 Showcase",
     markdown: oceanRingsAndReflectionMarkdown
   }),
   Object.freeze({
@@ -177,7 +177,7 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     ]),
     telemetry: Object.freeze(["SCENE COLOR + DEPTH", "ONE PLANAR / CAMERA", "OFF ON OFF"]),
     relatedCaseId: "water-optics-lab",
-    relatedCaseLabel: "打开 Water Optics Lab",
+    relatedCaseLabel: "打开隐藏的光学验收 Lab",
     markdown: waterOpticsMarkdown
   }),
   Object.freeze({
@@ -195,8 +195,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
       "PostProcess"
     ]),
     telemetry: Object.freeze(["FINITE VOLUME", "HYSTERESIS", "DEPTH + FULLSCREEN"]),
-    relatedCaseId: "indoor-reflective-pool",
-    relatedCaseLabel: "查看交互泳池水下效果",
+    relatedCaseId: "feature-underwater",
+    relatedCaseLabel: "打开水下 Feature",
     markdown: underwaterMarkdown
   }),
   Object.freeze({
@@ -206,8 +206,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "接入",
     keywords: Object.freeze(["WaterBuoyancy", "PhysX", "pontoon", "force", "fixed step", "浮力"]),
     telemetry: Object.freeze(["PHYSX", "PONTOON", "FORCE AT POSITION"]),
-    relatedCaseId: "water-buoyancy",
-    relatedCaseLabel: "运行浮力示例",
+    relatedCaseId: "feature-buoyancy",
+    relatedCaseLabel: "运行浮力 Feature",
     markdown: buoyancyMarkdown
   }),
   Object.freeze({
@@ -217,8 +217,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运维",
     keywords: Object.freeze(["CameraWaterFeatureBroker", "CopyDepth", "CopyColor", "debug", "waterPcgP0"]),
     telemetry: Object.freeze(["ONE DEPTH COPY", "ONE COLOR COPY", "LIVE PROBE"]),
-    relatedCaseId: "curved-main-river",
-    relatedCaseLabel: "打开 River 调试面板",
+    relatedCaseId: "developer-river-debug",
+    relatedCaseLabel: "打开隐藏的 River 诊断",
     markdown: cameraAndDebugMarkdown
   }),
   Object.freeze({
@@ -228,8 +228,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运维",
     keywords: Object.freeze(["test", "typecheck", "e2e", "smoke", "troubleshooting", "验收", "排障"]),
     telemetry: Object.freeze(["TYPECHECK", "VITEST", "BROWSER GATE"]),
-    relatedCaseId: "water-buoyancy",
-    relatedCaseLabel: "运行真实 PhysX 示例",
+    relatedCaseId: "developer-pool-diagnostics",
+    relatedCaseLabel: "打开隐藏的泳池诊断",
     markdown: testingAndTroubleshootingMarkdown
   }),
   Object.freeze({
@@ -239,8 +239,8 @@ export const WATER_WIKI_PAGES: readonly WaterWikiPage[] = Object.freeze([
     category: "运维",
     keywords: Object.freeze(["performance", "WebGL2", "allocation", "limits", "experimental", "P1"]),
     telemetry: Object.freeze(["P0 INCUBATION", "NO PACKAGE EXPORT", "BOUNDED WORK"]),
-    relatedCaseId: "indoor-reflective-pool",
-    relatedCaseLabel: "查看交互式泳池",
+    relatedCaseId: "showcase-pool",
+    relatedCaseLabel: "打开泳池 Showcase",
     markdown: limitationsMarkdown
   })
 ]);

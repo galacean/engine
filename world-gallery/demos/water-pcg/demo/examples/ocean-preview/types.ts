@@ -4,7 +4,12 @@ import type { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveMode
 import type { WaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 import type { WaterReflectionSource } from "../../../runtime/optics/WaterReflectionPolicy";
 import type { WaterOpticalProfile } from "../../../runtime/optics/WaterOpticalProfile";
-import type { ResolvedWaterOpticsTier, WaterOpticsTier } from "../../../runtime/optics/WaterSurfaceOpticsTypes";
+import type {
+  ResolvedWaterOpticsTier,
+  WaterPlanarFilterSampleCount,
+  WaterOpticsTier,
+  WaterSurfaceOpticsReflectionSamplingConfig
+} from "../../../runtime/optics/WaterSurfaceOpticsTypes";
 
 export interface OceanPreviewConfig {
   size: number;
@@ -23,6 +28,8 @@ export interface OceanPreviewConfig {
   opticsTier?: WaterOpticsTier;
   opticalProfile?: WaterOpticalProfile;
   refractionEnabled?: boolean;
+  /** Explicit showcase reflection sampling; High remains one tap unless this opts into five. */
+  reflectionSampling?: WaterSurfaceOpticsReflectionSamplingConfig;
 }
 
 export interface OceanPreviewMetrics {
@@ -51,6 +58,7 @@ export interface OceanPreviewMetrics {
   readonly baseCellSize: number;
   readonly coverageHalfExtent: number;
   readonly reflectionSource: WaterReflectionSource;
+  readonly reflectionFilterSampleCount: WaterPlanarFilterSampleCount;
   readonly requestedOpticsTier?: WaterOpticsTier;
   readonly resolvedOpticsTier?: ResolvedWaterOpticsTier;
   readonly compiledOpticsTier?: ResolvedWaterOpticsTier;

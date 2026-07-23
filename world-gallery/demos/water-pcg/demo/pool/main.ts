@@ -1,5 +1,5 @@
 /** Standalone Galacean + PhysX runtime for the interactive indoor pool. */
-import { Camera, Color, Script, Vector3, WebGLEngine, WebGLMode } from "@galacean/engine";
+import { Camera, Color, Layer, Script, Vector3, WebGLEngine, WebGLMode } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
@@ -26,6 +26,8 @@ import {
 } from "./PoolP1ShowcaseConfig";
 import { PoolPhysicsSceneController } from "./PoolPhysicsSceneController";
 import { TemporalFoamTextureService } from "./TemporalFoamTextureService";
+import { WaterShowcaseFrameSampler } from "../showcase/WaterShowcaseAcceptance";
+import { createFeatureSnapshot, type WaterFeatureCaseApi } from "../showcase/WaterFeatureCaseApi";
 import type {
   InteractivePoolGridQuality,
   InteractivePoolMetrics,
@@ -41,6 +43,7 @@ import { WaterWorld } from "../../runtime/body/WaterWorld";
 import { SurfaceDepthWaterVolumeProvider } from "../../runtime/body/SurfaceDepthWaterVolumeProvider";
 import { CameraWaterFeatureBroker } from "../../runtime/optics/CameraWaterFeatureBroker";
 import { UnderwaterController } from "../../runtime/optics/UnderwaterController";
+import { WaterReflectionService } from "../../runtime/optics/WaterReflectionService";
 import {
   createResolvedWaterOpticalProfileFingerprint,
   UnderwaterPostProcessPass
@@ -65,12 +68,19 @@ import {
   type WaterInteractionEventConsumer
 } from "../../runtime/interaction/WaterInteractionEventQueue";
 import { WaterInteractionSinkAdapter } from "../../runtime/interaction/WaterInteractionSinkAdapter";
+import type { WaterSurfaceInteractionSink } from "../../runtime/interaction/WaterSurfaceInteractionSink";
 import { WaterLocalFieldComposer } from "../../runtime/interaction/WaterLocalFieldComposer";
 import { WaterLocalModifierChannel } from "../../runtime/interaction/WaterLocalFieldProvider";
 import { WaterLocalModifierBlendMode } from "../../runtime/interaction/WaterLocalModifier";
 import { WaterSurfaceCurrentFieldProvider } from "../../runtime/interaction/WaterSurfaceCurrentFieldProvider";
 import { createUniformWaterCurrentFieldSnapshot } from "../../runtime/interaction/WaterCurrentFieldSnapshot";
 import { POOL_WATER_OPTICAL_PROFILE } from "./PoolWaterOptics";
+import {
+  createShowcaseCameraController,
+  resolveShowcaseCameraMode,
+  SHOWCASE_CAMERA_MOVEMENT_SPEED,
+  type ShowcaseCameraController
+} from "../showcase/ShowcaseCameraControl";
 
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] };
 
@@ -80,15 +90,19 @@ const p1DeviceDefaults = resolvePoolP1DeviceDefaults({
   hardwareConcurrency: navigator.hardwareConcurrency,
   deviceMemoryGb: browserDevice.deviceMemory
 });
-const p1RouteSelected = window.location.hash.replace(/^#/, "") === "p1-water-showcase";
+const p1Config = resolvePoolP1ShowcaseConfig(
+  window.location,
+  p1DeviceDefaults.bodyCount,
+  document.documentElement.dataset.waterPcgPreset
+);
+const showcaseCameraMode = p1Config.preset === "hero-pool" ? resolveShowcaseCameraMode(search, true) : undefined;
 const requestedQuality = search.get("quality");
 const quality: InteractivePoolGridQuality =
   requestedQuality === "low" || requestedQuality === "medium" || requestedQuality === "high"
     ? requestedQuality
-    : p1RouteSelected
+    : p1Config.preset === "p1-diagnostics"
       ? p1DeviceDefaults.quality
-      : "medium";
-const p1Config = resolvePoolP1ShowcaseConfig(window.location, p1DeviceDefaults.bodyCount);
+      : p1Config.defaultQuality;
 const resolutionX = quality === "low" ? 65 : 129;
 const resolutionZ = quality === "low" ? 27 : 53;
 const P1_EVENT_QUEUE_CAPACITY = 128;
@@ -100,6 +114,7 @@ const OPTICAL_CONTINUITY_DISTANCE_METERS = 1.25;
 const OPTICAL_CONTINUITY_SOURCE_LINEAR_COLOR = Object.freeze([0.62, 0.48, 0.31] as const);
 const centerQueryPosition = new Vector3();
 const centerSurfaceSample = createWaterSurfaceSample();
+const showcaseFrameSampler = new WaterShowcaseFrameSampler(300);
 
 function snapshotResolvedOpticalProfile(
   profile: Readonly<ResolvedWaterOpticalProfile>
@@ -309,7 +324,8 @@ async function bootstrapInteractivePool(): Promise<void> {
     shaderCompiler: new ShaderCompiler(),
     physics: new PhysXPhysics(),
     graphicDeviceOptions: {
-      webGLMode: WebGLMode.WebGL2
+      webGLMode: WebGLMode.WebGL2,
+      preserveDrawingBuffer: search.get("visual") === "1"
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);
@@ -331,6 +347,9 @@ async function bootstrapInteractivePool(): Promise<void> {
   orbit.target.set(...indoorReflectivePoolExample.view.cameraTarget);
   orbit.minDistance = 8;
   orbit.maxDistance = 150;
+  orbit.enabled = p1Config.preset !== "hero-pool";
+  cameraEntity.transform.lookAt(orbit.target);
+  let showcaseCameraController: ShowcaseCameraController | undefined;
   const cameraFeatureBroker = new CameraWaterFeatureBroker(camera);
   cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
   const syncCameraFeatureViewport = (): void =>
@@ -338,6 +357,20 @@ async function bootstrapInteractivePool(): Promise<void> {
   window.addEventListener("resize", syncCameraFeatureViewport);
   const cameraFeatures = new RiverCameraFeatureController(camera, cameraFeatureBroker);
   cameraFeatures.apply(true, reach.config.quality.material.level);
+  const reflectionServiceLease = WaterReflectionService.acquire(engine, root, camera);
+  const reflectionService = reflectionServiceLease.service;
+  const syncReflectionViewport = (): void =>
+    reflectionService.setViewportSize(engine.canvas.width, engine.canvas.height);
+  syncReflectionViewport();
+  window.addEventListener("resize", syncReflectionViewport);
+  cameraFeatureBroker.setRequest("pool-showcase-reflection", {
+    depthTexture: false,
+    opaqueTexture: false,
+    reflection: "planar",
+    caustics: false,
+    underwater: false,
+    quality
+  });
   const underwaterPass = new UnderwaterPostProcessPass(engine);
   underwaterPass.setOpticalProfile(POOL_WATER_OPTICAL_PROFILE);
   engine.addPostProcessPass(underwaterPass);
@@ -361,6 +394,28 @@ async function bootstrapInteractivePool(): Promise<void> {
   const axisZ = lastSample.position[2] - firstSample.position[2];
   const axisLength = Math.hypot(axisX, axisZ);
   if (axisLength <= Number.EPSILON) throw new Error("Indoor pool reach has no horizontal direction.");
+  const poolCanvas = document.getElementById("canvas");
+  const autoTourRequested = showcaseCameraMode === "tour";
+  let autoTourActive = autoTourRequested;
+  const pauseAutoTour = (): void => {
+    if (!autoTourActive) return;
+    autoTourActive = false;
+    showcaseCameraController?.setFreeControlActive(true);
+  };
+  const handleCameraKeyDown = (event: KeyboardEvent): void => {
+    if (
+      event.code === "KeyW" ||
+      event.code === "KeyA" ||
+      event.code === "KeyS" ||
+      event.code === "KeyD" ||
+      event.code.startsWith("Arrow")
+    ) {
+      pauseAutoTour();
+    }
+  };
+  poolCanvas?.addEventListener("pointerdown", pauseAutoTour);
+  poolCanvas?.addEventListener("wheel", pauseAutoTour, { passive: true });
+  window.addEventListener("keydown", handleCameraKeyDown);
   const referenceCurrentX = firstSample.tangent[0] * firstSample.flowSpeed;
   const referenceCurrentZ = firstSample.tangent[2] * firstSample.flowSpeed;
   if (
@@ -468,13 +523,30 @@ async function bootstrapInteractivePool(): Promise<void> {
   const surfaceController = surfaceDriverEntity.addComponent(InteractivePoolSurfaceController);
   surfaceController.configure({ engine, parent: root, compiledData: data, heightField });
   const surfaceOpticsTier: WaterOpticsTier = quality === "high" ? "high" : "medium";
-  const surfaceOpticsReadback = surfaceController.setSurfaceOpticsBinding({
-    tier: surfaceOpticsTier,
-    opticalProfile: POOL_WATER_OPTICAL_PROFILE,
-    refractionEnabled: true,
-    reflection: undefined,
-    debugView: WaterOpticsDebugView.Final
+  const reflectionConsumerId = "pool-showcase-surface";
+  reflectionService.setRequest({
+    id: reflectionConsumerId,
+    preferredSource: "planar",
+    quality,
+    visible: true,
+    priority: 100,
+    planeY: layout.position[1],
+    cullingMask: Layer.Everything,
+    waterLayerMask: Layer.Layer30
   });
+  reflectionService.update(0);
+  const applySurfaceOpticsBinding = () =>
+    surfaceController.setSurfaceOpticsBinding({
+      tier: surfaceOpticsTier,
+      opticalProfile: POOL_WATER_OPTICAL_PROFILE,
+      refractionEnabled: true,
+      reflection: reflectionService.getBinding(reflectionConsumerId),
+      reflectionSampling: {
+        highFilterSampleCount: quality === "high" ? 5 : 1
+      },
+      debugView: WaterOpticsDebugView.Final
+    });
+  const surfaceOpticsReadback = applySurfaceOpticsBinding();
   if (!surfaceOpticsReadback) throw new Error("Interactive pool surface optics binding was not applied.");
   p1Metrics.surfaceOpticsRequestedTier = surfaceOpticsReadback.requestedTier;
   p1Metrics.surfaceOpticsResolvedTier = surfaceOpticsReadback.resolvedTier;
@@ -498,18 +570,43 @@ async function bootstrapInteractivePool(): Promise<void> {
   p1Metrics.modifierCount = localField.modifierCount;
 
   const interactionQueue = new WaterInteractionEventQueue(P1_EVENT_QUEUE_CAPACITY, P1_EMITTER_CAPACITY);
+  let interactionFeatureEnabled = true;
   const interactionSinks = new Map<number, WaterInteractionSinkAdapter>();
-  const createInteractionSink = (emitterId: number): WaterInteractionSinkAdapter => {
-    const existing = interactionSinks.get(emitterId);
+  const gatedInteractionSinks = new Map<number, WaterSurfaceInteractionSink>();
+  const createInteractionSink = (emitterId: number): WaterSurfaceInteractionSink => {
+    const existing = gatedInteractionSinks.get(emitterId);
     if (existing) return existing;
-    const sink = new WaterInteractionSinkAdapter({
+    const adapter = new WaterInteractionSinkAdapter({
       queue: interactionQueue,
       emitterId,
       deformationSink: heightField,
       minimumTrailDistance: 0.28,
       minimumTrailSpeed: 0.18
     });
-    interactionSinks.set(emitterId, sink);
+    const sink: WaterSurfaceInteractionSink = {
+      registerInteraction(
+        worldPosition,
+        surfaceNormal,
+        relativeVelocity,
+        radius,
+        submergedRatio,
+        enteredWater
+      ): boolean {
+        return (
+          interactionFeatureEnabled &&
+          adapter.registerInteraction(
+            worldPosition,
+            surfaceNormal,
+            relativeVelocity,
+            radius,
+            submergedRatio,
+            enteredWater
+          )
+        );
+      }
+    };
+    interactionSinks.set(emitterId, adapter);
+    gatedInteractionSinks.set(emitterId, sink);
     return sink;
   };
   const temporalFoamField = p1Config.enabled
@@ -551,12 +648,28 @@ async function bootstrapInteractivePool(): Promise<void> {
       );
     }
   };
+  const ballInteractionTarget: WaterSurfaceInteractionSink = p1Config.enabled ? createInteractionSink(0) : heightField;
+  const ballInteractionSink: WaterSurfaceInteractionSink = {
+    registerInteraction(worldPosition, surfaceNormal, relativeVelocity, radius, submergedRatio, enteredWater): boolean {
+      return (
+        interactionFeatureEnabled &&
+        ballInteractionTarget.registerInteraction(
+          worldPosition,
+          surfaceNormal,
+          relativeVelocity,
+          radius,
+          submergedRatio,
+          enteredWater
+        )
+      );
+    }
+  };
   const ballSpawnerEntity = root.createChild("interactive-pool-ball-spawner");
   const ballSpawner = ballSpawnerEntity.addComponent(PoolBallSpawner);
   ballSpawner.configure({
     engine,
     surfaceProvider: provider,
-    interactionSink: p1Config.enabled ? createInteractionSink(0) : heightField,
+    interactionSink: ballInteractionSink,
     spawnCenterX: layout.position[0],
     spawnCenterZ: layout.position[2]
   });
@@ -652,6 +765,7 @@ async function bootstrapInteractivePool(): Promise<void> {
     }
     cameraEntity.transform.lookAt(orbit.target);
     underwaterController.update();
+    showcaseCameraController?.syncFromTransform();
   };
   window.waterPcgUnderwater = {
     get isUnderwater() {
@@ -687,6 +801,17 @@ async function bootstrapInteractivePool(): Promise<void> {
     },
     setPreset: setUnderwaterPreset
   };
+  setUnderwaterPreset(p1Config.initialUnderwaterPreset);
+  if (showcaseCameraMode) {
+    showcaseCameraController = createShowcaseCameraController(cameraEntity, {
+      mode: showcaseCameraMode,
+      movementSpeed: SHOWCASE_CAMERA_MOVEMENT_SPEED.pool,
+      afterCameraUpdate: () => {
+        reflectionService.update(metrics.renderFrameCount);
+        underwaterController.update();
+      }
+    });
+  }
   const underwaterPresetButtons = Array.from(document.querySelectorAll<HTMLButtonElement>("[data-underwater-preset]"));
   const handleUnderwaterPresetClick = (event: Event): void => {
     const target = event.currentTarget;
@@ -706,10 +831,20 @@ async function bootstrapInteractivePool(): Promise<void> {
   const p1DynamicButton = document.querySelector<HTMLButtonElement>("[data-p1-dynamic-effects]");
   const poolHeading = document.querySelector<HTMLElement>("#interactive-pool-hud .hud-heading strong");
   const fixtureMark = document.getElementById("fixture-mark");
-  if (p1Controls) p1Controls.hidden = !p1Config.enabled;
+  p1Controls?.removeAttribute("hidden");
   if (p1Config.enabled) {
-    if (poolHeading) poolHeading.textContent = "P1 水效果 / Wake · Foam · Underwater";
-    if (fixtureMark) fixtureMark.textContent = "有界尾迹队列 · 时序泡沫 · 水下介质 · 同源 CPU Query";
+    if (poolHeading)
+      poolHeading.textContent =
+        p1Config.preset === "wake-foam"
+          ? "尾迹与泡沫 / Wake · Temporal Foam"
+          : p1Config.preset === "underwater"
+            ? "水下介质 / Surface · Volume Continuity"
+            : "泳池 Showcase / Reflection · Ripples · Buoyancy";
+    if (fixtureMark)
+      fixtureMark.textContent =
+        p1Config.preset === "p1-diagnostics"
+          ? "有界尾迹队列 · 时序泡沫 · 水下介质 · 同源 CPU Query"
+          : "High Planar · 折射 · 4 物体 · 波纹 · 尾迹 · 同源水下介质";
   }
 
   const syncP1Controls = (): void => {
@@ -828,8 +963,62 @@ async function bootstrapInteractivePool(): Promise<void> {
     bodyFleet.restartDrives();
     resetObservationState();
     ballSpawner.scheduleSpawn();
+    autoTourActive = autoTourRequested;
+    showcaseCameraController?.setFreeControlActive(showcaseCameraMode === "free");
     setStatus("releasing ball", "loading");
   };
+  const setFocusedFeatureEnabled = (enabled: boolean): void => {
+    if (p1Config.preset === "underwater") {
+      setUnderwaterPreset(enabled ? "inside" : "outside");
+      return;
+    }
+    interactionFeatureEnabled = enabled;
+    if (p1Config.preset === "wake-foam") {
+      setP1DynamicEffectsEnabled(enabled);
+      if (enabled) bodyFleet.restartDrives();
+    }
+    reset();
+  };
+  window.waterPcgPoolFeature = {
+    preset: p1Config.preset,
+    get featureEnabled() {
+      if (p1Config.preset === "underwater") return underwaterController.isUnderwater;
+      if (p1Config.preset === "wake-foam") return dynamicEffectsEnabled && interactionFeatureEnabled;
+      return interactionFeatureEnabled;
+    },
+    setFeatureEnabled: setFocusedFeatureEnabled,
+    reset(): void {
+      interactionFeatureEnabled = true;
+      setP1DynamicEffectsEnabled(p1Config.enabled);
+      setUnderwaterPreset(p1Config.initialUnderwaterPreset);
+      reset();
+    }
+  };
+  if (document.documentElement.dataset.waterPcgGroup === "feature") {
+    const featureApi: WaterFeatureCaseApi = {
+      caseId: document.documentElement.dataset.waterPcgCase ?? "",
+      preset: p1Config.preset,
+      get ready() {
+        return metrics.ready;
+      },
+      get enabled() {
+        return window.waterPcgPoolFeature?.featureEnabled ?? false;
+      },
+      setEnabled: setFocusedFeatureEnabled,
+      reset: () => window.waterPcgPoolFeature?.reset(),
+      snapshot() {
+        const signal = featureApi.enabled
+          ? p1Config.preset === "underwater"
+            ? underwaterController.metrics.submergedDepth
+            : p1Config.preset === "wake-foam"
+              ? p1Metrics.foamHistoryEnergy
+              : Math.max(metrics.maximumAbsSurfaceHeight, metrics.rippleRadius)
+          : 0;
+        return createFeatureSnapshot(featureApi, metrics.runtimeError, metrics.finite, signal);
+      }
+    };
+    window.waterPcgFeature = featureApi;
+  }
   window.waterPcgResetInteractivePool = reset;
   window.waterPcgSetInteractivePoolTargetFrameRate = (framesPerSecond: number): void => {
     if (!Number.isFinite(framesPerSecond) || framesPerSecond < 1 || framesPerSecond > 240) {
@@ -844,6 +1033,33 @@ async function bootstrapInteractivePool(): Promise<void> {
   const metricsScript = root.addComponent(PoolMetricsUpdateScript);
   metricsScript.callback = (deltaTime: number): void => {
     metrics.renderFrameCount++;
+    showcaseFrameSampler.record(deltaTime);
+    if (autoTourActive) {
+      const lengthDirectionX = axisX / axisLength;
+      const lengthDirectionZ = axisZ / axisLength;
+      const lateralX = -lengthDirectionZ;
+      const lateralZ = lengthDirectionX;
+      const phase = engine.time.elapsedTime * 0.09;
+      const along = Math.sin(phase) * layout.length * 0.12;
+      const lateral = layout.width * (0.72 + Math.cos(phase * 0.7) * 0.08);
+      const cameraX = layout.position[0] - lengthDirectionX * (layout.length * 0.3 - along) + lateralX * lateral;
+      const cameraZ = layout.position[2] - lengthDirectionZ * (layout.length * 0.3 - along) + lateralZ * lateral;
+      cameraEntity.transform.setPosition(cameraX, layout.position[1] + 9.5, cameraZ);
+      orbit.target.set(
+        layout.position[0] + lengthDirectionX * along * 0.28,
+        layout.position[1] - 0.25,
+        layout.position[2] + lengthDirectionZ * along * 0.28
+      );
+      cameraEntity.transform.lookAt(orbit.target);
+    }
+    reflectionService.update(metrics.renderFrameCount);
+    const currentSurfaceOpticsReadback = applySurfaceOpticsBinding();
+    if (currentSurfaceOpticsReadback) {
+      p1Metrics.surfaceOpticsRequestedTier = currentSurfaceOpticsReadback.requestedTier;
+      p1Metrics.surfaceOpticsResolvedTier = currentSurfaceOpticsReadback.resolvedTier;
+      p1Metrics.surfaceReflectionSource = currentSurfaceOpticsReadback.effectiveSource;
+      p1Metrics.surfaceRefractionEnabled = currentSurfaceOpticsReadback.refractionEnabled;
+    }
     underwaterController.update();
     const interactionTime = engine.time.elapsedTime;
     for (const sink of interactionSinks.values()) sink.timeSeconds = interactionTime;
@@ -1051,6 +1267,15 @@ async function bootstrapInteractivePool(): Promise<void> {
     metricsElement.dataset.p1SurfaceReflectionSource = p1Metrics.surfaceReflectionSource;
     metricsElement.dataset.p1SurfaceRefractionEnabled = String(p1Metrics.surfaceRefractionEnabled);
     metricsElement.dataset.p1SharedUnderwaterOpticalProfile = String(p1Metrics.sharesUnderwaterOpticalProfile);
+    const reflectionMetrics = reflectionService.metrics;
+    metricsElement.dataset.planarCameraCount = String(reflectionMetrics.planarCameraCount);
+    metricsElement.dataset.planarRenderTargetCount = String(reflectionMetrics.liveRenderTargetCount ?? 0);
+    metricsElement.dataset.planarUpdateCount = String(reflectionMetrics.planarUpdateCount);
+    metricsElement.dataset.planarRenderTargetBytes = String(reflectionMetrics.estimatedRenderTargetBytes);
+    metricsElement.dataset.planarWaterLayerExcluded = String(reflectionMetrics.waterLayerExcludedFromPlanar);
+    metricsElement.dataset.planarFilterSampleCount = String(
+      currentSurfaceOpticsReadback?.filterSampleCount ?? surfaceOpticsReadback.filterSampleCount
+    );
     if (metrics.runtimeError) setStatus("runtime failed", "error");
     else if (metrics.settled) setStatus("stable floating", "ready");
     else if (metrics.entryImpactCount > 0) setStatus("two-way wave coupling", "ready");
@@ -1062,12 +1287,119 @@ async function bootstrapInteractivePool(): Promise<void> {
   metrics.physicsFixedTimeStep = scene.physics.fixedTimeStep;
   metrics.targetFrameRate = engine.targetFrameRate;
   metrics.ready = true;
+  if (p1Config.preset === "hero-pool" && quality === "high") {
+    const captureStates = Object.freeze({
+      hero: Object.freeze({
+        underwaterPreset: "outside" as const,
+        position: indoorReflectivePoolExample.view.cameraPosition,
+        target: indoorReflectivePoolExample.view.cameraTarget
+      }),
+      interaction: Object.freeze({
+        underwaterPreset: "outside" as const,
+        position: [14, 2.8, 12] as const,
+        target: [0, 0.15, 0] as const
+      }),
+      detail: Object.freeze({
+        underwaterPreset: "inside" as const,
+        position: [-14, -1.05, 8] as const,
+        target: [4, -0.85, 0] as const
+      })
+    } as const);
+    let currentCaptureState: keyof typeof captureStates = "hero";
+    window.waterPcgShowcase = {
+      states: Object.freeze(Object.keys(captureStates)),
+      get currentState() {
+        return currentCaptureState;
+      },
+      setCaptureState(state: string): void {
+        if (!(state in captureStates)) throw new Error(`Unknown Pool capture state: ${state}.`);
+        const captureState = state as keyof typeof captureStates;
+        const capture = captureStates[captureState];
+        engine.resume();
+        reset();
+        autoTourActive = false;
+        showcaseCameraController?.setFreeControlActive(false);
+        currentCaptureState = captureState;
+        setUnderwaterPreset(capture.underwaterPreset);
+        cameraEntity.transform.setPosition(capture.position[0], capture.position[1], capture.position[2]);
+        orbit.target.set(capture.target[0], capture.target[1], capture.target[2]);
+        cameraEntity.transform.lookAt(orbit.target);
+        showcaseCameraController?.syncFromTransform();
+        if (captureState === "interaction") {
+          const impactPosition = new Vector3(layout.position[0] - 8, layout.position[1], layout.position[2] - 2);
+          heightField.registerInteraction(impactPosition, new Vector3(0, 1, 0), new Vector3(0, -8, 0), 1.3, 0.5, true);
+          for (let step = 0; step < 42; step++) heightField.step(scene.physics.fixedTimeStep);
+        }
+        underwaterController.update();
+        if (search.get("visual") === "1") {
+          engine.pause();
+          engine.update();
+        }
+      },
+      reset(): void {
+        engine.resume();
+        currentCaptureState = "hero";
+        reset();
+        setUnderwaterPreset("outside");
+      }
+    };
+    Object.defineProperty(window, "waterPcgAcceptance", {
+      configurable: true,
+      enumerable: true,
+      get: () => {
+        const reflectionMetrics = reflectionService.metrics;
+        const frame = showcaseFrameSampler.metrics;
+        return Object.freeze({
+          ready: metrics.ready,
+          caseId: "showcase-pool",
+          runtime: "pool" as const,
+          preset: p1Config.preset,
+          runtimeError: metrics.runtimeError || null,
+          finite: metrics.finite && frame.finite,
+          qualityTier: "high" as const,
+          opticsTier: "high" as const,
+          frame,
+          resources: Object.freeze({
+            bufferMemory: 0,
+            textureMemory: p1Metrics.foamResourceBytes + reflectionMetrics.estimatedRenderTargetBytes,
+            totalMemory: p1Metrics.foamResourceBytes + reflectionMetrics.estimatedRenderTargetBytes,
+            liveRenderTargets: reflectionMetrics.liveRenderTargetCount ?? 0,
+            liveReflectionCameras: reflectionMetrics.planarCameraCount,
+            meshUploadCount: metrics.totalMeshUploads,
+            perFrameMeshUpload: metrics.meshUploadsPerRenderFrame > 0
+          }),
+          reflection: Object.freeze({
+            requestedSource: "planar" as const,
+            effectiveSource: p1Metrics.surfaceReflectionSource,
+            ownerCount: reflectionMetrics.eligiblePlanarRequestCount ?? 0,
+            cameraCount: reflectionMetrics.planarCameraCount,
+            renderTargetCount: reflectionMetrics.liveRenderTargetCount ?? 0,
+            filterSampleCount: surfaceController.surfaceOpticsReadback?.filterSampleCount ?? 1,
+            failureCount: reflectionMetrics.planarFailureCount
+          }),
+          refractionEnabled: p1Metrics.surfaceRefractionEnabled,
+          scene: Object.freeze({
+            bodyCount: p1Metrics.bodyCount,
+            rippleRadius: metrics.rippleRadius,
+            foamActivePixels: p1Metrics.foamActiveHistoryPixelCount,
+            underwater: underwaterController.isUnderwater,
+            planarWaterLayerExcluded: reflectionMetrics.waterLayerExcludedFromPlanar,
+            cameraMode: showcaseCameraMode ?? "feature"
+          })
+        });
+      }
+    });
+  }
   setStatus("releasing ball", "ready");
   engine.run();
 
   const cleanup = (): void => {
     window.removeEventListener("resize", resizeCanvas);
     window.removeEventListener("resize", syncCameraFeatureViewport);
+    window.removeEventListener("resize", syncReflectionViewport);
+    window.removeEventListener("keydown", handleCameraKeyDown);
+    poolCanvas?.removeEventListener("pointerdown", pauseAutoTour);
+    poolCanvas?.removeEventListener("wheel", pauseAutoTour);
     resetButton.removeEventListener("click", reset);
     for (const button of underwaterPresetButtons) button.removeEventListener("click", handleUnderwaterPresetClick);
     for (const button of p1BodyButtons) button.removeEventListener("click", handleP1BodyCountClick);
@@ -1088,14 +1420,22 @@ async function bootstrapInteractivePool(): Promise<void> {
     riverResource.dispose();
     compileWorker.dispose();
     cameraFeatures.destroy();
+    cameraFeatureBroker.removeRequest("pool-showcase-reflection");
+    reflectionService.removeRequest(reflectionConsumerId);
+    reflectionServiceLease.release();
     cameraFeatureBroker.destroy();
     waterWorld.destroy();
     window.waterPcgP0 = undefined;
+    showcaseCameraController?.destroy();
     root.destroy();
     delete window.waterPcgResetInteractivePool;
     delete window.waterPcgSetInteractivePoolTargetFrameRate;
     delete window.waterPcgUnderwater;
     delete window.waterPcgP1;
+    delete window.waterPcgPoolFeature;
+    delete window.waterPcgFeature;
+    delete window.waterPcgShowcase;
+    delete window.waterPcgAcceptance;
   };
   window.addEventListener("beforeunload", cleanup, { once: true });
 }

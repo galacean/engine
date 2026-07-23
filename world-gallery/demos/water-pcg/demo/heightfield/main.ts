@@ -16,7 +16,8 @@ import { WaterBodyRuntimeAdapter } from "../../runtime/body/WaterBodyRuntime";
 import { WaterP0DebugController } from "../../runtime/body/WaterP0DebugApi";
 import { WaterWorld } from "../../runtime/body/WaterWorld";
 import { HeightfieldBedController } from "./HeightfieldBedController";
-import { createHeightfieldWaterFixture } from "./heightfieldFixture";
+import { createHeightfieldWaterFixture, type HeightfieldWaterFixture } from "./heightfieldFixture";
+import { createFeatureSnapshot, type WaterFeatureCaseApi } from "../showcase/WaterFeatureCaseApi";
 
 const QUALITY_OPTIONS = {
   Low: WaterQualityTier.Low,
@@ -65,9 +66,12 @@ export interface HeightfieldWaterDemoMetrics {
 
 export interface HeightfieldWaterDemoApi {
   readonly metrics: HeightfieldWaterDemoMetrics;
+  readonly featureEnabled: boolean;
   setQuality(quality: WaterQualityTier): Promise<void>;
   setDebugMode(mode: HeightfieldWaterDebugMode): void;
   setSurfaceTime(elapsedTime?: number): void;
+  setFeatureEnabled(enabled: boolean): void;
+  reset(): void;
 }
 
 declare global {
@@ -169,19 +173,38 @@ function writeCompiledMetrics(
 
 async function bootstrapHeightfieldWater(): Promise<void> {
   const search = new URLSearchParams(window.location.search);
+  const routePreset = document.documentElement.dataset.waterPcgPreset;
+  const shoreFoamPreset = routePreset === "shore-foam";
+  const livePresentationEnabled = document.documentElement.dataset.waterPcgDeveloperTools === "true";
+  const createRuntimeFixture = (quality: WaterQualityTier): HeightfieldWaterFixture => {
+    const fixture = createHeightfieldWaterFixture(quality);
+    if (!shoreFoamPreset) return fixture;
+    return {
+      ...fixture,
+      descriptor: {
+        ...fixture.descriptor,
+        id: `${fixture.descriptor.id}-shore-foam`,
+        material: {
+          ...fixture.descriptor.material,
+          shoreFoamWidth: 2.8
+        }
+      }
+    };
+  };
   const startupQuality = parseQuality(search.get("quality"));
   const startupDebug = parseDebugLabel(search.get("debug"));
   const requestedTime = Number(search.get("surfaceTime"));
   const hasTimeOverride = search.has("surfaceTime") && Number.isFinite(requestedTime);
   const guiState: HeightfieldGuiState = {
     quality: qualityLabel(startupQuality),
-    waves: search.get("waves") !== "0",
-    microNormals: search.get("microNormals") !== "0",
-    foam: search.get("foam") !== "0",
-    animateTime: !hasTimeOverride,
+    waves: search.has("waves") ? search.get("waves") !== "0" : !shoreFoamPreset,
+    microNormals: search.has("microNormals") ? search.get("microNormals") !== "0" : !shoreFoamPreset,
+    foam: search.has("foam") ? search.get("foam") !== "0" : shoreFoamPreset,
+    animateTime: livePresentationEnabled && !hasTimeOverride,
     surfaceTime: hasTimeOverride ? Math.max(0, requestedTime) : 12.5,
     debug: startupDebug
   };
+  let featureEnabled = true;
 
   const engineConfiguration = {
     canvas: "canvas",
@@ -209,9 +232,14 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 600;
   camera.fieldOfView = 41;
-  cameraEntity.transform.setPosition(78, 52, 98);
   const orbit = cameraEntity.addComponent(OrbitControl);
-  orbit.target.set(-3, 5.8, -3);
+  if (shoreFoamPreset) {
+    cameraEntity.transform.setPosition(24, 19, 36);
+    orbit.target.set(-8, 5.8, 8);
+  } else {
+    cameraEntity.transform.setPosition(78, 52, 98);
+    orbit.target.set(-3, 5.8, -3);
+  }
   orbit.minDistance = 24;
   orbit.maxDistance = 320;
   cameraFeatureBroker = new CameraWaterFeatureBroker(camera);
@@ -222,7 +250,7 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   const sun = sunEntity.addComponent(DirectLight);
   sun.color = new Color(1, 0.91, 0.76, 1);
 
-  const initialFixture = createHeightfieldWaterFixture(startupQuality);
+  const initialFixture = createRuntimeFixture(startupQuality);
   const bedController = new HeightfieldBedController(engine, root, initialFixture.descriptor);
   bedController.root.isActive = search.get("bed") !== "0";
   const runtimeRoot = root.createChild("heightfield-water-runtime");
@@ -266,13 +294,20 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   };
 
   const applyPresentation = (): void => {
+    const wavesEnabled = shoreFoamPreset ? guiState.waves : featureEnabled && guiState.waves;
+    const microNormalsEnabled = shoreFoamPreset ? guiState.microNormals : featureEnabled && guiState.microNormals;
+    const foamEnabled = shoreFoamPreset ? featureEnabled && guiState.foam : guiState.foam;
     runtimeController.setDebugMode(DEBUG_OPTIONS[guiState.debug]);
     runtimeController.setFeatureFlags({
-      waves: guiState.waves,
-      microNormals: guiState.microNormals,
-      foam: guiState.foam
+      waves: wavesEnabled,
+      microNormals: microNormalsEnabled,
+      foam: foamEnabled
     });
     runtimeController.setSurfaceTimeOverride(guiState.animateTime ? undefined : guiState.surfaceTime);
+    metricsElement.dataset.featureEnabled = String(featureEnabled);
+    metricsElement.dataset.wavesEnabled = String(wavesEnabled);
+    metricsElement.dataset.microNormalsEnabled = String(microNormalsEnabled);
+    metricsElement.dataset.foamEnabled = String(foamEnabled);
   };
 
   const setRuntimeError = (error: unknown): void => {
@@ -289,7 +324,7 @@ async function bootstrapHeightfieldWater(): Promise<void> {
     applyCameraFeaturePolicy(quality);
     let nextResource: HeightfieldWaterResource | undefined;
     try {
-      const fixture = createHeightfieldWaterFixture(quality);
+      const fixture = createRuntimeFixture(quality);
       nextResource = await compileWorker.compile(fixture.descriptor);
       if (revision !== rebuildRevision) {
         nextResource.dispose();
@@ -345,7 +380,8 @@ async function bootstrapHeightfieldWater(): Promise<void> {
     }
   };
 
-  const gui = new dat.GUI({ name: "Heightfield water" });
+  let gui: dat.GUI | undefined;
+  gui = new dat.GUI({ name: "Heightfield water" });
   gui
     .add(guiState, "quality", Object.keys(QUALITY_OPTIONS) as QualityLabel[])
     .name("Quality")
@@ -370,6 +406,9 @@ async function bootstrapHeightfieldWater(): Promise<void> {
     get metrics() {
       return demoMetrics;
     },
+    get featureEnabled() {
+      return featureEnabled;
+    },
     async setQuality(quality: WaterQualityTier): Promise<void> {
       guiState.quality = qualityLabel(quality);
       await compileAndActivate(quality);
@@ -383,8 +422,47 @@ async function bootstrapHeightfieldWater(): Promise<void> {
       guiState.animateTime = elapsedTime === undefined;
       if (elapsedTime !== undefined) guiState.surfaceTime = Math.max(0, elapsedTime);
       applyPresentation();
+    },
+    setFeatureEnabled(enabled: boolean): void {
+      featureEnabled = enabled;
+      applyPresentation();
+    },
+    reset(): void {
+      featureEnabled = true;
+      guiState.waves = !shoreFoamPreset;
+      guiState.microNormals = !shoreFoamPreset;
+      guiState.foam = shoreFoamPreset;
+      guiState.animateTime = false;
+      guiState.surfaceTime = 12.5;
+      guiState.debug = "Final";
+      applyPresentation();
     }
   };
+  const featureApi: WaterFeatureCaseApi = {
+    caseId: document.documentElement.dataset.waterPcgCase ?? "",
+    preset: routePreset ?? "heightfield",
+    get ready() {
+      return demoMetrics.ready;
+    },
+    get enabled() {
+      return featureEnabled;
+    },
+    setEnabled(enabled: boolean): void {
+      window.heightfieldWaterDemo?.setFeatureEnabled(enabled);
+    },
+    reset(): void {
+      window.heightfieldWaterDemo?.reset();
+    },
+    snapshot() {
+      return createFeatureSnapshot(
+        featureApi,
+        demoMetrics.runtimeError,
+        demoMetrics.runtimeError === "" && demoMetrics.ready,
+        featureEnabled ? 1 : 0
+      );
+    }
+  };
+  window.waterPcgFeature = featureApi;
 
   applyPresentation();
   engine.run();
@@ -394,8 +472,9 @@ async function bootstrapHeightfieldWater(): Promise<void> {
     rebuildRevision++;
     window.removeEventListener("resize", resizeCanvas);
     cameraFeatureBroker?.destroy();
-    gui.destroy();
+    gui?.destroy();
     window.heightfieldWaterDemo = undefined;
+    delete window.waterPcgFeature;
     runtimeController.destroy();
     waterWorld.destroy();
     window.waterPcgP0 = undefined;

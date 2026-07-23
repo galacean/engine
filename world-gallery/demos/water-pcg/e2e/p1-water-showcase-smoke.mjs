@@ -1,9 +1,8 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import { chromium } from "@playwright/test";
 
-const DEFAULT_URL = "http://127.0.0.1:4179/demos/water-pcg/#p1-water-showcase";
+const DEFAULT_URL = "http://127.0.0.1:4179/demos/water-pcg/#developer-pool-diagnostics";
 const BODY_COUNTS = [1, 4, 8, 16];
 const PERFORMANCE_BODY_COUNTS = [4, 8, 16];
 const FOAM_DEBUG_VIEWS = ["source", "history", "final"];
@@ -19,11 +18,9 @@ const continuityOnly = process.env.P1_WATER_CONTINUITY_ONLY === "1";
 const allowPlanarFailureFallback = process.env.P1_WATER_ALLOW_PLANAR_FALLBACK === "1";
 const minimumAbsoluteActiveFps = readOptionalPositiveEnvironmentNumber("P1_WATER_MIN_ACTIVE_FPS");
 const maximumAbsoluteActiveP95Ms = readOptionalPositiveEnvironmentNumber("P1_WATER_MAX_ACTIVE_P95_MS");
-const scriptDirectory = fileURLToPath(new URL(".", import.meta.url));
-const worldGalleryRoot = resolve(scriptDirectory, "../../..");
 const runId = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
 const outputDirectory = resolve(
-  process.env.P1_WATER_OUTPUT_DIR ?? resolve(worldGalleryRoot, "output/playwright/p1-water-showcase-smoke"),
+  process.env.P1_WATER_OUTPUT_DIR ?? "/tmp/water-pcg-acceptance/p1-water-showcase-smoke",
   runId
 );
 const resultPath = resolve(outputDirectory, "result.json");
@@ -867,7 +864,7 @@ async function verifyMediumPoolPerformance(browser, baseUrl) {
   const page = await context.newPage();
   const errors = [];
   collectBrowserErrors(page, errors);
-  const url = createTargetUrl(baseUrl, "p1-water-showcase", { quality: "medium", bodies: 4 });
+  const url = createTargetUrl(baseUrl, "developer-pool-diagnostics", { quality: "medium", bodies: 4 });
   try {
     await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForFunction(
@@ -934,7 +931,7 @@ async function verifyMediumPool(browser, baseUrl, tierDirectory) {
   const page = await context.newPage();
   const errors = [];
   collectBrowserErrors(page, errors);
-  const url = createTargetUrl(baseUrl, "p1-water-showcase", { quality: "medium" });
+  const url = createTargetUrl(baseUrl, "developer-pool-diagnostics", { quality: "medium" });
   try {
     await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForFunction(
@@ -986,7 +983,7 @@ async function verifyPoolOpticalContinuityTier(browser, baseUrl, quality, tierDi
   const page = await context.newPage();
   const errors = [];
   collectBrowserErrors(page, errors);
-  const url = createTargetUrl(baseUrl, "p1-water-showcase", { quality, bodies: 1 });
+  const url = createTargetUrl(baseUrl, "developer-pool-diagnostics", { quality, bodies: 1 });
   try {
     await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForFunction(
@@ -1021,7 +1018,7 @@ async function verifyLowPoolFallback(browser, baseUrl) {
   const page = await context.newPage();
   const errors = [];
   collectBrowserErrors(page, errors);
-  const url = createTargetUrl(baseUrl, "p1-water-showcase", { quality: "low" });
+  const url = createTargetUrl(baseUrl, "developer-pool-diagnostics", { quality: "low" });
   try {
     await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
     await page.waitForFunction(
@@ -1122,8 +1119,7 @@ async function verifyOcean(browser, baseUrl, quality) {
   const page = await context.newPage();
   const errors = [];
   collectBrowserErrors(page, errors);
-  const url = createTargetUrl(baseUrl, "curved-main-river", {
-    mode: "ocean",
+  const url = createTargetUrl(baseUrl, "developer-ocean-lod", {
     quality,
     reflection: "sky",
     surfaceTime: 12.5

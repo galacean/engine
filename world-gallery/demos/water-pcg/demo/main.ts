@@ -77,6 +77,19 @@ import { WaterReflectionService, type WaterReflectionServiceMetrics } from "../r
 import type { WaterReflectionSource } from "../runtime/optics/WaterReflectionPolicy";
 import { RiverStaticLocalModifierResource } from "../runtime/interaction/RiverStaticLocalModifierResource";
 import { WaterLocalFieldComposer } from "../runtime/interaction/WaterLocalFieldComposer";
+import { RiverShowcaseSceneController } from "./showcase/RiverShowcaseSceneController";
+import { createFeatureSnapshot, type WaterFeatureCaseApi } from "./showcase/WaterFeatureCaseApi";
+import {
+  areFiniteShowcaseMetrics,
+  WaterShowcaseFrameSampler,
+  type WaterShowcaseAcceptanceSnapshot
+} from "./showcase/WaterShowcaseAcceptance";
+import {
+  createShowcaseCameraController,
+  resolveShowcaseCameraMode,
+  SHOWCASE_CAMERA_MOVEMENT_SPEED,
+  type ShowcaseCameraController
+} from "./showcase/ShowcaseCameraControl";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -168,6 +181,12 @@ interface WaterPcgStressResult {
   readonly finalTotalMemory: number;
 }
 
+const RIVER_SHOWCASE_CAPTURE_STATES = Object.freeze({
+  hero: Object.freeze({ position: [50, 18, 49] as const, target: [-5, 4.2, 0] as const, time: 12.5 }),
+  interaction: Object.freeze({ position: [23, 11.5, 25] as const, target: [-13, 4.1, -4] as const, time: 18 }),
+  detail: Object.freeze({ position: [15, 5.8, 10] as const, target: [3, 2.9, 2] as const, time: 24 })
+});
+
 function getRiverWaterBounds(data: RiverCompiledData): WaterBoundsXZ {
   const bounds = data.queryIndex.primitiveBounds.toTypedArray();
   let minX = Number.POSITIVE_INFINITY;
@@ -205,7 +224,12 @@ declare global {
 
 async function bootstrapWaterPcg(): Promise<void> {
   const riverCompileWorker = new RiverCompileWorkerClient();
-  const startupExampleId = resolveWaterPcgCase(window.location).id;
+  const activeCase = resolveWaterPcgCase(window.location);
+  const search = new URLSearchParams(window.location.search);
+  const startupExampleId = activeCase.preset === "river-confluence" ? "feature-river-confluence" : "showcase-river";
+  const heroRiverEnabled = activeCase.preset === "hero-river";
+  const showcaseCameraMode = heroRiverEnabled ? resolveShowcaseCameraMode(search) : undefined;
+  const confluenceFeatureEnabled = activeCase.preset === "river-confluence";
   let activeExampleIndex = Math.max(
     0,
     waterPcgExamples.findIndex((example) => example.id === startupExampleId)
@@ -228,7 +252,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   const guiState: GuiState = {
     mode: "River",
     pathMode: "CatmullRom",
-    quality: "Medium",
+    quality: "High",
     materialPreset: "ClearStream",
     macroDisplacement: true,
     microSurface: true
@@ -236,7 +260,9 @@ async function bootstrapWaterPcg(): Promise<void> {
 
   let activeMode = waterPcgExamples[activeExampleIndex].initialMode;
   const startupQualityParameter = new URLSearchParams(window.location.search).get("quality");
-  const startupQuality = Object.values(RiverQualityLevel).find((level) => level === startupQualityParameter);
+  const requestedStartupQuality = Object.values(RiverQualityLevel).find((level) => level === startupQualityParameter);
+  const startupQuality =
+    heroRiverEnabled || confluenceFeatureEnabled ? RiverQualityLevel.High : requestedStartupQuality;
   const startupWaterQuality = Object.values(WaterQualityTier).find((level) => level === startupQualityParameter);
   const startupModeParameter = new URLSearchParams(window.location.search).get("mode");
   const startupMode = Object.values(WaterPreviewMode).find((mode) => mode === startupModeParameter);
@@ -401,6 +427,8 @@ async function bootstrapWaterPcg(): Promise<void> {
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 300;
   const control = cameraEntity.addComponent(OrbitControl);
+  control.enabled = !heroRiverEnabled;
+  let showcaseCameraController: ShowcaseCameraController | undefined;
   const cameraWaterFeatureBroker = new CameraWaterFeatureBroker(camera);
   cameraWaterFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
   const riverCameraFeatureController = new RiverCameraFeatureController(camera, cameraWaterFeatureBroker);
@@ -434,6 +462,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverBedController = new RiverBedController(engine, riverGroup);
   const riverRockController = new RiverRockController(engine, riverGroup);
   const poolSceneController = new PoolSceneController(engine, riverGroup);
+  const riverShowcaseSceneController = new RiverShowcaseSceneController(engine, riverGroup);
   const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverJunctionPreviewMaterial = createWaterPreviewMaterial(engine, "#ff70d2", 0.5);
   const riverBankPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
@@ -550,6 +579,7 @@ async function bootstrapWaterPcg(): Promise<void> {
       : waterPcgExamples[activeExampleIndex].riverDebug.queryT
   });
   const waterDebugPanel = mountWaterDebugPanel(document.body, debugSession);
+  waterDebugPanel.root.dataset.waterDebugPanel = "";
   let latestDebugSnapshot = debugSession.snapshot;
   const stopDebugSnapshotTracking = debugSession.subscribe((snapshot) => {
     latestDebugSnapshot = snapshot;
@@ -610,6 +640,86 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.planarReflectionDrawCount = String(reflectionMetrics.lastPlanarDrawCount);
     exampleBarElement.dataset.planarReflectionCpuP95Ms = reflectionMetrics.planarRenderCpuP95Ms.toFixed(3);
   };
+  const showcaseFrameSampler = new WaterShowcaseFrameSampler();
+  let riverRuntimeReady = false;
+  let riverFeatureEnabled = true;
+  const updateRiverAcceptance = (): void => {
+    const frame = showcaseFrameSampler.metrics;
+    const sceneMetrics = riverShowcaseSceneController.metrics;
+    const materialQuality = getPrimaryRiverConfig().quality.material.level;
+    const refractionEnabled =
+      materialQuality === RiverQualityLevel.High &&
+      riverCameraFeatureController.depthTextureRequested &&
+      riverCameraFeatureController.opaqueTextureRequested;
+    const runtimeError = exampleBarElement.dataset.runtimeError ?? "";
+    const sceneReady =
+      !heroRiverEnabled ||
+      (sceneMetrics.activeDriftCount === 3 && sceneMetrics.driftQueryHitCount > 0 && sceneMetrics.finite);
+    const finite = areFiniteShowcaseMetrics([
+      frame.fps,
+      frame.p95FrameMs,
+      activeRiverResource.byteLength,
+      riverMeshUploadCount,
+      sceneMetrics.maxDownstreamDistance,
+      engine.renderingStatistics.bufferMemory,
+      engine.renderingStatistics.textureMemory,
+      engine.renderingStatistics.totalMemory
+    ]);
+    const snapshot: WaterShowcaseAcceptanceSnapshot = Object.freeze({
+      ready:
+        riverRuntimeReady &&
+        frame.sampleCount > 2 &&
+        materialQuality === RiverQualityLevel.High &&
+        refractionEnabled &&
+        sceneReady &&
+        runtimeError.length === 0,
+      caseId: activeCase.id,
+      runtime: "river",
+      preset: activeCase.preset,
+      runtimeError: runtimeError || null,
+      finite,
+      qualityTier: "high",
+      opticsTier: "high",
+      frame,
+      resources: Object.freeze({
+        bufferMemory: engine.renderingStatistics.bufferMemory,
+        textureMemory: engine.renderingStatistics.textureMemory,
+        totalMemory: engine.renderingStatistics.totalMemory,
+        liveRenderTargets: 0,
+        liveReflectionCameras: 0,
+        meshUploadCount: riverMeshUploadCount,
+        perFrameMeshUpload: false
+      }),
+      reflection: Object.freeze({
+        requestedSource: "sky",
+        effectiveSource: "sky",
+        ownerCount: 0,
+        cameraCount: 0,
+        renderTargetCount: 0,
+        filterSampleCount: 1,
+        failureCount: 0
+      }),
+      refractionEnabled,
+      scene: Object.freeze({
+        nodeCount: activeRiverCompiledData.stats.nodeCount,
+        reachCount: activeRiverCompiledData.stats.reachCount,
+        junctionCount: activeRiverCompiledData.junctions.length,
+        chunkCount: activeRiverCompiledData.chunks.length,
+        localMapRegionCount: activeRiverCompiledData.stats.localMapRegionCount,
+        foamGeometryCount: activeRiverCompiledData.chunks.filter((chunk) => chunk.bankFoamGeometry).length,
+        disturbanceCount: activeRiverCompiledData.disturbances.length,
+        treeCount: sceneMetrics.treeCount,
+        bridgeCount: sceneMetrics.bridgeCount,
+        activeDriftCount: sceneMetrics.activeDriftCount,
+        driftQueryHitCount: sceneMetrics.driftQueryHitCount,
+        maxDownstreamDistance: sceneMetrics.maxDownstreamDistance,
+        featureEnabled: riverFeatureEnabled,
+        surfaceTime: surfaceTimeOverride ?? engine.time.elapsedTime,
+        cameraMode: showcaseCameraMode ?? "feature"
+      })
+    });
+    window.waterPcgAcceptance = snapshot;
+  };
   const updateOceanMaterial = (): void => {
     oceanPreview.setConfig(oceanConfig);
     oceanPreview.setReflectionSource(oceanConfig.reflectionSource ?? "sky");
@@ -665,7 +775,10 @@ async function bootstrapWaterPcg(): Promise<void> {
       poolSceneController.rebuild(data);
     } else {
       const queryService = riverRuntimeController.activeQueryService;
-      if (queryService) riverRockController.rebuild(data, queryService);
+      if (queryService) {
+        riverRockController.rebuild(data, queryService);
+        riverShowcaseSceneController.rebuild(data, queryService, heroRiverEnabled);
+      }
     }
     writeDecorationMetrics();
   };
@@ -676,6 +789,7 @@ async function bootstrapWaterPcg(): Promise<void> {
       decorationsVisible &&
       (decorationStyle === WaterDecorationStyle.River || decorationStyle === WaterDecorationStyle.HeightfieldRiver);
     poolSceneController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.Pool;
+    riverShowcaseSceneController.root.isActive = decorationsVisible && heroRiverEnabled;
     writeDecorationMetrics();
   };
   const rebuildRiverSegmentRuntimes = (): boolean => {
@@ -906,12 +1020,16 @@ async function bootstrapWaterPcg(): Promise<void> {
       exampleBarElement.dataset.diagnosticCount = String(warnings.length);
     }
     pendingRuntimeStatsRefresh = true;
+    riverRuntimeReady = true;
+    updateRiverAcceptance();
     if (networkRecompiled) rebuildGui();
   };
   const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
     void applyRiverChangesAsync(requestedFlags).catch((error: unknown) => {
+      riverRuntimeReady = false;
       exampleBarElement.dataset.runtimeError = error instanceof Error ? error.message : "River update failed.";
       debugSession.setStatus("error", exampleBarElement.dataset.runtimeError);
+      updateRiverAcceptance();
     });
   };
   let lastDebugSelectionToken = "";
@@ -962,9 +1080,10 @@ async function bootstrapWaterPcg(): Promise<void> {
       cameraEntity.transform.setPosition(view.cameraPosition[0], view.cameraPosition[1], view.cameraPosition[2]);
       cameraEntity.transform.lookAt(new Vector3(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]));
     }
+    showcaseCameraController?.syncFromTransform();
   };
   function renderExampleTabs(): void {
-    exampleBarElement.dataset.activeExample = waterPcgExamples[activeExampleIndex].id;
+    exampleBarElement.dataset.activeExample = activeCase.id;
     exampleBarElement.dataset.segmentCount = String(riverConfigs.length);
     exampleBarElement.dataset.compiledNetworkId = activeRiverCompiledData.sourceId;
     exampleBarElement.dataset.compiledNodeCount = String(activeRiverCompiledData.stats.nodeCount);
@@ -992,7 +1111,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     writeDecorationMetrics();
     writeSurfaceMetrics(activeRiverCompiledData);
     debugSession.updateContext(createDebugContext());
-    syncWaterPcgNavigation(exampleBarElement, waterPcgExamples[activeExampleIndex].id);
+    syncWaterPcgNavigation(exampleBarElement, activeCase.id);
   }
   function loadExample(index: number): void {
     compileRequestRevision++;
@@ -1026,7 +1145,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   function handleExampleBarClick(event: MouseEvent): void {
     if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
     const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[data-case-id]") : null;
-    if (!target || target.dataset.caseKind !== "river") return;
+    if (!target || target.dataset.caseRuntime !== "river") return;
 
     const nextIndex = waterPcgExamples.findIndex((example) => example.id === target.dataset.caseId);
     if (nextIndex < 0) return;
@@ -1038,7 +1157,7 @@ async function bootstrapWaterPcg(): Promise<void> {
 
   function handleLocationChange(): void {
     const selectedCase = resolveWaterPcgCase(window.location);
-    if (selectedCase.kind !== "river") return;
+    if (selectedCase.runtime !== "river") return;
     const nextIndex = waterPcgExamples.findIndex((example) => example.id === selectedCase.id);
     if (nextIndex >= 0 && nextIndex !== activeExampleIndex) loadExample(nextIndex);
   }
@@ -1050,6 +1169,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   let gui: dat.GUI | null = null;
   function rebuildGui(): void {
     gui?.destroy();
+    gui = null;
     syncGuiStateFromRiverConfig();
     gui = new dat.GUI({ name: "Water Controls", width: 280 });
     gui
@@ -1282,6 +1402,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     const current = cameraEntity.transform.worldPosition;
     cameraEntity.transform.setPosition(worldX, current.y, worldZ);
     cameraEntity.transform.lookAt(control.target);
+    showcaseCameraController?.syncFromTransform();
     oceanPreview.setCameraPosition(worldX, worldZ);
     writeOceanMetrics();
   };
@@ -1319,14 +1440,98 @@ async function bootstrapWaterPcg(): Promise<void> {
       debugSession.select(selection);
     }
   };
+  if (heroRiverEnabled) {
+    let currentState = "hero";
+    window.waterPcgShowcase = {
+      states: Object.freeze(Object.keys(RIVER_SHOWCASE_CAPTURE_STATES)),
+      get currentState() {
+        return currentState;
+      },
+      setCaptureState(state: string): void {
+        if (!(state in RIVER_SHOWCASE_CAPTURE_STATES)) {
+          throw new Error(`Unknown River capture state: ${state}.`);
+        }
+        showcaseCameraController?.setFreeControlActive(false);
+        const capture = RIVER_SHOWCASE_CAPTURE_STATES[state as keyof typeof RIVER_SHOWCASE_CAPTURE_STATES];
+        const [cameraX, cameraY, cameraZ] = capture.position;
+        const [targetX, targetY, targetZ] = capture.target;
+        currentState = state;
+        surfaceTimeOverride = capture.time;
+        riverRuntimeController.setSurfaceTimeOverride(capture.time);
+        riverShowcaseSceneController.update(capture.time);
+        control.target.set(targetX, targetY, targetZ);
+        cameraEntity.transform.setPosition(cameraX, cameraY, cameraZ);
+        cameraEntity.transform.lookAt(new Vector3(targetX, targetY, targetZ));
+        showcaseCameraController?.syncFromTransform();
+        updateRiverAcceptance();
+      },
+      reset(): void {
+        const view = waterPcgExamples[activeExampleIndex].view;
+        showcaseCameraController?.setFreeControlActive(false);
+        currentState = "hero";
+        surfaceTimeOverride = startupSurfaceTime;
+        riverRuntimeController.setSurfaceTimeOverride(startupSurfaceTime);
+        control.target.set(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]);
+        cameraEntity.transform.setPosition(view.cameraPosition[0], view.cameraPosition[1], view.cameraPosition[2]);
+        cameraEntity.transform.lookAt(new Vector3(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]));
+        showcaseCameraController?.syncFromTransform();
+        showcaseCameraController?.setFreeControlActive(showcaseCameraMode === "free");
+      }
+    };
+  }
+  let riverFeatureApi: WaterFeatureCaseApi | undefined;
+  if (confluenceFeatureEnabled) {
+    const api: WaterFeatureCaseApi = {
+      caseId: activeCase.id,
+      preset: activeCase.preset,
+      get ready() {
+        return riverRuntimeReady;
+      },
+      get enabled() {
+        return riverFeatureEnabled;
+      },
+      setEnabled(enabled: boolean): void {
+        riverFeatureEnabled = enabled;
+        riverRuntimeController.setJunctionVisibility(enabled);
+        updateRiverAcceptance();
+      },
+      reset(): void {
+        surfaceTimeOverride = startupSurfaceTime;
+        riverRuntimeController.setSurfaceTimeOverride(startupSurfaceTime);
+        api.setEnabled(true);
+      },
+      snapshot() {
+        const signal = riverFeatureEnabled ? activeRiverCompiledData.junctions.length : 0;
+        return createFeatureSnapshot(
+          api,
+          exampleBarElement.dataset.runtimeError ?? "",
+          Number.isFinite(signal),
+          signal
+        );
+      }
+    };
+    riverFeatureApi = api;
+    window.waterPcgFeature = api;
+  }
 
   rebuildExampleState();
+  if (heroRiverEnabled && showcaseCameraMode) {
+    showcaseCameraController = createShowcaseCameraController(cameraEntity, {
+      mode: showcaseCameraMode,
+      movementSpeed: SHOWCASE_CAMERA_MOVEMENT_SPEED.river,
+      afterCameraUpdate: () => {
+        reflectionService.update();
+        updateRiverAcceptance();
+      }
+    });
+  }
   class WaterPcgUpdateScript extends Script {
     private readonly _profileSamples: number[] = [];
     private readonly _frameSamples: number[] = [];
 
     onUpdate(deltaTime: number): void {
       const updateStart = profilingEnabled ? performance.now() : 0;
+      showcaseFrameSampler.record(deltaTime);
       riverRuntimeController.flushDeferredResources();
       if (pendingRuntimeStatsRefresh && riverRuntimes.length > 0) {
         const foamDrawCalls = activeRiverCompiledData.chunks.reduce(
@@ -1347,8 +1552,10 @@ async function bootstrapWaterPcg(): Promise<void> {
         oceanPreview.refreshReflectionBinding();
         writeOceanMetrics();
       } else {
+        riverShowcaseSceneController.update(surfaceTimeOverride ?? engine.time.elapsedTime);
         reflectionService.update();
       }
+      updateRiverAcceptance();
       if (profilingEnabled && this._profileSamples.length < RIVER_PROFILE_SAMPLE_COUNT) {
         this._profileSamples.push(performance.now() - updateStart);
         this._frameSamples.push(deltaTime * 1000);
@@ -1378,6 +1585,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     window.removeEventListener("popstate", handleLocationChange);
     window.removeEventListener("hashchange", handleLocationChange);
     window.removeEventListener("resize", syncReflectionViewport);
+    showcaseCameraController?.destroy();
     riverCameraFeatureController.destroy();
     stopDebugSceneSubscription();
     stopDebugSnapshotTracking();
@@ -1387,6 +1595,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     riverBedController.destroy();
     riverRockController.destroy();
     poolSceneController.destroy();
+    riverShowcaseSceneController.destroy();
     riverRuntimeController.destroy();
     riverMeshPreviewMaterial.destroy(true);
     riverJunctionPreviewMaterial.destroy(true);
@@ -1399,6 +1608,9 @@ async function bootstrapWaterPcg(): Promise<void> {
     waterWorld.destroy();
     window.waterPcgP0 = undefined;
     window.waterPcgDebug = undefined;
+    delete window.waterPcgAcceptance;
+    delete window.waterPcgShowcase;
+    if (window.waterPcgFeature === riverFeatureApi) delete window.waterPcgFeature;
     delete window.waterPcgGetOceanMetrics;
     delete window.waterPcgGetReflectionMetrics;
     delete window.waterPcgSetOceanReflectionSource;
@@ -1410,5 +1622,38 @@ async function bootstrapWaterPcg(): Promise<void> {
 }
 
 void bootstrapWaterPcg().catch((error: unknown) => {
-  console.error(error instanceof Error ? error : new Error("Water PCG bootstrap failed."));
+  const runtimeError = error instanceof Error ? error : new Error("Water PCG bootstrap failed.");
+  console.error(runtimeError);
+  const activeCase = resolveWaterPcgCase(window.location);
+  window.waterPcgAcceptance = Object.freeze({
+    ready: false,
+    caseId: activeCase.id,
+    runtime: "river",
+    preset: activeCase.preset,
+    runtimeError: runtimeError.message,
+    finite: false,
+    qualityTier: "high",
+    opticsTier: "high",
+    frame: Object.freeze({ sampleCount: 0, fps: 0, p95FrameMs: 0, finite: false }),
+    resources: Object.freeze({
+      bufferMemory: 0,
+      textureMemory: 0,
+      totalMemory: 0,
+      liveRenderTargets: 0,
+      liveReflectionCameras: 0,
+      meshUploadCount: 0,
+      perFrameMeshUpload: false
+    }),
+    reflection: Object.freeze({
+      requestedSource: "sky",
+      effectiveSource: "sky",
+      ownerCount: 0,
+      cameraCount: 0,
+      renderTargetCount: 0,
+      filterSampleCount: 1,
+      failureCount: 0
+    }),
+    refractionEnabled: false,
+    scene: Object.freeze({})
+  } satisfies WaterShowcaseAcceptanceSnapshot);
 });

@@ -21,8 +21,8 @@ import type { RiverPcgExample } from "../types";
 import { CURVED_MAIN_RIVER_MATERIAL_TUNING, CURVED_MAIN_RIVER_SURFACE_MOTION } from "./constants";
 
 export const multiTributaryRiverExample: RiverPcgExample = {
-  id: "multi-tributary-river",
-  label: "双支流汇流",
+  id: "feature-river-confluence",
+  label: "河流汇流",
   initialMode: WaterPreviewMode.River,
   decorationStyle: WaterDecorationStyle.HeightfieldRiver,
   view: {

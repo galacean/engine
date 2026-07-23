@@ -136,6 +136,7 @@ export class OceanPreviewController {
       baseCellSize: geometry.baseCellSize,
       coverageHalfExtent: geometry.coverageHalfExtent,
       reflectionSource: this._opticsReadback?.effectiveSource ?? "sky",
+      reflectionFilterSampleCount: this._opticsReadback?.filterSampleCount ?? 1,
       requestedOpticsTier: this._resolveOpticsTier(),
       resolvedOpticsTier: this._resolveOpticsTier() ? this._opticsReadback?.resolvedTier : undefined,
       compiledOpticsTier: this._materialState.opticsTier,
@@ -454,6 +455,7 @@ export class OceanPreviewController {
         this._reflectionVisible &&
         this.root.isActive,
       reflection: this._reflectionBinding,
+      reflectionSampling: this._config.reflectionSampling,
       debugView: WaterOpticsDebugView.Final
     });
   }

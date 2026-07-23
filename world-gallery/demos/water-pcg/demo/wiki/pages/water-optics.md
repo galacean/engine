@@ -87,6 +87,8 @@ Golden Scene 还有一个只被 Planar Camera 看见的水下洋红哨兵。主�
 
 ## Water Optics Lab
 
+面向公开学习和 A/B，分别打开 `#feature-refraction` 与 `#feature-reflection`；它们只保留当前主题需要的控制与证据。下面的 `#water-optics-lab` 属于默认隐藏的 Developer 案例，用于 Golden、跨水体矩阵、Planar owner 和生命周期验收。
+
 启动 Gallery 后打开：
 
 ```text

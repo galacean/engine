@@ -59,6 +59,7 @@ import {
   type BuoyancyScenarioId
 } from "./buoyancyFixture";
 import { parseRiverDriftSeed } from "./riverDriftFixture";
+import { createFeatureSnapshot, type WaterFeatureCaseApi } from "../showcase/WaterFeatureCaseApi";
 
 const PROFILE_WARMUP_STEPS = 20;
 const ALLOCATION_PROBE_WARMUP_STEPS = 120;
@@ -288,7 +289,11 @@ export interface WaterBuoyancyDemoMetrics {
 
 export interface WaterBuoyancyDemoApi {
   readonly metrics: WaterBuoyancyDemoMetrics;
+  readonly buoyancyEnabled: boolean;
+  readonly currentEnabled: boolean;
   selectScenario(scenario: BuoyancyScenarioId): void;
+  setBuoyancyEnabled(enabled: boolean): void;
+  setCurrentEnabled(enabled: boolean): void;
   reset(): void;
   perturb(): void;
   runSleepWakeCheck(): Promise<BuoyancySleepWakeResult>;
@@ -441,10 +446,18 @@ const resetButton: HTMLButtonElement = resetCandidate;
 const perturbButton: HTMLButtonElement = perturbCandidate;
 const profileButton: HTMLButtonElement = profileCandidate;
 const scenarioButtons = document.querySelectorAll<HTMLButtonElement>("[data-scenario]");
+const startupSearch = new URLSearchParams(window.location.search);
+const startupScenarioParameter = startupSearch.get("scenario");
+const startupScenario =
+  startupScenarioParameter !== null
+    ? parseBuoyancyScenario(startupScenarioParameter)
+    : document.documentElement.dataset.waterPcgPreset === "river-drift"
+      ? "river-four"
+      : "static-single";
 
 const demoMetrics: Mutable<WaterBuoyancyDemoMetrics> = {
   ready: false,
-  scenario: parseBuoyancyScenario(new URLSearchParams(window.location.search).get("scenario")),
+  scenario: startupScenario,
   runtimeError: "",
   bodyCount: 0,
   pontoonCount: 0,
@@ -653,6 +666,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
   riverBed.rebuild(riverResource.data, WaterDecorationStyle.River);
   const riverDriftSeed = parseRiverDriftSeed(search.get("driftSeed"));
   const riverDriftAutoEnabled = search.get("drift") !== "0";
+  let currentEnabled = search.get("current") !== "0";
   const riverDriftRoot = riverSceneRoot.createChild("river-drift-stream");
   const riverDriftSpawner = riverDriftRoot.addComponent(RiverDriftSpawner);
   riverDriftSpawner.configure({
@@ -662,6 +676,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     catchPlaneY: CATCH_PLANE_Y,
     startPaused: true
   });
+  riverDriftSpawner.setCurrentInfluenceEnabled(currentEnabled);
 
   const profileRiverResource = await compileWorker.compile(multiTributaryRiverExample.riverDescriptor);
   const profileRiverRuntimeRoot = root.createChild("buoyancy-profile-river-runtime");
@@ -697,6 +712,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     DynamicColliderConstraints.FreezeRotationY |
     DynamicColliderConstraints.FreezeRotationZ;
   let activeBody: ActiveBuoyancyBody | null = null;
+  let buoyancyEnabled = true;
   let allocationProbe: AllocationProbeState | null = null;
   let profileRun: Promise<readonly BuoyancyPerformanceCaseResult[]> | null = null;
   let frameRateRun: Promise<readonly BuoyancyFrameRateResult[]> | null = null;
@@ -895,6 +911,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     collider.angularDamping = 0.12;
 
     const buoyancy = entity.addComponent(WaterBuoyancy);
+    buoyancy.enabled = buoyancyEnabled;
     buoyancy.surfaceProvider = provider;
     buoyancy.pontoons = fixture.createPontoons();
     buoyancy.buoyancyCoefficient = fixture.buoyancyCoefficient;
@@ -925,6 +942,21 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     for (const button of scenarioButtons) button.dataset.active = String(button.dataset.scenario === scenario);
     demoMetrics.ready = true;
     setStatus("physics running", "ready");
+  };
+
+  const setCurrentEnabled = (enabled: boolean): void => {
+    currentEnabled = enabled;
+    riverDriftSpawner.setCurrentInfluenceEnabled(enabled);
+    if (demoMetrics.scenario !== "river-four") return;
+    riverDriftSpawner.reset(riverDriftSeed);
+    if (riverDriftAutoEnabled) riverDriftSpawner.start();
+    metricsElement.dataset.currentEnabled = String(enabled);
+  };
+
+  const setBuoyancyEnabled = (enabled: boolean): void => {
+    buoyancyEnabled = enabled;
+    selectScenario(demoMetrics.scenario);
+    metricsElement.dataset.buoyancyEnabled = String(enabled);
   };
 
   const reset = (): void => selectScenario(demoMetrics.scenario);
@@ -1216,6 +1248,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     demoMetrics.driftFinite = source.finite;
     demoMetrics.driftRuntimeError = source.runtimeError;
     demoMetrics.driftSnapshots = riverDriftSpawner.snapshots;
+    metricsElement.dataset.currentEnabled = String(source.currentInfluenceEnabled);
     let latest: RiverDriftInstanceSnapshot | null = null;
     for (const snapshot of riverDriftSpawner.snapshots) {
       if (snapshot.valid && snapshot.active && (!latest || snapshot.spawnIndex > latest.spawnIndex)) latest = snapshot;
@@ -1926,7 +1959,15 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     get metrics(): WaterBuoyancyDemoMetrics {
       return createMetricsSnapshot();
     },
+    get buoyancyEnabled(): boolean {
+      return buoyancyEnabled;
+    },
+    get currentEnabled(): boolean {
+      return currentEnabled;
+    },
     selectScenario,
+    setBuoyancyEnabled,
+    setCurrentEnabled,
     reset,
     perturb,
     runSleepWakeCheck,
@@ -1950,6 +1991,39 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     enumerable: true,
     writable: false
   });
+  const currentDriftPreset = document.documentElement.dataset.waterPcgPreset === "river-drift";
+  const featureApi: WaterFeatureCaseApi = {
+    caseId: document.documentElement.dataset.waterPcgCase ?? "",
+    preset: document.documentElement.dataset.waterPcgPreset ?? (currentDriftPreset ? "river-drift" : "static-single"),
+    get ready() {
+      return demoMetrics.ready;
+    },
+    get enabled() {
+      return currentDriftPreset ? currentEnabled : buoyancyEnabled;
+    },
+    setEnabled(enabled: boolean): void {
+      if (currentDriftPreset) setCurrentEnabled(enabled);
+      else setBuoyancyEnabled(enabled);
+    },
+    reset(): void {
+      if (currentDriftPreset) setCurrentEnabled(true);
+      else setBuoyancyEnabled(true);
+    },
+    snapshot() {
+      const signal = featureApi.enabled
+        ? currentDriftPreset
+          ? demoMetrics.driftMaxDownstreamDistance
+          : Math.max(demoMetrics.appliedForceCountPerStep, demoMetrics.submergedPontoonCount)
+        : 0;
+      return createFeatureSnapshot(
+        featureApi,
+        demoMetrics.runtimeError || demoMetrics.driftRuntimeError,
+        demoMetrics.finite && demoMetrics.driftFinite,
+        signal
+      );
+    }
+  };
+  window.waterPcgFeature = featureApi;
 
   for (const button of scenarioButtons) {
     button.addEventListener("click", () => selectScenario(parseBuoyancyScenario(button.dataset.scenario ?? null)));
@@ -1975,6 +2049,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     bodyMaterial.destroy(true);
     root.destroy();
     sharedPhysicsMaterial.destroy();
+    delete window.waterPcgFeature;
   });
 }
 

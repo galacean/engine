@@ -110,6 +110,7 @@ export interface RiverDriftInstanceSnapshot {
 
 export interface RiverDriftSpawnerMetrics {
   enabled: boolean;
+  currentInfluenceEnabled: boolean;
   seed: number;
   spawnedTotal: number;
   activeCount: number;
@@ -199,6 +200,7 @@ function createActiveInstance(): ActiveRiverDriftInstance {
 export class RiverDriftSpawner extends Script {
   readonly metrics: RiverDriftSpawnerMetrics = {
     enabled: false,
+    currentInfluenceEnabled: true,
     seed: RIVER_DRIFT_DEFAULT_SEED,
     spawnedTotal: 0,
     activeCount: 0,
@@ -230,6 +232,7 @@ export class RiverDriftSpawner extends Script {
   private _sharedPhysicsMaterial: PhysicsMaterial | null = null;
   private _catchPlaneY = -8;
   private _spawnIndex = 0;
+  private _currentInfluenceEnabled = true;
   private _configured = false;
   private _disposed = false;
 
@@ -283,6 +286,15 @@ export class RiverDriftSpawner extends Script {
     this._mutableMetrics.enabled = false;
   }
 
+  /** A/B control for the Current contribution without changing vertical buoyancy or the surface provider. */
+  setCurrentInfluenceEnabled(enabled: boolean): void {
+    this._currentInfluenceEnabled = enabled;
+    this._mutableMetrics.currentInfluenceEnabled = enabled;
+    for (const instance of this._instances) {
+      if (instance.buoyancy) instance.buoyancy.applyHorizontalDrag = enabled;
+    }
+  }
+
   /** Clears active bodies and rewinds seed, spawn index, scheduler, metrics, and snapshots. */
   reset(seed = this.metrics.seed): void {
     if (!this._configured || this._disposed) return;
@@ -333,6 +345,7 @@ export class RiverDriftSpawner extends Script {
     this._spawnIndex = 0;
     for (const snapshot of this._mutableSnapshots) resetSnapshot(snapshot);
     this._mutableMetrics.enabled = !paused;
+    this._mutableMetrics.currentInfluenceEnabled = this._currentInfluenceEnabled;
     this._mutableMetrics.seed = seed;
     this._mutableMetrics.spawnedTotal = 0;
     this._mutableMetrics.activeCount = 0;
@@ -413,7 +426,7 @@ export class RiverDriftSpawner extends Script {
     buoyancy.buoyancyCoefficient = BUOYANCY_COEFFICIENT;
     buoyancy.verticalDamping = VERTICAL_DAMPING;
     buoyancy.maxForceMultiplier = MAX_VERTICAL_FORCE_MULTIPLIER;
-    buoyancy.applyHorizontalDrag = true;
+    buoyancy.applyHorizontalDrag = this._currentInfluenceEnabled;
     buoyancy.horizontalLinearDrag = HORIZONTAL_LINEAR_DRAG;
     buoyancy.waterDensity = WATER_DENSITY;
     buoyancy.horizontalDragCoefficient = HORIZONTAL_DRAG_COEFFICIENT;

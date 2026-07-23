@@ -389,6 +389,12 @@ Shader "${shaderName}" {
       float material_ReflectionIntensity;
       float material_ReflectionSource;
       samplerCube material_ReflectionCubeTexture;
+      sampler2D material_PlanarReflectionTexture;
+      mat4 material_PlanarReflectionVP;
+      vec4 material_PlanarReflectionTextureSize;
+      vec4 material_PlanarReflectionSampling;
+      vec4 material_PlanarReflectionFade;
+      float material_PlanarReflectionRoughnessFootprint;
 
       struct Attributes {
         vec4 POSITION;
@@ -989,7 +995,52 @@ Shader "${shaderName}" {
           saturate(surfaceNormalWS.y * 0.5 + 0.5)
         );
         vec3 reflectionColor = skyReflection;
-        if (material_ReflectionSource > 0.5) {
+        if (material_ReflectionSource > 1.5) {
+          vec4 reflectionClip = material_PlanarReflectionVP * vec4(input.worldPosition, 1.0);
+          float minimumClipW = max(material_PlanarReflectionSampling.z, 0.000001);
+          vec2 reflectionUv = reflectionClip.xy / max(abs(reflectionClip.w), minimumClipW) * 0.5 + 0.5;
+          reflectionUv += surfaceNormalWS.xz * material_PlanarReflectionSampling.x;
+          vec2 clampedReflectionUv = clamp(reflectionUv, vec2(0.0), vec2(1.0));
+          vec2 edgeDistanceTexels = min(clampedReflectionUv, vec2(1.0) - clampedReflectionUv)
+            * max(material_PlanarReflectionTextureSize.xy, vec2(1.0));
+          float edgeFade = smoothstep(
+            0.0,
+            max(material_PlanarReflectionSampling.y, 1.0),
+            min(edgeDistanceTexels.x, edgeDistanceTexels.y)
+          );
+          float planeDistance = abs(camera_Position.y - input.worldPosition.y);
+          float planeDistanceFade = smoothstep(
+            material_PlanarReflectionFade.x,
+            max(material_PlanarReflectionFade.y, material_PlanarReflectionFade.x + 0.0001),
+            planeDistance
+          );
+          float viewAngleFade = smoothstep(
+            material_PlanarReflectionFade.z,
+            max(material_PlanarReflectionFade.w, material_PlanarReflectionFade.z + 0.0001),
+            normalDotView
+          );
+          float uvInside = step(0.0, reflectionUv.x) * step(reflectionUv.x, 1.0)
+            * step(0.0, reflectionUv.y) * step(reflectionUv.y, 1.0);
+          float planarValidity = step(minimumClipW, reflectionClip.w)
+            * uvInside
+            * edgeFade
+            * planeDistanceFade
+            * viewAngleFade;
+          vec3 planarColor = texture2D(material_PlanarReflectionTexture, clampedReflectionUv).rgb;
+          if (material_PlanarReflectionSampling.w > 3.0) {
+            vec2 filterOffset = material_PlanarReflectionTextureSize.zw
+              * material_PlanarReflectionRoughnessFootprint
+              * clamp(material_Roughness, 0.0, 1.0);
+            planarColor = (
+              planarColor
+              + texture2D(material_PlanarReflectionTexture, clamp(clampedReflectionUv + vec2(filterOffset.x, 0.0), vec2(0.0), vec2(1.0))).rgb
+              + texture2D(material_PlanarReflectionTexture, clamp(clampedReflectionUv - vec2(filterOffset.x, 0.0), vec2(0.0), vec2(1.0))).rgb
+              + texture2D(material_PlanarReflectionTexture, clamp(clampedReflectionUv + vec2(0.0, filterOffset.y), vec2(0.0), vec2(1.0))).rgb
+              + texture2D(material_PlanarReflectionTexture, clamp(clampedReflectionUv - vec2(0.0, filterOffset.y), vec2(0.0), vec2(1.0))).rgb
+            ) * 0.2;
+          }
+          reflectionColor = mix(skyReflection, planarColor, planarValidity);
+        } else if (material_ReflectionSource > 0.5) {
           reflectionColor = textureCube(
             material_ReflectionCubeTexture,
             reflect(-viewDirection, surfaceNormalWS)
@@ -1195,9 +1246,10 @@ export function updateRiverSurfaceMotion(material: Material, motion: RiverCompil
 /** Applies the shared P1 profile/refraction contract while intentionally rejecting Planar for River. */
 export function setRiverSurfaceOpticsBinding(
   material: Material,
-  binding: Readonly<WaterSurfaceOpticsBinding> = DEFAULT_RIVER_SURFACE_OPTICS_BINDING
+  binding: Readonly<WaterSurfaceOpticsBinding> = DEFAULT_RIVER_SURFACE_OPTICS_BINDING,
+  options: Readonly<{ planarEligible?: boolean }> = {}
 ): Readonly<WaterSurfaceOpticsBindingReadback> {
-  const reflection = resolveRiverReflectionBinding(binding.reflection);
+  const reflection = options.planarEligible ? binding.reflection : resolveRiverReflectionBinding(binding.reflection);
   const resolvedBinding =
     reflection === binding.reflection
       ? binding

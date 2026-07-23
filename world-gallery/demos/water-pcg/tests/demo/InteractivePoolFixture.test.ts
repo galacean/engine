@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import { createPoolSceneLayout } from "../../demo/decoration/PoolSceneController";
 import { indoorReflectivePoolExample } from "../../demo/examples/pool/indoorReflectivePool";
-import { findWaterPcgCase } from "../../demo/navigation";
+import { findWaterPcgCase, resolveWaterPcgCase } from "../../demo/navigation";
 import { POOL_WATER_OPTICAL_PROFILE } from "../../demo/pool/PoolWaterOptics";
 import { computeInteractivePoolRippleVisibility } from "../../demo/pool/InteractivePoolRippleStyle";
 import { RectangularWaterHeightField } from "../../runtime/interaction/RectangularWaterHeightField";
@@ -14,15 +14,17 @@ function readDemoSource(relativePath: string): string {
 }
 
 describe("interactive indoor pool fixture", () => {
-  it("keeps the original Chinese tab and anchor while routing it to the isolated pool runtime", () => {
-    expect(findWaterPcgCase("indoor-reflective-pool")).toEqual({
-      id: "indoor-reflective-pool",
-      label: "交互式泳池",
-      kind: "interactive-pool"
+  it("routes the legacy pool anchor to the consolidated pool showcase runtime", () => {
+    expect(findWaterPcgCase("indoor-reflective-pool")).toBeUndefined();
+    expect(resolveWaterPcgCase({ hash: "#indoor-reflective-pool", search: "" })).toMatchObject({
+      id: "showcase-pool",
+      label: "泳池",
+      group: "showcase",
+      runtime: "pool",
+      preset: "hero-pool"
     });
     const routerSource = readDemoSource("demo/router.ts");
-    expect(routerSource).toContain('case "interactive-pool"');
-    expect(routerSource).toContain('import("./pool/main")');
+    expect(routerSource).toContain('pool: () => import("./pool/main")');
   });
 
   it("derives the planned Low and Medium grids from the existing pool descriptor", () => {
@@ -126,7 +128,8 @@ describe("interactive indoor pool fixture", () => {
     expect(mainSource).toContain("opticalProfile: POOL_WATER_OPTICAL_PROFILE");
     expect(mainSource).toContain("refractionEnabled: true");
     expect(surfaceSource).toContain("setSurfaceOpticsBinding(");
-    expect(surfaceSource).toContain("setRiverSurfaceOpticsBinding(material, binding)");
+    expect(surfaceSource).toContain("setRiverSurfaceOpticsBinding(material, binding, { planarEligible: true })");
+    expect(surfaceSource).toContain("setRiverSurfaceOpticsBinding(material, this._surfaceOpticsBinding, {");
   });
 
   it("suppresses the settled pressure trough while preserving moving crests", () => {

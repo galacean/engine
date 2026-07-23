@@ -15,6 +15,30 @@ Descriptor / Wave Asset
 
 River 已走通完整 Descriptor → Compiler → Resource → Worker → Runtime 主线；Heightfield 有自己的描述、编译和运行时；Pool 与 Ocean 当前通过 Adapter 接入统一查询。四类水体共享查询契约，不强行共享几何或模拟算法。
 
+## 案例如何组织
+
+案例按展示目标分成三层，公共导航只显示 3 个 Showcase 和 11 个 Feature：
+
+| 层级 | 入口 | 目标 |
+| --- | --- | --- |
+| Showcase | [河流](./#showcase-river)、[泳池](./#showcase-pool)、[海洋](./#showcase-ocean) | 每种典型场景只保留一个“大而全”的最佳效果入口 |
+| Feature | [折射](./#feature-refraction)、[反射](./#feature-reflection)、[交互波纹](./#feature-ripples)、[尾迹与泡沫](./#feature-wake-foam)、[水下](./#feature-underwater)、[浮力](./#feature-buoyancy)、[水流漂移](./#feature-current-drift)、[Gerstner 波](./#feature-gerstner-waves)、[岸边泡沫](./#feature-shore-foam)、[高度场](./#feature-heightfield)、[河流汇流](./#feature-river-confluence) | 一次只证明一个局部能力，便于学习、A/B 和回归 |
+| Developer | [光学验收](./#water-optics-lab)、[泳池诊断](./#developer-pool-diagnostics)、[河流诊断](./#developer-river-debug)、[海洋 LOD 诊断](./#developer-ocean-lod) | 压力、纹理、拓扑、Golden 和资源生命周期验收；默认隐藏，可直接打开或使用 `?dev=1` |
+
+Showcase 与 Feature 是产品展示面；Developer 是工程验收面。不要把诊断控件和压力矩阵重新塞回 Showcase。
+
+> Ocean Showcase 当前使用**有限覆盖范围的 camera-relative Rings**：Low 为 25 个 patch，Medium / High 为 37 个 patch。它通过移动环带根节点维持镜头周围的视觉覆盖，但不是 FFT 海洋，也不具备真正无限的几何或大世界 Streaming。
+
+## 兼容 URL
+
+旧收藏链接仍会解析并规范化到新入口，但新文档和新分享链接只使用 canonical ID：
+
+- `#curved-main-river`、`#multi-tributary-river` → `#showcase-river`
+- `#indoor-reflective-pool`、`#p1-water-showcase` → `#showcase-pool`
+- `#heightfield-water` → `#feature-heightfield`
+- `#water-buoyancy` → `#feature-buoyancy`
+- `?mode=ocean` → `#showcase-ocean`
+
 ## 一次查询经过什么
 
 1. 玩法把世界坐标交给 `WaterWorld`。
@@ -34,7 +58,7 @@ River 已走通完整 Descriptor → Compiler → Resource → Worker → Runtim
 | Pool        | 支持     | 暂无原生批量 | 支持 | 支持     | 支持 | 不支持   | 不支持   | 0 帧 |
 | Ocean       | 支持     | 支持         | 支持 | 不支持   | 支持 | 不支持   | 不支持   | 0 帧 |
 
-矩阵来自当前 `WaterBodyCapabilities.ts`。能力为 `false` 时应显式降级或拒绝，不用空实现伪装支持。
+矩阵来自当前 `WaterBodyCapabilities.ts`。能力为 `false` 时应显式降级或拒绝，不用空实现伪装支持。泳池 Showcase 的时序泡沫和水下介质目前由 `water-pcg` Demo 适配层组合，尚未提升为 Pool Provider 的通用能力声明。
 
 ## 三层水面
 
