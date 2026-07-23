@@ -71,8 +71,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
       if (oldCollider) {
         oldCollider.removeShape(shape);
       }
-      this._shapes.push(shape);
       this._addNativeShape(shape);
+      this._shapes.push(shape);
       this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
@@ -196,8 +196,8 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   protected _addNativeShape(shape: ColliderShape): void {
-    shape._collider = this;
     this._setNativeShapeAttached(shape, true);
+    shape._collider = this;
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {

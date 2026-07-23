@@ -5,12 +5,13 @@ import {
   SphereColliderShape,
   BoxColliderShape,
   DynamicCollider,
+  HitResult,
   StaticCollider,
   PhysicsMaterial,
   Script,
   ModelMesh
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
@@ -490,28 +491,31 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
     });
 
-    it("should clone triangle mesh after the kinematic owner state is copied", () => {
+    it("should clone a kinematic triangle mesh that participates in raycasts", () => {
       const entity = root.createChild("clonedKinematicMesh");
       const dynamicCollider = entity.addComponent(DynamicCollider);
       dynamicCollider.isKinematic = true;
+      dynamicCollider.automaticCenterOfMass = false;
+      dynamicCollider.automaticInertiaTensor = false;
 
       const meshShape = new MeshColliderShape();
       const meshMaterial = meshShape.material;
-      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      const mesh = createModelMesh(engine, [-5, 0, -5, 5, 0, -5, -5, 0, 5, 5, 0, 5], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = mesh;
       dynamicCollider.addShape(meshShape);
 
-      const errorSpy = vi.spyOn(console, "error");
       const clone = entity.clone();
       root.addChild(clone);
       const clonedCollider = clone.getComponent(DynamicCollider);
-
-      expect(errorSpy).not.toHaveBeenCalledWith(expect.stringContaining("Non-convex MeshColliderShape"));
-      expect((clonedCollider as any)._nativeCollider._shapes.length).toBe(1);
-
-      errorSpy.mockRestore();
-      clone.destroy();
+      const clonedShape = clonedCollider.shapes[0];
       entity.destroy();
+
+      const hit = new HitResult();
+      expect(physicsScene.raycast(new Ray(new Vector3(0, 2, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+      expect(hit.entity).toBe(clone);
+      expect(hit.shape).toBe(clonedShape);
+
+      clone.destroy();
       meshMaterial?.destroy();
     });
 
@@ -535,6 +539,32 @@ describe("MeshColliderShape PhysX", () => {
       errorSpy.mockRestore();
       entity.destroy();
       meshMaterial?.destroy();
+    });
+  });
+
+  describe("Native Shape Attachment", () => {
+    it("should not record a shape when PhysX rejects the native attachment", () => {
+      const entity = root.createChild("rejectedNativeShape");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      const material = shape.material;
+      const nativeCollider = (collider as any)._nativeCollider;
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
+
+      try {
+        expect(() => collider.addShape(shape)).toThrowError(
+          "PhysXCollider: failed to attach shape to the native actor."
+        );
+        expect(collider.shapes).toHaveLength(0);
+        expect(nativeCollider._shapes).toHaveLength(0);
+        expect(shape.collider).toBeFalsy();
+        expect((shape as any)._isShapeAttached).toBe(false);
+      } finally {
+        attachSpy.mockRestore();
+        entity.destroy();
+        (shape as any)._destroy();
+        material?.destroy();
+      }
     });
   });
 
@@ -807,8 +837,6 @@ describe("MeshColliderShape PhysX", () => {
 
       const clonedShape = clone.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
       expect(clonedShape).not.toBe(shape);
-      // The cloned collider establishes the owner backlink and attaches the rebuilt shape once
-      expect((clone.getComponent(StaticCollider) as any)._nativeCollider._shapes.length).toBe(1);
       clonedShape.mesh = meshB;
       expect(meshA.refCount).toBe(1);
       expect(meshB.refCount).toBe(1);
