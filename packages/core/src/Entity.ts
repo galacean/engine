@@ -265,8 +265,9 @@ export class Entity extends EngineObject {
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     const needReplaceTransform = Entity._isTransformType(type) && this._transform;
-    if (needReplaceTransform)
+    if (needReplaceTransform) {
       ComponentsDependencies._removeCheck(this, <ComponentConstructor>this._transform.constructor, type);
+    }
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     if (needReplaceTransform) {
