@@ -3,7 +3,9 @@ export const defaultCloneModeKey = Symbol("defaultCloneMode");
 /** @internal */
 export const fieldCloneModesKey = Symbol("fieldCloneModes");
 
-/** @internal */
+/**
+ * @internal
+ */
 export const enum CloneMode {
   Ignore,
   Assignment,
@@ -37,7 +39,9 @@ export function ignoreClone(target: object, propertyKey: string): void {
   CloneMetadata.registerFieldMode(target, propertyKey, CloneMode.Ignore);
 }
 
-/** @internal */
+/**
+ * @internal
+ */
 export function registerDefaultCloneMode(target: { prototype: object }, mode: CloneMode): void {
   Object.defineProperty(target.prototype, defaultCloneModeKey, { value: mode });
 }
