@@ -66,7 +66,24 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _cloneValueForDeepField(source: any, preset: any, cloneMap: Map<object, object>): any {
+  static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
+    if (cloned === preset) return;
+    if (preset instanceof ReferResource) {
+      const presetRefCount = (<{ refCount?: number }>preset).refCount;
+      presetRefCount !== undefined &&
+        presetRefCount <= 0 &&
+        Logger.error(
+          `CloneUtil: the clone's preset ${preset.constructor.name} holds no owned reference; ` +
+            `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
+        );
+      (<IReferable>preset)._addReferCount(-1);
+    }
+    if (cloned === source && cloned instanceof ReferResource) {
+      (<IReferable>cloned)._addReferCount(1);
+    }
+  }
+
+  private static _cloneValueForDeepField(source: any, preset: any, cloneMap: Map<object, object>): any {
     if (typeof source === "function") {
       throw new Error(
         `CloneUtil: @deepClone cannot deep clone a function — code is not a cloneable graph. ` +
@@ -121,10 +138,12 @@ export class CloneUtil {
     return CloneUtil._cloneObjectByFields(source, preset, cloneMap, true);
   }
 
-  /**
-   * @internal
-   */
-  static _cloneValueByDefault(source: any, preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any {
+  private static _cloneValueByDefault(
+    source: any,
+    preset: any,
+    cloneMap: Map<object, object>,
+    deepCloneSubtree = false
+  ): any {
     if (typeof source === "function") {
       return deepCloneSubtree ? source : typeof preset === "function" ? preset : source;
     }
@@ -161,9 +180,6 @@ export class CloneUtil {
     return source;
   }
 
-  /**
-   * @internal
-   */
   private static _cloneCopyFromValue(source: any, preset: any, cloneMap: Map<object, object>): any {
     const existing = cloneMap.get(source);
     if (existing) return existing;
@@ -173,9 +189,6 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
   private static _cloneObjectByFields(
     source: any,
     preset: any,
@@ -190,10 +203,7 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
-  static _createCloneTarget(source: any, preset: any, cloneMap: Map<object, object>): any {
+  private static _createCloneTarget(source: any, preset: any, cloneMap: Map<object, object>): any {
     const proto = Object.getPrototypeOf(source);
     const reusable = preset && preset !== source && Object.getPrototypeOf(preset) === proto && preset;
     let dst: any;
@@ -220,30 +230,7 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
-  static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
-    if (cloned === preset) return;
-    if (preset instanceof ReferResource) {
-      const presetRefCount = (<{ refCount?: number }>preset).refCount;
-      presetRefCount !== undefined &&
-        presetRefCount <= 0 &&
-        Logger.error(
-          `CloneUtil: the clone's preset ${preset.constructor.name} holds no owned reference; ` +
-            `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
-        );
-      (<IReferable>preset)._addReferCount(-1);
-    }
-    if (cloned === source && cloned instanceof ReferResource) {
-      (<IReferable>cloned)._addReferCount(1);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _deepCloneArrayBufferView(
+  private static _deepCloneArrayBufferView(
     source: ArrayBufferView,
     preset: any,
     cloneMap: Map<object, object>
@@ -279,10 +266,12 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
-  static _cloneArray(source: any[], preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any[] {
+  private static _cloneArray(
+    source: any[],
+    preset: any,
+    cloneMap: Map<object, object>,
+    deepCloneSubtree = false
+  ): any[] {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
@@ -300,10 +289,7 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
-  static _cloneMap(
+  private static _cloneMap(
     source: Map<any, any>,
     preset: any,
     cloneMap: Map<object, object>,
@@ -329,10 +315,12 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   */
-  static _cloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): Set<any> {
+  private static _cloneSet(
+    source: Set<any>,
+    preset: any,
+    cloneMap: Map<object, object>,
+    deepCloneSubtree = false
+  ): Set<any> {
     const existing = cloneMap.get(source);
     if (existing) return <Set<any>>existing;
 
