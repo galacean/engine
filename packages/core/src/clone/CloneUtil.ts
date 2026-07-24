@@ -1,16 +1,14 @@
 import { IReferable } from "../asset/IReferable";
 import { ReferResource } from "../asset/ReferResource";
 import { TypedArray } from "../base/Constant";
-import { DataObject } from "../base/DataObject";
 import { Logger } from "../base/Logger";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { DisorderedArray } from "../utils/DisorderedArray";
-import { SafeLoopArray } from "../utils/SafeLoopArray";
-import { FieldCloneMode, fieldCloneModesKey } from "./CloneDecorators";
+import { CloneMode, defaultCloneModeKey, fieldCloneModesKey } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
+import "./MathCloneDefaults";
 
 /**
  * @internal
@@ -31,7 +29,7 @@ export class CloneUtil {
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const fieldMode = fieldModes?.[k];
-      if (fieldMode === FieldCloneMode.Ignore) continue;
+      if (fieldMode === CloneMode.Ignore) continue;
       target[k] = CloneUtil._cloneFieldValue(source[k], target[k], cloneMap, fieldMode, deepCloneSubtree);
     }
   }
@@ -43,84 +41,18 @@ export class CloneUtil {
     source: any,
     preset: any,
     cloneMap: Map<object, object>,
-    fieldMode?: FieldCloneMode,
+    fieldMode?: CloneMode,
     deepCloneSubtree = false
   ): any {
-    if (fieldMode === FieldCloneMode.Assignment) return source;
-    if (fieldMode === FieldCloneMode.Deep) {
-      CloneUtil._assertDeepCloneable(source);
-      const cloned = CloneUtil._cloneByDefault(source, preset, cloneMap, true);
-      if (cloned === source && source !== null && typeof source === "object") {
-        throw new Error(
-          `CloneUtil: @deepClone cannot deep clone "${CloneUtil._getTypeName(source)}" — its internal state ` +
-            `cannot be reproduced by cloning enumerable fields. Remove @deepClone to share it, or wrap the value ` +
-            `in a field-cloneable type.`
-        );
-      }
-      return cloned;
-    }
-    return CloneUtil._cloneByDefault(source, preset, cloneMap, deepCloneSubtree);
+    if (fieldMode === CloneMode.Assignment) return source;
+    if (fieldMode === CloneMode.Deep) return CloneUtil._cloneValueForDeepField(source, preset, cloneMap);
+    return CloneUtil._cloneValueByDefault(source, preset, cloneMap, deepCloneSubtree);
   }
 
   /**
    * @internal
    */
-  static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any {
-    if (typeof source === "function") {
-      return deepCloneSubtree ? source : typeof preset === "function" ? preset : source;
-    }
-    if (source === null || typeof source !== "object") return source;
-    if (source instanceof Entity || source instanceof Component) {
-      return cloneMap.get(source) ?? source;
-    }
-    if (source instanceof ReferResource) return source;
-    if (source instanceof UpdateFlagManager || source instanceof UpdateFlag) return preset;
-    if (ArrayBuffer.isView(source)) {
-      return CloneUtil._deepCloneArrayBufferView(<ArrayBufferView>source, preset, cloneMap);
-    }
-    if (Array.isArray(source)) {
-      return CloneUtil._deepCloneArray(source, preset, cloneMap, deepCloneSubtree);
-    }
-    if (source instanceof Map) {
-      return CloneUtil._deepCloneMap(source, preset, cloneMap, deepCloneSubtree);
-    }
-    if (source instanceof Set) {
-      return CloneUtil._deepCloneSet(source, preset, cloneMap, deepCloneSubtree);
-    }
-    if (source instanceof DisorderedArray || source instanceof SafeLoopArray) {
-      if (!deepCloneSubtree) return preset;
-      const existing = cloneMap.get(source);
-      if (existing) return existing;
-      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      CloneUtil._cloneObjectFields(source, dst, cloneMap, true);
-      return dst;
-    }
-
-    const isPlainObject = CloneUtil._isPlainObject(source);
-    if (!isPlainObject && typeof source.copyFrom === "function") {
-      const existing = cloneMap.get(source);
-      if (existing) return existing;
-      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      dst.copyFrom(source);
-      (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
-      return dst;
-    }
-
-    if (source instanceof DataObject || isPlainObject || (deepCloneSubtree && CloneUtil._canCloneByFields(source))) {
-      const existing = cloneMap.get(source);
-      if (existing) return existing;
-      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      CloneUtil._cloneObjectFields(source, dst, cloneMap, deepCloneSubtree);
-      (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
-      return dst;
-    }
-    return source;
-  }
-
-  /**
-   * @internal
-   */
-  static _assertDeepCloneable(source: any): void {
+  static _cloneValueForDeepField(source: any, preset: any, cloneMap: Map<object, object>): any {
     if (typeof source === "function") {
       throw new Error(
         `CloneUtil: @deepClone cannot deep clone a function — code is not a cloneable graph. ` +
@@ -146,6 +78,100 @@ export class CloneUtil {
           `@deepClone to keep the clone's own.`
       );
     }
+    if (source === null || typeof source !== "object") return source;
+    if (source[defaultCloneModeKey] === CloneMode.CopyFrom) {
+      return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
+    }
+    if (ArrayBuffer.isView(source)) {
+      return CloneUtil._deepCloneArrayBufferView(<ArrayBufferView>source, preset, cloneMap);
+    }
+    if (Array.isArray(source)) {
+      return CloneUtil._cloneArray(source, preset, cloneMap, true);
+    }
+    if (source instanceof Map) {
+      return CloneUtil._cloneMap(source, preset, cloneMap, true);
+    }
+    if (source instanceof Set) {
+      return CloneUtil._cloneSet(source, preset, cloneMap, true);
+    }
+    if (CloneUtil._isKnownOpaqueObject(source)) {
+      throw new Error(
+        `CloneUtil: @deepClone cannot deep clone "${CloneUtil._getTypeName(source)}" — its internal state ` +
+          `cannot be reproduced by cloning enumerable fields. Remove @deepClone to share it, or wrap the value ` +
+          `in a field-cloneable type.`
+      );
+    }
+    return CloneUtil._cloneObjectByFields(source, preset, cloneMap, true);
+  }
+
+  /**
+   * @internal
+   */
+  static _cloneValueByDefault(source: any, preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any {
+    if (typeof source === "function") {
+      return deepCloneSubtree ? source : typeof preset === "function" ? preset : source;
+    }
+    if (source === null || typeof source !== "object") return source;
+
+    switch (source[defaultCloneModeKey]) {
+      case CloneMode.Ignore:
+        return preset;
+      case CloneMode.Assignment:
+        return source;
+      case CloneMode.Remap:
+        return cloneMap.get(source) ?? source;
+      case CloneMode.CopyFrom:
+        return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
+      case CloneMode.Deep:
+        return CloneUtil._cloneObjectByFields(source, preset, cloneMap, deepCloneSubtree);
+    }
+
+    if (ArrayBuffer.isView(source)) {
+      return CloneUtil._deepCloneArrayBufferView(<ArrayBufferView>source, preset, cloneMap);
+    }
+    if (Array.isArray(source)) {
+      return CloneUtil._cloneArray(source, preset, cloneMap, deepCloneSubtree);
+    }
+    if (source instanceof Map) {
+      return CloneUtil._cloneMap(source, preset, cloneMap, deepCloneSubtree);
+    }
+    if (source instanceof Set) {
+      return CloneUtil._cloneSet(source, preset, cloneMap, deepCloneSubtree);
+    }
+    if (CloneUtil._isKnownOpaqueObject(source)) return source;
+    if (deepCloneSubtree || CloneUtil._isPlainObject(source)) {
+      return CloneUtil._cloneObjectByFields(source, preset, cloneMap, deepCloneSubtree);
+    }
+    return source;
+  }
+
+  /**
+   * @internal
+   */
+  private static _cloneCopyFromValue(source: any, preset: any, cloneMap: Map<object, object>): any {
+    const existing = cloneMap.get(source);
+    if (existing) return existing;
+    const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
+    dst.copyFrom(source);
+    (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
+    return dst;
+  }
+
+  /**
+   * @internal
+   */
+  private static _cloneObjectByFields(
+    source: any,
+    preset: any,
+    cloneMap: Map<object, object>,
+    deepCloneSubtree = false
+  ): any {
+    const existing = cloneMap.get(source);
+    if (existing) return existing;
+    const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
+    CloneUtil._cloneObjectFields(source, dst, cloneMap, deepCloneSubtree);
+    (<Partial<ICloneHook>>source)._onClone?.(dst, cloneMap);
+    return dst;
   }
 
   /**
@@ -240,7 +266,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any[] {
+  static _cloneArray(source: any[], preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): any[] {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
@@ -253,7 +279,7 @@ export class CloneUtil {
         : new Array(source.length);
     cloneMap.set(source, dst);
     for (let i = 0, n = source.length; i < n; i++) {
-      dst[i] = CloneUtil._cloneByDefault(source[i], undefined, cloneMap, deepCloneSubtree);
+      dst[i] = CloneUtil._cloneValueByDefault(source[i], undefined, cloneMap, deepCloneSubtree);
     }
     return dst;
   }
@@ -261,7 +287,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneMap(
+  static _cloneMap(
     source: Map<any, any>,
     preset: any,
     cloneMap: Map<object, object>,
@@ -280,8 +306,8 @@ export class CloneUtil {
     cloneMap.set(source, dst);
     for (const entry of source) {
       dst.set(
-        CloneUtil._cloneByDefault(entry[0], undefined, cloneMap, deepCloneSubtree),
-        CloneUtil._cloneByDefault(entry[1], undefined, cloneMap, deepCloneSubtree)
+        CloneUtil._cloneValueByDefault(entry[0], undefined, cloneMap, deepCloneSubtree),
+        CloneUtil._cloneValueByDefault(entry[1], undefined, cloneMap, deepCloneSubtree)
       );
     }
     return dst;
@@ -290,12 +316,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneSet(
-    source: Set<any>,
-    preset: any,
-    cloneMap: Map<object, object>,
-    deepCloneSubtree = false
-  ): Set<any> {
+  static _cloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>, deepCloneSubtree = false): Set<any> {
     const existing = cloneMap.get(source);
     if (existing) return <Set<any>>existing;
 
@@ -308,7 +329,7 @@ export class CloneUtil {
     }
     cloneMap.set(source, dst);
     for (const v of source) {
-      dst.add(CloneUtil._cloneByDefault(v, undefined, cloneMap, deepCloneSubtree));
+      dst.add(CloneUtil._cloneValueByDefault(v, undefined, cloneMap, deepCloneSubtree));
     }
     return dst;
   }
@@ -320,8 +341,8 @@ export class CloneUtil {
     return typeof ctor === "function" && ctor.name === "Object";
   }
 
-  private static _canCloneByFields(value: object): boolean {
-    return Object.prototype.toString.call(value) === "[object Object]";
+  private static _isKnownOpaqueObject(value: object): boolean {
+    return value instanceof Date || value instanceof RegExp;
   }
 
   private static _getTypeName(value: object): string {

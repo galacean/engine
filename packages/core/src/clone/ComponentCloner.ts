@@ -1,6 +1,6 @@
 import { Component } from "../Component";
 import { CloneUtil } from "./CloneUtil";
-import { FieldCloneMode, fieldCloneModesKey } from "./CloneDecorators";
+import { CloneMode, fieldCloneModesKey } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
 
 /**
@@ -17,7 +17,7 @@ export class ComponentCloner {
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const fieldMode = fieldModes?.[k];
-      if (fieldMode === FieldCloneMode.Ignore) continue;
+      if (fieldMode === CloneMode.Ignore) continue;
       const sourceValue = source[k];
       const preset = target[k];
       const cloned = (target[k] = CloneUtil._cloneFieldValue(sourceValue, preset, cloneMap, fieldMode));

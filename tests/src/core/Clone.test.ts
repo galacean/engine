@@ -1658,6 +1658,46 @@ describe("Clone remap", async () => {
   });
 
   describe("copyFrom value types via entity.clone", () => {
+    it("all exported math copyFrom types deep-clone through their registered type default", () => {
+      const typeNames = [
+        "BoundingBox",
+        "BoundingFrustum",
+        "BoundingSphere",
+        "Color",
+        "Matrix",
+        "Matrix3x3",
+        "Plane",
+        "Quaternion",
+        "Ray",
+        "Rect",
+        "SphericalHarmonics3",
+        "Vector2",
+        "Vector3",
+        "Vector4"
+      ] as const;
+      const types = typeNames.map((name) => EngineMath[name] as new () => any);
+      const spies = types.map((Type) => vi.spyOn(Type.prototype, "copyFrom"));
+      const values = types.map((Type) => new Type());
+      spies.forEach((spy) => spy.mockClear());
+
+      const rootEntity = scene.createRootEntity("root");
+      try {
+        const parent = rootEntity.createChild("parent");
+        const script = parent.addComponent(HandlerScript) as any;
+        script.mathValues = values;
+
+        const clonedValues = (parent.clone().getComponent(HandlerScript) as any).mathValues;
+        for (let i = 0; i < values.length; i++) {
+          expect(clonedValues[i]).instanceOf(types[i]);
+          expect(clonedValues[i]).not.eq(values[i]);
+          expect(spies[i]).toHaveBeenCalledWith(values[i]);
+        }
+      } finally {
+        spies.forEach((spy) => spy.mockRestore());
+        rootEntity.destroy();
+      }
+    });
+
     it("a Ray field deep-clones through the gate", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

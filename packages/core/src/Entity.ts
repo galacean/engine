@@ -10,6 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -778,6 +779,8 @@ export class Entity extends EngineObject {
     return this._invModelMatrix;
   }
 }
+
+registerDefaultCloneMode(Entity, CloneMode.Remap);
 
 export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,
