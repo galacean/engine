@@ -1,6 +1,6 @@
 import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 describe("Scene", () => {
   let engine: Engine;
@@ -200,6 +200,39 @@ describe("Scene", () => {
       scene.destroy();
       expect(scene.destroyed).eq(true);
       expect(scene.rootEntitiesCount).eq(0);
+    });
+  });
+
+  describe("loadScene", () => {
+    it("destroyOldScene destroys every previous scene during safe iteration", async () => {
+      // Dedicated engine so destroying old scenes does not disturb the shared one.
+      const localEngine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      const sceneManager = localEngine.sceneManager;
+
+      // Engine starts with one default scene; add two more so multiple scenes exist.
+      const old0 = sceneManager.scenes[0];
+      const old1 = new Scene(localEngine, "old1");
+      const old2 = new Scene(localEngine, "old2");
+      sceneManager.addScene(old1);
+      sceneManager.addScene(old2);
+      expect(sceneManager.scenes.length).eq(3);
+
+      // Resolve the load with a fresh scene without hitting real resources.
+      const newScene = new Scene(localEngine, "newScene");
+      vi.spyOn(localEngine.resourceManager, "load").mockReturnValue(Promise.resolve(newScene) as any);
+
+      await sceneManager.loadScene("mock://scene", true);
+
+      // Destroying a scene removes it from `_scenes` mid-loop; iterating the live array
+      // (`getArray`) would skip scenes, so every previous scene must still be destroyed.
+      expect(old0.destroyed).eq(true);
+      expect(old1.destroyed).eq(true);
+      expect(old2.destroyed).eq(true);
+      // Only the newly loaded scene remains.
+      expect(sceneManager.scenes.length).eq(1);
+      expect(sceneManager.scenes[0]).eq(newScene);
+
+      localEngine.destroy();
     });
   });
 });

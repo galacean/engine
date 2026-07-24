@@ -9,7 +9,7 @@ import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
-import { EngineObject } from "./base";
+import { EngineObject, Logger } from "./base";
 import { CloneUtils } from "./clone/CloneUtils";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -208,22 +208,22 @@ export class Entity extends EngineObject {
 
   /**
    * The sibling index.
+   * @remarks Assigning it on an entity that is not in the hierarchy (no parent and not a scene root)
+   * is a no-op and logs a warning.
    */
   get siblingIndex(): number {
     return this._siblingIndex;
   }
 
   set siblingIndex(value: number) {
-    if (this._siblingIndex === -1) {
-      throw `The entity ${this.name} is not in the hierarchy`;
-    }
-
     if (this._isRoot) {
       this._setSiblingIndex(this._scene._rootEntities, value);
-    } else {
+    } else if (this._parent) {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
+    } else {
+      Logger.warn(`The entity ${this.name} is not in the hierarchy`);
     }
   }
 
@@ -402,9 +402,17 @@ export class Entity extends EngineObject {
    */
   clearChildren(): void {
     const children = this._children;
+    if (children.length === 0) {
+      return;
+    }
+    // Dispatch a single `Child` modify event for the whole clear before detaching:
+    // `_processInActive` unregisters the removed subtrees' listeners (e.g. UIRenderer's
+    // root-canvas listener), so a later dispatch could no longer reach them.
+    this._dispatchModify(EntityModifyFlags.Child, this);
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       child._parent = null;
+      child._siblingIndex = -1;
 
       let activeChangeFlag = ActiveChangeFlag.None;
       child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -412,6 +420,8 @@ export class Entity extends EngineObject {
       activeChangeFlag && child._processInActive(activeChangeFlag);
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
+
+      child._setParentChange();
     }
     children.length = 0;
   }

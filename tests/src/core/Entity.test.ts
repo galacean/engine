@@ -328,8 +328,40 @@ describe("Entity", async () => {
       child.parent = parent;
       const child2 = new Entity(engine, "child2");
       child2.parent = parent;
+
+      const parentModifyCount = [0, 0, 0];
+      const childModifyCount = [0, 0, 0];
+      const child2ModifyCount = [0, 0, 0];
+      let childCountAtDispatch = -1;
+      // @ts-ignore
+      parent._registerModifyListener((flag: EntityModifyFlags) => {
+        ++parentModifyCount[flag];
+        flag === EntityModifyFlags.Child && (childCountAtDispatch = parent.children.length);
+      });
+      // @ts-ignore
+      child._registerModifyListener((flag: EntityModifyFlags) => ++childModifyCount[flag]);
+      // @ts-ignore
+      child2._registerModifyListener((flag: EntityModifyFlags) => ++child2ModifyCount[flag]);
+
       parent.clearChildren();
       expect(parent.children.length).eq(0);
+
+      // Parent should receive a single `Child` modify event for the whole clear so
+      // listeners (e.g. UICanvas) can invalidate their cached state.
+      expect(parentModifyCount[EntityModifyFlags.Child]).eq(1);
+      // The event must fire before the children are detached, while listeners
+      // registered from the removed subtrees are still able to receive it.
+      expect(childCountAtDispatch).eq(2);
+      // Each detached child should receive a `Parent` modify event.
+      expect(childModifyCount[EntityModifyFlags.Parent]).eq(1);
+      expect(child2ModifyCount[EntityModifyFlags.Parent]).eq(1);
+      // Sibling index must be reset so the entity is treated as lonely afterwards.
+      expect(child.siblingIndex).eq(-1);
+      expect(child2.siblingIndex).eq(-1);
+
+      // Clearing an entity that has no children should not dispatch any event.
+      parent.clearChildren();
+      expect(parentModifyCount[EntityModifyFlags.Child]).eq(1);
     });
     it("sibling index", () => {
       const root = scene.createRootEntity();
@@ -395,12 +427,13 @@ describe("Entity", async () => {
       };
       expect(siblingIndexBadFn).to.throw();
 
-      // thorw error when set lonely entity
+      // setting sibling index on a lonely entity (no parent, not in scene root) warns instead of throwing
       const entityX = new Entity(engine, "entityX");
-      var lonelyBadFn = function () {
+      var lonelyFn = function () {
         entityX.siblingIndex = 1;
       };
-      expect(lonelyBadFn).to.throw();
+      expect(lonelyFn).not.to.throw();
+      expect(entityX.siblingIndex).eq(-1);
     });
 
     it("isRoot", () => {
