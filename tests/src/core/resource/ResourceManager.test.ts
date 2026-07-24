@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Shader, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -104,6 +104,61 @@ describe("ResourceManager", () => {
       expect(loaderSpy).toHaveBeenCalled();
       expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
       loaderSpy.mockRestore();
+    });
+
+    it("detects precompiled shader content behind an opaque physical path", async () => {
+      const resourceManager = engine.resourceManager;
+      const physicalPath = "https://cdn.ali.com/assets/8fca12?version=1";
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Shaders/custom.shader",
+          path: physicalPath,
+          type: AssetType.Shader
+        }
+      ]);
+      // @ts-ignore
+      const requestSpy = vi
+        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .mockReturnValue(
+          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
+        );
+      // @ts-ignore
+      const createSpy = vi.spyOn(Shader, "_createFromPrecompiled").mockReturnValue({ name: "custom" } as Shader);
+      try {
+        await resourceManager.load("Shaders/custom.shader");
+
+        expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
+        expect(createSpy).toHaveBeenCalled();
+      } finally {
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
+    });
+
+    it("keeps ordinary shader source on the source parser path", async () => {
+      const resourceManager = engine.resourceManager;
+      const physicalPath = "https://cdn.ali.com/assets/source-8fca12";
+      const source = 'Shader "Custom/Source" {}';
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Shaders/source.shader",
+          path: physicalPath,
+          type: AssetType.Shader
+        }
+      ]);
+      // @ts-ignore
+      const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
+      const createSpy = vi.spyOn(Shader, "create").mockReturnValue({ name: "source" } as Shader);
+
+      try {
+        await resourceManager.load("Shaders/source.shader");
+
+        expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
+        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/source.shader");
+      } finally {
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
     });
 
     it("fills params from virtualPathResourceMap when params is omitted", () => {
