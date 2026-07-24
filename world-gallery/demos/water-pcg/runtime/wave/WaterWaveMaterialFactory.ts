@@ -1,6 +1,6 @@
 /** Fixed-variant Gerstner material creation and binding for the Ocean preview. */
-import { Engine, Material, Shader } from "@galacean/engine-core";
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Engine, Material, Shader, type Texture2D } from "@galacean/engine-core";
+import { Color, Vector2, Vector4 } from "@galacean/engine-math";
 import {
   WATER_WAVE_EPSILON,
   WATER_WAVE_PACKED_FLOATS_PER_WAVE,
@@ -9,7 +9,20 @@ import {
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import { WATER_WAVE_SHADER_PROPERTY, WATER_WAVE_SHADER_TUNING } from "./constants/WaterWaveShaderConstants";
 import { WaterWaveShaderVariant } from "./enums/WaterWaveShaderVariant";
-import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "./WaterWaveRuntimeTypes";
+import type {
+  WaterSurfaceDetailConfig,
+  WaterWaveMaterialConfig,
+  WaterWaveMaterialState
+} from "./WaterWaveRuntimeTypes";
+import type { OceanNearshoreDebugView } from "../ocean/OceanNearshoreShaderTypes";
+import { createOceanNearshoreWaveModifierGlsl } from "../ocean/OceanNearshoreWaveEvaluator";
+import { createOceanAnalyticWhitecapGlsl } from "../ocean/OceanAnalyticWhitecapEvaluator";
+import {
+  WaterFoamDebugView,
+  type WaterTemporalFoamBinding
+} from "../interaction/WaterFoamTypes";
+import { getWaterSurfaceDualSlopeTexture } from "./WaterSurfaceDetailTextureFactory";
+import { getWaterFoamDetailTexture } from "./WaterFoamDetailTextureFactory";
 import type { WaterReflectionBinding } from "../optics/WaterReflectionService";
 import { DEFAULT_WATER_OPTICAL_PROFILE } from "../optics/WaterOpticalProfile";
 import {
@@ -34,6 +47,11 @@ const WATER_WAVE_SHADER_NAME: Readonly<Record<WaterWaveShaderVariant, string>> =
 };
 
 const ZERO_WAVE_UNIFORM = new Vector4(0, 0, 0, 0);
+const DEFAULT_SURFACE_DETAIL_WIND = Object.freeze([1, 0] as const);
+
+interface NullableTextureShaderData {
+  setTexture(propertyName: string, value: Texture2D | null): void;
+}
 
 function glsl(value: number, digits = 8): string {
   return value.toFixed(digits);
@@ -62,9 +80,469 @@ function waveApplyStatements(waveCount: number): string {
     statements += `        applyGerstnerWave(
       ${WATER_WAVE_SHADER_PROPERTY.waveAPrefix}${index},
       ${WATER_WAVE_SHADER_PROPERTY.waveBPrefix}${index},
-      restXZ, elapsedTime, displacedPosition.xyz, derivativeX, derivativeZ, crestAccumulation);\n`;
+      restXZ, elapsedTime,
+      nearshoreDirectionBlend, nearshorePhaseSpeedScale,
+      nearshoreWaveNumberScale, nearshoreAmplitudeScale,
+      nearshoreHorizontalAmplitudeScale, nearshoreShoreNormal,
+      displacedPosition.xyz, derivativeX, derivativeZ, crestAccumulation);\n`;
   }
   return statements;
+}
+
+function surfaceDetailLayerCount(variant: WaterWaveShaderVariant): 0 | 1 | 2 | 3 {
+  if (variant === WaterWaveShaderVariant.None) return 0;
+  if (variant === WaterWaveShaderVariant.Low) return 1;
+  if (variant === WaterWaveShaderVariant.Medium) return 2;
+  return 3;
+}
+
+function surfaceDetailStatements(variant: WaterWaveShaderVariant): string {
+  const layerCount = surfaceDetailLayerCount(variant);
+  if (layerCount === 0) return "";
+  const tuning = WATER_WAVE_SHADER_TUNING;
+  let statements = `        vec2 surfaceDetailSlope = vec2(0.0);
+        if (material_SurfaceDetailEnabled > 0.5) {
+          float surfaceDetailTime = mod(
+            material_SurfaceTimeOverride >= 0.0 ? material_SurfaceTimeOverride : scene_ElapsedTime.x,
+            ${glsl(tuning.surfaceDetailTimePeriod, 1)}
+          );
+          vec2 surfaceDetailWind = material_SurfaceDetailWind;
+          float surfaceDetailWindLength = length(surfaceDetailWind);
+          surfaceDetailWind = surfaceDetailWindLength > 0.000001
+            ? surfaceDetailWind / surfaceDetailWindLength
+            : vec2(1.0, 0.0);
+          vec2 surfaceDetailCrossWind = vec2(-surfaceDetailWind.y, surfaceDetailWind.x);
+`;
+  let weightSum = 0;
+  const terms: string[] = [];
+  for (let index = 0; index < layerCount; index++) {
+    const scale = tuning.surfaceDetailLayerScales[index];
+    const rate = tuning.surfaceDetailLayerRates[index];
+    const weight = tuning.surfaceDetailLayerWeights[index];
+    const crossWind = tuning.surfaceDetailCrossWind[index];
+    const slopeExpression =
+      index % 3 === 0
+        ? `surfaceDetailSample${index}.rg`
+        : index % 3 === 1
+          ? `surfaceDetailSample${index}.ba`
+          : `(surfaceDetailSample${index}.rg * 0.58 + surfaceDetailSample${index}.ba * 0.42)`;
+    weightSum += weight;
+    statements += `          vec2 surfaceDetailUv${index} = vec2(
+            dot(input.worldPosition.xz, surfaceDetailWind),
+            dot(input.worldPosition.xz, surfaceDetailCrossWind)
+          ) * material_SurfaceDetailScale * ${glsl(scale)}
+            + vec2(
+              surfaceDetailTime * material_SurfaceDetailSpeed * ${glsl(rate)},
+              ${glsl(crossWind)}
+            );
+          vec4 surfaceDetailSample${index} =
+            texture2D(material_SurfaceDetailTexture, surfaceDetailUv${index});
+          vec2 surfaceDetailEncodedSlope${index} =
+            ${slopeExpression} * 2.0 - 1.0;
+          vec2 surfaceDetailWorldSlope${index} =
+            surfaceDetailWind * surfaceDetailEncodedSlope${index}.x
+            + surfaceDetailCrossWind * surfaceDetailEncodedSlope${index}.y;
+`;
+    terms.push(`surfaceDetailWorldSlope${index} * ${glsl(weight)}`);
+  }
+  statements += `          surfaceDetailSlope = (${terms.join(" + ")}) / ${glsl(weightSum)};
+        }
+        normal = normalize(
+          normal + vec3(surfaceDetailSlope.x, 0.0, surfaceDetailSlope.y)
+            * material_SurfaceDetailStrength
+            * material_SurfaceDetailEnabled
+        );`;
+  return statements;
+}
+
+function nearshoreSamplingStatements(): string {
+  return `        vec2 nearshoreUv =
+          input.worldPosition.xz * material_NearshoreWorldToUv.xy
+          + material_NearshoreWorldToUv.zw;
+        float nearshoreInside =
+          step(0.0, nearshoreUv.x) * step(nearshoreUv.x, 1.0)
+          * step(0.0, nearshoreUv.y) * step(nearshoreUv.y, 1.0);
+        float nearshoreOutsideDeep = 1.0;
+        float nearshoreWet = 1.0;
+        float nearshoreStaticWet = 1.0;
+        float nearshoreDynamicOccupancy = 0.0;
+        float nearshoreBreaker = 0.0;
+        float nearshoreThinFilm = 0.0;
+        float nearshoreWetness = 0.0;
+        float nearshoreDepthNormalized = 1.0;
+        float nearshoreShoreDistance = material_NearshoreDecode.z;
+        if (material_NearshoreEnabled > 0.5) {
+          if (nearshoreInside > 0.5) {
+            vec4 nearshoreStatic = texture2D(material_NearshoreTexture, nearshoreUv);
+            nearshoreDepthNormalized = nearshoreStatic.b;
+            nearshoreShoreDistance =
+              ((nearshoreStatic.a * 255.0 - 128.0) / 127.0)
+              * material_NearshoreDecode.z;
+            nearshoreStaticWet = step(material_NearshoreDecode.w, nearshoreStatic.a);
+            if (material_NearshoreStateEnabled > 0.5) {
+              vec4 nearshoreState = texture2D(material_NearshoreStateTexture, nearshoreUv);
+              nearshoreDynamicOccupancy = nearshoreState.g;
+              nearshoreBreaker =
+                nearshoreState.r * material_NearshoreBreakerEnabled;
+              nearshoreWetness = texture2D(material_NearshoreWetnessTexture, nearshoreUv).r;
+            }
+            nearshoreThinFilm = (1.0 - nearshoreStaticWet) * nearshoreDynamicOccupancy;
+            nearshoreWet = max(
+              nearshoreStaticWet,
+              step(
+                material_NearshoreStateDecode.w,
+                nearshoreDynamicOccupancy
+              )
+            );
+            if (nearshoreWet < 0.5) discard;
+          } else {
+            if (nearshoreUv.x < 0.0) {
+              nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.x;
+            }
+            if (nearshoreUv.x > 1.0) {
+              nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.y;
+            }
+            if (nearshoreUv.y < 0.0) {
+              nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.z;
+            }
+            if (nearshoreUv.y > 1.0) {
+              nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.w;
+            }
+            nearshoreWet = nearshoreOutsideDeep;
+            if (nearshoreOutsideDeep < 0.5) discard;
+          }
+        }`;
+}
+
+function nearshoreDebugApplication(): string {
+  return `        if (material_NearshoreEnabled > 0.5 && material_NearshoreDebugView > 0.5) {
+          if (material_NearshoreDebugView < 1.5) {
+            waterColor = nearshoreInside > 0.5
+              ? mix(vec3(0.93, 0.72, 0.18), vec3(0.03, 0.18, 0.72), nearshoreDepthNormalized)
+              : vec3(0.01, 0.08, 0.32);
+          } else if (material_NearshoreDebugView < 2.5) {
+            float shoreDebug = clamp(
+              nearshoreShoreDistance / max(material_NearshoreDecode.z, 0.000001) * 0.5 + 0.5,
+              0.0,
+              1.0
+            );
+            waterColor = nearshoreInside > 0.5
+              ? vec3(1.0 - shoreDebug, shoreDebug, 0.08)
+              : vec3(0.01, 0.08, 0.32);
+          } else if (material_NearshoreDebugView < 3.5) {
+            waterColor = vec3(nearshoreWet);
+          } else if (material_NearshoreDebugView < 4.5) {
+            waterColor = nearshoreInside > 0.5
+              ? vec3(0.18, 0.72, 0.32)
+              : (nearshoreOutsideDeep > 0.5
+                ? vec3(0.08, 0.28, 0.92)
+                : vec3(0.92, 0.22, 0.08));
+          } else if (material_NearshoreDebugView < 5.5) {
+            waterColor = vec3(nearshoreBreaker, nearshoreBreaker * 0.34, 0.0);
+          } else if (material_NearshoreDebugView < 6.5) {
+            waterColor = vec3(nearshoreThinFilm, nearshoreThinFilm * 0.7, 0.1);
+          } else {
+            waterColor = vec3(nearshoreWetness);
+          }
+        }`;
+}
+
+function foamSamplingStatements(): string {
+  return `        vec2 temporalFoamUv =
+          (input.worldPosition.xz - material_TemporalFoamRegion.xy)
+          * material_TemporalFoamRegion.zw;
+        float temporalFoamInside =
+          step(0.0, temporalFoamUv.x) * step(temporalFoamUv.x, 1.0)
+          * step(0.0, temporalFoamUv.y) * step(temporalFoamUv.y, 1.0);
+        float temporalFoam = texture2D(
+          material_TemporalFoamTexture,
+          clamp(temporalFoamUv, vec2(0.0), vec2(1.0))
+        ).r * temporalFoamInside * material_TemporalFoamEnabled;
+        float debugTemporalFoam = temporalFoam;
+        if (
+          material_FoamDebugView > 0.5
+          && temporalFoamInside > 0.5
+        ) {
+          vec2 debugTexel = material_TemporalFoamTexelSize;
+          debugTemporalFoam = max(
+            debugTemporalFoam,
+            max(
+              texture2D(
+                material_TemporalFoamTexture,
+                clamp(temporalFoamUv + vec2(debugTexel.x, 0.0), vec2(0.0), vec2(1.0))
+              ).r,
+              texture2D(
+                material_TemporalFoamTexture,
+                clamp(temporalFoamUv - vec2(debugTexel.x, 0.0), vec2(0.0), vec2(1.0))
+              ).r
+            )
+          );
+          debugTemporalFoam = max(
+            debugTemporalFoam,
+            max(
+              texture2D(
+                material_TemporalFoamTexture,
+                clamp(temporalFoamUv + vec2(0.0, debugTexel.y), vec2(0.0), vec2(1.0))
+              ).r,
+              texture2D(
+                material_TemporalFoamTexture,
+                clamp(temporalFoamUv - vec2(0.0, debugTexel.y), vec2(0.0), vec2(1.0))
+              ).r
+            )
+          );
+          debugTemporalFoam = smoothstep(
+            ${glsl(1 / 255)},
+            0.22,
+            debugTemporalFoam
+          );
+        }
+        float analyticWhitecap =
+          input.whitecap * material_AnalyticWhitecapEnabled;
+        float foamCoarseBreakup = 0.5 + 0.5
+          * sin(dot(input.worldPosition.xz, vec2(0.43, -0.31)) + 1.7)
+          * sin(dot(input.worldPosition.xz, vec2(0.17, 0.59)) - 0.8);
+        float foamFineBreakup = 0.5 + 0.5
+          * sin(dot(input.worldPosition.xz, vec2(1.37, 0.91)) + 2.4);
+        float foamCoverage = clamp(
+          0.64
+            + foamCoarseBreakup * 0.28
+            + foamFineBreakup * 0.08,
+          0.52,
+          1.0
+        );
+        float analyticFoam = smoothstep(
+          0.2,
+          0.66,
+          analyticWhitecap
+            * material_CrestIntensity
+            * foamCoverage
+        );
+        float boundedFoam = smoothstep(
+          0.18,
+          0.68,
+          temporalFoam
+            * material_CrestIntensity
+            * foamCoverage
+        );
+        float macroFoam = pow(
+          max(analyticFoam, boundedFoam),
+          1.18
+        );
+        vec3 foamDetail = vec3(1.0);
+        if (material_FoamDetailEnabled > 0.5) {
+          float foamDetailTime = mod(
+            material_SurfaceTimeOverride >= 0.0
+              ? material_SurfaceTimeOverride
+              : scene_ElapsedTime.x,
+            ${glsl(WATER_WAVE_SHADER_TUNING.surfaceDetailTimePeriod, 1)}
+          );
+          vec2 foamDetailUvA =
+            input.worldPosition.xz * vec2(0.082, 0.109)
+            + vec2(foamDetailTime * 0.006, -foamDetailTime * 0.004);
+          vec2 foamDetailUvB =
+            input.worldPosition.zx * vec2(-0.173, 0.139)
+            + vec2(-foamDetailTime * 0.009, foamDetailTime * 0.005);
+          vec3 foamDetailA =
+            texture2D(material_FoamDetailTexture, foamDetailUvA).rgb;
+          vec3 foamDetailB =
+            texture2D(material_FoamDetailTexture, foamDetailUvB).rgb;
+          foamDetail = max(foamDetailA, foamDetailB * 0.82);
+        }
+        float thickFoamWeight =
+          smoothstep(0.7, 0.96, macroFoam);
+        float mediumFoamWeight = clamp(
+          smoothstep(0.32, 0.8, macroFoam)
+            - thickFoamWeight * 0.65,
+          0.0,
+          1.0
+        );
+        float lightFoamWeight = clamp(
+          smoothstep(0.08, 0.48, macroFoam)
+            - mediumFoamWeight * 0.45
+            - thickFoamWeight * 0.25,
+          0.0,
+          1.0
+        );
+        vec3 foamLayerWeights = vec3(
+          thickFoamWeight,
+          mediumFoamWeight,
+          lightFoamWeight
+        );
+        float foamWeightSum = max(
+          dot(foamLayerWeights, vec3(1.0)),
+          0.0001
+        );
+        float microFoamCoverage = smoothstep(
+          0.28,
+          0.72,
+          clamp(
+            dot(foamDetail, foamLayerWeights) / foamWeightSum,
+            0.0,
+            1.0
+          )
+        );
+        float waterFoam = smoothstep(
+          0.025,
+          0.7,
+          macroFoam * mix(0.008, 1.0, microFoamCoverage)
+        );
+        normal = normalize(mix(
+          normal,
+          vec3(0.0, 1.0, 0.0),
+          waterFoam * 0.14
+        ));
+        normal = normalize(mix(
+          normal,
+          vec3(0.0, 1.0, 0.0),
+          nearshoreThinFilm * 0.82
+        ));`;
+}
+
+function foamDebugApplication(): string {
+  return `        if (material_TemporalFoamEnabled > 0.5 && material_FoamDebugView > 0.5) {
+          waterColor = vec3(debugTemporalFoam);
+        }`;
+}
+
+function nearshoreVertexSamplingStatements(): string {
+  return `        float nearshoreWaveInfluence = 0.0;
+        float nearshoreDirectionBlend = 0.0;
+        float nearshorePhaseSpeedScale = 1.0;
+        float nearshoreWaveNumberScale = 1.0;
+        float nearshoreAmplitudeScale = 1.0;
+        float nearshoreHorizontalAmplitudeScale = 1.0;
+        float nearshoreShoreDamping = 1.0;
+        float nearshoreBreakerTendency = 0.0;
+        vec2 nearshoreShoreNormal = vec2(0.0);
+        if (material_NearshoreEnabled > 0.5) {
+          vec2 nearshoreVertexUv =
+            restXZ * material_NearshoreWorldToUv.xy
+            + material_NearshoreWorldToUv.zw;
+          float nearshoreVertexInside =
+            step(0.0, nearshoreVertexUv.x) * step(nearshoreVertexUv.x, 1.0)
+            * step(0.0, nearshoreVertexUv.y) * step(nearshoreVertexUv.y, 1.0);
+          if (nearshoreVertexInside > 0.5) {
+            vec4 nearshoreVertexStatic =
+              texture2D(material_NearshoreTexture, nearshoreVertexUv);
+            float nearshoreVertexStaticWet =
+              step(material_NearshoreDecode.w, nearshoreVertexStatic.a);
+            if (
+              nearshoreVertexStaticWet > 0.5
+              && material_NearshoreWaveEnabled > 0.5
+            ) {
+              float shoreNegativeX = decodeOceanNearshoreShoreDistance(
+                texture2D(
+                  material_NearshoreTexture,
+                  nearshoreVertexUv - vec2(material_NearshoreGrid.x, 0.0)
+                ).a
+              );
+              float shorePositiveX = decodeOceanNearshoreShoreDistance(
+                texture2D(
+                  material_NearshoreTexture,
+                  nearshoreVertexUv + vec2(material_NearshoreGrid.x, 0.0)
+                ).a
+              );
+              float shoreNegativeZ = decodeOceanNearshoreShoreDistance(
+                texture2D(
+                  material_NearshoreTexture,
+                  nearshoreVertexUv - vec2(0.0, material_NearshoreGrid.y)
+                ).a
+              );
+              float shorePositiveZ = decodeOceanNearshoreShoreDistance(
+                texture2D(
+                  material_NearshoreTexture,
+                  nearshoreVertexUv + vec2(0.0, material_NearshoreGrid.y)
+                ).a
+              );
+              vec2 shoreGradient = vec2(
+                (shorePositiveX - shoreNegativeX)
+                  / max(material_NearshoreGrid.z * 2.0, 0.000001),
+                (shorePositiveZ - shoreNegativeZ)
+                  / max(material_NearshoreGrid.w * 2.0, 0.000001)
+              );
+              nearshoreShoreNormal = length(shoreGradient) > 0.000001
+                ? -normalize(shoreGradient)
+                : vec2(0.0);
+              resolveOceanNearshoreWaveModifier(
+                nearshoreVertexStatic.b * material_NearshoreDecode.y,
+                decodeOceanNearshoreShoreDistance(nearshoreVertexStatic.a),
+                nearshoreShoreNormal,
+                nearshoreWaveInfluence,
+                nearshoreDirectionBlend,
+                nearshorePhaseSpeedScale,
+                nearshoreWaveNumberScale,
+                nearshoreAmplitudeScale,
+                nearshoreHorizontalAmplitudeScale,
+                nearshoreShoreDamping,
+                nearshoreBreakerTendency
+              );
+            } else if (material_NearshoreStateEnabled > 0.5) {
+              vec4 nearshoreVertexState =
+                texture2D(material_NearshoreStateTexture, nearshoreVertexUv);
+              float nearshoreVertexOccupancy = smoothstep(
+                0.08,
+                0.92,
+                nearshoreVertexState.g
+              );
+              if (nearshoreVertexOccupancy > 0.001) {
+                float nearshoreFilmHeight = mix(
+                  material_NearshoreStateDecode.x,
+                  material_NearshoreStateDecode.y,
+                  nearshoreVertexState.b
+                );
+                displacedPosition.y = mix(
+                  displacedPosition.y,
+                  nearshoreFilmHeight,
+                  nearshoreVertexOccupancy
+                );
+                // The dry-side vertices still evaluate the same Ocean waves
+                // until swash occupies them. Fading the displacement with the
+                // continuous occupancy removes the one-triangle height jump
+                // that previously read as crystalline spikes at the waterline.
+                nearshoreAmplitudeScale *=
+                  1.0 - nearshoreVertexOccupancy;
+                nearshoreHorizontalAmplitudeScale *=
+                  1.0 - nearshoreVertexOccupancy;
+              }
+            }
+          }
+        }`;
+}
+
+function waterSurfaceBrdfFunctions(): string {
+  const tuning = WATER_WAVE_SHADER_TUNING;
+  return `      float waterSurfaceSchlick(float f0, float f90, float dotLH) {
+        return f0 + (f90 - f0) * pow(1.0 - clamp(dotLH, 0.0, 1.0), 5.0);
+      }
+
+      float waterSurfaceGgxDistribution(float alpha, float dotNH) {
+        float alphaSquared = alpha * alpha;
+        float denominator = dotNH * dotNH * (alphaSquared - 1.0) + 1.0;
+        return 0.3183098861837907 * alphaSquared
+          / max(denominator * denominator, ${glsl(tuning.brdfEpsilon)});
+      }
+
+      float waterSurfaceGgxSmithCorrelated(float alpha, float dotNL, float dotNV) {
+        float alphaSquared = alpha * alpha;
+        float gv = dotNL * sqrt(alphaSquared + (1.0 - alphaSquared) * dotNV * dotNV);
+        float gl = dotNV * sqrt(alphaSquared + (1.0 - alphaSquared) * dotNL * dotNL);
+        return 0.5 / max(gv + gl, ${glsl(tuning.brdfEpsilon)});
+      }
+
+      float waterSurfaceDirectSpecular(
+        float f0,
+        float perceptualRoughness,
+        float dotNV,
+        float dotNL,
+        float dotNH,
+        float dotLH
+      ) {
+        float alpha = perceptualRoughness * perceptualRoughness;
+        float fresnel = waterSurfaceSchlick(f0, 1.0, dotLH);
+        float distribution = waterSurfaceGgxDistribution(alpha, dotNH);
+        float visibility = waterSurfaceGgxSmithCorrelated(alpha, dotNL, dotNV);
+        return fresnel * distribution * visibility * dotNL * 3.141592653589793;
+      }`;
 }
 
 function defaultOpticsTierForVariant(variant: WaterWaveShaderVariant): ResolvedWaterOpticsTier | undefined {
@@ -93,8 +571,7 @@ function shaderNameForVariant(
 
 function sceneOpticsDeclarations(enabled: boolean): string {
   if (!enabled) return "";
-  return `      mat4 camera_ViewMat;
-      vec4 camera_ProjectionParams;
+  return `      vec4 camera_ProjectionParams;
       vec4 camera_DepthBufferParams;
       sampler2D camera_DepthTexture;
       sampler2D camera_OpaqueTexture;
@@ -105,6 +582,28 @@ function sceneOpticsDeclarations(enabled: boolean): string {
       float material_IndexOfRefraction;
       float material_RefractionStrength;
       float material_RefractionEnabled;`;
+}
+
+function sceneFogDeclarations(): string {
+  return `#if SCENE_FOG_MODE != 0
+      vec4 scene_FogColor;
+      vec4 scene_FogParams;
+#endif`;
+}
+
+function sceneFogApplication(): string {
+  return `#if SCENE_FOG_MODE != 0
+        float fogDepth = length(input.positionVS);
+        #if SCENE_FOG_MODE == 1
+          float fogIntensity = clamp(fogDepth * scene_FogParams.x + scene_FogParams.y, 0.0, 1.0);
+        #elif SCENE_FOG_MODE == 2
+          float fogIntensity = clamp(exp2(-fogDepth * scene_FogParams.z), 0.0, 1.0);
+        #elif SCENE_FOG_MODE == 3
+          float fogFactor = fogDepth * scene_FogParams.w;
+          float fogIntensity = clamp(exp2(-fogFactor * fogFactor), 0.0, 1.0);
+        #endif
+        finalWaterColor.rgb = mix(scene_FogColor.rgb, finalWaterColor.rgb, fogIntensity);
+#endif`;
 }
 
 function sceneDepthFunction(enabled: boolean): string {
@@ -120,13 +619,23 @@ function sceneDepthFunction(enabled: boolean): string {
 
 function fresnelCalculation(enabled: boolean): string {
   if (!enabled) {
-    return `        float fresnel = pow(1.0 - facing, ${glsl(WATER_WAVE_SHADER_TUNING.fresnelPower, 1)});`;
+    return `        float fresnelF0 = 0.02;
+        float reflectionF90 = max(1.0 - perceptualRoughness, fresnelF0);
+        float fresnel = fresnelF0
+          + (reflectionF90 - fresnelF0) * pow(
+            1.0 - facing,
+            ${glsl(WATER_WAVE_SHADER_TUNING.fresnelPower, 1)}
+          );`;
   }
   return `        float indexOfRefraction = clamp(material_IndexOfRefraction, 1.0, 4.0);
         float fresnelRatio = (1.0 - indexOfRefraction) / (1.0 + indexOfRefraction);
         float fresnelF0 = fresnelRatio * fresnelRatio;
+        float reflectionF90 = max(1.0 - perceptualRoughness, fresnelF0);
         float fresnel = fresnelF0
-          + (1.0 - fresnelF0) * pow(1.0 - facing, ${glsl(WATER_WAVE_SHADER_TUNING.fresnelPower, 1)});`;
+          + (reflectionF90 - fresnelF0) * pow(
+            1.0 - facing,
+            ${glsl(WATER_WAVE_SHADER_TUNING.fresnelPower, 1)}
+          );`;
 }
 
 function sceneColorRefraction(opticsTier: ResolvedWaterOpticsTier | undefined): string {
@@ -187,7 +696,9 @@ function sceneColorRefraction(opticsTier: ResolvedWaterOpticsTier | undefined): 
         float refractionAmount = ${glsl(refractionMix)}
           * step(0.5, material_RefractionEnabled)
           * opticalDepthWeight
-          * (1.0 - fresnel);
+          * (1.0 - fresnel)
+          * (1.0 - nearshoreThinFilm * 0.82)
+          * (1.0 - waterFoam * 0.88);
         waterColor = mix(waterColor, transmittedColor, clamp(refractionAmount, 0.0, 1.0));`;
 }
 
@@ -223,8 +734,11 @@ Shader "${shaderName}" {
 
       mat4 renderer_ModelMat;
       mat4 camera_VPMat;
+      mat4 camera_ViewMat;
       vec3 camera_Position;
       vec4 scene_ElapsedTime;
+      vec4 scene_SunlightColor;
+      vec3 scene_SunlightDirection;
       vec4 material_BaseColor;
       vec4 material_DeepColor;
       float material_Alpha;
@@ -246,13 +760,43 @@ Shader "${shaderName}" {
       vec4 material_PlanarReflectionSampling;
       vec4 material_PlanarReflectionFade;
       float material_PlanarReflectionRoughnessFootprint;
+      sampler2D material_SurfaceDetailTexture;
+      float material_SurfaceDetailEnabled;
+      float material_SurfaceDetailStrength;
+      float material_SurfaceDetailScale;
+      float material_SurfaceDetailSpeed;
+      vec2 material_SurfaceDetailWind;
+      sampler2D material_NearshoreTexture;
+      float material_NearshoreEnabled;
+      vec4 material_NearshoreWorldToUv;
+      vec4 material_NearshoreDecode;
+      vec4 material_NearshoreGrid;
+      vec4 material_NearshoreOutsidePolicy;
+      float material_NearshoreDebugView;
+      float material_NearshoreWaveEnabled;
+      sampler2D material_NearshoreStateTexture;
+      sampler2D material_NearshoreWetnessTexture;
+      float material_NearshoreStateEnabled;
+      float material_NearshoreBreakerEnabled;
+      vec4 material_NearshoreStateDecode;
+      sampler2D material_TemporalFoamTexture;
+      float material_TemporalFoamEnabled;
+      sampler2D material_FoamDetailTexture;
+      float material_FoamDetailEnabled;
+      vec4 material_TemporalFoamRegion;
+      vec2 material_TemporalFoamTexelSize;
+      float material_FoamDebugView;
+      float material_AnalyticWhitecapEnabled;
+${sceneFogDeclarations()}
 ${sceneOpticsDeclarations(sceneRefractionEnabled)}
 ${waveUniformDeclarations(waveCount)}
       struct Attributes { vec4 POSITION; };
       struct Varyings {
         vec3 worldPosition;
         vec3 worldNormal;
+        vec3 positionVS;
         float crest;
+        float whitecap;
 ${sceneRefractionEnabled ? "        vec4 clipPosition;\n        float surfaceEyeDepth;" : ""}
       };
 
@@ -261,35 +805,69 @@ ${sceneRefractionEnabled ? "        vec4 clipPosition;\n        float surfaceEye
         vec4 waveB,
         vec2 restXZ,
         float elapsedTime,
+        float nearshoreDirectionBlend,
+        float nearshorePhaseSpeedScale,
+        float nearshoreWaveNumberScale,
+        float nearshoreAmplitudeScale,
+        float nearshoreHorizontalAmplitudeScale,
+        vec2 nearshoreShoreNormal,
         inout vec3 displaced,
         inout vec3 derivativeX,
         inout vec3 derivativeZ,
         inout float crest
       ) {
-        float angularRate = waveB.x * material_TimeScale;
+        vec2 waveDirection = waveA.xy;
+        if (nearshoreDirectionBlend > 0.0) {
+          vec2 refractedDirection = mix(
+            waveA.xy,
+            nearshoreShoreNormal,
+            nearshoreDirectionBlend
+          );
+          waveDirection = length(refractedDirection) > ${glsl(WATER_WAVE_EPSILON)}
+            ? normalize(refractedDirection)
+            : waveA.xy;
+        }
+        float waveNumber = waveA.w * nearshoreWaveNumberScale;
+        float angularRate =
+          waveB.x * material_TimeScale * nearshorePhaseSpeedScale;
         float wavePeriod = ${glsl(WATER_WAVE_TWO_PI)} / max(abs(angularRate), ${glsl(WATER_WAVE_EPSILON)});
         float wrappedTime = mod(elapsedTime, wavePeriod);
-        float theta = waveA.w * dot(waveA.xy, restXZ) - angularRate * wrappedTime + waveB.z;
+        float theta =
+          waveNumber * dot(waveDirection, restXZ)
+          - angularRate * wrappedTime
+          + waveB.z;
         float sine = sin(theta);
         float cosine = cos(theta);
-        float horizontalDerivative = waveB.y * waveA.w * sine;
-        float verticalDerivative = waveA.z * waveA.w * cosine;
-        displaced.xz += waveA.xy * waveB.y * cosine;
-        displaced.y += waveA.z * sine;
+        float amplitude = waveA.z * nearshoreAmplitudeScale;
+        float horizontalAmplitude =
+          waveB.y * nearshoreHorizontalAmplitudeScale;
+        float horizontalDerivative =
+          horizontalAmplitude * waveNumber * sine;
+        float verticalDerivative = amplitude * waveNumber * cosine;
+        displaced.xz += waveDirection * horizontalAmplitude * cosine;
+        displaced.y += amplitude * sine;
         derivativeX -= vec3(
-          horizontalDerivative * waveA.x * waveA.x,
-          -verticalDerivative * waveA.x,
-          horizontalDerivative * waveA.x * waveA.y
+          horizontalDerivative * waveDirection.x * waveDirection.x,
+          -verticalDerivative * waveDirection.x,
+          horizontalDerivative * waveDirection.x * waveDirection.y
         );
         derivativeZ -= vec3(
-          horizontalDerivative * waveA.y * waveA.x,
-          -verticalDerivative * waveA.y,
-          horizontalDerivative * waveA.y * waveA.y
+          horizontalDerivative * waveDirection.y * waveDirection.x,
+          -verticalDerivative * waveDirection.y,
+          horizontalDerivative * waveDirection.y * waveDirection.y
         );
-        crest += max(sine, 0.0) * waveA.z;
+        crest += max(sine, 0.0) * amplitude;
       }
 
+      float decodeOceanNearshoreShoreDistance(float encoded) {
+        return ((encoded * 255.0 - 128.0) / 127.0)
+          * material_NearshoreDecode.z;
+      }
+
+${createOceanNearshoreWaveModifierGlsl()}
+${createOceanAnalyticWhitecapGlsl()}
 ${sceneDepthFunction(sceneRefractionEnabled)}
+${waterSurfaceBrdfFunctions()}
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -303,19 +881,27 @@ ${sceneDepthFunction(sceneRefractionEnabled)}
         vec3 derivativeX = vec3(1.0, 0.0, 0.0);
         vec3 derivativeZ = vec3(0.0, 0.0, 1.0);
         float crestAccumulation = 0.0;
+${nearshoreVertexSamplingStatements()}
 ${waveApplyStatements(waveCount)}
         vec3 surfaceNormal = normalize(cross(derivativeZ, derivativeX));
         output.worldPosition = displacedPosition.xyz;
         output.worldNormal = surfaceNormal;
+        output.positionVS = (camera_ViewMat * displacedPosition).xyz;
         output.crest = clamp(
           crestAccumulation / max(material_MaxVerticalDisplacement, 0.000001),
           0.0,
           1.0
         );
+        float horizontalJacobianDeterminant =
+          derivativeX.x * derivativeZ.z - derivativeX.z * derivativeZ.x;
+        output.whitecap = evaluateOceanAnalyticWhitecap(
+          horizontalJacobianDeterminant,
+          output.crest
+        );
         gl_Position = camera_VPMat * displacedPosition;
 ${
   sceneRefractionEnabled
-    ? "        output.clipPosition = gl_Position;\n        output.surfaceEyeDepth = -(camera_ViewMat * displacedPosition).z;"
+    ? "        output.clipPosition = gl_Position;\n        output.surfaceEyeDepth = -output.positionVS.z;"
     : ""
 }
         return output;
@@ -323,25 +909,67 @@ ${
 
       void frag(Varyings input) {
         vec3 normal = normalize(input.worldNormal);
+${surfaceDetailStatements(variant)}
+${nearshoreSamplingStatements()}
+${foamSamplingStatements()}
         vec3 viewDirection = normalize(camera_Position - input.worldPosition);
-        vec3 lightDirection = normalize(vec3(
-          ${glsl(tuning.lightDirection[0])},
-          ${glsl(tuning.lightDirection[1])},
-          ${glsl(tuning.lightDirection[2])}
-        ));
-        vec3 halfDirection = normalize(viewDirection + lightDirection);
+        vec3 sunlightDirectionVector = -scene_SunlightDirection;
+        float sunlightDirectionLengthSquared = dot(sunlightDirectionVector, sunlightDirectionVector);
+        float sunlightAvailable = step(${glsl(tuning.brdfEpsilon)}, sunlightDirectionLengthSquared);
+        vec3 lightDirection = sunlightDirectionVector
+          / max(sqrt(sunlightDirectionLengthSquared), ${glsl(tuning.brdfEpsilon)});
+        vec3 sunlightColor = max(scene_SunlightColor.rgb, vec3(0.0)) * sunlightAvailable;
+        vec3 halfDirectionVector = viewDirection + lightDirection;
+        vec3 halfDirection = halfDirectionVector
+          / max(length(halfDirectionVector), ${glsl(tuning.brdfEpsilon)});
         float facing = clamp(dot(normal, viewDirection), 0.0, 1.0);
+        float perceptualRoughness = clamp(
+          material_Roughness + waterFoam * 0.42,
+          ${glsl(tuning.minimumPerceptualRoughness)},
+          1.0
+        );
 ${fresnelCalculation(sceneRefractionEnabled)}
+        float normalDotLight = clamp(dot(normal, lightDirection), 0.0, 1.0);
+        float normalDotHalf = clamp(dot(normal, halfDirection), 0.0, 1.0);
+        float lightDotHalf = clamp(dot(lightDirection, halfDirection), 0.0, 1.0);
+        float directSpecular = waterSurfaceDirectSpecular(
+          fresnelF0,
+          perceptualRoughness,
+          facing,
+          normalDotLight,
+          normalDotHalf,
+          lightDotHalf
+        );
         float diffuse = ${glsl(tuning.diffuseFloor)} + max(normal.y, 0.0) * ${glsl(tuning.diffuseNormalWeight)};
-        float specular = pow(max(dot(normal, halfDirection), 0.0), ${glsl(tuning.specularPower, 1)});
         float slope = clamp((1.0 - normal.y) * ${glsl(tuning.slopeContrast, 1)}, 0.0, 1.0);
-        float slopeDirection = dot(normal.xz, normalize(lightDirection.xz));
+        vec2 lightHorizontal = lightDirection.xz;
+        vec2 lightHorizontalDirection =
+          lightHorizontal / max(length(lightHorizontal), ${glsl(tuning.brdfEpsilon)});
+        float slopeDirection = dot(normal.xz, lightHorizontalDirection) * sunlightAvailable;
         vec3 waterColor = mix(material_DeepColor.rgb, material_BaseColor.rgb, diffuse);
         waterColor *= 1.0 + slopeDirection * slope * ${glsl(tuning.slopeDirectionalStrength)};
+        float nearshoreShallowWeight =
+          nearshoreInside * nearshoreWet * (1.0 - nearshoreDepthNormalized);
+        vec3 nearshoreShallowColor =
+          material_BaseColor.rgb * 1.06 + vec3(0.018, 0.03, 0.022);
+        waterColor = mix(
+          waterColor,
+          nearshoreShallowColor,
+          clamp(nearshoreShallowWeight * 0.38, 0.0, 0.38)
+        );
 ${sceneColorRefraction(opticsTier)}
+        vec3 analyticHorizonColor =
+          material_BaseColor.rgb * ${glsl(tuning.horizonColorScale)};
+#if SCENE_FOG_MODE != 0
+        analyticHorizonColor = mix(
+          analyticHorizonColor,
+          scene_FogColor.rgb * 0.86 + sunlightColor * 0.035,
+          0.72
+        );
+#endif
         vec3 analyticSky = mix(
           material_DeepColor.rgb * 0.72,
-          material_BaseColor.rgb * ${glsl(tuning.horizonColorScale)},
+          analyticHorizonColor,
           clamp(reflect(-viewDirection, normal).y * 0.5 + 0.5, 0.0, 1.0)
         );
         vec3 reflectionColor = analyticSky;
@@ -396,13 +1024,54 @@ ${sceneColorRefraction(opticsTier)}
         waterColor = mix(
           waterColor,
           reflectionColor,
-          clamp(fresnel * material_ReflectionIntensity * material_ReflectionIntensityMultiplier, 0.0, 1.0)
+          clamp(
+            fresnel
+              * material_ReflectionIntensity
+              * material_ReflectionIntensityMultiplier
+              * (1.0 - nearshoreThinFilm * 0.82),
+            0.0,
+            1.0
+          )
         );
-        waterColor += vec3(specular * ${glsl(tuning.specularStrength)});
+        waterColor += sunlightColor
+          * directSpecular
+          * ${glsl(tuning.directSpecularStrength)}
+          * (1.0 - nearshoreThinFilm * 0.72);
         waterColor = mix(
           waterColor,
-          vec3(0.84, 0.95, 1.0),
-          input.crest * material_CrestIntensity * ${glsl(tuning.crestTintStrength)}
+          vec3(0.93, 0.91, 0.85),
+          waterFoam * ${glsl(tuning.crestTintStrength)}
+        );
+        float nearshoreDepthAlpha = mix(
+          0.28,
+          material_Alpha,
+          smoothstep(0.015, 0.42, nearshoreDepthNormalized)
+        );
+        float openWaterAlpha = clamp(
+          mix(
+            material_Alpha,
+            nearshoreDepthAlpha,
+            nearshoreInside * nearshoreWet
+          ) + waterFoam * 0.08,
+          ${glsl(tuning.minimumAlpha)},
+          ${glsl(tuning.maximumAlpha)}
+        );
+        float thinFilmCoverage = smoothstep(
+          0.04,
+          0.88,
+          nearshoreThinFilm
+        );
+        float thinFilmAlpha = clamp(
+          0.012
+            + nearshoreDynamicOccupancy * 0.025
+            + waterFoam * 0.08,
+          0.012,
+          0.12
+        );
+        float effectiveWaterAlpha = mix(
+          openWaterAlpha,
+          thinFilmAlpha,
+          thinFilmCoverage
         );
 ${
   sceneRefractionEnabled
@@ -410,7 +1079,7 @@ ${
         waterColor = mix(
           centeredSurfaceBackground,
           waterColor,
-          clamp(material_Alpha, ${glsl(tuning.minimumAlpha)}, ${glsl(tuning.maximumAlpha)})
+          effectiveWaterAlpha
         );`
     : ""
 }
@@ -422,14 +1091,18 @@ ${
               : (renderer_OceanLod < 2.5 ? vec3(0.96, 0.36, 0.24) : vec3(0.62, 0.36, 0.96)));
           waterColor = mix(waterColor, lodColor, 0.58);
         }
-        gl_FragColor = vec4(
+${nearshoreDebugApplication()}
+${foamDebugApplication()}
+        vec4 finalWaterColor = vec4(
           waterColor,
           ${
             sceneRefractionEnabled
               ? "1.0"
-              : `clamp(material_Alpha, ${glsl(tuning.minimumAlpha)}, ${glsl(tuning.maximumAlpha)})`
+              : "effectiveWaterAlpha"
           }
         );
+${sceneFogApplication()}
+        gl_FragColor = finalWaterColor;
       }
     }
   }
@@ -443,11 +1116,58 @@ function parseHexColor(hex: string, alpha: number): Color {
   return new Color(((value >> 16) & 255) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255, alpha);
 }
 
+interface ResolvedWaterSurfaceDetailConfig {
+  readonly enabled: boolean;
+  readonly strength: number;
+  readonly scale: number;
+  readonly speed: number;
+  readonly windX: number;
+  readonly windY: number;
+}
+
+function resolveSurfaceDetailConfig(
+  config: Readonly<WaterSurfaceDetailConfig> | undefined,
+  variant: WaterWaveShaderVariant
+): Readonly<ResolvedWaterSurfaceDetailConfig> {
+  if (!config || variant === WaterWaveShaderVariant.None) {
+    return Object.freeze({
+      enabled: false,
+      strength: 0,
+      scale: 1,
+      speed: 0,
+      windX: DEFAULT_SURFACE_DETAIL_WIND[0],
+      windY: DEFAULT_SURFACE_DETAIL_WIND[1]
+    });
+  }
+  const [windX, windY] = config.wind;
+  if (
+    !Number.isFinite(config.strength) ||
+    !Number.isFinite(config.scale) ||
+    !Number.isFinite(config.speed) ||
+    !Number.isFinite(windX) ||
+    !Number.isFinite(windY)
+  ) {
+    throw new Error("Water surface detail parameters must be finite.");
+  }
+  const strength = Math.min(4, Math.max(0, config.strength));
+  const windLength = Math.hypot(windX, windY);
+  return Object.freeze({
+    enabled: strength > 0,
+    strength,
+    scale: Math.min(10, Math.max(0.001, config.scale)),
+    speed: Math.min(10, Math.max(0, config.speed)),
+    windX: windLength > WATER_WAVE_EPSILON ? windX / windLength : DEFAULT_SURFACE_DETAIL_WIND[0],
+    windY: windLength > WATER_WAVE_EPSILON ? windY / windLength : DEFAULT_SURFACE_DETAIL_WIND[1]
+  });
+}
+
 function bindWaterWaveMaterial(
+  engine: Engine,
   material: Material,
+  variant: WaterWaveShaderVariant,
   waveSet: CompiledWaterWaveSet,
   config: WaterWaveMaterialConfig
-): void {
+): boolean {
   const tuning = WATER_WAVE_SHADER_TUNING;
   const baseColor = parseHexColor(config.baseColor, config.alpha);
   const deepColor = new Color(
@@ -471,6 +1191,125 @@ function bindWaterWaveMaterial(
     WATER_WAVE_SHADER_PROPERTY.surfaceTimeOverride,
     config.surfaceTimeOverride === undefined ? -1 : Math.max(0, config.surfaceTimeOverride)
   );
+  const surfaceDetail = resolveSurfaceDetailConfig(config.surfaceDetail, variant);
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.surfaceDetailEnabled,
+    surfaceDetail.enabled ? 1 : 0
+  );
+  material.shaderData.setFloat(WATER_WAVE_SHADER_PROPERTY.surfaceDetailStrength, surfaceDetail.strength);
+  material.shaderData.setFloat(WATER_WAVE_SHADER_PROPERTY.surfaceDetailScale, surfaceDetail.scale);
+  material.shaderData.setFloat(WATER_WAVE_SHADER_PROPERTY.surfaceDetailSpeed, surfaceDetail.speed);
+  material.shaderData.setVector2(
+    WATER_WAVE_SHADER_PROPERTY.surfaceDetailWind,
+    new Vector2(surfaceDetail.windX, surfaceDetail.windY)
+  );
+  const nullableTextureData = material.shaderData as unknown as NullableTextureShaderData;
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.surfaceDetailTexture,
+    surfaceDetail.enabled
+      ? getWaterSurfaceDualSlopeTexture(engine)
+      : null
+  );
+  const nearshore = config.nearshore;
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreEnabled,
+    nearshore ? 1 : 0
+  );
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreTexture,
+    nearshore?.texture ?? null
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreWorldToUv,
+    nearshore
+      ? new Vector4(...nearshore.worldToUv)
+      : new Vector4(0, 0, 0, 0)
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreDecode,
+    nearshore ? new Vector4(...nearshore.decode) : new Vector4(1, 1, 1, 128.5 / 255)
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreGrid,
+    nearshore
+      ? new Vector4(...nearshore.grid)
+      : new Vector4(1, 1, 1, 1)
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreOutsidePolicy,
+    nearshore
+      ? new Vector4(...nearshore.outsidePolicy)
+      : new Vector4(1, 1, 1, 1)
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreDebugView,
+    nearshore?.debugView ?? 0
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreWaveEnabled,
+    nearshore?.waveEnabled === false ? 0 : nearshore ? 1 : 0
+  );
+  const nearshoreDynamic = nearshore?.dynamic;
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreStateEnabled,
+    nearshoreDynamic ? 1 : 0
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreBreakerEnabled,
+    nearshoreDynamic && config.nearshoreBreakerEnabled !== false ? 1 : 0
+  );
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreStateTexture,
+    nearshoreDynamic?.stateTexture ?? null
+  );
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreWetnessTexture,
+    nearshoreDynamic?.wetnessTexture ?? null
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreStateDecode,
+    nearshoreDynamic
+      ? new Vector4(...nearshoreDynamic.decode)
+      : new Vector4(0, 1, 1, 0.5)
+  );
+  const foam = config.foam;
+  const foamDetailEnabled =
+    foam !== undefined ||
+    config.analyticWhitecapEnabled === true;
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.foamDetailTexture,
+    foamDetailEnabled
+      ? getWaterFoamDetailTexture(engine)
+      : null
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDetailEnabled,
+    foamDetailEnabled ? 1 : 0
+  );
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamTexture,
+    foam?.texture ?? null
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamEnabled,
+    foam ? 1 : 0
+  );
+  material.shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamRegion,
+    foam ? new Vector4(...foam.region) : new Vector4(0, 0, 1, 1)
+  );
+  material.shaderData.setVector2(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamTexelSize,
+    foam ? new Vector2(...foam.texelSize) : new Vector2(1, 1)
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDebugView,
+    foam?.debugView ?? WaterFoamDebugView.Final
+  );
+  material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.analyticWhitecapEnabled,
+    config.analyticWhitecapEnabled === true ? 1 : 0
+  );
   material.shaderData.setFloat(WATER_WAVE_SHADER_PROPERTY.maxVerticalDisplacement, waveSet.maxVerticalDisplacement);
   const packed = waveSet.packedShaderData.toTypedArray();
   for (let index = 0; index < waveSet.shaderWaveCount; index++) {
@@ -489,6 +1328,7 @@ function bindWaterWaveMaterial(
       new Vector4(packed[offset + 4], packed[offset + 5], packed[offset + 6], packed[offset + 7])
     );
   }
+  return surfaceDetail.enabled;
 }
 
 export function createWaterWaveMaterial(
@@ -501,12 +1341,25 @@ export function createWaterWaveMaterial(
   const shaderName = shaderNameForVariant(variant, opticsTier);
   const shader = Shader.find(shaderName) ?? Shader.create(createWaterWaveShaderSource(variant, opticsTier));
   const material = new Material(engine, shader);
-  bindWaterWaveMaterial(material, waveSet, config);
+  const surfaceDetailEnabled = bindWaterWaveMaterial(engine, material, variant, waveSet, config);
   const state = Object.freeze({
     material,
     variant,
     opticsTier,
     waveSet,
+    surfaceDetailLayerCount: surfaceDetailLayerCount(variant),
+    surfaceDetailEnabled,
+    nearshoreEnabled: config.nearshore !== undefined,
+    nearshoreWaveEnabled:
+      config.nearshore !== undefined &&
+      config.nearshore.waveEnabled !== false,
+    nearshoreStateEnabled: config.nearshore?.dynamic !== undefined,
+    nearshoreBreakerEnabled:
+      config.nearshore?.dynamic !== undefined &&
+      config.nearshoreBreakerEnabled !== false,
+    foamEnabled: config.foam !== undefined,
+    analyticWhitecapEnabled: config.analyticWhitecapEnabled === true,
+    foamDebugView: config.foam?.debugView ?? WaterFoamDebugView.Final,
     opticsBindingState: createWaterSurfaceOpticsBindingState()
   });
   setWaterWaveSurfaceOpticsBinding(state, {
@@ -529,12 +1382,31 @@ export function updateWaterWaveMaterial(
   if (nextVariant !== state.variant || nextOpticsTier !== state.opticsTier) {
     throw new Error("Water-wave or surface-optics shader variants require material replacement.");
   }
-  bindWaterWaveMaterial(state.material, waveSet, config);
+  const surfaceDetailEnabled = bindWaterWaveMaterial(
+    state.material.engine,
+    state.material,
+    state.variant,
+    waveSet,
+    config
+  );
   return Object.freeze({
     material: state.material,
     variant: state.variant,
     opticsTier: state.opticsTier,
     waveSet,
+    surfaceDetailLayerCount: state.surfaceDetailLayerCount ?? surfaceDetailLayerCount(state.variant),
+    surfaceDetailEnabled,
+    nearshoreEnabled: config.nearshore !== undefined,
+    nearshoreWaveEnabled:
+      config.nearshore !== undefined &&
+      config.nearshore.waveEnabled !== false,
+    nearshoreStateEnabled: config.nearshore?.dynamic !== undefined,
+    nearshoreBreakerEnabled:
+      config.nearshore?.dynamic !== undefined &&
+      config.nearshoreBreakerEnabled !== false,
+    foamEnabled: config.foam !== undefined,
+    analyticWhitecapEnabled: config.analyticWhitecapEnabled === true,
+    foamDebugView: config.foam?.debugView ?? WaterFoamDebugView.Final,
     opticsBindingState: state.opticsBindingState
   });
 }
@@ -543,6 +1415,119 @@ export function setWaterWaveSurfaceTimeOverride(state: WaterWaveMaterialState, e
   state.material.shaderData.setFloat(
     WATER_WAVE_SHADER_PROPERTY.surfaceTimeOverride,
     elapsedTime === undefined ? -1 : Math.max(0, elapsedTime)
+  );
+}
+
+export function setWaterWaveNearshoreDebugView(
+  state: WaterWaveMaterialState,
+  debugView: OceanNearshoreDebugView
+): void {
+  state.material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreDebugView,
+    debugView
+  );
+}
+
+export function setWaterWaveNearshoreWaveEnabled(
+  state: WaterWaveMaterialState,
+  enabled: boolean
+): void {
+  state.material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreWaveEnabled,
+    enabled ? 1 : 0
+  );
+}
+
+export function setWaterWaveNearshoreStateEnabled(
+  state: WaterWaveMaterialState,
+  enabled: boolean
+): void {
+  state.material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreStateEnabled,
+    enabled ? 1 : 0
+  );
+}
+
+export function setWaterWaveNearshoreBreakerEnabled(
+  state: WaterWaveMaterialState,
+  enabled: boolean
+): void {
+  state.material.shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.nearshoreBreakerEnabled,
+    enabled ? 1 : 0
+  );
+}
+
+/**
+ * Rebinds the current ping-pong foam texture without replacing the material.
+ * Passing no bounded binding clears every finite-foam visual signal.
+ */
+export function setWaterWaveFoamBinding(
+  state: WaterWaveMaterialState,
+  binding: Readonly<WaterTemporalFoamBinding> | undefined,
+  analyticWhitecapEnabled: boolean
+): void {
+  const shaderData = state.material.shaderData;
+  const nullableTextureData = shaderData as unknown as NullableTextureShaderData;
+  nullableTextureData.setTexture(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamTexture,
+    binding?.texture ?? null
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamEnabled,
+    binding ? 1 : 0
+  );
+  shaderData.setVector4(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamRegion,
+    binding ? new Vector4(...binding.region) : new Vector4(0, 0, 1, 1)
+  );
+  shaderData.setVector2(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamTexelSize,
+    binding
+      ? new Vector2(...binding.texelSize)
+      : new Vector2(1, 1)
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDebugView,
+    binding?.debugView ?? WaterFoamDebugView.Final
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.analyticWhitecapEnabled,
+    analyticWhitecapEnabled ? 1 : 0
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDetailEnabled,
+    binding || analyticWhitecapEnabled ? 1 : 0
+  );
+}
+
+/** Refreshes only the ping-pong texture/debug state; the fixed region stays bound. */
+export function setWaterWaveFoamTexture(
+  state: WaterWaveMaterialState,
+  texture: Texture2D | undefined,
+  debugView: WaterFoamDebugView,
+  analyticWhitecapEnabled: boolean
+): void {
+  const shaderData = state.material.shaderData;
+  (shaderData as unknown as NullableTextureShaderData).setTexture(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamTexture,
+    texture ?? null
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.temporalFoamEnabled,
+    texture ? 1 : 0
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDebugView,
+    texture ? debugView : WaterFoamDebugView.Final
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.analyticWhitecapEnabled,
+    analyticWhitecapEnabled ? 1 : 0
+  );
+  shaderData.setFloat(
+    WATER_WAVE_SHADER_PROPERTY.foamDetailEnabled,
+    texture || analyticWhitecapEnabled ? 1 : 0
   );
 }
 

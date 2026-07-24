@@ -13,6 +13,14 @@ const reflectionMock = vi.hoisted(() => ({
   resetProjectionCalls: 0,
   failRender: false,
   failAllocation: false,
+  failHdrAllocation: false,
+  supportedTextureFormats: new Set<number>([1, 7, 35]),
+  createdTextureFormats: [] as number[],
+  renderedCameraStates: [] as Array<{
+    readonly enableHDR: boolean;
+    readonly enablePostProcess: boolean;
+    readonly isAlphaOutputRequired: boolean;
+  }>,
   renderTargetDestroyCalls: 0,
   textureDestroyCalls: 0,
   entityDestroyCalls: 0,
@@ -106,6 +114,7 @@ vi.mock("@galacean/engine-core", () => {
     clearFlags = 0;
     enableHDR = false;
     enablePostProcess = false;
+    isAlphaOutputRequired = false;
     cullingMask = 0xffffffff;
     renderTarget: unknown = null;
     readonly viewMatrix = identity();
@@ -137,6 +146,11 @@ vi.mock("@galacean/engine-core", () => {
 
     render(): void {
       reflectionMock.renderCalls++;
+      reflectionMock.renderedCameraStates.push({
+        enableHDR: this.enableHDR,
+        enablePostProcess: this.enablePostProcess,
+        isAlphaOutputRequired: this.isAlphaOutputRequired
+      });
       reflectionMock.lastRenderedProjection = new Float32Array(this.projectionMatrix.elements);
       if (reflectionMock.failRender) throw new Error("simulated planar failure");
     }
@@ -151,8 +165,11 @@ vi.mock("@galacean/engine-core", () => {
     constructor(
       _engine: unknown,
       readonly width: number,
-      readonly height: number
-    ) {}
+      readonly height: number,
+      readonly format = 1
+    ) {
+      reflectionMock.createdTextureFormats.push(format);
+    }
 
     destroy(): void {
       if (this._destroyed) return;
@@ -171,9 +188,12 @@ vi.mock("@galacean/engine-core", () => {
       _engine: unknown,
       readonly width: number,
       readonly height: number,
-      _texture: unknown
+      texture: { readonly format?: number }
     ) {
       if (reflectionMock.failAllocation) throw new Error("simulated render-target allocation failure");
+      if (reflectionMock.failHdrAllocation && texture.format !== 1) {
+        throw new Error("simulated HDR render-target allocation failure");
+      }
     }
 
     destroy(): void {
@@ -189,10 +209,19 @@ vi.mock("@galacean/engine-core", () => {
     Engine: class FakeEngine {},
     Layer: { Everything: 0xffffffff, Layer30: 0x40000000 },
     RenderTarget: FakeRenderTarget,
+    SystemInfo: {
+      supportsTextureFormat: (_engine: unknown, format: number): boolean =>
+        reflectionMock.supportedTextureFormats.has(format)
+    },
     Texture2D: FakeTexture2D,
     TextureCube: FakeTextureCube,
     TextureFilterMode: { Bilinear: 1 },
-    TextureFormat: { R8G8B8A8: 1, Depth24: 2 },
+    TextureFormat: {
+      R8G8B8A8: 1,
+      Depth24: 2,
+      R16G16B16A16: 7,
+      R11G11B10_UFloat: 35
+    },
     TextureWrapMode: { Clamp: 1 }
   };
 });
@@ -233,6 +262,10 @@ beforeEach(() => {
   reflectionMock.resetProjectionCalls = 0;
   reflectionMock.failRender = false;
   reflectionMock.failAllocation = false;
+  reflectionMock.failHdrAllocation = false;
+  reflectionMock.supportedTextureFormats = new Set([1, 7, 35]);
+  reflectionMock.createdTextureFormats.length = 0;
+  reflectionMock.renderedCameraStates.length = 0;
   reflectionMock.renderTargetDestroyCalls = 0;
   reflectionMock.textureDestroyCalls = 0;
   reflectionMock.entityDestroyCalls = 0;
@@ -350,6 +383,11 @@ describe("WaterReflectionService", () => {
       renderTargetWidth: 400,
       renderTargetHeight: 300,
       estimatedRenderTargetBytes: 400 * 300 * 8,
+      planarColorMode: "ldr",
+      colorFormat: "r8g8b8a8-unorm",
+      planarHDR: false,
+      fallbackReason: undefined,
+      resourceBytes: 400 * 300 * 8,
       lastPlanarDrawCount: 7,
       lastPlanarGpuMs: 0.72,
       planarGpuSampleCount: 1
@@ -371,6 +409,122 @@ describe("WaterReflectionService", () => {
       reflectionCameraDestroyCount: 1,
       liveRenderTargetCount: 0
     });
+  });
+
+  it("renders hdr-preferred into linear R11G11B10 without post-processing", () => {
+    const { service } = createService();
+    service.setRequest(createRequest("high", { planarColorMode: "hdr-preferred" }));
+
+    service.update(0);
+
+    expect(reflectionMock.createdTextureFormats).toEqual([35]);
+    expect(reflectionMock.renderedCameraStates).toEqual([
+      {
+        enableHDR: true,
+        enablePostProcess: false,
+        isAlphaOutputRequired: false
+      }
+    ]);
+    expect(service.getBinding("ocean")).toMatchObject({
+      resolvedSource: "planar",
+      planarColorFormat: "r11g11b10-ufloat",
+      planarHDR: true,
+      planarColorFallbackReason: undefined
+    });
+    expect(service.metrics).toMatchObject({
+      planarColorMode: "hdr-preferred",
+      colorFormat: "r11g11b10-ufloat",
+      planarHDR: true,
+      fallbackReason: undefined,
+      resourceBytes: 400 * 300 * 8,
+      liveRenderTargetCount: 1,
+      planarCameraCount: 1
+    });
+
+    service.destroy();
+    expect(service.metrics).toMatchObject({
+      liveRenderTargetCount: 0,
+      planarCameraCount: 0,
+      resourceBytes: 0
+    });
+  });
+
+  it("uses linear RGBA16F when the source Camera requires alpha", () => {
+    const { service, sourceCamera } = createService();
+    sourceCamera.isAlphaOutputRequired = true;
+    service.setRequest(createRequest("high", { planarColorMode: "hdr-preferred" }));
+
+    service.update(0);
+
+    expect(reflectionMock.createdTextureFormats).toEqual([7]);
+    expect(reflectionMock.renderedCameraStates[0]).toEqual({
+      enableHDR: true,
+      enablePostProcess: false,
+      isAlphaOutputRequired: true
+    });
+    expect(service.metrics).toMatchObject({
+      colorFormat: "r16g16b16a16-float",
+      planarHDR: true,
+      resourceBytes: 400 * 300 * 12
+    });
+  });
+
+  it("falls back to LDR with explicit metrics when HDR format support is unavailable", () => {
+    reflectionMock.supportedTextureFormats = new Set([1]);
+    const { service } = createService();
+    service.setRequest(createRequest("high", { planarColorMode: "hdr-preferred" }));
+
+    service.update(0);
+
+    expect(reflectionMock.createdTextureFormats).toEqual([1]);
+    expect(reflectionMock.renderedCameraStates[0]).toMatchObject({
+      enableHDR: false,
+      enablePostProcess: false
+    });
+    expect(service.getBinding("ocean")).toMatchObject({
+      resolvedSource: "planar",
+      planarColorFormat: "r8g8b8a8-unorm",
+      planarHDR: false,
+      planarColorFallbackReason: "hdr-format-unsupported"
+    });
+    expect(service.metrics).toMatchObject({
+      planarColorMode: "hdr-preferred",
+      colorFormat: "r8g8b8a8-unorm",
+      planarHDR: false,
+      fallbackReason: "hdr-format-unsupported",
+      liveRenderTargetCount: 1
+    });
+  });
+
+  it("destroys a failed HDR texture and retries LDR without a half-initialized Camera or RT", () => {
+    reflectionMock.failHdrAllocation = true;
+    const { service } = createService();
+    service.setRequest(createRequest("high", { planarColorMode: "hdr-preferred" }));
+
+    expect(() => service.update(0)).not.toThrow();
+
+    expect(reflectionMock.createdTextureFormats).toEqual([35, 1]);
+    expect(reflectionMock.textureDestroyCalls).toBe(1);
+    expect(reflectionMock.renderTargetDestroyCalls).toBe(0);
+    expect(reflectionMock.entityDestroyCalls).toBe(0);
+    expect(service.getBinding("ocean")).toMatchObject({
+      resolvedSource: "planar",
+      planarColorFormat: "r8g8b8a8-unorm",
+      planarHDR: false,
+      planarColorFallbackReason: "hdr-target-failed"
+    });
+    expect(service.metrics).toMatchObject({
+      fallbackReason: "hdr-target-failed",
+      renderTargetCreateCount: 1,
+      reflectionCameraCreateCount: 1,
+      liveRenderTargetCount: 1,
+      planarCameraCount: 1
+    });
+
+    service.destroy();
+    expect(reflectionMock.textureDestroyCalls).toBe(2);
+    expect(reflectionMock.renderTargetDestroyCalls).toBe(1);
+    expect(reflectionMock.entityDestroyCalls).toBe(1);
   });
 
   it("keeps oblique clipping enabled by default and rerenders when the validation toggle changes", () => {

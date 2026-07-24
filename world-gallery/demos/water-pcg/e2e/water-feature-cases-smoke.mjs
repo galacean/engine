@@ -32,6 +32,12 @@ const VISUAL_CAUSAL_CASES = new Set([
   "feature-refraction",
   "feature-reflection",
   "feature-gerstner-waves",
+  "feature-ocean-nearshore-waves",
+  "feature-ocean-breakers",
+  "feature-ocean-shore-foam",
+  "feature-ocean-rock-contact",
+  "feature-ocean-micro-surface",
+  "feature-ocean-wetness",
   "feature-shore-foam",
   "feature-heightfield"
 ]);
@@ -327,6 +333,77 @@ async function assertGerstner(page, definition) {
   return snapshot;
 }
 
+async function assertOceanFocusedFeature(page, definition) {
+  const snapshot = await waitForSnapshot(
+    page,
+    definition,
+    (candidate) => {
+      const ocean = candidate.ocean;
+      const scene = candidate.acceptance?.scene;
+      if (!ocean || !scene) return false;
+      switch (definition.id) {
+        case "feature-ocean-nearshore-waves":
+          return (
+            ocean.nearshoreWaveEnabled === true &&
+            scene.bathymetryEnabled === true &&
+            scene.nearshoreWetTexelCount > 0
+          );
+        case "feature-ocean-breakers":
+          return (
+            ocean.nearshoreBreakerEnabled === true &&
+            ocean.foamBreakerSourceEnabled === true &&
+            scene.breakerTexelCount > 0 &&
+            scene.breakerPeak > 0 &&
+            scene.foamBreakerSourcePixelCount > 0
+          );
+        case "feature-ocean-shore-foam":
+          return (
+            ocean.foamShoreSourceEnabled === true &&
+            scene.foamShoreSourcePixelCount > 0 &&
+            scene.foamHistoryPixelCount > 0
+          );
+        case "feature-ocean-rock-contact":
+          return (
+            ocean.rockContactEnabled === true &&
+            scene.rockContactActiveCount > 0 &&
+            scene.rockContactPeakEnergy > 0 &&
+            scene.rockContactImpactAcceptedCount > 0 &&
+            scene.foamHistoryPixelCount > 0 &&
+            scene.splashEnabled === true &&
+            scene.splashEmissionCount > 0
+          );
+        case "feature-ocean-micro-surface":
+          return (
+            ocean.surfaceDetailEnabled === true &&
+            ocean.surfaceDetailLayerCount === 3 &&
+            scene.microNormalEnabled === true
+          );
+        case "feature-ocean-wetness":
+          return (
+            scene.wetSandEnabled === true &&
+            scene.wetnessTexelCount > 0 &&
+            scene.wetnessPeak > 0 &&
+            scene.wetSandTextureCount === 4
+          );
+        default:
+          return false;
+      }
+    },
+    "focused Ocean subsystem signal"
+  );
+  assertAcceptance(
+    snapshot.ocean.foamCurrentSurfaceQueryCount === 0,
+    `${definition.id} used dense full surface queries.`,
+    snapshot.ocean
+  );
+  assertAcceptance(
+    snapshot.acceptance.scene.oceanFeatureResourceBudgetBytes > 0,
+    `${definition.id} did not report its bounded resource budget.`,
+    snapshot.acceptance.scene
+  );
+  return snapshot;
+}
+
 async function assertShoreFoam(page, definition) {
   const snapshot = await waitForSnapshot(
     page,
@@ -391,6 +468,13 @@ async function assertSpecificFeature(page, definition) {
       return assertCurrentDrift(page, definition);
     case "feature-gerstner-waves":
       return assertGerstner(page, definition);
+    case "feature-ocean-nearshore-waves":
+    case "feature-ocean-breakers":
+    case "feature-ocean-shore-foam":
+    case "feature-ocean-rock-contact":
+    case "feature-ocean-micro-surface":
+    case "feature-ocean-wetness":
+      return assertOceanFocusedFeature(page, definition);
     case "feature-shore-foam":
       return assertShoreFoam(page, definition);
     case "feature-heightfield":
@@ -438,6 +522,74 @@ function assertDisabledSemantics(snapshot, definition) {
       break;
     case "feature-gerstner-waves":
       assertAcceptance(snapshot.feature?.signal === 0, "Gerstner Off retained a wave signal.");
+      break;
+    case "feature-ocean-nearshore-waves":
+      assertAcceptance(
+        snapshot.ocean?.nearshoreWaveEnabled === false,
+        "Ocean Nearshore Waves Off retained the nearshore transform."
+      );
+      break;
+    case "feature-ocean-breakers":
+      assertAcceptance(
+        snapshot.ocean?.nearshoreBreakerEnabled === false,
+        "Ocean Breakers Off retained the breaker visual."
+      );
+      assertAcceptance(
+        snapshot.ocean?.foamBreakerSourceEnabled === false,
+        "Ocean Breakers Off retained the breaker foam source."
+      );
+      assertAcceptance(
+        snapshot.ocean?.foamHistoryPixelCount === 0,
+        "Ocean Breakers Off retained foam history."
+      );
+      break;
+    case "feature-ocean-shore-foam":
+      assertAcceptance(
+        snapshot.ocean?.foamShoreSourceEnabled === false,
+        "Ocean Shore Foam Off retained the shore source."
+      );
+      assertAcceptance(
+        snapshot.ocean?.foamHistoryPixelCount === 0,
+        "Ocean Shore Foam Off retained foam history."
+      );
+      break;
+    case "feature-ocean-rock-contact":
+      assertAcceptance(
+        snapshot.ocean?.rockContactEnabled === false,
+        "Ocean Rock Contact Off retained obstacle sampling."
+      );
+      assertAcceptance(
+        snapshot.ocean?.rockContactActiveCount === 0,
+        "Ocean Rock Contact Off retained active contacts."
+      );
+      assertAcceptance(
+        snapshot.ocean?.rockContactPeakEnergy === 0,
+        "Ocean Rock Contact Off retained contact energy."
+      );
+      assertAcceptance(
+        snapshot.ocean?.foamPendingEventCount === 0,
+        "Ocean Rock Contact Off retained pending events."
+      );
+      assertAcceptance(
+        snapshot.acceptance?.scene?.splashEnabled === false,
+        "Ocean Rock Contact Off retained the splash emitter."
+      );
+      assertAcceptance(
+        snapshot.acceptance?.scene?.splashHasLiveParticles === false,
+        "Ocean Rock Contact Off retained live splash particles."
+      );
+      break;
+    case "feature-ocean-micro-surface":
+      assertAcceptance(
+        snapshot.ocean?.surfaceDetailEnabled === false,
+        "Ocean Micro Surface Off retained the detail texture."
+      );
+      break;
+    case "feature-ocean-wetness":
+      assertAcceptance(
+        snapshot.acceptance?.scene?.wetSandEnabled === false,
+        "Ocean Wetness Off retained wet-sand rendering."
+      );
       break;
     case "feature-shore-foam":
       assertAcceptance(snapshot.datasets?.heightfield?.foamEnabled === "false", "Shore Foam Off retained foam.");

@@ -180,10 +180,55 @@ export function createOceanRingPatchTopology(
 
   for (let z = 0; z <= segmentCount; z++) {
     for (let x = 0; x <= segmentCount; x++) {
+      let stitchedX = x;
+      let stitchedZ = z;
+      // The finer owner of every 2:1 boundary collapses its odd edge samples
+      // onto the preceding even sample. Existing triangles then degenerate
+      // into the standard three-triangle transition fan, so both levels share
+      // exactly the same displaced edge segments without runtime mesh edits.
+      if (segmentCount % 2 === 0) {
+        if (
+          x % 2 === 1 &&
+          ((z === 0 &&
+            (descriptor.skirtMask &
+              OceanPatchSkirt.NegativeZ) !==
+              0) ||
+            (z === segmentCount &&
+              (descriptor.skirtMask &
+                OceanPatchSkirt.PositiveZ) !==
+                0))
+        ) {
+          stitchedX = x - 1;
+        }
+        if (
+          z % 2 === 1 &&
+          ((x === 0 &&
+            (descriptor.skirtMask &
+              OceanPatchSkirt.NegativeX) !==
+              0) ||
+            (x === segmentCount &&
+              (descriptor.skirtMask &
+                OceanPatchSkirt.PositiveX) !==
+                0))
+        ) {
+          stitchedZ = z - 1;
+        }
+      }
       positions.push(
-        new Vector3((x / segmentCount) * descriptor.size - halfSize, 0, (z / segmentCount) * descriptor.size - halfSize)
+        new Vector3(
+          (stitchedX / segmentCount) * descriptor.size -
+            halfSize,
+          0,
+          (stitchedZ / segmentCount) * descriptor.size -
+            halfSize
+        )
       );
-      uvs.push(new Vector2(x / segmentCount, z / segmentCount));
+      uvs.push(
+        new Vector2(
+          stitchedX / segmentCount,
+          stitchedZ / segmentCount
+        )
+      );
     }
   }
   for (let z = 0; z < segmentCount; z++) {
@@ -206,16 +251,28 @@ export function createOceanRingPatchTopology(
     negativeZ.push(index);
     positiveZ.push(segmentCount * vertexSide + index);
   }
-  if (descriptor.skirtMask & OceanPatchSkirt.NegativeX) {
+  if (
+    skirtDepth > 0 &&
+    descriptor.skirtMask & OceanPatchSkirt.NegativeX
+  ) {
     appendSkirt(positions, uvs, indexValues, negativeX, skirtDepth);
   }
-  if (descriptor.skirtMask & OceanPatchSkirt.PositiveX) {
+  if (
+    skirtDepth > 0 &&
+    descriptor.skirtMask & OceanPatchSkirt.PositiveX
+  ) {
     appendSkirt(positions, uvs, indexValues, positiveX, skirtDepth);
   }
-  if (descriptor.skirtMask & OceanPatchSkirt.NegativeZ) {
+  if (
+    skirtDepth > 0 &&
+    descriptor.skirtMask & OceanPatchSkirt.NegativeZ
+  ) {
     appendSkirt(positions, uvs, indexValues, negativeZ, skirtDepth);
   }
-  if (descriptor.skirtMask & OceanPatchSkirt.PositiveZ) {
+  if (
+    skirtDepth > 0 &&
+    descriptor.skirtMask & OceanPatchSkirt.PositiveZ
+  ) {
     appendSkirt(positions, uvs, indexValues, positiveZ, skirtDepth);
   }
 
@@ -250,7 +307,11 @@ export class OceanRingGeometry {
     this._waterLevel = config.waterLevel;
     this._maxHorizontalDisplacement = Math.max(0, config.maxHorizontalDisplacement);
     this._maxVerticalDisplacement = Math.max(0, config.maxVerticalDisplacement);
-    this._skirtDepth = normalizeFinitePositive(config.skirtDepth ?? DEFAULT_SKIRT_DEPTH, DEFAULT_SKIRT_DEPTH);
+    this._skirtDepth =
+      Number.isFinite(config.skirtDepth) &&
+      (config.skirtDepth ?? -1) >= 0
+        ? config.skirtDepth!
+        : DEFAULT_SKIRT_DEPTH;
     this.root = parent.createChild("ocean-rings");
     this.root.layer = this.layer;
 

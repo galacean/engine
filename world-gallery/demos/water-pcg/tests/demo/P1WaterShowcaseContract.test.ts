@@ -70,7 +70,9 @@ describe("P1 water showcase integration contract", () => {
   });
 
   it("samples one-channel temporal foam in world space and bounds uploads to one per render frame", () => {
-    const textureServiceSource = readWaterPcgSource("demo/pool/TemporalFoamTextureService.ts");
+    const textureServiceSource = readWaterPcgSource(
+      "runtime/interaction/TemporalFoamTextureService.ts"
+    );
     const temporalFoamFieldSource = readWaterPcgSource("runtime/interaction/TemporalFoamField.ts");
     const currentSnapshotSource = readWaterPcgSource("runtime/interaction/WaterCurrentFieldSnapshot.ts");
     const rippleMaterialSource = readWaterPcgSource("demo/pool/InteractivePoolRippleMaterial.ts");

@@ -14,6 +14,12 @@ export type WaterDemoPreset =
   | "static-single"
   | "river-drift"
   | "gerstner-waves"
+  | "ocean-nearshore-waves"
+  | "ocean-breakers"
+  | "ocean-shore-foam"
+  | "ocean-rock-contact"
+  | "ocean-micro-surface"
+  | "ocean-wetness"
   | "shore-foam"
   | "heightfield"
   | "river-confluence"
@@ -78,7 +84,8 @@ export const WATER_PCG_CASES = [
   {
     id: "showcase-ocean",
     label: "海洋",
-    intro: "大尺度 Gerstner 波、Ocean Rings、折射、Planar 反射与船只尺度。",
+    intro:
+      "写实海滩黄昏：近岸折射破碎、时序泡沫、礁石浪花、湿沙与金色高光。",
     group: "showcase",
     runtime: "ocean",
     preset: "hero-ocean"
@@ -147,6 +154,54 @@ export const WATER_PCG_CASES = [
     group: "feature",
     runtime: "ocean",
     preset: "gerstner-waves"
+  },
+  {
+    id: "feature-ocean-nearshore-waves",
+    label: "Ocean 近岸波浪",
+    intro: "隔离水深驱动的折射、转向、变陡与岸前衰减。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-nearshore-waves"
+  },
+  {
+    id: "feature-ocean-breakers",
+    label: "Ocean 破碎浪",
+    intro: "隔离近岸破碎带、卷白和有限 Breaker 泡沫源。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-breakers"
+  },
+  {
+    id: "feature-ocean-shore-foam",
+    label: "Ocean 岸线泡沫",
+    intro: "隔离动态水线、往复薄膜和可衰减岸线泡沫。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-shore-foam"
+  },
+  {
+    id: "feature-ocean-rock-contact",
+    label: "Ocean 礁石接触",
+    intro: "隔离固定预算礁石接触、Impact 事件、泡沫与浪花粒子。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-rock-contact"
+  },
+  {
+    id: "feature-ocean-micro-surface",
+    label: "Ocean 微表面",
+    intro: "隔离确定性微法线、粗糙度和黄昏太阳高光带。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-micro-surface"
+  },
+  {
+    id: "feature-ocean-wetness",
+    label: "Ocean 湿沙",
+    intro: "隔离动态湿润范围、颜色变深和 PBR 粗糙度变化。",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-wetness"
   },
   {
     id: "feature-shore-foam",

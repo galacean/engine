@@ -89,6 +89,48 @@ export const WATER_FEATURE_CASES = Object.freeze([
     preset: "gerstner-waves"
   }),
   Object.freeze({
+    id: "feature-ocean-nearshore-waves",
+    label: "Ocean Nearshore Waves",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-nearshore-waves"
+  }),
+  Object.freeze({
+    id: "feature-ocean-breakers",
+    label: "Ocean Breakers",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-breakers"
+  }),
+  Object.freeze({
+    id: "feature-ocean-shore-foam",
+    label: "Ocean Shore Foam",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-shore-foam"
+  }),
+  Object.freeze({
+    id: "feature-ocean-rock-contact",
+    label: "Ocean Rock Contact",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-rock-contact"
+  }),
+  Object.freeze({
+    id: "feature-ocean-micro-surface",
+    label: "Ocean Micro Surface",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-micro-surface"
+  }),
+  Object.freeze({
+    id: "feature-ocean-wetness",
+    label: "Ocean Wetness",
+    group: "feature",
+    runtime: "ocean",
+    preset: "ocean-wetness"
+  }),
+  Object.freeze({
     id: "feature-shore-foam",
     label: "Shore Foam",
     group: "feature",

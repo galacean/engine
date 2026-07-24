@@ -1,5 +1,6 @@
 /** Pure, deterministic reflection-source selection shared by runtime and tests. */
 import type { NormalizedWorldPlane } from "./PlanarReflectionMath";
+import type { WaterPlanarColorMode } from "./WaterReflectionTypes";
 
 export type WaterReflectionSource = "sky" | "probe" | "planar";
 export type WaterReflectionQuality = "low" | "medium" | "high";
@@ -42,6 +43,8 @@ export interface WaterReflectionRequest {
   readonly clipBias?: number;
   /** Debug/validation escape hatch. Defaults to true; production consumers should keep clipping enabled. */
   readonly obliqueClipEnabled?: boolean;
+  /** LDR is the backward-compatible default; HDR is an explicit WebGL2 preference with visible fallback. */
+  readonly planarColorMode?: WaterPlanarColorMode;
   readonly cullingMask: number;
   readonly waterLayerMask: number;
 }

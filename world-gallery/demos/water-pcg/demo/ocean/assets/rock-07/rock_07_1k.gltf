@@ -1,0 +1,173 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v4.0.44",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "rock_07"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "rock_07",
+      "normalTexture": {
+        "index": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0,
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "realCap_Model_3",
+      "primitives": [
+        {
+          "attributes": {
+            "COLOR_0": 0,
+            "POSITION": 1,
+            "NORMAL": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/jpeg",
+      "name": "rock_07_nor_gl",
+      "uri": "textures/rock_07_nor_gl_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "rock_07_diff",
+      "uri": "textures/rock_07_diff_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "rock_07_rough",
+      "uri": "textures/rock_07_arm_1k.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 7914,
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 7914,
+      "max": [
+        0.08130179345607758,
+        0.1418129950761795,
+        0.14230197668075562
+      ],
+      "min": [
+        -0.0875801146030426,
+        -0.00190715491771698,
+        -0.17797498404979706
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 7914,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 7914,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5123,
+      "count": 44532,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 126624,
+      "byteOffset": 0,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 94968,
+      "byteOffset": 126624,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 94968,
+      "byteOffset": 221592,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 63312,
+      "byteOffset": 316560,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 89064,
+      "byteOffset": 379872,
+      "target": 34963
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 468936,
+      "uri": "rock_07.bin"
+    }
+  ]
+}

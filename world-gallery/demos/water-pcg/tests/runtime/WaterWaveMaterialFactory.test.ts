@@ -86,15 +86,52 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
     }
   });
 
+  it("uses deterministic world-space micro normals with one, two, or three unrolled layers", () => {
+    const expectedLayerCounts: Readonly<Record<WaterWaveShaderVariant, number>> = {
+      [WaterWaveShaderVariant.None]: 0,
+      [WaterWaveShaderVariant.Low]: 1,
+      [WaterWaveShaderVariant.Medium]: 2,
+      [WaterWaveShaderVariant.High]: 3
+    };
+    for (const variant of [
+      WaterWaveShaderVariant.None,
+      WaterWaveShaderVariant.Low,
+      WaterWaveShaderVariant.Medium,
+      WaterWaveShaderVariant.High
+    ]) {
+      const source = createWaterWaveShaderSource(variant);
+      expect(source.match(/texture2D\(material_SurfaceDetailTexture/g) ?? []).toHaveLength(
+        expectedLayerCounts[variant]
+      );
+      expect(source).not.toMatch(/for\s*\(/);
+    }
+    const high = createWaterWaveShaderSource(WaterWaveShaderVariant.High);
+    expect(high).toContain("dot(input.worldPosition.xz, surfaceDetailWind)");
+    expect(high).toContain("surfaceDetailSample0.rg");
+    expect(high).toContain("surfaceDetailSample1.ba");
+    expect(high).toContain(
+      "surfaceDetailSample2.rg * 0.58 + surfaceDetailSample2.ba * 0.42"
+    );
+    expect(high).toContain("material_SurfaceDetailStrength");
+    expect(high).toContain("material_SurfaceDetailScale");
+    expect(high).toContain("material_SurfaceDetailSpeed");
+    expect(high).toContain("material_SurfaceDetailWind");
+  });
+
   it("consumes two vec4 uniforms per wave with the compiler packed order", () => {
     const source = createWaterWaveShaderSource(WaterWaveShaderVariant.Medium);
 
     expect(source).toContain(`vec4 ${WATER_WAVE_SHADER_PROPERTY.waveAPrefix}0;`);
     expect(source).toContain(`vec4 ${WATER_WAVE_SHADER_PROPERTY.waveBPrefix}5;`);
-    expect(source).toContain("waveA.w * dot(waveA.xy, restXZ)");
+    expect(source).toContain("waveNumber * dot(waveDirection, restXZ)");
+    expect(source).toContain("waveA.w * nearshoreWaveNumberScale");
+    expect(source).toContain("waveA.z * nearshoreAmplitudeScale");
+    expect(source).toContain("waveB.y * nearshoreHorizontalAmplitudeScale");
     expect(source).toContain("float wrappedTime = mod(elapsedTime, wavePeriod)");
     expect(source).toContain("angularRate * wrappedTime");
-    expect(source).toContain("waveA.xy * waveB.y * cosine");
+    expect(source).toContain(
+      "waveDirection * horizontalAmplitude * cosine"
+    );
   });
 
   it("keeps world-space phase while selecting independent sky, probe, or planar reflection", () => {
@@ -109,14 +146,105 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
     expect(source).toContain("gl_Position = camera_VPMat * displacedPosition");
     expect(source).toContain("float fresnelF0 = fresnelRatio * fresnelRatio");
     expect(source).toContain("float fresnel = fresnelF0");
-    expect(source).toContain("float specular = pow(");
+    expect(source).toContain("vec4 scene_SunlightColor");
+    expect(source).toContain("vec3 scene_SunlightDirection");
+    expect(source).toContain("float directSpecular = waterSurfaceDirectSpecular(");
+    expect(source).toContain("waterColor += sunlightColor");
+    expect(source).toContain("* directSpecular");
+    expect(source).not.toContain("float specular = pow(");
+    expect(source).not.toContain("normalize(vec3(-0.35, 0.9, 0.2))");
     expect(source).toContain("samplerCube material_ReflectionCubeTexture");
     expect(source).toContain("sampler2D material_PlanarReflectionTexture");
     expect(source).toContain("material_ReflectionSource > 1.5");
-    expect(source).toContain("material_ReflectionIntensity * material_ReflectionIntensityMultiplier");
+    expect(source).toContain("* material_ReflectionIntensity");
+    expect(source).toContain("* material_ReflectionIntensityMultiplier");
     expect(source).toContain("vec3 centeredSurfaceBackground = texture2D(camera_OpaqueTexture, screenUv).rgb");
-    expect(source).toContain("clamp(material_Alpha");
+    expect(source).toContain("float nearshoreDepthAlpha = mix(");
+    expect(source).toContain("nearshoreDepthAlpha,");
+    expect(source).toContain(") + waterFoam * 0.08");
     expect(source).not.toContain("RenderTarget");
+  });
+
+  it("keeps infinite whitecaps analytic and applies bounded foam to the complete surface response", () => {
+    const source = createWaterWaveShaderSource(WaterWaveShaderVariant.High);
+
+    expect(source).toContain("float horizontalJacobianDeterminant");
+    expect(source).toContain("evaluateOceanAnalyticWhitecap(");
+    expect(source).toContain("input.whitecap * material_AnalyticWhitecapEnabled");
+    expect(source).toContain("sampler2D material_TemporalFoamTexture");
+    expect(source).toContain("input.worldPosition.xz - material_TemporalFoamRegion.xy");
+    expect(source).toContain("material_TemporalFoamTexelSize");
+    expect(source).toContain("vec3(debugTemporalFoam)");
+    expect(source).not.toContain("nearshoreBreakerFoam");
+    expect(source).toContain("float analyticFoam = smoothstep(");
+    expect(source).toContain("float boundedFoam = smoothstep(");
+    expect(source).toContain("float macroFoam = pow(");
+    expect(source).toContain("sampler2D material_FoamDetailTexture");
+    expect(source).toContain(
+      "texture2D(material_FoamDetailTexture"
+    );
+    expect(source).toContain("vec3 foamLayerWeights");
+    expect(source).toContain(
+      "macroFoam * mix(0.008, 1.0, microFoamCoverage)"
+    );
+    expect(source).toContain("foamCoarseBreakup");
+    expect(source).toContain("foamFineBreakup");
+    expect(source).toContain("nearshoreThinFilm * 0.82");
+    expect(source).toContain("material_Roughness + waterFoam * 0.42");
+    expect(source).toContain("normal = normalize(mix(");
+    expect(source).toContain("(1.0 - waterFoam * 0.88)");
+    expect(source).toContain("vec3(0.93, 0.91, 0.85)");
+    expect(source).toContain("float nearshoreDepthAlpha = mix(");
+    expect(source).toContain(") + waterFoam * 0.08");
+    expect(source).toContain("float thinFilmAlpha");
+    expect(source).toContain("float effectiveWaterAlpha = mix(");
+    expect(source).toContain("material_FoamDebugView > 0.5");
+    expect(source).not.toContain("WhitecapHistory");
+  });
+
+  it("shares the engine fog contract and keeps roughness coupled to all reflection terms", () => {
+    const source = createWaterWaveShaderSource(WaterWaveShaderVariant.High);
+
+    expect(source).toContain("#if SCENE_FOG_MODE != 0");
+    expect(source).toContain("vec4 scene_FogColor");
+    expect(source).toContain("vec4 scene_FogParams");
+    expect(source).toContain("finalWaterColor.rgb = mix(scene_FogColor.rgb");
+    expect(source).toContain("float alpha = perceptualRoughness * perceptualRoughness");
+    expect(source).toContain("float reflectionF90 = max(1.0 - perceptualRoughness, fresnelF0)");
+    expect(source).toContain("material_PlanarReflectionRoughnessFootprint");
+    expect(source).toContain("* clamp(material_Roughness, 0.0, 1.0)");
+  });
+
+  it("clips the single Rings surface from rest-space nearshore SDF with explicit outside policies", () => {
+    const source = createWaterWaveShaderSource(WaterWaveShaderVariant.High);
+
+    expect(source).not.toContain("output.restXZ = restXZ");
+    expect(source).not.toContain("input.restXZ");
+    expect(source).toContain("input.worldPosition.xz * material_NearshoreWorldToUv.xy");
+    expect(source).toContain("texture2D(material_NearshoreTexture, nearshoreUv)");
+    expect(source).toContain(
+      "nearshoreStaticWet = step(material_NearshoreDecode.w"
+    );
+    expect(source).toContain(
+      "texture2D(material_NearshoreStateTexture, nearshoreUv)"
+    );
+    expect(source).toContain(
+      "nearshoreDynamicOccupancy = nearshoreState.g"
+    );
+    expect(source).toContain("material_NearshoreStateDecode.w");
+    expect(source).toContain("resolveOceanNearshoreWaveModifier(");
+    expect(source).toContain(
+      "nearshoreVertexStatic.b * material_NearshoreDecode.y"
+    );
+    expect(source).toContain(
+      "displacedPosition.y = mix("
+    );
+    expect(source).toContain("nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.x");
+    expect(source).toContain("nearshoreOutsideDeep *= material_NearshoreOutsidePolicy.w");
+    expect(source.match(/\bdiscard;/g) ?? []).toHaveLength(2);
+    expect(source).toContain("material_NearshoreDebugView < 1.5");
+    expect(source).toContain("material_NearshoreDebugView < 3.5");
+    expect(source).not.toContain("Heightfield");
   });
 
   it("keeps Low/None free of scene textures and adds guarded precomposed refraction only to Medium/High", () => {
@@ -139,7 +267,7 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
       expect(source).toContain("vec3 transmittance = exp(-absorption * opticalDistance)");
       expect(source).toContain("step(0.5, material_RefractionEnabled)");
       expect(source).toContain("Enabled = false");
-      expect(source).toMatch(/gl_FragColor = vec4\(\s*waterColor,\s*1\.0/);
+      expect(source).toMatch(/vec4 finalWaterColor = vec4\(\s*waterColor,\s*1\.0/);
     }
   });
 

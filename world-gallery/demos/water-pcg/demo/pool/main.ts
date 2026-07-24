@@ -25,7 +25,7 @@ import {
   type PoolP1BodyCount
 } from "./PoolP1ShowcaseConfig";
 import { PoolPhysicsSceneController } from "./PoolPhysicsSceneController";
-import { TemporalFoamTextureService } from "./TemporalFoamTextureService";
+import { TemporalFoamTextureService } from "../../runtime/interaction/TemporalFoamTextureService";
 import { WaterShowcaseFrameSampler } from "../showcase/WaterShowcaseAcceptance";
 import { createFeatureSnapshot, type WaterFeatureCaseApi } from "../showcase/WaterFeatureCaseApi";
 import type {

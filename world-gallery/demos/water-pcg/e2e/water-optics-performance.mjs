@@ -32,6 +32,10 @@ const VIEWPORTS = Object.freeze({
   high: Object.freeze({ width: 1920, height: 1080 })
 });
 const VIEWPORT = VIEWPORTS[requestedTier];
+// requestAnimationFrame follows the display hosting the headed window. Pin
+// formal captures to the primary display so multi-monitor window placement
+// cannot silently switch the same run between different refresh rates.
+const HEADED_BROWSER_LAUNCH_ARGUMENTS = Object.freeze(["--window-position=0,0"]);
 const SCRIPT_DIRECTORY = fileURLToPath(new URL(".", import.meta.url));
 const WORLD_GALLERY_ROOT = resolve(SCRIPT_DIRECTORY, "../../..");
 const runId = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
@@ -603,7 +607,10 @@ try {
   targetUrl = new URL(process.env.WATER_OPTICS_URL?.trim() || DEFAULT_URL);
   assert(["medium", "high"].includes(requestedTier), `Unsupported performance tier ${requestedTier}.`);
   assert(fastSmoke || headed, "Formal Water Optics performance capture requires WATER_OPTICS_HEADED=1.");
-  browser = await chromium.launch({ headless: !headed });
+  browser = await chromium.launch({
+    headless: !headed,
+    args: headed ? [...HEADED_BROWSER_LAUNCH_ARGUMENTS] : []
+  });
   frameEnvelope = await runValidatedStatsOffCapture(browser, targetUrl, "frame-envelope");
   assertFormalReport(frameEnvelope.report, "frame-envelope");
   assert(frameEnvelope.errors.length === 0, `frame-envelope browser errors:\n${frameEnvelope.errors.join("\n")}`);
@@ -628,6 +635,7 @@ try {
     scenario: createScenarioEvidence(performanceScenario),
     reflectionSource: requestedReflectionSource,
     browserVersion: browser.version(),
+    browserLaunchArguments: headed ? HEADED_BROWSER_LAUNCH_ARGUMENTS : [],
     viewport: VIEWPORT,
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
     samplingMode: fastSmoke ? "smoke" : "formal",
@@ -653,6 +661,7 @@ try {
     scenario: performanceScenario ? createScenarioEvidence(performanceScenario) : null,
     reflectionSource: requestedReflectionSource ?? requestedReflectionSourceOverride ?? null,
     browserVersion: browser?.version() ?? "unavailable",
+    browserLaunchArguments: headed ? HEADED_BROWSER_LAUNCH_ARGUMENTS : [],
     viewport: VIEWPORT,
     deviceScaleFactor: DEVICE_SCALE_FACTOR,
     samplingMode: fastSmoke ? "smoke" : "formal",

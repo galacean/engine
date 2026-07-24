@@ -78,7 +78,7 @@
   "captures": {
     "body-matrix-final": {
       "file": "body-matrix-final.png",
-      "sha256": "aa405f8032114593a9bf1b4d2ae457d8d69b4a3911728e50f26f9924aba146b3"
+      "sha256": "2258dbc504f776b0e2403937e73a611759c8317f0cd51da4343a4d7636f2350b"
     },
     "dual-owner-debug": {
       "file": "dual-owner-debug.png",
@@ -86,10 +86,10 @@
     }
   },
   "lastBaselineUpdate": {
-    "reason": "Add real Pool River Ocean optics local foam moving reflector and deterministic multi-owner evidence",
+    "reason": "Sample Ocean detail and foam in corrected world space",
     "previousCaptures": {
-      "body-matrix-final": "14ec7df7d312d0191e987e2147eceb7b0bc195e75821d0f04279a204d945f7e2",
-      "dual-owner-debug": "22eddd97ebf4388304424a9e95ccfebca9ceac1a04a316b6e1de09a872d945e5"
+      "body-matrix-final": "16513a5ffbff326efa221992d9d968a29d426ae7f69cc825e9442db43015ec32",
+      "dual-owner-debug": "dd5ab5d09eeff6254f64aebede1314cba76ad22c3216a389ece5eb0af3ef2c01"
     }
   }
 }

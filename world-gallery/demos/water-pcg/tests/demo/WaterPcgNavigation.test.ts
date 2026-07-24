@@ -21,17 +21,23 @@ const FEATURE_CASE_IDS = [
   "feature-buoyancy",
   "feature-current-drift",
   "feature-gerstner-waves",
+  "feature-ocean-nearshore-waves",
+  "feature-ocean-breakers",
+  "feature-ocean-shore-foam",
+  "feature-ocean-rock-contact",
+  "feature-ocean-micro-surface",
+  "feature-ocean-wetness",
   "feature-shore-foam",
   "feature-heightfield",
   "feature-river-confluence"
 ];
 
 describe("Water PCG navigation", () => {
-  it("registers three showcases and eleven focused public feature cases", () => {
+  it("registers three showcases and seventeen focused public feature cases", () => {
     expect(WATER_PCG_CASES.filter(({ group }) => group === "showcase").map(({ id }) => id)).toEqual(SHOWCASE_CASE_IDS);
     expect(WATER_PCG_CASES.filter(({ group }) => group === "feature").map(({ id }) => id)).toEqual(FEATURE_CASE_IDS);
     expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).toEqual([...SHOWCASE_CASE_IDS, ...FEATURE_CASE_IDS]);
-    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(14);
+    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(20);
     expect(
       WATER_PCG_PUBLIC_CASES.every(
         ({ intro, runtime, preset }) => intro.length > 0 && runtime.length > 0 && preset.length > 0

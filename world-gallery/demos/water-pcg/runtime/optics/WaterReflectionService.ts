@@ -5,6 +5,7 @@ import {
   Entity,
   Layer,
   RenderTarget,
+  SystemInfo,
   Texture2D,
   TextureCube,
   TextureFilterMode,
@@ -34,10 +35,18 @@ import {
   type WaterReflectionSource
 } from "./WaterReflectionPolicy";
 import type { WaterGpuTimer } from "./WaterGpuTimer";
+import type {
+  WaterPlanarColorFallbackReason,
+  WaterPlanarColorFormat,
+  WaterPlanarColorMode
+} from "./WaterReflectionTypes";
 
 const DEFAULT_MIN_PLANAR_RESOLUTION = 64;
 const DEFAULT_MAX_PLANAR_RESOLUTION = 1024;
-const PLANAR_BYTES_PER_PIXEL_ESTIMATE = 8;
+const LDR_COLOR_BYTES_PER_PIXEL_ESTIMATE = 4;
+const R11G11B10_COLOR_BYTES_PER_PIXEL_ESTIMATE = 4;
+const RGBA16F_COLOR_BYTES_PER_PIXEL_ESTIMATE = 8;
+const DEPTH_BYTES_PER_PIXEL_ESTIMATE = 4;
 const CPU_TIMING_CAPACITY = 120;
 const DEFAULT_PLANAR_CLIP_BIAS = 0.02;
 const DEFAULT_MINIMUM_CAMERA_PLANE_DISTANCE = 0.05;
@@ -52,6 +61,9 @@ export interface WaterReflectionBinding {
   readonly probeTexture?: TextureCube;
   readonly planarTexture?: Texture2D;
   readonly planarViewProjection?: Readonly<Matrix>;
+  readonly planarColorFormat?: WaterPlanarColorFormat;
+  readonly planarHDR?: boolean;
+  readonly planarColorFallbackReason?: WaterPlanarColorFallbackReason;
 }
 
 interface MutableWaterReflectionBinding {
@@ -61,6 +73,18 @@ interface MutableWaterReflectionBinding {
   probeTexture?: TextureCube;
   planarTexture?: Texture2D;
   planarViewProjection?: Readonly<Matrix>;
+  planarColorFormat?: WaterPlanarColorFormat;
+  planarHDR?: boolean;
+  planarColorFallbackReason?: WaterPlanarColorFallbackReason;
+}
+
+interface PlanarColorSelection {
+  readonly mode: WaterPlanarColorMode;
+  readonly textureFormat: TextureFormat;
+  readonly colorFormat: WaterPlanarColorFormat;
+  readonly hdr: boolean;
+  readonly colorBytesPerPixel: number;
+  readonly fallbackReason?: WaterPlanarColorFallbackReason;
 }
 
 interface PlanarRenderResource {
@@ -70,6 +94,11 @@ interface PlanarRenderResource {
   readonly texture: Texture2D;
   readonly viewProjection: Matrix;
   readonly renderTargetProjection: Matrix;
+  readonly colorMode: WaterPlanarColorMode;
+  readonly colorFormat: WaterPlanarColorFormat;
+  readonly planarHDR: boolean;
+  readonly colorBytesPerPixel: number;
+  readonly colorFallbackReason?: WaterPlanarColorFallbackReason;
 }
 
 export interface WaterReflectionServiceOptions {
@@ -130,6 +159,11 @@ export interface WaterReflectionServiceMetrics {
   readonly renderTargetWidth: number;
   readonly renderTargetHeight: number;
   readonly estimatedRenderTargetBytes: number;
+  readonly planarColorMode: WaterPlanarColorMode;
+  readonly colorFormat: WaterPlanarColorFormat;
+  readonly planarHDR: boolean;
+  readonly fallbackReason?: WaterPlanarColorFallbackReason;
+  readonly resourceBytes: number;
   readonly lastPlanarDrawCount: number;
   readonly totalPlanarDrawCount: number;
   readonly lastPlanarRenderCpuMs: number;
@@ -167,6 +201,7 @@ export class WaterReflectionService {
   private readonly _requestBuffer: WaterReflectionRequest[] = [];
   private readonly _bindings = new Map<string, MutableWaterReflectionBinding>();
   private readonly _runtimeFallbackReasons = new Map<string, WaterReflectionFallbackReason>();
+  private readonly _planarColorFallbackReasons = new Map<string, WaterPlanarColorFallbackReason>();
   private readonly _ownerArbitrator = new WaterReflectionOwnerArbitrator();
   private readonly _availability: { probe: boolean; planar: boolean } = { probe: false, planar: false };
   private readonly _obliqueProjection = new Matrix();
@@ -266,6 +301,13 @@ export class WaterReflectionService {
       : this._renderCommitPendingOwnerId;
     const arbitrationPending = arbitrationStateMatchesPlan && this._arbitrationState.pendingOwnerId !== undefined;
     const activeResource = this._activeResource;
+    const selectedRequest = this._selectedPlanarOwnerId
+      ? this._requests.get(this._selectedPlanarOwnerId)
+      : undefined;
+    const resourceBytes =
+      (activeResource?.renderTarget.width ?? 0) *
+      (activeResource?.renderTarget.height ?? 0) *
+      ((activeResource?.colorBytesPerPixel ?? 0) + (activeResource ? DEPTH_BYTES_PER_PIXEL_ESTIMATE : 0));
     return Object.freeze({
       activeConsumerCount: this._requests.size,
       planarRequestCount: this._planarRequestCount,
@@ -305,10 +347,16 @@ export class WaterReflectionService {
       liveRenderTargetCount: activeResource ? 1 : 0,
       renderTargetWidth: activeResource?.renderTarget.width ?? 0,
       renderTargetHeight: activeResource?.renderTarget.height ?? 0,
-      estimatedRenderTargetBytes:
-        (activeResource?.renderTarget.width ?? 0) *
-        (activeResource?.renderTarget.height ?? 0) *
-        PLANAR_BYTES_PER_PIXEL_ESTIMATE,
+      estimatedRenderTargetBytes: resourceBytes,
+      planarColorMode: activeResource?.colorMode ?? selectedRequest?.planarColorMode ?? "ldr",
+      colorFormat: activeResource?.colorFormat ?? "none",
+      planarHDR: activeResource?.planarHDR ?? false,
+      fallbackReason:
+        activeResource?.colorFallbackReason ??
+        (this._selectedPlanarOwnerId
+          ? this._planarColorFallbackReasons.get(this._selectedPlanarOwnerId)
+          : undefined),
+      resourceBytes,
       lastPlanarDrawCount: this._lastPlanarDrawCount,
       totalPlanarDrawCount: this._totalPlanarDrawCount,
       lastPlanarRenderCpuMs: this._lastPlanarRenderCpuMs,
@@ -355,6 +403,9 @@ export class WaterReflectionService {
     });
     this._requests.set(request.id, normalizedRequest);
     this._runtimeFallbackReasons.delete(request.id);
+    if (previousRequest?.planarColorMode !== normalizedRequest.planarColorMode) {
+      this._planarColorFallbackReasons.delete(request.id);
+    }
     if (
       request.id === this._renderedPlanarOwnerId &&
       (this._hasRenderedRequestStateChanged(previousRequest, normalizedRequest) ||
@@ -382,6 +433,7 @@ export class WaterReflectionService {
     const removed = this._requests.delete(requestId);
     this._bindings.delete(requestId);
     this._runtimeFallbackReasons.delete(requestId);
+    this._planarColorFallbackReasons.delete(requestId);
     if (removed) {
       this._planDirty = true;
       this._rebuildPlan();
@@ -402,9 +454,10 @@ export class WaterReflectionService {
   }
 
   retryPlanar(): void {
-    if (this._planarHealthy) return;
+    if (this._planarHealthy && this._planarColorFallbackReasons.size === 0) return;
     this._planarHealthy = true;
     this._runtimeFallbackReasons.clear();
+    this._planarColorFallbackReasons.clear();
     this._planDirty = true;
   }
 
@@ -438,15 +491,20 @@ export class WaterReflectionService {
       this._maxPlanarResolution,
       Math.max(this._minPlanarResolution, Math.ceil(this._viewportHeight * policy.planarResolutionScale))
     );
+    const colorSelection = this._resolvePlanarColorSelection(owner);
     const activeResource = this._activeResource;
     const needsCandidateResource =
       !activeResource ||
       owner.id !== this._renderedPlanarOwnerId ||
       activeResource.renderTarget.width !== targetWidth ||
-      activeResource.renderTarget.height !== targetHeight;
+      activeResource.renderTarget.height !== targetHeight ||
+      activeResource.colorFormat !== colorSelection.colorFormat ||
+      activeResource.colorFallbackReason !== colorSelection.fallbackReason;
     let candidateResource: PlanarRenderResource | undefined;
     try {
-      if (needsCandidateResource) candidateResource = this._createPlanarResource(targetWidth, targetHeight);
+      if (needsCandidateResource) {
+        candidateResource = this._createPreferredPlanarResource(owner, targetWidth, targetHeight, colorSelection);
+      }
     } catch {
       this._fallbackPlanarOwner(owner.id, "planar-target-failed", true, true);
       return;
@@ -518,6 +576,7 @@ export class WaterReflectionService {
     this._requestBuffer.length = 0;
     this._bindings.clear();
     this._runtimeFallbackReasons.clear();
+    this._planarColorFallbackReasons.clear();
     this._ownerArbitrator.reset();
     this._arbitrationState = this._ownerArbitrator.state;
     this._selectedPlanarOwnerId = undefined;
@@ -688,6 +747,9 @@ export class WaterReflectionService {
         binding.probeTexture = undefined;
         binding.planarTexture = activeResource.texture;
         binding.planarViewProjection = activeResource.viewProjection;
+        binding.planarColorFormat = activeResource.colorFormat;
+        binding.planarHDR = activeResource.planarHDR;
+        binding.planarColorFallbackReason = activeResource.colorFallbackReason;
         continue;
       }
 
@@ -730,15 +792,81 @@ export class WaterReflectionService {
     binding.probeTexture = resolvedSource === "probe" ? this._probeTexture : undefined;
     binding.planarTexture = undefined;
     binding.planarViewProjection = undefined;
+    binding.planarColorFormat = undefined;
+    binding.planarHDR = undefined;
+    binding.planarColorFallbackReason = undefined;
   }
 
-  private _createPlanarResource(width: number, height: number): PlanarRenderResource {
+  private _resolvePlanarColorSelection(owner: WaterReflectionRequest): Readonly<PlanarColorSelection> {
+    const mode = owner.planarColorMode ?? "ldr";
+    if (mode === "ldr") return this._createLdrColorSelection(mode);
+
+    const rememberedFallback = this._planarColorFallbackReasons.get(owner.id);
+    if (rememberedFallback) return this._createLdrColorSelection(mode, rememberedFallback);
+
+    const requiresAlpha = this._sourceCamera.isAlphaOutputRequired;
+    const textureFormat = requiresAlpha
+      ? TextureFormat.R16G16B16A16
+      : TextureFormat.R11G11B10_UFloat;
+    if (!SystemInfo.supportsTextureFormat(this._engine, textureFormat)) {
+      return this._createLdrColorSelection(mode, "hdr-format-unsupported");
+    }
+    return Object.freeze({
+      mode,
+      textureFormat,
+      colorFormat: requiresAlpha ? "r16g16b16a16-float" : "r11g11b10-ufloat",
+      hdr: true,
+      colorBytesPerPixel: requiresAlpha
+        ? RGBA16F_COLOR_BYTES_PER_PIXEL_ESTIMATE
+        : R11G11B10_COLOR_BYTES_PER_PIXEL_ESTIMATE
+    });
+  }
+
+  private _createLdrColorSelection(
+    mode: WaterPlanarColorMode,
+    fallbackReason?: WaterPlanarColorFallbackReason
+  ): Readonly<PlanarColorSelection> {
+    return Object.freeze({
+      mode,
+      textureFormat: TextureFormat.R8G8B8A8,
+      colorFormat: "r8g8b8a8-unorm",
+      hdr: false,
+      colorBytesPerPixel: LDR_COLOR_BYTES_PER_PIXEL_ESTIMATE,
+      fallbackReason
+    });
+  }
+
+  private _createPreferredPlanarResource(
+    owner: WaterReflectionRequest,
+    width: number,
+    height: number,
+    selection: Readonly<PlanarColorSelection>
+  ): PlanarRenderResource {
+    try {
+      return this._createPlanarResource(width, height, selection);
+    } catch (error) {
+      if (!selection.hdr) throw error;
+      const fallbackReason: WaterPlanarColorFallbackReason = "hdr-target-failed";
+      this._planarColorFallbackReasons.set(owner.id, fallbackReason);
+      return this._createPlanarResource(
+        width,
+        height,
+        this._createLdrColorSelection(selection.mode, fallbackReason)
+      );
+    }
+  }
+
+  private _createPlanarResource(
+    width: number,
+    height: number,
+    color: Readonly<PlanarColorSelection>
+  ): PlanarRenderResource {
     let texture: Texture2D | undefined;
     let renderTarget: RenderTarget | undefined;
     let entity: Entity | undefined;
     let camera: Camera | undefined;
     try {
-      texture = new Texture2D(this._engine, width, height, TextureFormat.R8G8B8A8, false, true);
+      texture = new Texture2D(this._engine, width, height, color.textureFormat, false, !color.hdr);
       texture.filterMode = TextureFilterMode.Bilinear;
       texture.wrapModeU = TextureWrapMode.Clamp;
       texture.wrapModeV = TextureWrapMode.Clamp;
@@ -748,6 +876,9 @@ export class WaterReflectionService {
       entity = this._parent.createChild("water-planar-reflection-camera");
       camera = entity.addComponent(Camera);
       camera.enabled = false;
+      camera.isAlphaOutputRequired = color.hdr && color.textureFormat === TextureFormat.R16G16B16A16;
+      camera.enableHDR = color.hdr;
+      camera.enablePostProcess = false;
       camera.renderTarget = renderTarget;
       this._reflectionCameraCreateCount++;
       return {
@@ -756,7 +887,12 @@ export class WaterReflectionService {
         renderTarget,
         texture,
         viewProjection: new Matrix(),
-        renderTargetProjection: new Matrix()
+        renderTargetProjection: new Matrix(),
+        colorMode: color.mode,
+        colorFormat: color.colorFormat,
+        planarHDR: color.hdr,
+        colorBytesPerPixel: color.colorBytesPerPixel,
+        colorFallbackReason: color.fallbackReason
       };
     } catch (error) {
       if (camera && camera.renderTarget === renderTarget) camera.renderTarget = null;
@@ -900,7 +1036,9 @@ export class WaterReflectionService {
     target.aspectRatio = source.aspectRatio;
     target.viewport = source.viewport;
     target.clearFlags = source.clearFlags;
-    target.enableHDR = false;
+    target.isAlphaOutputRequired =
+      resource.planarHDR && resource.colorFormat === "r16g16b16a16-float";
+    target.enableHDR = resource.planarHDR;
     target.enablePostProcess = false;
     target.cullingMask = (owner.cullingMask & ~this._waterLayerMask) as Layer;
 
@@ -1027,6 +1165,9 @@ export class WaterReflectionService {
       if (!request) {
         binding.planarTexture = undefined;
         binding.planarViewProjection = undefined;
+        binding.planarColorFormat = undefined;
+        binding.planarHDR = undefined;
+        binding.planarColorFallbackReason = undefined;
         continue;
       }
       if (!request.visible) this._synchronizeHiddenBinding(request, binding);
@@ -1062,6 +1203,7 @@ export class WaterReflectionService {
       planeChanged ||
       previous.clipBias !== next.clipBias ||
       previous.obliqueClipEnabled !== next.obliqueClipEnabled ||
+      previous.planarColorMode !== next.planarColorMode ||
       previous.cullingMask !== next.cullingMask ||
       previous.waterLayerMask !== next.waterLayerMask
     );

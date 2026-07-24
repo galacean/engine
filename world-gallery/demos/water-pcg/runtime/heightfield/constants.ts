@@ -1,5 +1,6 @@
 /** Heightfield-water shader bindings and runtime submission defaults. */
 import { WATER_OPTICS_SHADER_PROPERTY } from "../optics/constants/WaterOpticsShaderConstants";
+import { DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR } from "../wave/constants/WaterSurfaceDetailTextureConstants";
 
 export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
   shallowColor: "material_ShallowColor",
@@ -68,14 +69,14 @@ export const HEIGHTFIELD_WATER_WAVE_TIME_SCALE = 0.9;
 
 /** Deterministic, tileable RG slope / BA foam-noise texture shared by all heightfield-water materials. */
 export const HEIGHTFIELD_WATER_SURFACE_TEXTURE = {
-  size: 128,
-  gradientStrength: 6.8,
-  firstCellCount: 4,
-  secondCellCount: 11,
-  thirdCellCount: 23,
-  firstWeight: 0.5,
-  secondWeight: 0.32,
-  thirdWeight: 0.18
+  size: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.size,
+  gradientStrength: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.gradientStrength,
+  firstCellCount: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.firstCellCount,
+  secondCellCount: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.secondCellCount,
+  thirdCellCount: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.thirdCellCount,
+  firstWeight: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.firstWeight,
+  secondWeight: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.secondWeight,
+  thirdWeight: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.thirdWeight
 } as const;
 
 /** Internal flow/optics defaults. Public authoring still uses the existing six material fields. */
@@ -165,8 +166,8 @@ export const HEIGHTFIELD_WATER_SURFACE_TUNING = {
 } as const;
 
 export const HEIGHTFIELD_WATER_SURFACE_TEXTURE_RANDOM = {
-  firstSeed: 13,
-  secondSeed: 37,
-  thirdSeed: 71,
-  auxiliarySeedOffset: 101
+  firstSeed: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.firstSeed,
+  secondSeed: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.secondSeed,
+  thirdSeed: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.thirdSeed,
+  auxiliarySeedOffset: DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR.auxiliarySeedOffset
 } as const;

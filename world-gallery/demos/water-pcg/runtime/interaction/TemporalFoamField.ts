@@ -4,6 +4,7 @@ import {
   type WaterCurrentFieldSnapshot,
   type WaterCurrentFieldSnapshotKind
 } from "./WaterCurrentFieldSnapshot";
+import { WaterFoamBlendMode } from "./WaterFoamTypes";
 
 export interface TemporalFoamFieldOptions {
   readonly centerX: number;
@@ -173,7 +174,13 @@ export class TemporalFoamField {
     return this._mutableMetrics.sourcePixelCount === 0 && this._mutableMetrics.activeHistoryPixelCount === 0;
   }
 
-  addSourceWorld(worldX: number, worldZ: number, radius: number, intensity: number): boolean {
+  addSourceWorld(
+    worldX: number,
+    worldZ: number,
+    radius: number,
+    intensity: number,
+    blend = WaterFoamBlendMode.Add
+  ): boolean {
     if (
       !Number.isFinite(worldX) ||
       !Number.isFinite(worldZ) ||
@@ -200,12 +207,43 @@ export class TemporalFoamField {
         if (contribution <= 0) continue;
         const index = z * this.resolutionX + x;
         const previous = this._source[index];
-        const next = Math.min(255, previous + contribution);
+        const next =
+          blend === WaterFoamBlendMode.Maximum
+            ? Math.max(previous, contribution)
+            : Math.min(255, previous + contribution);
         if (next === previous) continue;
         if (previous === 0) this._mutableMetrics.sourcePixelCount++;
         this._source[index] = next;
         touched = true;
       }
+    }
+    if (touched) this._mutableMetrics.sourceInjectionCount++;
+    return touched;
+  }
+
+  /** Merges one caller-owned, same-resolution R8 source without allocations. */
+  addSourceBuffer(
+    source: Uint8Array,
+    blend = WaterFoamBlendMode.Add
+  ): boolean {
+    if (source.length !== this._source.length) {
+      throw new RangeError(
+        `Temporal foam source requires ${this._source.length} pixels.`
+      );
+    }
+    let touched = false;
+    for (let index = 0; index < source.length; index++) {
+      const contribution = source[index];
+      if (contribution === 0) continue;
+      const previous = this._source[index];
+      const next =
+        blend === WaterFoamBlendMode.Maximum
+          ? Math.max(previous, contribution)
+          : Math.min(255, previous + contribution);
+      if (next === previous) continue;
+      if (previous === 0) this._mutableMetrics.sourcePixelCount++;
+      this._source[index] = next;
+      touched = true;
     }
     if (touched) this._mutableMetrics.sourceInjectionCount++;
     return touched;

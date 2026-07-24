@@ -25,6 +25,10 @@ export interface WaterShowcaseReflectionMetrics {
   readonly renderTargetCount: number;
   readonly filterSampleCount: 1 | 5;
   readonly failureCount: number;
+  readonly colorFormat?: string;
+  readonly planarHDR?: boolean;
+  readonly fallbackReason?: string | null;
+  readonly resourceBytes?: number;
 }
 
 export type WaterShowcaseSceneMetric = string | number | boolean | null;

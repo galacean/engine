@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   TemporalFoamTextureService,
   type TemporalFoamTextureFactory
-} from "../../demo/pool/TemporalFoamTextureService";
+} from "../../runtime/interaction/TemporalFoamTextureService";
 import { TemporalFoamField } from "../../runtime/interaction/TemporalFoamField";
 import { createUniformWaterCurrentFieldSnapshot } from "../../runtime/interaction/WaterCurrentFieldSnapshot";
 
@@ -118,7 +118,7 @@ describe("TemporalFoamTextureService", () => {
     expect(service.texture).not.toBe(historyTexture);
     expect(service.metrics.lastFrameUploadCount).toBe(1);
     service.setDebugView("source");
-    expect(service.updateFrame(3, 1 / 60)).toBe(true);
+    expect(service.updateFrame(3, 0)).toBe(true);
     expect(service.texture).toBe(textures[0] as unknown as Texture2D);
 
     service.destroy();
@@ -131,6 +131,35 @@ describe("TemporalFoamTextureService", () => {
       textureCount: 0,
       resourceBytes: 0
     });
+  });
+
+  it("synchronizes a forced fixed-time view without advancing history", () => {
+    const textures: FakeTexture[] = [];
+    const field = createField(0);
+    const service = new TemporalFoamTextureService(
+      {} as Engine,
+      field,
+      {
+        enabled: true,
+        quality: "medium",
+        debugView: "final",
+        textureFactory: createFakeFactory(textures)
+      }
+    );
+
+    field.addSourceWorld(0, 0, 1.1, 1);
+    service.updateFrame(1, 1 / 30);
+    const historyUpdateCount =
+      service.metrics.historyUpdateCount;
+    service.setDebugView("history");
+
+    expect(service.updateFrame(2, 0)).toBe(true);
+    expect(service.metrics.historyUpdateCount).toBe(
+      historyUpdateCount
+    );
+    expect(
+      (service.texture as unknown as FakeTexture).uploads.at(-1)
+    ).toEqual(field.historyBuffer);
   });
 
   it("uploads one zero history after clear and then stops uploading while idle", () => {

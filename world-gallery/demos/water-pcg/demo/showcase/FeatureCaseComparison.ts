@@ -12,6 +12,30 @@ const FEATURE_LABELS: Readonly<Record<string, FeatureComparisonLabels>> = Object
   "feature-buoyancy": Object.freeze({ off: "浮力 Off", on: "浮力 On" }),
   "feature-current-drift": Object.freeze({ off: "Current Off", on: "Current On" }),
   "feature-gerstner-waves": Object.freeze({ off: "平静水面", on: "Gerstner" }),
+  "feature-ocean-nearshore-waves": Object.freeze({
+    off: "深水波形",
+    on: "近岸折射"
+  }),
+  "feature-ocean-breakers": Object.freeze({
+    off: "Breaker Off",
+    on: "Breaker On"
+  }),
+  "feature-ocean-shore-foam": Object.freeze({
+    off: "岸线泡沫 Off",
+    on: "岸线泡沫 On"
+  }),
+  "feature-ocean-rock-contact": Object.freeze({
+    off: "礁石接触 Off",
+    on: "礁石接触 On"
+  }),
+  "feature-ocean-micro-surface": Object.freeze({
+    off: "微表面 Off",
+    on: "微表面 On"
+  }),
+  "feature-ocean-wetness": Object.freeze({
+    off: "湿沙 Off",
+    on: "湿沙 On"
+  }),
   "feature-shore-foam": Object.freeze({ off: "泡沫 Off", on: "泡沫 On" }),
   "feature-heightfield": Object.freeze({ off: "静态表面", on: "动态高度场" }),
   "feature-river-confluence": Object.freeze({ off: "汇流 Off", on: "汇流 On" })

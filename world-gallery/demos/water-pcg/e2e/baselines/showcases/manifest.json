@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-23T10:42:57.953Z",
-  "updateReason": "Freeze deterministic visual capture frames",
+  "generatedAt": "2026-07-24T06:25:34.503Z",
+  "updateReason": "Reduce Ocean foam coverage to thin broken shoreline bands",
   "environment": {
     "viewport": {
       "width": 1280,
@@ -13,7 +13,11 @@
     "seed": 20260723,
     "statsEnabled": false
   },
-  "captureStates": ["hero", "interaction", "detail"],
+  "captureStates": [
+    "hero",
+    "interaction",
+    "detail"
+  ],
   "thresholds": {
     "perChannelByteTolerance": 8,
     "maximumDiffPixelRatio": 0.01,
@@ -59,20 +63,24 @@
     "showcase-ocean": {
       "runtime": "ocean",
       "preset": "hero-ocean",
+      "updateReason": "Reduce Ocean foam coverage to thin broken shoreline bands",
       "states": {
         "hero": {
           "file": "showcase-ocean/hero.png",
-          "sha256": "81366aecca332ef7e10ccfb498793ff6f2685b313ccaa8987e2facce5d1e7fde"
+          "sha256": "8b2b432b23fe3b80c2bdb7c85162cba20c0fed72c314cbc982319038158ceec8"
         },
         "interaction": {
           "file": "showcase-ocean/interaction.png",
-          "sha256": "a9cb6670c157335a1c76b8df6043a5a88b0b58bec24585da2967232cf762fa20"
+          "sha256": "0396efd872685afbcfdc7cd5bd467ff466272cc647070c4d1c4deba15a9c3fe1"
         },
         "detail": {
           "file": "showcase-ocean/detail.png",
-          "sha256": "2e3af27f16bffd75d1d161c96f819c7f480f91bac692892c90f309f7e181480a"
+          "sha256": "b7fd6818374730986964a6e073209031f117c32246f151fadcc481c703861d52"
         }
       }
     }
-  }
+  },
+  "updatedCaseIds": [
+    "showcase-ocean"
+  ]
 }

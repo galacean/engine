@@ -37,7 +37,41 @@ const THRESHOLDS = Object.freeze({
   maximumMeanAbsoluteChannelDifference: 1.5
 });
 const UPDATE_REASON = (process.env.WATER_PCG_VISUAL_UPDATE_REASON ?? "").trim();
+const CASE_FILTER = (
+  process.env.WATER_PCG_VISUAL_CASES ??
+  process.env.WATER_PCG_VISUAL_CASE ??
+  ""
+).trim();
+const requestedCaseIds = [
+  ...new Set(
+    CASE_FILTER
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean)
+  )
+];
+const unknownCaseIds = requestedCaseIds.filter(
+  (id) => !WATER_SHOWCASE_CASES.some((definition) => definition.id === id)
+);
+assertAcceptance(
+  unknownCaseIds.length === 0,
+  `Unknown Showcase visual case filter: ${unknownCaseIds.join(", ")}.`
+);
+const selectedDefinitions =
+  requestedCaseIds.length === 0
+    ? WATER_SHOWCASE_CASES
+    : WATER_SHOWCASE_CASES.filter((definition) =>
+        requestedCaseIds.includes(definition.id)
+      );
+assertAcceptance(
+  selectedDefinitions.length > 0,
+  "Showcase visual case filter selected no cases."
+);
 const WATER_EFFECT_CAPTURE_STYLE = `
+  #example-bar [data-case-id^="feature-ocean-"] {
+    display: none !important;
+  }
+
   [data-water-debug-panel],
   .dg.ac {
     visibility: hidden !important;
@@ -360,8 +394,9 @@ async function captureShowcase(browser, definition, manifest) {
   }
 }
 
-async function updateBaselines(caseResults) {
-  const cases = {};
+async function updateBaselines(caseResults, previousManifest) {
+  const cases = { ...(previousManifest?.cases ?? {}) };
+  const updatedCaseIds = [];
   for (const caseResult of caseResults) {
     const definition = WATER_SHOWCASE_CASES.find((candidate) => candidate.id === caseResult.id);
     assertAcceptance(definition, `Unknown Showcase result '${caseResult.id}'.`);
@@ -378,8 +413,10 @@ async function updateBaselines(caseResults) {
     cases[definition.id] = {
       runtime: definition.runtime,
       preset: definition.preset,
+      updateReason: UPDATE_REASON,
       states
     };
+    updatedCaseIds.push(definition.id);
   }
   const manifest = {
     schemaVersion: 1,
@@ -388,7 +425,8 @@ async function updateBaselines(caseResults) {
     environment: FIXED_ACCEPTANCE_ENVIRONMENT,
     captureStates: CAPTURE_STATES,
     thresholds: THRESHOLDS,
-    cases
+    cases,
+    updatedCaseIds
   };
   await mkdir(baselineRoot, { recursive: true });
   await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
@@ -410,6 +448,7 @@ const report = {
   headed,
   environment: FIXED_ACCEPTANCE_ENVIRONMENT,
   captureStates: CAPTURE_STATES,
+  selectedCaseIds: selectedDefinitions.map(({ id }) => id),
   thresholds: THRESHOLDS,
   source: readGitEvidence(),
   cases: [],
@@ -420,13 +459,25 @@ const report = {
 let browser;
 try {
   const manifest = await readBaselineManifest();
+  if (
+    requestedMode === "update" &&
+    selectedDefinitions.length < WATER_SHOWCASE_CASES.length
+  ) {
+    assertAcceptance(
+      manifest !== undefined,
+      "A case-scoped baseline update requires the existing complete manifest."
+    );
+  }
   browser = await chromium.launch({ headless: !headed });
   report.browserVersion = browser.version();
-  for (const definition of WATER_SHOWCASE_CASES) {
+  for (const definition of selectedDefinitions) {
     report.cases.push(await captureShowcase(browser, definition, manifest));
   }
   if (requestedMode === "update") {
-    report.baselineUpdate = await updateBaselines(report.cases);
+    report.baselineUpdate = await updateBaselines(
+      report.cases,
+      manifest
+    );
   }
   report.status = "passed";
 } catch (error) {
@@ -447,7 +498,7 @@ await writeAcceptanceReport(run, report);
 const reportPath = relative(process.cwd(), run.resultPath) || run.resultPath;
 if (report.status === "passed") {
   console.log(
-    `Water Showcase visual ${requestedMode} passed: ${WATER_SHOWCASE_CASES.length * CAPTURE_STATES.length} captures.`
+    `Water Showcase visual ${requestedMode} passed: ${selectedDefinitions.length * CAPTURE_STATES.length} captures.`
   );
   console.log(`Report: ${reportPath}`);
 } else {

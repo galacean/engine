@@ -5,6 +5,7 @@ import { WaterWaveSchemaVersion } from "../../../authoring/wave/enums/WaterWaveS
 import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 import type { WaterOpticalProfile } from "../../../runtime/optics/WaterOpticalProfile";
 import type { OceanPreviewConfig } from "./types";
+import { createOceanBeachNearshoreDescriptor } from "../../ocean/OceanBeachShowcasePreset";
 
 function createOceanWaveAsset(
   seed: number,
@@ -78,37 +79,55 @@ export const indoorReflectivePoolOceanPreview: OceanPreviewConfig = {
 };
 
 export const SHOWCASE_OCEAN_OPTICAL_PROFILE = Object.freeze({
-  absorptionCoefficient: [0.16, 0.055, 0.022],
-  scatteringColor: [0.035, 0.26, 0.34],
-  scatteringCoefficient: 0.085,
-  maximumViewDistance: 34,
+  absorptionCoefficient: [0.38, 0.18, 0.085],
+  scatteringColor: [0.028, 0.074, 0.084],
+  scatteringCoefficient: 0.065,
+  maximumViewDistance: 42,
   indexOfRefraction: 1.333,
   maximumSurfaceOpticalDistance: 18,
-  refractionStrength: 1.08,
-  roughness: 0.18,
-  reflectionIntensity: 1.15
+  refractionStrength: 0.18,
+  roughness: 0.4,
+  reflectionIntensity: 1
 } satisfies WaterOpticalProfile);
 
 /** Canonical High ocean used by the hero, Gerstner feature, and LOD developer presets. */
 export const showcaseOceanPreview: OceanPreviewConfig = {
   size: 240,
-  resolution: 128,
+  resolution: 192,
   waterLevel: 0,
-  amplitudeScale: 1.12,
+  amplitudeScale: 1,
   timeScale: 0.82,
   quality: WaterQualityTier.High,
-  waveAsset: createOceanWaveAsset(73129, 3.4, 48, 0.035, 0.72, -0.18, 0.82, 0.76),
+  waveAsset: createOceanWaveAsset(
+    73129,
+    5.2,
+    54,
+    0.0035,
+    0.092,
+    -0.18,
+    0.68,
+    0.22
+  ),
   alpha: 0.82,
-  foamIntensity: 1.42,
-  oceanColor: "#087d9b",
+  foamIntensity: 0.7,
+  foamEnabled: true,
+  oceanColor: "#183238",
+  surfaceDetail: {
+    strength: 0.14,
+    scale: 0.29,
+    speed: 0.026,
+    wind: [0.984, -0.179]
+  },
+  nearshoreDescriptor: createOceanBeachNearshoreDescriptor(),
   reflectionSource: "planar",
+  planarColorMode: "hdr-preferred",
   opticsTier: "high",
   opticalProfile: SHOWCASE_OCEAN_OPTICAL_PROFILE,
   refractionEnabled: true,
   reflectionSampling: {
-    distortionStrength: 0.021,
+    distortionStrength: 0.02,
     edgeFadeTexels: 12,
-    roughnessFootprintTexels: 3,
+    roughnessFootprintTexels: 18,
     highFilterSampleCount: 5
   }
 };
@@ -119,6 +138,9 @@ export const gerstnerFeatureOceanPreview: OceanPreviewConfig = {
   size: 180,
   amplitudeScale: 1.3,
   timeScale: 0.72,
+  foamEnabled: false,
+  surfaceDetail: undefined,
+  nearshoreDescriptor: undefined,
   reflectionSource: "sky",
   reflectionSampling: {
     ...showcaseOceanPreview.reflectionSampling,
