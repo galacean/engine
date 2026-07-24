@@ -1,5 +1,5 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -19,13 +19,10 @@ export class EmissionModule extends ParticleGeneratorModule {
   private static _tempEmitPosition = new Vector3();
 
   /**  The rate of particle emission. */
-  @deepClone
   rateOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
-  @deepClone
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
-  @deepClone
   _shape: BaseShape;
   /** @internal */
   @ignoreClone
@@ -46,7 +43,6 @@ export class EmissionModule extends ParticleGeneratorModule {
   @ignoreClone
   private _hasLastEmitPosition = false;
 
-  @deepClone
   private _bursts: Burst[] = [];
 
   private _currentBurstIndex = 0;
@@ -172,7 +168,11 @@ export class EmissionModule extends ParticleGeneratorModule {
    * @internal
    */
   _destroy(): void {
-    this._shape?._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
+    const shape = this._shape;
+    if (shape) {
+      shape._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
+      shape._destroy();
+    }
   }
 
   private _emitByRateOverTime(playTime: number): void {

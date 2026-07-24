@@ -1,42 +1,28 @@
 import { Component } from "../Component";
-import { Entity } from "../Entity";
-import { CloneManager } from "./CloneManager";
+import { CloneUtil } from "./CloneUtil";
+import { CloneMode, fieldCloneModesKey } from "./CloneDecorators";
+import type { ICloneHook } from "./ICloneHook";
 
 /**
- * Custom clone interface.
+ * @internal
+ * Clones component fields and runs the component's post-clone hook.
  */
-export interface ICustomClone {
-  /**
-   * @internal
-   */
-  _remap?(srcRoot: Entity, targetRoot: Entity): Object;
-  /**
-   * @internal
-   */
-  _cloneTo?(target: ICustomClone, srcRoot?: Entity, targetRoot?: Entity): void;
-  /**
-   * @internal
-   */
-  copyFrom?(source: ICustomClone): void;
-}
-
 export class ComponentCloner {
   /**
-   * Clone component.
-   * @param source - Clone source
-   * @param target - Clone target
+   * @internal
    */
-  static cloneComponent(
-    source: Component,
-    target: Component,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
-  ): void {
-    const cloneModes = CloneManager.getCloneMode(source.constructor);
-    for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneModes[k], srcRoot, targetRoot, deepInstanceMap);
+  static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
+    const fieldModes = (<any>source)[fieldCloneModesKey];
+    const keys = Object.keys(source);
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const k = keys[i];
+      const fieldMode = fieldModes?.[k];
+      if (fieldMode === CloneMode.Ignore) continue;
+      const sourceValue = source[k];
+      const preset = target[k];
+      const cloned = (target[k] = CloneUtil._cloneFieldValue(sourceValue, preset, cloneMap, fieldMode));
+      CloneUtil._transferSlotOwnership(cloned, sourceValue, preset);
     }
-    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
+    (<Partial<ICloneHook<Component>>>(source as unknown))._onClone?.(target, cloneMap);
   }
 }

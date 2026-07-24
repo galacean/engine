@@ -10,7 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
-import { CloneUtils } from "./clone/CloneUtils";
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -421,8 +421,9 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity();
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
+    const cloneMap = new Map<object, object>();
+    const cloneEntity = this._createCloneEntity(cloneMap);
+    this._parseCloneEntity(this, cloneEntity, cloneMap);
     return cloneEntity;
   }
 
@@ -437,19 +438,12 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _remap(srcRoot: Entity, targetRoot: Entity): Entity {
-    return CloneUtils.remapEntity(srcRoot, targetRoot, this);
-  }
-
-  /**
-   * @internal
-   */
   _markAsTemplate(templateResource: ReferResource): void {
     this._isTemplate = true;
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(): Entity {
+  private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -457,6 +451,11 @@ export class Entity extends EngineObject {
     }
     const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
     componentConstructors.length = 0;
+    cloneMap.set(this, cloneEntity);
+    const targetComponents = cloneEntity._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      cloneMap.set(components[i], targetComponents[i]);
+    }
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -467,27 +466,21 @@ export class Entity extends EngineObject {
     cloneEntity._isActive = this._isActive;
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity(cloneMap));
     }
     return cloneEntity;
   }
 
-  private _parseCloneEntity(
-    src: Entity,
-    target: Entity,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
-  ): void {
+  private _parseCloneEntity(src: Entity, target: Entity, cloneMap: Map<object, object>): void {
     const srcChildren = src._children;
     const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], cloneMap);
     }
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
+      ComponentCloner.cloneComponent(components[i], target._components[i], cloneMap);
     }
   }
 
@@ -786,6 +779,8 @@ export class Entity extends EngineObject {
     return this._invModelMatrix;
   }
 }
+
+registerDefaultCloneMode(Entity, CloneMode.Remap);
 
 export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,

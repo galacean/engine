@@ -1,14 +1,16 @@
+import { DataObject } from "./base/DataObject";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { CloneUtils } from "./clone/CloneUtils";
-import { ignoreClone } from "./clone/CloneManager";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
  * @typeParam T - Tuple type of the signal arguments
  */
-export class Signal<T extends any[] = []> {
+export class Signal<T extends any[] = []> extends DataObject implements ICloneHook<Signal<T>> {
+  // Rebuilt by `_onClone`; must survive even a propagated @deepClone.
   @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
@@ -125,36 +127,31 @@ export class Signal<T extends any[] = []> {
   }
 
   /**
-   * @internal
-   * Clone listeners to target signal, remapping entity/component references.
+   * @inheritdoc
    */
-  _cloneTo(target: Signal<T>, srcRoot: Entity, targetRoot: Entity): void {
+  _onClone(target: Signal<T>, cloneMap: ReadonlyMap<object, object>): void {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed || !listener.methodName) continue;
-      const clonedTarget = CloneUtils.remapComponent(srcRoot, targetRoot, listener.target);
-      if (clonedTarget) {
-        const clonedArgs = this._cloneArguments(listener.arguments, srcRoot, targetRoot);
-        if (listener.once) {
-          target.once(clonedTarget, listener.methodName, ...clonedArgs);
-        } else {
-          target.on(clonedTarget, listener.methodName, ...clonedArgs);
-        }
+      const clonedTarget = <Component>(cloneMap.get(listener.target) ?? listener.target);
+      const clonedArgs = this._cloneArguments(listener.arguments, cloneMap);
+      if (listener.once) {
+        target.once(clonedTarget, listener.methodName, ...clonedArgs);
+      } else {
+        target.on(clonedTarget, listener.methodName, ...clonedArgs);
       }
     }
   }
 
-  private _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
+  private _cloneArguments(args: any[], cloneMap: ReadonlyMap<object, object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);
     for (let i = 0; i < len; i++) {
       const arg = args[i];
-      if (arg instanceof Entity) {
-        clonedArgs[i] = CloneUtils.remapEntity(srcRoot, targetRoot, arg);
-      } else if (arg instanceof Component) {
-        clonedArgs[i] = CloneUtils.remapComponent(srcRoot, targetRoot, arg);
+      if (arg instanceof Entity || arg instanceof Component) {
+        clonedArgs[i] = cloneMap.get(arg) ?? arg;
       } else {
         clonedArgs[i] = arg;
       }

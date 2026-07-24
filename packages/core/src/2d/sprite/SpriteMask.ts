@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -24,7 +24,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
-  @assignmentClone
   influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
   @ignoreClone
@@ -44,16 +43,11 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
   private _customWidth: number = undefined;
-  @assignmentClone
   private _customHeight: number = undefined;
-  @assignmentClone
   private _flipX: boolean = false;
-  @assignmentClone
   private _flipY: boolean = false;
 
-  @assignmentClone
   private _alphaCutoff: number = 0.5;
 
   /**
@@ -191,10 +185,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteMask): void {
+    super._onClone(target);
     target.sprite = this._sprite;
   }
 

@@ -1,5 +1,5 @@
 import { Rand } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -30,11 +30,8 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   _sizeRand = new Rand(0, ParticleRandomSubSeeds.SizeOverLifetime);
 
   private _separateAxes = false;
-  @deepClone
   private _sizeX: ParticleCompositeCurve;
-  @deepClone
   private _sizeY: ParticleCompositeCurve;
-  @deepClone
   private _sizeZ: ParticleCompositeCurve;
 
   @ignoreClone

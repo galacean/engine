@@ -14,11 +14,10 @@ import {
   RenderElement,
   Vector2,
   Vector3,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import type { ICloneHook } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIBatchSorter } from "./UIBatchSorter";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
@@ -36,7 +35,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
  * handling rendering and events based on it.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements IElement {
+export class UICanvas extends Component implements IElement, ICloneHook<UICanvas> {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
@@ -77,28 +76,21 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IElement> = new DisorderedArray<IElement>();
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
   private _camera: Camera;
   private _cameraObserver: Camera;
-  @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @assignmentClone
   private _sortOrder: number = 0;
-  @assignmentClone
   private _distance: number = 10;
-  @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @assignmentClone
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
   @ignoreClone
   private _center: Vector3 = new Vector3();
-  @ignoreClone
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
@@ -425,9 +417,9 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: UICanvas): void {
+  _onClone(target: UICanvas): void {
     target.renderMode = this._renderMode;
   }
 

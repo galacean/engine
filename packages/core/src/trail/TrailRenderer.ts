@@ -2,7 +2,7 @@ import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -47,20 +47,16 @@ export class TrailRenderer extends Renderer {
   minVertexDistance = 0.1;
 
   /** The curve describing the trail width from start to end. */
-  @deepClone
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
 
   /** The gradient describing the trail color from start to end. */
-  @deepClone
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
 
   // Shader parameters
-  @deepClone
   private _trailParams = new Vector4(TrailTextureMode.Stretch, 1.0, 1.0, 0); // x: textureMode, y: textureScaleX, z: textureScaleY
-  @deepClone
   private _textureScale = new Vector2(1.0, 1.0);
   @ignoreClone
   private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance

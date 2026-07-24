@@ -13,8 +13,6 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
@@ -42,7 +40,6 @@ export class UIRenderer extends Renderer implements IGraphics {
    * Custom boundary for raycast detection.
    * @remarks this is based on `this.entity.transform`.
    */
-  @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   /** @internal */
   _rootCanvas: UICanvas;
@@ -70,9 +67,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _subChunk;
 
-  @assignmentClone
   private _raycastEnabled: boolean = true;
-  @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
 
   /**

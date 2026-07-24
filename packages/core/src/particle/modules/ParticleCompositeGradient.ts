@@ -1,27 +1,23 @@
+import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { deepClone } from "../../clone/CloneManager";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
 
 /**
  * Particle composite gradient.
  */
-export class ParticleCompositeGradient {
+export class ParticleCompositeGradient extends DataObject {
   private static _tempColor = new Color();
 
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
-  @deepClone
   constantMin: Color = new Color();
   /* The max constant color used by the gradient if mode is set to `TwoConstants`. */
-  @deepClone
   constantMax: Color = new Color();
   /** The min gradient used by the gradient if mode is set to `Gradient`. */
-  @deepClone
   gradientMin: ParticleGradient = new ParticleGradient();
   /** The max gradient used by the gradient if mode is set to `Gradient`. */
-  @deepClone
   gradientMax: ParticleGradient = new ParticleGradient();
 
   /**
@@ -45,6 +41,11 @@ export class ParticleCompositeGradient {
   set gradient(value: ParticleGradient) {
     this.gradientMax = value;
   }
+
+  /**
+   * Create a particle gradient in constant mode with the default color.
+   */
+  constructor();
 
   /**
    * Create a particle gradient that generates a constant color.
@@ -72,7 +73,9 @@ export class ParticleCompositeGradient {
    */
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
-  constructor(constantOrGradient: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+  constructor(constantOrGradient?: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+    super();
+    if (!constantOrGradient) return;
     if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {
         this.constantMin.copyFrom(<Color>constantOrGradient);

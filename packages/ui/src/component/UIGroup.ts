@@ -1,4 +1,4 @@
-import { Component, DisorderedArray, Entity, EntityModifyFlags, assignmentClone, ignoreClone } from "@galacean/engine";
+import { Component, DisorderedArray, Entity, EntityModifyFlags, ignoreClone } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
@@ -15,7 +15,6 @@ export class UIGroup extends Component implements IGroupAble {
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray<IGroupAble>();
 
   /** @internal */
@@ -25,11 +24,8 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _globalInteractive = true;
 
-  @assignmentClone
   private _alpha = 1;
-  @assignmentClone
   private _interactive = true;
-  @assignmentClone
   private _ignoreParentGroup = false;
 
   /** @internal */

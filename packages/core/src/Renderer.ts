@@ -7,7 +7,8 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -20,7 +21,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component {
+export class Renderer extends Component implements ICloneHook<Renderer> {
   private static _tempVector0 = new Vector3();
 
   /** @internal */
@@ -48,9 +49,7 @@ export class Renderer extends Component {
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
-  @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
@@ -65,7 +64,6 @@ export class Renderer extends Component {
   protected _bounds: BoundingBox = new BoundingBox();
   protected _transformEntity: Entity;
 
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -75,9 +73,7 @@ export class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @assignmentClone
   private _priority: number = 0;
-  @assignmentClone
   private _receiveShadows: boolean = true;
 
   /**
@@ -343,9 +339,9 @@ export class Renderer extends Component {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Renderer): void {
+  _onClone(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);
