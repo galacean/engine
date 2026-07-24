@@ -10,7 +10,7 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * The manager of the components.
  */
 export class ComponentsManager {
-  /* @internal */
+  /** @internal */
   _cameraNeedSorting = false;
   /** @internal */
   _activeCameras = new DisorderedArray<Camera>();
@@ -19,7 +19,7 @@ export class ComponentsManager {
 
   /** @internal */
   _overlayCanvases = new DisorderedArray<IUICanvas>();
-  /* @internal */
+  /** @internal */
   _overlayCanvasesSortingDirty = false;
   /** @internal */
   _canvases = new DisorderedArray<IUICanvas>();

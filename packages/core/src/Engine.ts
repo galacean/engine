@@ -81,33 +81,33 @@ export class Engine extends EventDispatcher {
   _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
-  /* @internal */
+  /** @internal */
   _hardwareRenderer: IHardwareRenderer;
-  /* @internal */
+  /** @internal */
   _renderTargetPool: RenderTargetPool;
-  /* @internal */
+  /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
-  /* @internal */
+  /** @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _textRenderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
-  /* @internal */
+  /** @internal */
   _basicResources: BasicResources;
-  /* @internal */
+  /** @internal */
   _textDefaultFont: Font;
-  /* @internal */
+  /** @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
+  /** @internal */
   _depthTexture2D: Texture2D;
 
-  /* @internal */
+  /** @internal */
   _renderCount: number = 0;
-  /* @internal */
+  /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
@@ -322,6 +322,8 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
+    this._canvas._pumpPendingResolution();
+
     const time = this._time;
     time._update();
 
@@ -503,6 +505,7 @@ export class Engine extends EventDispatcher {
     this._waitingDestroy = false;
 
     this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+    this._canvas._destroy();
 
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();

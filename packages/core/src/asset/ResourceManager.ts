@@ -44,7 +44,7 @@ export class ResourceManager {
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
   /** Asset url pool, key is the asset path and the value is the asset. */
-  private _assetUrlPool: Record<string, Object> = Object.create(null);
+  private _assetUrlPool: Record<string, object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
   private _referResourcePool: Record<number, ReferResource> = Object.create(null);
@@ -88,7 +88,7 @@ export class ResourceManager {
    */
   load<T extends EngineObject>(path: string): AssetPromise<T>;
 
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
@@ -224,21 +224,6 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: Error): void {
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
-    if (subPromiseCallback) {
-      subPromiseCallback.reject(value);
-    } else {
-      // Pending
-      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-        rejectedValue: value
-      };
-    }
-  }
-
-  /**
-   * @internal
-   */
   _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
@@ -339,7 +324,7 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: EditorResourceItem): void {
+  private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
     assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
@@ -416,11 +401,8 @@ export class ResourceManager {
       const mainPromise =
         loadingPromises[remoteAssetBaseURL] ||
         this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
-      mainPromise.catch((e) => {
-        this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
-      });
 
-      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
+      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
     }
 
     return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
@@ -461,30 +443,35 @@ export class ResourceManager {
   private _createSubAssetPromiseCallback<T>(
     remoteAssetBaseURL: string,
     remoteAssetURL: string,
-    assetSubPath: string
+    assetSubPath: string,
+    mainPromise: AssetPromise<unknown>
   ): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
-    const rejectedValue = subPromiseCallback?.rejectedValue;
 
-    // Already resolved or rejected
-    if (resolvedValue || rejectedValue) {
-      return new AssetPromise<T>((resolve, reject) => {
-        if (resolvedValue) {
-          resolve(resolvedValue);
-        } else if (rejectedValue) {
-          reject(rejectedValue);
-        }
-      });
+    // Already resolved
+    if (resolvedValue) {
+      return AssetPromise.resolve(resolvedValue);
     }
 
     // Pending
-    const promise = new AssetPromise<T>((resolve, reject) => {
+    const promise = new AssetPromise<T>((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
         resolve,
         reject
       };
+
+      // A loader may finish the main asset before its eager sub-asset notification reaches this callback.
+      // Always resolve from the completed main asset as the authoritative fallback so callback cleanup cannot
+      // strand a sub-asset request.
+      mainPromise.onProgress(setTaskCompleteProgress, setTaskDetailProgress).then((resource) => {
+        try {
+          resolve(this._getResolveResource(resource, this._parseQueryPath(assetSubPath)) as T);
+        } catch (error) {
+          reject(error);
+        }
+      }, reject);
     });
 
     loadingPromises[remoteAssetURL] = promise;
@@ -514,7 +501,10 @@ export class ResourceManager {
     if (paths) {
       for (let i = 0, n = paths.length; i < n; i++) {
         const path = paths[i];
-        subResource = subResource[path];
+        subResource = subResource?.[path];
+        if (subResource === undefined) {
+          throw new Error(`Sub-asset path does not exist: ${paths.join(".")}`);
+        }
       }
     }
     return subResource;
@@ -560,12 +550,23 @@ export class ResourceManager {
     delete this._subAssetPromiseCallbacks[assetBaseURL];
   }
 
-  //-----------------Editor temp solution-----------------
+  // Virtual resource mapping
 
   /** @internal */
   _objectPool: { [key: string]: any } = Object.create(null);
   /** @internal */
-  _virtualPathResourceMap: Record<VirtualPath, EditorResourceItem> = Object.create(null);
+  _virtualPathResourceMap: Record<VirtualPath, VirtualResource> = Object.create(null);
+
+  /**
+   * Register virtual asset paths and their load descriptors.
+   * @remarks References inside runtime scenes and Prefabs can keep stable virtual paths while the backing URLs
+   * are generated dynamically, such as object URLs created from a resource package.
+   */
+  registerVirtualResources(resources: readonly VirtualResource[]): void {
+    resources.forEach((resource) => {
+      this._virtualPathResourceMap[resource.virtualPath] = resource;
+    });
+  }
 
   /**
    * @internal
@@ -594,21 +595,6 @@ export class ResourceManager {
     const promise = this.load<T>({ url: loadUrl });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
-
-  /**
-   * @internal
-   * @beta Just for internal editor, not recommended for developers.
-   */
-  initVirtualResources(config: EditorResourceItem[]): void {
-    config.forEach((element) => {
-      this._virtualPathResourceMap[element.virtualPath] = element;
-      if (element.dependentAssetMap) {
-        this._virtualPathResourceMap[element.virtualPath].dependentAssetMap = element.dependentAssetMap;
-      }
-    });
-  }
-
-  //-----------------Editor temp solution-----------------
 }
 
 /**
@@ -644,14 +630,14 @@ const rePropName = RegExp(
 );
 
 type VirtualPath = string;
-type EditorResourceItem = {
+export interface VirtualResource {
   virtualPath: string;
   path: string;
   type: string;
   dependentAssetMap?: { [key: string]: string };
   subpackageName?: string;
   params?: Record<string, any>;
-};
+}
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"
   string,
@@ -659,9 +645,8 @@ type SubAssetPromiseCallbacks<T> = Record<
     // sub asset url, ie. "textures[0]"
     string,
     {
-      // Already resolved or rejected
+      // Already resolved
       resolvedValue?: T;
-      rejectedValue?: Error;
       // Pending
       resolve?: (value: T) => void;
       reject?: (reason: any) => void;

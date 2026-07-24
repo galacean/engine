@@ -283,6 +283,13 @@ export class ParticleCompositeCurve extends DataObject {
   /**
    * @internal
    */
+  _isRandomCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
   _registerOnValueChanged(listener: () => void): void {
     this._updateManager.addListener(listener);
   }

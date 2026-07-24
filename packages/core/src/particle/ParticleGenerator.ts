@@ -662,6 +662,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.forceOverLifetime._resetRandomSeed(seed);
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
+    this.sizeOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
@@ -999,8 +1000,13 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
+    // Noise and size-over-lifetime temporarily share slot 21 (a_Random0.z), so noise takes precedence
+    // Track independent module randomness and instance layout optimization in #3075
+    const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomCurveMode()) {
+      instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
     }
 
     const rotationOverLifetime = this.rotationOverLifetime;

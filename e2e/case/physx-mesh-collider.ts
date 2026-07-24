@@ -57,7 +57,6 @@ function createFallingBox(
 
 const physics = new PhysXPhysics(PhysXRuntimeMode.WebAssemblySIMD);
 WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 
