@@ -10,10 +10,12 @@ export {
 export type {
   ProbeBrickData,
   ProbeBrickDataJSON,
+  ProbeVolumeChunkDescriptorJSON,
   ProbeVolumeCellData,
   ProbeVolumeCellDataJSON,
   ProbeVolumeJSON,
-  ProbeVolumeLightingScenarioData
+  ProbeVolumeLightingScenarioData,
+  ProbeVolumeManifestJSON
 } from "./ProbeVolume";
 export { ProbeVolumeBinary } from "./ProbeVolumeBinary";
 export { ProbeVolumeSamplingMode } from "./ProbeVolumeSamplingMode";

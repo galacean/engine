@@ -81,8 +81,47 @@ export interface ProbeVolumeJSON {
   visibilityBias?: number;
 }
 
+/** One independently loadable probe binary referenced by a volume manifest. */
+export interface ProbeVolumeChunkDescriptorJSON {
+  /** Stable identifier used to register and release the chunk at runtime. */
+  id: string;
+  /** URL of the standalone `ProbeVolumeBinary` artifact, relative to the manifest. */
+  url: string;
+  /** Inclusive minimum cell coordinate owned by this chunk. */
+  minCell: number[] | { x: number; y: number; z: number };
+  /** Inclusive maximum cell coordinate owned by this chunk. */
+  maxCell: number[] | { x: number; y: number; z: number };
+  /** Optional integrity metadata checked when the chunk is registered. */
+  cellCount?: number;
+  /** Optional integrity metadata checked when the chunk is registered. */
+  brickCount?: number;
+}
+
+/**
+ * Lightweight root asset for a chunked probe volume.
+ * @remarks Probe cells and SH coefficients live only in the binary chunk files, never in this manifest.
+ */
+export interface ProbeVolumeManifestJSON {
+  version: 1;
+  minBrickSize: number;
+  cellSize: number;
+  localToWorldMatrix?: Matrix | number[];
+  normalBias?: number;
+  viewBias?: number;
+  /** Scenario names that every binary chunk must contain. */
+  lightingScenarios?: string[];
+  /** Initially active scenario. Defaults to the first scenario or `Default`. */
+  lightingScenario?: string;
+  chunks: ProbeVolumeChunkDescriptorJSON[];
+}
+
 /** Scenario-specific probe irradiance, indexed by cell, brick, then probe. */
 export type ProbeVolumeLightingScenarioData = SphericalHarmonics3[][][];
+
+interface LoadedProbeVolumeChunk {
+  cells: ProbeVolumeCellData[];
+  scenarios: Map<string, ProbeVolumeLightingScenarioData>;
+}
 
 interface ProbeVolumeRuntimeResources {
   shRTexture: Texture2DArray | null;
@@ -171,6 +210,8 @@ export class ProbeVolume {
   private _lightingScenario: string;
   private _scenarioBlendTarget: string | null = null;
   private _scenarioBlendingFactor = 0;
+  private _chunkDescriptors: ProbeVolumeChunkDescriptorJSON[] | null = null;
+  private _loadedChunks = new Map<string, LoadedProbeVolumeChunk>();
   private _dirty = true;
 
   /**
@@ -238,6 +279,21 @@ export class ProbeVolume {
     return this._lightingScenario;
   }
 
+  /** Chunk descriptors declared by the manifest, or an empty array for a monolithic volume. */
+  get chunkDescriptors(): readonly ProbeVolumeChunkDescriptorJSON[] {
+    return this._chunkDescriptors?.map(cloneChunkDescriptor) ?? [];
+  }
+
+  /** Identifiers of binary chunks whose decoded probe data is currently resident. */
+  get loadedChunkIds(): readonly string[] {
+    return Array.from(this._loadedChunks.keys());
+  }
+
+  /** Number of binary chunks whose decoded probe data is currently resident. */
+  get loadedChunkCount(): number {
+    return this._loadedChunks.size;
+  }
+
   set lightingScenario(value: string) {
     validateLightingScenarioName(value);
     if (!this._lightingScenarios.has(value)) {
@@ -269,6 +325,11 @@ export class ProbeVolume {
    */
   addLightingScenario(name: string, source: ProbeVolume): void {
     validateLightingScenarioName(name);
+    if (this._chunkDescriptors && !this._lightingScenarios.has(name)) {
+      throw new Error(
+        `ProbeVolume manifest-backed volumes cannot introduce lighting scenario "${name}" because unloaded chunks do not contain it.`
+      );
+    }
     this._validateScenarioSource(source);
     const sourceScenario = source._getLightingScenarioData(source._lightingScenario);
     const sourceBricks = new Map<string, SphericalHarmonics3[]>();
@@ -298,6 +359,7 @@ export class ProbeVolume {
     }
 
     this._lightingScenarios.set(name, scenario);
+    this._storeScenarioInLoadedChunks(name, scenario);
     if (name === this._lightingScenario) {
       this._applyLightingScenarioToBricks(name);
     }
@@ -308,6 +370,7 @@ export class ProbeVolume {
 
   /** Rename a lighting scenario without duplicating its baked probe data. */
   renameLightingScenario(name: string, newName: string): void {
+    this._assertMonolithicVolume("rename lighting scenarios");
     validateLightingScenarioName(name);
     validateLightingScenarioName(newName);
     if (!this._lightingScenarios.has(name)) {
@@ -370,6 +433,7 @@ export class ProbeVolume {
 
   /** Replace all brick data and rebuild GPU resources before the next render. */
   setBricks(bricks: ProbeBrickData[]): void {
+    this._assertMonolithicVolume("replace bricks");
     this.bricks = normalizeBricks(bricks);
     this.cells = partitionBricks(this.bricks, this.cellSize);
     this._resetLightingScenarios(this._lightingScenario);
@@ -379,6 +443,7 @@ export class ProbeVolume {
 
   /** Replace streamable cells and rebuild runtime resources before the next render. */
   setCells(cells: ProbeVolumeCellData[], cellSize: number = this.cellSize): void {
+    this._assertMonolithicVolume("replace cells");
     if (!(cellSize > 0)) {
       throw new Error("ProbeVolume cellSize must be greater than zero.");
     }
@@ -388,6 +453,50 @@ export class ProbeVolume {
     this._resetLightingScenarios(this._lightingScenario);
     this._selectActiveCells();
     this._dirty = true;
+  }
+
+  /**
+   * Register one decoded binary chunk and make its cells available for GPU residency selection.
+   * @param id - Descriptor identifier from the manifest
+   * @param chunk - Independently loaded and decoded `ProbeVolumeBinary`
+   */
+  addChunk(id: string, chunk: ProbeVolume): void {
+    if (!this._chunkDescriptors) {
+      throw new Error("ProbeVolume requires a chunk manifest before binary chunks can be registered.");
+    }
+    if (this._loadedChunks.has(id)) {
+      throw new Error(`ProbeVolume chunk "${id}" is already loaded.`);
+    }
+    const descriptor = this._chunkDescriptors.find((candidate) => candidate.id === id);
+    if (!descriptor) {
+      throw new Error(`ProbeVolume chunk "${id}" is not declared by the manifest.`);
+    }
+    this._validateChunkSource(descriptor, chunk);
+
+    const cells = normalizeCells(chunk.cells);
+    const scenarios = new Map<string, ProbeVolumeLightingScenarioData>();
+    for (const name of this._lightingScenarios.keys()) {
+      scenarios.set(name, cloneLightingScenarioData(chunk._getLightingScenarioData(name)));
+    }
+    this._loadedChunks.set(id, { cells, scenarios });
+    this._rebuildLoadedChunks();
+  }
+
+  /**
+   * Release one resident binary chunk.
+   * @returns Whether a loaded chunk was removed
+   */
+  removeChunk(id: string): boolean {
+    if (!this._loadedChunks.delete(id)) {
+      return false;
+    }
+    this._rebuildLoadedChunks();
+    return true;
+  }
+
+  /** Whether the decoded data for a manifest chunk is currently resident. */
+  hasChunk(id: string): boolean {
+    return this._loadedChunks.has(id);
   }
 
   /** Select nearby streamable cells around a world-space anchor. */
@@ -437,6 +546,83 @@ export class ProbeVolume {
     return volume;
   }
 
+  /** Create an empty runtime volume whose probe data can be supplied by independent binary chunks. */
+  static fromManifestJSON(data: ProbeVolumeManifestJSON): ProbeVolume {
+    ProbeVolume.validateManifestJSON(data);
+    const scenarioNames = data.lightingScenarios?.slice() ?? [data.lightingScenario ?? "Default"];
+    const activeScenario = data.lightingScenario ?? scenarioNames[0];
+    const volume = new ProbeVolume(data.minBrickSize, [], toMatrix(data.localToWorldMatrix), activeScenario);
+    volume.cellSize = data.cellSize;
+    volume.normalBias = data.normalBias ?? volume.normalBias;
+    volume.viewBias = data.viewBias ?? volume.viewBias;
+    volume._chunkDescriptors = data.chunks.map(cloneChunkDescriptor);
+    volume._replaceLightingScenarios(
+      new Map(scenarioNames.map((name) => [name, [] as ProbeVolumeLightingScenarioData])),
+      activeScenario
+    );
+    return volume;
+  }
+
+  /** Validate a chunk manifest without allocating runtime probe data. */
+  static validateManifestJSON(data: ProbeVolumeManifestJSON): void {
+    if (!data || data.version !== 1) {
+      throw new Error(`Unsupported probe volume manifest version ${data?.version}.`);
+    }
+    if (!(data.minBrickSize > 0)) {
+      throw new Error("ProbeVolume manifest minBrickSize must be greater than zero.");
+    }
+    if (!(data.cellSize > 0)) {
+      throw new Error("ProbeVolume manifest cellSize must be greater than zero.");
+    }
+    toMatrix(data.localToWorldMatrix);
+
+    const scenarioNames = data.lightingScenarios?.slice() ?? [data.lightingScenario ?? "Default"];
+    if (scenarioNames.length === 0) {
+      throw new Error("ProbeVolume manifest must declare at least one lighting scenario.");
+    }
+    const uniqueScenarioNames = new Set<string>();
+    for (const name of scenarioNames) {
+      validateLightingScenarioName(name);
+      if (uniqueScenarioNames.has(name)) {
+        throw new Error(`ProbeVolume manifest contains duplicate lighting scenario "${name}".`);
+      }
+      uniqueScenarioNames.add(name);
+    }
+    const activeScenario = data.lightingScenario ?? scenarioNames[0];
+    if (!uniqueScenarioNames.has(activeScenario)) {
+      throw new Error(`ProbeVolume manifest active lighting scenario "${activeScenario}" is not declared.`);
+    }
+
+    if (!Array.isArray(data.chunks)) {
+      throw new Error("ProbeVolume manifest chunks must be an array.");
+    }
+    const chunkIds = new Set<string>();
+    for (let i = 0; i < data.chunks.length; i++) {
+      const descriptor = data.chunks[i];
+      if (!descriptor.id || !descriptor.url) {
+        throw new Error(`ProbeVolume manifest chunk ${i} must contain a non-empty id and url.`);
+      }
+      if (chunkIds.has(descriptor.id)) {
+        throw new Error(`ProbeVolume manifest contains duplicate chunk id "${descriptor.id}".`);
+      }
+      chunkIds.add(descriptor.id);
+      const minCell = toCellCoordinate(descriptor.minCell, `chunk "${descriptor.id}" minCell`);
+      const maxCell = toCellCoordinate(descriptor.maxCell, `chunk "${descriptor.id}" maxCell`);
+      if (minCell.x > maxCell.x || minCell.y > maxCell.y || minCell.z > maxCell.z) {
+        throw new Error(`ProbeVolume manifest chunk "${descriptor.id}" has invalid cell bounds.`);
+      }
+      if (descriptor.cellCount !== undefined && (!Number.isInteger(descriptor.cellCount) || descriptor.cellCount < 0)) {
+        throw new Error(`ProbeVolume manifest chunk "${descriptor.id}" cellCount must be a non-negative integer.`);
+      }
+      if (
+        descriptor.brickCount !== undefined &&
+        (!Number.isInteger(descriptor.brickCount) || descriptor.brickCount < 0)
+      ) {
+        throw new Error(`ProbeVolume manifest chunk "${descriptor.id}" brickCount must be a non-negative integer.`);
+      }
+    }
+  }
+
   /** @internal */
   _getLightingScenarioData(name: string): ProbeVolumeLightingScenarioData {
     if (name === this._lightingScenario) {
@@ -478,6 +664,10 @@ export class ProbeVolume {
       this.bricks.length === 0
     ) {
       this._unbindShaderData(shaderData);
+      if (this.bricks.length === 0) {
+        this._releaseResources();
+        this._engine = null;
+      }
       return false;
     }
     if (this._engine && this._engine !== engine) {
@@ -717,7 +907,9 @@ export class ProbeVolume {
   }
 
   private _syncActiveLightingScenario(): void {
-    this._lightingScenarios.set(this._lightingScenario, captureLightingScenarioData(this.cells));
+    const scenario = captureLightingScenarioData(this.cells);
+    this._lightingScenarios.set(this._lightingScenario, scenario);
+    this._storeScenarioInLoadedChunks(this._lightingScenario, scenario);
   }
 
   private _applyLightingScenarioToBricks(name: string): void {
@@ -743,6 +935,106 @@ export class ProbeVolume {
     }
     if (source.bricks.length !== this.bricks.length) {
       throw new Error("ProbeVolume lighting scenario brick count must match the shared probe layout.");
+    }
+  }
+
+  private _assertMonolithicVolume(operation: string): void {
+    if (this._chunkDescriptors) {
+      throw new Error(`ProbeVolume cannot ${operation} on a manifest-backed volume.`);
+    }
+  }
+
+  private _validateChunkSource(descriptor: ProbeVolumeChunkDescriptorJSON, chunk: ProbeVolume): void {
+    if (Math.abs(chunk.minBrickSize - this.minBrickSize) > 1e-6) {
+      throw new Error(`ProbeVolume chunk "${descriptor.id}" minBrickSize does not match the manifest.`);
+    }
+    if (Math.abs(chunk.cellSize - this.cellSize) > 1e-6) {
+      throw new Error(`ProbeVolume chunk "${descriptor.id}" cellSize does not match the manifest.`);
+    }
+    const chunkMatrix = chunk.localToWorldMatrix.elements;
+    const manifestMatrix = this.localToWorldMatrix.elements;
+    for (let i = 0; i < 16; i++) {
+      if (Math.abs(chunkMatrix[i] - manifestMatrix[i]) > 1e-5) {
+        throw new Error(`ProbeVolume chunk "${descriptor.id}" transform does not match the manifest.`);
+      }
+    }
+
+    const scenarioNames = this.lightingScenarioNames;
+    const chunkScenarioNames = new Set(chunk.lightingScenarioNames);
+    if (
+      chunkScenarioNames.size !== scenarioNames.length ||
+      scenarioNames.some((scenarioName) => !chunkScenarioNames.has(scenarioName))
+    ) {
+      throw new Error(`ProbeVolume chunk "${descriptor.id}" lighting scenarios do not match the manifest.`);
+    }
+    if (descriptor.cellCount !== undefined && chunk.cells.length !== descriptor.cellCount) {
+      throw new Error(
+        `ProbeVolume chunk "${descriptor.id}" contains ${chunk.cells.length} cells, expected ${descriptor.cellCount}.`
+      );
+    }
+    if (descriptor.brickCount !== undefined && chunk.bricks.length !== descriptor.brickCount) {
+      throw new Error(
+        `ProbeVolume chunk "${descriptor.id}" contains ${chunk.bricks.length} bricks, expected ${descriptor.brickCount}.`
+      );
+    }
+
+    const minCell = toCellCoordinate(descriptor.minCell, `chunk "${descriptor.id}" minCell`);
+    const maxCell = toCellCoordinate(descriptor.maxCell, `chunk "${descriptor.id}" maxCell`);
+    const occupiedCells = new Set<string>();
+    for (const loadedChunk of this._loadedChunks.values()) {
+      for (const cell of loadedChunk.cells) {
+        occupiedCells.add(getCellCoordinateKey(cell.coordinate));
+      }
+    }
+    for (const cell of chunk.cells) {
+      const coordinate = cell.coordinate;
+      if (
+        coordinate.x < minCell.x ||
+        coordinate.y < minCell.y ||
+        coordinate.z < minCell.z ||
+        coordinate.x > maxCell.x ||
+        coordinate.y > maxCell.y ||
+        coordinate.z > maxCell.z
+      ) {
+        throw new Error(`ProbeVolume chunk "${descriptor.id}" contains a cell outside its manifest bounds.`);
+      }
+      const coordinateKey = getCellCoordinateKey(coordinate);
+      if (occupiedCells.has(coordinateKey)) {
+        throw new Error(`ProbeVolume chunk "${descriptor.id}" overlaps resident cell ${coordinateKey}.`);
+      }
+      occupiedCells.add(coordinateKey);
+    }
+  }
+
+  private _rebuildLoadedChunks(): void {
+    const scenarioNames = Array.from(this._lightingScenarios.keys());
+    const cells: ProbeVolumeCellData[] = [];
+    const scenarios = new Map<string, ProbeVolumeLightingScenarioData>(
+      scenarioNames.map((name) => [name, [] as ProbeVolumeLightingScenarioData])
+    );
+    for (const chunk of this._loadedChunks.values()) {
+      cells.push(...chunk.cells);
+      for (const name of scenarioNames) {
+        scenarios.get(name)!.push(...chunk.scenarios.get(name)!);
+      }
+    }
+    this.cells = cells;
+    this.bricks = cells.flatMap((cell) => cell.bricks);
+    this._lightingScenarios = scenarios;
+    this._applyLightingScenarioToBricks(this._lightingScenario);
+    this._selectActiveCells();
+    this._dirty = true;
+  }
+
+  private _storeScenarioInLoadedChunks(name: string, scenario: ProbeVolumeLightingScenarioData): void {
+    if (!this._chunkDescriptors) {
+      return;
+    }
+    let cellOffset = 0;
+    for (const chunk of this._loadedChunks.values()) {
+      const cellEnd = cellOffset + chunk.cells.length;
+      chunk.scenarios.set(name, cloneLightingScenarioData(scenario.slice(cellOffset, cellEnd)));
+      cellOffset = cellEnd;
     }
   }
 }
@@ -1301,6 +1593,36 @@ function writeL1Channel(out: Uint16Array, offset: number, coefficients: Float32A
   out[offset + 1] = toHalf(coefficients[3 + channel] * -1.023327);
   out[offset + 2] = toHalf(coefficients[6 + channel] * 1.023327);
   out[offset + 3] = toHalf(coefficients[9 + channel] * -1.023327);
+}
+
+function cloneChunkDescriptor(descriptor: ProbeVolumeChunkDescriptorJSON): ProbeVolumeChunkDescriptorJSON {
+  const minCell = toCellCoordinate(descriptor.minCell, `chunk "${descriptor.id}" minCell`);
+  const maxCell = toCellCoordinate(descriptor.maxCell, `chunk "${descriptor.id}" maxCell`);
+  return {
+    id: descriptor.id,
+    url: descriptor.url,
+    minCell: [minCell.x, minCell.y, minCell.z],
+    maxCell: [maxCell.x, maxCell.y, maxCell.z],
+    cellCount: descriptor.cellCount,
+    brickCount: descriptor.brickCount
+  };
+}
+
+function toCellCoordinate(value: number[] | { x: number; y: number; z: number }, label: string): Vector3 {
+  if (!value) {
+    throw new Error(`ProbeVolume manifest ${label} is required.`);
+  }
+  const coordinate = Array.isArray(value)
+    ? new Vector3(value[0], value[1], value[2])
+    : new Vector3(value.x, value.y, value.z);
+  if (![coordinate.x, coordinate.y, coordinate.z].every(Number.isInteger)) {
+    throw new Error(`ProbeVolume manifest ${label} must contain three integers.`);
+  }
+  return coordinate;
+}
+
+function getCellCoordinateKey(coordinate: Vector3): string {
+  return `${coordinate.x},${coordinate.y},${coordinate.z}`;
 }
 
 function toVector3(value: Vector3 | number[] | { x: number; y: number; z: number }): Vector3 {

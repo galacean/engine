@@ -138,6 +138,94 @@ describe("ProbeVolume", () => {
     expect(ProbeVolumeBinary.encode(source).byteLength).to.be.lessThan(120000);
   });
 
+  it("registers and releases independently decoded binary chunks from a manifest", () => {
+    const manifest = {
+      version: 1 as const,
+      minBrickSize: 2,
+      cellSize: 24,
+      lightingScenarios: ["Day", "Night"],
+      lightingScenario: "Day",
+      chunks: [
+        {
+          id: "west",
+          url: "./west.bin",
+          minCell: [-1, 0, 0],
+          maxCell: [-1, 0, 0],
+          cellCount: 1,
+          brickCount: 1
+        },
+        {
+          id: "east",
+          url: "./east.bin",
+          minCell: [0, 0, 0],
+          maxCell: [0, 0, 0],
+          cellCount: 1,
+          brickCount: 1
+        }
+      ]
+    };
+    const volume = ProbeVolume.fromManifestJSON(manifest);
+    const west = new ProbeVolume(2, [createBrick()], new Matrix(), "Day");
+    west.setCells([{ coordinate: new Vector3(-1, 0, 0), bricks: west.bricks }], 24);
+    west.addLightingScenario(
+      "Night",
+      new ProbeVolume(2, [createBrick(ProbeBrickProbeCount, 0.125)], new Matrix(), "Night")
+    );
+    const decodedWest = ProbeVolumeBinary.decode(ProbeVolumeBinary.encode(west));
+
+    expect(volume.cells).to.have.length(0);
+    expect(volume.loadedChunkCount).to.equal(0);
+    volume.addChunk("west", decodedWest);
+    expect(volume.loadedChunkIds).to.deep.equal(["west"]);
+    expect(volume.cells[0].coordinate).to.deep.equal(new Vector3(-1, 0, 0));
+    expect(volume.bricks[0].sphericalHarmonics[0].coefficients[0]).to.be.closeTo(1, 1e-4);
+
+    volume.addLightingScenario(
+      "Night",
+      new ProbeVolume(2, [createBrick(ProbeBrickProbeCount, 0.5)], new Matrix(), "Night")
+    );
+    volume.lightingScenario = "Night";
+    expect(volume.bricks[0].sphericalHarmonics[0].coefficients[0]).to.be.closeTo(0.5, 1e-4);
+    expect(() =>
+      volume.addLightingScenario(
+        "Dusk",
+        new ProbeVolume(2, [createBrick(ProbeBrickProbeCount, 0.25)], new Matrix(), "Dusk")
+      )
+    ).to.throw("unloaded chunks do not contain it");
+    expect(volume.removeChunk("west")).to.equal(true);
+    expect(volume.removeChunk("west")).to.equal(false);
+    expect(volume.loadedChunkCount).to.equal(0);
+    expect(volume.cells).to.have.length(0);
+    expect(volume.bricks).to.have.length(0);
+  });
+
+  it("validates chunk manifests and independently loaded binary layout", () => {
+    expect(() =>
+      ProbeVolume.fromManifestJSON({
+        version: 1,
+        minBrickSize: 2,
+        cellSize: 24,
+        chunks: [
+          { id: "duplicate", url: "./a.bin", minCell: [0, 0, 0], maxCell: [0, 0, 0] },
+          { id: "duplicate", url: "./b.bin", minCell: [1, 0, 0], maxCell: [1, 0, 0] }
+        ]
+      })
+    ).to.throw("duplicate chunk id");
+
+    const volume = ProbeVolume.fromManifestJSON({
+      version: 1,
+      minBrickSize: 2,
+      cellSize: 24,
+      chunks: [{ id: "west", url: "./west.bin", minCell: [-1, 0, 0], maxCell: [-1, 0, 0] }]
+    });
+    const wrongCell = new ProbeVolume(2, [createBrick()]);
+    wrongCell.setCells([{ coordinate: new Vector3(0, 0, 0), bricks: wrongCell.bricks }], 24);
+
+    expect(() => volume.addChunk("missing", wrongCell)).to.throw("not declared");
+    expect(() => volume.addChunk("west", wrongCell)).to.throw("outside its manifest bounds");
+    expect(() => volume.setCells([])).to.throw("manifest-backed");
+  });
+
   it("stores and blends named lighting scenarios on one shared probe layout", () => {
     const day = new ProbeVolume(2, [createBrick()], new Matrix(), "Day");
     const night = new ProbeVolume(2, [createBrick(ProbeBrickProbeCount, 4)], new Matrix(), "Night");

@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "minBrickSize": 8,
+  "cellSize": 16,
+  "localToWorldMatrix": [
+    1, 0, 0, 0, 0, 0.875, 0, 0, 0, 0, 0.8333333134651184, 0, -16.48415184020996, -1.788036823272705,
+    -10.309524536132812, 1
+  ],
+  "normalBias": 0.20000000298023224,
+  "viewBias": 0,
+  "lightingScenarios": ["Day", "Night"],
+  "lightingScenario": "Day",
+  "chunks": [
+    {
+      "id": "cell-0-0-0",
+      "url": "./probe-volume-chunks/cell-0-0-0.pvol",
+      "minCell": [0, 0, 0],
+      "maxCell": [0, 0, 0],
+      "cellCount": 1,
+      "brickCount": 8
+    },
+    {
+      "id": "cell-0-0-1",
+      "url": "./probe-volume-chunks/cell-0-0-1.pvol",
+      "minCell": [0, 0, 1],
+      "maxCell": [0, 0, 1],
+      "cellCount": 1,
+      "brickCount": 4
+    },
+    {
+      "id": "cell-1-0-0",
+      "url": "./probe-volume-chunks/cell-1-0-0.pvol",
+      "minCell": [1, 0, 0],
+      "maxCell": [1, 0, 0],
+      "cellCount": 1,
+      "brickCount": 8
+    },
+    {
+      "id": "cell-1-0-1",
+      "url": "./probe-volume-chunks/cell-1-0-1.pvol",
+      "minCell": [1, 0, 1],
+      "maxCell": [1, 0, 1],
+      "cellCount": 1,
+      "brickCount": 4
+    }
+  ]
+}

@@ -31,8 +31,9 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import type { Entity, Scene } from "@galacean/engine";
-import probeVolumeUrl from "./light-probe-data.pvol?url";
+import type { Entity, ProbeVolumeManifestJSON, Scene } from "@galacean/engine";
+import { ProbeVolumeStreamingController } from "./ProbeVolumeStreamingController";
+import probeVolumeManifestUrl from "./probe-volume-manifest.json?url";
 
 const dayProjectUrl = "https://mdn.alipayobjects.com/oasis_be/afts/file/A*i5qfTbh8jfkAAAAAQYAAAAgAekp5AQ/project.json";
 const nightProjectUrl =
@@ -244,17 +245,19 @@ async function installLightProbe(
   const regionEntity = scene.createRootEntity("probe_volume_region");
   const region = regionEntity.addComponent(ProbeVolumeRegion);
   region.size.set(32, 14, 20);
-  const probeArtifact = await fetch(probeVolumeUrl).then((response) => response.arrayBuffer());
-  let probeVolume = ProbeVolumeBinary.decode(probeArtifact);
-  if (!probeVolume.lightingScenarioNames.includes(dayScenario)) {
-    probeVolume.renameLightingScenario(probeVolume.lightingScenario, dayScenario);
-  }
+  const probeManifest = await fetch(probeVolumeManifestUrl).then(
+    (response) => response.json() as Promise<ProbeVolumeManifestJSON>
+  );
+  let probeVolume = ProbeVolume.fromManifestJSON(probeManifest);
   probeVolume.lightingScenario = dayScenario;
   region.minBrickSize = Math.max(probeVolume.minBrickSize, 8);
   fitProbeRegionToScene(scene, region);
 
   probeVolume.samplingMode = ProbeVolumeSamplingMode.PerFragment;
-  updateProbeVolumeTransform(region, probeVolume);
+  scene.environmentLighting.probeVolume = probeVolume;
+  scene.environmentLighting.probeVolumeAnchor = camera.entity.transform;
+  const streamingController = camera.entity.addComponent(ProbeVolumeStreamingController);
+  await streamingController.initialize(probeVolume, probeVolumeManifestUrl);
   scene.shaderData.setFloat(probeMarkerExposureProperty, 0);
   let markerRoot = createProbeMarkers(engine, scene, probeVolume);
   let bakedLightingEnabled = true;
@@ -271,6 +274,9 @@ async function installLightProbe(
     scenarioStatus: probeVolume.lightingScenarioNames.includes(nightScenario)
       ? "Day and Night loaded"
       : "Bake Night to enable blending",
+    streamingStatus: streamingController.status,
+    residentChunks: `${streamingController.residentChunkCount}/${streamingController.totalChunkCount}`,
+    residentProbeData: `${streamingController.residentCellCount} cells / ${streamingController.residentBrickCount} bricks`,
     placement: "Uniform",
     maxSubdivisionLevel: 1,
     bakeStatus: "Loaded",
@@ -314,6 +320,12 @@ async function installLightProbe(
       controls.scenarioStatus = `GPU indirect blend ${(factor * 100).toFixed(0)}% Night`;
       camera.render();
     },
+    pinAllChunks: async () => {
+      controls.streamingStatus = "Loading all chunks";
+      await streamingController.pinAllChunks();
+      updateStreamingControls();
+      camera.render();
+    },
     bakeNightScenario: async () => {
       if (!isNightBakeMode) {
         controls.scenarioStatus = "Open Night Bake Source before baking Night";
@@ -325,6 +337,9 @@ async function installLightProbe(
       isBaking = true;
       const previousBlend = controls.dayNightBlend;
       controls.scenarioStatus = "Preparing Night bake";
+      controls.streamingStatus = "Loading all chunks for bake";
+      await streamingController.pinAllChunks();
+      updateStreamingControls();
       scenarioBakeLighting.apply(1);
       try {
         await ProbeVolumeBaker.bakeLightingScenario(scene, probeVolume, nightScenario, {
@@ -366,7 +381,10 @@ async function installLightProbe(
       url.searchParams.delete("bake");
       window.location.href = url.toString();
     },
-    downloadScenarios: () => {
+    downloadScenarios: async () => {
+      controls.streamingStatus = "Loading all chunks for export";
+      await streamingController.pinAllChunks();
+      updateStreamingControls();
       downloadProbeVolumeArtifact(probeVolume);
     },
     bake: async () => {
@@ -378,6 +396,8 @@ async function installLightProbe(
         previewRequest = 0;
       }
       isBaking = true;
+      streamingController.enabled = false;
+      controls.streamingStatus = "Suspended for runtime bake";
       controls.bakeStatus = "Preparing";
       const previousVolume = probeVolume;
       markerRoot.destroy();
@@ -411,6 +431,7 @@ async function installLightProbe(
         controls.scenarioStatus = "Day baked; bake Night to enable blending";
         downloadProbeVolumeArtifact(probeVolume);
         previousVolume.dispose();
+        controls.streamingStatus = "Runtime bake preview is monolithic";
         controls.bakeStatus = "Completed";
         camera.render();
       } catch (error) {
@@ -419,6 +440,9 @@ async function installLightProbe(
         markerRoot = createProbeMarkers(engine, scene, probeVolume);
         markerRoot.isActive = controls.showMarkers;
         scene.environmentLighting.probeVolume = bakedLightingEnabled ? probeVolume : undefined;
+        streamingController.enabled = true;
+        streamingController.resumeStreaming();
+        updateStreamingControls();
         controls.bakeStatus = `Failed: ${error instanceof Error ? error.message : String(error)}`;
         Logger.error("probe bake", error);
         console.error("probe bake", error);
@@ -426,6 +450,23 @@ async function installLightProbe(
         isBaking = false;
       }
     }
+  };
+  let markerResidencySignature = probeVolume.loadedChunkIds.join(",");
+  const updateStreamingControls = (): void => {
+    controls.streamingStatus = streamingController.status;
+    controls.residentChunks = `${streamingController.residentChunkCount}/${streamingController.totalChunkCount}`;
+    controls.residentProbeData = `${streamingController.residentCellCount} cells / ${streamingController.residentBrickCount} bricks`;
+    const nextMarkerResidencySignature = probeVolume.loadedChunkIds.join(",");
+    if (controls.showMarkers && nextMarkerResidencySignature !== markerResidencySignature) {
+      const nextMarkerRoot = createProbeMarkers(engine, scene, probeVolume);
+      markerRoot.destroy();
+      markerRoot = nextMarkerRoot;
+    }
+    markerResidencySignature = nextMarkerResidencySignature;
+  };
+  streamingController.onResidencyChanged = () => {
+    updateStreamingControls();
+    camera.render();
   };
   const refreshLayoutPreview = () => {
     controls.bakeStatus = "Modified";
@@ -461,7 +502,14 @@ async function installLightProbe(
     region,
     controls,
     (visible) => {
-      markerRoot.isActive = visible;
+      if (visible) {
+        const nextMarkerRoot = createProbeMarkers(engine, scene, probeVolume);
+        markerRoot.destroy();
+        markerRoot = nextMarkerRoot;
+        markerResidencySignature = probeVolume.loadedChunkIds.join(",");
+      } else {
+        markerRoot.isActive = false;
+      }
     },
     refreshLayoutPreview
   );
@@ -507,46 +555,6 @@ function downloadProbeVolumeArtifact(volume: ProbeVolume): void {
   anchor.download = "probe-volume.pvol";
   anchor.click();
   URL.revokeObjectURL(url);
-}
-
-function updateProbeVolumeTransform(region: ProbeVolumeRegion, volume: ProbeVolume): void {
-  const sourceMin = new Vector3(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-  const sourceMax = new Vector3(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-  for (let i = 0; i < volume.bricks.length; i++) {
-    const brick = volume.bricks[i];
-    const brickSize = volume.minBrickSize * Math.pow(3, brick.subdivisionLevel);
-    sourceMin.x = Math.min(sourceMin.x, brick.position.x);
-    sourceMin.y = Math.min(sourceMin.y, brick.position.y);
-    sourceMin.z = Math.min(sourceMin.z, brick.position.z);
-    sourceMax.x = Math.max(sourceMax.x, brick.position.x + brickSize);
-    sourceMax.y = Math.max(sourceMax.y, brick.position.y + brickSize);
-    sourceMax.z = Math.max(sourceMax.z, brick.position.z + brickSize);
-  }
-
-  const scaleX = region.size.x / (sourceMax.x - sourceMin.x);
-  const scaleY = region.size.y / (sourceMax.y - sourceMin.y);
-  const scaleZ = region.size.z / (sourceMax.z - sourceMin.z);
-  const gridToRegion = new Matrix(
-    scaleX,
-    0,
-    0,
-    0,
-    0,
-    scaleY,
-    0,
-    0,
-    0,
-    0,
-    scaleZ,
-    0,
-    -region.size.x * 0.5 - sourceMin.x * scaleX,
-    -region.size.y * 0.5 - sourceMin.y * scaleY,
-    -region.size.z * 0.5 - sourceMin.z * scaleZ,
-    1
-  );
-  const localToWorld = new Matrix();
-  Matrix.multiply(region.entity.transform.worldMatrix, gridToRegion, localToWorld);
-  volume.localToWorldMatrix = localToWorld;
 }
 
 function createProbeMarkers(engine: WebGLEngine, scene: Scene, volume: ProbeVolume): Entity {
@@ -704,6 +712,9 @@ function createProbeDebug(
     availableScenarios: string;
     dayNightBlend: number;
     scenarioStatus: string;
+    streamingStatus: string;
+    residentChunks: string;
+    residentProbeData: string;
     placement: string;
     maxSubdivisionLevel: number;
     bakeStatus: string;
@@ -712,10 +723,11 @@ function createProbeDebug(
     updateProbeExposure: (value: number) => void;
     updateDayNightBlend: (value: number) => void;
     updateSampling: (value: string) => void;
+    pinAllChunks: () => Promise<void>;
     bakeNightScenario: () => Promise<void>;
     openNightBakeScene: () => void;
     returnToDayView: () => void;
-    downloadScenarios: () => void;
+    downloadScenarios: () => Promise<void>;
     bake: () => Promise<void>;
   },
   onMarkersChange: (visible: boolean) => void,
@@ -726,6 +738,15 @@ function createProbeDebug(
   folder.add(controls, "showMarkers").onChange(onMarkersChange);
   folder.add(controls, "probeExposure", -5, 5, 0.1).name("Probe Exposure").onChange(controls.updateProbeExposure);
   folder.add(controls, "sampling", Object.keys(samplingModes)).name("Sampling").onChange(controls.updateSampling);
+
+  const streamingFolder = folder.addFolder("Runtime Streaming");
+  const streamingStatus = streamingFolder.add(controls, "streamingStatus").name("Status").listen();
+  const residentChunks = streamingFolder.add(controls, "residentChunks").name("Chunks").listen();
+  const residentProbeData = streamingFolder.add(controls, "residentProbeData").name("CPU Data").listen();
+  streamingStatus.domElement.style.pointerEvents = "none";
+  residentChunks.domElement.style.pointerEvents = "none";
+  residentProbeData.domElement.style.pointerEvents = "none";
+  streamingFolder.add(controls, "pinAllChunks").name("Pin All Chunks");
 
   const scenarioFolder = folder.addFolder("Lighting Scenarios");
   const projectMode = scenarioFolder.add(controls, "projectMode").name("Project").listen();
@@ -785,6 +806,7 @@ function createProbeDebug(
   rotationFolder.open();
   scaleFolder.open();
   sizeFolder.open();
+  streamingFolder.open();
   scenarioFolder.open();
   regionFolder.open();
   folder.open();
