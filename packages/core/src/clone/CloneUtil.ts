@@ -1,3 +1,19 @@
+import {
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Color,
+  Matrix,
+  Matrix3x3,
+  Plane,
+  Quaternion,
+  Ray,
+  Rect,
+  SphericalHarmonics3,
+  Vector2,
+  Vector3,
+  Vector4
+} from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
 import { ReferResource } from "../asset/ReferResource";
 import { TypedArray } from "../base/Constant";
@@ -6,13 +22,11 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { CloneMode, defaultCloneModeKey, fieldCloneModesKey } from "./CloneDecorators";
+import { CloneMode, defaultCloneModeKey, fieldCloneModesKey, registerDefaultCloneMode } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
-import "./MathCloneDefaults";
 
 /**
  * @internal
- * Kept separate from `CloneDecorators`, whose eager imports must remain engine-class-free.
  */
 export class CloneUtil {
   /**
@@ -348,4 +362,24 @@ export class CloneUtil {
   private static _getTypeName(value: object): string {
     return Object.getPrototypeOf(value)?.constructor?.name ?? "Object";
   }
+}
+
+const copyFromCloneTypes = [
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Color,
+  Matrix,
+  Matrix3x3,
+  Plane,
+  Quaternion,
+  Ray,
+  Rect,
+  SphericalHarmonics3,
+  Vector2,
+  Vector3,
+  Vector4
+];
+for (let i = 0, n = copyFromCloneTypes.length; i < n; i++) {
+  registerDefaultCloneMode(copyFromCloneTypes[i], CloneMode.CopyFrom);
 }
