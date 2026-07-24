@@ -323,7 +323,7 @@ class PlainConfig {
   nested = { x: 1 };
 }
 
-/** Copyable class whose object tag does not identify it as a field-cloneable object. */
+/** Unregistered copyFrom class whose branded object tag keeps it outside the field-clone boundary. */
 class TaggedCopyValue {
   value = 0;
 
@@ -1603,12 +1603,15 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("platform objects with internal state keep their default assignment inside a deep subtree", () => {
+    it("branded objects with internal state keep their default assignment inside a deep subtree", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(DeepSubtreeScript);
       const date = new Date(1234);
-      script.bag = { date };
+      const buffer = new ArrayBuffer(8);
+      const error = new Error("boom");
+      new Uint8Array(buffer)[0] = 7;
+      script.bag = { date, buffer, error };
 
       const cloned = parent.clone();
       const cs = cloned.getComponent(DeepSubtreeScript);
@@ -1616,6 +1619,9 @@ describe("Clone remap", async () => {
       expect(cs.bag).not.eq(script.bag);
       expect(cs.bag.date).eq(date);
       expect(cs.bag.date.getTime()).eq(1234);
+      expect(cs.bag.buffer).eq(buffer);
+      expect(new Uint8Array(cs.bag.buffer)[0]).eq(7);
+      expect(cs.bag.error).eq(error);
 
       rootEntity.destroy();
     });
@@ -1624,7 +1630,10 @@ describe("Clone remap", async () => {
   describe("@deepClone capability boundary", () => {
     it.each([
       ["Date", () => new Date(1234)],
-      ["RegExp", () => /clone/gi]
+      ["RegExp", () => /clone/gi],
+      ["ArrayBuffer", () => new ArrayBuffer(8)],
+      ["Error", () => new Error("boom")],
+      ["WeakMap", () => new WeakMap()]
     ])("rejects %s because its state cannot be reproduced by a field walk", (typeName, createValue) => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -1638,7 +1647,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("accepts a copyFrom type without maintaining a matching type whitelist", () => {
+    it("does not infer clone capability from an unregistered copyFrom method", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(DeepPlatformObjectScript);
@@ -1646,12 +1655,7 @@ describe("Clone remap", async () => {
       value.value = 42;
       script.value = value;
 
-      const cloned = parent.clone();
-      const clonedValue = cloned.getComponent(DeepPlatformObjectScript).value as TaggedCopyValue;
-
-      expect(clonedValue).instanceOf(TaggedCopyValue);
-      expect(clonedValue).not.eq(value);
-      expect(clonedValue.value).eq(42);
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone "TaggedCopyValue"/);
 
       rootEntity.destroy();
     });

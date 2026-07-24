@@ -20,6 +20,7 @@ export const enum CloneMode {
  * field-cloneable members; engine-bound and platform objects keep their defaults. A decorator is
  * an explicit intent: if the decorated value itself can't be deep cloned (an entity reference,
  * asset, function, or object with opaque internal state), cloning throws rather than falling back.
+ * Field-cloned classes reproduce only their own enumerable string-keyed properties.
  */
 export function deepClone(target: object, propertyKey: string): void {
   CloneMetadata.registerFieldMode(target, propertyKey, CloneMode.Deep);

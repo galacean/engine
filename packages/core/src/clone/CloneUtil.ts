@@ -93,8 +93,11 @@ export class CloneUtil {
       );
     }
     if (source === null || typeof source !== "object") return source;
-    if (source[defaultCloneModeKey] === CloneMode.Copy) {
-      return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
+    switch (source[defaultCloneModeKey]) {
+      case CloneMode.Copy:
+        return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
+      case CloneMode.Deep:
+        return CloneUtil._cloneObjectByFields(source, preset, cloneMap, true);
     }
     if (ArrayBuffer.isView(source)) {
       return CloneUtil._deepCloneArrayBufferView(<ArrayBufferView>source, preset, cloneMap);
@@ -108,7 +111,7 @@ export class CloneUtil {
     if (source instanceof Set) {
       return CloneUtil._cloneSet(source, preset, cloneMap, true);
     }
-    if (CloneUtil._isKnownOpaqueObject(source)) {
+    if (!CloneUtil._hasOrdinaryObjectTag(source)) {
       throw new Error(
         `CloneUtil: @deepClone cannot deep clone "${CloneUtil._getTypeName(source)}" — its internal state ` +
           `cannot be reproduced by cloning enumerable fields. Remove @deepClone to share it, or wrap the value ` +
@@ -152,8 +155,7 @@ export class CloneUtil {
     if (source instanceof Set) {
       return CloneUtil._cloneSet(source, preset, cloneMap, deepCloneSubtree);
     }
-    if (CloneUtil._isKnownOpaqueObject(source)) return source;
-    if (deepCloneSubtree || CloneUtil._isPlainObject(source)) {
+    if (CloneUtil._isPlainObject(source) || (deepCloneSubtree && CloneUtil._hasOrdinaryObjectTag(source))) {
       return CloneUtil._cloneObjectByFields(source, preset, cloneMap, deepCloneSubtree);
     }
     return source;
@@ -355,8 +357,8 @@ export class CloneUtil {
     return typeof ctor === "function" && ctor.name === "Object";
   }
 
-  private static _isKnownOpaqueObject(value: object): boolean {
-    return value instanceof Date || value instanceof RegExp;
+  private static _hasOrdinaryObjectTag(value: object): boolean {
+    return Object.prototype.toString.call(value) === "[object Object]";
   }
 
   private static _getTypeName(value: object): string {
