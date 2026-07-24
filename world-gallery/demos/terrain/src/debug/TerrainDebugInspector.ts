@@ -37,6 +37,7 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
   const worldState = { background: snapshot.world.background };
   const worldNoiseState = createWorldNoiseState(snapshot);
   const waterState = api.getWaterDebug();
+  const lightingState = api.getLighting();
   const selectPreview = new Map<number, () => void>();
   const terrainFolder = inspector.folder("Terrain / 地形", true);
 
@@ -54,6 +55,28 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
     (pose: string) => api.setPose(pose as TerrainCameraPoseName)
   );
   annotate(sceneFolder.add(sceneState, "reset"), "Reset terrain values / 重置地形参数", "恢复 manifest 默认参数。");
+
+  const lightingFolder = inspector.subfolder(terrainFolder, "Lighting / 光照", true);
+  annotate(
+    lightingFolder.add(lightingState, "directLight"),
+    "Direct light / 直接光",
+    "启用方向光与阴影接收；关闭后只保留烘焙环境光。"
+  ).onChange((value: boolean) => api.setLighting({ directLight: value }));
+  annotate(
+    lightingFolder.add(lightingState, "shadows"),
+    "Shadows / 阴影",
+    "让方向光生成并采样级联阴影图；关闭后保留同一盏方向光，只移除阴影投射与接收。"
+  ).onChange((value: boolean) => api.setLighting({ shadows: value }));
+  annotate(
+    lightingFolder.add(lightingState, "environment"),
+    "Environment / 环境",
+    "切换离线烘焙 `.ambLight` 的环境漫反射；与直接光共用逐片元地形与纹理法线。"
+  ).onChange((value: boolean) => api.setLighting({ environment: value }));
+  annotate(
+    lightingFolder.add(lightingState, "skybox"),
+    "Skybox / 天空盒",
+    "只切换 HDR 天空背景绘制，不改变地形的环境漫反射。"
+  ).onChange((value: boolean) => api.setLighting({ skybox: value }));
 
   const worldFolder = inspector.subfolder(terrainFolder, "World background / 世界背景", true);
   annotate(

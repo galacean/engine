@@ -42,6 +42,35 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
     const preview = image as HTMLImageElement;
     return preview.complete && preview.naturalWidth > 0;
   }))).toBe(true);
+  await test.step("direct and baked environment lighting stay fragment-side", async () => {
+    expect(await page.evaluate(() => window.terrainDebug!.getLighting())).toEqual({
+      directLight: true,
+      shadows: true,
+      environment: true,
+      skybox: true
+    });
+    await page.evaluate(async () => {
+      window.terrainDebug!.setView("surface");
+      window.terrainDebug!.setPose("oblique");
+      window.terrainDebug!.setLighting({ directLight: false, environment: true });
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    const environmentOnly = await readFrameFingerprint(page);
+    await page.evaluate(async () => {
+      window.terrainDebug!.setLighting({ directLight: true, environment: false });
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    });
+    const directOnly = await readFrameFingerprint(page);
+    expect(directOnly).not.toBe(environmentOnly);
+    const generatedShaders = await page.evaluate(() => window.__terrainGeneratedShaders);
+    expect(generatedShaders.some((shader) => shader.stage === "fragment" && shader.source.includes("sampleShadowMap"))).toBe(true);
+    expect(generatedShaders.some((shader) => shader.stage === "fragment" && shader.source.includes("diffuseIrradiance(shadingNormal)"))).toBe(true);
+    expect(
+      generatedShaders.some((shader) => shader.stage === "vertex" && (shader.source.includes("sampleShadowMap") || shader.source.includes("diffuseIrradiance")))
+    ).toBe(false);
+    await page.evaluate(() => window.terrainDebug!.setLighting({ directLight: true, environment: true }));
+  });
+
   await test.step("world-position varying survives shader lowering", async () => {
     const terrainShaders = await page.evaluate(() => window.__terrainGeneratedShaders);
     const vertexShaders = terrainShaders.filter((shader) => shader.stage === "vertex");

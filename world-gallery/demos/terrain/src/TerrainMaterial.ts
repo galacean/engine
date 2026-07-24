@@ -169,6 +169,8 @@ export class TerrainMaterial extends BaseMaterial {
   private static readonly _autoMacro = ShaderMacro.getByName("TERRAIN_AUTO_SHADER");
   private static readonly _dualMacro = ShaderMacro.getByName("TERRAIN_DUAL_SCALING");
   private static readonly _macroVariationMacro = ShaderMacro.getByName("TERRAIN_MACRO_VARIATION");
+  private static readonly _directLightingMacro = ShaderMacro.getByName("TERRAIN_DIRECT_LIGHTING");
+  private static readonly _indirectLightingMacro = ShaderMacro.getByName("TERRAIN_INDIRECT_LIGHTING");
   private static readonly _debugMacro = ShaderMacro.getByName("TERRAIN_DEBUG");
 
   private static readonly _heightMaps = ShaderProperty.getByName("material_HeightMaps");
@@ -259,6 +261,8 @@ export class TerrainMaterial extends BaseMaterial {
     this._uploadLayerParameters();
     this.shaderData.setInt(TerrainMaterial._layerCount, 0);
     this.shaderData.setInt(TerrainMaterial._backgroundMode, 0);
+    this._setMacro(TerrainMaterial._directLightingMacro, true);
+    this._setMacro(TerrainMaterial._indirectLightingMacro, true);
     this.setDebugView(TerrainDebugView.Surface);
     this.shaderData.setInt(TerrainMaterial._debugLayer, 0);
   }
@@ -427,6 +431,22 @@ export class TerrainMaterial extends BaseMaterial {
   setDebugView(view: TerrainDebugView): void {
     this._setMacro(TerrainMaterial._debugMacro, view !== TerrainDebugView.Surface);
     this.shaderData.setInt(TerrainMaterial._debugView, view);
+  }
+
+  /**
+   * Enables or removes baked diffuse terrain lighting at shader-variant granularity.
+   * @param enabled Whether baked ambient-light sampling is included in the terrain shader.
+   */
+  setIndirectLightingEnabled(enabled: boolean): void {
+    this._setMacro(TerrainMaterial._indirectLightingMacro, enabled);
+  }
+
+  /**
+   * Enables or removes direct-light and shadow evaluation at shader-variant granularity.
+   * @param enabled Whether direct-light evaluation is included in the terrain shader.
+   */
+  setDirectLightingEnabled(enabled: boolean): void {
+    this._setMacro(TerrainMaterial._directLightingMacro, enabled);
   }
 
   /**

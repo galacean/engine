@@ -74,7 +74,11 @@ export interface TerrainDebugViewInfo {
 
 /** Descriptions for each production shader diagnostic. */
 export const TERRAIN_DEBUG_VIEW_INFO: Record<TerrainDebugViewName, TerrainDebugViewInfo> = {
-  surface: { label: "Surface / 材质颜色", group: "surface", description: "terrain material accumulation 的未照明 albedo；这是主地形画面。" },
+  surface: {
+    label: "Surface / 最终材质",
+    group: "surface",
+    description: "最终地形光照：terrain albedo、纹理法线、粗糙度、方向光阴影接收与烘焙环境漫反射。"
+  },
   checkerboard: { label: "Checkerboard / 世界棋盘", group: "geometry", description: "世界坐标棋盘；用于确认 clipmap 覆盖与坐标连续性。" },
   grey: { label: "Grey / 灰色基线", group: "geometry", description: "不读取任何 terrain 数据或纹理的几何基线。" },
   height: {
@@ -241,6 +245,18 @@ export interface TerrainWaterDebugSnapshot {
   height: number;
 }
 
+/** Direct-light and baked-environment visibility exposed to terrain diagnostics. */
+export interface TerrainLightingSnapshot {
+  /** Whether the shadow-casting directional light is active. */
+  directLight: boolean;
+  /** Whether the directional light renders and samples its shadow map. */
+  shadows: boolean;
+  /** Whether baked ambient-light SH contributes diffuse terrain illumination. */
+  environment: boolean;
+  /** Whether the HDR cube is drawn as the visible sky background. */
+  skybox: boolean;
+}
+
 /** Full mutable copy of the terrain inputs exposed by the inspector. */
 export interface TerrainDebugTuningSnapshot {
   /** Per-texture asset inputs. */
@@ -285,6 +301,10 @@ export interface TerrainDebugApi {
   getWaterDebug(): TerrainWaterDebugSnapshot;
   /** Updates independent water-pcg diagnostic state. */
   setWaterDebug(tuning: Partial<TerrainWaterDebugSnapshot>): void;
+  /** Returns direct-light and baked-environment visibility. */
+  getLighting(): TerrainLightingSnapshot;
+  /** Updates direct-light and baked-environment visibility. */
+  setLighting(tuning: Partial<TerrainLightingSnapshot>): void;
   /** Restores manifest defaults. */
   resetTuning(): void;
   /** Returns the rendered clipmap topology. */

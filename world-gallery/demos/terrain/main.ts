@@ -1,4 +1,13 @@
-import { Camera, Color, Entity, Shader, Vector3, WebGLEngine } from "@galacean/engine";
+import {
+  Camera,
+  Entity,
+  PostProcess,
+  Shader,
+  TonemappingEffect,
+  TonemappingMode,
+  Vector3,
+  WebGLEngine
+} from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { TerrainClipmap } from "./src/clipmap/TerrainClipmap";
@@ -22,6 +31,7 @@ import { loadManifest, type TerrainManifest } from "./src/loader/ManifestLoader"
 import { loadTerrainData } from "./src/loader/TerrainDataLoader";
 import terrainShaderSource from "./src/shaders/Terrain.shader?raw";
 import { mountTerrainInspector } from "./src/debug/TerrainDebugInspector";
+import { createTerrainEnvironment } from "./src/lighting/TerrainEnvironment";
 
 export {
   TERRAIN_DEBUG_VIEWS,
@@ -89,13 +99,16 @@ async function boot(): Promise<void> {
   Shader.create(terrainShaderSource);
 
   const scene = engine.sceneManager.activeScene;
-  scene.background.solidColor = new Color(0.58, 0.72, 0.84, 1);
   const root = scene.createRootEntity("terrain-demo");
   const cameraEntity = root.createChild("camera");
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 75;
   camera.nearClipPlane = 1;
   camera.farClipPlane = 20000;
+  camera.enableHDR = true;
+  camera.enablePostProcess = true;
+  const postProcess = root.createChild("terrain-tonemapping").addComponent(PostProcess);
+  postProcess.addEffect(TonemappingEffect).mode.value = TonemappingMode.Neutral;
   const orbit = cameraEntity.addComponent(OrbitControl);
   orbit.minDistance = 20;
   orbit.maxDistance = 10000;
@@ -103,6 +116,12 @@ async function boot(): Promise<void> {
 
   setStatus("loading manifest and region arrays");
   const manifestUrl = new URL("./data/manifest.json", import.meta.url).href;
+  const environment = await createTerrainEnvironment(
+    engine,
+    scene,
+    root,
+    new URL("./data/environment/terrain-sky.ambLight", import.meta.url).href
+  );
   const manifest = await loadManifest(engine, manifestUrl);
   const [terrainData, layerTextures, macroNoise] = await Promise.all([
     loadTerrainData(engine, manifest, manifestUrl),
@@ -181,6 +200,18 @@ async function boot(): Promise<void> {
       if (values.enabled !== undefined) waterDebugState.enabled = values.enabled;
       if (values.height !== undefined) waterDebugState.height = values.height;
       waterDebug.setState(waterDebugState.enabled, waterDebugState.height);
+    },
+    getLighting() {
+      return environment.getLighting();
+    },
+    setLighting(values) {
+      environment.setLighting(values);
+      if (values.directLight !== undefined) {
+        material.setDirectLightingEnabled(values.directLight);
+      }
+      if (values.environment !== undefined) {
+        material.setIndirectLightingEnabled(values.environment);
+      }
     },
     resetTuning() {
       const defaults = createTuningSnapshot(manifest);

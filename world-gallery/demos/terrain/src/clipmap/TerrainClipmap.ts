@@ -207,12 +207,15 @@ export class TerrainClipmap {
       renderer.mesh = mesh;
       renderer.setMaterial(material);
       renderer.setLod(lod);
+      // The terrain forward pass applies height displacement; it must not submit the undisplaced clipmap to CSM.
+      renderer.castShadows = false;
       renderer.setDebugWire(false);
 
       const wireEntity = root.createChild(`lod-${lod}-${GROUP_NAMES[group]}-${instance}-wire`);
       const wireRenderer = wireEntity.addComponent(TerrainRenderer);
       wireRenderer.mesh = wireMesh;
       wireRenderer.setMaterial(material);
+      wireRenderer.castShadows = false;
       wireRenderer.setLod(lod);
       wireRenderer.setDebugWire(true);
       wireRenderer.priority = 1;

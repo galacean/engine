@@ -28,9 +28,10 @@ Shader "Terrain" {
         float totalWeight;
       };
 
-      mat4 renderer_ModelMat;
-      mat4 camera_VPMat;
-      vec3 camera_Position;
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Common/Transform.glsl"
+      #include "ShaderLibrary/Shadow/Shadow.glsl"
+      #include "ShaderLibrary/Lighting/Light.glsl"
       #ifdef TERRAIN_DEBUG
         float renderer_Lod;
         float renderer_DebugWire;
@@ -282,6 +283,25 @@ Shader "Terrain" {
 
       float randomCell(vec2 cell) {
         return fract(sin(dot(cell, vec2(12.9898, 78.233))) * 43758.5453);
+      }
+
+      vec3 diffuseIrradiance(vec3 terrainNormal) {
+        vec3 irradiance = scene_EnvMapLight.diffuse * PI;
+        #ifdef SCENE_USE_SH
+          irradiance = max(
+            scene_EnvSH[0] +
+              scene_EnvSH[1] * terrainNormal.y +
+              scene_EnvSH[2] * terrainNormal.z +
+              scene_EnvSH[3] * terrainNormal.x +
+              scene_EnvSH[4] * (terrainNormal.y * terrainNormal.x) +
+              scene_EnvSH[5] * (terrainNormal.y * terrainNormal.z) +
+              scene_EnvSH[6] * (3.0 * terrainNormal.z * terrainNormal.z - 1.0) +
+              scene_EnvSH[7] * (terrainNormal.z * terrainNormal.x) +
+              scene_EnvSH[8] * (terrainNormal.x * terrainNormal.x - terrainNormal.y * terrainNormal.y),
+            vec3(0.0)
+          );
+        #endif
+        return irradiance;
       }
 
       Varyings vert(Attributes attributes) {
@@ -1124,7 +1144,55 @@ Shader "Terrain" {
           macroVariation = mix(vec3(1.0), macroVariation, clamp(terrainNormal.y + material_MacroSlope, 0.0, 1.0));
         #endif
 
-        return vec4(surface.albedoHeight.rgb * colorMap.rgb * macroVariation, 1.0);
+        vec3 albedo = surface.albedoHeight.rgb * colorMap.rgb * macroVariation;
+        #if !defined(TERRAIN_DIRECT_LIGHTING) && !defined(TERRAIN_INDIRECT_LIGHTING)
+          return vec4(albedo, 1.0);
+        #endif
+        vec3 normalMap = surface.normalRoughness.xyz;
+        normalMap.xz *= surface.normalDepth;
+        vec3 worldTangent = normalize(baseDdx);
+        vec3 worldBitangent = -normalize(baseDdy);
+        vec3 shadingNormal = normalize(
+          worldTangent * normalMap.x + worldBitangent * normalMap.z + terrainNormal * normalMap.y
+        );
+        float roughness = clamp(
+          (colorMap.a - 0.5) * 2.0 + surface.normalRoughness.a,
+          0.0,
+          1.0
+        );
+        vec3 lighting = vec3(0.0);
+        #ifdef TERRAIN_DIRECT_LIGHTING
+          float shadowAttenuation = 1.0;
+          #if defined(SCENE_DIRECT_LIGHT_COUNT) && defined(NEED_CALCULATE_SHADOWS)
+            shadowAttenuation = sampleShadowMap(
+              varyings.worldPosition,
+              getShadowCoord(varyings.worldPosition)
+            );
+          #endif
+          #ifdef SCENE_DIRECT_LIGHT_COUNT
+            if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[0])) {
+              DirectLight directLight = getDirectLight(0);
+              vec3 lightDirection = -directLight.direction;
+              float lambert = saturate(dot(shadingNormal, lightDirection));
+              vec3 halfDirection = normalize(lightDirection + normalize(camera_Position - varyings.worldPosition));
+              float specular = saturate(dot(shadingNormal, halfDirection));
+              specular *= specular;
+              specular *= specular * (1.0 - roughness) * 0.06;
+              lighting += directLight.color * shadowAttenuation * (albedo * lambert + vec3(specular));
+            }
+          #endif
+        #endif
+        #ifdef TERRAIN_INDIRECT_LIGHTING
+          float terrainAO = (1.0 - (surface.albedoHeight.a * log(2.1 - surface.aoStrength))) *
+            (1.0 - surface.normalRoughness.y);
+          float ambientOcclusion = clamp(
+            1.0 - terrainAO * surface.aoStrength,
+            surface.albedoHeight.a,
+            1.0
+          );
+          lighting += albedo * ambientOcclusion * diffuseIrradiance(shadingNormal) * scene_EnvMapLight.diffuseIntensity / PI;
+        #endif
+        return vec4(lighting, 1.0);
       }
 
       void frag(Varyings varyings) {
