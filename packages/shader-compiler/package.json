@@ -11,7 +11,8 @@
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.min.js",
+  "unpkg": "dist/browser.min.js",
+  "jsdelivr": "dist/browser.min.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "exports": {
