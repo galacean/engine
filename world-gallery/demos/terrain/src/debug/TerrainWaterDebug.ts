@@ -1,6 +1,6 @@
 import { Engine, Entity } from "@galacean/engine";
 import { OceanPreviewController } from "../../../water-pcg/demo/examples/ocean-preview/OceanPreviewController";
-import { riverExpandedLakeOceanPreview } from "../../../water-pcg/demo/examples/ocean-preview/presets";
+import { curvedMainRiverOceanPreview } from "../../../water-pcg/demo/examples/ocean-preview/presets";
 
 /** Bounds occupied by loaded terrain regions in world metres. */
 export interface TerrainWaterDebugBounds {
@@ -30,7 +30,7 @@ export class TerrainWaterDebug {
     this._root.transform.setPosition(bounds.center[0], 9.5, bounds.center[1]);
     this._createController = () =>
       new OceanPreviewController(engine, this._root, {
-        ...riverExpandedLakeOceanPreview,
+        ...curvedMainRiverOceanPreview,
         size: bounds.size + 16000,
         waterLevel: 0,
         amplitudeScale: 8,
