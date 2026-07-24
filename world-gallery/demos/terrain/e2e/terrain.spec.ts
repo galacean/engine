@@ -362,6 +362,35 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
   expect(consoleErrors).toEqual([]);
 });
 
+test("first-person camera follows the CPU heightfield", async ({ page }) => {
+  await page.goto("/demos/terrain/index.html");
+  await expect(page.locator("#status")).toContainText("ready · 3 regions · 144 clipmap segments");
+  await expect(page.getByText("Ground clearance / 离地高度", { exact: true })).toBeVisible();
+
+  const initial = await page.evaluate(() => window.terrainDebug!.getFirstPerson());
+  expect(initial.active).toBe(true);
+  expect(initial.eyeHeight).toBe(1.7);
+  expect(initial.moveSpeed).toBe(8);
+  expect(initial.groundHeight).toBeDefined();
+  expect(initial.position[1]).toBeCloseTo(initial.groundHeight! + 1.7, 5);
+
+  const adjusted = await page.evaluate(() => {
+    window.terrainDebug!.setFirstPersonEyeHeight(2.25);
+    window.terrainDebug!.setFirstPersonMoveSpeed(12);
+    return window.terrainDebug!.getFirstPerson();
+  });
+  expect(adjusted.eyeHeight).toBe(2.25);
+  expect(adjusted.moveSpeed).toBe(12);
+  expect(adjusted.position[1]).toBeCloseTo(adjusted.groundHeight! + 2.25, 5);
+
+  await page.keyboard.down("KeyW");
+  await page.waitForTimeout(180);
+  await page.keyboard.up("KeyW");
+  const moved = await page.evaluate(() => window.terrainDebug!.getFirstPerson());
+  expect(moved.position[0]).not.toBe(initial.position[0]);
+  expect(moved.position[1]).toBeCloseTo(moved.groundHeight! + 2.25, 5);
+});
+
 async function installShaderDiagnostics(page: Page): Promise<void> {
   await page.addInitScript(() => {
     const diagnostics: ShaderDiagnostic[] = [];

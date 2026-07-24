@@ -7,6 +7,7 @@ import type {
   TerrainDebugApi,
   TerrainDebugLayerTuningSnapshot,
   TerrainDebugViewName,
+  TerrainFirstPersonSnapshot,
   TerrainRenderingSnapshot,
   TerrainRenderingTuning
 } from "./TerrainDebugContract";
@@ -36,7 +37,7 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
   const requestedPose = query.get("pose");
   const sceneState = {
     view: requestedView && api.views.includes(requestedView) ? requestedView : ("surface" as TerrainDebugViewName),
-    pose: requestedPose && api.poses.includes(requestedPose as TerrainCameraPoseName) ? requestedPose : "overview",
+    pose: requestedPose && api.poses.includes(requestedPose as TerrainCameraPoseName) ? requestedPose : "first-person",
     layer: initialLayer,
     reset: () => {
       api.resetTuning();
@@ -52,6 +53,7 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
   const worldState = { background: snapshot.world.background };
   const worldNoiseState = createWorldNoiseState(snapshot);
   const waterState = api.getWaterDebug();
+  const firstPersonState: TerrainFirstPersonSnapshot = api.getFirstPerson();
   const renderingState = api.getRendering();
   const selectPreview = new Map<number, () => void>();
   const renderingFolder = inspector.folder("Rendering / 渲染", true);
@@ -76,9 +78,31 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
     api.setView(view);
     setViewExplanation(TERRAIN_DEBUG_VIEW_INFO[view].description);
   });
-  annotate(sceneFolder.add(sceneState, "pose", api.poses), "Camera pose / 相机视角", "固定相机位置，用于可重复截图。").onChange(
-    (pose: string) => api.setPose(pose as TerrainCameraPoseName)
+  const eyeHeightController = annotate(
+    sceneFolder.add(firstPersonState, "eyeHeight", 0.5, 3, 0.01),
+    "Ground clearance / 离地高度",
+    "仅在第一人称下生效；单位为米。"
+  ).onChange((height: number) => api.setFirstPersonEyeHeight(height));
+  const moveSpeedController = annotate(
+    sceneFolder.add(firstPersonState, "moveSpeed", 1, 30, 0.1),
+    "Move speed / 移动速度",
+    "仅在第一人称下生效；单位为米/秒。FreeControl 提供左键拖动旋转与 WASD 移动，地形脚本只负责贴地。"
+  ).onChange((speed: number) => api.setFirstPersonMoveSpeed(speed));
+  const syncFirstPersonVisibility = (): void => {
+    for (const controller of [eyeHeightController, moveSpeedController]) {
+      const row = controller.domElement.parentElement;
+      if (row) row.hidden = sceneState.pose !== "first-person";
+    }
+  };
+  annotate(sceneFolder.add(sceneState, "pose", api.poses), "Camera pose / 相机视角", "第一人称使用 CPU 高度场贴地；其他选项为可重复截图视角。").onChange(
+    (pose: string) => {
+      api.setPose(pose as TerrainCameraPoseName);
+      Object.assign(firstPersonState, api.getFirstPerson());
+      syncFirstPersonVisibility();
+      inspector.gui.updateDisplay();
+    }
   );
+  syncFirstPersonVisibility();
   annotate(sceneFolder.add(sceneState, "reset"), "Reset terrain values / 重置地形参数", "恢复 manifest 默认参数。");
 
   const lightingFolder = inspector.subfolder(renderingFolder, "Lighting / 光照", true);

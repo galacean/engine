@@ -10,7 +10,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import { FreeControl, OrbitControl } from "@galacean/engine-toolkit-controls";
 import { TerrainClipmap } from "./src/clipmap/TerrainClipmap";
 import { TerrainMaterial, type TerrainLayerTuning, type TerrainMaterialTuning } from "./src/TerrainMaterial";
 import {
@@ -28,6 +28,7 @@ import {
   type TerrainWaterDebugSnapshot
 } from "./src/debug/TerrainDebugContract";
 import { TerrainWaterDebug } from "./src/debug/TerrainWaterDebug";
+import { TerrainFirstPersonController, type TerrainFirstPersonPose } from "./src/TerrainFirstPersonController";
 import { loadLayerTextures } from "./src/loader/LayerTextureLoader";
 import { loadMacroNoiseTexture } from "./src/loader/MacroNoiseLoader";
 import { loadManifest, type TerrainManifest } from "./src/loader/ManifestLoader";
@@ -55,7 +56,7 @@ export {
   type TerrainWaterDebugSnapshot
 } from "./src/debug/TerrainDebugContract";
 
-const CAMERA_POSES = {
+const STATIC_CAMERA_POSES = {
   overview: {
     position: [1740, 1120, 1580],
     target: [512, 35, -512]
@@ -85,6 +86,21 @@ const CAMERA_POSES = {
     target: [1024, 0, -1536]
   }
 } as const;
+
+const CAMERA_POSES = {
+  "first-person": true,
+  ...STATIC_CAMERA_POSES
+} as const;
+
+const FIRST_PERSON_POSE: TerrainFirstPersonPose = {
+  x: 600,
+  z: -104,
+  // Matches the sunward opening visible from the overview pose in terrain-sky.ambLight.
+  yaw: 0.26,
+  pitch: 0.12
+};
+
+type StaticCameraPoseName = Exclude<TerrainCameraPoseName, "first-person">;
 
 const status = document.querySelector<HTMLDivElement>("#status");
 
@@ -133,6 +149,9 @@ async function boot(): Promise<void> {
     loadLayerTextures(engine, manifest.layers, manifestUrl),
     loadMacroNoiseTexture(engine, new URL(manifest.material.macroVariation.noiseTexture, manifestUrl).href)
   ]);
+  const firstPerson = cameraEntity.addComponent(TerrainFirstPersonController);
+  firstPerson.configure(terrainData);
+  let freeControl: FreeControl | null = applyTerrainCameraPose(cameraEntity, orbit, firstPerson, null, "first-person");
 
   const material = new TerrainMaterial(engine);
   material.bindTerrain(terrainData, manifest.clipmap.meshSize);
@@ -178,8 +197,18 @@ async function boot(): Promise<void> {
     },
     setPose(pose) {
       if (!Object.hasOwn(CAMERA_POSES, pose)) throw new Error(`[terrain-debug] unknown pose ${pose}`);
-      applyCameraPose(cameraEntity, orbit, pose);
+      freeControl = applyTerrainCameraPose(cameraEntity, orbit, firstPerson, freeControl, pose);
       clipmap.snap(cameraEntity.transform.worldPosition);
+    },
+    getFirstPerson() {
+      return firstPerson.snapshot;
+    },
+    setFirstPersonEyeHeight(height) {
+      firstPerson.setEyeHeight(height);
+      clipmap.snap(cameraEntity.transform.worldPosition);
+    },
+    setFirstPersonMoveSpeed(speed) {
+      firstPerson.setMoveSpeed(speed);
     },
     setDebugLayer(layer) {
       material.setDebugLayer(layer);
@@ -314,8 +343,31 @@ async function boot(): Promise<void> {
   setStatus(`ready · ${terrainData.regions.length} regions · ${clipmap.segmentCount} clipmap segments`);
 }
 
-function applyCameraPose(cameraEntity: Entity, orbit: OrbitControl, poseName: TerrainCameraPoseName): void {
-  const pose = CAMERA_POSES[poseName];
+function applyTerrainCameraPose(
+  cameraEntity: Entity,
+  orbit: OrbitControl,
+  firstPerson: TerrainFirstPersonController,
+  freeControl: FreeControl | null,
+  poseName: TerrainCameraPoseName
+): FreeControl | null {
+  if (poseName === "first-person") {
+    orbit.enabled = false;
+    firstPerson.enter(FIRST_PERSON_POSE);
+    freeControl?.destroy();
+    const nextFreeControl = cameraEntity.addComponent(FreeControl);
+    firstPerson.setFreeControl(nextFreeControl);
+    return nextFreeControl;
+  }
+  firstPerson.exit();
+  firstPerson.setFreeControl(null);
+  freeControl?.destroy();
+  orbit.enabled = true;
+  applyCameraPose(cameraEntity, orbit, poseName);
+  return null;
+}
+
+function applyCameraPose(cameraEntity: Entity, orbit: OrbitControl, poseName: StaticCameraPoseName): void {
+  const pose = STATIC_CAMERA_POSES[poseName];
   cameraEntity.transform.setPosition(pose.position[0], pose.position[1], pose.position[2]);
   const target = new Vector3(pose.target[0], pose.target[1], pose.target[2]);
   cameraEntity.transform.lookAt(target);

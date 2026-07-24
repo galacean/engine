@@ -85,10 +85,31 @@ export class TerrainData {
    * @returns Height in metres, or undefined outside loaded regions.
    */
   sampleHeight(worldX: number, worldZ: number): number | undefined {
-    const sample = this._resolveSample(worldX, worldZ);
-    if (!sample) return undefined;
-    const raw = this.regions[sample.layer].heights[sample.index];
-    return this.minHeight + (raw / 65535) * (this.maxHeight - this.minHeight);
+    return this._sampleHeightAtGrid(Math.round(worldX / this.vertexSpacing), Math.round(worldZ / this.vertexSpacing));
+  }
+
+  /**
+   * Samples a continuous height by bilinearly interpolating the four surrounding height texels.
+   * @param worldX World-space X coordinate in metres.
+   * @param worldZ World-space Z coordinate in metres.
+   * @returns Height in metres, or undefined when one of the surrounding samples is outside loaded regions.
+   */
+  sampleHeightInterpolated(worldX: number, worldZ: number): number | undefined {
+    const sampleX = worldX / this.vertexSpacing;
+    const sampleZ = worldZ / this.vertexSpacing;
+    const gridX = Math.floor(sampleX);
+    const gridZ = Math.floor(sampleZ);
+    const height00 = this._sampleHeightAtGrid(gridX, gridZ);
+    const height10 = this._sampleHeightAtGrid(gridX + 1, gridZ);
+    const height01 = this._sampleHeightAtGrid(gridX, gridZ + 1);
+    const height11 = this._sampleHeightAtGrid(gridX + 1, gridZ + 1);
+    if (height00 === undefined || height10 === undefined || height01 === undefined || height11 === undefined) return undefined;
+
+    const fractionX = sampleX - gridX;
+    const fractionZ = sampleZ - gridZ;
+    const lower = height00 + (height10 - height00) * fractionX;
+    const upper = height01 + (height11 - height01) * fractionX;
+    return lower + (upper - lower) * fractionZ;
   }
 
   /**
@@ -105,6 +126,17 @@ export class TerrainData {
   private _resolveSample(worldX: number, worldZ: number): { layer: number; index: number } | undefined {
     const gridX = Math.round(worldX / this.vertexSpacing);
     const gridZ = Math.round(worldZ / this.vertexSpacing);
+    return this._resolveGridSample(gridX, gridZ);
+  }
+
+  private _sampleHeightAtGrid(gridX: number, gridZ: number): number | undefined {
+    const sample = this._resolveGridSample(gridX, gridZ);
+    if (!sample) return undefined;
+    const raw = this.regions[sample.layer].heights[sample.index];
+    return this.minHeight + (raw / 65535) * (this.maxHeight - this.minHeight);
+  }
+
+  private _resolveGridSample(gridX: number, gridZ: number): { layer: number; index: number } | undefined {
     const regionX = Math.floor(gridX / this.regionSize);
     const regionZ = Math.floor(gridZ / this.regionSize);
     const layer = this.getRegionLayer(regionX, regionZ);

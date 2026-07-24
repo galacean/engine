@@ -53,7 +53,7 @@ export const TERRAIN_DEBUG_VIEWS = {
 export type TerrainDebugViewName = keyof typeof TERRAIN_DEBUG_VIEWS;
 
 /** Named deterministic camera pose. */
-export type TerrainCameraPoseName = "overview" | "oblique" | "slope" | "dual" | "top" | "seam" | "background-seam";
+export type TerrainCameraPoseName = "first-person" | "overview" | "oblique" | "slope" | "dual" | "top" | "seam" | "background-seam";
 
 /** terrain world background modes implemented by the Galacean core path. */
 export type TerrainBackgroundMode = "none" | "flat" | "noise";
@@ -200,6 +200,20 @@ export interface TerrainProbeSnapshot {
   };
 }
 
+/** First-person camera state exposed by the terrain demo. */
+export interface TerrainFirstPersonSnapshot {
+  /** Whether the first-person controller currently owns the camera. */
+  readonly active: boolean;
+  /** Camera height above the sampled terrain in metres. */
+  readonly eyeHeight: number;
+  /** Horizontal movement speed in metres per second. */
+  readonly moveSpeed: number;
+  /** Current world-space camera position. */
+  readonly position: readonly [x: number, y: number, z: number];
+  /** Sampled terrain height below the camera, when its XZ position is loaded. */
+  readonly groundHeight?: number;
+}
+
 /** Texture asset metadata exposed to the diagnostics surface. */
 export interface TerrainDebugLayerSnapshot {
   /** terrain texture asset identifier. */
@@ -322,6 +336,12 @@ export interface TerrainDebugApi {
   setView(view: TerrainDebugViewName): void;
   /** Selects a deterministic camera pose. */
   setPose(pose: TerrainCameraPoseName): void;
+  /** Returns the terrain-constrained first-person camera state. */
+  getFirstPerson(): TerrainFirstPersonSnapshot;
+  /** Updates first-person camera height above terrain in metres. */
+  setFirstPersonEyeHeight(height: number): void;
+  /** Updates first-person horizontal movement speed in metres per second. */
+  setFirstPersonMoveSpeed(speed: number): void;
   /** Selects the asset used by layer-specific debug outputs. */
   setDebugLayer(layer: number): void;
   /** Returns a copy of all inspector-controlled values. */
