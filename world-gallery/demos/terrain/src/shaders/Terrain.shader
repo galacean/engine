@@ -71,6 +71,7 @@ Shader "Terrain" {
 
       int material_ProjectionEnabled;
       float material_ProjectionThreshold;
+      int material_BilerpEnabled;
       float material_BlendSharpness;
       float material_MipmapBias;
       float material_BiasDistance;
@@ -829,7 +830,7 @@ Shader "Terrain" {
         vec3 baseDdx = dFdx(varyings.worldPosition);
         vec3 baseDdy = dFdy(varyings.worldPosition);
         float regionMip = log2(max(length(baseDdx.xz), length(baseDdy.xz)) * vertexDensity());
-        bool bilerp = regionMip < 0.0 && regionUv.z > -1.0;
+        bool bilerp = material_BilerpEnabled != 0 && regionMip < 0.0 && regionUv.z > -1.0;
         vec4 colorMap = regionUv.z > -1.0
           ? textureLod(material_ColorMaps, regionUv, regionMip)
           : vec4(1.0, 1.0, 1.0, 0.5);

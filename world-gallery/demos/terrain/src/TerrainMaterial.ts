@@ -66,6 +66,8 @@ export interface TerrainLayerTuning {
 
 /** Mutable sampling inputs exposed to the terrain diagnostics surface. */
 export interface TerrainSamplingTuning {
+  /** Whether nearby region material data is interpolated from four control texels. */
+  bilerpEnabled?: boolean;
   /** terrain height-aware material blend sharpness. */
   blendSharpness?: number;
   /** Derivative multiplier used before textureGrad. */
@@ -207,6 +209,7 @@ export class TerrainMaterial extends BaseMaterial {
 
   private static readonly _projectionEnabled = ShaderProperty.getByName("material_ProjectionEnabled");
   private static readonly _projectionThreshold = ShaderProperty.getByName("material_ProjectionThreshold");
+  private static readonly _bilerpEnabled = ShaderProperty.getByName("material_BilerpEnabled");
   private static readonly _blendSharpness = ShaderProperty.getByName("material_BlendSharpness");
   private static readonly _mipmapBias = ShaderProperty.getByName("material_MipmapBias");
   private static readonly _biasDistance = ShaderProperty.getByName("material_BiasDistance");
@@ -398,6 +401,7 @@ export class TerrainMaterial extends BaseMaterial {
 
     this.shaderData.setInt(TerrainMaterial._projectionEnabled, spec.projection.enabled ? 1 : 0);
     this.shaderData.setFloat(TerrainMaterial._projectionThreshold, spec.projection.threshold);
+    this.shaderData.setInt(TerrainMaterial._bilerpEnabled, spec.sampling.bilerpEnabled ? 1 : 0);
     this.shaderData.setFloat(TerrainMaterial._blendSharpness, spec.sampling.blendSharpness);
     this.shaderData.setFloat(TerrainMaterial._mipmapBias, spec.sampling.mipmapBias);
     this.shaderData.setFloat(TerrainMaterial._biasDistance, spec.sampling.biasDistance);
@@ -488,6 +492,9 @@ export class TerrainMaterial extends BaseMaterial {
    * @throws If a numeric value is non-finite.
    */
   setSamplingTuning(tuning: TerrainSamplingTuning): void {
+    if (tuning.bilerpEnabled !== undefined) {
+      this.shaderData.setInt(TerrainMaterial._bilerpEnabled, tuning.bilerpEnabled ? 1 : 0);
+    }
     if (tuning.blendSharpness !== undefined)
       this.shaderData.setFloat(TerrainMaterial._blendSharpness, this._range("blendSharpness", tuning.blendSharpness, 0, 1));
     if (tuning.mipmapBias !== undefined) {

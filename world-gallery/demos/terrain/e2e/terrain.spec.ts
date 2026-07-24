@@ -119,7 +119,12 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
       expect(shader.source).toMatch(/backgroundNoiseDerivatives\s*=\s*worldNoiseDdxDdy\s*;/);
     }
     expect(fragmentShaders.some((shader) => /sampleGrid\s*\*\s*vertexSpacing\s*\(\s*\)/.test(shader.source))).toBe(true);
+    expect(fragmentShaders.some((shader) => /material_BilerpEnabled\s*!=\s*0\s*&&\s*regionMip\s*<\s*0\.0/.test(shader.source))).toBe(true);
     expect(fragmentShaders.every((shader) => !shader.source.includes("material_TriReduction"))).toBe(true);
+    expect(fragmentShaders.every((shader) => !shader.source.includes("sampleIndex"))).toBe(true);
+    expect(fragmentShaders.every((shader) => !shader.source.includes("worldBackgroundMaterialFade"))).toBe(true);
+    expect(fragmentShaders.every((shader) => !shader.source.includes("materialCoordinateScale"))).toBe(true);
+    expect(fragmentShaders.every((shader) => !shader.source.includes("sampleLayerWithWorldTransition"))).toBe(true);
   });
 
   await test.step("inspector folders and panel can scroll", async () => {
@@ -256,6 +261,7 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
       await window.terrainDebug!.setView("surface");
     });
     expect((await readFrameStats(page)).uniqueColors).toBeGreaterThan(2);
+    await attachScreenshot(page, testInfo, "world-noise-material-continuity");
     await page.evaluate(() => window.terrainDebug!.resetTuning());
   });
 
@@ -263,10 +269,13 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
     const defaults = await page.evaluate(() => window.terrainDebug!.getTuning());
     expect(defaults.layers[1]).toMatchObject({
       layer: 1,
-      uvScale: 0.2,
+      uvScale: 0.5,
       detilingRotation: 0.161,
       detilingShift: 0
     });
+    expect(defaults.sampling.bilerpEnabled).toBe(true);
+    await page.evaluate(() => window.terrainDebug!.setSamplingTuning({ bilerpEnabled: false }));
+    expect(await page.evaluate(() => window.terrainDebug!.getTuning().sampling.bilerpEnabled)).toBe(false);
 
     await page.evaluate(async () => {
       await window.terrainDebug!.setPose("oblique");

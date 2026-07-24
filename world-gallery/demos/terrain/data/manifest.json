@@ -57,7 +57,7 @@
       "albedoHeight": "./textures/rock_albedo_height.png",
       "normalRoughness": "./textures/rock_normal_roughness.png",
       "albedoColor": [1, 1, 1],
-      "uvScale": 0.1,
+      "uvScale": 0.03,
       "detilingRotation": 0,
       "detilingShift": 0,
       "normalDepth": 1,
@@ -70,7 +70,7 @@
       "albedoHeight": "./textures/grass_albedo_height.png",
       "normalRoughness": "./textures/grass_normal_roughness.png",
       "albedoColor": [0.67451, 0.74902, 0.686275],
-      "uvScale": 0.2,
+      "uvScale": 0.5,
       "detilingRotation": 0.161,
       "detilingShift": 0,
       "normalDepth": 1,
@@ -91,6 +91,7 @@
       "threshold": 0.87
     },
     "sampling": {
+      "bilerpEnabled": true,
       "blendSharpness": 0.5,
       "mipmapBias": 1,
       "biasDistance": 512,

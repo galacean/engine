@@ -55,6 +55,7 @@ export interface TerrainMaterialSpec {
     threshold: number;
   };
   sampling: {
+    bilerpEnabled: boolean;
     blendSharpness: number;
     mipmapBias: number;
     biasDistance: number;

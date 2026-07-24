@@ -199,6 +199,8 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
     .onChange((value: number) => api.setLayerTuning(sceneState.layer, { aoStrength: value }));
   annotate(layerFolder.add(layerState, "roughnessMod", -1, 1, 0.01), "Roughness offset / 粗糙度偏移", "加到 normal/roughness alpha；当前 unlit 画面仅保留参数契约。")
     .onChange((value: number) => api.setLayerTuning(sceneState.layer, { roughnessMod: value }));
+  annotate(layerFolder.add(snapshot.sampling, "bilerpEnabled"), "Bilerp / 四点插值", "开启后仅在放大采样的 loaded region 从四个 control texel 插值；默认开启以消除近处单 texel 的方块感。")
+    .onChange((value: boolean) => api.setSamplingTuning({ bilerpEnabled: value }));
   annotate(layerFolder.add(snapshot.sampling, "blendSharpness", 0, 1, 0.01), "Blend sharpness / 高度混合锐度", "控制纹理 height alpha 对 base/overlay 混合的锐度。")
     .onChange((value: number) => api.setSamplingTuning({ blendSharpness: value }));
   annotate(layerFolder.add(snapshot.sampling, "mipmapBias", 0.5, 1.5, 0.01), "Mipmap bias / Mip 偏差", "缩放 textureGrad 导数；更大更早使用低分辨率 Mip。")
