@@ -19,7 +19,7 @@ import {
   waitForCaseReady,
   writeAcceptanceReport
 } from "./water-acceptance-harness.mjs";
-import { FIXED_ACCEPTANCE_ENVIRONMENT, WATER_FEATURE_CASES, WATER_SHOWCASE_CASES } from "./water-acceptance-cases.mjs";
+import { FIXED_ACCEPTANCE_ENVIRONMENT, WATER_SHOWCASE_CASES } from "./water-acceptance-cases.mjs";
 
 const gate = "water-showcase-smoke";
 const run = createRunContext(gate);
@@ -33,7 +33,7 @@ function numberFromDataset(value, label) {
   return parsed;
 }
 
-function assertPublicNavigation(navigation) {
+function assertPublicNavigation(navigation, activeShowcaseId) {
   const publicGroups = [...new Set(navigation.filter((item) => !item.hidden).map((item) => item.group))].sort();
   assertAcceptance(
     JSON.stringify(publicGroups) === JSON.stringify(["feature", "showcase"]),
@@ -44,8 +44,9 @@ function assertPublicNavigation(navigation) {
     .filter((item) => !item.hidden && item.group === "showcase")
     .map((item) => item.caseId)
     .sort();
+  const expectedShowcases = [...new Set(["showcase-river", activeShowcaseId])].sort();
   assertAcceptance(
-    JSON.stringify(publicShowcases) === JSON.stringify(WATER_SHOWCASE_CASES.map((definition) => definition.id).sort()),
+    JSON.stringify(publicShowcases) === JSON.stringify(expectedShowcases),
     `Public Showcase navigation is ${JSON.stringify(publicShowcases)}.`,
     navigation
   );
@@ -53,8 +54,9 @@ function assertPublicNavigation(navigation) {
     .filter((item) => !item.hidden && item.group === "feature")
     .map((item) => item.caseId)
     .sort();
+  const expectedFeatures = ["feature-reflection", "feature-refraction"];
   assertAcceptance(
-    JSON.stringify(publicFeatures) === JSON.stringify(WATER_FEATURE_CASES.map((definition) => definition.id).sort()),
+    JSON.stringify(publicFeatures) === JSON.stringify(expectedFeatures),
     `Public Feature navigation is ${JSON.stringify(publicFeatures)}.`,
     navigation
   );
@@ -265,7 +267,7 @@ async function runShowcaseRound(browser, definition, round) {
     const canvas = await readCanvasProbe(page);
     assertCanvasHealthy(canvas, `${definition.id} round ${round}`);
     const navigation = await readNavigation(page);
-    assertPublicNavigation(navigation);
+    assertPublicNavigation(navigation, definition.id);
     assertAcceptance(
       (await page.locator(".gl-perf").count()) === 0,
       `${definition.id} created a Stats panel during stats=0 acceptance.`

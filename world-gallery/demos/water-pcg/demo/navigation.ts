@@ -84,8 +84,7 @@ export const WATER_PCG_CASES = [
   {
     id: "showcase-ocean",
     label: "海洋",
-    intro:
-      "写实海滩黄昏：近岸折射破碎、时序泡沫、礁石浪花、湿沙与金色高光。",
+    intro: "写实海滩黄昏：近岸折射破碎、时序泡沫、礁石浪花、湿沙与金色高光。",
     group: "showcase",
     runtime: "ocean",
     preset: "hero-ocean"
@@ -272,6 +271,12 @@ export const WATER_PCG_CASES = [
 
 export type WaterDemoCaseId = (typeof WATER_PCG_CASES)[number]["id"];
 
+export const WATER_PCG_DEFAULT_CASE_IDS = [
+  "showcase-river",
+  "feature-refraction",
+  "feature-reflection"
+] as const satisfies readonly WaterDemoCaseId[];
+
 export const WATER_PCG_LEGACY_ALIASES = Object.freeze({
   "curved-main-river": "showcase-river",
   "multi-tributary-river": "showcase-river",
@@ -285,6 +290,7 @@ export const WATER_PCG_PUBLIC_CASES = WATER_PCG_CASES.filter(
   ({ group }) => group === "showcase" || group === "feature"
 );
 
+const WATER_PCG_DEFAULT_CASE_ID_SET = new Set<string>(WATER_PCG_DEFAULT_CASE_IDS);
 const DEFAULT_WATER_PCG_CASE = WATER_PCG_CASES[0];
 const WATER_PCG_ROOT_MARKER = "/demos/water-pcg/";
 
@@ -306,7 +312,8 @@ export function findWaterPcgCase(caseId: string): WaterDemoCaseDefinition | unde
 }
 
 export function isWaterPcgDeveloperMode(location: Pick<Location, "search">): boolean {
-  return new URLSearchParams(location.search).get("dev") === "1";
+  const parameters = new URLSearchParams(location.search);
+  return parameters.get("mode") === "dev" || parameters.get("dev") === "1";
 }
 
 export function resolveWaterPcgCase(location: Pick<Location, "hash" | "search">): WaterDemoCaseDefinition {
@@ -329,18 +336,24 @@ export function getVisibleWaterPcgCases(
   developerMode = false
 ): readonly WaterDemoCaseDefinition[] {
   if (developerMode) return WATER_PCG_CASES;
-  return WATER_PCG_CASES.filter(({ id, group }) => group === "showcase" || group === "feature" || id === activeCaseId);
+  return WATER_PCG_CASES.filter(({ id }) => WATER_PCG_DEFAULT_CASE_ID_SET.has(id) || id === activeCaseId);
 }
 
 export function getWaterPcgCaseHref(currentHref: string, caseId: string): string {
   const selectedCase = findWaterPcgCase(caseId) ?? getLegacyTarget(caseId) ?? DEFAULT_WATER_PCG_CASE;
   const url = new URL(currentHref);
+  const developerMode = isWaterPcgDeveloperMode({ search: url.search });
   const rootIndex = url.pathname.indexOf(WATER_PCG_ROOT_MARKER);
   if (rootIndex >= 0) {
     url.pathname = url.pathname.slice(0, rootIndex + WATER_PCG_ROOT_MARKER.length);
   }
   url.searchParams.delete("example");
-  url.searchParams.delete("mode");
+  url.searchParams.delete("dev");
+  if (developerMode) {
+    url.searchParams.set("mode", "dev");
+  } else {
+    url.searchParams.delete("mode");
+  }
   if (selectedCase.runtime !== "wiki") url.searchParams.delete("doc");
   url.hash = selectedCase.id;
   return url.href;

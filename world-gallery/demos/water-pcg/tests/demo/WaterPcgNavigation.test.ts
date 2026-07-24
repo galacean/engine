@@ -6,6 +6,7 @@ import {
   isWaterPcgDeveloperMode,
   resolveWaterPcgCase,
   WATER_PCG_CASES,
+  WATER_PCG_DEFAULT_CASE_IDS,
   WATER_PCG_GROUPS,
   WATER_PCG_LEGACY_ALIASES,
   WATER_PCG_PUBLIC_CASES
@@ -45,7 +46,7 @@ describe("Water PCG navigation", () => {
     ).toBe(true);
   });
 
-  it("keeps developer and docs cases hidden until requested", () => {
+  it("shows only the River, refraction, and reflection cases by default", () => {
     expect(WATER_PCG_GROUPS.map(({ id, public: isPublic }) => ({ id, isPublic }))).toEqual([
       { id: "showcase", isPublic: true },
       { id: "feature", isPublic: true },
@@ -54,17 +55,26 @@ describe("Water PCG navigation", () => {
     ]);
 
     const defaultVisible = getVisibleWaterPcgCases("showcase-river");
-    expect(defaultVisible.map(({ group }) => group)).not.toContain("developer");
-    expect(defaultVisible.map(({ group }) => group)).not.toContain("docs");
+    expect(defaultVisible.map(({ id }) => id)).toEqual(WATER_PCG_DEFAULT_CASE_IDS);
+
+    const directPoolVisible = getVisibleWaterPcgCases("showcase-pool");
+    expect(directPoolVisible.map(({ id }) => id)).toEqual([
+      "showcase-river",
+      "showcase-pool",
+      "feature-refraction",
+      "feature-reflection"
+    ]);
 
     const directLabVisible = getVisibleWaterPcgCases("water-optics-lab");
-    expect(directLabVisible.filter(({ group }) => group === "developer").map(({ id }) => id)).toEqual([
-      "water-optics-lab"
-    ]);
-    expect(directLabVisible.map(({ id }) => id)).not.toContain("developer-pool-diagnostics");
+    expect(directLabVisible.map(({ id }) => id)).toEqual([...WATER_PCG_DEFAULT_CASE_IDS, "water-optics-lab"]);
+  });
 
+  it("shows the complete catalog in mode=dev and keeps dev=1 compatible", () => {
     expect(getVisibleWaterPcgCases("showcase-river", true)).toEqual(WATER_PCG_CASES);
+    expect(isWaterPcgDeveloperMode({ search: "?mode=dev" })).toBe(true);
+    expect(isWaterPcgDeveloperMode({ search: "?quality=high&mode=dev" })).toBe(true);
     expect(isWaterPcgDeveloperMode({ search: "?dev=1" })).toBe(true);
+    expect(isWaterPcgDeveloperMode({ search: "?mode=ocean" })).toBe(false);
     expect(isWaterPcgDeveloperMode({ search: "?dev=true" })).toBe(false);
   });
 
@@ -123,5 +133,17 @@ describe("Water PCG navigation", () => {
         "water-wiki"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high&doc=water-world#water-wiki");
+  });
+
+  it("preserves mode=dev across case navigation and canonicalizes dev=1", () => {
+    expect(
+      getWaterPcgCaseHref(
+        "http://127.0.0.1:4179/demos/water-pcg/?quality=high&mode=dev#showcase-river",
+        "showcase-pool"
+      )
+    ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high&mode=dev#showcase-pool");
+    expect(
+      getWaterPcgCaseHref("http://127.0.0.1:4179/demos/water-pcg/?quality=high&dev=1#showcase-river", "water-wiki")
+    ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high&mode=dev#water-wiki");
   });
 });
