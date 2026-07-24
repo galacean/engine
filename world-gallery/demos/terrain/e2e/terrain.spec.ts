@@ -71,6 +71,39 @@ test("terrain data, clipmap, and production shader stay coherent", async ({ page
     await page.evaluate(() => window.terrainDebug!.setLighting({ directLight: true, environment: true }));
   });
 
+  await test.step("rendering controls use actual engine state", async () => {
+    const renderingFolder = page.locator(".debug-inspector .title").filter({ hasText: "Rendering / 渲染" });
+    const lightingFolder = page.locator(".debug-inspector .title").filter({ hasText: "Lighting / 光照" });
+    const cameraFolder = page.locator(".debug-inspector .title").filter({ hasText: "Camera / 相机" });
+    const postProcessFolder = page.locator(".debug-inspector .title").filter({ hasText: "Post-process / 后处理" });
+    for (const title of [renderingFolder, lightingFolder, cameraFolder, postProcessFolder]) {
+      await expect(title).toBeVisible();
+      await expect(title.locator("..")).not.toHaveClass(/closed/);
+    }
+
+    const original = await page.evaluate(() => window.terrainDebug!.getRendering());
+    const updated = await page.evaluate((initial) => {
+      window.terrainDebug!.setRendering({
+        camera: { hdr: !initial.camera.hdr, msaaSamples: initial.camera.msaaSamples },
+        postProcess: {
+          enabled: !initial.postProcess.enabled,
+          tonemapping: !initial.postProcess.tonemapping,
+          tonemappingMode: initial.postProcess.tonemappingMode
+        }
+      });
+      return window.terrainDebug!.getRendering();
+    }, original);
+    expect(updated.camera).toEqual({ hdr: !original.camera.hdr, msaaSamples: original.camera.msaaSamples });
+    expect(updated.postProcess).toEqual({
+      enabled: !original.postProcess.enabled,
+      tonemapping: !original.postProcess.tonemapping,
+      tonemappingMode: original.postProcess.tonemappingMode
+    });
+    await attachScreenshot(page, testInfo, "rendering-controls");
+    await page.evaluate((state) => window.terrainDebug!.setRendering(state), original);
+    expect(await page.evaluate(() => window.terrainDebug!.getRendering())).toEqual(original);
+  });
+
   await test.step("world-position varying survives shader lowering", async () => {
     const terrainShaders = await page.evaluate(() => window.__terrainGeneratedShaders);
     const vertexShaders = terrainShaders.filter((shader) => shader.stage === "vertex");

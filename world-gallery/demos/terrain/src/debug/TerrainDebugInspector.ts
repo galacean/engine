@@ -1,3 +1,4 @@
+import { MSAASamples, TonemappingMode } from "@galacean/engine";
 import { DebugInspector } from "./DebugInspector";
 import { TERRAIN_DEBUG_VIEW_INFO } from "./TerrainDebugContract";
 import type {
@@ -5,8 +6,22 @@ import type {
   TerrainCameraPoseName,
   TerrainDebugApi,
   TerrainDebugLayerTuningSnapshot,
-  TerrainDebugViewName
+  TerrainDebugViewName,
+  TerrainRenderingSnapshot,
+  TerrainRenderingTuning
 } from "./TerrainDebugContract";
+
+const MSAA_OPTIONS = {
+  "None / 无": MSAASamples.None,
+  "2×": MSAASamples.TwoX,
+  "4×": MSAASamples.FourX,
+  "8×": MSAASamples.EightX
+} as const;
+
+const TONEMAPPING_OPTIONS = {
+  "Neutral / 中性": TonemappingMode.Neutral,
+  "ACES / 电影": TonemappingMode.ACES
+} as const;
 
 /**
  * Mounts the terrain inspector over the production demo.
@@ -37,9 +52,19 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
   const worldState = { background: snapshot.world.background };
   const worldNoiseState = createWorldNoiseState(snapshot);
   const waterState = api.getWaterDebug();
-  const lightingState = api.getLighting();
+  const renderingState = api.getRendering();
   const selectPreview = new Map<number, () => void>();
+  const renderingFolder = inspector.folder("Rendering / 渲染", true);
   const terrainFolder = inspector.folder("Terrain / 地形", true);
+
+  const syncRenderingState = (): void => {
+    replaceRenderingState(renderingState, api.getRendering());
+    inspector.gui.updateDisplay();
+  };
+  const updateRendering = (values: TerrainRenderingTuning): void => {
+    api.setRendering(values);
+    syncRenderingState();
+  };
 
   const sceneFolder = inspector.subfolder(terrainFolder, "Scene / 场景", true);
   const setViewExplanation = inspector.addReadout(sceneFolder, "Debug output / 输出说明");
@@ -56,27 +81,56 @@ export function mountTerrainInspector(api: TerrainDebugApi): void {
   );
   annotate(sceneFolder.add(sceneState, "reset"), "Reset terrain values / 重置地形参数", "恢复 manifest 默认参数。");
 
-  const lightingFolder = inspector.subfolder(terrainFolder, "Lighting / 光照", true);
+  const lightingFolder = inspector.subfolder(renderingFolder, "Lighting / 光照", true);
   annotate(
-    lightingFolder.add(lightingState, "directLight"),
+    lightingFolder.add(renderingState.lighting, "directLight"),
     "Direct light / 直接光",
     "启用方向光与阴影接收；关闭后只保留烘焙环境光。"
-  ).onChange((value: boolean) => api.setLighting({ directLight: value }));
+  ).onChange((value: boolean) => updateRendering({ lighting: { directLight: value } }));
   annotate(
-    lightingFolder.add(lightingState, "shadows"),
+    lightingFolder.add(renderingState.lighting, "shadows"),
     "Shadows / 阴影",
     "让方向光生成并采样级联阴影图；关闭后保留同一盏方向光，只移除阴影投射与接收。"
-  ).onChange((value: boolean) => api.setLighting({ shadows: value }));
+  ).onChange((value: boolean) => updateRendering({ lighting: { shadows: value } }));
   annotate(
-    lightingFolder.add(lightingState, "environment"),
+    lightingFolder.add(renderingState.lighting, "environment"),
     "Environment / 环境",
     "切换离线烘焙 `.ambLight` 的环境漫反射；与直接光共用逐片元地形与纹理法线。"
-  ).onChange((value: boolean) => api.setLighting({ environment: value }));
+  ).onChange((value: boolean) => updateRendering({ lighting: { environment: value } }));
   annotate(
-    lightingFolder.add(lightingState, "skybox"),
+    lightingFolder.add(renderingState.lighting, "skybox"),
     "Skybox / 天空盒",
     "只切换 HDR 天空背景绘制，不改变地形的环境漫反射。"
-  ).onChange((value: boolean) => api.setLighting({ skybox: value }));
+  ).onChange((value: boolean) => updateRendering({ lighting: { skybox: value } }));
+
+  const cameraFolder = inspector.subfolder(renderingFolder, "Camera / 相机", true);
+  annotate(
+    cameraFolder.add(renderingState.camera, "hdr"),
+    "HDR / 高动态范围",
+    "切换 Camera.enableHDR；引擎只会在 WebGL2 或支持 half-float 的设备上接受 HDR。"
+  ).onChange((value: boolean) => updateRendering({ camera: { hdr: value } }));
+  annotate(
+    cameraFolder.add(renderingState.camera, "msaaSamples", MSAA_OPTIONS),
+    "MSAA samples / 多重采样",
+    "写入 Camera.msaaSamples 的真实引擎枚举：None=1、2×=2、4×=4、8×=8；超过硬件能力时引擎会钳制实际值。"
+  ).onChange((value: number) => updateRendering({ camera: { msaaSamples: Number(value) as MSAASamples } }));
+
+  const postProcessFolder = inspector.subfolder(renderingFolder, "Post-process / 后处理", true);
+  annotate(
+    postProcessFolder.add(renderingState.postProcess, "enabled"),
+    "Post process / 后处理",
+    "切换 Camera.enablePostProcess；关闭时场景 post-process manager 不执行。"
+  ).onChange((value: boolean) => updateRendering({ postProcess: { enabled: value } }));
+  annotate(
+    postProcessFolder.add(renderingState.postProcess, "tonemapping"),
+    "Tonemapping / 色调映射",
+    "切换 TonemappingEffect.enabled；它与 Camera 的后处理总开关是两个不同层级。"
+  ).onChange((value: boolean) => updateRendering({ postProcess: { tonemapping: value } }));
+  annotate(
+    postProcessFolder.add(renderingState.postProcess, "tonemappingMode", TONEMAPPING_OPTIONS),
+    "Tonemapping mode / 色调映射模式",
+    "写入 TonemappingEffect.mode：Neutral 偏保留色相与饱和度，ACES 使用更电影化的近似。"
+  ).onChange((value: number) => updateRendering({ postProcess: { tonemappingMode: Number(value) as TonemappingMode } }));
 
   const worldFolder = inspector.subfolder(terrainFolder, "World background / 世界背景", true);
   annotate(
@@ -307,4 +361,10 @@ function hexToRgb(value: string): [number, number, number] {
   const hex = value.replace("#", "");
   if (!/^[0-9a-f]{6}$/i.test(hex)) throw new Error(`[terrain-debug] invalid color ${value}`);
   return [Number.parseInt(hex.slice(0, 2), 16) / 255, Number.parseInt(hex.slice(2, 4), 16) / 255, Number.parseInt(hex.slice(4, 6), 16) / 255];
+}
+
+function replaceRenderingState(target: TerrainRenderingSnapshot, source: TerrainRenderingSnapshot): void {
+  Object.assign(target.lighting, source.lighting);
+  Object.assign(target.camera, source.camera);
+  Object.assign(target.postProcess, source.postProcess);
 }

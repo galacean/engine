@@ -1,3 +1,4 @@
+import type { MSAASamples, TonemappingMode } from "@galacean/engine";
 import type { TerrainClipmapSegmentSnapshot } from "../clipmap/TerrainClipmap";
 import {
   TerrainDebugView,
@@ -257,6 +258,44 @@ export interface TerrainLightingSnapshot {
   skybox: boolean;
 }
 
+/** Camera state belonging to rendering diagnostics rather than terrain material tuning. */
+export interface TerrainCameraRenderingSnapshot {
+  /** Whether the active camera renders to an HDR intermediate target. */
+  hdr: boolean;
+  /** Actual engine multisample mode after capability clamping. */
+  msaaSamples: MSAASamples;
+}
+
+/** Post-process state belonging to rendering diagnostics. */
+export interface TerrainPostProcessRenderingSnapshot {
+  /** Whether the active camera executes the scene post-process manager. */
+  enabled: boolean;
+  /** Whether the terrain tonemapping effect is valid. */
+  tonemapping: boolean;
+  /** Active engine tonemapping enum value. */
+  tonemappingMode: TonemappingMode;
+}
+
+/** Complete rendering state exposed by the terrain diagnostics panel. */
+export interface TerrainRenderingSnapshot {
+  /** Scene direct and image-based lighting state. */
+  lighting: TerrainLightingSnapshot;
+  /** Camera HDR and hardware multisample state. */
+  camera: TerrainCameraRenderingSnapshot;
+  /** Camera post-process and terrain tonemapping state. */
+  postProcess: TerrainPostProcessRenderingSnapshot;
+}
+
+/** Partial rendering update accepted by terrain diagnostics. */
+export interface TerrainRenderingTuning {
+  /** Direct and image-based lighting values to replace. */
+  lighting?: Partial<TerrainLightingSnapshot>;
+  /** Camera values to replace. */
+  camera?: Partial<TerrainCameraRenderingSnapshot>;
+  /** Post-process values to replace. */
+  postProcess?: Partial<TerrainPostProcessRenderingSnapshot>;
+}
+
 /** Full mutable copy of the terrain inputs exposed by the inspector. */
 export interface TerrainDebugTuningSnapshot {
   /** Per-texture asset inputs. */
@@ -305,6 +344,10 @@ export interface TerrainDebugApi {
   getLighting(): TerrainLightingSnapshot;
   /** Updates direct-light and baked-environment visibility. */
   setLighting(tuning: Partial<TerrainLightingSnapshot>): void;
+  /** Returns the live rendering state without terrain material inputs. */
+  getRendering(): TerrainRenderingSnapshot;
+  /** Updates live scene rendering state and preserves engine capability clamping. */
+  setRendering(tuning: TerrainRenderingTuning): void;
   /** Restores manifest defaults. */
   resetTuning(): void;
   /** Returns the rendered clipmap topology. */

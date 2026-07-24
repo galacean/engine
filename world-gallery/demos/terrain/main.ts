@@ -1,6 +1,7 @@
 import {
   Camera,
   Entity,
+  MSAASamples,
   PostProcess,
   Shader,
   TonemappingEffect,
@@ -19,8 +20,10 @@ import {
   type TerrainDebugApi,
   type TerrainDebugTuningSnapshot,
   type TerrainDebugViewName,
+  type TerrainLightingSnapshot,
   type TerrainMaterialTuningSnapshot,
   type TerrainProbeSnapshot,
+  type TerrainRenderingTuning,
   type TerrainWorldNoiseTuning,
   type TerrainWaterDebugSnapshot
 } from "./src/debug/TerrainDebugContract";
@@ -105,10 +108,12 @@ async function boot(): Promise<void> {
   camera.fieldOfView = 75;
   camera.nearClipPlane = 1;
   camera.farClipPlane = 20000;
+  camera.msaaSamples = MSAASamples.None;
   camera.enableHDR = true;
   camera.enablePostProcess = true;
   const postProcess = root.createChild("terrain-tonemapping").addComponent(PostProcess);
-  postProcess.addEffect(TonemappingEffect).mode.value = TonemappingMode.Neutral;
+  const tonemappingEffect = postProcess.addEffect(TonemappingEffect);
+  tonemappingEffect.mode.value = TonemappingMode.Neutral;
   const orbit = cameraEntity.addComponent(OrbitControl);
   orbit.minDistance = 20;
   orbit.maxDistance = 10000;
@@ -150,6 +155,15 @@ async function boot(): Promise<void> {
   const waterDebug = new TerrainWaterDebug(engine, root, terrainWaterBounds(terrainData));
   const waterDebugState: TerrainWaterDebugSnapshot = { enabled: false, height: 10 };
   waterDebug.setState(waterDebugState.enabled, waterDebugState.height);
+  const updateLighting = (values: Partial<TerrainLightingSnapshot>): void => {
+    environment.setLighting(values);
+    if (values.directLight !== undefined) {
+      material.setDirectLightingEnabled(values.directLight);
+    }
+    if (values.environment !== undefined) {
+      material.setIndirectLightingEnabled(values.environment);
+    }
+  };
 
   const api: TerrainDebugApi = {
     ready: true,
@@ -205,12 +219,30 @@ async function boot(): Promise<void> {
       return environment.getLighting();
     },
     setLighting(values) {
-      environment.setLighting(values);
-      if (values.directLight !== undefined) {
-        material.setDirectLightingEnabled(values.directLight);
-      }
-      if (values.environment !== undefined) {
-        material.setIndirectLightingEnabled(values.environment);
+      updateLighting(values);
+    },
+    getRendering() {
+      return {
+        lighting: environment.getLighting(),
+        camera: {
+          hdr: camera.enableHDR,
+          msaaSamples: camera.msaaSamples
+        },
+        postProcess: {
+          enabled: camera.enablePostProcess,
+          tonemapping: tonemappingEffect.enabled,
+          tonemappingMode: tonemappingEffect.mode.value
+        }
+      };
+    },
+    setRendering(values: TerrainRenderingTuning) {
+      if (values.lighting) updateLighting(values.lighting);
+      if (values.camera?.hdr !== undefined) camera.enableHDR = values.camera.hdr;
+      if (values.camera?.msaaSamples !== undefined) camera.msaaSamples = values.camera.msaaSamples;
+      if (values.postProcess?.enabled !== undefined) camera.enablePostProcess = values.postProcess.enabled;
+      if (values.postProcess?.tonemapping !== undefined) tonemappingEffect.enabled = values.postProcess.tonemapping;
+      if (values.postProcess?.tonemappingMode !== undefined) {
+        tonemappingEffect.mode.value = values.postProcess.tonemappingMode;
       }
     },
     resetTuning() {
