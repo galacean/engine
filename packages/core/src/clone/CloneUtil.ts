@@ -93,7 +93,7 @@ export class CloneUtil {
       );
     }
     if (source === null || typeof source !== "object") return source;
-    if (source[defaultCloneModeKey] === CloneMode.CopyFrom) {
+    if (source[defaultCloneModeKey] === CloneMode.Copy) {
       return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
     }
     if (ArrayBuffer.isView(source)) {
@@ -134,7 +134,7 @@ export class CloneUtil {
         return source;
       case CloneMode.Remap:
         return cloneMap.get(source) ?? source;
-      case CloneMode.CopyFrom:
+      case CloneMode.Copy:
         return CloneUtil._cloneCopyFromValue(source, preset, cloneMap);
       case CloneMode.Deep:
         return CloneUtil._cloneObjectByFields(source, preset, cloneMap, deepCloneSubtree);
@@ -381,5 +381,5 @@ const copyFromCloneTypes = [
   Vector4
 ];
 for (let i = 0, n = copyFromCloneTypes.length; i < n; i++) {
-  registerDefaultCloneMode(copyFromCloneTypes[i], CloneMode.CopyFrom);
+  registerDefaultCloneMode(copyFromCloneTypes[i], CloneMode.Copy);
 }

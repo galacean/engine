@@ -8,7 +8,7 @@ export const enum CloneMode {
   Ignore,
   Assignment,
   Remap,
-  CopyFrom,
+  Copy,
   Deep
 }
 
