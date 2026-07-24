@@ -1661,8 +1661,8 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("copyFrom value types via entity.clone", () => {
-    it("all exported math copyFrom types deep-clone through their registered type default", () => {
+  describe("registered Copy value types via entity.clone", () => {
+    it("all registered math Copy types deep-clone through their type default", () => {
       const typeNames = [
         "BoundingBox",
         "BoundingFrustum",
@@ -2091,9 +2091,10 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("every exported Deep-registered type constructs bare (gate contract)", () => {
+    it("every exported DataObject type constructs bare (gate contract)", () => {
       // The gate creates container elements and preset-less slots with `new Type()` and then
-      // populates every field, so a Deep-registered type MUST construct without arguments.
+      // populates its fields, so a DataObject type MUST construct without arguments. Registered
+      // math Copy types are constructed and exercised by the test above.
       // Exemptions are engine-bound structural types the gate only ever clones against a
       // same-type constructor preset (`reusable`) — each entry states why it cannot be bare.
       const exempt = new Set<string>([
@@ -2125,13 +2126,7 @@ describe("Clone remap", async () => {
       for (const [pkg, ns] of packages) {
         for (const [name, exported] of Object.entries(ns)) {
           if (typeof exported !== "function" || !exported.prototype) continue;
-          // math value types dispatch by their callable copyFrom; core/ui Deep types are the
-          // DataObject family
-          const isDeep =
-            pkg === "math"
-              ? typeof exported.prototype.copyFrom === "function"
-              : exported.prototype instanceof DataObject;
-          if (!isDeep) continue;
+          if (!(exported.prototype instanceof DataObject)) continue;
           if (exempt.has(name)) continue;
           try {
             new exported();
