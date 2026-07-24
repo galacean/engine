@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader-compiler",
-  "version": "2.0.0-alpha.40",
+  "version": "2.0.0-alpha.41",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
