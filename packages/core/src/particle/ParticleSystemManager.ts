@@ -17,6 +17,7 @@ export interface ParticleSubEmitterEmissionCommand {
   parentWorldVelocity: Vector3 | null;
   emissionNormalizedTime: number | null;
   frameTime: number;
+  emissionTime: number | null;
 }
 
 /** @internal */

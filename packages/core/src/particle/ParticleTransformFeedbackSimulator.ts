@@ -6,6 +6,7 @@ import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulato
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderPass } from "../shader/ShaderPass";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
@@ -17,12 +18,25 @@ const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
  */
 export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
+  private static readonly _feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+  private static readonly _trajectoryFeedbackVaryings = [
+    "v_FeedbackPosition",
+    "v_FeedbackVelocity",
+    "v_FeedbackWorldPosition",
+    "v_FeedbackTrajectoryVelocity"
+  ];
 
   /** @internal */
   _instanceBinding: VertexBufferBinding;
 
+  readonly vertexStride: number;
+  readonly trajectoryEnabled: boolean;
+
   private _simulator: TransformFeedbackSimulator;
-  private _particleInitData = new Float32Array(12);
+  private _feedbackPass: ShaderPass;
+  private _feedbackVaryings: string[];
+  private _feedbackVertexElements = ParticleBufferUtils.feedbackVertexElements;
+  private _particleInitData: Float32Array;
   private _oldReadBuffer: Buffer;
   private _oldWriteBuffer: Buffer;
 
@@ -33,7 +47,7 @@ export class ParticleTransformFeedbackSimulator {
     return this._simulator.readBinding;
   }
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, trajectoryEnabled: boolean = false) {
     // Look up the feedback pass dynamically rather than caching it on a
     // built-in pool — `engine-core` no longer ships the built-in shader set
     // itself; the umbrella `@galacean/engine` package registers
@@ -46,11 +60,19 @@ export class ParticleTransformFeedbackSimulator {
           `or register the shader manually if you build a custom engine flavor.`
       );
     }
-    this._simulator = new TransformFeedbackSimulator(
-      engine,
-      ParticleBufferUtils.feedbackVertexStride,
-      feedbackShader.subShaders[0].passes[0]
-    );
+    this.trajectoryEnabled = trajectoryEnabled;
+    this.vertexStride = trajectoryEnabled
+      ? ParticleBufferUtils.trajectoryFeedbackVertexStride
+      : ParticleBufferUtils.feedbackVertexStride;
+    if (trajectoryEnabled) {
+      this._feedbackVertexElements = ParticleBufferUtils.trajectoryFeedbackVertexElements;
+    }
+    this._particleInitData = new Float32Array(this.vertexStride / 4);
+    this._feedbackPass = feedbackShader.subShaders[0].passes[0];
+    this._feedbackVaryings = trajectoryEnabled
+      ? ParticleTransformFeedbackSimulator._trajectoryFeedbackVaryings
+      : ParticleTransformFeedbackSimulator._feedbackVaryings;
+    this._simulator = new TransformFeedbackSimulator(engine, this.vertexStride, this._feedbackPass);
   }
 
   /**
@@ -84,32 +106,33 @@ export class ParticleTransformFeedbackSimulator {
     data[3] = vx;
     data[4] = vy;
     data[5] = vz;
-    data[6] = worldPosition.x;
-    data[7] = worldPosition.y;
-    data[8] = worldPosition.z;
-    data[9] = 0;
-    data[10] = 0;
-    data[11] = 0;
-    const simulator = this._simulator;
-    const byteOffset = index * ParticleBufferUtils.feedbackVertexStride;
-    simulator.readBinding.buffer.setData(data, byteOffset);
-    simulator.writeBinding.buffer.setData(data, byteOffset);
+    if (this.trajectoryEnabled) {
+      data[6] = worldPosition.x;
+      data[7] = worldPosition.y;
+      data[8] = worldPosition.z;
+      data[9] = data[10] = data[11] = 0;
+    }
+    const byteOffset = index * this.vertexStride;
+    this._simulator.readBinding.buffer.setData(data, byteOffset);
+    this._simulator.writeBinding.buffer.setData(data, byteOffset);
   }
 
   /**
    * Copy data from pre-resize buffers to current buffers.
    * Must be called after `resize` which saves the old buffers.
    */
-  copyOldBufferData(srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+  copyOldBufferData(srcElement: number, dstElement: number, elementCount: number): void {
+    const srcByteOffset = srcElement * this.vertexStride;
+    const dstByteOffset = dstElement * this.vertexStride;
+    const byteLength = elementCount * this.vertexStride;
     this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer, srcByteOffset, dstByteOffset, byteLength);
     this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
   }
 
   /** @internal */
   syncWriteBuffer(): void {
-    const simulator = this._simulator;
-    const readBuffer = simulator.readBinding.buffer;
-    simulator.writeBinding.buffer.copyFromBuffer(readBuffer, 0, 0, readBuffer.byteLength);
+    const readBuffer = this._simulator.readBinding.buffer;
+    this._simulator.writeBinding.buffer.copyFromBuffer(readBuffer, 0, 0, readBuffer.byteLength);
   }
 
   /**
@@ -140,11 +163,11 @@ export class ParticleTransformFeedbackSimulator {
     if (firstActive === firstFree) return;
 
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
-
+    this._feedbackPass._feedbackVaryings = this._feedbackVaryings;
     if (
       !this._simulator.beginUpdate(
         shaderData,
-        ParticleBufferUtils.feedbackVertexElements,
+        this._feedbackVertexElements,
         this._instanceBinding,
         ParticleBufferUtils.feedbackInstanceElements
       )
@@ -159,7 +182,6 @@ export class ParticleTransformFeedbackSimulator {
         this._simulator.draw(MeshTopology.Points, 0, firstFree);
       }
     }
-
     this._simulator.endUpdate();
   }
 

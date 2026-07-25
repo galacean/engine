@@ -29,7 +29,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
-import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { initScreenshot, updateForE2EAsync } from "./.mockForE2E";
 
 WebGLEngine.create({
   canvas: "canvas"
@@ -48,9 +48,9 @@ WebGLEngine.create({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
       type: AssetType.Texture
     })
-    .then((texture) => {
+    .then(async (texture) => {
       createSubEmitterScene(engine, rootEntity, <Texture2D>texture);
-      updateForE2E(engine, 50, 14);
+      await updateForE2EAsync(engine, 50, 14);
       initScreenshot(engine, camera);
     });
 });

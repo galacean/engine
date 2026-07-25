@@ -167,7 +167,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     parentSize: Vector3,
     parentRotation: Vector3,
     worldDirection?: Vector3,
-    frameTime: number = 1
+    parentWorldVelocity?: Vector3,
+    frameTime: number = 1,
+    emissionTime: number = null
   ): void {
     const subEmitters = this.subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
@@ -199,9 +201,10 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         sizeOverride,
         rotationOverride,
         directionOverride,
+        parentWorldVelocity,
         null,
-        null,
-        frameTime
+        frameTime,
+        emissionTime
       );
     }
   }

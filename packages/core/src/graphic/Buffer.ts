@@ -1,7 +1,7 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { TypedArray } from "../base";
 import { Engine } from "../Engine";
-import { IPlatformBuffer } from "../renderingHardwareInterface";
+import { IPlatformBuffer, IPlatformBufferReadback } from "../renderingHardwareInterface";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
@@ -237,6 +237,11 @@ export class Buffer extends GraphicsResource {
    */
   copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
     this._platformBuffer.copyFromBuffer(srcBuffer._platformBuffer, srcByteOffset, dstByteOffset, byteLength);
+  }
+
+  /** @internal */
+  _createReadback(): IPlatformBufferReadback {
+    return this._platformBuffer.createReadback();
   }
 
   /**

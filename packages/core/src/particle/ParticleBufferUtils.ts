@@ -16,11 +16,16 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  * @internal
  */
 export class ParticleBufferUtils {
-  static readonly feedbackVertexStride = 48;
+  static readonly feedbackVertexStride = 24;
+  static readonly trajectoryFeedbackVertexStride = 48;
 
   static readonly feedbackVertexElements = [
     new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
-    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0)
+  ];
+
+  static readonly trajectoryFeedbackVertexElements = [
+    ...ParticleBufferUtils.feedbackVertexElements,
     new VertexElement(ParticleFeedbackVertexAttribute.WorldPosition, 24, VertexElementFormat.Vector3, 0)
   ];
 
@@ -44,6 +49,8 @@ export class ParticleBufferUtils {
   static readonly timeOffset = 7;
   static readonly simulationUVOffset = 34;
   static readonly inheritVelocityRandomOffset = 42;
+  static readonly feedbackWorldPositionOffset = 6;
+  static readonly feedbackTrajectoryVelocityOffset = 9;
 
   static readonly billboardIndexCount = 6;
 
