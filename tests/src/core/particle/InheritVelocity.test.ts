@@ -72,6 +72,32 @@ describe("InheritVelocityModule", () => {
     engine.destroy();
   });
 
+  it("Initial captures the particle system Entity velocity at birth", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve.constant = 1;
+    generator.emission.clearBurst();
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+    expect(generator._useTransformFeedback).to.equal(false);
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+
+    expect(generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(vertices[4]).to.be.closeTo(1, 1e-5);
+    expect(vertices[5]).to.be.closeTo(0, 1e-5);
+    expect(vertices[6]).to.be.closeTo(0, 1e-5);
+    expect(vertices[18]).to.be.closeTo(10, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
   it("Current applies the emitter velocity after particles are born", () => {
     const renderer = createParticleRenderer(engine, "current-inherit-velocity");
     renderer.generator.inheritVelocity.curve.constant = 1;

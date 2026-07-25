@@ -6,11 +6,13 @@ export interface EmissionSample {
   time: number;
   count: number;
   position: Vector3 | null;
+  _order: number;
 }
 
 export class EmissionRuntimeState {
   frameRateTime = 0;
   distanceAccumulator = 0;
+  _rateOverDistance = 0;
   readonly lastEmitPosition = new Vector3();
   hasLastEmitPosition = false;
   currentBurstIndex = 0;
@@ -38,6 +40,7 @@ export class EmissionRuntimeState {
   resyncCursors(playTime: number): void {
     this.frameRateTime = playTime;
     this.distanceAccumulator = 0;
+    this._rateOverDistance = 0;
     this.hasLastEmitPosition = false;
     this.currentBurstIndex = 0;
     this._sampleCount = 0;
@@ -52,16 +55,18 @@ export class EmissionRuntimeState {
   /** @internal */
   beginSamples(): void {
     this._sampleCount = 0;
+    this._rateOverDistance = 0;
   }
 
   /** @internal */
-  addSample(time: number, count: number, position?: Vector3): void {
+  addSample(time: number, count: number, position?: Vector3, order: number = 0): void {
     let sample = this._samples[this._sampleCount];
     if (!sample) {
-      sample = this._samples[this._sampleCount] = { time: 0, count: 0, position: null };
+      sample = this._samples[this._sampleCount] = { time: 0, count: 0, position: null, _order: 0 };
     }
     sample.time = time;
     sample.count = count;
+    sample._order = order;
     if (position) {
       (sample.position ||= new Vector3()).copyFrom(position);
     } else {

@@ -8,7 +8,7 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
-/** Adds a sub-emitter parent's velocity to child particles. */
+/** Adds the particle system Entity's velocity to its particles. */
 export class InheritVelocityModule extends ParticleGeneratorModule {
   private static readonly _currentMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_CURRENT");
   private static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_CONSTANT_MODE");
@@ -34,7 +34,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   private _randomMacro: ShaderMacro;
   private _mode = ParticleInheritVelocityMode.Initial;
 
-  /** Whether to capture the initial velocity or follow the current emitter velocity. */
+  /** Whether to capture the Entity velocity at birth or follow it while the particle is alive. */
   get mode(): ParticleInheritVelocityMode {
     return this._mode;
   }
@@ -69,7 +69,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
 
   /** @internal */
   _updateEmitterVelocity(elapsedTime: number): void {
-    if (!this._needTransformFeedback()) {
+    if (!this._usesEmitterVelocity()) {
       this._emitterVelocity.set(0, 0, 0);
       this._hasPreviousWorldPosition = false;
       return;
@@ -94,6 +94,23 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   _resyncEmitterVelocity(): void {
     this._emitterVelocity.set(0, 0, 0);
     this._hasPreviousWorldPosition = false;
+  }
+
+  /** @internal */
+  _getInitialVelocity(normalizedAge: number, out: Vector3): boolean {
+    if (
+      !this._enabled ||
+      this._mode !== ParticleInheritVelocityMode.Initial ||
+      this._generator.main.simulationSpace !== ParticleSimulationSpace.World
+    ) {
+      out.set(0, 0, 0);
+      return false;
+    }
+
+    const factor = this.curve.evaluate(normalizedAge, this._curveRand.random());
+    const velocity = this._emitterVelocity;
+    out.set(velocity.x * factor, velocity.y * factor, velocity.z * factor);
+    return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
   }
 
   /** @internal */
@@ -146,5 +163,14 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /** @internal */
   _resetRandomSeed(seed: number): void {
     this._curveRand.reset(seed, ParticleRandomSubSeeds.InheritVelocity);
+  }
+
+  private _usesEmitterVelocity(): boolean {
+    return (
+      this._enabled &&
+      this._generator.main.simulationSpace === ParticleSimulationSpace.World &&
+      (this._mode === ParticleInheritVelocityMode.Initial ||
+        this._generator._renderer.engine._hardwareRenderer.isWebGL2)
+    );
   }
 }

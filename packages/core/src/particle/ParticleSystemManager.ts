@@ -2,10 +2,12 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
+import type { SubEmitter } from "./modules/SubEmitter";
 
 /** @internal */
 export interface ParticleSubEmitterEmissionCommand {
   target: ParticleGenerator;
+  subEmitter: SubEmitter;
   count: number;
   worldPosition: Vector3;
   inheritColor: Color | null;

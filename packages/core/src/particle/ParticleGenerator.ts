@@ -21,7 +21,6 @@ import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackS
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleInheritVelocityMode } from "./enums/ParticleInheritVelocityMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
@@ -41,6 +40,7 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule } from "./modules/SubEmittersModule";
+import type { SubEmitter } from "./modules/SubEmitter";
 import type { ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager";
 
 /**
@@ -385,24 +385,22 @@ export class ParticleGenerator {
     const oldFirstActiveElement = this._firstActiveElement;
     const oldFirstFreeElement = this._firstFreeElement;
     const hasOldParticles = oldFirstActiveElement !== oldFirstFreeElement;
-    const needsSubEmitterReadback =
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death) ||
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth);
+    const hasBirthSubEmitter = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth);
     let ranFullFeedback = false;
+    let oldFeedbackReadback = false;
 
     if (this._useTransformFeedback && hasOldParticles && deltaTime > 0) {
       this._renderer._updateParticleShaderData();
       this._updateFeedback(this._renderer.shaderData, deltaTime, oldFirstActiveElement, oldFirstFreeElement);
       ranFullFeedback = true;
-      if (needsSubEmitterReadback) {
+      if (hasBirthSubEmitter && this._prepareBirthRange(oldFirstActiveElement, oldFirstFreeElement, this._playTime)) {
         this._readbackFeedback(oldFirstActiveElement, oldFirstFreeElement);
-      }
-      if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
+        oldFeedbackReadback = true;
         this._processBirthRange(oldFirstActiveElement, oldFirstFreeElement, lastPlayTime, this._playTime);
       }
     }
 
-    this._retireActiveParticles();
+    this._retireActiveParticles(oldFeedbackReadback);
     this._freeRetiredParticles();
 
     if (main.simulationSpace === ParticleSimulationSpace.World) {
@@ -472,10 +470,8 @@ export class ParticleGenerator {
       }
       this._renderer._updateParticleShaderData();
       this._updateFeedback(this._renderer.shaderData, deltaTime, firstEmittedElement, this._firstFreeElement);
-      if (needsSubEmitterReadback) {
+      if (hasBirthSubEmitter && this._prepareBirthRange(firstEmittedElement, this._firstFreeElement, this._playTime)) {
         this._readbackFeedback(firstEmittedElement, this._firstFreeElement);
-      }
-      if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
         this._processBirthRange(firstEmittedElement, this._firstFreeElement, lastPlayTime, this._playTime);
       }
     }
@@ -990,6 +986,7 @@ export class ParticleGenerator {
     inheritSize?: Vector3,
     inheritRotation?: Vector3,
     parentWorldVelocity?: Vector3,
+    parentVelocityFactor: number = 0,
     normalizedEmitAgeOverride?: number
   ): void {
     const firstFreeElement = this._firstFreeElement;
@@ -1031,38 +1028,36 @@ export class ParticleGenerator {
     const duration = this.main.duration;
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     let particleDirection = direction;
-
-    if (
-      parentWorldVelocity &&
-      this.inheritVelocity.enabled &&
-      this.inheritVelocity.mode === ParticleInheritVelocityMode.Initial
-    ) {
-      const inheritFactor = this.inheritVelocity.curve.evaluate(
-        normalizedEmitAge,
-        this.inheritVelocity._curveRand.random()
+    const inheritedWorldVelocity = ParticleGenerator._tempVector34;
+    let hasInheritedVelocity = this.inheritVelocity._getInitialVelocity(normalizedEmitAge, inheritedWorldVelocity);
+    if (parentWorldVelocity && parentVelocityFactor !== 0) {
+      inheritedWorldVelocity.set(
+        inheritedWorldVelocity.x + parentWorldVelocity.x * parentVelocityFactor,
+        inheritedWorldVelocity.y + parentWorldVelocity.y * parentVelocityFactor,
+        inheritedWorldVelocity.z + parentWorldVelocity.z * parentVelocityFactor
       );
-      if (inheritFactor !== 0) {
-        const inheritedLocalVelocity = ParticleGenerator._tempVector34;
-        const invWorldRotation = ParticleGenerator._tempQuat0;
-        Quaternion.invert(transform.worldRotationQuaternion, invWorldRotation);
-        Vector3.transformByQuat(parentWorldVelocity, invWorldRotation, inheritedLocalVelocity);
-        inheritedLocalVelocity.scale(inheritFactor);
+      hasInheritedVelocity = true;
+    }
 
-        const combinedVelocity = ParticleGenerator._tempVector35;
-        combinedVelocity.set(
-          direction.x * startSpeed + inheritedLocalVelocity.x,
-          direction.y * startSpeed + inheritedLocalVelocity.y,
-          direction.z * startSpeed + inheritedLocalVelocity.z
-        );
-        startSpeed = combinedVelocity.length();
-        if (startSpeed > MathUtil.zeroTolerance) {
-          combinedVelocity.scale(1 / startSpeed);
-        } else {
-          combinedVelocity.set(0, 0, -1);
-          startSpeed = 0;
-        }
-        particleDirection = combinedVelocity;
+    if (hasInheritedVelocity) {
+      const inheritedLocalVelocity = ParticleGenerator._tempVector35;
+      const invWorldRotation = ParticleGenerator._tempQuat0;
+      Quaternion.invert(transform.worldRotationQuaternion, invWorldRotation);
+      Vector3.transformByQuat(inheritedWorldVelocity, invWorldRotation, inheritedLocalVelocity);
+
+      inheritedWorldVelocity.set(
+        direction.x * startSpeed + inheritedLocalVelocity.x,
+        direction.y * startSpeed + inheritedLocalVelocity.y,
+        direction.z * startSpeed + inheritedLocalVelocity.z
+      );
+      startSpeed = inheritedWorldVelocity.length();
+      if (startSpeed > MathUtil.zeroTolerance) {
+        inheritedWorldVelocity.scale(1 / startSpeed);
+      } else {
+        inheritedWorldVelocity.set(0, 0, -1);
+        startSpeed = 0;
       }
+      particleDirection = inheritedWorldVelocity;
     }
 
     const instanceVertices = this._instanceVertices;
@@ -1274,6 +1269,8 @@ export class ParticleGenerator {
     const shape = emission.shape;
     const positionScale = main._getPositionScale();
     const simulationLocal = main.simulationSpace === ParticleSimulationSpace.Local;
+    const duration = main.duration;
+    const normalizedEmitAge = command.emissionNormalizedTime ?? (duration > 0 ? (playTime % duration) / duration : 0);
     for (let i = 0; i < count; i++) {
       const position = ParticleGenerator._tempVector30;
       const direction = this._emitDirection;
@@ -1301,6 +1298,12 @@ export class ParticleGenerator {
       if (simulationLocal) {
         position.add(localPos);
       }
+      const parentVelocityFactor = command.parentWorldVelocity
+        ? command.subEmitter.inheritVelocity.evaluate(
+            normalizedEmitAge,
+            command.subEmitter._inheritVelocityRand.random()
+          )
+        : 0;
       this._addNewParticle(
         position,
         direction,
@@ -1311,7 +1314,8 @@ export class ParticleGenerator {
         command.inheritSize ?? undefined,
         command.inheritRotation ?? undefined,
         command.parentWorldVelocity ?? undefined,
-        command.emissionNormalizedTime ?? undefined
+        parentVelocityFactor,
+        normalizedEmitAge
       );
     }
   }
@@ -1319,6 +1323,7 @@ export class ParticleGenerator {
   /** @internal */
   _enqueueSubEmitterEmission(
     target: ParticleGenerator,
+    subEmitter: SubEmitter,
     count: number,
     worldPosition: Vector3,
     inheritColor: Color,
@@ -1332,6 +1337,7 @@ export class ParticleGenerator {
     if (!target || target._renderer.destroyed || count <= 0) return;
     const command: ParticleSubEmitterEmissionCommand = {
       target,
+      subEmitter,
       count,
       worldPosition: new Vector3().copyFrom(worldPosition),
       inheritColor: inheritColor ? new Color().copyFrom(inheritColor) : null,
@@ -1350,6 +1356,26 @@ export class ParticleGenerator {
     } else {
       target._emitFromSubEmitter(command, target._playTime);
     }
+  }
+
+  private _prepareBirthRange(firstElement: number, endElement: number, framePlayTime: number): boolean {
+    if (firstElement === endElement) return false;
+    const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
+    const instanceVertices = this._instanceVertices;
+    let needsPosition = false;
+
+    let ringIndex = firstElement;
+    while (ringIndex !== endElement) {
+      const particleOffset = ringIndex * floatStride;
+      const lifetime = instanceVertices[particleOffset + ParticleBufferUtils.startLifeTimeOffset];
+      const bornTime = instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
+      const currentParentAge = Math.min(Math.max(framePlayTime - bornTime, 0), lifetime);
+      if (this.subEmitters._prepareBirthParticle(ringIndex, currentParentAge)) {
+        needsPosition = true;
+      }
+      if (++ringIndex >= this._currentParticleCount) ringIndex = 0;
+    }
+    return needsPosition;
   }
 
   private _processBirthRange(
@@ -1407,6 +1433,7 @@ export class ParticleGenerator {
           }
           this._enqueueSubEmitterEmission(
             subEmitter.emitter.generator,
+            subEmitter,
             count,
             samplePosition,
             color,
@@ -1464,7 +1491,7 @@ export class ParticleGenerator {
     this.subEmitters?._clearParticleRuntimeStates();
   }
 
-  private _retireActiveParticles(): void {
+  private _retireActiveParticles(feedbackReadbackLoaded: boolean): void {
     const engine = this._renderer.engine;
 
     const frameCount = engine.time.frameCount;
@@ -1483,6 +1510,10 @@ export class ParticleGenerator {
       }
 
       if (hasDeathSlot) {
+        if (!feedbackReadbackLoaded) {
+          this._readbackFeedback(this._firstActiveElement, firstNewElement);
+          feedbackReadbackLoaded = true;
+        }
         this._onParticleDeath(activeParticleOffset);
       }
 

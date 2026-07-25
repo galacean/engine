@@ -166,11 +166,50 @@ export class EmissionModule extends ParticleGeneratorModule {
       return state._samples;
     }
     this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
-    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition);
+    state._rateOverDistance = this._evaluateRate(this.rateOverDistance, playTime, state);
+    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state._rateOverDistance);
     this._emitByBurst(lastPlayTime, playTime, state);
+    return this._finishSamples(state, sortByTime);
+  }
+
+  /** @internal */
+  _prepareEmissionSamples(
+    lastPlayTime: number,
+    playTime: number,
+    state: EmissionRuntimeState,
+    tolerateRateBoundary: boolean = false
+  ): boolean {
+    state.beginSamples();
+    if (!this.enabled || playTime <= lastPlayTime) {
+      state._samples.length = 0;
+      return false;
+    }
+    this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
+    state._rateOverDistance = this._evaluateRate(this.rateOverDistance, playTime, state);
+    if (!(state._rateOverDistance > 0)) {
+      state.hasLastEmitPosition = false;
+      state.distanceAccumulator = 0;
+    }
+    this._emitByBurst(lastPlayTime, playTime, state);
+    return state._rateOverDistance > 0;
+  }
+
+  /** @internal */
+  _completeEmissionSamples(
+    lastPlayTime: number,
+    playTime: number,
+    state: EmissionRuntimeState,
+    currentPosition?: Vector3,
+    sortByTime: boolean = false
+  ): ReadonlyArray<EmissionSample> {
+    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state._rateOverDistance);
+    return this._finishSamples(state, sortByTime);
+  }
+
+  private _finishSamples(state: EmissionRuntimeState, sortByTime: boolean): ReadonlyArray<EmissionSample> {
     state._samples.length = state._sampleCount;
     if (sortByTime && state._sampleCount > 1) {
-      state._samples.sort((left, right) => left.time - right.time);
+      state._samples.sort((left, right) => left.time - right.time || left._order - right._order);
     }
     return state._samples;
   }
@@ -228,12 +267,9 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPlayTime: number,
     playTime: number,
     state: EmissionRuntimeState,
-    currentPosition?: Vector3
+    currentPosition: Vector3 | undefined,
+    ratePerUnit: number
   ): void {
-    const { rateOverDistance } = this;
-    // Distance rate is sampled once per frame at the current cycle position
-    const ratePerUnit = this._evaluateRate(rateOverDistance, playTime, state);
-
     if (!(ratePerUnit > 0) || !currentPosition) {
       state.hasLastEmitPosition = false;
       state.distanceAccumulator = 0;
@@ -270,7 +306,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const emitPos = EmissionModule._tempEmitPosition;
       for (let i = 0; i < count; i++) {
         emitPos.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
-        state.addSample(playTime - dt * subFrameAge, 1, emitPos);
+        state.addSample(playTime - dt * subFrameAge, 1, emitPos, 1);
         subFrameAge = Math.min(subFrameAge + ageStep, 1.0);
       }
     }
@@ -335,7 +371,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
         if (burstTime >= startTime) {
-          state.addSample(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
+          state.addSample(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()), undefined, 2);
         }
       } else {
         const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
@@ -349,7 +385,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         for (let c = first; c <= last; c++) {
           const effectiveTime = burstTime + c * repeatInterval;
           if (effectiveTime >= duration) break;
-          state.addSample(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
+          state.addSample(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()), undefined, 2);
         }
 
         // `_currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
