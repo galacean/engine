@@ -2,7 +2,7 @@ import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-
 import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Texture2D } from "../../texture/Texture2D";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";

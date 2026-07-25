@@ -1,5 +1,4 @@
 import { Logger } from "../base";
-import { deepClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -19,7 +18,6 @@ export class PostProcess extends Component {
   blendDistance = 0;
 
   /** @internal */
-  @deepClone
   _effects: PostProcessEffect[] = [];
 
   private _priority = 0;

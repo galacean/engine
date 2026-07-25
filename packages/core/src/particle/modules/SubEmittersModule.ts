@@ -1,5 +1,6 @@
 import { Color, MathUtil, Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
@@ -36,7 +37,7 @@ export type BirthSubEmitterSampleHandler = (
  * Fires sub-emitters on parent particle lifecycle events (Birth / Death).
  * @remarks Requires WebGL2; the module stays inactive on WebGL1.
  */
-export class SubEmittersModule extends ParticleGeneratorModule {
+export class SubEmittersModule extends ParticleGeneratorModule implements ICloneHook<SubEmittersModule> {
   private static _cycleVisited = new Set<ParticleGenerator>();
   private static _cycleStack: ParticleGenerator[] = [];
   private static _tempStartPosition = new Vector3();
@@ -71,7 +72,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     return found;
   }
 
-  @deepClone
   private _subEmitters: SubEmitter[] = [];
 
   /**
@@ -90,9 +90,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   private _particleSequence = 0;
 
   /** @internal */
-  constructor(generator: ParticleGenerator) {
+  constructor(generator?: ParticleGenerator) {
     super(generator);
-    this._particleRuntimeStates.length = generator._currentParticleCount;
+    this._particleRuntimeStates.length = generator?._currentParticleCount ?? 0;
   }
 
   /**
@@ -459,12 +459,8 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     return false;
   }
 
-  /** @internal */
-  /**
-   * @internal
-   */
-  _cloneTo(target: SubEmittersModule): void {
-    // _module is @ignoreClone, so re-link each cloned slot back to its new module
+  /** @inheritdoc */
+  _onClone(target: SubEmittersModule): void {
     const subEmitters = target._subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       subEmitters[i]._module = target;
@@ -474,9 +470,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     target._markTopologyDirty();
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _validateEmitter(emitter: ParticleRenderer): void {
     this._validateEmitterScene(emitter);
     if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {

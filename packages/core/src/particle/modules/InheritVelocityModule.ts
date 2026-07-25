@@ -1,5 +1,5 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleInheritVelocityMode } from "../enums/ParticleInheritVelocityMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -48,7 +48,6 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   }
 
   /** Scale applied to the inherited velocity. */
-  @deepClone
   curve = new ParticleCompositeCurve(0);
 
   /** @internal */

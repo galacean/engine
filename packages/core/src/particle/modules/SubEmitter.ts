@@ -1,5 +1,6 @@
 import { Rand } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { DataObject } from "../../base/DataObject";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
@@ -11,7 +12,7 @@ import type { SubEmittersModule } from "./SubEmittersModule";
  * One slot in `SubEmittersModule.subEmitters`. Configures which sub-emitter
  * fires, on which parent event, with what inheritance, probability, and count.
  */
-export class SubEmitter {
+export class SubEmitter extends DataObject {
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
@@ -22,7 +23,6 @@ export class SubEmitter {
   emitCount: number = 1;
 
   /** Scale applied to the parent particle velocity when a sub particle is emitted. */
-  @deepClone
   readonly inheritVelocity = new ParticleCompositeCurve(0);
 
   /** @internal */

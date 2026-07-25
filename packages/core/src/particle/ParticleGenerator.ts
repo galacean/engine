@@ -1,6 +1,8 @@
+import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -46,7 +48,7 @@ import type { ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager"
 /**
  * Particle Generator.
  */
-export class ParticleGenerator {
+export class ParticleGenerator extends DataObject implements ICloneHook<ParticleGenerator> {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
@@ -70,42 +72,30 @@ export class ParticleGenerator {
   useAutoRandomSeed = true;
 
   /** Main module. */
-  @deepClone
   readonly main: MainModule;
   /** Emission module. */
-  @deepClone
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
-  @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Force over lifetime module. */
-  @deepClone
   readonly forceOverLifetime: ForceOverLifetimeModule;
   /** Limit velocity over lifetime module. */
-  @deepClone
   readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
-  @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
-  @deepClone
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
-  @deepClone
   readonly colorOverLifetime = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
-  @deepClone
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
-  @deepClone
   readonly noise: NoiseModule;
-  @deepClone
+  /** Inherit velocity module. */
   readonly inheritVelocity: InheritVelocityModule;
   /** Sub emitters module. */
-  @deepClone
   readonly subEmitters: SubEmittersModule;
   /** Custom data module. */
-  @deepClone
   readonly customData: CustomDataModule;
 
   /** @internal */
@@ -223,6 +213,7 @@ export class ParticleGenerator {
    * @internal
    */
   constructor(renderer: ParticleRenderer) {
+    super();
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
     subPrimitive.start = 0;
@@ -756,6 +747,7 @@ export class ParticleGenerator {
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.forceOverLifetime._resetRandomSeed(seed);
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
+    this.sizeOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
@@ -838,9 +830,9 @@ export class ParticleGenerator {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ParticleGenerator): void {
+  _onClone(target: ParticleGenerator): void {
     target._setTransformFeedback();
   }
 
@@ -1130,8 +1122,13 @@ export class ParticleGenerator {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
+    // Noise and size-over-lifetime temporarily share slot 21 (a_Random0.z), so noise takes precedence
+    // Track independent module randomness and instance layout optimization in #3075
+    const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomCurveMode()) {
+      instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
     }
 
     const rotationOverLifetime = this.rotationOverLifetime;
