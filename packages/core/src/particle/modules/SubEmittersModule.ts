@@ -11,9 +11,7 @@ import { SubEmitter } from "./SubEmitter";
 
 class BirthSubEmitterRuntimeState {
   readonly emission = new EmissionRuntimeState();
-  readonly previousWorldPosition = new Vector3();
   previousEmissionParentAge = 0;
-  previousSampleParentAge = 0;
   preparedLastEmissionTime = 0;
   preparedEmissionTime = 0;
   startDelay = 0;
@@ -44,7 +42,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   private static _tempStartPosition = new Vector3();
   private static _tempEndPosition = new Vector3();
   private static _tempSamplePosition = new Vector3();
-  private static _tempWorldVelocity = new Vector3();
 
   private static _wouldCreateCycle(target: ParticleRenderer, root: ParticleGenerator): boolean {
     const visited = SubEmittersModule._cycleVisited;
@@ -229,7 +226,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
       const state = (states[i] = new BirthSubEmitterRuntimeState());
       state.target = target;
-      state.previousWorldPosition.copyFrom(worldPosition);
       state.shouldEmit = sub.emitProbability >= 1 || this._probabilityRand.random() < sub.emitProbability;
 
       const seed = this._systemRuntimeSeed(target, ringIndex, i, particleSequence);
@@ -262,7 +258,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
         state = states[i] = new BirthSubEmitterRuntimeState();
         state.target = target;
         state.previousEmissionParentAge = currentParentAge;
-        state.previousSampleParentAge = currentParentAge;
         state.needsPositionInitialization = true;
         const seed = this._systemRuntimeSeed(target, ringIndex, i, this._particleSequence++);
         state.emission.reset(seed, 0);
@@ -315,6 +310,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     lifetime: number,
     currentParentAge: number,
     currentWorldPosition: Vector3,
+    currentWorldVelocity: Vector3,
     frameLastPlayTime: number,
     framePlayTime: number,
     handler: BirthSubEmitterSampleHandler
@@ -337,27 +333,15 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       if (state.needsPositionInitialization) {
         state.needsPositionInitialization = false;
         state.previousEmissionParentAge = currentParentAge;
-        state.previousSampleParentAge = currentParentAge;
-        state.previousWorldPosition.copyFrom(currentWorldPosition);
         continue;
       }
 
-      const previousParentAge = state.previousSampleParentAge;
-      const sampleDelta = currentParentAge - previousParentAge;
+      const frameStartParentAge = Math.min(Math.max(frameLastPlayTime - bornTime, 0), lifetime);
+      const sampleDelta = currentParentAge - frameStartParentAge;
       if (!(sampleDelta > MathUtil.zeroTolerance)) {
         state.hasPreparedEmission = false;
-        state.previousSampleParentAge = currentParentAge;
-        state.previousWorldPosition.copyFrom(currentWorldPosition);
         continue;
       }
-
-      const previousPosition = state.previousWorldPosition;
-      const velocity = SubEmittersModule._tempWorldVelocity;
-      velocity.set(
-        (currentWorldPosition.x - previousPosition.x) / sampleDelta,
-        (currentWorldPosition.y - previousPosition.y) / sampleDelta,
-        (currentWorldPosition.z - previousPosition.z) / sampleDelta
-      );
 
       if (state.hasPreparedEmission) {
         const duration = target.main.duration;
@@ -365,12 +349,20 @@ export class SubEmittersModule extends ParticleGeneratorModule {
         const emissionTime = state.preparedEmissionTime;
         const startParentAge = lastEmissionTime + state.startDelay;
         const endParentAge = emissionTime + state.startDelay;
-        const startT = Math.min(Math.max((startParentAge - previousParentAge) / sampleDelta, 0), 1);
-        const endT = Math.min(Math.max((endParentAge - previousParentAge) / sampleDelta, 0), 1);
+        const startT = Math.min(Math.max((startParentAge - frameStartParentAge) / sampleDelta, 0), 1);
+        const endT = Math.min(Math.max((endParentAge - frameStartParentAge) / sampleDelta, 0), 1);
         const startPosition = SubEmittersModule._tempStartPosition;
         const endPosition = SubEmittersModule._tempEndPosition;
-        Vector3.lerp(previousPosition, currentWorldPosition, startT, startPosition);
-        Vector3.lerp(previousPosition, currentWorldPosition, endT, endPosition);
+        startPosition.set(
+          currentWorldPosition.x - currentWorldVelocity.x * sampleDelta * (1 - startT),
+          currentWorldPosition.y - currentWorldVelocity.y * sampleDelta * (1 - startT),
+          currentWorldPosition.z - currentWorldVelocity.z * sampleDelta * (1 - startT)
+        );
+        endPosition.set(
+          currentWorldPosition.x - currentWorldVelocity.x * sampleDelta * (1 - endT),
+          currentWorldPosition.y - currentWorldVelocity.y * sampleDelta * (1 - endT),
+          currentWorldPosition.z - currentWorldVelocity.z * sampleDelta * (1 - endT)
+        );
 
         if (!state.emission.hasLastEmitPosition) {
           state.emission.setLastEmitPosition(startPosition);
@@ -387,8 +379,16 @@ export class SubEmittersModule extends ParticleGeneratorModule {
         for (let sampleIndex = 0, sampleCount = samples.length; sampleIndex < sampleCount; sampleIndex++) {
           const sample = samples[sampleIndex];
           const parentAge = sample.time + state.startDelay;
-          const positionT = Math.min(Math.max((parentAge - previousParentAge) / sampleDelta, 0), 1);
-          Vector3.lerp(previousPosition, currentWorldPosition, positionT, samplePosition);
+          if (sample.position) {
+            samplePosition.copyFrom(sample.position);
+          } else {
+            const sampleAge = Math.min(Math.max(currentParentAge - parentAge, 0), sampleDelta);
+            samplePosition.set(
+              currentWorldPosition.x - currentWorldVelocity.x * sampleAge,
+              currentWorldPosition.y - currentWorldVelocity.y * sampleAge,
+              currentWorldPosition.z - currentWorldVelocity.z * sampleAge
+            );
+          }
           const absoluteSampleTime = bornTime + parentAge;
           const frameTime =
             frameDelta > MathUtil.zeroTolerance
@@ -396,13 +396,19 @@ export class SubEmittersModule extends ParticleGeneratorModule {
               : 1;
           const parentNormalizedAge = lifetime > 0 ? Math.min(Math.max(parentAge / lifetime, 0), 1) : 1;
           const emissionNormalizedTime = duration > 0 ? (sample.time % duration) / duration : 0;
-          handler(sub, sample.count, samplePosition, velocity, parentNormalizedAge, emissionNormalizedTime, frameTime);
+          handler(
+            sub,
+            sample.count,
+            samplePosition,
+            currentWorldVelocity,
+            parentNormalizedAge,
+            emissionNormalizedTime,
+            frameTime
+          );
         }
       }
 
       state.hasPreparedEmission = false;
-      state.previousSampleParentAge = currentParentAge;
-      state.previousWorldPosition.copyFrom(currentWorldPosition);
     }
   }
 

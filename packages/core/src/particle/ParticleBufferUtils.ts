@@ -16,11 +16,12 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  * @internal
  */
 export class ParticleBufferUtils {
-  static readonly feedbackVertexStride = 24;
+  static readonly feedbackVertexStride = 48;
 
   static readonly feedbackVertexElements = [
     new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
-    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0)
+    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleFeedbackVertexAttribute.WorldPosition, 24, VertexElementFormat.Vector3, 0)
   ];
 
   static readonly feedbackInstanceElements = [

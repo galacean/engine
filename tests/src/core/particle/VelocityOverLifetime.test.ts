@@ -136,7 +136,8 @@ describe("VelocityOverLifetimeModule", function () {
       (engine as any)._hardwareRenderer._gl.finish();
 
       const result = new Float32Array(6);
-      generator._feedbackSimulator.readBinding.buffer.getData(result, particleIndex * 24, 0, result.length);
+      const binding = generator._feedbackSimulator.readBinding;
+      binding.buffer.getData(result, particleIndex * binding.stride, 0, result.length);
       return result;
     };
 

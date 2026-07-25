@@ -36,6 +36,7 @@ Shader "Effect/ParticleFeedback" {
       struct Attributes {
           vec3 a_FeedbackPosition;
           vec3 a_FeedbackVelocity;
+          vec3 a_FeedbackWorldPosition;
           vec4 a_ShapePositionStartLifeTime;
           vec4 a_DirectionTime;
           vec3 a_StartSize;
@@ -61,6 +62,8 @@ Shader "Effect/ParticleFeedback" {
       struct Varyings {
           vec3 v_FeedbackPosition;
           vec3 v_FeedbackVelocity;
+          vec3 v_FeedbackWorldPosition;
+          vec3 v_FeedbackTrajectoryVelocity;
       };
 
       // Module includes (after Attributes/Varyings)
@@ -108,6 +111,8 @@ Shader "Effect/ParticleFeedback" {
           if (lifetime <= 0.0 || age <= 0.0) {
               v.v_FeedbackPosition = attr.a_FeedbackPosition;
               v.v_FeedbackVelocity = attr.a_FeedbackVelocity;
+              v.v_FeedbackWorldPosition = attr.a_FeedbackWorldPosition;
+              v.v_FeedbackTrajectoryVelocity = vec3(0.0);
               gl_Position = vec4(0.0);
               return v;
           }
@@ -118,6 +123,8 @@ Shader "Effect/ParticleFeedback" {
           if (dt <= 0.0) {
               v.v_FeedbackPosition = attr.a_FeedbackPosition;
               v.v_FeedbackVelocity = attr.a_FeedbackVelocity;
+              v.v_FeedbackWorldPosition = attr.a_FeedbackWorldPosition;
+              v.v_FeedbackTrajectoryVelocity = vec3(0.0);
               gl_Position = vec4(0.0);
               return v;
           }
@@ -302,8 +309,15 @@ Shader "Effect/ParticleFeedback" {
           vec3 position = attr.a_FeedbackPosition + totalLinearVelocity * dt;
           #endif
 
+          vec3 worldPosition = position;
+          if (renderer_SimulationSpace == 0) {
+              worldPosition = rotationByQuaternions(position, renderer_WorldRotation) + renderer_WorldPosition;
+          }
+
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
+          v.v_FeedbackWorldPosition = worldPosition;
+          v.v_FeedbackTrajectoryVelocity = (worldPosition - attr.a_FeedbackWorldPosition) / dt;
           gl_Position = vec4(0.0);
           return v;
       }

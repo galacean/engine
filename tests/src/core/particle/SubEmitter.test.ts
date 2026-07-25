@@ -276,6 +276,84 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Birth uses the current-frame orbital velocity after sparse feedback readback", () => {
+    function simulate(name: string, frames: number, deltaTime: number) {
+      const child = createParticleRenderer(engine, name + "_Child");
+      const parent = createParticleRenderer(engine, name + "_Parent");
+      parent.generator.main.startLifetime.constant = 2;
+      parent.generator.main.startSpeed.constant = 0;
+      parent.generator.velocityOverLifetime.enabled = true;
+      parent.generator.velocityOverLifetime.orbitalY = new ParticleCompositeCurve(Math.PI * 2);
+      parent.generator.velocityOverLifetime.centerOffset.set(-1, 0, 0);
+
+      child.generator.main.startSpeed.constant = 0;
+      child.generator.emission.rateOverTime.constant = 1;
+
+      parent.generator.subEmitters.enabled = true;
+      const subEmitter = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      subEmitter.inheritVelocity.constant = 1;
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play(false);
+
+      const readback = vi.spyOn(parent.generator as any, "_readbackFeedback");
+      updateEngine(engine, frames, deltaTime);
+
+      expect(readback).toHaveBeenCalledTimes(1);
+      expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+      const feedback = new Float32Array(12);
+      parent.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+      const vertices = (child.generator as any)._instanceVertices as Float32Array;
+      const childSpeed = vertices[18];
+      expect(vertices[4] * childSpeed).to.be.closeTo(feedback[9], 1e-4);
+      expect(vertices[5] * childSpeed).to.be.closeTo(feedback[10], 1e-4);
+      expect(vertices[6] * childSpeed).to.be.closeTo(feedback[11], 1e-4);
+
+      parent.entity.destroy();
+      child.entity.destroy();
+      return childSpeed;
+    }
+
+    const coarseSpeed = simulate("SparseOrbitalCoarse", 10, 100);
+    const fineSpeed = simulate("SparseOrbitalFine", 20, 50);
+    expect(coarseSpeed).to.be.closeTo(Math.PI * 2, 0.12);
+    expect(fineSpeed).to.be.closeTo(Math.PI * 2, 0.04);
+    expect(coarseSpeed).to.be.closeTo(fineSpeed, 0.1);
+  });
+
+  it("Birth trajectory velocity includes parent Entity motion", () => {
+    const child = createParticleRenderer(engine, "EntityMotion_Child");
+    const parent = createParticleRenderer(engine, "EntityMotion_Parent");
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 0;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 5;
+
+    parent.generator.subEmitters.enabled = true;
+    const subEmitter = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    subEmitter.inheritVelocity.constant = 1;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    parent.entity.transform.setPosition(1, 0, 0);
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[0]).to.be.closeTo(1, 1e-4);
+    expect(vertices[4] * vertices[18]).to.be.closeTo(10, 1e-4);
+    expect(vertices[5] * vertices[18]).to.be.closeTo(0, 1e-4);
+    expect(vertices[6] * vertices[18]).to.be.closeTo(0, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth is topologically scheduled and updates while outside every camera", () => {
     const child = createParticleRenderer(engine, "SystemOrder_Child");
     const parent = createParticleRenderer(engine, "SystemOrder_Parent");
@@ -478,10 +556,12 @@ describe("SubEmitter", () => {
     updateEngine(engine, 2);
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
 
-    const feedback = new Float32Array(12);
-    parent.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+    const binding = parent.generator._feedbackSimulator.readBinding;
+    const feedbackStride = binding.stride / Float32Array.BYTES_PER_ELEMENT;
+    const feedback = new Float32Array(feedbackStride * 2);
+    binding.buffer.getData(feedback, 0, 0, feedback.length);
     expect(feedback[2]).to.be.closeTo(-0.4, 1e-5);
-    expect(feedback[8]).to.be.closeTo(-0.1, 1e-5);
+    expect(feedback[feedbackStride + 2]).to.be.closeTo(-0.1, 1e-5);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1006,6 +1086,39 @@ describe("SubEmitter", () => {
     straight.child.entity.destroy();
     spun.parent.entity.destroy();
     spun.child.entity.destroy();
+  });
+
+  it("Birth Velocity property follows the parent trajectory direction without inheriting speed", () => {
+    const parent = createParticleRenderer(engine, "BirthDirection_Parent");
+    const child = createParticleRenderer(engine, "BirthDirection_Child");
+    parent.generator.main.startSpeed.constant = 4;
+    parent.generator.main.startLifetime.constant = 1;
+    parent.entity.transform.rotation = new Vector3(90, 0, 0);
+    child.generator.main.startSpeed.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.Velocity
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[4]).to.be.closeTo(0, 1e-4);
+    expect(vertices[5]).to.be.closeTo(1, 1e-4);
+    expect(vertices[6]).to.be.closeTo(0, 1e-4);
+    expect(vertices[18]).to.be.closeTo(1, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
   });
 
   it("Birth enables transform-feedback to sample the parent trajectory", () => {

@@ -1389,9 +1389,8 @@ export class ParticleGenerator {
     const feedbackFloatStride = ParticleBufferUtils.feedbackVertexStride / 4;
     const instanceVertices = this._instanceVertices;
     const feedback = this._feedbackReadback;
-    const simLocal = this.main.simulationSpace === ParticleSimulationSpace.Local;
-    const transform = this._renderer.entity.transform;
     const worldPosition = this._eventPos;
+    const worldVelocity = this._eventDir;
 
     let ringIndex = firstElement;
     while (ringIndex !== endElement) {
@@ -1400,11 +1399,8 @@ export class ParticleGenerator {
       const bornTime = instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
       const currentParentAge = Math.min(Math.max(framePlayTime - bornTime, 0), lifetime);
       const feedbackOffset = ringIndex * feedbackFloatStride;
-      worldPosition.set(feedback[feedbackOffset], feedback[feedbackOffset + 1], feedback[feedbackOffset + 2]);
-      if (simLocal) {
-        Vector3.transformByQuat(worldPosition, transform.worldRotationQuaternion, worldPosition);
-        worldPosition.add(transform.worldPosition);
-      }
+      worldPosition.set(feedback[feedbackOffset + 6], feedback[feedbackOffset + 7], feedback[feedbackOffset + 8]);
+      worldVelocity.set(feedback[feedbackOffset + 9], feedback[feedbackOffset + 10], feedback[feedbackOffset + 11]);
 
       this.subEmitters._processBirthParticle(
         ringIndex,
@@ -1412,6 +1408,7 @@ export class ParticleGenerator {
         lifetime,
         currentParentAge,
         worldPosition,
+        worldVelocity,
         frameLastPlayTime,
         framePlayTime,
         (subEmitter, count, samplePosition, parentWorldVelocity, normalizedAge, emissionNormalizedTime, frameTime) => {
@@ -1419,6 +1416,7 @@ export class ParticleGenerator {
           let color: Color = null;
           let size: Vector3 = null;
           let rotation: Vector3 = null;
+          let direction: Vector3 = null;
           if (inherit !== ParticleSubEmitterInheritProperty.None) {
             this._evaluateOverLifetime(
               particleOffset,
@@ -1430,6 +1428,9 @@ export class ParticleGenerator {
             (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 && (color = this._eventColor);
             (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 && (size = this._eventSize);
             (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 && (rotation = this._eventRotation);
+            if ((inherit & ParticleSubEmitterInheritProperty.Velocity) !== 0) {
+              direction = parentWorldVelocity;
+            }
           }
           this._enqueueSubEmitterEmission(
             subEmitter.emitter.generator,
@@ -1439,7 +1440,7 @@ export class ParticleGenerator {
             color,
             size,
             rotation,
-            null,
+            direction,
             parentWorldVelocity,
             emissionNormalizedTime,
             frameTime
@@ -1465,17 +1466,23 @@ export class ParticleGenerator {
     emitWorldPosition?: Vector3
   ): void {
     let position: Vector3;
+    let worldPosition: Vector3;
     if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
       position = shapePosition;
+      worldPosition = ParticleGenerator._tempVector33;
+      Vector3.transformByQuat(position, transform.worldRotationQuaternion, worldPosition);
+      worldPosition.add(transform.worldPosition);
     } else {
       position = ParticleGenerator._tempVector32;
       Vector3.transformByQuat(shapePosition, transform.worldRotationQuaternion, position);
       position.add(emitWorldPosition ?? transform.worldPosition);
+      worldPosition = position;
     }
 
     this._feedbackSimulator.writeParticleData(
       index,
       position,
+      worldPosition,
       direction.x * startSpeed,
       direction.y * startSpeed,
       direction.z * startSpeed

@@ -22,7 +22,7 @@ export class ParticleTransformFeedbackSimulator {
   _instanceBinding: VertexBufferBinding;
 
   private _simulator: TransformFeedbackSimulator;
-  private _particleInitData = new Float32Array(6);
+  private _particleInitData = new Float32Array(12);
   private _oldReadBuffer: Buffer;
   private _oldWriteBuffer: Buffer;
 
@@ -67,9 +67,16 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   /**
-   * Write initial position and velocity for a newly emitted particle.
+   * Write initial feedback state for a newly emitted particle.
    */
-  writeParticleData(index: number, position: Vector3, vx: number, vy: number, vz: number): void {
+  writeParticleData(
+    index: number,
+    position: Vector3,
+    worldPosition: Vector3,
+    vx: number,
+    vy: number,
+    vz: number
+  ): void {
     const data = this._particleInitData;
     data[0] = position.x;
     data[1] = position.y;
@@ -77,6 +84,12 @@ export class ParticleTransformFeedbackSimulator {
     data[3] = vx;
     data[4] = vy;
     data[5] = vz;
+    data[6] = worldPosition.x;
+    data[7] = worldPosition.y;
+    data[8] = worldPosition.z;
+    data[9] = 0;
+    data[10] = 0;
+    data[11] = 0;
     const simulator = this._simulator;
     const byteOffset = index * ParticleBufferUtils.feedbackVertexStride;
     simulator.readBinding.buffer.setData(data, byteOffset);
