@@ -1,7 +1,6 @@
 import {
   Burst,
   Camera,
-  EmissionRuntimeState,
   Engine,
   Entity,
   ParticleCompositeCurve,
@@ -17,12 +16,11 @@ function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): 
   //@ts-ignore
   engine._vSyncCount = Infinity;
   //@ts-ignore
-  engine._time._lastSystemTime = 0;
-  performance.now = function () {
-    times.value += deltaMs;
-    return times.value;
-  };
+  engine._time._lastSystemTime = times.value / 1000;
+  const nextTime = times.value + deltaMs;
+  performance.now = () => nextTime;
   engine.update();
+  times.value = nextTime;
 }
 
 function buildEmitter(engine: Engine, name: string): { entity: Entity; renderer: ParticleRenderer } {
@@ -153,14 +151,20 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     generator.main.isLoop = true;
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
 
-    const state = new EmissionRuntimeState();
-    state.reset(0);
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
 
-    const firstSamples = generator.emission._getEmissionSamples(0.1, 1.1, state);
-    expect(firstSamples.map((sample) => sample.time)).to.deep.equal([0.15]);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(0);
 
-    const secondSamples = generator.emission._getEmissionSamples(1.1, 1.2, state);
-    expect(secondSamples.map((sample) => sample.time)).to.deep.equal([1.15]);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(1);
+
+    for (let i = 0; i < 9; i++) tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(1);
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(2);
 
     entity.destroy();
   });

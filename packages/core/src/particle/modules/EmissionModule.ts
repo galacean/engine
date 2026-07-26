@@ -5,7 +5,7 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
-import { EmissionRuntimeState, EmissionSample } from "./EmissionRuntimeState";
+import { EmissionRequest, EmissionState } from "./EmissionState";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
@@ -32,18 +32,18 @@ export class EmissionModule extends ParticleGeneratorModule {
   @ignoreClone
   private _shapeMacro: ShaderMacro;
   @ignoreClone
-  readonly _runtimeState = new EmissionRuntimeState();
+  private readonly _emissionState = new EmissionState();
 
   private _bursts: Burst[] = [];
 
   /** @internal */
   get _frameRateTime(): number {
-    return this._runtimeState.frameRateTime;
+    return this._emissionState.frameRateTime;
   }
 
   /** @internal */
   set _frameRateTime(value: number) {
-    this._runtimeState.frameRateTime = value;
+    this._emissionState.frameRateTime = value;
   }
 
   /**
@@ -131,83 +131,83 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _emit(lastPlayTime: number, playTime: number): void {
     const generator = this._generator;
-    const samples = this._getEmissionSamples(
+    const requests = this._getEmissionRequests(
       lastPlayTime,
       playTime,
-      this._runtimeState,
+      this._emissionState,
       generator._renderer.entity.transform.worldPosition
     );
     const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
-    for (let i = 0, n = samples.length; i < n; i++) {
-      const sample = samples[i];
-      generator._emit(sample.time, sample.count, isWorld ? (sample.position ?? undefined) : undefined);
+    for (let i = 0, n = requests.length; i < n; i++) {
+      const request = requests[i];
+      generator._emit(request.time, request.count, isWorld ? (request.position ?? undefined) : undefined);
     }
   }
 
   /**
-   * Evaluate this module with caller-owned runtime cursors.
+   * Evaluate this module with caller-owned emission state.
    * @internal
    */
-  _getEmissionSamples(
+  _getEmissionRequests(
     lastPlayTime: number,
     playTime: number,
-    state: EmissionRuntimeState,
+    state: EmissionState,
     currentPosition?: Vector3,
     sortByTime: boolean = false,
     tolerateRateBoundary: boolean = false
-  ): ReadonlyArray<EmissionSample> {
-    state.beginSamples();
+  ): ReadonlyArray<EmissionRequest> {
+    state.beginRequests();
     if (!this.enabled || playTime <= lastPlayTime) {
-      state._samples.length = 0;
-      return state._samples;
+      state.requests.length = 0;
+      return state.requests;
     }
     this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
-    state._rateOverDistance = this._evaluateRate(this.rateOverDistance, playTime, state);
-    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state._rateOverDistance);
+    state.distanceRate = this._evaluateRate(this.rateOverDistance, playTime, state);
+    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state.distanceRate);
     this._emitByBurst(lastPlayTime, playTime, state);
-    return this._finishSamples(state, sortByTime);
+    return this._finishRequests(state, sortByTime);
   }
 
   /** @internal */
-  _prepareEmissionSamples(
+  _prepareEmissionRequests(
     lastPlayTime: number,
     playTime: number,
-    state: EmissionRuntimeState,
+    state: EmissionState,
     tolerateRateBoundary: boolean = false
   ): boolean {
-    state.beginSamples();
+    state.beginRequests();
     if (!this.enabled || playTime <= lastPlayTime) {
-      state._samples.length = 0;
+      state.requests.length = 0;
       return false;
     }
     this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
-    state._rateOverDistance = this._evaluateRate(this.rateOverDistance, playTime, state);
-    if (!(state._rateOverDistance > 0)) {
+    state.distanceRate = this._evaluateRate(this.rateOverDistance, playTime, state);
+    if (!(state.distanceRate > 0)) {
       state.hasLastEmitPosition = false;
       state.distanceAccumulator = 0;
     }
     this._emitByBurst(lastPlayTime, playTime, state);
-    return state._rateOverDistance > 0;
+    return state.distanceRate > 0;
   }
 
   /** @internal */
-  _completeEmissionSamples(
+  _completeEmissionRequests(
     lastPlayTime: number,
     playTime: number,
-    state: EmissionRuntimeState,
+    state: EmissionState,
     currentPosition?: Vector3,
     sortByTime: boolean = false
-  ): ReadonlyArray<EmissionSample> {
-    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state._rateOverDistance);
-    return this._finishSamples(state, sortByTime);
+  ): ReadonlyArray<EmissionRequest> {
+    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition, state.distanceRate);
+    return this._finishRequests(state, sortByTime);
   }
 
-  private _finishSamples(state: EmissionRuntimeState, sortByTime: boolean): ReadonlyArray<EmissionSample> {
-    state._samples.length = state._sampleCount;
-    if (sortByTime && state._sampleCount > 1) {
-      state._samples.sort((left, right) => left.time - right.time || left._order - right._order);
+  private _finishRequests(state: EmissionState, sortByTime: boolean): ReadonlyArray<EmissionRequest> {
+    state.requests.length = state.requestCount;
+    if (sortByTime && state.requestCount > 1) {
+      state.requests.sort((left, right) => left.time - right.time || left.order - right.order);
     }
-    return state._samples;
+    return state.requests;
   }
 
   /**
@@ -223,12 +223,12 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
-    this._runtimeState.reset(seed, this._generator._playTime);
+    this._emissionState.resetRandomSeed(seed);
   }
 
   /** @internal */
   _resyncCursors(playTime: number): void {
-    this._runtimeState.resyncCursors(playTime);
+    this._emissionState.resyncCursors(playTime);
   }
 
   /**
@@ -242,7 +242,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitByRateOverTime(playTime: number, state: EmissionRuntimeState, tolerateRateBoundary: boolean): void {
+  private _emitByRateOverTime(playTime: number, state: EmissionState, tolerateRateBoundary: boolean): void {
     const { rateOverTime } = this;
 
     let cumulativeTime = playTime - state.frameRateTime;
@@ -257,7 +257,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         cumulativeTime -= emitInterval;
       }
       state.frameRateTime += emitInterval;
-      state.addSample(state.frameRateTime, 1);
+      state.addRequest(state.frameRateTime, 1, null, 0);
       ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     }
     state.frameRateTime = playTime;
@@ -266,7 +266,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _emitByRateOverDistance(
     lastPlayTime: number,
     playTime: number,
-    state: EmissionRuntimeState,
+    state: EmissionState,
     currentPosition: Vector3 | undefined,
     ratePerUnit: number
   ): void {
@@ -306,7 +306,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const emitPos = EmissionModule._tempEmitPosition;
       for (let i = 0; i < count; i++) {
         emitPos.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
-        state.addSample(playTime - dt * subFrameAge, 1, emitPos, 1);
+        state.addRequest(playTime - dt * subFrameAge, 1, emitPos, 1);
         subFrameAge = Math.min(subFrameAge + ageStep, 1.0);
       }
     }
@@ -314,7 +314,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPos.copyFrom(currentPos);
   }
 
-  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number, state: EmissionRuntimeState): number {
+  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number, state: EmissionState): number {
     switch (rate.mode) {
       case ParticleCurveMode.Constant:
         return rate.constant;
@@ -330,7 +330,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitByBurst(lastPlayTime: number, playTime: number, state: EmissionRuntimeState): void {
+  private _emitByBurst(lastPlayTime: number, playTime: number, state: EmissionState): void {
     const main = this._generator.main;
     const duration = main.duration;
     if (!main.isLoop) {
@@ -354,7 +354,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number, state: EmissionRuntimeState): void {
+  private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number, state: EmissionState): void {
     const { bursts } = this;
     const rand = state.burstRand;
     const baseTime = Math.floor(lastPlayTime / duration) * duration;
@@ -371,7 +371,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
         if (burstTime >= startTime) {
-          state.addSample(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()), undefined, 2);
+          state.addRequest(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()), null, 2);
         }
       } else {
         const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
@@ -385,7 +385,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         for (let c = first; c <= last; c++) {
           const effectiveTime = burstTime + c * repeatInterval;
           if (effectiveTime >= duration) break;
-          state.addSample(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()), undefined, 2);
+          state.addRequest(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()), null, 2);
         }
 
         // `_currentBurstIndex` caches next frame's scan start, so only the earliest unfinished

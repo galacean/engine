@@ -7,7 +7,7 @@ import { Buffer } from "./Buffer";
  * @internal
  */
 export class BufferReadback extends GraphicsResource {
-  /** Byte length of the staging buffer. */
+  /** Readback buffer capacity in bytes. */
   readonly byteLength: number;
 
   private _platformReadback: IPlatformBufferReadback;

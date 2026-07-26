@@ -14,7 +14,6 @@ export { Burst } from "./modules/Burst";
 export { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 export { CustomDataModule } from "./modules/CustomDataModule";
 export { EmissionModule } from "./modules/EmissionModule";
-export { EmissionRuntimeState } from "./modules/EmissionRuntimeState";
 export { InheritVelocityModule } from "./modules/InheritVelocityModule";
 export { MainModule } from "./modules/MainModule";
 export { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";

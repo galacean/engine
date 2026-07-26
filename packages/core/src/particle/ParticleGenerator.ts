@@ -1513,7 +1513,15 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         worldVelocity,
         frameLastPlayTime,
         framePlayTime,
-        (subEmitter, count, samplePosition, parentWorldVelocity, normalizedAge, emissionNormalizedTime, frameTime) => {
+        (
+          subEmitter,
+          count,
+          emissionPosition,
+          parentWorldVelocity,
+          normalizedAge,
+          emissionNormalizedTime,
+          frameTime
+        ) => {
           const inherit = subEmitter.inheritProperties;
           let color: Color = null;
           let size: Vector3 = null;
@@ -1538,7 +1546,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
             subEmitter.emitter.generator,
             subEmitter,
             count,
-            samplePosition,
+            emissionPosition,
             color,
             size,
             rotation,

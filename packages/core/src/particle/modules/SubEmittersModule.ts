@@ -6,12 +6,12 @@ import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterIn
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRenderer } from "../ParticleRenderer";
+import { EmissionState } from "./EmissionState";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
-import { EmissionRuntimeState } from "./EmissionRuntimeState";
 import { SubEmitter } from "./SubEmitter";
 
-class BirthSubEmitterRuntimeState {
-  readonly emission = new EmissionRuntimeState();
+class BirthSubEmitterState {
+  readonly emissionState = new EmissionState();
   previousEmissionParentAge = 0;
   preparedLastEmissionTime = 0;
   preparedEmissionTime = 0;
@@ -23,7 +23,7 @@ class BirthSubEmitterRuntimeState {
 }
 
 /** @internal */
-export type BirthSubEmitterSampleHandler = (
+export type BirthSubEmitterEmissionHandler = (
   subEmitter: SubEmitter,
   count: number,
   worldPosition: Vector3,
@@ -42,7 +42,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   private static _cycleStack: ParticleGenerator[] = [];
   private static _tempStartPosition = new Vector3();
   private static _tempEndPosition = new Vector3();
-  private static _tempSamplePosition = new Vector3();
+  private static _tempEmissionPosition = new Vector3();
 
   private static _wouldCreateCycle(target: ParticleRenderer, root: ParticleGenerator): boolean {
     const visited = SubEmittersModule._cycleVisited;
@@ -85,7 +85,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
 
   @ignoreClone
-  private _particleRuntimeStates: Array<Array<BirthSubEmitterRuntimeState | null>> = [];
+  private _particleRuntimeStates: Array<Array<BirthSubEmitterState | null>> = [];
   @ignoreClone
   private _particleSequence = 0;
 
@@ -227,16 +227,16 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       const target = sub.emitter?.generator;
       if (!target || sub.emitter.destroyed) continue;
 
-      const state = (states[i] = new BirthSubEmitterRuntimeState());
+      const state = (states[i] = new BirthSubEmitterState());
       state.target = target;
       state.shouldEmit = sub.emitProbability >= 1 || this._probabilityRand.random() < sub.emitProbability;
 
       const seed = this._systemRuntimeSeed(target, ringIndex, i, particleSequence);
-      state.emission.reset(seed, 0);
+      state.emissionState.resetRandomSeed(seed);
       const delayRand = new Rand(seed, ParticleRandomSubSeeds.StartDelay);
       state.startDelay = Math.max(0, target.main.startDelay.evaluate(undefined, delayRand.random()));
       if (state.startDelay <= MathUtil.zeroTolerance) {
-        state.emission.setLastEmitPosition(worldPosition);
+        state.emissionState.setLastEmitPosition(worldPosition);
       }
     }
   }
@@ -258,12 +258,12 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       if (!state || state.target !== target) {
-        state = states[i] = new BirthSubEmitterRuntimeState();
+        state = states[i] = new BirthSubEmitterState();
         state.target = target;
         state.previousEmissionParentAge = currentParentAge;
         state.needsPositionInitialization = true;
         const seed = this._systemRuntimeSeed(target, ringIndex, i, this._particleSequence++);
-        state.emission.reset(seed, 0);
+        state.emissionState.resetRandomSeed(seed);
         const delayRand = new Rand(seed, ParticleRandomSubSeeds.StartDelay);
         state.startDelay = Math.max(0, target.main.startDelay.evaluate(undefined, delayRand.random()));
         state.shouldEmit = sub.emitProbability >= 1 || this._probabilityRand.random() < sub.emitProbability;
@@ -295,13 +295,13 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       state.preparedLastEmissionTime = lastEmissionTime;
       state.preparedEmissionTime = emissionTime;
       state.hasPreparedEmission = true;
-      const needsDistance = target.emission._prepareEmissionSamples(
+      const needsDistance = target.emission._prepareEmissionRequests(
         lastEmissionTime,
         emissionTime,
-        state.emission,
+        state.emissionState,
         true
       );
-      needsPosition ||= needsDistance || state.emission._sampleCount > 0;
+      needsPosition ||= needsDistance || state.emissionState.requestCount > 0;
     }
     return needsPosition;
   }
@@ -316,7 +316,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     currentWorldVelocity: Vector3,
     frameLastPlayTime: number,
     framePlayTime: number,
-    handler: BirthSubEmitterSampleHandler
+    handler: BirthSubEmitterEmissionHandler
   ): void {
     const states = this._particleRuntimeStates[ringIndex];
     if (!states) return;
@@ -340,8 +340,8 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       const frameStartParentAge = Math.min(Math.max(frameLastPlayTime - bornTime, 0), lifetime);
-      const sampleDelta = currentParentAge - frameStartParentAge;
-      if (!(sampleDelta > MathUtil.zeroTolerance)) {
+      const parentAgeDelta = currentParentAge - frameStartParentAge;
+      if (!(parentAgeDelta > MathUtil.zeroTolerance)) {
         state.hasPreparedEmission = false;
         continue;
       }
@@ -352,57 +352,57 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         const emissionTime = state.preparedEmissionTime;
         const startParentAge = lastEmissionTime + state.startDelay;
         const endParentAge = emissionTime + state.startDelay;
-        const startT = Math.min(Math.max((startParentAge - frameStartParentAge) / sampleDelta, 0), 1);
-        const endT = Math.min(Math.max((endParentAge - frameStartParentAge) / sampleDelta, 0), 1);
+        const startT = Math.min(Math.max((startParentAge - frameStartParentAge) / parentAgeDelta, 0), 1);
+        const endT = Math.min(Math.max((endParentAge - frameStartParentAge) / parentAgeDelta, 0), 1);
         const startPosition = SubEmittersModule._tempStartPosition;
         const endPosition = SubEmittersModule._tempEndPosition;
         startPosition.set(
-          currentWorldPosition.x - currentWorldVelocity.x * sampleDelta * (1 - startT),
-          currentWorldPosition.y - currentWorldVelocity.y * sampleDelta * (1 - startT),
-          currentWorldPosition.z - currentWorldVelocity.z * sampleDelta * (1 - startT)
+          currentWorldPosition.x - currentWorldVelocity.x * parentAgeDelta * (1 - startT),
+          currentWorldPosition.y - currentWorldVelocity.y * parentAgeDelta * (1 - startT),
+          currentWorldPosition.z - currentWorldVelocity.z * parentAgeDelta * (1 - startT)
         );
         endPosition.set(
-          currentWorldPosition.x - currentWorldVelocity.x * sampleDelta * (1 - endT),
-          currentWorldPosition.y - currentWorldVelocity.y * sampleDelta * (1 - endT),
-          currentWorldPosition.z - currentWorldVelocity.z * sampleDelta * (1 - endT)
+          currentWorldPosition.x - currentWorldVelocity.x * parentAgeDelta * (1 - endT),
+          currentWorldPosition.y - currentWorldVelocity.y * parentAgeDelta * (1 - endT),
+          currentWorldPosition.z - currentWorldVelocity.z * parentAgeDelta * (1 - endT)
         );
 
-        if (!state.emission.hasLastEmitPosition) {
-          state.emission.setLastEmitPosition(startPosition);
+        if (!state.emissionState.hasLastEmitPosition) {
+          state.emissionState.setLastEmitPosition(startPosition);
         }
-        const samples = target.emission._completeEmissionSamples(
+        const requests = target.emission._completeEmissionRequests(
           lastEmissionTime,
           emissionTime,
-          state.emission,
+          state.emissionState,
           endPosition,
           true
         );
         const frameDelta = framePlayTime - frameLastPlayTime;
-        const samplePosition = SubEmittersModule._tempSamplePosition;
-        for (let sampleIndex = 0, sampleCount = samples.length; sampleIndex < sampleCount; sampleIndex++) {
-          const sample = samples[sampleIndex];
-          const parentAge = sample.time + state.startDelay;
-          if (sample.position) {
-            samplePosition.copyFrom(sample.position);
+        const emissionPosition = SubEmittersModule._tempEmissionPosition;
+        for (let requestIndex = 0, requestCount = requests.length; requestIndex < requestCount; requestIndex++) {
+          const request = requests[requestIndex];
+          const parentAge = request.time + state.startDelay;
+          if (request.position) {
+            emissionPosition.copyFrom(request.position);
           } else {
-            const sampleAge = Math.min(Math.max(currentParentAge - parentAge, 0), sampleDelta);
-            samplePosition.set(
-              currentWorldPosition.x - currentWorldVelocity.x * sampleAge,
-              currentWorldPosition.y - currentWorldVelocity.y * sampleAge,
-              currentWorldPosition.z - currentWorldVelocity.z * sampleAge
+            const emissionAge = Math.min(Math.max(currentParentAge - parentAge, 0), parentAgeDelta);
+            emissionPosition.set(
+              currentWorldPosition.x - currentWorldVelocity.x * emissionAge,
+              currentWorldPosition.y - currentWorldVelocity.y * emissionAge,
+              currentWorldPosition.z - currentWorldVelocity.z * emissionAge
             );
           }
-          const absoluteSampleTime = bornTime + parentAge;
+          const absoluteEmissionTime = bornTime + parentAge;
           const frameTime =
             frameDelta > MathUtil.zeroTolerance
-              ? Math.min(Math.max((absoluteSampleTime - frameLastPlayTime) / frameDelta, 0), 1)
+              ? Math.min(Math.max((absoluteEmissionTime - frameLastPlayTime) / frameDelta, 0), 1)
               : 1;
           const parentNormalizedAge = lifetime > 0 ? Math.min(Math.max(parentAge / lifetime, 0), 1) : 1;
-          const emissionNormalizedTime = duration > 0 ? (sample.time % duration) / duration : 0;
+          const emissionNormalizedTime = duration > 0 ? (request.time % duration) / duration : 0;
           handler(
             sub,
-            sample.count,
-            samplePosition,
+            request.count,
+            emissionPosition,
             currentWorldVelocity,
             parentNormalizedAge,
             emissionNormalizedTime,
@@ -431,7 +431,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     mappings: ReadonlyArray<{ source: number; target: number; count: number }>
   ): void {
     const oldStates = this._particleRuntimeStates;
-    const newStates = new Array<Array<BirthSubEmitterRuntimeState | null>>(newParticleCount);
+    const newStates = new Array<Array<BirthSubEmitterState | null>>(newParticleCount);
     for (let i = 0, n = mappings.length; i < n; i++) {
       const mapping = mappings[i];
       for (let j = 0; j < mapping.count; j++) {
