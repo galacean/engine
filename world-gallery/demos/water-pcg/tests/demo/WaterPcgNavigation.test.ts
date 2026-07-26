@@ -46,6 +46,20 @@ describe("Water PCG navigation", () => {
     ).toBe(true);
   });
 
+  it("keeps the Grasslands M2A route developer-only until the M3 and M4 promotion gate", () => {
+    expect(findWaterPcgCase("showcase-grasslands-stylized-water")).toMatchObject({
+      id: "showcase-grasslands-stylized-water",
+      group: "developer",
+      runtime: "grasslands",
+      preset: "hero-grasslands"
+    });
+    expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).not.toContain("showcase-grasslands-stylized-water");
+    expect(getVisibleWaterPcgCases("showcase-grasslands-stylized-water").map(({ id }) => id)).toEqual([
+      ...WATER_PCG_DEFAULT_CASE_IDS,
+      "showcase-grasslands-stylized-water"
+    ]);
+  });
+
   it("shows only the River, refraction, and reflection cases by default", () => {
     expect(WATER_PCG_GROUPS.map(({ id, public: isPublic }) => ({ id, isPublic }))).toEqual([
       { id: "showcase", isPublic: true },

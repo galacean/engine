@@ -14,8 +14,9 @@ describe("Water PCG debug panel visibility", () => {
     const poolSource = readWaterPcgSource("demo/pool/main.ts");
     const oceanSource = readWaterPcgSource("demo/ocean/main.ts");
     const heightfieldSource = readWaterPcgSource("demo/heightfield/main.ts");
+    const grasslandsSource = readWaterPcgSource("demo/grasslands/main.ts");
 
-    expect(htmlSource.match(/data-water-debug-panel/g)).toHaveLength(4);
+    expect(htmlSource.match(/data-water-debug-panel/g)).toHaveLength(5);
     expect(htmlSource).not.toContain("data-dev-only");
     expect(htmlSource).not.toContain("data-p1-controls hidden");
     expect(routerSource).toContain('document.documentElement.dataset.waterPcgDebugPanels = "visible";');
@@ -29,5 +30,20 @@ describe("Water PCG debug panel visibility", () => {
     expect(oceanSource).not.toContain("developerToolsEnabled");
     expect(heightfieldSource).toContain('gui = new dat.GUI({ name: "Heightfield water" });');
     expect(heightfieldSource).not.toContain("if (developerTools)");
+    expect(grasslandsSource).toContain("statusElement.dataset.state = state;");
+    expect(grasslandsSource).toContain("document.documentElement.dataset.waterPcgAutomation = String(automation);");
+    expect(grasslandsSource).not.toContain("developerToolsEnabled");
+    expect(htmlSource).toContain(
+      'html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #example-bar'
+    );
+    expect(htmlSource).toContain(
+      'html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #case-intro'
+    );
+    expect(htmlSource).toContain(
+      'html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #grasslands-water-hud'
+    );
+    expect(htmlSource).toContain(
+      'html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #fixture-mark'
+    );
   });
 });

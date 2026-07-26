@@ -1,10 +1,11 @@
 export type ShowcaseCameraMode = "free" | "fixed" | "tour";
-export type ShowcaseCameraScene = "river" | "pool" | "ocean";
+export type ShowcaseCameraScene = "river" | "pool" | "ocean" | "grasslands";
 
 export const SHOWCASE_CAMERA_MOVEMENT_SPEED = Object.freeze({
   river: 16,
   pool: 8,
-  ocean: 28
+  ocean: 28,
+  grasslands: 14
 } satisfies Readonly<Record<ShowcaseCameraScene, number>>);
 
 const AUTOMATED_CAMERA_PARAMETERS = Object.freeze(["acceptance", "visual", "profile"] as const);

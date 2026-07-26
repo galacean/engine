@@ -203,10 +203,7 @@ describe("WaterSurfaceAppearanceValidator", () => {
     );
     expect(invalidWeight.valid).toBe(false);
     expect(invalidWeight.diagnostics.map((diagnostic) => diagnostic.path)).toEqual(
-      expect.arrayContaining([
-        "$.contactFoam.octaves.weights[0]",
-        "$.contactFoam.octaves.weights[1]"
-      ])
+      expect.arrayContaining(["$.contactFoam.octaves.weights[0]", "$.contactFoam.octaves.weights[1]"])
     );
   });
 

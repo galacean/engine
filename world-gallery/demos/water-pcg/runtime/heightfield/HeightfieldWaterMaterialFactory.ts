@@ -35,6 +35,7 @@ import type {
   WaterSurfaceAppearanceBinding,
   WaterSurfaceAppearanceBindingReadback
 } from "../surface/WaterSurfaceAppearanceRuntimeTypes";
+import { createWaterSurfaceAppearanceShaderFunctions } from "../surface/WaterSurfaceAppearanceShader";
 import { createWaterSurfaceBrdfShaderFunctions } from "../surface/WaterSurfaceBrdfShader";
 import { createWaterContactFoamShaderFunctionsForQuality } from "../surface/WaterContactFoamShader";
 import {
@@ -471,8 +472,10 @@ function sceneColorRefraction(quality: WaterQualityTier, surfaceAppearance: bool
   const uvScale = quality === WaterQualityTier.High ? tuning.highRefractionUvScale : tuning.mediumRefractionUvScale;
   const refractionMix = quality === WaterQualityTier.High ? tuning.highRefractionMix : tuning.mediumRefractionMix;
   const refractionOffset = surfaceAppearance
-    ? `refractionNormalDelta
-            * material_RefractionStrength`
+    ? `waterSurfaceAppearanceRefractionUvDelta(
+              refractionNormalDelta,
+              material_RefractionStrength
+            )`
     : `refractionNormalDelta
             * ${glsl(uvScale)}
             * material_RefractionStrength`;
@@ -490,11 +493,6 @@ function sceneColorRefraction(quality: WaterQualityTier, surfaceAppearance: bool
     : `        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
           texture2D(camera_DepthTexture, refractedScreenUv).r
         );`;
-  const appearanceDepthValidity = surfaceAppearance
-    ? `
-          * centeredDepthBehind
-          * refractedSceneDepthFiniteWeight`
-    : "";
   const contactFoamRefractionSuppression = surfaceAppearance
     ? `
           * (
@@ -503,10 +501,22 @@ function sceneColorRefraction(quality: WaterQualityTier, surfaceAppearance: bool
                 * material_AppearanceContactFoamSuppressRefraction
           )`
     : "";
+  const refractionSampleValidity = surfaceAppearance
+    ? `        refractionSampleValidity = waterSurfaceAppearanceRefractionSampleValidity(
+          refractionScreenInterior,
+          refractionDepthContinuity,
+          refractedGeometryBehindSurface,
+          centeredDepthBehind,
+          refractedSceneDepthFiniteWeight
+        );`
+    : `        refractionSampleValidity = refractionScreenInterior
+          * refractionDepthContinuity
+          * refractedGeometryBehindSurface;`;
   const waterColorApplication = surfaceAppearance
-    ? `        float appearanceDepthTintFactor = pow(
-          saturate(sceneDepthDelta / max(material_AppearanceDepthTintDistance, 0.0001)),
-          max(material_AppearanceDepthTintExponent, 0.0001)
+    ? `        float appearanceDepthTintFactor = waterSurfaceAppearanceDepthTintFactor(
+          sceneDepthDelta,
+          material_AppearanceDepthTintDistance,
+          material_AppearanceDepthTintExponent
         );
         vec3 appearanceDepthTintColor = mix(
           refractedSceneColor,
@@ -553,9 +563,7 @@ ${refractedSceneDepth}
           abs(refractedSceneEyeDepth - sceneEyeDepth)
         );
         float refractedGeometryBehindSurface = smoothstep(0.03, 0.22, refractedOpticalDepth);
-        refractionSampleValidity = refractionScreenInterior
-          * refractionDepthContinuity
-          * refractedGeometryBehindSurface${appearanceDepthValidity};
+${refractionSampleValidity}
         refractionUvDelta = refractedScreenUv - screenUv;
         centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
         displacedOpaqueColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
@@ -592,8 +600,9 @@ function surfaceAlphaStatements(surfaceAppearance: boolean): string {
         float alpha = material_Alpha * mix(0.18, 0.94, absorptionAlpha);
         alpha += effectiveFresnel * (1.0 - alpha) * 0.48;
         alpha += foamTint * 0.3 * (1.0 - step(0.5, material_OpticsCalibrationMode));
-        float appearanceCoastalAlpha = saturate(
-          sceneDepthDelta / max(material_AppearanceCoastalAlphaDistance, 0.0001)
+        float appearanceCoastalAlpha = waterSurfaceAppearanceCoastalAlpha(
+          sceneDepthDelta,
+          material_AppearanceCoastalAlphaDistance
         );
         alpha = mix(
           alpha,
@@ -1065,27 +1074,7 @@ ${waveUniformDeclarations(waveCount)}
         float lengthSquared = dot(value, value);
         return lengthSquared > 0.000001 ? value * inversesqrt(lengthSquared) : fallbackValue;
       }
-${
-  surfaceAppearance
-    ? `
-      vec3 decodeAppearanceTangentNormal(vec4 packedNormal) {
-        vec2 slope = packedNormal.rg * 2.0 - 1.0;
-        slope.y *= mix(1.0, -1.0, step(0.5, material_AppearanceNormalFlipGreen));
-        slope *= material_AppearanceNormalStrength;
-        float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
-        normalZ = mix(1.0, normalZ, clamp(material_AppearanceNormalStrength, 0.0, 1.0));
-        return safeNormalize3(vec3(slope, normalZ), vec3(0.0, 0.0, 1.0));
-      }
-
-      vec3 blendAppearanceTangentNormals(vec3 firstNormal, vec3 secondNormal) {
-        return safeNormalize3(
-          vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
-          vec3(0.0, 0.0, 1.0)
-        );
-      }
-`
-    : ""
-}
+${surfaceAppearance ? createWaterSurfaceAppearanceShaderFunctions() : ""}
       float saturate(float value) {
         return clamp(value, 0.0, 1.0);
       }
@@ -1298,15 +1287,23 @@ ${
           elapsedTime * material_AppearanceNormalScrollUvPerSecond
         );
         vec2 appearanceWorldUv = baseWorldPosition.xz * material_AppearanceNormalTiling;
-        vec3 appearanceNormalA = decodeAppearanceTangentNormal(texture2D(
-          material_AppearanceNormalTexture,
-          appearanceWorldUv + appearanceScrollUv
-        ));
-        vec3 appearanceNormalB = decodeAppearanceTangentNormal(texture2D(
-          material_AppearanceNormalTexture,
-          -appearanceWorldUv + appearanceScrollUv
-        ));
-        vec3 appearanceNormalTS = blendAppearanceTangentNormals(
+        vec3 appearanceNormalA = waterSurfaceAppearanceDecodeTangentNormal(
+          texture2D(
+            material_AppearanceNormalTexture,
+            appearanceWorldUv + appearanceScrollUv
+          ),
+          material_AppearanceNormalStrength,
+          material_AppearanceNormalFlipGreen
+        );
+        vec3 appearanceNormalB = waterSurfaceAppearanceDecodeTangentNormal(
+          texture2D(
+            material_AppearanceNormalTexture,
+            -appearanceWorldUv + appearanceScrollUv
+          ),
+          material_AppearanceNormalStrength,
+          material_AppearanceNormalFlipGreen
+        );
+        vec3 appearanceNormalTS = waterSurfaceAppearanceBlendTangentNormals(
           appearanceNormalA,
           appearanceNormalB
         );

@@ -26,7 +26,8 @@ describe("ShowcaseCameraControl", () => {
     expect(SHOWCASE_CAMERA_MOVEMENT_SPEED).toEqual({
       river: 16,
       pool: 8,
-      ocean: 28
+      ocean: 28,
+      grasslands: 14
     });
     expect(Object.values(SHOWCASE_CAMERA_MOVEMENT_SPEED).every((speed) => Number.isFinite(speed) && speed > 0)).toBe(
       true

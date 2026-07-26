@@ -122,12 +122,7 @@ function readStableId(
     );
     return undefined;
   }
-  if (
-    value.length === 0 ||
-    value !== value.trim() ||
-    value.includes("://") ||
-    !STABLE_ID_PATTERN.test(value)
-  ) {
+  if (value.length === 0 || value !== value.trim() || value.includes("://") || !STABLE_ID_PATTERN.test(value)) {
     addError(
       diagnostics,
       WaterSurfaceAppearanceDiagnosticCode.InvalidIdentifier,
@@ -193,12 +188,7 @@ function readColor(
     }
   }
   if (!valid) return undefined;
-  return Object.freeze([
-    value[0] as number,
-    value[1] as number,
-    value[2] as number,
-    value[3] as number
-  ]);
+  return Object.freeze([value[0] as number, value[1] as number, value[2] as number, value[3] as number]);
 }
 
 function decodeNormal(
@@ -222,11 +212,7 @@ function decodeNormal(
     return undefined;
   }
   const textureAssetId = readStableId(record.textureAssetId, "$.normal.textureAssetId", diagnostics);
-  const textureContentHash = readContentHash(
-    record.textureContentHash,
-    "$.normal.textureContentHash",
-    diagnostics
-  );
+  const textureContentHash = readContentHash(record.textureContentHash, "$.normal.textureContentHash", diagnostics);
   if (record.sampling !== WaterSurfaceNormalSampling.WorldXzMirroredDual) {
     addError(
       diagnostics,
@@ -547,9 +533,7 @@ function decodeContactFoam(
   });
 }
 
-export function validateWaterSurfaceAppearanceAsset(
-  source: unknown
-): WaterSurfaceAppearanceValidationResult {
+export function validateWaterSurfaceAppearanceAsset(source: unknown): WaterSurfaceAppearanceValidationResult {
   const diagnostics: WaterSurfaceAppearanceDiagnostic[] = [];
   if (!isRecord(source)) {
     addError(

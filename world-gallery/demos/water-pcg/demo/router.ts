@@ -32,7 +32,8 @@ const runtimeTemplateIds = {
   heightfield: "water-pcg-heightfield-template",
   buoyancy: "water-pcg-buoyancy-template",
   "optics-lab": "water-pcg-optics-lab-template",
-  wiki: "water-pcg-wiki-template"
+  wiki: "water-pcg-wiki-template",
+  grasslands: "water-pcg-grasslands-template"
 } as const satisfies Readonly<Record<WaterRuntimeKind, string>>;
 
 const runtimeLoaders = {
@@ -42,7 +43,8 @@ const runtimeLoaders = {
   heightfield: () => import("./heightfield/main"),
   buoyancy: () => import("./buoyancy/main"),
   "optics-lab": () => import("./examples/water-optics-lab/main"),
-  wiki: () => import("./wiki/main")
+  wiki: () => import("./wiki/main"),
+  grasslands: () => import("./grasslands/main")
 } as const satisfies Readonly<Record<WaterRuntimeKind, () => Promise<unknown>>>;
 
 const activeCase = resolveWaterPcgCase(window.location);

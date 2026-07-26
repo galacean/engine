@@ -1,6 +1,14 @@
 export type WaterDemoGroup = "showcase" | "feature" | "developer" | "docs";
 
-export type WaterRuntimeKind = "river" | "pool" | "ocean" | "heightfield" | "buoyancy" | "optics-lab" | "wiki";
+export type WaterRuntimeKind =
+  | "river"
+  | "pool"
+  | "ocean"
+  | "heightfield"
+  | "buoyancy"
+  | "optics-lab"
+  | "wiki"
+  | "grasslands";
 
 export type WaterDemoPreset =
   | "hero-river"
@@ -27,6 +35,7 @@ export type WaterDemoPreset =
   | "p1-diagnostics"
   | "river-debug"
   | "ocean-lod-debug"
+  | "hero-grasslands"
   | "default";
 
 export interface WaterDemoCaseDefinition {
@@ -226,6 +235,14 @@ export const WATER_PCG_CASES = [
     group: "feature",
     runtime: "river",
     preset: "river-confluence"
+  },
+  {
+    id: "showcase-grasslands-stylized-water",
+    label: "Grasslands 风格化浅水（孵化）",
+    intro: "确定性全湿 Heightfield 与 Grasslands 水材质机制的 M2A 开发直链入口。",
+    group: "developer",
+    runtime: "grasslands",
+    preset: "hero-grasslands"
   },
   {
     id: "water-optics-lab",

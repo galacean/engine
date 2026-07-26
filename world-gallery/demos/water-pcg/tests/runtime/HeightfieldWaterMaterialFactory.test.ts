@@ -286,8 +286,8 @@ describe("HeightfieldWaterMaterialFactory", () => {
       expect(source).toContain("baseWorldPosition.xz * material_AppearanceNormalTiling");
       expect(source).toContain("elapsedTime * material_AppearanceNormalScrollUvPerSecond");
       expect(source).toContain("slope.y *= mix(1.0, -1.0");
-      expect(source).toContain("slope *= material_AppearanceNormalStrength");
-      expect(source).toContain("blendAppearanceTangentNormals(");
+      expect(source).toContain("slope *= strength");
+      expect(source).toContain("waterSurfaceAppearanceBlendTangentNormals(");
       expect(source).toContain("float externalNormalWeight = material_AppearanceExternalNormalEnabled");
       expect(source).not.toMatch(/Grasslands|hero-grasslands|https?:\/\//);
     }
@@ -305,13 +305,16 @@ describe("HeightfieldWaterMaterialFactory", () => {
       expect(source).toContain("float sampledOpticalDepth = sceneDepthDelta");
       expect(source).toContain("bool centeredSceneDepthFinite = sceneEyeDepthSample >= 0.0");
       expect(source).toContain("bool refractedSceneDepthFinite = refractedSceneEyeDepthSample >= 0.0");
-      expect(source).toContain("* centeredDepthBehind\n          * refractedSceneDepthFiniteWeight");
-      expect(source).toContain("saturate(sceneDepthDelta / max(material_AppearanceDepthTintDistance, 0.0001))");
-      expect(source).toContain("max(material_AppearanceDepthTintExponent, 0.0001)");
+      expect(source).toContain("waterSurfaceAppearanceRefractionSampleValidity(");
+      expect(source).toContain("centeredDepthBehind,\n          refractedSceneDepthFiniteWeight");
+      expect(source).toContain("waterSurfaceAppearanceDepthTintFactor(");
+      expect(source).toContain(
+        "sceneDepthDelta,\n          material_AppearanceDepthTintDistance,\n          material_AppearanceDepthTintExponent"
+      );
       expect(source).toContain(
         "mix(\n          refractedSceneColor,\n          material_AppearanceDepthTintColor.rgb,\n          appearanceDepthTintFactor"
       );
-      expect(source).toContain("sceneDepthDelta / max(material_AppearanceCoastalAlphaDistance, 0.0001)");
+      expect(source).toContain("waterSurfaceAppearanceCoastalAlpha(");
       expect(source).toContain(
         "alpha = mix(\n          alpha,\n          appearanceCoastalAlpha,\n          material_AppearanceCoastalAlphaEnabled"
       );
@@ -320,7 +323,8 @@ describe("HeightfieldWaterMaterialFactory", () => {
         "shaderCompositedColor = mix(\n            centeredOpaqueColor,\n            waterColor,\n            surfaceAlpha"
       );
       const displacedUvBlock = source.match(/vec2 displacedScreenUv = screenUv[\s\S]*?;/)?.[0] ?? "";
-      expect(displacedUvBlock).toContain("refractionNormalDelta\n            * material_RefractionStrength");
+      expect(displacedUvBlock).toContain("waterSurfaceAppearanceRefractionUvDelta(");
+      expect(displacedUvBlock).toContain("material_RefractionStrength");
       expect(displacedUvBlock).not.toContain("refractionDepthWeight");
       expect(displacedUvBlock).not.toMatch(/\b0\.008\b|\b0\.012\b/);
     }

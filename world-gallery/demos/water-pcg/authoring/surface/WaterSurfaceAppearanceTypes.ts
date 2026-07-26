@@ -61,9 +61,7 @@ export interface WaterSurfaceExternalTangentNormal {
   readonly flipGreen: boolean;
 }
 
-export type WaterSurfaceNormalAppearance =
-  | WaterSurfaceProceduralSlopeNormal
-  | WaterSurfaceExternalTangentNormal;
+export type WaterSurfaceNormalAppearance = WaterSurfaceProceduralSlopeNormal | WaterSurfaceExternalTangentNormal;
 
 export interface WaterSurfaceBeerLambertDepthTint {
   readonly model: WaterSurfaceDepthTintModel.BeerLambert;
@@ -76,9 +74,7 @@ export interface WaterSurfaceSceneDepthPowerTint {
   readonly exponent: number;
 }
 
-export type WaterSurfaceDepthTintAppearance =
-  | WaterSurfaceBeerLambertDepthTint
-  | WaterSurfaceSceneDepthPowerTint;
+export type WaterSurfaceDepthTintAppearance = WaterSurfaceBeerLambertDepthTint | WaterSurfaceSceneDepthPowerTint;
 
 export interface WaterSurfaceLegacyCoverageAlpha {
   readonly model: WaterSurfaceCoastalAlphaModel.LegacyCoverage;
@@ -89,9 +85,7 @@ export interface WaterSurfaceSceneDepthAlpha {
   readonly distance: number;
 }
 
-export type WaterSurfaceCoastalAlphaAppearance =
-  | WaterSurfaceLegacyCoverageAlpha
-  | WaterSurfaceSceneDepthAlpha;
+export type WaterSurfaceCoastalAlphaAppearance = WaterSurfaceLegacyCoverageAlpha | WaterSurfaceSceneDepthAlpha;
 
 export interface WaterSurfaceFoamOctaves1 {
   readonly count: 1;
@@ -108,10 +102,7 @@ export interface WaterSurfaceFoamOctaves3 {
   readonly weights: readonly [number, number, number];
 }
 
-export type WaterSurfaceFoamOctaves =
-  | WaterSurfaceFoamOctaves1
-  | WaterSurfaceFoamOctaves2
-  | WaterSurfaceFoamOctaves3;
+export type WaterSurfaceFoamOctaves = WaterSurfaceFoamOctaves1 | WaterSurfaceFoamOctaves2 | WaterSurfaceFoamOctaves3;
 
 export interface WaterSurfaceNoContactFoam {
   readonly model: WaterSurfaceContactFoamModel.None;
@@ -129,9 +120,7 @@ export interface WaterSurfaceSceneDepthVoronoiFoam {
   readonly smoothnessReduction: number;
 }
 
-export type WaterSurfaceContactFoamAppearance =
-  | WaterSurfaceNoContactFoam
-  | WaterSurfaceSceneDepthVoronoiFoam;
+export type WaterSurfaceContactFoamAppearance = WaterSurfaceNoContactFoam | WaterSurfaceSceneDepthVoronoiFoam;
 
 export interface WaterSurfaceAppearanceAssetV1 {
   readonly schemaVersion: WaterSurfaceAppearanceSchemaVersion.V1;

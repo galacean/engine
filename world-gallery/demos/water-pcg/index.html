@@ -215,7 +215,8 @@
       #heightfield-hud,
       #buoyancy-hud,
       #interactive-pool-hud,
-      #water-optics-hud {
+      #water-optics-hud,
+      #grasslands-water-hud {
         position: fixed;
         top: 74px;
         left: 14px;
@@ -232,6 +233,12 @@
       #heightfield-hud {
         width: min(350px, calc(100vw - 28px));
         pointer-events: none;
+      }
+
+      #grasslands-water-hud {
+        width: min(720px, calc(100vw - 28px));
+        max-height: calc(100vh - 90px);
+        overflow-y: auto;
       }
 
       #buoyancy-hud {
@@ -366,7 +373,8 @@
       #heightfield-status,
       #buoyancy-status,
       #interactive-pool-status,
-      #water-optics-status {
+      #water-optics-status,
+      #grasslands-water-status {
         color: var(--current-cyan);
         font-size: 10px;
         letter-spacing: 0.04em;
@@ -385,8 +393,18 @@
       #heightfield-status[data-state="error"],
       #buoyancy-status[data-state="error"],
       #interactive-pool-status[data-state="error"],
-      #water-optics-status[data-state="error"] {
+      #water-optics-status[data-state="error"],
+      #grasslands-water-status[data-state="error"] {
         color: var(--fault-coral);
+      }
+
+      #grasslands-water-status[data-state="fallback"],
+      #grasslands-water-status[data-state="loading"] {
+        color: var(--warning-amber);
+      }
+
+      #grasslands-water-status[data-state="ready"] {
+        color: var(--ready-green);
       }
 
       .hud-controls {
@@ -439,7 +457,8 @@
       #heightfield-metrics,
       #buoyancy-metrics,
       #interactive-pool-metrics,
-      #water-optics-metrics {
+      #water-optics-metrics,
+      #grasslands-water-metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 7px 12px;
@@ -461,14 +480,16 @@
       #heightfield-metrics div,
       #buoyancy-metrics div,
       #interactive-pool-metrics div,
-      #water-optics-metrics div {
+      #water-optics-metrics div,
+      #grasslands-water-metrics div {
         min-width: 0;
       }
 
       #heightfield-metrics dt,
       #buoyancy-metrics dt,
       #interactive-pool-metrics dt,
-      #water-optics-metrics dt {
+      #water-optics-metrics dt,
+      #grasslands-water-metrics dt {
         overflow: hidden;
         margin: 0 0 2px;
         color: var(--water-muted);
@@ -482,7 +503,8 @@
       #heightfield-metrics dd,
       #buoyancy-metrics dd,
       #interactive-pool-metrics dd,
-      #water-optics-metrics dd {
+      #water-optics-metrics dd,
+      #grasslands-water-metrics dd {
         overflow: hidden;
         margin: 0;
         color: var(--foam-ink);
@@ -506,6 +528,18 @@
         left: 16px;
         letter-spacing: 0.08em;
         text-transform: uppercase;
+      }
+
+      html[data-water-pcg-runtime="grasslands"] #canvas {
+        background: radial-gradient(circle at 50% 78%, rgb(45 112 117 / 42%), transparent 42%),
+          linear-gradient(#17332e 0 42%, #071d25 42% 100%);
+      }
+
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #example-bar,
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #case-intro,
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #grasslands-water-hud,
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #fixture-mark {
+        display: none !important;
       }
 
       #buoyancy-legend {
@@ -628,6 +662,94 @@
         </dl>
       </aside>
       <div id="fixture-mark">flow-advected ripples · depth optics · bank foam</div>
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <template id="water-pcg-grasslands-template">
+      <aside id="grasslands-water-hud" data-water-debug-panel aria-label="Grasslands water diagnostics">
+        <div class="hud-heading">
+          <strong>Grasslands Water / Controlled Fixture</strong>
+          <span id="grasslands-water-status" data-state="loading" role="status" aria-live="polite">initializing</span>
+        </div>
+        <div class="hud-controls" aria-label="Grasslands capture states">
+          <button type="button" data-grasslands-capture-state="hero" data-active="true">Hero</button>
+          <button type="button" data-grasslands-capture-state="detail-normal">Normal</button>
+          <button type="button" data-grasslands-capture-state="refraction">Refraction</button>
+          <button type="button" data-grasslands-capture-state="depth-color">Depth</button>
+          <button type="button" data-grasslands-capture-state="contact-foam">Foam</button>
+          <button type="button" data-grasslands-capture-state="coastal-alpha">Coastal</button>
+          <button type="button" data-grasslands-capture-state="direct-specular">Specular</button>
+          <button type="button" data-grasslands-capture-state="reflection">Reflection</button>
+        </div>
+        <div class="hud-controls" aria-label="Grasslands causal feature gates">
+          <button type="button" data-grasslands-toggle="externalNormal" data-active="true">Normal A/B</button>
+          <button type="button" data-grasslands-toggle="refraction" data-active="true">Refraction A/B</button>
+          <button type="button" data-grasslands-toggle="depthColor" data-active="true">Depth A/B</button>
+          <button type="button" data-grasslands-toggle="contactFoam" data-active="true">Foam A/B</button>
+          <button type="button" data-grasslands-toggle="coastalAlpha" data-active="true">Coastal A/B</button>
+          <button type="button" data-grasslands-toggle="directSpecular" data-active="true">Specular A/B</button>
+          <button type="button" data-grasslands-toggle="reflection" data-active="true">Reflection A/B</button>
+          <select data-grasslands-quality aria-label="Grasslands quality tier">
+            <option value="high" selected>High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low fallback</option>
+          </select>
+          <button type="button" data-grasslands-reset>Reset Hero</button>
+        </div>
+        <dl id="grasslands-water-metrics">
+          <div>
+            <dt>runtime / preset</dt>
+            <dd data-metric="identity">—</dd>
+          </div>
+          <div>
+            <dt>quality</dt>
+            <dd data-metric="quality">high</dd>
+          </div>
+          <div>
+            <dt>capture / debug</dt>
+            <dd data-metric="capture">hero / 0</dd>
+          </div>
+          <div>
+            <dt>normal</dt>
+            <dd data-metric="normal">—</dd>
+          </div>
+          <div>
+            <dt>foam</dt>
+            <dd data-metric="foam">—</dd>
+          </div>
+          <div>
+            <dt>depth / opaque copies</dt>
+            <dd data-metric="broker">—</dd>
+          </div>
+          <div>
+            <dt>active runtime</dt>
+            <dd data-metric="runtime-set">—</dd>
+          </div>
+          <div>
+            <dt>mesh uploads</dt>
+            <dd data-metric="uploads">—</dd>
+          </div>
+          <div>
+            <dt>fixture hash</dt>
+            <dd data-metric="fixture">—</dd>
+          </div>
+          <div>
+            <dt>appearance hash</dt>
+            <dd data-metric="appearance">—</dd>
+          </div>
+          <div>
+            <dt>asset hash</dt>
+            <dd data-metric="asset">—</dd>
+          </div>
+          <div>
+            <dt>strict material</dt>
+            <dd data-metric="ready">false</dd>
+          </div>
+        </dl>
+      </aside>
+      <div id="fixture-mark">
+        developer direct link · Heightfield V1 · Surface Appearance V1 · analytic sky response
+      </div>
       <canvas id="canvas"></canvas>
     </template>
 

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixtureId": "grasslands-water-reference-fixture-v1",
   "caseId": "showcase-grasslands-stylized-water",
-  "fixtureStatus": "frozen-m0",
+  "fixtureStatus": "m3-calibration-in-progress",
   "parityClaim": "water-material-mechanism-parity",
   "parityExclusions": [
     "environment-reflection-pattern",
@@ -28,59 +28,27 @@
   },
   "camera": {
     "mode": "fixed",
-    "position": [
-      0,
-      16,
-      32
-    ],
-    "target": [
-      0,
-      -1,
-      -8
-    ],
-    "forward": [
-      0,
-      -0.3911406403448517,
-      -0.9203309184584746
-    ],
+    "position": [0, 3.5, 16],
+    "target": [-1, -2.65, -10.5],
+    "forward": [-0.03673412091541039, -0.2259148436297739, -0.9734542042583754],
     "fieldOfViewDegrees": 48,
-    "nearClip": 0.1,
-    "farClip": 200
+    "nearClip": 0.05,
+    "farClip": 100
   },
   "directLight": {
     "count": 1,
-    "color": [
-      1,
-      1,
-      1
-    ],
+    "color": [1, 1, 1],
     "intensity": 1.05,
-    "forward": [
-      0.19169850264280183,
-      -0.7869350219613372,
-      0.5865023062999986
-    ],
-    "sourceEulerDegreesForAuditOnly": [
-      51.9,
-      18.1,
-      0
-    ]
+    "forward": [0.19169850264280183, -0.7869350219613372, 0.5865023062999986],
+    "sourceEulerDegreesForAuditOnly": [51.9, 18.1, 0]
   },
   "reflection": {
     "requestedSource": "sky",
     "effectiveSource": "sky",
     "renderedSkybox": false,
     "analyticSky": {
-      "lowerLinearRgb": [
-        0.075,
-        0.16,
-        0.21
-      ],
-      "upperLinearRgb": [
-        0.32,
-        0.48,
-        0.57
-      ],
+      "lowerLinearRgb": [0.075, 0.16, 0.21],
+      "upperLinearRgb": [0.32, 0.48, 0.57],
       "reflectionIntensity": 1
     },
     "environmentPatternCompared": false
@@ -221,13 +189,7 @@
       "aboveWaterWrongSampleCount": 0
     },
     "depthColor": {
-      "sampleDepthDeltaMeters": [
-        0,
-        0.5,
-        2,
-        5,
-        10
-      ],
+      "sampleDepthDeltaMeters": [0, 0.5, 2, 5, 10],
       "rangeMeters": 10,
       "exponent": 0.5,
       "maximumLinearRgbChannelErrorBytes": 2,

@@ -1,5 +1,5 @@
 import type { Entity } from "@galacean/engine";
-import { FreeControl } from "@galacean/engine-toolkit-controls";
+import { FreeControl } from "@galacean/engine-toolkit-controls/dist/es/FreeControl.js";
 import type { ShowcaseCameraMode } from "./ShowcaseCameraPolicy";
 
 const CAMERA_TRANSFORM_EPSILON = 1e-6;

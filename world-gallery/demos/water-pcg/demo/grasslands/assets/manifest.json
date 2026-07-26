@@ -4,17 +4,8 @@
   "authorization": {
     "status": "resolved-user-confirmed-paid-license",
     "confirmationDate": "2026-07-24",
-    "allowedUse": [
-      "project-use",
-      "derivative-processing",
-      "repository-integration",
-      "demo-build-integration"
-    ],
-    "excludedUse": [
-      "source-package-repackaging",
-      "resale",
-      "independent-asset-distribution"
-    ]
+    "allowedUse": ["project-use", "derivative-processing", "repository-integration", "demo-build-integration"],
+    "excludedUse": ["source-package-repackaging", "resale", "independent-asset-distribution"]
   },
   "reference": {
     "repositoryStored": false,
