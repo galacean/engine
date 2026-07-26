@@ -38,8 +38,8 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
     for (const scene of engine.sceneManager.scenes) {
       const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
       for (const renderer of renderers) {
-        const fence = (renderer.generator as any)._feedbackReadbackFence;
-        if (fence) fence.isReady = () => true;
+        const request = (renderer.generator as any)._feedbackReadbackRequest;
+        if (request) request._platformReadback.isReady = () => true;
       }
     }
   };
@@ -201,14 +201,15 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const staging = generator._feedbackReadbackBuffer;
-    const read = vi.spyOn(staging, "getData");
-    generator._feedbackReadbackFence.isReady = () => false;
+    const request = generator._feedbackReadbackRequest;
+    const read = vi.spyOn(request, "getData");
+    const platformReadback = request._platformReadback;
+    platformReadback.isReady = () => false;
     engine.update();
     expect(read).not.toHaveBeenCalled();
     expect(child.generator._getAliveParticleCount()).to.equal(0);
 
-    generator._feedbackReadbackFence.isReady = () => true;
+    platformReadback.isReady = () => true;
     engine.update();
     expect(read).toHaveBeenCalled();
     expect(child.generator._getAliveParticleCount()).to.equal(1);
@@ -236,8 +237,9 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const read = vi.spyOn(generator._feedbackReadbackBuffer, "getData");
-    generator._feedbackReadbackFence.isReady = () => false;
+    const request = generator._feedbackReadbackRequest;
+    const read = vi.spyOn(request, "getData");
+    request._platformReadback.isReady = () => false;
     engine.update();
     expect(read).not.toHaveBeenCalled();
 
@@ -278,12 +280,68 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const destroyFence = vi.spyOn(generator._feedbackReadbackFence, "destroy");
-    const destroyStaging = vi.spyOn(generator._feedbackReadbackBuffer, "destroy");
+    const destroyReadback = vi.spyOn(generator._feedbackReadbackRequest, "destroy");
     parent.entity.destroy();
-    expect(destroyFence).toHaveBeenCalledTimes(1);
-    expect(destroyStaging).toHaveBeenCalledTimes(1);
+    expect(destroyReadback).toHaveBeenCalledTimes(1);
 
+    child.entity.destroy();
+  });
+
+  it("tracks staging buffer memory through the readback lifetime", () => {
+    const child = createParticleRenderer(engine, "ReadbackMemory_Child");
+    const parent = createParticleRenderer(engine, "ReadbackMemory_Parent");
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    const memoryBeforeReadback = engine.renderingStatistics.bufferMemory;
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    performance.now = () => 100;
+    engine.update();
+
+    const generator = parent.generator as any;
+    const request = generator._feedbackReadbackRequest;
+    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + request.byteLength);
+
+    generator._destroyFeedbackReadback();
+    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("destroys a stale readback before polling after device content loss", () => {
+    const child = createParticleRenderer(engine, "ReadbackRestore_Child");
+    const parent = createParticleRenderer(engine, "ReadbackRestore_Parent");
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    performance.now = () => 100;
+    engine.update();
+
+    const generator = parent.generator as any;
+    const request = generator._feedbackReadbackRequest;
+    const isReady = vi.spyOn(request, "isReady");
+    const destroyReadback = vi.spyOn(request._platformReadback, "destroy");
+    generator._instanceVertexBufferBinding._buffer._isContentLost = true;
+    engine.update();
+
+    expect(isReady).not.toHaveBeenCalled();
+    expect(destroyReadback).toHaveBeenCalledTimes(1);
+
+    parent.entity.destroy();
     child.entity.destroy();
   });
 

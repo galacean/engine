@@ -14,10 +14,10 @@ import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { MeshRenderer, VertexAttribute } from "../mesh";
-import type { IPlatformBufferReadback } from "../renderingHardwareInterface";
 import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { Buffer } from "./../graphic/Buffer";
+import { BufferReadback } from "./../graphic/BufferReadback";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
 import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
@@ -154,9 +154,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _feedbackReadback: Float32Array = null;
   @ignoreClone
-  private _feedbackReadbackBuffer: Buffer;
-  @ignoreClone
-  private _feedbackReadbackFence: IPlatformBufferReadback;
+  private _feedbackReadbackRequest: BufferReadback;
   @ignoreClone
   private _feedbackReadbackFirstElement = 0;
   @ignoreClone
@@ -386,7 +384,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [],
     isBirthSubEmitterTarget: boolean = false
   ): void {
-    const canQueueReadback = this._consumeFeedbackReadback();
+    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
+    if (isContentLost) {
+      this._destroyFeedbackReadback();
+    }
+    const canQueueReadback = !isContentLost && this._consumeFeedbackReadback();
     const lastAlive = this.isAlive;
     const { main, emission } = this;
     const duration = main.duration;
@@ -481,9 +483,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
 
     // Retire all particles on device restore before bounds/volume bookkeeping
-    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
     if (isContentLost) {
-      this._cancelFeedbackReadback();
       this._firstActiveElement = 0;
       this._firstNewElement = 0;
       this._firstFreeElement = 0;
@@ -882,8 +882,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._renderer.shaderData.enableMacro(ParticleGenerator._trajectoryFeedbackMacro);
     } else {
       this._renderer.shaderData.disableMacro(ParticleGenerator._trajectoryFeedbackMacro);
-      this._feedbackReadbackBuffer?.destroy();
-      this._feedbackReadbackBuffer = null;
+      this._destroyFeedbackReadback();
       this._feedbackReadback = null;
     }
 
@@ -931,12 +930,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _destroy(): void {
-    this._cancelFeedbackReadback();
+    this._destroyFeedbackReadback();
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
     this.emission._destroy();
     this._feedbackSimulator?.destroy();
-    this._feedbackReadbackBuffer?.destroy();
   }
 
   /**
@@ -1707,41 +1705,39 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     try {
       const stride = this._feedbackSimulator.vertexStride;
       const byteLength = this._currentParticleCount * stride;
-      let staging = this._feedbackReadbackBuffer;
-      if (!staging || staging.byteLength !== byteLength) {
-        staging?.destroy();
-        staging = this._feedbackReadbackBuffer = new Buffer(
-          this._renderer.engine,
-          BufferBindFlag.VertexBuffer,
-          byteLength,
-          BufferUsage.Stream,
-          false
-        );
-        staging.isGCIgnored = true;
+      let request = this._feedbackReadbackRequest;
+      if (!request || request.byteLength !== byteLength) {
+        request?.destroy();
+        request = this._feedbackReadbackRequest = new BufferReadback(this._renderer.engine, byteLength);
       }
 
       const source = this._feedbackSimulator.readBinding.buffer;
       this._copyReadbackRange(
         source,
-        staging,
+        request,
         this._feedbackReadbackFirstElement,
         this._feedbackReadbackEndElement,
         stride
       );
-      this._feedbackReadbackFence = staging._createReadback();
+      request.submit();
     } catch (error) {
-      this._resetFeedbackReadbackRequest();
+      this._destroyFeedbackReadback();
       throw error;
     }
   }
 
   private _consumeFeedbackReadback(): boolean {
-    const fence = this._feedbackReadbackFence;
-    if (!fence) return true;
-    try {
-      if (!fence.isReady()) return false;
-    } catch (error) {
+    if (this._feedbackReadbackElementCount === 0) return true;
+
+    const request = this._feedbackReadbackRequest;
+    if (!request) {
       this._resetFeedbackReadbackRequest();
+      throw new Error("Missing GPU buffer readback request.");
+    }
+    try {
+      if (!request.isReady()) return false;
+    } catch (error) {
+      this._destroyFeedbackReadback();
       throw error;
     }
 
@@ -1755,7 +1751,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
 
       this._readbackRange(
-        this._feedbackReadbackBuffer,
+        request,
         readback,
         this._feedbackReadbackFirstElement,
         this._feedbackReadbackEndElement,
@@ -1828,7 +1824,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _copyReadbackRange(
     source: Buffer,
-    destination: Buffer,
+    destination: BufferReadback,
     firstElement: number,
     endElement: number,
     stride: number
@@ -1842,7 +1838,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _readbackRange(
-    buffer: Buffer,
+    request: BufferReadback,
     target: Float32Array,
     firstElement: number,
     endElement: number,
@@ -1850,14 +1846,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     floatStride: number
   ): void {
     const firstSegmentEnd = firstElement < endElement ? endElement : this._currentParticleCount;
-    buffer.getData(
+    request.getData(
       target,
       firstElement * stride,
       firstElement * floatStride,
       (firstSegmentEnd - firstElement) * floatStride
     );
     if (firstElement >= endElement && endElement > 0) {
-      buffer.getData(target, 0, 0, endElement * floatStride);
+      request.getData(target, 0, 0, endElement * floatStride);
     }
   }
 
@@ -1879,7 +1875,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _hasPendingFeedbackReadback(): boolean {
-    return !!this._feedbackReadbackFence || this._feedbackReadbackElementCount > 0;
+    return this._feedbackReadbackElementCount > 0;
   }
 
   private _cancelFeedbackReadback(): void {
@@ -1887,12 +1883,18 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _resetFeedbackReadbackRequest(): void {
-    this._feedbackReadbackFence?.destroy();
-    this._feedbackReadbackFence = null;
+    this._feedbackReadbackRequest?.reset();
     this._feedbackReadbackElementCount = 0;
     this._birthReadbackRangeCount = 0;
     this._deathReadbackCount = 0;
     this._deferredRetirementCount = 0;
+  }
+
+  private _destroyFeedbackReadback(): void {
+    const request = this._feedbackReadbackRequest;
+    this._resetFeedbackReadbackRequest();
+    request?.destroy();
+    this._feedbackReadbackRequest = null;
   }
 
   private _evaluateOverLifetime(

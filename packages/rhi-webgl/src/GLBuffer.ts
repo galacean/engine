@@ -1,11 +1,5 @@
-import {
-  BufferBindFlag,
-  BufferUsage,
-  IPlatformBuffer,
-  IPlatformBufferReadback,
-  SetDataOptions
-} from "@galacean/engine-core";
-import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
+import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
@@ -117,13 +111,6 @@ export class GLBuffer implements IPlatformBuffer {
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
   }
 
-  createReadback(): IPlatformBufferReadback {
-    if (!this._isWebGL2) {
-      throw new Error("Buffer readback is only supported on WebGL2.");
-    }
-    return new GLBufferReadback(<WebGL2RenderingContext>this._gl);
-  }
-
   destroy(): void {
     this._gl.deleteBuffer(this._glBuffer);
     this._gl = null;
@@ -138,37 +125,6 @@ export class GLBuffer implements IPlatformBuffer {
         return gl.DYNAMIC_DRAW;
       case BufferUsage.Stream:
         return gl.STREAM_DRAW;
-    }
-  }
-}
-
-class GLBufferReadback implements IPlatformBufferReadback {
-  private _sync: WebGLSync | null;
-
-  constructor(private _gl: WebGL2RenderingContext) {
-    const sync = _gl.fenceSync(_gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
-    if (!sync) {
-      throw new Error("Failed to create GPU buffer readback fence.");
-    }
-    this._sync = sync;
-    _gl.flush();
-  }
-
-  isReady(): boolean {
-    const sync = this._sync;
-    if (!sync) return true;
-    const gl = this._gl;
-    const status = gl.clientWaitSync(sync, 0, 0);
-    if (status === gl.WAIT_FAILED) {
-      throw new Error("GPU buffer readback fence failed.");
-    }
-    return status === gl.ALREADY_SIGNALED || status === gl.CONDITION_SATISFIED;
-  }
-
-  destroy(): void {
-    if (this._sync) {
-      this._gl.deleteSync(this._sync);
-      this._sync = null;
     }
   }
 }

@@ -1,4 +1,5 @@
-export type { IPlatformBuffer, IPlatformBufferReadback } from "./IPlatformBuffer";
+export type { IPlatformBuffer } from "./IPlatformBuffer";
+export type { IPlatformBufferReadback } from "./IPlatformBufferReadback";
 export type { IPlatformRenderTarget } from "./IPlatformRenderTarget";
 export type { IPlatformTexture } from "./IPlatformTexture";
 export type { IPlatformTexture2D } from "./IPlatformTexture2D";
