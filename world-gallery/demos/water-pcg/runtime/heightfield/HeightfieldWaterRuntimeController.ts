@@ -21,6 +21,8 @@ import {
   setHeightfieldWaterFeatureFlags,
   setHeightfieldWaterLocalFoamMask,
   setHeightfieldWaterOpticsCalibrationMode,
+  setHeightfieldWaterSurfaceAppearanceBinding,
+  setHeightfieldWaterSurfaceAppearanceFeatureFlags,
   setHeightfieldWaterSurfaceOpticsBinding,
   setHeightfieldWaterSurfaceTimeOverride,
   updateHeightfieldWaterMaterial
@@ -35,6 +37,10 @@ import { uploadHeightfieldWaterMesh } from "./HeightfieldWaterMeshUploader";
 import { HeightfieldWaterBaseQueryService } from "./HeightfieldWaterQueryService";
 import { HeightfieldWaterSurfaceProvider } from "./HeightfieldWaterSurfaceProvider";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
+import type {
+  WaterSurfaceAppearanceBinding,
+  WaterSurfaceAppearanceBindingReadback
+} from "../surface/WaterSurfaceAppearanceRuntimeTypes";
 import {
   DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS,
   writeHeightfieldWaterReflectionSamplingSettings,
@@ -44,6 +50,7 @@ import {
 } from "./HeightfieldWaterReflectionSampling";
 import {
   DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK,
+  DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS,
   HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS,
   HEIGHTFIELD_WATER_SHADER_PROPERTY
 } from "./constants";
@@ -53,6 +60,7 @@ import type {
   HeightfieldWaterMaterialState,
   HeightfieldWaterMeshBuildResult,
   HeightfieldWaterOpticsCalibrationReadback,
+  HeightfieldWaterSurfaceAppearanceFeatureFlags,
   MutableHeightfieldWaterSurfaceOpticsBinding
 } from "./types";
 
@@ -94,6 +102,22 @@ export interface HeightfieldWaterRuntimeSubmissionOptions {
   readonly releaseMeshCpuData?: boolean;
 }
 
+export interface HeightfieldWaterRuntimeResourceMetrics {
+  readonly retainedRuntimeSetCount: number;
+  readonly activeRuntimeSetCount: 0 | 1;
+  readonly activeDrawCount: number;
+  readonly retainedMaterialCount: number;
+  readonly retainedLocalMapTextureCount: number;
+  readonly runtimeSetCreateCount: number;
+  readonly runtimeSetDestroyCount: number;
+  readonly materialCreateCount: number;
+  readonly materialDestroyCount: number;
+  readonly localMapTextureCreateCount: number;
+  readonly localMapTextureDestroyCount: number;
+  readonly meshCreateCount: number;
+  readonly meshDestroyCount: number;
+}
+
 export class HeightfieldWaterRuntimeSubmissionCancelledError extends Error {
   constructor() {
     super("Heightfield water runtime submission was superseded by a newer request.");
@@ -109,6 +133,14 @@ export class HeightfieldWaterRuntimeController {
   private _pendingResourceGc = false;
   private _destroyed = false;
   private _meshUploadCount = 0;
+  private _runtimeSetCreateCount = 0;
+  private _runtimeSetDestroyCount = 0;
+  private _materialCreateCount = 0;
+  private _materialDestroyCount = 0;
+  private _localMapTextureCreateCount = 0;
+  private _localMapTextureDestroyCount = 0;
+  private _meshCreateCount = 0;
+  private _meshDestroyCount = 0;
   private _debugMode = HeightfieldWaterDebugMode.Final;
   private _refractionEnabled = true;
   private _compositionMode = HeightfieldWaterCompositionMode.LegacyAlpha;
@@ -125,6 +157,9 @@ export class HeightfieldWaterRuntimeController {
   private _requestedOpticsTier?: WaterOpticsTier;
   private _opticalProfile: WaterOpticalProfile = DEFAULT_WATER_OPTICAL_PROFILE;
   private _reflectionBinding?: Readonly<WaterReflectionBinding>;
+  private _surfaceAppearanceBinding?: Readonly<WaterSurfaceAppearanceBinding>;
+  private _surfaceAppearanceFeatureFlags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> =
+    DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS;
   private readonly _reflectionSamplingSettings: HeightfieldWaterReflectionSamplingSettings = {
     ...DEFAULT_HEIGHTFIELD_WATER_REFLECTION_SAMPLING_SETTINGS
   };
@@ -195,12 +230,32 @@ export class HeightfieldWaterRuntimeController {
     return this._activeSet?.surfaceOpticsReadback;
   }
 
+  /** Exact caller-owned binding retained for both active and future runtime sets. */
+  get surfaceAppearanceBinding(): Readonly<WaterSurfaceAppearanceBinding> | undefined {
+    return this._surfaceAppearanceBinding;
+  }
+
+  /** Stable fail-closed readback owned by the active Heightfield material. */
+  get activeSurfaceAppearanceReadback(): Readonly<WaterSurfaceAppearanceBindingReadback> | undefined {
+    return this._activeSet?.material.surfaceAppearanceReadback;
+  }
+
+  /** Frozen caller request reported separately from binding capability readback. */
+  get surfaceAppearanceFeatureFlags(): Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> {
+    return this._surfaceAppearanceFeatureFlags;
+  }
+
   get compositionMode(): HeightfieldWaterCompositionMode {
     return this._compositionMode;
   }
 
   get depthWriteEnabled(): boolean {
     return this._depthWriteEnabled;
+  }
+
+  /** Exact fixed material/query time applied to active and future runtime sets. */
+  get surfaceTimeOverride(): number | undefined {
+    return this._surfaceTimeOverride;
   }
 
   /** Configured renderer priority retained for both active and future chunks. */
@@ -230,6 +285,25 @@ export class HeightfieldWaterRuntimeController {
   /** Monotonic upload count; it changes only when a new chunk mesh is submitted. */
   get meshUploadCount(): number {
     return this._meshUploadCount;
+  }
+
+  get resourceMetrics(): Readonly<HeightfieldWaterRuntimeResourceMetrics> {
+    const retainedRuntimeSetCount = this._runtimeSets.size;
+    return Object.freeze({
+      retainedRuntimeSetCount,
+      activeRuntimeSetCount: this._activeSet ? 1 : 0,
+      activeDrawCount: this._activeSet?.chunks.length ?? 0,
+      retainedMaterialCount: retainedRuntimeSetCount,
+      retainedLocalMapTextureCount: retainedRuntimeSetCount,
+      runtimeSetCreateCount: this._runtimeSetCreateCount,
+      runtimeSetDestroyCount: this._runtimeSetDestroyCount,
+      materialCreateCount: this._materialCreateCount,
+      materialDestroyCount: this._materialDestroyCount,
+      localMapTextureCreateCount: this._localMapTextureCreateCount,
+      localMapTextureDestroyCount: this._localMapTextureDestroyCount,
+      meshCreateCount: this._meshCreateCount,
+      meshDestroyCount: this._meshDestroyCount
+    });
   }
 
   async replaceActiveIncremental(
@@ -265,6 +339,7 @@ export class HeightfieldWaterRuntimeController {
 
     try {
       localMapTexture = createHeightfieldWaterLocalMapTexture(this._engine, data.localMapAtlas);
+      this._localMapTextureCreateCount++;
       localMapTexture.isGCIgnored = true;
       material = createHeightfieldWaterMaterial(
         this._engine,
@@ -274,8 +349,12 @@ export class HeightfieldWaterRuntimeController {
         data.localMapAtlas,
         localMapTexture
       );
+      this._materialCreateCount++;
       material.material.isGCIgnored = true;
       const surfaceOpticsReadback = this._applySurfaceOpticsBinding(material);
+      const appliedSurfaceAppearanceBinding = this._surfaceAppearanceBinding;
+      setHeightfieldWaterSurfaceAppearanceBinding(material, appliedSurfaceAppearanceBinding);
+      setHeightfieldWaterSurfaceAppearanceFeatureFlags(material, this._surfaceAppearanceFeatureFlags);
       setHeightfieldWaterCompositionMode(material, this._compositionMode);
       setHeightfieldWaterDepthWriteEnabled(material, this._depthWriteEnabled);
       setHeightfieldWaterOpticsCalibrationMode(material, this._opticsCalibrationMode);
@@ -327,9 +406,16 @@ export class HeightfieldWaterRuntimeController {
         surfaceOpticsReadback
       };
       if (isCancelled()) throw new HeightfieldWaterRuntimeSubmissionCancelledError();
+      if (this._surfaceAppearanceBinding !== appliedSurfaceAppearanceBinding) {
+        this._applySurfaceAppearanceBinding(runtimeSet.material);
+      }
+      setHeightfieldWaterSurfaceAppearanceFeatureFlags(runtimeSet.material, this._surfaceAppearanceFeatureFlags);
+      runtimeSet.surfaceOpticsReadback = this._applySurfaceOpticsBinding(runtimeSet.material);
+      runtimeSet.reflectionSampling = runtimeSet.material.heightfieldReflectionReadback;
       this._deactivateAll();
       runtimeSet.root.isActive = true;
       this._runtimeSets.set(waterBodyId, runtimeSet);
+      this._runtimeSetCreateCount++;
       this._activeId = waterBodyId;
       this._activeSet = runtimeSet;
       if (previous) {
@@ -348,8 +434,14 @@ export class HeightfieldWaterRuntimeController {
       };
     } catch (error) {
       for (const chunk of chunks) this._destroyChunk(chunk);
-      material?.material.destroy(true);
-      localMapTexture?.destroy(true);
+      if (material) {
+        material.material.destroy(true);
+        this._materialDestroyCount++;
+      }
+      if (localMapTexture) {
+        localMapTexture.destroy(true);
+        this._localMapTextureDestroyCount++;
+      }
       root.destroy();
       resource.release();
       throw error;
@@ -400,6 +492,33 @@ export class HeightfieldWaterRuntimeController {
     );
     this._debugMode = binding.debugView as HeightfieldWaterDebugMode;
     this._refreshSurfaceOpticsBindings();
+  }
+
+  /**
+   * Applies a caller-owned texture binding to all retained materials.
+   * Detach replaces the shader reference and texture slot but never destroys the borrowed texture.
+   */
+  setSurfaceAppearanceBinding(binding?: Readonly<WaterSurfaceAppearanceBinding>): void {
+    if (this._destroyed) throw new Error("Heightfield water runtime controller has been destroyed.");
+    this._surfaceAppearanceBinding = binding;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      this._applySurfaceAppearanceBinding(runtimeSet.material);
+    }
+  }
+
+  setSurfaceAppearanceFeatureFlags(flags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags>): void {
+    if (this._destroyed) throw new Error("Heightfield water runtime controller has been destroyed.");
+    const snapshot = Object.freeze({
+      externalNormal: flags.externalNormal === true,
+      depthTint: flags.depthTint === true,
+      coastalAlpha: flags.coastalAlpha === true,
+      contactFoam: flags.contactFoam === true,
+      directSpecular: flags.directSpecular === true
+    });
+    this._surfaceAppearanceFeatureFlags = snapshot;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      setHeightfieldWaterSurfaceAppearanceFeatureFlags(runtimeSet.material, snapshot);
+    }
   }
 
   setCompositionMode(mode: HeightfieldWaterCompositionMode): void {
@@ -486,6 +605,7 @@ export class HeightfieldWaterRuntimeController {
     this._runtimeSets.clear();
     this._activeId = undefined;
     this._activeSet = undefined;
+    this._surfaceAppearanceBinding = undefined;
     this._pendingResourceGc = true;
   }
 
@@ -509,6 +629,12 @@ export class HeightfieldWaterRuntimeController {
     }
   }
 
+  private _applySurfaceAppearanceBinding(
+    material: HeightfieldWaterMaterialState
+  ): Readonly<WaterSurfaceAppearanceBindingReadback> {
+    return setHeightfieldWaterSurfaceAppearanceBinding(material, this._surfaceAppearanceBinding);
+  }
+
   private _createChunk(
     chunk: HeightfieldWaterCompiledChunk,
     runtimeRoot: Entity,
@@ -522,6 +648,7 @@ export class HeightfieldWaterRuntimeController {
     const renderer = root.addComponent(MeshRenderer);
     renderer.priority = this._renderPriority;
     const meshes = uploadHeightfieldWaterMesh(this._engine, chunk.geometry, { releaseCpuData, boundsPadding });
+    this._meshCreateCount++;
     meshes.surfaceMesh.isGCIgnored = true;
     renderer.mesh = meshes.surfaceMesh;
     renderer.setMaterial(material.material);
@@ -539,13 +666,17 @@ export class HeightfieldWaterRuntimeController {
   private _destroyChunk(chunk: MutableHeightfieldWaterChunk): void {
     chunk.root.destroy();
     chunk.meshes.surfaceMesh.destroy(true);
+    this._meshDestroyCount++;
   }
 
   private _destroyRuntimeSet(runtimeSet: MutableHeightfieldWaterRuntimeSet): void {
     for (const chunk of runtimeSet.chunks) this._destroyChunk(chunk);
     runtimeSet.material.material.destroy(true);
+    this._materialDestroyCount++;
     runtimeSet.localMapTexture.destroy(true);
+    this._localMapTextureDestroyCount++;
     runtimeSet.root.destroy();
     runtimeSet.resource.release();
+    this._runtimeSetDestroyCount++;
   }
 }

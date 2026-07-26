@@ -1,19 +1,25 @@
-import { ShaderLanguage, type Texture2D, type TextureCube } from "@galacean/engine-core";
+import { createHash } from "node:crypto";
+import { Shader, ShaderLanguage, type Texture2D, type TextureCube } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { Matrix, Vector4 } from "@galacean/engine-math";
+import { Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { describe, expect, it, vi } from "vitest";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { HeightfieldWaterCompiler } from "../../compiler/heightfield/HeightfieldWaterCompiler";
+import { WaterSurfaceAppearanceCompiler } from "../../compiler/surface/WaterSurfaceAppearanceCompiler";
 import { createHeightfieldWaterFixture } from "../../demo/heightfield/heightfieldFixture";
 import {
+  DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS,
   HEIGHTFIELD_WATER_SHADER_PROPERTY,
   HEIGHTFIELD_WATER_SURFACE_TEXTURE,
   HEIGHTFIELD_WATER_SURFACE_TUNING
 } from "../../runtime/heightfield/constants";
 import {
+  createHeightfieldWaterShaderSource,
   heightfieldWaterHighShaderSource,
   heightfieldWaterLowShaderSource,
   heightfieldWaterMediumShaderSource,
+  heightfieldWaterSurfaceAppearanceHighShaderSource,
+  heightfieldWaterSurfaceAppearanceMediumShaderSource,
   setHeightfieldWaterCompositionMode,
   setHeightfieldWaterDepthWriteEnabled,
   setHeightfieldWaterOpticsCalibrationMode,
@@ -21,6 +27,8 @@ import {
   setHeightfieldWaterOpticalProfile,
   setHeightfieldWaterReflectionBinding,
   setHeightfieldWaterRefractionEnabled,
+  setHeightfieldWaterSurfaceAppearanceBinding,
+  setHeightfieldWaterSurfaceAppearanceFeatureFlags,
   setHeightfieldWaterSurfaceOpticsBinding
 } from "../../runtime/heightfield/HeightfieldWaterMaterialFactory";
 import {
@@ -36,6 +44,7 @@ import type { HeightfieldWaterMaterialState } from "../../runtime/heightfield/ty
 import { DEFAULT_WATER_OPTICAL_PROFILE } from "../../runtime/optics/WaterOpticalProfile";
 import { createWaterSurfaceOpticsBindingState } from "../../runtime/optics/WaterSurfaceOpticsBinding";
 import { WATER_OPTICS_SHADER_PROPERTY } from "../../runtime/optics/constants/WaterOpticsShaderConstants";
+import { grasslandsSurfaceAppearanceFixture } from "../fixtures/waterSurfaceAppearanceFixtures";
 
 interface GlesShaderPrecompiler {
   _precompile(source: string, language: ShaderLanguage, basePath: string): unknown;
@@ -45,6 +54,7 @@ function createOpticsMaterialState(
   shaderDataOverrides: Readonly<Record<string, unknown>>,
   quality = WaterQualityTier.Medium
 ): HeightfieldWaterMaterialState {
+  const legacyShader = { name: "AIWorld/HeightfieldWaterTest" };
   const shaderData = {
     setFloat: vi.fn(),
     setInt: vi.fn(),
@@ -55,7 +65,8 @@ function createOpticsMaterialState(
     ...shaderDataOverrides
   };
   return {
-    material: { shaderData } as never,
+    material: { shaderData, shader: legacyShader } as never,
+    legacyShader: legacyShader as never,
     quality,
     waveSet: {} as never,
     ...createWaterSurfaceOpticsBindingState(),
@@ -81,12 +92,50 @@ function createOpticsMaterialState(
       mode: HeightfieldWaterOpticsCalibrationMode.None,
       referenceCompositionEnabled: false,
       effectiveFresnelOverride: undefined
+    },
+    surfaceAppearanceReadback: {
+      requested: false,
+      active: false,
+      normalTextureWidth: 0,
+      normalTextureHeight: 0,
+      normalLayerCount: 0,
+      normalTiling: 0,
+      normalScrollUvPerSecond: 0,
+      normalStrength: 0,
+      flipGreen: false,
+      depthTintEnabled: false,
+      depthTintDistance: 0,
+      depthTintExponent: 0,
+      coastalAlphaEnabled: false,
+      coastalAlphaDistance: 0,
+      contactFoamEnabled: false,
+      contactFoamWorldScale: 0,
+      contactFoamTimeRate: 0,
+      contactFoamOpacity: 0,
+      contactFoamContactDistance: 0,
+      contactFoamOctaveCount: 0,
+      contactFoamWeights: [],
+      contactFoamLacunarity: 0,
+      contactFoamSuppressRefraction: 0,
+      contactFoamSmoothnessReduction: 0
+    },
+    surfaceAppearanceFeatureFlags: {
+      ...DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS
     }
   };
 }
 
 describe("HeightfieldWaterMaterialFactory", () => {
   it("keeps debug and composition enum values stable for Lab capture automation", () => {
+    expect([
+      HeightfieldWaterDebugMode.Final,
+      HeightfieldWaterDebugMode.BaseHeight,
+      HeightfieldWaterDebugMode.BaseNormal,
+      HeightfieldWaterDebugMode.SignedDistance,
+      HeightfieldWaterDebugMode.Depth,
+      HeightfieldWaterDebugMode.Flow,
+      HeightfieldWaterDebugMode.WaveDisplacement
+    ]).toEqual([0, 1, 2, 3, 4, 5, 6]);
     expect([
       HeightfieldWaterDebugMode.CenteredOpaqueColor,
       HeightfieldWaterDebugMode.DisplacedOpaqueColor,
@@ -103,8 +152,15 @@ describe("HeightfieldWaterMaterialFactory", () => {
       HeightfieldWaterDebugMode.RefractionAmount,
       HeightfieldWaterDebugMode.RefractionGates,
       HeightfieldWaterDebugMode.ReflectionColor,
-      HeightfieldWaterDebugMode.NormalDotView
-    ]).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]);
+      HeightfieldWaterDebugMode.NormalDotView,
+      HeightfieldWaterDebugMode.DetailNormal,
+      HeightfieldWaterDebugMode.SceneDepthDelta,
+      HeightfieldWaterDebugMode.DepthTint,
+      HeightfieldWaterDebugMode.ContactFoam,
+      HeightfieldWaterDebugMode.CoastalAlpha,
+      HeightfieldWaterDebugMode.DirectSpecular,
+      HeightfieldWaterDebugMode.EffectiveRoughness
+    ]).toEqual([7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29]);
     expect(Object.values(HeightfieldWaterOpticsDebugOutput)).toEqual([
       "centered-opaque-color",
       "displaced-opaque-color",
@@ -122,6 +178,13 @@ describe("HeightfieldWaterMaterialFactory", () => {
       "refraction-gates",
       "reflection-color",
       "normal-dot-view",
+      "detail-normal",
+      "scene-depth-delta",
+      "depth-tint",
+      "contact-foam",
+      "coastal-alpha",
+      "direct-specular",
+      "effective-roughness",
       "final-framebuffer-color"
     ]);
     expect(HeightfieldWaterCompositionMode.LegacyAlpha).toBe(0);
@@ -146,7 +209,14 @@ describe("HeightfieldWaterMaterialFactory", () => {
       [HeightfieldWaterOpticsDebugOutput.RefractionAmount]: HeightfieldWaterDebugMode.RefractionAmount,
       [HeightfieldWaterOpticsDebugOutput.RefractionGates]: HeightfieldWaterDebugMode.RefractionGates,
       [HeightfieldWaterOpticsDebugOutput.ReflectionColor]: HeightfieldWaterDebugMode.ReflectionColor,
-      [HeightfieldWaterOpticsDebugOutput.NormalDotView]: HeightfieldWaterDebugMode.NormalDotView
+      [HeightfieldWaterOpticsDebugOutput.NormalDotView]: HeightfieldWaterDebugMode.NormalDotView,
+      [HeightfieldWaterOpticsDebugOutput.DetailNormal]: HeightfieldWaterDebugMode.DetailNormal,
+      [HeightfieldWaterOpticsDebugOutput.SceneDepthDelta]: HeightfieldWaterDebugMode.SceneDepthDelta,
+      [HeightfieldWaterOpticsDebugOutput.DepthTint]: HeightfieldWaterDebugMode.DepthTint,
+      [HeightfieldWaterOpticsDebugOutput.ContactFoam]: HeightfieldWaterDebugMode.ContactFoam,
+      [HeightfieldWaterOpticsDebugOutput.CoastalAlpha]: HeightfieldWaterDebugMode.CoastalAlpha,
+      [HeightfieldWaterOpticsDebugOutput.DirectSpecular]: HeightfieldWaterDebugMode.DirectSpecular,
+      [HeightfieldWaterOpticsDebugOutput.EffectiveRoughness]: HeightfieldWaterDebugMode.EffectiveRoughness
     });
     expect(HEIGHTFIELD_WATER_SHADER_DEBUG_MODE_BY_OUTPUT[HeightfieldWaterOpticsDebugOutput.FinalFramebufferColor]).toBe(
       undefined
@@ -160,6 +230,670 @@ describe("HeightfieldWaterMaterialFactory", () => {
   ])("precompiles the %s variant to GLES100", (_label, source) => {
     const compiler = new ShaderCompiler() as unknown as GlesShaderPrecompiler;
     expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, "")).not.toThrow();
+  });
+
+  it.each([
+    ["Medium", heightfieldWaterSurfaceAppearanceMediumShaderSource],
+    ["High", heightfieldWaterSurfaceAppearanceHighShaderSource]
+  ])("precompiles the surface appearance %s variant to GLES100", (_label, source) => {
+    const compiler = new ShaderCompiler() as unknown as GlesShaderPrecompiler;
+    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, "")).not.toThrow();
+  });
+
+  it.each([
+    ["Medium", heightfieldWaterSurfaceAppearanceMediumShaderSource],
+    ["High", heightfieldWaterSurfaceAppearanceHighShaderSource]
+  ])("precompiles the surface appearance %s variant to GLES300", (_label, source) => {
+    const compiler = new ShaderCompiler() as unknown as GlesShaderPrecompiler;
+    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES300, "")).not.toThrow();
+  });
+
+  it("rejects the forbidden Low Surface Appearance shader family", () => {
+    expect(() => createHeightfieldWaterShaderSource(WaterQualityTier.Low, 2, true)).toThrow(
+      "Low heightfield water does not support the Surface Appearance shader family."
+    );
+  });
+
+  it("keeps every legacy shader source byte-for-byte compatible", () => {
+    expect([
+      [
+        heightfieldWaterLowShaderSource.length,
+        createHash("sha256").update(heightfieldWaterLowShaderSource).digest("hex")
+      ],
+      [
+        heightfieldWaterMediumShaderSource.length,
+        createHash("sha256").update(heightfieldWaterMediumShaderSource).digest("hex")
+      ],
+      [
+        heightfieldWaterHighShaderSource.length,
+        createHash("sha256").update(heightfieldWaterHighShaderSource).digest("hex")
+      ]
+    ]).toEqual([
+      [24204, "4acb01a7f30df480998ba55b0d4832df901f2d132e89e482e431ed4c7339a222"],
+      [37477, "019666a896b887f3c5089fe84e2ee4f387181cd86d8dc384142b9f7b872fb6fa"],
+      [44713, "6fe14c2877a9ead46c59b3d177e0988c80b87e8443098cc9917936d13897936f"]
+    ]);
+  });
+
+  it("uses exactly two mirrored world-XZ external normal samples with explicit decode controls", () => {
+    for (const source of [
+      heightfieldWaterSurfaceAppearanceMediumShaderSource,
+      heightfieldWaterSurfaceAppearanceHighShaderSource
+    ]) {
+      expect(source.match(/texture2D\(\s*material_AppearanceNormalTexture/g) ?? []).toHaveLength(2);
+      expect(source).toContain("appearanceWorldUv + appearanceScrollUv");
+      expect(source).toContain("-appearanceWorldUv + appearanceScrollUv");
+      expect(source).toContain("baseWorldPosition.xz * material_AppearanceNormalTiling");
+      expect(source).toContain("elapsedTime * material_AppearanceNormalScrollUvPerSecond");
+      expect(source).toContain("slope.y *= mix(1.0, -1.0");
+      expect(source).toContain("slope *= material_AppearanceNormalStrength");
+      expect(source).toContain("blendAppearanceTangentNormals(");
+      expect(source).toContain("float externalNormalWeight = material_AppearanceExternalNormalEnabled");
+      expect(source).not.toMatch(/Grasslands|hero-grasslands|https?:\/\//);
+    }
+    expect(heightfieldWaterLowShaderSource).not.toContain("material_AppearanceNormalTexture");
+  });
+
+  it("uses one raw centered Scene Depth delta for exact appearance refraction, depth tint, and coastal alpha", () => {
+    for (const source of [
+      heightfieldWaterSurfaceAppearanceMediumShaderSource,
+      heightfieldWaterSurfaceAppearanceHighShaderSource
+    ]) {
+      expect(source.match(/texture2D\(\s*camera_DepthTexture/g) ?? []).toHaveLength(2);
+      expect(source.match(/texture2D\(\s*camera_DepthTexture,\s*screenUv/g) ?? []).toHaveLength(1);
+      expect(source).toContain("float sceneDepthDelta = max(sceneEyeDepth - input.surfaceEyeDepth, 0.0)");
+      expect(source).toContain("float sampledOpticalDepth = sceneDepthDelta");
+      expect(source).toContain("bool centeredSceneDepthFinite = sceneEyeDepthSample >= 0.0");
+      expect(source).toContain("bool refractedSceneDepthFinite = refractedSceneEyeDepthSample >= 0.0");
+      expect(source).toContain("* centeredDepthBehind\n          * refractedSceneDepthFiniteWeight");
+      expect(source).toContain("saturate(sceneDepthDelta / max(material_AppearanceDepthTintDistance, 0.0001))");
+      expect(source).toContain("max(material_AppearanceDepthTintExponent, 0.0001)");
+      expect(source).toContain(
+        "mix(\n          refractedSceneColor,\n          material_AppearanceDepthTintColor.rgb,\n          appearanceDepthTintFactor"
+      );
+      expect(source).toContain("sceneDepthDelta / max(material_AppearanceCoastalAlphaDistance, 0.0001)");
+      expect(source).toContain(
+        "alpha = mix(\n          alpha,\n          appearanceCoastalAlpha,\n          material_AppearanceCoastalAlphaEnabled"
+      );
+      expect(source).toContain("alpha = clamp(alpha, 0.0, 1.0) * coverage");
+      expect(source).toContain(
+        "shaderCompositedColor = mix(\n            centeredOpaqueColor,\n            waterColor,\n            surfaceAlpha"
+      );
+      const displacedUvBlock = source.match(/vec2 displacedScreenUv = screenUv[\s\S]*?;/)?.[0] ?? "";
+      expect(displacedUvBlock).toContain("refractionNormalDelta\n            * material_RefractionStrength");
+      expect(displacedUvBlock).not.toContain("refractionDepthWeight");
+      expect(displacedUvBlock).not.toMatch(/\b0\.008\b|\b0\.012\b/);
+    }
+    for (const source of [
+      heightfieldWaterLowShaderSource,
+      heightfieldWaterMediumShaderSource,
+      heightfieldWaterHighShaderSource
+    ]) {
+      expect(source).not.toContain("material_AppearanceDepthTintEnabled");
+      expect(source).not.toContain("material_AppearanceCoastalAlphaEnabled");
+      expect(source).not.toContain("shaderCompositedColor = mix(\n            centeredOpaqueColor");
+      expect(source).not.toContain("sceneDepthDelta");
+    }
+  });
+
+  it("reuses one Scene Depth contact mask for color, refraction, alpha, and roughness", () => {
+    for (const source of [
+      heightfieldWaterSurfaceAppearanceMediumShaderSource,
+      heightfieldWaterSurfaceAppearanceHighShaderSource
+    ]) {
+      expect(source.match(/texture2D\(\s*camera_DepthTexture/g) ?? []).toHaveLength(2);
+      expect(source.match(/texture2D\(\s*camera_DepthTexture,\s*screenUv/g) ?? []).toHaveLength(1);
+      expect(source).toContain("float contactFoamMask = material_AppearanceContactFoamEnabled");
+      expect(source).toContain("evaluateWaterContactFoamMask(");
+      expect(source).toContain("sceneDepthDelta,\n            centeredDepthBehind,");
+      expect(source).toContain("float foamTint = max(legacyFoamTint, contactFoamMask)");
+      expect(source).toContain("contactFoamMask\n                * material_AppearanceContactFoamSuppressRefraction");
+      expect(source.match(/material_AppearanceContactFoamSuppressRefraction/g) ?? []).toHaveLength(2);
+      expect(source).toContain("alpha += contactFoamMask * (1.0 - alpha)");
+      expect(source).toContain(
+        "material_Roughness\n            + contactFoamMask\n              * material_AppearanceContactFoamSmoothnessReduction"
+      );
+    }
+    expect(heightfieldWaterSurfaceAppearanceMediumShaderSource.match(/weightedPattern \+=/g) ?? []).toHaveLength(2);
+    expect(heightfieldWaterSurfaceAppearanceHighShaderSource.match(/weightedPattern \+=/g) ?? []).toHaveLength(3);
+    for (const source of [
+      heightfieldWaterLowShaderSource,
+      heightfieldWaterMediumShaderSource,
+      heightfieldWaterHighShaderSource
+    ]) {
+      expect(source).not.toContain("material_AppearanceContactFoamEnabled");
+      expect(source).not.toContain("evaluateWaterContactFoamMask");
+    }
+  });
+
+  it("uses the real scene sunlight and shared GGX only in Surface Appearance variants", () => {
+    for (const source of [
+      heightfieldWaterSurfaceAppearanceMediumShaderSource,
+      heightfieldWaterSurfaceAppearanceHighShaderSource
+    ]) {
+      expect(source).toContain("vec4 scene_SunlightColor");
+      expect(source).toContain("vec3 scene_SunlightDirection");
+      expect(source).toContain("vec3 sunlightDirectionVector = -scene_SunlightDirection");
+      expect(source).toContain("float sunlightAvailable = step(0.000001, sunlightDirectionLengthSquared)");
+      expect(source).toContain("vec3 sunlightColor = max(scene_SunlightColor.rgb, vec3(0.0))");
+      expect(source).toContain("float material_AppearanceDirectSpecularEnabled");
+      expect(source).toContain(
+        "float directSpecular = material_AppearanceDirectSpecularEnabled\n          * waterSurfaceDirectSpecular("
+      );
+      expect(source).toMatch(
+        /waterSurfaceDirectSpecular\(\s*fresnelF0,\s*effectiveSurfaceRoughness,\s*normalDotView,\s*normalDotLight,\s*normalDotHalf,\s*lightDotHalf\s*\)/
+      );
+      expect(source).toContain("waterColor += sunlightColor * directSpecular");
+      expect(source).toContain("saturate(effectiveSurfaceRoughness)");
+      expect(source).not.toContain("normalize(vec3(-0.32, 0.86, 0.39))");
+      expect(source).not.toMatch(/\bshadow\b/i);
+    }
+    expect(heightfieldWaterSurfaceAppearanceHighShaderSource).toContain(
+      "float planarRoughness = saturate(effectiveSurfaceRoughness)"
+    );
+    for (const source of [
+      heightfieldWaterLowShaderSource,
+      heightfieldWaterMediumShaderSource,
+      heightfieldWaterHighShaderSource
+    ]) {
+      expect(source).not.toContain("scene_SunlightColor");
+      expect(source).not.toContain("waterSurfaceDirectSpecular");
+      expect(source).toContain("normalize(vec3(-0.32, 0.86, 0.39))");
+    }
+  });
+
+  it("appends Surface Appearance debug modes 23 through 29 without changing legacy debug source", () => {
+    for (const source of [
+      heightfieldWaterSurfaceAppearanceMediumShaderSource,
+      heightfieldWaterSurfaceAppearanceHighShaderSource
+    ]) {
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.NormalDotView + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.DetailNormal + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.SceneDepthDelta + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.DepthTint + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.ContactFoam + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.CoastalAlpha + 0.5}`);
+      expect(source).toContain(`material_DebugMode < ${HeightfieldWaterDebugMode.DirectSpecular + 0.5}`);
+      expect(source).toContain("fragmentColor = appearanceNormalTS * 0.5 + 0.5");
+      expect(source).toContain("fragmentColor = vec3(sceneDepthDelta)");
+      expect(source).toContain("fragmentColor = vec3(appearanceDepthTintFactor)");
+      expect(source).toContain("fragmentColor = vec3(contactFoamMask)");
+      expect(source).toContain("fragmentColor = vec3(appearanceCoastalAlpha)");
+      expect(source).toContain("fragmentColor = sunlightColor * directSpecular");
+      expect(source).toContain("fragmentColor = vec3(effectiveSurfaceRoughness)");
+    }
+    for (const source of [
+      heightfieldWaterLowShaderSource,
+      heightfieldWaterMediumShaderSource,
+      heightfieldWaterHighShaderSource
+    ]) {
+      expect(source).not.toContain("fragmentColor = appearanceNormalTS * 0.5 + 0.5");
+      expect(source).not.toContain("fragmentColor = vec3(sceneDepthDelta)");
+      expect(source).not.toContain("fragmentColor = vec3(contactFoamMask)");
+      expect(source).not.toContain("fragmentColor = sunlightColor * directSpecular");
+    }
+  });
+
+  it("binds and detaches a borrowed external normal without destroying it", () => {
+    const setFloat = vi.fn();
+    const setInt = vi.fn();
+    const setTexture = vi.fn();
+    const setVector3 = vi.fn();
+    const setVector4 = vi.fn();
+    const state = createOpticsMaterialState(
+      { setFloat, setInt, setTexture, setVector3, setVector4 },
+      WaterQualityTier.High
+    );
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const readback = state.surfaceAppearanceReadback;
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1High12" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      setHeightfieldWaterCompositionMode(state, HeightfieldWaterCompositionMode.PrecomposedReplace);
+      setHeightfieldWaterDepthWriteEnabled(state, true);
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding)).toBe(readback);
+      expect(readback).toMatchObject({
+        active: true,
+        normalLayerCount: 2,
+        normalTextureWidth: 1024,
+        normalTiling: 0.05,
+        normalScrollUvPerSecond: 0.02,
+        normalStrength: 0.2,
+        depthTintModel: "scene-depth-power",
+        depthTintEnabled: true,
+        depthTintColor: [0.21710525, 0.45953944, 0.55, 1],
+        depthTintDistance: 10,
+        depthTintExponent: 0.5,
+        coastalAlphaModel: "scene-depth",
+        coastalAlphaEnabled: true,
+        coastalAlphaDistance: 0.5,
+        contactFoamModel: "scene-depth-voronoi",
+        contactFoamEnabled: true,
+        contactFoamWorldScale: 2.5,
+        contactFoamTimeRate: 1,
+        contactFoamOpacity: 0.453,
+        contactFoamContactDistance: 0.1791,
+        contactFoamOctaveCount: 3,
+        contactFoamWeights: [0.5, 0.25, 0.125],
+        contactFoamLacunarity: 2,
+        contactFoamSuppressRefraction: 1,
+        contactFoamSmoothnessReduction: 0.35,
+        ownership: "borrowed"
+      });
+      expect(state.material.shader).toBe(appearanceShader);
+      expect(setTexture).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTexture, texture);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTiling, 0.05);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalScrollUvPerSecond, 0.02);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalStrength, 0.2);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalFlipGreen, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled, 1);
+      expect(setVector4).toHaveBeenCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintColor,
+        new Vector4(0.21710525, 0.45953944, 0.55, 1)
+      );
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintDistance, 10);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintExponent, 0.5);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaDistance, 0.5);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamWorldScale, 2.5);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamTimeRate, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOpacity, 0.453);
+      expect(setFloat).toHaveBeenCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamContactDistance,
+        0.1791
+      );
+      expect(setVector3).toHaveBeenCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+        new Vector3(0.5, 0.25, 0.125)
+      );
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamLacunarity, 2);
+      expect(setFloat).toHaveBeenCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSuppressRefraction,
+        1
+      );
+      expect(setFloat).toHaveBeenCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSmoothnessReduction,
+        0.35
+      );
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 1);
+
+      const flippedAppearance = WaterSurfaceAppearanceCompiler.compile({
+        ...grasslandsSurfaceAppearanceFixture,
+        normal: { ...grasslandsSurfaceAppearanceFixture.normal, flipGreen: true }
+      }).data!;
+      expect(
+        setHeightfieldWaterSurfaceAppearanceBinding(state, {
+          ...binding,
+          appearance: flippedAppearance
+        })
+      ).toBe(readback);
+      expect(readback.flipGreen).toBe(true);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalFlipGreen, 1);
+
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state)).toBe(readback);
+      expect(readback).toMatchObject({
+        requested: false,
+        active: false,
+        normalLayerCount: 0,
+        depthTintEnabled: false,
+        depthTintDistance: 0,
+        depthTintExponent: 0,
+        coastalAlphaEnabled: false,
+        coastalAlphaDistance: 0,
+        contactFoamEnabled: false,
+        contactFoamOctaveCount: 0,
+        contactFoamWeights: []
+      });
+      expect(state.material.shader).toBe(state.legacyShader);
+      expect(setTexture).toHaveBeenLastCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTexture, null);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalFlipGreen, 0);
+      expect(setVector4).toHaveBeenLastCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintColor,
+        new Vector4(0, 0, 0, 0)
+      );
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaDistance, 0);
+      expect(setVector3).toHaveBeenLastCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+        new Vector3(0, 0, 0)
+      );
+      expect(setFloat).toHaveBeenLastCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 0);
+      expect(setInt).toHaveBeenCalledTimes(2);
+      expect(setInt).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.blendEnabled, 0);
+      expect(setInt).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.depthWriteEnabled, 1);
+      expect(texture.destroy).not.toHaveBeenCalled();
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it.each([
+    ["externalNormal", HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled],
+    ["depthTint", HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled],
+    ["coastalAlpha", HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled],
+    ["contactFoam", HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled],
+    ["directSpecular", HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled]
+  ] as const)("gates only the requested Surface Appearance %s feature", (disabledFeature, disabledProperty) => {
+    const setFloat = vi.fn();
+    const setTexture = vi.fn();
+    const state = createOpticsMaterialState({ setFloat, setTexture }, WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1High12" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding).active).toBe(true);
+      setFloat.mockClear();
+      setTexture.mockClear();
+      setHeightfieldWaterSurfaceAppearanceFeatureFlags(state, {
+        ...DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS,
+        [disabledFeature]: false
+      });
+
+      const gateProperties = [
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled
+      ];
+      for (const property of gateProperties) {
+        expect(setFloat).toHaveBeenCalledWith(property, property === disabledProperty ? 0 : 1);
+      }
+      expect(state.surfaceAppearanceReadback).toMatchObject({
+        active: true,
+        normalLayerCount: 2,
+        depthTintEnabled: true,
+        coastalAlphaEnabled: true,
+        contactFoamEnabled: true
+      });
+      expect(state.material.shader).toBe(appearanceShader);
+      expect(setTexture).not.toHaveBeenCalled();
+      expect(texture.destroy).not.toHaveBeenCalled();
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it("retains combined feature requests across invalid detach and reattach while clearing inactive gates", () => {
+    const setFloat = vi.fn();
+    const setTexture = vi.fn();
+    const state = createOpticsMaterialState({ setFloat, setTexture }, WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const requestedFlags = {
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    } as const;
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1High12" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding).active).toBe(true);
+      setHeightfieldWaterSurfaceAppearanceFeatureFlags(state, requestedFlags);
+      expect(state.surfaceAppearanceFeatureFlags).toEqual(requestedFlags);
+      expect(setFloat).toHaveBeenLastCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 0);
+
+      setFloat.mockClear();
+      expect(
+        setHeightfieldWaterSurfaceAppearanceBinding(state, {
+          ...binding,
+          contentHash: "f".repeat(64)
+        })
+      ).toMatchObject({
+        requested: true,
+        active: false,
+        fallbackReason: "surface-appearance-content-hash-mismatch"
+      });
+      for (const property of [
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled,
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled
+      ]) {
+        expect(setFloat).toHaveBeenCalledWith(property, 0);
+      }
+
+      setFloat.mockClear();
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding).active).toBe(true);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled, 1);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 0);
+      expect(state.surfaceAppearanceFeatureFlags).toEqual(requestedFlags);
+      expect(texture.destroy).not.toHaveBeenCalled();
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it("clears every stale appearance resource after an active binding becomes invalid", () => {
+    const setFloat = vi.fn();
+    const setTexture = vi.fn();
+    const setVector3 = vi.fn();
+    const setVector4 = vi.fn();
+    const state = createOpticsMaterialState({ setFloat, setTexture, setVector3, setVector4 }, WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1High12" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding).active).toBe(true);
+      setFloat.mockClear();
+      setTexture.mockClear();
+      setVector3.mockClear();
+      setVector4.mockClear();
+
+      expect(
+        setHeightfieldWaterSurfaceAppearanceBinding(state, {
+          ...binding,
+          contentHash: "f".repeat(64)
+        })
+      ).toMatchObject({
+        requested: true,
+        active: false,
+        fallbackReason: "surface-appearance-content-hash-mismatch",
+        normalLayerCount: 0,
+        depthTintEnabled: false,
+        coastalAlphaEnabled: false,
+        contactFoamEnabled: false,
+        contactFoamOctaveCount: 0,
+        contactFoamWeights: []
+      });
+      expect(state.material.shader).toBe(state.legacyShader);
+      expect(setTexture).toHaveBeenLastCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTexture, null);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled, 0);
+      expect(setFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled, 0);
+      expect(setVector4).toHaveBeenLastCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintColor,
+        new Vector4(0, 0, 0, 0)
+      );
+      expect(setVector3).toHaveBeenLastCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+        new Vector3(0, 0, 0)
+      );
+      expect(texture.destroy).not.toHaveBeenCalled();
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it("caps Medium contact foam to two normalized authored octaves", () => {
+    const setVector3 = vi.fn();
+    const state = createOpticsMaterialState({ setVector3 }, WaterQualityTier.Medium);
+    const texture = { width: 1024, height: 1024, destroyed: false } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1Medium6" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding)).toMatchObject({
+        active: true,
+        contactFoamOctaveCount: 2,
+        contactFoamWeights: [0.5, 0.25]
+      });
+      expect(setVector3).toHaveBeenLastCalledWith(
+        HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+        new Vector3(0.5, 0.25, 0)
+      );
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it("fails appearance-only debug views closed on legacy and restores them only while Appearance is active", () => {
+    const setFloat = vi.fn();
+    const setTexture = vi.fn();
+    const state = createOpticsMaterialState({ setFloat, setTexture }, WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const appearanceShader = { name: "AIWorld/HeightfieldWaterSurfaceAppearanceV1High12" };
+    const findShader = vi.spyOn(Shader, "find").mockReturnValue(appearanceShader as never);
+
+    try {
+      expect(
+        setHeightfieldWaterSurfaceOpticsBinding(state, {
+          tier: "high",
+          opticalProfile: DEFAULT_WATER_OPTICAL_PROFILE,
+          refractionEnabled: true,
+          reflection: undefined,
+          debugView: HeightfieldWaterDebugMode.EffectiveRoughness
+        }).debugView
+      ).toBe(HeightfieldWaterDebugMode.Final);
+      expect(state.surfaceOpticsBinding.debugView).toBe(HeightfieldWaterDebugMode.EffectiveRoughness);
+
+      expect(setHeightfieldWaterSurfaceAppearanceBinding(state, binding).active).toBe(true);
+      expect(state.bindingReadback.debugView).toBe(HeightfieldWaterDebugMode.EffectiveRoughness);
+      expect(setFloat).toHaveBeenLastCalledWith(
+        WATER_OPTICS_SHADER_PROPERTY.debugMode,
+        HeightfieldWaterDebugMode.EffectiveRoughness
+      );
+
+      expect(
+        setHeightfieldWaterSurfaceAppearanceBinding(state, {
+          ...binding,
+          contentHash: "f".repeat(64)
+        }).active
+      ).toBe(false);
+      expect(state.bindingReadback.debugView).toBe(HeightfieldWaterDebugMode.Final);
+      expect(setFloat).toHaveBeenLastCalledWith(
+        WATER_OPTICS_SHADER_PROPERTY.debugMode,
+        HeightfieldWaterDebugMode.Final
+      );
+      expect(texture.destroy).not.toHaveBeenCalled();
+    } finally {
+      findShader.mockRestore();
+    }
+  });
+
+  it("fails Low and mismatched external bindings closed on the exact legacy shader", () => {
+    const texture = { width: 1024, height: 1024, destroyed: false } as unknown as Texture2D;
+    const binding = {
+      appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+      assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+      contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+      texture,
+      ownership: "borrowed" as const
+    };
+    const lowSetFloat = vi.fn();
+    const lowSetTexture = vi.fn();
+    const highSetFloat = vi.fn();
+    const highSetTexture = vi.fn();
+    const low = createOpticsMaterialState({ setFloat: lowSetFloat, setTexture: lowSetTexture }, WaterQualityTier.Low);
+    const high = createOpticsMaterialState(
+      { setFloat: highSetFloat, setTexture: highSetTexture },
+      WaterQualityTier.High
+    );
+
+    expect(setHeightfieldWaterSurfaceAppearanceBinding(low, binding)).toMatchObject({
+      active: false,
+      fallbackReason: "surface-appearance-quality-unsupported"
+    });
+    expect(low.material.shader).toBe(low.legacyShader);
+    expect(lowSetTexture).not.toHaveBeenCalled();
+    expect(lowSetFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 0);
+    expect(
+      setHeightfieldWaterSurfaceAppearanceBinding(high, { ...binding, assetId: "mismatched-normal" })
+    ).toMatchObject({
+      active: false,
+      fallbackReason: "surface-appearance-asset-id-mismatch"
+    });
+    expect(high.material.shader).toBe(high.legacyShader);
+    expect(highSetTexture).not.toHaveBeenCalled();
+    expect(highSetFloat).toHaveBeenCalledWith(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled, 0);
   });
 
   it.each(

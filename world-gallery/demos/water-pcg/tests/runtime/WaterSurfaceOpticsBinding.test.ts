@@ -80,24 +80,45 @@ describe("WaterSurfaceOpticsBinding", () => {
     expect(WaterOpticsDebugView.RefractionGates).toBe(20);
     expect(WaterOpticsDebugView.ReflectionColor).toBe(21);
     expect(WaterOpticsDebugView.NormalDotView).toBe(22);
+    expect([
+      WaterOpticsDebugView.DetailNormal,
+      WaterOpticsDebugView.SceneDepthDelta,
+      WaterOpticsDebugView.DepthTint,
+      WaterOpticsDebugView.ContactFoam,
+      WaterOpticsDebugView.CoastalAlpha,
+      WaterOpticsDebugView.DirectSpecular,
+      WaterOpticsDebugView.EffectiveRoughness
+    ]).toEqual([23, 24, 25, 26, 27, 28, 29]);
     expect(WATER_OPTICS_REFLECTION_SOURCE_VALUE).toEqual({ sky: 0, probe: 1, planar: 2 });
   });
 
-  it("accepts appended calibration debug views and rejects values beyond the frozen ABI", () => {
-    const { shaderData } = createShaderDataMock();
+  it("accepts every appended Surface Appearance debug view and rejects values beyond the frozen ABI", () => {
+    const { shaderData, setFloat } = createShaderDataMock();
     const state = createWaterSurfaceOpticsBindingState();
     const binding = createPlanarBinding("high");
 
+    for (const debugView of [
+      WaterOpticsDebugView.DetailNormal,
+      WaterOpticsDebugView.SceneDepthDelta,
+      WaterOpticsDebugView.DepthTint,
+      WaterOpticsDebugView.ContactFoam,
+      WaterOpticsDebugView.CoastalAlpha,
+      WaterOpticsDebugView.DirectSpecular,
+      WaterOpticsDebugView.EffectiveRoughness
+    ]) {
+      setFloat.mockClear();
+      expect(
+        applyWaterSurfaceOpticsBinding(shaderData, state, {
+          ...binding,
+          debugView
+        }).debugView
+      ).toBe(debugView);
+      expect(setFloat).toHaveBeenCalledWith(WATER_OPTICS_SHADER_PROPERTY.debugMode, debugView);
+    }
     expect(
       applyWaterSurfaceOpticsBinding(shaderData, state, {
         ...binding,
-        debugView: WaterOpticsDebugView.NormalDotView
-      }).debugView
-    ).toBe(WaterOpticsDebugView.NormalDotView);
-    expect(
-      applyWaterSurfaceOpticsBinding(shaderData, state, {
-        ...binding,
-        debugView: WaterOpticsDebugView.NormalDotView + 1
+        debugView: WaterOpticsDebugView.EffectiveRoughness + 1
       }).debugView
     ).toBe(WaterOpticsDebugView.Final);
   });

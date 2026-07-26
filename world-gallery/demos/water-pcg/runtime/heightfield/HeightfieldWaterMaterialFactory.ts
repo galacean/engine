@@ -1,6 +1,12 @@
 /** Dedicated heightfield-water shader: curved base surface, packed local map, waves, optics, and debug views. */
-import { Engine, Material, Shader, Texture2D } from "@galacean/engine-core";
-import { Color, Vector4 } from "@galacean/engine-math";
+import { Engine, Material, Shader, Texture2D, type Texture } from "@galacean/engine-core";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
+import {
+  WaterSurfaceCoastalAlphaModel,
+  WaterSurfaceContactFoamModel,
+  WaterSurfaceDepthTintModel,
+  WaterSurfaceNormalModel
+} from "../../authoring/surface/WaterSurfaceAppearanceTypes";
 import { WATER_WAVE_PACKED_FLOATS_PER_WAVE } from "../../authoring/wave/constants/WaterWaveLimits";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import type { HeightfieldWaterMaterialConfig } from "../../authoring/heightfield/HeightfieldWaterTypes";
@@ -19,6 +25,18 @@ import {
   type WaterSurfaceOpticsBindingReadback,
   type WaterSurfaceOpticsReflectionReadback
 } from "../optics/WaterSurfaceOpticsTypes";
+import { WATER_OPTICS_SHADER_PROPERTY } from "../optics/constants/WaterOpticsShaderConstants";
+import {
+  createWaterSurfaceAppearanceBindingReadback,
+  resolveWaterSurfaceAppearanceBinding,
+  writeWaterSurfaceAppearanceBindingReadback
+} from "../surface/WaterSurfaceAppearanceBinding";
+import type {
+  WaterSurfaceAppearanceBinding,
+  WaterSurfaceAppearanceBindingReadback
+} from "../surface/WaterSurfaceAppearanceRuntimeTypes";
+import { createWaterSurfaceBrdfShaderFunctions } from "../surface/WaterSurfaceBrdfShader";
+import { createWaterContactFoamShaderFunctionsForQuality } from "../surface/WaterContactFoamShader";
 import {
   HeightfieldWaterCompositionMode,
   HeightfieldWaterDebugMode,
@@ -32,6 +50,7 @@ import {
 } from "./HeightfieldWaterReflectionSampling";
 import {
   DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK,
+  DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS,
   HEIGHTFIELD_WATER_SHADER_PROPERTY,
   HEIGHTFIELD_WATER_SURFACE_TUNING,
   HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS,
@@ -43,10 +62,17 @@ import type {
   HeightfieldWaterLocalFoamMask,
   HeightfieldWaterMaterialState,
   HeightfieldWaterOpticsCalibrationReadback,
+  HeightfieldWaterSurfaceAppearanceFeatureFlags,
   MutableHeightfieldWaterSurfaceOpticsBinding
 } from "./types";
 
 const ZERO_WAVE = new Vector4(0, 0, 0, 0);
+const ZERO_APPEARANCE_COLOR = new Vector4(0, 0, 0, 0);
+const ZERO_APPEARANCE_WEIGHTS = new Vector3(0, 0, 0);
+
+interface NullableTextureShaderData {
+  setTexture(propertyName: string, value: Texture | null): void;
+}
 
 type MutableHeightfieldReflectionReadback = {
   -readonly [Property in keyof HeightfieldWaterReflectionSamplingReadback]: HeightfieldWaterReflectionSamplingReadback[Property];
@@ -54,6 +80,10 @@ type MutableHeightfieldReflectionReadback = {
 
 type MutableHeightfieldWaterOpticsCalibrationReadback = {
   -readonly [Property in keyof HeightfieldWaterOpticsCalibrationReadback]: HeightfieldWaterOpticsCalibrationReadback[Property];
+};
+
+type MutableWaterSurfaceOpticsBindingReadback = {
+  -readonly [Property in keyof WaterSurfaceOpticsBindingReadback]: WaterSurfaceOpticsBindingReadback[Property];
 };
 
 function resolveHeightfieldOpticsTier(quality: WaterQualityTier, requestedTier: WaterOpticsTier): WaterOpticsTier {
@@ -136,15 +166,76 @@ function applyCachedHeightfieldWaterSurfaceOpticsBinding(
 ): Readonly<WaterSurfaceOpticsBindingReadback> {
   const cachedBinding = state.surfaceOpticsBinding;
   const requestedReflection = cachedBinding.reflection;
+  const requestedDebugView = cachedBinding.debugView;
   if (state.quality === WaterQualityTier.Low) cachedBinding.reflection = undefined;
+  cachedBinding.debugView = resolveHeightfieldWaterEffectiveDebugView(
+    requestedDebugView,
+    state.surfaceAppearanceReadback.active
+  );
   let readback: Readonly<WaterSurfaceOpticsBindingReadback>;
   try {
     readback = applyWaterSurfaceOpticsBinding(state.material.shaderData, state, cachedBinding);
   } finally {
     cachedBinding.reflection = requestedReflection;
+    cachedBinding.debugView = requestedDebugView;
   }
   updateHeightfieldReflectionReadback(state, readback, requestedReflection);
   return readback;
+}
+
+function resolveHeightfieldWaterEffectiveDebugView(
+  requestedDebugView: number,
+  surfaceAppearanceActive: boolean
+): WaterOpticsDebugView {
+  if (
+    !Number.isInteger(requestedDebugView) ||
+    requestedDebugView < WaterOpticsDebugView.Final ||
+    requestedDebugView > WaterOpticsDebugView.EffectiveRoughness
+  ) {
+    return WaterOpticsDebugView.Final;
+  }
+  if (requestedDebugView >= WaterOpticsDebugView.DetailNormal && !surfaceAppearanceActive) {
+    return WaterOpticsDebugView.Final;
+  }
+  return requestedDebugView as WaterOpticsDebugView;
+}
+
+function refreshHeightfieldWaterAppearanceDebugView(state: HeightfieldWaterMaterialState): void {
+  const requestedDebugView = state.surfaceOpticsBinding.debugView;
+  if (requestedDebugView < WaterOpticsDebugView.DetailNormal) return;
+  const effectiveDebugView = resolveHeightfieldWaterEffectiveDebugView(
+    requestedDebugView,
+    state.surfaceAppearanceReadback.active
+  );
+  state.material.shaderData.setFloat(WATER_OPTICS_SHADER_PROPERTY.debugMode, effectiveDebugView);
+  (state.bindingReadback as MutableWaterSurfaceOpticsBindingReadback).debugView = effectiveDebugView;
+}
+
+function applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state: HeightfieldWaterMaterialState): void {
+  const readback = state.surfaceAppearanceReadback;
+  const active = readback.active;
+  const flags = state.surfaceAppearanceFeatureFlags;
+  const shaderData = state.material.shaderData;
+  shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceExternalNormalEnabled,
+    active && readback.normalLayerCount === 2 && flags.externalNormal ? 1 : 0
+  );
+  shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintEnabled,
+    active && readback.depthTintEnabled && flags.depthTint ? 1 : 0
+  );
+  shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaEnabled,
+    active && readback.coastalAlphaEnabled && flags.coastalAlpha ? 1 : 0
+  );
+  shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamEnabled,
+    active && readback.contactFoamEnabled && flags.contactFoam ? 1 : 0
+  );
+  shaderData.setFloat(
+    HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDirectSpecularEnabled,
+    active && flags.directSpecular ? 1 : 0
+  );
 }
 
 function glsl(value: number): string {
@@ -336,9 +427,26 @@ function sceneDepthDeclarations(useSceneDepth: boolean): string {
     : "";
 }
 
-function opticalDepthCalculation(useSceneDepth: boolean): string {
+function opticalDepthCalculation(useSceneDepth: boolean, surfaceAppearance: boolean): string {
   if (!useSceneDepth) {
     return "        float opticalDepth = authoredDepth;";
+  }
+  if (surfaceAppearance) {
+    return `        vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
+        float sceneEyeDepthSample = remapDepthBufferEyeDepth(
+          texture2D(camera_DepthTexture, screenUv).r
+        );
+        bool centeredSceneDepthFinite = sceneEyeDepthSample >= 0.0
+          && sceneEyeDepthSample <= 1000000.0;
+        float sceneEyeDepth = centeredSceneDepthFinite
+          ? sceneEyeDepthSample
+          : input.surfaceEyeDepth;
+        float sceneDepthDelta = max(sceneEyeDepth - input.surfaceEyeDepth, 0.0);
+        float sampledOpticalDepth = sceneDepthDelta;
+        float opticalDepth = min(sampledOpticalDepth, authoredDepth);
+        float centeredDepthBehind = centeredSceneDepthFinite
+          ? step(0.000001, sceneDepthDelta)
+          : 0.0;`;
   }
   return `        vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
         float sceneEyeDepth = remapDepthBufferEyeDepth(texture2D(camera_DepthTexture, screenUv).r);
@@ -357,11 +465,65 @@ function sceneDepthFunction(useSceneDepth: boolean): string {
       }`;
 }
 
-function sceneColorRefraction(quality: WaterQualityTier): string {
+function sceneColorRefraction(quality: WaterQualityTier, surfaceAppearance: boolean): string {
   if (quality === WaterQualityTier.Low) return "";
   const tuning = HEIGHTFIELD_WATER_SURFACE_TUNING;
   const uvScale = quality === WaterQualityTier.High ? tuning.highRefractionUvScale : tuning.mediumRefractionUvScale;
   const refractionMix = quality === WaterQualityTier.High ? tuning.highRefractionMix : tuning.mediumRefractionMix;
+  const refractionOffset = surfaceAppearance
+    ? `refractionNormalDelta
+            * material_RefractionStrength`
+    : `refractionNormalDelta
+            * ${glsl(uvScale)}
+            * material_RefractionStrength`;
+  const refractionDepthOffsetWeight = surfaceAppearance ? "" : "\n            * refractionDepthWeight";
+  const refractedSceneDepth = surfaceAppearance
+    ? `        float refractedSceneEyeDepthSample = remapDepthBufferEyeDepth(
+          texture2D(camera_DepthTexture, refractedScreenUv).r
+        );
+        bool refractedSceneDepthFinite = refractedSceneEyeDepthSample >= 0.0
+          && refractedSceneEyeDepthSample <= 1000000.0;
+        float refractedSceneEyeDepth = refractedSceneDepthFinite
+          ? refractedSceneEyeDepthSample
+          : input.surfaceEyeDepth;
+        float refractedSceneDepthFiniteWeight = refractedSceneDepthFinite ? 1.0 : 0.0;`
+    : `        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
+          texture2D(camera_DepthTexture, refractedScreenUv).r
+        );`;
+  const appearanceDepthValidity = surfaceAppearance
+    ? `
+          * centeredDepthBehind
+          * refractedSceneDepthFiniteWeight`
+    : "";
+  const contactFoamRefractionSuppression = surfaceAppearance
+    ? `
+          * (
+            1.0
+              - contactFoamMask
+                * material_AppearanceContactFoamSuppressRefraction
+          )`
+    : "";
+  const waterColorApplication = surfaceAppearance
+    ? `        float appearanceDepthTintFactor = pow(
+          saturate(sceneDepthDelta / max(material_AppearanceDepthTintDistance, 0.0001)),
+          max(material_AppearanceDepthTintExponent, 0.0001)
+        );
+        vec3 appearanceDepthTintColor = mix(
+          refractedSceneColor,
+          material_AppearanceDepthTintColor.rgb,
+          appearanceDepthTintFactor
+        );
+        if (material_OpticsCalibrationMode < 0.5) {
+          waterColor = mix(waterColor, refractedSceneColor * refractionTint, refractionAmount);
+          waterColor = mix(
+            waterColor,
+            appearanceDepthTintColor,
+            material_AppearanceDepthTintEnabled
+          );
+        }`
+    : `        if (material_OpticsCalibrationMode < 0.5) {
+          waterColor = mix(waterColor, refractedSceneColor * refractionTint, refractionAmount);
+        }`;
   return `        float refractionFeatureWeight = step(0.5, material_RefractionEnabled);
         vec3 baseNormalVS = normalize(mat3(camera_ViewMat) * input.baseNormalWS);
         vec3 surfaceNormalVS = normalize(mat3(camera_ViewMat) * surfaceNormalWS);
@@ -372,19 +534,14 @@ function sceneColorRefraction(quality: WaterQualityTier): string {
           opticalDepth
         );
         vec2 displacedScreenUv = screenUv
-          + refractionNormalDelta
-            * ${glsl(uvScale)}
-            * material_RefractionStrength
-            * refractionFeatureWeight
-            * refractionDepthWeight;
+          + ${refractionOffset}
+            * refractionFeatureWeight${refractionDepthOffsetWeight};
         float refractionScreenInterior = step(0.002, displacedScreenUv.x)
           * step(displacedScreenUv.x, 0.998)
           * step(0.002, displacedScreenUv.y)
           * step(displacedScreenUv.y, 0.998);
         vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
-        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
-          texture2D(camera_DepthTexture, refractedScreenUv).r
-        );
+${refractedSceneDepth}
         float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float refractionDepthTolerance = max(
           ${glsl(tuning.refractionDepthToleranceMinimum)},
@@ -398,7 +555,7 @@ function sceneColorRefraction(quality: WaterQualityTier): string {
         float refractedGeometryBehindSurface = smoothstep(0.03, 0.22, refractedOpticalDepth);
         refractionSampleValidity = refractionScreenInterior
           * refractionDepthContinuity
-          * refractedGeometryBehindSurface;
+          * refractedGeometryBehindSurface${appearanceDepthValidity};
         refractionUvDelta = refractedScreenUv - screenUv;
         centeredOpaqueColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
         displacedOpaqueColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
@@ -424,11 +581,105 @@ function sceneColorRefraction(quality: WaterQualityTier): string {
           * refractionFeatureWeight
           * refractionShoreWeight
           * (1.0 - foamTint * ${glsl(tuning.refractionFoamSuppression)})
-          * (1.0 - localFoamMask);
-        if (material_OpticsCalibrationMode < 0.5) {
-          waterColor = mix(waterColor, refractedSceneColor * refractionTint, refractionAmount);
-        }
+          * (1.0 - localFoamMask)${contactFoamRefractionSuppression};
+${waterColorApplication}
 `;
+}
+
+function surfaceAlphaStatements(surfaceAppearance: boolean): string {
+  if (surfaceAppearance) {
+    return `        float absorptionAlpha = 1.0 - exp(-mix(0.48, 0.13, clarity) * opticalDepth);
+        float alpha = material_Alpha * mix(0.18, 0.94, absorptionAlpha);
+        alpha += effectiveFresnel * (1.0 - alpha) * 0.48;
+        alpha += foamTint * 0.3 * (1.0 - step(0.5, material_OpticsCalibrationMode));
+        float appearanceCoastalAlpha = saturate(
+          sceneDepthDelta / max(material_AppearanceCoastalAlphaDistance, 0.0001)
+        );
+        alpha = mix(
+          alpha,
+          appearanceCoastalAlpha,
+          material_AppearanceCoastalAlphaEnabled
+        );
+        alpha += contactFoamMask * (1.0 - alpha);
+        alpha = clamp(alpha, 0.0, 1.0) * coverage;`;
+  }
+  return `        float absorptionAlpha = 1.0 - exp(-mix(0.48, 0.13, clarity) * opticalDepth);
+        float alpha = material_Alpha * mix(0.18, 0.94, absorptionAlpha);
+        alpha += effectiveFresnel * (1.0 - alpha) * 0.48;
+        alpha += foamTint * 0.3 * (1.0 - step(0.5, material_OpticsCalibrationMode));
+        alpha = clamp(
+          alpha,
+          0.0,
+          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.maximumAlpha)}
+        ) * coverage;`;
+}
+
+function precomposedSurfaceAlphaStatements(surfaceAppearance: boolean): string {
+  if (!surfaceAppearance) return "";
+  return `
+        if (material_CompositionMode > ${HeightfieldWaterCompositionMode.LegacyAlpha + 0.5}) {
+          // The replace path disables fixed-function blending, so coastal alpha
+          // must compose the complete Scene Color here instead of being lost.
+          shaderCompositedColor = mix(
+            centeredOpaqueColor,
+            waterColor,
+            surfaceAlpha
+          );
+        }`;
+}
+
+function contactFoamShaderFunctions(quality: WaterQualityTier, surfaceAppearance: boolean): string {
+  if (!surfaceAppearance) return "";
+  switch (quality) {
+    case WaterQualityTier.Low:
+      return "";
+    case WaterQualityTier.Medium:
+      return createWaterContactFoamShaderFunctionsForQuality("medium") ?? "";
+    case WaterQualityTier.High:
+      return createWaterContactFoamShaderFunctionsForQuality("high") ?? "";
+  }
+}
+
+function contactFoamAndDirectSpecularCalculation(surfaceAppearance: boolean): string {
+  if (!surfaceAppearance) return "";
+  return `        float contactFoamMask = material_AppearanceContactFoamEnabled
+          * material_FoamEnabled
+          * evaluateWaterContactFoamMask(
+            input.worldPosition.xz,
+            elapsedTime,
+            sceneDepthDelta,
+            centeredDepthBehind,
+            material_AppearanceContactFoamWorldScale,
+            material_AppearanceContactFoamTimeRate,
+            material_AppearanceContactFoamOpacity,
+            material_AppearanceContactFoamContactDistance,
+            material_AppearanceContactFoamOctaveWeights,
+            material_AppearanceContactFoamLacunarity
+          );
+        float effectiveSurfaceRoughness = clamp(
+          material_Roughness
+            + contactFoamMask
+              * material_AppearanceContactFoamSmoothnessReduction,
+          0.045,
+          1.0
+        );
+        float directSpecular = material_AppearanceDirectSpecularEnabled
+          * waterSurfaceDirectSpecular(
+            fresnelF0,
+            effectiveSurfaceRoughness,
+            normalDotView,
+            normalDotLight,
+            normalDotHalf,
+            lightDotHalf
+          );`;
+}
+
+function foamTintCalculation(surfaceAppearance: boolean): string {
+  if (surfaceAppearance) {
+    return `        float legacyFoamTint = smoothstep(0.02, 0.78, foam);
+        float foamTint = max(legacyFoamTint, contactFoamMask);`;
+  }
+  return "        float foamTint = smoothstep(0.02, 0.78, foam);";
 }
 
 function reflectionUniformDeclarations(quality: WaterQualityTier): string {
@@ -443,19 +694,68 @@ function reflectionUniformDeclarations(quality: WaterQualityTier): string {
       float material_PlanarReflectionRoughnessFootprint;`;
 }
 
-function planarFilterSampleStatements(quality: WaterQualityTier): string {
+function surfaceBrdfShaderFunctions(surfaceAppearance: boolean): string {
+  return surfaceAppearance ? createWaterSurfaceBrdfShaderFunctions() : "";
+}
+
+function directLightStatements(surfaceAppearance: boolean): string {
+  if (surfaceAppearance) {
+    return `        vec3 sunlightDirectionVector = -scene_SunlightDirection;
+        float sunlightDirectionLengthSquared = dot(
+          sunlightDirectionVector,
+          sunlightDirectionVector
+        );
+        float sunlightAvailable = step(0.000001, sunlightDirectionLengthSquared);
+        vec3 lightDirection = sunlightDirectionVector
+          / max(sqrt(sunlightDirectionLengthSquared), 0.000001);
+        vec3 sunlightColor = max(scene_SunlightColor.rgb, vec3(0.0))
+          * sunlightAvailable;
+        vec3 halfDirectionVector = viewDirection + lightDirection;
+        vec3 halfDirection = halfDirectionVector
+          / max(length(halfDirectionVector), 0.000001);
+        float normalDotLight = saturate(dot(surfaceNormalWS, lightDirection));
+        float normalDotHalf = saturate(dot(surfaceNormalWS, halfDirection));
+        float lightDotHalf = saturate(dot(lightDirection, halfDirection));`;
+  }
+  return `        vec3 lightDirection = normalize(vec3(-0.32, 0.86, 0.39));
+        vec3 halfDirection = safeNormalize3(viewDirection + lightDirection, lightDirection);
+        float normalDotLight = saturate(dot(surfaceNormalWS, lightDirection));
+        float normalDotHalf = saturate(dot(surfaceNormalWS, halfDirection));
+        float broadSpecular = pow(
+          normalDotHalf,
+          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.broadSpecularPower)}
+        ) * normalDotLight;
+        float tightSpecular = pow(
+          normalDotHalf,
+          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.tightSpecularPower)}
+        ) * normalDotLight;`;
+}
+
+function directLightCompositionStatements(surfaceAppearance: boolean): string {
+  if (surfaceAppearance) {
+    return `          waterColor += sunlightColor * directSpecular;
+          waterColor = mix(waterColor, softFoamColor, foamTint);`;
+  }
+  return `          float sparkleMask = mix(0.72, 1.28, flowSurface.w);
+          waterColor += vec3(0.34, 0.42, 0.45) * broadSpecular * 0.24 * reflectionIntensity;
+          waterColor += vec3(1.0, 0.96, 0.84) * tightSpecular * sparkleMask * 0.62 * reflectionIntensity;
+          waterColor = mix(waterColor, softFoamColor, foamTint);`;
+}
+
+function planarFilterSampleStatements(quality: WaterQualityTier, surfaceAppearance: boolean): string {
   if (quality !== WaterQualityTier.High) {
     return `            vec3 sampledPlanarReflection = texture2D(
               material_PlanarReflectionTexture,
               planarSampleUv
             ).rgb;`;
   }
+  const roughness = surfaceAppearance ? "effectiveSurfaceRoughness" : "material_Roughness";
   return `            vec3 sampledPlanarReflection = texture2D(
               material_PlanarReflectionTexture,
               planarSampleUv
             ).rgb;
             if (material_PlanarReflectionSampling.w > 3.0) {
-              float planarRoughness = saturate(material_Roughness);
+              float planarRoughness = saturate(${roughness});
               float filterRadiusTexels = mix(
                 0.5,
                 max(material_PlanarReflectionRoughnessFootprint, 0.5),
@@ -488,11 +788,12 @@ function planarFilterSampleStatements(quality: WaterQualityTier): string {
             }`;
 }
 
-function surfaceReflectionStatements(quality: WaterQualityTier): string {
+function surfaceReflectionStatements(quality: WaterQualityTier, surfaceAppearance: boolean): string {
+  const roughness = surfaceAppearance ? "effectiveSurfaceRoughness" : "material_Roughness";
   const analyticSky = `        vec3 skyReflection = mix(
           vec3(0.075, 0.16, 0.21),
           vec3(0.32, 0.48, 0.57),
-          mix(saturate(surfaceNormalWS.y * 0.5 + 0.5), 0.5, saturate(material_Roughness))
+          mix(saturate(surfaceNormalWS.y * 0.5 + 0.5), 0.5, saturate(${roughness}))
         );`;
   if (quality === WaterQualityTier.Low) {
     return `${analyticSky}
@@ -572,7 +873,7 @@ function surfaceReflectionStatements(quality: WaterQualityTier): string {
                 material_PlanarReflectionFade.w,
                 saturate(dot(input.baseNormalWS, viewDirection))
               );
-${planarFilterSampleStatements(quality)}
+${planarFilterSampleStatements(quality, surfaceAppearance)}
               float planarValidity = screenInteriorFade
                 * clipWFade
                 * planeDistanceFade
@@ -594,12 +895,48 @@ ${planarFilterSampleStatements(quality)}
         }`;
 }
 
+function surfaceAppearanceDebugTail(surfaceAppearance: boolean): string {
+  if (!surfaceAppearance) {
+    return `          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.ReflectionColor + 0.5}) {
+            fragmentColor = reflectionColor;
+          } else {
+            fragmentColor = vec3(normalDotView);
+          }`;
+  }
+  return `          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.ReflectionColor + 0.5}) {
+            fragmentColor = reflectionColor;
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.NormalDotView + 0.5}) {
+            fragmentColor = vec3(normalDotView);
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.DetailNormal + 0.5}) {
+            fragmentColor = appearanceNormalTS * 0.5 + 0.5;
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.SceneDepthDelta + 0.5}) {
+            fragmentColor = vec3(sceneDepthDelta);
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.DepthTint + 0.5}) {
+            fragmentColor = vec3(appearanceDepthTintFactor);
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.ContactFoam + 0.5}) {
+            fragmentColor = vec3(contactFoamMask);
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.CoastalAlpha + 0.5}) {
+            fragmentColor = vec3(appearanceCoastalAlpha);
+          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.DirectSpecular + 0.5}) {
+            fragmentColor = sunlightColor * directSpecular;
+          } else {
+            fragmentColor = vec3(effectiveSurfaceRoughness);
+          }`;
+}
+
 /** Creates a fixed 2/6/12-wave variant without dynamic shader loops. */
-export function createHeightfieldWaterShaderSource(quality: WaterQualityTier, waveCount: number): string {
+export function createHeightfieldWaterShaderSource(
+  quality: WaterQualityTier,
+  waveCount: number,
+  surfaceAppearance = false
+): string {
+  if (surfaceAppearance && quality === WaterQualityTier.Low) {
+    throw new RangeError("Low heightfield water does not support the Surface Appearance shader family.");
+  }
   const useSceneDepth = quality !== WaterQualityTier.Low;
   const qualityName = quality[0].toUpperCase() + quality.slice(1);
   return `
-Shader "AIWorld/HeightfieldWater${qualityName}${waveCount}" {
+Shader "AIWorld/HeightfieldWater${surfaceAppearance ? "SurfaceAppearanceV1" : ""}${qualityName}${waveCount}" {
   SubShader "Default" {
     Pass "Forward" {
       Bool blendEnabled;
@@ -630,7 +967,35 @@ Shader "AIWorld/HeightfieldWater${qualityName}${waveCount}" {
 ${sceneDepthDeclarations(useSceneDepth)}
       sampler2D material_LocalMapTexture;
       sampler2D material_SurfaceTexture;
-      vec4 material_LocalMapWorldToUv;
+${
+  surfaceAppearance
+    ? `      sampler2D material_AppearanceNormalTexture;
+      float material_AppearanceExternalNormalEnabled;
+      float material_AppearanceNormalTiling;
+      float material_AppearanceNormalScrollUvPerSecond;
+      float material_AppearanceNormalStrength;
+      float material_AppearanceNormalFlipGreen;
+      float material_AppearanceDepthTintEnabled;
+      vec4 material_AppearanceDepthTintColor;
+      float material_AppearanceDepthTintDistance;
+      float material_AppearanceDepthTintExponent;
+      float material_AppearanceCoastalAlphaEnabled;
+      float material_AppearanceCoastalAlphaDistance;
+      float material_AppearanceContactFoamEnabled;
+      float material_AppearanceContactFoamWorldScale;
+      float material_AppearanceContactFoamTimeRate;
+      float material_AppearanceContactFoamOpacity;
+      float material_AppearanceContactFoamContactDistance;
+      vec3 material_AppearanceContactFoamOctaveWeights;
+      float material_AppearanceContactFoamLacunarity;
+      float material_AppearanceContactFoamSuppressRefraction;
+      float material_AppearanceContactFoamSmoothnessReduction;
+      float material_AppearanceDirectSpecularEnabled;
+      vec4 scene_SunlightColor;
+      vec3 scene_SunlightDirection;
+`
+    : ""
+}      vec4 material_LocalMapWorldToUv;
       vec4 renderer_AtlasUvRect;
       vec4 material_LocalMapDecode;
       vec4 material_ShallowColor;
@@ -700,11 +1065,31 @@ ${waveUniformDeclarations(waveCount)}
         float lengthSquared = dot(value, value);
         return lengthSquared > 0.000001 ? value * inversesqrt(lengthSquared) : fallbackValue;
       }
+${
+  surfaceAppearance
+    ? `
+      vec3 decodeAppearanceTangentNormal(vec4 packedNormal) {
+        vec2 slope = packedNormal.rg * 2.0 - 1.0;
+        slope.y *= mix(1.0, -1.0, step(0.5, material_AppearanceNormalFlipGreen));
+        slope *= material_AppearanceNormalStrength;
+        float normalZ = sqrt(max(1.0 - dot(slope, slope), 0.0001));
+        normalZ = mix(1.0, normalZ, clamp(material_AppearanceNormalStrength, 0.0, 1.0));
+        return safeNormalize3(vec3(slope, normalZ), vec3(0.0, 0.0, 1.0));
+      }
 
+      vec3 blendAppearanceTangentNormals(vec3 firstNormal, vec3 secondNormal) {
+        return safeNormalize3(
+          vec3(firstNormal.xy + secondNormal.xy, firstNormal.z * secondNormal.z),
+          vec3(0.0, 0.0, 1.0)
+        );
+      }
+`
+    : ""
+}
       float saturate(float value) {
         return clamp(value, 0.0, 1.0);
       }
-
+${contactFoamShaderFunctions(quality, surfaceAppearance)}${surfaceBrdfShaderFunctions(surfaceAppearance)}
       vec4 sampleFlowSurface(
         vec2 worldXZ,
         vec2 flowDirection,
@@ -876,7 +1261,7 @@ ${waveApplyStatements(waveCount)}
         float authoredDepth = max(localMap.b * material_LocalMapDecode.y, 0.0);
         float signedDistance = (localMap.a * 2.0 - 1.0) * material_LocalMapDecode.z;
         float coverage = smoothstep(-0.08, 0.08, signedDistance);
-${opticalDepthCalculation(useSceneDepth)}
+${opticalDepthCalculation(useSceneDepth, surfaceAppearance)}
         opticalDepth = min(opticalDepth, max(material_MaximumSurfaceOpticalDistance, 0.0));
         float depthRatio = saturate(opticalDepth / max(material_LocalMapDecode.y, 0.0001));
         float flowSpeed = length(flowXZ);
@@ -907,7 +1292,47 @@ ${flowSurfaceLayerStatements(quality)}
           input.macroNormalWS + tangentDetailSlope * detailStrength,
           input.macroNormalWS
         );
-        vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, input.baseNormalWS);
+${
+  surfaceAppearance
+    ? `        vec2 appearanceScrollUv = vec2(
+          elapsedTime * material_AppearanceNormalScrollUvPerSecond
+        );
+        vec2 appearanceWorldUv = baseWorldPosition.xz * material_AppearanceNormalTiling;
+        vec3 appearanceNormalA = decodeAppearanceTangentNormal(texture2D(
+          material_AppearanceNormalTexture,
+          appearanceWorldUv + appearanceScrollUv
+        ));
+        vec3 appearanceNormalB = decodeAppearanceTangentNormal(texture2D(
+          material_AppearanceNormalTexture,
+          -appearanceWorldUv + appearanceScrollUv
+        ));
+        vec3 appearanceNormalTS = blendAppearanceTangentNormals(
+          appearanceNormalA,
+          appearanceNormalB
+        );
+        vec3 appearanceTangentWS = safeNormalize3(
+          input.tangentWS - input.macroNormalWS * dot(input.tangentWS, input.macroNormalWS),
+          vec3(1.0, 0.0, 0.0)
+        );
+        vec3 appearanceBitangentWS = safeNormalize3(
+          cross(input.macroNormalWS, appearanceTangentWS),
+          vec3(0.0, 0.0, 1.0)
+        );
+        vec3 externalSurfaceNormalWS = safeNormalize3(
+          appearanceTangentWS * appearanceNormalTS.x
+            + appearanceBitangentWS * appearanceNormalTS.y
+            + input.macroNormalWS * appearanceNormalTS.z,
+          input.macroNormalWS
+        );
+        float externalNormalWeight = material_AppearanceExternalNormalEnabled
+          * material_MicroNormalsEnabled;
+        surfaceNormalWS = safeNormalize3(
+          mix(surfaceNormalWS, externalSurfaceNormalWS, externalNormalWeight),
+          input.macroNormalWS
+        );
+`
+    : ""
+}        vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, input.baseNormalWS);
         float normalFacing = step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
         surfaceNormalWS *= normalFacing;
         float normalDotView = saturate(dot(surfaceNormalWS, viewDirection));
@@ -918,18 +1343,7 @@ ${flowSurfaceLayerStatements(quality)}
           + (1.0 - fresnelF0)
             * pow(1.0 - normalDotView, ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.fresnelPower)});
         float effectiveFresnel = material_OpticsCalibrationMode > 1.5 ? 0.0 : fresnel;
-        vec3 lightDirection = normalize(vec3(-0.32, 0.86, 0.39));
-        vec3 halfDirection = safeNormalize3(viewDirection + lightDirection, lightDirection);
-        float normalDotLight = saturate(dot(surfaceNormalWS, lightDirection));
-        float normalDotHalf = saturate(dot(surfaceNormalWS, halfDirection));
-        float broadSpecular = pow(
-          normalDotHalf,
-          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.broadSpecularPower)}
-        ) * normalDotLight;
-        float tightSpecular = pow(
-          normalDotHalf,
-          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.tightSpecularPower)}
-        ) * normalDotLight;
+${directLightStatements(surfaceAppearance)}
         float shoreEnvelope = 1.0 - smoothstep(
           0.0,
           max(
@@ -984,7 +1398,7 @@ ${wakeFoamStatements(quality)}
           max(max(shoreFoam, crestFoam * 0.68 + currentFoam * 0.32), wakeFoam)
         ) * material_FoamIntensity * foamMotionScale;
         float foam = saturate(max(proceduralFoam, localFoamMask)) * material_FoamEnabled;
-
+${contactFoamAndDirectSpecularCalculation(surfaceAppearance)}
         float depthColorMix = 1.0 - exp(-opticalDepth * 0.72);
         vec3 volumeColor = mix(material_ShallowColor.rgb, material_DeepColor.rgb, depthColorMix);
         float clarity = saturate(material_Clarity);
@@ -1012,7 +1426,7 @@ ${wakeFoamStatements(quality)}
         ) * legacyScatteringWeight;
         waterColor = max(waterColor + profileScattering - legacyScattering, vec3(0.0));
         vec3 softFoamColor = mix(volumeColor * 1.18, material_FoamColor.rgb, 0.78);
-        float foamTint = smoothstep(0.02, 0.78, foam);
+${foamTintCalculation(surfaceAppearance)}
         vec3 centeredOpaqueColor = waterColor;
         vec3 displacedOpaqueColor = waterColor;
         vec3 refractedSceneColor = waterColor;
@@ -1022,8 +1436,8 @@ ${wakeFoamStatements(quality)}
         float refractionDepthWeight = 0.0;
         float refractionShoreWeight = 0.0;
         float refractionAmount = 0.0;
-${sceneColorRefraction(quality)}
-${surfaceReflectionStatements(quality)}
+${sceneColorRefraction(quality, surfaceAppearance)}
+${surfaceReflectionStatements(quality, surfaceAppearance)}
         if (material_OpticsCalibrationMode > 0.5) {
           // Calibration bypasses artistic tint/partial mixing, sun glints, and foam.
           vec3 referenceSourceColor = clamp(refractedSceneColor, vec3(0.0), vec3(65504.0));
@@ -1044,26 +1458,15 @@ ${surfaceReflectionStatements(quality)}
           );
           waterColor = referenceSurfaceColor;
         } else {
-          float sparkleMask = mix(0.72, 1.28, flowSurface.w);
-          waterColor += vec3(0.34, 0.42, 0.45) * broadSpecular * 0.24 * reflectionIntensity;
-          waterColor += vec3(1.0, 0.96, 0.84) * tightSpecular * sparkleMask * 0.62 * reflectionIntensity;
-          waterColor = mix(waterColor, softFoamColor, foamTint);
+${directLightCompositionStatements(surfaceAppearance)}
         }
 
-        float absorptionAlpha = 1.0 - exp(-mix(0.48, 0.13, clarity) * opticalDepth);
-        float alpha = material_Alpha * mix(0.18, 0.94, absorptionAlpha);
-        alpha += effectiveFresnel * (1.0 - alpha) * 0.48;
-        alpha += foamTint * 0.3 * (1.0 - step(0.5, material_OpticsCalibrationMode));
-        alpha = clamp(
-          alpha,
-          0.0,
-          ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.maximumAlpha)}
-        ) * coverage;
+${surfaceAlphaStatements(surfaceAppearance)}
 
         // C and A are retained independently so framebuffer analysis can prove
         // whether the legacy transparent path applies the opaque background twice.
         vec3 shaderCompositedColor = waterColor;
-        float surfaceAlpha = alpha;
+        float surfaceAlpha = alpha;${precomposedSurfaceAlphaStatements(surfaceAppearance)}
         vec3 fragmentColor = shaderCompositedColor;
         float fragmentAlpha = surfaceAlpha;
         if (material_DebugMode > ${HeightfieldWaterDebugMode.Final + 0.5}) {
@@ -1115,11 +1518,7 @@ ${surfaceReflectionStatements(quality)}
           } else if (material_DebugMode < ${HeightfieldWaterDebugMode.RefractionGates + 0.5}) {
             // R/G/B isolate the depth, shore, and Beer-Lambert transmission gates.
             fragmentColor = vec3(refractionDepthWeight, refractionShoreWeight, transmittance.g);
-          } else if (material_DebugMode < ${HeightfieldWaterDebugMode.ReflectionColor + 0.5}) {
-            fragmentColor = reflectionColor;
-          } else {
-            fragmentColor = vec3(normalDotView);
-          }
+${surfaceAppearanceDebugTail(surfaceAppearance)}
           // Debug outputs are diagnostic values, not another alpha-composited water layer.
           fragmentAlpha = 1.0;
         }
@@ -1139,6 +1538,16 @@ ${surfaceReflectionStatements(quality)}
 export const heightfieldWaterLowShaderSource = createHeightfieldWaterShaderSource(WaterQualityTier.Low, 2);
 export const heightfieldWaterMediumShaderSource = createHeightfieldWaterShaderSource(WaterQualityTier.Medium, 6);
 export const heightfieldWaterHighShaderSource = createHeightfieldWaterShaderSource(WaterQualityTier.High, 12);
+export const heightfieldWaterSurfaceAppearanceMediumShaderSource = createHeightfieldWaterShaderSource(
+  WaterQualityTier.Medium,
+  6,
+  true
+);
+export const heightfieldWaterSurfaceAppearanceHighShaderSource = createHeightfieldWaterShaderSource(
+  WaterQualityTier.High,
+  12,
+  true
+);
 
 function shaderSourceForQuality(quality: WaterQualityTier): string {
   switch (quality) {
@@ -1160,6 +1569,22 @@ function expectedWaveCount(quality: WaterQualityTier): number {
     case WaterQualityTier.High:
       return 12;
   }
+}
+
+function surfaceAppearanceShaderSourceForQuality(quality: WaterQualityTier): string | undefined {
+  switch (quality) {
+    case WaterQualityTier.Low:
+      return undefined;
+    case WaterQualityTier.Medium:
+      return heightfieldWaterSurfaceAppearanceMediumShaderSource;
+    case WaterQualityTier.High:
+      return heightfieldWaterSurfaceAppearanceHighShaderSource;
+  }
+}
+
+function surfaceAppearanceShaderName(quality: WaterQualityTier, waveCount: number): string {
+  const qualityName = quality[0].toUpperCase() + quality.slice(1);
+  return `AIWorld/HeightfieldWaterSurfaceAppearanceV1${qualityName}${waveCount}`;
 }
 
 function bindWaves(material: Material, waveSet: CompiledWaterWaveSet, slotCount: number): void {
@@ -1293,12 +1718,17 @@ export function createHeightfieldWaterMaterial(
   };
   const state = Object.freeze({
     material,
+    legacyShader: shader,
     quality,
     waveSet,
     ...createWaterSurfaceOpticsBindingState(),
     surfaceOpticsBinding: Object.seal(surfaceOpticsBinding),
     heightfieldReflectionReadback: createHeightfieldReflectionReadback(quality),
-    opticsCalibrationReadback: createHeightfieldWaterOpticsCalibrationReadback()
+    opticsCalibrationReadback: createHeightfieldWaterOpticsCalibrationReadback(),
+    surfaceAppearanceReadback: createWaterSurfaceAppearanceBindingReadback(),
+    surfaceAppearanceFeatureFlags: Object.seal({
+      ...DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS
+    })
   });
   updateHeightfieldWaterMaterial(state, config, atlas);
   applyCachedHeightfieldWaterSurfaceOpticsBinding(state);
@@ -1306,9 +1736,154 @@ export function createHeightfieldWaterMaterial(
   setHeightfieldWaterOpticsCalibrationMode(state, HeightfieldWaterOpticsCalibrationMode.None);
   setHeightfieldWaterDepthWriteEnabled(state, false);
   setHeightfieldWaterFeatureFlags(state, { waves: true, microNormals: true, foam: true });
+  setHeightfieldWaterSurfaceAppearanceFeatureFlags(state, DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS);
   setHeightfieldWaterLocalFoamMask(state, DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK);
   setHeightfieldWaterSurfaceTimeOverride(state);
   return state;
+}
+
+export function setHeightfieldWaterSurfaceAppearanceBinding(
+  state: HeightfieldWaterMaterialState,
+  binding?: Readonly<WaterSurfaceAppearanceBinding>
+): Readonly<WaterSurfaceAppearanceBindingReadback> {
+  const wasActive = state.surfaceAppearanceReadback.active;
+  const maximumContactFoamOctaves = state.quality === WaterQualityTier.Medium ? 2 : 3;
+  const resolution = resolveWaterSurfaceAppearanceBinding(
+    binding,
+    state.quality !== WaterQualityTier.Low,
+    maximumContactFoamOctaves
+  );
+  const shaderData = state.material.shaderData;
+  const nullableTextureData = shaderData as unknown as NullableTextureShaderData;
+  const resolvedBinding = resolution.binding;
+  if (
+    resolution.readback.active &&
+    resolvedBinding &&
+    resolvedBinding.appearance.normal.model === WaterSurfaceNormalModel.ExternalTangentNormal
+  ) {
+    const appearanceSource = surfaceAppearanceShaderSourceForQuality(state.quality);
+    if (!appearanceSource) {
+      throw new Error("A resolved surface appearance requires a Medium or High shader source.");
+    }
+    const waveCount = expectedWaveCount(state.quality);
+    const shaderName = surfaceAppearanceShaderName(state.quality, waveCount);
+    state.material.shader = Shader.find(shaderName) ?? Shader.create(appearanceSource);
+    shaderData.setTexture(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTexture, resolvedBinding.texture);
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTiling,
+      resolvedBinding.appearance.normal.tiling
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalScrollUvPerSecond,
+      resolvedBinding.appearance.normal.scrollUvPerSecond
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalStrength,
+      resolvedBinding.appearance.normal.strength
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalFlipGreen,
+      resolvedBinding.appearance.normal.flipGreen ? 1 : 0
+    );
+    const depthTint = resolvedBinding.appearance.depthTint;
+    const depthTintEnabled = depthTint.model === WaterSurfaceDepthTintModel.SceneDepthPower;
+    shaderData.setVector4(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintColor,
+      depthTintEnabled
+        ? new Vector4(depthTint.color[0], depthTint.color[1], depthTint.color[2], depthTint.color[3])
+        : ZERO_APPEARANCE_COLOR
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintDistance,
+      depthTintEnabled ? depthTint.distance : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintExponent,
+      depthTintEnabled ? depthTint.exponent : 0
+    );
+    const coastalAlpha = resolvedBinding.appearance.coastalAlpha;
+    const coastalAlphaEnabled = coastalAlpha.model === WaterSurfaceCoastalAlphaModel.SceneDepth;
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaDistance,
+      coastalAlphaEnabled ? coastalAlpha.distance : 0
+    );
+    const contactFoam = resolvedBinding.appearance.contactFoam;
+    const contactFoamEnabled = contactFoam.model === WaterSurfaceContactFoamModel.SceneDepthVoronoi;
+    const contactFoamWeights = resolution.readback.contactFoamWeights;
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamWorldScale,
+      contactFoamEnabled ? contactFoam.worldScale : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamTimeRate,
+      contactFoamEnabled ? contactFoam.timeRate : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOpacity,
+      contactFoamEnabled ? contactFoam.opacity : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamContactDistance,
+      contactFoamEnabled ? contactFoam.contactDistance : 0
+    );
+    shaderData.setVector3(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+      contactFoamEnabled
+        ? new Vector3(contactFoamWeights[0] ?? 0, contactFoamWeights[1] ?? 0, contactFoamWeights[2] ?? 0)
+        : ZERO_APPEARANCE_WEIGHTS
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamLacunarity,
+      contactFoamEnabled ? contactFoam.lacunarity : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSuppressRefraction,
+      contactFoamEnabled ? contactFoam.suppressRefraction : 0
+    );
+    shaderData.setFloat(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSmoothnessReduction,
+      contactFoamEnabled ? contactFoam.smoothnessReduction : 0
+    );
+  } else if (wasActive) {
+    state.material.shader = state.legacyShader;
+    nullableTextureData.setTexture(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTexture, null);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalTiling, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalScrollUvPerSecond, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalStrength, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceNormalFlipGreen, 0);
+    shaderData.setVector4(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintColor, ZERO_APPEARANCE_COLOR);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintDistance, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceDepthTintExponent, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceCoastalAlphaDistance, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamWorldScale, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamTimeRate, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOpacity, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamContactDistance, 0);
+    shaderData.setVector3(
+      HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamOctaveWeights,
+      ZERO_APPEARANCE_WEIGHTS
+    );
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamLacunarity, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSuppressRefraction, 0);
+    shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.appearanceContactFoamSmoothnessReduction, 0);
+  }
+  writeWaterSurfaceAppearanceBindingReadback(state.surfaceAppearanceReadback, resolution.readback);
+  applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state);
+  refreshHeightfieldWaterAppearanceDebugView(state);
+  return state.surfaceAppearanceReadback;
+}
+
+export function setHeightfieldWaterSurfaceAppearanceFeatureFlags(
+  state: HeightfieldWaterMaterialState,
+  flags: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags>
+): void {
+  const retainedFlags = state.surfaceAppearanceFeatureFlags;
+  retainedFlags.externalNormal = flags.externalNormal === true;
+  retainedFlags.depthTint = flags.depthTint === true;
+  retainedFlags.coastalAlpha = flags.coastalAlpha === true;
+  retainedFlags.contactFoam = flags.contactFoam === true;
+  retainedFlags.directSpecular = flags.directSpecular === true;
+  applyHeightfieldWaterSurfaceAppearanceFeatureFlags(state);
 }
 
 export function setHeightfieldWaterDebugMode(

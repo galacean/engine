@@ -22,7 +22,14 @@ export enum HeightfieldWaterDebugMode {
   RefractionAmount = 19,
   RefractionGates = 20,
   ReflectionColor = 21,
-  NormalDotView = 22
+  NormalDotView = 22,
+  DetailNormal = 23,
+  SceneDepthDelta = 24,
+  DepthTint = 25,
+  ContactFoam = 26,
+  CoastalAlpha = 27,
+  DirectSpecular = 28,
+  EffectiveRoughness = 29
 }
 
 /** Stable output labels used by optics captures and CPU/framebuffer analysis. */
@@ -43,6 +50,13 @@ export enum HeightfieldWaterOpticsDebugOutput {
   RefractionGates = "refraction-gates",
   ReflectionColor = "reflection-color",
   NormalDotView = "normal-dot-view",
+  DetailNormal = "detail-normal",
+  SceneDepthDelta = "scene-depth-delta",
+  DepthTint = "depth-tint",
+  ContactFoam = "contact-foam",
+  CoastalAlpha = "coastal-alpha",
+  DirectSpecular = "direct-specular",
+  EffectiveRoughness = "effective-roughness",
   /** External capture label: the final framebuffer cannot be sampled from this surface shader. */
   FinalFramebufferColor = "final-framebuffer-color"
 }
@@ -66,7 +80,14 @@ export const HEIGHTFIELD_WATER_SHADER_DEBUG_MODE_BY_OUTPUT: Readonly<
   [HeightfieldWaterOpticsDebugOutput.RefractionAmount]: HeightfieldWaterDebugMode.RefractionAmount,
   [HeightfieldWaterOpticsDebugOutput.RefractionGates]: HeightfieldWaterDebugMode.RefractionGates,
   [HeightfieldWaterOpticsDebugOutput.ReflectionColor]: HeightfieldWaterDebugMode.ReflectionColor,
-  [HeightfieldWaterOpticsDebugOutput.NormalDotView]: HeightfieldWaterDebugMode.NormalDotView
+  [HeightfieldWaterOpticsDebugOutput.NormalDotView]: HeightfieldWaterDebugMode.NormalDotView,
+  [HeightfieldWaterOpticsDebugOutput.DetailNormal]: HeightfieldWaterDebugMode.DetailNormal,
+  [HeightfieldWaterOpticsDebugOutput.SceneDepthDelta]: HeightfieldWaterDebugMode.SceneDepthDelta,
+  [HeightfieldWaterOpticsDebugOutput.DepthTint]: HeightfieldWaterDebugMode.DepthTint,
+  [HeightfieldWaterOpticsDebugOutput.ContactFoam]: HeightfieldWaterDebugMode.ContactFoam,
+  [HeightfieldWaterOpticsDebugOutput.CoastalAlpha]: HeightfieldWaterDebugMode.CoastalAlpha,
+  [HeightfieldWaterOpticsDebugOutput.DirectSpecular]: HeightfieldWaterDebugMode.DirectSpecular,
+  [HeightfieldWaterOpticsDebugOutput.EffectiveRoughness]: HeightfieldWaterDebugMode.EffectiveRoughness
 });
 
 /** Surface composition path. Numeric values are shader ABI and must remain stable. */

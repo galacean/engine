@@ -24,6 +24,39 @@ const runtimeMocks = vi.hoisted(() => ({
       mode: 0,
       referenceCompositionEnabled: false,
       effectiveFresnelOverride: undefined
+    },
+    surfaceAppearanceReadback: {
+      requested: false,
+      active: false,
+      normalTextureWidth: 0,
+      normalTextureHeight: 0,
+      normalLayerCount: 0,
+      normalTiling: 0,
+      normalScrollUvPerSecond: 0,
+      normalStrength: 0,
+      flipGreen: false,
+      depthTintEnabled: false,
+      depthTintDistance: 0,
+      depthTintExponent: 0,
+      coastalAlphaEnabled: false,
+      coastalAlphaDistance: 0,
+      contactFoamEnabled: false,
+      contactFoamWorldScale: 0,
+      contactFoamTimeRate: 0,
+      contactFoamOpacity: 0,
+      contactFoamContactDistance: 0,
+      contactFoamOctaveCount: 0,
+      contactFoamWeights: [],
+      contactFoamLacunarity: 0,
+      contactFoamSuppressRefraction: 0,
+      contactFoamSmoothnessReduction: 0
+    },
+    surfaceAppearanceFeatureFlags: {
+      externalNormal: true,
+      depthTint: true,
+      coastalAlpha: true,
+      contactFoam: true,
+      directSpecular: true
     }
   })),
   updateHeightfieldWaterMaterial: vi.fn(),
@@ -31,6 +64,16 @@ const runtimeMocks = vi.hoisted(() => ({
   setHeightfieldWaterDebugMode: vi.fn(),
   setHeightfieldWaterDepthWriteEnabled: vi.fn(),
   setHeightfieldWaterFeatureFlags: vi.fn(),
+  setHeightfieldWaterSurfaceAppearanceFeatureFlags: vi.fn(
+    (
+      state: {
+        surfaceAppearanceFeatureFlags: Record<string, boolean>;
+      },
+      flags: Readonly<Record<string, boolean>>
+    ) => {
+      Object.assign(state.surfaceAppearanceFeatureFlags, flags);
+    }
+  ),
   setHeightfieldWaterLocalFoamMask: vi.fn(),
   setHeightfieldWaterOpticsCalibrationMode: vi.fn(
     (
@@ -116,6 +159,112 @@ const runtimeMocks = vi.hoisted(() => ({
       return state.surfaceOpticsReadback;
     }
   ),
+  setHeightfieldWaterSurfaceAppearanceBinding: vi.fn(
+    (
+      state: {
+        quality: string;
+        surfaceAppearanceReadback: Record<string, unknown>;
+      },
+      binding?: {
+        appearance: {
+          sourceId: string;
+          appearanceHash: string;
+          variantKey: string;
+          normal: {
+            textureAssetId: string;
+            textureContentHash: string;
+            tiling: number;
+            scrollUvPerSecond: number;
+            strength: number;
+            flipGreen: boolean;
+          };
+          depthTint: {
+            model: string;
+            color?: readonly [number, number, number, number];
+            distance?: number;
+            exponent?: number;
+          };
+          coastalAlpha: {
+            model: string;
+            distance?: number;
+          };
+          contactFoam: {
+            model: string;
+            worldScale?: number;
+            timeRate?: number;
+            opacity?: number;
+            contactDistance?: number;
+            octaves?: {
+              count: 1 | 2 | 3;
+              weights: readonly number[];
+            };
+            lacunarity?: number;
+            suppressRefraction?: number;
+            smoothnessReduction?: number;
+          };
+        };
+        assetId: string;
+        contentHash: string;
+        texture: { width: number; height: number; destroyed: boolean };
+        ownership: string;
+      }
+    ) => {
+      const active =
+        state.quality !== "low" &&
+        binding?.assetId === binding?.appearance.normal.textureAssetId &&
+        binding?.contentHash === binding?.appearance.normal.textureContentHash &&
+        binding?.ownership === "borrowed" &&
+        binding?.texture.destroyed === false;
+      const depthTintEnabled = active && binding?.appearance.depthTint.model === "scene-depth-power";
+      const coastalAlphaEnabled = active && binding?.appearance.coastalAlpha.model === "scene-depth";
+      const contactFoamEnabled = active && binding?.appearance.contactFoam.model === "scene-depth-voronoi";
+      Object.assign(state.surfaceAppearanceReadback, {
+        requested: binding !== undefined,
+        active,
+        appearanceAssetId: binding?.appearance.sourceId,
+        appearanceHash: binding?.appearance.appearanceHash,
+        variantKey: binding?.appearance.variantKey,
+        normalAssetId: binding?.assetId,
+        normalContentHash: binding?.contentHash,
+        normalTextureWidth: active ? binding?.texture.width : 0,
+        normalTextureHeight: active ? binding?.texture.height : 0,
+        normalLayerCount: active ? 2 : 0,
+        normalTiling: active ? binding?.appearance.normal.tiling : 0,
+        normalScrollUvPerSecond: active ? binding?.appearance.normal.scrollUvPerSecond : 0,
+        normalStrength: active ? binding?.appearance.normal.strength : 0,
+        flipGreen: active ? binding?.appearance.normal.flipGreen : false,
+        depthTintModel: active ? binding?.appearance.depthTint.model : undefined,
+        depthTintEnabled,
+        depthTintColor: depthTintEnabled ? binding?.appearance.depthTint.color : undefined,
+        depthTintDistance: depthTintEnabled ? binding?.appearance.depthTint.distance : 0,
+        depthTintExponent: depthTintEnabled ? binding?.appearance.depthTint.exponent : 0,
+        coastalAlphaModel: active ? binding?.appearance.coastalAlpha.model : undefined,
+        coastalAlphaEnabled,
+        coastalAlphaDistance: coastalAlphaEnabled ? binding?.appearance.coastalAlpha.distance : 0,
+        contactFoamModel: active ? binding?.appearance.contactFoam.model : undefined,
+        contactFoamEnabled,
+        contactFoamWorldScale: contactFoamEnabled ? binding?.appearance.contactFoam.worldScale : 0,
+        contactFoamTimeRate: contactFoamEnabled ? binding?.appearance.contactFoam.timeRate : 0,
+        contactFoamOpacity: contactFoamEnabled ? binding?.appearance.contactFoam.opacity : 0,
+        contactFoamContactDistance: contactFoamEnabled ? binding?.appearance.contactFoam.contactDistance : 0,
+        contactFoamOctaveCount: contactFoamEnabled ? binding?.appearance.contactFoam.octaves?.count : 0,
+        contactFoamWeights: contactFoamEnabled ? binding?.appearance.contactFoam.octaves?.weights : [],
+        contactFoamLacunarity: contactFoamEnabled ? binding?.appearance.contactFoam.lacunarity : 0,
+        contactFoamSuppressRefraction: contactFoamEnabled ? binding?.appearance.contactFoam.suppressRefraction : 0,
+        contactFoamSmoothnessReduction: contactFoamEnabled ? binding?.appearance.contactFoam.smoothnessReduction : 0,
+        ownership: binding?.ownership === "borrowed" ? "borrowed" : undefined,
+        fallbackReason:
+          binding === undefined
+            ? undefined
+            : state.quality === "low"
+              ? "surface-appearance-quality-unsupported"
+              : active
+                ? undefined
+                : "surface-appearance-asset-id-mismatch"
+      });
+      return state.surfaceAppearanceReadback;
+    }
+  ),
   setHeightfieldWaterSurfaceTimeOverride: vi.fn()
 }));
 
@@ -137,13 +286,16 @@ vi.mock("../../runtime/heightfield/HeightfieldWaterMaterialFactory", () => ({
   setHeightfieldWaterOpticalProfile: runtimeMocks.setHeightfieldWaterOpticalProfile,
   setHeightfieldWaterReflectionBinding: runtimeMocks.setHeightfieldWaterReflectionBinding,
   setHeightfieldWaterRefractionEnabled: runtimeMocks.setHeightfieldWaterRefractionEnabled,
+  setHeightfieldWaterSurfaceAppearanceBinding: runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding,
+  setHeightfieldWaterSurfaceAppearanceFeatureFlags: runtimeMocks.setHeightfieldWaterSurfaceAppearanceFeatureFlags,
   setHeightfieldWaterSurfaceOpticsBinding: runtimeMocks.setHeightfieldWaterSurfaceOpticsBinding,
   setHeightfieldWaterSurfaceTimeOverride: runtimeMocks.setHeightfieldWaterSurfaceTimeOverride
 }));
 
-import type { Engine, Entity } from "@galacean/engine-core";
+import type { Engine, Entity, Texture2D } from "@galacean/engine-core";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { HeightfieldWaterCompiler } from "../../compiler/heightfield/HeightfieldWaterCompiler";
+import { WaterSurfaceAppearanceCompiler } from "../../compiler/surface/WaterSurfaceAppearanceCompiler";
 import { createHeightfieldWaterFixture } from "../../demo/heightfield/heightfieldFixture";
 import { HeightfieldWaterResource } from "../../runtime/heightfield/HeightfieldWaterResource";
 import {
@@ -156,6 +308,7 @@ import {
   HeightfieldWaterOpticsCalibrationMode
 } from "../../runtime/heightfield/HeightfieldWaterRuntimeEnums";
 import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../../runtime/optics/WaterOpticalProfile";
+import { grasslandsSurfaceAppearanceFixture } from "../fixtures/waterSurfaceAppearanceFixtures";
 
 class FakeRenderer {
   mesh?: unknown;
@@ -218,6 +371,16 @@ function compileResource(quality: WaterQualityTier): HeightfieldWaterResource {
   );
 }
 
+function createAppearanceBinding(texture: Texture2D) {
+  return {
+    appearance: WaterSurfaceAppearanceCompiler.compile(grasslandsSurfaceAppearanceFixture).data!,
+    assetId: grasslandsSurfaceAppearanceFixture.normal.textureAssetId,
+    contentHash: grasslandsSurfaceAppearanceFixture.normal.textureContentHash,
+    texture,
+    ownership: "borrowed" as const
+  };
+}
+
 describe("HeightfieldWaterRuntimeController", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -245,21 +408,421 @@ describe("HeightfieldWaterRuntimeController", () => {
     expect(controller.meshUploadCount).toBe(resource.data.chunks.length);
     expect(controller.activeChunkCount).toBe(resource.data.chunks.length);
     expect(resource.referenceCount).toBe(1);
+    expect(controller.resourceMetrics).toEqual({
+      retainedRuntimeSetCount: 1,
+      activeRuntimeSetCount: 1,
+      activeDrawCount: resource.data.chunks.length,
+      retainedMaterialCount: 1,
+      retainedLocalMapTextureCount: 1,
+      runtimeSetCreateCount: 1,
+      runtimeSetDestroyCount: 0,
+      materialCreateCount: 1,
+      materialDestroyCount: 0,
+      localMapTextureCreateCount: 1,
+      localMapTextureDestroyCount: 0,
+      meshCreateCount: resource.data.chunks.length,
+      meshDestroyCount: 0
+    });
 
     const uploadCount = controller.meshUploadCount;
-    controller.setDebugMode(HeightfieldWaterDebugMode.Flow);
+    controller.setDebugMode(HeightfieldWaterDebugMode.EffectiveRoughness);
     controller.setRefractionEnabled(false);
     controller.setCompositionMode(HeightfieldWaterCompositionMode.PrecomposedReplace);
     controller.setDepthWriteEnabled(true);
     controller.setFeatureFlags({ waves: false, microNormals: true, foam: false });
+    controller.setSurfaceAppearanceFeatureFlags({
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    });
     controller.setSurfaceTimeOverride(86400);
+    expect(controller.surfaceTimeOverride).toBe(86400);
     controller.setOpticalProfile(DEFAULT_WATER_OPTICAL_PROFILE);
     controller.updateMaterial(resource.data.material);
     expect(controller.meshUploadCount).toBe(uploadCount);
     expect(runtimeMocks.uploadHeightfieldWaterMesh).toHaveBeenCalledTimes(uploadCount);
+    expect(runtimeMocks.createHeightfieldWaterMaterial).toHaveBeenCalledTimes(1);
+    expect(runtimeMocks.setHeightfieldWaterSurfaceOpticsBinding).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        debugView: HeightfieldWaterDebugMode.EffectiveRoughness
+      })
+    );
 
     controller.destroy();
     expect(resource.referenceCount).toBe(0);
+    expect(controller.resourceMetrics).toEqual({
+      retainedRuntimeSetCount: 0,
+      activeRuntimeSetCount: 0,
+      activeDrawCount: 0,
+      retainedMaterialCount: 0,
+      retainedLocalMapTextureCount: 0,
+      runtimeSetCreateCount: 1,
+      runtimeSetDestroyCount: 1,
+      materialCreateCount: 1,
+      materialDestroyCount: 1,
+      localMapTextureCreateCount: 1,
+      localMapTextureDestroyCount: 1,
+      meshCreateCount: resource.data.chunks.length,
+      meshDestroyCount: resource.data.chunks.length
+    });
+  });
+
+  it("copies and freezes default or caller Surface Appearance feature requests for active and future sets", async () => {
+    const { controller } = createRuntime();
+    const resource = compileResource(WaterQualityTier.High);
+    const defaults = controller.surfaceAppearanceFeatureFlags;
+    expect(defaults).toEqual({
+      externalNormal: true,
+      depthTint: true,
+      coastalAlpha: true,
+      contactFoam: true,
+      directSpecular: true
+    });
+    expect(Object.isFrozen(defaults)).toBe(true);
+    expect(controller.surfaceAppearanceFeatureFlags).toBe(defaults);
+
+    const callerFlags = {
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    };
+    controller.setSurfaceAppearanceFeatureFlags(callerFlags);
+    const snapshot = controller.surfaceAppearanceFeatureFlags;
+    expect(snapshot).not.toBe(callerFlags);
+    expect(snapshot).toEqual(callerFlags);
+    expect(Object.isFrozen(snapshot)).toBe(true);
+    callerFlags.externalNormal = true;
+    callerFlags.directSpecular = true;
+    expect(controller.surfaceAppearanceFeatureFlags).toEqual({
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    });
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceFeatureFlags).not.toHaveBeenCalled();
+
+    await controller.replaceActiveIncremental("fixture", resource, { now: () => 0 });
+    const material = runtimeMocks.createHeightfieldWaterMaterial.mock.results[0].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceFeatureFlags).toHaveBeenLastCalledWith(material, snapshot);
+    expect(material.surfaceAppearanceFeatureFlags).toEqual(snapshot);
+
+    controller.destroy();
+    expect(controller.surfaceAppearanceFeatureFlags).toBe(snapshot);
+    expect(() => controller.setSurfaceAppearanceFeatureFlags(defaults)).toThrow(
+      "Heightfield water runtime controller has been destroyed."
+    );
+  });
+
+  it("replays feature toggles that occur while a future Appearance set is yielding", async () => {
+    const { controller } = createRuntime();
+    const resource = compileResource(WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    controller.setSurfaceAppearanceBinding(createAppearanceBinding(texture));
+    controller.setSurfaceAppearanceFeatureFlags({
+      externalNormal: true,
+      depthTint: false,
+      coastalAlpha: true,
+      contactFoam: false,
+      directSpecular: true
+    });
+    let time = 0;
+    let toggled = false;
+
+    await controller.replaceActiveIncremental("fixture", resource, {
+      frameBudgetMs: 0,
+      now: () => ++time,
+      yieldToMainThread: async () => {
+        if (toggled) return;
+        toggled = true;
+        controller.setSurfaceAppearanceFeatureFlags({
+          externalNormal: false,
+          depthTint: true,
+          coastalAlpha: false,
+          contactFoam: true,
+          directSpecular: false
+        });
+      }
+    });
+
+    const material = runtimeMocks.createHeightfieldWaterMaterial.mock.results[0].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceFeatureFlags).toHaveBeenLastCalledWith(
+      material,
+      controller.surfaceAppearanceFeatureFlags
+    );
+    expect(material.surfaceAppearanceFeatureFlags).toEqual(controller.surfaceAppearanceFeatureFlags);
+    expect(controller.surfaceAppearanceFeatureFlags).toEqual({
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    });
+    expect(texture.destroy).not.toHaveBeenCalled();
+    controller.destroy();
+    expect(texture.destroy).not.toHaveBeenCalled();
+  });
+
+  it("replays optical profile, refraction, and Debug changes that occur while a future set is yielding", async () => {
+    const { controller } = createRuntime();
+    const resource = compileResource(WaterQualityTier.High);
+    const updatedProfile = Object.freeze({
+      ...DEFAULT_WATER_OPTICAL_PROFILE,
+      refractionStrength: 0.07,
+      reflectionIntensity: 0.25
+    });
+    let time = 0;
+    let toggled = false;
+
+    await controller.replaceActiveIncremental("fixture", resource, {
+      frameBudgetMs: 0,
+      now: () => ++time,
+      yieldToMainThread: async () => {
+        if (toggled) return;
+        toggled = true;
+        controller.setOpticalProfile(updatedProfile);
+        controller.setRefractionEnabled(false);
+        controller.setDebugMode(HeightfieldWaterDebugMode.EffectiveRoughness);
+      }
+    });
+
+    const material = runtimeMocks.createHeightfieldWaterMaterial.mock.results[0].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceOpticsBinding).toHaveBeenLastCalledWith(
+      material,
+      expect.objectContaining({
+        opticalProfile: updatedProfile,
+        refractionEnabled: false,
+        debugView: HeightfieldWaterDebugMode.EffectiveRoughness
+      })
+    );
+    expect(controller.activeSurfaceOpticsReadback).toMatchObject({
+      opticalProfile: updatedProfile,
+      refractionEnabled: false,
+      debugView: HeightfieldWaterDebugMode.EffectiveRoughness
+    });
+
+    controller.destroy();
+  });
+
+  it("retains one borrowed appearance for future and active sets, detaches all, and never destroys the texture", async () => {
+    const { controller } = createRuntime();
+    const firstResource = compileResource(WaterQualityTier.High);
+    const secondResource = compileResource(WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = createAppearanceBinding(texture);
+    controller.setSurfaceAppearanceFeatureFlags({
+      externalNormal: false,
+      depthTint: true,
+      coastalAlpha: false,
+      contactFoam: true,
+      directSpecular: false
+    });
+
+    controller.setSurfaceAppearanceBinding(binding);
+    expect(controller.surfaceAppearanceBinding).toBe(binding);
+    expect(controller.activeSurfaceAppearanceReadback).toBeUndefined();
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).not.toHaveBeenCalled();
+
+    await controller.replaceActiveIncremental("first", firstResource, { now: () => 0 });
+    const firstMaterial = runtimeMocks.createHeightfieldWaterMaterial.mock.results[0].value;
+    const stableReadback = controller.activeSurfaceAppearanceReadback;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenCalledWith(firstMaterial, binding);
+    expect(stableReadback).toBe(firstMaterial.surfaceAppearanceReadback);
+    expect(stableReadback).toMatchObject({
+      active: true,
+      normalLayerCount: 2,
+      normalTextureWidth: 1024,
+      depthTintEnabled: true,
+      depthTintDistance: 10,
+      depthTintExponent: 0.5,
+      coastalAlphaEnabled: true,
+      coastalAlphaDistance: 0.5,
+      contactFoamEnabled: true,
+      contactFoamWorldScale: 2.5,
+      contactFoamTimeRate: 1,
+      contactFoamOpacity: 0.453,
+      contactFoamContactDistance: 0.1791,
+      contactFoamOctaveCount: 3,
+      contactFoamWeights: [0.5, 0.25, 0.125],
+      contactFoamLacunarity: 2,
+      contactFoamSuppressRefraction: 1,
+      contactFoamSmoothnessReduction: 0.35,
+      ownership: "borrowed"
+    });
+
+    await controller.replaceActiveIncremental("second", secondResource, { now: () => 0 });
+    const secondMaterial = runtimeMocks.createHeightfieldWaterMaterial.mock.results[1].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenCalledWith(secondMaterial, binding);
+    controller.setSurfaceAppearanceBinding();
+    expect(controller.surfaceAppearanceBinding).toBeUndefined();
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenLastCalledWith(
+      secondMaterial,
+      undefined
+    );
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenCalledWith(firstMaterial, undefined);
+    expect(controller.activeSurfaceAppearanceReadback).toMatchObject({
+      requested: false,
+      active: false,
+      normalLayerCount: 0,
+      depthTintEnabled: false,
+      coastalAlphaEnabled: false,
+      contactFoamEnabled: false,
+      contactFoamOctaveCount: 0,
+      contactFoamWeights: []
+    });
+    expect(texture.destroy).not.toHaveBeenCalled();
+
+    controller.destroy();
+    expect(controller.surfaceAppearanceBinding).toBeUndefined();
+    expect(texture.destroy).not.toHaveBeenCalled();
+  });
+
+  it("replays a binding replacement and detach that occur while a future set is yielding", async () => {
+    const { controller } = createRuntime();
+    const firstResource = compileResource(WaterQualityTier.High);
+    const secondResource = compileResource(WaterQualityTier.High);
+    const firstTexture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const replacementTexture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const initialBinding = createAppearanceBinding(firstTexture);
+    const replacementBinding = createAppearanceBinding(replacementTexture);
+    let time = 0;
+    let replaced = false;
+
+    controller.setSurfaceAppearanceBinding(initialBinding);
+    await controller.replaceActiveIncremental("first", firstResource, {
+      frameBudgetMs: 0,
+      now: () => ++time,
+      yieldToMainThread: async () => {
+        if (replaced) return;
+        replaced = true;
+        controller.setSurfaceAppearanceBinding(replacementBinding);
+      }
+    });
+
+    const firstMaterial = runtimeMocks.createHeightfieldWaterMaterial.mock.results[0].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenCalledWith(
+      firstMaterial,
+      initialBinding
+    );
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenLastCalledWith(
+      firstMaterial,
+      replacementBinding
+    );
+    expect(controller.surfaceAppearanceBinding).toBe(replacementBinding);
+    expect(controller.activeSurfaceAppearanceReadback).toMatchObject({ active: true });
+
+    let detached = false;
+    await controller.replaceActiveIncremental("second", secondResource, {
+      frameBudgetMs: 0,
+      now: () => ++time,
+      yieldToMainThread: async () => {
+        if (detached) return;
+        detached = true;
+        controller.setSurfaceAppearanceBinding();
+      }
+    });
+
+    const secondMaterial = runtimeMocks.createHeightfieldWaterMaterial.mock.results[1].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenCalledWith(
+      secondMaterial,
+      replacementBinding
+    );
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceBinding).toHaveBeenLastCalledWith(
+      secondMaterial,
+      undefined
+    );
+    expect(controller.surfaceAppearanceBinding).toBeUndefined();
+    expect(controller.activeSurfaceAppearanceReadback).toMatchObject({
+      requested: false,
+      active: false,
+      normalLayerCount: 0
+    });
+    expect(firstTexture.destroy).not.toHaveBeenCalled();
+    expect(replacementTexture.destroy).not.toHaveBeenCalled();
+    controller.destroy();
+  });
+
+  it("reports Low fallback and activates the same cached binding on a future High set", async () => {
+    const { controller } = createRuntime();
+    const lowResource = compileResource(WaterQualityTier.Low);
+    const highResource = compileResource(WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = createAppearanceBinding(texture);
+
+    controller.setSurfaceAppearanceBinding(binding);
+    await controller.replaceActiveIncremental("low", lowResource, { now: () => 0 });
+    expect(controller.activeSurfaceAppearanceReadback).toMatchObject({
+      requested: true,
+      active: false,
+      fallbackReason: "surface-appearance-quality-unsupported"
+    });
+
+    await controller.replaceActiveIncremental("high", highResource, { now: () => 0 });
+    expect(controller.activeSurfaceAppearanceReadback).toMatchObject({
+      requested: true,
+      active: true,
+      normalLayerCount: 2
+    });
+    expect(controller.surfaceAppearanceBinding).toBe(binding);
+    const highMaterial = runtimeMocks.createHeightfieldWaterMaterial.mock.results[1].value;
+    expect(runtimeMocks.setHeightfieldWaterSurfaceAppearanceFeatureFlags).toHaveBeenLastCalledWith(
+      highMaterial,
+      controller.surfaceAppearanceFeatureFlags
+    );
+    expect(highMaterial.surfaceAppearanceFeatureFlags).toEqual(controller.surfaceAppearanceFeatureFlags);
+    expect(texture.destroy).not.toHaveBeenCalled();
+    controller.destroy();
+    expect(texture.destroy).not.toHaveBeenCalled();
+  });
+
+  it("cannot retain a new caller texture after the controller is destroyed", () => {
+    const { controller } = createRuntime();
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    const binding = createAppearanceBinding(texture);
+
+    controller.setSurfaceAppearanceBinding(binding);
+    controller.destroy();
+    expect(controller.surfaceAppearanceBinding).toBeUndefined();
+    expect(() => controller.setSurfaceAppearanceBinding(binding)).toThrow(
+      "Heightfield water runtime controller has been destroyed."
+    );
+    expect(controller.surfaceAppearanceBinding).toBeUndefined();
+    expect(texture.destroy).not.toHaveBeenCalled();
   });
 
   it("retains independent refraction, composition, depth-write, and renderer-priority controls across activation", async () => {
@@ -502,6 +1065,13 @@ describe("HeightfieldWaterRuntimeController", () => {
     const { controller, root } = createRuntime();
     const activeResource = compileResource(WaterQualityTier.Low);
     const cancelledResource = compileResource(WaterQualityTier.High);
+    const texture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    controller.setSurfaceAppearanceBinding(createAppearanceBinding(texture));
     await controller.replaceActiveIncremental("fixture", activeResource, {
       now: () => 0,
       yieldToMainThread: async () => undefined
@@ -518,8 +1088,64 @@ describe("HeightfieldWaterRuntimeController", () => {
     expect(root.children[1].isActive).toBe(false);
     expect(root.children[1].destroyed).toBe(true);
     expect(cancelledResource.referenceCount).toBe(0);
+    expect(texture.destroy).not.toHaveBeenCalled();
 
     controller.destroy();
+    expect(texture.destroy).not.toHaveBeenCalled();
+  });
+
+  it("settles and destroys a hidden incremental set after controller teardown wins a yield", async () => {
+    const { controller, root } = createRuntime();
+    const resource = compileResource(WaterQualityTier.High);
+    const borrowedTexture = {
+      width: 1024,
+      height: 1024,
+      destroyed: false,
+      destroy: vi.fn()
+    } as unknown as Texture2D;
+    controller.setSurfaceAppearanceBinding(createAppearanceBinding(borrowedTexture));
+    let resumeYield: (() => void) | undefined;
+    let notifyYield: (() => void) | undefined;
+    const reachedYield = new Promise<void>((resolve) => {
+      notifyYield = resolve;
+    });
+    const activation = controller.replaceActiveIncremental("fixture", resource, {
+      frameBudgetMs: 0,
+      now: () => 0,
+      yieldToMainThread: () =>
+        new Promise<void>((resolve) => {
+          resumeYield = resolve;
+          notifyYield?.();
+        })
+    });
+
+    await reachedYield;
+    controller.setSurfaceAppearanceBinding(undefined);
+    controller.destroy();
+    expect(controller.resourceMetrics).toMatchObject({
+      activeRuntimeSetCount: 0,
+      retainedRuntimeSetCount: 0,
+      runtimeSetCreateCount: 0,
+      runtimeSetDestroyCount: 0
+    });
+    expect(root.children[0].destroyed).toBe(false);
+    expect(borrowedTexture.destroy).not.toHaveBeenCalled();
+
+    resumeYield?.();
+    await expect(activation).rejects.toBeInstanceOf(HeightfieldWaterRuntimeSubmissionCancelledError);
+    expect(root.children[0].destroyed).toBe(true);
+    expect(resource.referenceCount).toBe(0);
+    expect(controller.resourceMetrics).toMatchObject({
+      activeRuntimeSetCount: 0,
+      retainedRuntimeSetCount: 0,
+      materialCreateCount: 1,
+      materialDestroyCount: 1,
+      localMapTextureCreateCount: 1,
+      localMapTextureDestroyCount: 1
+    });
+    expect(controller.resourceMetrics.meshCreateCount).toBeGreaterThan(0);
+    expect(controller.resourceMetrics.meshDestroyCount).toBe(controller.resourceMetrics.meshCreateCount);
+    expect(borrowedTexture.destroy).not.toHaveBeenCalled();
   });
 
   it("atomically replaces the old set and flushes deferred GPU resources only on request", async () => {

@@ -1,6 +1,7 @@
 /** Heightfield-water shader bindings and runtime submission defaults. */
 import { WATER_OPTICS_SHADER_PROPERTY } from "../optics/constants/WaterOpticsShaderConstants";
 import { DEFAULT_WATER_SURFACE_DETAIL_TEXTURE_DESCRIPTOR } from "../wave/constants/WaterSurfaceDetailTextureConstants";
+import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "./types";
 
 export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
   shallowColor: "material_ShallowColor",
@@ -28,6 +29,28 @@ export const HEIGHTFIELD_WATER_SHADER_PROPERTY = {
   depthWriteEnabled: "depthWriteEnabled",
   localMapTexture: "material_LocalMapTexture",
   surfaceTexture: "material_SurfaceTexture",
+  appearanceNormalTexture: "material_AppearanceNormalTexture",
+  appearanceExternalNormalEnabled: "material_AppearanceExternalNormalEnabled",
+  appearanceNormalTiling: "material_AppearanceNormalTiling",
+  appearanceNormalScrollUvPerSecond: "material_AppearanceNormalScrollUvPerSecond",
+  appearanceNormalStrength: "material_AppearanceNormalStrength",
+  appearanceNormalFlipGreen: "material_AppearanceNormalFlipGreen",
+  appearanceDepthTintEnabled: "material_AppearanceDepthTintEnabled",
+  appearanceDepthTintColor: "material_AppearanceDepthTintColor",
+  appearanceDepthTintDistance: "material_AppearanceDepthTintDistance",
+  appearanceDepthTintExponent: "material_AppearanceDepthTintExponent",
+  appearanceCoastalAlphaEnabled: "material_AppearanceCoastalAlphaEnabled",
+  appearanceCoastalAlphaDistance: "material_AppearanceCoastalAlphaDistance",
+  appearanceContactFoamEnabled: "material_AppearanceContactFoamEnabled",
+  appearanceContactFoamWorldScale: "material_AppearanceContactFoamWorldScale",
+  appearanceContactFoamTimeRate: "material_AppearanceContactFoamTimeRate",
+  appearanceContactFoamOpacity: "material_AppearanceContactFoamOpacity",
+  appearanceContactFoamContactDistance: "material_AppearanceContactFoamContactDistance",
+  appearanceContactFoamOctaveWeights: "material_AppearanceContactFoamOctaveWeights",
+  appearanceContactFoamLacunarity: "material_AppearanceContactFoamLacunarity",
+  appearanceContactFoamSuppressRefraction: "material_AppearanceContactFoamSuppressRefraction",
+  appearanceContactFoamSmoothnessReduction: "material_AppearanceContactFoamSmoothnessReduction",
+  appearanceDirectSpecularEnabled: "material_AppearanceDirectSpecularEnabled",
   absorptionCoefficient: WATER_OPTICS_SHADER_PROPERTY.absorptionCoefficient,
   scatteringColor: WATER_OPTICS_SHADER_PROPERTY.scatteringColor,
   scatteringCoefficient: WATER_OPTICS_SHADER_PROPERTY.scatteringCoefficient,
@@ -60,6 +83,15 @@ export const DEFAULT_HEIGHTFIELD_WATER_LOCAL_FOAM_MASK = Object.freeze({
   halfSizeXZ: Object.freeze([0, 0] as const),
   featherMeters: 0
 });
+
+export const DEFAULT_HEIGHTFIELD_WATER_SURFACE_APPEARANCE_FEATURE_FLAGS: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> =
+  Object.freeze({
+    externalNormal: true,
+    depthTint: true,
+    coastalAlpha: true,
+    contactFoam: true,
+    directSpecular: true
+  });
 
 /** Keeps elapsed time bounded before it reaches the shader's trigonometric functions. */
 export const HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS = 4096;

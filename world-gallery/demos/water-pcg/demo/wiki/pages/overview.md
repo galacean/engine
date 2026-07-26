@@ -19,6 +19,8 @@ River 已走通完整 Descriptor → Compiler → Resource → Worker → Runtim
 
 完整案例目录按展示目标分成三层：
 
+当前目录包含 3 个 Showcase 和 17 个 Feature；Developer 与 Docs 入口不计入公开能力数量。
+
 | 层级 | 入口 | 目标 |
 | --- | --- | --- |
 | Showcase | [河流](./#showcase-river)、[泳池](./#showcase-pool)、[海洋](./#showcase-ocean) | 每种典型场景只保留一个“大而全”的最佳效果入口 |

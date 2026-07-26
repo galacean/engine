@@ -12,7 +12,7 @@ export type ResolvedWaterOpticsTier = Exclude<WaterOpticsTier, "experimental">;
 
 /**
  * Shared debug values. Numeric values 0-22 are frozen by the P0 Heightfield shader ABI.
- * Future Experimental-only views must append values instead of inserting or renumbering.
+ * Surface Appearance V1 appends 23-29; future views must append instead of inserting or renumbering.
  */
 export enum WaterOpticsDebugView {
   Final = 0,
@@ -37,7 +37,14 @@ export enum WaterOpticsDebugView {
   RefractionAmount = 19,
   RefractionGates = 20,
   ReflectionColor = 21,
-  NormalDotView = 22
+  NormalDotView = 22,
+  DetailNormal = 23,
+  SceneDepthDelta = 24,
+  DepthTint = 25,
+  ContactFoam = 26,
+  CoastalAlpha = 27,
+  DirectSpecular = 28,
+  EffectiveRoughness = 29
 }
 
 export type WaterPlanarFilterSampleCount = 1 | 5;

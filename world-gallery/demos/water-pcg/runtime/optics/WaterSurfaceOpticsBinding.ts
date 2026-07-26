@@ -100,7 +100,7 @@ function isFiniteMatrix(matrix: Readonly<Matrix> | undefined): boolean {
 function sanitizedDebugView(debugView: number): WaterOpticsDebugView {
   return Number.isInteger(debugView) &&
     debugView >= WaterOpticsDebugView.Final &&
-    debugView <= WaterOpticsDebugView.NormalDotView
+    debugView <= WaterOpticsDebugView.EffectiveRoughness
     ? (debugView as WaterOpticsDebugView)
     : WaterOpticsDebugView.Final;
 }

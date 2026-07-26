@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "caseId": "showcase-grasslands-stylized-water",
+  "authorization": {
+    "status": "resolved-user-confirmed-paid-license",
+    "confirmationDate": "2026-07-24",
+    "allowedUse": [
+      "project-use",
+      "derivative-processing",
+      "repository-integration",
+      "demo-build-integration"
+    ],
+    "excludedUse": [
+      "source-package-repackaging",
+      "resale",
+      "independent-asset-distribution"
+    ]
+  },
+  "reference": {
+    "repositoryStored": false,
+    "localPath": "/Users/xingyi/Documents/data/water-system-assets/river/cases/grasslands-stylized-nature-v1-0-urp/reference/target-water-effect.png",
+    "sha256": "c0f711b35a06a31557c3a4ca922ed06cb3c02bca769df420024749b6fd77b4cb",
+    "width": 1340,
+    "height": 662,
+    "use": "internal-reference-parity-only"
+  },
+  "assets": [
+    {
+      "id": "grasslands-water-normal-1024",
+      "role": "external-tangent-normal",
+      "sourcePath": "/Users/xingyi/Documents/data/water-system-assets/river/cases/grasslands-stylized-nature-v1-0-urp/galacean-inputs/textures/grasslands-water-normal-1024.png",
+      "sourceSha256": "0d9bfdded6d8c46cff4afe145cf052ec31f079ae03d89b73599ccb7807c02332",
+      "trackedPath": "demo/grasslands/assets/grasslands-water-normal-1024.png",
+      "trackedUrl": "./demo/grasslands/assets/grasslands-water-normal-1024.png",
+      "trackedSha256": "0d9bfdded6d8c46cff4afe145cf052ec31f079ae03d89b73599ccb7807c02332",
+      "byteLength": 533511,
+      "width": 1024,
+      "height": 1024,
+      "derivative": {
+        "kind": "same-byte-copy",
+        "steps": [
+          "copy the audited Galacean input into the demo asset directory",
+          "verify source and tracked SHA-256 are identical"
+        ]
+      },
+      "sampling": {
+        "colorSpace": "linear",
+        "wrapU": "repeat",
+        "wrapV": "repeat",
+        "filter": "bilinear",
+        "mipmaps": true,
+        "anisotropy": 1
+      },
+      "ownership": {
+        "creator": "GrasslandsAssetLoader",
+        "runtime": "borrowed",
+        "destroyer": "GrasslandsAssetLoader"
+      }
+    }
+  ],
+  "excludedFiles": [
+    "complete unitypackage",
+    "purchase account or order data",
+    "unrelated Unity source assets",
+    "Lotus assets",
+    "Unity shader source"
+  ]
+}

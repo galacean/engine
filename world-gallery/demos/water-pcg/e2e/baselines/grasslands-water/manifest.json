@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "grasslands-water-reference-fixture-v1",
+  "caseId": "showcase-grasslands-stylized-water",
+  "fixtureStatus": "frozen-m0",
+  "parityClaim": "water-material-mechanism-parity",
+  "parityExclusions": [
+    "environment-reflection-pattern",
+    "terrain-mesh-parity",
+    "vegetation-parity",
+    "waterfall",
+    "post-processing"
+  ],
+  "environment": {
+    "viewport": {
+      "width": 1340,
+      "height": 662
+    },
+    "deviceScaleFactor": 1,
+    "graphicsApi": "webgl2",
+    "quality": "high",
+    "colorSpace": "linear",
+    "surfaceTime": 12.5,
+    "seed": 20260724,
+    "statsEnabled": false,
+    "hudEnabled": false,
+    "debugUiEnabled": false
+  },
+  "camera": {
+    "mode": "fixed",
+    "position": [
+      0,
+      16,
+      32
+    ],
+    "target": [
+      0,
+      -1,
+      -8
+    ],
+    "forward": [
+      0,
+      -0.3911406403448517,
+      -0.9203309184584746
+    ],
+    "fieldOfViewDegrees": 48,
+    "nearClip": 0.1,
+    "farClip": 200
+  },
+  "directLight": {
+    "count": 1,
+    "color": [
+      1,
+      1,
+      1
+    ],
+    "intensity": 1.05,
+    "forward": [
+      0.19169850264280183,
+      -0.7869350219613372,
+      0.5865023062999986
+    ],
+    "sourceEulerDegreesForAuditOnly": [
+      51.9,
+      18.1,
+      0
+    ]
+  },
+  "reflection": {
+    "requestedSource": "sky",
+    "effectiveSource": "sky",
+    "renderedSkybox": false,
+    "analyticSky": {
+      "lowerLinearRgb": [
+        0.075,
+        0.16,
+        0.21
+      ],
+      "upperLinearRgb": [
+        0.32,
+        0.48,
+        0.57
+      ],
+      "reflectionIntensity": 1
+    },
+    "environmentPatternCompared": false
+  },
+  "reference": {
+    "repositoryStored": false,
+    "localPath": "/Users/xingyi/Documents/data/water-system-assets/river/cases/grasslands-stylized-nature-v1-0-urp/reference/target-water-effect.png",
+    "sha256": "c0f711b35a06a31557c3a4ca922ed06cb3c02bca769df420024749b6fd77b4cb",
+    "width": 1340,
+    "height": 662,
+    "waterMask": {
+      "coordinateSpace": "reference-pixels",
+      "includePolygons": [
+        [
+          [0, 218],
+          [164, 211],
+          [314, 216],
+          [481, 211],
+          [626, 215],
+          [775, 222],
+          [840, 248],
+          [831, 302],
+          [881, 369],
+          [989, 431],
+          [1098, 500],
+          [1115, 561],
+          [1068, 615],
+          [982, 661],
+          [0, 661]
+        ]
+      ],
+      "excludePolygons": [
+        [
+          [0, 258],
+          [89, 259],
+          [173, 294],
+          [252, 349],
+          [195, 409],
+          [89, 421],
+          [0, 393]
+        ],
+        [
+          [841, 253],
+          [1055, 262],
+          [1238, 333],
+          [1339, 384],
+          [1339, 661],
+          [1128, 661],
+          [1110, 560],
+          [987, 430],
+          [880, 368]
+        ]
+      ]
+    },
+    "mechanismRois": {
+      "detail-normal": [
+        {
+          "x": 320,
+          "y": 270,
+          "width": 360,
+          "height": 170,
+          "purpose": "open-water dual-direction ripple frequency and direction"
+        }
+      ],
+      "refraction": [
+        {
+          "x": 690,
+          "y": 325,
+          "width": 300,
+          "height": 170,
+          "purpose": "submerged rock and bed displacement"
+        }
+      ],
+      "depth-color": [
+        {
+          "x": 330,
+          "y": 225,
+          "width": 430,
+          "height": 270,
+          "purpose": "shallow-to-deep cyan gradient"
+        }
+      ],
+      "contact-foam": [
+        {
+          "x": 55,
+          "y": 300,
+          "width": 330,
+          "height": 230,
+          "purpose": "left-bank and half-submerged rock contacts"
+        },
+        {
+          "x": 805,
+          "y": 370,
+          "width": 355,
+          "height": 200,
+          "purpose": "right-bank and foreground rock contacts"
+        }
+      ],
+      "coastal-alpha": [
+        {
+          "x": 805,
+          "y": 235,
+          "width": 355,
+          "height": 155,
+          "purpose": "right-bank shallow transparent transition"
+        }
+      ],
+      "specular-response": [
+        {
+          "x": 560,
+          "y": 210,
+          "width": 340,
+          "height": 185,
+          "purpose": "direct highlight and stable analytic reflection response"
+        }
+      ]
+    }
+  },
+  "captureStates": [
+    "hero",
+    "detail-normal",
+    "refraction",
+    "depth-color",
+    "contact-foam",
+    "coastal-alpha",
+    "direct-specular",
+    "reflection"
+  ],
+  "mechanismThresholds": {
+    "detailNormal": {
+      "maximumPrimaryFrequencyPeakRelativeError": 0.1,
+      "directionAndFlipGreen": "human-approved"
+    },
+    "refraction": {
+      "expectedOffsetScale": 0.1,
+      "maximumOffsetRelativeError": 0.02,
+      "maximumCpuReferenceChannelErrorBytes": 2,
+      "aboveWaterWrongSampleCount": 0
+    },
+    "depthColor": {
+      "sampleDepthDeltaMeters": [
+        0,
+        0.5,
+        2,
+        5,
+        10
+      ],
+      "rangeMeters": 10,
+      "exponent": 0.5,
+      "maximumLinearRgbChannelErrorBytes": 2,
+      "monotonic": true
+    },
+    "contactFoam": {
+      "contactRangeMeters": 0.1791,
+      "maximumRangeErrorMeters": 0.01,
+      "openWaterLeakPixelCount": 0,
+      "minimumStableFrameCount": 60
+    },
+    "coastalAlpha": {
+      "transitionWidthMeters": 0.5,
+      "maximumWidthErrorMeters": 0.02,
+      "maximumCpuReferenceChannelErrorBytes": 2,
+      "monotonic": true,
+      "brokenEdgeCount": 0
+    },
+    "specularResponse": {
+      "maximumPeakDirectionErrorDegrees": 2,
+      "maximumHalfPeakWidthRelativeError": 0.1,
+      "maximumPeakLuminanceRelativeError": 0.1
+    }
+  },
+  "regressionGolden": {
+    "status": "pending-m3-user-approval",
+    "source": "first-user-approved-galacean-output",
+    "thresholds": {
+      "perChannelByteTolerance": 8,
+      "maximumDiffPixelRatio": 0.01,
+      "maximumMeanAbsoluteChannelDifference": 1.5
+    },
+    "referenceTargetIsAutomaticGolden": false
+  }
+}
