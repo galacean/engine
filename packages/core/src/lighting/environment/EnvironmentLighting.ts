@@ -84,6 +84,26 @@ export class EnvironmentLighting {
   }
 
   /**
+   * Keep a second probe lighting scenario resident for uniform-only runtime blending.
+   */
+  setLightingScenarioBlendTarget(target: string | null): void {
+    if (!this._probeVolume) {
+      throw new Error("EnvironmentLighting requires a probe volume before preparing a lighting scenario blend.");
+    }
+    this._probeVolume.setLightingScenarioBlendTarget(target);
+  }
+
+  /**
+   * Update a prepared probe lighting scenario blend without rebuilding its GPU resources.
+   */
+  setLightingScenarioBlendFactor(factor: number): void {
+    if (!this._probeVolume) {
+      throw new Error("EnvironmentLighting requires a probe volume before blending lighting scenarios.");
+    }
+    this._probeVolume.setLightingScenarioBlendFactor(factor);
+  }
+
+  /**
    * Apply a state immediately.
    * @param state - Target environment state
    */

@@ -126,7 +126,7 @@ export class BasicRenderPipeline {
       !(finalClearFlags & CameraClearFlags.Color) &&
       (!this._canUseBlitFrameBuffer || isSRGBBackground);
 
-    if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
+    if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None && sunlight.shadowStrength > 0) {
       this._cascadedShadowCasterPass.onRender(context);
     }
 

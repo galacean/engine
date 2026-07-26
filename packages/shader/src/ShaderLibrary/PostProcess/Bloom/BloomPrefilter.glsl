@@ -5,6 +5,7 @@
 
 mediump sampler2D renderer_BlitTexture;
 vec4 material_BloomParams;
+float material_PostExposure;
 vec4 renderer_texelSize;
 
 void frag(Varyings v) {
@@ -36,7 +37,7 @@ void frag(Varyings v) {
       mediump vec4 samplerColor = texture2DSRGB(renderer_BlitTexture, v.v_uv);
     #endif
 
-    mediump vec3 color = samplerColor.rgb;
+    mediump vec3 color = samplerColor.rgb * material_PostExposure;
 
     // User controlled clamp to limit crazy high broken spec
     color = min(color, HALF_MAX);

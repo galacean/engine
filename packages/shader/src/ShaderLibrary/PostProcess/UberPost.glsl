@@ -16,8 +16,33 @@ vec4 renderer_texelSize;
 	vec4 material_BloomIntensityParams;
 #endif
 
+#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
+	float material_PostExposure;
+	vec3 material_WhiteBalance;
+#endif
+
+vec3 linearToLMS(vec3 color) {
+	return vec3(
+		dot(color, vec3(0.390405, 0.549941, 0.00892632)),
+		dot(color, vec3(0.0708416, 0.963172, 0.00135775)),
+		dot(color, vec3(0.0231082, 0.128021, 0.936245))
+	);
+}
+
+vec3 lmsToLinear(vec3 color) {
+	return vec3(
+		dot(color, vec3(2.85847, -1.62879, -0.024891)),
+		dot(color, vec3(-0.210182, 1.1582, 0.000324281)),
+		dot(color, vec3(-0.041812, -0.118169, 1.06867))
+	);
+}
+
 void frag(Varyings v) {
 	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v.v_uv);
+
+	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
+		color.rgb *= material_PostExposure;
+	#endif
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
@@ -35,6 +60,10 @@ void frag(Varyings v) {
     	  // Additive bloom (artist friendly)
     	  color += dirt * bloom;
     	#endif
+	#endif
+
+	#ifdef ENABLE_EFFECT_COLOR_ADJUSTMENTS
+		color.rgb = max(lmsToLinear(linearToLMS(color.rgb) * material_WhiteBalance), vec3(0.0));
 	#endif
 
 	#ifdef ENABLE_EFFECT_TONEMAPPING

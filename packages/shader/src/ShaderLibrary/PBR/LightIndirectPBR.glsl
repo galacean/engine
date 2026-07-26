@@ -25,6 +25,7 @@
         highp sampler2DArray scene_ProbeVolumeSHBTexture;
         #ifdef SCENE_PROBE_VOLUME_SCENARIO_BLEND
             float scene_ProbeVolumeScenarioBlend;
+            float scene_ProbeVolumeScenarioActiveLayerOffset;
             float scene_ProbeVolumeScenarioLayerOffset;
         #endif
         highp sampler2DArray scene_ProbeVolumeSkyTexture;
@@ -151,9 +152,32 @@ bool sampleProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 
     }
     vec2 atlasCoord = vec2(probeCoord.x, probeCoord.y + cellParameters.w);
     vec2 uv = (atlasCoord + 0.5) / scene_ProbeVolumeAtlasDimensions.xy;
-    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z, cellParameters.z, 0.0);
-    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z, cellParameters.z, 0.0);
-    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z, cellParameters.z, 0.0);
+    #ifdef SCENE_PROBE_VOLUME_SCENARIO_BLEND
+        float activeLayerOffset = scene_ProbeVolumeScenarioActiveLayerOffset;
+    #else
+        float activeLayerOffset = 0.0;
+    #endif
+    vec4 shR = sampleProbeVolumeTexture(
+        scene_ProbeVolumeSHRTexture,
+        uv,
+        probeCoord.z,
+        cellParameters.z,
+        activeLayerOffset
+    );
+    vec4 shG = sampleProbeVolumeTexture(
+        scene_ProbeVolumeSHGTexture,
+        uv,
+        probeCoord.z,
+        cellParameters.z,
+        activeLayerOffset
+    );
+    vec4 shB = sampleProbeVolumeTexture(
+        scene_ProbeVolumeSHBTexture,
+        uv,
+        probeCoord.z,
+        cellParameters.z,
+        activeLayerOffset
+    );
     #ifdef SCENE_PROBE_VOLUME_SCENARIO_BLEND
         vec4 targetShR = sampleProbeVolumeTexture(
             scene_ProbeVolumeSHRTexture,

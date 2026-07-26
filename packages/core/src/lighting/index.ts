@@ -5,4 +5,5 @@ export { Light } from "./Light";
 export { PointLight } from "./PointLight";
 export { SpotLight } from "./SpotLight";
 export { AmbientOcclusion, AmbientOcclusionQuality } from "./ambientOcclusion";
+export * from "./dayNight";
 export * from "./environment";

@@ -8,8 +8,8 @@
   ],
   "normalBias": 0.20000000298023224,
   "viewBias": 0,
-  "lightingScenarios": ["Day", "Night"],
-  "lightingScenario": "Day",
+  "lightingScenarios": ["Dawn", "Morning", "Noon", "Afternoon", "Dusk", "Night"],
+  "lightingScenario": "Dawn",
   "chunks": [
     {
       "id": "cell-0-0-0",

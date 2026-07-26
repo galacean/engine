@@ -128,8 +128,9 @@ interface ProbeVolumeRuntimeResources {
   shGTexture: Texture2DArray | null;
   shBTexture: Texture2DArray | null;
   skyTexture: Texture2DArray | null;
-  cells: RuntimeProbeCell[];
-  targetCells: RuntimeProbeCell[] | null;
+  scenarioSlots: [string, string | null];
+  scenarioCells: [RuntimeProbeCell[], RuntimeProbeCell[] | null];
+  activeScenarioSlot: 0 | 1;
   hasScenarioTarget: boolean;
   atlasDimensions: Vector3;
   inverseSpacing: number;
@@ -159,6 +160,9 @@ export class ProbeVolume {
   private static _shGTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSHGTexture");
   private static _shBTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSHBTexture");
   private static _scenarioBlendProperty = ShaderProperty.getByName("scene_ProbeVolumeScenarioBlend");
+  private static _scenarioActiveLayerOffsetProperty = ShaderProperty.getByName(
+    "scene_ProbeVolumeScenarioActiveLayerOffset"
+  );
   private static _scenarioLayerOffsetProperty = ShaderProperty.getByName("scene_ProbeVolumeScenarioLayerOffset");
   private static _skyTextureProperty = ShaderProperty.getByName("scene_ProbeVolumeSkyTexture");
   private static _cellOriginsProperty = ShaderProperty.getByName("scene_ProbeVolumeCellOrigins");
@@ -320,6 +324,83 @@ export class ProbeVolume {
   }
 
   /**
+   * Keep a second lighting scenario resident as a stable GPU blend target.
+   *
+   * @remarks
+   * Preparing the target can rebuild GPU resources once. Subsequent calls to
+   * {@link setLightingScenarioBlendFactor}, including factors 0 and 1, update
+   * only the blend value and retain the same shader macros and texture layout.
+   */
+  setLightingScenarioBlendTarget(target: string | null): void {
+    if (target === null) {
+      if (this._scenarioBlendTarget !== null) {
+        this._scenarioBlendTarget = null;
+        this._scenarioBlendingFactor = 0;
+        this._dirty = true;
+      }
+      return;
+    }
+
+    validateLightingScenarioName(target);
+    if (!this._lightingScenarios.has(target)) {
+      throw new Error(`ProbeVolume lighting scenario "${target}" does not exist.`);
+    }
+    if (target === this._lightingScenario) {
+      throw new Error("ProbeVolume lighting scenario blend target must differ from the active scenario.");
+    }
+    if (this._scenarioBlendTarget !== target) {
+      this.setLightingScenarioBlendPair(this._lightingScenario, target);
+    }
+  }
+
+  /**
+   * Atomically prepare an adjacent active/target scenario pair.
+   *
+   * @remarks
+   * When the new active scenario already occupies one of the two resident slots,
+   * the slot becomes active and the next target is uploaded into the other slot
+   * in place. Existing textures and shader variants remain bound.
+   */
+  setLightingScenarioBlendPair(active: string, target: string): void {
+    validateLightingScenarioName(active);
+    validateLightingScenarioName(target);
+    if (!this._lightingScenarios.has(active)) {
+      throw new Error(`ProbeVolume lighting scenario "${active}" does not exist.`);
+    }
+    if (!this._lightingScenarios.has(target)) {
+      throw new Error(`ProbeVolume lighting scenario "${target}" does not exist.`);
+    }
+    if (active === target) {
+      throw new Error("ProbeVolume lighting scenario blend target must differ from the active scenario.");
+    }
+    if (this._lightingScenario === active && this._scenarioBlendTarget === target) {
+      return;
+    }
+
+    const reusedResources = this._reuseScenarioPairResources(active, target);
+    this._lightingScenario = active;
+    this._scenarioBlendTarget = target;
+    this._scenarioBlendingFactor = 0;
+    this._applyLightingScenarioToBricks(active);
+    if (!reusedResources) {
+      this._dirty = true;
+    }
+  }
+
+  /**
+   * Update the stable lighting scenario blend weight without rebuilding probe resources.
+   */
+  setLightingScenarioBlendFactor(factor: number): void {
+    if (!Number.isFinite(factor)) {
+      throw new Error("ProbeVolume lighting scenario blend factor must be finite.");
+    }
+    if (!this._scenarioBlendTarget) {
+      throw new Error("ProbeVolume requires a lighting scenario blend target before setting the blend factor.");
+    }
+    this._scenarioBlendingFactor = Math.max(0, Math.min(1, factor));
+  }
+
+  /**
    * Add or replace a lighting scenario while retaining this volume's shared probe layout.
    * @remarks The source may use different cell partitioning, but every brick and probe position must match.
    */
@@ -397,6 +478,15 @@ export class ProbeVolume {
     if (this._scenarioBlendTarget === name) {
       this._scenarioBlendTarget = newName;
     }
+    const scenarioSlots = this._resources?.scenarioSlots;
+    if (scenarioSlots) {
+      if (scenarioSlots[0] === name) {
+        scenarioSlots[0] = newName;
+      }
+      if (scenarioSlots[1] === name) {
+        scenarioSlots[1] = newName;
+      }
+    }
   }
 
   /**
@@ -424,11 +514,8 @@ export class ProbeVolume {
       this.lightingScenario = target;
       return;
     }
-    if (this._scenarioBlendTarget !== target) {
-      this._scenarioBlendTarget = target;
-      this._dirty = true;
-    }
-    this._scenarioBlendingFactor = factor;
+    this.setLightingScenarioBlendTarget(target);
+    this.setLightingScenarioBlendFactor(factor);
   }
 
   /** Replace all brick data and rebuild GPU resources before the next render. */
@@ -717,11 +804,13 @@ export class ProbeVolume {
     const localPosition = ProbeVolume._rendererLocalPosition;
     Vector3.transformCoordinate(position, this._worldToLocalMatrix, localPosition);
     const sample = ProbeVolume._rendererSample;
-    const weight = sampleRuntimeCells(this._resources.cells, this._resources.inverseSpacing, localPosition, sample);
-    const targetCells = this._resources.targetCells;
+    const resources = this._resources;
+    const activeCells = resources.scenarioCells[resources.activeScenarioSlot]!;
+    const weight = sampleRuntimeCells(activeCells, resources.inverseSpacing, localPosition, sample);
+    const targetCells = resources.scenarioCells[resources.activeScenarioSlot === 0 ? 1 : 0];
     if (targetCells) {
       const targetSample = ProbeVolume._rendererTargetSample;
-      sampleRuntimeCells(targetCells, this._resources.inverseSpacing, localPosition, targetSample);
+      sampleRuntimeCells(targetCells, resources.inverseSpacing, localPosition, targetSample);
       const blend = this._scenarioBlendingFactor;
       for (let coefficient = 0; coefficient < _l1CoefficientCount; coefficient++) {
         sample[coefficient] += (targetSample[coefficient] - sample[coefficient]) * blend;
@@ -744,11 +833,17 @@ export class ProbeVolume {
     shaderData.setTexture(ProbeVolume._shGTextureProperty, resources.shGTexture);
     shaderData.setTexture(ProbeVolume._shBTextureProperty, resources.shBTexture);
     shaderData.setFloat(ProbeVolume._scenarioBlendProperty, this._scenarioBlendingFactor);
-    shaderData.setFloat(ProbeVolume._scenarioLayerOffsetProperty, resources.atlasDimensions.z);
+    const activeLayerOffset = resources.activeScenarioSlot * resources.atlasDimensions.z;
+    const targetLayerOffset = (resources.activeScenarioSlot === 0 ? 1 : 0) * resources.atlasDimensions.z;
+    shaderData.setFloat(ProbeVolume._scenarioActiveLayerOffsetProperty, activeLayerOffset);
+    shaderData.setFloat(ProbeVolume._scenarioLayerOffsetProperty, targetLayerOffset);
     shaderData.setTexture(ProbeVolume._skyTextureProperty, resources.skyTexture);
     shaderData.setFloatArray(ProbeVolume._cellOriginsProperty, resources.cellOrigins);
     shaderData.setFloatArray(ProbeVolume._cellParametersProperty, resources.cellParameters);
-    shaderData.setInt(ProbeVolume._cellCountProperty, resources.cells.length);
+    shaderData.setInt(
+      ProbeVolume._cellCountProperty,
+      resources.scenarioCells[resources.activeScenarioSlot]?.length ?? 0
+    );
     shaderData.setVector3(ProbeVolume._atlasDimensionsProperty, resources.atlasDimensions);
     shaderData.setFloat(ProbeVolume._inverseSpacingProperty, resources.inverseSpacing);
     shaderData.setFloat(ProbeVolume._normalBiasProperty, this.normalBias);
@@ -795,8 +890,9 @@ export class ProbeVolume {
         shGTexture: null,
         shBTexture: null,
         skyTexture: null,
-        cells: [],
-        targetCells: targetGrids,
+        scenarioSlots: [this._lightingScenario, this._scenarioBlendTarget],
+        scenarioCells: [[], targetGrids],
+        activeScenarioSlot: 0,
         hasScenarioTarget: targetGrids !== null,
         atlasDimensions: new Vector3(1, 1, 1),
         inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
@@ -836,8 +932,9 @@ export class ProbeVolume {
         shGTexture: null,
         shBTexture: null,
         skyTexture: null,
-        cells: grids,
-        targetCells: targetGrids,
+        scenarioSlots: [this._lightingScenario, this._scenarioBlendTarget],
+        scenarioCells: [grids, targetGrids],
+        activeScenarioSlot: 0,
         hasScenarioTarget: targetGrids !== null,
         atlasDimensions,
         inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
@@ -855,14 +952,78 @@ export class ProbeVolume {
       shGTexture: createSHTexture(engine, shTextureDimensions, combineScenarioAtlas(atlas.shG, targetAtlas?.shG)),
       shBTexture: createSHTexture(engine, shTextureDimensions, combineScenarioAtlas(atlas.shB, targetAtlas?.shB)),
       skyTexture: createSkyTexture(engine, atlasDimensions, atlas.sky),
-      cells: grids,
-      targetCells: targetGrids,
+      scenarioSlots: [this._lightingScenario, this._scenarioBlendTarget],
+      scenarioCells: [grids, targetGrids],
+      activeScenarioSlot: 0,
       hasScenarioTarget: targetGrids !== null,
       atlasDimensions,
       inverseSpacing: ProbeBrickCellCount / this.minBrickSize,
       cellOrigins,
       cellParameters
     };
+  }
+
+  private _reuseScenarioPairResources(active: string, target: string): boolean {
+    const resources = this._resources;
+    if (
+      this._dirty ||
+      !resources ||
+      !resources.hasScenarioTarget ||
+      resources.scenarioSlots[1] === null ||
+      [resources.shRTexture, resources.shGTexture, resources.shBTexture, resources.skyTexture].some(
+        (texture) => texture?.isContentLost
+      )
+    ) {
+      return false;
+    }
+
+    const residentActiveSlot = resources.scenarioSlots.indexOf(active);
+    if (residentActiveSlot < 0) {
+      return false;
+    }
+    const activeSlot = residentActiveSlot as 0 | 1;
+    const targetSlot = (activeSlot === 0 ? 1 : 0) as 0 | 1;
+    if (resources.scenarioSlots[targetSlot] !== target) {
+      const targetCells = this._createScenarioGrids(target);
+      const activeCells = resources.scenarioCells[activeSlot]!;
+      if (targetCells.length !== activeCells.length) {
+        return false;
+      }
+      for (let i = 0; i < targetCells.length; i++) {
+        const targetCell = targetCells[i];
+        const activeCell = activeCells[i];
+        if (
+          targetCell.dimensions.x !== activeCell.dimensions.x ||
+          targetCell.dimensions.y !== activeCell.dimensions.y ||
+          targetCell.dimensions.z !== activeCell.dimensions.z
+        ) {
+          return false;
+        }
+        targetCell.atlasYOffset = activeCell.atlasYOffset;
+      }
+      if (this.samplingMode !== ProbeVolumeSamplingMode.PerRenderer && targetCells.length > 0) {
+        if (!resources.shRTexture || !resources.shGTexture || !resources.shBTexture) {
+          return false;
+        }
+        const atlas = packProbeAtlas(targetCells, resources.atlasDimensions);
+        const layerOffset = targetSlot * resources.atlasDimensions.z;
+        const { x: width, y: height, z: layers } = resources.atlasDimensions;
+        resources.shRTexture.setPixelBuffer(layerOffset, atlas.shR, 0, 0, 0, width, height, layers);
+        resources.shGTexture.setPixelBuffer(layerOffset, atlas.shG, 0, 0, 0, width, height, layers);
+        resources.shBTexture.setPixelBuffer(layerOffset, atlas.shB, 0, 0, 0, width, height, layers);
+      }
+      resources.scenarioSlots[targetSlot] = target;
+      resources.scenarioCells[targetSlot] = targetCells;
+    }
+    resources.activeScenarioSlot = activeSlot;
+    return true;
+  }
+
+  private _createScenarioGrids(name: string): RuntimeProbeCell[] {
+    const scenario = this._lightingScenarios.get(name)!;
+    return this._activeCellIndices.map((index) =>
+      buildDenseProbeGrid(this.cells[index].bricks, this.minBrickSize, scenario[index])
+    );
   }
 
   private _selectActiveCells(): boolean {

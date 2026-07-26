@@ -14,6 +14,7 @@ import { DiffuseMode } from "./enums/DiffuseMode";
 export class AmbientLight extends ReferResource {
   private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
+  private static _specularBlendMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV_BLEND");
 
   private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
@@ -21,16 +22,26 @@ export class AmbientLight extends ReferResource {
     "scene_EnvMapLight.diffuseIntensity"
   );
   private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSpecularSampler");
+  private static _secondarySpecularTextureProperty: ShaderProperty =
+    ShaderProperty.getByName("scene_EnvSpecularSampler2");
   private static _specularIntensityProperty: ShaderProperty = ShaderProperty.getByName(
     "scene_EnvMapLight.specularIntensity"
   );
   private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.mipMapLevel");
+  private static _secondaryMipLevelProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.mipMapLevel2"
+  );
+  private static _specularTextureBlendProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.specularTextureBlend"
+  );
 
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.03696758874771872, 0.0421494543549785, 0.05455383078270364);
   private _diffuseIntensity: number = 1.0;
   private _specularTexture: TextureCube;
+  private _secondarySpecularTexture: TextureCube | null = null;
   private _specularIntensity: number = 1.0;
+  private _specularTextureBlend: number = 0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
   private _scenes: Scene[] = [];
@@ -117,6 +128,36 @@ export class AmbientLight extends ReferResource {
   }
 
   /**
+   * Optional second specular environment used for GPU-side environment blending.
+   */
+  get secondarySpecularTexture(): TextureCube | null {
+    return this._secondarySpecularTexture;
+  }
+
+  set secondarySpecularTexture(value: TextureCube | null) {
+    this._secondarySpecularTexture = value;
+
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._setSpecularTexture(scenes[i].shaderData);
+    }
+  }
+
+  /**
+   * Blend weight from {@link specularTexture} to {@link secondarySpecularTexture}.
+   */
+  get specularTextureBlend(): number {
+    return this._specularTextureBlend;
+  }
+
+  set specularTextureBlend(value: number) {
+    this._specularTextureBlend = Math.max(0, Math.min(1, value));
+    for (let i = 0, n = this._scenes.length; i < n; i++) {
+      this._scenes[i].shaderData.setFloat(AmbientLight._specularTextureBlendProperty, this._specularTextureBlend);
+    }
+  }
+
+  /**
    * Specular reflection intensity.
    */
   get specularIntensity(): number {
@@ -141,6 +182,7 @@ export class AmbientLight extends ReferResource {
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
+    shaderData.setFloat(AmbientLight._specularTextureBlendProperty, this._specularTextureBlend);
     shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
     this._setDiffuseMode(shaderData);
@@ -157,7 +199,9 @@ export class AmbientLight extends ReferResource {
     scenes.splice(index, 1);
     const shaderData = scene.shaderData;
     shaderData.setTexture(AmbientLight._specularTextureProperty, null);
+    shaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
     shaderData.disableMacro(AmbientLight._specularMacro);
+    shaderData.disableMacro(AmbientLight._specularBlendMacro);
   }
 
   constructor(engine: Engine) {
@@ -177,8 +221,22 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularTexture);
       sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
+      if (this._secondarySpecularTexture) {
+        sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, this._secondarySpecularTexture);
+        sceneShaderData.setFloat(
+          AmbientLight._secondaryMipLevelProperty,
+          this._secondarySpecularTexture.mipmapCount - 1
+        );
+        sceneShaderData.enableMacro(AmbientLight._specularBlendMacro);
+      } else {
+        sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
+        sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
+      }
     } else {
+      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, null);
+      sceneShaderData.setTexture(AmbientLight._secondarySpecularTextureProperty, null);
       sceneShaderData.disableMacro(AmbientLight._specularMacro);
+      sceneShaderData.disableMacro(AmbientLight._specularBlendMacro);
     }
   }
 

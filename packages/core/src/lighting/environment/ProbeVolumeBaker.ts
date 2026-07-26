@@ -59,13 +59,19 @@ export interface ProbeVolumeBakeOptions {
   farClipPlane?: number;
   /** Static layers visible to probe captures and adaptive placement. Exclude dynamic objects. Defaults to every layer. */
   cullingMask?: Layer;
-  /** Number of raster feedback passes. One pass captures emission and light reflected by scene geometry. Defaults to 1. */
+  /**
+   * Number of raster feedback passes. The first pass captures emissive and direct-light energy after it is
+   * reflected by scene geometry, which is the first indirect bounce seen by a receiver. Defaults to 1.
+   */
   bounceCount?: number;
   /** Multiplier applied once to the final baked indirect irradiance. Defaults to 1. */
   indirectIntensity?: number;
   /** Transform from brick layout space to world space. Defaults to identity. */
   localToWorldMatrix?: Matrix;
-  /** Bake scene lighting separately from the runtime sky and ambient environment. Defaults to true. */
+  /**
+   * Exclude sky and ambient environment lighting from the baked probe radiance so a dynamic runtime
+   * environment can be applied through sky occlusion without double ownership. Defaults to true.
+   */
   separateEnvironment?: boolean;
   /** Bake sunlight reflected by scene geometry into the probe SH without baking direct sunlight. Defaults to true. */
   bakeSunIndirect?: boolean;

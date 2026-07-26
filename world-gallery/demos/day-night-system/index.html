@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Day / Night System</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #05070c;
+      }
+
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+
+      #architecture {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 5;
+        max-width: 430px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 6px;
+        background: rgba(7, 10, 16, 0.78);
+        color: #e8edf5;
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+        pointer-events: none;
+      }
+
+      #architecture strong {
+        color: #79d9a7;
+      }
+
+      #architecture span {
+        color: #9eabbc;
+      }
+
+      body .gl-perf {
+        top: auto;
+        bottom: 12px;
+        left: 12px;
+        min-width: 156px;
+        padding: 9px 11px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(7, 10, 16, 0.78);
+        color: #f3f5f7;
+        font:
+          11px/1.35 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          Monaco,
+          Consolas,
+          monospace;
+      }
+
+      body .gl-perf dl {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 3px 14px;
+      }
+
+      body .gl-perf dt,
+      body .gl-perf dd {
+        color: inherit;
+        font-size: 11px;
+        line-height: 1.35;
+        text-shadow: none;
+      }
+
+      body .gl-perf dd {
+        padding: 0;
+        text-align: right;
+        color: #79d9a7;
+        font-variant-numeric: tabular-nums;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="architecture">
+      <strong>DayNightState @ 60 Hz</strong><br />
+      <span>→ Horizon Shadows v3 · Smooth solar Direct + 6-scenario Ambient/Probe timeline · Reflections Off</span>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

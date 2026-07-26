@@ -177,7 +177,7 @@ export class Texture2DArray extends Texture {
     out?: ArrayBufferView
   ): void {
     const argsLength = arguments.length;
-    if (argsLength === 1) {
+    if (argsLength === 2) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -187,7 +187,7 @@ export class Texture2DArray extends Texture {
         0,
         <ArrayBufferView>xOrMipLevelOrOut
       );
-    } else if (argsLength === 2) {
+    } else if (argsLength === 3) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -197,7 +197,7 @@ export class Texture2DArray extends Texture {
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
-    } else if (argsLength === 5) {
+    } else if (argsLength === 6) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         <number>xOrMipLevelOrOut,
@@ -207,7 +207,7 @@ export class Texture2DArray extends Texture {
         0,
         <ArrayBufferView>mipLevelOrOut
       );
-    } else if (argsLength === 6) {
+    } else if (argsLength === 7) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         <number>xOrMipLevelOrOut,

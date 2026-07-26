@@ -3,6 +3,7 @@ import {
   BloomDownScaleMode,
   BloomEffect,
   Camera,
+  ColorAdjustmentsEffect,
   Engine,
   Entity,
   PostProcess,
@@ -171,6 +172,20 @@ describe("PostProcess", () => {
     expect(removedBloomEffect).to.equal(bloomEffect);
     // @ts-ignore
     expect(pp._effects.length).to.equal(0);
+  });
+
+  it("Color adjustments stay valid at neutral values for a stable Uber variant", () => {
+    const pp = postEntity.addComponent(PostProcess);
+    const colorAdjustments = pp.addEffect(ColorAdjustmentsEffect);
+
+    expect(colorAdjustments.isValid()).to.equal(true);
+    expect(colorAdjustments.postExposure.value).to.equal(0);
+    expect(colorAdjustments.temperature.value).to.equal(0);
+    expect(colorAdjustments.tint.value).to.equal(0);
+    colorAdjustments.postExposure.value = 20;
+    colorAdjustments.temperature.value = -200;
+    expect(colorAdjustments.postExposure.value).to.equal(10);
+    expect(colorAdjustments.temperature.value).to.equal(-100);
   });
 
   it("Post Process", () => {
