@@ -3,5 +3,5 @@ export const meta = {
   owner: "星翊",
   category: "AI World Engine",
   description:
-    "Three best-quality River, Pool, and Ocean showcases, eleven focused water features, and always-visible diagnostics."
+    "Four best-quality River, Pool, Ocean, and Grasslands showcases, seventeen focused water features, and always-visible diagnostics."
 };

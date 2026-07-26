@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-26T02:16:48.843Z",
-  "updateReason": "Add user-approved Grasslands shared Golden",
+  "generatedAt": "2026-07-26T07:25:44.000Z",
+  "updateReason": "Retire River, Pool, and Ocean screenshot regression during rapid iteration",
   "environment": {
     "viewport": {
       "width": 1280,
@@ -20,61 +20,6 @@
     "maximumMeanAbsoluteChannelDifference": 1.5
   },
   "cases": {
-    "showcase-river": {
-      "runtime": "river",
-      "preset": "hero-river",
-      "states": {
-        "hero": {
-          "file": "showcase-river/hero.png",
-          "sha256": "1bb3a039cdafd3e2a269512511a2f2838fd21869bc345be3b21fcaf628d8d9af"
-        },
-        "interaction": {
-          "file": "showcase-river/interaction.png",
-          "sha256": "1e0a8f13e2ccf7f2da37af3cb937ea5356b14702e570a338062b6dc8247a1303"
-        },
-        "detail": {
-          "file": "showcase-river/detail.png",
-          "sha256": "c5074f8febcff07a7ebe18836d598726b2619cf405040893be8f51a49fdcb31d"
-        }
-      }
-    },
-    "showcase-pool": {
-      "runtime": "pool",
-      "preset": "hero-pool",
-      "states": {
-        "hero": {
-          "file": "showcase-pool/hero.png",
-          "sha256": "b882ec3a51e9cf1761510c50e525ca7f1ad866b1d34fe03fd8d3f6a363c93e2e"
-        },
-        "interaction": {
-          "file": "showcase-pool/interaction.png",
-          "sha256": "194065ddc8062dcc5bb095ec3ab3a8c2f26047c44a27b372266068987b9ca2e6"
-        },
-        "detail": {
-          "file": "showcase-pool/detail.png",
-          "sha256": "f7d85820ae48e4d2215e89444970494be5b30765d59972c79df8019b2d1be48b"
-        }
-      }
-    },
-    "showcase-ocean": {
-      "runtime": "ocean",
-      "preset": "hero-ocean",
-      "updateReason": "Reduce Ocean foam coverage to thin broken shoreline bands",
-      "states": {
-        "hero": {
-          "file": "showcase-ocean/hero.png",
-          "sha256": "8b2b432b23fe3b80c2bdb7c85162cba20c0fed72c314cbc982319038158ceec8"
-        },
-        "interaction": {
-          "file": "showcase-ocean/interaction.png",
-          "sha256": "0396efd872685afbcfdc7cd5bd467ff466272cc647070c4d1c4deba15a9c3fe1"
-        },
-        "detail": {
-          "file": "showcase-ocean/detail.png",
-          "sha256": "b7fd6818374730986964a6e073209031f117c32246f151fadcc481c703861d52"
-        }
-      }
-    },
     "showcase-grasslands-stylized-water": {
       "runtime": "grasslands",
       "preset": "hero-grasslands",
@@ -95,5 +40,6 @@
       }
     }
   },
-  "updatedCaseIds": ["showcase-grasslands-stylized-water"]
+  "updatedCaseIds": [],
+  "retiredCaseIds": ["showcase-river", "showcase-pool", "showcase-ocean"]
 }

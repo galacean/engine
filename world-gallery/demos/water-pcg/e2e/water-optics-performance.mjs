@@ -363,10 +363,10 @@ function assertFormalReport(report, expectedScope) {
     requestedTier === "medium"
       ? planar
         ? { fpsRatio: 0.8, p95Ratio: 1.4, gpuP95Ms: 2.5 }
-        : { fpsRatio: 0.9, p95Ratio: 1.2, gpuP95Ms: null }
+        : { fpsRatio: 0.9, p95Ratio: 1.2, gpuP95Ms: 2.5 }
       : planar
         ? { fpsRatio: 0.7, p95Ratio: 1.65, gpuP95Ms: 4 }
-        : { fpsRatio: 0.85, p95Ratio: 1.3, gpuP95Ms: null };
+        : { fpsRatio: 0.85, p95Ratio: 1.3, gpuP95Ms: 4 };
   assert(report.gate.profile === expectedProfile, `Unexpected Gate profile ${report.gate.profile}.`);
   assert(
     report.gate.thresholds.minimumActiveToBaselineFpsRatio === expectedThresholds.fpsRatio,

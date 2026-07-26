@@ -49,6 +49,7 @@ describe("Water PCG navigation", () => {
   it("promotes the verified Grasslands route to the fourth public Showcase", () => {
     expect(findWaterPcgCase("showcase-grasslands-stylized-water")).toMatchObject({
       id: "showcase-grasslands-stylized-water",
+      label: "草原河湾",
       group: "showcase",
       runtime: "grasslands",
       preset: "hero-grasslands"
@@ -62,7 +63,7 @@ describe("Water PCG navigation", () => {
     ]);
   });
 
-  it("shows only the River, refraction, and reflection cases by default", () => {
+  it("shows River, Grasslands, refraction, and reflection in the formal gallery by default", () => {
     expect(WATER_PCG_GROUPS.map(({ id, public: isPublic }) => ({ id, isPublic }))).toEqual([
       { id: "showcase", isPublic: true },
       { id: "feature", isPublic: true },
@@ -71,12 +72,19 @@ describe("Water PCG navigation", () => {
     ]);
 
     const defaultVisible = getVisibleWaterPcgCases("showcase-river");
+    expect(WATER_PCG_DEFAULT_CASE_IDS).toEqual([
+      "showcase-river",
+      "showcase-grasslands-stylized-water",
+      "feature-refraction",
+      "feature-reflection"
+    ]);
     expect(defaultVisible.map(({ id }) => id)).toEqual(WATER_PCG_DEFAULT_CASE_IDS);
 
     const directPoolVisible = getVisibleWaterPcgCases("showcase-pool");
     expect(directPoolVisible.map(({ id }) => id)).toEqual([
       "showcase-river",
       "showcase-pool",
+      "showcase-grasslands-stylized-water",
       "feature-refraction",
       "feature-reflection"
     ]);

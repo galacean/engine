@@ -26,11 +26,37 @@ const run = createRunContext(gate);
 const baseUrl = process.env.WATER_PCG_URL?.trim() || DEFAULT_WATER_PCG_URL;
 const headed = process.env.WATER_PCG_HEADED === "1";
 const REENTRY_ROUNDS = 2;
+const SEMANTIC_READY_TIMEOUT_MS = 10_000;
+const POOL_PLANAR_DATASET_KEYS = ["planarCameraCount", "planarRenderTargetCount", "planarFilterSampleCount"];
 
 function numberFromDataset(value, label) {
   const parsed = Number(value);
   assertAcceptance(Number.isFinite(parsed), `${label} is not a finite number: ${String(value)}.`);
   return parsed;
+}
+
+function hasFiniteDatasetNumbers(dataset, keys) {
+  return keys.every((key) => {
+    const value = dataset?.[key];
+    return typeof value === "string" && value.trim() !== "" && Number.isFinite(Number(value));
+  });
+}
+
+async function waitForShowcaseSemanticsReady(page, definition, timeoutMs = SEMANTIC_READY_TIMEOUT_MS) {
+  let latest = await readCaseSnapshot(page, definition);
+  if (definition.id !== "showcase-pool") return latest;
+
+  const deadline = performance.now() + timeoutMs;
+  while (performance.now() < deadline && !hasFiniteDatasetNumbers(latest.datasets?.pool, POOL_PLANAR_DATASET_KEYS)) {
+    await page.waitForTimeout(50);
+    latest = await readCaseSnapshot(page, definition);
+  }
+  assertAcceptance(
+    hasFiniteDatasetNumbers(latest.datasets?.pool, POOL_PLANAR_DATASET_KEYS),
+    `${definition.id} did not publish its required Planar dataset within ${timeoutMs}ms.`,
+    latest.datasets?.pool
+  );
+  return latest;
 }
 
 function assertPublicNavigation(navigation, activeShowcaseId) {
@@ -306,7 +332,7 @@ async function runShowcaseRound(browser, definition, round) {
     assertCaseIdentity(initial, definition);
     assertRuntimeHealthy(initial, definition);
     await waitForAnimationFrames(page, 3);
-    const snapshot = await readCaseSnapshot(page, definition);
+    const snapshot = await waitForShowcaseSemanticsReady(page, definition);
     assertCaseIdentity(snapshot, definition);
     assertRuntimeHealthy(snapshot, definition);
     assertShowcaseSemantics(snapshot, definition);
@@ -352,7 +378,7 @@ async function runShowcaseSwitchSequence(browser) {
       await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 45_000 });
       await waitForCaseReady(page, definition);
       await waitForAnimationFrames(page, 3);
-      const snapshot = await readCaseSnapshot(page, definition);
+      const snapshot = await waitForShowcaseSemanticsReady(page, definition);
       assertCaseIdentity(snapshot, definition);
       assertRuntimeHealthy(snapshot, definition);
       assertShowcaseSemantics(snapshot, definition);

@@ -100,7 +100,7 @@ export const WATER_PCG_CASES = [
   },
   {
     id: "showcase-grasslands-stylized-water",
-    label: "Grasslands 风格化浅水",
+    label: "草原河湾",
     intro: "确定性全湿 Heightfield、连续河湾、浅水折射、接触泡沫与风格化微表面。",
     group: "showcase",
     runtime: "grasslands",
@@ -290,6 +290,7 @@ export type WaterDemoCaseId = (typeof WATER_PCG_CASES)[number]["id"];
 
 export const WATER_PCG_DEFAULT_CASE_IDS = [
   "showcase-river",
+  "showcase-grasslands-stylized-water",
   "feature-refraction",
   "feature-reflection"
 ] as const satisfies readonly WaterDemoCaseId[];

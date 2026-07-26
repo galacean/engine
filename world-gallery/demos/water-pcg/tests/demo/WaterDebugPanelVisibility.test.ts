@@ -45,5 +45,7 @@ describe("Water PCG debug panel visibility", () => {
     expect(htmlSource).toContain(
       'html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #fixture-mark'
     );
+    expect(htmlSource).toContain("public Showcase · Heightfield V1 · Surface Appearance V1 · analytic sky response");
+    expect(htmlSource).not.toContain("developer direct link");
   });
 });

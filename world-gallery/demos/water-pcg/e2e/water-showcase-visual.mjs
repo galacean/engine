@@ -27,7 +27,8 @@ import {
   assertImmutableShowcaseCases,
   assertMissingShowcaseBaselineAllowed,
   commitShowcaseBaselineTransaction,
-  resolveShowcaseVisualSelection
+  resolveShowcaseVisualSelection,
+  WATER_SHOWCASE_VISUAL_CASE_IDS
 } from "./water-showcase-visual-policy.mjs";
 
 const gate = "water-showcase-visual";
@@ -49,7 +50,7 @@ const selection = resolveShowcaseVisualSelection({
   caseFilter: CASE_FILTER,
   updateReason: UPDATE_REASON,
   updateApproval: UPDATE_APPROVAL,
-  availableCaseIds: WATER_SHOWCASE_CASES.map(({ id }) => id)
+  availableCaseIds: WATER_SHOWCASE_VISUAL_CASE_IDS
 });
 const selectedDefinitions = WATER_SHOWCASE_CASES.filter((definition) =>
   selection.selectedCaseIds.includes(definition.id)
@@ -125,6 +126,12 @@ async function readBaselineManifest() {
     "Showcase baseline thresholds changed.",
     manifest.thresholds
   );
+  assertAcceptance(
+    JSON.stringify(Object.keys(manifest.cases ?? {}).sort()) ===
+      JSON.stringify([...WATER_SHOWCASE_VISUAL_CASE_IDS].sort()),
+    "Showcase baseline cases must match the explicit visual-only case list.",
+    Object.keys(manifest.cases ?? {})
+  );
   return manifest;
 }
 
@@ -158,6 +165,10 @@ async function loadBaseline(definition, state, manifest) {
 async function validateManifestFilesAtRoot(manifest, root) {
   const hashes = {};
   for (const [caseId, caseEntry] of Object.entries(manifest.cases ?? {})) {
+    assertAcceptance(
+      WATER_SHOWCASE_VISUAL_CASE_IDS.includes(caseId),
+      `${caseId} is functional-only and cannot have a Showcase screenshot baseline.`
+    );
     const definition = WATER_SHOWCASE_CASES.find((candidate) => candidate.id === caseId);
     assertAcceptance(definition, `Showcase baseline manifest contains unknown case '${caseId}'.`);
     assertAcceptance(

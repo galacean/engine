@@ -434,7 +434,7 @@ function resolveGateThresholds(
         minimumActiveToBaselineFpsRatio: 0.9,
         maximumActiveToBaselineFrameP95Ratio: 1.2,
         maximumActiveFrameP95Ms,
-        maximumOpticsGpuP95Ms: null,
+        maximumOpticsGpuP95Ms: 2.5,
         referenceFps: target.referenceDevice === "mobile" ? 30 : 60
       });
     case "medium-refraction-planar":
@@ -450,7 +450,7 @@ function resolveGateThresholds(
         minimumActiveToBaselineFpsRatio: 0.85,
         maximumActiveToBaselineFrameP95Ratio: 1.3,
         maximumActiveFrameP95Ms,
-        maximumOpticsGpuP95Ms: null,
+        maximumOpticsGpuP95Ms: 4,
         referenceFps: 60
       });
     case "high-refraction-planar":

@@ -11,6 +11,8 @@ export interface ShowcaseVisualSelection {
   readonly selectedCaseIds: readonly string[];
 }
 
+export const WATER_SHOWCASE_VISUAL_CASE_IDS: readonly string[];
+
 export function resolveShowcaseVisualSelection(input: ShowcaseVisualSelectionInput): ShowcaseVisualSelection;
 
 export function assertImmutableShowcaseCases(

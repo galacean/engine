@@ -178,7 +178,7 @@ describe("WaterOpticsPerformanceSampler", () => {
       frameStatus: "fail",
       gpuStatus: "unavailable",
       overallStatus: "smoke-only",
-      checks: { opticsGpuP95Ms: { status: "unavailable", measured: null, threshold: null } }
+      checks: { opticsGpuP95Ms: { status: "unavailable", measured: null, threshold: 2.5 } }
     });
 
     const second = await sampler.resample();
@@ -336,9 +336,9 @@ describe("WaterOpticsPerformanceSampler", () => {
   });
 
   it.each([
-    ["medium", "sky", "medium-refraction", 0.9, 1.2, null],
+    ["medium", "sky", "medium-refraction", 0.9, 1.2, 2.5],
     ["medium", "planar", "medium-refraction-planar", 0.8, 1.4, 2.5],
-    ["high", "sky", "high-refraction", 0.85, 1.3, null],
+    ["high", "sky", "high-refraction", 0.85, 1.3, 4],
     ["high", "planar", "high-refraction-planar", 0.7, 1.65, 4]
   ] as const)(
     "keeps the %s %s profile, thresholds, and unavailable GPU result explicit",

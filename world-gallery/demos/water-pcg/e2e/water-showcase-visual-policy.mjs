@@ -3,6 +3,8 @@ import { basename, dirname, resolve } from "node:path";
 
 const VISUAL_MODES = new Set(["capture", "compare", "update"]);
 
+export const WATER_SHOWCASE_VISUAL_CASE_IDS = Object.freeze(["showcase-grasslands-stylized-water"]);
+
 function parseCaseFilter(caseFilter) {
   return [
     ...new Set(

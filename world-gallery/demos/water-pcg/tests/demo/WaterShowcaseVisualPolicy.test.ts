@@ -8,10 +8,11 @@ import {
   assertImmutableShowcaseCases,
   assertImmutableShowcaseHashes,
   commitShowcaseBaselineTransaction,
-  resolveShowcaseVisualSelection
+  resolveShowcaseVisualSelection,
+  WATER_SHOWCASE_VISUAL_CASE_IDS
 } from "../../e2e/water-showcase-visual-policy.mjs";
 
-const CASE_IDS = ["showcase-river", "showcase-pool", "showcase-ocean", "showcase-grasslands-stylized-water"] as const;
+const CASE_IDS = WATER_SHOWCASE_VISUAL_CASE_IDS;
 
 function resolveSelection(overrides: Partial<Parameters<typeof resolveShowcaseVisualSelection>[0]> = {}) {
   return resolveShowcaseVisualSelection({
@@ -92,9 +93,10 @@ async function createTemporaryBaseline() {
 }
 
 describe("Water Showcase visual policy", () => {
-  it("keeps unfiltered capture and compare read-only while selecting every public Showcase", () => {
+  it("keeps visual capture and compare scoped to the explicitly reviewed Grasslands case", () => {
     expect(resolveSelection().selectedCaseIds).toEqual(CASE_IDS);
     expect(resolveSelection({ mode: "compare" }).selectedCaseIds).toEqual(CASE_IDS);
+    expect(() => resolveSelection({ caseFilter: "showcase-river" })).toThrow("Unknown Showcase visual case filter");
   });
 
   it("fails closed when update is unfiltered, multi-case, unreviewed, or has a short reason", () => {
@@ -104,7 +106,8 @@ describe("Water Showcase visual policy", () => {
         mode: "update",
         caseFilter: "showcase-river,showcase-ocean",
         updateReason: "Approved visual update",
-        updateApproval: "approved:showcase-river"
+        updateApproval: "approved:showcase-river",
+        availableCaseIds: ["showcase-river", "showcase-ocean"]
       })
     ).toThrow("exactly one explicit");
     expect(() =>
