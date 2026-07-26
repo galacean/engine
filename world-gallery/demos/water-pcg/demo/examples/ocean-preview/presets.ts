@@ -93,14 +93,14 @@ export const indoorReflectivePoolOceanPreview: OceanPreviewConfig = {
 };
 
 export const SHOWCASE_OCEAN_OPTICAL_PROFILE = Object.freeze({
-  absorptionCoefficient: [0.38, 0.18, 0.085],
-  scatteringColor: [0.028, 0.074, 0.084],
-  scatteringCoefficient: 0.065,
+  absorptionCoefficient: [0.25, 0.12, 0.055],
+  scatteringColor: [0.042, 0.105, 0.11],
+  scatteringCoefficient: 0.09,
   maximumViewDistance: 42,
   indexOfRefraction: 1.333,
   maximumSurfaceOpticalDistance: 18,
-  refractionStrength: 0.18,
-  roughness: 0.4,
+  refractionStrength: 0.13,
+  roughness: 0.48,
   reflectionIntensity: 1
 } satisfies WaterOpticalProfile);
 
@@ -117,45 +117,73 @@ export const showcaseOceanPreview: OceanPreviewConfig = {
     5.2,
     54,
     0.0035,
-    0.092,
+    0.105,
     -0.18,
     0.68,
-    0.22
+    0.235
   ),
-  alpha: 0.82,
-  foamIntensity: 0.7,
+  alpha: 0.86,
+  foamIntensity: 0.72,
   foamEnabled: true,
-  oceanColor: "#183238",
+  foamSourceOptions: Object.freeze({
+    breakerIntensity: 0.62,
+    breakerMinimumActivation: 0.34,
+    breakerFullActivation: 0.84,
+    shoreIntensity: 0.9,
+    shoreBandWidth: 1.15,
+    shoreSeawardOffset: 4
+  }),
+  oceanColor: "#1b4e58",
   surfaceDetail: {
-    strength: 0.14,
-    scale: 0.29,
-    speed: 0.026,
+    strength: 0.15,
+    scale: 0.3,
+    speed: 0.03,
     wind: [0.984, -0.179]
   },
   nearshoreDescriptor: createOceanBeachNearshoreDescriptor(),
+  nearshoreStateOptions: Object.freeze({
+    swashPeriodSeconds: 6.8,
+    minimumRunupDistance: 0.1,
+    maximumRunupDistance: 2.2,
+    filmDepth: 0.034,
+    wetnessDryingRate: 0.4,
+    maximumSwashSpeed: 1.15
+  }),
   reflectionSource: "planar",
+  reflectionIntensity: 0.38,
   planarColorMode: "hdr-preferred",
   opticsTier: "high",
   opticalProfile: SHOWCASE_OCEAN_OPTICAL_PROFILE,
   refractionEnabled: true,
   reflectionSampling: {
-    distortionStrength: 0.02,
+    distortionStrength: 0.011,
     edgeFadeTexels: 12,
-    roughnessFootprintTexels: 18,
+    roughnessFootprintTexels: 14,
     highFilterSampleCount: 5
   }
 };
 
-/** Isolated High wave preset: identical Gerstner source without a reflected hero environment. */
+/** Isolated High wave preset: identical Gerstner source without the authored beach scenery. */
 export const gerstnerFeatureOceanPreview: OceanPreviewConfig = {
   ...showcaseOceanPreview,
   size: 180,
-  amplitudeScale: 1.3,
+  amplitudeScale: 2.4,
   timeScale: 0.72,
-  foamEnabled: false,
-  surfaceDetail: undefined,
+  foamIntensity: 0.62,
+  foamEnabled: true,
+  surfaceDetail: {
+    strength: 0.09,
+    scale: 0.3,
+    speed: 0.03,
+    wind: [0.984, -0.179]
+  },
   nearshoreDescriptor: undefined,
-  reflectionSource: "sky",
+  reflectionSource: "planar",
+  reflectionIntensity: 0.55,
+  opticalProfile: Object.freeze({
+    ...SHOWCASE_OCEAN_OPTICAL_PROFILE,
+    roughness: 0.36
+  }),
   reflectionSampling: {
     ...showcaseOceanPreview.reflectionSampling,
     highFilterSampleCount: 1

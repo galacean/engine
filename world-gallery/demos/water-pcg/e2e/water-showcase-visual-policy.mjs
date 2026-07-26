@@ -3,7 +3,11 @@ import { basename, dirname, resolve } from "node:path";
 
 const VISUAL_MODES = new Set(["capture", "compare", "update"]);
 
-export const WATER_SHOWCASE_VISUAL_CASE_IDS = Object.freeze(["showcase-grasslands-stylized-water"]);
+export const WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS = Object.freeze([
+  "showcase-grasslands-stylized-water",
+  "showcase-ocean"
+]);
+export const WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS = Object.freeze(["showcase-grasslands-stylized-water"]);
 
 function parseCaseFilter(caseFilter) {
   return [
@@ -16,19 +20,36 @@ function parseCaseFilter(caseFilter) {
   ];
 }
 
-export function resolveShowcaseVisualSelection({ mode, caseFilter, updateReason, updateApproval, availableCaseIds }) {
+export function resolveShowcaseVisualSelection({
+  mode,
+  caseFilter,
+  updateReason,
+  updateApproval,
+  availableCaseIds,
+  defaultCaseIds = availableCaseIds,
+  updateEligibleCaseIds = []
+}) {
   if (!VISUAL_MODES.has(mode)) throw new RangeError(`Unknown visual mode '${mode}'. Use capture, compare, or update.`);
   const requestedCaseIds = parseCaseFilter(caseFilter);
   const unknownCaseIds = requestedCaseIds.filter((id) => !availableCaseIds.includes(id));
   if (unknownCaseIds.length > 0) {
     throw new RangeError(`Unknown Showcase visual case filter: ${unknownCaseIds.join(", ")}.`);
   }
-  const selectedCaseIds = requestedCaseIds.length === 0 ? [...availableCaseIds] : requestedCaseIds;
+  const unknownDefaultCaseIds = defaultCaseIds.filter((id) => !availableCaseIds.includes(id));
+  if (unknownDefaultCaseIds.length > 0) {
+    throw new RangeError(`Unknown default Showcase visual case: ${unknownDefaultCaseIds.join(", ")}.`);
+  }
+  const selectedCaseIds = requestedCaseIds.length === 0 ? [...defaultCaseIds] : requestedCaseIds;
   if (selectedCaseIds.length === 0) throw new Error("Showcase visual case filter selected no cases.");
 
   if (mode === "update") {
     if (requestedCaseIds.length !== 1) {
       throw new Error("Baseline update requires exactly one explicit WATER_PCG_VISUAL_CASE.");
+    }
+    if (!updateEligibleCaseIds.includes(requestedCaseIds[0])) {
+      throw new Error(
+        `${requestedCaseIds[0]} is candidate-only and cannot update tracked Showcase Goldens before policy approval.`
+      );
     }
     if (updateReason.length < 12) {
       throw new Error("Baseline update requires WATER_PCG_VISUAL_UPDATE_REASON with at least 12 characters.");
@@ -45,6 +66,19 @@ export function resolveShowcaseVisualSelection({ mode, caseFilter, updateReason,
     requestedCaseIds: Object.freeze(requestedCaseIds),
     selectedCaseIds: Object.freeze(selectedCaseIds)
   });
+}
+
+export function assertShowcaseBaselineCaseIds(manifestCaseIds, approvedCaseIds) {
+  const unapprovedCaseIds = manifestCaseIds.filter((caseId) => !approvedCaseIds.includes(caseId));
+  if (unapprovedCaseIds.length > 0) {
+    throw new Error(
+      `Showcase baseline manifest contains cases without Golden approval: ${unapprovedCaseIds.join(", ")}.`
+    );
+  }
+  const missingCaseIds = approvedCaseIds.filter((caseId) => !manifestCaseIds.includes(caseId));
+  if (missingCaseIds.length > 0) {
+    throw new Error(`Showcase baseline manifest is missing approved Golden cases: ${missingCaseIds.join(", ")}.`);
+  }
 }
 
 export function assertImmutableShowcaseCases(previousManifest, nextManifest, updatedCaseId) {

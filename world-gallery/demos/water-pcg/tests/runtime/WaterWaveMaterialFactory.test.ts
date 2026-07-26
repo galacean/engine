@@ -14,9 +14,13 @@ import {
 import { WaterWaveShaderVariant } from "../../runtime/wave/enums/WaterWaveShaderVariant";
 import {
   createWaterWaveShaderSource,
-  setWaterWaveSurfaceOpticsBinding
+  setWaterWaveSurfaceOpticsBinding,
+  validateWaterFoamDetailTextureBinding
 } from "../../runtime/wave/WaterWaveMaterialFactory";
-import type { WaterWaveMaterialState } from "../../runtime/wave/WaterWaveRuntimeTypes";
+import type {
+  WaterFoamDetailTextureBinding,
+  WaterWaveMaterialState
+} from "../../runtime/wave/WaterWaveRuntimeTypes";
 
 interface GlesShaderPrecompiler {
   _precompile(source: string, language: ShaderLanguage, basePath: string): unknown;
@@ -58,6 +62,48 @@ function createBindingHarness(): {
 }
 
 describe("WaterWaveMaterialFactory fixed shaders", () => {
+  it("validates optional borrowed foam detail bindings", () => {
+    const validTexture = {
+      width: 512,
+      height: 512,
+      destroyed: false
+    } as Texture2D;
+    const validBinding = {
+      texture: validTexture,
+      ownership: "borrowed",
+      resourceBytes: 1_398_100
+    } satisfies WaterFoamDetailTextureBinding;
+    const destroyedBinding = {
+      ...validBinding,
+      texture: {
+        width: 512,
+        height: 512,
+        destroyed: true
+      } as Texture2D
+    };
+    const missingBudgetBinding = {
+      ...validBinding,
+      resourceBytes: 0
+    };
+
+    expect(() =>
+      validateWaterFoamDetailTextureBinding(validBinding)
+    ).not.toThrow();
+    expect(() =>
+      validateWaterFoamDetailTextureBinding(undefined)
+    ).not.toThrow();
+    expect(() =>
+      validateWaterFoamDetailTextureBinding(
+        destroyedBinding
+      )
+    ).toThrow(/binding is unavailable/);
+    expect(() =>
+      validateWaterFoamDetailTextureBinding(
+        missingBudgetBinding
+      )
+    ).toThrow(/invalid resource budget/);
+  });
+
   it.each([
     ["None", WaterWaveShaderVariant.None],
     ["Low", WaterWaveShaderVariant.Low],
@@ -184,8 +230,12 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
       "texture2D(material_FoamDetailTexture"
     );
     expect(source).toContain("vec3 foamLayerWeights");
+    expect(source).toContain("float retainedFoamCoverage = max(");
+    expect(source).toContain("boundedFoam\n                * 0.3");
+    expect(source).toContain("thickFoamWeight\n                * 0.36");
+    expect(source).toContain("mediumFoamWeight\n                  * 0.08");
     expect(source).toContain(
-      "macroFoam * mix(0.008, 1.0, microFoamCoverage)"
+      "macroFoam * mix(0.008, 1.0, retainedFoamCoverage)"
     );
     expect(source).toContain("foamCoarseBreakup");
     expect(source).toContain("foamFineBreakup");
@@ -200,6 +250,45 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
     expect(source).toContain("float effectiveWaterAlpha = mix(");
     expect(source).toContain("material_FoamDebugView > 0.5");
     expect(source).not.toContain("WhitecapHistory");
+  });
+
+  it("composes scene-depth volume before Fresnel reflection, direct light, and foam", () => {
+    const source = createWaterWaveShaderSource(
+      WaterWaveShaderVariant.High,
+      "high"
+    );
+    const volumeCompositionIndex = source.indexOf(
+      "float volumeCompositionAlpha ="
+    );
+    const reflectionCompositionIndex = source.indexOf(
+      "waterColor = mix(\n          waterColor,\n          reflectionColor,"
+    );
+    const directLightIndex = source.indexOf(
+      "waterColor += sunlightColor"
+    );
+    const foamCompositionIndex = source.indexOf(
+      "waterColor = mix(\n          waterColor,\n          vec3(0.93, 0.91, 0.85),"
+    );
+
+    expect(source).toContain(
+      "1.0 - transmittance.g + scatteringWeight"
+    );
+    expect(source).toContain(
+      "effectiveWaterAlpha * volumeOpticalCoverage"
+    );
+    expect(source).not.toContain(
+      "centeredSurfaceBackground,\n          waterColor,\n          effectiveWaterAlpha"
+    );
+    expect(volumeCompositionIndex).toBeGreaterThan(-1);
+    expect(reflectionCompositionIndex).toBeGreaterThan(
+      volumeCompositionIndex
+    );
+    expect(directLightIndex).toBeGreaterThan(
+      reflectionCompositionIndex
+    );
+    expect(foamCompositionIndex).toBeGreaterThan(
+      directLightIndex
+    );
   });
 
   it("shares the engine fog contract and keeps roughness coupled to all reflection terms", () => {

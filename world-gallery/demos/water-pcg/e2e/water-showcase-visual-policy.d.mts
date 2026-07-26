@@ -4,6 +4,8 @@ export interface ShowcaseVisualSelectionInput {
   readonly updateReason: string;
   readonly updateApproval: string;
   readonly availableCaseIds: readonly string[];
+  readonly defaultCaseIds?: readonly string[];
+  readonly updateEligibleCaseIds?: readonly string[];
 }
 
 export interface ShowcaseVisualSelection {
@@ -11,9 +13,15 @@ export interface ShowcaseVisualSelection {
   readonly selectedCaseIds: readonly string[];
 }
 
-export const WATER_SHOWCASE_VISUAL_CASE_IDS: readonly string[];
+export const WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS: readonly string[];
+export const WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS: readonly string[];
 
 export function resolveShowcaseVisualSelection(input: ShowcaseVisualSelectionInput): ShowcaseVisualSelection;
+
+export function assertShowcaseBaselineCaseIds(
+  manifestCaseIds: readonly string[],
+  approvedCaseIds: readonly string[]
+): void;
 
 export function assertImmutableShowcaseCases(
   previousManifest: Readonly<Record<string, unknown>>,

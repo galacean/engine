@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildOceanPbrAuthoredMaps,
   buildOceanPbrDerivedMaps,
+  remapOceanSandRoughness,
   type OceanPbrPixelSource
 } from "../../demo/ocean/OceanPbrTextureLibrary";
 
@@ -21,7 +23,62 @@ function createPixelSource(): OceanPbrPixelSource {
   return { width, height, pixels };
 }
 
+function createSolidPixelSource(
+  width: number,
+  height: number,
+  rgba: readonly [number, number, number, number]
+): OceanPbrPixelSource {
+  const pixels = new Uint8ClampedArray(width * height * 4);
+  for (let offset = 0; offset < pixels.length; offset += 4) {
+    pixels[offset] = rgba[0];
+    pixels[offset + 1] = rgba[1];
+    pixels[offset + 2] = rgba[2];
+    pixels[offset + 3] = rgba[3];
+  }
+  return { width, height, pixels };
+}
+
 describe("OceanPbrTextureLibrary", () => {
+  it("preserves authored sand maps and packs calibrated Galacean roughness/metallic channels", () => {
+    const baseColor = createSolidPixelSource(2, 2, [181, 164, 126, 255]);
+    const normal = createSolidPixelSource(2, 2, [126, 132, 252, 255]);
+    const roughness = createSolidPixelSource(2, 2, [193, 193, 193, 255]);
+    const occlusion = createSolidPixelSource(2, 2, [224, 224, 224, 255]);
+
+    const maps = buildOceanPbrAuthoredMaps({
+      baseColor,
+      normal,
+      roughness,
+      occlusion
+    });
+
+    expect(maps.baseColor).toBe(baseColor.pixels);
+    expect(maps.normal).toBe(normal.pixels);
+    expect(maps.occlusion).toBe(occlusion.pixels);
+    for (let offset = 0; offset < maps.roughnessMetallic.length; offset += 4) {
+      expect(maps.roughnessMetallic[offset]).toBe(255);
+      expect(maps.roughnessMetallic[offset + 1]).toBe(
+        remapOceanSandRoughness(193)
+      );
+      expect(maps.roughnessMetallic[offset + 2]).toBe(0);
+      expect(maps.roughnessMetallic[offset + 3]).toBe(255);
+    }
+    expect(remapOceanSandRoughness(0)).toBe(198);
+    expect(remapOceanSandRoughness(255)).toBe(234);
+  });
+
+  it("rejects mismatched authored sand map dimensions", () => {
+    const reference = createSolidPixelSource(2, 2, [181, 164, 126, 255]);
+    expect(() =>
+      buildOceanPbrAuthoredMaps({
+        baseColor: reference,
+        normal: createSolidPixelSource(4, 2, [126, 132, 252, 255]),
+        roughness: reference,
+        occlusion: reference
+      })
+    ).toThrow(/normal dimensions do not match base color/);
+  });
+
   it("derives deterministic complete non-metallic PBR maps", () => {
     const source = createPixelSource();
     const first = buildOceanPbrDerivedMaps(source, "granite");

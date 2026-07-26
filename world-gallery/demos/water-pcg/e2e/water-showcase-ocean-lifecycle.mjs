@@ -315,7 +315,13 @@ function assertFiniteLifecycle(snapshot, label) {
 }
 
 function assertActiveResources(snapshot, label) {
-  const { runtime, reflection, scene, splash } = snapshot;
+  const {
+    runtime,
+    reflection,
+    scene,
+    splash,
+    foamDetail
+  } = snapshot;
   assertAcceptance(
     snapshot.disposed === false &&
       snapshot.featureStackEnabled === true,
@@ -372,6 +378,20 @@ function assertActiveResources(snapshot, label) {
     scene
   );
   assertAcceptance(
+    foamDetail?.ownership === "borrowed" &&
+      foamDetail.destroyed === false &&
+      foamDetail.textureCount === 1 &&
+      foamDetail.textureCreateCount === 1 &&
+      foamDetail.textureDestroyCount === 0 &&
+      foamDetail.resourceBytes > 0 &&
+      runtime.foamDetailTextureCount === 1 &&
+      runtime.foamDetailTextureSource === "external" &&
+      runtime.foamDetailResourceBytes ===
+        foamDetail.resourceBytes,
+    `${label} external Foam detail texture ownership is invalid.`,
+    { runtime, foamDetail }
+  );
+  assertAcceptance(
     splash?.enabled === true &&
       splash.activeEmitterCount === 1 &&
       splash.activeMaterialCount === 1 &&
@@ -390,7 +410,7 @@ function assertActiveResources(snapshot, label) {
 }
 
 function assertDisabledResources(snapshot, label) {
-  const { runtime, scene, splash } = snapshot;
+  const { runtime, scene, splash, foamDetail } = snapshot;
   assertAcceptance(
     snapshot.featureStackEnabled === false,
     `${label} still reports an active feature stack.`,
@@ -418,9 +438,22 @@ function assertDisabledResources(snapshot, label) {
       runtime.activeFoamEventQueueCount === 0 &&
       runtime.foamPendingEventCount === 0 &&
       runtime.foamHistoryPixelCount === 0 &&
-      runtime.foamHistoryEnergy === 0,
+      runtime.foamHistoryEnergy === 0 &&
+      runtime.foamDetailTextureCount === 0 &&
+      runtime.foamDetailTextureSource === "none" &&
+      runtime.foamDetailResourceBytes === 0,
     `${label} retained Foam history, texture, or events.`,
     runtime
+  );
+  assertAcceptance(
+    foamDetail?.ownership === "borrowed" &&
+      foamDetail.destroyed === false &&
+      foamDetail.textureCount === 1 &&
+      foamDetail.textureCreateCount === 1 &&
+      foamDetail.textureDestroyCount === 0 &&
+      foamDetail.resourceBytes > 0,
+    `${label} did not preserve the borrowed Foam detail owner.`,
+    foamDetail
   );
   assertAcceptance(
     scene.wetSandEnabled === false,
@@ -449,6 +482,14 @@ function stableResourceVector(snapshot) {
     foamTextureCount: snapshot.runtime.foamTextureCount,
     foamEventQueueCount:
       snapshot.runtime.activeFoamEventQueueCount,
+    foamDetailTextureCount:
+      snapshot.foamDetail?.textureCount ?? 0,
+    foamDetailTextureCreateCount:
+      snapshot.foamDetail?.textureCreateCount ?? 0,
+    foamDetailTextureDestroyCount:
+      snapshot.foamDetail?.textureDestroyCount ?? 0,
+    foamDetailResourceBytes:
+      snapshot.foamDetail?.resourceBytes ?? 0,
     wetSandTextureCount: snapshot.scene.wetSandTextureCount,
     splashEmitterCount:
       snapshot.splash?.activeEmitterCount ?? 0,
@@ -690,7 +731,13 @@ async function runActiveWindow(page) {
 }
 
 function assertDisposed(snapshot, label) {
-  const { runtime, reflection, scene, splash } = snapshot;
+  const {
+    runtime,
+    reflection,
+    scene,
+    splash,
+    foamDetail
+  } = snapshot;
   assertAcceptance(
     snapshot.disposed === true,
     `${label} did not report disposal.`,
@@ -733,6 +780,16 @@ function assertDisposed(snapshot, label) {
       scene.wetSandResourceBytes === 0,
     `${label} wet-sand textures are unbalanced.`,
     scene
+  );
+  assertAcceptance(
+    foamDetail?.ownership === "borrowed" &&
+      foamDetail.destroyed === true &&
+      foamDetail.textureCount === 0 &&
+      foamDetail.textureCreateCount === 1 &&
+      foamDetail.textureDestroyCount === 1 &&
+      foamDetail.resourceBytes === 0,
+    `${label} external Foam detail texture ownership is unbalanced.`,
+    foamDetail
   );
   assertAcceptance(
     splash?.activeEmitterCount === 0 &&

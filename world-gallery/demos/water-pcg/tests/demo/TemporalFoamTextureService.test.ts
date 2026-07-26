@@ -162,6 +162,70 @@ describe("TemporalFoamTextureService", () => {
     ).toEqual(field.historyBuffer);
   });
 
+  it("prewarms fixed-time history deterministically with one final upload", () => {
+    const textures: FakeTexture[] = [];
+    const field = createField(0.8);
+    const service = new TemporalFoamTextureService(
+      {} as Engine,
+      field,
+      {
+        enabled: true,
+        quality: "medium",
+        debugView: "final",
+        textureFactory: createFakeFactory(textures)
+      }
+    );
+    const options = {
+      stepCount: 8,
+      stepDeltaSeconds: 1 / 30,
+      prepareStep: () => {
+        field.addSourceWorld(0, 0, 1.1, 0.45);
+      }
+    };
+
+    expect(service.prewarmFrame(1, options)).toBe(true);
+    const firstHistory = field.historyBuffer.slice();
+    expect(firstHistory.some((value) => value > 0)).toBe(
+      true
+    );
+    expect(service.metrics).toMatchObject({
+      historyUpdateCount: 8,
+      prewarmCount: 1,
+      lastPrewarmStepCount: 8,
+      uploadCount: 1,
+      lastFrameUploadCount: 1
+    });
+    expect(
+      textures.reduce(
+        (count, texture) => count + texture.uploads.length,
+        0
+      )
+    ).toBe(1);
+    expect(service.prewarmFrame(1, options)).toBe(false);
+    expect(() =>
+      service.prewarmFrame(2, {
+        ...options,
+        stepCount: 121
+      })
+    ).toThrow(/1-120 positive fixed steps/);
+
+    expect(service.prewarmFrame(2, options)).toBe(true);
+    expect(field.historyBuffer).toEqual(firstHistory);
+    expect(service.metrics).toMatchObject({
+      historyUpdateCount: 16,
+      prewarmCount: 2,
+      lastPrewarmStepCount: 8,
+      uploadCount: 2,
+      lastFrameUploadCount: 1
+    });
+    expect(
+      textures.reduce(
+        (count, texture) => count + texture.uploads.length,
+        0
+      )
+    ).toBe(2);
+  });
+
   it("uploads one zero history after clear and then stops uploading while idle", () => {
     const textures: FakeTexture[] = [];
     const field = createField(0.8);

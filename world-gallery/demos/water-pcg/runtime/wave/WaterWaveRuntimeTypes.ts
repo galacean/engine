@@ -1,4 +1,7 @@
-import type { Material } from "@galacean/engine-core";
+import type {
+  Material,
+  Texture2D
+} from "@galacean/engine-core";
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import type { WaterWaveShaderVariant } from "./enums/WaterWaveShaderVariant";
 import type {
@@ -50,10 +53,22 @@ export interface WaterWaveMaterialConfig {
    * and are controlled independently so legacy water materials stay unchanged.
    */
   readonly foam?: WaterTemporalFoamBinding;
+  /**
+   * Optional caller-owned RGB foam breakup mask. The runtime borrows this
+   * resource and falls back to its deterministic procedural texture when
+   * omitted.
+   */
+  readonly foamDetail?: WaterFoamDetailTextureBinding;
   readonly analyticWhitecapEnabled?: boolean;
   /** Optional surface-optics shader tier. Experimental compiles through the High optics path. */
   readonly opticsTier?: WaterOpticsTier;
   readonly surfaceTimeOverride?: number;
+}
+
+export interface WaterFoamDetailTextureBinding {
+  readonly texture: Texture2D;
+  readonly ownership: "borrowed";
+  readonly resourceBytes: number;
 }
 
 export interface WaterSurfaceDetailConfig {
@@ -78,6 +93,7 @@ export interface WaterWaveMaterialState {
   readonly nearshoreStateEnabled?: boolean;
   readonly nearshoreBreakerEnabled?: boolean;
   readonly foamEnabled?: boolean;
+  readonly foamDetailTextureSource?: "none" | "procedural" | "external";
   readonly analyticWhitecapEnabled?: boolean;
   readonly foamDebugView?: WaterFoamDebugView;
   /** Reusable uniform values owned by this material; owns no GPU resources. */

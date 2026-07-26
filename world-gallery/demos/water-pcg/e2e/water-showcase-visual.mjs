@@ -26,9 +26,11 @@ import { FIXED_ACCEPTANCE_ENVIRONMENT, WATER_SHOWCASE_CASES } from "./water-acce
 import {
   assertImmutableShowcaseCases,
   assertMissingShowcaseBaselineAllowed,
+  assertShowcaseBaselineCaseIds,
   commitShowcaseBaselineTransaction,
   resolveShowcaseVisualSelection,
-  WATER_SHOWCASE_VISUAL_CASE_IDS
+  WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
+  WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS
 } from "./water-showcase-visual-policy.mjs";
 
 const gate = "water-showcase-visual";
@@ -50,19 +52,21 @@ const selection = resolveShowcaseVisualSelection({
   caseFilter: CASE_FILTER,
   updateReason: UPDATE_REASON,
   updateApproval: UPDATE_APPROVAL,
-  availableCaseIds: WATER_SHOWCASE_VISUAL_CASE_IDS
+  availableCaseIds: WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS,
+  defaultCaseIds: WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
+  updateEligibleCaseIds: WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS
 });
 const selectedDefinitions = WATER_SHOWCASE_CASES.filter((definition) =>
   selection.selectedCaseIds.includes(definition.id)
 );
 const WATER_EFFECT_CAPTURE_STYLE = `
-  #example-bar [data-case-id^="feature-ocean-"] {
-    display: none !important;
-  }
-
+  #example-bar,
+  #case-intro,
+  #fixture-mark,
+  .gl-perf,
   [data-water-debug-panel],
   .dg.ac {
-    visibility: hidden !important;
+    display: none !important;
   }
 `;
 const SCRIPT_DIRECTORY = fileURLToPath(new URL(".", import.meta.url));
@@ -126,12 +130,7 @@ async function readBaselineManifest() {
     "Showcase baseline thresholds changed.",
     manifest.thresholds
   );
-  assertAcceptance(
-    JSON.stringify(Object.keys(manifest.cases ?? {}).sort()) ===
-      JSON.stringify([...WATER_SHOWCASE_VISUAL_CASE_IDS].sort()),
-    "Showcase baseline cases must match the explicit visual-only case list.",
-    Object.keys(manifest.cases ?? {})
-  );
+  assertShowcaseBaselineCaseIds(Object.keys(manifest.cases ?? {}), WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS);
   return manifest;
 }
 
@@ -166,8 +165,8 @@ async function validateManifestFilesAtRoot(manifest, root) {
   const hashes = {};
   for (const [caseId, caseEntry] of Object.entries(manifest.cases ?? {})) {
     assertAcceptance(
-      WATER_SHOWCASE_VISUAL_CASE_IDS.includes(caseId),
-      `${caseId} is functional-only and cannot have a Showcase screenshot baseline.`
+      WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS.includes(caseId),
+      `${caseId} is not approved for a tracked Showcase Golden.`
     );
     const definition = WATER_SHOWCASE_CASES.find((candidate) => candidate.id === caseId);
     assertAcceptance(definition, `Showcase baseline manifest contains unknown case '${caseId}'.`);

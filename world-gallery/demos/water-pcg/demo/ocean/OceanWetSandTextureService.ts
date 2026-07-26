@@ -65,15 +65,16 @@ const UPDATE_EPSILON_SECONDS = 1e-6;
 const DRY_SAND_COLOR = Object.freeze([172, 129, 78] as const);
 const SUBMERGED_SAND_COLOR = Object.freeze([112, 91, 63] as const);
 const WET_SAND_DARKENING = Object.freeze(
-  [0.69, 0.68, 0.67] as const
+  [0.56, 0.57, 0.58] as const
 );
 const DRY_SAND_ROUGHNESS = 224;
-const WET_SAND_ROUGHNESS = 154;
-const SUBMERGED_SAND_ROUGHNESS = 154;
-const MAXIMUM_WET_FILM_ALPHA = 56;
+const WET_SAND_ROUGHNESS = 166;
+const SUBMERGED_SAND_ROUGHNESS = 184;
+const MAXIMUM_WET_FILM_ALPHA = 96;
 const SAND_DETAIL_TILING_X = 26;
 const SAND_DETAIL_TILING_Z = 13;
 const SAND_NORMAL_STRENGTH = 2.8;
+const NEARSHORE_OCCUPANCY_CHANNEL_OFFSET = 1;
 
 const defaultTextureFactory: OceanWetSandTextureFactory = {
   create(
@@ -210,10 +211,12 @@ export class OceanWetSandTextureService {
     // the wet beach behave like a broad grey mirror at grazing angles.
     this._material.metallic = 0;
     this._material.roughness = 1;
+    this._material.specularIntensity = 0.48;
+    this._material.ior = 1.33;
     this._material.isTransparent = true;
     this._material.baseTexture = this.baseColorTexture;
     this._material.normalTexture = this.normalTexture;
-    this._material.normalTextureIntensity = 0.82;
+    this._material.normalTextureIntensity = 0.55;
     this._material.roughnessMetallicTexture =
       this.roughnessMetallicTexture;
     this._material.occlusionTexture = this.occlusionTexture;
@@ -331,6 +334,7 @@ export class OceanWetSandTextureService {
 
   private _refreshPixels(): void {
     const wetness = this.field.wetnessUploadBuffer;
+    const nearshoreState = this.field.stateUploadBuffer;
     const resource = this.field.resource;
     const fieldWidth = resource.metadata.width;
     const fieldHeight = resource.metadata.height;
@@ -369,7 +373,18 @@ export class OceanWetSandTextureService {
       const dryRoughness = staticWet
         ? SUBMERGED_SAND_ROUGHNESS
         : DRY_SAND_ROUGHNESS;
-      const wetFilmWeight = staticWet ? 0 : blend;
+      const occupied =
+        nearshoreState[
+          offset + NEARSHORE_OCCUPANCY_CHANNEL_OFFSET
+        ] > 0;
+      const centerWetness = wetness[index] / 255;
+      // Active swash is rendered by the Ocean surface itself. Keep this
+      // transparent material for the exposed residual film only, otherwise
+      // drawing it after the Ocean would paste sand shading onto shallow water.
+      const wetFilmWeight =
+        staticWet || occupied
+          ? 0
+          : Math.min(blend, centerWetness);
       this._baseColorPixels[offset] = mixByte(
         dryColor[0],
         wetRed,
@@ -386,7 +401,9 @@ export class OceanWetSandTextureService {
         blend
       );
       this._baseColorPixels[offset + 3] = this._enabled
-        ? Math.round(wetFilmWeight * MAXIMUM_WET_FILM_ALPHA)
+        ? Math.round(
+            wetFilmWeight * MAXIMUM_WET_FILM_ALPHA
+          )
         : 0;
       this._roughnessMetallicPixels[offset] = 255;
       this._roughnessMetallicPixels[offset + 1] = mixByte(
@@ -502,13 +519,29 @@ export class OceanWetSandTextureService {
         : DRY_SAND_COLOR;
     }
     const pixels = this._detailSource.pixels;
-    const submergeScale = staticWet
-      ? ([0.68, 0.72, 0.76] as const)
-      : ([1, 1, 1] as const);
+    const detailLuminance =
+      (pixels[detailOffset] * 0.2126 +
+        pixels[detailOffset + 1] * 0.7152 +
+        pixels[detailOffset + 2] * 0.0722) /
+      255;
+    const detailVariation =
+      0.72 + detailLuminance * 0.56;
+    const palette = staticWet
+      ? SUBMERGED_SAND_COLOR
+      : DRY_SAND_COLOR;
     return [
-      Math.round(pixels[detailOffset] * submergeScale[0]),
-      Math.round(pixels[detailOffset + 1] * submergeScale[1]),
-      Math.round(pixels[detailOffset + 2] * submergeScale[2])
+      Math.min(
+        255,
+        Math.round(palette[0] * detailVariation)
+      ),
+      Math.min(
+        255,
+        Math.round(palette[1] * detailVariation)
+      ),
+      Math.min(
+        255,
+        Math.round(palette[2] * detailVariation)
+      )
     ];
   }
 

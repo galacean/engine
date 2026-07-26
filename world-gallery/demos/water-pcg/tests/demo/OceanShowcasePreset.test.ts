@@ -54,7 +54,10 @@ describe("Ocean showcase presets", () => {
     );
     expect(terrain.normals[probeIndex * 3 + 1]).toBeGreaterThan(0.98);
     resource.dispose();
-    expect(gerstnerFeatureOceanPreview.reflectionSource).toBe("sky");
+    expect(gerstnerFeatureOceanPreview.reflectionSource).toBe("planar");
+    expect(
+      gerstnerFeatureOceanPreview.reflectionSampling?.highFilterSampleCount
+    ).toBe(1);
   });
 
   it("builds deterministic finite rock geometry with closed normalized seams", () => {

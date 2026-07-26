@@ -86,7 +86,7 @@ export interface OceanNearshoreStateSample {
   wetness: number;
 }
 
-interface ResolvedOceanNearshoreStateFieldOptions {
+export interface ResolvedOceanNearshoreStateFieldOptions {
   readonly fixedStepRateHz: number;
   readonly fixedStepSeconds: number;
   readonly swashPeriodSeconds: number;
@@ -327,6 +327,11 @@ export class OceanNearshoreStateField {
 
   get stateUploadBuffer(): Uint8Array {
     return this._requireBuffers().stateUpload;
+  }
+
+  /** Resolved immutable authoring values used by this fixed-step field. */
+  get configuration(): Readonly<ResolvedOceanNearshoreStateFieldOptions> {
+    return this._options;
   }
 
   get wetnessUploadBuffer(): Uint8Array {

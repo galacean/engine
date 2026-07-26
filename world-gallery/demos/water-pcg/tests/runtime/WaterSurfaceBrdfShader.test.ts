@@ -10,6 +10,8 @@ import {
   WATER_SURFACE_BRDF_RECIPROCAL_PI,
   createWaterSurfaceBrdfShaderFunctions
 } from "../../runtime/surface/WaterSurfaceBrdfShader";
+import { WaterWaveShaderVariant } from "../../runtime/wave/enums/WaterWaveShaderVariant";
+import { createWaterWaveShaderSource } from "../../runtime/wave/WaterWaveMaterialFactory";
 import { evaluateWaterSurfaceDirectBrdf } from "../../runtime/wave/WaterSurfaceBrdf";
 
 interface GlesShaderPrecompiler {
@@ -66,6 +68,21 @@ ${createWaterSurfaceBrdfShaderFunctions()}
 }`;
 }
 
+function createFrozenWaveShaderBundle(): string {
+  return [
+    WaterWaveShaderVariant.None,
+    WaterWaveShaderVariant.Low,
+    WaterWaveShaderVariant.Medium,
+    WaterWaveShaderVariant.High
+  ]
+    .flatMap((variant) => [
+      `${variant}:default\n${createWaterWaveShaderSource(variant)}`,
+      `${variant}:medium\n${createWaterWaveShaderSource(variant, "medium")}`,
+      `${variant}:high\n${createWaterWaveShaderSource(variant, "high")}`
+    ])
+    .join("\n--WATER-WAVE-SHADER--\n");
+}
+
 function shaderContractReference(input: Readonly<BrdfReferenceInput>): number {
   const saturate = (value: number): number => Math.min(1, Math.max(0, value));
   const roughness = Math.max(WATER_SURFACE_BRDF_MINIMUM_PERCEPTUAL_ROUGHNESS, saturate(input.roughness));
@@ -87,12 +104,12 @@ function shaderContractReference(input: Readonly<BrdfReferenceInput>): number {
 }
 
 describe("WaterSurfaceBrdfShader", () => {
-  it("keeps the existing Wave shader and CPU BRDF source byte-for-byte frozen", () => {
-    const waveSource = readFileSync(new URL("../../runtime/wave/WaterWaveMaterialFactory.ts", import.meta.url));
+  it("keeps the generated Wave shaders and CPU BRDF source byte-for-byte frozen", () => {
+    const waveSource = createFrozenWaveShaderBundle();
     const cpuSource = readFileSync(new URL("../../runtime/wave/WaterSurfaceBrdf.ts", import.meta.url));
 
     expect(createHash("sha256").update(waveSource).digest("hex")).toBe(
-      "b972ebf8ba35f3322920654dc934decac68b33ddd264d1bc697232216513b120"
+      "1e375aae36b0c8dcb72158880507e6ce21ebcc0fb714c30bf71ffeb56524e347"
     );
     expect(createHash("sha256").update(cpuSource).digest("hex")).toBe(
       "9e3148631e31fb9714d825a9e7a85710123caf8068b675e35de9333a58e8753d"

@@ -4,15 +4,18 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  assertMissingShowcaseBaselineAllowed,
   assertImmutableShowcaseCases,
   assertImmutableShowcaseHashes,
+  assertMissingShowcaseBaselineAllowed,
+  assertShowcaseBaselineCaseIds,
   commitShowcaseBaselineTransaction,
   resolveShowcaseVisualSelection,
-  WATER_SHOWCASE_VISUAL_CASE_IDS
+  WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
+  WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS
 } from "../../e2e/water-showcase-visual-policy.mjs";
 
-const CASE_IDS = WATER_SHOWCASE_VISUAL_CASE_IDS;
+const CANDIDATE_CASE_IDS = WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS;
+const APPROVED_CASE_IDS = WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS;
 
 function resolveSelection(overrides: Partial<Parameters<typeof resolveShowcaseVisualSelection>[0]> = {}) {
   return resolveShowcaseVisualSelection({
@@ -20,7 +23,9 @@ function resolveSelection(overrides: Partial<Parameters<typeof resolveShowcaseVi
     caseFilter: "",
     updateReason: "",
     updateApproval: "",
-    availableCaseIds: CASE_IDS,
+    availableCaseIds: CANDIDATE_CASE_IDS,
+    defaultCaseIds: APPROVED_CASE_IDS,
+    updateEligibleCaseIds: APPROVED_CASE_IDS,
     ...overrides
   });
 }
@@ -93,9 +98,10 @@ async function createTemporaryBaseline() {
 }
 
 describe("Water Showcase visual policy", () => {
-  it("keeps visual capture and compare scoped to the explicitly reviewed Grasslands case", () => {
-    expect(resolveSelection().selectedCaseIds).toEqual(CASE_IDS);
-    expect(resolveSelection({ mode: "compare" }).selectedCaseIds).toEqual(CASE_IDS);
+  it("keeps the default lane on approved Grasslands while allowing an explicit Ocean candidate capture", () => {
+    expect(resolveSelection().selectedCaseIds).toEqual(APPROVED_CASE_IDS);
+    expect(resolveSelection({ mode: "compare" }).selectedCaseIds).toEqual(APPROVED_CASE_IDS);
+    expect(resolveSelection({ caseFilter: "showcase-ocean" }).selectedCaseIds).toEqual(["showcase-ocean"]);
     expect(() => resolveSelection({ caseFilter: "showcase-river" })).toThrow("Unknown Showcase visual case filter");
   });
 
@@ -107,9 +113,28 @@ describe("Water Showcase visual policy", () => {
         caseFilter: "showcase-river,showcase-ocean",
         updateReason: "Approved visual update",
         updateApproval: "approved:showcase-river",
-        availableCaseIds: ["showcase-river", "showcase-ocean"]
+        availableCaseIds: ["showcase-river", "showcase-ocean"],
+        defaultCaseIds: ["showcase-river", "showcase-ocean"],
+        updateEligibleCaseIds: ["showcase-river", "showcase-ocean"]
       })
     ).toThrow("exactly one explicit");
+    expect(() =>
+      resolveSelection({
+        mode: "update",
+        caseFilter: "showcase-ocean",
+        updateReason: "Approve Ocean visual update",
+        updateApproval: "approved:showcase-ocean"
+      })
+    ).toThrow("candidate-only");
+    expect(() =>
+      resolveShowcaseVisualSelection({
+        mode: "update",
+        caseFilter: "showcase-grasslands-stylized-water",
+        updateReason: "Create reviewed Grasslands baseline",
+        updateApproval: "approved:showcase-grasslands-stylized-water",
+        availableCaseIds: ["showcase-grasslands-stylized-water"]
+      })
+    ).toThrow("candidate-only");
     expect(() =>
       resolveSelection({
         mode: "update",
@@ -137,6 +162,14 @@ describe("Water Showcase visual policy", () => {
         updateApproval: "approved:showcase-grasslands-stylized-water"
       }).selectedCaseIds
     ).toEqual(["showcase-grasslands-stylized-water"]);
+  });
+
+  it("accepts only approved Golden cases without requiring the Ocean candidate in the manifest", () => {
+    expect(() => assertShowcaseBaselineCaseIds(APPROVED_CASE_IDS, APPROVED_CASE_IDS)).not.toThrow();
+    expect(() => assertShowcaseBaselineCaseIds([...APPROVED_CASE_IDS, "showcase-ocean"], APPROVED_CASE_IDS)).toThrow(
+      "without Golden approval"
+    );
+    expect(() => assertShowcaseBaselineCaseIds([], APPROVED_CASE_IDS)).toThrow("missing approved Golden cases");
   });
 
   it("keeps a missing-case capture non-mutating, rejects compare, and atomically adds an approved update", async () => {

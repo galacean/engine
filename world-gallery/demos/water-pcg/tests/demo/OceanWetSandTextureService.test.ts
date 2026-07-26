@@ -174,6 +174,136 @@ describe("OceanWetSandTextureService", () => {
     resource.dispose();
   });
 
+  it("draws film only on exposed residual wetness", () => {
+    const { resource, field } = createField();
+    const records: FakeTextureRecord[] = [];
+    const service = new OceanWetSandTextureService(
+      {} as Engine,
+      {} as PBRMaterial,
+      field,
+      { textureFactory: createTextureFactory(records) }
+    );
+    service.updateFrame(0, 0);
+    field.seek(2);
+    service.reset();
+
+    expect(service.updateFrame(1, 0)).toBe(true);
+    const occupiedBaseColor = records[0].uploads.at(-1);
+    const occupiedWetIndices = Array.from(
+      { length: field.wetnessUploadBuffer.length },
+      (_, index) => index
+    ).filter(
+      (index) =>
+        field.wetnessUploadBuffer[index] > 0 &&
+        field.stateUploadBuffer[index * 4 + 1] > 0
+    );
+    expect(occupiedWetIndices.length).toBeGreaterThan(0);
+    expect(
+      occupiedWetIndices.every(
+        (index) =>
+          occupiedBaseColor?.[index * 4 + 3] === 0
+      )
+    ).toBe(true);
+
+    field.seek(3.5);
+    service.reset();
+    expect(service.updateFrame(2, 0)).toBe(true);
+    const exposedBaseColor = records[0].uploads.at(-1);
+    const exposedWetIndices = Array.from(
+      { length: field.wetnessUploadBuffer.length },
+      (_, index) => index
+    ).filter(
+      (index) =>
+        field.wetnessUploadBuffer[index] > 0 &&
+        field.stateUploadBuffer[index * 4 + 1] === 0
+    );
+    expect(exposedWetIndices.length).toBeGreaterThan(0);
+    expect(
+      exposedWetIndices.some(
+        (index) =>
+          (exposedBaseColor?.[index * 4 + 3] ?? 0) > 0
+      )
+    ).toBe(true);
+    expect(
+      Math.max(
+        ...exposedWetIndices.map(
+          (index) =>
+            exposedBaseColor?.[index * 4 + 3] ?? 0
+        )
+      )
+    ).toBeLessThanOrEqual(96);
+    expect(
+      Array.from(
+        { length: field.wetnessUploadBuffer.length },
+        (_, index) => index
+      )
+        .filter(
+          (index) =>
+            field.wetnessUploadBuffer[index] === 0
+        )
+        .every(
+          (index) =>
+            exposedBaseColor?.[index * 4 + 3] === 0
+        )
+    ).toBe(true);
+
+    service.setEnabled(false);
+    expect(service.updateFrame(3, 0)).toBe(true);
+    const disabledBaseColor = records[0].uploads.at(-1);
+    expect(
+      Array.from(
+        { length: field.wetnessUploadBuffer.length },
+        (_, index) => disabledBaseColor?.[index * 4 + 3] ?? 0
+      ).every((alpha) => alpha === 0)
+    ).toBe(true);
+
+    service.destroy();
+    field.destroy();
+    resource.dispose();
+  });
+
+  it("uses authored detail luminance without replacing the warm sand palette", () => {
+    const { resource, field } = createField();
+    const records: FakeTextureRecord[] = [];
+    const detailPixels = new Uint8ClampedArray(
+      2 * 2 * 4
+    );
+    for (
+      let offset = 0;
+      offset < detailPixels.length;
+      offset += 4
+    ) {
+      detailPixels.set([128, 128, 128, 255], offset);
+    }
+    const service = new OceanWetSandTextureService(
+      {} as Engine,
+      {} as PBRMaterial,
+      field,
+      {
+        textureFactory: createTextureFactory(records),
+        detailSource: {
+          width: 2,
+          height: 2,
+          pixels: detailPixels
+        }
+      }
+    );
+
+    expect(service.updateFrame(0, 0)).toBe(true);
+    const base = records[0].uploads[0];
+    const offset = 22 * 4;
+    expect(base[offset]).toBeGreaterThan(
+      base[offset + 1]
+    );
+    expect(base[offset + 1]).toBeGreaterThan(
+      base[offset + 2]
+    );
+
+    service.destroy();
+    field.destroy();
+    resource.dispose();
+  });
+
   it("destroys the first texture if creation of the second texture fails", () => {
     const { resource, field } = createField();
     const records: FakeTextureRecord[] = [];

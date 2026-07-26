@@ -67,8 +67,10 @@ export class OceanCoastalRockAsset {
         // consumes G/B for roughness/metallic.
         material.occlusionTexture = armTexture;
       }
-      material.normalTextureIntensity = 0.68;
-      material.occlusionTextureIntensity = 0.7;
+      material.roughness = Math.max(material.roughness, 0.78);
+      material.specularIntensity = 0.62;
+      material.normalTextureIntensity = 0.65;
+      material.occlusionTextureIntensity = 0.68;
       if (
         material.baseTexture &&
         material.normalTexture &&

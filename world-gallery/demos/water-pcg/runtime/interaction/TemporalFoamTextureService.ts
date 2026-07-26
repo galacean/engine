@@ -22,6 +22,18 @@ export interface TemporalFoamTextureServiceOptions {
   readonly textureFactory?: TemporalFoamTextureFactory;
 }
 
+export interface TemporalFoamPrewarmOptions {
+  /** Fixed CPU steps used to rebuild history from an empty field. */
+  readonly stepCount: number;
+  readonly stepDeltaSeconds: number;
+  /**
+   * Rebuilds persistent and sparse sources immediately before each fixed step.
+   * The callback must not retain the step index or allocate render resources.
+   */
+  readonly prepareStep: (stepIndex: number) => void;
+  readonly currentSnapshot?: WaterCurrentFieldSnapshot;
+}
+
 export interface TemporalFoamTextureMetrics {
   readonly enabled: boolean;
   readonly analyticFallback: boolean;
@@ -33,6 +45,8 @@ export interface TemporalFoamTextureMetrics {
   readonly resourceBytes: number;
   readonly peak: number;
   readonly historyUpdateCount: number;
+  readonly prewarmCount: number;
+  readonly lastPrewarmStepCount: number;
   readonly targetUpdateRateHz: number;
   readonly rateLimitedFrameCount: number;
   readonly lastStepDeltaSeconds: number;
@@ -51,6 +65,8 @@ interface MutableTemporalFoamTextureMetrics {
   resourceBytes: number;
   peak: number;
   historyUpdateCount: number;
+  prewarmCount: number;
+  lastPrewarmStepCount: number;
   targetUpdateRateHz: number;
   rateLimitedFrameCount: number;
   lastStepDeltaSeconds: number;
@@ -59,6 +75,7 @@ interface MutableTemporalFoamTextureMetrics {
 }
 
 const DEFAULT_TARGET_UPDATE_RATE_HZ = 30;
+const MAXIMUM_PREWARM_STEP_COUNT = 120;
 const UPDATE_INTERVAL_EPSILON_SECONDS = 1e-6;
 
 const defaultTextureFactory: TemporalFoamTextureFactory = {
@@ -121,6 +138,8 @@ export class TemporalFoamTextureService {
       resourceBytes: 0,
       peak: 0,
       historyUpdateCount: 0,
+      prewarmCount: 0,
+      lastPrewarmStepCount: 0,
       targetUpdateRateHz,
       rateLimitedFrameCount: 0,
       lastStepDeltaSeconds: 0,
@@ -270,6 +289,103 @@ export class TemporalFoamTextureService {
     return historyUpdated || this._mutableMetrics.lastFrameUploadCount > 0;
   }
 
+  /**
+   * Deterministically rebuilds a bounded fixed-time history and uploads only
+   * the final selected view. Live rendering continues to use {@link updateFrame}
+   * and therefore never executes this bounded catch-up loop.
+   */
+  prewarmFrame(
+    renderFrame: number,
+    options: Readonly<TemporalFoamPrewarmOptions>
+  ): boolean {
+    if (
+      this._destroyed ||
+      !this._mutableMetrics.enabled ||
+      !Number.isInteger(renderFrame) ||
+      renderFrame < 0
+    ) {
+      return false;
+    }
+    if (
+      !Number.isSafeInteger(options.stepCount) ||
+      options.stepCount < 1 ||
+      options.stepCount > MAXIMUM_PREWARM_STEP_COUNT ||
+      !Number.isFinite(options.stepDeltaSeconds) ||
+      options.stepDeltaSeconds <= 0
+    ) {
+      throw new RangeError(
+        `Temporal foam prewarm requires 1-${MAXIMUM_PREWARM_STEP_COUNT} positive fixed steps.`
+      );
+    }
+    if (renderFrame === this._lastRenderFrame) return false;
+
+    this.clear();
+    this._lastRenderFrame = renderFrame;
+    this._mutableMetrics.lastFrameUploadCount = 0;
+    this._mutableMetrics.currentSnapshotKind =
+      options.currentSnapshot?.kind ?? "none";
+    this._mutableMetrics.currentSnapshotRevision =
+      options.currentSnapshot?.revision ?? -1;
+
+    let historyUpdateCount = 0;
+    let finalStepHadSource = false;
+    for (
+      let stepIndex = 0;
+      stepIndex < options.stepCount;
+      stepIndex++
+    ) {
+      options.prepareStep(stepIndex);
+      if (stepIndex === options.stepCount - 1) {
+        finalStepHadSource =
+          this.field.metrics.sourcePixelCount > 0;
+        this._sourceSnapshot.set(this.field.sourceBuffer);
+      }
+      if (
+        this.field.step(
+          options.stepDeltaSeconds,
+          options.currentSnapshot
+        )
+      ) {
+        historyUpdateCount++;
+      }
+    }
+
+    this._accumulatedDeltaSeconds = 0;
+    this._mutableMetrics.historyUpdateCount +=
+      historyUpdateCount;
+    this._mutableMetrics.prewarmCount++;
+    this._mutableMetrics.lastPrewarmStepCount =
+      options.stepCount;
+    this._mutableMetrics.lastStepDeltaSeconds =
+      options.stepDeltaSeconds;
+    this._mutableMetrics.active = !this.field.isIdle;
+    this._mutableMetrics.peak =
+      this.field.metrics.peakHistoryValue;
+
+    const view = this._mutableMetrics.debugView;
+    if (view === "source") {
+      this._upload(this._sourceTexture, this._sourceSnapshot);
+      this._sourceTextureContainsData = finalStepHadSource;
+    } else if (view === "history") {
+      this._upload(
+        this._sourceTexture,
+        this.field.historyBuffer
+      );
+    } else {
+      this._visibleHistoryIndex ^= 1;
+      this._upload(
+        this._historyTextures?.[this._visibleHistoryIndex] ??
+          null,
+        this.field.historyBuffer
+      );
+    }
+    this._forceUpload = false;
+    return (
+      historyUpdateCount > 0 ||
+      this._mutableMetrics.lastFrameUploadCount > 0
+    );
+  }
+
   destroy(): void {
     if (this._destroyed) return;
     this._destroyed = true;
@@ -287,6 +403,7 @@ export class TemporalFoamTextureService {
     this._mutableMetrics.lastFrameUploadCount = 0;
     this._mutableMetrics.resourceBytes = 0;
     this._mutableMetrics.peak = 0;
+    this._mutableMetrics.lastPrewarmStepCount = 0;
     this._mutableMetrics.lastStepDeltaSeconds = 0;
     this._mutableMetrics.currentSnapshotKind = "none";
     this._mutableMetrics.currentSnapshotRevision = -1;

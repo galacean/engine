@@ -22,6 +22,20 @@ export interface OceanPbrDerivedMaps {
   readonly occlusion: Uint8Array;
 }
 
+export interface OceanPbrAuthoredTextureSources {
+  readonly baseColor: OceanPbrPixelSource;
+  readonly normal: OceanPbrPixelSource;
+  readonly roughness: OceanPbrPixelSource;
+  readonly occlusion: OceanPbrPixelSource;
+}
+
+export interface OceanPbrAuthoredMaps {
+  readonly baseColor: Uint8ClampedArray;
+  readonly normal: Uint8ClampedArray;
+  readonly roughnessMetallic: Uint8Array;
+  readonly occlusion: Uint8ClampedArray;
+}
+
 export interface OceanPbrMaterialBindingOptions {
   readonly tiling: readonly [number, number];
   readonly normalIntensity: number;
@@ -30,9 +44,13 @@ export interface OceanPbrMaterialBindingOptions {
 
 export interface OceanPbrTextureLibraryMetrics {
   readonly textureCount: number;
-  readonly sourceTextureCount: 2;
+  readonly sourceImageCount: number;
+  readonly sourceTextureCount: number;
   readonly generatedTextureCount: number;
+  readonly retainedPixelSourceCount: number;
+  readonly retainedPixelSourceBytes: number;
   readonly resourceBytes: number;
+  readonly totalOwnedBytes: number;
   readonly sandTextureSetComplete: boolean;
   readonly graniteTextureSetComplete: boolean;
   readonly neutralTextureSetComplete: boolean;
@@ -52,12 +70,37 @@ interface DerivedMapParameters {
   readonly cavityStrength: number;
 }
 
-const SOURCE_TEXTURE_SIZE = 512;
+const SAND_TEXTURE_SIZE = 1024;
+const WET_SAND_DETAIL_SIZE = 512;
+const GRANITE_SOURCE_TEXTURE_SIZE = 512;
 const NEUTRAL_TEXTURE_SIZE = 128;
 const TEXTURE_CHANNEL_COUNT = 4;
+const AUTHORED_SAND_ROUGHNESS_MINIMUM = 198;
+const AUTHORED_SAND_ROUGHNESS_RANGE = 36;
+const PBR_TEXTURE_SET_COUNT = 3;
+const PBR_TEXTURES_PER_SET = 4;
+const SOURCE_IMAGE_COUNT = 6;
+const SOURCE_GPU_TEXTURE_COUNT = 5;
+const RETAINED_PIXEL_SOURCE_COUNT = 2;
 const MIP_RESOURCE_SCALE = 4 / 3;
-const SAND_ALBEDO_URL = new URL(
-  "./assets/beach-sand-albedo.png",
+const SAND_BASE_COLOR_URL = new URL(
+  "./assets/ground055s-color-1024.jpg",
+  import.meta.url
+).href;
+const SAND_NORMAL_URL = new URL(
+  "./assets/ground055s-normal-gl-1024.jpg",
+  import.meta.url
+).href;
+const SAND_ROUGHNESS_URL = new URL(
+  "./assets/ground055s-roughness-1024.jpg",
+  import.meta.url
+).href;
+const SAND_OCCLUSION_URL = new URL(
+  "./assets/ground055s-ambient-occlusion-1024.jpg",
+  import.meta.url
+).href;
+const WET_SAND_DETAIL_URL = new URL(
+  "./assets/aerial-beach-02-base-color-512.jpg",
   import.meta.url
 ).href;
 const GRANITE_ALBEDO_URL = new URL(
@@ -122,6 +165,85 @@ function assertPixelSource(source: Readonly<OceanPbrPixelSource>): void {
   ) {
     throw new Error("Ocean PBR pixel source is invalid.");
   }
+}
+
+function assertMatchingPixelSourceDimensions(
+  reference: Readonly<OceanPbrPixelSource>,
+  candidate: Readonly<OceanPbrPixelSource>,
+  label: string
+): void {
+  if (
+    candidate.width !== reference.width ||
+    candidate.height !== reference.height
+  ) {
+    throw new Error(
+      `Ocean PBR authored ${label} dimensions do not match base color: ` +
+        `${candidate.width}x${candidate.height} !== ` +
+        `${reference.width}x${reference.height}.`
+    );
+  }
+}
+
+/**
+ * Keeps authored sand variation while calibrating the roughness into the
+ * dielectric beach-sand range used by this dusk presentation.
+ */
+export function remapOceanSandRoughness(
+  authoredRoughness: number
+): number {
+  const normalized = Math.min(
+    1,
+    Math.max(0, authoredRoughness / 255)
+  );
+  return Math.round(
+    AUTHORED_SAND_ROUGHNESS_MINIMUM +
+      normalized * AUTHORED_SAND_ROUGHNESS_RANGE
+  );
+}
+
+export function buildOceanPbrAuthoredMaps(
+  sources: Readonly<OceanPbrAuthoredTextureSources>
+): OceanPbrAuthoredMaps {
+  assertPixelSource(sources.baseColor);
+  assertPixelSource(sources.normal);
+  assertPixelSource(sources.roughness);
+  assertPixelSource(sources.occlusion);
+  assertMatchingPixelSourceDimensions(
+    sources.baseColor,
+    sources.normal,
+    "normal"
+  );
+  assertMatchingPixelSourceDimensions(
+    sources.baseColor,
+    sources.roughness,
+    "roughness"
+  );
+  assertMatchingPixelSourceDimensions(
+    sources.baseColor,
+    sources.occlusion,
+    "occlusion"
+  );
+
+  const roughnessMetallic = new Uint8Array(sources.roughness.pixels.length);
+  for (
+    let offset = 0;
+    offset < roughnessMetallic.length;
+    offset += TEXTURE_CHANNEL_COUNT
+  ) {
+    roughnessMetallic[offset] = 255;
+    roughnessMetallic[offset + 1] =
+      remapOceanSandRoughness(
+        sources.roughness.pixels[offset]
+      );
+    roughnessMetallic[offset + 2] = 0;
+    roughnessMetallic[offset + 3] = 255;
+  }
+  return Object.freeze({
+    baseColor: sources.baseColor.pixels,
+    normal: sources.normal.pixels,
+    roughnessMetallic,
+    occlusion: sources.occlusion.pixels
+  });
 }
 
 /**
@@ -469,6 +591,58 @@ function createTextureSet(
   }
 }
 
+function createAuthoredTextureSet(
+  engine: Engine,
+  sources: Readonly<OceanPbrAuthoredTextureSources>,
+  label: string
+): OceanPbrTextureSet {
+  const maps = buildOceanPbrAuthoredMaps(sources);
+  const created: Texture2D[] = [];
+  try {
+    const baseColor = createTexture(
+      engine,
+      sources.baseColor,
+      maps.baseColor,
+      true,
+      `${label}BaseColor`
+    );
+    created.push(baseColor);
+    const normal = createTexture(
+      engine,
+      sources.baseColor,
+      maps.normal,
+      false,
+      `${label}Normal`
+    );
+    created.push(normal);
+    const roughnessMetallic = createTexture(
+      engine,
+      sources.baseColor,
+      maps.roughnessMetallic,
+      false,
+      `${label}RoughnessMetallic`
+    );
+    created.push(roughnessMetallic);
+    const occlusion = createTexture(
+      engine,
+      sources.baseColor,
+      maps.occlusion,
+      false,
+      `${label}Occlusion`
+    );
+    created.push(occlusion);
+    return Object.freeze({
+      baseColor,
+      normal,
+      roughnessMetallic,
+      occlusion
+    });
+  } catch (error) {
+    for (const texture of created) texture.destroy(true);
+    throw error;
+  }
+}
+
 function textureSetComplete(set: OceanPbrTextureSet): boolean {
   return Boolean(
     set.baseColor &&
@@ -488,6 +662,10 @@ function estimateTextureSetBytes(source: OceanPbrPixelSource): number {
   );
 }
 
+function estimatePixelSourceBytes(source: OceanPbrPixelSource): number {
+  return source.pixels.byteLength;
+}
+
 /**
  * Owns the complete PBR texture sets shared by the Ocean demo fixtures.
  * Materials do not own these textures and must be destroyed before the library.
@@ -498,16 +676,25 @@ export class OceanPbrTextureLibrary {
 
   private constructor(
     readonly sandSource: OceanPbrPixelSource,
+    readonly wetSandSource: OceanPbrPixelSource,
     private readonly _sand: OceanPbrTextureSet,
     private readonly _granite: OceanPbrTextureSet,
     private readonly _neutral: OceanPbrTextureSet,
     resourceBytes: number
   ) {
+    const textureCount = PBR_TEXTURE_SET_COUNT * PBR_TEXTURES_PER_SET;
+    const retainedPixelSourceBytes =
+      estimatePixelSourceBytes(sandSource) +
+      estimatePixelSourceBytes(wetSandSource);
     this.metrics = Object.freeze({
-      textureCount: 12,
-      sourceTextureCount: 2,
-      generatedTextureCount: 10,
+      textureCount,
+      sourceImageCount: SOURCE_IMAGE_COUNT,
+      sourceTextureCount: SOURCE_GPU_TEXTURE_COUNT,
+      generatedTextureCount: textureCount - SOURCE_GPU_TEXTURE_COUNT,
+      retainedPixelSourceCount: RETAINED_PIXEL_SOURCE_COUNT,
+      retainedPixelSourceBytes,
       resourceBytes,
+      totalOwnedBytes: resourceBytes + retainedPixelSourceBytes,
       sandTextureSetComplete: textureSetComplete(_sand),
       graniteTextureSetComplete: textureSetComplete(_granite),
       neutralTextureSetComplete: textureSetComplete(_neutral)
@@ -515,13 +702,27 @@ export class OceanPbrTextureLibrary {
   }
 
   static async create(engine: Engine): Promise<OceanPbrTextureLibrary> {
-    const [sandSourceRaw, graniteSourceRaw] = await Promise.all([
-      loadPixelSource(SAND_ALBEDO_URL, SOURCE_TEXTURE_SIZE),
-      loadPixelSource(GRANITE_ALBEDO_URL, SOURCE_TEXTURE_SIZE)
+    const [
+      sandBaseColorSource,
+      sandNormalSource,
+      sandRoughnessSource,
+      sandOcclusionSource,
+      wetSandSource,
+      graniteSourceRaw
+    ] = await Promise.all([
+      loadPixelSource(SAND_BASE_COLOR_URL, SAND_TEXTURE_SIZE),
+      loadPixelSource(SAND_NORMAL_URL, SAND_TEXTURE_SIZE),
+      loadPixelSource(SAND_ROUGHNESS_URL, SAND_TEXTURE_SIZE),
+      loadPixelSource(SAND_OCCLUSION_URL, SAND_TEXTURE_SIZE),
+      loadPixelSource(WET_SAND_DETAIL_URL, WET_SAND_DETAIL_SIZE),
+      loadPixelSource(GRANITE_ALBEDO_URL, GRANITE_SOURCE_TEXTURE_SIZE)
     ]);
-    const sandSource = buildOceanPbrMirroredTile(
-      sandSourceRaw
-    );
+    const sandSources = Object.freeze({
+      baseColor: sandBaseColorSource,
+      normal: sandNormalSource,
+      roughness: sandRoughnessSource,
+      occlusion: sandOcclusionSource
+    });
     const graniteSource = liftGraniteAlbedo(
       buildOceanPbrMirroredTile(graniteSourceRaw)
     );
@@ -530,10 +731,9 @@ export class OceanPbrTextureLibrary {
     );
     const sets: OceanPbrTextureSet[] = [];
     try {
-      const sand = createTextureSet(
+      const sand = createAuthoredTextureSet(
         engine,
-        sandSource,
-        "sand",
+        sandSources,
         "OceanBeachSand"
       );
       sets.push(sand);
@@ -552,11 +752,12 @@ export class OceanPbrTextureLibrary {
       );
       sets.push(neutral);
       return new OceanPbrTextureLibrary(
-        sandSource,
+        sandBaseColorSource,
+        wetSandSource,
         sand,
         granite,
         neutral,
-        estimateTextureSetBytes(sandSource) +
+        estimateTextureSetBytes(sandBaseColorSource) +
           estimateTextureSetBytes(graniteSource) +
           estimateTextureSetBytes(neutralSource)
       );

@@ -2,6 +2,12 @@ import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 
 export const OCEAN_RUNTIME_DEFAULT_STRESS_ITERATIONS = 100;
 export const OCEAN_RUNTIME_MIN_AMPLITUDE_SCALE = 0;
+/**
+ * Fixed-time capture/replay rebuilds at most two recent 30 Hz temporal-foam
+ * steps (~0.067 seconds). Live simulation never executes this bounded prewarm.
+ */
+export const OCEAN_RUNTIME_FIXED_TIME_FOAM_PREWARM_STEP_COUNT =
+  2;
 // A grazing, beach-level camera exposes the silhouette of every displaced
 // Ocean triangle. High therefore resolves the canonical 192 sample preset to
 // ninety-six segments per ring patch. The nearshore film and breaker silhouette

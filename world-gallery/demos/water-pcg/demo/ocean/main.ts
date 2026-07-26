@@ -16,7 +16,6 @@ import * as dat from "dat.gui";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../authoring/wave/enums/WaterWaveSchemaVersion";
-import { WaterFoamDebugView } from "../../runtime/interaction/WaterFoamTypes";
 import { CameraWaterFeatureBroker } from "../../runtime/optics/CameraWaterFeatureBroker";
 import type { WaterReflectionSource } from "../../runtime/optics/WaterReflectionPolicy";
 import {
@@ -53,8 +52,13 @@ import {
   type OceanShowcaseSceneMode
 } from "./OceanShowcaseSceneController";
 import { OceanDuskEnvironmentController } from "./OceanDuskEnvironmentController";
-import { OceanCoastalRockAsset } from "./OceanCoastalRockAsset";
-import { OceanPbrTextureLibrary } from "./OceanPbrTextureLibrary";
+import {
+  loadOceanShowcaseAssets
+} from "./OceanShowcaseAssetLoader";
+import { OceanShowcaseBootstrapOwnership } from "./OceanShowcaseBootstrapOwnership";
+import type {
+  OceanFoamDetailTextureLibraryMetrics
+} from "./OceanFoamDetailTextureLibrary";
 import {
   OceanSplashVfxController,
   type OceanSplashVfxMetrics
@@ -68,6 +72,7 @@ interface OceanShowcaseLifecycleSnapshot {
   readonly reflection: WaterReflectionServiceMetrics;
   readonly scene: Readonly<OceanShowcaseSceneMetrics>;
   readonly splash?: Readonly<OceanSplashVfxMetrics>;
+  readonly foamDetail?: Readonly<OceanFoamDetailTextureLibraryMetrics>;
   readonly engine: {
     readonly bufferMemory: number;
     readonly textureMemory: number;
@@ -97,6 +102,7 @@ interface OceanRuntimeWindow extends Window {
 interface OceanHeroPose {
   readonly position: readonly [number, number, number];
   readonly target: readonly [number, number, number];
+  readonly fieldOfView?: number;
 }
 
 type OceanFocusedFeaturePreset =
@@ -127,12 +133,14 @@ function isOceanFocusedFeaturePreset(
 
 const OCEAN_HERO_POSES = Object.freeze({
   hero: Object.freeze({
-    position: [27, 1.52, 14] as const,
-    target: [-5, 0.03, -44] as const
+    position: [27, 2.15, 13] as const,
+    target: [-12, 0.02, -36] as const,
+    fieldOfView: 46
   }),
   gerstner: Object.freeze({
-    position: [13, 6.5, 18] as const,
-    target: [0, 0.3, -8] as const
+    position: [-6, 1.2, -10] as const,
+    target: [-27, 0.05, -43] as const,
+    fieldOfView: 42
   }),
   "lod-debug": Object.freeze({
     position: [0, 44, 62] as const,
@@ -142,21 +150,62 @@ const OCEAN_HERO_POSES = Object.freeze({
 
 const OCEAN_CAPTURE_STATES = Object.freeze({
   hero: Object.freeze({
-    position: [27, 1.52, 14] as const,
-    target: [-5, 0.03, -44] as const,
+    position: [27, 2.15, 13] as const,
+    target: [-12, 0.02, -36] as const,
+    fieldOfView: 46,
     time: 12.5
   }),
   interaction: Object.freeze({
     position: [34, 1.32, 14] as const,
     target: [27, 0.04, -5] as const,
+    fieldOfView: 42,
     time: 18
   }),
   detail: Object.freeze({
-    position: [24, 1.08, 12] as const,
-    target: [16, 0.03, -10] as const,
+    position: [0, 0.85, 7] as const,
+    target: [0, 0.02, -5] as const,
+    fieldOfView: 36,
     time: 24
   })
 });
+
+const MINIMUM_WAKE_FOAM_SAMPLE_PEAK = 0.5;
+const MINIMUM_WAKE_FOAM_SAMPLE_MEAN = 0.25;
+
+const OCEAN_FOCUSED_FEATURE_POSES = Object.freeze({
+  "ocean-nearshore-waves": Object.freeze({
+    position: [0, 1, 6] as const,
+    target: [0, 0.05, -8] as const,
+    fieldOfView: 38
+  }),
+  "ocean-breakers": Object.freeze({
+    position: [0, 1.2, 4] as const,
+    target: [0, 0.08, -12] as const,
+    fieldOfView: 38
+  }),
+  "ocean-shore-foam": Object.freeze({
+    position: [0, 1.45, 7] as const,
+    target: [0, 0.05, -4] as const,
+    fieldOfView: 38
+  }),
+  "ocean-rock-contact": Object.freeze({
+    position: [39, 1.4, 1] as const,
+    target: [29, 0.1, -4] as const,
+    fieldOfView: 40
+  }),
+  "ocean-micro-surface": Object.freeze({
+    position: [8, 1.6, -5] as const,
+    target: [-4, 0.1, -28] as const,
+    fieldOfView: 40
+  }),
+  "ocean-wetness": Object.freeze({
+    position: [0, 1.35, 12] as const,
+    target: [0, 0.02, -3] as const,
+    fieldOfView: 35
+  })
+} satisfies Readonly<
+  Record<OceanFocusedFeaturePreset, OceanHeroPose>
+>);
 
 function resolveSceneMode(preset: string): OceanShowcaseSceneMode {
   if (preset === "gerstner-waves") return "gerstner";
@@ -168,19 +217,8 @@ function resolveOceanPose(
   preset: string,
   sceneMode: OceanShowcaseSceneMode
 ): OceanHeroPose {
-  if (
-    preset === "ocean-nearshore-waves" ||
-    preset === "ocean-breakers" ||
-    preset === "ocean-rock-contact"
-  ) {
-    return OCEAN_CAPTURE_STATES.interaction;
-  }
-  if (
-    preset === "ocean-shore-foam" ||
-    preset === "ocean-micro-surface" ||
-    preset === "ocean-wetness"
-  ) {
-    return OCEAN_CAPTURE_STATES.detail;
+  if (isOceanFocusedFeaturePreset(preset)) {
+    return OCEAN_FOCUSED_FEATURE_POSES[preset];
   }
   return OCEAN_HERO_POSES[sceneMode];
 }
@@ -205,6 +243,18 @@ function createOceanRuntimeConfig(
 }
 
 async function bootstrapOceanShowcase(): Promise<void> {
+  const ownership = new OceanShowcaseBootstrapOwnership();
+  try {
+    await initializeOceanShowcase(ownership);
+    ownership.commit();
+  } catch (error) {
+    ownership.rollback(error);
+  }
+}
+
+async function initializeOceanShowcase(
+  bootstrapOwnership: OceanShowcaseBootstrapOwnership
+): Promise<void> {
   const activeCase = resolveWaterPcgCase(window.location);
   const sceneMode = resolveSceneMode(activeCase.preset);
   const search = new URLSearchParams(window.location.search);
@@ -227,6 +277,22 @@ async function bootstrapOceanShowcase(): Promise<void> {
     oceanConfig.quality = requestedQuality;
   }
   const runtimeWindow = window as OceanRuntimeWindow;
+  bootstrapOwnership.register(() => {
+    delete runtimeWindow.waterPcgSetSurfaceTime;
+    delete runtimeWindow.waterPcgGetOceanMetrics;
+    delete runtimeWindow.waterPcgGetReflectionMetrics;
+    delete runtimeWindow.waterPcgSetOceanReflectionSource;
+    delete runtimeWindow.waterPcgSetOceanLodDebug;
+    delete runtimeWindow.waterPcgSetOceanCameraPosition;
+    delete runtimeWindow.waterPcgStressOcean;
+    delete runtimeWindow.waterPcgOceanLifecycle;
+    delete window.waterPcgAcceptance;
+    delete window.waterPcgShowcase;
+    delete window.waterPcgFeature;
+    delete window.waterPcgShowcaseCamera;
+    delete document.documentElement.dataset
+      .waterPcgCameraMode;
+  });
   const exampleBar = document.getElementById("example-bar");
   if (!(exampleBar instanceof HTMLElement)) throw new Error("Water PCG example bar is missing.");
 
@@ -238,33 +304,60 @@ async function bootstrapOceanShowcase(): Promise<void> {
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);
+  bootstrapOwnership.register(() => engine.destroy());
   engine.canvas.resizeByClientSize();
-  const [pbrTextureLibrary, coastalRockAsset] =
-    await Promise.all([
-      OceanPbrTextureLibrary.create(engine),
-      OceanCoastalRockAsset.load(engine)
-    ]);
+  const assetBundle = await loadOceanShowcaseAssets(
+    engine,
+    oceanConfig.foamEnabled ?? false
+  );
+  const {
+    pbrTextureLibrary,
+    coastalRockAsset,
+    foamDetailTextureLibrary
+  } = assetBundle;
+  bootstrapOwnership.register(() =>
+    pbrTextureLibrary.destroy()
+  );
+  bootstrapOwnership.register(() =>
+    coastalRockAsset.destroy()
+  );
+  if (foamDetailTextureLibrary) {
+    bootstrapOwnership.register(() =>
+      foamDetailTextureLibrary.destroy()
+    );
+  }
+  oceanConfig.foamDetail =
+    foamDetailTextureLibrary?.binding;
 
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor = new Color(0.035, 0.105, 0.135, 1);
   const root = scene.createRootEntity("ocean-showcase-root");
+  bootstrapOwnership.register(() => root.destroy());
   const duskEnvironment = new OceanDuskEnvironmentController(engine, root);
+  bootstrapOwnership.register(() =>
+    duskEnvironment.destroy()
+  );
+  const heroPose = resolveOceanPose(
+    activeCase.preset,
+    sceneMode
+  );
   const cameraEntity = root.createChild("ocean-showcase-camera");
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 600;
-  camera.fieldOfView = sceneMode === "lod-debug" ? 58 : 50;
+  camera.fieldOfView =
+    heroPose.fieldOfView ??
+    (sceneMode === "lod-debug" ? 58 : 50);
   camera.enableHDR = true;
   camera.enablePostProcess = true;
   const postProcessEntity = root.createChild("ocean-showcase-post-process");
   const postProcess = postProcessEntity.addComponent(PostProcess);
   const bloom = postProcess.addEffect(BloomEffect);
-  bloom.threshold.value = 1.12;
-  bloom.intensity.value = 0.16;
-  bloom.scatter.value = 0.52;
+  bloom.threshold.value = 1.55;
+  bloom.intensity.value = 0.055;
+  bloom.scatter.value = 0.38;
   const tonemapping = postProcess.addEffect(TonemappingEffect);
   tonemapping.mode.value = TonemappingMode.ACES;
   const orbit = cameraEntity.addComponent(OrbitControl);
-  const heroPose = resolveOceanPose(activeCase.preset, sceneMode);
   const [targetX, targetY, targetZ] = heroPose.target;
   const [cameraX, cameraY, cameraZ] = heroPose.position;
   orbit.target.set(targetX, targetY, targetZ);
@@ -274,7 +367,9 @@ async function bootstrapOceanShowcase(): Promise<void> {
   let showcaseCameraController: ShowcaseCameraController | undefined;
 
   const featureBroker = new CameraWaterFeatureBroker(camera);
+  bootstrapOwnership.register(() => featureBroker.destroy());
   const oceanPreview = new OceanPreviewController(engine, root, oceanConfig);
+  bootstrapOwnership.register(() => oceanPreview.destroy());
   oceanPreview.setCameraFeatureBroker(featureBroker);
   oceanPreview.setReflectionSource(oceanConfig.reflectionSource ?? "planar");
   oceanPreview.setLodDebug(sceneMode === "lod-debug");
@@ -289,6 +384,9 @@ async function bootstrapOceanShowcase(): Promise<void> {
             oceanPreview.interactionEventQueue
         })
       : undefined;
+  if (splashVfx) {
+    bootstrapOwnership.register(() => splashVfx.destroy());
+  }
 
   const showcaseScene = new OceanShowcaseSceneController(
     engine,
@@ -298,9 +396,23 @@ async function bootstrapOceanShowcase(): Promise<void> {
     oceanPreview.nearshoreFieldResource,
     oceanPreview.nearshoreStateField,
     pbrTextureLibrary,
-    coastalRockAsset
+    coastalRockAsset,
+    activeCase.preset === "hero-ocean"
+      ? {
+          bodyId: oceanPreview.waterBodyId,
+          enqueue: (source) =>
+            oceanPreview.enqueueFoamSource(source),
+          sample: (worldX, worldZ) =>
+            oceanPreview.foamField?.sampleWorld(
+              worldX,
+              worldZ
+            ) ?? 0
+        }
+      : undefined
   );
+  bootstrapOwnership.register(() => showcaseScene.destroy());
   const reflectionLease = WaterReflectionService.acquire(engine, root, camera);
+  bootstrapOwnership.register(() => reflectionLease.release());
   const reflectionService = reflectionLease.service;
   oceanPreview.setReflectionService(reflectionService);
   oceanPreview.setReflectionVisible(true);
@@ -335,6 +447,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
       reflection: reflectionService.metrics,
       scene: showcaseScene.metrics,
       splash: splashVfx?.metrics,
+      foamDetail: foamDetailTextureLibrary?.metrics,
       engine: Object.freeze({
         bufferMemory: engine.renderingStatistics.bufferMemory,
         textureMemory: engine.renderingStatistics.textureMemory,
@@ -368,6 +481,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
       oceanPreview.setNearshoreStateEnabled(false);
       showcaseScene.setWetSandEnabled(false);
       showcaseScene.resetWetSand();
+      showcaseScene.resetWakeEmitter();
       splashVfx?.setEnabled(false);
       splashVfx?.reset();
     } else {
@@ -383,6 +497,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
       oceanPreview.resetFoam();
       showcaseScene.setWetSandEnabled(true);
       showcaseScene.resetWetSand();
+      showcaseScene.resetWakeEmitter();
       splashVfx?.setEnabled(true);
       splashVfx?.reset();
     }
@@ -412,6 +527,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
       lifecycleFeatureStackEnabled
     );
     showcaseScene.resetWetSand();
+    showcaseScene.resetWakeEmitter();
     splashVfx?.setEnabled(lifecycleFeatureStackEnabled);
     splashVfx?.reset();
     showcaseScene.update(fixedSurfaceTime);
@@ -434,9 +550,6 @@ async function bootstrapOceanShowcase(): Promise<void> {
         oceanPreview.setFoamBreakerSourceEnabled(false);
         oceanPreview.setShoreFoamEnabled(true);
         oceanPreview.setRockContactEnabled(false);
-        oceanPreview.setFoamDebugView(
-          WaterFoamDebugView.History
-        );
         oceanPreview.resetFoam();
         break;
       case "ocean-rock-contact":
@@ -444,9 +557,6 @@ async function bootstrapOceanShowcase(): Promise<void> {
         oceanPreview.setFoamBreakerSourceEnabled(false);
         oceanPreview.setShoreFoamEnabled(false);
         oceanPreview.setRockContactEnabled(true);
-        oceanPreview.setFoamDebugView(
-          WaterFoamDebugView.History
-        );
         oceanPreview.resetFoam();
         break;
       case "ocean-nearshore-waves":
@@ -475,6 +585,17 @@ async function bootstrapOceanShowcase(): Promise<void> {
   oceanCanvas?.addEventListener("pointerdown", pauseAutoTour);
   oceanCanvas?.addEventListener("wheel", pauseAutoTour, { passive: true });
   window.addEventListener("keydown", handleCameraKeyDown);
+  bootstrapOwnership.register(() => {
+    oceanCanvas?.removeEventListener(
+      "pointerdown",
+      pauseAutoTour
+    );
+    oceanCanvas?.removeEventListener("wheel", pauseAutoTour);
+    window.removeEventListener(
+      "keydown",
+      handleCameraKeyDown
+    );
+  });
 
   if (showcaseCameraMode) {
     showcaseCameraController = createShowcaseCameraController(cameraEntity, {
@@ -487,6 +608,11 @@ async function bootstrapOceanShowcase(): Promise<void> {
         oceanPreview.refreshReflectionBinding();
       }
     });
+    const ownedCameraController =
+      showcaseCameraController;
+    bootstrapOwnership.register(() =>
+      ownedCameraController.destroy()
+    );
   }
 
   const resize = (): void => {
@@ -496,6 +622,9 @@ async function bootstrapOceanShowcase(): Promise<void> {
   };
   resize();
   window.addEventListener("resize", resize);
+  bootstrapOwnership.register(() =>
+    window.removeEventListener("resize", resize)
+  );
 
   const writeMetrics = (): void => {
     const metrics = oceanPreview.metrics;
@@ -603,6 +732,8 @@ async function bootstrapOceanShowcase(): Promise<void> {
     exampleBar.dataset.oceanFoamCurrentSurfaceQueryCount = String(
       metrics.foamCurrentSurfaceQueryCount
     );
+    exampleBar.dataset.oceanFoamDetailTextureSource =
+      metrics.foamDetailTextureSource;
     exampleBar.dataset.oceanImpactPendingCount = String(
       metrics.foamPendingEventCount
     );
@@ -644,6 +775,16 @@ async function bootstrapOceanShowcase(): Promise<void> {
     exampleBar.dataset.oceanBoatQueryHit = String(showcase.boatQueryHit);
     exampleBar.dataset.oceanBoatSampleFinite = String(showcase.boatSampleFinite);
     exampleBar.dataset.oceanWakeEnergy = showcase.wakeEnergy.toFixed(4);
+    exampleBar.dataset.oceanWakeSourceAcceptedCount = String(
+      showcase.wakeSourceAcceptedCount
+    );
+    exampleBar.dataset.oceanWakeInjectionCount = String(
+      metrics.foamWakeInjectionCount
+    );
+    exampleBar.dataset.oceanWakeFoamSamplePeak =
+      showcase.wakeFoamSamplePeak.toFixed(4);
+    exampleBar.dataset.oceanWakeFoamSampleMean =
+      showcase.wakeFoamSampleMean.toFixed(4);
     exampleBar.dataset.oceanEnvironmentState = environment.stateId;
     exampleBar.dataset.oceanSceneSunOwned = String(
       environment.sceneSunOwned
@@ -679,6 +820,8 @@ async function bootstrapOceanShowcase(): Promise<void> {
     const completeShowcaseRequired =
       activeCase.preset === "hero-ocean" ||
       sceneMode === "lod-debug";
+    const wakeRequired =
+      activeCase.preset === "hero-ocean";
     const foamInfrastructureRequired =
       completeShowcaseRequired ||
       activeCase.preset === "ocean-breakers" ||
@@ -722,6 +865,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
         ocean.analyticWhitecapEnabled &&
         ocean.foamTextureCount === 3 &&
         ocean.foamDetailTextureCount === 1 &&
+        ocean.foamDetailTextureSource === "external" &&
         ocean.foamDetailResourceBytes > 0 &&
         ocean.foamTargetUpdateRateHz <= 30 &&
         ocean.foamResourceBytes > 0 &&
@@ -746,7 +890,14 @@ async function bootstrapOceanShowcase(): Promise<void> {
           ocean.nearshoreStateUpdateRateHz &&
         showcase.wetSandBaseColorUploadCount > 0 &&
         showcase.wetSandRoughnessUploadCount > 0 &&
-        showcase.wetSandResourceBytes > 0);
+        showcase.wetSandResourceBytes > 0 &&
+        (!wakeRequired ||
+          (showcase.wakeSourceAcceptedCount > 0 &&
+            ocean.foamWakeInjectionCount > 0 &&
+            showcase.wakeFoamSamplePeak >=
+              MINIMUM_WAKE_FOAM_SAMPLE_PEAK &&
+            showcase.wakeFoamSampleMean >=
+              MINIMUM_WAKE_FOAM_SAMPLE_MEAN)));
     const duskEnvironmentReady =
       sceneMode === "gerstner" ||
       (environment.directLightCount === 1 &&
@@ -799,6 +950,8 @@ async function bootstrapOceanShowcase(): Promise<void> {
       showcase.boatY,
       showcase.boatZ,
       showcase.wakeEnergy,
+      showcase.wakeFoamSamplePeak,
+      showcase.wakeFoamSampleMean,
       engine.renderingStatistics.bufferMemory,
       engine.renderingStatistics.textureMemory,
       engine.renderingStatistics.totalMemory
@@ -862,6 +1015,16 @@ async function bootstrapOceanShowcase(): Promise<void> {
         boatSampleFinite: showcase.boatSampleFinite,
         wakeRibbonCount: showcase.wakeRibbonCount,
         wakeEnergy: showcase.wakeEnergy,
+        wakeSourceAcceptedCount:
+          showcase.wakeSourceAcceptedCount,
+        wakeSourceDroppedCount:
+          showcase.wakeSourceDroppedCount,
+        wakeInjectionCount:
+          ocean.foamWakeInjectionCount,
+        wakeFoamSamplePeak:
+          showcase.wakeFoamSamplePeak,
+        wakeFoamSampleMean:
+          showcase.wakeFoamSampleMean,
         microNormalEnabled: ocean.surfaceDetailEnabled,
         microNormalLayerCount: ocean.surfaceDetailLayerCount,
         microNormalTextureCount:
@@ -914,6 +1077,8 @@ async function bootstrapOceanShowcase(): Promise<void> {
         foamTextureCount: ocean.foamTextureCount,
         foamDetailTextureCount:
           ocean.foamDetailTextureCount,
+        foamDetailTextureSource:
+          ocean.foamDetailTextureSource,
         foamDetailResourceBytes:
           ocean.foamDetailResourceBytes,
         foamTargetUpdateRateHz: ocean.foamTargetUpdateRateHz,
@@ -1183,9 +1348,11 @@ async function bootstrapOceanShowcase(): Promise<void> {
       showcaseCameraController?.setFreeControlActive(false);
       surfaceTimeOverride = capture.time;
       oceanPreview.setSurfaceTimeOverride(capture.time);
+      camera.fieldOfView = capture.fieldOfView;
       oceanPreview.resetNearshoreState();
       oceanPreview.resetRockContacts();
       oceanPreview.resetFoam();
+      showcaseScene.resetWakeEmitter();
       showcaseScene.resetWetSand();
       splashVfx?.reset();
       showcaseScene.update(capture.time);
@@ -1210,6 +1377,9 @@ async function bootstrapOceanShowcase(): Promise<void> {
         currentState = "hero";
         surfaceTimeOverride = initialSurfaceTimeOverride;
         oceanPreview.setSurfaceTimeOverride(initialSurfaceTimeOverride);
+        camera.fieldOfView =
+          heroPose.fieldOfView ??
+          (sceneMode === "lod-debug" ? 58 : 50);
         orbit.target.set(targetX, targetY, targetZ);
         cameraEntity.transform.setPosition(cameraX, cameraY, cameraZ);
         cameraEntity.transform.lookAt(new Vector3(targetX, targetY, targetZ));
@@ -1225,6 +1395,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
     fixedTime: -1
   };
   const gui = new dat.GUI({ name: "Ocean Showcase Diagnostics", width: 290 });
+  bootstrapOwnership.register(() => gui.destroy());
   gui
     .add(guiState, "lodDebug")
     .name("LOD colors")
@@ -1299,6 +1470,7 @@ async function bootstrapOceanShowcase(): Promise<void> {
     pbrTextureLibrary.destroy();
     splashVfx?.destroy();
     oceanPreview.destroy();
+    foamDetailTextureLibrary?.destroy();
     duskEnvironment.destroy();
     featureBroker.destroy();
     reflectionLease.release();
@@ -1328,12 +1500,17 @@ async function bootstrapOceanShowcase(): Promise<void> {
       dispose: cleanup
     };
   }
-  window.addEventListener(
-    "beforeunload",
-    () => {
-      cleanup();
-    },
-    { once: true }
+  const handleBeforeUnload = (): void => {
+    cleanup();
+  };
+  window.addEventListener("beforeunload", handleBeforeUnload, {
+    once: true
+  });
+  bootstrapOwnership.register(() =>
+    window.removeEventListener(
+      "beforeunload",
+      handleBeforeUnload
+    )
   );
   engine.run();
 }

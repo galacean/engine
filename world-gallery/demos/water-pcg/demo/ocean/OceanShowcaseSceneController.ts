@@ -17,6 +17,11 @@ import {
 import type { OceanNearshoreFieldResource } from "../../runtime/ocean/OceanNearshoreFieldResource";
 import type { OceanNearshoreStateField } from "../../runtime/ocean/OceanNearshoreStateField";
 import type { OceanWaterSurfaceProvider } from "../../runtime/ocean/OceanWaterSurfaceProvider";
+import {
+  WaterFoamBlendMode,
+  WaterFoamSourceKind,
+  type WaterFoamBoundedSource
+} from "../../runtime/interaction/WaterFoamTypes";
 import { createWaterSurfaceSample } from "../../runtime/query/WaterSurfaceProvider";
 import { OceanBeachTerrainBuilder } from "./OceanBeachTerrainBuilder";
 import { OceanWetSandTextureService } from "./OceanWetSandTextureService";
@@ -56,6 +61,10 @@ export interface OceanShowcaseSceneMetrics {
   readonly boatZ: number;
   readonly wakeRibbonCount: number;
   readonly wakeEnergy: number;
+  readonly wakeSourceAcceptedCount: number;
+  readonly wakeSourceDroppedCount: number;
+  readonly wakeFoamSamplePeak: number;
+  readonly wakeFoamSampleMean: number;
   readonly bathymetryTerrainVisible: boolean;
   readonly bathymetryTerrainSourceHash?: string;
   readonly bathymetryTerrainVertexCount: number;
@@ -78,6 +87,12 @@ interface OceanShowcaseLayout {
   readonly boatPathRadius: Vector3Tuple;
 }
 
+export interface OceanShowcaseWakeSink {
+  readonly bodyId: string;
+  enqueue(source: Readonly<WaterFoamBoundedSource>): boolean;
+  sample(worldX: number, worldZ: number): number;
+}
+
 export const OCEAN_SHOWCASE_LAYOUT: Readonly<OceanShowcaseLayout> = Object.freeze({
   heroRockCenters: Object.freeze([
     Object.freeze([-25, 0, -13] as const),
@@ -91,6 +106,9 @@ export const OCEAN_SHOWCASE_LAYOUT: Readonly<OceanShowcaseLayout> = Object.freez
 const RAD_TO_DEG = 180 / Math.PI;
 const BOAT_SURFACE_OFFSET = 0.36;
 const BOAT_PATH_RATE = 0.16;
+const WAKE_EMISSION_INTERVAL_SECONDS = 0.3;
+const WAKE_TRAIL_SAMPLE_COUNT = 17;
+const WAKE_STERN_OFFSET = 1.65;
 const GRANITE_TEXTURE_BINDING = Object.freeze({
   tiling: Object.freeze([2.8, 1.9] as const),
   normalIntensity: 0.76,
@@ -102,16 +120,16 @@ const DISTANT_GRANITE_TEXTURE_BINDING = Object.freeze({
   occlusionIntensity: 0.74
 } satisfies OceanPbrMaterialBindingOptions);
 const SAND_TEXTURE_BINDING = Object.freeze({
-  tiling: Object.freeze([12, 5.25] as const),
-  normalIntensity: 0.36,
-  occlusionIntensity: 0.38
+  tiling: Object.freeze([16, 7] as const),
+  normalIntensity: 0.18,
+  occlusionIntensity: 0.24
 } satisfies OceanPbrMaterialBindingOptions);
 const TERRAIN_SAND_TEXTURE_BINDING = Object.freeze({
-  // The compiled field spans 320 x 160 metres. Two-metre tiles keep individual
-  // photographed grains below the size that reads as gravel in a low camera.
-  tiling: Object.freeze([160, 80] as const),
-  normalIntensity: 0.28,
-  occlusionIntensity: 0.28
+  // The compiled field spans 320 x 160 metres. A roughly 1.45-metre tile
+  // preserves photographed ripple scale without turning it into deep grooves.
+  tiling: Object.freeze([220, 110] as const),
+  normalIntensity: 0.08,
+  occlusionIntensity: 0.16
 } satisfies OceanPbrMaterialBindingOptions);
 const NEUTRAL_TEXTURE_BINDING = Object.freeze({
   tiling: Object.freeze([2.5, 3.5] as const),
@@ -543,6 +561,11 @@ export class OceanShowcaseSceneController {
   private _boatQueryHit = false;
   private _boatSampleFinite = true;
   private _wakeEnergy = 0;
+  private _wakeSourceAcceptedCount = 0;
+  private _wakeSourceDroppedCount = 0;
+  private _wakeFoamSamplePeak = 0;
+  private _wakeFoamSampleMean = 0;
+  private _lastWakeSampleTime: number | undefined;
   private _boatX = 0;
   private _boatY = 0;
   private _boatZ = 0;
@@ -562,7 +585,8 @@ export class OceanShowcaseSceneController {
     private readonly _nearshoreResource?: OceanNearshoreFieldResource,
     nearshoreState?: OceanNearshoreStateField,
     private readonly _textureLibrary?: OceanPbrTextureLibrary,
-    private readonly _coastalRockAsset?: OceanCoastalRockAsset
+    private readonly _coastalRockAsset?: OceanCoastalRockAsset,
+    private readonly _wakeSink?: OceanShowcaseWakeSink
   ) {
     this.root = parent.createChild("ocean-showcase-scene");
     this._environmentRoot = this.root.createChild("ocean-showcase-environment");
@@ -584,11 +608,14 @@ export class OceanShowcaseSceneController {
       : undefined;
     if (this._terrain && this._textureLibrary) {
       this._terrain.material.baseColor = new Color(
-        0.96,
-        0.9,
-        0.82,
+        0.98,
+        0.92,
+        0.84,
         1
       );
+      this._terrain.material.roughness = 1;
+      this._terrain.material.specularIntensity = 0.22;
+      this._terrain.material.ior = 1.35;
       this._textureLibrary.apply(
         this._terrain.material,
         "sand",
@@ -602,7 +629,10 @@ export class OceanShowcaseSceneController {
             this._terrain.wetFilmMaterial,
             nearshoreState,
             this._textureLibrary
-              ? { detailSource: this._textureLibrary.sandSource }
+              ? {
+                  detailSource:
+                    this._textureLibrary.wetSandSource
+                }
               : {}
           )
         : undefined;
@@ -655,6 +685,12 @@ export class OceanShowcaseSceneController {
       boatZ: this._boatZ,
       wakeRibbonCount: this._wakeRoot.isActive ? this._wakeRoot.children.length : 0,
       wakeEnergy: this._wakeEnergy,
+      wakeSourceAcceptedCount:
+        this._wakeSourceAcceptedCount,
+      wakeSourceDroppedCount:
+        this._wakeSourceDroppedCount,
+      wakeFoamSamplePeak: this._wakeFoamSamplePeak,
+      wakeFoamSampleMean: this._wakeFoamSampleMean,
       bathymetryTerrainVisible:
         environmentVisible && (this._terrain?.root.isActive ?? false),
       bathymetryTerrainSourceHash: this._terrain?.metrics.sourceHash,
@@ -671,8 +707,7 @@ export class OceanShowcaseSceneController {
         this._wetSand?.metrics.baseColorUploadCount ?? 0,
       wetSandRoughnessUploadCount:
         this._wetSand?.metrics.roughnessMetallicUploadCount ?? 0,
-      wetSandResourceBytes: this._wetSand?.metrics.resourceBytes ?? 0
-      ,
+      wetSandResourceBytes: this._wetSand?.metrics.resourceBytes ?? 0,
       pbrTextureCount:
         this._textureLibrary?.metrics.textureCount ?? 0,
       pbrTextureResourceBytes:
@@ -694,10 +729,17 @@ export class OceanShowcaseSceneController {
     this._mode = mode;
     const heroEnvironment = mode !== "gerstner";
     this._environmentRoot.isActive = heroEnvironment;
-    this._boatRoot.isActive = heroEnvironment;
+    // Keep one provider-driven scale reference in the isolated Gerstner case.
+    // The scenery and Wake remain disabled, so the route still proves the
+    // macro surface rather than the authored beach composition.
+    this._boatRoot.isActive = true;
     this._wakeRoot.isActive = heroEnvironment;
     this._terrain?.setVisible(heroEnvironment);
-    if (!heroEnvironment) this._wakeEnergy = 0;
+    if (!heroEnvironment) {
+      this._wakeEnergy = 0;
+      this._wakeFoamSamplePeak = 0;
+      this._wakeFoamSampleMean = 0;
+    }
   }
 
   /** Provider-driven visual buoyancy with no duplicated wave equation. */
@@ -739,6 +781,11 @@ export class OceanShowcaseSceneController {
       Number.isFinite(normal.z);
     const speed = Math.hypot(velocityX, velocityZ);
     this._wakeEnergy = this._boatQueryHit ? Math.min(1, 0.28 + speed * 0.32) : 0;
+    this._updateWakeSources(
+      Math.max(0, elapsedTime),
+      this._boatQueryHit
+    );
+    this._measureWakeFoam(Math.max(0, elapsedTime));
     const pulse = 0.94 + Math.sin(phase * 5) * 0.06;
     this._wakeRoot.transform.setScale(1, pulse, 0.82 + this._wakeEnergy * 0.3);
   }
@@ -759,6 +806,14 @@ export class OceanShowcaseSceneController {
 
   resetWetSand(): void {
     this._wetSand?.reset();
+  }
+
+  resetWakeEmitter(): void {
+    this._lastWakeSampleTime = undefined;
+    this._wakeSourceAcceptedCount = 0;
+    this._wakeSourceDroppedCount = 0;
+    this._wakeFoamSamplePeak = 0;
+    this._wakeFoamSampleMean = 0;
   }
 
   private _createEnvironment(): void {
@@ -787,14 +842,14 @@ export class OceanShowcaseSceneController {
       SAND_TEXTURE_BINDING
     );
     const heroRockScales: readonly Vector3Tuple[] = [
-      [38, 21, 16],
-      [34, 24, 15],
-      [24, 16, 10.5]
+      [38, 15, 16],
+      [34, 17, 15],
+      [24, 10, 10.5]
     ];
     const heroRockRotations: readonly Vector3Tuple[] = [
-      [2, -24, -3],
-      [-1, 51, 2],
-      [3, -62, -2]
+      [5, -24, -5],
+      [7, 51, -4],
+      [9, -62, 6]
     ];
     const fallbackHeroRockScales: readonly Vector3Tuple[] = [
       [4.2, 3.15, 3.4],
@@ -1005,10 +1060,160 @@ export class OceanShowcaseSceneController {
       this._boatRoot
     );
 
-    // A previous placeholder used six transparent cuboids for a wake. At low
-    // beach angles they became opaque triangular slivers. A visible wake stays
-    // disabled until the bounded foam runtime exposes a typed moving-source
-    // input; there is no second fake surface in the meantime.
+    // The wake is authored through the bounded temporal-foam source contract.
+    // It owns no mesh or second water surface.
+  }
+
+  private _updateWakeSources(
+    elapsedTime: number,
+    surfaceHit: boolean
+  ): void {
+    const sink = this._wakeSink;
+    if (!sink || !surfaceHit || !this._wakeRoot.isActive) {
+      this._lastWakeSampleTime = undefined;
+      return;
+    }
+    const lastSampleTime = this._lastWakeSampleTime;
+    const discontinuous =
+      lastSampleTime === undefined ||
+      elapsedTime < lastSampleTime ||
+      elapsedTime - lastSampleTime >
+        WAKE_EMISSION_INTERVAL_SECONDS * 2.5;
+    if (discontinuous) {
+      for (
+        let index = WAKE_TRAIL_SAMPLE_COUNT - 1;
+        index >= 0;
+        index--
+      ) {
+        this._emitWakeSource(
+          elapsedTime -
+            index * WAKE_EMISSION_INTERVAL_SECONDS,
+          index /
+            Math.max(1, WAKE_TRAIL_SAMPLE_COUNT - 1)
+        );
+      }
+      this._lastWakeSampleTime = elapsedTime;
+      return;
+    }
+    if (
+      elapsedTime - lastSampleTime <
+      WAKE_EMISSION_INTERVAL_SECONDS
+    ) {
+      return;
+    }
+    this._emitWakeSource(elapsedTime, 0);
+    this._lastWakeSampleTime = elapsedTime;
+  }
+
+  private _emitWakeSource(
+    sampleTime: number,
+    ageRatio: number
+  ): void {
+    const sink = this._wakeSink;
+    if (!sink) return;
+    const phase = Math.max(0, sampleTime) * BOAT_PATH_RATE;
+    const layout = OCEAN_SHOWCASE_LAYOUT;
+    const x =
+      layout.boatPathCenter[0] +
+      Math.sin(phase) * layout.boatPathRadius[0];
+    const z =
+      layout.boatPathCenter[2] +
+      Math.cos(phase) * layout.boatPathRadius[2];
+    const velocityX =
+      Math.cos(phase) *
+      layout.boatPathRadius[0] *
+      BOAT_PATH_RATE;
+    const velocityZ =
+      -Math.sin(phase) *
+      layout.boatPathRadius[2] *
+      BOAT_PATH_RATE;
+    const inverseSpeed =
+      1 / Math.max(0.001, Math.hypot(velocityX, velocityZ));
+    const accepted = sink.enqueue({
+      bodyId: sink.bodyId,
+      kind: WaterFoamSourceKind.Wake,
+      intensity: 1 - ageRatio * 0.42,
+      lifetimeSeconds: 3.8 - ageRatio,
+      priority: 1.5,
+      blend: WaterFoamBlendMode.Add,
+      range: {
+        kind: "circle",
+        worldX:
+          x -
+          velocityX * inverseSpeed * WAKE_STERN_OFFSET,
+        worldZ:
+          z -
+          velocityZ * inverseSpeed * WAKE_STERN_OFFSET,
+        radius: 0.85 + ageRatio * 0.8
+      }
+    });
+    if (accepted) {
+      this._wakeSourceAcceptedCount++;
+    } else {
+      this._wakeSourceDroppedCount++;
+    }
+  }
+
+  private _measureWakeFoam(elapsedTime: number): void {
+    const sink = this._wakeSink;
+    if (!sink || !this._wakeRoot.isActive) {
+      this._wakeFoamSamplePeak = 0;
+      this._wakeFoamSampleMean = 0;
+      return;
+    }
+    const layout = OCEAN_SHOWCASE_LAYOUT;
+    let peak = 0;
+    let total = 0;
+    for (
+      let index = 0;
+      index < WAKE_TRAIL_SAMPLE_COUNT;
+      index++
+    ) {
+      const sampleTime =
+        elapsedTime -
+        index * WAKE_EMISSION_INTERVAL_SECONDS;
+      const phase =
+        Math.max(0, sampleTime) * BOAT_PATH_RATE;
+      const velocityX =
+        Math.cos(phase) *
+        layout.boatPathRadius[0] *
+        BOAT_PATH_RATE;
+      const velocityZ =
+        -Math.sin(phase) *
+        layout.boatPathRadius[2] *
+        BOAT_PATH_RATE;
+      const inverseSpeed =
+        1 /
+        Math.max(
+          0.001,
+          Math.hypot(velocityX, velocityZ)
+        );
+      const foam = Math.min(
+        1,
+        Math.max(
+          0,
+          sink.sample(
+            layout.boatPathCenter[0] +
+              Math.sin(phase) *
+                layout.boatPathRadius[0] -
+              velocityX *
+                inverseSpeed *
+                WAKE_STERN_OFFSET,
+            layout.boatPathCenter[2] +
+              Math.cos(phase) *
+                layout.boatPathRadius[2] -
+              velocityZ *
+                inverseSpeed *
+                WAKE_STERN_OFFSET
+          )
+        )
+      );
+      peak = Math.max(peak, foam);
+      total += foam;
+    }
+    this._wakeFoamSamplePeak = peak;
+    this._wakeFoamSampleMean =
+      total / WAKE_TRAIL_SAMPLE_COUNT;
   }
 
   private _createMaterial(
@@ -1027,6 +1232,12 @@ export class OceanShowcaseSceneController {
     material.emissiveColor = new Color(...emissive);
     material.roughness = roughness;
     material.metallic = metallic;
+    material.specularIntensity =
+      surface === "sand"
+        ? 0.22
+        : surface === "granite"
+          ? 0.55
+          : 0.7;
     material.isTransparent = transparent;
     if (surface && textureBinding && this._textureLibrary) {
       this._textureLibrary.apply(

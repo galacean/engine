@@ -21,7 +21,8 @@ import {
   setWaterWaveFoamTexture,
   setWaterWaveSurfaceOpticsBinding,
   setWaterWaveSurfaceTimeOverride,
-  updateWaterWaveMaterial
+  updateWaterWaveMaterial,
+  validateWaterFoamDetailTextureBinding
 } from "../wave/WaterWaveMaterialFactory";
 import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "../wave/WaterWaveRuntimeTypes";
 import { WATER_FOAM_DETAIL_TEXTURE_RESOURCE_BYTES } from "../wave/WaterFoamDetailTextureFactory";
@@ -37,7 +38,10 @@ import {
   OceanNearshoreDebugView,
   type OceanNearshoreStaticBinding
 } from "./OceanNearshoreShaderTypes";
-import { OceanNearshoreStateField } from "./OceanNearshoreStateField";
+import {
+  OceanNearshoreStateField,
+  type OceanNearshoreStateFieldOptions
+} from "./OceanNearshoreStateField";
 import { OceanNearshoreStateTextureService } from "./OceanNearshoreStateTextureService";
 import { OceanObstacleFieldResource } from "./OceanObstacleFieldResource";
 import type { GridWaterCurrentFieldSnapshot } from "../interaction/WaterCurrentFieldSnapshot";
@@ -45,10 +49,14 @@ import { TemporalFoamField } from "../interaction/TemporalFoamField";
 import { TemporalFoamTextureService } from "../interaction/TemporalFoamTextureService";
 import {
   WaterFoamDebugView,
+  type WaterFoamBoundedSource,
   type WaterTemporalFoamBinding
 } from "../interaction/WaterFoamTypes";
 import { WaterInteractionEventQueue } from "../interaction/WaterInteractionEventQueue";
-import { OceanFoamSourceSystem } from "./OceanFoamSourceSystem";
+import {
+  OceanFoamSourceSystem,
+  validateOceanFoamSourceSystemOptions
+} from "./OceanFoamSourceSystem";
 import { OceanObstacleContactSystem } from "./OceanObstacleContactSystem";
 import type { WaterReflectionBinding, WaterReflectionService } from "../optics/WaterReflectionService";
 import type { WaterReflectionSource } from "../optics/WaterReflectionPolicy";
@@ -61,6 +69,7 @@ import {
 } from "../optics/WaterSurfaceOpticsTypes";
 import {
   OCEAN_RUNTIME_DEFAULT_STRESS_ITERATIONS,
+  OCEAN_RUNTIME_FIXED_TIME_FOAM_PREWARM_STEP_COUNT,
   OCEAN_RUNTIME_MAX_PATCH_SEGMENTS,
   OCEAN_RUNTIME_MIN_AMPLITUDE_SCALE,
   OCEAN_RUNTIME_MIN_PATCH_SEGMENTS,
@@ -107,6 +116,11 @@ const OCEAN_FOAM_UPDATE_RATE_HZ = 30;
 const OCEAN_FOAM_EVENT_CAPACITY = 16;
 const OCEAN_FOAM_EVENT_BYTES_PER_SLOT = 49;
 const OCEAN_FOAM_EMITTER_BYTES_PER_SLOT = 20;
+
+type OceanFixedTimeFoamUpdateMode =
+  | "none"
+  | "incremental"
+  | "prewarm";
 
 function createScaledWaveAsset(config: OceanWaterRuntimeConfig): WaterWaveAssetV1 {
   const asset = config.waveAsset;
@@ -166,19 +180,27 @@ export class OceanWaterRuntimeController {
   private _foamShoreSourceEnabled = true;
   private _rockContactEnabled = true;
   private _foamDebugView = WaterFoamDebugView.Final;
-  private _foamFixedTimeDirty = false;
+  private _fixedTimeFoamUpdateMode: OceanFixedTimeFoamUpdateMode =
+    "none";
 
   constructor(
     private readonly _engine: Engine,
     parent: Entity,
     private _config: OceanWaterRuntimeConfig
   ) {
+    validateWaterFoamDetailTextureBinding(
+      _config.foamDetail
+    );
     this._waterBodyId = _config.waterBodyId ?? "ocean-preview";
+    this._validateFoamSourceOptions(_config);
     this.reflectionConsumerId = this._waterBodyId;
     this.opticsConsumerId = `${this._waterBodyId}-optics`;
     this.root = parent.createChild(`${this._waterBodyId}-runtime`);
     this._waveSet = this._compileWaveSet();
-    this._nearshoreState = this._createNearshoreState(_config.nearshoreDescriptor);
+    this._nearshoreState = this._createNearshoreState(
+      _config.nearshoreDescriptor,
+      _config.nearshoreStateOptions
+    );
     this._foamEnabled = _config.foamEnabled === true;
     this._foamState = this._createFoamState(
       this._nearshoreState,
@@ -306,10 +328,17 @@ export class OceanWaterRuntimeController {
       foamTextureCount: foam?.textures.metrics.textureCount ?? 0,
       foamDetailTextureCount:
         !this._destroyed && this._foamEnabled ? 1 : 0,
+      foamDetailTextureSource:
+        !this._destroyed && this._foamEnabled
+          ? this._config.foamDetail
+            ? "external"
+            : "procedural"
+          : "none",
       foamDetailResourceBytes:
         !this._destroyed && this._foamEnabled
-        ? WATER_FOAM_DETAIL_TEXTURE_RESOURCE_BYTES
-        : 0,
+          ? this._config.foamDetail?.resourceBytes ??
+            WATER_FOAM_DETAIL_TEXTURE_RESOURCE_BYTES
+          : 0,
       foamTextureCreateCount: this._foamTextureCreateCount,
       foamTextureDestroyCount: this._foamTextureDestroyCount,
       foamEventQueueCreateCount:
@@ -323,6 +352,10 @@ export class OceanWaterRuntimeController {
         foam?.textures.metrics.targetUpdateRateHz ?? 0,
       foamHistoryUpdateCount:
         foam?.textures.metrics.historyUpdateCount ?? 0,
+      foamFixedTimePrewarmCount:
+        foam?.textures.metrics.prewarmCount ?? 0,
+      foamFixedTimePrewarmStepCount:
+        foam?.textures.metrics.lastPrewarmStepCount ?? 0,
       foamUploadCount: foam?.textures.metrics.uploadCount ?? 0,
       foamSourceUpdateCount: foam?.sources.metrics.updateCount ?? 0,
       foamSourcePixelCount:
@@ -349,6 +382,8 @@ export class OceanWaterRuntimeController {
         foam?.sources.metrics.obstacleInjectionCount ?? 0,
       foamImpactInjectionCount:
         foam?.sources.metrics.impactInjectionCount ?? 0,
+      foamWakeInjectionCount:
+        foam?.sources.metrics.wakeInjectionCount ?? 0,
       foamEventCapacity: foam?.events.capacity ?? 0,
       foamPendingEventCount: foam?.events.count ?? 0,
       foamEventAcceptedCount:
@@ -380,7 +415,8 @@ export class OceanWaterRuntimeController {
           foam.textures.metrics.resourceBytes +
           foam.sources.metrics.resourceBytes +
           foam.contacts.metrics.resourceBytes +
-          WATER_FOAM_DETAIL_TEXTURE_RESOURCE_BYTES
+          (this._config.foamDetail?.resourceBytes ??
+            WATER_FOAM_DETAIL_TEXTURE_RESOURCE_BYTES)
         : 0,
       requestedOpticsTier: this._resolveOpticsTier(),
       resolvedOpticsTier: this._resolveOpticsTier() ? this._opticsReadback?.resolvedTier : undefined,
@@ -427,9 +463,32 @@ export class OceanWaterRuntimeController {
     return this._foamState?.field;
   }
 
+  /** Stable body identity required by typed interaction producers. */
+  get waterBodyId(): string {
+    return this._waterBodyId;
+  }
+
   /** Sparse typed source producer for wakes and other bounded integrations. */
   get foamSourceSystem(): OceanFoamSourceSystem | undefined {
     return this._foamState?.sources;
+  }
+
+  /**
+   * Enqueues one bounded foam source and wakes the fixed-time presentation
+   * path so deterministic capture states consume external interactions.
+   */
+  enqueueFoamSource(
+    source: Readonly<WaterFoamBoundedSource>
+  ): boolean {
+    const accepted =
+      this._foamState?.sources.enqueue(source) ?? false;
+    if (
+      accepted &&
+      this._surfaceTimeOverride !== undefined
+    ) {
+      this._requestFixedTimeFoamUpdate("incremental");
+    }
+    return accepted;
   }
 
   /** Bounded Impact queue consumed by the Demo splash-particle adapter. */
@@ -448,23 +507,36 @@ export class OceanWaterRuntimeController {
         `Ocean waterBodyId is immutable after construction (${this._waterBodyId} -> ${nextWaterBodyId}).`
       );
     }
+    validateWaterFoamDetailTextureBinding(
+      config.foamDetail
+    );
+    this._validateFoamSourceOptions(config);
+    const nextFoamEnabled = config.foamEnabled === true;
     const nearshoreChanged =
-      config.nearshoreDescriptor !== this._config.nearshoreDescriptor;
-    const foamModeChanged =
-      (config.foamEnabled === true) !== this._foamEnabled;
+      config.nearshoreDescriptor !==
+        this._config.nearshoreDescriptor ||
+      config.nearshoreStateOptions !==
+        this._config.nearshoreStateOptions;
+    const foamStateChanged =
+      nextFoamEnabled !== this._foamEnabled ||
+      config.foamSourceOptions !==
+        this._config.foamSourceOptions;
     const previousNearshore = nearshoreChanged ? this._nearshoreState : undefined;
     const previousFoam =
-      nearshoreChanged || foamModeChanged ? this._foamState : undefined;
+      nearshoreChanged || foamStateChanged
+        ? this._foamState
+        : undefined;
     const nextWaveSet = this._compileWaveSet(config);
     let nextNearshore = this._nearshoreState;
     let nextFoam = this._foamState;
     try {
       if (nearshoreChanged) {
         nextNearshore = this._createNearshoreState(
-          config.nearshoreDescriptor
+          config.nearshoreDescriptor,
+          config.nearshoreStateOptions
         );
       }
-      if (nearshoreChanged || foamModeChanged) {
+      if (nearshoreChanged || foamStateChanged) {
         nextFoam = this._createFoamState(
           nextNearshore,
           nextWaveSet,
@@ -482,10 +554,8 @@ export class OceanWaterRuntimeController {
     }
     this._nearshoreState = nextNearshore;
     this._foamState = nextFoam;
-    this._foamEnabled = config.foamEnabled === true;
-    if (nearshoreChanged || foamModeChanged) {
-      this._foamFixedTimeDirty = false;
-    }
+    this._foamEnabled = nextFoamEnabled;
+    this._fixedTimeFoamUpdateMode = "none";
     this._config = config;
     this._reflectionSource = config.reflectionSource ?? this._reflectionSource;
     this._opticalProfile = config.opticalProfile ?? this._opticalProfile;
@@ -496,6 +566,14 @@ export class OceanWaterRuntimeController {
       config.waterLevel,
       config.timeScale
     );
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
     this._updateSurfaceProvider();
     this.rebuildMesh();
     this._updateCameraFeatureRequest();
@@ -558,10 +636,16 @@ export class OceanWaterRuntimeController {
       this._nearshoreState?.stateTextures.seek(elapsedTime);
     }
     if (changed && this._foamState) {
-      this._foamState.sources.reset();
-      this._foamState.contacts.reset();
-      this._foamState.textures.clear();
-      this._foamFixedTimeDirty = elapsedTime !== undefined;
+      if (elapsedTime !== undefined) {
+        this._resetFoamForFixedTimePrewarm(
+          this._foamState
+        );
+      } else {
+        this._foamState.sources.reset();
+        this._foamState.contacts.reset();
+        this._foamState.textures.clear();
+        this._fixedTimeFoamUpdateMode = "none";
+      }
     }
     setWaterWaveSurfaceTimeOverride(this._materialState, elapsedTime);
   }
@@ -616,6 +700,14 @@ export class OceanWaterRuntimeController {
     this._nearshoreStateEnabled = enabled;
     this._nearshoreState?.stateTextures.setEnabled(enabled);
     setWaterWaveNearshoreStateEnabled(this._materialState, enabled);
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
   }
 
   setNearshoreBreakerEnabled(enabled: boolean): void {
@@ -629,6 +721,14 @@ export class OceanWaterRuntimeController {
 
   resetNearshoreState(): void {
     this._nearshoreState?.stateTextures.reset();
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
   }
 
   setFoamEnabled(enabled: boolean): void {
@@ -640,18 +740,42 @@ export class OceanWaterRuntimeController {
     if (enabled === this._foamBreakerSourceEnabled) return;
     this._foamBreakerSourceEnabled = enabled;
     this._foamState?.sources.setBreakerSourceEnabled(enabled);
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
   }
 
   setShoreFoamEnabled(enabled: boolean): void {
     if (enabled === this._foamShoreSourceEnabled) return;
     this._foamShoreSourceEnabled = enabled;
     this._foamState?.sources.setShoreSourceEnabled(enabled);
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
   }
 
   setRockContactEnabled(enabled: boolean): void {
     if (enabled === this._rockContactEnabled) return;
     this._rockContactEnabled = enabled;
     this._foamState?.contacts.setEnabled(enabled);
+    if (
+      this._surfaceTimeOverride !== undefined &&
+      this._foamState
+    ) {
+      this._resetFoamForFixedTimePrewarm(
+        this._foamState
+      );
+    }
   }
 
   resetRockContacts(): void {
@@ -667,7 +791,8 @@ export class OceanWaterRuntimeController {
       throw new RangeError(`Unsupported Ocean foam debug view: ${debugView}.`);
     }
     this._foamDebugView = debugView;
-    const service = this._foamState?.textures;
+    const foam = this._foamState;
+    const service = foam?.textures;
     if (service) {
       service.setDebugView(
         debugView === WaterFoamDebugView.Source
@@ -677,10 +802,7 @@ export class OceanWaterRuntimeController {
             : "final"
       );
       if (this._surfaceTimeOverride !== undefined) {
-        this._foamState?.sources.reset();
-        this._foamState?.contacts.reset();
-        this._foamState?.textures.clear();
-        this._foamFixedTimeDirty = true;
+        this._resetFoamForFixedTimePrewarm(foam);
       }
     }
     this._applyFoamBinding();
@@ -692,7 +814,10 @@ export class OceanWaterRuntimeController {
     foam.sources.reset();
     foam.contacts.reset();
     foam.textures.clear();
-    this._foamFixedTimeDirty = this._surfaceTimeOverride !== undefined;
+    this._fixedTimeFoamUpdateMode =
+      this._surfaceTimeOverride !== undefined
+        ? "prewarm"
+        : "none";
     this._applyFoamBinding();
   }
 
@@ -835,11 +960,13 @@ export class OceanWaterRuntimeController {
       waterLevel: this._config.waterLevel,
       timeScale: this._config.timeScale,
       crestIntensity: this._config.foamIntensity,
-      reflectionIntensity: 0.46,
+      reflectionIntensity:
+        this._config.reflectionIntensity ?? 0.46,
       surfaceDetail: this._config.surfaceDetail,
       nearshore: this._nearshoreState?.binding,
       nearshoreBreakerEnabled: this._nearshoreBreakerEnabled,
       foam: this._createFoamBinding(),
+      foamDetail: this._config.foamDetail,
       analyticWhitecapEnabled: this._foamEnabled,
       opticsTier: this._resolveOpticsTier(),
       surfaceTimeOverride: this._surfaceTimeOverride
@@ -1015,7 +1142,10 @@ export class OceanWaterRuntimeController {
         nearshore.resource,
         nearshore.stateField,
         field,
-        { bodyId: this._waterBodyId }
+        {
+          ...config.foamSourceOptions,
+          bodyId: this._waterBodyId
+        }
       );
       sources.setBreakerSourceEnabled(
         this._foamBreakerSourceEnabled
@@ -1090,6 +1220,21 @@ export class OceanWaterRuntimeController {
     }
   }
 
+  private _validateFoamSourceOptions(
+    config: Readonly<OceanWaterRuntimeConfig>
+  ): void {
+    if (
+      config.foamEnabled !== true ||
+      !config.nearshoreDescriptor
+    ) {
+      return;
+    }
+    validateOceanFoamSourceSystemOptions({
+      ...config.foamSourceOptions,
+      bodyId: this._waterBodyId
+    });
+  }
+
   private _destroyFoamState(state: OceanWaterRuntimeFoamState): void {
     this._foamTextureDestroyCount +=
       state.textures.metrics.textureCount;
@@ -1101,14 +1246,78 @@ export class OceanWaterRuntimeController {
     state.field.clear();
   }
 
+  private _requestFixedTimeFoamUpdate(
+    mode: Exclude<OceanFixedTimeFoamUpdateMode, "none">
+  ): void {
+    if (this._surfaceTimeOverride === undefined) return;
+    if (this._fixedTimeFoamUpdateMode === "prewarm") {
+      return;
+    }
+    this._fixedTimeFoamUpdateMode = mode;
+  }
+
+  private _resetFoamForFixedTimePrewarm(
+    foam: OceanWaterRuntimeFoamState
+  ): void {
+    foam.sources.reset();
+    foam.contacts.reset();
+    foam.textures.clear();
+    this._fixedTimeFoamUpdateMode = "prewarm";
+  }
+
+  private _prewarmFixedTimeFoam(
+    foam: OceanWaterRuntimeFoamState,
+    elapsedTime: number
+  ): void {
+    const fixedStepSeconds =
+      1 / OCEAN_FOAM_UPDATE_RATE_HZ;
+    const stepCount = Math.max(
+      1,
+      Math.min(
+        OCEAN_RUNTIME_FIXED_TIME_FOAM_PREWARM_STEP_COUNT,
+        Math.ceil(
+          elapsedTime * OCEAN_FOAM_UPDATE_RATE_HZ
+        )
+      )
+    );
+    const firstStepTime = Math.max(
+      0,
+      elapsedTime -
+        (stepCount - 1) * fixedStepSeconds
+    );
+    foam.textures.prewarmFrame(this._frameCount, {
+      stepCount,
+      stepDeltaSeconds: fixedStepSeconds,
+      currentSnapshot:
+        this._nearshoreState?.stateField.currentSnapshot,
+      prepareStep: (stepIndex) => {
+        foam.contacts.update(
+          fixedStepSeconds,
+          firstStepTime +
+            stepIndex * fixedStepSeconds
+        );
+        foam.sources.update(true);
+      }
+    });
+  }
+
   private _updateFoam(deltaTime: number): void {
     const foam = this._foamState;
     if (!foam) {
+      this._fixedTimeFoamUpdateMode = "none";
       this._applyFoamBinding();
       return;
     }
     if (this._surfaceTimeOverride !== undefined) {
-      if (this._foamFixedTimeDirty) {
+      if (this._fixedTimeFoamUpdateMode === "prewarm") {
+        this._prewarmFixedTimeFoam(
+          foam,
+          this._surfaceTimeOverride
+        );
+        this._fixedTimeFoamUpdateMode = "none";
+      } else if (
+        this._fixedTimeFoamUpdateMode === "incremental"
+      ) {
         foam.contacts.update(
           1 / OCEAN_FOAM_UPDATE_RATE_HZ,
           this._surfaceTimeOverride
@@ -1119,7 +1328,7 @@ export class OceanWaterRuntimeController {
           1 / OCEAN_FOAM_UPDATE_RATE_HZ,
           this._nearshoreState?.stateField.currentSnapshot
         );
-        this._foamFixedTimeDirty = false;
+        this._fixedTimeFoamUpdateMode = "none";
       }
       this._applyFoamBinding();
       return;
@@ -1160,7 +1369,8 @@ export class OceanWaterRuntimeController {
   }
 
   private _createNearshoreState(
-    descriptor: OceanWaterRuntimeConfig["nearshoreDescriptor"]
+    descriptor: OceanWaterRuntimeConfig["nearshoreDescriptor"],
+    stateOptions?: Readonly<OceanNearshoreStateFieldOptions>
   ): OceanWaterRuntimeNearshoreState | undefined {
     if (!descriptor) return undefined;
     const compiled = OceanNearshoreCompiler.compile(descriptor);
@@ -1179,7 +1389,10 @@ export class OceanWaterRuntimeController {
     try {
       provider = new OceanNearshoreFieldProvider(resource);
       texture = createOceanNearshoreFieldTexture(this._engine, resource);
-      stateField = new OceanNearshoreStateField(resource);
+      stateField = new OceanNearshoreStateField(
+        resource,
+        stateOptions
+      );
       stateTextures = new OceanNearshoreStateTextureService(
         this._engine,
         stateField

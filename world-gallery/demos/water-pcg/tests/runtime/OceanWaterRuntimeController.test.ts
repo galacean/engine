@@ -4,7 +4,11 @@ import { describe, expect, it, vi } from "vitest";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import { curvedMainRiverOceanPreview } from "../../demo/examples/ocean-preview/presets";
-import { WaterFoamDebugView } from "../../runtime/interaction/WaterFoamTypes";
+import {
+  WaterFoamBlendMode,
+  WaterFoamDebugView,
+  WaterFoamSourceKind
+} from "../../runtime/interaction/WaterFoamTypes";
 import { OceanWaterRuntimeController } from "../../runtime/ocean/OceanWaterRuntimeController";
 import type { OceanWaterRuntimeConfig } from "../../runtime/ocean/OceanWaterRuntimeTypes";
 import type {
@@ -122,6 +126,27 @@ vi.mock("@galacean/engine-core", () => {
 });
 
 vi.mock("../../runtime/wave/WaterWaveMaterialFactory", () => {
+  const validateWaterFoamDetailTextureBinding = (
+    binding: WaterWaveMaterialConfig["foamDetail"]
+  ): void => {
+    if (!binding) return;
+    const texture = binding.texture;
+    if (
+      binding.ownership !== "borrowed" ||
+      !Number.isFinite(binding.resourceBytes) ||
+      binding.resourceBytes <= 0 ||
+      !texture ||
+      texture.destroyed ||
+      !Number.isFinite(texture.width) ||
+      !Number.isFinite(texture.height) ||
+      texture.width <= 0 ||
+      texture.height <= 0
+    ) {
+      throw new Error(
+        "Water foam detail texture binding is unavailable or has an invalid resource budget."
+      );
+    }
+  };
   const createMaterial = (): Material => {
     resourceSpies.materialCreate();
     let destroyed = false;
@@ -166,6 +191,7 @@ vi.mock("../../runtime/wave/WaterWaveMaterialFactory", () => {
       config.foam?.debugView ?? WaterFoamDebugView.Final
   });
   return {
+    validateWaterFoamDetailTextureBinding,
     createWaterWaveMaterial: (
       _engine: Engine,
       waveSet: CompiledWaterWaveSet,
@@ -251,6 +277,302 @@ function createRuntime(): OceanWaterRuntimeController {
 }
 
 describe("OceanWaterRuntimeController ownership", () => {
+  it("applies per-body nearshore state tuning and rebuilds when it changes", () => {
+    const config = createRuntimeConfig();
+    const runtime = new OceanWaterRuntimeController(
+      {
+        time: { elapsedTime: 0, frameCount: 0 }
+      } as unknown as Engine,
+      new Entity(
+        {} as Engine,
+        "ocean-runtime-nearshore-options-root"
+      ),
+      {
+        ...config,
+        nearshoreStateOptions: {
+          swashPeriodSeconds: 7,
+          minimumRunupDistance: 0.1,
+          maximumRunupDistance: 2.6,
+          filmDepth: 0.04
+        }
+      }
+    );
+    const firstState = runtime.nearshoreStateField;
+    expect(firstState?.configuration).toMatchObject({
+      swashPeriodSeconds: 7,
+      minimumRunupDistance: 0.1,
+      maximumRunupDistance: 2.6,
+      filmDepth: 0.04
+    });
+
+    runtime.setConfig({
+      ...config,
+      nearshoreStateOptions: {
+        swashPeriodSeconds: 5.8,
+        maximumRunupDistance: 1.9
+      }
+    });
+
+    expect(runtime.nearshoreStateField).not.toBe(firstState);
+    expect(runtime.nearshoreStateField?.configuration).toMatchObject({
+      swashPeriodSeconds: 5.8,
+      maximumRunupDistance: 1.9
+    });
+    runtime.destroy();
+  });
+
+  it("rebuilds only the bounded Foam state when per-body source tuning changes", () => {
+    const config = createRuntimeConfig();
+    const runtime = new OceanWaterRuntimeController(
+      {
+        time: { elapsedTime: 0, frameCount: 0 }
+      } as unknown as Engine,
+      new Entity(
+        {} as Engine,
+        "ocean-runtime-foam-options-root"
+      ),
+      config
+    );
+    const firstNearshore = runtime.nearshoreStateField;
+    const firstFoam = runtime.foamField;
+
+    runtime.setConfig({
+      ...config,
+      foamSourceOptions: {
+        breakerIntensity: 0.65,
+        shoreIntensity: 0.45,
+        shoreBandWidth: 1.25,
+        shoreSeawardOffset: 3.8
+      }
+    });
+
+    expect(runtime.nearshoreStateField).toBe(
+      firstNearshore
+    );
+    expect(runtime.foamField).not.toBe(firstFoam);
+    expect(runtime.metrics).toMatchObject({
+      foamTextureCreateCount: 6,
+      foamTextureDestroyCount: 3,
+      activeFoamEventQueueCount: 1
+    });
+    runtime.destroy();
+  });
+
+  it("rejects invalid Foam source tuning before allocating runtime resources", () => {
+    for (const spy of Object.values(resourceSpies)) spy.mockClear();
+    const config = createRuntimeConfig();
+
+    expect(
+      () =>
+        new OceanWaterRuntimeController(
+          {
+            time: { elapsedTime: 0, frameCount: 0 }
+          } as unknown as Engine,
+          new Entity(
+            {} as Engine,
+            "ocean-runtime-invalid-foam-options-root"
+          ),
+          {
+            ...config,
+            foamSourceOptions: {
+              breakerMinimumActivation: 0.8,
+              breakerFullActivation: 0.4
+            }
+          }
+        )
+    ).toThrow(/foam source system options are invalid/i);
+    for (const spy of Object.values(resourceSpies)) {
+      expect(spy).not.toHaveBeenCalled();
+    }
+  });
+
+  it("consumes typed wakes after a fixed-time frame has settled", () => {
+    const runtime = createRuntime();
+    runtime.setSurfaceTimeOverride(2);
+    runtime.update(1 / 60, { x: 2, z: -3 });
+    const settledMetrics = runtime.metrics;
+
+    expect(runtime.metrics.foamWakeInjectionCount).toBe(0);
+    expect(
+      runtime.enqueueFoamSource({
+        bodyId: runtime.waterBodyId,
+        kind: WaterFoamSourceKind.Wake,
+        intensity: 0.82,
+        lifetimeSeconds: 2.4,
+        priority: 2,
+        blend: WaterFoamBlendMode.Maximum,
+        range: {
+          kind: "circle",
+          worldX: 1,
+          worldZ: -2,
+          radius: 1.2
+        }
+      })
+    ).toBe(true);
+
+    runtime.update(1 / 60, { x: 2, z: -3 });
+
+    expect(runtime.metrics.foamWakeInjectionCount).toBe(1);
+    expect(runtime.metrics.foamFixedTimePrewarmCount).toBe(
+      settledMetrics.foamFixedTimePrewarmCount
+    );
+    expect(runtime.metrics.foamHistoryUpdateCount).toBe(
+      settledMetrics.foamHistoryUpdateCount + 1
+    );
+    expect(runtime.metrics.foamUploadCount).toBe(
+      settledMetrics.foamUploadCount + 1
+    );
+    runtime.destroy();
+  });
+
+  it("rebuilds fixed-time Foam with bounded deterministic prewarm", () => {
+    const runtime = createRuntime();
+    const initialMetrics = runtime.metrics;
+
+    runtime.setSurfaceTimeOverride(2);
+    runtime.update(1 / 60, { x: 2, z: -3 });
+
+    const firstHistory = runtime.foamField?.historyBuffer.slice();
+    expect(firstHistory?.some((value) => value > 0)).toBe(
+      true
+    );
+    expect(runtime.metrics).toMatchObject({
+      foamFixedTimePrewarmCount: 1,
+      foamFixedTimePrewarmStepCount: 2,
+      foamHistoryUpdateCount:
+        initialMetrics.foamHistoryUpdateCount + 2,
+      foamUploadCount: initialMetrics.foamUploadCount + 1
+    });
+
+    const settledMetrics = runtime.metrics;
+    runtime.update(1 / 60, { x: 2, z: -3 });
+    expect(runtime.metrics.foamHistoryUpdateCount).toBe(
+      settledMetrics.foamHistoryUpdateCount
+    );
+    expect(runtime.metrics.foamUploadCount).toBe(
+      settledMetrics.foamUploadCount
+    );
+
+    runtime.resetFoam();
+    expect(runtime.foamField?.isIdle).toBe(true);
+    runtime.update(1 / 60, { x: 2, z: -3 });
+    expect(runtime.foamField?.historyBuffer).toEqual(
+      firstHistory
+    );
+    expect(runtime.metrics.foamFixedTimePrewarmCount).toBe(2);
+
+    runtime.setSurfaceTimeOverride(4);
+    runtime.update(1 / 60, { x: 2, z: -3 });
+    runtime.setSurfaceTimeOverride(2);
+    runtime.update(1 / 60, { x: 2, z: -3 });
+
+    expect(runtime.foamField?.historyBuffer).toEqual(
+      firstHistory
+    );
+    expect(runtime.metrics).toMatchObject({
+      foamFixedTimePrewarmCount: 4,
+      foamFixedTimePrewarmStepCount: 2
+    });
+    runtime.destroy();
+  });
+
+  it("keeps the live Foam path at one update and upload per frame", () => {
+    const runtime = createRuntime();
+    const initialMetrics = runtime.metrics;
+
+    runtime.update(1 / 30, { x: 2, z: -3 });
+
+    expect(runtime.metrics).toMatchObject({
+      foamFixedTimePrewarmCount: 0,
+      foamFixedTimePrewarmStepCount: 0,
+      foamHistoryUpdateCount:
+        initialMetrics.foamHistoryUpdateCount + 1,
+      foamUploadCount: initialMetrics.foamUploadCount + 1
+    });
+    runtime.destroy();
+  });
+
+  it("accounts for a borrowed external foam detail texture without owning it", () => {
+    const config = createRuntimeConfig();
+    const borrowedTexture = {
+      width: 512,
+      height: 512,
+      destroyed: false
+    } as Texture2D;
+    const runtime = new OceanWaterRuntimeController(
+      {
+        time: { elapsedTime: 0, frameCount: 0 }
+      } as unknown as Engine,
+      new Entity(
+        {} as Engine,
+        "ocean-runtime-external-foam-root"
+      ),
+      {
+        ...config,
+        foamDetail: {
+          texture: borrowedTexture,
+          ownership: "borrowed",
+          resourceBytes: 1_398_101
+        }
+      }
+    );
+
+    expect(runtime.metrics).toMatchObject({
+      foamDetailTextureCount: 1,
+      foamDetailTextureSource: "external",
+      foamDetailResourceBytes: 1_398_101
+    });
+    runtime.destroy();
+    expect(borrowedTexture.destroyed).toBe(false);
+  });
+
+  it("rejects an invalid external foam detail binding before mutating config or resources", () => {
+    for (const spy of Object.values(resourceSpies)) spy.mockClear();
+    const runtime = createRuntime();
+    const internalRuntime = runtime as unknown as {
+      readonly _config: OceanWaterRuntimeConfig;
+    };
+    const previousConfig = internalRuntime._config;
+    const previousMetrics = runtime.metrics;
+    const previousNearshoreState = runtime.nearshoreStateField;
+    const previousFoamField = runtime.foamField;
+    const previousResourceCallCounts = Object.values(
+      resourceSpies
+    ).map((spy) => spy.mock.calls.length);
+
+    expect(() =>
+      runtime.setConfig({
+        ...createRuntimeConfig(),
+        waterLevel: previousConfig.waterLevel + 3,
+        amplitudeScale: previousConfig.amplitudeScale * 0.5,
+        nearshoreDescriptor: createOceanNearshoreFixture(),
+        foamDetail: {
+          texture: {
+            width: 512,
+            height: 512,
+            destroyed: true
+          } as Texture2D,
+          ownership: "borrowed",
+          resourceBytes: 1_398_100
+        }
+      })
+    ).toThrow(/binding is unavailable/);
+
+    expect(internalRuntime._config).toBe(previousConfig);
+    expect(runtime.metrics).toEqual(previousMetrics);
+    expect(runtime.nearshoreStateField).toBe(
+      previousNearshoreState
+    );
+    expect(runtime.foamField).toBe(previousFoamField);
+    expect(
+      Object.values(resourceSpies).map(
+        (spy) => spy.mock.calls.length
+      )
+    ).toEqual(previousResourceCallCounts);
+
+    runtime.destroy();
+  });
+
   it("keeps focused toggles independent and resets their bounded state", () => {
     const runtime = createRuntime();
     const foamField = runtime.foamField;

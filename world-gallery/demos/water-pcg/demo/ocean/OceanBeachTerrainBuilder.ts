@@ -232,10 +232,10 @@ export class OceanBeachTerrainBuilder {
     wetFilmRenderer.mesh = this._mesh;
     wetFilmRenderer.setMaterial(this._wetFilmMaterial);
     wetFilmRenderer.castShadows = false;
-    // Draw the film before the transparent Ocean. Dry wet-sand remains
-    // visible, while underwater film is naturally replaced by the Ocean's
-    // opaque scene-color composite.
-    wetFilmRenderer.priority = -10;
+    // Draw the receded wet-sand film after the transparent Ocean. The Ocean
+    // scene-color input contains opaque geometry only, so drawing this film
+    // first would make the Ocean composite erase it even on exposed sand.
+    wetFilmRenderer.priority = 10;
     this.metrics = Object.freeze({
       sourceHash: resource.metadata.compiledHash,
       vertexCount,

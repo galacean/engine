@@ -66,6 +66,69 @@ describe("OceanFoamSourceSystem", () => {
     resource.dispose();
   });
 
+  it("reinjects persistent sources only when fixed-time prewarm forces them", () => {
+    const { resource, state, foam, sources } = createRuntime();
+    state.seek(1);
+
+    expect(sources.update()).toBe(true);
+    expect(foam.step(1 / 30)).toBe(true);
+    expect(foam.sourceBuffer.every((value) => value === 0)).toBe(
+      true
+    );
+    expect(sources.update()).toBe(false);
+    expect(sources.update(true)).toBe(true);
+    expect(foam.sourceBuffer.some((value) => value > 0)).toBe(
+      true
+    );
+
+    sources.destroy();
+    state.destroy();
+    resource.dispose();
+  });
+
+  it("applies finite per-body Breaker and shore tuning without changing sparse sources", () => {
+    const { resource, state, foam, sources } =
+      createRuntime();
+    sources.destroy();
+    state.seek(1);
+    const tuned = new OceanFoamSourceSystem(
+      resource,
+      state,
+      foam,
+      {
+        bodyId: "tuned-ocean",
+        breakerIntensity: 0.3,
+        breakerMinimumActivation: 0.4,
+        breakerFullActivation: 0.8,
+        shoreIntensity: 0.2,
+        shoreBandWidth: 0.8,
+        shoreSeawardOffset: 1
+      }
+    );
+
+    expect(tuned.update()).toBe(true);
+    expect(tuned.metrics.sourcePeak).toBeGreaterThan(0);
+    expect(tuned.metrics.sourcePeak).toBeLessThanOrEqual(
+      0.3
+    );
+    expect(() =>
+      new OceanFoamSourceSystem(
+        resource,
+        state,
+        foam,
+        {
+          bodyId: "invalid-ocean",
+          breakerMinimumActivation: 0.8,
+          breakerFullActivation: 0.4
+        }
+      )
+    ).toThrow(/options are invalid/);
+
+    tuned.destroy();
+    state.destroy();
+    resource.dispose();
+  });
+
   it("keeps canonical breaker and shore sources local to the nearshore band", () => {
     const compiled = OceanNearshoreCompiler.compile(
       createOceanBeachNearshoreDescriptor()
@@ -163,6 +226,13 @@ describe("OceanFoamSourceSystem", () => {
       wakeInjectionCount: 1
     });
     expect(foam.sourceBuffer.some((value) => value > 0)).toBe(true);
+
+    sources.reset();
+    expect(sources.metrics).toMatchObject({
+      obstacleInjectionCount: 0,
+      impactInjectionCount: 0,
+      wakeInjectionCount: 0
+    });
 
     sources.setEnabled(false);
     expect(foam.isIdle).toBe(true);

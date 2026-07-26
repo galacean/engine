@@ -11,8 +11,13 @@ import type {
   WaterPlanarFilterSampleCount,
   WaterSurfaceOpticsReflectionSamplingConfig
 } from "../optics/WaterSurfaceOpticsTypes";
-import type { WaterSurfaceDetailConfig } from "../wave/WaterWaveRuntimeTypes";
+import type {
+  WaterFoamDetailTextureBinding,
+  WaterSurfaceDetailConfig
+} from "../wave/WaterWaveRuntimeTypes";
 import type { WaterFoamDebugView } from "../interaction/WaterFoamTypes";
+import type { OceanNearshoreStateFieldOptions } from "./OceanNearshoreStateField";
+import type { OceanFoamSourceTuningOptions } from "./OceanFoamSourceSystem";
 
 /** Engine-facing configuration for one camera-relative, unbounded Ocean runtime. */
 export interface OceanWaterRuntimeConfig {
@@ -32,13 +37,27 @@ export interface OceanWaterRuntimeConfig {
    * Defaults to false so existing Ocean consumers allocate no new history.
    */
   foamEnabled?: boolean;
+  /**
+   * Optional per-body bounded Breaker and shoreline source tuning.
+   * Sparse Wake, Impact, and Obstacle sources keep their authored strengths.
+   */
+  foamSourceOptions?: OceanFoamSourceTuningOptions;
+  /** Optional borrowed RGB micro-breakup texture; temporal foam remains runtime-owned. */
+  foamDetail?: WaterFoamDetailTextureBinding;
   oceanColor: string;
   /** Visual-only world-space detail; omitted configurations bind no detail texture. */
   surfaceDetail?: WaterSurfaceDetailConfig;
   /** Optional finite bathymetry/shoreline fact source attached to the unbounded Rings. */
   nearshoreDescriptor?: OceanNearshoreDescriptorV1;
+  /**
+   * Optional per-body fixed-step swash, thin-film, and wetness tuning.
+   * Omitted fields preserve the bounded runtime defaults.
+   */
+  nearshoreStateOptions?: OceanNearshoreStateFieldOptions;
   /** Defaults to sky until a per-camera WaterReflectionService is attached. */
   reflectionSource?: WaterReflectionSource;
+  /** Body-specific reflection multiplier; defaults to the historical Ocean value. */
+  reflectionIntensity?: number;
   /** Explicit Planar color policy. Omitted configurations preserve the historical LDR target. */
   planarColorMode?: WaterPlanarColorMode;
   /** Independent optics tier; Experimental deliberately resolves through High. */
@@ -110,6 +129,7 @@ export interface OceanWaterRuntimeMetrics {
   readonly foamDebugView: WaterFoamDebugView;
   readonly foamTextureCount: number;
   readonly foamDetailTextureCount: number;
+  readonly foamDetailTextureSource: "none" | "procedural" | "external";
   readonly foamDetailResourceBytes: number;
   readonly foamTextureCreateCount: number;
   readonly foamTextureDestroyCount: number;
@@ -118,6 +138,8 @@ export interface OceanWaterRuntimeMetrics {
   readonly activeFoamEventQueueCount: number;
   readonly foamTargetUpdateRateHz: number;
   readonly foamHistoryUpdateCount: number;
+  readonly foamFixedTimePrewarmCount: number;
+  readonly foamFixedTimePrewarmStepCount: number;
   readonly foamUploadCount: number;
   readonly foamSourceUpdateCount: number;
   readonly foamSourcePixelCount: number;
@@ -132,6 +154,7 @@ export interface OceanWaterRuntimeMetrics {
   readonly foamShoreSourceEnabled: boolean;
   readonly foamObstacleInjectionCount: number;
   readonly foamImpactInjectionCount: number;
+  readonly foamWakeInjectionCount: number;
   readonly foamEventCapacity: number;
   readonly foamPendingEventCount: number;
   readonly foamEventAcceptedCount: number;

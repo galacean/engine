@@ -8,14 +8,22 @@ import {
   type WaterFoamBoundedSource
 } from "../interaction/WaterFoamTypes";
 
-export interface OceanFoamSourceSystemOptions {
-  readonly bodyId: string;
-  readonly pointSourceCapacity?: number;
+export interface OceanFoamSourceTuningOptions {
   readonly breakerIntensity?: number;
+  /** Dynamic breaker value where procedural foam begins to appear. */
+  readonly breakerMinimumActivation?: number;
+  /** Dynamic breaker value where procedural foam reaches full intensity. */
+  readonly breakerFullActivation?: number;
   readonly shoreIntensity?: number;
   readonly shoreBandWidth?: number;
   /** Centre of the persistent shore wash measured seaward from the dry boundary. */
   readonly shoreSeawardOffset?: number;
+}
+
+export interface OceanFoamSourceSystemOptions
+  extends OceanFoamSourceTuningOptions {
+  readonly bodyId: string;
+  readonly pointSourceCapacity?: number;
 }
 
 export interface OceanFoamSourceSystemMetrics {
@@ -68,11 +76,86 @@ interface MutableOceanFoamSourceSystemMetrics {
   resourceBytes: number;
 }
 
+interface ResolvedOceanFoamSourceSystemOptions {
+  readonly bodyId: string;
+  readonly pointSourceCapacity: number;
+  readonly breakerIntensity: number;
+  readonly breakerMinimumActivation: number;
+  readonly breakerFullActivation: number;
+  readonly shoreIntensity: number;
+  readonly shoreBandWidth: number;
+  readonly shoreSeawardOffset: number;
+}
+
 const DEFAULT_POINT_SOURCE_CAPACITY = 32;
 const DEFAULT_BREAKER_INTENSITY = 0.92;
+const DEFAULT_BREAKER_MINIMUM_ACTIVATION = 0.12;
+const DEFAULT_BREAKER_FULL_ACTIVATION = 0.72;
 const DEFAULT_SHORE_INTENSITY = 0.7;
 const DEFAULT_SHORE_BAND_WIDTH = 1.8;
 const DEFAULT_SHORE_SEAWARD_OFFSET = 4.5;
+
+function resolveOceanFoamSourceSystemOptions(
+  options: Readonly<OceanFoamSourceSystemOptions>
+): ResolvedOceanFoamSourceSystemOptions {
+  const pointSourceCapacity =
+    options.pointSourceCapacity ?? DEFAULT_POINT_SOURCE_CAPACITY;
+  const breakerIntensity =
+    options.breakerIntensity ?? DEFAULT_BREAKER_INTENSITY;
+  const breakerMinimumActivation =
+    options.breakerMinimumActivation ??
+    DEFAULT_BREAKER_MINIMUM_ACTIVATION;
+  const breakerFullActivation =
+    options.breakerFullActivation ??
+    DEFAULT_BREAKER_FULL_ACTIVATION;
+  const shoreIntensity =
+    options.shoreIntensity ?? DEFAULT_SHORE_INTENSITY;
+  const shoreBandWidth =
+    options.shoreBandWidth ?? DEFAULT_SHORE_BAND_WIDTH;
+  const shoreSeawardOffset =
+    options.shoreSeawardOffset ??
+    DEFAULT_SHORE_SEAWARD_OFFSET;
+  if (
+    options.bodyId.length === 0 ||
+    !Number.isSafeInteger(pointSourceCapacity) ||
+    pointSourceCapacity < 1 ||
+    !Number.isFinite(breakerIntensity) ||
+    breakerIntensity < 0 ||
+    breakerIntensity > 1 ||
+    !Number.isFinite(breakerMinimumActivation) ||
+    breakerMinimumActivation < 0 ||
+    breakerMinimumActivation >= 1 ||
+    !Number.isFinite(breakerFullActivation) ||
+    breakerFullActivation <= breakerMinimumActivation ||
+    breakerFullActivation > 1 ||
+    !Number.isFinite(shoreIntensity) ||
+    shoreIntensity < 0 ||
+    shoreIntensity > 1 ||
+    !Number.isFinite(shoreBandWidth) ||
+    shoreBandWidth <= 0 ||
+    !Number.isFinite(shoreSeawardOffset) ||
+    shoreSeawardOffset < 0
+  ) {
+    throw new Error("Ocean foam source system options are invalid.");
+  }
+  return {
+    bodyId: options.bodyId,
+    pointSourceCapacity,
+    breakerIntensity,
+    breakerMinimumActivation,
+    breakerFullActivation,
+    shoreIntensity,
+    shoreBandWidth,
+    shoreSeawardOffset
+  };
+}
+
+/** Validates borrowed authoring options before any Ocean runtime resources are allocated. */
+export function validateOceanFoamSourceSystemOptions(
+  options: Readonly<OceanFoamSourceSystemOptions>
+): void {
+  resolveOceanFoamSourceSystemOptions(options);
+}
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
@@ -122,6 +205,8 @@ export class OceanFoamSourceSystem {
   readonly metrics: OceanFoamSourceSystemMetrics;
   private readonly _bodyId: string;
   private readonly _breakerIntensity: number;
+  private readonly _breakerMinimumActivation: number;
+  private readonly _breakerFullActivation: number;
   private readonly _shoreIntensity: number;
   private readonly _shoreBandWidth: number;
   private readonly _shoreSeawardOffset: number;
@@ -148,31 +233,24 @@ export class OceanFoamSourceSystem {
     readonly field: TemporalFoamField,
     options: Readonly<OceanFoamSourceSystemOptions>
   ) {
-    const pointSourceCapacity =
-      options.pointSourceCapacity ?? DEFAULT_POINT_SOURCE_CAPACITY;
-    if (
-      options.bodyId.length === 0 ||
-      !Number.isSafeInteger(pointSourceCapacity) ||
-      pointSourceCapacity < 1
-    ) {
-      throw new Error("Ocean foam source system options are invalid.");
-    }
-    this._bodyId = options.bodyId;
-    this._breakerIntensity = clamp01(
-      options.breakerIntensity ?? DEFAULT_BREAKER_INTENSITY
-    );
-    this._shoreIntensity = clamp01(
-      options.shoreIntensity ?? DEFAULT_SHORE_INTENSITY
-    );
-    this._shoreBandWidth = Math.max(
-      0.1,
-      options.shoreBandWidth ?? DEFAULT_SHORE_BAND_WIDTH
-    );
-    this._shoreSeawardOffset = Math.max(
-      0,
-      options.shoreSeawardOffset ??
-        DEFAULT_SHORE_SEAWARD_OFFSET
-    );
+    const {
+      bodyId,
+      pointSourceCapacity,
+      breakerIntensity,
+      breakerMinimumActivation,
+      breakerFullActivation,
+      shoreIntensity,
+      shoreBandWidth,
+      shoreSeawardOffset
+    } = resolveOceanFoamSourceSystemOptions(options);
+    this._bodyId = bodyId;
+    this._breakerIntensity = breakerIntensity;
+    this._breakerMinimumActivation =
+      breakerMinimumActivation;
+    this._breakerFullActivation = breakerFullActivation;
+    this._shoreIntensity = shoreIntensity;
+    this._shoreBandWidth = shoreBandWidth;
+    this._shoreSeawardOffset = shoreSeawardOffset;
     const pixelCount = field.resolutionX * field.resolutionZ;
     this._proceduralSource = new Uint8Array(pixelCount);
     this._kinds = new Uint8Array(pointSourceCapacity);
@@ -283,14 +361,21 @@ export class OceanFoamSourceSystem {
     return true;
   }
 
-  update(): boolean {
+  /**
+   * Rebuilds persistent sources when their nearshore revision changes.
+   * Fixed-time prewarm may force the same deterministic revision to be
+   * reinjected; live callers keep the allocation-free revision fast path.
+   */
+  update(forceProcedural = false): boolean {
     this._assertAlive();
     if (!this._enabled) {
       this._mutableMetrics.idleSkipCount++;
       return false;
     }
     const stateRevision = this.state.metrics.revision;
-    const rebuildProcedural = stateRevision !== this._lastStateRevision;
+    const rebuildProcedural =
+      forceProcedural ||
+      stateRevision !== this._lastStateRevision;
     if (!rebuildProcedural && this._pointSourceCount === 0) {
       this._mutableMetrics.idleSkipCount++;
       return false;
@@ -384,6 +469,9 @@ export class OceanFoamSourceSystem {
     this._mutableMetrics.sourceRevision = -1;
     this._mutableMetrics.breakerSourcePixelCount = 0;
     this._mutableMetrics.shoreSourcePixelCount = 0;
+    this._mutableMetrics.obstacleInjectionCount = 0;
+    this._mutableMetrics.impactInjectionCount = 0;
+    this._mutableMetrics.wakeInjectionCount = 0;
     this._mutableMetrics.sourcePeak = 0;
   }
 
@@ -451,7 +539,11 @@ export class OceanFoamSourceSystem {
         const shoreDistance =
           this.resource.shoreDistanceAt(resourceIndex);
         const breakerSource = this._breakerSourceEnabled && staticWet
-          ? smoothstep(0.12, 0.72, breaker) *
+          ? smoothstep(
+              this._breakerMinimumActivation,
+              this._breakerFullActivation,
+              breaker
+            ) *
             this._breakerIntensity
           : 0;
         const staticShore =

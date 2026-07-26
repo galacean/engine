@@ -10,6 +10,7 @@ import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWave
 import { WATER_WAVE_SHADER_PROPERTY, WATER_WAVE_SHADER_TUNING } from "./constants/WaterWaveShaderConstants";
 import { WaterWaveShaderVariant } from "./enums/WaterWaveShaderVariant";
 import type {
+  WaterFoamDetailTextureBinding,
   WaterSurfaceDetailConfig,
   WaterWaveMaterialConfig,
   WaterWaveMaterialState
@@ -51,6 +52,44 @@ const DEFAULT_SURFACE_DETAIL_WIND = Object.freeze([1, 0] as const);
 
 interface NullableTextureShaderData {
   setTexture(propertyName: string, value: Texture2D | null): void;
+}
+
+/**
+ * Validates one optional caller-owned foam detail binding before a runtime
+ * changes any state.
+ */
+export function validateWaterFoamDetailTextureBinding(
+  binding: Readonly<WaterFoamDetailTextureBinding> | undefined
+): void {
+  if (!binding) return;
+  const texture = binding.texture;
+  if (
+    binding.ownership !== "borrowed" ||
+    !Number.isFinite(binding.resourceBytes) ||
+    binding.resourceBytes <= 0 ||
+    !texture ||
+    texture.destroyed ||
+    !Number.isFinite(texture.width) ||
+    !Number.isFinite(texture.height) ||
+    texture.width <= 0 ||
+    texture.height <= 0
+  ) {
+    throw new Error(
+      "Water foam detail texture binding is unavailable or has an invalid resource budget."
+    );
+  }
+}
+
+function resolveFoamDetailTexture(
+  engine: Engine,
+  config: Readonly<WaterWaveMaterialConfig>,
+  enabled: boolean
+): Texture2D | null {
+  validateWaterFoamDetailTextureBinding(config.foamDetail);
+  if (!enabled) return null;
+  const binding = config.foamDetail;
+  if (!binding) return getWaterFoamDetailTexture(engine);
+  return binding.texture;
 }
 
 function glsl(value: number, digits = 8): string {
@@ -381,10 +420,25 @@ function foamSamplingStatements(): string {
             1.0
           )
         );
+        float retainedFoamCoverage = max(
+          microFoamCoverage,
+          clamp(
+            max(
+              boundedFoam
+                * ${glsl(WATER_WAVE_SHADER_TUNING.boundedFoamDetailRetention)},
+              thickFoamWeight
+                * ${glsl(WATER_WAVE_SHADER_TUNING.denseFoamDetailRetention)}
+                + mediumFoamWeight
+                  * ${glsl(WATER_WAVE_SHADER_TUNING.mediumFoamDetailRetention)}
+            ),
+            0.0,
+            1.0
+          )
+        );
         float waterFoam = smoothstep(
           0.025,
           0.7,
-          macroFoam * mix(0.008, 1.0, microFoamCoverage)
+          macroFoam * mix(0.008, 1.0, retainedFoamCoverage)
         );
         normal = normalize(mix(
           normal,
@@ -958,6 +1012,54 @@ ${fresnelCalculation(sceneRefractionEnabled)}
           clamp(nearshoreShallowWeight * 0.38, 0.0, 0.38)
         );
 ${sceneColorRefraction(opticsTier)}
+        float nearshoreDepthAlpha = mix(
+          0.28,
+          material_Alpha,
+          smoothstep(0.015, 0.42, nearshoreDepthNormalized)
+        );
+        float openWaterAlpha = clamp(
+          mix(
+            material_Alpha,
+            nearshoreDepthAlpha,
+            nearshoreInside * nearshoreWet
+          ) + waterFoam * 0.08,
+          ${glsl(tuning.minimumAlpha)},
+          ${glsl(tuning.maximumAlpha)}
+        );
+        float thinFilmCoverage = smoothstep(
+          0.04,
+          0.88,
+          nearshoreThinFilm
+        );
+        float thinFilmAlpha = clamp(
+          0.012
+            + nearshoreDynamicOccupancy * 0.025
+            + waterFoam * 0.08,
+          0.012,
+          0.12
+        );
+        float effectiveWaterAlpha = mix(
+          openWaterAlpha,
+          thinFilmAlpha,
+          thinFilmCoverage
+        );
+${
+  sceneRefractionEnabled
+    ? `        vec3 centeredSurfaceBackground = texture2D(camera_OpaqueTexture, screenUv).rgb;
+        float volumeOpticalCoverage = clamp(
+          1.0 - transmittance.g + scatteringWeight,
+          0.0,
+          1.0
+        );
+        float volumeCompositionAlpha =
+          effectiveWaterAlpha * volumeOpticalCoverage;
+        waterColor = mix(
+          centeredSurfaceBackground,
+          waterColor,
+          volumeCompositionAlpha
+        );`
+    : ""
+}
         vec3 analyticHorizonColor =
           material_BaseColor.rgb * ${glsl(tuning.horizonColorScale)};
 #if SCENE_FOG_MODE != 0
@@ -1042,47 +1144,6 @@ ${sceneColorRefraction(opticsTier)}
           vec3(0.93, 0.91, 0.85),
           waterFoam * ${glsl(tuning.crestTintStrength)}
         );
-        float nearshoreDepthAlpha = mix(
-          0.28,
-          material_Alpha,
-          smoothstep(0.015, 0.42, nearshoreDepthNormalized)
-        );
-        float openWaterAlpha = clamp(
-          mix(
-            material_Alpha,
-            nearshoreDepthAlpha,
-            nearshoreInside * nearshoreWet
-          ) + waterFoam * 0.08,
-          ${glsl(tuning.minimumAlpha)},
-          ${glsl(tuning.maximumAlpha)}
-        );
-        float thinFilmCoverage = smoothstep(
-          0.04,
-          0.88,
-          nearshoreThinFilm
-        );
-        float thinFilmAlpha = clamp(
-          0.012
-            + nearshoreDynamicOccupancy * 0.025
-            + waterFoam * 0.08,
-          0.012,
-          0.12
-        );
-        float effectiveWaterAlpha = mix(
-          openWaterAlpha,
-          thinFilmAlpha,
-          thinFilmCoverage
-        );
-${
-  sceneRefractionEnabled
-    ? `        vec3 centeredSurfaceBackground = texture2D(camera_OpaqueTexture, screenUv).rgb;
-        waterColor = mix(
-          centeredSurfaceBackground,
-          waterColor,
-          effectiveWaterAlpha
-        );`
-    : ""
-}
         if (renderer_OceanLodDebug > 0.5) {
           vec3 lodColor = renderer_OceanLod < 0.5
             ? vec3(0.18, 0.92, 0.72)
@@ -1278,9 +1339,11 @@ function bindWaterWaveMaterial(
     config.analyticWhitecapEnabled === true;
   nullableTextureData.setTexture(
     WATER_WAVE_SHADER_PROPERTY.foamDetailTexture,
-    foamDetailEnabled
-      ? getWaterFoamDetailTexture(engine)
-      : null
+    resolveFoamDetailTexture(
+      engine,
+      config,
+      foamDetailEnabled
+    )
   );
   material.shaderData.setFloat(
     WATER_WAVE_SHADER_PROPERTY.foamDetailEnabled,
@@ -1358,6 +1421,13 @@ export function createWaterWaveMaterial(
       config.nearshore?.dynamic !== undefined &&
       config.nearshoreBreakerEnabled !== false,
     foamEnabled: config.foam !== undefined,
+    foamDetailTextureSource:
+      config.foam === undefined &&
+      config.analyticWhitecapEnabled !== true
+        ? "none"
+        : config.foamDetail
+          ? "external"
+          : "procedural",
     analyticWhitecapEnabled: config.analyticWhitecapEnabled === true,
     foamDebugView: config.foam?.debugView ?? WaterFoamDebugView.Final,
     opticsBindingState: createWaterSurfaceOpticsBindingState()
@@ -1405,6 +1475,13 @@ export function updateWaterWaveMaterial(
       config.nearshore?.dynamic !== undefined &&
       config.nearshoreBreakerEnabled !== false,
     foamEnabled: config.foam !== undefined,
+    foamDetailTextureSource:
+      config.foam === undefined &&
+      config.analyticWhitecapEnabled !== true
+        ? "none"
+        : config.foamDetail
+          ? "external"
+          : "procedural",
     analyticWhitecapEnabled: config.analyticWhitecapEnabled === true,
     foamDebugView: config.foam?.debugView ?? WaterFoamDebugView.Final,
     opticsBindingState: state.opticsBindingState

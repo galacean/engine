@@ -70,7 +70,13 @@ function assertPublicNavigation(navigation, activeShowcaseId) {
     .filter((item) => !item.hidden && item.group === "showcase")
     .map((item) => item.caseId)
     .sort();
-  const expectedShowcases = [...new Set(["showcase-river", activeShowcaseId])].sort();
+  const expectedShowcases = [
+    ...new Set([
+      "showcase-river",
+      "showcase-grasslands-stylized-water",
+      activeShowcaseId
+    ])
+  ].sort();
   assertAcceptance(
     JSON.stringify(publicShowcases) === JSON.stringify(expectedShowcases),
     `Public Showcase navigation is ${JSON.stringify(publicShowcases)}.`,

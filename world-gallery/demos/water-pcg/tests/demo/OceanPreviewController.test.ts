@@ -153,7 +153,8 @@ vi.mock("../../runtime/wave/WaterWaveMaterialFactory", () => {
     setWaterWaveNearshoreWaveEnabled: () => undefined,
     setWaterWaveNearshoreStateEnabled: () => undefined,
     setWaterWaveNearshoreBreakerEnabled: () => undefined,
-    setWaterWaveFoamTexture: () => undefined
+    setWaterWaveFoamTexture: () => undefined,
+    validateWaterFoamDetailTextureBinding: () => undefined
   };
 });
 

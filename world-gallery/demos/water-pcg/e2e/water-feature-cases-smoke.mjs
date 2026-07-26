@@ -382,6 +382,8 @@ async function assertOceanFocusedFeature(page, definition) {
           return (
             scene.wetSandEnabled === true &&
             scene.wetnessTexelCount > 0 &&
+            scene.wetnessTexelCount >
+              scene.thinFilmTexelCount &&
             scene.wetnessPeak > 0 &&
             scene.wetSandTextureCount === 4
           );
