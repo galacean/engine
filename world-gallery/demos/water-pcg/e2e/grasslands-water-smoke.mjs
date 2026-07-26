@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { chromium } from "@playwright/test";
 import {
@@ -36,6 +37,9 @@ const CASE_DEFINITION = Object.freeze({
 const VIEWPORT = Object.freeze({ width: 1340, height: 662 });
 const DEVICE_SCALE_FACTOR = 1;
 const FIXED_SURFACE_TIME = 12.5;
+// Clean 626b5593 pre-P0 Hero evidence. P0 is authorized to change this candidate image,
+// but the old value remains recorded for classification and is not a Regression Golden.
+const PRE_P0_AUTOMATION_HERO_SHA256 = "2c49f5545bbdb970deb97c53e3bf03b09770a6ed1da585642d58c671c4715d66";
 const FIXED_SEED = 20260724;
 const ALTERNATE_SEED = 20260725;
 const ALTERNATE_SEED_RUNS = 2;
@@ -44,10 +48,40 @@ const LIFECYCLE_ROUNDS = 10;
 const LIFECYCLE_STABLE_FRAMES = 300;
 const QUALITY_ROUNDS = 10;
 const LONG_STABILITY_FRAMES = 600;
+const TEMPORAL_STABILITY_FRAMES = 600;
+const AUTOMATION_PARAMETERS = Object.freeze(["acceptance", "visual", "profile"]);
+const TEMPORAL_CAPTURE_STATES = Object.freeze([
+  Object.freeze({
+    state: "detail-normal",
+    expectedDebugMode: 23,
+    targetRoiIds: Object.freeze(["candidate-open-water"]),
+    zeroLeakageRoiIds: Object.freeze([])
+  }),
+  Object.freeze({
+    state: "contact-foam",
+    expectedDebugMode: 26,
+    targetRoiIds: Object.freeze(["candidate-anchor-left", "candidate-anchor-right"]),
+    zeroLeakageRoiIds: Object.freeze(["candidate-open-water"])
+  })
+]);
+const TEMPORAL_PROTECTION_ROI_IDS = Object.freeze([
+  "candidate-left-bank",
+  "candidate-right-bank",
+  "candidate-static-large-rock-left",
+  "candidate-static-large-rock-right",
+  "candidate-static-small-rock"
+]);
+const TEMPORAL_TERRAIN_PROTECTION_ROI_IDS = Object.freeze(["candidate-left-bank", "candidate-right-bank"]);
+const TEMPORAL_STATIC_ROCK_PROTECTION_ROI_IDS = Object.freeze([
+  "candidate-static-large-rock-left",
+  "candidate-static-large-rock-right",
+  "candidate-static-small-rock"
+]);
 const EXPECTED = Object.freeze({
-  descriptorHash: "9b1d092e9384d794",
+  descriptorHash: "6f89fae07e777259",
   appearanceHash: "b137ea12b87e0af0",
-  fixtureHash: "9d863296d9ed7303",
+  fixtureHash: "3512e137ff304939",
+  environmentAssetSetHash: "2a1d1e0591c0d2a1125332a4b4c08938d89a782a9ea6c46b11c3fd7d35b31580",
   normalAssetId: "grasslands-water-normal-1024",
   normalContentHash: "0d9bfdded6d8c46cff4afe145cf052ec31f079ae03d89b73599ccb7807c02332"
 });
@@ -60,6 +94,16 @@ const GRASSLANDS_MAIN_REPOSITORY_PATH = "world-gallery/demos/water-pcg/demo/gras
 const LIFECYCLE_JOURNAL_KEY = "water-pcg-grasslands-last-dispose";
 const FORMAL_EXCLUSION_EVIDENCE_PATH = "snapshot.exclusionResources";
 const missingFormalFields = new Set();
+
+function externalNormalTextureCreateCount(resources) {
+  return resources.textureCreateCount - resources.localMapTextureCreateCount - resources.environmentTextureCreateCount;
+}
+
+function externalNormalTextureDestroyCount(resources) {
+  return (
+    resources.textureDestroyCount - resources.localMapTextureDestroyCount - resources.environmentTextureDestroyCount
+  );
+}
 const runEnvironment = { ...process.env };
 if (process.env.GRASSLANDS_WATER_SMOKE_OUTPUT_DIR?.trim()) {
   runEnvironment.WATER_PCG_ACCEPTANCE_OUTPUT_DIR = process.env.GRASSLANDS_WATER_SMOKE_OUTPUT_DIR.trim();
@@ -187,13 +231,13 @@ function createGrasslandsUrl(fixed, options = {}) {
   url.search = "";
   url.hash = CASE_DEFINITION.id;
   url.searchParams.set("quality", "high");
-  url.searchParams.set("surfaceTime", String(FIXED_SURFACE_TIME));
+  if (fixed) url.searchParams.set("surfaceTime", String(FIXED_SURFACE_TIME));
   url.searchParams.set("seed", String(options.seed ?? FIXED_SEED));
   url.searchParams.set("stats", "0");
   url.searchParams.set("tour", "0");
   if (options.normalSource) url.searchParams.set("normalSource", options.normalSource);
   if (options.developmentLocalOverride) url.searchParams.set("developmentLocalOverride", "1");
-  if (fixed) url.searchParams.set("acceptance", "1");
+  if (fixed) url.searchParams.set(options.automationParameter ?? "acceptance", "1");
   return url;
 }
 
@@ -315,7 +359,7 @@ function assertStrictHappyPath(snapshot, label, options = {}) {
     snapshot.externalAssetHash === EXPECTED.normalContentHash,
     `${label} fixture asset hash drifted to '${snapshot.externalAssetHash}'.`
   );
-  assertAcceptance(snapshot.wetTexelCount === 160 * 96, `${label} wet texel count is ${snapshot.wetTexelCount}.`);
+  assertAcceptance(snapshot.wetTexelCount === 143 * 128, `${label} wet texel count is ${snapshot.wetTexelCount}.`);
   assertDeepEqual(snapshot.captureViewport, [VIEWPORT.width, VIEWPORT.height], `${label} capture viewport drifted.`);
 
   assertAcceptance(snapshot.normal.requested === true, `${label} did not request its external normal.`);
@@ -469,19 +513,19 @@ function assertStrictHappyPath(snapshot, label, options = {}) {
   );
   assertAcceptance(snapshot.runtimeSet.gameplayQueryRegistered === false, `${label} registered gameplay queries.`);
 
-  assertAcceptance(snapshot.resources.ownedTextureCount === 2, `${label} does not own exactly two active textures.`);
+  assertAcceptance(snapshot.resources.ownedTextureCount === 12, `${label} does not own the exact 12 active textures.`);
   assertAcceptance(snapshot.resources.borrowedTextureCount === 1, `${label} does not expose one borrowed texture.`);
-  assertAcceptance(snapshot.resources.materialCount > 0, `${label} has no active runtime materials.`);
+  assertAcceptance(snapshot.resources.materialCount === 6, `${label} active material count drifted.`);
   assertAcceptance(snapshot.resources.renderTargetCount === 0, `${label} created a render target.`);
   assertAcceptance(snapshot.resources.reflectionCameraCount === 0, `${label} created a reflection camera.`);
   assertAcceptance(snapshot.resources.cameraCount === 1, `${label} does not own exactly one scene camera.`);
   assertAcceptance(
-    snapshot.resources.textureCreateCount - snapshot.resources.localMapTextureCreateCount === 1,
+    externalNormalTextureCreateCount(snapshot.resources) === 1,
     `${label} external texture create count is not one.`,
     snapshot.resources
   );
   assertAcceptance(
-    snapshot.resources.textureDestroyCount - snapshot.resources.localMapTextureDestroyCount === 0,
+    externalNormalTextureDestroyCount(snapshot.resources) === 0,
     `${label} destroyed the caller-owned normal while active.`,
     snapshot.resources
   );
@@ -505,13 +549,40 @@ function assertStrictHappyPath(snapshot, label, options = {}) {
     snapshot.scene.terrainEntityCount === 1 &&
       snapshot.scene.anchorRockCount === 3 &&
       snapshot.scene.activeRockCount === 3 &&
-      snapshot.scene.scenicRockCount === 7 &&
-      snapshot.scene.submergedScenicRockCount === 3 &&
-      snapshot.scene.shoreScenicRockCount === 4 &&
+      snapshot.scene.scenicRockCount === 15 &&
+      snapshot.scene.submergedScenicRockCount === 8 &&
+      snapshot.scene.shoreScenicRockCount === 7 &&
       snapshot.scene.contactProbeCount === 3 &&
       snapshot.scene.terrainIndexCount === snapshot.scene.terrainBedIndexCount + snapshot.scene.terrainBankIndexCount &&
+      snapshot.scene.terrainIndexCount ===
+        snapshot.scene.terrainMudStonesIndexCount +
+          snapshot.scene.terrainSandIndexCount +
+          snapshot.scene.terrainGrassMudIndexCount &&
       snapshot.scene.terrainBedIndexCount > 0 &&
       snapshot.scene.terrainBankIndexCount > 0 &&
+      snapshot.scene.terrainMudStonesIndexCount > 0 &&
+      snapshot.scene.terrainSandIndexCount > 0 &&
+      snapshot.scene.terrainGrassMudIndexCount > 0 &&
+      snapshot.scene.environmentReady === true &&
+      snapshot.scene.environmentAssetSetHash === EXPECTED.environmentAssetSetHash &&
+      snapshot.scene.terrainMaterialRegionCount === 3 &&
+      snapshot.scene.terrainMaterialRegionIds.join(",") === "mud-stones,sand,grass-mud" &&
+      snapshot.scene.rockModelResourceCount === 5 &&
+      snapshot.scene.largeRockVariantCount === 2 &&
+      snapshot.scene.smallRockVariantCount === 3 &&
+      snapshot.scene.sharedRockMeshCount === 5 &&
+      snapshot.scene.proxyRockMeshCount === 0 &&
+      snapshot.scene.sceneMeshUploadCount === 6 &&
+      snapshot.scene.terrainShorelineSampleCount === 386 &&
+      snapshot.scene.terrainDegenerateTriangleCount === 0 &&
+      snapshot.scene.terrainDirectMudGrassAdjacencyCount === 0 &&
+      snapshot.scene.connectedWaterBodyCount === 1 &&
+      snapshot.scene.landscapeRegionCount === 4 &&
+      snapshot.scene.landscapeRegionIds.join(",") === "far-river,narrow-channel,mid-bay,near-shoal" &&
+      snapshot.scene.landscapeExtentScaleXZ[0] >= 2 &&
+      snapshot.scene.landscapeExtentScaleXZ[0] <= 3 &&
+      snapshot.scene.landscapeExtentScaleXZ[1] >= 2 &&
+      snapshot.scene.landscapeExtentScaleXZ[1] <= 3 &&
       snapshot.scene.directLightCount === 1,
     `${label} scene entity contract drifted.`,
     snapshot.scene
@@ -548,10 +619,32 @@ function assertStrictHappyPath(snapshot, label, options = {}) {
   }
   assertAcceptance(
     snapshot.scene.anchorRocks.every(
-      (rock) => rock.active && rock.crossesWaterSurface && rock.sceneDepthContactExpected && rock.state === "default"
+      (rock) =>
+        rock.active &&
+        (rock.modelId === "stone-1" || rock.modelId === "stone-2") &&
+        rock.crossesWaterSurface &&
+        rock.sceneDepthContactExpected &&
+        rock.state === "default"
     ),
     `${label} anchor rocks do not all cross the water surface.`,
     snapshot.scene.anchorRocks
+  );
+  assertAcceptance(
+    snapshot.resources.environmentTextureCreateCount === 10 &&
+      snapshot.resources.environmentTextureDestroyCount === 0 &&
+      snapshot.resources.environmentMaterialCreateCount === 5 &&
+      snapshot.resources.environmentMaterialDestroyCount === 0 &&
+      snapshot.resources.environmentGltfResourceCreateCount === 5 &&
+      snapshot.resources.environmentGltfResourceDestroyCount === 0 &&
+      snapshot.resources.environmentMeshCreateCount === 5 &&
+      snapshot.resources.environmentMeshDestroyCount === 0 &&
+      snapshot.resources.environmentTemplateEntityCreateCount === 10 &&
+      snapshot.resources.environmentTemplateEntityDestroyCount === 0 &&
+      snapshot.resources.environmentActiveRockInstanceCount === 18 &&
+      snapshot.resources.environmentRockInstanceCreateCount === 18 &&
+      snapshot.resources.environmentRockInstanceDestroyCount === 0,
+    `${label} environment resource ownership contract drifted.`,
+    snapshot.resources
   );
   assertAcceptance(snapshot.frame.finite === true, `${label} frame sampler is not finite.`, snapshot.frame);
   assertAcceptance(
@@ -590,6 +683,20 @@ function activeResourceVector(snapshot) {
     sceneMaterialDestroyCount: snapshot.resources.sceneMaterialDestroyCount,
     sceneEntityCreateCount: snapshot.resources.sceneEntityCreateCount,
     sceneEntityDestroyCount: snapshot.resources.sceneEntityDestroyCount,
+    sceneMeshUploadCount: snapshot.resources.sceneMeshUploadCount,
+    environmentTextureCreateCount: snapshot.resources.environmentTextureCreateCount,
+    environmentTextureDestroyCount: snapshot.resources.environmentTextureDestroyCount,
+    environmentMaterialCreateCount: snapshot.resources.environmentMaterialCreateCount,
+    environmentMaterialDestroyCount: snapshot.resources.environmentMaterialDestroyCount,
+    environmentGltfResourceCreateCount: snapshot.resources.environmentGltfResourceCreateCount,
+    environmentGltfResourceDestroyCount: snapshot.resources.environmentGltfResourceDestroyCount,
+    environmentMeshCreateCount: snapshot.resources.environmentMeshCreateCount,
+    environmentMeshDestroyCount: snapshot.resources.environmentMeshDestroyCount,
+    environmentTemplateEntityCreateCount: snapshot.resources.environmentTemplateEntityCreateCount,
+    environmentTemplateEntityDestroyCount: snapshot.resources.environmentTemplateEntityDestroyCount,
+    environmentActiveRockInstanceCount: snapshot.resources.environmentActiveRockInstanceCount,
+    environmentRockInstanceCreateCount: snapshot.resources.environmentRockInstanceCreateCount,
+    environmentRockInstanceDestroyCount: snapshot.resources.environmentRockInstanceDestroyCount,
     renderTargetCount: snapshot.resources.renderTargetCount,
     reflectionCameraCount: snapshot.resources.reflectionCameraCount,
     cameraCount: snapshot.resources.cameraCount,
@@ -625,6 +732,21 @@ function liveResourceVector(snapshot) {
     sceneMaterialRetainedCount:
       snapshot.resources.sceneMaterialCreateCount - snapshot.resources.sceneMaterialDestroyCount,
     sceneEntityRetainedCount: snapshot.resources.sceneEntityCreateCount - snapshot.resources.sceneEntityDestroyCount,
+    environmentTextureRetainedCount:
+      snapshot.resources.environmentTextureCreateCount - snapshot.resources.environmentTextureDestroyCount,
+    environmentMaterialRetainedCount:
+      snapshot.resources.environmentMaterialCreateCount - snapshot.resources.environmentMaterialDestroyCount,
+    environmentGltfResourceRetainedCount:
+      snapshot.resources.environmentGltfResourceCreateCount - snapshot.resources.environmentGltfResourceDestroyCount,
+    environmentMeshRetainedCount:
+      snapshot.resources.environmentMeshCreateCount - snapshot.resources.environmentMeshDestroyCount,
+    environmentTemplateEntityRetainedCount:
+      snapshot.resources.environmentTemplateEntityCreateCount -
+      snapshot.resources.environmentTemplateEntityDestroyCount,
+    environmentActiveRockInstanceCount: snapshot.resources.environmentActiveRockInstanceCount,
+    environmentRockInstanceRetainedCount:
+      snapshot.resources.environmentRockInstanceCreateCount - snapshot.resources.environmentRockInstanceDestroyCount,
+    sceneMeshUploadCount: snapshot.resources.sceneMeshUploadCount,
     externalNormalTextureDestroyed: snapshot.normal.textureDestroyed
   };
 }
@@ -637,7 +759,20 @@ function assertActiveOwnership(snapshot, label) {
       snapshot.resources.sceneMaterialCreateCount > 0 &&
       snapshot.resources.sceneMaterialDestroyCount === 0 &&
       snapshot.resources.sceneEntityCreateCount > 0 &&
-      snapshot.resources.sceneEntityDestroyCount === 0,
+      snapshot.resources.sceneEntityDestroyCount === 0 &&
+      snapshot.resources.environmentTextureCreateCount === 10 &&
+      snapshot.resources.environmentTextureDestroyCount === 0 &&
+      snapshot.resources.environmentMaterialCreateCount === 5 &&
+      snapshot.resources.environmentMaterialDestroyCount === 0 &&
+      snapshot.resources.environmentGltfResourceCreateCount === 5 &&
+      snapshot.resources.environmentGltfResourceDestroyCount === 0 &&
+      snapshot.resources.environmentMeshCreateCount === 5 &&
+      snapshot.resources.environmentMeshDestroyCount === 0 &&
+      snapshot.resources.environmentTemplateEntityCreateCount === 10 &&
+      snapshot.resources.environmentTemplateEntityDestroyCount === 0 &&
+      snapshot.resources.environmentActiveRockInstanceCount === 18 &&
+      snapshot.resources.environmentRockInstanceCreateCount === 18 &&
+      snapshot.resources.environmentRockInstanceDestroyCount === 0,
     `${label} Scene resource ownership counters are not active and unbalanced as expected.`,
     snapshot.resources
   );
@@ -656,9 +791,8 @@ function disposedResourceEvidence(snapshot) {
     totalMemory: snapshot.resources.totalMemory,
     ownedTextureCount: snapshot.resources.ownedTextureCount,
     borrowedTextureCount: snapshot.resources.borrowedTextureCount,
-    externalTextureCreateCount: snapshot.resources.textureCreateCount - snapshot.resources.localMapTextureCreateCount,
-    externalTextureDestroyCount:
-      snapshot.resources.textureDestroyCount - snapshot.resources.localMapTextureDestroyCount,
+    externalTextureCreateCount: externalNormalTextureCreateCount(snapshot.resources),
+    externalTextureDestroyCount: externalNormalTextureDestroyCount(snapshot.resources),
     textureCreateCount: snapshot.resources.textureCreateCount,
     textureDestroyCount: snapshot.resources.textureDestroyCount,
     localMapTextureCreateCount: snapshot.resources.localMapTextureCreateCount,
@@ -676,6 +810,20 @@ function disposedResourceEvidence(snapshot) {
     sceneMaterialDestroyCount: snapshot.resources.sceneMaterialDestroyCount,
     sceneEntityCreateCount: snapshot.resources.sceneEntityCreateCount,
     sceneEntityDestroyCount: snapshot.resources.sceneEntityDestroyCount,
+    sceneMeshUploadCount: snapshot.resources.sceneMeshUploadCount,
+    environmentTextureCreateCount: snapshot.resources.environmentTextureCreateCount,
+    environmentTextureDestroyCount: snapshot.resources.environmentTextureDestroyCount,
+    environmentMaterialCreateCount: snapshot.resources.environmentMaterialCreateCount,
+    environmentMaterialDestroyCount: snapshot.resources.environmentMaterialDestroyCount,
+    environmentGltfResourceCreateCount: snapshot.resources.environmentGltfResourceCreateCount,
+    environmentGltfResourceDestroyCount: snapshot.resources.environmentGltfResourceDestroyCount,
+    environmentMeshCreateCount: snapshot.resources.environmentMeshCreateCount,
+    environmentMeshDestroyCount: snapshot.resources.environmentMeshDestroyCount,
+    environmentTemplateEntityCreateCount: snapshot.resources.environmentTemplateEntityCreateCount,
+    environmentTemplateEntityDestroyCount: snapshot.resources.environmentTemplateEntityDestroyCount,
+    environmentActiveRockInstanceCount: snapshot.resources.environmentActiveRockInstanceCount,
+    environmentRockInstanceCreateCount: snapshot.resources.environmentRockInstanceCreateCount,
+    environmentRockInstanceDestroyCount: snapshot.resources.environmentRockInstanceDestroyCount,
     renderTargetCount: snapshot.resources.renderTargetCount,
     reflectionCameraCount: snapshot.resources.reflectionCameraCount,
     cameraCount: snapshot.resources.cameraCount,
@@ -706,6 +854,7 @@ function assertDisposedSnapshot(snapshot, label) {
       resources.renderTargetCount === 0 &&
       resources.reflectionCameraCount === 0 &&
       resources.cameraCount === 0 &&
+      resources.environmentActiveRockInstanceCount === 0 &&
       resources.activeRuntimeSetCount === 0 &&
       resources.activeChunkCount === 0 &&
       resources.activeDrawCount === 0 &&
@@ -723,7 +872,14 @@ function assertDisposedSnapshot(snapshot, label) {
       resources.meshCreateCount === resources.meshDestroyCount &&
       resources.sceneMeshCreateCount === resources.sceneMeshDestroyCount &&
       resources.sceneMaterialCreateCount === resources.sceneMaterialDestroyCount &&
-      resources.sceneEntityCreateCount === resources.sceneEntityDestroyCount,
+      resources.sceneEntityCreateCount === resources.sceneEntityDestroyCount &&
+      resources.environmentTextureCreateCount === resources.environmentTextureDestroyCount &&
+      resources.environmentMaterialCreateCount === resources.environmentMaterialDestroyCount &&
+      resources.environmentGltfResourceCreateCount === resources.environmentGltfResourceDestroyCount &&
+      resources.environmentMeshCreateCount === resources.environmentMeshDestroyCount &&
+      resources.environmentTemplateEntityCreateCount === resources.environmentTemplateEntityDestroyCount &&
+      resources.environmentRockInstanceCreateCount === 18 &&
+      resources.environmentRockInstanceDestroyCount === 18,
     `${label} create/destroy counters are not balanced.`,
     resources
   );
@@ -836,6 +992,56 @@ async function openGrasslandsPage(browser, fixed, label, options = {}) {
   const context = await browser.newContext({ viewport: VIEWPORT, deviceScaleFactor: DEVICE_SCALE_FACTOR });
   await context.addInitScript(() => {
     window.__grasslandsWaterContextLossEventCount = 0;
+    window.__grasslandsWaterWebGlActivity = {
+      createTexture: 0,
+      createBuffer: 0,
+      createFramebuffer: 0,
+      createRenderbuffer: 0,
+      bufferData: 0,
+      bufferSubData: 0,
+      arrayBufferData: 0,
+      elementArrayBufferData: 0,
+      uniformBufferData: 0,
+      otherBufferData: 0,
+      arrayBufferSubData: 0,
+      elementArrayBufferSubData: 0,
+      uniformBufferSubData: 0,
+      otherBufferSubData: 0
+    };
+    const prototype = WebGL2RenderingContext.prototype;
+    for (const method of ["createTexture", "createBuffer", "createFramebuffer", "createRenderbuffer"]) {
+      const original = prototype[method];
+      if (typeof original !== "function") continue;
+      Object.defineProperty(prototype, method, {
+        configurable: true,
+        writable: true,
+        value: function (...args) {
+          window.__grasslandsWaterWebGlActivity[method]++;
+          return Reflect.apply(original, this, args);
+        }
+      });
+    }
+    for (const method of ["bufferData", "bufferSubData"]) {
+      const original = prototype[method];
+      if (typeof original !== "function") continue;
+      Object.defineProperty(prototype, method, {
+        configurable: true,
+        writable: true,
+        value: function (target, ...args) {
+          window.__grasslandsWaterWebGlActivity[method]++;
+          const targetName =
+            target === this.ARRAY_BUFFER
+              ? "arrayBuffer"
+              : target === this.ELEMENT_ARRAY_BUFFER
+                ? "elementArrayBuffer"
+                : target === this.UNIFORM_BUFFER
+                  ? "uniformBuffer"
+                  : "otherBuffer";
+          window.__grasslandsWaterWebGlActivity[`${targetName}${method === "bufferData" ? "Data" : "SubData"}`]++;
+          return Reflect.apply(original, this, [target, ...args]);
+        }
+      });
+    }
     document.addEventListener(
       "webglcontextlost",
       () => {
@@ -857,6 +1063,384 @@ async function openGrasslandsPage(browser, fixed, label, options = {}) {
   const display = await collectDisplayEnvironment(page);
   assertDisplayEnvironment(display, label);
   return { context, page, diagnostics, url, webgl, display };
+}
+
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
+async function readWebGlActivity(page) {
+  return page.evaluate(() => structuredClone(window.__grasslandsWaterWebGlActivity));
+}
+
+function meshResourceActivityVector(activity) {
+  return {
+    createTexture: activity.createTexture,
+    createBuffer: activity.createBuffer,
+    createFramebuffer: activity.createFramebuffer,
+    createRenderbuffer: activity.createRenderbuffer,
+    arrayBufferData: activity.arrayBufferData,
+    elementArrayBufferData: activity.elementArrayBufferData,
+    arrayBufferSubData: activity.arrayBufferSubData,
+    elementArrayBufferSubData: activity.elementArrayBufferSubData
+  };
+}
+
+async function analyzeTemporalRois(page, screenshots, rois) {
+  return page.evaluate(
+    async ({ encodedScreenshots, definitions }) => {
+      const decode = (url) =>
+        new Promise((resolveImage, rejectImage) => {
+          const image = new Image();
+          image.onload = () => resolveImage(image);
+          image.onerror = () => rejectImage(new Error("Unable to decode Grasslands temporal screenshot."));
+          image.src = url;
+        });
+      const images = await Promise.all(encodedScreenshots.map((encoded) => decode(`data:image/png;base64,${encoded}`)));
+      if (images.some((image) => image.naturalWidth !== 1340 || image.naturalHeight !== 662)) {
+        throw new Error("Grasslands temporal screenshot dimensions changed.");
+      }
+      const fingerprint = (pixels) => {
+        let hash = 0x811c9dc5;
+        for (const value of pixels) {
+          hash ^= value;
+          hash = Math.imul(hash, 0x01000193);
+        }
+        return (hash >>> 0).toString(16).padStart(8, "0");
+      };
+      const samplesByRoi = Object.fromEntries(
+        definitions.map((roi) => {
+          const samples = images.map((image) => {
+            const canvas = document.createElement("canvas");
+            canvas.width = roi.width;
+            canvas.height = roi.height;
+            const context = canvas.getContext("2d", { alpha: false, willReadFrequently: true });
+            if (!context) throw new Error(`Unable to inspect temporal ROI '${roi.id}'.`);
+            context.drawImage(image, roi.x, roi.y, roi.width, roi.height, 0, 0, roi.width, roi.height);
+            const pixels = context.getImageData(0, 0, roi.width, roi.height).data;
+            let nonBlackPixelCount = 0;
+            for (let offset = 0; offset < pixels.length; offset += 4) {
+              if (pixels[offset] !== 0 || pixels[offset + 1] !== 0 || pixels[offset + 2] !== 0) {
+                nonBlackPixelCount++;
+              }
+            }
+            return {
+              pixels: Array.from(pixels),
+              fingerprint: fingerprint(pixels),
+              nonBlackPixelCount
+            };
+          });
+          const compare = (left, right) => {
+            let changedPixelCount = 0;
+            let absoluteChannelDifference = 0;
+            let maximumChannelDifference = 0;
+            for (let offset = 0; offset < left.pixels.length; offset += 4) {
+              let pixelMaximum = 0;
+              for (let channel = 0; channel < 3; channel++) {
+                const difference = Math.abs(left.pixels[offset + channel] - right.pixels[offset + channel]);
+                absoluteChannelDifference += difference;
+                pixelMaximum = Math.max(pixelMaximum, difference);
+              }
+              maximumChannelDifference = Math.max(maximumChannelDifference, pixelMaximum);
+              if (pixelMaximum > 0) changedPixelCount++;
+            }
+            const pixelCount = roi.width * roi.height;
+            return {
+              pixelCount,
+              changedPixelCount,
+              changedPixelRatio: changedPixelCount / pixelCount,
+              meanAbsoluteChannelDifference: absoluteChannelDifference / (pixelCount * 3),
+              maximumChannelDifference
+            };
+          };
+          return [
+            roi.id,
+            {
+              rectangle: roi,
+              samples: samples.map(({ pixels: _pixels, ...sample }) => sample),
+              comparisons: {
+                t0ToT1: compare(samples[0], samples[1]),
+                t1ToT3: compare(samples[1], samples[2]),
+                t0ToT3: compare(samples[0], samples[2])
+              }
+            }
+          ];
+        })
+      );
+      return samplesByRoi;
+    },
+    {
+      encodedScreenshots: screenshots.map((bytes) => bytes.toString("base64")),
+      definitions: rois
+    }
+  );
+}
+
+async function captureTemporalState(page, definition, fixtureRois) {
+  await page.evaluate((state) => {
+    const api = window.waterPcgGrasslands;
+    if (!api) throw new Error("Grasslands temporal API is unavailable.");
+    api.resetHeroCamera();
+    api.setCaptureState(state);
+  }, definition.state);
+  await waitForAnimationFrames(page, 5);
+  const directory = resolve(run.outputDirectory, "temporal", definition.state);
+  await mkdir(directory, { recursive: true });
+  const canvas = page.locator("canvas#canvas");
+  const snapshots = [];
+  const screenshots = [];
+  const artifacts = [];
+  for (const capture of [
+    { label: "t0", delayMs: 0 },
+    { label: "t0-plus-1s", delayMs: 1_000 },
+    { label: "t0-plus-3s", delayMs: 2_000 }
+  ]) {
+    if (capture.delayMs > 0) await page.waitForTimeout(capture.delayMs);
+    const snapshot = await readGrasslandsSnapshot(page);
+    const path = resolve(directory, `${capture.label}.png`);
+    const bytes = await canvas.screenshot({ path });
+    snapshots.push(snapshot);
+    screenshots.push(bytes);
+    artifacts.push({
+      label: capture.label,
+      path,
+      sha256: sha256(bytes),
+      byteLength: bytes.byteLength
+    });
+  }
+
+  const includedRoiIds = new Set([
+    ...definition.targetRoiIds,
+    ...definition.zeroLeakageRoiIds,
+    ...TEMPORAL_PROTECTION_ROI_IDS
+  ]);
+  const rois = fixtureRois.filter((roi) => includedRoiIds.has(roi.id));
+  const roiAnalysis = await analyzeTemporalRois(page, screenshots, rois);
+  const first = snapshots[0];
+  const middle = snapshots[1];
+  const last = snapshots[2];
+  for (const [index, snapshot] of snapshots.entries()) {
+    assertAcceptance(
+      snapshot.captureState === definition.state &&
+        snapshot.requestedDebugMode === definition.expectedDebugMode &&
+        snapshot.effectiveDebugMode === definition.expectedDebugMode,
+      `${definition.state} capture ${index} did not use Debug ${definition.expectedDebugMode}.`,
+      {
+        captureState: snapshot.captureState,
+        requestedDebugMode: snapshot.requestedDebugMode,
+        effectiveDebugMode: snapshot.effectiveDebugMode
+      }
+    );
+  }
+  assertDeepEqual(middle.camera, first.camera, `${definition.state} camera changed at t0+1s.`);
+  assertDeepEqual(last.camera, first.camera, `${definition.state} camera changed at t0+3s.`);
+  assertAcceptance(
+    middle.surfaceTime > first.surfaceTime && last.surfaceTime > middle.surfaceTime,
+    `${definition.state} live surfaceTime did not increase.`,
+    { surfaceTimes: snapshots.map((snapshot) => snapshot.surfaceTime) }
+  );
+  assertAcceptance(
+    middle.surfaceTime - first.surfaceTime >= 0.8 && last.surfaceTime - first.surfaceTime >= 2.5,
+    `${definition.state} surfaceTime did not cover the requested t0/+1s/+3s intervals.`,
+    { surfaceTimes: snapshots.map((snapshot) => snapshot.surfaceTime) }
+  );
+  const engineUpdateDelta = last.frame.engineUpdateCount - first.frame.engineUpdateCount;
+  assertAcceptance(
+    engineUpdateDelta >= 60,
+    `${definition.state} observed only ${engineUpdateDelta} Engine frames across the temporal capture.`
+  );
+  for (const roiId of definition.targetRoiIds) {
+    const analysis = roiAnalysis[roiId];
+    assertAcceptance(analysis, `${definition.state} is missing target ROI '${roiId}'.`);
+    assertAcceptance(
+      analysis.samples.every((sample) => sample.nonBlackPixelCount > 0),
+      `${definition.state} target ROI '${roiId}' lost its mechanism signal.`,
+      analysis
+    );
+    assertAcceptance(
+      Object.values(analysis.comparisons).every((comparison) => comparison.changedPixelCount > 0),
+      `${definition.state} target ROI '${roiId}' did not change continuously.`,
+      analysis
+    );
+    assertAcceptance(
+      new Set(analysis.samples.map((sample) => sample.fingerprint)).size === 3,
+      `${definition.state} target ROI '${roiId}' repeated a frozen frame.`,
+      analysis
+    );
+  }
+  for (const roiId of TEMPORAL_TERRAIN_PROTECTION_ROI_IDS) {
+    const analysis = roiAnalysis[roiId];
+    assertAcceptance(
+      Object.values(analysis.comparisons).every((comparison) => comparison.changedPixelCount === 0),
+      `${definition.state} changed non-water ROI '${roiId}'.`,
+      analysis
+    );
+  }
+  for (const roiId of TEMPORAL_STATIC_ROCK_PROTECTION_ROI_IDS) {
+    const analysis = roiAnalysis[roiId];
+    assertAcceptance(
+      Object.values(analysis.comparisons).every((comparison) => comparison.changedPixelCount === 0),
+      `${definition.state} changed static rock ROI '${roiId}'.`,
+      analysis
+    );
+  }
+  for (const roiId of definition.zeroLeakageRoiIds) {
+    const analysis = roiAnalysis[roiId];
+    assertAcceptance(
+      analysis.samples.every((sample) => sample.nonBlackPixelCount === 0),
+      `${definition.state} leaked into protection ROI '${roiId}'.`,
+      analysis
+    );
+  }
+
+  return {
+    state: definition.state,
+    debugMode: last.effectiveDebugMode,
+    camera: first.camera,
+    surfaceTimes: snapshots.map((snapshot) => snapshot.surfaceTime),
+    engineUpdateCounts: snapshots.map((snapshot) => snapshot.frame.engineUpdateCount),
+    engineUpdateDelta,
+    artifacts,
+    roiAnalysis,
+    finalSnapshot: last
+  };
+}
+
+async function runOrdinaryTemporalAppearance(browser) {
+  const label = "ordinary temporal appearance";
+  const target = await openGrasslandsPage(browser, false, label);
+  try {
+    assertAcceptance(!target.url.searchParams.has("surfaceTime"), `${label} URL fixed surfaceTime.`);
+    const initial = await readGrasslandsSnapshot(target.page);
+    assertAcceptance(initial.camera.mode === "free", `${label} camera mode is not ordinary free.`);
+    assertAcceptance(initial.surfaceTime !== FIXED_SURFACE_TIME, `${label} still uses the frozen automation time.`);
+    const fixtureRois = await target.page.evaluate(() =>
+      structuredClone([
+        ...window.waterPcgGrasslands.fixture.mechanismRois,
+        ...window.waterPcgGrasslands.fixture.candidateValidationRois
+      ])
+    );
+    const captures = [];
+    for (const definition of TEMPORAL_CAPTURE_STATES) {
+      captures.push(await captureTemporalState(target.page, definition, fixtureRois));
+    }
+
+    const before = await readGrasslandsSnapshot(target.page);
+    const resourcesBefore = activeResourceVector(before);
+    const webGlBefore = await readWebGlActivity(target.page);
+    const meshResourceActivityBefore = meshResourceActivityVector(webGlBefore);
+    const updates = await waitForEngineUpdates(
+      target.page,
+      TEMPORAL_STABILITY_FRAMES,
+      `${label} ${TEMPORAL_STABILITY_FRAMES}-frame stability`
+    );
+    const after = updates.after;
+    const resourcesAfter = activeResourceVector(after);
+    const webGlAfter = await readWebGlActivity(target.page);
+    const meshResourceActivityAfter = meshResourceActivityVector(webGlAfter);
+    assertDeepEqual(resourcesAfter, resourcesBefore, `${label} resources changed across 600 live frames.`);
+    assertDeepEqual(
+      meshResourceActivityAfter,
+      meshResourceActivityBefore,
+      `${label} created GPU resources or uploaded mesh buffers across 600 live frames.`
+    );
+    assertAcceptance(after.runtimeSet.perFrameMeshUpload === false, `${label} reported a per-frame mesh upload.`);
+    assertAcceptance(
+      after.surfaceTime > before.surfaceTime,
+      `${label} surfaceTime stopped during 600-frame stability.`
+    );
+    const graphics = await assertPostStabilityGraphics(target.page, label);
+    const disposed = await disposeGrasslands(target.page, target.diagnostics, label);
+    return {
+      url: target.url.href,
+      webgl: target.webgl,
+      display: target.display,
+      captures: captures.map(({ finalSnapshot: _finalSnapshot, ...capture }) => capture),
+      stability: {
+        requiredFrames: TEMPORAL_STABILITY_FRAMES,
+        observedFrames: updates.delta,
+        surfaceTimeBefore: before.surfaceTime,
+        surfaceTimeAfter: after.surfaceTime,
+        resourcesBefore,
+        resourcesAfter,
+        webGlBefore,
+        webGlAfter,
+        meshResourceActivityBefore,
+        meshResourceActivityAfter,
+        graphics
+      },
+      disposedResources: disposed.resources,
+      diagnostics: target.diagnostics
+    };
+  } finally {
+    await target.context.close();
+  }
+}
+
+async function runAutomationSurfaceTimeModes(browser) {
+  const results = [];
+  let expectedHeroSha256;
+  for (const automationParameter of AUTOMATION_PARAMETERS) {
+    const label = `${automationParameter} fixed surfaceTime`;
+    const target = await openGrasslandsPage(browser, true, label, { automationParameter });
+    try {
+      const snapshot = await target.page.evaluate(() => {
+        const api = window.waterPcgGrasslands;
+        if (!api) throw new Error("Grasslands automation API is unavailable.");
+        api.resetHeroCamera();
+        api.setCaptureState("hero");
+        return structuredClone(api.snapshot());
+      });
+      await waitForAnimationFrames(target.page, 5);
+      assertStrictHappyPath(snapshot, label);
+      assertAcceptance(snapshot.camera.mode === "fixed", `${label} camera is not fixed.`);
+      const directory = resolve(run.outputDirectory, "automation-surface-time");
+      await mkdir(directory, { recursive: true });
+      const path = resolve(directory, `${automationParameter}-hero.png`);
+      const bytes = await target.page.locator("canvas#canvas").screenshot({ path });
+      const heroSha256 = sha256(bytes);
+      expectedHeroSha256 ??= heroSha256;
+      assertAcceptance(
+        heroSha256 !== PRE_P0_AUTOMATION_HERO_SHA256,
+        `${label} did not produce the authorized P0 environment candidate delta.`,
+        {
+          preP0HeroSha256: PRE_P0_AUTOMATION_HERO_SHA256,
+          heroSha256
+        }
+      );
+      assertAcceptance(heroSha256 === expectedHeroSha256, `${label} fixed Hero hash differs across automation modes.`, {
+        expectedHeroSha256,
+        heroSha256
+      });
+      const disposed = await disposeGrasslands(target.page, target.diagnostics, label);
+      results.push({
+        automationParameter,
+        url: target.url.href,
+        surfaceTime: snapshot.surfaceTime,
+        camera: snapshot.camera,
+        heroArtifact: {
+          path,
+          sha256: heroSha256,
+          byteLength: bytes.byteLength,
+          classification: "authorized-p0-environment-candidate-delta",
+          preP0Sha256: PRE_P0_AUTOMATION_HERO_SHA256,
+          regressionGoldenUpdated: false
+        },
+        disposedResources: disposed.resources,
+        diagnostics: target.diagnostics
+      });
+    } finally {
+      await target.context.close();
+    }
+  }
+  return {
+    expectedSurfaceTime: FIXED_SURFACE_TIME,
+    commonHeroSha256: expectedHeroSha256,
+    classification: "authorized-p0-environment-candidate-delta",
+    preP0HeroSha256: PRE_P0_AUTOMATION_HERO_SHA256,
+    regressionGoldenUpdated: false,
+    results
+  };
 }
 
 async function readDeterminismVector(page) {
@@ -887,6 +1471,7 @@ async function readDeterminismVector(page) {
       scenicRocks: fixture.scenicRocks,
       anchorRockReadback: snapshot.scene.anchorRocks,
       mechanismRois: fixture.mechanismRois,
+      candidateValidationRois: fixture.candidateValidationRois,
       decorations: fixture.decorations
     });
   });
@@ -1173,8 +1758,8 @@ async function runQualityAppearanceAndLongStability(browser) {
       assertStrictHappyPath(highAfter, `${label} round ${iteration} High after`);
       assertActiveOwnership(highAfter, `${label} round ${iteration} High after`);
       assertAcceptance(
-        highAfter.resources.textureCreateCount - highAfter.resources.localMapTextureCreateCount === 1 &&
-          highAfter.resources.textureDestroyCount - highAfter.resources.localMapTextureDestroyCount === 0 &&
+        externalNormalTextureCreateCount(highAfter.resources) === 1 &&
+          externalNormalTextureDestroyCount(highAfter.resources) === 0 &&
           highAfter.resources.borrowedTextureCount === 1,
         `${label} round ${iteration} recreated or destroyed the external normal.`,
         highAfter.resources
@@ -1227,11 +1812,8 @@ async function runQualityAppearanceAndLongStability(browser) {
       appearanceOffSecond.normal
     );
     assertAcceptance(
-      appearanceOffSecond.resources.textureCreateCount - appearanceOffSecond.resources.localMapTextureCreateCount ===
-        1 &&
-        appearanceOffSecond.resources.textureDestroyCount -
-          appearanceOffSecond.resources.localMapTextureDestroyCount ===
-          0,
+      externalNormalTextureCreateCount(appearanceOffSecond.resources) === 1 &&
+        externalNormalTextureDestroyCount(appearanceOffSecond.resources) === 0,
       `${label} Appearance Off/On/Off changed external normal ownership.`,
       appearanceOffSecond.resources
     );
@@ -1321,6 +1903,7 @@ function assertLifecycleJournal(journal, label) {
       resources.renderTargetCount === 0 &&
       resources.reflectionCameraCount === 0 &&
       resources.cameraCount === 0 &&
+      resources.environmentActiveRockInstanceCount === 0 &&
       runtimeSet.activeSetCount === 0 &&
       runtimeSet.chunkCount === 0 &&
       runtimeSet.drawCount === 0 &&
@@ -1330,8 +1913,8 @@ function assertLifecycleJournal(journal, label) {
     `${label} retained live resources after direct navigation.`,
     { resources, runtimeSet, cameraFeatures }
   );
-  const externalTextureCreateCount = resources.textureCreateCount - resources.localMapTextureCreateCount;
-  const externalTextureDestroyCount = resources.textureDestroyCount - resources.localMapTextureDestroyCount;
+  const externalTextureCreateCount = externalNormalTextureCreateCount(resources);
+  const externalTextureDestroyCount = externalNormalTextureDestroyCount(resources);
   assertAcceptance(
     resources.textureCreateCount === resources.textureDestroyCount &&
       resources.localMapTextureCreateCount === resources.localMapTextureDestroyCount &&
@@ -1341,6 +1924,13 @@ function assertLifecycleJournal(journal, label) {
       resources.sceneMeshCreateCount === resources.sceneMeshDestroyCount &&
       resources.sceneMaterialCreateCount === resources.sceneMaterialDestroyCount &&
       resources.sceneEntityCreateCount === resources.sceneEntityDestroyCount &&
+      resources.environmentTextureCreateCount === resources.environmentTextureDestroyCount &&
+      resources.environmentMaterialCreateCount === resources.environmentMaterialDestroyCount &&
+      resources.environmentGltfResourceCreateCount === resources.environmentGltfResourceDestroyCount &&
+      resources.environmentMeshCreateCount === resources.environmentMeshDestroyCount &&
+      resources.environmentTemplateEntityCreateCount === resources.environmentTemplateEntityDestroyCount &&
+      resources.environmentRockInstanceCreateCount === 18 &&
+      resources.environmentRockInstanceDestroyCount === 18 &&
       externalTextureCreateCount === 1 &&
       externalTextureDestroyCount === 1,
     `${label} direct-navigation create/destroy counters are not balanced.`,
@@ -1433,6 +2023,11 @@ async function runMissingNormalNegativeLane(browser) {
         resources.sceneMeshCreateCount === resources.sceneMeshDestroyCount &&
         resources.sceneMaterialCreateCount === resources.sceneMaterialDestroyCount &&
         resources.sceneEntityCreateCount === resources.sceneEntityDestroyCount &&
+        resources.environmentTextureCreateCount === resources.environmentTextureDestroyCount &&
+        resources.environmentMaterialCreateCount === resources.environmentMaterialDestroyCount &&
+        resources.environmentGltfResourceCreateCount === resources.environmentGltfResourceDestroyCount &&
+        resources.environmentMeshCreateCount === resources.environmentMeshDestroyCount &&
+        resources.environmentTemplateEntityCreateCount === resources.environmentTemplateEntityDestroyCount &&
         resources.renderTargetCount === 0 &&
         resources.reflectionCameraCount === 0 &&
         resources.cameraCount === 0 &&
@@ -1488,8 +2083,16 @@ async function runLifecycle(browser) {
         `${label} after ${LIFECYCLE_STABLE_FRAMES} Engine updates`
       );
       assertNoPageErrors(target.diagnostics, label);
-      const lifecycleJournalUrl = new URL("demo/grasslands/assets/manifest.json", baseUrl);
+      const lifecycleJournalUrl = new URL("__grasslands_lifecycle_leave__.html", baseUrl);
+      await target.context.route(lifecycleJournalUrl.href, (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: '<!doctype html><meta charset="utf-8"><link rel="icon" href="data:,"><title>Grasslands lifecycle leave</title>'
+        })
+      );
       await target.page.goto(lifecycleJournalUrl.href, { waitUntil: "load", timeout: 10_000 });
+      await waitForAnimationFrames(target.page, 2);
       const journal = await target.page.evaluate((key) => {
         const raw = window.sessionStorage.getItem(key);
         if (!raw) return null;
@@ -1581,6 +2184,8 @@ const report = {
   freshDeterminism: [],
   alternateSeed: null,
   freeCameraReset: null,
+  ordinaryTemporalAppearance: null,
+  automationSurfaceTimeModes: null,
   qualityAppearanceAndLongStability: null,
   missingNormalNegativeLane: null,
   lifecycle: [],
@@ -1611,6 +2216,8 @@ try {
   report.freshDeterminism = await runFreshDeterminism(browser);
   report.alternateSeed = await runAlternateSeed(browser, report.freshDeterminism[0].determinism);
   report.freeCameraReset = await runFreeCameraReset(browser);
+  report.ordinaryTemporalAppearance = await runOrdinaryTemporalAppearance(browser);
+  report.automationSurfaceTimeModes = await runAutomationSurfaceTimeModes(browser);
   report.qualityAppearanceAndLongStability = await runQualityAppearanceAndLongStability(browser);
   report.lifecycle = await runLifecycle(browser);
   report.missingNormalNegativeLane = await runMissingNormalNegativeLane(browser);

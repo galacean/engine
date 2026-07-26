@@ -14,6 +14,7 @@ import { HeightfieldWaterCompositionMode } from "../../runtime/heightfield/Heigh
 import { DEFAULT_WATER_OPTICAL_PROFILE, type WaterOpticalProfile } from "../../runtime/optics/WaterOpticalProfile";
 import type {
   GrasslandsCameraFixture,
+  GrasslandsCandidateValidationRoi,
   GrasslandsDirectLightFixture,
   GrasslandsMechanismRoi,
   GrasslandsSceneMaterialsFixture,
@@ -35,28 +36,29 @@ export const GRASSLANDS_NORMAL_FLIP_GREEN = false;
 export const GRASSLANDS_WORLD_SCALE = 0.5;
 
 export const GRASSLANDS_WATER_GRID = Object.freeze({
-  width: 160,
-  height: 96,
-  cellSize: 0.5 * GRASSLANDS_WORLD_SCALE,
+  width: 143,
+  height: 128,
+  cellSize: 1.125 * GRASSLANDS_WORLD_SCALE,
   surfaceHeight: 0,
   authoredBedHeight: -3 * GRASSLANDS_WORLD_SCALE
 });
 
 export const GRASSLANDS_WATER_BOUNDS: GrasslandsWorldBounds = Object.freeze({
-  minimum: Object.freeze([-40 * GRASSLANDS_WORLD_SCALE, 0, -24 * GRASSLANDS_WORLD_SCALE] as const),
-  maximum: Object.freeze([40 * GRASSLANDS_WORLD_SCALE, 0, 24 * GRASSLANDS_WORLD_SCALE] as const)
+  minimum: Object.freeze([-80.4375 * GRASSLANDS_WORLD_SCALE, 0, -72 * GRASSLANDS_WORLD_SCALE] as const),
+  maximum: Object.freeze([80.4375 * GRASSLANDS_WORLD_SCALE, 0, 72 * GRASSLANDS_WORLD_SCALE] as const)
 });
 
 export const GRASSLANDS_CAMERA_FIXTURE: GrasslandsCameraFixture = Object.freeze({
   mode: "fixed",
-  // M3: lower and lengthen the Hero sightline so the foreground reads through
-  // refraction while the distance receives a stronger grazing Fresnel response.
-  position: Object.freeze([0, 3.5, 16] as const),
-  target: Object.freeze([-1, -2.65, -10.5] as const),
-  forward: Object.freeze([-0.03673412091541039, -0.2259148436297739, -0.9734542042583754] as const),
-  fieldOfViewDegrees: 48,
+  // M3 large-landscape calibration: the low, long sightline keeps the near
+  // shoal readable while compressing the bay, channel and far river into one
+  // continuous cinematic view.
+  position: Object.freeze([4, 4.5, 34] as const),
+  target: Object.freeze([-2, -10, -20] as const),
+  forward: Object.freeze([-0.10669723123906885, -0.25785164216108303, -0.9602750811516196] as const),
+  fieldOfViewDegrees: 50,
   nearClip: 0.1 * GRASSLANDS_WORLD_SCALE,
-  farClip: 200 * GRASSLANDS_WORLD_SCALE
+  farClip: 320 * GRASSLANDS_WORLD_SCALE
 });
 
 export const GRASSLANDS_DIRECT_LIGHT_FIXTURE: GrasslandsDirectLightFixture = Object.freeze({
@@ -126,35 +128,259 @@ export const GRASSLANDS_MECHANISM_ROIS: readonly GrasslandsMechanismRoi[] = Obje
   })
 ]);
 
+/**
+ * Candidate-only M3 ROIs for the expanded Hero composition. These never replace
+ * the frozen Reference Parity target/mask/ROI fixture.
+ */
+export const GRASSLANDS_CANDIDATE_VALIDATION_ROIS: readonly GrasslandsCandidateValidationRoi[] = Object.freeze([
+  Object.freeze({
+    id: "candidate-left-bank",
+    x: 0,
+    y: 200,
+    width: 150,
+    height: 80,
+    purpose: "static left bank and curved Sand-to-GrassMud boundary protection"
+  }),
+  Object.freeze({
+    id: "candidate-right-bank",
+    x: 1190,
+    y: 200,
+    width: 150,
+    height: 80,
+    purpose: "static right bank and asymmetric cove protection"
+  }),
+  Object.freeze({
+    id: "candidate-open-water",
+    x: 580,
+    y: 450,
+    width: 180,
+    height: 120,
+    purpose: "near open-water temporal normal and highlight motion"
+  }),
+  Object.freeze({
+    id: "candidate-static-large-rock-left",
+    x: 274,
+    y: 215,
+    width: 7,
+    height: 5,
+    purpose: "interior of the left-bank large scenic rock for temporal protection"
+  }),
+  Object.freeze({
+    id: "candidate-static-large-rock-right",
+    x: 1120,
+    y: 331,
+    width: 14,
+    height: 7,
+    purpose: "interior of the right-bank anchor rock for temporal protection"
+  }),
+  Object.freeze({
+    id: "candidate-static-small-rock",
+    x: 944,
+    y: 200,
+    width: 10,
+    height: 5,
+    purpose: "shore small-rock interior for temporal protection and visibility"
+  }),
+  Object.freeze({
+    id: "candidate-anchor-left",
+    x: 240,
+    y: 275,
+    width: 125,
+    height: 100,
+    purpose: "left foreground Scene Depth contact and ContactFoam response"
+  }),
+  Object.freeze({
+    id: "candidate-anchor-right",
+    x: 1075,
+    y: 285,
+    width: 120,
+    height: 100,
+    purpose: "right-bank Scene Depth contact and ContactFoam response"
+  }),
+  Object.freeze({
+    id: "candidate-anchor-channel",
+    x: 685,
+    y: 170,
+    width: 150,
+    height: 90,
+    purpose: "far channel Scene Depth contact and ContactFoam response"
+  }),
+  Object.freeze({
+    id: "candidate-far-river",
+    x: 570,
+    y: 170,
+    width: 280,
+    height: 120,
+    purpose: "winding far river visibility and one-body connectivity"
+  }),
+  Object.freeze({
+    id: "candidate-narrow-channel",
+    x: 650,
+    y: 175,
+    width: 210,
+    height: 95,
+    purpose: "narrow channel visibility between far river and bay"
+  }),
+  Object.freeze({
+    id: "candidate-mid-bay",
+    x: 250,
+    y: 220,
+    width: 900,
+    height: 230,
+    purpose: "asymmetric middle bay and depth-color transition"
+  }),
+  Object.freeze({
+    id: "candidate-near-shoal",
+    x: 0,
+    y: 380,
+    width: 1340,
+    height: 282,
+    purpose: "near shoal bed, shallow refraction and underwater rock visibility"
+  }),
+  Object.freeze({
+    id: "candidate-near-optics",
+    x: 360,
+    y: 340,
+    width: 360,
+    height: 170,
+    purpose: "near refraction and high-frequency normal response"
+  }),
+  Object.freeze({
+    id: "candidate-mid-optics",
+    x: 300,
+    y: 250,
+    width: 740,
+    height: 180,
+    purpose: "middle depth color and contact hierarchy"
+  }),
+  Object.freeze({
+    id: "candidate-far-optics",
+    x: 590,
+    y: 175,
+    width: 250,
+    height: 100,
+    purpose: "far grazing Fresnel, reflection and direct-specular response"
+  })
+]);
+
 export const GRASSLANDS_TERRAIN_RECIPE: GrasslandsTerrainRecipe = Object.freeze({
   model: "analytic-centerline-width",
+  interpolation: "catmull-rom",
   waterSurfaceHeight: GRASSLANDS_WATER_GRID.surfaceHeight,
   authoredBedHeight: GRASSLANDS_WATER_GRID.authoredBedHeight,
+  minimumTerrainBedHeight: -3.5,
   bankNoise: "none",
+  sampling: Object.freeze({
+    longitudinalSegments: 192,
+    grassLateralSegments: 24,
+    sandLateralSegments: 6,
+    bedLateralSegments: 64,
+    sandBandWidth: 1.2
+  }),
   crossSections: Object.freeze([
     Object.freeze({
-      centerXZ: Object.freeze([-3 * GRASSLANDS_WORLD_SCALE, -24 * GRASSLANDS_WORLD_SCALE] as const),
-      halfWidth: 5.5 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([-6, -36] as const),
+      leftHalfWidth: 5,
+      rightHalfWidth: 7,
+      bedDepth: 2.8
     }),
     Object.freeze({
-      centerXZ: Object.freeze([-5 * GRASSLANDS_WORLD_SCALE, -16 * GRASSLANDS_WORLD_SCALE] as const),
-      halfWidth: 6 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([-8, -30] as const),
+      leftHalfWidth: 6,
+      rightHalfWidth: 8,
+      bedDepth: 3.2
     }),
     Object.freeze({
-      centerXZ: Object.freeze([-4 * GRASSLANDS_WORLD_SCALE, -8 * GRASSLANDS_WORLD_SCALE] as const),
-      halfWidth: 8 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([-5, -24] as const),
+      leftHalfWidth: 5.5,
+      rightHalfWidth: 6.5,
+      bedDepth: 2.6
     }),
     Object.freeze({
-      centerXZ: Object.freeze([1 * GRASSLANDS_WORLD_SCALE, 0] as const),
-      halfWidth: 12 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([0, -18] as const),
+      leftHalfWidth: 4.2,
+      rightHalfWidth: 4.8,
+      bedDepth: 2
     }),
     Object.freeze({
-      centerXZ: Object.freeze([3 * GRASSLANDS_WORLD_SCALE, 12 * GRASSLANDS_WORLD_SCALE] as const),
-      halfWidth: 17 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([4, -12] as const),
+      leftHalfWidth: 7,
+      rightHalfWidth: 10,
+      bedDepth: 2.6
     }),
     Object.freeze({
-      centerXZ: Object.freeze([0, 24 * GRASSLANDS_WORLD_SCALE] as const),
-      halfWidth: 22 * GRASSLANDS_WORLD_SCALE
+      centerXZ: Object.freeze([2, -6] as const),
+      leftHalfWidth: 13,
+      rightHalfWidth: 16,
+      bedDepth: 3.2
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([-3, 0] as const),
+      leftHalfWidth: 15,
+      rightHalfWidth: 12,
+      bedDepth: 2.8
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([-6, 6] as const),
+      leftHalfWidth: 12,
+      rightHalfWidth: 10,
+      bedDepth: 2.2
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([-3, 12] as const),
+      leftHalfWidth: 10,
+      rightHalfWidth: 13,
+      bedDepth: 1.6
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([2, 18] as const),
+      leftHalfWidth: 9,
+      rightHalfWidth: 11,
+      bedDepth: 0.9
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([4, 24] as const),
+      leftHalfWidth: 14,
+      rightHalfWidth: 16,
+      bedDepth: 0.65
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([0, 30] as const),
+      leftHalfWidth: 16,
+      rightHalfWidth: 14,
+      bedDepth: 0.5
+    }),
+    Object.freeze({
+      centerXZ: Object.freeze([-4, 36] as const),
+      leftHalfWidth: 12,
+      rightHalfWidth: 18,
+      bedDepth: 0.75
+    })
+  ]),
+  landscapeRegions: Object.freeze([
+    Object.freeze({
+      id: "far-river",
+      zRange: Object.freeze([-36, -24] as const),
+      focusXZ: Object.freeze([-6, -30] as const),
+      purpose: "winding distant main river with grazing-angle Fresnel and reflection"
+    }),
+    Object.freeze({
+      id: "narrow-channel",
+      zRange: Object.freeze([-22, -14] as const),
+      focusXZ: Object.freeze([-1, -18] as const),
+      purpose: "compressed channel separating the far river from the middle bay"
+    }),
+    Object.freeze({
+      id: "mid-bay",
+      zRange: Object.freeze([-12, 8] as const),
+      focusXZ: Object.freeze([-1, -2] as const),
+      purpose: "asymmetric pond-like bay carrying the strongest depth-color transition"
+    }),
+    Object.freeze({
+      id: "near-shoal",
+      zRange: Object.freeze([18, 36] as const),
+      focusXZ: Object.freeze([1, 28] as const),
+      purpose: "shallow foreground shoal exposing bed texture, refraction and underwater rocks"
     })
   ])
 });
@@ -277,6 +503,7 @@ export const GRASSLANDS_PCG_PRESET = Object.freeze({
   directLight: GRASSLANDS_DIRECT_LIGHT_FIXTURE,
   captureViewport: GRASSLANDS_CAPTURE_VIEWPORT,
   mechanismRois: GRASSLANDS_MECHANISM_ROIS,
+  candidateValidationRois: GRASSLANDS_CANDIDATE_VALIDATION_ROIS,
   terrain: GRASSLANDS_TERRAIN_RECIPE,
   sceneMaterials: GRASSLANDS_SCENE_MATERIALS,
   targetMaterialConfig: GRASSLANDS_TARGET_MATERIAL_CONFIG

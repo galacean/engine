@@ -8,6 +8,7 @@ export type GrasslandsPcgCaseId = "showcase-grasslands-stylized-water";
 export type GrasslandsPcgRuntime = "grasslands";
 export type GrasslandsPcgPresetId = "hero-grasslands";
 export type GrasslandsWaterBodyType = "heightfield";
+export type GrasslandsLandscapeRegionId = "far-river" | "narrow-channel" | "mid-bay" | "near-shoal";
 export type GrasslandsVector2 = readonly [number, number];
 export type GrasslandsVector3 = readonly [number, number, number];
 export type GrasslandsColor4 = readonly [number, number, number, number];
@@ -20,6 +21,24 @@ export type GrasslandsMechanismRoiId =
   | "contact-foam-right"
   | "coastal-alpha"
   | "specular-response";
+
+export type GrasslandsCandidateValidationRoiId =
+  | "candidate-left-bank"
+  | "candidate-right-bank"
+  | "candidate-open-water"
+  | "candidate-static-large-rock-left"
+  | "candidate-static-large-rock-right"
+  | "candidate-static-small-rock"
+  | "candidate-anchor-left"
+  | "candidate-anchor-right"
+  | "candidate-anchor-channel"
+  | "candidate-far-river"
+  | "candidate-narrow-channel"
+  | "candidate-mid-bay"
+  | "candidate-near-shoal"
+  | "candidate-near-optics"
+  | "candidate-mid-optics"
+  | "candidate-far-optics";
 
 export interface GrasslandsWorldBounds {
   readonly minimum: GrasslandsVector3;
@@ -44,6 +63,15 @@ export interface GrasslandsDirectLightFixture {
 
 export interface GrasslandsMechanismRoi {
   readonly id: GrasslandsMechanismRoiId;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly purpose: string;
+}
+
+export interface GrasslandsCandidateValidationRoi {
+  readonly id: GrasslandsCandidateValidationRoiId;
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -91,15 +119,36 @@ export interface GrasslandsSceneMaterialsFixture {
 
 export interface GrasslandsTerrainCrossSection {
   readonly centerXZ: GrasslandsVector2;
-  readonly halfWidth: number;
+  readonly leftHalfWidth: number;
+  readonly rightHalfWidth: number;
+  readonly bedDepth: number;
+}
+
+export interface GrasslandsTerrainSampling {
+  readonly longitudinalSegments: number;
+  readonly grassLateralSegments: number;
+  readonly sandLateralSegments: number;
+  readonly bedLateralSegments: number;
+  readonly sandBandWidth: number;
+}
+
+export interface GrasslandsLandscapeRegionFixture {
+  readonly id: GrasslandsLandscapeRegionId;
+  readonly zRange: GrasslandsVector2;
+  readonly focusXZ: GrasslandsVector2;
+  readonly purpose: string;
 }
 
 export interface GrasslandsTerrainRecipe {
   readonly model: "analytic-centerline-width";
+  readonly interpolation: "catmull-rom";
   readonly waterSurfaceHeight: number;
   readonly authoredBedHeight: number;
+  readonly minimumTerrainBedHeight: number;
   readonly bankNoise: "none";
+  readonly sampling: GrasslandsTerrainSampling;
   readonly crossSections: readonly GrasslandsTerrainCrossSection[];
+  readonly landscapeRegions: readonly GrasslandsLandscapeRegionFixture[];
 }
 
 export interface GrasslandsWaterControllerPresentationConfig {
@@ -137,6 +186,7 @@ export interface GrasslandsPcgFixture {
   readonly directLight: GrasslandsDirectLightFixture;
   readonly captureViewport: readonly [number, number];
   readonly mechanismRois: readonly GrasslandsMechanismRoi[];
+  readonly candidateValidationRois: readonly GrasslandsCandidateValidationRoi[];
   readonly terrain: GrasslandsTerrainRecipe;
   readonly sceneMaterials: GrasslandsSceneMaterialsFixture;
   readonly anchorRocks: readonly GrasslandsAnchorRockFixture[];

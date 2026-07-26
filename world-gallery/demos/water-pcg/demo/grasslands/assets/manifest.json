@@ -49,6 +49,331 @@
       }
     }
   ],
+  "environmentAssetSet": {
+    "id": "grasslands-p0-environment-v1",
+    "sha256": "2a1d1e0591c0d2a1125332a4b4c08938d89a782a9ea6c46b11c3fd7d35b31580",
+    "canonicalization": "SHA-256 of JSON.stringify([[id, trackedSha256], ...]) in the listed order",
+    "sourceRoot": "/Users/xingyi/Documents/github_code/grasslands-stylized-nature-demo/Assets/Raygeas/Grasslands - Stylized Nature/Assets",
+    "conversion": {
+      "script": "demo/grasslands/tools/derive-p0-environment-assets.mjs",
+      "textureTool": "pngjs 7.0.0",
+      "textureToolLicense": "MIT",
+      "fbxTool": "godotengine/FBX2glTF 0.13.1 macOS x86_64",
+      "fbxToolRelease": "https://github.com/godotengine/FBX2glTF/releases/tag/v0.13.1",
+      "fbxToolArchiveSha256": "863bd62a3d289218b19642b39b1170411df3f0448370a809ed47f1e386b77ac5",
+      "fbxToolBinarySha256": "336ab6bb6ef0e11a83012ea8375af5a74bc72b23305cf3e53417a03e173cfcf3",
+      "fbxCommand": "FBX2glTF --input <source.fbx> --output <raw.glb> --binary",
+      "glbPostProcess": [
+        "select the audited base mesh and remove Unity material, texture, and LOD dependencies",
+        "reset the retained node transform",
+        "generate TANGENT data from POSITION, NORMAL, TEXCOORD_0, and indices",
+        "write one geometry-only glTF 2.0 binary"
+      ],
+      "texturePostProcess": [
+        "downsample 2048 textures to 1024 using deterministic 2x2 filtering",
+        "average albedo RGB in linear light and smoothness alpha as linear data",
+        "decode, average, and renormalize normal vectors",
+        "keep audited 1024 source textures as same-byte copies"
+      ]
+    },
+    "ownership": {
+      "owner": "GrasslandsEnvironmentAssets",
+      "borrowers": ["GrasslandsSceneController", "rock MeshRenderer instances"],
+      "destroyer": "GrasslandsEnvironmentAssets after GrasslandsSceneController detaches all instances"
+    },
+    "distribution": {
+      "authorization": "user-confirmed paid project license",
+      "independentDistributionAllowed": false,
+      "sourceRepackagingAllowed": false
+    },
+    "assets": [
+      {
+        "id": "mud-stones-albedo-smoothness",
+        "role": "visible shallow-water bed albedo and retained smoothness data",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["MudStones material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/MudStones_AlbedoSmoothness.png",
+        "sourceSha256": "1aeb54b4087958d7edf9e0b81d865f0ad968897bdd0f990d6b183ece5ac7f65e",
+        "sourceByteLength": 3806928,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/mud-stones-albedo-smoothness-1024.png",
+        "trackedSha256": "ae5663d5cc515ab2f13d8334567b2d57b52584fb5827e23d3514a439af176e2f",
+        "byteLength": 1230190,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic linear-light 2x2 RGB downsample; alpha averaged independently"
+      },
+      {
+        "id": "mud-stones-normal",
+        "role": "visible shallow-water bed tangent normal",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["MudStones material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/MudStones_Normal.png",
+        "sourceSha256": "88fd08c24ca17f0f8b4e1e96096e8c15bdd4598db69c2f9effe6cfc91e357001",
+        "sourceByteLength": 2869879,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/mud-stones-normal-1024.png",
+        "trackedSha256": "a979ed85f250de9b59f9e45506fdddce485973bee34a54a9a96f7483b0bfd88a",
+        "byteLength": 864867,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic decoded-vector 2x2 average and renormalization"
+      },
+      {
+        "id": "sand-albedo-smoothness",
+        "role": "shallow wet-bank albedo and retained smoothness data",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["Sand material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/Sand_AlbedoSmoothness.png",
+        "sourceSha256": "28b579b007f81225a338749d42ad2c68e4389310520623ab0ca8076e780b8a33",
+        "sourceByteLength": 8290466,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/sand-albedo-smoothness-1024.png",
+        "trackedSha256": "9273b3625197d4ee52d31e27adf5c61646d699a20b1da2b4a2db44b649363328",
+        "byteLength": 2167927,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic linear-light 2x2 RGB downsample; alpha averaged independently"
+      },
+      {
+        "id": "sand-normal",
+        "role": "shallow wet-bank tangent normal",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["Sand material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/Sand_Normal.png",
+        "sourceSha256": "8d61bd0730e28a702b6a828a65bb67fe5ca85b560b3dc91005b1eec91a2d4ef7",
+        "sourceByteLength": 7115297,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/sand-normal-1024.png",
+        "trackedSha256": "e68e08428fa5d5bc77c4f0be45bcc70ac176870fbff22b0ed8c7055d3dadc8c5",
+        "byteLength": 1248362,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic decoded-vector 2x2 average and renormalization"
+      },
+      {
+        "id": "grass-mud-albedo-smoothness",
+        "role": "outer-bank albedo and retained smoothness data",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrassMud material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/GrassMud_AlbedoSmoothness.png",
+        "sourceSha256": "bc9d9dc83af2093b195222ea202257db444e8fe88cbf932d01a0cd031cf3e25b",
+        "sourceByteLength": 3835561,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/grass-mud-albedo-smoothness-1024.png",
+        "trackedSha256": "567197d833fb99fd0cc21f908d729ca1b855eb950cffffe13ef181aac51e0375",
+        "byteLength": 1262572,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic linear-light 2x2 RGB downsample; alpha averaged independently"
+      },
+      {
+        "id": "grass-mud-normal",
+        "role": "outer-bank tangent normal",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrassMud material", "GrasslandsSceneController terrain renderer"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Terrain/GrassMud_Normal.png",
+        "sourceSha256": "458d6d32dc7a954bff363db205786f3c443b280364efc3c9854b29474394c5ba",
+        "sourceByteLength": 3170302,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/terrain/grass-mud-normal-1024.png",
+        "trackedSha256": "501d4c533ff7eafdadf21842097ada44efe24c0c749c194997f9ef56c17491d4",
+        "byteLength": 1007483,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic decoded-vector 2x2 average and renormalization"
+      },
+      {
+        "id": "stone-1-2-albedo",
+        "role": "shared large-rock albedo",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["LargeStone material", "GrasslandsSceneController large-rock renderers"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Rocks/Stone_1,2_Albedo.png",
+        "sourceSha256": "d87ddbc1d3e22f41f68aa9a85559cad9535150f107e06734907e266face28590",
+        "sourceByteLength": 2241448,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/rocks/stone-1-2-albedo-1024.png",
+        "trackedSha256": "46d422cabf509ad4536ea9831704881d5653a7eef6704495b8b9c011e4314a5f",
+        "byteLength": 650922,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic linear-light 2x2 RGB downsample; alpha forced opaque"
+      },
+      {
+        "id": "stone-1-2-normal",
+        "role": "shared large-rock tangent normal",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["LargeStone material", "GrasslandsSceneController large-rock renderers"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Rocks/Stone_1,2_Normal.png",
+        "sourceSha256": "894488a2be1c719b76e5d058fdd63de4d5a40de29e6f0ef84d18cc52359b5a5c",
+        "sourceByteLength": 3602681,
+        "sourceDimensions": [2048, 2048],
+        "trackedPath": "demo/grasslands/assets/environment/rocks/stone-1-2-normal-1024.png",
+        "trackedSha256": "ab8d56ea6dae49fffb059aa5f7e239c838f186ad1764d18aa836e56399ccfa82",
+        "byteLength": 913731,
+        "dimensions": [1024, 1024],
+        "format": "PNG RGBA8",
+        "derivative": "deterministic decoded-vector 2x2 average and renormalization"
+      },
+      {
+        "id": "small-stones-albedo",
+        "role": "shared small-rock albedo",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["SmallStone material", "GrasslandsSceneController small-rock renderers"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Rocks/Small_Stones_Albedo.png",
+        "sourceSha256": "73098d9d1cc0005d148d6f191216e8fe34d962fa207752e00dc197ba11d990b9",
+        "sourceByteLength": 604539,
+        "sourceDimensions": [1024, 1024],
+        "trackedPath": "demo/grasslands/assets/environment/rocks/small-stones-albedo-1024.png",
+        "trackedSha256": "73098d9d1cc0005d148d6f191216e8fe34d962fa207752e00dc197ba11d990b9",
+        "byteLength": 604539,
+        "dimensions": [1024, 1024],
+        "format": "PNG",
+        "derivative": "same-byte copy"
+      },
+      {
+        "id": "small-stones-normal",
+        "role": "shared small-rock tangent normal",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["SmallStone material", "GrasslandsSceneController small-rock renderers"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Textures/Rocks/Small_Stones_Normal.png",
+        "sourceSha256": "09b9fb8dafac135976192b86e7be4e09e570dbbee32ee0dc421dbdcc6804a906",
+        "sourceByteLength": 1086364,
+        "sourceDimensions": [1024, 1024],
+        "trackedPath": "demo/grasslands/assets/environment/rocks/small-stones-normal-1024.png",
+        "trackedSha256": "09b9fb8dafac135976192b86e7be4e09e570dbbee32ee0dc421dbdcc6804a906",
+        "byteLength": 1086364,
+        "dimensions": [1024, 1024],
+        "format": "PNG",
+        "derivative": "same-byte copy"
+      },
+      {
+        "id": "stone-1",
+        "role": "large anchor-rock geometry variant 1",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrasslandsSceneController large-rock instances"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Models/Rocks/Stone_1.fbx",
+        "sourceSha256": "d7c476c417f76c6c63a8d819e593d11421c0e0f91de6953b0a630b5f2221d56f",
+        "sourceByteLength": 35340,
+        "trackedPath": "demo/grasslands/assets/environment/models/stone-1.glb",
+        "trackedSha256": "639b0edae5f8c07cd7669f49096ca4df4848206e5687eaf55f18a64475e21b36",
+        "byteLength": 11968,
+        "format": "glTF 2.0 binary, geometry-only",
+        "conversion": "FBX2glTF 0.13.1 then deterministic base-mesh pruning and tangent generation",
+        "geometry": { "vertices": 192, "triangles": 252, "meshes": 1 }
+      },
+      {
+        "id": "stone-2",
+        "role": "large anchor-rock geometry variant 2",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrasslandsSceneController large-rock instances"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Models/Rocks/Stone_2.fbx",
+        "sourceSha256": "1a478672201d49a4e7b8b1544bad900034a802bdac93854f55578f5aceba6c89",
+        "sourceByteLength": 36860,
+        "trackedPath": "demo/grasslands/assets/environment/models/stone-2.glb",
+        "trackedSha256": "9e856801e37e2ac6b093776a27193be916596a7e2e05c173531c6336695aa9ae",
+        "byteLength": 12356,
+        "format": "glTF 2.0 binary, geometry-only",
+        "conversion": "FBX2glTF 0.13.1 then deterministic base-mesh pruning and tangent generation",
+        "geometry": { "vertices": 196, "triangles": 284, "meshes": 1 }
+      },
+      {
+        "id": "small-stone-1",
+        "role": "small bed/shore rock geometry variant 1",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrasslandsSceneController small-rock instances"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Models/Rocks/Small_Stone_1.fbx",
+        "sourceSha256": "2b0dca0cf6a8b54a49402916cfe1b4b6b8168510574a1b57f8bd2eed3c4e44a4",
+        "sourceByteLength": 21740,
+        "trackedPath": "demo/grasslands/assets/environment/models/small-stone-1.glb",
+        "trackedSha256": "c95614242fee5fb8e6ca46f181b72a999fd9537944936a66a9186f888e814346",
+        "byteLength": 6520,
+        "format": "glTF 2.0 binary, geometry-only",
+        "conversion": "FBX2glTF 0.13.1 then deterministic base-mesh pruning and tangent generation",
+        "geometry": { "vertices": 91, "triangles": 150, "meshes": 1 }
+      },
+      {
+        "id": "small-stone-2",
+        "role": "small bed/shore rock geometry variant 2",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrasslandsSceneController small-rock instances"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Models/Rocks/Small_Stone_2.fbx",
+        "sourceSha256": "6249650b67d82aa8c99de7c8ec5387e90066a927eb1b413ca73355b33aec53ee",
+        "sourceByteLength": 21676,
+        "trackedPath": "demo/grasslands/assets/environment/models/small-stone-2.glb",
+        "trackedSha256": "4f6df26a153f038ca7cddd5465d1fd3e4651fc3151139374e4b26efe0a13d3b3",
+        "byteLength": 6608,
+        "format": "glTF 2.0 binary, geometry-only",
+        "conversion": "FBX2glTF 0.13.1 then deterministic base-mesh pruning and tangent generation",
+        "geometry": { "vertices": 93, "triangles": 148, "meshes": 1 }
+      },
+      {
+        "id": "small-stone-3",
+        "role": "small bed/shore rock geometry variant 3",
+        "ownership": {
+          "owner": "GrasslandsEnvironmentAssets",
+          "borrowers": ["GrasslandsSceneController small-rock instances"],
+          "destroyer": "GrasslandsEnvironmentAssets.destroyAfterSceneDetach"
+        },
+        "sourcePath": "Models/Rocks/Small_Stone_3.fbx",
+        "sourceSha256": "1a0112e5a986263258d3813ab45d7a51c0b7168b69f50ce91a1115aefe6bd75d",
+        "sourceByteLength": 21964,
+        "trackedPath": "demo/grasslands/assets/environment/models/small-stone-3.glb",
+        "trackedSha256": "3e4262ec3613b44b54e6c1c0522ecff2a1e7bf34e0601401a10941e486ae857e",
+        "byteLength": 7148,
+        "format": "glTF 2.0 binary, geometry-only",
+        "conversion": "FBX2glTF 0.13.1 then deterministic base-mesh pruning and tangent generation",
+        "geometry": { "vertices": 102, "triangles": 166, "meshes": 1 }
+      }
+    ],
+    "materialBinding": {
+      "materials": ["MudStones", "Sand", "GrassMud", "LargeStone", "SmallStone"],
+      "textureResources": 10,
+      "roughnessDeviation": "AlbedoSmoothness alpha is preserved and audited but not bound as a Galacean roughness-metallic texture because that input requires G=roughness and B=metallic; five Demo-local constant roughness values are used without changing frozen water material parameters."
+    }
+  },
   "excludedFiles": [
     "complete unitypackage",
     "purchase account or order data",

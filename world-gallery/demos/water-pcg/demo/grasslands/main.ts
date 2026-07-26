@@ -24,6 +24,7 @@ import {
 } from "./GrasslandsAssetLoader";
 import { GrasslandsAsyncTeardownBarrier } from "./GrasslandsAsyncTeardownBarrier";
 import { GrasslandsControlledCalibration } from "./GrasslandsControlledCalibration";
+import { GrasslandsEnvironmentAssets, GRASSLANDS_ENVIRONMENT_ASSET_SET_HASH } from "./GrasslandsEnvironmentAssets";
 import { createGrasslandsPcgFixture } from "./GrasslandsPcgFixture";
 import {
   GRASSLANDS_COMPILED_SURFACE_APPEARANCE,
@@ -45,11 +46,15 @@ import {
   type GrasslandsShowcaseAcceptanceApi,
   type GrasslandsShowcaseAcceptanceSnapshot
 } from "./GrasslandsShowcaseAcceptance";
+import {
+  GRASSLANDS_FIXED_SURFACE_TIME,
+  resolveGrasslandsSurfaceTimeOverride,
+  resolveGrasslandsSurfaceTimeReadback
+} from "./GrasslandsSurfaceTimePolicy";
 import type { GrasslandsVector3 } from "./GrasslandsPcgTypes";
 import { isGrasslandsExclusionClean, observeGrasslandsExcludedResources } from "./GrasslandsRuntimeObservation";
 
 const GRASSLANDS_RUNTIME_SET_ID = "grasslands-heightfield-water";
-const GRASSLANDS_SURFACE_TIME = 12.5;
 const GRASSLANDS_LIFECYCLE_JOURNAL_KEY = "water-pcg-grasslands-last-dispose";
 const DEFAULT_APPEARANCE_FEATURE_FLAGS: Readonly<HeightfieldWaterSurfaceAppearanceFeatureFlags> = Object.freeze({
   externalNormal: true,
@@ -105,6 +110,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let runtimeController: HeightfieldWaterRuntimeController | undefined;
   let cameraFeatureBroker: CameraWaterFeatureBroker | undefined;
   let sceneController: GrasslandsSceneController | undefined;
+  let environmentAssets: GrasslandsEnvironmentAssets | undefined;
   let cameraController: ShowcaseCameraController | undefined;
   let assetLoader: GrasslandsAssetLoader | undefined;
   let compileWorker: HeightfieldWaterCompileWorkerClient | undefined;
@@ -122,6 +128,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let runtimeError: string | null = null;
   let phase: GrasslandsAcceptanceRuntimeReadback["phase"] = "initializing";
   let cameraMode: "free" | "fixed" = "fixed";
+  let automation = false;
   let normalSource: GrasslandsNormalAssetSource = "tracked";
   let rebuildRevision = 0;
   let lifecycleDisposed = false;
@@ -130,6 +137,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   let cameraFeatureBrokerDestroyed = false;
   let cameraControllerDestroyed = false;
   let sceneControllerDestroyed = false;
+  let environmentAssetsDestroyed = false;
   let rootDestroyed = false;
   let engineDestroyed = false;
   let perFrameMeshUploadDetected = false;
@@ -152,6 +160,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     const broker = cameraFeatureBroker?.metrics;
     const scene = sceneController?.metrics;
     const loader = assetLoader?.readback;
+    const environment = environmentAssets?.metrics;
     const activeScene = engine && !engineDestroyed ? engine.sceneManager.activeScene : undefined;
     const exclusionResources = observeGrasslandsExcludedResources(activeScene, sceneController?.camera, optics);
     const activeSetCount = runtimeResources?.activeRuntimeSetCount ?? 0;
@@ -216,7 +225,13 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       appearance.contactFoamSmoothnessReduction === 1;
     const actualCompositionMode = runtimeController?.compositionMode ?? HeightfieldWaterCompositionMode.LegacyAlpha;
     const actualDepthWriteEnabled = runtimeController?.depthWriteEnabled ?? false;
-    const actualSurfaceTime = runtimeController?.surfaceTimeOverride ?? -1;
+    const actualSurfaceTime = resolveGrasslandsSurfaceTimeReadback(
+      runtimeController?.surfaceTimeOverride,
+      engine?.time.elapsedTime
+    );
+    const surfaceTimeReady = automation
+      ? runtimeController?.surfaceTimeOverride === GRASSLANDS_FIXED_SURFACE_TIME
+      : runtimeController?.surfaceTimeOverride === undefined && actualSurfaceTime >= 0;
     // The Grasslands entry intentionally creates no gameplay body registry;
     // source-boundary tests and the formal harness independently enforce that.
     const gameplayQueryRegistered = false;
@@ -235,7 +250,20 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         )
       ) &&
       vectorsMatch(scene.directLight.forward, fixture.directLight.forward);
-    const sceneReady = scene?.destroyed === false && scene.finite && isGrasslandsExclusionClean(exclusionResources);
+    const sceneReady =
+      scene?.destroyed === false &&
+      scene.finite &&
+      scene.environmentReady &&
+      scene.environmentAssetSetHash === GRASSLANDS_ENVIRONMENT_ASSET_SET_HASH &&
+      scene.terrainMaterialRegionCount === 3 &&
+      scene.terrainMaterialRegionIds.join(",") === "mud-stones,sand,grass-mud" &&
+      scene.rockModelResourceCount === 5 &&
+      scene.largeRockVariantCount === 2 &&
+      scene.smallRockVariantCount === 3 &&
+      scene.sharedRockMeshCount === 5 &&
+      scene.proxyRockMeshCount === 0 &&
+      environment?.ready === true &&
+      isGrasslandsExclusionClean(exclusionResources);
     const brokerReady =
       currentQuality === WaterQualityTier.Low
         ? (broker?.activeConsumerCount ?? 0) === 0
@@ -266,7 +294,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       directLightMatchesFixture &&
       actualCompositionMode === HeightfieldWaterCompositionMode.PrecomposedReplace &&
       actualDepthWriteEnabled &&
-      actualSurfaceTime === GRASSLANDS_SURFACE_TIME &&
+      surfaceTimeReady &&
       !gameplayQueryRegistered &&
       loader?.ready === true &&
       assetLoader?.resource?.texture.destroyed === false &&
@@ -284,6 +312,8 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       fixture.seed,
       fixture.wetTexelCount,
       runtimeController?.meshUploadCount ?? 0,
+      scene?.sceneMeshUploadCount ?? 0,
+      environment?.sourceByteLength ?? 0,
       actualSurfaceTime,
       activeResource?.byteLength ?? 0,
       engine?.renderingStatistics.bufferMemory ?? 0,
@@ -456,15 +486,24 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         totalMemory: engine?.renderingStatistics.totalMemory ?? 0,
         ownedTextureCount:
           Math.max(0, (loader?.textureCreateCount ?? 0) - (loader?.textureDestroyCount ?? 0)) +
-          (runtimeResources?.retainedLocalMapTextureCount ?? 0),
+          (runtimeResources?.retainedLocalMapTextureCount ?? 0) +
+          Math.max(0, (environment?.textureCreateCount ?? 0) - (environment?.textureDestroyCount ?? 0)),
         borrowedTextureCount: loader?.activeRuntimeBorrowCount ?? 0,
-        textureCreateCount: (loader?.textureCreateCount ?? 0) + (runtimeResources?.localMapTextureCreateCount ?? 0),
-        textureDestroyCount: (loader?.textureDestroyCount ?? 0) + (runtimeResources?.localMapTextureDestroyCount ?? 0),
-        materialCount: runtimeResources?.retainedMaterialCount ?? 0,
+        textureCreateCount:
+          (loader?.textureCreateCount ?? 0) +
+          (runtimeResources?.localMapTextureCreateCount ?? 0) +
+          (environment?.textureCreateCount ?? 0),
+        textureDestroyCount:
+          (loader?.textureDestroyCount ?? 0) +
+          (runtimeResources?.localMapTextureDestroyCount ?? 0) +
+          (environment?.textureDestroyCount ?? 0),
+        materialCount:
+          (runtimeResources?.retainedMaterialCount ?? 0) +
+          Math.max(0, (environment?.materialCreateCount ?? 0) - (environment?.materialDestroyCount ?? 0)),
         runtimeSetCreateCount: runtimeResources?.runtimeSetCreateCount ?? 0,
         runtimeSetDestroyCount: runtimeResources?.runtimeSetDestroyCount ?? 0,
-        materialCreateCount: runtimeResources?.materialCreateCount ?? 0,
-        materialDestroyCount: runtimeResources?.materialDestroyCount ?? 0,
+        materialCreateCount: (runtimeResources?.materialCreateCount ?? 0) + (environment?.materialCreateCount ?? 0),
+        materialDestroyCount: (runtimeResources?.materialDestroyCount ?? 0) + (environment?.materialDestroyCount ?? 0),
         localMapTextureCreateCount: runtimeResources?.localMapTextureCreateCount ?? 0,
         localMapTextureDestroyCount: runtimeResources?.localMapTextureDestroyCount ?? 0,
         meshCreateCount: (runtimeResources?.meshCreateCount ?? 0) + (scene?.meshCreateCount ?? 0),
@@ -475,6 +514,20 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         sceneMaterialDestroyCount: scene?.materialDestroyCount ?? 0,
         sceneEntityCreateCount: scene?.entityCreateCount ?? 0,
         sceneEntityDestroyCount: scene?.entityDestroyCount ?? 0,
+        sceneMeshUploadCount: scene?.sceneMeshUploadCount ?? 0,
+        environmentTextureCreateCount: environment?.textureCreateCount ?? 0,
+        environmentTextureDestroyCount: environment?.textureDestroyCount ?? 0,
+        environmentMaterialCreateCount: environment?.materialCreateCount ?? 0,
+        environmentMaterialDestroyCount: environment?.materialDestroyCount ?? 0,
+        environmentGltfResourceCreateCount: environment?.gltfResourceCreateCount ?? 0,
+        environmentGltfResourceDestroyCount: environment?.gltfResourceDestroyCount ?? 0,
+        environmentMeshCreateCount: environment?.meshCreateCount ?? 0,
+        environmentMeshDestroyCount: environment?.meshDestroyCount ?? 0,
+        environmentTemplateEntityCreateCount: environment?.templateEntityCreateCount ?? 0,
+        environmentTemplateEntityDestroyCount: environment?.templateEntityDestroyCount ?? 0,
+        environmentActiveRockInstanceCount: environment?.activeRockInstanceCount ?? 0,
+        environmentRockInstanceCreateCount: environment?.rockInstanceCreateCount ?? 0,
+        environmentRockInstanceDestroyCount: environment?.rockInstanceDestroyCount ?? 0,
         renderTargetCount: exclusionResources.renderTargetCount,
         reflectionCameraCount: exclusionResources.planarCameraCount,
         cameraCount: exclusionResources.cameraComponentCount
@@ -504,8 +557,28 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         shoreScenicRockCount: scene?.shoreScenicRockCount ?? 0,
         contactProbeCount: scene?.contactProbeCount ?? 0,
         terrainIndexCount: scene?.terrainIndexCount ?? 0,
+        terrainMudStonesIndexCount: scene?.terrainMudStonesIndexCount ?? 0,
+        terrainSandIndexCount: scene?.terrainSandIndexCount ?? 0,
+        terrainGrassMudIndexCount: scene?.terrainGrassMudIndexCount ?? 0,
         terrainBedIndexCount: scene?.terrainBedIndexCount ?? 0,
         terrainBankIndexCount: scene?.terrainBankIndexCount ?? 0,
+        terrainShorelineSampleCount: scene?.terrainShorelineSampleCount ?? 0,
+        terrainDegenerateTriangleCount: scene?.terrainDegenerateTriangleCount ?? 0,
+        terrainDirectMudGrassAdjacencyCount: scene?.terrainDirectMudGrassAdjacencyCount ?? 0,
+        environmentReady: scene?.environmentReady ?? false,
+        environmentAssetSetHash: scene?.environmentAssetSetHash ?? "",
+        terrainMaterialRegionCount: scene?.terrainMaterialRegionCount ?? 0,
+        terrainMaterialRegionIds: scene?.terrainMaterialRegionIds ?? Object.freeze([]),
+        rockModelResourceCount: scene?.rockModelResourceCount ?? 0,
+        largeRockVariantCount: scene?.largeRockVariantCount ?? 0,
+        smallRockVariantCount: scene?.smallRockVariantCount ?? 0,
+        sharedRockMeshCount: scene?.sharedRockMeshCount ?? 0,
+        proxyRockMeshCount: scene?.proxyRockMeshCount ?? 0,
+        sceneMeshUploadCount: scene?.sceneMeshUploadCount ?? 0,
+        connectedWaterBodyCount: scene?.connectedWaterBodyCount ?? 0,
+        landscapeRegionCount: scene?.landscapeRegionCount ?? 0,
+        landscapeRegionIds: scene?.landscapeRegionIds ?? Object.freeze([]),
+        landscapeExtentScaleXZ: scene?.landscapeExtentScaleXZ ?? Object.freeze([0, 0] as const),
         directLightCount: exclusionResources.directLightComponentCount,
         skyboxCount: exclusionResources.skyboxCount,
         planarCameraCount: exclusionResources.planarCameraCount,
@@ -763,6 +836,14 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         recordCleanupError("scene-controller-destroy", error);
       }
     }
+    if (environmentAssets && !environmentAssetsDestroyed) {
+      try {
+        environmentAssets.destroyAfterSceneDetach();
+        environmentAssetsDestroyed = true;
+      } catch (error) {
+        recordCleanupError("environment-assets-destroy", error);
+      }
+    }
     if (root && !rootDestroyed) {
       try {
         root.destroy();
@@ -900,7 +981,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     const search = bootstrapSearch;
     const resolvedCameraMode = resolveShowcaseCameraMode(search, false);
     cameraMode = resolvedCameraMode === "free" ? "free" : "fixed";
-    const automation = cameraMode === "fixed";
+    automation = cameraMode === "fixed";
     document.documentElement.dataset.waterPcgAutomation = String(automation);
     normalSource = search.get("normalSource") === "local" ? "local-override" : "tracked";
 
@@ -930,19 +1011,6 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     scene.ambientLight.diffuseSolidColor.set(0.28, 0.36, 0.31, 1);
     scene.ambientLight.diffuseIntensity = 0.62;
     root = scene.createRootEntity("grasslands-water-showcase");
-    sceneController = new GrasslandsSceneController(engine, root, fixture);
-    cameraController = createShowcaseCameraController(sceneController.cameraEntity, {
-      mode: cameraMode,
-      movementSpeed: SHOWCASE_CAMERA_MOVEMENT_SPEED.grasslands
-    });
-
-    cameraFeatureBroker = new CameraWaterFeatureBroker(sceneController.camera);
-    cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
-    applyCameraFeaturePolicy(WaterQualityTier.High);
-
-    const runtimeRoot = root.createChild("grasslands-heightfield-runtime-root");
-    runtimeController = new HeightfieldWaterRuntimeController(engine, runtimeRoot);
-    compileWorker = new HeightfieldWaterCompileWorkerClient();
     assetLoader = new GrasslandsAssetLoader(engine, {
       strict: true,
       source: normalSource,
@@ -955,6 +1023,29 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       return;
     }
     if (!normalResource) throw new Error("Grasslands strict normal asset did not produce a texture.");
+    const loadedEnvironmentAssets = await teardownBarrier.track(
+      GrasslandsEnvironmentAssets.load(engine).then((loaded) => {
+        environmentAssets = loaded;
+        return loaded;
+      })
+    );
+    if (lifecycleDisposed) {
+      cleanupImpl();
+      return;
+    }
+    sceneController = new GrasslandsSceneController(engine, root, loadedEnvironmentAssets, fixture);
+    cameraController = createShowcaseCameraController(sceneController.cameraEntity, {
+      mode: cameraMode,
+      movementSpeed: SHOWCASE_CAMERA_MOVEMENT_SPEED.grasslands
+    });
+
+    cameraFeatureBroker = new CameraWaterFeatureBroker(sceneController.camera);
+    cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
+    applyCameraFeaturePolicy(WaterQualityTier.High);
+
+    const runtimeRoot = root.createChild("grasslands-heightfield-runtime-root");
+    runtimeController = new HeightfieldWaterRuntimeController(engine, runtimeRoot);
+    compileWorker = new HeightfieldWaterCompileWorkerClient();
     releaseRuntimeBorrow = assetLoader.acquireRuntimeBorrow();
     appearanceBinding = Object.freeze({
       appearance: GRASSLANDS_COMPILED_SURFACE_APPEARANCE,
@@ -970,7 +1061,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
     runtimeController.setRefractionEnabled(true);
     runtimeController.setCompositionMode(HeightfieldWaterCompositionMode.PrecomposedReplace);
     runtimeController.setDepthWriteEnabled(true);
-    runtimeController.setSurfaceTimeOverride(GRASSLANDS_SURFACE_TIME);
+    runtimeController.setSurfaceTimeOverride(resolveGrasslandsSurfaceTimeOverride(search));
     runtimeController.setDebugMode(HeightfieldWaterDebugMode.Final);
 
     compileAndActivateImpl = async (quality: WaterQualityTier): Promise<void> => {

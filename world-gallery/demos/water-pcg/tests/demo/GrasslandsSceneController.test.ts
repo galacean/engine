@@ -1,13 +1,18 @@
 import type { Engine } from "@galacean/engine-core";
-import { Entity } from "@galacean/engine-core";
+import { Entity, MeshRenderer } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type {
+  GrasslandsEnvironmentAssets,
+  GrasslandsRockModelId
+} from "../../demo/grasslands/GrasslandsEnvironmentAssets";
 import { createGrasslandsPcgFixture } from "../../demo/grasslands/GrasslandsPcgFixture";
 import {
   createGrasslandsTerrainGeometry,
   GrasslandsSceneController,
   sampleGrasslandsTerrainHeight
 } from "../../demo/grasslands/GrasslandsSceneController";
+import type { GrasslandsVector3 } from "../../demo/grasslands/GrasslandsPcgTypes";
 
 const engineSpies = vi.hoisted(() => ({
   meshDestroy: vi.fn(),
@@ -16,7 +21,10 @@ const engineSpies = vi.hoisted(() => ({
   meshUpload: vi.fn(),
   subMeshes: [] as [number, number][],
   materialSlots: [] as number[],
-  componentKinds: [] as string[]
+  componentKinds: [] as string[],
+  rockModels: [] as GrasslandsRockModelId[],
+  rockInstanceRelease: vi.fn(),
+  rootDestroyError: undefined as Error | undefined
 }));
 
 vi.mock("@galacean/engine-core", () => {
@@ -38,6 +46,8 @@ vi.mock("@galacean/engine-core", () => {
 
     setPositions(_positions: readonly unknown[]): void {}
     setNormals(_normals: readonly unknown[]): void {}
+    setUVs(_uvs: readonly unknown[]): void {}
+    setTangents(_tangents: readonly unknown[]): void {}
     setIndices(_indices: Uint16Array): void {}
     addSubMesh(start: number, count: number, _topology?: unknown): void {
       engineSpies.subMeshes.push([start, count]);
@@ -151,6 +161,7 @@ vi.mock("@galacean/engine-core", () => {
 
     destroy(): void {
       engineSpies.rootDestroy(this.name);
+      if (engineSpies.rootDestroyError) throw engineSpies.rootDestroyError;
     }
   }
 
@@ -163,16 +174,85 @@ vi.mock("@galacean/engine-core", () => {
     MeshRenderer: FakeMeshRenderer,
     MeshTopology: { Triangles: 0 },
     ModelMesh: FakeModelMesh,
-    PrimitiveMesh: {
-      createSphere: () => new FakeModelMesh()
-    }
+    PrimitiveMesh: {}
   };
 });
+
+function createEnvironmentAssets(options: { readonly failAtRockIndex?: number } = {}): GrasslandsEnvironmentAssets {
+  const metrics = {
+    ready: true,
+    destroyed: false,
+    assetSetHash: "2a1d1e0591c0d2a1125332a4b4c08938d89a782a9ea6c46b11c3fd7d35b31580",
+    terrainMaterialRegionCount: 3,
+    terrainMaterialRegionIds: ["mud-stones", "sand", "grass-mud"],
+    rockModelResourceCount: 5,
+    largeRockVariantCount: 2,
+    smallRockVariantCount: 3,
+    sharedRockMeshCount: 5,
+    proxyRockMeshCount: 0,
+    activeRockInstanceCount: 10,
+    rockInstanceCreateCount: 10,
+    rockInstanceDestroyCount: 0,
+    textureCreateCount: 10,
+    textureDestroyCount: 0,
+    materialCreateCount: 5,
+    materialDestroyCount: 0,
+    gltfResourceCreateCount: 5,
+    gltfResourceDestroyCount: 0,
+    meshCreateCount: 5,
+    meshDestroyCount: 0,
+    templateEntityCreateCount: 10,
+    templateEntityDestroyCount: 0,
+    sourceByteLength: 1
+  } as const;
+  let rockCreateIndex = 0;
+  const createRock = (
+    parent: Entity,
+    name: string,
+    modelId: GrasslandsRockModelId,
+    position: readonly [number, number, number]
+  ) => {
+    if (rockCreateIndex++ === options.failAtRockIndex) {
+      throw new Error(`injected rock failure at ${name}`);
+    }
+    const outer = parent.createChild(name);
+    outer.transform.setPosition(...position);
+    const sceneRoot = outer.createChild(`${name}:scene-root`);
+    const model = sceneRoot.createChild(`${name}:${modelId}`);
+    model.addComponent(MeshRenderer);
+    engineSpies.rockModels.push(modelId);
+    return Object.freeze({
+      entity: outer,
+      modelId,
+      rendererCount: 1,
+      modelEntityCount: 2,
+      releaseAfterEntityDestroy(): void {
+        engineSpies.rockInstanceRelease(modelId);
+      }
+    });
+  };
+  const largeIds = ["stone-1", "stone-2"] as const;
+  const smallIds = ["small-stone-1", "small-stone-2", "small-stone-3"] as const;
+  return {
+    mudStonesMaterial: {},
+    sandMaterial: {},
+    grassMudMaterial: {},
+    largeRockMaterial: {},
+    smallRockMaterial: {},
+    metrics,
+    instantiateLargeRock(parent: Entity, name: string, variantIndex: number, position: GrasslandsVector3) {
+      return createRock(parent, name, largeIds[variantIndex % largeIds.length], position);
+    },
+    instantiateSmallRock(parent: Entity, name: string, variantIndex: number, position: GrasslandsVector3) {
+      return createRock(parent, name, smallIds[variantIndex % smallIds.length], position);
+    }
+  } as unknown as GrasslandsEnvironmentAssets;
+}
 
 function createController(): GrasslandsSceneController {
   const engine = {} as Engine;
   const parent = new Entity(engine, "test-root");
-  return new GrasslandsSceneController(engine, parent, createGrasslandsPcgFixture());
+  return new GrasslandsSceneController(engine, parent, createEnvironmentAssets(), createGrasslandsPcgFixture());
 }
 
 describe("GrasslandsSceneController GS-DEMO-03/05", () => {
@@ -184,6 +264,9 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     engineSpies.subMeshes.length = 0;
     engineSpies.materialSlots.length = 0;
     engineSpies.componentKinds.length = 0;
+    engineSpies.rockModels.length = 0;
+    engineSpies.rockInstanceRelease.mockClear();
+    engineSpies.rootDestroyError = undefined;
   });
 
   it("builds deterministic analytic bed/bank geometry whose zero crossing defines the visible waterline", () => {
@@ -193,27 +276,43 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
 
     expect(first.positions).toEqual(second.positions);
     expect(first.normals).toEqual(second.normals);
+    expect(first.uvs).toEqual(second.uvs);
+    expect(first.tangents).toEqual(second.tangents);
     expect(first.indices).toEqual(second.indices);
+    expect(first.mudStonesIndexCount).toBe(second.mudStonesIndexCount);
+    expect(first.sandIndexCount).toBe(second.sandIndexCount);
+    expect(first.grassMudIndexCount).toBe(second.grassMudIndexCount);
     expect(first.bedIndexCount).toBe(second.bedIndexCount);
     expect(first.bankIndexCount).toBe(second.bankIndexCount);
-    expect(first.positions).toHaveLength((160 + 1) * (96 + 1));
-    expect(first.indices).toHaveLength(160 * 96 * 6);
+    expect(first.positions).toHaveLength(125 * 193);
+    expect(first.indices).toHaveLength(124 * 192 * 6);
     expect(first.bedIndexCount).toBeGreaterThan(0);
     expect(first.bankIndexCount).toBeGreaterThan(0);
+    expect(first.mudStonesIndexCount).toBeGreaterThan(0);
+    expect(first.sandIndexCount).toBeGreaterThan(0);
+    expect(first.grassMudIndexCount).toBeGreaterThan(0);
     expect(first.bedIndexCount % 3).toBe(0);
     expect(first.bankIndexCount % 3).toBe(0);
     expect(first.bedIndexCount + first.bankIndexCount).toBe(first.indices.length);
+    expect(first.mudStonesIndexCount + first.sandIndexCount + first.grassMudIndexCount).toBe(first.indices.length);
     expect(first.bounds.minimum[0]).toBe(fixture.waterBounds.minimum[0]);
     expect(first.bounds.maximum[0]).toBe(fixture.waterBounds.maximum[0]);
     expect(first.bounds.minimum[2]).toBe(fixture.waterBounds.minimum[2]);
     expect(first.bounds.maximum[2]).toBe(fixture.waterBounds.maximum[2]);
-    expect(first.bounds.minimum[1]).toBe(-1.5);
+    expect(first.bounds.minimum[1]).toBe(-3.2);
     expect(first.bounds.maximum[1]).toBeGreaterThan(0);
-    expect(sampleGrasslandsTerrainHeight(fixture.terrain, 0.5, 0)).toBeLessThan(0);
-    expect(sampleGrasslandsTerrainHeight(fixture.terrain, 6.5, 0)).toBe(0);
+    expect(sampleGrasslandsTerrainHeight(fixture.terrain, 0, 0)).toBeLessThan(0);
+    expect(sampleGrasslandsTerrainHeight(fixture.terrain, 9, 0)).toBe(0);
     expect(sampleGrasslandsTerrainHeight(fixture.terrain, 10, 0)).toBeGreaterThan(0);
-    expect(first.positions.every((position) => position.every(Number.isFinite))).toBe(true);
-    expect(first.normals.every((normal) => normal.every(Number.isFinite))).toBe(true);
+    expect(first).toMatchObject({
+      finite: true,
+      shorelineSampleCount: 386,
+      degenerateTriangleCount: 0,
+      directMudGrassAdjacencyCount: 0,
+      mudStonesIndexCount: 73728,
+      sandIndexCount: 13824,
+      grassMudIndexCount: 55296
+    });
   });
 
   it("creates split bed/bank materials, deterministic scenic rocks, anchors, and one DirectLight", () => {
@@ -223,24 +322,40 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     expect(metrics).toMatchObject({
       finite: true,
       destroyed: false,
-      entityCount: 13,
-      activeEntityCount: 13,
-      ownedEntityCount: 14,
+      entityCount: 57,
+      activeEntityCount: 57,
+      ownedEntityCount: 58,
       terrainEntityCount: 1,
       anchorRockCount: 3,
       activeRockCount: 3,
-      scenicRockCount: 7,
-      submergedScenicRockCount: 3,
-      shoreScenicRockCount: 4,
+      scenicRockCount: 15,
+      submergedScenicRockCount: 8,
+      shoreScenicRockCount: 7,
       contactProbeCount: 3,
       cameraCount: 1,
       directLightCount: 1,
-      rendererCount: 11,
-      activeRendererCount: 11,
-      meshCreateCount: 2,
+      rendererCount: 19,
+      activeRendererCount: 19,
+      meshCreateCount: 6,
       meshDestroyCount: 0,
-      materialCreateCount: 3,
+      materialCreateCount: 5,
       materialDestroyCount: 0,
+      environmentReady: true,
+      terrainMaterialRegionCount: 3,
+      terrainMaterialRegionIds: ["mud-stones", "sand", "grass-mud"],
+      rockModelResourceCount: 5,
+      largeRockVariantCount: 2,
+      smallRockVariantCount: 3,
+      sharedRockMeshCount: 5,
+      proxyRockMeshCount: 0,
+      sceneMeshUploadCount: 6,
+      connectedWaterBodyCount: 1,
+      landscapeRegionCount: 4,
+      landscapeRegionIds: ["far-river", "narrow-channel", "mid-bay", "near-shoal"],
+      landscapeExtentScaleXZ: [2.0109375, 3],
+      terrainShorelineSampleCount: 386,
+      terrainDegenerateTriangleCount: 0,
+      terrainDirectMudGrassAdjacencyCount: 0,
       waterSurfaceHeight: 0,
       waterExtendsUnderBanks: true,
       visibleWaterlineUsesSceneDepth: true,
@@ -252,6 +367,7 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     });
     expect(metrics.anchorRocks).toHaveLength(3);
     expect(metrics.anchorRocks.every(({ crossesWaterSurface }) => crossesWaterSurface)).toBe(true);
+    expect(metrics.anchorRocks.map(({ modelId }) => modelId)).toEqual(["stone-1", "stone-2", "stone-1"]);
     expect(metrics.anchorRocks.every(({ bounds }) => bounds.minimum[1] < 0 && bounds.maximum[1] > 0)).toBe(true);
     expect(metrics.camera).toEqual(createGrasslandsPcgFixture().camera);
     expect(metrics.directLight).toEqual({
@@ -264,17 +380,22 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     });
     expect(engineSpies.componentKinds.filter((kind) => kind === "Camera")).toHaveLength(1);
     expect(engineSpies.componentKinds.filter((kind) => kind === "DirectLight")).toHaveLength(1);
-    expect(engineSpies.componentKinds.filter((kind) => kind === "MeshRenderer")).toHaveLength(11);
+    expect(engineSpies.componentKinds.filter((kind) => kind === "MeshRenderer")).toHaveLength(19);
     expect(engineSpies.subMeshes).toEqual([
-      [0, metrics.terrainBedIndexCount],
-      [metrics.terrainBedIndexCount, metrics.terrainBankIndexCount]
+      [0, metrics.terrainMudStonesIndexCount],
+      [metrics.terrainMudStonesIndexCount, metrics.terrainSandIndexCount],
+      [metrics.terrainMudStonesIndexCount + metrics.terrainSandIndexCount, metrics.terrainGrassMudIndexCount]
     ]);
-    expect(engineSpies.materialSlots.slice(0, 2)).toEqual([0, 1]);
+    expect(engineSpies.materialSlots.slice(0, 3)).toEqual([0, 1, 2]);
+    expect(engineSpies.rockModels.slice(0, 3)).toEqual(["stone-1", "stone-2", "stone-1"]);
+    expect(engineSpies.rockModels.slice(3)).toEqual(
+      Array.from({ length: 15 }, (_value, index) => `small-stone-${(index % 3) + 1}`)
+    );
     expect(engineSpies.meshUpload).toHaveBeenCalledTimes(1);
     expect(controller.camera).toMatchObject({
-      fieldOfView: 48,
+      fieldOfView: 50,
       nearClipPlane: 0.05,
-      farClipPlane: 100
+      farClipPlane: 160
     });
     expect(controller.directLight.color).toMatchObject({ r: 1.05, g: 1.05, b: 1.05 });
   });
@@ -330,8 +451,8 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     expect(controller.metrics).toMatchObject({
       activeRockCount: 3,
       contactProbeCount: 2,
-      rendererCount: 11,
-      activeRendererCount: 11
+      rendererCount: 19,
+      activeRendererCount: 19
     });
 
     const removed = controller.removeContactProbe(id);
@@ -345,11 +466,11 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     expect(controller.metrics).toMatchObject({
       activeRockCount: 2,
       contactProbeCount: 2,
-      rendererCount: 11,
-      activeRendererCount: 10,
-      entityCount: 13,
-      activeEntityCount: 12,
-      ownedEntityCount: 14
+      rendererCount: 19,
+      activeRendererCount: 18,
+      entityCount: 57,
+      activeEntityCount: 54,
+      ownedEntityCount: 58
     });
 
     const restored = controller.restoreContactProbe(id);
@@ -364,14 +485,14 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
     expect(controller.metrics).toMatchObject({
       activeRockCount: 3,
       contactProbeCount: 3,
-      rendererCount: 11,
-      activeRendererCount: 11,
-      entityCount: 13
+      rendererCount: 19,
+      activeRendererCount: 19,
+      entityCount: 57
     });
     expect(() => controller.removeContactProbe("not-an-anchor")).toThrow(RangeError);
   });
 
-  it("owns and destroys its root, meshes, and materials exactly once", () => {
+  it("destroys scene entities and its terrain mesh while releasing borrowed environment instances", () => {
     const controller = createController();
 
     controller.destroy();
@@ -379,10 +500,10 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
 
     expect(engineSpies.rootDestroy).toHaveBeenCalledTimes(1);
     expect(engineSpies.rootDestroy).toHaveBeenCalledWith("grasslands-scene");
-    expect(engineSpies.meshDestroy).toHaveBeenCalledTimes(2);
+    expect(engineSpies.meshDestroy).toHaveBeenCalledTimes(1);
     expect(engineSpies.meshDestroy.mock.calls.every((call) => call[1] === true)).toBe(true);
-    expect(engineSpies.materialDestroy).toHaveBeenCalledTimes(3);
-    expect(engineSpies.materialDestroy.mock.calls.every((call) => call[1] === true)).toBe(true);
+    expect(engineSpies.materialDestroy).not.toHaveBeenCalled();
+    expect(engineSpies.rockInstanceRelease).toHaveBeenCalledTimes(18);
     expect(controller.metrics).toMatchObject({
       destroyed: true,
       finite: false,
@@ -399,13 +520,41 @@ describe("GrasslandsSceneController GS-DEMO-03/05", () => {
       directLightCount: 0,
       rendererCount: 0,
       activeRendererCount: 0,
-      meshCreateCount: 2,
-      meshDestroyCount: 2,
-      materialCreateCount: 3,
-      materialDestroyCount: 3,
-      entityCreateCount: 14,
-      entityDestroyCount: 14
+      meshCreateCount: 6,
+      meshDestroyCount: 1,
+      materialCreateCount: 5,
+      materialDestroyCount: 0,
+      entityCreateCount: 58,
+      entityDestroyCount: 58
     });
     expect(() => controller.raiseContactProbe("anchor-rock-left-foreground")).toThrow("destroyed");
+  });
+
+  it("rolls back the terrain mesh, scene root, and completed rock borrows when construction fails", () => {
+    const engine = {} as Engine;
+    const parent = new Entity(engine, "test-root");
+
+    expect(
+      () =>
+        new GrasslandsSceneController(
+          engine,
+          parent,
+          createEnvironmentAssets({ failAtRockIndex: 3 }),
+          createGrasslandsPcgFixture()
+        )
+    ).toThrow("injected rock failure");
+
+    expect(engineSpies.rootDestroy).toHaveBeenCalledWith("grasslands-scene");
+    expect(engineSpies.meshDestroy).toHaveBeenCalledWith("GrasslandsAnalyticBankAndBedMesh", true);
+    expect(engineSpies.rockInstanceRelease).toHaveBeenCalledTimes(3);
+  });
+
+  it("releases borrowed rocks and the terrain mesh even when entity destruction throws", () => {
+    const controller = createController();
+    engineSpies.rootDestroyError = new Error("injected root destroy failure");
+
+    expect(() => controller.destroy()).toThrow("injected root destroy failure");
+    expect(engineSpies.rockInstanceRelease).toHaveBeenCalledTimes(18);
+    expect(engineSpies.meshDestroy).toHaveBeenCalledWith("GrasslandsAnalyticBankAndBedMesh", true);
   });
 });

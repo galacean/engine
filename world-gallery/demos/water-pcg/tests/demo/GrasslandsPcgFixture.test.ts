@@ -74,8 +74,8 @@ describe("Grasslands PCG M2A fixture", () => {
     const expectedWetTexelCount = GRASSLANDS_WATER_GRID.width * GRASSLANDS_WATER_GRID.height;
 
     expect(GRASSLANDS_WORLD_SCALE).toBe(0.5);
-    expect(fixture.descriptorHash).toBe("9b1d092e9384d794");
-    expect(fixture.fixtureHash).toBe("9d863296d9ed7303");
+    expect(fixture.descriptorHash).toBe("6f89fae07e777259");
+    expect(fixture.fixtureHash).toBe("3512e137ff304939");
     expect(fixture).toMatchObject({
       schemaVersion: 1,
       seed: 20260724,
@@ -87,10 +87,10 @@ describe("Grasslands PCG M2A fixture", () => {
       gameplayQueryRegistered: false
     });
     expect(descriptor.grid).toEqual({
-      originXZ: [-19.875, -11.875],
-      cellSizeXZ: [0.25, 0.25],
-      width: 160,
-      height: 96
+      originXZ: [-39.9375, -35.71875],
+      cellSizeXZ: [0.5625, 0.5625],
+      width: 143,
+      height: 128
     });
     expect(descriptor.wetTexelIndices).toHaveLength(expectedWetTexelCount);
     expect(Array.from(descriptor.wetTexelIndices).every((value, index) => value === index)).toBe(true);
@@ -101,19 +101,37 @@ describe("Grasslands PCG M2A fixture", () => {
     expect(descriptor.material.waveStrength).toBe(0);
     expect(descriptor.quality).toBe(WaterQualityTier.High);
     expect(fixture.waterBounds).toEqual({
-      minimum: [-20, 0, -12],
-      maximum: [20, 0, 12]
+      minimum: [-40.21875, 0, -36],
+      maximum: [40.21875, 0, 36]
     });
     expect(fixture.waterBounds).toBe(GRASSLANDS_WATER_BOUNDS);
     expect(fixture.camera).toEqual({
       mode: "fixed",
-      position: [0, 3.5, 16],
-      target: [-1, -2.65, -10.5],
-      forward: [-0.03673412091541039, -0.2259148436297739, -0.9734542042583754],
-      fieldOfViewDegrees: 48,
+      position: [4, 4.5, 34],
+      target: [-2, -10, -20],
+      forward: [-0.10669723123906885, -0.25785164216108303, -0.9602750811516196],
+      fieldOfViewDegrees: 50,
       nearClip: 0.05,
-      farClip: 100
+      farClip: 160
     });
+    expect(fixture.terrain).toMatchObject({
+      model: "analytic-centerline-width",
+      interpolation: "catmull-rom",
+      bankNoise: "none",
+      sampling: {
+        longitudinalSegments: 192,
+        grassLateralSegments: 24,
+        sandLateralSegments: 6,
+        bedLateralSegments: 64,
+        sandBandWidth: 1.2
+      }
+    });
+    expect(fixture.terrain.landscapeRegions.map(({ id }) => id)).toEqual([
+      "far-river",
+      "narrow-channel",
+      "mid-bay",
+      "near-shoal"
+    ]);
 
     const compiled = HeightfieldWaterCompiler.compile(descriptor);
     expect(compiled.valid).toBe(true);
@@ -252,15 +270,16 @@ describe("Grasslands PCG M2A fixture", () => {
     expect(first.camera).toEqual(second.camera);
     expect(first.directLight).toEqual(second.directLight);
     expect(first.mechanismRois).toEqual(second.mechanismRois);
+    expect(first.candidateValidationRois).toEqual(second.candidateValidationRois);
     expect(first.sceneMaterials).toEqual(second.sceneMaterials);
     expect(first.anchorRocks).toEqual(second.anchorRocks);
     expect(first.scenicRocks).toEqual(second.scenicRocks);
     expect(first.decorations).toEqual(second.decorations);
     expect(first.sceneMaterials).toBe(GRASSLANDS_SCENE_MATERIALS);
     expect(first.anchorRocks).toHaveLength(3);
-    expect(first.scenicRocks).toHaveLength(7);
-    expect(first.scenicRocks.filter(({ kind }) => kind === "underwater-bed")).toHaveLength(3);
-    expect(first.scenicRocks.filter(({ kind }) => kind === "shore")).toHaveLength(4);
+    expect(first.scenicRocks).toHaveLength(15);
+    expect(first.scenicRocks.filter(({ kind }) => kind === "underwater-bed")).toHaveLength(8);
+    expect(first.scenicRocks.filter(({ kind }) => kind === "shore")).toHaveLength(7);
     expect(
       first.anchorRocks.every(
         ({ bounds, validationCritical }) => validationCritical && bounds.minimum[1] < 0 && bounds.maximum[1] > 0
@@ -277,6 +296,8 @@ describe("Grasslands PCG M2A fixture", () => {
       first.anchorRocks.length + first.scenicRocks.length
     );
     expect(new Set(first.mechanismRois.map(({ id }) => id)).size).toBe(first.mechanismRois.length);
+    expect(new Set(first.candidateValidationRois.map(({ id }) => id)).size).toBe(first.candidateValidationRois.length);
+    expect(first.candidateValidationRois).toHaveLength(16);
     expect(serializeGrasslandsPcgFixture(first)).toBe(serializeGrasslandsPcgFixture(second));
   });
 
@@ -298,6 +319,7 @@ describe("Grasslands PCG M2A fixture", () => {
     expect(alternate.camera).toEqual(baseline.camera);
     expect(alternate.directLight).toEqual(baseline.directLight);
     expect(alternate.mechanismRois).toEqual(baseline.mechanismRois);
+    expect(alternate.candidateValidationRois).toEqual(baseline.candidateValidationRois);
     expect(alternate.terrain).toEqual(baseline.terrain);
     expect(alternate.sceneMaterials).toEqual(baseline.sceneMaterials);
     expect(alternate.anchorRocks).toEqual(baseline.anchorRocks);
@@ -337,11 +359,11 @@ describe("Grasslands PCG M2A fixture", () => {
     expect(parsed.appearanceVariantKey).toBe("surface-appearance-v1");
     expect(parsed.externalAssetHash).toBe(GRASSLANDS_NORMAL_CONTENT_HASH);
     expect(parsed.sceneMaterials).toEqual(GRASSLANDS_SCENE_MATERIALS);
-    expect(parsed.scenicRocks).toHaveLength(7);
-    expect(parsed.descriptor.wetTexelIndices).toHaveLength(160 * 96);
-    expect(parsed.descriptor.surfaceHeights).toHaveLength(160 * 96);
-    expect(parsed.descriptor.bedHeights).toHaveLength(160 * 96);
-    expect(parsed.descriptor.flowVectorsXZ).toHaveLength(160 * 96 * 2);
+    expect(parsed.scenicRocks).toHaveLength(15);
+    expect(parsed.descriptor.wetTexelIndices).toHaveLength(143 * 128);
+    expect(parsed.descriptor.surfaceHeights).toHaveLength(143 * 128);
+    expect(parsed.descriptor.bedHeights).toHaveLength(143 * 128);
+    expect(parsed.descriptor.flowVectorsXZ).toHaveLength(143 * 128 * 2);
     expect(() => createGrasslandsPcgFixture(-1)).toThrow(RangeError);
     expect(() => createGrasslandsPcgFixture(0x1_0000_0000)).toThrow(RangeError);
     expect(() => createGrasslandsPcgFixture(1.5)).toThrow(RangeError);

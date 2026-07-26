@@ -6,6 +6,7 @@ import { HeightfieldWaterCompiler } from "../../compiler/heightfield/Heightfield
 import { hashStableValue } from "../../compiler/shared/determinism";
 import {
   GRASSLANDS_CAMERA_FIXTURE,
+  GRASSLANDS_CANDIDATE_VALIDATION_ROIS,
   GRASSLANDS_CAPTURE_VIEWPORT,
   GRASSLANDS_COMPILED_SURFACE_APPEARANCE,
   GRASSLANDS_DIRECT_LIGHT_FIXTURE,
@@ -30,6 +31,7 @@ import type {
   GrasslandsScenicRockFixture,
   GrasslandsVector3
 } from "./GrasslandsPcgTypes";
+import { sampleGrasslandsTerrainProfile } from "./GrasslandsTerrainModel";
 
 const UINT32_MAX = 0xffff_ffff;
 const DECORATION_COUNT = 8;
@@ -80,17 +82,17 @@ function createAnchorRock(
 const GRASSLANDS_ANCHOR_ROCKS: readonly GrasslandsAnchorRockFixture[] = Object.freeze([
   createAnchorRock(
     "anchor-rock-left-foreground",
-    [-5.8, -0.25 * GRASSLANDS_WORLD_SCALE, 4.5],
+    [-8.1, -0.25 * GRASSLANDS_WORLD_SCALE, 17],
     [1.4 * GRASSLANDS_WORLD_SCALE, 0.9 * GRASSLANDS_WORLD_SCALE, 1.1 * GRASSLANDS_WORLD_SCALE]
   ),
   createAnchorRock(
     "anchor-rock-right-bank",
-    [11 * GRASSLANDS_WORLD_SCALE, -0.35 * GRASSLANDS_WORLD_SCALE, 4.5],
+    [13, -0.35 * GRASSLANDS_WORLD_SCALE, 17],
     [1.5 * GRASSLANDS_WORLD_SCALE, 1.05 * GRASSLANDS_WORLD_SCALE, 1.25 * GRASSLANDS_WORLD_SCALE]
   ),
   createAnchorRock(
     "anchor-rock-channel",
-    [2 * GRASSLANDS_WORLD_SCALE, -0.45 * GRASSLANDS_WORLD_SCALE, -8 * GRASSLANDS_WORLD_SCALE],
+    [3.8, -0.45 * GRASSLANDS_WORLD_SCALE, -18],
     [1.1 * GRASSLANDS_WORLD_SCALE, 0.7 * GRASSLANDS_WORLD_SCALE, 0.9 * GRASSLANDS_WORLD_SCALE]
   )
 ]);
@@ -123,13 +125,21 @@ function createScenicRock(
 }
 
 const GRASSLANDS_SCENIC_ROCKS: readonly GrasslandsScenicRockFixture[] = Object.freeze([
-  createScenicRock("scenic-rock-bed-foreground", "underwater-bed", [-2.8, -0.9, 7.2], [1.1, 0.55, 0.75]),
-  createScenicRock("scenic-rock-bed-mid", "underwater-bed", [2.4, -1.05, 2.2], [0.8, 0.4, 0.6]),
-  createScenicRock("scenic-rock-bed-far", "underwater-bed", [-1.4, -1.15, -5.3], [0.65, 0.3, 0.5]),
-  createScenicRock("scenic-rock-shore-left-foreground", "shore", [-8.5, 1, 5.8], [0.9, 0.45, 0.65]),
-  createScenicRock("scenic-rock-shore-right-foreground", "shore", [8.7, 0.6, 3], [0.8, 0.4, 0.6]),
-  createScenicRock("scenic-rock-shore-left-mid", "shore", [-7.2, 1.07, 1], [0.75, 0.35, 0.55]),
-  createScenicRock("scenic-rock-shore-right-mid", "shore", [5.8, 0.76, -1.5], [0.65, 0.3, 0.5])
+  createScenicRock("scenic-rock-bed-shoal-center", "underwater-bed", [0, -0.52, 31], [0.8, 0.32, 0.6]),
+  createScenicRock("scenic-rock-bed-shoal-left", "underwater-bed", [-6, -0.58, 27], [0.65, 0.3, 0.5]),
+  createScenicRock("scenic-rock-bed-shoal-right", "underwater-bed", [7, -0.68, 24], [0.7, 0.34, 0.55]),
+  createScenicRock("scenic-rock-bed-shoal-back", "underwater-bed", [0, -0.78, 18], [0.58, 0.3, 0.48]),
+  createScenicRock("scenic-rock-bed-bay-left", "underwater-bed", [-4, -1.08, 5], [0.7, 0.42, 0.55]),
+  createScenicRock("scenic-rock-bed-bay-right", "underwater-bed", [4, -1.12, -2], [0.62, 0.38, 0.5]),
+  createScenicRock("scenic-rock-bed-channel", "underwater-bed", [-1, -1.18, -16], [0.52, 0.28, 0.42]),
+  createScenicRock("scenic-rock-bed-far-river", "underwater-bed", [-7, -1.26, -28], [0.48, 0.25, 0.38]),
+  createScenicRock("scenic-rock-shore-left-shoal", "shore", [-17.1, 0.72, 30], [0.9, 0.42, 0.65]),
+  createScenicRock("scenic-rock-shore-right-shoal", "shore", [15.2, 0.65, 29], [0.8, 0.38, 0.6]),
+  createScenicRock("scenic-rock-shore-right-bend", "shore", [21.2, 0.68, 23], [0.82, 0.4, 0.62]),
+  createScenicRock("scenic-rock-shore-left-bay", "shore", [-19.2, 0.7, 1], [0.78, 0.38, 0.58]),
+  createScenicRock("scenic-rock-shore-right-bay", "shore", [14.8, 0.64, -7], [0.72, 0.34, 0.54]),
+  createScenicRock("scenic-rock-shore-left-channel", "shore", [-5.6, 0.58, -18], [0.62, 0.3, 0.48]),
+  createScenicRock("scenic-rock-shore-left-far", "shore", [-13.2, 0.55, -29], [0.58, 0.28, 0.44])
 ]);
 
 function createDecorations(seed: number): readonly GrasslandsDecorationFixture[] {
@@ -137,13 +147,15 @@ function createDecorations(seed: number): readonly GrasslandsDecorationFixture[]
   return Object.freeze(
     Array.from({ length: DECORATION_COUNT }, (_value, index) => {
       const bankSign = index % 2 === 0 ? -1 : 1;
-      const distanceFromCenter = (30 + random() * 7) * GRASSLANDS_WORLD_SCALE;
-      const z = (-20 + random() * 40) * GRASSLANDS_WORLD_SCALE;
+      const z = -32 + random() * 66;
+      const profile = sampleGrasslandsTerrainProfile(GRASSLANDS_TERRAIN_RECIPE, z);
+      const shoreX = bankSign < 0 ? profile.leftShoreX : profile.rightShoreX;
+      const x = shoreX + bankSign * (2.5 + random() * 2);
       const scale = (0.75 + random() * 0.5) * GRASSLANDS_WORLD_SCALE;
       return Object.freeze({
         id: `bank-tuft-${index}`,
         kind: "bank-tuft" as const,
-        position: Object.freeze([bankSign * distanceFromCenter, 0.25 * GRASSLANDS_WORLD_SCALE, z] as const),
+        position: Object.freeze([x, 0.25 * GRASSLANDS_WORLD_SCALE, z] as const),
         scale,
         validationCritical: false as const
       });
@@ -220,6 +232,7 @@ export function createGrasslandsPcgFixture(seed = GRASSLANDS_PCG_DEFAULT_SEED): 
     directLight: GRASSLANDS_DIRECT_LIGHT_FIXTURE,
     captureViewport: GRASSLANDS_CAPTURE_VIEWPORT,
     mechanismRois: GRASSLANDS_MECHANISM_ROIS,
+    candidateValidationRois: GRASSLANDS_CANDIDATE_VALIDATION_ROIS,
     terrain: GRASSLANDS_TERRAIN_RECIPE,
     sceneMaterials: GRASSLANDS_SCENE_MATERIALS,
     anchorRocks: GRASSLANDS_ANCHOR_ROCKS,
@@ -259,6 +272,7 @@ export function serializeGrasslandsPcgFixture(fixture: GrasslandsPcgFixture): st
     directLight: fixture.directLight,
     captureViewport: fixture.captureViewport,
     mechanismRois: fixture.mechanismRois,
+    candidateValidationRois: fixture.candidateValidationRois,
     terrain: fixture.terrain,
     sceneMaterials: fixture.sceneMaterials,
     anchorRocks: fixture.anchorRocks,

@@ -46,6 +46,9 @@ const FROZEN_REFERENCE_SHA256 = "c0f711b35a06a31557c3a4ca922ed06cb3c02bca769df42
 const FROZEN_WATER_MASK_SHA256 = "49809d5ab371836ec33ccc3cd3a5a6561f25f4c838d4b007acfb65a27e619570";
 const FROZEN_REFERENCE_ROIS_SHA256 = "aed18aa74a20ef1a284d40684e7d45c669ce8499c6e2511257c83eae3556abbb";
 const FROZEN_MECHANISM_THRESHOLDS_SHA256 = "a8aef214471996de3bf31074eaf0e278cd59b8301bc99fa8be57e6e58755348a";
+const PRE_LANDSCAPE_PROTECTION_ROIS_SHA256 = "ed763a36281d2e2602ad5ba2c08ccb71089c30c73a674befb49e87bc57f40f16";
+const PRE_LANDSCAPE_ANCHOR_ROIS_SHA256 = "5ebd53433eac5ce94dff91011f0537529ba1ad5f3a9636fb449fde6d6790e838";
+const PRE_LANDSCAPE_SUPPLEMENTAL_ROIS_SHA256 = "a5693297131795026c6b2bf4b2515c5ff0f88acdeb94878cb2f8536443f24077";
 const EXPECTED_CANDIDATE_ROI_IDS = Object.freeze([
   "detail-normal",
   "refraction",
@@ -116,7 +119,7 @@ const FEATURE_TARGET_ROIS = Object.freeze({
   externalNormal: Object.freeze(["detail-normal"]),
   refraction: Object.freeze(["refraction"]),
   depthColor: Object.freeze(["depth-color"]),
-  contactFoam: Object.freeze(["contact-foam-left", "contact-foam-right"]),
+  contactFoam: Object.freeze(["anchor-rock-left-foreground", "anchor-rock-right-bank"]),
   coastalAlpha: Object.freeze(["coastal-alpha"]),
   directSpecular: Object.freeze(["specular-response"]),
   reflection: Object.freeze(["specular-response"])
@@ -143,26 +146,26 @@ const FEATURE_PROTECTION_CAPTURES = Object.freeze({
 const M1_PROTECTION_ROIS = Object.freeze([
   Object.freeze({
     id: "protection-bank-left",
-    x: 190,
-    y: 235,
-    width: 100,
-    height: 60,
+    x: 0,
+    y: 200,
+    width: 150,
+    height: 80,
     purpose: "candidate-only non-water terrain protection; fixed camera keeps this rectangle entirely on the left bank"
   }),
   Object.freeze({
     id: "protection-bank-right",
-    x: 1080,
-    y: 235,
-    width: 100,
-    height: 60,
+    x: 1190,
+    y: 200,
+    width: 150,
+    height: 80,
     purpose: "candidate-only non-water terrain protection; fixed camera keeps this rectangle entirely on the right bank"
   }),
   Object.freeze({
     id: "protection-open-water",
-    x: 590,
-    y: 440,
-    width: 140,
-    height: 80,
+    x: 580,
+    y: 450,
+    width: 180,
+    height: 120,
     purpose:
       "candidate-only open-water protection; fixed terrain and anchor geometry leave this rectangle clear of banks and rocks"
   })
@@ -171,26 +174,26 @@ const M1_TERRAIN_PROTECTION_ROI_IDS = Object.freeze(["protection-bank-left", "pr
 const M1_ANCHOR_ROIS = Object.freeze([
   Object.freeze({
     id: "anchor-rock-left-foreground",
-    x: 280,
-    y: 335,
-    width: 130,
-    height: 80,
+    x: 240,
+    y: 275,
+    width: 125,
+    height: 100,
     purpose: "candidate-only Scene Depth contact ROI for anchor-rock-left-foreground"
   }),
   Object.freeze({
     id: "anchor-rock-right-bank",
-    x: 980,
-    y: 350,
-    width: 150,
-    height: 95,
+    x: 1075,
+    y: 285,
+    width: 120,
+    height: 100,
     purpose: "candidate-only Scene Depth contact ROI for anchor-rock-right-bank"
   }),
   Object.freeze({
     id: "anchor-rock-channel",
-    x: 700,
-    y: 270,
-    width: 85,
-    height: 50,
+    x: 685,
+    y: 170,
+    width: 150,
+    height: 90,
     purpose: "candidate-only Scene Depth contact ROI for anchor-rock-channel"
   })
 ]);
@@ -435,6 +438,63 @@ function assertM1ProtectionRois() {
   return rois;
 }
 
+function assertCandidateSupplementalRoiMigration(candidateRois) {
+  assertAcceptance(
+    Array.isArray(candidateRois) && candidateRois.length === 16,
+    "Expanded Grasslands fixture must expose 16 candidate-only supplemental ROIs.",
+    candidateRois
+  );
+  const byId = new Map();
+  for (const roi of candidateRois) {
+    assertAcceptance(!byId.has(roi.id), `Duplicate candidate supplemental ROI '${roi.id}'.`, candidateRois);
+    assertAcceptance(
+      Number.isInteger(roi.x) &&
+        Number.isInteger(roi.y) &&
+        Number.isInteger(roi.width) &&
+        Number.isInteger(roi.height) &&
+        roi.x >= 0 &&
+        roi.y >= 0 &&
+        roi.width > 0 &&
+        roi.height > 0 &&
+        roi.x + roi.width <= FIXED_ENVIRONMENT.viewport.width &&
+        roi.y + roi.height <= FIXED_ENVIRONMENT.viewport.height,
+      `Candidate supplemental ROI '${roi.id}' is outside the fixed viewport.`,
+      roi
+    );
+    byId.set(roi.id, roi);
+  }
+  const mappings = [
+    ["candidate-left-bank", M1_PROTECTION_ROIS[0]],
+    ["candidate-right-bank", M1_PROTECTION_ROIS[1]],
+    ["candidate-open-water", M1_PROTECTION_ROIS[2]],
+    ["candidate-anchor-left", M1_ANCHOR_ROIS[0]],
+    ["candidate-anchor-right", M1_ANCHOR_ROIS[1]],
+    ["candidate-anchor-channel", M1_ANCHOR_ROIS[2]]
+  ];
+  for (const [candidateId, harnessRoi] of mappings) {
+    const candidate = byId.get(candidateId);
+    assertAcceptance(candidate, `Candidate supplemental ROI '${candidateId}' is missing.`, candidateRois);
+    for (const field of ["x", "y", "width", "height"]) {
+      assertAcceptance(
+        candidate[field] === harnessRoi[field],
+        `Candidate supplemental ROI '${candidateId}' does not match its harness projection.`,
+        { candidate, harnessRoi }
+      );
+    }
+  }
+  return {
+    sourceCommit: "f3643895821f2767c9a1b91ef1902f71deab1d5e",
+    reason: "hero-camera-and-landscape-layout",
+    candidateOnly: true,
+    referenceArtifactsChanged: false,
+    oldProtectionRoisSha256: PRE_LANDSCAPE_PROTECTION_ROIS_SHA256,
+    oldAnchorRoisSha256: PRE_LANDSCAPE_ANCHOR_ROIS_SHA256,
+    oldSupplementalRoisSha256: PRE_LANDSCAPE_SUPPLEMENTAL_ROIS_SHA256,
+    newCandidateRoisSha256: hashJson(candidateRois),
+    rois: candidateRois
+  };
+}
+
 async function fileExists(path) {
   try {
     await access(path);
@@ -514,9 +574,9 @@ async function decodeFullResolutionRoi(page, pngBytes, roi, label) {
   );
 }
 
-async function compareRegressionPngBytes(page, oldBytes, newBytes, thresholds) {
+async function compareRegressionPngBytes(page, oldBytes, newBytes, thresholds, rois = []) {
   return page.evaluate(
-    async ({ oldUrl, newUrl, expectedWidth, expectedHeight, frozenThresholds }) => {
+    async ({ oldUrl, newUrl, expectedWidth, expectedHeight, frozenThresholds, roiDefinitions }) => {
       const decode = (url) =>
         new Promise((resolveImage, rejectImage) => {
           const image = new Image();
@@ -578,6 +638,34 @@ async function compareRegressionPngBytes(page, oldBytes, newBytes, thresholds) {
       }
       diffContext.putImageData(diffImage, 0, 0);
       const pixelCount = expectedWidth * expectedHeight;
+      const roiMetrics = roiDefinitions.map((roi) => {
+        let roiDiffPixelCount = 0;
+        let roiAbsoluteChannelDifference = 0;
+        let roiMaximumChannelDifference = 0;
+        for (let y = roi.y; y < roi.y + roi.height; y++) {
+          for (let x = roi.x; x < roi.x + roi.width; x++) {
+            const offset = (y * expectedWidth + x) * 4;
+            let pixelMaximum = 0;
+            for (let channel = 0; channel < 3; channel++) {
+              const difference = Math.abs(oldPixels[offset + channel] - newPixels[offset + channel]);
+              roiAbsoluteChannelDifference += difference;
+              pixelMaximum = Math.max(pixelMaximum, difference);
+            }
+            roiMaximumChannelDifference = Math.max(roiMaximumChannelDifference, pixelMaximum);
+            if (pixelMaximum > frozenThresholds.perChannelByteTolerance) roiDiffPixelCount++;
+          }
+        }
+        const roiPixelCount = roi.width * roi.height;
+        return {
+          id: roi.id,
+          sourceRectangle: { x: roi.x, y: roi.y, width: roi.width, height: roi.height },
+          pixelCount: roiPixelCount,
+          diffPixelCount: roiDiffPixelCount,
+          diffPixelRatio: roiDiffPixelCount / roiPixelCount,
+          meanAbsoluteChannelDifference: roiAbsoluteChannelDifference / (roiPixelCount * 3),
+          maximumChannelDifference: roiMaximumChannelDifference
+        };
+      });
       return {
         metrics: {
           width: expectedWidth,
@@ -588,6 +676,7 @@ async function compareRegressionPngBytes(page, oldBytes, newBytes, thresholds) {
           meanAbsoluteChannelDifference: absoluteChannelDifference / (pixelCount * 3),
           maximumChannelDifference
         },
+        roiMetrics,
         diffDataUrl: diffCanvas.toDataURL("image/png")
       };
     },
@@ -596,9 +685,110 @@ async function compareRegressionPngBytes(page, oldBytes, newBytes, thresholds) {
       newUrl: `data:image/png;base64,${newBytes.toString("base64")}`,
       expectedWidth: FIXED_ENVIRONMENT.viewport.width,
       expectedHeight: FIXED_ENVIRONMENT.viewport.height,
-      frozenThresholds: thresholds
+      frozenThresholds: thresholds,
+      roiDefinitions: rois
     }
   );
+}
+
+async function evaluateLandscapeComposition(
+  page,
+  capturesByState,
+  candidateValidationRois,
+  initialSnapshot,
+  run,
+  artifactIndex
+) {
+  const hero = capturesByState.get("hero");
+  const detailNormal = capturesByState.get("detail-normal");
+  assertAcceptance(hero?.bytes && detailNormal?.bytes, "Landscape composition captures are incomplete.");
+  const requiredLandscapeRoiIds = [
+    "candidate-far-river",
+    "candidate-narrow-channel",
+    "candidate-mid-bay",
+    "candidate-near-shoal"
+  ];
+  const landscapeRois = requiredLandscapeRoiIds.map((id) => candidateValidationRois.find((roi) => roi.id === id));
+  assertAcceptance(
+    landscapeRois.every(Boolean),
+    "Grasslands candidate fixture does not define all four landscape region ROIs.",
+    candidateValidationRois
+  );
+  const comparison = await compareRegressionPngBytes(
+    page,
+    hero.bytes,
+    detailNormal.bytes,
+    { perChannelByteTolerance: 8 },
+    landscapeRois
+  );
+  const waterScreenCoverageRatio = comparison.metrics.diffPixelRatio;
+  assertAcceptance(
+    waterScreenCoverageRatio >= 0.5 && waterScreenCoverageRatio <= 0.65,
+    `Grasslands Hero water screen coverage ${waterScreenCoverageRatio} is outside [0.50, 0.65].`,
+    comparison.metrics
+  );
+  assertAcceptance(
+    initialSnapshot.scene.connectedWaterBodyCount === 1,
+    "Grasslands expanded landscape is not one connected Heightfield water body.",
+    initialSnapshot.scene
+  );
+  assertAcceptance(
+    initialSnapshot.scene.landscapeExtentScaleXZ.every((scale) => scale >= 2 && scale <= 3),
+    "Grasslands landscape extent is outside the approved 2x-3x range.",
+    initialSnapshot.scene.landscapeExtentScaleXZ
+  );
+  const regionProbes = comparison.roiMetrics;
+  for (const probe of regionProbes) {
+    assertAcceptance(
+      probe.diffPixelCount > 0,
+      `Grasslands landscape region '${probe.id}' has no visible water signal.`,
+      probe
+    );
+  }
+
+  const directory = resolve(run.outputDirectory, "landscape-composition");
+  await mkdir(directory, { recursive: true });
+  const overlayBytes = Buffer.from(comparison.diffDataUrl.slice(comparison.diffDataUrl.indexOf(",") + 1), "base64");
+  const overlayPath = resolve(directory, "water-screen-coverage-overlay.png");
+  await writeFile(overlayPath, overlayBytes);
+  const result = {
+    status: "passed",
+    method:
+      "full-frame fixed-time Hero versus Debug 23 DetailNormal changed-pixel ratio at per-channel byte tolerance 8",
+    waterScreenCoverageRatio,
+    requiredRange: [0.5, 0.65],
+    connectedWaterBodyCount: initialSnapshot.scene.connectedWaterBodyCount,
+    extentScaleXZ: initialSnapshot.scene.landscapeExtentScaleXZ,
+    landscapeRegionIds: initialSnapshot.scene.landscapeRegionIds,
+    terrainTopology: {
+      shorelineSampleCount: initialSnapshot.scene.terrainShorelineSampleCount,
+      degenerateTriangleCount: initialSnapshot.scene.terrainDegenerateTriangleCount,
+      directMudGrassAdjacencyCount: initialSnapshot.scene.terrainDirectMudGrassAdjacencyCount
+    },
+    regionProbes,
+    overlay: {
+      path: overlayPath,
+      sha256: sha256(overlayBytes),
+      byteLength: overlayBytes.byteLength
+    }
+  };
+  const jsonArtifact = await writeJsonArtifact(resolve(directory, "landscape-composition.json"), result);
+  artifactIndex.push(
+    {
+      category: "landscape-composition",
+      name: "water-screen-coverage-overlay",
+      path: overlayPath,
+      relativePath: relative(run.outputDirectory, overlayPath),
+      sha256: result.overlay.sha256,
+      byteLength: overlayBytes.byteLength
+    },
+    {
+      category: "landscape-composition",
+      name: "metrics",
+      ...jsonArtifact
+    }
+  );
+  return result;
 }
 
 async function readCalibrationHostState(page) {
@@ -1385,13 +1575,51 @@ function assertInitialStrictSnapshot(snapshot) {
   );
   assertAcceptance(
     snapshot.scene.anchorRockCount === 3 &&
-      snapshot.scene.scenicRockCount === 7 &&
-      snapshot.scene.submergedScenicRockCount === 3 &&
-      snapshot.scene.shoreScenicRockCount === 4 &&
+      snapshot.scene.scenicRockCount === 15 &&
+      snapshot.scene.submergedScenicRockCount === 8 &&
+      snapshot.scene.shoreScenicRockCount === 7 &&
       snapshot.scene.contactProbeCount === 3 &&
       snapshot.scene.terrainIndexCount === snapshot.scene.terrainBedIndexCount + snapshot.scene.terrainBankIndexCount &&
+      snapshot.scene.terrainIndexCount ===
+        snapshot.scene.terrainMudStonesIndexCount +
+          snapshot.scene.terrainSandIndexCount +
+          snapshot.scene.terrainGrassMudIndexCount &&
       snapshot.scene.terrainBedIndexCount > 0 &&
       snapshot.scene.terrainBankIndexCount > 0 &&
+      snapshot.scene.terrainMudStonesIndexCount > 0 &&
+      snapshot.scene.terrainSandIndexCount > 0 &&
+      snapshot.scene.terrainGrassMudIndexCount > 0 &&
+      snapshot.scene.environmentReady === true &&
+      snapshot.scene.environmentAssetSetHash === "2a1d1e0591c0d2a1125332a4b4c08938d89a782a9ea6c46b11c3fd7d35b31580" &&
+      snapshot.scene.terrainMaterialRegionCount === 3 &&
+      snapshot.scene.terrainMaterialRegionIds.join(",") === "mud-stones,sand,grass-mud" &&
+      snapshot.scene.rockModelResourceCount === 5 &&
+      snapshot.scene.largeRockVariantCount === 2 &&
+      snapshot.scene.smallRockVariantCount === 3 &&
+      snapshot.scene.sharedRockMeshCount === 5 &&
+      snapshot.scene.proxyRockMeshCount === 0 &&
+      snapshot.scene.sceneMeshUploadCount === 6 &&
+      snapshot.scene.terrainShorelineSampleCount === 386 &&
+      snapshot.scene.terrainDegenerateTriangleCount === 0 &&
+      snapshot.scene.terrainDirectMudGrassAdjacencyCount === 0 &&
+      snapshot.scene.connectedWaterBodyCount === 1 &&
+      snapshot.scene.landscapeRegionCount === 4 &&
+      snapshot.scene.landscapeRegionIds.join(",") === "far-river,narrow-channel,mid-bay,near-shoal" &&
+      snapshot.scene.landscapeExtentScaleXZ[0] >= 2 &&
+      snapshot.scene.landscapeExtentScaleXZ[0] <= 3 &&
+      snapshot.scene.landscapeExtentScaleXZ[1] >= 2 &&
+      snapshot.scene.landscapeExtentScaleXZ[1] <= 3 &&
+      snapshot.resources.environmentTextureCreateCount === 10 &&
+      snapshot.resources.environmentTextureDestroyCount === 0 &&
+      snapshot.resources.environmentMaterialCreateCount === 5 &&
+      snapshot.resources.environmentMaterialDestroyCount === 0 &&
+      snapshot.resources.environmentGltfResourceCreateCount === 5 &&
+      snapshot.resources.environmentGltfResourceDestroyCount === 0 &&
+      snapshot.resources.environmentMeshCreateCount === 5 &&
+      snapshot.resources.environmentMeshDestroyCount === 0 &&
+      snapshot.resources.environmentActiveRockInstanceCount === 18 &&
+      snapshot.resources.environmentRockInstanceCreateCount === 18 &&
+      snapshot.resources.environmentRockInstanceDestroyCount === 0 &&
       snapshot.scene.directLightCount === 1 &&
       snapshot.scene.skyboxCount === 0 &&
       snapshot.scene.planarCameraCount === 0 &&
@@ -2660,13 +2888,14 @@ async function evaluateDetailNormalFrequencyEvidence(
   targetBytes,
   candidateHeroBytes,
   candidateDebugBytes,
-  detailNormalRoi,
+  targetDetailNormalRoi,
+  candidateDetailNormalRoi,
   threshold
 ) {
   const [targetPixels, candidateHeroPixels, candidateDebugPixels] = await Promise.all([
-    decodeFullResolutionRoi(page, targetBytes, detailNormalRoi, "target detail-normal ROI"),
-    decodeFullResolutionRoi(page, candidateHeroBytes, detailNormalRoi, "candidate Hero detail-normal ROI"),
-    decodeFullResolutionRoi(page, candidateDebugBytes, detailNormalRoi, "candidate Debug 23 detail-normal ROI")
+    decodeFullResolutionRoi(page, targetBytes, targetDetailNormalRoi, "target detail-normal ROI"),
+    decodeFullResolutionRoi(page, candidateHeroBytes, candidateDetailNormalRoi, "candidate Hero detail-normal ROI"),
+    decodeFullResolutionRoi(page, candidateDebugBytes, candidateDetailNormalRoi, "candidate Debug 23 detail-normal ROI")
   ]);
   const target = analyzeGrasslandsDetailFrequency(targetPixels);
   const candidateHero = analyzeGrasslandsDetailFrequency(candidateHeroPixels);
@@ -2675,7 +2904,8 @@ async function evaluateDetailNormalFrequencyEvidence(
   return {
     status: gate.status,
     source: "full-resolution-target-and-candidate-hero-roi-radial-derivative-spectrum",
-    roi: detailNormalRoi,
+    targetRoi: targetDetailNormalRoi,
+    candidateRoi: candidateDetailNormalRoi,
     targetPngSha256: sha256(targetBytes),
     candidateHeroPngSha256: sha256(candidateHeroBytes),
     candidateDebug23PngSha256: sha256(candidateDebugBytes),
@@ -3414,6 +3644,9 @@ try {
   const fixtureRois = initialSnapshot.scene.ready
     ? await page.evaluate(() => structuredClone(window.waterPcgGrasslands?.fixture.mechanismRois ?? []))
     : [];
+  const candidateValidationRois = initialSnapshot.scene.ready
+    ? await page.evaluate(() => structuredClone(window.waterPcgGrasslands?.fixture.candidateValidationRois ?? []))
+    : [];
   assertAcceptance(
     fixtureRois.length === 7,
     "Grasslands fixture must expose seven mechanism ROI records.",
@@ -3421,13 +3654,15 @@ try {
   );
   const referenceRois = assertRoiDefinitions(fixture.manifest.reference.mechanismRois, fixtureRois);
   const m1SupplementalRois = assertM1ProtectionRois();
+  const candidateRoiMigration = assertCandidateSupplementalRoiMigration(candidateValidationRois);
   const m1AnalysisRois = [...fixtureRois, ...m1SupplementalRois];
   report.m1RoiCalibration = {
     status: "frozen-for-m1-before-causal-delta-evaluation",
     candidateOnly: true,
     numericThresholdsAdded: false,
     rois: m1SupplementalRois,
-    basis: "fixed Hero camera plus deterministic analytic terrain and anchor fixture geometry"
+    basis: "fixed Hero camera plus deterministic analytic terrain and anchor fixture geometry",
+    migration: candidateRoiMigration
   };
 
   for (const state of CAPTURE_STATES) {
@@ -3442,6 +3677,14 @@ try {
         acceptance: capture.acceptance
       }
     ])
+  );
+  report.landscapeComposition = await evaluateLandscapeComposition(
+    page,
+    capturesByState,
+    candidateValidationRois,
+    initialSnapshot,
+    run,
+    report.artifactIndex
   );
   const heroCapture = report.captureStates.find((capture) => capture.state === "hero");
   const detailNormalCapture = report.captureStates.find((capture) => capture.state === "detail-normal");
@@ -3468,12 +3711,15 @@ try {
   };
   const detailNormalRoi = referenceRois.find(({ id }) => id === "detail-normal");
   assertAcceptance(detailNormalRoi, "Frozen detail-normal ROI is missing.");
+  const candidateDetailNormalRoi = candidateValidationRois.find(({ id }) => id === "candidate-near-optics");
+  assertAcceptance(candidateDetailNormalRoi, "Candidate detail-normal ROI is missing.");
   report.detailNormalFrequency = await evaluateDetailNormalFrequencyEvidence(
     page,
     externalReference.bytes,
     heroCapture.bytes,
     detailNormalCapture.bytes,
     detailNormalRoi,
+    candidateDetailNormalRoi,
     fixture.manifest.mechanismThresholds.detailNormal.maximumPrimaryFrequencyPeakRelativeError
   );
   const detailFrequencyArtifact = await writeJsonArtifact(
