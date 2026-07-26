@@ -676,6 +676,11 @@ export class GrasslandsSceneController {
   resetHeroCamera(): void {
     if (this._destroyed) return;
     const { position, target } = this._fixture.camera;
+    this.setCameraPose(position, target);
+  }
+
+  setCameraPose(position: GrasslandsVector3, target: GrasslandsVector3): void {
+    if (this._destroyed) return;
     this.cameraEntity.transform.setPosition(...position);
     this.cameraEntity.transform.lookAt(new Vector3(...target));
   }

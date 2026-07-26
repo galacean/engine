@@ -61,6 +61,21 @@ export const GRASSLANDS_CAMERA_FIXTURE: GrasslandsCameraFixture = Object.freeze(
   farClip: 320 * GRASSLANDS_WORLD_SCALE
 });
 
+export const GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES = Object.freeze({
+  hero: Object.freeze({
+    position: GRASSLANDS_CAMERA_FIXTURE.position,
+    target: GRASSLANDS_CAMERA_FIXTURE.target
+  }),
+  interaction: Object.freeze({
+    position: Object.freeze([0, 2.4, 29] as const),
+    target: Object.freeze([0, -0.6, 11] as const)
+  }),
+  detail: Object.freeze({
+    position: Object.freeze([-11, 2.3, 13] as const),
+    target: Object.freeze([-4, -1.2, -2] as const)
+  })
+});
+
 export const GRASSLANDS_DIRECT_LIGHT_FIXTURE: GrasslandsDirectLightFixture = Object.freeze({
   color: Object.freeze([1, 1, 1] as const),
   intensity: 1.05,

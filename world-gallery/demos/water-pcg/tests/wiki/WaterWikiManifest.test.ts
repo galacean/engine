@@ -65,7 +65,7 @@ describe("Water Wiki manifest", () => {
     expect(markdownBySlug.get("surface-query")).toContain("WaterSurfaceProvider");
     expect(markdownBySlug.get("testing-and-troubleshooting")).toContain("typecheck:water-pcg");
     expect(markdownBySlug.get("limitations")).toContain("没有从 `@galacean/engine` 导出");
-    expect(overview).toContain("3 个 Showcase 和 17 个 Feature");
+    expect(overview).toContain("4 个 Showcase 和 17 个 Feature");
     expect(overview).toContain("有限覆盖范围的 camera-relative Rings");
   });
 
@@ -81,7 +81,7 @@ describe("Water Wiki manifest", () => {
 
     const showcaseCases = runnableCases.filter(({ group }) => group === "showcase");
     const featureCases = runnableCases.filter(({ group }) => group === "feature");
-    expect(showcaseCases).toHaveLength(3);
+    expect(showcaseCases).toHaveLength(4);
     expect(featureCases).toHaveLength(17);
 
     const overview = findWaterWikiPage("overview")?.markdown ?? "";

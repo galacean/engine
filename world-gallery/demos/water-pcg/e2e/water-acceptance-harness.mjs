@@ -220,6 +220,8 @@ function collectCaseSnapshotInPage(definition) {
       }
     : undefined;
   const camera = window.waterPcgShowcaseCamera?.snapshot ? clone(window.waterPcgShowcaseCamera.snapshot) : undefined;
+  const grasslands =
+    typeof window.waterPcgGrasslands?.snapshot === "function" ? clone(window.waterPcgGrasslands.snapshot()) : undefined;
 
   let ready = acceptance ? acceptance.ready === true : false;
   if (!acceptance) {
@@ -285,6 +287,7 @@ function collectCaseSnapshotInPage(definition) {
     buoyancy,
     feature,
     camera,
+    grasslands,
     datasets: {
       shell: readDataset("#example-bar"),
       pool: readDataset("#interactive-pool-metrics"),

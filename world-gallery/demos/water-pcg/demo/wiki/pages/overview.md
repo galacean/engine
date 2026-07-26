@@ -19,11 +19,11 @@ River 已走通完整 Descriptor → Compiler → Resource → Worker → Runtim
 
 完整案例目录按展示目标分成三层：
 
-当前目录包含 3 个 Showcase 和 17 个 Feature；Developer 与 Docs 入口不计入公开能力数量。
+当前目录包含 4 个 Showcase 和 17 个 Feature；Developer 与 Docs 入口不计入公开能力数量。
 
 | 层级 | 入口 | 目标 |
 | --- | --- | --- |
-| Showcase | [河流](./#showcase-river)、[泳池](./#showcase-pool)、[海洋](./#showcase-ocean) | 每种典型场景只保留一个“大而全”的最佳效果入口 |
+| Showcase | [河流](./#showcase-river)、[泳池](./#showcase-pool)、[海洋](./#showcase-ocean)、[Grasslands 风格化浅水](./#showcase-grasslands-stylized-water) | 每种典型场景只保留一个“大而全”的最佳效果入口 |
 | Feature | [折射](./#feature-refraction)、[反射](./#feature-reflection)、[交互波纹](./#feature-ripples)、[尾迹与泡沫](./#feature-wake-foam)、[水下](./#feature-underwater)、[浮力](./#feature-buoyancy)、[水流漂移](./#feature-current-drift)、[Gerstner 波](./#feature-gerstner-waves)、[Ocean 近岸波浪](./#feature-ocean-nearshore-waves)、[Ocean 破碎浪](./#feature-ocean-breakers)、[Ocean 岸线泡沫](./#feature-ocean-shore-foam)、[Ocean 礁石接触](./#feature-ocean-rock-contact)、[Ocean 微表面](./#feature-ocean-micro-surface)、[Ocean 湿沙](./#feature-ocean-wetness)、[岸边泡沫](./#feature-shore-foam)、[高度场](./#feature-heightfield)、[河流汇流](./#feature-river-confluence) | 一次只证明一个局部能力，便于学习、A/B 和回归 |
 | Developer | [光学验收](./#water-optics-lab)、[泳池诊断](./#developer-pool-diagnostics)、[河流诊断](./#developer-river-debug)、[海洋 LOD 诊断](./#developer-ocean-lod) | 压力、纹理、拓扑、Golden 和资源生命周期验收；默认隐藏，可直接打开或使用 `?mode=dev` |
 

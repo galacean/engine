@@ -1,6 +1,11 @@
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { HeightfieldWaterDebugMode } from "../../runtime/heightfield/HeightfieldWaterRuntimeEnums";
 import type { HeightfieldWaterSurfaceAppearanceFeatureFlags } from "../../runtime/heightfield/types";
+import type {
+  WaterShowcaseAcceptanceSnapshot,
+  WaterShowcaseCaptureApi,
+  WaterShowcaseReflectionMetrics
+} from "../showcase/WaterShowcaseAcceptance";
 import type { GrasslandsAnchorRockReadback, GrasslandsDirectLightState } from "./GrasslandsSceneController";
 import type { GrasslandsControlledCalibrationReadback } from "./GrasslandsControlledCalibration";
 import type { GrasslandsPcgFixture, GrasslandsVector3, GrasslandsWorldBounds } from "./GrasslandsPcgTypes";
@@ -17,6 +22,10 @@ export const GRASSLANDS_CAPTURE_STATES = Object.freeze([
 ] as const);
 
 export type GrasslandsCaptureState = (typeof GRASSLANDS_CAPTURE_STATES)[number];
+
+export const GRASSLANDS_SHARED_CAPTURE_STATES = Object.freeze(["hero", "interaction", "detail"] as const);
+
+export type GrasslandsSharedCaptureState = (typeof GRASSLANDS_SHARED_CAPTURE_STATES)[number];
 
 export const GRASSLANDS_CAPTURE_DEBUG_MODE: Readonly<Record<GrasslandsCaptureState, HeightfieldWaterDebugMode>> =
   Object.freeze({
@@ -144,11 +153,14 @@ export interface GrasslandsReflectionAcceptanceReadback {
   readonly contributionEnabled: boolean;
   readonly requestedSource: "none" | "sky" | "probe" | "planar";
   readonly effectiveSource: "none" | "sky" | "probe" | "planar";
+  readonly ownerCount: number;
   readonly intensity: number;
   readonly effectiveIntensity: number;
   readonly fallbackReason: string | null;
   readonly cameraCount: number;
   readonly renderTargetCount: number;
+  readonly filterSampleCount: 1;
+  readonly failureCount: number;
 }
 
 export interface GrasslandsRuntimeSetAcceptanceReadback {
@@ -168,6 +180,10 @@ export interface GrasslandsResourceAcceptanceReadback {
   readonly bufferMemory: number;
   readonly textureMemory: number;
   readonly totalMemory: number;
+  readonly liveRenderTargets: number;
+  readonly liveReflectionCameras: number;
+  readonly meshUploadCount: number;
+  readonly perFrameMeshUpload: boolean;
   readonly ownedTextureCount: number;
   readonly borrowedTextureCount: number;
   readonly textureCreateCount: number;
@@ -225,6 +241,7 @@ export interface GrasslandsCameraAcceptanceReadback {
 export interface GrasslandsSceneAcceptanceReadback {
   readonly ready: boolean;
   readonly finite: boolean;
+  readonly cameraMode: "free" | "fixed";
   readonly fixtureId: string;
   readonly fixtureHash: string;
   readonly bounds: GrasslandsWorldBounds;
@@ -290,6 +307,7 @@ export interface GrasslandsAcceptanceRuntimeReadback {
   readonly effectiveDebugMode: HeightfieldWaterDebugMode;
   readonly appearanceFallbackReason: string | null;
   readonly foamOctaveCount: 0 | 1 | 2 | 3;
+  readonly refractionEnabled: boolean;
   readonly normal: Readonly<GrasslandsNormalAcceptanceReadback>;
   readonly appearance: Readonly<GrasslandsAppearanceAcceptanceReadback>;
   readonly cameraFeatures: Readonly<GrasslandsCameraFeatureAcceptanceReadback>;
@@ -532,4 +550,99 @@ export function createGrasslandsShowcaseAcceptanceApi(
   bridge: GrasslandsShowcaseAcceptanceBridge
 ): GrasslandsShowcaseAcceptanceApi {
   return new GrasslandsShowcaseAcceptanceController(fixture, bridge).api;
+}
+
+function normalizeSharedReflectionSource(
+  source: GrasslandsReflectionAcceptanceReadback["effectiveSource"]
+): WaterShowcaseReflectionMetrics["effectiveSource"] {
+  return source === "none" ? "sky" : source;
+}
+
+export function createGrasslandsSharedAcceptanceSnapshot(
+  snapshot: Readonly<GrasslandsShowcaseAcceptanceSnapshot>
+): Readonly<WaterShowcaseAcceptanceSnapshot> {
+  const reflectionSourceReady =
+    snapshot.reflection.requestedSource !== "none" && snapshot.reflection.effectiveSource !== "none";
+  return Object.freeze({
+    ready:
+      snapshot.ready &&
+      snapshot.strictMaterialReady &&
+      snapshot.qualityTier === WaterQualityTier.High &&
+      snapshot.opticsTier === "high" &&
+      reflectionSourceReady,
+    caseId: snapshot.caseId,
+    runtime: snapshot.runtime,
+    preset: snapshot.preset,
+    runtimeError: snapshot.runtimeError,
+    finite: snapshot.finite,
+    qualityTier: "high",
+    opticsTier: "high",
+    frame: Object.freeze({
+      sampleCount: snapshot.frame.sampleCount,
+      fps: snapshot.frame.fps,
+      p95FrameMs: snapshot.frame.p95FrameMs,
+      finite: snapshot.frame.finite
+    }),
+    resources: Object.freeze({
+      bufferMemory: snapshot.resources.bufferMemory,
+      textureMemory: snapshot.resources.textureMemory,
+      totalMemory: snapshot.resources.totalMemory,
+      liveRenderTargets: snapshot.resources.liveRenderTargets,
+      liveReflectionCameras: snapshot.resources.liveReflectionCameras,
+      meshUploadCount: snapshot.resources.meshUploadCount,
+      perFrameMeshUpload: snapshot.resources.perFrameMeshUpload
+    }),
+    reflection: Object.freeze({
+      requestedSource: normalizeSharedReflectionSource(snapshot.reflection.requestedSource),
+      effectiveSource: normalizeSharedReflectionSource(snapshot.reflection.effectiveSource),
+      ownerCount: snapshot.reflection.ownerCount,
+      cameraCount: snapshot.reflection.cameraCount,
+      renderTargetCount: snapshot.reflection.renderTargetCount,
+      filterSampleCount: snapshot.reflection.filterSampleCount,
+      failureCount: snapshot.reflection.failureCount,
+      fallbackReason:
+        snapshot.reflection.fallbackReason ?? (reflectionSourceReady ? null : "reflection-source-unavailable")
+    }),
+    refractionEnabled: snapshot.refractionEnabled,
+    scene: Object.freeze({
+      cameraMode: snapshot.scene.cameraMode,
+      waterBodyType: snapshot.waterBodyType,
+      activeSetCount: snapshot.runtimeSet.activeSetCount,
+      chunkCount: snapshot.runtimeSet.chunkCount,
+      drawCount: snapshot.runtimeSet.drawCount,
+      activeWaveCount: snapshot.runtimeSet.activeWaveCount,
+      waveStrength: snapshot.runtimeSet.waveStrength,
+      gameplayQueryRegistered: snapshot.runtimeSet.gameplayQueryRegistered,
+      connectedWaterBodyCount: snapshot.scene.connectedWaterBodyCount,
+      terrainMaterialRegionCount: snapshot.scene.terrainMaterialRegionCount,
+      activeRockCount: snapshot.scene.activeRockCount,
+      scenicRockCount: snapshot.scene.scenicRockCount,
+      proxyRockMeshCount: snapshot.scene.proxyRockMeshCount
+    })
+  });
+}
+
+export function createGrasslandsSharedShowcaseCaptureApi(
+  applyCaptureState: (state: GrasslandsSharedCaptureState) => void,
+  resetCaptureState: () => void
+): WaterShowcaseCaptureApi {
+  let currentState: GrasslandsSharedCaptureState = "hero";
+  const setCaptureState = (state: string): void => {
+    if (!GRASSLANDS_SHARED_CAPTURE_STATES.includes(state as GrasslandsSharedCaptureState)) {
+      throw new RangeError(`Unknown shared Grasslands capture state "${String(state)}".`);
+    }
+    currentState = state as GrasslandsSharedCaptureState;
+    applyCaptureState(currentState);
+  };
+  return Object.freeze({
+    states: GRASSLANDS_SHARED_CAPTURE_STATES,
+    get currentState() {
+      return currentState;
+    },
+    setCaptureState,
+    reset(): void {
+      currentState = "hero";
+      resetCaptureState();
+    }
+  });
 }

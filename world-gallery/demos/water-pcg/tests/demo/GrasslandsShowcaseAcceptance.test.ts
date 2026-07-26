@@ -5,9 +5,12 @@ import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { createGrasslandsPcgFixture } from "../../demo/grasslands/GrasslandsPcgFixture";
 import type { GrasslandsAnchorRockReadback } from "../../demo/grasslands/GrasslandsSceneController";
 import {
+  createGrasslandsSharedAcceptanceSnapshot,
+  createGrasslandsSharedShowcaseCaptureApi,
   createGrasslandsShowcaseAcceptanceApi,
   GRASSLANDS_CAPTURE_DEBUG_MODE,
   GRASSLANDS_CAPTURE_STATES,
+  GRASSLANDS_SHARED_CAPTURE_STATES,
   type GrasslandsAcceptanceRuntimeReadback,
   type GrasslandsCausalFeature,
   type GrasslandsShowcaseAcceptanceBridge
@@ -51,6 +54,7 @@ function createRuntimeReadback(): GrasslandsAcceptanceRuntimeReadback {
     effectiveDebugMode: HeightfieldWaterDebugMode.Final,
     appearanceFallbackReason: null,
     foamOctaveCount: 3,
+    refractionEnabled: true,
     normal: Object.freeze({
       requested: true,
       active: true,
@@ -149,11 +153,14 @@ function createRuntimeReadback(): GrasslandsAcceptanceRuntimeReadback {
       contributionEnabled: true,
       requestedSource: "sky",
       effectiveSource: "sky",
+      ownerCount: 0,
       intensity: 1,
       effectiveIntensity: 1,
       fallbackReason: null,
       cameraCount: 0,
-      renderTargetCount: 0
+      renderTargetCount: 0,
+      filterSampleCount: 1,
+      failureCount: 0
     }),
     runtimeSet: Object.freeze({
       activeSetCount: 1,
@@ -171,6 +178,10 @@ function createRuntimeReadback(): GrasslandsAcceptanceRuntimeReadback {
       bufferMemory: 1,
       textureMemory: 1,
       totalMemory: 2,
+      liveRenderTargets: 0,
+      liveReflectionCameras: 0,
+      meshUploadCount: 12,
+      perFrameMeshUpload: false,
       ownedTextureCount: 12,
       borrowedTextureCount: 1,
       textureCreateCount: 12,
@@ -225,6 +236,7 @@ function createRuntimeReadback(): GrasslandsAcceptanceRuntimeReadback {
     scene: Object.freeze({
       ready: true,
       finite: true,
+      cameraMode: "fixed",
       fixtureId: fixture.fixtureId,
       fixtureHash: fixture.fixtureHash,
       bounds: fixture.waterBounds,
@@ -351,6 +363,87 @@ function createBridge() {
 }
 
 describe("Grasslands Showcase Acceptance", () => {
+  it("adapts the public Showcase hero, interaction, and detail states without changing the parity ABI", () => {
+    const appliedStates: string[] = [];
+    let resetCount = 0;
+    const api = createGrasslandsSharedShowcaseCaptureApi(
+      (state) => appliedStates.push(state),
+      () => resetCount++
+    );
+
+    expect(api.states).toEqual(GRASSLANDS_SHARED_CAPTURE_STATES);
+    expect(api.currentState).toBe("hero");
+    api.setCaptureState("interaction");
+    expect(api.currentState).toBe("interaction");
+    api.setCaptureState("detail");
+    api.reset();
+    expect(api.currentState).toBe("hero");
+    expect(appliedStates).toEqual(["interaction", "detail"]);
+    expect(resetCount).toBe(1);
+    expect(() => api.setCaptureState("contact-foam")).toThrow(RangeError);
+    expect(GRASSLANDS_CAPTURE_STATES).toContain("contact-foam");
+  });
+
+  it("projects a compact type-safe shared acceptance snapshot without leaking dedicated nested diagnostics", () => {
+    const { api } = createBridge();
+    const shared = createGrasslandsSharedAcceptanceSnapshot(api.snapshot());
+
+    expect(shared).toEqual({
+      ready: true,
+      caseId: "showcase-grasslands-stylized-water",
+      runtime: "grasslands",
+      preset: "hero-grasslands",
+      runtimeError: null,
+      finite: true,
+      qualityTier: "high",
+      opticsTier: "high",
+      frame: {
+        sampleCount: 60,
+        fps: 60,
+        p95FrameMs: 16.67,
+        finite: true
+      },
+      resources: {
+        bufferMemory: 1,
+        textureMemory: 1,
+        totalMemory: 2,
+        liveRenderTargets: 0,
+        liveReflectionCameras: 0,
+        meshUploadCount: 12,
+        perFrameMeshUpload: false
+      },
+      reflection: {
+        requestedSource: "sky",
+        effectiveSource: "sky",
+        ownerCount: 0,
+        cameraCount: 0,
+        renderTargetCount: 0,
+        filterSampleCount: 1,
+        failureCount: 0,
+        fallbackReason: null
+      },
+      refractionEnabled: true,
+      scene: {
+        cameraMode: "fixed",
+        waterBodyType: "heightfield",
+        activeSetCount: 1,
+        chunkCount: 6,
+        drawCount: 6,
+        activeWaveCount: 0,
+        waveStrength: 0,
+        gameplayQueryRegistered: false,
+        connectedWaterBodyCount: 1,
+        terrainMaterialRegionCount: 3,
+        activeRockCount: 3,
+        scenicRockCount: 15,
+        proxyRockMeshCount: 0
+      }
+    });
+    expect(shared).not.toHaveProperty("normal");
+    expect(shared).not.toHaveProperty("appearance");
+    expect(shared.scene).not.toHaveProperty("anchorRocks");
+  });
+
   it("maps the eight parity capture states to the frozen Debug ABI", () => {
     expect(GRASSLANDS_CAPTURE_STATES).toEqual([
       "hero",
@@ -501,6 +594,8 @@ describe("Grasslands Showcase Acceptance", () => {
     expect(main).toContain("runtimeController.setDepthWriteEnabled(true)");
     expect(main).toContain('Object.defineProperty(window, "waterPcgAcceptance"');
     expect(main).toContain("window.waterPcgGrasslands = acceptanceApi");
+    expect(main).toContain("window.waterPcgShowcase = sharedShowcaseApi");
+    expect(main).toContain("delete window.waterPcgShowcase");
     expect(main).not.toContain("WaterWorld");
 
     const activation = main.lastIndexOf("await compileAndActivateImpl(WaterQualityTier.High)");

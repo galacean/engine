@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-24T06:25:34.503Z",
-  "updateReason": "Reduce Ocean foam coverage to thin broken shoreline bands",
+  "generatedAt": "2026-07-26T02:16:48.843Z",
+  "updateReason": "Add user-approved Grasslands shared Golden",
   "environment": {
     "viewport": {
       "width": 1280,
@@ -13,11 +13,7 @@
     "seed": 20260723,
     "statsEnabled": false
   },
-  "captureStates": [
-    "hero",
-    "interaction",
-    "detail"
-  ],
+  "captureStates": ["hero", "interaction", "detail"],
   "thresholds": {
     "perChannelByteTolerance": 8,
     "maximumDiffPixelRatio": 0.01,
@@ -78,9 +74,26 @@
           "sha256": "b7fd6818374730986964a6e073209031f117c32246f151fadcc481c703861d52"
         }
       }
+    },
+    "showcase-grasslands-stylized-water": {
+      "runtime": "grasslands",
+      "preset": "hero-grasslands",
+      "updateReason": "Add user-approved Grasslands shared Golden",
+      "states": {
+        "hero": {
+          "file": "showcase-grasslands-stylized-water/hero.png",
+          "sha256": "16ee8ac2669d4fda433603ef3f3456c88881dbc83a602d5549ca5e04b22c4ba3"
+        },
+        "interaction": {
+          "file": "showcase-grasslands-stylized-water/interaction.png",
+          "sha256": "6b1ab2bb1d67127c150774d185a90aec29d03c6a726b51ed8095bad614da0d28"
+        },
+        "detail": {
+          "file": "showcase-grasslands-stylized-water/detail.png",
+          "sha256": "02e40d7f5abd5e54be5f142e4e94562c5a95eec7fd27574e46d56f63699ee7cd"
+        }
+      }
     }
   },
-  "updatedCaseIds": [
-    "showcase-ocean"
-  ]
+  "updatedCaseIds": ["showcase-grasslands-stylized-water"]
 }

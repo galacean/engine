@@ -238,7 +238,7 @@ function readAcceptanceSnapshot(snapshot, definition) {
       acceptance.reflection
     );
   }
-  if (definition.runtime === "river" || definition.runtime === "ocean") {
+  if (definition.runtime === "river" || definition.runtime === "ocean" || definition.runtime === "grasslands") {
     assertAcceptance(
       acceptance.resources.perFrameMeshUpload === false,
       `${definition.id} reports per-frame static mesh uploads.`,
@@ -255,7 +255,9 @@ function readAcceptanceSnapshot(snapshot, definition) {
 
 function assertStableResources(before, after, definition) {
   const fields = ["bufferMemory", "textureMemory", "totalMemory", "liveRenderTargets", "liveReflectionCameras"];
-  if (definition.runtime === "river" || definition.runtime === "ocean") fields.push("meshUploadCount");
+  if (definition.runtime === "river" || definition.runtime === "ocean" || definition.runtime === "grasslands") {
+    fields.push("meshUploadCount");
+  }
   const growth = Object.fromEntries(
     fields.map((field) => [field, Number(after.resources[field]) - Number(before.resources[field])])
   );

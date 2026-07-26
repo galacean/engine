@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "fixtureId": "grasslands-water-reference-fixture-v1",
   "caseId": "showcase-grasslands-stylized-water",
-  "fixtureStatus": "m3-calibration-in-progress",
+  "fixtureStatus": "m3-user-approved",
   "parityClaim": "water-material-mechanism-parity",
   "parityExclusions": [
     "environment-reflection-pattern",
@@ -215,12 +215,64 @@
     }
   },
   "regressionGolden": {
-    "status": "pending-m3-user-approval",
+    "schemaVersion": 1,
+    "status": "approved",
     "source": "first-user-approved-galacean-output",
+    "approvalRecordRequired": true,
     "thresholds": {
       "perChannelByteTolerance": 8,
       "maximumDiffPixelRatio": 0.01,
       "maximumMeanAbsoluteChannelDifference": 1.5
+    },
+    "states": {
+      "hero": {
+        "file": "regression/hero.png",
+        "sha256": "6f8dd330c34beedee40ed668b7ba2d5fd47b0bc13d5b84e7797d752fd6e99628",
+        "width": 1340,
+        "height": 662
+      },
+      "detail-normal": {
+        "file": "regression/detail-normal.png",
+        "sha256": "76ae7a62d4e992124e1a6a6993f32dd9d01975f55e3ff4e1a4837056f5615ed7",
+        "width": 1340,
+        "height": 662
+      },
+      "refraction": {
+        "file": "regression/refraction.png",
+        "sha256": "2af02a7a20cd5be8f13dc006d25c989240a6bf5b37d24cdf1cca20c167c5ae3b",
+        "width": 1340,
+        "height": 662
+      },
+      "depth-color": {
+        "file": "regression/depth-color.png",
+        "sha256": "d2a30d9758e8e5921595fe01315763e31b1728e2e63e6cccf03e0af02811011d",
+        "width": 1340,
+        "height": 662
+      },
+      "contact-foam": {
+        "file": "regression/contact-foam.png",
+        "sha256": "70b36f8af42cb4448a7178a1665bf7b2b43818c2350657173ce8579d5bafd6d8",
+        "width": 1340,
+        "height": 662
+      },
+      "coastal-alpha": {
+        "file": "regression/coastal-alpha.png",
+        "sha256": "2e1fd709094e5ed41b7c2e5bc51a422e7cef9aeabdaccc1eae44567d075ab329",
+        "width": 1340,
+        "height": 662
+      },
+      "direct-specular": {
+        "file": "regression/direct-specular.png",
+        "sha256": "404c4942cd989ed88a100804c39a323b8f1dd0af3d3a55f7a71e04f7f31aac13",
+        "width": 1340,
+        "height": 662
+      },
+      "reflection": {
+        "file": "regression/reflection.png",
+        "sha256": "1d7f87b9d1a51ef8aa08a59c57391d27d3faa4ed5fb3e01e782368e27551da73",
+        "width": 1340,
+        "height": 662
+      }
     },
     "referenceTargetIsAutomaticGolden": false
   }

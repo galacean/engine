@@ -7,6 +7,8 @@ export function parseAndValidateJson(
   failures: string[];
 }>;
 
+export function createControlledCalibrationCore(record: unknown): unknown;
+
 export function validateM3ApprovalRecord(
   record: unknown,
   expected: Readonly<{

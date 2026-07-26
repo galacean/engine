@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
+  createControlledCalibrationCore,
   parseAndValidateJson,
   regressionMetricsPass,
   validateInitialReviewResult,
@@ -23,6 +25,40 @@ const REFERENCE_SHA256 = "c".repeat(64);
 const CORE_SHA256 = "d".repeat(64);
 const SIDE_BY_SIDE_SHA256 = "e".repeat(64);
 const APPROVAL_RECORD_SHA256 = "f".repeat(64);
+
+function hashJson(value: unknown): string {
+  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+}
+
+function createControlledCalibration(artifactRoot: string, frequencyRelativeError = 0) {
+  return {
+    status: "passed",
+    source: "grasslands-active-runtime-plus-transient-webgl2",
+    readback: { framebuffer: [1, 2, 3] },
+    readbackHashes: ["1".repeat(64), "1".repeat(64)],
+    deterministic: true,
+    metrics: {
+      detailNormalFrequency: {
+        status: "passed",
+        gate: { primaryFrequencyPeakRelativeError: frequencyRelativeError },
+        artifact: {
+          path: `${artifactRoot}/metrics/detail-normal-frequency.json`,
+          relativePath: "metrics/detail-normal-frequency.json",
+          sha256: "2".repeat(64),
+          byteLength: 1234
+        }
+      },
+      refraction: { status: "passed", maximumChannelError: 0 }
+    },
+    artifact: {
+      path: `${artifactRoot}/metrics/controlled-gpu-calibration.json`,
+      relativePath: "metrics/controlled-gpu-calibration.json",
+      sha256: "3".repeat(64),
+      byteLength: 5678
+    },
+    coreSha256: "4".repeat(64)
+  };
+}
 
 function createApprovalRecord() {
   return {
@@ -108,6 +144,25 @@ const RECEIPT_EXPECTED = {
 } as const;
 
 describe("Grasslands M3 approval validation", () => {
+  it("keeps controlled calibration identity stable across evidence directories", () => {
+    const first = createControlledCalibration("/evidence/first");
+    const second = createControlledCalibration("/evidence/second");
+
+    expect(hashJson(createControlledCalibrationCore(first))).toBe(hashJson(createControlledCalibrationCore(second)));
+    expect(first.metrics.detailNormalFrequency.artifact.path).toBe(
+      "/evidence/first/metrics/detail-normal-frequency.json"
+    );
+  });
+
+  it("keeps controlled calibration identity sensitive to mechanism metrics", () => {
+    const baseline = createControlledCalibration("/evidence/first");
+    const changedMetric = createControlledCalibration("/evidence/second", 0.05);
+
+    expect(hashJson(createControlledCalibrationCore(baseline))).not.toBe(
+      hashJson(createControlledCalibrationCore(changedMetric))
+    );
+  });
+
   it("binds every current evidence identity in initial-review mode", () => {
     expect(validateM3ApprovalRecord(createApprovalRecord(), APPROVAL_EXPECTED, "initial-review")).toEqual([]);
 

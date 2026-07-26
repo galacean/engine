@@ -99,6 +99,14 @@ export const WATER_PCG_CASES = [
     preset: "hero-ocean"
   },
   {
+    id: "showcase-grasslands-stylized-water",
+    label: "Grasslands 风格化浅水",
+    intro: "确定性全湿 Heightfield、连续河湾、浅水折射、接触泡沫与风格化微表面。",
+    group: "showcase",
+    runtime: "grasslands",
+    preset: "hero-grasslands"
+  },
+  {
     id: "feature-refraction",
     label: "折射",
     intro: "单独对比水面折射、深度连续性与屏幕边缘回退。",
@@ -235,14 +243,6 @@ export const WATER_PCG_CASES = [
     group: "feature",
     runtime: "river",
     preset: "river-confluence"
-  },
-  {
-    id: "showcase-grasslands-stylized-water",
-    label: "Grasslands 风格化浅水（孵化）",
-    intro: "确定性全湿 Heightfield 与 Grasslands 水材质机制的 M2A 开发直链入口。",
-    group: "developer",
-    runtime: "grasslands",
-    preset: "hero-grasslands"
   },
   {
     id: "water-optics-lab",

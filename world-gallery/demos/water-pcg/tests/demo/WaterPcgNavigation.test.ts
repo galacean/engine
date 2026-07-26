@@ -12,7 +12,7 @@ import {
   WATER_PCG_PUBLIC_CASES
 } from "../../demo/navigation";
 
-const SHOWCASE_CASE_IDS = ["showcase-river", "showcase-pool", "showcase-ocean"];
+const SHOWCASE_CASE_IDS = ["showcase-river", "showcase-pool", "showcase-ocean", "showcase-grasslands-stylized-water"];
 const FEATURE_CASE_IDS = [
   "feature-refraction",
   "feature-reflection",
@@ -34,11 +34,11 @@ const FEATURE_CASE_IDS = [
 ];
 
 describe("Water PCG navigation", () => {
-  it("registers three showcases and seventeen focused public feature cases", () => {
+  it("registers four showcases and seventeen focused public feature cases", () => {
     expect(WATER_PCG_CASES.filter(({ group }) => group === "showcase").map(({ id }) => id)).toEqual(SHOWCASE_CASE_IDS);
     expect(WATER_PCG_CASES.filter(({ group }) => group === "feature").map(({ id }) => id)).toEqual(FEATURE_CASE_IDS);
     expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).toEqual([...SHOWCASE_CASE_IDS, ...FEATURE_CASE_IDS]);
-    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(20);
+    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(21);
     expect(
       WATER_PCG_PUBLIC_CASES.every(
         ({ intro, runtime, preset }) => intro.length > 0 && runtime.length > 0 && preset.length > 0
@@ -46,17 +46,19 @@ describe("Water PCG navigation", () => {
     ).toBe(true);
   });
 
-  it("keeps the Grasslands M2A route developer-only until the M3 and M4 promotion gate", () => {
+  it("promotes the verified Grasslands route to the fourth public Showcase", () => {
     expect(findWaterPcgCase("showcase-grasslands-stylized-water")).toMatchObject({
       id: "showcase-grasslands-stylized-water",
-      group: "developer",
+      group: "showcase",
       runtime: "grasslands",
       preset: "hero-grasslands"
     });
-    expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).not.toContain("showcase-grasslands-stylized-water");
+    expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).toContain("showcase-grasslands-stylized-water");
     expect(getVisibleWaterPcgCases("showcase-grasslands-stylized-water").map(({ id }) => id)).toEqual([
-      ...WATER_PCG_DEFAULT_CASE_IDS,
-      "showcase-grasslands-stylized-water"
+      "showcase-river",
+      "showcase-grasslands-stylized-water",
+      "feature-refraction",
+      "feature-reflection"
     ]);
   });
 

@@ -1,4 +1,4 @@
-export type WaterShowcaseRuntime = "river" | "pool" | "ocean";
+export type WaterShowcaseRuntime = "river" | "pool" | "ocean" | "grasslands";
 
 export interface WaterShowcaseFrameMetrics {
   readonly sampleCount: number;

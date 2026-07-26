@@ -27,6 +27,19 @@ export function parseAndValidateJson(text, invalidJsonPrefix, validator) {
   }
 }
 
+export function createControlledCalibrationCore(record) {
+  if (!isRecord(record)) return record;
+  const { artifact: _artifact, coreSha256: _coreSha256, readback: _readback, ...core } = record;
+  if (!isRecord(core.metrics)) return core;
+
+  const metrics = { ...core.metrics };
+  if (isRecord(metrics.detailNormalFrequency)) {
+    const { artifact: _detailNormalArtifact, ...detailNormalFrequency } = metrics.detailNormalFrequency;
+    metrics.detailNormalFrequency = detailNormalFrequency;
+  }
+  return { ...core, metrics };
+}
+
 export function validateM3ApprovalRecord(record, expected, approvalMode) {
   const failures = [];
   const requireApproval = (condition, message) => {

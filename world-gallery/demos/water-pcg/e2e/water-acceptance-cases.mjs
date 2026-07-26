@@ -28,6 +28,13 @@ export const WATER_SHOWCASE_CASES = Object.freeze([
     group: "showcase",
     runtime: "ocean",
     preset: "hero-ocean"
+  }),
+  Object.freeze({
+    id: "showcase-grasslands-stylized-water",
+    label: "Grasslands Stylized Water Showcase",
+    group: "showcase",
+    runtime: "grasslands",
+    preset: "hero-grasslands"
   })
 ]);
 

@@ -9,6 +9,7 @@ import {
   evaluateGrasslandsDetailFrequencyParity
 } from "./grasslands-water-frequency.mjs";
 import {
+  createControlledCalibrationCore,
   parseAndValidateJson,
   regressionMetricsPass,
   validateInitialReviewResult,
@@ -61,7 +62,7 @@ const EXPECTED_CANDIDATE_ROI_IDS = Object.freeze([
 const CASE_DEFINITION = Object.freeze({
   id: "showcase-grasslands-stylized-water",
   label: "Grasslands Stylized Water",
-  group: "developer",
+  group: "showcase",
   runtime: "grasslands",
   preset: "hero-grasslands"
 });
@@ -3797,11 +3798,7 @@ try {
     name: "controlled-gpu-calibration",
     ...calibrationArtifact
   });
-  const {
-    readback: _rawControlledGpuReadback,
-    artifact: _controlledGpuArtifact,
-    ...controlledCalibrationCore
-  } = report.controlledGpuCalibration;
+  const controlledCalibrationCore = createControlledCalibrationCore(report.controlledGpuCalibration);
   report.controlledGpuCalibration.coreSha256 = hashJson(controlledCalibrationCore);
   report.postCalibrationWebgl = await collectWebGlEnvironment(page);
   report.postCalibrationWebgl.contextLost = await page.evaluate(() => {

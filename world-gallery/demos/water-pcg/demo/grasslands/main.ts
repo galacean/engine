@@ -15,7 +15,7 @@ import type { WaterOpticalProfile } from "../../runtime/optics/WaterOpticalProfi
 import type { WaterSurfaceAppearanceBinding } from "../../runtime/surface/WaterSurfaceAppearanceRuntimeTypes";
 import { createShowcaseCameraController, type ShowcaseCameraController } from "../showcase/ShowcaseCameraControl";
 import { resolveShowcaseCameraMode, SHOWCASE_CAMERA_MOVEMENT_SPEED } from "../showcase/ShowcaseCameraPolicy";
-import { WaterShowcaseFrameSampler } from "../showcase/WaterShowcaseAcceptance";
+import { WaterShowcaseFrameSampler, type WaterShowcaseAcceptanceSnapshot } from "../showcase/WaterShowcaseAcceptance";
 import {
   GrasslandsAssetLoader,
   GRASSLANDS_NORMAL_ASSET_ID,
@@ -30,6 +30,7 @@ import {
   GRASSLANDS_COMPILED_SURFACE_APPEARANCE,
   GRASSLANDS_NORMAL_FLIP_GREEN,
   GRASSLANDS_PCG_PRESET,
+  GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES,
   GRASSLANDS_WATER_OPTICAL_PROFILE
 } from "./GrasslandsPcgPreset";
 import {
@@ -39,10 +40,13 @@ import {
 } from "./GrasslandsSceneController";
 import {
   createGrasslandsShowcaseAcceptanceApi,
+  createGrasslandsSharedAcceptanceSnapshot,
+  createGrasslandsSharedShowcaseCaptureApi,
   type GrasslandsAcceptanceRuntimeReadback,
   type GrasslandsCaptureState,
   type GrasslandsCausalFeature,
   type GrasslandsReflectionScenario,
+  type GrasslandsSharedCaptureState,
   type GrasslandsShowcaseAcceptanceApi,
   type GrasslandsShowcaseAcceptanceSnapshot
 } from "./GrasslandsShowcaseAcceptance";
@@ -352,6 +356,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       effectiveDebugMode: (optics?.debugView as HeightfieldWaterDebugMode | undefined) ?? currentDebugMode,
       appearanceFallbackReason: fallbackReason,
       foamOctaveCount: appearance?.contactFoamOctaveCount ?? 0,
+      refractionEnabled: runtimeController?.refractionEnabled === true,
       normal: Object.freeze({
         requested: appearance?.requested ?? false,
         active: appearance?.active ?? false,
@@ -462,11 +467,14 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         contributionEnabled: reflectionEnabled && (optics?.opticalProfile.reflectionIntensity ?? 0) > 0,
         requestedSource: optics?.requestedSource ?? "sky",
         effectiveSource: optics?.effectiveSource ?? "sky",
+        ownerCount: 0,
         intensity: optics?.opticalProfile.reflectionIntensity ?? 0,
         effectiveIntensity: reflectionEnabled ? (optics?.opticalProfile.reflectionIntensity ?? 0) : 0,
         fallbackReason: optics?.fallbackReason ?? null,
         cameraCount: exclusionResources.planarCameraCount,
-        renderTargetCount: exclusionResources.renderTargetCount
+        renderTargetCount: exclusionResources.renderTargetCount,
+        filterSampleCount: 1,
+        failureCount: 0
       }),
       runtimeSet: Object.freeze({
         activeSetCount: activeSetCount as 0 | 1,
@@ -484,6 +492,10 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
         bufferMemory: engine?.renderingStatistics.bufferMemory ?? 0,
         textureMemory: engine?.renderingStatistics.textureMemory ?? 0,
         totalMemory: engine?.renderingStatistics.totalMemory ?? 0,
+        liveRenderTargets: exclusionResources.renderTargetCount,
+        liveReflectionCameras: exclusionResources.planarCameraCount,
+        meshUploadCount: (runtimeController?.meshUploadCount ?? 0) + (scene?.sceneMeshUploadCount ?? 0),
+        perFrameMeshUpload: perFrameMeshUploadDetected,
         ownedTextureCount:
           Math.max(0, (loader?.textureCreateCount ?? 0) - (loader?.textureDestroyCount ?? 0)) +
           (runtimeResources?.retainedLocalMapTextureCount ?? 0) +
@@ -546,6 +558,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
       scene: Object.freeze({
         ready: sceneReady,
         finite: scene?.finite ?? false,
+        cameraMode,
         fixtureId: scene?.fixtureId ?? fixture.fixtureId,
         fixtureHash: scene?.fixtureHash ?? fixture.fixtureHash,
         bounds: sceneBounds,
@@ -690,8 +703,25 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
   };
 
   const acceptanceApi = createGrasslandsShowcaseAcceptanceApi(fixture, bridge);
-  const acceptanceGetter = (): GrasslandsShowcaseAcceptanceSnapshot => acceptanceApi.snapshot();
+  const acceptanceGetter = (): Readonly<WaterShowcaseAcceptanceSnapshot> =>
+    createGrasslandsSharedAcceptanceSnapshot(acceptanceApi.snapshot());
+  const applySharedCaptureState = (state: GrasslandsSharedCaptureState): void => {
+    const pose = GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES[state];
+    acceptanceApi.setCaptureState("hero");
+    cameraController?.setFreeControlActive(false);
+    requireScene().setCameraPose(pose.position, pose.target);
+    cameraController?.syncFromTransform();
+  };
+  const resetSharedCaptureState = (): void => {
+    const pose = GRASSLANDS_SHARED_SHOWCASE_CAPTURE_POSES.hero;
+    acceptanceApi.setCaptureState("hero");
+    requireScene().setCameraPose(pose.position, pose.target);
+    cameraController?.syncFromTransform();
+    cameraController?.setFreeControlActive(cameraMode === "free");
+  };
+  const sharedShowcaseApi = createGrasslandsSharedShowcaseCaptureApi(applySharedCaptureState, resetSharedCaptureState);
   window.waterPcgGrasslands = acceptanceApi;
+  window.waterPcgShowcase = sharedShowcaseApi;
   Object.defineProperty(window, "waterPcgAcceptance", {
     configurable: true,
     enumerable: true,
@@ -767,6 +797,7 @@ async function bootstrapGrasslandsShowcase(): Promise<void> {
 
   const removeAcceptanceProperties = (): void => {
     if (window.waterPcgGrasslands === acceptanceApi) delete window.waterPcgGrasslands;
+    if (window.waterPcgShowcase === sharedShowcaseApi) delete window.waterPcgShowcase;
     const descriptor = Object.getOwnPropertyDescriptor(window, "waterPcgAcceptance");
     if (descriptor?.get === acceptanceGetter) delete window.waterPcgAcceptance;
   };

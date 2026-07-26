@@ -206,6 +206,48 @@ function assertOceanShowcase(snapshot) {
   assertAcceptance(reflection.planarUpdateCount > 0, "Ocean Showcase Planar reflection never rendered.", reflection);
 }
 
+function assertGrasslandsShowcase(snapshot) {
+  const grasslands = snapshot.grasslands;
+  assertAcceptance(grasslands, "Grasslands Showcase does not expose its dedicated acceptance snapshot.", snapshot);
+  assertAcceptance(
+    grasslands.waterBodyType === "heightfield",
+    "Grasslands Showcase must keep the Heightfield Water Body.",
+    grasslands
+  );
+  assertAcceptance(
+    grasslands.runtimeSet?.activeSetCount === 1 &&
+      grasslands.runtimeSet.activeWaveCount === 0 &&
+      grasslands.runtimeSet.waveStrength === 0 &&
+      grasslands.runtimeSet.gameplayQueryRegistered === false &&
+      grasslands.runtimeSet.perFrameMeshUpload === false,
+    "Grasslands Showcase violated its flat Heightfield runtime contract.",
+    grasslands.runtimeSet
+  );
+  assertAcceptance(
+    grasslands.normal?.active === true &&
+      grasslands.normal.layerCount === 2 &&
+      grasslands.appearance?.active === true &&
+      grasslands.appearance.contactFoam?.enabled === true,
+    "Grasslands Showcase did not keep the approved Surface Appearance active.",
+    grasslands
+  );
+  assertAcceptance(
+    grasslands.scene?.connectedWaterBodyCount === 1 &&
+      grasslands.scene.terrainMaterialRegionCount === 3 &&
+      grasslands.scene.proxyRockMeshCount === 0 &&
+      grasslands.scene.activeRockCount === 3 &&
+      grasslands.scene.scenicRockCount === 15,
+    "Grasslands Showcase scene fixture is incomplete.",
+    grasslands.scene
+  );
+  assertAcceptance(
+    grasslands.cameraFeatures?.effective.depthCopyPassCount === 1 &&
+      grasslands.cameraFeatures.effective.colorCopyPassCount === 1,
+    "Grasslands Showcase did not reuse the single Depth/Color copy broker.",
+    grasslands.cameraFeatures
+  );
+}
+
 function assertShowcaseSemantics(snapshot, definition) {
   assertShowcaseAcceptance(snapshot, definition);
   switch (definition.id) {
@@ -218,6 +260,9 @@ function assertShowcaseSemantics(snapshot, definition) {
     case "showcase-ocean":
       assertOceanShowcase(snapshot);
       break;
+    case "showcase-grasslands-stylized-water":
+      assertGrasslandsShowcase(snapshot);
+      break;
     default:
       throw new Error(`Unknown Showcase ${definition.id}.`);
   }
@@ -229,7 +274,8 @@ function assertShowcaseSemantics(snapshot, definition) {
       poolP1: snapshot.poolP1,
       underwater: snapshot.underwater,
       ocean: snapshot.ocean,
-      reflection: snapshot.reflection
+      reflection: snapshot.reflection,
+      grasslands: definition.runtime === "grasslands" ? snapshot.grasslands : undefined
     },
     definition.id
   );

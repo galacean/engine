@@ -55,6 +55,11 @@ async function readDebugPanelState(page, definition) {
         primaryVisible: await page.locator(".dg.main").first().isVisible(),
         advancedVisible: await page.locator(".dg.main").first().isVisible()
       };
+    case "showcase-grasslands-stylized-water":
+      return {
+        primaryVisible: await page.locator("#grasslands-water-hud").isVisible(),
+        advancedVisible: await page.locator("#grasslands-water-metrics").isVisible()
+      };
     default:
       throw new Error(`Unknown Showcase ${definition.id}.`);
   }
@@ -150,18 +155,66 @@ async function runCameraCase(browser, definition) {
       { before: freeAfterRelease.camera, after: freeAfterLook.camera }
     );
 
+    let freeResetMovement = 0;
+    let freeResetPositionError = 0;
+    let freeResetForwardError = 0;
+    if (definition.runtime === "grasslands") {
+      const resetApiState = await page.evaluate(() => {
+        const api = window.waterPcgShowcase;
+        if (!api) throw new Error("window.waterPcgShowcase is unavailable.");
+        api.reset();
+        return { currentState: api.currentState };
+      });
+      await waitForAnimationFrames(page, 2);
+      const freeAfterReset = await readCamera(page, definition);
+      freeResetPositionError = distance(freeBefore.camera.position, freeAfterReset.camera.position);
+      freeResetForwardError = distance(freeBefore.camera.forward, freeAfterReset.camera.forward);
+      assertAcceptance(resetApiState.currentState === "hero", `${definition.id} reset did not restore Hero state.`);
+      assertAcceptance(
+        freeAfterReset.camera.mode === "free" && freeAfterReset.camera.active === true,
+        `${definition.id} reset disabled ordinary FreeControl.`,
+        freeAfterReset.camera
+      );
+      assertAcceptance(
+        freeResetPositionError <= STATIONARY_EPSILON && freeResetForwardError <= STATIONARY_EPSILON,
+        `${definition.id} reset did not restore the interactive Hero camera.`,
+        { freeResetPositionError, freeResetForwardError }
+      );
+      await holdForward(page);
+      const freeAfterResetMove = await readCamera(page, definition);
+      freeResetMovement = distance(freeAfterReset.camera.position, freeAfterResetMove.camera.position);
+      assertAcceptance(
+        freeResetMovement > MOVEMENT_EPSILON,
+        `${definition.id} FreeControl no longer moves after reset (${freeResetMovement}).`,
+        { before: freeAfterReset.camera, after: freeAfterResetMove.camera }
+      );
+    }
+
     await page.goto(fixedUrl.href, { waitUntil: "domcontentloaded", timeout: 45_000 });
     await waitForCaseReady(page, definition);
+    if (definition.runtime === "grasslands") {
+      await page.evaluate(() => window.waterPcgShowcase?.reset());
+      await waitForAnimationFrames(page, 2);
+    }
     const fixedBefore = await readCamera(page, definition);
     assertRuntimeHealthy(fixedBefore.runtime, definition);
     assertAcceptance(fixedBefore.camera.mode === "fixed", `${definition.id} acceptance camera is not fixed.`);
     assertAcceptance(fixedBefore.camera.active === false, `${definition.id} acceptance FreeControl is active.`);
     const fixedDebugPanel = await readDebugPanelState(page, definition);
-    assertAcceptance(
-      fixedDebugPanel.primaryVisible && fixedDebugPanel.advancedVisible,
-      `${definition.id} automation route does not keep its debug panel visible.`,
-      fixedDebugPanel
-    );
+    const fixedDebugVisible = fixedDebugPanel.primaryVisible && fixedDebugPanel.advancedVisible;
+    if (definition.runtime === "grasslands") {
+      assertAcceptance(
+        fixedDebugPanel.primaryVisible === false && fixedDebugPanel.advancedVisible === false,
+        `${definition.id} automation route did not hide its acceptance HUD.`,
+        fixedDebugPanel
+      );
+    } else {
+      assertAcceptance(
+        fixedDebugVisible,
+        `${definition.id} automation route does not keep its debug panel visible.`,
+        fixedDebugPanel
+      );
+    }
     await holdForward(page);
     const fixedAfter = await readCamera(page, definition);
     const fixedMovement = distance(fixedBefore.camera.position, fixedAfter.camera.position);
@@ -182,6 +235,9 @@ async function runCameraCase(browser, definition) {
       forwardMovement,
       movementAfterRelease,
       forwardRotation,
+      freeResetMovement,
+      freeResetPositionError,
+      freeResetForwardError,
       fixedMovement,
       freeDebugPanel,
       fixedDebugPanel,

@@ -38,16 +38,16 @@ function readWaterPcgSource(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(`../../${relativePath}`, import.meta.url)), "utf8");
 }
 
-describe("Grasslands PCG M2A fixture", () => {
-  it("registers an independent developer route, template, and lifecycle without public promotion", () => {
+describe("Grasslands PCG fixture", () => {
+  it("registers the independent fourth Showcase route, template, and lifecycle", () => {
     expect(findWaterPcgCase("showcase-grasslands-stylized-water")).toMatchObject({
       id: "showcase-grasslands-stylized-water",
-      group: "developer",
+      group: "showcase",
       runtime: "grasslands",
       preset: "hero-grasslands"
     });
-    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(20);
-    expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).not.toContain("showcase-grasslands-stylized-water");
+    expect(WATER_PCG_PUBLIC_CASES).toHaveLength(21);
+    expect(WATER_PCG_PUBLIC_CASES.map(({ id }) => id)).toContain("showcase-grasslands-stylized-water");
 
     const router = readWaterPcgSource("demo/router.ts");
     const html = readWaterPcgSource("index.html");

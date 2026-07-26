@@ -30,7 +30,7 @@ import {
 const GATE = "grasslands-water-smoke";
 const CASE_DEFINITION = Object.freeze({
   id: "showcase-grasslands-stylized-water",
-  group: "developer",
+  group: "showcase",
   runtime: "grasslands",
   preset: "hero-grasslands"
 });

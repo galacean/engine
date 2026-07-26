@@ -23,13 +23,18 @@ import {
   writeAcceptanceReport
 } from "./water-acceptance-harness.mjs";
 import { FIXED_ACCEPTANCE_ENVIRONMENT, WATER_SHOWCASE_CASES } from "./water-acceptance-cases.mjs";
+import {
+  assertImmutableShowcaseCases,
+  assertMissingShowcaseBaselineAllowed,
+  commitShowcaseBaselineTransaction,
+  resolveShowcaseVisualSelection
+} from "./water-showcase-visual-policy.mjs";
 
 const gate = "water-showcase-visual";
 const run = createRunContext(gate);
 const baseUrl = process.env.WATER_PCG_URL?.trim() || DEFAULT_WATER_PCG_URL;
 const headed = process.env.WATER_PCG_HEADED === "1";
 const requestedMode = (process.argv[2] ?? process.env.WATER_PCG_VISUAL_MODE ?? "compare").toLowerCase();
-const MODES = new Set(["capture", "compare", "update"]);
 const CAPTURE_STATES = Object.freeze(["hero", "interaction", "detail"]);
 const THRESHOLDS = Object.freeze({
   perChannelByteTolerance: 8,
@@ -37,35 +42,17 @@ const THRESHOLDS = Object.freeze({
   maximumMeanAbsoluteChannelDifference: 1.5
 });
 const UPDATE_REASON = (process.env.WATER_PCG_VISUAL_UPDATE_REASON ?? "").trim();
-const CASE_FILTER = (
-  process.env.WATER_PCG_VISUAL_CASES ??
-  process.env.WATER_PCG_VISUAL_CASE ??
-  ""
-).trim();
-const requestedCaseIds = [
-  ...new Set(
-    CASE_FILTER
-      .split(",")
-      .map((value) => value.trim())
-      .filter(Boolean)
-  )
-];
-const unknownCaseIds = requestedCaseIds.filter(
-  (id) => !WATER_SHOWCASE_CASES.some((definition) => definition.id === id)
-);
-assertAcceptance(
-  unknownCaseIds.length === 0,
-  `Unknown Showcase visual case filter: ${unknownCaseIds.join(", ")}.`
-);
-const selectedDefinitions =
-  requestedCaseIds.length === 0
-    ? WATER_SHOWCASE_CASES
-    : WATER_SHOWCASE_CASES.filter((definition) =>
-        requestedCaseIds.includes(definition.id)
-      );
-assertAcceptance(
-  selectedDefinitions.length > 0,
-  "Showcase visual case filter selected no cases."
+const UPDATE_APPROVAL = (process.env.WATER_PCG_VISUAL_UPDATE_APPROVAL ?? "").trim();
+const CASE_FILTER = (process.env.WATER_PCG_VISUAL_CASE ?? "").trim();
+const selection = resolveShowcaseVisualSelection({
+  mode: requestedMode,
+  caseFilter: CASE_FILTER,
+  updateReason: UPDATE_REASON,
+  updateApproval: UPDATE_APPROVAL,
+  availableCaseIds: WATER_SHOWCASE_CASES.map(({ id }) => id)
+});
+const selectedDefinitions = WATER_SHOWCASE_CASES.filter((definition) =>
+  selection.selectedCaseIds.includes(definition.id)
 );
 const WATER_EFFECT_CAPTURE_STYLE = `
   #example-bar [data-case-id^="feature-ocean-"] {
@@ -82,14 +69,6 @@ const DEFAULT_BASELINE_ROOT = resolve(SCRIPT_DIRECTORY, "baselines/showcases");
 const baselineRoot = resolve(process.env.WATER_PCG_SHOWCASE_BASELINE_ROOT ?? DEFAULT_BASELINE_ROOT);
 const manifestPath = resolve(baselineRoot, "manifest.json");
 
-assertAcceptance(MODES.has(requestedMode), `Unknown visual mode '${requestedMode}'. Use capture, compare, or update.`);
-if (requestedMode === "update") {
-  assertAcceptance(
-    UPDATE_REASON.length >= 12,
-    "Baseline update requires WATER_PCG_VISUAL_UPDATE_REASON with at least 12 characters."
-  );
-}
-
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
 }
@@ -105,6 +84,10 @@ async function fileExists(path) {
 
 function baselineFilePath(definition, state) {
   return resolve(baselineRoot, definition.id, `${state}.png`);
+}
+
+function baselineFilePathAtRoot(root, definition, state) {
+  return resolve(root, definition.id, `${state}.png`);
 }
 
 function artifactDirectory(definition, state) {
@@ -148,7 +131,12 @@ async function readBaselineManifest() {
 async function loadBaseline(definition, state, manifest) {
   const path = baselineFilePath(definition, state);
   if (!manifest) return { path, bytes: undefined, entry: undefined };
-  const entry = manifest.cases?.[definition.id]?.states?.[state];
+  const caseEntry = manifest.cases?.[definition.id];
+  if (caseEntry === undefined) {
+    assertMissingShowcaseBaselineAllowed(requestedMode, definition.id);
+    return { path, bytes: undefined, entry: undefined };
+  }
+  const entry = caseEntry.states?.[state];
   assertAcceptance(
     entry?.file === `${definition.id}/${state}.png`,
     `${definition.id}/${state} manifest entry is missing.`
@@ -165,6 +153,37 @@ async function loadBaseline(definition, state, manifest) {
     `${definition.id}/${state} baseline PNG does not match its manifest SHA-256.`
   );
   return { path, bytes, entry };
+}
+
+async function validateManifestFilesAtRoot(manifest, root) {
+  const hashes = {};
+  for (const [caseId, caseEntry] of Object.entries(manifest.cases ?? {})) {
+    const definition = WATER_SHOWCASE_CASES.find((candidate) => candidate.id === caseId);
+    assertAcceptance(definition, `Showcase baseline manifest contains unknown case '${caseId}'.`);
+    assertAcceptance(
+      caseEntry.runtime === definition.runtime && caseEntry.preset === definition.preset,
+      `${caseId} baseline identity changed.`,
+      caseEntry
+    );
+    hashes[caseId] = {};
+    for (const state of CAPTURE_STATES) {
+      const entry = caseEntry.states?.[state];
+      const expectedFile = `${caseId}/${state}.png`;
+      assertAcceptance(entry?.file === expectedFile, `${caseId}/${state} manifest entry is missing.`, entry);
+      assertAcceptance(
+        typeof entry.sha256 === "string" && /^[a-f0-9]{64}$/.test(entry.sha256),
+        `${caseId}/${state} manifest SHA-256 is invalid.`,
+        entry
+      );
+      const path = baselineFilePathAtRoot(root, definition, state);
+      assertAcceptance(await fileExists(path), `${caseId}/${state} baseline PNG is missing at ${path}.`);
+      const bytes = await readFile(path);
+      const actualHash = sha256(bytes);
+      assertAcceptance(actualHash === entry.sha256, `${caseId}/${state} PNG hash differs from its manifest.`);
+      hashes[caseId][state] = actualHash;
+    }
+  }
+  return hashes;
 }
 
 async function comparePngBytes(page, oldBytes, newBytes) {
@@ -395,16 +414,20 @@ async function captureShowcase(browser, definition, manifest) {
 }
 
 async function updateBaselines(caseResults, previousManifest) {
+  assertAcceptance(previousManifest, "A case-scoped baseline update requires the existing complete manifest.");
+  assertAcceptance(caseResults.length === 1, "A baseline transaction must contain exactly one Showcase case.");
+  const updatedCaseId = caseResults[0].id;
+  assertAcceptance(
+    selection.selectedCaseIds.length === 1 && selection.selectedCaseIds[0] === updatedCaseId,
+    "Baseline transaction result does not match the explicitly approved case."
+  );
+  const previousHashes = await validateManifestFilesAtRoot(previousManifest, baselineRoot);
   const cases = { ...(previousManifest?.cases ?? {}) };
-  const updatedCaseIds = [];
   for (const caseResult of caseResults) {
     const definition = WATER_SHOWCASE_CASES.find((candidate) => candidate.id === caseResult.id);
     assertAcceptance(definition, `Unknown Showcase result '${caseResult.id}'.`);
     const states = {};
     for (const capture of caseResult.captures) {
-      const path = baselineFilePath(definition, capture.state);
-      await mkdir(resolve(baselineRoot, definition.id), { recursive: true });
-      await writeFile(path, capture.newBytes);
       states[capture.state] = {
         file: `${definition.id}/${capture.state}.png`,
         sha256: sha256(capture.newBytes)
@@ -416,7 +439,6 @@ async function updateBaselines(caseResults, previousManifest) {
       updateReason: UPDATE_REASON,
       states
     };
-    updatedCaseIds.push(definition.id);
   }
   const manifest = {
     schemaVersion: 1,
@@ -426,11 +448,23 @@ async function updateBaselines(caseResults, previousManifest) {
     captureStates: CAPTURE_STATES,
     thresholds: THRESHOLDS,
     cases,
-    updatedCaseIds
+    updatedCaseIds: [updatedCaseId]
   };
-  await mkdir(baselineRoot, { recursive: true });
-  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-  return manifest;
+  assertImmutableShowcaseCases(previousManifest, manifest, updatedCaseId);
+
+  const caseResult = caseResults[0];
+  const transaction = await commitShowcaseBaselineTransaction({
+    baselineRoot,
+    manifest,
+    updatedCaseId,
+    files: caseResult.captures.map((capture) => ({
+      relativePath: `${updatedCaseId}/${capture.state}.png`,
+      bytes: capture.newBytes
+    })),
+    previousHashes,
+    validateManifestFilesAtRoot
+  });
+  return { manifest, transaction };
 }
 
 const report = {
@@ -449,6 +483,8 @@ const report = {
   environment: FIXED_ACCEPTANCE_ENVIRONMENT,
   captureStates: CAPTURE_STATES,
   selectedCaseIds: selectedDefinitions.map(({ id }) => id),
+  caseFilterExplicit: selection.requestedCaseIds.length > 0,
+  updateApprovalVerified: requestedMode === "update",
   thresholds: THRESHOLDS,
   source: readGitEvidence(),
   cases: [],
@@ -459,14 +495,8 @@ const report = {
 let browser;
 try {
   const manifest = await readBaselineManifest();
-  if (
-    requestedMode === "update" &&
-    selectedDefinitions.length < WATER_SHOWCASE_CASES.length
-  ) {
-    assertAcceptance(
-      manifest !== undefined,
-      "A case-scoped baseline update requires the existing complete manifest."
-    );
+  if (requestedMode === "update") {
+    assertAcceptance(manifest !== undefined, "A case-scoped baseline update requires the existing complete manifest.");
   }
   browser = await chromium.launch({ headless: !headed });
   report.browserVersion = browser.version();
@@ -474,10 +504,9 @@ try {
     report.cases.push(await captureShowcase(browser, definition, manifest));
   }
   if (requestedMode === "update") {
-    report.baselineUpdate = await updateBaselines(
-      report.cases,
-      manifest
-    );
+    await browser.close();
+    browser = undefined;
+    report.baselineUpdate = await updateBaselines(report.cases, manifest);
   }
   report.status = "passed";
 } catch (error) {
