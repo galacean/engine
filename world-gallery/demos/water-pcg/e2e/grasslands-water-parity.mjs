@@ -9,6 +9,12 @@ import {
   evaluateGrasslandsDetailFrequencyParity
 } from "./grasslands-water-frequency.mjs";
 import {
+  parseAndValidateJson,
+  regressionMetricsPass,
+  validateInitialReviewResult,
+  validateM3ApprovalRecord
+} from "./grasslands-m3-approval.mjs";
+import {
   SOFTWARE_RENDERER_PATTERN,
   assertAcceptance,
   assertCanvasHealthy,
@@ -210,6 +216,10 @@ const parityPhase = process.env.GRASSLANDS_PARITY_PHASE?.trim().toLowerCase() ||
 assertAcceptance(parityPhase === "m1" || parityPhase === "m3", "GRASSLANDS_PARITY_PHASE must be 'm1' or 'm3'.", {
   parityPhase
 });
+const requestedM3ApprovalMode = process.env.GRASSLANDS_M3_APPROVAL_MODE?.trim().toLowerCase();
+const m3ApprovalMode = requestedM3ApprovalMode || (parityPhase === "m1" ? "regression" : "unset");
+const m3ApprovalModeExplicit =
+  requestedM3ApprovalMode !== undefined && (m3ApprovalMode === "initial-review" || m3ApprovalMode === "regression");
 const explicitEvidenceRoot = process.env.GRASSLANDS_WATER_EVIDENCE_DIR?.trim();
 const runEnvironment = explicitEvidenceRoot
   ? { ...process.env, WATER_PCG_ACCEPTANCE_OUTPUT_DIR: explicitEvidenceRoot }
@@ -2678,10 +2688,11 @@ async function evaluateDetailNormalFrequencyEvidence(
   };
 }
 
-async function readStructuredM3UserApproval(path, expected) {
+async function readStructuredM3UserApproval(path, expected, approvalMode) {
   if (!path) {
     return {
       status: "pending",
+      mode: approvalMode,
       path: null,
       exists: false,
       valid: false,
@@ -2694,6 +2705,7 @@ async function readStructuredM3UserApproval(path, expected) {
   if (!(await fileExists(path))) {
     return {
       status: "pending",
+      mode: approvalMode,
       path,
       exists: false,
       valid: false,
@@ -2704,83 +2716,24 @@ async function readStructuredM3UserApproval(path, expected) {
     };
   }
   const bytes = await readFile(path);
-  const failures = [];
-  let record = null;
-  try {
-    record = JSON.parse(bytes.toString("utf8"));
-  } catch (error) {
-    failures.push(`approval record is not valid JSON: ${error instanceof Error ? error.message : String(error)}`);
-  }
-  const requireApproval = (condition, message) => {
-    if (!condition) failures.push(message);
-  };
-  if (isRecord(record)) {
-    requireApproval(record.schemaVersion === 1, "schemaVersion must be 1");
-    requireApproval(record.recordType === "grasslands-m3-visual-approval", "recordType is invalid");
-    requireApproval(record.decision === "approved", "decision must be exactly 'approved'");
-    requireApproval(record.caseId === CASE_DEFINITION.id, "caseId does not match Grasslands");
-    requireApproval(/^[0-9a-f]{40}$/.test(record.commit), "commit must be a full lowercase Git SHA");
-    requireApproval(record.commit === expected.commit, "approval commit does not match the current run commit");
-    requireApproval(
-      typeof record.approvedAt === "string" && Number.isFinite(Date.parse(record.approvedAt)),
-      "approvedAt must be a valid RFC3339 timestamp"
-    );
-    requireApproval(
-      record.approver?.authority === "user" &&
-        typeof record.approver?.displayName === "string" &&
-        record.approver.displayName.trim().length > 0,
-      "approver must identify user authority and a non-empty displayName"
-    );
-    requireApproval(
-      record.source?.kind === "explicit-user-confirmation" &&
-        typeof record.source?.reference === "string" &&
-        record.source.reference.trim().length > 0,
-      "source must identify an explicit user confirmation"
-    );
-    requireApproval(record.parityClaim === "water-material-mechanism-parity", "parityClaim changed");
-    requireApproval(
-      JSON.stringify(record.exclusions) === JSON.stringify(["environment-reflection-pattern"]),
-      "approval must explicitly and exclusively record the environment-reflection-pattern exclusion"
-    );
-    requireApproval(
-      record.fixtureManifestSha256 === expected.fixtureManifestSha256,
-      "fixture manifest SHA-256 does not match the reviewed fixture"
-    );
-    requireApproval(
-      record.referenceTargetSha256 === FROZEN_REFERENCE_SHA256,
-      "reference target SHA-256 does not match the frozen target"
-    );
-    requireApproval(
-      record.reviewedEvidence?.controlledCalibrationCoreSha256 === expected.controlledCalibrationCoreSha256,
-      "controlled calibration core SHA-256 does not match the reviewed evidence"
-    );
-    requireApproval(
-      typeof record.reviewedEvidence?.sideBySidePngSha256 === "string" &&
-        /^[0-9a-f]{64}$/.test(record.reviewedEvidence.sideBySidePngSha256),
-      "side-by-side PNG SHA-256 is invalid"
-    );
-    const captureHashes = record.reviewedEvidence?.captureStatePngSha256;
-    requireApproval(
-      hasExactObjectKeys(captureHashes, CAPTURE_STATES) &&
-        CAPTURE_STATES.every((state) => /^[0-9a-f]{64}$/.test(captureHashes[state])),
-      "approval capture-state SHA-256 map does not define exactly the eight reviewed states"
-    );
-    const mechanisms = record.mechanisms;
-    requireApproval(
-      mechanisms?.detailNormal?.approved === true &&
-        mechanisms.detailNormal.directionApproved === true &&
-        mechanisms.detailNormal.flipGreenApproved === true &&
-        mechanisms.detailNormal.flipGreen === expected.flipGreen,
-      "detailNormal approval, direction, or flipGreen is incomplete"
-    );
-    for (const mechanism of ["refraction", "depthColor", "contactFoam", "coastalAlpha", "specularReflection"]) {
-      requireApproval(mechanisms?.[mechanism]?.approved === true, `${mechanism} is not explicitly approved`);
-    }
-  } else if (record !== null) {
-    failures.push("approval record root must be an object");
-  }
+  const { record, failures } = parseAndValidateJson(
+    bytes.toString("utf8"),
+    "approval record is not valid JSON",
+    (parsedRecord) =>
+      validateM3ApprovalRecord(
+        parsedRecord,
+        {
+          ...expected,
+          caseId: CASE_DEFINITION.id,
+          referenceTargetSha256: FROZEN_REFERENCE_SHA256,
+          captureStates: CAPTURE_STATES
+        },
+        approvalMode
+      )
+  );
   return {
     status: failures.length === 0 ? "validated-record" : "invalid",
+    mode: approvalMode,
     path,
     exists: true,
     valid: failures.length === 0,
@@ -2788,6 +2741,71 @@ async function readStructuredM3UserApproval(path, expected) {
     sha256: sha256(bytes),
     byteLength: bytes.byteLength,
     record
+  };
+}
+
+async function readInitialReviewQualification(path, expected) {
+  if (!path) {
+    return {
+      status: "pending",
+      path: null,
+      exists: false,
+      valid: false,
+      failures: ["GRASSLANDS_M3_INITIAL_REVIEW_RESULT is unset"],
+      sha256: null,
+      byteLength: 0
+    };
+  }
+  if (!(await fileExists(path))) {
+    return {
+      status: "pending",
+      path,
+      exists: false,
+      valid: false,
+      failures: ["initial-review result does not exist"],
+      sha256: null,
+      byteLength: 0
+    };
+  }
+  const failures = [];
+  let metadata;
+  try {
+    metadata = await lstat(path);
+  } catch (error) {
+    failures.push(
+      `initial-review result metadata is unreadable: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (metadata && (!metadata.isFile() || metadata.isSymbolicLink())) {
+    failures.push("initial-review result must be a regular non-symlink file");
+  }
+  let bytes = Buffer.alloc(0);
+  if (failures.length === 0) {
+    try {
+      bytes = await readFile(path);
+    } catch (error) {
+      failures.push(`initial-review result is unreadable: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  if (failures.length === 0) {
+    const parsed = parseAndValidateJson(bytes.toString("utf8"), "initial-review result is invalid JSON", (record) =>
+      validateInitialReviewResult(record, {
+        ...expected,
+        gate: GATE,
+        qualifiedStatus: QUALIFIED_CLEAN_NATIVE_STATUS,
+        captureStates: CAPTURE_STATES
+      })
+    );
+    failures.push(...parsed.failures);
+  }
+  return {
+    status: failures.length === 0 ? "validated-receipt" : "invalid",
+    path,
+    exists: true,
+    valid: failures.length === 0,
+    failures,
+    sha256: bytes.byteLength > 0 ? sha256(bytes) : null,
+    byteLength: bytes.byteLength
   };
 }
 
@@ -2947,9 +2965,7 @@ async function evaluateRegressionGolden(page, manifest, capturesByState, approva
       writeFile(newPath, current.bytes),
       writeFile(diffPath, diffBytes)
     ]);
-    const passed =
-      comparison.metrics.diffPixelRatio <= golden.thresholds.maximumDiffPixelRatio &&
-      comparison.metrics.meanAbsoluteChannelDifference <= golden.thresholds.maximumMeanAbsoluteChannelDifference;
+    const passed = regressionMetricsPass(comparison.metrics, golden.thresholds);
     const result = {
       state,
       status: passed ? "passed" : "failed",
@@ -3579,12 +3595,41 @@ try {
     ? "passed"
     : "failed";
   const approvalRecordPath = process.env.GRASSLANDS_M3_USER_APPROVAL_RECORD?.trim();
-  const visualApprovalRecord = await readStructuredM3UserApproval(approvalRecordPath, {
-    commit: report.source.start.head,
-    fixtureManifestSha256: fixture.sha256,
-    controlledCalibrationCoreSha256: report.controlledGpuCalibration.coreSha256,
-    flipGreen: calibrationSnapshot.normal.flipGreen
-  });
+  const captureHashes = Object.fromEntries(
+    CAPTURE_STATES.map((state) => [state, capturesByState.get(state)?.artifact.sha256])
+  );
+  const visualApprovalRecord = await readStructuredM3UserApproval(
+    approvalRecordPath,
+    {
+      commit: report.source.start.head,
+      fixtureManifestSha256: fixture.sha256,
+      controlledCalibrationCoreSha256: report.controlledGpuCalibration.coreSha256,
+      sideBySidePngSha256: report.referenceParity.sideBySide.sha256,
+      captureHashes,
+      flipGreen: calibrationSnapshot.normal.flipGreen
+    },
+    m3ApprovalMode
+  );
+  const initialReviewQualification =
+    m3ApprovalMode === "initial-review"
+      ? {
+          status: visualApprovalRecord.valid ? "current-run-verified" : visualApprovalRecord.status,
+          path: visualApprovalRecord.path,
+          exists: visualApprovalRecord.exists,
+          valid: visualApprovalRecord.valid,
+          failures: visualApprovalRecord.failures,
+          sha256: visualApprovalRecord.sha256,
+          byteLength: visualApprovalRecord.byteLength
+        }
+      : await readInitialReviewQualification(process.env.GRASSLANDS_M3_INITIAL_REVIEW_RESULT?.trim(), {
+          fixtureManifestSha256: fixture.sha256,
+          approvalRecordSha256: visualApprovalRecord.sha256,
+          approvalCommit: visualApprovalRecord.record?.commit,
+          controlledCalibrationCoreSha256:
+            visualApprovalRecord.record?.reviewedEvidence?.controlledCalibrationCoreSha256,
+          sideBySidePngSha256: visualApprovalRecord.record?.reviewedEvidence?.sideBySidePngSha256,
+          captureHashes: visualApprovalRecord.record?.reviewedEvidence?.captureStatePngSha256
+        });
   report.regressionGoldenEvaluation = await evaluateRegressionGolden(
     page,
     fixture.manifest,
@@ -3607,9 +3652,14 @@ try {
   report.referenceParity.machineThresholdStatus = report.controlledGpuCalibration.status;
   report.referenceParity.visualApprovalStatus = visualApprovalRecord.status;
   const m3FunctionalStatus =
-    referenceParityStatus === "failed" || report.regressionGoldenEvaluation.status === "failed"
+    !m3ApprovalModeExplicit ||
+    referenceParityStatus === "failed" ||
+    report.regressionGoldenEvaluation.status === "failed" ||
+    initialReviewQualification.status === "invalid"
       ? "failed"
-      : referenceParityStatus === "pending-user-review" || report.regressionGoldenEvaluation.status === "pending"
+      : referenceParityStatus === "pending-user-review" ||
+          report.regressionGoldenEvaluation.status === "pending" ||
+          !initialReviewQualification.valid
         ? "pending"
         : "passed";
   report.phaseGate = {
@@ -3623,12 +3673,15 @@ try {
     },
     m3: {
       status: "pending-evidence-qualification",
+      approvalMode: m3ApprovalMode,
+      approvalModeExplicit: m3ApprovalModeExplicit,
       functionalStatus: m3FunctionalStatus,
       evidenceQualificationStatus: "pending",
       referenceParityStatus,
       controlledGpuCalibrationStatus: report.controlledGpuCalibration.status,
       detailNormalFrequencyStatus: report.detailNormalFrequency.status,
       visualApprovalRecord,
+      initialReviewQualification,
       regressionGoldenStatus: report.regressionGoldenEvaluation.status,
       regressionGoldenApproved: report.regressionGoldenEvaluation.status === "passed"
     }
@@ -3701,7 +3754,9 @@ try {
   );
   report.automationResult = diagnosticMode
     ? `diagnostic-${parityPhase}-functional-passed-${report.evidenceClassification.status}`
-    : `formal-${parityPhase}-gate-passed`;
+    : parityPhase === "m3"
+      ? `formal-m3-${m3ApprovalMode}-gate-passed`
+      : "formal-m1-gate-passed";
   report.status = diagnosticMode ? `diagnostic-passed-${report.evidenceClassification.status}` : "passed";
 } catch (error) {
   report.failures.push(serializeError(error));
@@ -3785,6 +3840,8 @@ try {
     },
     phaseGate: report.phaseGate,
     m3: {
+      approvalMode: report.phaseGate?.m3.approvalMode ?? m3ApprovalMode,
+      initialReviewQualificationStatus: report.phaseGate?.m3.initialReviewQualification.status ?? "not-run",
       referenceParityStatus: report.phaseGate?.m3.referenceParityStatus ?? "not-run",
       visualApprovalStatus: report.phaseGate?.m3.visualApprovalRecord.valid ? "validated-record" : "pending-user",
       regressionGoldenStatus: report.phaseGate?.m3.regressionGoldenStatus ?? "pending-m3-user-approval",

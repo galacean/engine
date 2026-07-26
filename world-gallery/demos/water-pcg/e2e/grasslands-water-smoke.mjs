@@ -1612,8 +1612,8 @@ try {
   report.alternateSeed = await runAlternateSeed(browser, report.freshDeterminism[0].determinism);
   report.freeCameraReset = await runFreeCameraReset(browser);
   report.qualityAppearanceAndLongStability = await runQualityAppearanceAndLongStability(browser);
-  report.missingNormalNegativeLane = await runMissingNormalNegativeLane(browser);
   report.lifecycle = await runLifecycle(browser);
+  report.missingNormalNegativeLane = await runMissingNormalNegativeLane(browser);
   report.sourceAtEnd = readGitEvidence();
   report.fullSourceAtEnd = readFullGitEvidence();
   report.grasslandsMainSourceAtEnd = readGrasslandsMainSourceEvidence(report.fullSourceAtEnd.head);

@@ -574,9 +574,11 @@ describe("Grasslands Showcase Acceptance", () => {
 
   it("keeps structured M3 approval and Regression Golden validation fail closed", () => {
     const parity = readWaterPcgSource("e2e/grasslands-water-parity.mjs");
+    const approvalValidation = readWaterPcgSource("e2e/grasslands-m3-approval.mjs");
+    const approvalContract = `${parity}\n${approvalValidation}`;
     expect(parity).toContain("function hasExactObjectKeys(value, expectedKeys)");
-    expect(parity).toContain("hasExactObjectKeys(captureHashes, CAPTURE_STATES)");
-    expect(parity).not.toContain("JSON.stringify(Object.keys(captureHashes))");
+    expect(approvalValidation).toContain("hasExactObjectKeys(captureHashes, expected.captureStates)");
+    expect(approvalContract).not.toContain("JSON.stringify(Object.keys(captureHashes))");
     expect(parity).toContain('if (golden.status === "pending-m3-user-approval")');
     expect(parity).toContain('if (golden.status !== "approved")');
     expect(parity).toContain('failures: ["regressionGolden must be an object"]');
@@ -588,18 +590,45 @@ describe("Grasslands Showcase Acceptance", () => {
     expect(parity).toContain("Golden PNG is unreadable");
     expect(parity).toContain("Golden PNG is invalid");
     expect(parity).toContain("Golden comparison failed");
-    expect(parity).toContain("approval capture-state SHA-256 map does not define exactly the eight reviewed states");
+    expect(parity).toContain("const requestedM3ApprovalMode = process.env.GRASSLANDS_M3_APPROVAL_MODE");
+    expect(parity).toContain("const m3ApprovalModeExplicit =");
+    expect(approvalContract).toContain("async function readInitialReviewQualification(path, expected)");
+    expect(approvalContract).toContain('const requiresCurrentEvidenceIdentity = approvalMode === "initial-review"');
+    expect(approvalContract).toContain(
+      "approval capture-state SHA-256 map does not match the eight states in the initial-review run"
+    );
+    expect(approvalContract).toContain(
+      "approval capture-state SHA-256 map does not define exactly the eight reviewed Golden states"
+    );
     expect(parity).toContain("approval.record?.reviewedEvidence?.captureStatePngSha256?.[state] === definition.sha256");
-    expect(parity).not.toContain("captureHashes[state] === expected.captureHashes[state]");
-    expect(parity).not.toContain("record.reviewedEvidence?.sideBySidePngSha256 === expected.sideBySidePngSha256");
+    expect(approvalContract).toContain(
+      "!requiresCurrentEvidenceIdentity || captureHashes[state] === expected.captureHashes[state]"
+    );
+    expect(approvalContract).toContain("reviewedSideBySideSha256 === expected.sideBySidePngSha256");
+    expect(approvalContract).toContain("reviewedCalibrationCoreSha256 === expected.controlledCalibrationCoreSha256");
+    expect(approvalContract).toContain("record.commit === expected.commit");
+    expect(approvalContract).toContain("approval commit does not match the initial-review run commit");
+    expect(parity).toContain("golden.thresholds?.perChannelByteTolerance === 8");
+    expect(parity).toContain("golden.thresholds?.maximumDiffPixelRatio === 0.01");
+    expect(parity).toContain("golden.thresholds?.maximumMeanAbsoluteChannelDifference === 1.5");
+    expect(parity).toContain("approvalMode: m3ApprovalMode");
+    expect(approvalContract).toContain('record.automationResult === "formal-m3-initial-review-gate-passed"');
+    expect(approvalContract).toContain('record.gate === expected.gate && record.parityPhase === "m3"');
+    expect(approvalContract).toContain("approval?.sha256 === expected.approvalRecordSha256");
+    expect(approvalContract).toContain("receiptCaptureHashes[state] === expected.captureHashes[state]");
+    expect(parity).toContain('initialReviewQualification.status === "invalid"');
+    expect(parity).toContain("!initialReviewQualification.valid");
+    expect(parity).toContain("!m3ApprovalModeExplicit");
+    expect(parity).toContain("`formal-m3-${m3ApprovalMode}-gate-passed`");
 
-    const failedStatusIndex = parity.indexOf(
-      'referenceParityStatus === "failed" || report.regressionGoldenEvaluation.status === "failed"'
-    );
-    const pendingStatusIndex = parity.indexOf(
-      'referenceParityStatus === "pending-user-review" || report.regressionGoldenEvaluation.status === "pending"'
-    );
+    const failedStatusIndex = parity.indexOf('referenceParityStatus === "failed"');
+    const pendingStatusIndex = parity.indexOf('referenceParityStatus === "pending-user-review"');
     expect(failedStatusIndex).toBeGreaterThan(-1);
     expect(pendingStatusIndex).toBeGreaterThan(failedStatusIndex);
+
+    const smoke = readWaterPcgSource("e2e/grasslands-water-smoke.mjs");
+    expect(smoke.indexOf("report.lifecycle = await runLifecycle(browser)")).toBeLessThan(
+      smoke.indexOf("report.missingNormalNegativeLane = await runMissingNormalNegativeLane(browser)")
+    );
   });
 });
