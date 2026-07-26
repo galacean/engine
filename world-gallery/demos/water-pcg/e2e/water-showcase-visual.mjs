@@ -28,6 +28,7 @@ import {
   assertMissingShowcaseBaselineAllowed,
   assertShowcaseBaselineCaseIds,
   commitShowcaseBaselineTransaction,
+  resolveRetiredShowcaseCaseIds,
   resolveShowcaseVisualSelection,
   WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
   WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS
@@ -130,7 +131,11 @@ async function readBaselineManifest() {
     "Showcase baseline thresholds changed.",
     manifest.thresholds
   );
-  assertShowcaseBaselineCaseIds(Object.keys(manifest.cases ?? {}), WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS);
+  assertShowcaseBaselineCaseIds(
+    Object.keys(manifest.cases ?? {}),
+    WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
+    requestedMode === "update" ? selection.selectedCaseIds : []
+  );
   return manifest;
 }
 
@@ -458,7 +463,11 @@ async function updateBaselines(caseResults, previousManifest) {
     captureStates: CAPTURE_STATES,
     thresholds: THRESHOLDS,
     cases,
-    updatedCaseIds: [updatedCaseId]
+    updatedCaseIds: [updatedCaseId],
+    retiredCaseIds: resolveRetiredShowcaseCaseIds(
+      previousManifest.retiredCaseIds,
+      updatedCaseId
+    )
   };
   assertImmutableShowcaseCases(previousManifest, manifest, updatedCaseId);
 

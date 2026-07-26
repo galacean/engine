@@ -46,6 +46,12 @@ describe("OceanNearshoreStateField", () => {
     expect(field.seek(2)).toBe(true);
     const revision = field.metrics.revision;
     const state = new Uint8Array(field.stateUploadBuffer);
+    expect(
+      Array.from(
+        { length: state.length / 4 },
+        (_, index) => state[index * 4 + 1]
+      ).every((value) => value === 0 || value === 255)
+    ).toBe(true);
     expect(field.seek(2)).toBe(false);
     expect(field.metrics.revision).toBe(revision);
     expect(field.stateUploadBuffer).toEqual(state);
@@ -68,6 +74,63 @@ describe("OceanNearshoreStateField", () => {
     field.seek(3.8);
     expect(field.sample(0, 2, sample)).toBe(true);
     expect(sample.wetness).toBeGreaterThan(0);
+  });
+
+  it("softens only packed render occupancy while retaining binary query authority", () => {
+    const compiled = OceanNearshoreCompiler.compile(
+      createOceanNearshoreFixture()
+    );
+    if (!compiled.valid || !compiled.data) {
+      throw new Error("Nearshore fixture did not compile.");
+    }
+    const resource = OceanNearshoreFieldResource.create(compiled.data);
+    const field = new OceanNearshoreStateField(resource, {
+      swashPeriodSeconds: 4,
+      minimumRunupDistance: 0,
+      maximumRunupDistance: 2,
+      thinFilmTransitionWidth: 1.25
+    });
+    const defaultField = new OceanNearshoreStateField(resource);
+    expect(defaultField.configuration.thinFilmTransitionWidth).toBe(0);
+    expect(field.metrics.stateByteLength).toBe(
+      defaultField.metrics.stateByteLength
+    );
+    field.seek(1);
+
+    const renderOccupancy = Array.from(
+      { length: compiled.data.grid.width * compiled.data.grid.height },
+      (_, index) => field.stateUploadBuffer[index * 4 + 1]
+    );
+    const transitionIndex = renderOccupancy.findIndex(
+      (value) => value > 0 && value < 255
+    );
+    expect(transitionIndex).toBeGreaterThanOrEqual(0);
+
+    const x = transitionIndex % compiled.data.grid.width;
+    const z = Math.floor(transitionIndex / compiled.data.grid.width);
+    const sample = createOceanNearshoreStateSample();
+    field.sample(
+      compiled.data.grid.originXZ[0] + x * compiled.data.grid.cellSizeXZ[0],
+      compiled.data.grid.originXZ[1] + z * compiled.data.grid.cellSizeXZ[1],
+      sample
+    );
+    expect(sample.occupied).toBe(renderOccupancy[transitionIndex] >= 128);
+
+    field.update(1 / 30);
+    const maximumPresentationStep = renderOccupancy.reduce(
+      (maximum, value, index) =>
+        Math.max(
+          maximum,
+          Math.abs(value - field.stateUploadBuffer[index * 4 + 1])
+        ),
+      0
+    );
+    expect(maximumPresentationStep).toBeGreaterThan(0);
+    expect(maximumPresentationStep).toBeLessThan(32);
+
+    field.destroy();
+    defaultField.destroy();
+    resource.dispose();
   });
 
   it("publishes seaward backwash through a data-only grid snapshot", () => {

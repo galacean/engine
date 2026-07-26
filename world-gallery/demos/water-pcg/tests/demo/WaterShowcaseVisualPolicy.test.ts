@@ -9,6 +9,7 @@ import {
   assertMissingShowcaseBaselineAllowed,
   assertShowcaseBaselineCaseIds,
   commitShowcaseBaselineTransaction,
+  resolveRetiredShowcaseCaseIds,
   resolveShowcaseVisualSelection,
   WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS,
   WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS
@@ -98,7 +99,7 @@ async function createTemporaryBaseline() {
 }
 
 describe("Water Showcase visual policy", () => {
-  it("keeps the default lane on approved Grasslands while allowing an explicit Ocean candidate capture", () => {
+  it("keeps the default lane on all approved cases while allowing an explicit Ocean capture", () => {
     expect(resolveSelection().selectedCaseIds).toEqual(APPROVED_CASE_IDS);
     expect(resolveSelection({ mode: "compare" }).selectedCaseIds).toEqual(APPROVED_CASE_IDS);
     expect(resolveSelection({ caseFilter: "showcase-ocean" }).selectedCaseIds).toEqual(["showcase-ocean"]);
@@ -121,9 +122,10 @@ describe("Water Showcase visual policy", () => {
     expect(() =>
       resolveSelection({
         mode: "update",
-        caseFilter: "showcase-ocean",
-        updateReason: "Approve Ocean visual update",
-        updateApproval: "approved:showcase-ocean"
+        caseFilter: "showcase-pool",
+        updateReason: "Approve Pool visual update",
+        updateApproval: "approved:showcase-pool",
+        availableCaseIds: [...CANDIDATE_CASE_IDS, "showcase-pool"]
       })
     ).toThrow("candidate-only");
     expect(() =>
@@ -162,14 +164,44 @@ describe("Water Showcase visual policy", () => {
         updateApproval: "approved:showcase-grasslands-stylized-water"
       }).selectedCaseIds
     ).toEqual(["showcase-grasslands-stylized-water"]);
+    expect(
+      resolveSelection({
+        mode: "update",
+        caseFilter: "showcase-ocean",
+        updateReason: "Create reviewed Ocean baseline",
+        updateApproval: "approved:showcase-ocean"
+      }).selectedCaseIds
+    ).toEqual(["showcase-ocean"]);
   });
 
-  it("accepts only approved Golden cases without requiring the Ocean candidate in the manifest", () => {
+  it("requires all approved Golden cases except the selected first-time promotion", () => {
     expect(() => assertShowcaseBaselineCaseIds(APPROVED_CASE_IDS, APPROVED_CASE_IDS)).not.toThrow();
-    expect(() => assertShowcaseBaselineCaseIds([...APPROVED_CASE_IDS, "showcase-ocean"], APPROVED_CASE_IDS)).toThrow(
+    expect(() => assertShowcaseBaselineCaseIds([...APPROVED_CASE_IDS, "showcase-pool"], APPROVED_CASE_IDS)).toThrow(
       "without Golden approval"
     );
-    expect(() => assertShowcaseBaselineCaseIds([], APPROVED_CASE_IDS)).toThrow("missing approved Golden cases");
+    const manifestBeforeOceanPromotion = APPROVED_CASE_IDS.filter((caseId) => caseId !== "showcase-ocean");
+    expect(() =>
+      assertShowcaseBaselineCaseIds(manifestBeforeOceanPromotion, APPROVED_CASE_IDS)
+    ).toThrow("missing approved Golden cases");
+    expect(() =>
+      assertShowcaseBaselineCaseIds(
+        manifestBeforeOceanPromotion,
+        APPROVED_CASE_IDS,
+        ["showcase-ocean"]
+      )
+    ).not.toThrow();
+  });
+
+  it("preserves unrelated retired cases when one reviewed case is promoted", () => {
+    expect(
+      resolveRetiredShowcaseCaseIds(
+        ["showcase-river", "showcase-pool", "showcase-ocean"],
+        "showcase-ocean"
+      )
+    ).toEqual(["showcase-river", "showcase-pool"]);
+    expect(resolveRetiredShowcaseCaseIds(undefined, "showcase-ocean")).toEqual(
+      []
+    );
   });
 
   it("keeps a missing-case capture non-mutating, rejects compare, and atomically adds an approved update", async () => {

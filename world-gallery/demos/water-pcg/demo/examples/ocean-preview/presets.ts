@@ -104,7 +104,7 @@ export const SHOWCASE_OCEAN_OPTICAL_PROFILE = Object.freeze({
   reflectionIntensity: 1
 } satisfies WaterOpticalProfile);
 
-/** Canonical High ocean used by the hero, Gerstner feature, and LOD developer presets. */
+/** Canonical High ocean used by focused features and LOD developer presets. */
 export const showcaseOceanPreview: OceanPreviewConfig = {
   size: 240,
   resolution: 192,
@@ -161,6 +161,31 @@ export const showcaseOceanPreview: OceanPreviewConfig = {
     roughnessFootprintTexels: 14,
     highFilterSampleCount: 5
   }
+};
+
+/**
+ * Hero-only composition tuning. The larger camera-relative footprint removes
+ * the finite-ring edge at a grazing showcase camera without adding patches.
+ */
+export const showcaseOceanHeroPreview: OceanPreviewConfig = {
+  ...showcaseOceanPreview,
+  size: 1600,
+  foamIntensity: 0.58,
+  foamSourceOptions: Object.freeze({
+    breakerIntensity: 0.42,
+    breakerMinimumActivation: 0.5,
+    breakerFullActivation: 0.92,
+    shoreIntensity: 0.5,
+    shoreBandWidth: 0.5,
+    shoreSeawardOffset: 2
+  }),
+  nearshoreStateOptions: Object.freeze({
+    ...showcaseOceanPreview.nearshoreStateOptions,
+    swashPeriodSeconds: 7.6,
+    maximumRunupDistance: 1.65,
+    maximumSwashSpeed: 0.8,
+    thinFilmTransitionWidth: 1.25
+  })
 };
 
 /** Isolated High wave preset: identical Gerstner source without the authored beach scenery. */

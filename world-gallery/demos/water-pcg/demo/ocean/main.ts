@@ -24,7 +24,11 @@ import {
 } from "../../runtime/optics/WaterReflectionService";
 import { cloneOceanConfig } from "../examples";
 import { OceanPreviewController } from "../examples/ocean-preview/OceanPreviewController";
-import { gerstnerFeatureOceanPreview, showcaseOceanPreview } from "../examples/ocean-preview/presets";
+import {
+  gerstnerFeatureOceanPreview,
+  showcaseOceanHeroPreview,
+  showcaseOceanPreview
+} from "../examples/ocean-preview/presets";
 import type {
   OceanPreviewConfig,
   OceanPreviewMetrics,
@@ -228,9 +232,11 @@ function createOceanRuntimeConfig(
   sceneMode: OceanShowcaseSceneMode
 ): OceanPreviewConfig {
   const config = cloneOceanConfig(
-    sceneMode === "gerstner"
-      ? gerstnerFeatureOceanPreview
-      : showcaseOceanPreview
+    preset === "hero-ocean"
+      ? showcaseOceanHeroPreview
+      : sceneMode === "gerstner"
+        ? gerstnerFeatureOceanPreview
+        : showcaseOceanPreview
   );
   if (
     preset === "ocean-nearshore-waves" ||

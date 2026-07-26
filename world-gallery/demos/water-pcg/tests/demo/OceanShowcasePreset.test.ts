@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { compileWaterWaveAsset } from "../../compiler/wave/WaterWaveCompiler";
-import { gerstnerFeatureOceanPreview, showcaseOceanPreview } from "../../demo/examples/ocean-preview/presets";
+import {
+  gerstnerFeatureOceanPreview,
+  showcaseOceanHeroPreview,
+  showcaseOceanPreview
+} from "../../demo/examples/ocean-preview/presets";
 import { createOceanRingLayout } from "../../runtime/ocean/OceanRingGeometry";
 import { OceanNearshoreCompiler } from "../../compiler/ocean/OceanNearshoreCompiler";
 import { buildOceanBeachTerrainGeometry } from "../../demo/ocean/OceanBeachTerrainBuilder";
@@ -31,6 +35,17 @@ describe("Ocean showcase presets", () => {
     expect(showcaseOceanPreview.reflectionSource).toBe("planar");
     expect(showcaseOceanPreview.reflectionSampling?.highFilterSampleCount).toBe(5);
     expect(showcaseOceanPreview.nearshoreDescriptor).toBeDefined();
+    expect(showcaseOceanHeroPreview.size).toBe(1600);
+    expect(showcaseOceanHeroPreview.foamIntensity).toBeLessThan(
+      showcaseOceanPreview.foamIntensity
+    );
+    expect(
+      showcaseOceanHeroPreview.nearshoreStateOptions
+        ?.thinFilmTransitionWidth
+    ).toBeGreaterThan(0);
+    expect(gerstnerFeatureOceanPreview.size).not.toBe(
+      showcaseOceanHeroPreview.size
+    );
     const nearshore = OceanNearshoreCompiler.compile(
       showcaseOceanPreview.nearshoreDescriptor
     );

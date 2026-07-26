@@ -7,7 +7,10 @@ export const WATER_SHOWCASE_VISUAL_CANDIDATE_CASE_IDS = Object.freeze([
   "showcase-grasslands-stylized-water",
   "showcase-ocean"
 ]);
-export const WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS = Object.freeze(["showcase-grasslands-stylized-water"]);
+export const WATER_SHOWCASE_VISUAL_APPROVED_CASE_IDS = Object.freeze([
+  "showcase-grasslands-stylized-water",
+  "showcase-ocean"
+]);
 
 function parseCaseFilter(caseFilter) {
   return [
@@ -68,14 +71,20 @@ export function resolveShowcaseVisualSelection({
   });
 }
 
-export function assertShowcaseBaselineCaseIds(manifestCaseIds, approvedCaseIds) {
+export function assertShowcaseBaselineCaseIds(
+  manifestCaseIds,
+  approvedCaseIds,
+  permittedMissingCaseIds = []
+) {
   const unapprovedCaseIds = manifestCaseIds.filter((caseId) => !approvedCaseIds.includes(caseId));
   if (unapprovedCaseIds.length > 0) {
     throw new Error(
       `Showcase baseline manifest contains cases without Golden approval: ${unapprovedCaseIds.join(", ")}.`
     );
   }
-  const missingCaseIds = approvedCaseIds.filter((caseId) => !manifestCaseIds.includes(caseId));
+  const missingCaseIds = approvedCaseIds.filter(
+    (caseId) => !manifestCaseIds.includes(caseId) && !permittedMissingCaseIds.includes(caseId)
+  );
   if (missingCaseIds.length > 0) {
     throw new Error(`Showcase baseline manifest is missing approved Golden cases: ${missingCaseIds.join(", ")}.`);
   }
@@ -105,6 +114,11 @@ export function assertMissingShowcaseBaselineAllowed(mode, caseId) {
   if (mode === "capture") return "candidate";
   if (mode === "update") return "approved-update";
   throw new Error(`${caseId} has no reviewed Showcase baseline.`);
+}
+
+export function resolveRetiredShowcaseCaseIds(retiredCaseIds, promotedCaseId) {
+  if (!Array.isArray(retiredCaseIds)) return [];
+  return [...new Set(retiredCaseIds.filter((caseId) => caseId !== promotedCaseId))];
 }
 
 async function pathExists(path) {

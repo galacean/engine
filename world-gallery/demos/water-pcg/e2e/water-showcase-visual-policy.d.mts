@@ -20,7 +20,8 @@ export function resolveShowcaseVisualSelection(input: ShowcaseVisualSelectionInp
 
 export function assertShowcaseBaselineCaseIds(
   manifestCaseIds: readonly string[],
-  approvedCaseIds: readonly string[]
+  approvedCaseIds: readonly string[],
+  permittedMissingCaseIds?: readonly string[]
 ): void;
 
 export function assertImmutableShowcaseCases(
@@ -36,6 +37,11 @@ export function assertImmutableShowcaseHashes(
 ): void;
 
 export function assertMissingShowcaseBaselineAllowed(mode: string, caseId: string): "candidate" | "approved-update";
+
+export function resolveRetiredShowcaseCaseIds(
+  retiredCaseIds: unknown,
+  promotedCaseId: string
+): readonly string[];
 
 export interface ShowcaseBaselineTransactionFile {
   readonly relativePath: string;

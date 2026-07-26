@@ -20,6 +20,12 @@ export interface OceanNearshoreStateFieldOptions {
   readonly breakerDecayRate?: number;
   readonly wetnessDryingRate?: number;
   readonly maximumSwashSpeed?: number;
+  /**
+   * World-space half-width used to soften the packed render occupancy around
+   * the authoritative binary thin-film boundary. The complete transition band
+   * is twice this value. Defaults to zero.
+   */
+  readonly thinFilmTransitionWidth?: number;
   readonly maximumSeekSeconds?: number;
   readonly enabled?: boolean;
 }
@@ -99,6 +105,7 @@ export interface ResolvedOceanNearshoreStateFieldOptions {
   readonly breakerDecayRate: number;
   readonly wetnessDryingRate: number;
   readonly maximumSwashSpeed: number;
+  readonly thinFilmTransitionWidth: number;
   readonly maximumSeekSeconds: number;
 }
 
@@ -120,6 +127,7 @@ const DEFAULT_OPTIONS: Readonly<ResolvedOceanNearshoreStateFieldOptions> =
     breakerDecayRate: 2.4,
     wetnessDryingRate: 0.32,
     maximumSwashSpeed: 1.35,
+    thinFilmTransitionWidth: 0,
     maximumSeekSeconds: 120
   });
 
@@ -171,6 +179,9 @@ function resolveOptions(
     options.wetnessDryingRate ?? DEFAULT_OPTIONS.wetnessDryingRate;
   const maximumSwashSpeed =
     options.maximumSwashSpeed ?? DEFAULT_OPTIONS.maximumSwashSpeed;
+  const thinFilmTransitionWidth =
+    options.thinFilmTransitionWidth ??
+    DEFAULT_OPTIONS.thinFilmTransitionWidth;
   const maximumSeekSeconds =
     options.maximumSeekSeconds ?? DEFAULT_OPTIONS.maximumSeekSeconds;
   if (
@@ -197,6 +208,8 @@ function resolveOptions(
     wetnessDryingRate <= 0 ||
     !Number.isFinite(maximumSwashSpeed) ||
     maximumSwashSpeed <= 0 ||
+    !Number.isFinite(thinFilmTransitionWidth) ||
+    thinFilmTransitionWidth < 0 ||
     !Number.isFinite(maximumSeekSeconds) ||
     maximumSeekSeconds <= 0
   ) {
@@ -215,6 +228,7 @@ function resolveOptions(
     breakerDecayRate,
     wetnessDryingRate,
     maximumSwashSpeed,
+    thinFilmTransitionWidth,
     maximumSeekSeconds
   });
 }
@@ -280,7 +294,8 @@ export class OceanNearshoreStateField {
       if (
         resource.shoreDistanceAt(index) >=
         -this._options.maximumRunupDistance -
-          this._options.occupancyReleaseMargin
+          this._options.occupancyReleaseMargin -
+          this._options.thinFilmTransitionWidth
       ) {
         maximumSwashBedHeight = Math.max(
           maximumSwashBedHeight,
@@ -593,18 +608,33 @@ export class OceanNearshoreStateField {
       const shoreNormalX = this.resource.shoreNormalXAt(index);
       const shoreNormalZ = this.resource.shoreNormalZAt(index);
       let occupied = staticWet;
+      let occupancyThreshold = -runupDistance;
       if (!staticWet && this._enabled) {
         const wasOccupied = buffers.occupancy[index] === 1;
-        const threshold = -runupDistance;
-        occupied = wasOccupied
-          ? shoreDistance >=
-            threshold - this._options.occupancyReleaseMargin
-          : shoreDistance >=
-            threshold + this._options.occupancyAcquireMargin;
+        occupancyThreshold += wasOccupied
+          ? -this._options.occupancyReleaseMargin
+          : this._options.occupancyAcquireMargin;
+        occupied = shoreDistance >= occupancyThreshold;
       }
       buffers.occupancy[index] = occupied ? 1 : 0;
+      const renderOccupancy =
+        staticWet
+          ? 1
+          : !this._enabled
+            ? 0
+            : this._options.thinFilmTransitionWidth > 0
+              ? smoothstep(
+                  occupancyThreshold - this._options.thinFilmTransitionWidth,
+                  occupancyThreshold + this._options.thinFilmTransitionWidth,
+                  shoreDistance
+                )
+              : occupied
+                ? 1
+                : 0;
+      buffers.stateUpload[index * 4 + 1] =
+        Math.round(renderOccupancy * 255);
       buffers.surfaceHeights[index] =
-        !staticWet && occupied
+        !staticWet && renderOccupancy > 0
           ? bedHeight +
             this._options.filmDepth * (0.8 + smoothedRunup * 0.2)
           : this.resource.data.waterLevel;
@@ -684,6 +714,7 @@ export class OceanNearshoreStateField {
     for (let index = 0; index < texelCount; index++) {
       const wet = this.resource.wetMaskAt(index) === 1;
       buffers.occupancy[index] = wet ? 1 : 0;
+      buffers.stateUpload[index * 4 + 1] = wet ? 255 : 0;
       buffers.surfaceHeights[index] = this.resource.data.waterLevel;
       buffers.currentsXZ[index * 2] = this.resource.baseCurrentXAt(index);
       buffers.currentsXZ[index * 2 + 1] =
@@ -721,7 +752,6 @@ export class OceanNearshoreStateField {
       );
       const wetness = clamp01(buffers.wetness[index]);
       buffers.stateUpload[stateOffset] = Math.round(breaker * 255);
-      buffers.stateUpload[stateOffset + 1] = occupied ? 255 : 0;
       buffers.stateUpload[stateOffset + 2] = Math.round(
         surfaceHeightNormalized * 255
       );

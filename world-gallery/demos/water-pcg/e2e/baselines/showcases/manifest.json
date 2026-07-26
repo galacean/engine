@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-07-26T07:25:44.000Z",
-  "updateReason": "Retire River, Pool, and Ocean screenshot regression during rapid iteration",
+  "generatedAt": "2026-07-26T16:29:57.576Z",
+  "updateReason": "Promote user-approved Ocean Showcase r2 Golden",
   "environment": {
     "viewport": {
       "width": 1280,
@@ -13,7 +13,11 @@
     "seed": 20260723,
     "statsEnabled": false
   },
-  "captureStates": ["hero", "interaction", "detail"],
+  "captureStates": [
+    "hero",
+    "interaction",
+    "detail"
+  ],
   "thresholds": {
     "perChannelByteTolerance": 8,
     "maximumDiffPixelRatio": 0.01,
@@ -38,8 +42,32 @@
           "sha256": "02e40d7f5abd5e54be5f142e4e94562c5a95eec7fd27574e46d56f63699ee7cd"
         }
       }
+    },
+    "showcase-ocean": {
+      "runtime": "ocean",
+      "preset": "hero-ocean",
+      "updateReason": "Promote user-approved Ocean Showcase r2 Golden",
+      "states": {
+        "hero": {
+          "file": "showcase-ocean/hero.png",
+          "sha256": "fd5dbf6715f4e57b9108afbfd35a9213881e5e35e281558e8dc3f6a39e14a782"
+        },
+        "interaction": {
+          "file": "showcase-ocean/interaction.png",
+          "sha256": "74d1f6c4155be8b4f0248299997dca69f92ea47a655aeda7a2454bf67150d754"
+        },
+        "detail": {
+          "file": "showcase-ocean/detail.png",
+          "sha256": "cec57058038d847c9af7681a8d029a20bf694878a96740760cd16b2b5c1e44d0"
+        }
+      }
     }
   },
-  "updatedCaseIds": [],
-  "retiredCaseIds": ["showcase-river", "showcase-pool", "showcase-ocean"]
+  "updatedCaseIds": [
+    "showcase-ocean"
+  ],
+  "retiredCaseIds": [
+    "showcase-river",
+    "showcase-pool"
+  ]
 }
