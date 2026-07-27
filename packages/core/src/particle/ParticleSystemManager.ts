@@ -2,14 +2,14 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
-import type { BirthSubEmitterEmissionPlan } from "./modules/SubEmittersModule";
+import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
 import type { SubEmitter } from "./modules/SubEmitter";
 
 /**
  * @internal
  */
-export interface ParticleSubEmitterEventEmissionCommand {
-  kind: "event";
+export interface DeathSubEmitterEmissionCommand {
+  readonly type: ParticleSubEmitterType.Death;
   subEmitter: SubEmitter;
   count: number;
   worldPosition: Vector3;
@@ -26,7 +26,7 @@ export interface ParticleSubEmitterEventEmissionCommand {
 /**
  * @internal
  */
-export type ParticleSubEmitterEmissionCommand = ParticleSubEmitterEventEmissionCommand | BirthSubEmitterEmissionPlan;
+export type ParticleSubEmitterEmissionCommand = DeathSubEmitterEmissionCommand | BirthSubEmitterPlan;
 
 /**
  * @internal
@@ -76,10 +76,11 @@ export class ParticleSystemManager {
   }
 
   enqueue(command: ParticleSubEmitterEmissionCommand): void {
-    const target = command.kind === "birth" ? command.target : command.subEmitter.emitter.generator;
+    const target =
+      command.type === ParticleSubEmitterType.Birth ? command.target : command.subEmitter.emitter.generator;
     if (target._renderer.destroyed) {
-      if (command.kind === "birth") {
-        command._release();
+      if (command.type === ParticleSubEmitterType.Birth) {
+        command.release();
       }
       return;
     }
@@ -119,10 +120,10 @@ export class ParticleSystemManager {
   private _consumeRemainingBirthPlans(commands: ReadonlyArray<ParticleSubEmitterEmissionCommand>): void {
     for (let i = 0, n = commands.length; i < n; i++) {
       const command = commands[i];
-      if (command.kind === "birth") {
+      if (command.type === ParticleSubEmitterType.Birth) {
         const target = command.target;
         if (target._renderer.destroyed) {
-          command._release();
+          command.release();
         } else {
           target._consumeBirthSubEmitterPlan(command, 0);
         }

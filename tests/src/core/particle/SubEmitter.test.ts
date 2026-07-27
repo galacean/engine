@@ -695,7 +695,7 @@ describe("SubEmitter", () => {
     const originalEnqueue = manager.enqueue.bind(manager);
     const birthPlans: Array<{ lastEmissionTime: number; emissionTime: number; hasRequests: boolean }> = [];
     const enqueueSpy = vi.spyOn(manager, "enqueue").mockImplementation((command: any) => {
-      if (command.kind === "birth") {
+      if (command.type === ParticleSubEmitterType.Birth) {
         birthPlans.push({
           lastEmissionTime: command.lastEmissionTime,
           emissionTime: command.emissionTime,

@@ -43,12 +43,9 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule } from "./modules/SubEmittersModule";
-import type { BirthSubEmitterEmissionPlan } from "./modules/SubEmittersModule";
+import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
 import type { SubEmitter } from "./modules/SubEmitter";
-import type {
-  ParticleSubEmitterEmissionCommand,
-  ParticleSubEmitterEventEmissionCommand
-} from "./ParticleSystemManager";
+import type { DeathSubEmitterEmissionCommand, ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager";
 
 /**
  * Stores one independently submitted particle feedback snapshot.
@@ -59,7 +56,7 @@ class ParticleFeedbackReadbackSlot {
   firstElement = 0;
   elementCount = 0;
   particleCount = 0;
-  readonly birthPlans: BirthSubEmitterEmissionPlan[] = [];
+  readonly birthPlans: BirthSubEmitterPlan[] = [];
   processedBirthPlanCount = 0;
   deathFirstElement = 0;
   deathCount = 0;
@@ -225,7 +222,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _emitDirection = new Vector3();
   @ignoreClone
-  private _birthEmissionPlan: BirthSubEmitterEmissionPlan | null = null;
+  private _birthEmissionPlan: BirthSubEmitterPlan | null = null;
   @ignoreClone
   private _birthEmissionRemainingCapacity = 0;
   @ignoreClone
@@ -473,7 +470,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const command = incomingCommands[i];
       let emitPlayTime: number;
       let emittedCount: number;
-      if (command.kind === "birth") {
+      if (command.type === ParticleSubEmitterType.Birth) {
         emittedCount = this._consumeBirthSubEmitterPlan(command, remainingSubEmitterCapacity);
         emitPlayTime = this._birthEmissionFirstPlayTime;
       } else {
@@ -485,7 +482,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
             ? lastPlayTime + deltaTime * command.frameTime
             : this._playTime -
               Math.max(this._renderer.engine.time.elapsedTime - command.emissionTime, 0) * main.simulationSpeed;
-        emittedCount = this._emitSubEmitterEvent(command, emitPlayTime, remainingSubEmitterCapacity);
+        emittedCount = this._emitDeathSubEmitter(command, emitPlayTime, remainingSubEmitterCapacity);
       }
       remainingSubEmitterCapacity -= emittedCount;
       if (emittedCount > 0) {
@@ -1333,19 +1330,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const worldBirthPosition = ParticleGenerator._tempVector36;
       Vector3.transformByQuat(position, transform.worldRotationQuaternion, worldBirthPosition);
       worldBirthPosition.add(emitWorldPositionOverride ?? transform.worldPosition);
-      this._onParticleBirth(firstFreeElement, worldBirthPosition);
+      this.subEmitters._onParticleBirth(firstFreeElement, worldBirthPosition);
     }
   }
 
-  private _onParticleBirth(ringIndex: number, worldBirthPosition: Vector3): void {
-    this.subEmitters._onParticleBirth(ringIndex, worldBirthPosition);
-  }
-
-  private _emitSubEmitterEvent(
-    command: ParticleSubEmitterEventEmissionCommand,
-    playTime: number,
-    available: number
-  ): number {
+  private _emitDeathSubEmitter(command: DeathSubEmitterEmissionCommand, playTime: number, available: number): number {
     return this._emitParticles(
       playTime,
       command.count,
@@ -1364,7 +1353,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _consumeBirthSubEmitterPlan(plan: BirthSubEmitterEmissionPlan, available: number): number {
+  _consumeBirthSubEmitterPlan(plan: BirthSubEmitterPlan, available: number): number {
     this._birthEmissionPlan = plan;
     this._birthEmissionRemainingCapacity = available;
     this._birthEmissionCount = 0;
@@ -1374,20 +1363,20 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this.emission._emitWithState(
         plan.lastEmissionTime,
         plan.emissionTime,
-        plan.emissionState,
-        plan.distancePosition,
+        plan.state.emissionState,
+        plan.emissionEndPosition,
         true
       );
       return this._birthEmissionCount;
     } finally {
       this._birthEmissionPlan = null;
       this._birthEmissionRemainingCapacity = 0;
-      plan._release();
+      plan.release();
     }
   }
 
   private _emitBirthSubEmitterParticles(
-    plan: BirthSubEmitterEmissionPlan,
+    plan: BirthSubEmitterPlan,
     emissionTime: number,
     count: number,
     emissionPositionOverride?: Vector3
@@ -1402,12 +1391,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const frameStartParentAge = Math.min(Math.max(plan.frameLastPlayTime - plan.bornTime, 0), plan.lifetime);
     const currentParentAge = Math.min(Math.max(plan.framePlayTime - plan.bornTime, 0), plan.lifetime);
     const parentAgeDelta = currentParentAge - frameStartParentAge;
-    const parentAge = emissionTime + plan.startDelay;
+    const parentAge = emissionTime + plan.state.startDelay;
     const emissionPosition = this._eventPos;
     if (emissionPositionOverride) {
       emissionPosition.copyFrom(emissionPositionOverride);
     } else {
-      const emissionAge = Math.min(Math.max(currentParentAge - parentAge, 0), parentAgeDelta);
+      const emissionAge = MathUtil.clamp(currentParentAge - parentAge, 0, parentAgeDelta);
       emissionPosition.set(
         parentWorldPosition.x - parentWorldVelocity.x * emissionAge,
         parentWorldPosition.y - parentWorldVelocity.y * emissionAge,
@@ -1418,9 +1407,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const absoluteEmissionTime = plan.bornTime + parentAge;
     const frameTime =
       frameDelta > MathUtil.zeroTolerance
-        ? Math.min(Math.max((absoluteEmissionTime - plan.frameLastPlayTime) / frameDelta, 0), 1)
+        ? MathUtil.clamp((absoluteEmissionTime - plan.frameLastPlayTime) / frameDelta, 0, 1)
         : 1;
-    const parentNormalizedAge = plan.lifetime > 0 ? Math.min(Math.max(parentAge / plan.lifetime, 0), 1) : 1;
+    const parentNormalizedAge = plan.lifetime > 0 ? MathUtil.clamp(parentAge / plan.lifetime, 0, 1) : 1;
     const { duration, simulationSpeed } = this.main;
     const emissionNormalizedTime = duration > 0 ? (emissionTime % duration) / duration : 0;
     const inherit = plan.inheritProperties;
@@ -1549,7 +1538,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   /** @internal */
-  _enqueueSubEmitterEmission(
+  _enqueueDeathSubEmitterEmission(
     subEmitter: SubEmitter,
     count: number,
     worldPosition: Vector3,
@@ -1562,8 +1551,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     frameTime: number,
     emissionTime: number = null
   ): void {
-    const command: ParticleSubEmitterEventEmissionCommand = {
-      kind: "event",
+    const command: DeathSubEmitterEmissionCommand = {
+      type: ParticleSubEmitterType.Death,
       subEmitter,
       count,
       worldPosition: new Vector3().copyFrom(worldPosition),
@@ -1577,16 +1566,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       emissionTime
     };
     this._enqueueSubEmitterCommand(command);
-  }
-
-  /** @internal */
-  _enqueueBirthSubEmitterEmission(plan: BirthSubEmitterEmissionPlan): void {
-    try {
-      this._enqueueSubEmitterCommand(plan);
-    } catch (error) {
-      plan._release();
-      throw error;
-    }
   }
 
   private _enqueueSubEmitterCommand(command: ParticleSubEmitterEmissionCommand): void {
@@ -1632,7 +1611,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return plans.length > firstPlanIndex;
   }
 
-  private _snapshotBirthPlan(plan: BirthSubEmitterEmissionPlan, particleOffset: number): void {
+  private _snapshotBirthPlan(plan: BirthSubEmitterPlan, particleOffset: number): void {
     const inherit = plan.inheritProperties;
     if ((inherit & ParticleGenerator._particleValueInheritanceMask) === ParticleSubEmitterInheritProperty.None) {
       return;
@@ -1646,7 +1625,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _getFrameTime(playTime: number): number {
     const delta = this._framePlayTime - this._frameLastPlayTime;
-    return delta > MathUtil.zeroTolerance ? Math.min(Math.max((playTime - this._frameLastPlayTime) / delta, 0), 1) : 1;
+    return delta > MathUtil.zeroTolerance ? MathUtil.clamp((playTime - this._frameLastPlayTime) / delta, 0, 1) : 1;
   }
 
   private _addFeedbackParticle(
@@ -1825,19 +1804,19 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
     request.getData(readback, 0, 0, totalFloatCount);
 
-    const worldPosition = this._eventPos;
-    const worldVelocity = this._eventDir;
+    const endPosition = this._eventPos;
+    const averageVelocity = this._eventDir;
     const plans = slot.birthPlans;
     for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
       const plan = plans[i];
       const feedbackOffset = this._getRingDistance(slot.firstElement, plan.ringIndex, slot.particleCount) * floatStride;
       const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
       const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
-      worldPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
-      worldVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
-      plan._complete(worldPosition, worldVelocity);
+      endPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
+      averageVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
+      plan.resolveTrajectory(endPosition, averageVelocity);
+      this._enqueueSubEmitterCommand(plan);
       slot.processedBirthPlanCount = i + 1;
-      this._enqueueBirthSubEmitterEmission(plan);
     }
     plans.length = 0;
     slot.processedBirthPlanCount = 0;
@@ -1848,8 +1827,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const feedbackOffset = this._getRingDistance(slot.firstElement, ringIndex, slot.particleCount) * floatStride;
       const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
       const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
-      worldPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
-      worldVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
+      endPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
+      averageVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
       const particleOffset = ringIndex * ParticleBufferUtils.instanceVertexFloatStride;
       this._evaluateOverLifetime(
         this._instanceVertices,
@@ -1863,16 +1842,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const bornTime = this._instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
       const frameTime =
         deathFrameDelta > MathUtil.zeroTolerance
-          ? Math.min(Math.max((bornTime + lifetime - slot.deathFrameLastPlayTime) / deathFrameDelta, 0), 1)
+          ? MathUtil.clamp((bornTime + lifetime - slot.deathFrameLastPlayTime) / deathFrameDelta, 0, 1)
           : 1;
-      this.subEmitters._dispatchEvent(
-        ParticleSubEmitterType.Death,
-        worldPosition,
+      this.subEmitters._dispatchDeath(
+        endPosition,
         this._eventColor,
         this._eventSize,
         this._eventRotation,
-        worldVelocity,
-        worldVelocity,
+        averageVelocity,
         frameTime,
         slot.deathFrameLastEngineTime + (slot.deathFrameEngineTime - slot.deathFrameLastEngineTime) * frameTime
       );
@@ -1939,7 +1916,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _releaseAndRecycleFeedbackReadbackSlot(slot: ParticleFeedbackReadbackSlot): void {
     const plans = slot.birthPlans;
     for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
-      plans[i]._release();
+      plans[i].release();
     }
     plans.length = 0;
     slot.processedBirthPlanCount = 0;
@@ -1963,7 +1940,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _destroyFeedbackReadbackSlot(slot: ParticleFeedbackReadbackSlot): void {
     const plans = slot.birthPlans;
     for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
-      plans[i]._release();
+      plans[i].release();
     }
     plans.length = 0;
     slot.request?.destroy();
