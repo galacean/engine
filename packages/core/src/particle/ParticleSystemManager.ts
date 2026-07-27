@@ -2,11 +2,14 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
+import type { BirthSubEmitterEmissionPlan } from "./modules/SubEmittersModule";
 import type { SubEmitter } from "./modules/SubEmitter";
 
-/** @internal */
-export interface ParticleSubEmitterEmissionCommand {
-  target: ParticleGenerator;
+/**
+ * @internal
+ */
+export interface ParticleSubEmitterEventEmissionCommand {
+  kind: "event";
   subEmitter: SubEmitter;
   count: number;
   worldPosition: Vector3;
@@ -20,7 +23,14 @@ export interface ParticleSubEmitterEmissionCommand {
   emissionTime: number | null;
 }
 
-/** @internal */
+/**
+ * @internal
+ */
+export type ParticleSubEmitterEmissionCommand = ParticleSubEmitterEventEmissionCommand | BirthSubEmitterEmissionPlan;
+
+/**
+ * @internal
+ */
 export class ParticleSystemManager {
   private static readonly _emptyCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [];
 
@@ -48,7 +58,12 @@ export class ParticleSystemManager {
       this._renderers.splice(index, 1);
       this._markTopologyDirty();
     }
-    this._commands.delete(renderer.generator);
+    const generator = renderer.generator;
+    const commands = this._commands.get(generator);
+    if (commands) {
+      this._consumeRemainingBirthPlans(commands);
+      this._commands.delete(generator);
+    }
   }
 
   /** @internal */
@@ -61,11 +76,17 @@ export class ParticleSystemManager {
   }
 
   enqueue(command: ParticleSubEmitterEmissionCommand): void {
-    if (command.target._renderer.destroyed) return;
-    let commands = this._commands.get(command.target);
+    const target = command.kind === "birth" ? command.target : command.subEmitter.emitter.generator;
+    if (target._renderer.destroyed) {
+      if (command.kind === "birth") {
+        command._release();
+      }
+      return;
+    }
+    let commands = this._commands.get(target);
     if (!commands) {
       commands = [];
-      this._commands.set(command.target, commands);
+      this._commands.set(target, commands);
     }
     commands.push(command);
   }
@@ -80,14 +101,33 @@ export class ParticleSystemManager {
       const renderer = ordered[i];
       const generator = renderer.generator;
       const incoming = this._commands.get(generator);
-      incoming && this._commands.delete(generator);
+      if (incoming) {
+        this._commands.delete(generator);
+      }
       renderer._updateParticles(
         deltaTime,
         incoming ?? ParticleSystemManager._emptyCommands,
         birthTargets.has(generator)
       );
     }
+    for (const commands of this._commands.values()) {
+      this._consumeRemainingBirthPlans(commands);
+    }
     this._commands.clear();
+  }
+
+  private _consumeRemainingBirthPlans(commands: ReadonlyArray<ParticleSubEmitterEmissionCommand>): void {
+    for (let i = 0, n = commands.length; i < n; i++) {
+      const command = commands[i];
+      if (command.kind === "birth") {
+        const target = command.target;
+        if (target._renderer.destroyed) {
+          command._release();
+        } else {
+          target._consumeBirthSubEmitterPlan(command, 0);
+        }
+      }
+    }
   }
 
   private _rebuildTopology(): void {
