@@ -11,9 +11,7 @@ import {
 @resourceLoader(AssetType.Shader, ["shader", "shaderc"])
 class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    // Virtual paths preserve source identity (for example `.shader`), while
-    // the physical path determines how this file is encoded (`.shaderc`).
-    const url = item.resolvedUrl ?? item.url!;
+    const url = item.url!;
 
     if (url.endsWith(".shaderc")) {
       // @ts-ignore

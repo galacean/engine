@@ -11,14 +11,6 @@ export type LoadItem = {
    */
   type?: string;
   /**
-   * Physical URL resolved by ResourceManager for a virtual resource.
-   *
-   * Loader implementations can use this URL for file-format detection and
-   * resolving files addressed relative to the loaded asset. Callers provide
-   * `url`; ResourceManager owns this resolved value.
-   */
-  resolvedUrl?: string;
-  /**
    * Number of retries after failed loading.
    */
   retryCount?: number;

@@ -128,25 +128,6 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
-    it("provides loaders the physical URL while preserving the virtual resource identity", () => {
-      const resourceManager = engine.resourceManager;
-      const virtualPath = "Assets/precompiled-shader";
-      const physicalPath = "/Assets/precompiled-shader.shaderc";
-      resourceManager.initVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Shader }]);
-      // @ts-ignore
-      const loaderSpy = vi
-        .spyOn(ResourceManager._loaders[AssetType.Shader], "load")
-        .mockReturnValue(new AssetPromise(() => {}));
-
-      resourceManager.load({ url: virtualPath });
-
-      expect(loaderSpy).toHaveBeenCalled();
-      const [loadItem] = loaderSpy.mock.calls[0];
-      expect(loadItem.url).equal(virtualPath);
-      expect(loadItem.resolvedUrl).equal(physicalPath);
-      loaderSpy.mockRestore();
-    });
-
     it("fills params from virtualPathResourceMap when params is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.initVirtualResources([
