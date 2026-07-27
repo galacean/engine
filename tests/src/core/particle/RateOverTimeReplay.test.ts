@@ -8,9 +8,9 @@ import {
   ParticleRenderer,
   ParticleStopMode
 } from "@galacean/engine-core";
-import { Color } from "@galacean/engine-math";
+import { Color, MathUtil } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -141,6 +141,26 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     const delta = generator._getAliveParticleCount() - baseline;
     expect(delta, "enabled toggle must not unwind the disabled interval").to.be.lessThan(5);
 
+    entity.destroy();
+  });
+
+  it("tolerates a rate boundary once when emitInterval is below zeroTolerance", () => {
+    const { entity, renderer } = buildEmitter(engine, "rate-boundary-tolerance");
+    const generator = renderer.generator;
+    generator.emission.rateOverTime.constant = 2 / MathUtil.zeroTolerance;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+
+    const emit = vi.spyOn(generator, "_emit").mockImplementation(() => {
+      if (emit.mock.calls.length > 1) {
+        throw new Error("Rate boundary tolerance repeated without elapsed time");
+      }
+      return 0;
+    });
+    tick(engine, elapsed, MathUtil.zeroTolerance * 1000 * 0.25);
+
+    expect(emit).toHaveBeenCalledTimes(1);
     entity.destroy();
   });
 

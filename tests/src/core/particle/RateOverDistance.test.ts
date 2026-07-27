@@ -93,9 +93,11 @@ describe("EmissionModule rateOverDistance", () => {
     expect(generator._getAliveParticleCount()).to.eq(0);
 
     // Move 2 units → 10 * 2 = 20 particles.
+    const emit = vi.spyOn(generator, "_emit");
     entity.transform.setPosition(2, 0, 0);
     tick(engine, elapsed);
     expect(generator._getAliveParticleCount()).to.eq(20);
+    expect(emit.mock.calls.every(([, , position]) => position === undefined)).to.be.true;
 
     entity.destroy();
   });
@@ -262,7 +264,8 @@ describe("EmissionModule rateOverDistance", () => {
 
     // Alive count must not exceed the configured cap
     expect(generator._getAliveParticleCount()).to.be.lessThanOrEqual(50);
-    expect(emit.mock.calls.length).to.be.lessThanOrEqual(generator.main.maxParticles);
+    // One failed emit may be used to discover that the target capacity is exhausted
+    expect(emit.mock.calls.length).to.be.lessThanOrEqual(generator.main.maxParticles + 1);
 
     // The consumed distance must not turn into deferred work on the next frame
     const aliveAfterTeleport = generator._getAliveParticleCount();

@@ -1371,7 +1371,13 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._birthEmissionFirstPlayTime = this._playTime;
 
     try {
-      this.emission._emitBirth(plan.lastEmissionTime, plan.emissionTime, plan.emissionState, plan.distancePosition);
+      this.emission._emitWithState(
+        plan.lastEmissionTime,
+        plan.emissionTime,
+        plan.emissionState,
+        plan.distancePosition,
+        true
+      );
       return this._birthEmissionCount;
     } finally {
       this._birthEmissionPlan = null;
