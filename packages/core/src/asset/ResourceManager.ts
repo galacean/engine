@@ -367,6 +367,7 @@ export class ResourceManager {
         ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
         : assetBaseURL;
     const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
+    item.resolvedUrl = remoteAssetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];

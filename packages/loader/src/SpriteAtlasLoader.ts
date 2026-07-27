@@ -21,6 +21,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
     return new AssetPromise<SpriteAtlas>((resolve, reject, _, __, onCancel) => {
+      // Atlas pages are runtime files addressed relative to the encoded atlas,
+      // not to the editor-facing virtual resource identity.
+      const atlasUrl = item.resolvedUrl ?? item.url!;
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
@@ -28,7 +31,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
         }
       });
       // @ts-ignore
-      const configPromise = resourceManager._request<AtlasConfig>(item.url, {
+      const configPromise = resourceManager._request<AtlasConfig>(atlasUrl, {
         ...item,
         type: "json"
       });
@@ -50,7 +53,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               chainPromises.push(
                 resourceManager
                   .load<Texture2D>({
-                    url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
+                    url: Utils.resolveAbsoluteUrl(atlasUrl, atlasItem.img),
                     type: atlasItem.type ?? AssetType.Texture,
                     params: { format, mipmap }
                   })
