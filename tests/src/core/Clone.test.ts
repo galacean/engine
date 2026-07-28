@@ -696,23 +696,26 @@ describe("Clone remap", async () => {
   });
 
   describe("Field decorators take priority over Entity/Component remap", () => {
-    it("honors the Stage-3 field-decorator contract without per-instance metadata", () => {
+    it("registers Stage-3 field modes on declaration metadata", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const sibling = rootEntity.createChild("sibling");
       const child = parent.createChild("child");
       const prototype = Stage3DecoratedRefScript.prototype;
       const prototypeSymbolsBefore = Object.getOwnPropertySymbols(prototype);
+      const metadataKey = (Symbol as typeof Symbol & { metadata?: symbol }).metadata!;
+      const classMetadata = (Stage3DecoratedRefScript as unknown as Record<symbol, object>)[metadataKey];
+      const metadataSymbolsBefore = Object.getOwnPropertySymbols(classMetadata);
       const script = parent.addComponent(Stage3DecoratedRefScript);
-      const prototypeSymbolsAfterFirstInstance = Object.getOwnPropertySymbols(prototype);
       const siblingScript = sibling.addComponent(Stage3DecoratedRefScript);
       script.assignedEntity = child;
       script.ignoredEntity = child;
 
+      expect(metadataSymbolsBefore).toHaveLength(1);
+      expect(Object.getOwnPropertySymbols(classMetadata)).toEqual(metadataSymbolsBefore);
       expect(Object.getOwnPropertySymbols(script)).toHaveLength(0);
       expect(Object.getOwnPropertySymbols(siblingScript)).toHaveLength(0);
-      expect(prototypeSymbolsAfterFirstInstance).toHaveLength(prototypeSymbolsBefore.length + 1);
-      expect(Object.getOwnPropertySymbols(prototype)).toEqual(prototypeSymbolsAfterFirstInstance);
+      expect(Object.getOwnPropertySymbols(prototype)).toEqual(prototypeSymbolsBefore);
 
       const cloned = parent.clone();
       const clonedScript = cloned.getComponent(Stage3DecoratedRefScript);
@@ -733,6 +736,17 @@ describe("Clone remap", async () => {
         @ignoreClone
         target: Entity;
       }
+      const metadataKey = (Symbol as typeof Symbol & { metadata?: symbol }).metadata!;
+      const baseMetadata = (Stage3BaseOverrideScript as unknown as Record<symbol, Record<symbol, unknown>>)[
+        metadataKey
+      ];
+      const subMetadata = (Stage3SubOverrideScript as unknown as Record<symbol, Record<symbol, unknown>>)[metadataKey];
+      const baseMetadataSymbols = Object.getOwnPropertySymbols(baseMetadata);
+      const subMetadataSymbols = Object.getOwnPropertySymbols(subMetadata);
+
+      expect(baseMetadataSymbols).toHaveLength(1);
+      expect(subMetadataSymbols).toEqual(baseMetadataSymbols);
+      expect(subMetadata[subMetadataSymbols[0]]).not.eq(baseMetadata[baseMetadataSymbols[0]]);
 
       const rootEntity = scene.createRootEntity("root");
       const external = rootEntity.createChild("external");

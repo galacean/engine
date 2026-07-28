@@ -1,6 +1,6 @@
 import { Component } from "../Component";
 import { CloneUtil } from "./CloneUtil";
-import { CloneMode, fieldCloneModesKey } from "./CloneDecorators";
+import { CloneMode, getFieldCloneModes } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
 
 /**
@@ -12,7 +12,7 @@ export class ComponentCloner {
    * @internal
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    const fieldModes = (<any>source)[fieldCloneModesKey];
+    const fieldModes = getFieldCloneModes(source);
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
