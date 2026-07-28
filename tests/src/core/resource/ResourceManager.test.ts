@@ -183,6 +183,28 @@ describe("ResourceManager", () => {
       }
     });
 
+    it("preserves the virtual resource identity for loaders", () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Assets/precompiled-shader";
+      const physicalPath = "/Assets/precompiled-shader.shaderc";
+      resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Shader }]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Shader], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      try {
+        resourceManager.load({ url: virtualPath });
+
+        expect(loaderSpy).toHaveBeenCalled();
+        const [loadItem] = loaderSpy.mock.calls[0];
+        expect(loadItem.url).equal(virtualPath);
+        expect(loadItem).not.toHaveProperty("resolvedUrl");
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
     it("fills params from virtualPathResourceMap when params is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([
@@ -335,9 +357,9 @@ describe("ResourceManager", () => {
 
     it("resolves virtualPath via map even when baseUrl is set", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.registerVirtualResources([
-        { virtualPath: "Assets/withBaseUrl", path: "https://cdn.ali.com/real.json", type: AssetType.Texture }
-      ]);
+      const virtualPath = "Assets/withBaseUrl";
+      const physicalPath = "https://cdn.ali.com/real.json";
+      resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Texture }]);
       // @ts-ignore
       const loaderSpy = vi
         .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
@@ -345,9 +367,13 @@ describe("ResourceManager", () => {
       resourceManager.baseUrl = "https://base.com/app/";
 
       try {
-        resourceManager.load({ url: "Assets/withBaseUrl" });
+        resourceManager.load({ url: virtualPath });
         expect(loaderSpy).toHaveBeenCalled();
-        expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+        expect(loaderSpy.mock.calls[0][0]).toMatchObject({
+          type: AssetType.Texture,
+          url: virtualPath
+        });
+        expect(loaderSpy.mock.calls[0][0]).not.toHaveProperty("resolvedUrl");
       } finally {
         resourceManager.baseUrl = null;
         loaderSpy.mockRestore();

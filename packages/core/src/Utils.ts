@@ -82,10 +82,16 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    const head = "file://";
-    const encodedBaseUrl = head + this._encodePathComponents(baseUrl);
+    // A relative virtual asset path (for example `SpriteAtlas/...`) must be
+    // treated as a path, not as the host portion of a file URL. The latter
+    // lowercases the first segment and breaks case-sensitive virtual-resource
+    // lookup in Editor previews
+    const resolvedHasLeadingSlash = baseUrl.startsWith("/") || relativeUrl.startsWith("/");
+    const head = "file:///";
+    const encodedBaseUrl = head + this._encodePathComponents(baseUrl.replace(/^\/+/, ""));
     const encodedRelativeUrl = this._encodePathComponents(relativeUrl);
-    return decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
+    const resolvedPath = decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
+    return resolvedHasLeadingSlash ? `/${resolvedPath}` : resolvedPath;
   }
 
   /**
@@ -134,7 +140,7 @@ export class Utils {
    * @param path - The path of the property to get.
    * @returns Returns the resolved value.
    */
-  static _reflectGet(target: Object, path: string) {
+  static _reflectGet(target: object, path: string) {
     const pathArr = this._stringToPath(path);
 
     let object = target;
