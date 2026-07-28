@@ -154,30 +154,6 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _collectBirthDistanceRequests(
-    lastPlayTime: number,
-    playTime: number,
-    state: EmissionState,
-    currentPosition: Vector3,
-    distanceRate: number,
-    requestLimit: number,
-    plan: BirthSubEmitterPlan
-  ): void {
-    this._emitByRateOverDistance(
-      lastPlayTime,
-      playTime,
-      state,
-      currentPosition,
-      true,
-      distanceRate,
-      requestLimit,
-      plan
-    );
-  }
-
-  /**
-   * @internal
-   */
   _updateShaderData(shaderData: ShaderData): void {
     const shapeMacro = this._enabled && this._shape ? EmissionModule._emissionShapeMacro : null;
     this._shapeMacro = this._enableMacro(shaderData, this._shapeMacro, shapeMacro);
@@ -222,27 +198,10 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitByRateOverTime(playTime: number, state: EmissionState, plan?: BirthSubEmitterPlan): void {
-    const { rateOverTime } = this;
-
-    let cumulativeTime = playTime - state.frameRateTime;
-    let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
-    while (ratePerSeconds > 0) {
-      const emitInterval = 1.0 / ratePerSeconds;
-      // Require elapsed time so rates above 1 / zeroTolerance still terminate after a tolerated boundary
-      const boundaryTolerance = cumulativeTime > 0 ? MathUtil.zeroTolerance : 0;
-      if (cumulativeTime + boundaryTolerance < emitInterval) {
-        return;
-      }
-      cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
-      state.frameRateTime += emitInterval;
-      this._emitOrAddRequest(plan, state.frameRateTime, 1, undefined, 0);
-      ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
-    }
-    state.frameRateTime = playTime;
-  }
-
-  private _emitByRateOverDistance(
+  /**
+   * @internal
+   */
+  _emitByRateOverDistance(
     lastPlayTime: number,
     playTime: number,
     state: EmissionState,
@@ -300,6 +259,26 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
 
     lastPos.copyFrom(currentPosition);
+  }
+
+  private _emitByRateOverTime(playTime: number, state: EmissionState, plan?: BirthSubEmitterPlan): void {
+    const { rateOverTime } = this;
+
+    let cumulativeTime = playTime - state.frameRateTime;
+    let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
+    while (ratePerSeconds > 0) {
+      const emitInterval = 1.0 / ratePerSeconds;
+      // Require elapsed time so rates above 1 / zeroTolerance still terminate after a tolerated boundary
+      const boundaryTolerance = cumulativeTime > 0 ? MathUtil.zeroTolerance : 0;
+      if (cumulativeTime + boundaryTolerance < emitInterval) {
+        return;
+      }
+      cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
+      state.frameRateTime += emitInterval;
+      this._emitOrAddRequest(plan, state.frameRateTime, 1, undefined, 0);
+      ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
+    }
+    state.frameRateTime = playTime;
   }
 
   private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number, state: EmissionState): number {

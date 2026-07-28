@@ -143,11 +143,12 @@ export class BirthSubEmitterPlan {
           emissionState.hasLastEmitPosition = true;
         }
 
-        this.target.emission._collectBirthDistanceRequests(
+        this.target.emission._emitByRateOverDistance(
           this.lastEmissionTime,
           this.emissionTime,
           emissionState,
           this.emissionEndPosition,
+          true,
           distanceRate,
           availableCapacity,
           this
