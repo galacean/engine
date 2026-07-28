@@ -109,7 +109,7 @@ describe("Clone resource refCount", async function () {
 
     const clone = entity.clone();
     rootEntity.addChild(clone);
-    // The clone holds one additional reference (clone gate on the shared `_animatorController` slot; _cloneTo only re-registers the change flag).
+    // The clone holds one additional reference (clone gate on the shared `_animatorController` slot; _onClone only re-registers the change flag).
     expect(controller.refCount).eq(baseline + 1);
 
     clone.destroy();

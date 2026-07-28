@@ -4,6 +4,7 @@ import {
   DataObject,
   DisorderedArray,
   Entity,
+  ICloneHook,
   Logger,
   MeshRenderer,
   ParticleCompositeCurve,
@@ -142,10 +143,10 @@ class HandlerScript extends Script {
 }
 
 /** Data object counting how often the gate runs its post-clone hook */
-class HookCountPayload extends DataObject {
+class HookCountPayload extends DataObject implements ICloneHook<HookCountPayload> {
   static runs = 0;
   value = 0;
-  _cloneTo(): void {
+  _onClone(): void {
     HookCountPayload.runs++;
   }
 }
@@ -190,6 +191,14 @@ class BaseOverrideScript extends Script {
 class SubOverrideScript extends BaseOverrideScript {
   @ignoreClone
   reDecorated: Entity;
+}
+
+let fieldModesCollisionId = 0;
+
+class FieldModesCollisionScript extends BaseOverrideScript {
+  _fieldModes = "user-owned";
+  @ignoreClone
+  runtimeId = ++fieldModesCollisionId;
 }
 
 /** Script holding binary data views */
@@ -314,6 +323,19 @@ class PlainConfig {
   nested = { x: 1 };
 }
 
+/** Unregistered copyFrom class whose branded object tag keeps it outside the field-clone boundary. */
+class TaggedCopyValue {
+  value = 0;
+
+  get [Symbol.toStringTag](): string {
+    return "TaggedCopyValue";
+  }
+
+  copyFrom(source: TaggedCopyValue): void {
+    this.value = source.value;
+  }
+}
+
 /** Script sharing one container through an @assignmentClone field */
 class AssignedContainerScript extends Script {
   @assignmentClone
@@ -324,6 +346,12 @@ class AssignedContainerScript extends Script {
 class DeepFnScript extends Script {
   @deepClone
   onTick: () => void = () => {};
+}
+
+/** Script pointing @deepClone at a value whose state may not be field-cloneable */
+class DeepPlatformObjectScript extends Script {
+  @deepClone
+  value: object = null;
 }
 
 /** Script whose @deepClone fields hold members with no deep default of their own */
@@ -893,6 +921,25 @@ describe("Clone remap", async () => {
 
       // The base class's own @assignmentClone on `reDecorated` must still share the source.
       expect(cs.reDecorated).eq(sibling);
+
+      rootEntity.destroy();
+    });
+
+    it("does not let a user-owned _fieldModes field shadow clone metadata", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = parent.createChild("sibling");
+      const script = parent.addComponent(FieldModesCollisionScript);
+      script.reDecorated = sibling;
+      script.inherited = sibling;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(FieldModesCollisionScript);
+
+      expect(cs._fieldModes).eq("user-owned");
+      expect(cs.runtimeId).not.eq(script.runtimeId);
+      expect(cs.reDecorated).eq(sibling);
+      expect(cs.inherited).eq(null);
 
       rootEntity.destroy();
     });
@@ -1555,9 +1602,106 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
     });
+
+    it("branded objects with internal state keep their default assignment inside a deep subtree", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const date = new Date(1234);
+      const buffer = new ArrayBuffer(8);
+      const error = new Error("boom");
+      new Uint8Array(buffer)[0] = 7;
+      script.bag = { date, buffer, error };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.bag).not.eq(script.bag);
+      expect(cs.bag.date).eq(date);
+      expect(cs.bag.date.getTime()).eq(1234);
+      expect(cs.bag.buffer).eq(buffer);
+      expect(new Uint8Array(cs.bag.buffer)[0]).eq(7);
+      expect(cs.bag.error).eq(error);
+
+      rootEntity.destroy();
+    });
   });
 
-  describe("copyFrom value types via entity.clone", () => {
+  describe("@deepClone capability boundary", () => {
+    it.each([
+      ["Date", () => new Date(1234)],
+      ["RegExp", () => /clone/gi],
+      ["ArrayBuffer", () => new ArrayBuffer(8)],
+      ["Error", () => new Error("boom")],
+      ["WeakMap", () => new WeakMap()]
+    ])("rejects %s because its state cannot be reproduced by a field walk", (typeName, createValue) => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepPlatformObjectScript);
+      script.value = createValue();
+
+      expect(() => parent.clone()).toThrowError(
+        new RegExp(`@deepClone cannot deep clone "${typeName}".*internal state`)
+      );
+
+      rootEntity.destroy();
+    });
+
+    it("does not infer clone capability from an unregistered copyFrom method", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepPlatformObjectScript);
+      const value = new TaggedCopyValue();
+      value.value = 42;
+      script.value = value;
+
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone "TaggedCopyValue"/);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("registered Copy value types via entity.clone", () => {
+    it("all registered math Copy types deep-clone through their type default", () => {
+      const typeNames = [
+        "BoundingBox",
+        "BoundingFrustum",
+        "BoundingSphere",
+        "Color",
+        "Matrix",
+        "Matrix3x3",
+        "Plane",
+        "Quaternion",
+        "Ray",
+        "Rect",
+        "SphericalHarmonics3",
+        "Vector2",
+        "Vector3",
+        "Vector4"
+      ] as const;
+      const types = typeNames.map((name) => EngineMath[name] as new () => any);
+      const spies = types.map((Type) => vi.spyOn(Type.prototype, "copyFrom"));
+      const values = types.map((Type) => new Type());
+      spies.forEach((spy) => spy.mockClear());
+
+      const rootEntity = scene.createRootEntity("root");
+      try {
+        const parent = rootEntity.createChild("parent");
+        const script = parent.addComponent(HandlerScript) as any;
+        script.mathValues = values;
+
+        const clonedValues = (parent.clone().getComponent(HandlerScript) as any).mathValues;
+        for (let i = 0; i < values.length; i++) {
+          expect(clonedValues[i]).instanceOf(types[i]);
+          expect(clonedValues[i]).not.eq(values[i]);
+          expect(spies[i]).toHaveBeenCalledWith(values[i]);
+        }
+      } finally {
+        spies.forEach((spy) => spy.mockRestore());
+        rootEntity.destroy();
+      }
+    });
+
     it("a Ray field deep-clones through the gate", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -1783,7 +1927,56 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Plain data carrying copyFrom-shaped keys", () => {
+  describe("Plain data classification", () => {
+    it("ignores an own constructor field when identifying plain objects", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const namedConstructor = { constructor: "payload", nested: { value: 1 } };
+      const undefinedConstructor = { constructor: undefined, nested: { value: 2 } };
+      script.config = [namedConstructor, undefinedConstructor];
+
+      const cloned = parent.clone();
+      const configs = cloned.getComponent(CopyFromDataScript).config;
+
+      expect(configs[0]).not.eq(namedConstructor);
+      expect(configs[0].constructor).eq("payload");
+      expect(configs[0].nested).not.eq(namedConstructor.nested);
+      expect(configs[1]).not.eq(undefinedConstructor);
+      expect(Object.getPrototypeOf(configs[1])).eq(Object.prototype);
+      expect(configs[1].constructor).eq(undefined);
+      expect(configs[1].nested).not.eq(undefinedConstructor.nested);
+
+      rootEntity.destroy();
+    });
+
+    it("recognizes a cross-realm plain object", () => {
+      const iframe = document.createElement("iframe");
+      document.body.appendChild(iframe);
+      const rootEntity = scene.createRootEntity("root");
+      try {
+        const foreignWindow = <any>iframe.contentWindow;
+        const foreignObject = new foreignWindow.Object();
+        const foreignNested = new foreignWindow.Object();
+        foreignNested.value = 1;
+        foreignObject.nested = foreignNested;
+
+        const parent = rootEntity.createChild("parent");
+        const script = parent.addComponent(CopyFromDataScript);
+        script.config = foreignObject;
+
+        const cloned = parent.clone();
+        const config = cloned.getComponent(CopyFromDataScript).config;
+
+        expect(config).not.eq(foreignObject);
+        expect(config.nested).not.eq(foreignNested);
+        expect(config.nested.value).eq(1);
+      } finally {
+        rootEntity.destroy();
+        iframe.remove();
+      }
+    });
+
     it("plain object with a string copyFrom key deep-clones without crashing", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -1898,9 +2091,10 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("every exported Deep-registered type constructs bare (gate contract)", () => {
+    it("every exported DataObject type constructs bare (gate contract)", () => {
       // The gate creates container elements and preset-less slots with `new Type()` and then
-      // populates every field, so a Deep-registered type MUST construct without arguments.
+      // populates its fields, so a DataObject type MUST construct without arguments. Registered
+      // math Copy types are constructed and exercised by the test above.
       // Exemptions are engine-bound structural types the gate only ever clones against a
       // same-type constructor preset (`reusable`) — each entry states why it cannot be bare.
       const exempt = new Set<string>([
@@ -1932,13 +2126,7 @@ describe("Clone remap", async () => {
       for (const [pkg, ns] of packages) {
         for (const [name, exported] of Object.entries(ns)) {
           if (typeof exported !== "function" || !exported.prototype) continue;
-          // math value types dispatch by their callable copyFrom; core/ui Deep types are the
-          // DataObject family
-          const isDeep =
-            pkg === "math"
-              ? typeof exported.prototype.copyFrom === "function"
-              : exported.prototype instanceof DataObject;
-          if (!isDeep) continue;
+          if (!(exported.prototype instanceof DataObject)) continue;
           if (exempt.has(name)) continue;
           try {
             new exported();

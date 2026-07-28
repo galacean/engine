@@ -1,8 +1,8 @@
 import { DataObject } from "../../base/DataObject";
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TransformModifyFlags } from "../../Transform";
-import { ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleGenerator } from "../ParticleGenerator";
@@ -12,7 +12,7 @@ import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
-export class MainModule extends DataObject implements ICustomClone {
+export class MainModule extends DataObject implements ICloneHook<MainModule> {
   private _tempVector40 = new Vector4();
   private static _vector3One = new Vector3(1, 1, 1);
 
@@ -319,9 +319,9 @@ export class MainModule extends DataObject implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: MainModule): void {
+  _onClone(target: MainModule): void {
     if (target._simulationSpace === ParticleSimulationSpace.World) {
       target._generator._generateTransformedBounds();
     }

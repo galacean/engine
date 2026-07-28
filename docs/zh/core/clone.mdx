@@ -62,7 +62,7 @@ console.log(cloneScript.c); // output is (1,1,1)，且是一份独立拷贝 —�
 | 函数值 | 克隆体保留自身构造时的函数；没有则共享源的函数。 |
 | 其他对象 | 共享引用（赋值）。 |
 
-一个类可以通过两种方式获得"默认深克隆"能力：继承 [DataObject](/apis/core/#DataObject)（数据类 —— 引擎逐字段克隆），或提供 `copyFrom` 方法（数学类这样的值类型 —— 引擎经由它拷贝）。两种方式都要求类型支持无参构造：当槽位上没有可复用的预置实例时，引擎会先 `new Type()` 裸构造一个再填充，无法无参构造的类型会直接报错。
+“默认深克隆”是一项显式能力，不会根据方法名推断。自定义数据类可通过继承 [DataObject](/apis/core/#DataObject) 加入：引擎会逐字段克隆其自身可枚举的字符串键属性。引擎数学值类型则由内部显式注册，并通过各自的 `copyFrom` 实现复制；自定义类仅仅声明一个名为 `copyFrom` 的方法并不会自动加入。此类对象在没有兼容预置实例时必须支持无参构造：引擎会先通过 `new Type()` 创建实例再填充，裸构造失败会直接报错。
 
 因此在不加装饰器的情况下，普通数据对象和数组默认会得到独立的深拷贝，资产依旧共享，实体引用则自动重映射：
 
@@ -102,7 +102,7 @@ console.log(cloneScript.texture === script.texture); // output is true，资产�
 | :-- | :-- |
 | [ignoreClone](/apis/core/#ignoreClone) | 克隆时对字段进行忽略，克隆体保留自身构造时的值。 |
 | [assignmentClone](/apis/core/#assignmentClone) | 克隆时对字段进行赋值。如果是基本类型则会拷贝值，如果是引用类型，克隆体将与源共享同一个引用。 |
-| [deepClone](/apis/core/#deepClone) | 克隆时深克隆字段的整棵子树。深意图会传播进成员；子树内的资产保持共享、实体引用重映射、运行时状态保留克隆体自己的。引擎绑定的对象无法被深克隆：对 `Entity` / `Component` 引用、资产、引擎运行时状态（如 `UpdateFlagManager`）或函数使用 `@deepClone` 会直接报错 —— 请移除该装饰器以走默认行为，或使用资产自身的克隆 API 复制资产。 |
+| [deepClone](/apis/core/#deepClone) | 深克隆字段子树中支持深克隆的值。深意图会传播进可按字段克隆的成员；资产保持共享、实体引用重映射、运行时状态保留克隆体自己的，未注册的不透明成员保持默认赋值行为。如果被装饰的值本身无法满足深克隆，例如 `Entity` / `Component`、资产、函数、运行时状态对象或不透明的平台对象，克隆会直接报错。 |
 
 <Callout type="negative">
   `@shallowClone` 已被移除。它旧有的“拷贝容器本身、共享内部成员”语义已不复存在。请按意图迁移：希望字段独立就使用
@@ -150,16 +150,17 @@ console.log(cloneScript.d[0]); // output is Vector3(1,1,1),deepClone clone the a
 cloneScript.c[0].set(2, 2, 2); // change the field c[0] value to (2,2,2).
 cloneScript.d[0].set(2, 2, 2); // change the field d[0] value to (2,2,2).
 
-console.log(script.c[0]); // output is (2,2,2). bacause assignmentClone let c use the same array reference with cloneScript's c.
-console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use the different reference with cloneScript's d[0].
+console.log(script.c[0]); // output is (2,2,2)，因为 assignmentClone 让 c 与 cloneScript.c 使用同一个数组引用。
+console.log(script.d[0]); // output is (1,1,1)，因为 deepClone 让 d[0] 与 cloneScript.d[0] 使用不同引用。
 ```
 
 - 注意:
 
   - 字段装饰器优先级最高，并且在克隆走字段遍历的任何地方对嵌套对象的字段同样生效。
-  - `deepClone` 会深克隆整棵子树：深意图会传播进成员，没有深克隆默认的成员类实例同样被拷贝（因此必须支持无参构造）。子树内的资产保持共享，实体引用被重映射，运行时状态保留克隆体自己的，嵌套字段上的装饰器依然优先。
-  - `deepClone` 无法深克隆引擎绑定的对象：对 `Entity` / `Component` 引用、资产、引擎运行时状态或函数使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除该装饰器以回退到默认行为，或使用资产自身的克隆 API 得到真正的拷贝。
-  - 如果克隆装饰器不能满足诉求，可以通过实现 [\_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
+  - `deepClone` 会传播进容器和可按字段克隆的成员。没有深克隆默认的普通类实例会按字段复制，因此必须支持无参构造。资产保持共享，实体引用被重映射，运行时状态保留克隆体自己的，未注册的不透明成员保持共享，嵌套字段上的装饰器依然优先。
+  - 字段克隆采用刻意收窄的契约：只有对象自身可枚举的字符串键属性具有结构克隆语义。私有字段、不可枚举属性、Symbol 键以及原型或访问器状态不会被重建；引擎也不承诺识别运行时中所有可能的不透明状态。
+  - `deepClone` 无法直接克隆引擎绑定或不透明的值：对 `Entity` / `Component` 引用、资产、引擎运行时状态、函数或未注册的平台对象使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除装饰器以回退到默认行为，或使用该值自身的克隆 API 得到真正的拷贝。
+  - 如果克隆装饰器不能满足诉求，可实现 [ICloneHook.\_onClone()](/apis/core/#ICloneHook-_onClone)，在字段自动克隆完成后追加类型特有的处理。
 
 ## 克隆与资产引用计数
 

@@ -7,7 +7,8 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -20,7 +21,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component {
+export class Renderer extends Component implements ICloneHook<Renderer> {
   private static _tempVector0 = new Vector3();
 
   /** @internal */
@@ -337,9 +338,9 @@ export class Renderer extends Component {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Renderer): void {
+  _onClone(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);

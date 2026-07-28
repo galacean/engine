@@ -108,11 +108,8 @@ export class RectMask2D extends Component {
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
   }
 
-  // @ts-ignore
-  override _cloneTo(target: RectMask2D): void {
-    // RectMask2D extends Component directly; Component.prototype 上没有 _cloneTo，
-    // 不能 super._cloneTo(target) — 会拿到 undefined 报 "Cannot read properties of undefined (reading 'call')"。
-    // (Image/Mask 走 Renderer 链路所以能 super；RectMask2D 不在 Renderer 链路里。)
+  _onClone(target: RectMask2D): void {
+    // RectMask2D extends Component directly, so it has no parent clone hook to call.
     const targetSoftness = target._softness;
     // @ts-ignore
     targetSoftness._onValueChanged = null;

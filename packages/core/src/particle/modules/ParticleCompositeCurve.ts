@@ -1,6 +1,6 @@
 import { DataObject } from "../../base/DataObject";
 import { Vector2 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -278,6 +278,13 @@ export class ParticleCompositeCurve extends DataObject {
    */
   _isRandomMode(): boolean {
     return this._mode === ParticleCurveMode.TwoConstants || this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoCurves;
   }
 
   /**

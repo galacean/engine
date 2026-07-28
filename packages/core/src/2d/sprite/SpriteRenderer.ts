@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -357,10 +357,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteRenderer): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

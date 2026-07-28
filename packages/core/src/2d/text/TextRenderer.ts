@@ -8,7 +8,7 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
@@ -356,6 +356,9 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this._subFont && (this._subFont = null);
   }
 
+  /**
+   * @internal
+   */
   _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }

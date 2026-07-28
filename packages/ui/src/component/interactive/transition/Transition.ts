@@ -1,14 +1,15 @@
 import { Color, DataObject, ReferResource, Sprite, ignoreClone } from "@galacean/engine";
+import type { ICloneHook } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
 /**
  * The transition behavior of UIInteractive.
  */
-export abstract class Transition<
-  T extends TransitionValueType = TransitionValueType,
-  K extends UIRenderer = UIRenderer
-> extends DataObject {
+export abstract class Transition<T extends TransitionValueType = TransitionValueType, K extends UIRenderer = UIRenderer>
+  extends DataObject
+  implements ICloneHook<Transition<T, K>>
+{
   /** @internal */
   _interactive: UIInteractive;
 
@@ -131,9 +132,9 @@ export abstract class Transition<
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Transition<T, K>): void {
+  _onClone(target: Transition<T, K>): void {
     target._addStateValuesReferCount(1);
   }
 

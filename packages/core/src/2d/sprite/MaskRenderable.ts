@@ -2,7 +2,7 @@ import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import type { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -226,7 +226,7 @@ export function MaskRenderable<T extends RendererConstructor>(
 
     /**
      * @internal
-     * Clone mask data to target. Called from subclass _cloneTo.
+     * Clone mask data to target. Called from subclass _onClone.
      */
     _cloneMaskData(target: MaskRenderableBase): void {
       target.sprite = this._sprite;

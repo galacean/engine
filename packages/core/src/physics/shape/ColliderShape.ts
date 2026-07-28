@@ -3,18 +3,19 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape extends DataObject implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICloneHook<ColliderShape> {
   private static _idGenerator: number = 0;
 
   /** @internal */
+  @ignoreClone
   _collider: Collider;
   /** @internal */
   @ignoreClone
@@ -165,9 +166,9 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ColliderShape) {
+  _onClone(target: ColliderShape): void {
     target._syncNative();
   }
 
@@ -180,22 +181,6 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
       this._nativeShape = null;
     }
     delete Engine._physicalObjectsMap[this._id];
-  }
-
-  /**
-   * @internal
-   */
-  _attachToCollider(): void {
-    this._collider._nativeCollider.addShape(this._nativeShape);
-    this._isShapeAttached = true;
-  }
-
-  /**
-   * @internal
-   */
-  _detachFromCollider(): void {
-    this._collider._nativeCollider.removeShape(this._nativeShape);
-    this._isShapeAttached = false;
   }
 
   protected _syncNative(): void {

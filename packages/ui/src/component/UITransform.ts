@@ -244,10 +244,11 @@ export class UITransform extends Transform {
     this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
-  // @ts-ignore
-  override _cloneTo(target: UITransform): void {
-    // @ts-ignore
-    super._cloneTo(target);
+  /**
+   * @inheritdoc
+   */
+  override _onClone(target: UITransform): void {
+    super._onClone(target);
     const { _size: size, _pivot: pivot } = target;
     // @ts-ignore
     size._onValueChanged = pivot._onValueChanged = null;

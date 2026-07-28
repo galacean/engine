@@ -224,11 +224,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Image): void {
-    // @ts-ignore
-    super._cloneTo(target);
+  override _onClone(target: Image): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

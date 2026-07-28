@@ -5,7 +5,8 @@ import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
@@ -30,7 +31,7 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
 /**
  * The controller of the animation system.
  */
-export class Animator extends Component {
+export class Animator extends Component implements ICloneHook<Animator> {
   private static _passedTriggerParameterNames = new Array<string>();
   private static _tempScripts: Script[] = [];
 
@@ -344,9 +345,9 @@ export class Animator extends Component {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Animator): void {
+  _onClone(target: Animator): void {
     const animatorController = target._animatorController;
     if (animatorController) {
       target._controllerUpdateFlag = animatorController._registerChangeFlag();

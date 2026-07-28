@@ -219,8 +219,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   /**
    * @internal
    */
-  // @ts-ignore
-  override _cloneTo(target: SpineAnimationRenderer): void {
+  override _onClone(target: SpineAnimationRenderer): void {
     // A renderer added manually and never bound to a resource has no skeleton/state to clone.
     if (!this._skeleton || !this._state) return;
     const runtime = getSpineRuntime();

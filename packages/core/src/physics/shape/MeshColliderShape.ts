@@ -2,7 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
@@ -130,11 +130,11 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: MeshColliderShape): void {
+  override _onClone(target: MeshColliderShape): void {
     target.mesh = this._mesh;
-    super._cloneTo(target);
+    super._onClone(target);
   }
 
   /**
@@ -156,7 +156,7 @@ export class MeshColliderShape extends ColliderShape {
 
   private _destroyNativeShape(): void {
     if (this._nativeShape) {
-      this._collider?._detachNativeShape(this);
+      this._collider?._setNativeShapeAttached(this, false);
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
@@ -190,28 +190,21 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   private _updateNativeShapeData(): boolean {
-    if (
-      (<IMeshColliderShape>this._nativeShape).setMeshData(
-        this._positions,
-        this._indices,
-        this._isConvex,
-        this._cookingFlags
-      )
-    ) {
-      this._collider?._attachNativeShape(this);
-      return true;
+    const succeeded = (<IMeshColliderShape>this._nativeShape).setMeshData(
+      this._positions,
+      this._indices,
+      this._isConvex,
+      this._cookingFlags
+    );
+    if (succeeded) {
+      this._collider?._setNativeShapeAttached(this, true);
     }
-    return false;
+    return succeeded;
   }
 
-  private _createNativeShape(attachToCollider = true): boolean {
+  private _createNativeShape(): boolean {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
-    if (
-      attachToCollider &&
-      !this._isConvex &&
-      this._collider instanceof DynamicCollider &&
-      !this._collider.isKinematic
-    ) {
+    if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
       console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
       return false;
     }
@@ -234,10 +227,7 @@ export class MeshColliderShape extends ColliderShape {
     // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
 
-    // If already attached to a collider, add the newly created native shape to it
-    if (attachToCollider && this._collider) {
-      this._collider._attachNativeShape(this);
-    }
+    this._collider?._setNativeShapeAttached(this, true);
     return true;
   }
 }

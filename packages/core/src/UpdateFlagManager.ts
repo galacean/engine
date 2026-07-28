@@ -1,3 +1,4 @@
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { UpdateFlag } from "./UpdateFlag";
 import { Utils } from "./Utils";
 
@@ -77,3 +78,5 @@ export class UpdateFlagManager {
     }
   }
 }
+
+registerDefaultCloneMode(UpdateFlagManager, CloneMode.Ignore);

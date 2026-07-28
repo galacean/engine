@@ -1,6 +1,6 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { ignoreClone } from "./clone/CloneManager";
+import { CloneMode, ignoreClone, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
@@ -169,3 +169,5 @@ export class Component extends EngineObject {
     }
   }
 }
+
+registerDefaultCloneMode(Component, CloneMode.Remap);

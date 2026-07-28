@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -139,10 +139,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SkinnedMeshRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: SkinnedMeshRenderer): void {
+    super._onClone(target);
     if (this._jointTexture) {
       target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
     }

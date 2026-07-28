@@ -6,7 +6,7 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
 
 /**

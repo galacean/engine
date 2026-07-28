@@ -28,9 +28,9 @@ export class Mask extends MaskRenderable(UIRenderer) {
    * @internal
    */
   // @ts-ignore
-  _cloneTo(target: Mask): void {
+  override _onClone(target: Mask): void {
     // @ts-ignore
-    super._cloneTo(target);
+    super._onClone(target);
     this._cloneMaskData(target);
   }
 

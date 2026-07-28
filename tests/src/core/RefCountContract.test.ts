@@ -161,7 +161,7 @@ describe("RefCount slot-ownership contract", () => {
   });
 
   describe("MeshRenderer.mesh (setter-mode slot)", () => {
-    it("clone acquires via the setter in _cloneTo, churn transfers, destroy releases", () => {
+    it("clone acquires via the setter in _onClone, churn transfers, destroy releases", () => {
       const meshA = new ModelMesh(engine);
       const meshB = new ModelMesh(engine);
       const entity = rootEntity.createChild("meshRendererSlot");
@@ -221,7 +221,7 @@ describe("RefCount slot-ownership contract", () => {
       expect(mesh.refCount).eq(0);
     });
 
-    it("clone acquires via the shape's _cloneTo, destroy releases", () => {
+    it("clone acquires via the shape's _onClone, destroy releases", () => {
       const mesh = createShapeMesh();
       const shape = new MeshShape();
       shape.mesh = mesh;

@@ -1,6 +1,6 @@
 import { DataObject } from "./base/DataObject";
 import { Matrix, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 
 /**
  * @internal

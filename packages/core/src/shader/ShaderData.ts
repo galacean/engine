@@ -2,8 +2,9 @@ import { DataObject } from "../base/DataObject";
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { CloneUtil } from "../clone/CloneUtil";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -14,7 +15,7 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
-export class ShaderData extends DataObject implements IReferable, IClone {
+export class ShaderData extends DataObject implements IReferable, IClone, ICloneHook<ShaderData> {
   /** @internal */
   @ignoreClone
   _group: ShaderDataGroup;
@@ -611,12 +612,8 @@ export class ShaderData extends DataObject implements IReferable, IClone {
   }
 
   cloneTo(target: ShaderData): void {
-    CloneUtil._deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
-    const targetMacroMap = target._macroMap;
-    for (const key in targetMacroMap) {
-      delete targetMacroMap[key];
-    }
-    Object.assign(targetMacroMap, this._macroMap);
+    CloneUtil._cloneObjectFields(this._macroCollection, target._macroCollection, new Map<object, object>());
+    Object.assign(target._macroMap, this._macroMap);
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
     const targetPropertyValueMap = target._propertyValueMap;
@@ -649,9 +646,9 @@ export class ShaderData extends DataObject implements IReferable, IClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ShaderData): void {
+  _onClone(target: ShaderData): void {
     this.cloneTo(target);
   }
 

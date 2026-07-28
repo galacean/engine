@@ -4,7 +4,7 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { MaskDirtyFlags, MaskRenderable } from "./MaskRenderable";
@@ -91,10 +91,10 @@ export class SpriteMask extends MaskRenderable(Renderer) {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteMask): void {
+    super._onClone(target);
     this._cloneMaskData(target);
   }
 

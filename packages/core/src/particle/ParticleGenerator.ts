@@ -1,7 +1,8 @@
 import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
+import type { ICloneHook } from "../clone/ICloneHook";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -43,7 +44,7 @@ import { SubEmittersModule } from "./modules/SubEmittersModule";
 /**
  * Particle Generator.
  */
-export class ParticleGenerator extends DataObject {
+export class ParticleGenerator extends DataObject implements ICloneHook<ParticleGenerator> {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
@@ -661,6 +662,7 @@ export class ParticleGenerator extends DataObject {
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.forceOverLifetime._resetRandomSeed(seed);
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
+    this.sizeOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
@@ -740,9 +742,9 @@ export class ParticleGenerator extends DataObject {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ParticleGenerator): void {
+  _onClone(target: ParticleGenerator): void {
     target._setTransformFeedback();
   }
 
@@ -998,8 +1000,13 @@ export class ParticleGenerator extends DataObject {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
+    // Noise and size-over-lifetime temporarily share slot 21 (a_Random0.z), so noise takes precedence
+    // Track independent module randomness and instance layout optimization in #3075
+    const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomCurveMode()) {
+      instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
     }
 
     const rotationOverLifetime = this.rotationOverLifetime;

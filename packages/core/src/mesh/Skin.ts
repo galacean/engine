@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
 import { DataObject } from "../base/DataObject";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**

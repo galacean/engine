@@ -1,6 +1,9 @@
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
+
 /**
- * Base class of data objects: wherever an instance is held — a component field, an array, a map —
- * cloning produces an independent deep copy instead of a shared reference. A subclass must be
- * constructible without arguments; a preset-less copy is created bare, then populated.
+ * Base class for objects whose own enumerable string-keyed properties are structurally cloned by default.
+ * Subclasses must support argument-less construction when no compatible preset exists.
  */
 export abstract class DataObject {}
+
+registerDefaultCloneMode(DataObject, CloneMode.Deep);

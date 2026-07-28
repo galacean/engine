@@ -1,7 +1,7 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
 import { Engine } from "../Engine";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
-import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * Material class to represent a set of surface properties.
@@ -109,7 +109,7 @@ export class PhysicsMaterial {
   /**
    * @internal
    */
-  _cloneTo(target: PhysicsMaterial): void {
+  _onClone(target: PhysicsMaterial): void {
     target._syncNative();
   }
 

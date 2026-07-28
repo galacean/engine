@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Shader, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,7 +37,7 @@ describe("ResourceManager", () => {
       const physicalResource = {};
       const remoteResource = {};
 
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         { virtualPath, path: physicalPath, type: AssetType.Prefab, params: { keep: true } }
       ]);
       // @ts-ignore
@@ -113,7 +113,7 @@ describe("ResourceManager", () => {
   describe("virtualPath loading", () => {
     it("infers loader type from virtualPathResourceMap when type is omitted", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
@@ -128,9 +128,64 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
+    it("detects precompiled shader content behind an opaque physical path", async () => {
+      const resourceManager = engine.resourceManager;
+      const physicalPath = "https://cdn.ali.com/assets/8fca12?version=1";
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Shaders/custom.shader",
+          path: physicalPath,
+          type: AssetType.Shader
+        }
+      ]);
+      // @ts-ignore
+      const requestSpy = vi
+        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .mockReturnValue(
+          AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
+        );
+      // @ts-ignore
+      const createSpy = vi.spyOn(Shader, "_createFromPrecompiled").mockReturnValue({ name: "custom" } as Shader);
+      try {
+        await resourceManager.load("Shaders/custom.shader");
+
+        expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
+        expect(createSpy).toHaveBeenCalled();
+      } finally {
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
+    });
+
+    it("keeps ordinary shader source on the source parser path", async () => {
+      const resourceManager = engine.resourceManager;
+      const physicalPath = "https://cdn.ali.com/assets/source-8fca12";
+      const source = 'Shader "Custom/Source" {}';
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Shaders/source.shader",
+          path: physicalPath,
+          type: AssetType.Shader
+        }
+      ]);
+      // @ts-ignore
+      const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
+      const createSpy = vi.spyOn(Shader, "create").mockReturnValue({ name: "source" } as Shader);
+
+      try {
+        await resourceManager.load("Shaders/source.shader");
+
+        expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
+        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/source.shader");
+      } finally {
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
+    });
+
     it("fills params from virtualPathResourceMap when params is omitted", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         {
           virtualPath: "Assets/withParams",
           path: "https://cdn.ali.com/p.json",
@@ -152,7 +207,7 @@ describe("ResourceManager", () => {
 
     it("prefers explicit params over the virtualPath map params", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         {
           virtualPath: "Assets/overrideParams",
           path: "https://cdn.ali.com/o.json",
@@ -187,9 +242,63 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
+    it("resolves a sub-asset from the completed main asset when no eager callback arrives", async () => {
+      const resourceManager = engine.resourceManager;
+      const material = { name: "material" };
+      const mainAsset = { instanceId: 987654321, materials: [material] };
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(AssetPromise.resolve(mainAsset) as any);
+
+      try {
+        const loaded = await resourceManager.load("https://cdn.ali.com/sub-asset-fallback.glb?q=materials[0]");
+        expect(loaded).equal(material);
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("rejects a missing sub-asset path from the completed main asset", async () => {
+      const resourceManager = engine.resourceManager;
+      const mainAsset = { instanceId: 987654322, materials: [] };
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(AssetPromise.resolve(mainAsset) as any);
+
+      try {
+        await expect(
+          resourceManager.load("https://cdn.ali.com/missing-sub-asset.glb?q=materials[0]")
+        ).rejects.toThrow();
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("retries a sub-asset after its main asset initially fails", async () => {
+      const resourceManager = engine.resourceManager;
+      const material = { name: "material" };
+      const mainAsset = { instanceId: 987654323, materials: [material] };
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValueOnce(new AssetPromise((_resolve, reject) => reject(new Error())) as any)
+        .mockReturnValueOnce(AssetPromise.resolve(mainAsset) as any);
+      const url = "https://cdn.ali.com/retry-sub-asset.glb?q=materials[0]";
+
+      try {
+        await expect(resourceManager.load(url)).rejects.toThrow();
+        expect(await resourceManager.load(url)).equal(material);
+        expect(loaderSpy).toHaveBeenCalledTimes(2);
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
     it("prefers the virtualPath map type over an explicit type", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/x.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
@@ -208,7 +317,7 @@ describe("ResourceManager", () => {
 
     it("getResourceByRef resolves the type from the map without passing it explicitly", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         { virtualPath: "Assets/byRef", path: "https://cdn.ali.com/r.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
@@ -226,7 +335,7 @@ describe("ResourceManager", () => {
 
     it("resolves virtualPath via map even when baseUrl is set", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
+      resourceManager.registerVirtualResources([
         { virtualPath: "Assets/withBaseUrl", path: "https://cdn.ali.com/real.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
