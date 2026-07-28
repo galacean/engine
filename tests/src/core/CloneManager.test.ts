@@ -78,6 +78,25 @@ class DecoratedRefScript extends Script {
   ignoredEntity: Entity;
 }
 
+/** Same clone intent as DecoratedRefScript, registered through the Stage-3 decorator contract used by Gravity. */
+class Stage3DecoratedRefScript extends Script {
+  assignedEntity: Entity;
+  ignoredEntity: Entity;
+}
+
+function createStage3FieldDecoratorContext(
+  name: string,
+  initializers: Array<(this: object) => void>
+): Parameters<typeof assignmentClone>[1] {
+  return {
+    kind: "field",
+    name,
+    addInitializer(initializer: (this: object) => void): void {
+      initializers.push(initializer);
+    }
+  } as Parameters<typeof assignmentClone>[1];
+}
+
 /** Script with a @deepClone array of entities */
 class ArrayRefScript extends Script {
   @deepClone
@@ -661,6 +680,28 @@ describe("Clone remap", async () => {
   });
 
   describe("Field decorators take priority over Entity/Component remap", () => {
+    it("honors Stage-3 field decorators emitted by Gravity", () => {
+      const initializers: Array<(this: object) => void> = [];
+      assignmentClone(undefined, createStage3FieldDecoratorContext("assignedEntity", initializers));
+      ignoreClone(undefined, createStage3FieldDecoratorContext("ignoredEntity", initializers));
+
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(Stage3DecoratedRefScript);
+      initializers.forEach((initializer) => initializer.call(script));
+      script.assignedEntity = child;
+      script.ignoredEntity = child;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(Stage3DecoratedRefScript);
+
+      expect(cs.assignedEntity).eq(child);
+      expect(cs.ignoredEntity).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
     it("@assignmentClone entity ref shares the source reference (decorator wins)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
