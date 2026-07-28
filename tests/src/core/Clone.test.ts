@@ -79,6 +79,38 @@ class DecoratedRefScript extends Script {
   ignoredEntity: Entity;
 }
 
+interface Stage3FieldDecoratorContext {
+  kind: string;
+  name: string | symbol;
+  static: boolean;
+  private: boolean;
+  addInitializer(initializer: (this: object) => void): void;
+}
+
+type Stage3CloneDecorator = (value: undefined, context: Stage3FieldDecoratorContext) => void;
+
+class Stage3DecoratedRefScript extends Script {
+  assignedEntity: Entity;
+  ignoredEntity: Entity;
+}
+
+function createStage3FieldDecoratorContext(
+  name: string | symbol,
+  initializers: Array<(this: object) => void>,
+  overrides: Partial<Stage3FieldDecoratorContext> = {}
+): Stage3FieldDecoratorContext {
+  return {
+    kind: "field",
+    name,
+    static: false,
+    private: false,
+    addInitializer(initializer: (this: object) => void): void {
+      initializers.push(initializer);
+    },
+    ...overrides
+  };
+}
+
 /** Script with a @deepClone array of entities */
 class ArrayRefScript extends Script {
   @deepClone
@@ -689,6 +721,103 @@ describe("Clone remap", async () => {
   });
 
   describe("Field decorators take priority over Entity/Component remap", () => {
+    it("honors the Stage-3 field-decorator contract without per-instance metadata", () => {
+      const initializers: Array<(this: object) => void> = [];
+      (assignmentClone as Stage3CloneDecorator)(
+        undefined,
+        createStage3FieldDecoratorContext("assignedEntity", initializers)
+      );
+      (ignoreClone as Stage3CloneDecorator)(
+        undefined,
+        createStage3FieldDecoratorContext("ignoredEntity", initializers)
+      );
+
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = rootEntity.createChild("sibling");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(Stage3DecoratedRefScript);
+      const siblingScript = sibling.addComponent(Stage3DecoratedRefScript);
+      const prototype = Object.getPrototypeOf(script);
+      const prototypeSymbolsBefore = Object.getOwnPropertySymbols(prototype);
+      const scriptSymbolsBefore = Object.getOwnPropertySymbols(script);
+      const siblingSymbolsBefore = Object.getOwnPropertySymbols(siblingScript);
+
+      initializers.forEach((initializer) => {
+        initializer.call(script);
+        initializer.call(siblingScript);
+      });
+      script.assignedEntity = child;
+      script.ignoredEntity = child;
+
+      expect(Object.getOwnPropertySymbols(script)).toEqual(scriptSymbolsBefore);
+      expect(Object.getOwnPropertySymbols(siblingScript)).toEqual(siblingSymbolsBefore);
+      expect(Object.getOwnPropertySymbols(prototype)).toHaveLength(prototypeSymbolsBefore.length + 1);
+
+      const cloned = parent.clone();
+      const clonedScript = cloned.getComponent(Stage3DecoratedRefScript);
+      expect(clonedScript.assignedEntity).eq(child);
+      expect(clonedScript.ignoredEntity).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it("keeps Stage-3 field modes isolated across inheritance overrides", () => {
+      class Stage3BaseOverrideScript extends Script {
+        target: Entity;
+        inherited: Entity;
+      }
+      class Stage3SubOverrideScript extends Stage3BaseOverrideScript {}
+
+      const baseInitializers: Array<(this: object) => void> = [];
+      const subInitializers: Array<(this: object) => void> = [];
+      (assignmentClone as Stage3CloneDecorator)(
+        undefined,
+        createStage3FieldDecoratorContext("target", baseInitializers)
+      );
+      (ignoreClone as Stage3CloneDecorator)(
+        undefined,
+        createStage3FieldDecoratorContext("inherited", baseInitializers)
+      );
+      (ignoreClone as Stage3CloneDecorator)(undefined, createStage3FieldDecoratorContext("target", subInitializers));
+
+      const rootEntity = scene.createRootEntity("root");
+      const external = rootEntity.createChild("external");
+      const baseEntity = rootEntity.createChild("base");
+      const subEntity = rootEntity.createChild("sub");
+      const baseScript = baseEntity.addComponent(Stage3BaseOverrideScript);
+      const subScript = subEntity.addComponent(Stage3SubOverrideScript);
+      baseInitializers.forEach((initializer) => initializer.call(baseScript));
+      baseInitializers.forEach((initializer) => initializer.call(subScript));
+      subInitializers.forEach((initializer) => initializer.call(subScript));
+      baseScript.target = external;
+      baseScript.inherited = external;
+      subScript.target = external;
+      subScript.inherited = external;
+
+      const clonedBase = baseEntity.clone().getComponent(Stage3BaseOverrideScript);
+      const clonedSub = subEntity.clone().getComponent(Stage3SubOverrideScript);
+      expect(clonedBase.target).eq(external);
+      expect(clonedBase.inherited).eq(undefined);
+      expect(clonedSub.target).eq(undefined);
+      expect(clonedSub.inherited).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it.each([
+      ["private", createStage3FieldDecoratorContext("field", [], { private: true })],
+      ["static", createStage3FieldDecoratorContext("field", [], { static: true })],
+      ["symbol", createStage3FieldDecoratorContext(Symbol("field"), [])],
+      ["non-field", createStage3FieldDecoratorContext("field", [], { kind: "method" })]
+    ])("rejects unsupported Stage-3 %s decorator targets", (_, context) => {
+      const initializers: Array<(this: object) => void> = [];
+      context.addInitializer = (initializer) => initializers.push(initializer);
+
+      expect(() => (assignmentClone as Stage3CloneDecorator)(undefined, context)).toThrowError(TypeError);
+      expect(initializers).toHaveLength(0);
+    });
+
     it("@assignmentClone entity ref shares the source reference (decorator wins)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
