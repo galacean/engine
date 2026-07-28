@@ -66,7 +66,9 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _updateEmitterVelocity(elapsedTime: number): void {
     if (!this._usesEmitterVelocity()) {
       this._emitterVelocity.set(0, 0, 0);
@@ -89,13 +91,17 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     this._hasPreviousWorldPosition = true;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _resyncEmitterVelocity(): void {
     this._emitterVelocity.set(0, 0, 0);
     this._hasPreviousWorldPosition = false;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _getInitialVelocity(normalizedAge: number, out: Vector3): boolean {
     if (
       !this._enabled ||
@@ -112,7 +118,9 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _updateShaderData(shaderData: ShaderData): void {
     let currentMacro: ShaderMacro = null;
     let curveMacro: ShaderMacro = null;
@@ -144,7 +152,9 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     this._randomMacro = this._enableMacro(shaderData, this._randomMacro, randomMacro);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _needTransformFeedback(): boolean {
     return (
       this._enabled &&
@@ -154,12 +164,16 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     );
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _isCurrentRandom(): boolean {
     return this._needTransformFeedback() && this.curve._isRandomMode();
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _resetRandomSeed(seed: number): void {
     this._curveRand.reset(seed, ParticleRandomSubSeeds.InheritVelocity);
   }

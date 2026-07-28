@@ -64,8 +64,10 @@ export class SubEmitter extends DataObject {
     this._module?._onSlotChanged(this);
   }
 
-  /** @internal */
-  _resetRandomSeed(seed: number, index: number): void {
-    this._inheritVelocityRand.reset(seed ^ Math.imul(index + 1, 0x9e3779b1), ParticleRandomSubSeeds.InheritVelocity);
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._inheritVelocityRand.reset(seed, ParticleRandomSubSeeds.InheritVelocity);
   }
 }

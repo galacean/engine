@@ -44,8 +44,9 @@ import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule } from "./modules/SubEmittersModule";
 import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
+import { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 import type { SubEmitter } from "./modules/SubEmitter";
-import type { DeathSubEmitterEmissionCommand, ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager";
+import type { ParticleSubEmitterCommand } from "./ParticleSystemManager";
 
 /**
  * Stores one independently submitted particle feedback snapshot.
@@ -79,7 +80,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private static _tempVector33 = new Vector3();
   private static _tempVector34 = new Vector3();
   private static _tempVector35 = new Vector3();
-  private static _tempVector36 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
@@ -222,11 +222,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _emitDirection = new Vector3();
   @ignoreClone
-  private _birthEmissionPlan: BirthSubEmitterPlan | null = null;
-  @ignoreClone
-  private _birthEmissionRemainingCapacity = 0;
-  @ignoreClone
-  private _birthEmissionCount = 0;
+  private _deathSubEmitterCommandPool: DeathSubEmitterCommand[] = [];
   @ignoreClone
   private _birthEmissionFirstPlayTime = 0;
 
@@ -346,11 +342,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _emit(playTime: number, count: number, emitWorldPositionOverride?: Vector3): number {
-    const birthEmissionPlan = this._birthEmissionPlan;
-    if (birthEmissionPlan) {
-      return this._emitBirthSubEmitterParticles(birthEmissionPlan, playTime, count, emitWorldPositionOverride);
-    }
-
     const { emission, main } = this;
     if (!emission.enabled) {
       return 0;
@@ -368,7 +359,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _update(
     elapsedTime: number,
-    incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [],
+    incomingCommands: ReadonlyArray<ParticleSubEmitterCommand> = [],
     isBirthSubEmitterTarget: boolean = false
   ): void {
     const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
@@ -475,14 +466,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         emitPlayTime = this._birthEmissionFirstPlayTime;
       } else {
         if (remainingSubEmitterCapacity <= 0) {
+          command.release();
           continue;
         }
         emitPlayTime =
-          command.emissionTime === null
-            ? lastPlayTime + deltaTime * command.frameTime
-            : this._playTime -
-              Math.max(this._renderer.engine.time.elapsedTime - command.emissionTime, 0) * main.simulationSpeed;
+          this._playTime -
+          Math.max(this._renderer.engine.time.elapsedTime - command.eventEngineTime, 0) * main.simulationSpeed;
         emittedCount = this._emitDeathSubEmitter(command, emitPlayTime, remainingSubEmitterCapacity);
+        command.release();
       }
       remainingSubEmitterCapacity -= emittedCount;
       if (emittedCount > 0) {
@@ -498,7 +489,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._firstRetiredElement = 0;
       this._waitProcessRetiredElementCount = 0;
       this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-      this.subEmitters._clearParticleRuntimeStates();
+      this.subEmitters._retireAllBirthStates();
     }
 
     if (this.isAlive) {
@@ -576,7 +567,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _syncFeedbackWriteBuffer(): void {
     this._feedbackSimulator.syncWriteBuffer();
   }
@@ -776,7 +769,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       if (useFeedback) {
         this._feedbackSimulator.destroyOldBuffers();
       }
-      this.subEmitters?._remapParticleRuntimeStates(newParticleCount, runtimeMappings);
+      this.subEmitters?._remapBirthStates(newParticleCount, runtimeMappings);
       this._instanceBufferResized = true;
     }
 
@@ -1325,28 +1318,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
 
     this._firstFreeElement = nextFreeElement;
-
-    if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
-      const worldBirthPosition = ParticleGenerator._tempVector36;
-      Vector3.transformByQuat(position, transform.worldRotationQuaternion, worldBirthPosition);
-      worldBirthPosition.add(emitWorldPositionOverride ?? transform.worldPosition);
-      this.subEmitters._onParticleBirth(firstFreeElement, worldBirthPosition);
-    }
   }
 
-  private _emitDeathSubEmitter(command: DeathSubEmitterEmissionCommand, playTime: number, available: number): number {
+  private _emitDeathSubEmitter(command: DeathSubEmitterCommand, playTime: number, available: number): number {
+    const inheritProperties = command.inheritProperties;
+    const parentWorldVelocity = command.parentWorldVelocity;
     return this._emitParticles(
       playTime,
       command.count,
       available,
       command.worldPosition,
       command.subEmitter,
-      command.inheritColor ?? undefined,
-      command.inheritSize ?? undefined,
-      command.inheritRotation ?? undefined,
-      command.eventWorldDirection ?? undefined,
-      command.parentWorldVelocity ?? undefined,
-      command.emissionNormalizedTime ?? undefined
+      (inheritProperties & ParticleSubEmitterInheritProperty.Color) !== 0 ? command.parentColor! : undefined,
+      (inheritProperties & ParticleSubEmitterInheritProperty.Size) !== 0 ? command.parentSize! : undefined,
+      (inheritProperties & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? command.parentRotation! : undefined,
+      (inheritProperties & ParticleSubEmitterInheritProperty.Velocity) !== 0 ? parentWorldVelocity : undefined,
+      parentWorldVelocity
     );
   }
 
@@ -1354,23 +1341,26 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _consumeBirthSubEmitterPlan(plan: BirthSubEmitterPlan, available: number): number {
-    this._birthEmissionPlan = plan;
-    this._birthEmissionRemainingCapacity = available;
-    this._birthEmissionCount = 0;
     this._birthEmissionFirstPlayTime = this._playTime;
+    let emittedCount = 0;
 
     try {
-      this.emission._emitWithState(
-        plan.lastEmissionTime,
-        plan.emissionTime,
-        plan.state.emissionState,
-        plan.emissionEndPosition,
-        true
-      );
-      return this._birthEmissionCount;
+      plan.completeDistanceRequests(available);
+      const requests = plan.requests;
+      for (let i = 0, n = plan.requestCount; i < n && available > 0; i++) {
+        const request = requests[i];
+        const emitted = this._emitBirthSubEmitterParticles(
+          plan,
+          request.time,
+          request.count,
+          request.hasPosition ? request.position! : undefined,
+          available
+        );
+        available -= emitted;
+        emittedCount += emitted;
+      }
+      return emittedCount;
     } finally {
-      this._birthEmissionPlan = null;
-      this._birthEmissionRemainingCapacity = 0;
       plan.release();
     }
   }
@@ -1379,9 +1369,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     plan: BirthSubEmitterPlan,
     emissionTime: number,
     count: number,
-    emissionPositionOverride?: Vector3
+    emissionPositionOverride: Vector3 | undefined,
+    available: number
   ): number {
-    const available = this._birthEmissionRemainingCapacity;
     if (available <= 0) {
       return 0;
     }
@@ -1441,8 +1431,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       emissionNormalizedTime
     );
     if (emitted > 0) {
-      this._birthEmissionRemainingCapacity -= emitted;
-      this._birthEmissionCount += emitted;
       this._birthEmissionFirstPlayTime = Math.min(this._birthEmissionFirstPlayTime, playTime);
     }
     return emitted;
@@ -1537,38 +1525,38 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return emittedCount;
   }
 
-  /** @internal */
-  _enqueueDeathSubEmitterEmission(
+  /**
+   * @internal
+   */
+  _enqueueDeathSubEmitterCommand(
     subEmitter: SubEmitter,
+    target: ParticleGenerator,
     count: number,
     worldPosition: Vector3,
-    inheritColor: Color,
-    inheritSize: Vector3,
-    inheritRotation: Vector3,
-    eventWorldDirection: Vector3,
+    parentColor: Color,
+    parentSize: Vector3,
+    parentRotation: Vector3,
     parentWorldVelocity: Vector3,
-    emissionNormalizedTime: number | null,
-    frameTime: number,
-    emissionTime: number = null
+    eventEngineTime: number
   ): void {
-    const command: DeathSubEmitterEmissionCommand = {
-      type: ParticleSubEmitterType.Death,
-      subEmitter,
-      count,
-      worldPosition: new Vector3().copyFrom(worldPosition),
-      inheritColor: inheritColor ? new Color().copyFrom(inheritColor) : null,
-      inheritSize: inheritSize ? new Vector3().copyFrom(inheritSize) : null,
-      inheritRotation: inheritRotation ? new Vector3().copyFrom(inheritRotation) : null,
-      eventWorldDirection: eventWorldDirection ? new Vector3().copyFrom(eventWorldDirection) : null,
-      parentWorldVelocity: parentWorldVelocity ? new Vector3().copyFrom(parentWorldVelocity) : null,
-      emissionNormalizedTime,
-      frameTime,
-      emissionTime
-    };
-    this._enqueueSubEmitterCommand(command);
+    const pool = this._deathSubEmitterCommandPool;
+    const command = pool.pop() ?? new DeathSubEmitterCommand(pool);
+    this._enqueueSubEmitterCommand(
+      command.reset(
+        subEmitter,
+        target,
+        count,
+        worldPosition,
+        parentColor,
+        parentSize,
+        parentRotation,
+        parentWorldVelocity,
+        eventEngineTime
+      )
+    );
   }
 
-  private _enqueueSubEmitterCommand(command: ParticleSubEmitterEmissionCommand): void {
+  private _enqueueSubEmitterCommand(command: ParticleSubEmitterCommand): void {
     this._renderer.entity.scene._componentsManager._particleSystemManager.enqueue(command);
   }
 
@@ -1593,7 +1581,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const lifetime = instanceVertices[particleOffset + ParticleBufferUtils.startLifeTimeOffset];
       const bornTime = instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
       const planStart = plans.length;
-      this.subEmitters._prepareBirthParticle(
+      this.subEmitters._prepareBirthPlansForParticle(
         ringIndex,
         bornTime,
         lifetime,
@@ -1667,7 +1655,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._firstActiveElement = firstFreeElement;
     this._firstNewElement = firstFreeElement;
     this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-    this.subEmitters?._clearParticleRuntimeStates();
+    this.subEmitters?._retireAllBirthStates();
   }
 
   private _retireActiveParticles(canQueueReadback: boolean): void {
@@ -1809,6 +1797,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const plans = slot.birthPlans;
     for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
       const plan = plans[i];
+      if (plan.target._renderer.destroyed) {
+        plan.release();
+        slot.processedBirthPlanCount = i + 1;
+        continue;
+      }
       const feedbackOffset = this._getRingDistance(slot.firstElement, plan.ringIndex, slot.particleCount) * floatStride;
       const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
       const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
@@ -1850,7 +1843,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._eventSize,
         this._eventRotation,
         averageVelocity,
-        frameTime,
         slot.deathFrameLastEngineTime + (slot.deathFrameEngineTime - slot.deathFrameLastEngineTime) * frameTime
       );
       ringIndex = this._nextRingIndex(ringIndex, slot.particleCount);

@@ -18,7 +18,6 @@ import { SubEmitter } from "./SubEmitter";
 export class SubEmittersModule extends ParticleGeneratorModule implements ICloneHook<SubEmittersModule> {
   private static _cycleVisited = new Set<ParticleGenerator>();
   private static _cycleStack: ParticleGenerator[] = [];
-  private static _tempStartDelayRand = new Rand(0, ParticleRandomSubSeeds.StartDelay);
 
   private static _wouldCreateCycle(target: ParticleRenderer, root: ParticleGenerator): boolean {
     const visited = SubEmittersModule._cycleVisited;
@@ -50,27 +49,25 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
 
   private _subEmitters: SubEmitter[] = [];
 
+  @ignoreClone
+  private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
+
+  @ignoreClone
+  private _birthStatePool: BirthSubEmitterState[] = [];
+  @ignoreClone
+  private _birthPlanPool: BirthSubEmitterPlan[] = [];
+  @ignoreClone
+  private _birthPlanScratch: BirthSubEmitterPlan | null = null;
+  @ignoreClone
+  private _birthStatesByParticle: Array<Array<BirthSubEmitterState | undefined> | undefined> = [];
+  @ignoreClone
+  private _particleSequence = 0;
+
   /**
    * The configured sub-emitters.
    */
   get subEmitters(): readonly SubEmitter[] {
     return this._subEmitters;
-  }
-
-  @ignoreClone
-  private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
-
-  @ignoreClone
-  private _birthPlanPool: BirthSubEmitterPlan[] = [];
-  @ignoreClone
-  private _particleRuntimeStates: Array<Array<BirthSubEmitterState | null>> = [];
-  @ignoreClone
-  private _particleSequence = 0;
-
-  /** @internal */
-  constructor(generator?: ParticleGenerator) {
-    super(generator);
-    this._particleRuntimeStates.length = generator?._currentParticleCount ?? 0;
   }
 
   /**
@@ -80,6 +77,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
    * @param inheritProperties - Bitmask of properties inherited from the parent particle
    * @param emitProbability - Per-parent-particle probability [0, 1]
    * @param emitCount - Number of sub particles emitted when the parent dies
+   * @returns The created sub-emitter slot.
    */
   addSubEmitter(
     emitter: ParticleRenderer,
@@ -88,6 +86,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     emitProbability: number = 1,
     emitCount: number = 1
   ): SubEmitter {
+    if (!emitter) {
+      throw new Error("Sub-emitter target cannot be null");
+    }
     this._validateEmitter(emitter);
     const sub = new SubEmitter();
     sub.emitter = emitter;
@@ -97,12 +98,8 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     sub.emitCount = emitCount;
     sub._module = this;
     this._subEmitters.push(sub);
-    sub._resetRandomSeed(this._generator.randomSeed, this._subEmitters.length - 1);
-    const runtimeStates = this._particleRuntimeStates;
-    for (let i = 0, n = runtimeStates.length; i < n; i++) {
-      runtimeStates[i]?.push(null);
-    }
-    this._markTopologyDirty();
+    sub._resetRandomSeed(this._generator.randomSeed);
+    this._notifyTopologyChanged();
     this._generator._setTransformFeedback();
     return sub;
   }
@@ -112,13 +109,15 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
    * @param index - Index of the sub-emitter to remove
    */
   removeSubEmitterByIndex(index: number): void {
-    this._subEmitters.splice(index, 1);
-    const runtimeStates = this._particleRuntimeStates;
-    for (let i = 0, n = runtimeStates.length; i < n; i++) {
-      runtimeStates[i]?.splice(index, 1);
+    const removed = this._subEmitters.splice(index, 1)[0];
+    if (!removed) return;
+
+    removed._module = null;
+    const statesByParticle = this._birthStatesByParticle;
+    for (let i = 0, n = statesByParticle.length; i < n; i++) {
+      statesByParticle[i]?.splice(index, 1)[0]?.release();
     }
-    this._resetSubEmitterRandomSeeds();
-    this._markTopologyDirty();
+    this._notifyTopologyChanged();
     this._generator._setTransformFeedback();
   }
 
@@ -128,9 +127,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
 
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
-      if (value) this._validateEmitters();
+      if (value) this._validateEmitterScenes();
       this._enabled = value;
-      this._markTopologyDirty();
+      this._notifyTopologyChanged();
       this._generator._setTransformFeedback();
     }
   }
@@ -144,15 +143,15 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     parentSize: Vector3,
     parentRotation: Vector3,
     parentWorldVelocity: Vector3,
-    frameTime: number,
-    emissionTime: number
+    eventEngineTime: number
   ): void {
-    const subEmitters = this.subEmitters;
+    const subEmitters = this._subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
       if (sub.type !== ParticleSubEmitterType.Death) continue;
 
-      if (!sub.emitter || sub.emitter.destroyed) continue;
+      const emitter = sub.emitter;
+      if (!emitter || emitter.destroyed) continue;
 
       const count = sub.emitCount;
       if (count <= 0) continue;
@@ -161,56 +160,24 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         continue;
       }
 
-      const inherit = sub.inheritProperties;
-      const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
-      const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
-      const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
-      const directionOverride =
-        (inherit & ParticleSubEmitterInheritProperty.Velocity) !== 0 ? parentWorldVelocity : null;
-
-      this._generator._enqueueDeathSubEmitterEmission(
+      this._generator._enqueueDeathSubEmitterCommand(
         sub,
+        emitter.generator,
         count,
         worldPosition,
-        colorOverride,
-        sizeOverride,
-        rotationOverride,
-        directionOverride,
+        parentColor,
+        parentSize,
+        parentRotation,
         parentWorldVelocity,
-        null,
-        frameTime,
-        emissionTime
+        eventEngineTime
       );
     }
   }
 
-  /** @internal */
-  _onParticleBirth(ringIndex: number, worldPosition: Vector3): void {
-    const slots = this._subEmitters;
-    let states = this._particleRuntimeStates[ringIndex];
-    if (!states) {
-      states = this._particleRuntimeStates[ringIndex] = new Array(slots.length).fill(null);
-    } else {
-      states.length = slots.length;
-      states.fill(null);
-    }
-
-    const particleSequence = this._particleSequence++;
-    for (let i = 0, n = slots.length; i < n; i++) {
-      const sub = slots[i];
-      if (sub.type !== ParticleSubEmitterType.Birth) continue;
-      const target = sub.emitter?.generator;
-      if (!target || sub.emitter.destroyed) continue;
-
-      const state = (states[i] = this._createBirthSubEmitterState(sub, target, ringIndex, i, particleSequence));
-      if (state.startDelay <= MathUtil.zeroTolerance) {
-        state.emissionState.setLastEmitPosition(worldPosition);
-      }
-    }
-  }
-
-  /** @internal */
-  _prepareBirthParticle(
+  /**
+   * @internal
+   */
+  _prepareBirthPlansForParticle(
     ringIndex: number,
     bornTime: number,
     lifetime: number,
@@ -220,87 +187,160 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     frameEngineTime: number,
     plans: BirthSubEmitterPlan[]
   ): void {
-    const states = this._particleRuntimeStates[ringIndex];
-    if (!states) return;
-
-    const currentParentAge = Math.min(Math.max(framePlayTime - bornTime, 0), lifetime);
-    const slots = this._subEmitters;
+    const birthStates = (this._birthStatesByParticle[ringIndex] ??= []);
+    const frameStartParentAge = MathUtil.clamp(frameLastPlayTime - bornTime, 0, lifetime);
+    const currentParentAge = MathUtil.clamp(framePlayTime - bornTime, 0, lifetime);
+    const subEmitters = this._subEmitters;
     const planPool = this._birthPlanPool;
-    for (let i = 0, n = slots.length; i < n; i++) {
-      const sub = slots[i];
-      let state = states[i];
-      const target = sub.emitter?.generator;
-      if (sub.type !== ParticleSubEmitterType.Birth || !target || sub.emitter.destroyed) {
-        states[i] = null;
+    let parentParticleSequence: number | undefined;
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      const subEmitter = subEmitters[i];
+      let state = birthStates[i];
+      const targetRenderer = subEmitter.emitter;
+      if (subEmitter.type !== ParticleSubEmitterType.Birth || !targetRenderer || targetRenderer.destroyed) {
+        if (state) {
+          state.release();
+          birthStates[i] = undefined;
+        }
         continue;
       }
+      const targetGenerator = targetRenderer.generator;
 
-      if (!state) {
-        state = states[i] = this._createBirthSubEmitterState(sub, target, ringIndex, i, this._particleSequence++);
-        state.previousEmissionParentAge = currentParentAge;
+      if (!state || state.needsReset) {
+        parentParticleSequence ??= this._particleSequence++;
+        // Preserve the retired parent's state while one of its deferred Plans is still pending
+        if (state && !state.canReuse) {
+          state.release();
+          state = null;
+        }
+        if (!state) {
+          const statePool = this._birthStatePool;
+          state = statePool.pop() ?? new BirthSubEmitterState(statePool);
+          state.retain();
+          birthStates[i] = state;
+        }
+        this._resetBirthSubEmitterState(
+          state,
+          subEmitter,
+          targetGenerator,
+          parentParticleSequence,
+          frameStartParentAge
+        );
+      }
+      if (!state.shouldEmit) continue;
+
+      let windowStartParentAge = state.lastProcessedParentAge;
+      if (!(currentParentAge - windowStartParentAge > MathUtil.zeroTolerance)) {
         continue;
       }
-
-      const previousParentAge = state.previousEmissionParentAge;
-      if (!(currentParentAge - previousParentAge > MathUtil.zeroTolerance)) {
-        continue;
+      const skippedFrames = frameStartParentAge - windowStartParentAge > MathUtil.zeroTolerance;
+      if (skippedFrames) {
+        windowStartParentAge = frameStartParentAge;
       }
-      state.previousEmissionParentAge = currentParentAge;
-      if (!state.shouldEmit || !target.emission.enabled || !target.emission._hasEmissionSource()) continue;
+      state.lastProcessedParentAge = currentParentAge;
 
-      const duration = target.main.duration;
-      let lastEmissionTime = Math.max(previousParentAge - state.startDelay, 0);
+      const main = targetGenerator.main;
+      const duration = main.duration;
+      let lastEmissionTime = Math.max(windowStartParentAge - state.startDelay, 0);
       let emissionTime = Math.max(currentParentAge - state.startDelay, 0);
-      if (!target.main.isLoop) {
+      if (!main.isLoop) {
         lastEmissionTime = Math.min(lastEmissionTime, duration);
         emissionTime = Math.min(emissionTime, duration);
       }
       if (!(emissionTime > lastEmissionTime)) continue;
 
-      const plan = planPool.pop() ?? new BirthSubEmitterPlan(planPool);
-      plans.push(
-        plan.reset(
-          state,
-          sub,
-          target,
-          ringIndex,
-          lastEmissionTime,
-          emissionTime,
-          bornTime,
-          lifetime,
-          frameLastPlayTime,
-          framePlayTime,
-          frameLastEngineTime,
-          frameEngineTime
-        )
+      const emission = targetGenerator.emission;
+      const emissionState = state.emissionState;
+      if (skippedFrames) {
+        emissionState.resyncTimeCursors(lastEmissionTime);
+        state.resetDistanceOnNextFeedback = true;
+      }
+      if (!emission.enabled) {
+        emissionState.resyncTimeCursors(emissionTime);
+        state.resetDistanceOnNextFeedback = true;
+        continue;
+      }
+
+      // Time and Burst can be scheduled immediately; distance is completed after trajectory feedback
+      const plan = (this._birthPlanScratch ??= planPool.pop() ?? new BirthSubEmitterPlan(planPool));
+      const distanceRate = emission._prepareBirthRequests(lastEmissionTime, emissionTime, emissionState, plan);
+      const needsDistanceFeedback = distanceRate > 0;
+      if (!needsDistanceFeedback && plan.requestCount === 0) {
+        state.resetDistanceOnNextFeedback = true;
+        continue;
+      }
+
+      this._birthPlanScratch = null;
+      plan.reset(
+        state,
+        subEmitter,
+        targetGenerator,
+        ringIndex,
+        lastEmissionTime,
+        emissionTime,
+        bornTime,
+        lifetime,
+        frameLastPlayTime,
+        framePlayTime,
+        frameLastEngineTime,
+        frameEngineTime
       );
+      plan.distanceRate = distanceRate;
+      plan.resetDistanceState = needsDistanceFeedback && state.resetDistanceOnNextFeedback;
+      plans.push(plan);
+      state.resetDistanceOnNextFeedback = !needsDistanceFeedback;
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _retireParticle(ringIndex: number): void {
-    this._particleRuntimeStates[ringIndex] = null;
+    const birthStates = this._birthStatesByParticle[ringIndex];
+    if (!birthStates) return;
+
+    for (let i = 0, n = birthStates.length; i < n; i++) {
+      birthStates[i]?.retire();
+    }
   }
 
-  /** @internal */
-  _clearParticleRuntimeStates(): void {
-    this._particleRuntimeStates.fill(null);
+  /**
+   * @internal
+   */
+  _retireAllBirthStates(): void {
+    for (let i = 0, n = this._birthStatesByParticle.length; i < n; i++) {
+      this._retireParticle(i);
+    }
   }
 
-  /** @internal */
-  _remapParticleRuntimeStates(
+  /**
+   * @internal
+   */
+  _remapBirthStates(
     newParticleCount: number,
     mappings: ReadonlyArray<{ source: number; target: number; count: number }>
   ): void {
-    const oldStates = this._particleRuntimeStates;
-    const newStates = new Array<Array<BirthSubEmitterState | null>>(newParticleCount);
+    const oldStatesByParticle = this._birthStatesByParticle;
+    const newStatesByParticle = new Array<Array<BirthSubEmitterState | undefined> | undefined>(newParticleCount);
     for (let i = 0, n = mappings.length; i < n; i++) {
       const mapping = mappings[i];
       for (let j = 0; j < mapping.count; j++) {
-        newStates[mapping.target + j] = oldStates[mapping.source + j];
+        const sourceIndex = mapping.source + j;
+        const birthStates = oldStatesByParticle[sourceIndex];
+        if (birthStates) {
+          newStatesByParticle[mapping.target + j] = birthStates;
+          oldStatesByParticle[sourceIndex] = undefined;
+        }
       }
     }
-    this._particleRuntimeStates = newStates;
+    for (let i = 0, n = oldStatesByParticle.length; i < n; i++) {
+      const birthStates = oldStatesByParticle[i];
+      if (!birthStates) continue;
+      for (let j = 0, m = birthStates.length; j < m; j++) {
+        birthStates[j]?.release();
+      }
+    }
+    this._birthStatesByParticle = newStatesByParticle;
   }
 
   /**
@@ -309,7 +349,10 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   _resetRandomSeed(seed: number): void {
     this._probabilityRand.reset(seed, ParticleRandomSubSeeds.SubEmitter);
     this._particleSequence = 0;
-    this._resetSubEmitterRandomSeeds(seed);
+    const subEmitters = this._subEmitters;
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      subEmitters[i]._resetRandomSeed(seed);
+    }
   }
 
   /**
@@ -324,73 +367,81 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     return false;
   }
 
-  /** @inheritdoc */
+  /**
+   * @inheritdoc
+   */
   _onClone(target: SubEmittersModule): void {
     const subEmitters = target._subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       subEmitters[i]._module = target;
     }
-    target._resetSubEmitterRandomSeeds();
-    target._particleRuntimeStates = new Array(target._generator._currentParticleCount);
-    target._markTopologyDirty();
+    target._resetRandomSeed(this._generator.randomSeed);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _validateEmitter(emitter: ParticleRenderer): void {
+    if (!emitter) return;
+    if (emitter.destroyed) {
+      throw new Error("Sub-emitter target has been destroyed");
+    }
     this._validateEmitterScene(emitter);
-    if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
+    if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
     }
   }
 
-  /** @internal */
-  _validateEmitters(): void {
+  /**
+   * @internal
+   */
+  _onSlotChanged(slot: SubEmitter): void {
+    const slotIndex = this._subEmitters.indexOf(slot);
+    const statesByParticle = this._birthStatesByParticle;
+    for (let i = 0, n = statesByParticle.length; i < n; i++) {
+      const slotStates = statesByParticle[i];
+      if (slotStates) {
+        slotStates[slotIndex]?.release();
+        slotStates[slotIndex] = undefined;
+      }
+    }
+    this._notifyTopologyChanged();
+  }
+
+  private _resetBirthSubEmitterState(
+    state: BirthSubEmitterState,
+    subEmitter: SubEmitter,
+    targetGenerator: ParticleGenerator,
+    parentParticleSequence: number,
+    initialParentAge: number
+  ): void {
+    const shouldEmit = subEmitter.emitProbability >= 1 || this._probabilityRand.random() < subEmitter.emitProbability;
+    // TODO: Use stable per-parent-particle random sampling:
+    // 1. Store a persistent random seed in each Birth particle runtime state instead of using parentParticleSequence
+    // 2. Derive Start Delay and emission probability through a stateless seed-to-value helper
+    const seed = this._generator.randomSeed + parentParticleSequence;
+    const main = targetGenerator.main;
+    const startDelay = Math.max(0, main.startDelay.evaluate(undefined, main._startDelayRand.random()));
+    const initialEmissionTime = Math.max(initialParentAge - startDelay, 0);
+    state.reset(
+      seed,
+      startDelay,
+      initialParentAge,
+      main.isLoop ? initialEmissionTime : Math.min(initialEmissionTime, main.duration),
+      shouldEmit
+    );
+  }
+
+  private _notifyTopologyChanged(): void {
+    const scene = this._generator._renderer.entity.scene;
+    scene?._componentsManager._particleSystemManager._markTopologyDirty();
+  }
+
+  private _validateEmitterScenes(): void {
     const subEmitters = this._subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       this._validateEmitterScene(subEmitters[i].emitter);
     }
-  }
-
-  /** @internal */
-  _onSlotChanged(slot: SubEmitter): void {
-    const slotIndex = this._subEmitters.indexOf(slot);
-    if (slotIndex >= 0) {
-      const runtimeStates = this._particleRuntimeStates;
-      for (let i = 0, n = runtimeStates.length; i < n; i++) {
-        const states = runtimeStates[i];
-        if (states) {
-          states[slotIndex] = null;
-        }
-      }
-    }
-    this._markTopologyDirty();
-    this._generator._setTransformFeedback();
-  }
-
-  private _createBirthSubEmitterState(
-    subEmitter: SubEmitter,
-    target: ParticleGenerator,
-    ringIndex: number,
-    subEmitterIndex: number,
-    particleSequence: number
-  ): BirthSubEmitterState {
-    const state = new BirthSubEmitterState();
-    state.shouldEmit = subEmitter.emitProbability >= 1 || this._probabilityRand.random() < subEmitter.emitProbability;
-    let seed = this._generator.randomSeed ^ target.randomSeed ^ ParticleRandomSubSeeds.SubEmitter;
-    seed ^= Math.imul(ringIndex + 1, 0x9e3779b1);
-    seed ^= Math.imul(subEmitterIndex + 1, 0x85ebca6b);
-    seed ^= Math.imul(particleSequence + 1, 0xc2b2ae35);
-    seed >>>= 0;
-    state.emissionState.resetRandomSeed(seed);
-    const startDelayRand = SubEmittersModule._tempStartDelayRand;
-    startDelayRand.reset(seed, ParticleRandomSubSeeds.StartDelay);
-    state.startDelay = Math.max(0, target.main.startDelay.evaluate(undefined, startDelayRand.random()));
-    return state;
-  }
-
-  private _markTopologyDirty(): void {
-    const scene = this._generator._renderer.entity.scene;
-    scene?._componentsManager._particleSystemManager._markTopologyDirty();
   }
 
   private _validateEmitterScene(emitter: ParticleRenderer): void {
@@ -399,13 +450,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     const targetScene = emitter.entity.scene;
     if (sourceScene && targetScene && sourceScene !== targetScene) {
       throw new Error("Sub-emitter target must belong to the same scene as its parent particle system");
-    }
-  }
-
-  private _resetSubEmitterRandomSeeds(seed: number = this._generator.randomSeed): void {
-    const subEmitters = this._subEmitters;
-    for (let i = 0, n = subEmitters.length; i < n; i++) {
-      subEmitters[i]._resetRandomSeed(seed, i);
     }
   }
 }

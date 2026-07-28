@@ -129,7 +129,9 @@ export class ParticleTransformFeedbackSimulator {
     this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   syncWriteBuffer(): void {
     const readBuffer = this._simulator.readBinding.buffer;
     this._simulator.writeBinding.buffer.copyFromBuffer(readBuffer, 0, 0, readBuffer.byteLength);

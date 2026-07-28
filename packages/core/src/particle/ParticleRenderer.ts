@@ -13,7 +13,7 @@ import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import type { ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager";
+import type { ParticleSubEmitterCommand } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -164,13 +164,17 @@ export class ParticleRenderer extends Renderer {
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     super._onEnableInScene();
     this.scene._componentsManager._particleSystemManager.add(this);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     this.scene._componentsManager._particleSystemManager.remove(this);
     super._onDisableInScene();
@@ -219,7 +223,9 @@ export class ParticleRenderer extends Renderer {
 
   protected override _update(context: RenderContext): void {}
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _updateParticleShaderData(): void {
     const generator = this.generator;
     const shaderData = this.shaderData;
@@ -230,10 +236,12 @@ export class ParticleRenderer extends Renderer {
     generator._updateShaderData(shaderData);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _updateParticles(
     elapsedTime: number,
-    incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand>,
+    incomingCommands: ReadonlyArray<ParticleSubEmitterCommand>,
     isBirthSubEmitterTarget: boolean
   ): void {
     if (!this._supportInstancedArrays) return;

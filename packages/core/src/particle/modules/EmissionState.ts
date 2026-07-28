@@ -20,6 +20,11 @@ export class EmissionState {
     this.burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
   }
 
+  resyncTimeCursors(playTime: number): void {
+    this.frameRateTime = playTime;
+    this.currentBurstIndex = 0;
+  }
+
   setLastEmitPosition(position: Vector3): void {
     this.lastEmitPosition.copyFrom(position);
     this.hasLastEmitPosition = true;

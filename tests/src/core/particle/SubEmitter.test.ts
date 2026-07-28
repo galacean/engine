@@ -112,6 +112,121 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Birth random sampling is independent of the particle ring index", () => {
+    const sampleStartDelay = (name: string, ringIndex: number): number => {
+      const parent = createParticleRenderer(engine, `${name}_Parent`);
+      const child = createParticleRenderer(engine, `${name}_Child`);
+      parent.generator.randomSeed = 123;
+      child.generator.randomSeed = 456;
+      child.generator.main.startDelay = new ParticleCompositeCurve(0.2, 0.8);
+
+      const subEmitters = parent.generator.subEmitters;
+      subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      subEmitters._prepareBirthPlansForParticle(ringIndex, 0, 1, 0, 0, 0, 0, []);
+
+      const startDelay = (subEmitters as any)._birthStatesByParticle[ringIndex][0].startDelay;
+      parent.entity.destroy();
+      child.entity.destroy();
+      return startDelay;
+    };
+
+    expect(sampleStartDelay("BirthRandomFirst", 0)).to.equal(sampleStartDelay("BirthRandomSecond", 17));
+  });
+
+  it("lazily creates Birth state when a Birth slot is added to a live parent", () => {
+    const parent = createParticleRenderer(engine, "LazyBirthState_Parent");
+    const deathChild = createParticleRenderer(engine, "LazyBirthState_DeathChild");
+    const birthChild = createParticleRenderer(engine, "LazyBirthState_BirthChild");
+    birthChild.generator.emission.rateOverTime.constant = 10;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.enabled = true;
+    subEmitters.addSubEmitter(deathChild, ParticleSubEmitterType.Death);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    birthChild.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 20);
+    expect(parent.generator._getAliveParticleCount()).to.equal(1);
+    expect((subEmitters as any)._birthStatesByParticle[0]).to.equal(undefined);
+
+    subEmitters.addSubEmitter(birthChild, ParticleSubEmitterType.Birth);
+    updateEngine(engine, 5);
+
+    expect(parent.generator._getAliveParticleCount()).to.equal(1);
+    expect((subEmitters as any)._birthStatesByParticle[0][1]).to.exist;
+    expect(birthChild.generator._getAliveParticleCount()).to.equal(5);
+
+    parent.entity.destroy();
+    deathChild.entity.destroy();
+    birthChild.entity.destroy();
+  });
+
+  it("reuses a Birth state when its ring slot has no pending plan", () => {
+    const parent = createParticleRenderer(engine, "BirthStateReuse_Parent");
+    const child = createParticleRenderer(engine, "BirthStateReuse_Child");
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const plans: any[] = [];
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 1, 0, 0.1, 0, 0.1, plans);
+    const firstState = (subEmitters as any)._birthStatesByParticle[0][0];
+    firstState.emissionState.distanceAccumulator = 1;
+    firstState.emissionState.setLastEmitPosition(new Vector3(1, 0, 0));
+    firstState.resetDistanceOnNextFeedback = true;
+
+    subEmitters._retireParticle(0);
+    subEmitters._prepareBirthPlansForParticle(0, 0.1, 1, 0.1, 0.2, 0.1, 0.2, plans);
+
+    const reusedState = (subEmitters as any)._birthStatesByParticle[0][0];
+    expect(reusedState).to.equal(firstState);
+    expect(reusedState.needsReset).to.equal(false);
+    expect(reusedState.resetDistanceOnNextFeedback).to.equal(true);
+    expect(reusedState.emissionState.distanceAccumulator).to.equal(0);
+    expect(reusedState.emissionState.hasLastEmitPosition).to.equal(false);
+    expect(plans).to.have.length(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("uses a pooled Birth state when a ring slot is reused before its pending plan completes", () => {
+    const parent = createParticleRenderer(engine, "BirthStateOverlap_Parent");
+    const child = createParticleRenderer(engine, "BirthStateOverlap_Child");
+    child.generator.emission.rateOverTime.constant = 10;
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const plans: any[] = [];
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 1, 0, 0.1, 0, 0.1, plans);
+    const pendingPlan = plans.pop();
+    const firstState = pendingPlan.state;
+    firstState.emissionState.distanceAccumulator = 1;
+
+    subEmitters._retireParticle(0);
+    child.generator.emission.rateOverTime.constant = 0;
+    subEmitters._prepareBirthPlansForParticle(0, 0.1, 1, 0.1, 0.2, 0.1, 0.2, plans);
+
+    const replacementState = (subEmitters as any)._birthStatesByParticle[0][0];
+    expect(replacementState).not.to.equal(firstState);
+    expect(pendingPlan.state).to.equal(firstState);
+    expect(firstState.emissionState.distanceAccumulator).to.equal(1);
+    expect(replacementState.emissionState.distanceAccumulator).to.equal(0);
+    expect((subEmitters as any)._birthStatePool).to.have.length(0);
+
+    pendingPlan.release();
+    expect((subEmitters as any)._birthStatePool).to.have.length(1);
+
+    subEmitters._prepareBirthPlansForParticle(1, 0.2, 1, 0.2, 0.3, 0.2, 0.3, plans);
+    expect((subEmitters as any)._birthStatesByParticle[1][0]).to.equal(firstState);
+    expect((subEmitters as any)._birthStatePool).to.have.length(0);
+    expect(plans).to.have.length(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth evaluates the target Burst separately for every parent", () => {
     const parent = createParticleRenderer(engine, "Parent_NoDouble");
     const child = createParticleRenderer(engine, "Child_NoDouble");
@@ -160,7 +275,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("queues each Birth time window without predicting individual samples", () => {
+  it("skips Birth feedback readback until an emission request is due", () => {
     const child = createParticleRenderer(engine, "BirthReadback_Child");
     const parent = createParticleRenderer(engine, "BirthReadback_Parent");
     parent.generator.main.startLifetime.constant = 2;
@@ -175,10 +290,116 @@ describe("SubEmitter", () => {
 
     const readback = vi.spyOn(parent.generator as any, "_queueReadbackRange");
     updateEngine(engine, 9);
-    expect(readback.mock.calls.length).to.be.greaterThan(1);
+    expect(readback).not.toHaveBeenCalled();
 
     updateEngine(engine, 1);
+    expect(readback).toHaveBeenCalledTimes(1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("does not replay skipped Rate Over Time windows", () => {
+    const child = createParticleRenderer(engine, "BirthTimeGap_Child");
+    const parent = createParticleRenderer(engine, "BirthTimeGap_Parent");
+    child.generator.main.duration = 10;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const plans: any[] = [];
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0, 0.1, 0, 0.1, plans);
+    expect(plans).to.have.length(1);
+    expect(plans[0].requestCount).to.equal(1);
+    plans.pop().release();
+
+    child.generator.emission.rateOverTime.constant = 0;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0.1, 3.1, 0.1, 3.1, plans);
+    expect(plans).to.have.length(0);
+
+    child.generator.emission.rateOverTime.constant = 10;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 3.1, 3.2, 3.1, 3.2, plans);
+    expect(plans).to.have.length(1);
+    expect(plans[0].requestCount).to.equal(1);
+    plans.pop().release();
+
+    child.generator.emission.enabled = false;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 3.2, 4.2, 3.2, 4.2, plans);
+    expect(plans).to.have.length(0);
+
+    child.generator.emission.enabled = true;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 4.2, 4.3, 4.2, 4.3, plans);
+    expect(plans).to.have.length(1);
+    expect(plans[0].requestCount).to.equal(1);
+    plans.pop().release();
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 6.2, 6.3, 6.2, 6.3, plans);
+    expect(plans).to.have.length(1);
+    expect(plans[0].requestCount).to.equal(1);
+    plans.pop().release();
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("resets Rate Over Distance across inactive windows", () => {
+    const child = createParticleRenderer(engine, "BirthDistanceGap_Child");
+    const parent = createParticleRenderer(engine, "BirthDistanceGap_Parent");
+    child.generator.emission.rateOverDistance.constant = 10;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const plans: any[] = [];
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0, 0.1, 0, 0.1, plans);
+    const initialPlan = plans.pop();
+    initialPlan.resolveTrajectory(new Vector3(0.1, 0, 0), new Vector3(1, 0, 0));
+    initialPlan.completeDistanceRequests(Infinity);
+    expect(initialPlan.requestCount).to.equal(1);
+    initialPlan.release();
+
+    child.generator.emission.rateOverDistance.constant = 0;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0.1, 1.1, 0.1, 1.1, plans);
+    expect(plans).to.have.length(0);
+
+    child.generator.emission.rateOverDistance.constant = 10;
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 1.1, 1.2, 1.1, 1.2, plans);
+    const resumedPlan = plans.pop();
+    resumedPlan.resolveTrajectory(new Vector3(1.2, 0, 0), new Vector3(1, 0, 0));
+    resumedPlan.completeDistanceRequests(Infinity);
+    expect(resumedPlan.requestCount).to.equal(0);
+    resumedPlan.release();
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 1.2, 1.3, 1.2, 1.3, plans);
+    const nextPlan = plans.pop();
+    nextPlan.resolveTrajectory(new Vector3(1.3, 0, 0), new Vector3(1, 0, 0));
+    nextPlan.completeDistanceRequests(Infinity);
+    expect(nextPlan.requestCount).to.equal(1);
+    nextPlan.release();
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("bounds deferred Rate Over Distance requests by target capacity", () => {
+    const child = createParticleRenderer(engine, "BirthDistanceCapacity_Child");
+    const parent = createParticleRenderer(engine, "BirthDistanceCapacity_Parent");
+    child.generator.emission.rateOverDistance.constant = 1000;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const plans: any[] = [];
+
+    subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0, 0.1, 0, 0.1, plans);
+    const plan = plans.pop();
+    plan.resolveTrajectory(new Vector3(1, 0, 0), new Vector3(10, 0, 0));
+    plan.completeDistanceRequests(2);
+
+    expect(plan.requestCount).to.equal(2);
+    expect(plan.requests).to.have.length(2);
+    plan.release();
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -448,6 +669,35 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Birth uses the same Inherit Velocity random sequence for equivalent sub-emitter slots", () => {
+    const child = createParticleRenderer(engine, "SlotVelocityRandom_Child");
+    const parent = createParticleRenderer(engine, "SlotVelocityRandom_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 4;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    const first = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const second = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    first.inheritVelocity.constantMin = second.inheritVelocity.constantMin = 0;
+    first.inheritVelocity.constantMax = second.inheritVelocity.constantMax = 1;
+    first.inheritVelocity.mode = second.inheritVelocity.mode = ParticleCurveMode.TwoConstants;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    const stride = vertices.length / child.generator._currentParticleCount;
+    expect(vertices[18]).to.be.closeTo(vertices[stride + 18], 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth consumes the post-orbital TF position and finite-difference trajectory velocity", () => {
     const child = createParticleRenderer(engine, "SystemOrbital_Child");
     const parent = createParticleRenderer(engine, "SystemOrbital_Parent");
@@ -678,7 +928,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("queues Birth time-window plans without materializing emission requests", () => {
+  it("queues resolved Birth requests instead of replaying emission windows", () => {
     const child = createParticleRenderer(engine, "BatchQueue_Child");
     const parent = createParticleRenderer(engine, "BatchQueue_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -693,13 +943,13 @@ describe("SubEmitter", () => {
 
     const manager = (parent.entity.scene as any)._componentsManager._particleSystemManager;
     const originalEnqueue = manager.enqueue.bind(manager);
-    const birthPlans: Array<{ lastEmissionTime: number; emissionTime: number; hasRequests: boolean }> = [];
+    const birthPlans: Array<{ lastEmissionTime: number; emissionTime: number; requestCount: number }> = [];
     const enqueueSpy = vi.spyOn(manager, "enqueue").mockImplementation((command: any) => {
       if (command.type === ParticleSubEmitterType.Birth) {
         birthPlans.push({
           lastEmissionTime: command.lastEmissionTime,
           emissionTime: command.emissionTime,
-          hasRequests: "requests" in command
+          requestCount: command.requestCount
         });
       }
       originalEnqueue(command);
@@ -713,7 +963,7 @@ describe("SubEmitter", () => {
 
     expect(birthPlans.length).to.be.greaterThan(0);
     expect(birthPlans.every((plan) => plan.emissionTime > plan.lastEmissionTime)).to.equal(true);
-    expect(birthPlans.every((plan) => !plan.hasRequests)).to.equal(true);
+    expect(birthPlans.every((plan) => plan.requestCount > 0)).to.equal(true);
     expect(child.generator._getAliveParticleCount()).to.equal(10);
 
     parent.entity.destroy();
@@ -981,6 +1231,41 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
   });
 
+  it("rejects an empty sub-emitter target", () => {
+    const parent = createParticleRenderer(engine, "EmptyTarget_Parent");
+
+    expect(() => parent.generator.subEmitters.addSubEmitter(null, ParticleSubEmitterType.Birth)).to.throw(
+      "Sub-emitter target cannot be null"
+    );
+    expect(parent.generator.subEmitters.subEmitters).to.have.length(0);
+
+    parent.entity.destroy();
+  });
+
+  it("rejects destroyed targets while tolerating targets destroyed after configuration", () => {
+    const parent = createParticleRenderer(engine, "DestroyedTarget_Parent");
+    const liveTarget = createParticleRenderer(engine, "DestroyedTarget_Live");
+    const destroyedTarget = createParticleRenderer(engine, "DestroyedTarget_Destroyed");
+    destroyedTarget.destroy();
+
+    expect(() => parent.generator.subEmitters.addSubEmitter(destroyedTarget, ParticleSubEmitterType.Birth)).to.throw(
+      "Sub-emitter target has been destroyed"
+    );
+
+    const slot = parent.generator.subEmitters.addSubEmitter(liveTarget, ParticleSubEmitterType.Birth);
+    expect(() => (slot.emitter = destroyedTarget)).to.throw("Sub-emitter target has been destroyed");
+    expect(slot.emitter).to.equal(liveTarget);
+
+    parent.generator.subEmitters.enabled = true;
+    liveTarget.destroy();
+    parent.generator.subEmitters.enabled = false;
+    expect(() => (parent.generator.subEmitters.enabled = true)).not.to.throw();
+
+    parent.entity.destroy();
+    liveTarget.entity.destroy();
+    destroyedTarget.entity.destroy();
+  });
+
   it("rejects sub-emitters from another scene at configuration time", () => {
     const parent = createParticleRenderer(engine, "CrossScene_Parent");
     const secondScene = new Scene(engine, "CrossScene_Target");
@@ -1057,15 +1342,19 @@ describe("SubEmitter", () => {
     updateEngine(engine, 2);
     expect(rebuild).toHaveBeenCalledTimes(2);
 
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const slot = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     updateEngine(engine, 2);
     expect(rebuild).toHaveBeenCalledTimes(3);
 
-    parent.generator.subEmitters.subEmitters[0].type = ParticleSubEmitterType.Death;
+    slot.type = ParticleSubEmitterType.Death;
     updateEngine(engine, 2);
     expect(rebuild).toHaveBeenCalledTimes(4);
 
     parent.generator.subEmitters.removeSubEmitterByIndex(0);
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(5);
+
+    slot.type = ParticleSubEmitterType.Birth;
     updateEngine(engine, 2);
     expect(rebuild).toHaveBeenCalledTimes(5);
 
@@ -1496,6 +1785,7 @@ describe("SubEmitter", () => {
   it("Cloned sub-emitter slots re-link to the cloned module", () => {
     const parent = createParticleRenderer(engine, "CloneParent");
     const child = createParticleRenderer(engine, "CloneChild");
+    parent.generator.randomSeed = 123;
     const sourceSlot = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     sourceSlot.inheritVelocity.constant = 0.5;
 
@@ -1508,6 +1798,9 @@ describe("SubEmitter", () => {
     expect((cloneSlot as any)._module).to.not.equal(parent.generator.subEmitters);
     expect(cloneSlot.inheritVelocity).to.not.equal(sourceSlot.inheritVelocity);
     expect(cloneSlot.inheritVelocity.constant).to.equal(0.5);
+    expect((cloneRenderer.generator.subEmitters as any)._probabilityRand.random()).to.equal(
+      (parent.generator.subEmitters as any)._probabilityRand.random()
+    );
 
     expect(() => (cloneSlot.type = ParticleSubEmitterType.Death)).to.not.throw();
 

@@ -1,41 +1,22 @@
-import { Color, Vector3 } from "@galacean/engine-math";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
 import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
-import type { SubEmitter } from "./modules/SubEmitter";
+import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 
 /**
  * @internal
  */
-export interface DeathSubEmitterEmissionCommand {
-  readonly type: ParticleSubEmitterType.Death;
-  subEmitter: SubEmitter;
-  count: number;
-  worldPosition: Vector3;
-  inheritColor: Color | null;
-  inheritSize: Vector3 | null;
-  inheritRotation: Vector3 | null;
-  eventWorldDirection: Vector3 | null;
-  parentWorldVelocity: Vector3 | null;
-  emissionNormalizedTime: number | null;
-  frameTime: number;
-  emissionTime: number | null;
-}
-
-/**
- * @internal
- */
-export type ParticleSubEmitterEmissionCommand = DeathSubEmitterEmissionCommand | BirthSubEmitterPlan;
+export type ParticleSubEmitterCommand = DeathSubEmitterCommand | BirthSubEmitterPlan;
 
 /**
  * @internal
  */
 export class ParticleSystemManager {
-  private static readonly _emptyCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [];
+  private static readonly _emptyCommands: ReadonlyArray<ParticleSubEmitterCommand> = [];
 
   private _renderers: ParticleRenderer[] = [];
-  private _commands = new Map<ParticleGenerator, ParticleSubEmitterEmissionCommand[]>();
+  private _commands = new Map<ParticleGenerator, ParticleSubEmitterCommand[]>();
   private _orderedRenderers: ParticleRenderer[] = [];
   private _birthTargets = new Set<ParticleGenerator>();
   private _rendererSet = new Set<ParticleRenderer>();
@@ -61,12 +42,14 @@ export class ParticleSystemManager {
     const generator = renderer.generator;
     const commands = this._commands.get(generator);
     if (commands) {
-      this._consumeRemainingBirthPlans(commands);
+      this._consumeRemainingCommands(commands);
       this._commands.delete(generator);
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _markTopologyDirty(): void {
     if (!this._topologyDirty) {
       this._topologyDirty = true;
@@ -75,13 +58,10 @@ export class ParticleSystemManager {
     }
   }
 
-  enqueue(command: ParticleSubEmitterEmissionCommand): void {
-    const target =
-      command.type === ParticleSubEmitterType.Birth ? command.target : command.subEmitter.emitter.generator;
+  enqueue(command: ParticleSubEmitterCommand): void {
+    const target = command.target;
     if (target._renderer.destroyed) {
-      if (command.type === ParticleSubEmitterType.Birth) {
-        command.release();
-      }
+      command.release();
       return;
     }
     let commands = this._commands.get(target);
@@ -112,21 +92,18 @@ export class ParticleSystemManager {
       );
     }
     for (const commands of this._commands.values()) {
-      this._consumeRemainingBirthPlans(commands);
+      this._consumeRemainingCommands(commands);
     }
     this._commands.clear();
   }
 
-  private _consumeRemainingBirthPlans(commands: ReadonlyArray<ParticleSubEmitterEmissionCommand>): void {
+  private _consumeRemainingCommands(commands: ReadonlyArray<ParticleSubEmitterCommand>): void {
     for (let i = 0, n = commands.length; i < n; i++) {
       const command = commands[i];
-      if (command.type === ParticleSubEmitterType.Birth) {
-        const target = command.target;
-        if (target._renderer.destroyed) {
-          command.release();
-        } else {
-          target._consumeBirthSubEmitterPlan(command, 0);
-        }
+      if (command.type === ParticleSubEmitterType.Birth && !command.target._renderer.destroyed) {
+        command.target._consumeBirthSubEmitterPlan(command, 0);
+      } else {
+        command.release();
       }
     }
   }
