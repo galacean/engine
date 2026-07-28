@@ -291,7 +291,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const emitPos = useWorldPosition ? EmissionModule._tempEmitPosition : undefined;
       for (let i = 0; i < requestCount; i++) {
         emitPos?.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
-        if (this._emitOrAddRequest(plan, playTime - dt * subFrameAge, 1, emitPos, 1) === 0) {
+        if (!this._emitOrAddRequest(plan, playTime - dt * subFrameAge, 1, emitPos, 1)) {
           state.distanceAccumulator = 0;
           break;
         }
@@ -412,14 +412,14 @@ export class EmissionModule extends ParticleGeneratorModule {
     count: number,
     position: Vector3 | undefined,
     order: number
-  ): number {
+  ): boolean {
     if (!plan) {
-      return this._generator._emit(time, count, position);
+      return this._generator._emit(time, count, position) > 0;
     }
     if (!(count > 0)) {
-      return 0;
+      return false;
     }
     plan.addRequest(time, count, position, order);
-    return Math.ceil(count);
+    return true;
   }
 }
