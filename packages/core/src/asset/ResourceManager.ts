@@ -346,12 +346,15 @@ export class ResourceManager {
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
-    // Not absolute and base url is set
-    item.url =
-      !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
-        ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
-        : assetBaseURL;
-    const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
+    // Keep a virtual resource's logical identity so loaders can resolve its
+    // sibling resources through the virtual-resource map. `baseUrl` only
+    // resolves ordinary relative transport URLs
+    const loadItemUrl =
+      virtualResourceEntry !== undefined || Utils.isAbsoluteUrl(assetBaseURL) || !this.baseUrl
+        ? assetBaseURL
+        : Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL);
+    item.url = loadItemUrl;
+    const remoteAssetBaseURL = virtualResourceEntry?.path ?? loadItemUrl;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
