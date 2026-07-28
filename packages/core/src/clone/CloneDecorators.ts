@@ -14,89 +14,59 @@ export const enum CloneMode {
   Deep
 }
 
-interface Stage3FieldDecoratorContext {
-  readonly kind: string;
-  readonly name: string | symbol;
-  readonly static: boolean;
-  readonly private: boolean;
-  addInitializer(initializer: (this: object) => void): void;
-}
-
-function isStage3FieldDecoratorContext(value: unknown): value is Stage3FieldDecoratorContext {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "kind" in value &&
-    "addInitializer" in value &&
-    typeof value.addInitializer === "function"
-  );
-}
-
-function registerDecoratorFieldMode(
-  targetOrValue: object | undefined,
-  propertyKeyOrContext: string | Stage3FieldDecoratorContext,
+function registerDecoratorFieldMode<This extends object, Value>(
+  context: ClassFieldDecoratorContext<This, Value>,
   mode: CloneMode
-): void {
-  if (isStage3FieldDecoratorContext(propertyKeyOrContext)) {
-    const context = propertyKeyOrContext;
-    if (context.kind !== "field" || context.static || context.private || typeof context.name !== "string") {
-      throw new TypeError("Clone decorators only support public instance fields with string keys.");
-    }
-
-    const { name } = context;
-    const registeredPrototypes = new WeakSet<object>();
-    context.addInitializer(function () {
-      const prototype = Object.getPrototypeOf(this);
-      if (!registeredPrototypes.has(prototype)) {
-        CloneMetadata.registerFieldMode(prototype, name, mode);
-        registeredPrototypes.add(prototype);
-      }
-    });
-    return;
+): (this: This, value: Value) => Value {
+  if (context.kind !== "field" || context.static || context.private || typeof context.name !== "string") {
+    throw new TypeError("Clone decorators only support public instance fields with string keys.");
   }
 
-  CloneMetadata.registerFieldMode(targetOrValue, propertyKeyOrContext, mode);
+  const { name } = context;
+  const registeredPrototypes = new WeakSet<object>();
+  return function (value) {
+    const prototype = Object.getPrototypeOf(this);
+    if (!registeredPrototypes.has(prototype)) {
+      CloneMetadata.registerFieldMode(prototype, name, mode);
+      registeredPrototypes.add(prototype);
+    }
+    return value;
+  };
 }
 
 /**
- * Property decorator — deep clone this field's whole subtree, overriding the value type's default
+ * Field decorator — deep clone this field's whole subtree, overriding the value type's default
  * clone mode (field-level decorators have the highest priority). The deep intent carries into
  * field-cloneable members; engine-bound and platform objects keep their defaults. A decorator is
  * an explicit intent: if the decorated value itself can't be deep cloned (an entity reference,
  * asset, function, or object with opaque internal state), cloning throws rather than falling back.
  * Field-cloned classes reproduce only their own enumerable string-keyed properties.
  */
-export function deepClone(target: object, propertyKey: string): void;
-export function deepClone(value: undefined, context: Stage3FieldDecoratorContext): void;
-export function deepClone(
-  targetOrValue: object | undefined,
-  propertyKeyOrContext: string | Stage3FieldDecoratorContext
-): void {
-  registerDecoratorFieldMode(targetOrValue, propertyKeyOrContext, CloneMode.Deep);
+export function deepClone<This extends object, Value>(
+  _value: undefined,
+  context: ClassFieldDecoratorContext<This, Value>
+): (this: This, value: Value) => Value {
+  return registerDecoratorFieldMode(context, CloneMode.Deep);
 }
 
 /**
- * Property decorator — assign (share the reference) this field, overriding the value type's default clone mode.
+ * Field decorator — assign (share the reference) this field, overriding the value type's default clone mode.
  */
-export function assignmentClone(target: object, propertyKey: string): void;
-export function assignmentClone(value: undefined, context: Stage3FieldDecoratorContext): void;
-export function assignmentClone(
-  targetOrValue: object | undefined,
-  propertyKeyOrContext: string | Stage3FieldDecoratorContext
-): void {
-  registerDecoratorFieldMode(targetOrValue, propertyKeyOrContext, CloneMode.Assignment);
+export function assignmentClone<This extends object, Value>(
+  _value: undefined,
+  context: ClassFieldDecoratorContext<This, Value>
+): (this: This, value: Value) => Value {
+  return registerDecoratorFieldMode(context, CloneMode.Assignment);
 }
 
 /**
- * Property decorator — ignore this field when cloning; keep the clone's own constructor-built value.
+ * Field decorator — ignore this field when cloning; keep the clone's own constructor-built value.
  */
-export function ignoreClone(target: object, propertyKey: string): void;
-export function ignoreClone(value: undefined, context: Stage3FieldDecoratorContext): void;
-export function ignoreClone(
-  targetOrValue: object | undefined,
-  propertyKeyOrContext: string | Stage3FieldDecoratorContext
-): void {
-  registerDecoratorFieldMode(targetOrValue, propertyKeyOrContext, CloneMode.Ignore);
+export function ignoreClone<This extends object, Value>(
+  _value: undefined,
+  context: ClassFieldDecoratorContext<This, Value>
+): (this: This, value: Value) => Value {
+  return registerDecoratorFieldMode(context, CloneMode.Ignore);
 }
 
 /**

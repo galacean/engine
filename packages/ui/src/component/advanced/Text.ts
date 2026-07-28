@@ -658,7 +658,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     charRenderInfos.length = 0;
   }
 
-  @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (type & UITransformModifyFlags.Size || type & UITransformModifyFlags.Pivot) {
       this._dirtyUpdateFlag |= DirtyFlag.LocalPositionBounds;
@@ -737,7 +736,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     textChunks.length = 0;
   }
 
-  @ignoreClone
   private _onOutlineColorChanged(): void {
     this.shaderData.setColor(Text._outlineColorProperty, this._outlineColor);
   }

@@ -51,6 +51,13 @@ const commonPlugins = [
       jsc: {
         loose: true,
         externalHelpers: true,
+        parser: {
+          decorators: true
+        },
+        transform: {
+          decoratorVersion: "2022-03",
+          useDefineForClassFields: true
+        },
         target: "es5"
       },
       sourceMaps: true

@@ -491,7 +491,6 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
     }
   }
 
-  @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }

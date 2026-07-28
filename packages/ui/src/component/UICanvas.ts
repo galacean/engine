@@ -398,7 +398,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number, param: any): void {
     if (this._isRootCanvas) {
       if (flag === EntityModifyFlags.Parent) {
@@ -583,7 +582,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  @ignoreClone
   private _onCameraModifyListener(flag: CameraModifyFlags): void {
     if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
       switch (flag) {
@@ -608,7 +606,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  @ignoreClone
   private _onCameraTransformListener(): void {
     this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
   }
@@ -623,14 +620,12 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
-  @ignoreClone
   private _onCanvasSizeListener(): void {
     const { canvas } = this.engine;
     this.entity.transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
     this._adapterSizeInScreenSpace();
   }
 
-  @ignoreClone
   private _onReferenceResolutionChanged(): void {
     const realRenderMode = this._realRenderMode;
     if (

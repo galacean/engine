@@ -5,7 +5,6 @@
     "declaration": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
     "declarationDir": "types",
     "emitDeclarationOnly": true,
     "stripInternal": true,

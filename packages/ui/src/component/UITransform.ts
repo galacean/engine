@@ -277,13 +277,11 @@ export class UITransform extends Transform {
     !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChanging();
   }
 
-  @ignoreClone
   protected override _onPositionChanged(): void {
     (this._horizontalAlignment || this._verticalAlignment) && this._updatePositionByAlignment();
     super._onPositionChanged();
   }
 
-  @ignoreClone
   protected override _onWorldPositionChanged(): void {
     super._onWorldPositionChanged();
     if (this._horizontalAlignment || this._verticalAlignment) {
@@ -356,7 +354,6 @@ export class UITransform extends Transform {
     this._rect.set(x, y, size.x, size.y);
   }
 
-  @ignoreClone
   private _onSizeChanged(): void {
     if (
       this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
@@ -370,7 +367,6 @@ export class UITransform extends Transform {
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
-  @ignoreClone
   private _onPivotChanged(): void {
     this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();

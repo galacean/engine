@@ -318,7 +318,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     canvas._renderElements.push(renderElement);
   }
 
-  @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (
       type & UITransformModifyFlags.Size &&
@@ -340,7 +339,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     super._onDestroy();
   }
 
-  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:

@@ -566,17 +566,14 @@ export class DynamicCollider extends Collider {
     this._automaticInertiaTensor || (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
-  @ignoreClone
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
-  @ignoreClone
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
-  @ignoreClone
   private _handleCenterOfMassChanged(): void {
     if (this._automaticCenterOfMass) {
       console.warn(
@@ -587,7 +584,6 @@ export class DynamicCollider extends Collider {
     }
   }
 
-  @ignoreClone
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       console.warn(

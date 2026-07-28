@@ -2,6 +2,9 @@ import { defineProject } from "vitest/config";
 import type {} from "@vitest/browser/providers/playwright";
 
 export default defineProject({
+  esbuild: {
+    target: "es2022"
+  },
   server: {
     port: 51204
   },

@@ -659,13 +659,11 @@ export class Transform extends Component implements ICloneHook<Transform> {
     return parentCache;
   }
 
-  @ignoreClone
   protected _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     this._updateWorldPositionFlag();
   }
 
-  @ignoreClone
   protected _onWorldPositionChanged(): void {
     const worldPosition = this._worldPosition;
     const parent = this._getParentTransform();
@@ -821,14 +819,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._rotateByQuat(rotQuat, relativeToLocal);
   }
 
-  @ignoreClone
   private _onRotationChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalEuler);
     this._updateWorldRotationFlag();
   }
 
-  @ignoreClone
   private _onWorldRotationChanged(): void {
     const worldRotation = this._worldRotation;
     Quaternion.rotationEuler(
@@ -840,14 +836,12 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldEuler);
   }
 
-  @ignoreClone
   private _onRotationQuaternionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
     this._updateWorldRotationFlag();
   }
 
-  @ignoreClone
   private _onWorldRotationQuaternionChanged(): void {
     const worldRotationQuaternion = this._worldRotationQuaternion;
     const parent = this._getParentTransform();
@@ -861,7 +855,6 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldQuat);
   }
 
-  @ignoreClone
   private _onScaleChanged(): void {
     const { x, y, z } = this._scale;
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);

@@ -197,7 +197,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _groupListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils.setGroupDirty(this);
@@ -207,7 +206,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils.setRootCanvasDirty(this);
@@ -218,7 +216,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _onGroupModify(flags: GroupModifyFlags): void {
     if (flags & GroupModifyFlags.GlobalInteractive) {
       this._globalInteractiveDirty = true;
