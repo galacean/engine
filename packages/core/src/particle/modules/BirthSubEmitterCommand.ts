@@ -141,6 +141,13 @@ export class BirthSubEmitterCommand {
     this._sortRequests();
   }
 
+  cancel(): void {
+    if (!this.target._renderer.destroyed) {
+      this.finalizeRequests(0);
+    }
+    this.release();
+  }
+
   release(): void {
     this.state.release();
     this.source = null;

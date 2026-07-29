@@ -13,7 +13,7 @@ import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import type { ParticleSubEmitterCommand, ParticleSystemNode } from "./ParticleSystemManager";
+import type { ParticleSystemManager } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -47,7 +47,19 @@ export class ParticleRenderer extends Renderer {
   _transformedBounds = new BoundingBox();
   /** @internal */
   @ignoreClone
-  _particleSystemNode: ParticleSystemNode | null = null;
+  _particleSystemManager: ParticleSystemManager | null = null;
+  /** @internal */
+  @ignoreClone
+  readonly _particleSystemTargets: ParticleRenderer[] = [];
+  /** @internal */
+  @ignoreClone
+  _particleSystemIndegree = 0;
+  /** @internal */
+  @ignoreClone
+  _isBirthSubEmitterTarget = false;
+  /** @internal */
+  @ignoreClone
+  _hasParticleSystemUpdated = false;
   @ignoreClone
   private _mesh: ModelMesh;
 
@@ -242,13 +254,9 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _updateParticles(
-    elapsedTime: number,
-    incomingCommands: ReadonlyArray<ParticleSubEmitterCommand>,
-    isBirthSubEmitterTarget: boolean
-  ): void {
+  _updateParticles(elapsedTime: number, isBirthSubEmitterTarget: boolean): void {
     if (!this._supportInstancedArrays) return;
-    this.generator._update(elapsedTime, incomingCommands, isBirthSubEmitterTarget);
+    this.generator._update(elapsedTime, isBirthSubEmitterTarget);
     this._updateParticleShaderData();
   }
 

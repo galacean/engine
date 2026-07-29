@@ -36,10 +36,8 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   };
   const resolveReadbacks = () => {
     for (const scene of engine.sceneManager.scenes) {
-      const nodes = (scene as any)._componentsManager._particleSystemManager._nodes as Array<{
-        renderer: ParticleRenderer;
-      }>;
-      for (const { renderer } of nodes) {
+      const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
+      for (const renderer of renderers) {
         const slots = (renderer.generator as any)._feedbackReadbackQueue as Array<{ request: any }>;
         for (let i = 0, n = slots.length; i < n; i++) {
           slots[i].request._platformReadback.isReady = () => true;
@@ -1018,7 +1016,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("queues resolved Birth requests instead of replaying emission windows", () => {
+  it("consumes resolved Birth requests instead of replaying emission windows", () => {
     const child = createParticleRenderer(engine, "BatchQueue_Child");
     const parent = createParticleRenderer(engine, "BatchQueue_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -1031,24 +1029,23 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const manager = (parent.entity.scene as any)._componentsManager._particleSystemManager;
-    const originalEnqueue = manager.enqueue.bind(manager);
+    const originalConsume = child.generator._consumeBirthSubEmitterCommand.bind(child.generator);
     const birthCommands: Array<{ lastEmissionTime: number; emissionTime: number; requestCount: number }> = [];
-    const enqueueSpy = vi.spyOn(manager, "enqueue").mockImplementation((command: any) => {
-      if (command.type === ParticleSubEmitterType.Birth) {
+    const consumeSpy = vi
+      .spyOn(child.generator, "_consumeBirthSubEmitterCommand")
+      .mockImplementation((command, available) => {
         birthCommands.push({
           lastEmissionTime: command.lastEmissionTime,
           emissionTime: command.emissionTime,
           requestCount: command.requestCount
         });
-      }
-      originalEnqueue(command);
-    });
+        return originalConsume(command, available);
+      });
 
     try {
       updateEngine(engine, 5);
     } finally {
-      enqueueSpy.mockRestore();
+      consumeSpy.mockRestore();
     }
 
     expect(birthCommands.length).to.be.greaterThan(0);

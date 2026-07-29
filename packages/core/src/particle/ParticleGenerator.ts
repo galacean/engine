@@ -42,10 +42,9 @@ import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { SubEmittersModule } from "./modules/SubEmittersModule";
+import { SubEmittersModule, type ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 import { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
-import type { ParticleSubEmitterCommand } from "./ParticleSystemManager";
 
 /**
  * Stores one independently submitted particle feedback snapshot.
@@ -147,6 +146,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   _subPrimitive = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
   readonly _renderer: ParticleRenderer;
+  /** @internal */
+  @ignoreClone
+  readonly _incomingSubEmitterCommands: ParticleSubEmitterCommand[] = [];
 
   /** @internal */
   @ignoreClone
@@ -344,11 +346,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _update(
-    elapsedTime: number,
-    incomingCommands: ReadonlyArray<ParticleSubEmitterCommand> = [],
-    isBirthSubEmitterTarget: boolean = false
-  ): void {
+  _update(elapsedTime: number, isBirthSubEmitterTarget: boolean = false): void {
     const isContentLost = this._processFeedbackReadbacks();
     const lastAlive = this.isAlive;
     const { main, emission } = this;
@@ -405,6 +403,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       Math.max(Math.floor(main.maxParticles), 0) - this._getNotRetiredParticleCount(),
       0
     );
+    const incomingCommands = this._incomingSubEmitterCommands;
     for (let i = 0, n = incomingCommands.length; i < n; i++) {
       const command = incomingCommands[i];
       let emittedCount: number;
@@ -423,6 +422,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
       remainingSubEmitterCapacity -= emittedCount;
     }
+    incomingCommands.length = 0;
 
     // Retire all particles on device restore before bounds/volume bookkeeping
     if (isContentLost) {
@@ -1442,10 +1442,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return emittedCount;
   }
 
-  private _enqueueSubEmitterCommand(command: ParticleSubEmitterCommand): void {
-    this._renderer.entity.scene._componentsManager._particleSystemManager.enqueue(command);
-  }
-
   private _prepareBirthRange(
     firstElement: number,
     endElement: number,
@@ -1673,6 +1669,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const endPosition = this._eventPos;
     const averageVelocity = this._eventDir;
     const commands = slot.commands;
+    const manager = this._renderer._particleSystemManager;
     let lastFeedbackRingIndex = -1;
     for (let i = slot.processedCommandCount, n = commands.length; i < n; i++) {
       const command = commands[i];
@@ -1693,7 +1690,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
 
       command.resolveTrajectory(endPosition, averageVelocity);
-      this._enqueueSubEmitterCommand(command);
+      const target = command.target;
+      if (manager && target._renderer._particleSystemManager === manager) {
+        target._incomingSubEmitterCommands.push(command);
+      } else {
+        command.cancel();
+      }
       slot.processedCommandCount = i + 1;
     }
     commands.length = 0;

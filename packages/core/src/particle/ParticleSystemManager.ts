@@ -1,63 +1,60 @@
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleRenderer } from "./ParticleRenderer";
-import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
-import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
-
-/**
- * @internal
- */
-export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitterCommand;
-
-/**
- * Stores reusable scheduling state for one particle system.
- * @internal
- */
-export class ParticleSystemNode {
-  readonly commands: ParticleSubEmitterCommand[] = [];
-  readonly targets: ParticleSystemNode[] = [];
-  manager: ParticleSystemManager | null = null;
-  indegree = 0;
-  isBirthTarget = false;
-  hasUpdated = false;
-
-  constructor(readonly renderer: ParticleRenderer) {}
-}
 
 /**
  * @internal
  */
 export class ParticleSystemManager {
-  private _nodes: ParticleSystemNode[] = [];
-  private _orderedNodes: ParticleSystemNode[] = [];
+  private _renderers: ParticleRenderer[] = [];
+  private _orderedRenderers: ParticleRenderer[] = [];
   private _topologyDirty = true;
 
   add(renderer: ParticleRenderer): void {
-    const node = (renderer._particleSystemNode ??= new ParticleSystemNode(renderer));
-    if (node.manager) return;
+    if (renderer._particleSystemManager) return;
 
-    node.manager = this;
-    node.hasUpdated = false;
-    this._nodes.push(node);
+    renderer._particleSystemManager = this;
+    renderer._hasParticleSystemUpdated = false;
+    this._renderers.push(renderer);
     // Treat a newly enabled system as visible until the first culling result
     renderer._renderFrameCount = renderer.engine.time.frameCount;
     this._markTopologyDirty();
   }
 
   remove(renderer: ParticleRenderer): void {
-    const node = renderer._particleSystemNode;
-    if (!node || node.manager !== this) return;
+    if (renderer._particleSystemManager !== this) return;
 
-    const index = this._nodes.indexOf(node);
+    const index = this._renderers.indexOf(renderer);
     if (index >= 0) {
-      this._nodes.splice(index, 1);
+      this._renderers.splice(index, 1);
       this._markTopologyDirty();
     }
-    node.manager = null;
-    const commands = node.commands;
+    renderer._particleSystemManager = null;
+    const commands = renderer.generator._incomingSubEmitterCommands;
     for (let i = 0, n = commands.length; i < n; i++) {
-      this._cancelCommand(commands[i]);
+      commands[i].cancel();
     }
     commands.length = 0;
+  }
+
+  update(deltaTime: number): void {
+    if (this._topologyDirty) this._rebuildTopology();
+
+    const ordered = this._orderedRenderers;
+    for (let i = 0; i < ordered.length; i++) {
+      const renderer = ordered[i];
+      const generator = renderer.generator;
+      if (
+        renderer.isCulled &&
+        renderer._hasParticleSystemUpdated &&
+        generator._incomingSubEmitterCommands.length === 0
+      ) {
+        generator._processFeedbackReadbacks();
+        continue;
+      }
+
+      renderer._hasParticleSystemUpdated = true;
+      renderer._updateParticles(deltaTime, renderer._isBirthSubEmitterTarget);
+    }
   }
 
   /**
@@ -66,100 +63,61 @@ export class ParticleSystemManager {
   _markTopologyDirty(): void {
     if (!this._topologyDirty) {
       this._topologyDirty = true;
-      this._orderedNodes.length = 0;
-    }
-  }
-
-  enqueue(command: ParticleSubEmitterCommand): void {
-    const node = command.target._renderer._particleSystemNode;
-    if (!node || node.manager !== this) {
-      this._cancelCommand(command);
-      return;
-    }
-    node.commands.push(command);
-  }
-
-  update(deltaTime: number): void {
-    if (this._topologyDirty) this._rebuildTopology();
-
-    const ordered = this._orderedNodes;
-    for (let i = 0; i < ordered.length; i++) {
-      const node = ordered[i];
-      const renderer = node.renderer;
-      const generator = renderer.generator;
-      const commands = node.commands;
-      if (renderer.isCulled && node.hasUpdated && commands.length === 0) {
-        generator._processFeedbackReadbacks();
-        continue;
-      }
-
-      node.hasUpdated = true;
-      renderer._updateParticles(deltaTime, commands, node.isBirthTarget);
-      commands.length = 0;
-    }
-  }
-
-  private _cancelCommand(command: ParticleSubEmitterCommand): void {
-    if (command.type === ParticleSubEmitterType.Birth && !command.target._renderer.destroyed) {
-      command.target._consumeBirthSubEmitterCommand(command, 0);
-    } else {
-      command.release();
+      this._orderedRenderers.length = 0;
     }
   }
 
   private _rebuildTopology(): void {
-    const nodes = this._nodes;
-    const ordered = this._orderedNodes;
+    const renderers = this._renderers;
+    const ordered = this._orderedRenderers;
 
     ordered.length = 0;
-    for (let i = 0, n = nodes.length; i < n; i++) {
-      const node = nodes[i];
-      node.targets.length = 0;
-      node.indegree = 0;
-      node.isBirthTarget = false;
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      renderer._particleSystemTargets.length = 0;
+      renderer._particleSystemIndegree = 0;
+      renderer._isBirthSubEmitterTarget = false;
     }
 
-    for (let i = 0, n = nodes.length; i < n; i++) {
-      const source = nodes[i];
-      const module = source.renderer.generator.subEmitters;
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const source = renderers[i];
+      const module = source.generator.subEmitters;
       if (!module.enabled) continue;
       const slots = module.subEmitters;
       for (let j = 0, slotCount = slots.length; j < slotCount; j++) {
         const slot = slots[j];
-        const targetRenderer = slot.emitter;
-        if (!targetRenderer) continue;
-        const target = targetRenderer._particleSystemNode;
-        if (!target || target.manager !== this) continue;
+        const target = slot.emitter;
+        if (!target || target._particleSystemManager !== this) continue;
 
-        const targets = source.targets;
+        const targets = source._particleSystemTargets;
         if (targets.indexOf(target) < 0) {
           targets.push(target);
-          target.indegree++;
+          target._particleSystemIndegree++;
         }
         if (slot.type === ParticleSubEmitterType.Birth) {
-          target.isBirthTarget = true;
+          target._isBirthSubEmitterTarget = true;
         }
       }
     }
 
-    for (let i = 0, n = nodes.length; i < n; i++) {
-      const node = nodes[i];
-      if (node.indegree === 0) ordered.push(node);
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      if (renderer._particleSystemIndegree === 0) ordered.push(renderer);
     }
 
     for (let head = 0; head < ordered.length; head++) {
       const source = ordered[head];
-      const targets = source.targets;
+      const targets = source._particleSystemTargets;
       for (let i = 0, n = targets.length; i < n; i++) {
         const target = targets[i];
-        if (--target.indegree === 0) ordered.push(target);
+        if (--target._particleSystemIndegree === 0) ordered.push(target);
       }
     }
 
-    if (ordered.length !== nodes.length) {
-      for (let i = 0, n = nodes.length; i < n; i++) {
-        const node = nodes[i];
-        if (node.indegree > 0) ordered.push(node);
+    if (ordered.length !== renderers.length) {
+      for (let i = 0, n = renderers.length; i < n; i++) {
+        const renderer = renderers[i];
+        if (renderer._particleSystemIndegree > 0) ordered.push(renderer);
       }
     }
 

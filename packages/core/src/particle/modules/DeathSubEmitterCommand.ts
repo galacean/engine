@@ -56,6 +56,10 @@ export class DeathSubEmitterCommand {
     this.parentWorldVelocity.copyFrom(parentWorldVelocity);
   }
 
+  cancel(): void {
+    this.release();
+  }
+
   release(): void {
     this.target = null;
     this._pool.push(this);

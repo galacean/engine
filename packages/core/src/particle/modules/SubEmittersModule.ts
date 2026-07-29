@@ -6,12 +6,16 @@ import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterIn
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import type { ParticleRenderer } from "../ParticleRenderer";
-import type { ParticleSubEmitterCommand } from "../ParticleSystemManager";
 import { BirthSubEmitterCommand } from "./BirthSubEmitterCommand";
 import { BirthSubEmitterState } from "./BirthSubEmitterState";
 import { DeathSubEmitterCommand } from "./DeathSubEmitterCommand";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
+
+/**
+ * @internal
+ */
+export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitterCommand;
 
 /**
  * Fires sub-emitters on parent particle lifecycle events (Birth / Death).
