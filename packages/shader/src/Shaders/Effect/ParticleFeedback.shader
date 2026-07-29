@@ -128,17 +128,6 @@ Shader "Effect/ParticleFeedback" {
           float lifetime = attr.a_ShapePositionStartLifeTime.w;
           float age = renderer_CurrentTime - attr.a_DirectionTime.w;
 
-          if (lifetime <= 0.0 || age <= 0.0) {
-              v.v_FeedbackPosition = position;
-              v.v_FeedbackVelocity = localVelocity;
-              #ifdef RENDERER_TRAJECTORY_FEEDBACK
-                  v.v_FeedbackWorldPosition = previousWorldPosition;
-                  v.v_FeedbackTrajectoryVelocity = vec3(0.0);
-              #endif
-              gl_Position = vec4(0.0);
-              return v;
-          }
-
           float simulationAge = min(age, lifetime);
           // Existing particles consume this frame's delta; new delayed events catch up from birth
           float previousAge = isNewParticle ? 0.0 : max(age - renderer_DeltaTime, 0.0);
@@ -200,60 +189,47 @@ Shader "Effect/ParticleFeedback" {
           // Step 2 & 3: Dampen + Drag. LimitVelocityOverLifetime applies to base and linear VOL velocity;
           // orbital/radial motion is applied below as positional orbit integration.
           #ifdef RENDERER_LVL_MODULE_ENABLED
-              vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
-              vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
-              vec3 inheritedVelocityLocal = rotationByQuaternions(inheritedVelocityWorld, invWorldRotation);
-
-              float limitRand = attr.a_Random2.w;
-              float dampen = renderer_LVLDampen;
-              float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
-
+              vec3 velocityOffset;
+              vec3 totalVelocity;
               if (renderer_LVLSpace == 0) {
-                  vec3 totalLocal = localVelocity + volAsLocal + inheritedVelocityLocal;
-                  vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = dampenedTotal - volAsLocal - inheritedVelocityLocal;
+                  velocityOffset =
+                      volLocal + rotationByQuaternions(volWorld + inheritedVelocityWorld, invWorldRotation);
+                  totalVelocity = localVelocity + velocityOffset;
               } else {
-                  vec3 totalWorld = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld + inheritedVelocityWorld;
-                  vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = rotationByQuaternions(dampenedTotal - volAsWorld - inheritedVelocityWorld, invWorldRotation);
+                  velocityOffset =
+                      rotationByQuaternions(volLocal, worldRotation) + volWorld + inheritedVelocityWorld;
+                  totalVelocity = rotationByQuaternions(localVelocity, worldRotation) + velocityOffset;
               }
 
-              {
-                  float dragCoeff = evaluateLVLDrag(normalizedAge, attr.a_Random2.w);
-                  if (dragCoeff > 0.0) {
-                      vec3 totalVel;
-                      if (renderer_LVLSpace == 0) {
-                          totalVel = localVelocity + volAsLocal + inheritedVelocityLocal;
-                      } else {
-                          totalVel = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld + inheritedVelocityWorld;
-                      }
-                      float velMagSqr = dot(totalVel, totalVel);
-                      float velMag = sqrt(velMagSqr);
+              float moduleRand = attr.a_Random2.w;
+              float effectiveDampen = 1.0 - pow(1.0 - renderer_LVLDampen, dt * 30.0);
+              totalVelocity =
+                  applyLVLSpeedLimitTF(totalVelocity, normalizedAge, moduleRand, effectiveDampen);
 
-                      float drag = dragCoeff;
+              float drag = evaluateLVLDrag(normalizedAge, moduleRand);
+              if (drag > 0.0) {
+                  float speedSqr = dot(totalVelocity, totalVelocity);
+                  float speed = sqrt(speedSqr);
 
-                      #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
-                          float maxDim = max(attr.a_StartSize.x, max(attr.a_StartSize.y, attr.a_StartSize.z));
-                          float radius = maxDim * 0.5;
-                          drag *= 3.14159265 * radius * radius;
-                      #endif
+                  #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
+                      float maxDimension = max(attr.a_StartSize.x, max(attr.a_StartSize.y, attr.a_StartSize.z));
+                      float radius = maxDimension * 0.5;
+                      drag *= 3.14159265 * radius * radius;
+                  #endif
 
-                      #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
-                          drag *= velMagSqr;
-                      #endif
+                  #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
+                      drag *= speedSqr;
+                  #endif
 
-                      if (velMag > 0.0) {
-                          float newVelMag = max(0.0, velMag - drag * dt);
-                          vec3 draggedTotal = totalVel * (newVelMag / velMag);
-                          if (renderer_LVLSpace == 0) {
-                              localVelocity = draggedTotal - volAsLocal - inheritedVelocityLocal;
-                          } else {
-                              localVelocity = rotationByQuaternions(
-                                  draggedTotal - volAsWorld - inheritedVelocityWorld,
-                                  invWorldRotation);
-                          }
-                      }
+                  if (speed > 0.0) {
+                      totalVelocity *= max(0.0, speed - drag * dt) / speed;
                   }
+              }
+
+              if (renderer_LVLSpace == 0) {
+                  localVelocity = totalVelocity - velocityOffset;
+              } else {
+                  localVelocity = rotationByQuaternions(totalVelocity - velocityOffset, invWorldRotation);
               }
           #endif
 
@@ -310,10 +286,8 @@ Shader "Effect/ParticleFeedback" {
                   position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
               }
           }
-          position += totalLinearVelocity * dt;
-          #else
-          position += totalLinearVelocity * dt;
           #endif
+          position += totalLinearVelocity * dt;
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
