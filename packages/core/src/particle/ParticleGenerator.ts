@@ -1066,7 +1066,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     inheritSize?: Vector3,
     inheritRotation?: Vector3,
     parentWorldVelocity?: Vector3,
-    parentVelocityFactor: number = 0,
     normalizedEmitAgeOverride?: number
   ): void {
     const firstFreeElement = this._firstFreeElement;
@@ -1112,15 +1111,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     let particleDirection = direction;
     const inheritedWorldVelocity = ParticleGenerator._tempVector34;
-    let hasInheritedVelocity = this.inheritVelocity._getInitialVelocity(normalizedEmitAge, inheritedWorldVelocity);
-    if (parentWorldVelocity && parentVelocityFactor !== 0) {
-      inheritedWorldVelocity.set(
-        inheritedWorldVelocity.x + parentWorldVelocity.x * parentVelocityFactor,
-        inheritedWorldVelocity.y + parentWorldVelocity.y * parentVelocityFactor,
-        inheritedWorldVelocity.z + parentWorldVelocity.z * parentVelocityFactor
-      );
-      hasInheritedVelocity = true;
-    }
+    const hasInheritedVelocity = this.inheritVelocity._getInitialVelocity(
+      normalizedEmitAge,
+      inheritedWorldVelocity,
+      parentWorldVelocity
+    );
 
     if (hasInheritedVelocity) {
       const inheritedLocalVelocity = ParticleGenerator._tempVector35;
@@ -1500,10 +1495,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       if (subEmitter && simulationLocal) {
         position.add(localPos);
       }
-      const parentVelocityFactor =
-        subEmitter && parentWorldVelocity
-          ? subEmitter.inheritVelocity.evaluate(normalizedEmitAge, subEmitter._inheritVelocityRand.random())
-          : 0;
       const firstFreeElement = this._firstFreeElement;
       this._addNewParticle(
         position,
@@ -1515,7 +1506,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         inheritSize,
         inheritRotation,
         parentWorldVelocity,
-        parentVelocityFactor,
         normalizedEmitAge
       );
       if (this._firstFreeElement === firstFreeElement) {

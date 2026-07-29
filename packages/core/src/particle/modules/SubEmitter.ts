@@ -1,11 +1,8 @@
-import { Rand } from "@galacean/engine-math";
 import { DataObject } from "../../base/DataObject";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ParticleRenderer } from "../ParticleRenderer";
-import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
-import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import type { SubEmittersModule } from "./SubEmittersModule";
 
 /**
@@ -20,18 +17,11 @@ export class SubEmitter extends DataObject {
   emitProbability: number = 1;
 
   /** Number of sub particles emitted when this slot is triggered at Death. */
-  emitCount: number = 1;
-
-  /** Scale applied to the parent particle velocity when a sub particle is emitted. */
-  readonly inheritVelocity = new ParticleCompositeCurve(0);
+  deathEmitCount: number = 1;
 
   /** @internal */
   @ignoreClone
   _module: SubEmittersModule = null;
-
-  /** @internal */
-  @ignoreClone
-  readonly _inheritVelocityRand = new Rand(0, ParticleRandomSubSeeds.InheritVelocity);
 
   private _emitter: ParticleRenderer = null;
   private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
@@ -62,12 +52,5 @@ export class SubEmitter extends DataObject {
     if (value === this._type) return;
     this._type = value;
     this._module?._onSlotChanged(this);
-  }
-
-  /**
-   * @internal
-   */
-  _resetRandomSeed(seed: number): void {
-    this._inheritVelocityRand.reset(seed, ParticleRandomSubSeeds.InheritVelocity);
   }
 }

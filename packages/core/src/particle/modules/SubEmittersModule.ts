@@ -76,7 +76,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
    * @param type - Trigger event (`Birth` / `Death`)
    * @param inheritProperties - Bitmask of properties inherited from the parent particle
    * @param emitProbability - Per-parent-particle probability [0, 1]
-   * @param emitCount - Number of sub particles emitted when the parent dies
+   * @param deathEmitCount - Number of sub particles emitted when the parent dies
    * @returns The created sub-emitter slot.
    */
   addSubEmitter(
@@ -84,7 +84,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     type: ParticleSubEmitterType,
     inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None,
     emitProbability: number = 1,
-    emitCount: number = 1
+    deathEmitCount: number = 1
   ): SubEmitter {
     if (!emitter) {
       throw new Error("Sub-emitter target cannot be null");
@@ -95,10 +95,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     sub.type = type;
     sub.inheritProperties = inheritProperties;
     sub.emitProbability = emitProbability;
-    sub.emitCount = emitCount;
+    sub.deathEmitCount = deathEmitCount;
     sub._module = this;
     this._subEmitters.push(sub);
-    sub._resetRandomSeed(this._generator.randomSeed);
     this._notifyTopologyChanged();
     this._generator._setTransformFeedback();
     return sub;
@@ -153,7 +152,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       const emitter = sub.emitter;
       if (!emitter || emitter.destroyed) continue;
 
-      const count = sub.emitCount;
+      const count = sub.deathEmitCount;
       if (count <= 0) continue;
 
       if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
@@ -343,10 +342,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   _resetRandomSeed(seed: number): void {
     this._probabilityRand.reset(seed, ParticleRandomSubSeeds.SubEmitter);
     this._particleSequence = 0;
-    const subEmitters = this._subEmitters;
-    for (let i = 0, n = subEmitters.length; i < n; i++) {
-      subEmitters[i]._resetRandomSeed(seed);
-    }
   }
 
   /**

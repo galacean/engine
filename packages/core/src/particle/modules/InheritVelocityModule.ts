@@ -8,7 +8,9 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
-/** Adds the particle system Entity's velocity to its particles. */
+/**
+ * Adds emitter velocity to new particles, using parent particle velocity for Initial-mode sub-emissions.
+ */
 export class InheritVelocityModule extends ParticleGeneratorModule {
   private static readonly _currentMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_CURRENT");
   private static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_CONSTANT_MODE");
@@ -102,7 +104,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _getInitialVelocity(normalizedAge: number, out: Vector3): boolean {
+  _getInitialVelocity(normalizedAge: number, out: Vector3, emitterVelocityOverride: Vector3 | undefined): boolean {
     if (
       !this._enabled ||
       this._mode !== ParticleInheritVelocityMode.Initial ||
@@ -113,7 +115,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     }
 
     const factor = this.curve.evaluate(normalizedAge, this._curveRand.random());
-    const velocity = this._emitterVelocity;
+    const velocity = emitterVelocityOverride ?? this._emitterVelocity;
     out.set(velocity.x * factor, velocity.y * factor, velocity.z * factor);
     return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
   }
