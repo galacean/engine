@@ -1,6 +1,11 @@
 import { Camera, Engine, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 
-export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
+export const updateForE2E = (
+  engine,
+  deltaTime = 100,
+  loopTime = 10,
+  waitForGPUReadback = false
+): void | Promise<void> => {
   engine._vSyncCount = Infinity;
   engine._time._lastSystemTime = 0;
   let times = 0;
@@ -8,29 +13,26 @@ export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
     times++;
     return times * deltaTime;
   };
-  for (let i = 0; i < loopTime; ++i) {
-    engine.update();
+  const gl = engine._hardwareRenderer._gl;
+  if (!waitForGPUReadback) {
+    for (let i = 0; i < loopTime; ++i) {
+      engine.update();
+    }
+    gl.finish();
+    return;
   }
-  engine._hardwareRenderer._gl.finish();
-};
 
-export const updateForE2EAsync = async (engine, deltaTime = 100, loopTime = 10) => {
-  engine._vSyncCount = Infinity;
-  engine._time._lastSystemTime = 0;
-  let times = 0;
-  performance.now = function () {
-    times++;
-    return times * deltaTime;
-  };
-  for (let i = 0; i < loopTime; ++i) {
+  return (async () => {
+    for (let i = 0; i < loopTime; ++i) {
+      engine.update();
+      gl.finish();
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+    }
+    const currentTime = times * deltaTime;
+    performance.now = () => currentTime;
     engine.update();
-    engine._hardwareRenderer._gl.finish();
-    await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  }
-  const currentTime = times * deltaTime;
-  performance.now = () => currentTime;
-  engine.update();
-  engine._hardwareRenderer._gl.finish();
+    gl.finish();
+  })();
 };
 
 let screenshotCanvas: HTMLCanvasElement = null;

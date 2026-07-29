@@ -29,7 +29,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
-import { initScreenshot, updateForE2EAsync } from "./.mockForE2E";
+import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({
   canvas: "canvas"
@@ -50,7 +50,7 @@ WebGLEngine.create({
     })
     .then(async (texture) => {
       createSubEmitterScene(engine, rootEntity, <Texture2D>texture);
-      await updateForE2EAsync(engine, 50, 14);
+      await updateForE2E(engine, 50, 14, true);
       initScreenshot(engine, camera);
     });
 });
