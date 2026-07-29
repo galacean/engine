@@ -1281,7 +1281,52 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("preserves surviving feedback when current-frame emissions use a partial second pass", () => {
+  it("catches a delayed Death particle up in the target's single feedback pass", () => {
+    const parent = createParticleRenderer(engine, "DeathCatchUp_Parent");
+    const child = createParticleRenderer(engine, "DeathCatchUp_Child");
+    parent.generator.main.startLifetime.constant = 0.1;
+    parent.generator.main.startSpeed.constant = 0;
+    child.generator.main.startSpeed.constant = 1;
+    child.generator.limitVelocityOverLifetime.enabled = true;
+    child.generator.limitVelocityOverLifetime.dampen = 0;
+    child.generator.limitVelocityOverLifetime.speed.constant = 100;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+    engine.update();
+
+    const readbackSlot = (parent.generator as any)._feedbackReadbackQueue[0];
+    readbackSlot.request._platformReadback.isReady = () => false;
+    engine.update();
+    engine.update();
+    readbackSlot.request._platformReadback.isReady = () => true;
+    engine.update();
+    performance.now = () => time;
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    const particleAge = child.generator._playTime - vertices[7];
+    expect(particleAge).to.be.greaterThan(engine.time.deltaTime * 2);
+
+    const feedback = new Float32Array(6);
+    child.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+    expect(feedback[2]).to.be.closeTo(-particleAge, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("updates surviving and current-frame particles in one feedback pass", () => {
     const parent = createParticleRenderer(engine, "Parent_DeathPartialFeedback");
     const child = createParticleRenderer(engine, "Child_DeathPartialFeedback");
     parent.generator.main.startLifetime.constant = 10;
@@ -1297,8 +1342,19 @@ describe("SubEmitter", () => {
     child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
 
-    updateEngine(engine, 2);
+    const feedbackUpdate = vi.spyOn((parent.generator as any)._feedbackSimulator, "update");
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+    feedbackUpdate.mockClear();
+    engine.update();
+    performance.now = () => time;
+
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
+    expect(feedbackUpdate).toHaveBeenCalledTimes(1);
+    expect(feedbackUpdate.mock.calls[0].slice(2, 5)).to.deep.equal([0, 2, 1]);
 
     const binding = parent.generator._feedbackSimulator.readBinding;
     const feedbackStride = binding.stride / Float32Array.BYTES_PER_ELEMENT;

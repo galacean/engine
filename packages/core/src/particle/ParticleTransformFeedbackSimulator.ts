@@ -1,4 +1,3 @@
-import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -7,7 +6,6 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
-import { ShaderPass } from "../shader/ShaderPass";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
@@ -19,10 +17,11 @@ const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
  */
 export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
-  private static readonly _feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
-  private static readonly _trajectoryFeedbackVaryings = [
-    "v_FeedbackPosition",
-    "v_FeedbackVelocity",
+  private static readonly _firstNewParticleProperty = ShaderProperty.getByName("renderer_FirstNewParticle");
+  private static readonly _firstFreeParticleProperty = ShaderProperty.getByName("renderer_FirstFreeParticle");
+  private static readonly _stateVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+  private static readonly _trajectoryStateVaryings = [
+    ...ParticleTransformFeedbackSimulator._stateVaryings,
     "v_FeedbackWorldPosition",
     "v_FeedbackTrajectoryVelocity"
   ];
@@ -31,13 +30,9 @@ export class ParticleTransformFeedbackSimulator {
   _particleInputBinding: VertexBufferBinding;
 
   readonly vertexStride: number;
-  readonly trajectoryEnabled: boolean;
 
   private _simulator: TransformFeedbackSimulator;
-  private _feedbackPass: ShaderPass;
-  private _feedbackVaryings: string[];
   private _feedbackStateVertexElements: VertexElement[];
-  private _particleInitData: Float32Array;
   private _oldReadBuffer: Buffer;
   private _oldWriteBuffer: Buffer;
 
@@ -48,12 +43,8 @@ export class ParticleTransformFeedbackSimulator {
     return this._simulator.readBinding;
   }
 
-  constructor(engine: Engine, trajectoryEnabled: boolean = false) {
-    // Look up the feedback pass dynamically rather than caching it on a
-    // built-in pool — `engine-core` no longer ships the built-in shader set
-    // itself; the umbrella `@galacean/engine` package registers
-    // `Effect/ParticleFeedback` (and configures its transform-feedback
-    // varyings) at module load time.
+  constructor(engine: Engine, trajectoryEnabled: boolean) {
+    // The engine flavor owns shader registration; engine-core resolves the registered pass when needed
     const feedbackShader = Shader.find(FEEDBACK_SHADER_NAME);
     if (!feedbackShader) {
       throw new Error(
@@ -61,19 +52,22 @@ export class ParticleTransformFeedbackSimulator {
           `or register the shader manually if you build a custom engine flavor.`
       );
     }
-    this.trajectoryEnabled = trajectoryEnabled;
+    let feedbackVaryings: string[];
     if (trajectoryEnabled) {
       this.vertexStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
       this._feedbackStateVertexElements = ParticleBufferUtils.feedbackTrajectoryStateVertexElements;
-      this._feedbackVaryings = ParticleTransformFeedbackSimulator._trajectoryFeedbackVaryings;
+      feedbackVaryings = ParticleTransformFeedbackSimulator._trajectoryStateVaryings;
     } else {
       this.vertexStride = ParticleBufferUtils.feedbackStateVertexStride;
       this._feedbackStateVertexElements = ParticleBufferUtils.feedbackStateVertexElements;
-      this._feedbackVaryings = ParticleTransformFeedbackSimulator._feedbackVaryings;
+      feedbackVaryings = ParticleTransformFeedbackSimulator._stateVaryings;
     }
-    this._particleInitData = new Float32Array(this.vertexStride / 4);
-    this._feedbackPass = feedbackShader.subShaders[0].passes[0];
-    this._simulator = new TransformFeedbackSimulator(engine, this.vertexStride, this._feedbackPass);
+    this._simulator = new TransformFeedbackSimulator(
+      engine,
+      this.vertexStride,
+      feedbackShader.subShaders[0].passes[0],
+      feedbackVaryings
+    );
   }
 
   /**
@@ -90,35 +84,6 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   /**
-   * Write initial feedback state for a newly emitted particle.
-   */
-  writeParticleData(
-    index: number,
-    position: Vector3,
-    worldPosition: Vector3,
-    vx: number,
-    vy: number,
-    vz: number
-  ): void {
-    const data = this._particleInitData;
-    data[0] = position.x;
-    data[1] = position.y;
-    data[2] = position.z;
-    data[3] = vx;
-    data[4] = vy;
-    data[5] = vz;
-    if (this.trajectoryEnabled) {
-      data[6] = worldPosition.x;
-      data[7] = worldPosition.y;
-      data[8] = worldPosition.z;
-      data[9] = data[10] = data[11] = 0;
-    }
-    const byteOffset = index * this.vertexStride;
-    this._simulator.readBinding.buffer.setData(data, byteOffset);
-    this._simulator.writeBinding.buffer.setData(data, byteOffset);
-  }
-
-  /**
    * Copy data from pre-resize buffers to current buffers.
    * Must be called after `resize` which saves the old buffers.
    */
@@ -128,14 +93,6 @@ export class ParticleTransformFeedbackSimulator {
     const byteLength = elementCount * this.vertexStride;
     this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer, srcByteOffset, dstByteOffset, byteLength);
     this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
-  }
-
-  /**
-   * @internal
-   */
-  syncWriteBuffer(): void {
-    const readBuffer = this._simulator.readBinding.buffer;
-    this._simulator.writeBinding.buffer.copyFromBuffer(readBuffer, 0, 0, readBuffer.byteLength);
   }
 
   /**
@@ -154,6 +111,7 @@ export class ParticleTransformFeedbackSimulator {
    * @param particleCount - Total particle slot count
    * @param firstActive - First active particle index in ring buffer
    * @param firstFree - First free particle index in ring buffer
+   * @param firstNew - First particle initialized during this update
    * @param deltaTime - Frame delta time
    */
   update(
@@ -161,12 +119,14 @@ export class ParticleTransformFeedbackSimulator {
     particleCount: number,
     firstActive: number,
     firstFree: number,
+    firstNew: number,
     deltaTime: number
   ): void {
     if (firstActive === firstFree) return;
 
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
-    this._feedbackPass._feedbackVaryings = this._feedbackVaryings;
+    shaderData.setInt(ParticleTransformFeedbackSimulator._firstNewParticleProperty, firstNew);
+    shaderData.setInt(ParticleTransformFeedbackSimulator._firstFreeParticleProperty, firstFree);
     if (
       !this._simulator.beginUpdate(
         shaderData,

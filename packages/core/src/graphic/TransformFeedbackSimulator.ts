@@ -15,6 +15,7 @@ export class TransformFeedbackSimulator {
   private _engine: Engine;
   private _primitive: TransformFeedbackPrimitive;
   private _shaderPass: ShaderPass;
+  private _feedbackVaryings: string[];
 
   /**
    * The current read buffer binding.
@@ -33,12 +34,14 @@ export class TransformFeedbackSimulator {
   /**
    * @param engine - Engine instance
    * @param byteStride - Bytes per vertex in the feedback buffer
-   * @param shaderPass - ShaderPass with feedbackVaryings configured
+   * @param shaderPass - Shader pass used for simulation
+   * @param feedbackVaryings - Vertex shader outputs captured by Transform Feedback
    */
-  constructor(engine: Engine, byteStride: number, shaderPass: ShaderPass) {
+  constructor(engine: Engine, byteStride: number, shaderPass: ShaderPass, feedbackVaryings: string[]) {
     this._engine = engine;
     this._primitive = new TransformFeedbackPrimitive(engine, byteStride);
     this._shaderPass = shaderPass;
+    this._feedbackVaryings = feedbackVaryings;
   }
 
   /**
@@ -62,6 +65,7 @@ export class TransformFeedbackSimulator {
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
   ): boolean {
+    this._shaderPass._feedbackVaryings = this._feedbackVaryings;
     const program = this._shaderPass._getShaderProgram(this._engine, shaderData._macroCollection);
     if (!program?.isValid) return false;
 
