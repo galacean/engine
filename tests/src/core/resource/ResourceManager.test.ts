@@ -28,6 +28,26 @@ describe("ResourceManager", () => {
       getResource = engine.resourceManager.getFromCache(wrongUrl);
       expect(getResource).equal(null);
     });
+
+    it("returns a virtual resource from the cache by its logical path", async () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Prefab/Cache/Character.prefab";
+      const physicalPath = "blob:https://local.alipay.net/cache-character";
+      const resource = { instanceId: 987654324 };
+      resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Prefab }]);
+      // @ts-ignore -- replace the internal loader to isolate cache-key behavior
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Prefab], "load")
+        .mockReturnValue(AssetPromise.resolve(resource) as any);
+
+      try {
+        expect(await resourceManager.load(virtualPath)).equal(resource);
+        expect(resourceManager.getFromCache(virtualPath)).equal(resource);
+        expect(resourceManager.getFromCache(physicalPath)).equal(resource);
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
   });
 
   describe("findResourcesByType", () => {
@@ -179,6 +199,31 @@ describe("ResourceManager", () => {
         expect(loadItem.url).equal(virtualPath);
         expect(loadItem).not.toHaveProperty("resolvedUrl");
       } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("cancels a pending virtual resource by its logical path", () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Prefab/Pending/Character.prefab";
+      const physicalPath = "blob:https://local.alipay.net/pending-character";
+      const onCancelSpy = vi.fn();
+      const pendingPromise = new AssetPromise((_resolve, _reject, _setComplete, _setDetail, onCancel) => {
+        onCancel(onCancelSpy);
+      });
+      resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Prefab }]);
+      // @ts-ignore -- replace the internal loader to keep the request pending
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Prefab], "load")
+        .mockReturnValue(pendingPromise as any);
+
+      try {
+        resourceManager.load(virtualPath).catch(() => {});
+        resourceManager.cancelNotLoaded(virtualPath);
+
+        expect(onCancelSpy).toHaveBeenCalledOnce();
+      } finally {
+        resourceManager.cancelNotLoaded(physicalPath);
         loaderSpy.mockRestore();
       }
     });

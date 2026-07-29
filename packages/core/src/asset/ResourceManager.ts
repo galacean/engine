@@ -100,11 +100,11 @@ export class ResourceManager {
 
   /**
    * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
-   * @param url - Resource url
+   * @param url - Resource URL or registered virtual path
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
-    return (this._assetUrlPool[url] as T) ?? null;
+    return (this._assetUrlPool[this._getRemoteUrl(url)] as T) ?? null;
   }
 
   /**
@@ -140,13 +140,13 @@ export class ResourceManager {
 
   /**
    * Cancel assets whose url has not finished loading.
-   * @param url - Resource url
+   * @param url - Resource URL or registered virtual path
    */
   cancelNotLoaded(url: string): void;
 
   /**
    * Cancel the incompletely loaded assets in urls.
-   * @param urls - Resource urls
+   * @param urls - Resource URLs or registered virtual paths
    */
   cancelNotLoaded(urls: string[]): void;
 
@@ -155,11 +155,10 @@ export class ResourceManager {
       Utils.objectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
-    } else if (typeof url === "string") {
-      this._loadingPromises[url]?.cancel();
     } else {
-      url.forEach((p) => {
-        this._loadingPromises[p]?.cancel();
+      const urls = typeof url === "string" ? [url] : url;
+      urls.forEach((url) => {
+        this._loadingPromises[this._getRemoteUrl(url)]?.cancel();
       });
     }
   }
@@ -208,7 +207,7 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
+    const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
 
     const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
@@ -354,7 +353,7 @@ export class ResourceManager {
         ? assetBaseURL
         : Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL);
     item.url = loadItemUrl;
-    const remoteAssetBaseURL = virtualResourceEntry?.path ?? loadItemUrl;
+    const remoteAssetBaseURL = this._getRemoteUrl(loadItemUrl);
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
