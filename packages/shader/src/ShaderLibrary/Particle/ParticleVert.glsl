@@ -173,8 +173,8 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         worldRotation = attr.a_SimulationWorldRotation;
     }
 
-    vec3 localVelocity;
-    vec3 worldVelocity;
+    vec3 visualLocalVelocity;
+    vec3 visualWorldVelocity;
 
     #ifdef RENDERER_TRANSFORM_FEEDBACK
         vec3 center;
@@ -183,39 +183,21 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         } else if (renderer_SimulationSpace == 1) {
             center = attr.a_FeedbackPosition;
         }
-        localVelocity = attr.a_FeedbackVelocity;
-        worldVelocity = vec3(0.0);
-        vec4 invWorldRotation = quaternionConjugate(worldRotation);
-        vec3 currentLinearVelocity = vec3(0.0);
+        visualLocalVelocity = attr.a_FeedbackVelocity;
+        visualWorldVelocity = vec3(0.0);
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
             vec3 instantVOLVelocity = evaluateVOLVelocity(attr, normalizedAge);
             if (renderer_VOLSpace == 0) {
-                localVelocity += instantVOLVelocity;
-                currentLinearVelocity = renderer_SimulationSpace == 0
-                    ? instantVOLVelocity
-                    : rotationByQuaternions(instantVOLVelocity, worldRotation);
+                visualLocalVelocity += instantVOLVelocity;
             } else {
-                worldVelocity += instantVOLVelocity;
-                currentLinearVelocity = renderer_SimulationSpace == 0
-                    ? rotationByQuaternions(instantVOLVelocity, invWorldRotation)
-                    : instantVOLVelocity;
+                visualWorldVelocity += instantVOLVelocity;
             }
-        #endif
-
-        vec3 visualLocalVelocity = localVelocity;
-        vec3 visualWorldVelocity = worldVelocity;
-
-        #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) && defined(RENDERER_MODE_STRETCHED_BILLBOARD)
-            visualWorldVelocity += evaluateInheritVelocity(attr, normalizedAge);
         #endif
 
         #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
-                vec3 visualSimulationVelocity = renderer_SimulationSpace == 0
-                    ? attr.a_FeedbackVelocity
-                    : rotationByQuaternions(attr.a_FeedbackVelocity, worldRotation);
-                visualSimulationVelocity += currentLinearVelocity;
+                vec4 invWorldRotation = quaternionConjugate(worldRotation);
 
                 vec3 rel;
                 if (renderer_SimulationSpace == 0) {
@@ -239,22 +221,35 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
                 #endif
 
                 if (renderer_SimulationSpace == 0) {
-                    visualLocalVelocity = visualSimulationVelocity + orbitalRadialVelocity;
+                    visualLocalVelocity +=
+                        rotationByQuaternions(visualWorldVelocity, invWorldRotation) + orbitalRadialVelocity;
                     visualWorldVelocity = vec3(0.0);
                 } else {
+                    visualWorldVelocity += rotationByQuaternions(
+                        visualLocalVelocity + orbitalRadialVelocity,
+                        worldRotation);
                     visualLocalVelocity = vec3(0.0);
-                    visualWorldVelocity = visualSimulationVelocity + rotationByQuaternions(orbitalRadialVelocity, worldRotation);
                 }
+            #endif
+
+            #ifdef _INHERIT_VELOCITY_MODULE_ENABLED
+                visualWorldVelocity += evaluateInheritVelocity(attr, normalizedAge);
             #endif
         #endif
     #else
         vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
         vec3 gravityVelocity = renderer_Gravity * attr.a_Random0.x * age;
-        localVelocity = startVelocity;
-        worldVelocity = gravityVelocity;
-        vec3 center = computeParticlePosition(attr, startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
-        vec3 visualLocalVelocity = localVelocity;
-        vec3 visualWorldVelocity = worldVelocity;
+        visualLocalVelocity = startVelocity;
+        visualWorldVelocity = gravityVelocity;
+        vec3 center = computeParticlePosition(
+            attr,
+            startVelocity,
+            age,
+            normalizedAge,
+            gravityVelocity,
+            worldRotation,
+            visualLocalVelocity,
+            visualWorldVelocity);
     #endif
 
     // Billboard / Mesh mode positioning
