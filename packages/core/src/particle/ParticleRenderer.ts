@@ -13,7 +13,7 @@ import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
-import type { ParticleSubEmitterCommand } from "./ParticleSystemManager";
+import type { ParticleSubEmitterCommand, ParticleSystemNode } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -47,7 +47,7 @@ export class ParticleRenderer extends Renderer {
   _transformedBounds = new BoundingBox();
   /** @internal */
   @ignoreClone
-  _hasParticleSystemUpdated = false;
+  _particleSystemNode: ParticleSystemNode | null = null;
   @ignoreClone
   private _mesh: ModelMesh;
 

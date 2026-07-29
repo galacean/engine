@@ -1,5 +1,4 @@
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
-import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
 import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
@@ -10,45 +9,55 @@ import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitterCommand;
 
 /**
+ * Stores reusable scheduling state for one particle system.
+ * @internal
+ */
+export class ParticleSystemNode {
+  readonly commands: ParticleSubEmitterCommand[] = [];
+  readonly targets: ParticleSystemNode[] = [];
+  manager: ParticleSystemManager | null = null;
+  indegree = 0;
+  isBirthTarget = false;
+  hasUpdated = false;
+
+  constructor(readonly renderer: ParticleRenderer) {}
+}
+
+/**
  * @internal
  */
 export class ParticleSystemManager {
-  private _renderers: ParticleRenderer[] = [];
-  private _commandQueues = new Map<ParticleGenerator, ParticleSubEmitterCommand[]>();
-  private _orderedRenderers: ParticleRenderer[] = [];
-  private _birthTargets = new Set<ParticleGenerator>();
-  private _rendererSet = new Set<ParticleRenderer>();
-  private _adjacency = new Map<ParticleRenderer, ParticleRenderer[]>();
-  private _indegree = new Map<ParticleRenderer, number>();
-  private _queue: ParticleRenderer[] = [];
-  private _adjacencyListPool: ParticleRenderer[][] = [];
+  private _nodes: ParticleSystemNode[] = [];
+  private _orderedNodes: ParticleSystemNode[] = [];
   private _topologyDirty = true;
 
   add(renderer: ParticleRenderer): void {
-    if (this._renderers.indexOf(renderer) < 0) {
-      this._renderers.push(renderer);
-      this._commandQueues.set(renderer.generator, []);
-      // Treat a newly enabled system as visible until the first culling result
-      renderer._renderFrameCount = renderer.engine.time.frameCount;
-      renderer._hasParticleSystemUpdated = false;
-      this._markTopologyDirty();
-    }
+    const node = (renderer._particleSystemNode ??= new ParticleSystemNode(renderer));
+    if (node.manager) return;
+
+    node.manager = this;
+    node.hasUpdated = false;
+    this._nodes.push(node);
+    // Treat a newly enabled system as visible until the first culling result
+    renderer._renderFrameCount = renderer.engine.time.frameCount;
+    this._markTopologyDirty();
   }
 
   remove(renderer: ParticleRenderer): void {
-    const index = this._renderers.indexOf(renderer);
+    const node = renderer._particleSystemNode;
+    if (!node || node.manager !== this) return;
+
+    const index = this._nodes.indexOf(node);
     if (index >= 0) {
-      this._renderers.splice(index, 1);
+      this._nodes.splice(index, 1);
       this._markTopologyDirty();
     }
-    const generator = renderer.generator;
-    const commands = this._commandQueues.get(generator);
-    if (commands) {
-      for (let i = 0, n = commands.length; i < n; i++) {
-        this._cancelCommand(commands[i]);
-      }
-      this._commandQueues.delete(generator);
+    node.manager = null;
+    const commands = node.commands;
+    for (let i = 0, n = commands.length; i < n; i++) {
+      this._cancelCommand(commands[i]);
     }
+    commands.length = 0;
   }
 
   /**
@@ -57,38 +66,35 @@ export class ParticleSystemManager {
   _markTopologyDirty(): void {
     if (!this._topologyDirty) {
       this._topologyDirty = true;
-      this._orderedRenderers.length = 0;
-      this._birthTargets.clear();
+      this._orderedNodes.length = 0;
     }
   }
 
   enqueue(command: ParticleSubEmitterCommand): void {
-    const commands = this._commandQueues.get(command.target);
-    if (!commands) {
+    const node = command.target._renderer._particleSystemNode;
+    if (!node || node.manager !== this) {
       this._cancelCommand(command);
       return;
     }
-    commands.push(command);
+    node.commands.push(command);
   }
 
   update(deltaTime: number): void {
     if (this._topologyDirty) this._rebuildTopology();
 
-    const ordered = this._orderedRenderers;
-    if (ordered.length === 0) return;
-
-    const birthTargets = this._birthTargets;
+    const ordered = this._orderedNodes;
     for (let i = 0; i < ordered.length; i++) {
-      const renderer = ordered[i];
+      const node = ordered[i];
+      const renderer = node.renderer;
       const generator = renderer.generator;
-      const commands = this._commandQueues.get(generator)!;
-      if (renderer.isCulled && renderer._hasParticleSystemUpdated && commands.length === 0) {
+      const commands = node.commands;
+      if (renderer.isCulled && node.hasUpdated && commands.length === 0) {
         generator._processFeedbackReadbacks();
         continue;
       }
 
-      renderer._hasParticleSystemUpdated = true;
-      renderer._updateParticles(deltaTime, commands, birthTargets.has(generator));
+      node.hasUpdated = true;
+      renderer._updateParticles(deltaTime, commands, node.isBirthTarget);
       commands.length = 0;
     }
   }
@@ -102,86 +108,61 @@ export class ParticleSystemManager {
   }
 
   private _rebuildTopology(): void {
-    const renderers = this._renderers;
-    const ordered = this._orderedRenderers;
-    const birthTargets = this._birthTargets;
-    const rendererSet = this._rendererSet;
-    const adjacency = this._adjacency;
-    const indegree = this._indegree;
-    const queue = this._queue;
-    const adjacencyListPool = this._adjacencyListPool;
+    const nodes = this._nodes;
+    const ordered = this._orderedNodes;
 
     ordered.length = 0;
-    birthTargets.clear();
-    let count = 0;
-    for (let i = 0, n = renderers.length; i < n; i++) {
-      const renderer = renderers[i];
-      if (renderer.destroyed || !renderer.enabled) continue;
-      rendererSet.add(renderer);
-      indegree.set(renderer, 0);
-      count++;
+    for (let i = 0, n = nodes.length; i < n; i++) {
+      const node = nodes[i];
+      node.targets.length = 0;
+      node.indegree = 0;
+      node.isBirthTarget = false;
     }
 
-    for (let i = 0, n = renderers.length; i < n; i++) {
-      const source = renderers[i];
-      if (!rendererSet.has(source)) continue;
-      const module = source.generator.subEmitters;
+    for (let i = 0, n = nodes.length; i < n; i++) {
+      const source = nodes[i];
+      const module = source.renderer.generator.subEmitters;
       if (!module.enabled) continue;
       const slots = module.subEmitters;
       for (let j = 0, slotCount = slots.length; j < slotCount; j++) {
         const slot = slots[j];
-        const target = slot.emitter;
-        if (!target || target.destroyed || !rendererSet.has(target)) continue;
+        const targetRenderer = slot.emitter;
+        if (!targetRenderer) continue;
+        const target = targetRenderer._particleSystemNode;
+        if (!target || target.manager !== this) continue;
 
-        let targets = adjacency.get(source);
-        if (!targets) {
-          targets = adjacencyListPool.pop() ?? [];
-          adjacency.set(source, targets);
-        }
+        const targets = source.targets;
         if (targets.indexOf(target) < 0) {
           targets.push(target);
-          indegree.set(target, indegree.get(target)! + 1);
+          target.indegree++;
         }
         if (slot.type === ParticleSubEmitterType.Birth) {
-          birthTargets.add(target.generator);
+          target.isBirthTarget = true;
         }
       }
     }
 
-    for (let i = 0, n = renderers.length; i < n; i++) {
-      const renderer = renderers[i];
-      if (rendererSet.has(renderer) && indegree.get(renderer) === 0) queue.push(renderer);
+    for (let i = 0, n = nodes.length; i < n; i++) {
+      const node = nodes[i];
+      if (node.indegree === 0) ordered.push(node);
     }
 
-    for (let head = 0; head < queue.length; head++) {
-      const source = queue[head];
-      ordered.push(source);
-      rendererSet.delete(source);
-      const targets = adjacency.get(source);
-      if (!targets) continue;
+    for (let head = 0; head < ordered.length; head++) {
+      const source = ordered[head];
+      const targets = source.targets;
       for (let i = 0, n = targets.length; i < n; i++) {
         const target = targets[i];
-        const nextDegree = indegree.get(target)! - 1;
-        indegree.set(target, nextDegree);
-        if (nextDegree === 0) queue.push(target);
+        if (--target.indegree === 0) ordered.push(target);
       }
     }
 
-    if (ordered.length !== count) {
-      for (let i = 0, n = renderers.length; i < n; i++) {
-        const renderer = renderers[i];
-        if (rendererSet.has(renderer)) ordered.push(renderer);
+    if (ordered.length !== nodes.length) {
+      for (let i = 0, n = nodes.length; i < n; i++) {
+        const node = nodes[i];
+        if (node.indegree > 0) ordered.push(node);
       }
     }
 
-    for (const targets of adjacency.values()) {
-      targets.length = 0;
-      adjacencyListPool.push(targets);
-    }
-    rendererSet.clear();
-    adjacency.clear();
-    indegree.clear();
-    queue.length = 0;
     this._topologyDirty = false;
   }
 }

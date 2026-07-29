@@ -36,8 +36,10 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   };
   const resolveReadbacks = () => {
     for (const scene of engine.sceneManager.scenes) {
-      const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
-      for (const renderer of renderers) {
+      const nodes = (scene as any)._componentsManager._particleSystemManager._nodes as Array<{
+        renderer: ParticleRenderer;
+      }>;
+      for (const { renderer } of nodes) {
         const slots = (renderer.generator as any)._feedbackReadbackQueue as Array<{ request: any }>;
         for (let i = 0, n = slots.length; i < n; i++) {
           slots[i].request._platformReadback.isReady = () => true;
@@ -490,6 +492,41 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
     originalChild.entity.destroy();
     replacementChild.entity.destroy();
+  });
+
+  it("cancels a resolved Birth command after its target moves to another scene", () => {
+    const child = createParticleRenderer(engine, "MovedPendingBirth_Child");
+    const parent = createParticleRenderer(engine, "MovedPendingBirth_Parent");
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+
+    const request = (parent.generator as any)._feedbackReadbackQueue[0].request;
+    request._platformReadback.isReady = () => false;
+    const secondScene = new Scene(engine, "MovedPendingBirth_Scene");
+    engine.sceneManager.addScene(secondScene);
+    secondScene.addRootEntity(child.entity);
+    engine.update();
+
+    request._platformReadback.isReady = () => true;
+    engine.update();
+    engine.update();
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    secondScene.destroy();
   });
 
   it("keeps queued Birth commands valid when the parent ring buffer grows", () => {
