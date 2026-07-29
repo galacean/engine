@@ -2,7 +2,6 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
-import type { SubEmitter } from "./SubEmitter";
 
 /**
  * Stores one deferred Death emission event.
@@ -13,8 +12,8 @@ export class DeathSubEmitterCommand {
   readonly worldPosition = new Vector3();
   readonly parentWorldVelocity = new Vector3();
 
-  subEmitter: SubEmitter;
   target: ParticleGenerator;
+  ringIndex = 0;
   count = 0;
   inheritProperties = ParticleSubEmitterInheritProperty.None;
   parentColor: Color | null = null;
@@ -25,22 +24,22 @@ export class DeathSubEmitterCommand {
   constructor(private readonly _pool: DeathSubEmitterCommand[]) {}
 
   reset(
-    subEmitter: SubEmitter,
     target: ParticleGenerator,
+    ringIndex: number,
     count: number,
-    worldPosition: Vector3,
-    parentColor: Color,
-    parentSize: Vector3,
-    parentRotation: Vector3,
-    parentWorldVelocity: Vector3,
+    inheritProperties: ParticleSubEmitterInheritProperty,
     eventEngineTime: number
   ): this {
-    const inheritProperties = (this.inheritProperties = subEmitter.inheritProperties);
-    this.subEmitter = subEmitter;
     this.target = target;
+    this.ringIndex = ringIndex;
     this.count = count;
-    this.worldPosition.copyFrom(worldPosition);
-    this.parentWorldVelocity.copyFrom(parentWorldVelocity);
+    this.inheritProperties = inheritProperties;
+    this.eventEngineTime = eventEngineTime;
+    return this;
+  }
+
+  snapshotParentValues(parentColor: Color, parentSize: Vector3, parentRotation: Vector3): void {
+    const inheritProperties = this.inheritProperties;
     if ((inheritProperties & ParticleSubEmitterInheritProperty.Color) !== 0) {
       (this.parentColor ||= new Color()).copyFrom(parentColor);
     }
@@ -50,12 +49,14 @@ export class DeathSubEmitterCommand {
     if ((inheritProperties & ParticleSubEmitterInheritProperty.Rotation) !== 0) {
       (this.parentRotation ||= new Vector3()).copyFrom(parentRotation);
     }
-    this.eventEngineTime = eventEngineTime;
-    return this;
+  }
+
+  resolveTrajectory(worldPosition: Vector3, parentWorldVelocity: Vector3): void {
+    this.worldPosition.copyFrom(worldPosition);
+    this.parentWorldVelocity.copyFrom(parentWorldVelocity);
   }
 
   release(): void {
-    this.subEmitter = null;
     this.target = null;
     this._pool.push(this);
   }

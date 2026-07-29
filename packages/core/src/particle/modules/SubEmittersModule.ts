@@ -1,4 +1,4 @@
-import { Color, MathUtil, Rand, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand } from "@galacean/engine-math";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -6,8 +6,10 @@ import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterIn
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import type { ParticleRenderer } from "../ParticleRenderer";
-import { BirthSubEmitterPlan } from "./BirthSubEmitterPlan";
+import type { ParticleSubEmitterCommand } from "../ParticleSystemManager";
+import { BirthSubEmitterCommand } from "./BirthSubEmitterCommand";
 import { BirthSubEmitterState } from "./BirthSubEmitterState";
+import { DeathSubEmitterCommand } from "./DeathSubEmitterCommand";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
 
@@ -55,9 +57,11 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   @ignoreClone
   private _birthStatePool: BirthSubEmitterState[] = [];
   @ignoreClone
-  private _birthPlanPool: BirthSubEmitterPlan[] = [];
+  private _birthCommandPool: BirthSubEmitterCommand[] = [];
   @ignoreClone
-  private _birthPlanScratch: BirthSubEmitterPlan | null = null;
+  private _deathCommandPool: DeathSubEmitterCommand[] = [];
+  @ignoreClone
+  private _birthCommandScratch: BirthSubEmitterCommand | null = null;
   @ignoreClone
   private _birthStatesByParticle: Array<Array<BirthSubEmitterState | undefined> | undefined> = [];
   @ignoreClone
@@ -136,15 +140,14 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   /**
    * @internal
    */
-  _dispatchDeath(
-    worldPosition: Vector3,
-    parentColor: Color,
-    parentSize: Vector3,
-    parentRotation: Vector3,
-    parentWorldVelocity: Vector3,
-    eventEngineTime: number
-  ): void {
+  _prepareDeathCommands(
+    ringIndex: number,
+    eventEngineTime: number,
+    commands: ParticleSubEmitterCommand[]
+  ): ParticleSubEmitterInheritProperty {
     const subEmitters = this._subEmitters;
+    const commandPool = this._deathCommandPool;
+    let inheritedProperties = ParticleSubEmitterInheritProperty.None;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
       if (sub.type !== ParticleSubEmitterType.Death) continue;
@@ -159,24 +162,17 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         continue;
       }
 
-      this._generator._enqueueDeathSubEmitterCommand(
-        sub,
-        emitter.generator,
-        count,
-        worldPosition,
-        parentColor,
-        parentSize,
-        parentRotation,
-        parentWorldVelocity,
-        eventEngineTime
-      );
+      const command = commandPool.pop() ?? new DeathSubEmitterCommand(commandPool);
+      commands.push(command.reset(emitter.generator, ringIndex, count, sub.inheritProperties, eventEngineTime));
+      inheritedProperties |= sub.inheritProperties;
     }
+    return inheritedProperties;
   }
 
   /**
    * @internal
    */
-  _prepareBirthPlansForParticle(
+  _prepareBirthCommandsForParticle(
     ringIndex: number,
     bornTime: number,
     lifetime: number,
@@ -184,13 +180,13 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     framePlayTime: number,
     frameLastEngineTime: number,
     frameEngineTime: number,
-    plans: BirthSubEmitterPlan[]
+    commands: ParticleSubEmitterCommand[]
   ): void {
     const birthStates = (this._birthStatesByParticle[ringIndex] ??= []);
     const frameStartParentAge = MathUtil.clamp(frameLastPlayTime - bornTime, 0, lifetime);
     const currentParentAge = MathUtil.clamp(framePlayTime - bornTime, 0, lifetime);
     const subEmitters = this._subEmitters;
-    const planPool = this._birthPlanPool;
+    const commandPool = this._birthCommandPool;
     let parentParticleSequence: number | undefined;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const subEmitter = subEmitters[i];
@@ -254,19 +250,20 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       // Time and Burst can be scheduled immediately; distance is completed after trajectory feedback
-      const plan = (this._birthPlanScratch ??= planPool.pop() ?? new BirthSubEmitterPlan(planPool));
-      const distanceRate = emission._prepareBirthRequests(lastEmissionTime, emissionTime, emissionState, plan);
+      const command = (this._birthCommandScratch ??= commandPool.pop() ?? new BirthSubEmitterCommand(commandPool));
+      const distanceRate = emission._prepareBirthRequests(lastEmissionTime, emissionTime, emissionState, command);
       const needsDistanceFeedback = distanceRate > 0;
-      if (!needsDistanceFeedback && plan.requestCount === 0) {
+      if (!needsDistanceFeedback && command.requestCount === 0) {
         state.resetDistanceOnNextFeedback = true;
         continue;
       }
 
-      this._birthPlanScratch = null;
-      plan.reset(
+      this._birthCommandScratch = null;
+      command.reset(
         state,
-        subEmitter,
+        this._generator,
         targetGenerator,
+        subEmitter.inheritProperties,
         ringIndex,
         lastEmissionTime,
         emissionTime,
@@ -277,9 +274,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         frameLastEngineTime,
         frameEngineTime
       );
-      plan.distanceRate = distanceRate;
-      plan.resetDistanceState = needsDistanceFeedback && state.resetDistanceOnNextFeedback;
-      plans.push(plan);
+      command.distanceRate = distanceRate;
+      command.resetDistanceState = needsDistanceFeedback && state.resetDistanceOnNextFeedback;
+      commands.push(command);
       state.resetDistanceOnNextFeedback = !needsDistanceFeedback;
     }
   }

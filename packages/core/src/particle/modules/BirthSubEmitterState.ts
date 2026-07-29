@@ -12,7 +12,7 @@ export class BirthSubEmitterState {
   shouldEmit = true;
   resetDistanceOnNextFeedback = false;
 
-  // An attached ring slot holds one reference and each deferred Plan holds another
+  // An attached ring slot holds one reference and each deferred Command holds another
   private _referenceCount = 0;
 
   constructor(private readonly _pool: BirthSubEmitterState[]) {}

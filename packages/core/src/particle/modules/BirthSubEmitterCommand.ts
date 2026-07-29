@@ -3,7 +3,6 @@ import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { BirthSubEmitterState } from "./BirthSubEmitterState";
-import type { SubEmitter } from "./SubEmitter";
 
 interface EmissionRequest {
   time: number;
@@ -14,12 +13,12 @@ interface EmissionRequest {
 }
 
 /**
- * Stores one deferred Birth emission batch.
+ * Stores one deferred Birth emission command.
  * @internal
  */
-export class BirthSubEmitterPlan {
+export class BirthSubEmitterCommand {
   readonly type = ParticleSubEmitterType.Birth;
-  subEmitter: SubEmitter;
+  source: ParticleGenerator;
   target: ParticleGenerator;
   state: BirthSubEmitterState;
   readonly emissionEndPosition = new Vector3();
@@ -42,12 +41,13 @@ export class BirthSubEmitterPlan {
   frameLastEngineTime = 0;
   frameEngineTime = 0;
 
-  constructor(private readonly _pool: BirthSubEmitterPlan[]) {}
+  constructor(private readonly _pool: BirthSubEmitterCommand[]) {}
 
   reset(
     state: BirthSubEmitterState,
-    subEmitter: SubEmitter,
+    source: ParticleGenerator,
     target: ParticleGenerator,
+    inheritProperties: ParticleSubEmitterInheritProperty,
     ringIndex: number,
     lastEmissionTime: number,
     emissionTime: number,
@@ -58,11 +58,11 @@ export class BirthSubEmitterPlan {
     frameLastEngineTime: number,
     frameEngineTime: number
   ): void {
-    this.subEmitter = subEmitter;
+    this.source = source;
     this.target = target;
     this.state = state;
     state.retain();
-    this.inheritProperties = subEmitter.inheritProperties;
+    this.inheritProperties = inheritProperties;
     this.ringIndex = ringIndex;
     this.lastEmissionTime = lastEmissionTime;
     this.emissionTime = emissionTime;
@@ -113,7 +113,7 @@ export class BirthSubEmitterPlan {
         emissionState.setLastEmitPosition(this.emissionEndPosition);
       } else {
         if (!emissionState.hasLastEmitPosition) {
-          // A missing baseline here can only be the first Distance plan
+          // A missing baseline here can only be the first Distance command
           const startOffset = this._getTrajectoryTimeOffset(this.lastEmissionTime);
           const endPosition = this.parentWorldPosition;
           const averageVelocity = this.parentWorldVelocity;
@@ -143,7 +143,7 @@ export class BirthSubEmitterPlan {
 
   release(): void {
     this.state.release();
-    this.subEmitter = null;
+    this.source = null;
     this.target = null;
     this.state = null;
     this._pool.push(this);

@@ -4,7 +4,7 @@ import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import type { BirthSubEmitterPlan } from "./BirthSubEmitterPlan";
+import type { BirthSubEmitterCommand } from "./BirthSubEmitterCommand";
 import { Burst } from "./Burst";
 import { EmissionState } from "./EmissionState";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -142,12 +142,12 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPlayTime: number,
     playTime: number,
     state: EmissionState,
-    plan: BirthSubEmitterPlan
+    command: BirthSubEmitterCommand
   ): number {
-    plan.requestCount = 0;
-    this._emitByRateOverTime(playTime, state, plan);
+    command.requestCount = 0;
+    this._emitByRateOverTime(playTime, state, command);
     const distanceRate = this._evaluateRate(this.rateOverDistance, playTime, state);
-    this._emitByBurst(lastPlayTime, playTime, state, plan);
+    this._emitByBurst(lastPlayTime, playTime, state, command);
     return distanceRate;
   }
 
@@ -209,7 +209,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     useWorldPosition: boolean,
     ratePerUnit: number,
     requestLimit: number,
-    plan?: BirthSubEmitterPlan
+    command?: BirthSubEmitterCommand
   ): void {
     if (!(ratePerUnit > 0)) {
       state.hasLastEmitPosition = false;
@@ -245,12 +245,12 @@ export class EmissionModule extends ParticleGeneratorModule {
       const ageStep = emitInterval * invMoveLength;
       const dt = playTime - lastPlayTime;
       // Deferred requests are sorted by time, so capacity clipping keeps the oldest candidates
-      const firstRequestIndex = plan && requestCount < count ? count - requestCount : 0;
+      const firstRequestIndex = command && requestCount < count ? count - requestCount : 0;
       let subFrameAge = Math.min(distanceRemainder * invMoveLength + ageStep * firstRequestIndex, 1.0);
       const emitPos = useWorldPosition ? EmissionModule._tempEmitPosition : undefined;
       for (let i = 0; i < requestCount; i++) {
         emitPos?.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
-        if (!this._emitOrAddRequest(plan, playTime - dt * subFrameAge, 1, emitPos, 1)) {
+        if (!this._emitOrAddRequest(command, playTime - dt * subFrameAge, 1, emitPos, 1)) {
           state.distanceAccumulator = 0;
           break;
         }
@@ -261,7 +261,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPos.copyFrom(currentPosition);
   }
 
-  private _emitByRateOverTime(playTime: number, state: EmissionState, plan?: BirthSubEmitterPlan): void {
+  private _emitByRateOverTime(playTime: number, state: EmissionState, command?: BirthSubEmitterCommand): void {
     const { rateOverTime } = this;
 
     let cumulativeTime = playTime - state.frameRateTime;
@@ -275,7 +275,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       }
       cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
       state.frameRateTime += emitInterval;
-      this._emitOrAddRequest(plan, state.frameRateTime, 1, undefined, 0);
+      this._emitOrAddRequest(command, state.frameRateTime, 1, undefined, 0);
       ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     }
     state.frameRateTime = playTime;
@@ -297,12 +297,17 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitByBurst(lastPlayTime: number, playTime: number, state: EmissionState, plan?: BirthSubEmitterPlan): void {
+  private _emitByBurst(
+    lastPlayTime: number,
+    playTime: number,
+    state: EmissionState,
+    command?: BirthSubEmitterCommand
+  ): void {
     const main = this._generator.main;
     const duration = main.duration;
     if (!main.isLoop) {
       if (lastPlayTime < duration) {
-        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration, state, plan);
+        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration, state, command);
       }
       return;
     }
@@ -311,7 +316,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     let nextCycleTime = (Math.floor(segmentStart / duration) + 1) * duration;
     while (segmentStart < playTime) {
       const segmentEnd = Math.min(nextCycleTime, playTime);
-      this._emitBySubBurst(segmentStart, segmentEnd, duration, state, plan);
+      this._emitBySubBurst(segmentStart, segmentEnd, duration, state, command);
       if (segmentEnd < nextCycleTime) {
         break;
       }
@@ -326,7 +331,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     playTime: number,
     duration: number,
     state: EmissionState,
-    plan?: BirthSubEmitterPlan
+    command?: BirthSubEmitterCommand
   ): void {
     const { bursts } = this;
     const rand = state.burstRand;
@@ -345,7 +350,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       if (cycles === 1) {
         if (burstTime >= startTime) {
           this._emitOrAddRequest(
-            plan,
+            command,
             baseTime + burstTime,
             burst.count.evaluate(undefined, rand.random()),
             undefined,
@@ -367,7 +372,7 @@ export class EmissionModule extends ParticleGeneratorModule {
             break;
           }
           this._emitOrAddRequest(
-            plan,
+            command,
             baseTime + effectiveTime,
             burst.count.evaluate(undefined, rand.random()),
             undefined,
@@ -386,19 +391,19 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitOrAddRequest(
-    plan: BirthSubEmitterPlan | undefined,
+    command: BirthSubEmitterCommand | undefined,
     time: number,
     count: number,
     position: Vector3 | undefined,
     order: number
   ): boolean {
-    if (!plan) {
+    if (!command) {
       return this._generator._emit(time, count, position) > 0;
     }
     if (!(count > 0)) {
       return false;
     }
-    plan.addRequest(time, count, position, order);
+    command.addRequest(time, count, position, order);
     return true;
   }
 }

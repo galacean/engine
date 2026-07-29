@@ -1,13 +1,13 @@
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
-import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
+import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 
 /**
  * @internal
  */
-export type ParticleSubEmitterCommand = DeathSubEmitterCommand | BirthSubEmitterPlan;
+export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitterCommand;
 
 /**
  * @internal
@@ -101,7 +101,7 @@ export class ParticleSystemManager {
     for (let i = 0, n = commands.length; i < n; i++) {
       const command = commands[i];
       if (command.type === ParticleSubEmitterType.Birth && !command.target._renderer.destroyed) {
-        command.target._consumeBirthSubEmitterPlan(command, 0);
+        command.target._consumeBirthSubEmitterCommand(command, 0);
       } else {
         command.release();
       }

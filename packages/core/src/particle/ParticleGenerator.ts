@@ -43,9 +43,8 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule } from "./modules/SubEmittersModule";
-import type { BirthSubEmitterPlan } from "./modules/BirthSubEmitterPlan";
+import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 import { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
-import type { SubEmitter } from "./modules/SubEmitter";
 import type { ParticleSubEmitterCommand } from "./ParticleSystemManager";
 
 /**
@@ -57,14 +56,8 @@ class ParticleFeedbackReadbackSlot {
   firstElement = 0;
   elementCount = 0;
   particleCount = 0;
-  readonly birthPlans: BirthSubEmitterPlan[] = [];
-  processedBirthPlanCount = 0;
-  deathFirstElement = 0;
-  deathCount = 0;
-  deathFrameLastPlayTime = 0;
-  deathFramePlayTime = 0;
-  deathFrameLastEngineTime = 0;
-  deathFrameEngineTime = 0;
+  readonly commands: ParticleSubEmitterCommand[] = [];
+  processedCommandCount = 0;
 }
 
 /**
@@ -174,8 +167,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _feedbackReadbackQueue: ParticleFeedbackReadbackSlot[] = [];
   @ignoreClone
   private _feedbackReadbackPool: ParticleFeedbackReadbackSlot[] = [];
-  @ignoreClone
-  private _pendingDeathRetirementCount = 0;
 
   @ignoreClone
   private _isPlaying = false;
@@ -221,8 +212,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _emitLocalPos = new Vector3();
   @ignoreClone
   private _emitDirection = new Vector3();
-  @ignoreClone
-  private _deathSubEmitterCommandPool: DeathSubEmitterCommand[] = [];
   @ignoreClone
   private _birthEmissionFirstPlayTime = 0;
 
@@ -412,9 +401,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._renderer._updateParticleShaderData();
       this._updateFeedback(this._renderer.shaderData, deltaTime, oldFirstActiveElement, oldFirstFreeElement);
       ranFullFeedback = true;
-      if (
-        canQueueReadback &&
-        hasBirthSubEmitter &&
+      if (canQueueReadback && hasBirthSubEmitter) {
         this._prepareBirthRange(
           oldFirstActiveElement,
           oldFirstFreeElement,
@@ -422,11 +409,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
           this._playTime,
           this._frameLastEngineTime,
           this._frameEngineTime
-        )
-      ) {
-        this._queueReadbackRange(oldFirstActiveElement, oldFirstFreeElement);
+        );
       }
-      this._finalizeFeedbackReadback();
     }
 
     this._retireActiveParticles(canQueueReadback);
@@ -442,7 +426,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
       if (this._currentParticleCount > main._maxParticleBuffer) {
         const notRetireParticleCount = this._getNotRetiredParticleCount();
-        if (notRetireParticleCount < main._maxParticleBuffer && !this._hasPendingDeathReadback()) {
+        if (notRetireParticleCount < main._maxParticleBuffer) {
           this._resizeInstanceBuffer(false);
         }
       }
@@ -462,7 +446,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       let emitPlayTime: number;
       let emittedCount: number;
       if (command.type === ParticleSubEmitterType.Birth) {
-        emittedCount = this._consumeBirthSubEmitterPlan(command, remainingSubEmitterCapacity);
+        emittedCount = this._consumeBirthSubEmitterCommand(command, remainingSubEmitterCapacity);
         emitPlayTime = this._birthEmissionFirstPlayTime;
       } else {
         if (remainingSubEmitterCapacity <= 0) {
@@ -526,9 +510,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         firstEmittedElement,
         this._firstFreeElement
       );
-      if (
-        canQueueReadback &&
-        hasBirthSubEmitter &&
+      if (canQueueReadback && hasBirthSubEmitter) {
         this._prepareBirthRange(
           firstEmittedElement,
           this._firstFreeElement,
@@ -536,9 +518,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
           this._playTime,
           this._frameLastEngineTime,
           this._frameEngineTime
-        )
-      ) {
-        this._queueReadbackRange(firstEmittedElement, this._firstFreeElement);
+        );
       }
       this._finalizeFeedbackReadback();
     }
@@ -1083,9 +1063,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     // Failure to adopt this approach may impede growth initiation
     // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
     if (nextFreeElement === this._firstRetiredElement) {
-      if (this._hasPendingDeathReadback()) {
-        return;
-      }
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
         main._maxParticleBuffer - this._currentParticleCount
@@ -1323,7 +1300,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       command.count,
       available,
       command.worldPosition,
-      command.subEmitter,
+      true,
       (inheritProperties & ParticleSubEmitterInheritProperty.Color) !== 0 ? command.parentColor! : undefined,
       (inheritProperties & ParticleSubEmitterInheritProperty.Size) !== 0 ? command.parentSize! : undefined,
       (inheritProperties & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? command.parentRotation! : undefined,
@@ -1335,17 +1312,17 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _consumeBirthSubEmitterPlan(plan: BirthSubEmitterPlan, available: number): number {
+  _consumeBirthSubEmitterCommand(command: BirthSubEmitterCommand, available: number): number {
     this._birthEmissionFirstPlayTime = this._playTime;
     let emittedCount = 0;
 
     try {
-      plan.finalizeRequests(available);
-      const requests = plan.requests;
-      for (let i = 0, n = plan.requestCount; i < n && available > 0; i++) {
+      command.finalizeRequests(available);
+      const requests = command.requests;
+      for (let i = 0, n = command.requestCount; i < n && available > 0; i++) {
         const request = requests[i];
         const emitted = this._emitBirthSubEmitterParticles(
-          plan,
+          command,
           request.time,
           request.count,
           request.hasPosition ? request.position! : undefined,
@@ -1356,12 +1333,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
       return emittedCount;
     } finally {
-      plan.release();
+      command.release();
     }
   }
 
   private _emitBirthSubEmitterParticles(
-    plan: BirthSubEmitterPlan,
+    command: BirthSubEmitterCommand,
     emissionTime: number,
     count: number,
     emissionPositionOverride: Vector3 | undefined,
@@ -1371,12 +1348,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       return 0;
     }
 
-    const { subEmitter, parentWorldPosition, parentWorldVelocity } = plan;
-    const frameDelta = plan.framePlayTime - plan.frameLastPlayTime;
-    const frameStartParentAge = Math.min(Math.max(plan.frameLastPlayTime - plan.bornTime, 0), plan.lifetime);
-    const currentParentAge = Math.min(Math.max(plan.framePlayTime - plan.bornTime, 0), plan.lifetime);
+    const { source, parentWorldPosition, parentWorldVelocity } = command;
+    const frameDelta = command.framePlayTime - command.frameLastPlayTime;
+    const frameStartParentAge = Math.min(Math.max(command.frameLastPlayTime - command.bornTime, 0), command.lifetime);
+    const currentParentAge = Math.min(Math.max(command.framePlayTime - command.bornTime, 0), command.lifetime);
     const parentAgeDelta = currentParentAge - frameStartParentAge;
-    const parentAge = emissionTime + plan.state.startDelay;
+    const parentAge = emissionTime + command.state.startDelay;
     const emissionPosition = this._eventPos;
     if (emissionPositionOverride) {
       emissionPosition.copyFrom(emissionPositionOverride);
@@ -1389,19 +1366,19 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       );
     }
 
-    const absoluteEmissionTime = plan.bornTime + parentAge;
+    const absoluteEmissionTime = command.bornTime + parentAge;
     const frameTime =
       frameDelta > MathUtil.zeroTolerance
-        ? MathUtil.clamp((absoluteEmissionTime - plan.frameLastPlayTime) / frameDelta, 0, 1)
+        ? MathUtil.clamp((absoluteEmissionTime - command.frameLastPlayTime) / frameDelta, 0, 1)
         : 1;
-    const parentNormalizedAge = plan.lifetime > 0 ? MathUtil.clamp(parentAge / plan.lifetime, 0, 1) : 1;
+    const parentNormalizedAge = command.lifetime > 0 ? MathUtil.clamp(parentAge / command.lifetime, 0, 1) : 1;
     const { duration, simulationSpeed } = this.main;
     const emissionNormalizedTime = duration > 0 ? (emissionTime % duration) / duration : 0;
-    const inherit = plan.inheritProperties;
+    const inherit = command.inheritProperties;
     const inheritParticleProperties = inherit & ParticleGenerator._particleValueInheritanceMask;
     if (inheritParticleProperties !== ParticleSubEmitterInheritProperty.None) {
-      subEmitter._module._generator._evaluateOverLifetime(
-        plan.parentParticleSnapshot!,
+      source._evaluateOverLifetime(
+        command.parentParticleSnapshot!,
         0,
         parentNormalizedAge,
         this._eventColor,
@@ -1409,7 +1386,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._eventRotation
       );
     }
-    const eventEngineTime = plan.frameLastEngineTime + (plan.frameEngineTime - plan.frameLastEngineTime) * frameTime;
+    const eventEngineTime =
+      command.frameLastEngineTime + (command.frameEngineTime - command.frameLastEngineTime) * frameTime;
     const playTime =
       this._playTime - Math.max(this._renderer.engine.time.elapsedTime - eventEngineTime, 0) * simulationSpeed;
     const emitted = this._emitParticles(
@@ -1417,7 +1395,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       count,
       available,
       emissionPosition,
-      subEmitter,
+      true,
       (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? this._eventColor : undefined,
       (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? this._eventSize : undefined,
       (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? this._eventRotation : undefined,
@@ -1436,7 +1414,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     requestedCount: number,
     available: number,
     emitWorldPosition?: Vector3,
-    subEmitter?: SubEmitter,
+    isSubEmitter = false,
     inheritColor?: Color,
     inheritSize?: Vector3,
     inheritRotation?: Vector3,
@@ -1453,7 +1431,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const transform = this._renderer.entity.transform;
     const localPos = this._emitLocalPos;
     const invRot = ParticleGenerator._tempQuat0;
-    if (subEmitter) {
+    if (isSubEmitter) {
       const { worldPosition: emitterWorldPosition, worldRotationQuaternion: emitterWorldRotation } = transform;
       Vector3.subtract(emitWorldPosition!, emitterWorldPosition, localPos);
       Quaternion.invert(emitterWorldRotation, invRot);
@@ -1492,7 +1470,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         }
       }
 
-      if (subEmitter && simulationLocal) {
+      if (isSubEmitter && simulationLocal) {
         position.add(localPos);
       }
       const firstFreeElement = this._firstFreeElement;
@@ -1501,7 +1479,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         direction,
         transform,
         playTime,
-        subEmitter && simulationLocal ? undefined : emitWorldPosition,
+        isSubEmitter && simulationLocal ? undefined : emitWorldPosition,
         inheritColor,
         inheritSize,
         inheritRotation,
@@ -1515,37 +1493,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return emittedCount;
   }
 
-  /**
-   * @internal
-   */
-  _enqueueDeathSubEmitterCommand(
-    subEmitter: SubEmitter,
-    target: ParticleGenerator,
-    count: number,
-    worldPosition: Vector3,
-    parentColor: Color,
-    parentSize: Vector3,
-    parentRotation: Vector3,
-    parentWorldVelocity: Vector3,
-    eventEngineTime: number
-  ): void {
-    const pool = this._deathSubEmitterCommandPool;
-    const command = pool.pop() ?? new DeathSubEmitterCommand(pool);
-    this._enqueueSubEmitterCommand(
-      command.reset(
-        subEmitter,
-        target,
-        count,
-        worldPosition,
-        parentColor,
-        parentSize,
-        parentRotation,
-        parentWorldVelocity,
-        eventEngineTime
-      )
-    );
-  }
-
   private _enqueueSubEmitterCommand(command: ParticleSubEmitterCommand): void {
     this._renderer.entity.scene._componentsManager._particleSystemManager.enqueue(command);
   }
@@ -1557,21 +1504,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     framePlayTime: number,
     frameLastEngineTime: number,
     frameEngineTime: number
-  ): boolean {
-    if (firstElement === endElement) return false;
+  ): void {
+    if (firstElement === endElement) {
+      return;
+    }
     const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
     const instanceVertices = this._instanceVertices;
-    const slot = this._getPendingFeedbackReadbackSlot();
-    const plans = slot.birthPlans;
-    const firstPlanIndex = plans.length;
+    const slot = this._getPendingFeedbackReadbackSlot(firstElement);
+    const commands = slot.commands;
 
     let ringIndex = firstElement;
     while (ringIndex !== endElement) {
       const particleOffset = ringIndex * floatStride;
       const lifetime = instanceVertices[particleOffset + ParticleBufferUtils.startLifeTimeOffset];
       const bornTime = instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
-      const planStart = plans.length;
-      this.subEmitters._prepareBirthPlansForParticle(
+      const commandStart = commands.length;
+      this.subEmitters._prepareBirthCommandsForParticle(
         ringIndex,
         bornTime,
         lifetime,
@@ -1579,22 +1527,26 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         framePlayTime,
         frameLastEngineTime,
         frameEngineTime,
-        plans
+        commands
       );
-      for (let i = planStart, n = plans.length; i < n; i++) {
-        this._snapshotBirthPlan(plans[i], particleOffset);
+      for (let i = commandStart, n = commands.length; i < n; i++) {
+        const command = commands[i];
+        if (command.type === ParticleSubEmitterType.Birth) {
+          this._snapshotBirthCommand(command, particleOffset);
+        }
       }
-      if (++ringIndex >= this._currentParticleCount) ringIndex = 0;
+      ringIndex = this._nextRingIndex(ringIndex);
     }
-    return plans.length > firstPlanIndex;
   }
 
-  private _snapshotBirthPlan(plan: BirthSubEmitterPlan, particleOffset: number): void {
-    const inherit = plan.inheritProperties;
+  private _snapshotBirthCommand(command: BirthSubEmitterCommand, particleOffset: number): void {
+    const inherit = command.inheritProperties;
     if ((inherit & ParticleGenerator._particleValueInheritanceMask) === ParticleSubEmitterInheritProperty.None) {
       return;
     }
-    const snapshot = (plan.parentParticleSnapshot ||= new Float32Array(ParticleBufferUtils.instanceVertexFloatStride));
+    const snapshot = (command.parentParticleSnapshot ||= new Float32Array(
+      ParticleBufferUtils.instanceVertexFloatStride
+    ));
     const instanceVertices = this._instanceVertices;
     for (let i = 0, n = snapshot.length; i < n; i++) {
       snapshot[i] = instanceVertices[particleOffset + i];
@@ -1654,26 +1606,58 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const instanceVertices = this._instanceVertices;
     const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
     const firstNewElement = this._firstNewElement;
-    if (this._pendingDeathRetirementCount > 0) return;
+    const framePlayTimeDelta = this._framePlayTime - this._frameLastPlayTime;
+    const frameEngineTimeDelta = this._frameEngineTime - this._frameLastEngineTime;
 
     let ringIndex = this._firstActiveElement;
     while (ringIndex !== firstNewElement) {
       const activeParticleOffset = ringIndex * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
 
-      const particleAge = this._playTime - instanceVertices[activeParticleTimeOffset];
+      const bornTime = instanceVertices[activeParticleTimeOffset];
+      const lifetime = instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset];
+      const particleAge = this._playTime - bornTime;
       // Use `Math.fround` to ensure the precision of comparison is same
-      if (Math.fround(particleAge) < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
+      if (Math.fround(particleAge) < lifetime) {
         break;
       }
 
       if (hasDeathSlot) {
-        if (!canQueueReadback) break;
+        if (!canQueueReadback) {
+          break;
+        }
 
-        this._queueDeathReadback(ringIndex);
-        this._pendingDeathRetirementCount++;
-        ringIndex = this._nextRingIndex(ringIndex);
-        continue;
+        const frameTime =
+          framePlayTimeDelta > MathUtil.zeroTolerance
+            ? MathUtil.clamp((bornTime + lifetime - this._frameLastPlayTime) / framePlayTimeDelta, 0, 1)
+            : 1;
+        const slot = this._getPendingFeedbackReadbackSlot(ringIndex);
+        const commands = slot.commands;
+        const commandStart = commands.length;
+        const inheritedProperties = this.subEmitters._prepareDeathCommands(
+          ringIndex,
+          this._frameLastEngineTime + frameEngineTimeDelta * frameTime,
+          commands
+        );
+        if (
+          (inheritedProperties & ParticleGenerator._particleValueInheritanceMask) !==
+          ParticleSubEmitterInheritProperty.None
+        ) {
+          this._evaluateOverLifetime(
+            instanceVertices,
+            activeParticleOffset,
+            1,
+            this._eventColor,
+            this._eventSize,
+            this._eventRotation
+          );
+          for (let i = commandStart, n = commands.length; i < n; i++) {
+            const command = commands[i];
+            if (command.type === ParticleSubEmitterType.Death) {
+              command.snapshotParentValues(this._eventColor, this._eventSize, this._eventRotation);
+            }
+          }
+        }
       }
 
       this.subEmitters._retireParticle(ringIndex);
@@ -1683,53 +1667,42 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
   }
 
-  private _queueDeathReadback(ringIndex: number): void {
-    const slot = this._getPendingFeedbackReadbackSlot();
-    if (slot.deathCount++ === 0) {
-      slot.deathFirstElement = ringIndex;
-      slot.deathFrameLastPlayTime = this._frameLastPlayTime;
-      slot.deathFramePlayTime = this._framePlayTime;
-      slot.deathFrameLastEngineTime = this._frameLastEngineTime;
-      slot.deathFrameEngineTime = this._frameEngineTime;
-    }
-    this._queueReadbackRange(ringIndex, this._nextRingIndex(ringIndex));
-  }
-
-  private _getPendingFeedbackReadbackSlot(): ParticleFeedbackReadbackSlot {
-    return (this._pendingFeedbackReadbackSlot ||=
-      this._feedbackReadbackPool.pop() ?? new ParticleFeedbackReadbackSlot());
-  }
-
-  private _queueReadbackRange(firstElement: number, endElement: number): void {
-    const slot = this._getPendingFeedbackReadbackSlot();
+  private _getPendingFeedbackReadbackSlot(firstElement: number): ParticleFeedbackReadbackSlot {
     const particleCount = this._currentParticleCount;
-    const rangeCount = this._getRingDistance(firstElement, endElement, particleCount);
-    if (slot.elementCount === 0) {
+    let slot = this._pendingFeedbackReadbackSlot;
+    if (!slot) {
+      slot = this._pendingFeedbackReadbackSlot = this._feedbackReadbackPool.pop() ?? new ParticleFeedbackReadbackSlot();
       slot.firstElement = firstElement;
-      slot.elementCount = rangeCount;
       slot.particleCount = particleCount;
-      return;
-    }
-    if (slot.particleCount !== particleCount) {
+    } else if (slot.particleCount !== particleCount) {
       throw new Error("Particle feedback buffer changed before its readback was submitted.");
     }
-    const startOffset = this._getRingDistance(slot.firstElement, firstElement, particleCount);
-    const requiredCount = startOffset + rangeCount;
-    if (requiredCount > slot.elementCount) {
-      slot.elementCount = requiredCount;
-    }
+    return slot;
   }
 
   private _finalizeFeedbackReadback(): void {
     const slot = this._pendingFeedbackReadbackSlot;
     if (!slot) return;
     this._pendingFeedbackReadbackSlot = null;
-    if (slot.elementCount === 0) {
+    const commands = slot.commands;
+    if (commands.length === 0) {
       this._recycleFeedbackReadbackSlot(slot);
       return;
     }
 
     try {
+      const particleCount = slot.particleCount;
+      const rangeOrigin = slot.firstElement;
+      let firstOffset = particleCount;
+      let endOffset = 0;
+      for (let i = 0, n = commands.length; i < n; i++) {
+        const offset = this._getRingDistance(rangeOrigin, commands[i].ringIndex, particleCount);
+        firstOffset = Math.min(firstOffset, offset);
+        endOffset = Math.max(endOffset, offset + 1);
+      }
+      slot.firstElement = (rangeOrigin + firstOffset) % particleCount;
+      slot.elementCount = endOffset - firstOffset;
+
       const stride = this._feedbackSimulator.vertexStride;
       const byteLength = slot.elementCount * stride;
       let request = slot.request;
@@ -1784,71 +1757,32 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const endPosition = this._eventPos;
     const averageVelocity = this._eventDir;
-    const plans = slot.birthPlans;
-    for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
-      const plan = plans[i];
-      if (plan.target._renderer.destroyed) {
-        plan.release();
-        slot.processedBirthPlanCount = i + 1;
+    const commands = slot.commands;
+    let lastFeedbackRingIndex = -1;
+    for (let i = slot.processedCommandCount, n = commands.length; i < n; i++) {
+      const command = commands[i];
+      if (command.target._renderer.destroyed) {
+        command.release();
+        slot.processedCommandCount = i + 1;
         continue;
       }
-      const feedbackOffset = this._getRingDistance(slot.firstElement, plan.ringIndex, slot.particleCount) * floatStride;
-      const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
-      const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
-      endPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
-      averageVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
-      plan.resolveTrajectory(endPosition, averageVelocity);
-      this._enqueueSubEmitterCommand(plan);
-      slot.processedBirthPlanCount = i + 1;
-    }
-    plans.length = 0;
-    slot.processedBirthPlanCount = 0;
 
-    const deathFrameDelta = slot.deathFramePlayTime - slot.deathFrameLastPlayTime;
-    let ringIndex = slot.deathFirstElement;
-    for (let i = 0; i < slot.deathCount; i++) {
-      const feedbackOffset = this._getRingDistance(slot.firstElement, ringIndex, slot.particleCount) * floatStride;
-      const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
-      const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
-      endPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
-      averageVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
-      const particleOffset = ringIndex * ParticleBufferUtils.instanceVertexFloatStride;
-      this._evaluateOverLifetime(
-        this._instanceVertices,
-        particleOffset,
-        1,
-        this._eventColor,
-        this._eventSize,
-        this._eventRotation
-      );
-      const lifetime = this._instanceVertices[particleOffset + ParticleBufferUtils.startLifeTimeOffset];
-      const bornTime = this._instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
-      const frameTime =
-        deathFrameDelta > MathUtil.zeroTolerance
-          ? MathUtil.clamp((bornTime + lifetime - slot.deathFrameLastPlayTime) / deathFrameDelta, 0, 1)
-          : 1;
-      this.subEmitters._dispatchDeath(
-        endPosition,
-        this._eventColor,
-        this._eventSize,
-        this._eventRotation,
-        averageVelocity,
-        slot.deathFrameLastEngineTime + (slot.deathFrameEngineTime - slot.deathFrameLastEngineTime) * frameTime
-      );
-      ringIndex = this._nextRingIndex(ringIndex, slot.particleCount);
-    }
+      const ringIndex = command.ringIndex;
+      if (ringIndex !== lastFeedbackRingIndex) {
+        const feedbackOffset = this._getRingDistance(slot.firstElement, ringIndex, slot.particleCount) * floatStride;
+        const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
+        const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
+        endPosition.set(readback[positionOffset], readback[positionOffset + 1], readback[positionOffset + 2]);
+        averageVelocity.set(readback[velocityOffset], readback[velocityOffset + 1], readback[velocityOffset + 2]);
+        lastFeedbackRingIndex = ringIndex;
+      }
 
-    const frameCount = this._renderer.engine.time.frameCount;
-    for (let i = 0; i < slot.deathCount; i++) {
-      const retiredIndex = this._firstActiveElement;
-      this.subEmitters._retireParticle(retiredIndex);
-      this._instanceVertices[
-        retiredIndex * ParticleBufferUtils.instanceVertexFloatStride + ParticleBufferUtils.timeOffset
-      ] = frameCount;
-      this._firstActiveElement = this._nextRingIndex(retiredIndex);
-      this._waitProcessRetiredElementCount++;
+      command.resolveTrajectory(endPosition, averageVelocity);
+      this._enqueueSubEmitterCommand(command);
+      slot.processedCommandCount = i + 1;
     }
-    this._pendingDeathRetirementCount -= slot.deathCount;
+    commands.length = 0;
+    slot.processedCommandCount = 0;
   }
 
   private _copyReadbackRange(
@@ -1877,10 +1811,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return ringIndex + 1 < particleCount ? ringIndex + 1 : 0;
   }
 
-  private _hasPendingDeathReadback(): boolean {
-    return this._pendingDeathRetirementCount > 0;
-  }
-
   private _cancelFeedbackReadbacks(): void {
     const slot = this._pendingFeedbackReadbackSlot;
     if (slot) {
@@ -1892,16 +1822,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._releaseAndRecycleFeedbackReadbackSlot(queue[i]);
     }
     queue.length = 0;
-    this._pendingDeathRetirementCount = 0;
   }
 
   private _releaseAndRecycleFeedbackReadbackSlot(slot: ParticleFeedbackReadbackSlot): void {
-    const plans = slot.birthPlans;
-    for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
-      plans[i].release();
-    }
-    plans.length = 0;
-    slot.processedBirthPlanCount = 0;
+    this._releaseFeedbackCommands(slot);
     this._recycleFeedbackReadbackSlot(slot);
   }
 
@@ -1910,23 +1834,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     slot.firstElement = 0;
     slot.elementCount = 0;
     slot.particleCount = 0;
-    slot.deathFirstElement = 0;
-    slot.deathCount = 0;
-    slot.deathFrameLastPlayTime = 0;
-    slot.deathFramePlayTime = 0;
-    slot.deathFrameLastEngineTime = 0;
-    slot.deathFrameEngineTime = 0;
     this._feedbackReadbackPool.push(slot);
   }
 
   private _destroyFeedbackReadbackSlot(slot: ParticleFeedbackReadbackSlot): void {
-    const plans = slot.birthPlans;
-    for (let i = slot.processedBirthPlanCount, n = plans.length; i < n; i++) {
-      plans[i].release();
-    }
-    plans.length = 0;
+    this._releaseFeedbackCommands(slot);
     slot.request?.destroy();
     slot.request = null;
+  }
+
+  private _releaseFeedbackCommands(slot: ParticleFeedbackReadbackSlot): void {
+    const commands = slot.commands;
+    for (let i = slot.processedCommandCount, n = commands.length; i < n; i++) {
+      commands[i].release();
+    }
+    commands.length = 0;
+    slot.processedCommandCount = 0;
   }
 
   private _destroyFeedbackReadbacks(): void {
@@ -1945,7 +1868,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._destroyFeedbackReadbackSlot(pool[i]);
     }
     pool.length = 0;
-    this._pendingDeathRetirementCount = 0;
   }
 
   private _evaluateOverLifetime(
