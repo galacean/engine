@@ -92,17 +92,8 @@ export class BirthSubEmitterPlan {
     this.requestCount++;
   }
 
-  /**
-   * Resolves the parent trajectory from GPU feedback.
-   * @param endPosition - The parent world position at the end of the feedback interval
-   * @param averageVelocity - The average parent world-space velocity over the feedback interval
-   */
   resolveTrajectory(endPosition: Vector3, averageVelocity: Vector3): void {
-    const sampleAge = MathUtil.clamp(this.framePlayTime - this.bornTime, 0, this.lifetime);
-    const frameStartAge = MathUtil.clamp(this.frameLastPlayTime - this.bornTime, 0, this.lifetime);
-    const canBacktrack = sampleAge - frameStartAge > MathUtil.zeroTolerance;
-    const planEndAge = this.emissionTime + this.state.startDelay;
-    const endOffset = canBacktrack ? sampleAge - MathUtil.clamp(planEndAge, frameStartAge, sampleAge) : 0;
+    const endOffset = this._getTrajectoryTimeOffset(this.emissionTime);
     this.emissionEndPosition.set(
       endPosition.x - averageVelocity.x * endOffset,
       endPosition.y - averageVelocity.y * endOffset,
@@ -113,11 +104,8 @@ export class BirthSubEmitterPlan {
     this.parentWorldVelocity.copyFrom(averageVelocity);
   }
 
-  /**
-   * Completes position-dependent requests after the target's available capacity is known.
-   */
-  completeDistanceRequests(availableCapacity: number): void {
-    const { emissionState, startDelay } = this.state;
+  finalizeRequests(availableCapacity: number): void {
+    const { emissionState } = this.state;
     const distanceRate = this.distanceRate;
     if (distanceRate > 0) {
       if (this.resetDistanceState) {
@@ -126,13 +114,7 @@ export class BirthSubEmitterPlan {
       } else {
         if (!emissionState.hasLastEmitPosition) {
           // A missing baseline here can only be the first Distance plan
-          const sampleAge = MathUtil.clamp(this.framePlayTime - this.bornTime, 0, this.lifetime);
-          const frameStartAge = MathUtil.clamp(this.frameLastPlayTime - this.bornTime, 0, this.lifetime);
-          const planStartAge = this.lastEmissionTime + startDelay;
-          const startOffset =
-            sampleAge - frameStartAge > MathUtil.zeroTolerance
-              ? sampleAge - MathUtil.clamp(planStartAge, frameStartAge, sampleAge)
-              : 0;
+          const startOffset = this._getTrajectoryTimeOffset(this.lastEmissionTime);
           const endPosition = this.parentWorldPosition;
           const averageVelocity = this.parentWorldVelocity;
           emissionState.lastEmitPosition.set(
@@ -156,7 +138,7 @@ export class BirthSubEmitterPlan {
       }
     }
 
-    this.sortRequests();
+    this._sortRequests();
   }
 
   release(): void {
@@ -167,7 +149,15 @@ export class BirthSubEmitterPlan {
     this._pool.push(this);
   }
 
-  private sortRequests(): void {
+  private _getTrajectoryTimeOffset(emissionTime: number): number {
+    const sampleAge = MathUtil.clamp(this.framePlayTime - this.bornTime, 0, this.lifetime);
+    const frameStartAge = MathUtil.clamp(this.frameLastPlayTime - this.bornTime, 0, this.lifetime);
+    return sampleAge - frameStartAge > MathUtil.zeroTolerance
+      ? sampleAge - MathUtil.clamp(emissionTime + this.state.startDelay, frameStartAge, sampleAge)
+      : 0;
+  }
+
+  private _sortRequests(): void {
     const requests = this.requests;
     requests.length = this.requestCount;
     if (requests.length > 1) {

@@ -1345,7 +1345,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let emittedCount = 0;
 
     try {
-      plan.completeDistanceRequests(available);
+      plan.finalizeRequests(available);
       const requests = plan.requests;
       for (let i = 0, n = plan.requestCount; i < n && available > 0; i++) {
         const request = requests[i];

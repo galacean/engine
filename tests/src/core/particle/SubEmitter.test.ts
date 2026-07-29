@@ -356,7 +356,7 @@ describe("SubEmitter", () => {
     subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0, 0.1, 0, 0.1, plans);
     const initialPlan = plans.pop();
     initialPlan.resolveTrajectory(new Vector3(0.1, 0, 0), new Vector3(1, 0, 0));
-    initialPlan.completeDistanceRequests(Infinity);
+    initialPlan.finalizeRequests(Infinity);
     expect(initialPlan.requestCount).to.equal(1);
     initialPlan.release();
 
@@ -368,14 +368,14 @@ describe("SubEmitter", () => {
     subEmitters._prepareBirthPlansForParticle(0, 0, 10, 1.1, 1.2, 1.1, 1.2, plans);
     const resumedPlan = plans.pop();
     resumedPlan.resolveTrajectory(new Vector3(1.2, 0, 0), new Vector3(1, 0, 0));
-    resumedPlan.completeDistanceRequests(Infinity);
+    resumedPlan.finalizeRequests(Infinity);
     expect(resumedPlan.requestCount).to.equal(0);
     resumedPlan.release();
 
     subEmitters._prepareBirthPlansForParticle(0, 0, 10, 1.2, 1.3, 1.2, 1.3, plans);
     const nextPlan = plans.pop();
     nextPlan.resolveTrajectory(new Vector3(1.3, 0, 0), new Vector3(1, 0, 0));
-    nextPlan.completeDistanceRequests(Infinity);
+    nextPlan.finalizeRequests(Infinity);
     expect(nextPlan.requestCount).to.equal(1);
     nextPlan.release();
 
@@ -395,7 +395,7 @@ describe("SubEmitter", () => {
     subEmitters._prepareBirthPlansForParticle(0, 0, 10, 0, 0.1, 0, 0.1, plans);
     const plan = plans.pop();
     plan.resolveTrajectory(new Vector3(1, 0, 0), new Vector3(10, 0, 0));
-    plan.completeDistanceRequests(2);
+    plan.finalizeRequests(2);
 
     expect(plan.requestCount).to.equal(2);
     expect(plan.requests).to.have.length(2);
