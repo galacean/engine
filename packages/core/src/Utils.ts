@@ -82,8 +82,10 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    // 相对虚拟资源路径必须放在 file URL 的路径段中，不能放在 host 位置
-    // host 会被 URL 规范化为小写，导致大小写敏感的 VFS key 无法命中
+    // A relative virtual asset path (for example `SpriteAtlas/...`) must be
+    // treated as a path, not as the host portion of a file URL. The latter
+    // lowercases the first segment and breaks case-sensitive virtual-resource
+    // lookup in Editor previews
     const resolvedHasLeadingSlash = baseUrl.startsWith("/") || relativeUrl.startsWith("/");
     const head = "file:///";
     const encodedBaseUrl = head + this._encodePathComponents(baseUrl.replace(/^\/+/, ""));

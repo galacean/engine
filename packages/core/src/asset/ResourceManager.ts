@@ -346,8 +346,9 @@ export class ResourceManager {
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
-    // 命中虚拟资源时必须保留逻辑路径，Loader 需要用它推导同目录依赖
-    // baseUrl 只解析未注册到 VFS 的普通相对地址，避免绕过虚拟资源映射
+    // Keep a virtual resource's logical identity so loaders can resolve its
+    // sibling resources through the virtual-resource map. `baseUrl` only
+    // resolves ordinary relative transport URLs
     const loadItemUrl =
       virtualResourceEntry !== undefined || Utils.isAbsoluteUrl(assetBaseURL) || !this.baseUrl
         ? assetBaseURL

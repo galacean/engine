@@ -36,11 +36,11 @@ describe("SpriteAtlasLoader", () => {
         }
       });
     });
-    // @ts-ignore -- 需要替换内部 Texture Loader，隔离图片解码并观察页面资源请求
+    // @ts-ignore -- loaders are registered in ResourceManager's internal registry
     const textureLoaderSpy = vi
       .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
       .mockImplementation((item, manager) => {
-        // @ts-ignore -- 通过内部请求入口验证逻辑路径只在 I/O 边界映射为物理地址
+        // @ts-ignore -- exercise ResourceManager's virtual-to-transport mapping boundary
         return manager._request(item.url, { ...item, type: "arraybuffer" }).then(() => new Texture2D(engine, 1, 1));
       });
 

@@ -94,7 +94,7 @@ describe("ResourceManager", () => {
       resourceManager.registerVirtualResources([
         { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: AssetType.Texture }
       ]);
-      // @ts-ignore -- 需要读取内部 Loader 注册表，验证 VFS 中记录的 type 决定 Loader 选择
+      // @ts-ignore -- inspect the internal loader registry to verify VFS-driven type selection
       const loaderSpy = vi
         .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
         .mockReturnValue(new AssetPromise(() => {}));
@@ -166,7 +166,7 @@ describe("ResourceManager", () => {
       const virtualPath = "Assets/precompiled-shader";
       const physicalPath = "/Assets/precompiled-shader.shaderc";
       resourceManager.registerVirtualResources([{ virtualPath, path: physicalPath, type: AssetType.Shader }]);
-      // @ts-ignore -- 需要观察内部 Loader 入参，验证虚拟资源不会被改写为物理地址
+      // @ts-ignore -- inspect the internal loader input to verify that virtual resource identity is preserved
       const loaderSpy = vi
         .spyOn(ResourceManager._loaders[AssetType.Shader], "load")
         .mockReturnValue(new AssetPromise(() => {}));
