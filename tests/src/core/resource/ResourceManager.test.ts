@@ -94,7 +94,7 @@ describe("ResourceManager", () => {
       resourceManager.registerVirtualResources([
         { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: AssetType.Texture }
       ]);
-      // @ts-ignore
+      // @ts-ignore -- 需要观察内部 Loader 入参，验证虚拟资源不会被改写为物理地址
       const loaderSpy = vi
         .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
         .mockReturnValue(new AssetPromise(() => {}));

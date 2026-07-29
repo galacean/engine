@@ -28,8 +28,8 @@ export type LoadItem = {
   params?: Record<string, any>;
 } & PickOnlyOne<{
   /**
-   * Requested resource identity. Virtual resources keep their virtual path so
-   * loaders can resolve dependent resources through ResourceManager.
+   * 请求资源的逻辑标识。虚拟资源必须保留 virtualPath，
+   * 使 Loader 派生出的同目录依赖仍可由 ResourceManager 映射到物理地址。
    */
   url: string;
   /**
