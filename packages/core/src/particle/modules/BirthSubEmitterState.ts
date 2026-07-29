@@ -11,16 +11,11 @@ export class BirthSubEmitterState {
   lastProcessedParentAge = 0;
   shouldEmit = true;
   resetDistanceOnNextFeedback = false;
-  needsReset = false;
 
-  // The ring slot holds one reference and each deferred Plan holds another
+  // An attached ring slot holds one reference and each deferred Plan holds another
   private _referenceCount = 0;
 
   constructor(private readonly _pool: BirthSubEmitterState[]) {}
-
-  get canReuse(): boolean {
-    return this._referenceCount === 1;
-  }
 
   reset(
     seed: number,
@@ -33,7 +28,6 @@ export class BirthSubEmitterState {
     this.lastProcessedParentAge = initialParentAge;
     this.shouldEmit = shouldEmit;
     this.resetDistanceOnNextFeedback = false;
-    this.needsReset = false;
     const emissionState = this.emissionState;
     emissionState.resetRandomSeed(seed);
     emissionState.resyncTimeCursors(initialEmissionTime);
@@ -49,9 +43,5 @@ export class BirthSubEmitterState {
     if (--this._referenceCount === 0) {
       this._pool.push(this);
     }
-  }
-
-  retire(): void {
-    this.needsReset = true;
   }
 }

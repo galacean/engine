@@ -163,25 +163,31 @@ describe("SubEmitter", () => {
     birthChild.entity.destroy();
   });
 
-  it("reuses a Birth state when its ring slot has no pending plan", () => {
+  it("reuses a retired Birth state across ring slots when no plan is pending", () => {
     const parent = createParticleRenderer(engine, "BirthStateReuse_Parent");
     const child = createParticleRenderer(engine, "BirthStateReuse_Child");
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     const plans: any[] = [];
+    const statesByParticle = (subEmitters as any)._birthStatesByParticle;
+    const statePool = (subEmitters as any)._birthStatePool;
 
     subEmitters._prepareBirthPlansForParticle(0, 0, 1, 0, 0.1, 0, 0.1, plans);
-    const firstState = (subEmitters as any)._birthStatesByParticle[0][0];
+    const firstState = statesByParticle[0][0];
     firstState.emissionState.distanceAccumulator = 1;
     firstState.emissionState.setLastEmitPosition(new Vector3(1, 0, 0));
     firstState.resetDistanceOnNextFeedback = true;
 
     subEmitters._retireParticle(0);
-    subEmitters._prepareBirthPlansForParticle(0, 0.1, 1, 0.1, 0.2, 0.1, 0.2, plans);
+    expect(statesByParticle[0]).to.have.length(0);
+    expect(statePool).to.have.length(1);
+    expect(statePool[0]).to.equal(firstState);
 
-    const reusedState = (subEmitters as any)._birthStatesByParticle[0][0];
+    subEmitters._prepareBirthPlansForParticle(1, 0.1, 1, 0.1, 0.2, 0.1, 0.2, plans);
+
+    const reusedState = statesByParticle[1][0];
     expect(reusedState).to.equal(firstState);
-    expect(reusedState.needsReset).to.equal(false);
+    expect(statePool).to.have.length(0);
     expect(reusedState.resetDistanceOnNextFeedback).to.equal(true);
     expect(reusedState.emissionState.distanceAccumulator).to.equal(0);
     expect(reusedState.emissionState.hasLastEmitPosition).to.equal(false);
@@ -191,13 +197,15 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("uses a pooled Birth state when a ring slot is reused before its pending plan completes", () => {
+  it("isolates a retired Birth state while its pending Plan completes", () => {
     const parent = createParticleRenderer(engine, "BirthStateOverlap_Parent");
     const child = createParticleRenderer(engine, "BirthStateOverlap_Child");
     child.generator.emission.rateOverTime.constant = 10;
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     const plans: any[] = [];
+    const statesByParticle = (subEmitters as any)._birthStatesByParticle;
+    const statePool = (subEmitters as any)._birthStatePool;
 
     subEmitters._prepareBirthPlansForParticle(0, 0, 1, 0, 0.1, 0, 0.1, plans);
     const pendingPlan = plans.pop();
@@ -205,22 +213,24 @@ describe("SubEmitter", () => {
     firstState.emissionState.distanceAccumulator = 1;
 
     subEmitters._retireParticle(0);
+    expect(statesByParticle[0]).to.have.length(0);
+    expect(statePool).to.have.length(0);
     child.generator.emission.rateOverTime.constant = 0;
     subEmitters._prepareBirthPlansForParticle(0, 0.1, 1, 0.1, 0.2, 0.1, 0.2, plans);
 
-    const replacementState = (subEmitters as any)._birthStatesByParticle[0][0];
+    const replacementState = statesByParticle[0][0];
     expect(replacementState).not.to.equal(firstState);
     expect(pendingPlan.state).to.equal(firstState);
     expect(firstState.emissionState.distanceAccumulator).to.equal(1);
     expect(replacementState.emissionState.distanceAccumulator).to.equal(0);
-    expect((subEmitters as any)._birthStatePool).to.have.length(0);
+    expect(statePool).to.have.length(0);
 
     pendingPlan.release();
-    expect((subEmitters as any)._birthStatePool).to.have.length(1);
+    expect(statePool).to.have.length(1);
 
     subEmitters._prepareBirthPlansForParticle(1, 0.2, 1, 0.2, 0.3, 0.2, 0.3, plans);
-    expect((subEmitters as any)._birthStatesByParticle[1][0]).to.equal(firstState);
-    expect((subEmitters as any)._birthStatePool).to.have.length(0);
+    expect(statesByParticle[1][0]).to.equal(firstState);
+    expect(statePool).to.have.length(0);
     expect(plans).to.have.length(0);
 
     parent.entity.destroy();

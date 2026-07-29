@@ -206,19 +206,12 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
       const targetGenerator = targetRenderer.generator;
 
-      if (!state || state.needsReset) {
+      if (!state) {
         parentParticleSequence ??= this._particleSequence++;
-        // Preserve the retired parent's state while one of its deferred Plans is still pending
-        if (state && !state.canReuse) {
-          state.release();
-          state = null;
-        }
-        if (!state) {
-          const statePool = this._birthStatePool;
-          state = statePool.pop() ?? new BirthSubEmitterState(statePool);
-          state.retain();
-          birthStates[i] = state;
-        }
+        const statePool = this._birthStatePool;
+        state = statePool.pop() ?? new BirthSubEmitterState(statePool);
+        state.retain();
+        birthStates[i] = state;
         this._resetBirthSubEmitterState(
           state,
           subEmitter,
@@ -300,8 +293,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     if (!birthStates) return;
 
     for (let i = 0, n = birthStates.length; i < n; i++) {
-      birthStates[i]?.retire();
+      birthStates[i]?.release();
     }
+    birthStates.length = 0;
   }
 
   /**
