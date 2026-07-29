@@ -11,7 +11,8 @@ import {
   ParticleRenderer,
   ParticleSimulationSpace,
   ParticleStopMode,
-  WebGLEngine
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -94,6 +95,104 @@ describe("InheritVelocityModule", () => {
     expect(vertices[5]).to.be.closeTo(0, 1e-5);
     expect(vertices[6]).to.be.closeTo(0, 1e-5);
     expect(vertices[18]).to.be.closeTo(10, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
+  it("Initial Curve keeps birth velocity separate without requiring transform feedback", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity-forward-curve");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    generator.emission.clearBurst();
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+    expect(generator._useTransformFeedback).to.equal(false);
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(vertices[18]).to.equal(0);
+    expect(vertices[42]).to.be.closeTo(10, 1e-5);
+    expect(vertices[43]).to.equal(0);
+    expect(vertices[44]).to.equal(0);
+
+    renderer.entity.destroy();
+  });
+
+  it("Initial Curve remains available on WebGL1", async () => {
+    const webgl1Engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      webGLMode: WebGLMode.WebGL1
+    });
+    const camera = webgl1Engine.sceneManager.activeScene.createRootEntity("Camera");
+    camera.addComponent(Camera);
+    camera.transform.setPosition(0, 0, 10);
+    webgl1Engine.run();
+
+    const renderer = createParticleRenderer(webgl1Engine, "initial-inherit-velocity-webgl1");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    generator.emission.clearBurst();
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+    expect(generator._useTransformFeedback).to.equal(false);
+
+    const webgl1Time = { value: 0 };
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(webgl1Engine, webgl1Time);
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(webgl1Engine, webgl1Time);
+
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(vertices[18]).to.equal(0);
+    expect(vertices[42]).to.be.closeTo(10, 1e-5);
+
+    webgl1Engine.destroy();
+  });
+
+  it("Initial evaluates TwoCurves over each particle lifetime using its birth velocity", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity-curve");
+    const generator = renderer.generator;
+    const curve = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1));
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      curve,
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    generator.emission.clearBurst();
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+    generator.noise.strengthX.constant = 0;
+    generator.noise.enabled = true;
+    expect(generator._useTransformFeedback).to.equal(true);
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(vertices[18]).to.equal(0);
+    expect(vertices[42]).to.be.closeTo(10, 1e-5);
+    expect(vertices[43]).to.equal(0);
+    expect(vertices[44]).to.equal(0);
+    expect(vertices[45]).to.be.within(0, 1);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.025, 1e-5);
+
+    renderer.entity.transform.setPosition(3, 0, 0);
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.175, 1e-5);
 
     renderer.entity.destroy();
   });

@@ -1,7 +1,9 @@
-/** Defines how an inherit-velocity module samples its emitter velocity. */
+/**
+ * Defines how emitter velocity is applied to particles.
+ */
 export enum ParticleInheritVelocityMode {
-  /** Capture the particle system Entity velocity when the particle is emitted. */
+  /** Samples emitter velocity when each particle is emitted, then scales it over that particle's lifetime. */
   Initial = 0,
-  /** Continuously apply the particle system Entity velocity to World-space particles. Requires WebGL2. */
+  /** Samples the emitter's current velocity every frame and scales it over each particle's lifetime. Requires WebGL2. */
   Current = 1
 }

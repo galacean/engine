@@ -11,6 +11,8 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+const particleInstanceFloatStride = 46;
+
 function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
   engine._vSyncCount = Infinity;
@@ -190,11 +192,10 @@ describe("EmissionModule rateOverDistance", () => {
     // Particles are written sequentially starting at firstActiveElement=0.
     //@ts-ignore - test reaches into instance buffer to verify spatial distribution
     const verts = (generator as any)._instanceVertices as Float32Array;
-    // Per-instance stride = 172 bytes / 4 = 43 floats; world position lives at offset 27.
-    const stride = 43;
+    // World position lives at float offset 27 in each particle instance.
     const xs: number[] = [];
     for (let i = 0; i < 4; i++) {
-      xs.push(verts[i * stride + 27]);
+      xs.push(verts[i * particleInstanceFloatStride + 27]);
     }
     xs.sort((a, b) => a - b);
     // Expect roughly [1, 2, 3, 4] — accept loose tolerance for float ops.
@@ -224,12 +225,11 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to read per-particle emit time
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 43;
     // a_DirectionTime is at byte 16 → float 4; the .w slot (emit time) is float 4+3=7.
     const timeFloatOffset = 7;
     const times: number[] = [];
     for (let i = 0; i < 4; i++) {
-      times.push(verts[i * stride + timeFloatOffset]);
+      times.push(verts[i * particleInstanceFloatStride + timeFloatOffset]);
     }
     times.sort((a, b) => a - b);
 
@@ -414,9 +414,8 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to verify positions stay in [lastPos, currentPos]
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 43;
     for (let i = 0; i < 7; i++) {
-      const x = verts[i * stride + 27];
+      const x = verts[i * particleInstanceFloatStride + 27];
       // Without the in-loop clamp this would be e.g. -1.0, -1.2, ... (extrapolated
       // far behind lastPos.x = 1.5). With the clamp every particle lives within
       // the legitimate frame window [lastPos.x, currentPos.x] = [1.5, 1.55].

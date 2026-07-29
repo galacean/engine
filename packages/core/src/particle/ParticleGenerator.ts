@@ -1087,14 +1087,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const duration = this.main.duration;
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     let particleDirection = direction;
+    const inheritVelocity = this.inheritVelocity;
+    const usesInitialInheritCurve = inheritVelocity._usesInitialCurve();
     const inheritedWorldVelocity = ParticleGenerator._tempVector34;
-    const hasInheritedVelocity = this.inheritVelocity._getInitialVelocity(
-      normalizedEmitAge,
-      inheritedWorldVelocity,
-      parentWorldVelocity
-    );
+    const hasInheritedVelocity = inheritVelocity._getInitialVelocity(inheritedWorldVelocity, parentWorldVelocity);
 
-    if (hasInheritedVelocity) {
+    if (hasInheritedVelocity && !usesInitialInheritCurve) {
       const inheritedLocalVelocity = ParticleGenerator._tempVector35;
       const invWorldRotation = ParticleGenerator._tempQuat0;
       Quaternion.invert(transform.worldRotationQuaternion, invWorldRotation);
@@ -1261,10 +1259,17 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
     }
 
-    if (this.inheritVelocity._isCurrentRandom()) {
-      instanceVertices[offset + ParticleBufferUtils.inheritVelocityRandomOffset] =
-        this.inheritVelocity._curveRand.random();
+    const inheritVelocityOffset = offset + ParticleBufferUtils.inheritVelocityOffset;
+    if (usesInitialInheritCurve) {
+      inheritedWorldVelocity.copyToArray(instanceVertices, inheritVelocityOffset);
+    } else {
+      instanceVertices[inheritVelocityOffset] = 0;
+      instanceVertices[inheritVelocityOffset + 1] = 0;
+      instanceVertices[inheritVelocityOffset + 2] = 0;
     }
+    instanceVertices[offset + ParticleBufferUtils.inheritVelocityRandomOffset] = inheritVelocity._needsShaderRandom()
+      ? inheritVelocity._curveRand.random()
+      : 0;
 
     // Apply sub-emit inherit: multiply color/size, add rotation
     if (inheritColor) {

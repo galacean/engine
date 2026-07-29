@@ -39,16 +39,18 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 0),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 0),
     new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 0),
-    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocityRandom, 168, VertexElementFormat.Float, 0)
+    // xyz: Initial-mode source velocity; w: per-particle curve random
+    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 0)
   ];
 
-  static readonly instanceVertexStride = 172;
+  static readonly instanceVertexStride = 184;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
   static readonly startLifeTimeOffset = 3;
   static readonly timeOffset = 7;
   static readonly simulationUVOffset = 34;
-  static readonly inheritVelocityRandomOffset = 42;
+  static readonly inheritVelocityOffset = 42;
+  static readonly inheritVelocityRandomOffset = 45;
   static readonly feedbackWorldPositionOffset = 6;
   static readonly feedbackTrajectoryVelocityOffset = 9;
 
@@ -77,7 +79,8 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 1, 1), //TODO:local模式下可省去内存
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 1, 1),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 1, 1)
+    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 1, 1)
   ];
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;

@@ -21,7 +21,7 @@ const SOL_CURVE_MODE_MACRO = ShaderMacro.getByName("RENDERER_SOL_CURVE_MODE");
 const SOL_RANDOM_TWO_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_RANDOM_TWO");
 const SOL_SEPARATE_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_SEPARATE");
 // ParticleBufferUtils.instanceVertexFloatStride
-const FLOAT_STRIDE = 43;
+const FLOAT_STRIDE = 46;
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore

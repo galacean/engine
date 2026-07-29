@@ -86,6 +86,10 @@ struct Attributes {
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 a_SimulationUV;
     #endif
+
+    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM)
+        vec4 a_InheritVelocity;
+    #endif
 };
 
 struct Varyings {
@@ -100,6 +104,7 @@ struct Varyings {
 
 // Particle module includes (must be after Attributes/Varyings declarations)
 #include "ShaderLibrary/Particle/ParticleCommon.glsl"
+#include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
 #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/ColorOverLifetime.glsl"
@@ -112,7 +117,7 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in fl
     vec3 startPosition = startVelocity * age;
     vec3 finalPosition;
     vec3 localPositionOffset = startPosition;
-    vec3 worldPositionOffset;
+    vec3 worldPositionOffset = vec3(0.0);
 
     #ifdef _VOL_LINEAR_MODULE_ENABLED
         vec3 lifeVelocity;
@@ -136,6 +141,12 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in fl
             worldVelocity += forceVelocity;
             worldPositionOffset += forcePositionOffset;
         }
+    #endif
+
+    #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+        vec3 inheritedVelocity;
+        worldPositionOffset += computeInitialInheritVelocityPositionOffset(attributes, normalizedAge, inheritedVelocity);
+        worldVelocity += inheritedVelocity;
     #endif
 
     finalPosition = rotationByQuaternions(attributes.a_ShapePositionStartLifeTime.xyz + localPositionOffset, worldRotation) + worldPositionOffset;
@@ -194,6 +205,10 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
         vec3 visualLocalVelocity = localVelocity;
         vec3 visualWorldVelocity = worldVelocity;
+
+        #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) && defined(RENDERER_MODE_STRETCHED_BILLBOARD)
+            visualWorldVelocity += evaluateInheritVelocity(attr, normalizedAge);
+        #endif
 
         #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED

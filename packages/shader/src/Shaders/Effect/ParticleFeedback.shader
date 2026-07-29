@@ -17,22 +17,6 @@ Shader "Effect/ParticleFeedback" {
       vec4 renderer_WorldRotation;
       int renderer_SimulationSpace;
 
-      #ifdef RENDERER_INHERIT_VELOCITY_CURRENT
-          vec3 renderer_InheritVelocity;
-          #ifdef RENDERER_INHERIT_VELOCITY_CONSTANT_MODE
-              float renderer_InheritVelocityMaxConst;
-              #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
-                  float renderer_InheritVelocityMinConst;
-              #endif
-          #endif
-          #ifdef RENDERER_INHERIT_VELOCITY_CURVE_MODE
-              vec2 renderer_InheritVelocityMaxCurve[4];
-              #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
-                  vec2 renderer_InheritVelocityMinCurve[4];
-              #endif
-          #endif
-      #endif
-
       struct Attributes {
           vec3 a_FeedbackPosition;
           vec3 a_FeedbackVelocity;
@@ -56,8 +40,8 @@ Shader "Effect/ParticleFeedback" {
               vec4 a_Random2;
           #endif
 
-          #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
-              float a_InheritVelocityRandom;
+          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM)
+              vec4 a_InheritVelocity;
           #endif
       };
 
@@ -72,6 +56,7 @@ Shader "Effect/ParticleFeedback" {
 
       // Module includes (after Attributes/Varyings)
       #include "ShaderLibrary/Particle/ParticleCommon.glsl"
+      #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
       #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
@@ -149,24 +134,8 @@ Shader "Effect/ParticleFeedback" {
           vec3 localVelocity = attr.a_FeedbackVelocity;
           vec3 inheritedVelocityWorld = vec3(0.0);
 
-          #ifdef RENDERER_INHERIT_VELOCITY_CURRENT
-              float inheritFactor;
-              #ifdef RENDERER_INHERIT_VELOCITY_CONSTANT_MODE
-                  inheritFactor = renderer_InheritVelocityMaxConst;
-                  #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
-                      inheritFactor = mix(renderer_InheritVelocityMinConst, inheritFactor, attr.a_InheritVelocityRandom);
-                  #endif
-              #endif
-              #ifdef RENDERER_INHERIT_VELOCITY_CURVE_MODE
-                  inheritFactor = evaluateParticleCurve(renderer_InheritVelocityMaxCurve, normalizedAge);
-                  #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
-                      inheritFactor = mix(
-                          evaluateParticleCurve(renderer_InheritVelocityMinCurve, normalizedAge),
-                          inheritFactor,
-                          attr.a_InheritVelocityRandom);
-                  #endif
-              #endif
-              inheritedVelocityWorld = renderer_InheritVelocity * inheritFactor;
+          #ifdef _INHERIT_VELOCITY_MODULE_ENABLED
+              inheritedVelocityWorld = evaluateInheritVelocity(attr, normalizedAge);
           #endif
 
           // Step 1: VOL + FOL + Gravity
