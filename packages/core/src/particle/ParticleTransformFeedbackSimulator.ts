@@ -4,6 +4,7 @@ import { Buffer } from "../graphic/Buffer";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderPass } from "../shader/ShaderPass";
@@ -27,7 +28,7 @@ export class ParticleTransformFeedbackSimulator {
   ];
 
   /** @internal */
-  _instanceBinding: VertexBufferBinding;
+  _particleInputBinding: VertexBufferBinding;
 
   readonly vertexStride: number;
   readonly trajectoryEnabled: boolean;
@@ -35,7 +36,7 @@ export class ParticleTransformFeedbackSimulator {
   private _simulator: TransformFeedbackSimulator;
   private _feedbackPass: ShaderPass;
   private _feedbackVaryings: string[];
-  private _feedbackVertexElements = ParticleBufferUtils.feedbackVertexElements;
+  private _feedbackStateVertexElements: VertexElement[];
   private _particleInitData: Float32Array;
   private _oldReadBuffer: Buffer;
   private _oldWriteBuffer: Buffer;
@@ -61,17 +62,17 @@ export class ParticleTransformFeedbackSimulator {
       );
     }
     this.trajectoryEnabled = trajectoryEnabled;
-    this.vertexStride = trajectoryEnabled
-      ? ParticleBufferUtils.trajectoryFeedbackVertexStride
-      : ParticleBufferUtils.feedbackVertexStride;
     if (trajectoryEnabled) {
-      this._feedbackVertexElements = ParticleBufferUtils.trajectoryFeedbackVertexElements;
+      this.vertexStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
+      this._feedbackStateVertexElements = ParticleBufferUtils.feedbackTrajectoryStateVertexElements;
+      this._feedbackVaryings = ParticleTransformFeedbackSimulator._trajectoryFeedbackVaryings;
+    } else {
+      this.vertexStride = ParticleBufferUtils.feedbackStateVertexStride;
+      this._feedbackStateVertexElements = ParticleBufferUtils.feedbackStateVertexElements;
+      this._feedbackVaryings = ParticleTransformFeedbackSimulator._feedbackVaryings;
     }
     this._particleInitData = new Float32Array(this.vertexStride / 4);
     this._feedbackPass = feedbackShader.subShaders[0].passes[0];
-    this._feedbackVaryings = trajectoryEnabled
-      ? ParticleTransformFeedbackSimulator._trajectoryFeedbackVaryings
-      : ParticleTransformFeedbackSimulator._feedbackVaryings;
     this._simulator = new TransformFeedbackSimulator(engine, this.vertexStride, this._feedbackPass);
   }
 
@@ -79,13 +80,13 @@ export class ParticleTransformFeedbackSimulator {
    * Resize feedback buffers.
    * Saves pre-resize buffers internally for subsequent `copyOldBufferData` / `destroyOldBuffers` calls.
    * @param particleCount - Number of particles to allocate
-   * @param instanceBinding - New instance vertex buffer binding
+   * @param particleInputBinding - New particle input vertex buffer binding
    */
-  resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
+  resize(particleCount: number, particleInputBinding: VertexBufferBinding): void {
     this._oldReadBuffer = this._simulator.readBinding?.buffer;
     this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
     this._simulator.resize(particleCount);
-    this._instanceBinding = instanceBinding;
+    this._particleInputBinding = particleInputBinding;
   }
 
   /**
@@ -169,9 +170,9 @@ export class ParticleTransformFeedbackSimulator {
     if (
       !this._simulator.beginUpdate(
         shaderData,
-        this._feedbackVertexElements,
-        this._instanceBinding,
-        ParticleBufferUtils.feedbackInstanceElements
+        this._feedbackStateVertexElements,
+        this._particleInputBinding,
+        ParticleBufferUtils.feedbackInitialDataVertexElements
       )
     )
       return;

@@ -16,20 +16,7 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  * @internal
  */
 export class ParticleBufferUtils {
-  static readonly feedbackVertexStride = 24;
-  static readonly trajectoryFeedbackVertexStride = 48;
-
-  static readonly feedbackVertexElements = [
-    new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
-    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0)
-  ];
-
-  static readonly trajectoryFeedbackVertexElements = [
-    ...ParticleBufferUtils.feedbackVertexElements,
-    new VertexElement(ParticleFeedbackVertexAttribute.WorldPosition, 24, VertexElementFormat.Vector3, 0)
-  ];
-
-  static readonly feedbackInstanceElements = [
+  static readonly feedbackInitialDataVertexElements = [
     new VertexElement(ParticleInstanceVertexAttribute.ShapePositionStartLifeTime, 0, VertexElementFormat.Vector4, 0),
     new VertexElement(ParticleInstanceVertexAttribute.DirectionTime, 16, VertexElementFormat.Vector4, 0),
     new VertexElement(ParticleInstanceVertexAttribute.StartSize, 48, VertexElementFormat.Vector3, 0),
@@ -43,6 +30,41 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 0)
   ];
 
+  static readonly feedbackStateVertexElements = [
+    new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0)
+  ];
+
+  static readonly feedbackTrajectoryStateVertexElements = [
+    ...ParticleBufferUtils.feedbackStateVertexElements,
+    new VertexElement(ParticleFeedbackVertexAttribute.WorldPosition, 24, VertexElementFormat.Vector3, 0)
+  ];
+
+  static readonly renderBillboardVertexElement = new VertexElement(
+    ParticleBillboardVertexAttribute.cornerTextureCoordinate,
+    0,
+    VertexElementFormat.Vector4,
+    0
+  );
+
+  static readonly renderInstanceVertexElements = [
+    new VertexElement(ParticleInstanceVertexAttribute.ShapePositionStartLifeTime, 0, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.DirectionTime, 16, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.StartColor, 32, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.StartSize, 48, VertexElementFormat.Vector3, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.StartRotation0, 60, VertexElementFormat.Vector3, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.StartSpeed, 72, VertexElementFormat.Float, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.Random0, 76, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.Random1, 92, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 1, 1), //TODO:local模式下可省去内存
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 1, 1)
+  ];
+
+  static readonly feedbackStateVertexStride = 24;
+  static readonly feedbackTrajectoryStateVertexStride = 48;
   static readonly instanceVertexStride = 184;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
@@ -59,29 +81,6 @@ export class ParticleBufferUtils {
   static readonly boundsFloatStride = 8;
   static readonly boundsTimeOffset = 6;
   static readonly boundsMaxLifetimeOffset = 7;
-
-  readonly billboardVertexElement = new VertexElement(
-    ParticleBillboardVertexAttribute.cornerTextureCoordinate,
-    0,
-    VertexElementFormat.Vector4,
-    0
-  );
-
-  readonly instanceVertexElements = [
-    new VertexElement(ParticleInstanceVertexAttribute.ShapePositionStartLifeTime, 0, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.DirectionTime, 16, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.StartColor, 32, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.StartSize, 48, VertexElementFormat.Vector3, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.StartRotation0, 60, VertexElementFormat.Vector3, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.StartSpeed, 72, VertexElementFormat.Float, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.Random0, 76, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.Random1, 92, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 1, 1), //TODO:local模式下可省去内存
-    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 1, 1)
-  ];
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;

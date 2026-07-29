@@ -606,16 +606,16 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       subPrimitive.count = subMesh.count;
     } else {
       renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
-      primitive.addVertexElement(particleUtils.billboardVertexElement);
+      primitive.addVertexElement(ParticleBufferUtils.renderBillboardVertexElement);
       vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
       this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
 
-    const instanceVertexElements = particleUtils.instanceVertexElements;
+    const renderInstanceVertexElements = ParticleBufferUtils.renderInstanceVertexElements;
     const bindingIndex = vertexBufferBindings.length;
-    for (let i = 0, n = instanceVertexElements.length; i < n; i++) {
-      const element = instanceVertexElements[i];
+    for (let i = 0, n = renderInstanceVertexElements.length; i < n; i++) {
+      const element = renderInstanceVertexElements[i];
       primitive.addVertexElement(
         new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
       );
@@ -845,7 +845,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         simulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
         simulator.destroyOldBuffers();
       } else {
-        simulator._instanceBinding = this._instanceVertexBufferBinding;
+        simulator._particleInputBinding = this._instanceVertexBufferBinding;
       }
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
       // Feedback buffer swaps every frame; VAO caching would bake stale buffer handles.
