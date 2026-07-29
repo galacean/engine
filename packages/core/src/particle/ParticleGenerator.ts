@@ -349,12 +349,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     incomingCommands: ReadonlyArray<ParticleSubEmitterCommand> = [],
     isBirthSubEmitterTarget: boolean = false
   ): void {
-    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
-    if (isContentLost) {
-      this._destroyFeedbackReadbacks();
-    } else {
-      this._consumeFeedbackReadbacks();
-    }
+    const isContentLost = this._processFeedbackReadbacks();
     const lastAlive = this.isAlive;
     const { main, emission } = this;
     const duration = main.duration;
@@ -483,6 +478,19 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     if (this.isAlive !== lastAlive) {
       this._renderer._onWorldVolumeChanged();
     }
+  }
+
+  /**
+   * @internal
+   */
+  _processFeedbackReadbacks(): boolean {
+    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
+    if (isContentLost) {
+      this._destroyFeedbackReadbacks();
+    } else {
+      this._consumeFeedbackReadbacks();
+    }
+    return isContentLost;
   }
 
   private _updateFeedback(shaderData: ShaderData, deltaTime: number, firstNewElement: number): void {

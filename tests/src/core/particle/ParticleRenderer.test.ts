@@ -6,6 +6,7 @@ import {
   ParticleRenderer,
   ParticleRenderMode,
   ParticleSimulationSpace,
+  ParticleStopMode,
   PrimitiveMesh,
   Scene,
   ShaderMacro
@@ -65,6 +66,34 @@ describe("ParticleRenderer", () => {
     expect(renderer.velocityScale).to.eq(-0.333333);
     renderer.velocityScale = 0;
     expect(renderer.velocityScale).to.eq(0);
+  });
+
+  it("pauses simulation while culled and resumes without catch-up", () => {
+    const entity = scene.createRootEntity("CulledParticle");
+    entity.transform.setPosition(100000, 0, 0);
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    generator.useAutoRandomSeed = false;
+    generator.main.isLoop = true;
+    generator.main.startLifetime.constant = 10;
+    generator.emission.rateOverTime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    updateEngine(engine, 3);
+    const culledPlayTime = generator._playTime;
+    expect(culledPlayTime).to.be.closeTo(0.1, 1e-6);
+
+    updateEngine(engine, 3);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    entity.transform.setPosition(0, 0, 0);
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.be.closeTo(culledPlayTime + 0.1, 1e-6);
+
+    entity.destroy();
   });
 
   it("ParticleRenderer renderMode", () => {

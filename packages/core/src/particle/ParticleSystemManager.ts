@@ -13,10 +13,8 @@ export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitter
  * @internal
  */
 export class ParticleSystemManager {
-  private static readonly _emptyCommands: ReadonlyArray<ParticleSubEmitterCommand> = [];
-
   private _renderers: ParticleRenderer[] = [];
-  private _commands = new Map<ParticleGenerator, ParticleSubEmitterCommand[]>();
+  private _commandQueues = new Map<ParticleGenerator, ParticleSubEmitterCommand[]>();
   private _orderedRenderers: ParticleRenderer[] = [];
   private _birthTargets = new Set<ParticleGenerator>();
   private _rendererSet = new Set<ParticleRenderer>();
@@ -29,6 +27,10 @@ export class ParticleSystemManager {
   add(renderer: ParticleRenderer): void {
     if (this._renderers.indexOf(renderer) < 0) {
       this._renderers.push(renderer);
+      this._commandQueues.set(renderer.generator, []);
+      // Treat a newly enabled system as visible until the first culling result
+      renderer._renderFrameCount = renderer.engine.time.frameCount;
+      renderer._hasParticleSystemUpdated = false;
       this._markTopologyDirty();
     }
   }
@@ -40,10 +42,12 @@ export class ParticleSystemManager {
       this._markTopologyDirty();
     }
     const generator = renderer.generator;
-    const commands = this._commands.get(generator);
+    const commands = this._commandQueues.get(generator);
     if (commands) {
-      this._consumeRemainingCommands(commands);
-      this._commands.delete(generator);
+      for (let i = 0, n = commands.length; i < n; i++) {
+        this._cancelCommand(commands[i]);
+      }
+      this._commandQueues.delete(generator);
     }
   }
 
@@ -59,52 +63,41 @@ export class ParticleSystemManager {
   }
 
   enqueue(command: ParticleSubEmitterCommand): void {
-    const target = command.target;
-    if (target._renderer.destroyed) {
-      command.release();
-      return;
-    }
-    let commands = this._commands.get(target);
+    const commands = this._commandQueues.get(command.target);
     if (!commands) {
-      commands = [];
-      this._commands.set(target, commands);
+      this._cancelCommand(command);
+      return;
     }
     commands.push(command);
   }
 
   update(deltaTime: number): void {
-    this._commands.clear();
     if (this._topologyDirty) this._rebuildTopology();
 
     const ordered = this._orderedRenderers;
+    if (ordered.length === 0) return;
+
     const birthTargets = this._birthTargets;
     for (let i = 0; i < ordered.length; i++) {
       const renderer = ordered[i];
       const generator = renderer.generator;
-      const incoming = this._commands.get(generator);
-      if (incoming) {
-        this._commands.delete(generator);
+      const commands = this._commandQueues.get(generator)!;
+      if (renderer.isCulled && renderer._hasParticleSystemUpdated && commands.length === 0) {
+        generator._processFeedbackReadbacks();
+        continue;
       }
-      renderer._updateParticles(
-        deltaTime,
-        incoming ?? ParticleSystemManager._emptyCommands,
-        birthTargets.has(generator)
-      );
+
+      renderer._hasParticleSystemUpdated = true;
+      renderer._updateParticles(deltaTime, commands, birthTargets.has(generator));
+      commands.length = 0;
     }
-    for (const commands of this._commands.values()) {
-      this._consumeRemainingCommands(commands);
-    }
-    this._commands.clear();
   }
 
-  private _consumeRemainingCommands(commands: ReadonlyArray<ParticleSubEmitterCommand>): void {
-    for (let i = 0, n = commands.length; i < n; i++) {
-      const command = commands[i];
-      if (command.type === ParticleSubEmitterType.Birth && !command.target._renderer.destroyed) {
-        command.target._consumeBirthSubEmitterCommand(command, 0);
-      } else {
-        command.release();
-      }
+  private _cancelCommand(command: ParticleSubEmitterCommand): void {
+    if (command.type === ParticleSubEmitterType.Birth && !command.target._renderer.destroyed) {
+      command.target._consumeBirthSubEmitterCommand(command, 0);
+    } else {
+      command.release();
     }
   }
 

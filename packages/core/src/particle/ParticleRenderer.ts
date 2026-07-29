@@ -45,6 +45,9 @@ export class ParticleRenderer extends Renderer {
   /** @internal */
   @ignoreClone
   _transformedBounds = new BoundingBox();
+  /** @internal */
+  @ignoreClone
+  _hasParticleSystemUpdated = false;
   @ignoreClone
   private _mesh: ModelMesh;
 
