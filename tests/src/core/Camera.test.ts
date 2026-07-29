@@ -11,7 +11,7 @@ import {
 } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -124,6 +124,33 @@ describe("camera test", function () {
     expect(camera.enableHDR).to.eq(true);
     // @ts-ignore
     expect(camera._isIndependentCanvasEnabled()).to.eq(true);
+  });
+
+  it("releases every owned render pass and material when destroyed", () => {
+    const entity = engine.sceneManager.scenes[0].createRootEntity("pipeline-lifecycle-camera");
+    const lifecycleCamera = entity.addComponent(Camera);
+    const pipeline = lifecycleCamera["_renderPipeline"];
+    const cascadedShadowPass = pipeline["_cascadedShadowCasterPass"];
+    const depthOnlyPass = pipeline["_depthOnlyPass"];
+    const saoPass = pipeline["_saoPass"];
+    const opaqueTexturePass = pipeline["_opaqueTexturePass"];
+    const finalPass = pipeline["_finalPass"];
+    const releaseSpies = [
+      vi.spyOn(cascadedShadowPass, "release"),
+      vi.spyOn(depthOnlyPass, "release"),
+      vi.spyOn(opaqueTexturePass, "release")
+    ];
+    const saoMaterial = saoPass["_material"];
+    const finalSrgbMaterial = finalPass["_sRGBmaterial"];
+    const finalAntiAliasingMaterial = finalPass["_antiAliasingMaterial"];
+
+    lifecycleCamera.destroy();
+
+    for (const releaseSpy of releaseSpies) expect(releaseSpy).toHaveBeenCalledOnce();
+    expect(saoMaterial.destroyed).to.eq(true);
+    expect(finalSrgbMaterial.destroyed).to.eq(true);
+    expect(finalAntiAliasingMaterial.destroyed).to.eq(true);
+    entity.destroy();
   });
 
   it("view matrix", () => {

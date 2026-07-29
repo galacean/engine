@@ -121,11 +121,13 @@ export class RenderTargetPool {
 
   freeRenderTarget(renderTarget: RenderTarget): void {
     if (!renderTarget || renderTarget.destroyed) return;
+    if (this._freeRenderTargets.includes(renderTarget)) return;
     this._freeRenderTargets.push(renderTarget);
   }
 
   freeTexture(texture: Texture2D): void {
     if (!texture || texture.destroyed) return;
+    if (this._freeTextures.includes(texture)) return;
     this._freeTextures.push(texture);
   }
 

@@ -18,6 +18,7 @@ export class FinalPass extends PipelinePass {
   private _srgbRenderTarget: RenderTarget;
   private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
+  private _destroyed = false;
 
   constructor(engine: Engine) {
     super(engine);
@@ -79,5 +80,15 @@ export class FinalPass extends PipelinePass {
       this._srgbRenderTarget = null;
     }
     this._inputRenderTarget = null;
+  }
+
+  destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
+    this.release();
+    this._sRGBmaterial._addReferCount(-1);
+    this._sRGBmaterial.destroy();
+    this._antiAliasingMaterial._addReferCount(-1);
+    this._antiAliasingMaterial.destroy();
   }
 }

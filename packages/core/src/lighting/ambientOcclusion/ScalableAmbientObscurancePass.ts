@@ -44,6 +44,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   private _offsetX = new Vector4();
   private _offsetY = new Vector4();
   private _quality: AmbientOcclusionQuality;
+  private _destroyed = false;
 
   constructor(engine: Engine) {
     super(engine);
@@ -167,6 +168,14 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
       this._blurRenderTarget = null;
     }
     this._depthRenderTarget = null;
+  }
+
+  destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
+    this.release();
+    this._material._addReferCount(-1);
+    this._material.destroy();
   }
 
   private _updateBlurKernel(blurShaderData: ShaderData, quality: AmbientOcclusionQuality): void {

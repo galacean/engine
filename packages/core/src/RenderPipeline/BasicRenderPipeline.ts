@@ -49,6 +49,7 @@ export class BasicRenderPipeline {
   private _copyBackgroundTexture: Texture2D;
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
+  private _destroyed = false;
 
   /**
    * Create a basic render pipeline.
@@ -69,7 +70,14 @@ export class BasicRenderPipeline {
    * Destroy internal resources.
    */
   destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
     this._cullingResults.destroy();
+    this._cascadedShadowCasterPass.release();
+    this._depthOnlyPass.release();
+    this._saoPass.destroy();
+    this._opaqueTexturePass.release();
+    this._finalPass.destroy();
 
     const pool = this._camera.engine._renderTargetPool;
 

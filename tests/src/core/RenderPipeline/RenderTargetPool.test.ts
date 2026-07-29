@@ -96,6 +96,17 @@ describe("RenderTargetPool", () => {
       const c = alloc(pool, 1024, 768);
       expect(c).to.equal(a);
     });
+
+    it("ignores duplicate render-target returns instead of leasing one target twice", () => {
+      const a = alloc(pool, 320, 180);
+      pool.freeRenderTarget(a);
+      pool.freeRenderTarget(a);
+
+      const first = alloc(pool, 320, 180);
+      const second = alloc(pool, 320, 180);
+      expect(first).to.equal(a);
+      expect(second).not.to.equal(a);
+    });
   });
 
   describe("texture free-list", () => {
@@ -108,6 +119,17 @@ describe("RenderTargetPool", () => {
       pool.freeTexture(b);
       const c = allocTex(pool, 64, 64);
       expect(c).to.not.equal(a);
+    });
+
+    it("ignores duplicate texture returns instead of leasing one texture twice", () => {
+      const a = allocTex(pool, 96, 96);
+      pool.freeTexture(a);
+      pool.freeTexture(a);
+
+      const first = allocTex(pool, 96, 96);
+      const second = allocTex(pool, 96, 96);
+      expect(first).to.equal(a);
+      expect(second).not.to.equal(a);
     });
   });
 

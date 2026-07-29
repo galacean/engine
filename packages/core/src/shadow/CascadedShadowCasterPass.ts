@@ -80,6 +80,18 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._updateReceiversShaderData(light);
   }
 
+  release(): void {
+    const renderTarget = this._renderTarget;
+    if (!renderTarget) return;
+    const sceneShaderData = this._camera.scene.shaderData;
+    if (sceneShaderData.getTexture(CascadedShadowCasterPass._shadowMapsProperty) === this._depthTexture) {
+      sceneShaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, null);
+    }
+    this.engine._renderTargetPool.freeRenderTarget(renderTarget);
+    this._renderTarget = null;
+    this._depthTexture = null;
+  }
+
   private _renderDirectShadowMap(context: RenderContext, light: DirectLight): void {
     const {
       engine,
@@ -264,7 +276,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     }
 
     // set zero matrix to project the index out of max cascade
-    for (var i = shadowCascades * 16, n = shadowMatrices.length; i < n; i++) {
+    for (let i = shadowCascades * 16, n = shadowMatrices.length; i < n; i++) {
       shadowMatrices[i] = 0.0;
     }
 
@@ -352,8 +364,6 @@ export class CascadedShadowCasterPass extends PipelinePass {
           shadowCascades == ShadowCascadesMode.TwoCascades ? shadowTileResolution : shadowTileResolution * 2;
         this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
-
-      this._renderTarget = null;
 
       const viewportOffset = this._viewportOffsets;
       const shadowTileResolution = this._shadowTileResolution;
