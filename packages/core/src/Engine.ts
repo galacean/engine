@@ -24,6 +24,7 @@ import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
+import { BufferReadbackPool } from "./graphic/BufferReadbackPool";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
@@ -85,6 +86,8 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   /** @internal */
   _renderTargetPool: RenderTargetPool;
+  /** @internal */
+  _bufferReadbackPool: BufferReadbackPool;
   /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
@@ -256,6 +259,7 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    this._bufferReadbackPool = new BufferReadbackPool(this);
     canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
@@ -508,6 +512,7 @@ export class Engine extends EventDispatcher {
     this._canvas._destroy();
 
     this._sceneManager._destroyAllScene();
+    this._bufferReadbackPool.gc();
     this._resourceManager._destroy();
 
     this.inputManager._destroy();

@@ -1,5 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { Engine } from "../Engine";
+import type { Engine } from "../Engine";
 import type { IPlatformBufferReadback } from "../renderingHardwareInterface";
 import { Buffer } from "./Buffer";
 

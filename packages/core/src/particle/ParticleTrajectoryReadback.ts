@@ -1,6 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
 import { Buffer } from "../graphic/Buffer";
-import { BufferReadback } from "../graphic/BufferReadback";
+import type { BufferReadback } from "../graphic/BufferReadback";
 import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import type { ParticleGenerator } from "./ParticleGenerator";
@@ -15,24 +15,23 @@ class ParticleTrajectoryReadbackBatch {
 }
 
 /**
- * Owns asynchronous particle trajectory readback resources and command delivery.
+ * Owns asynchronous particle trajectory readback transactions and command delivery.
  * @internal
  */
 export class ParticleTrajectoryReadback {
   private readonly _position = new Vector3();
   private readonly _velocity = new Vector3();
+  private readonly _inFlightBatches: ParticleTrajectoryReadbackBatch[] = [];
+  private readonly _availableBatches: ParticleTrajectoryReadbackBatch[] = [];
   private _data: Float32Array | null = null;
   private _pendingBatch: ParticleTrajectoryReadbackBatch | null = null;
-  private _inFlightBatches: ParticleTrajectoryReadbackBatch[] = [];
-  private _spareBatch: ParticleTrajectoryReadbackBatch | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
 
   getPendingCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
     let batch = this._pendingBatch;
     if (!batch) {
-      batch = this._pendingBatch = this._spareBatch ?? new ParticleTrajectoryReadbackBatch();
-      this._spareBatch = null;
+      batch = this._pendingBatch = this._availableBatches.pop() ?? new ParticleTrajectoryReadbackBatch();
       batch.ringOrigin = ringOrigin;
       batch.ringCapacity = ringCapacity;
     }
@@ -68,9 +67,10 @@ export class ParticleTrajectoryReadback {
     const byteLength = batch.readbackElementCount * stride;
     let readback = batch.readback;
     if (!readback || readback.byteLength < byteLength) {
-      readback?.destroy();
-      batch.readback = null;
-      readback = batch.readback = new BufferReadback(this._owner._renderer.engine, byteLength);
+      if (readback) {
+        this._owner._renderer.engine._bufferReadbackPool.free(readback);
+      }
+      readback = batch.readback = this._owner._renderer.engine._bufferReadbackPool.allocate(byteLength);
     }
 
     this._copyRingRange(source.buffer, readback, batch, stride);
@@ -81,16 +81,23 @@ export class ParticleTrajectoryReadback {
 
   processReady(): void {
     const inFlightBatches = this._inFlightBatches;
-    while (inFlightBatches.length > 0) {
-      const batch = inFlightBatches[0];
+    let completedCount = 0;
+    for (let n = inFlightBatches.length; completedCount < n; completedCount++) {
+      const batch = inFlightBatches[completedCount];
       const readback = batch.readback!;
       if (!readback.isReady()) {
-        return;
+        break;
       }
 
       this._consume(batch);
-      inFlightBatches.shift();
       this._recycleBatch(batch);
+    }
+    if (completedCount > 0) {
+      const remainingCount = inFlightBatches.length - completedCount;
+      for (let i = 0; i < remainingCount; i++) {
+        inFlightBatches[i] = inFlightBatches[i + completedCount];
+      }
+      inFlightBatches.length = remainingCount;
     }
   }
 
@@ -109,12 +116,7 @@ export class ParticleTrajectoryReadback {
 
   destroy(): void {
     this.cancel();
-    const spareBatch = this._spareBatch;
-    if (spareBatch) {
-      spareBatch.readback?.destroy();
-      spareBatch.readback = null;
-      this._spareBatch = null;
-    }
+    this._availableBatches.length = 0;
     this._data = null;
   }
 
@@ -186,13 +188,12 @@ export class ParticleTrajectoryReadback {
   }
 
   private _recycleBatch(batch: ParticleTrajectoryReadbackBatch): void {
-    batch.readback?.reset();
-    const spareBatch = this._spareBatch;
-    if (spareBatch) {
-      spareBatch.readback?.destroy();
-      spareBatch.readback = null;
+    const readback = batch.readback;
+    if (readback) {
+      batch.readback = null;
+      this._owner._renderer.engine._bufferReadbackPool.free(readback);
     }
-    this._spareBatch = batch;
+    this._availableBatches.push(batch);
   }
 
   private static _getRingDistance(ringOrigin: number, ringIndex: number, ringCapacity: number): number {

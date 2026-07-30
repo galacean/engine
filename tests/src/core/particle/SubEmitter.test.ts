@@ -22,7 +22,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 function getInFlightTrajectoryReadbackBatches(generator: object): Array<{ readback: any; commands: any[] }> {
   return (generator as any)._trajectoryReadback?._inFlightBatches ?? [];
@@ -93,6 +93,10 @@ describe("SubEmitter", () => {
     cameraEntity.addComponent(Camera);
     cameraEntity.transform.setPosition(0, 0, 10);
     engine.run();
+  });
+
+  afterEach(() => {
+    (engine as any)._bufferReadbackPool.gc();
   });
 
   it("Birth runs the target EmissionModule for every live parent", () => {
@@ -646,7 +650,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("releases pending readback resources when the generator is destroyed", () => {
+  it("returns pending readback resources when the generator is destroyed", () => {
     const child = createParticleRenderer(engine, "ReadbackDestroy_Child");
     const parent = createParticleRenderer(engine, "ReadbackDestroy_Parent");
     child.generator.emission.rateOverTime.constant = 10;
@@ -663,8 +667,14 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const destroyReadback = vi.spyOn(getInFlightTrajectoryReadbackBatches(generator)[0].readback, "destroy");
+    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
+    const resetReadback = vi.spyOn(readback, "reset");
+    const destroyReadback = vi.spyOn(readback, "destroy");
     parent.entity.destroy();
+    expect(resetReadback).toHaveBeenCalledTimes(1);
+    expect(destroyReadback).toHaveBeenCalledTimes(0);
+
+    engine.resourceManager.gc();
     expect(destroyReadback).toHaveBeenCalledTimes(1);
 
     child.entity.destroy();
@@ -692,13 +702,16 @@ describe("SubEmitter", () => {
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
 
     generator._trajectoryReadback.destroy();
+    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
+
+    engine.resourceManager.gc();
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("destroys a stale readback before polling after device content loss", () => {
+  it("recycles a stale readback without polling after device content loss", () => {
     const child = createParticleRenderer(engine, "ReadbackRestore_Child");
     const parent = createParticleRenderer(engine, "ReadbackRestore_Parent");
     child.generator.emission.rateOverTime.constant = 10;
@@ -717,13 +730,18 @@ describe("SubEmitter", () => {
     const generator = parent.generator as any;
     const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
     const isReady = vi.spyOn(readback, "isReady");
+    const resetReadback = vi.spyOn(readback._platformReadback, "reset");
     const destroyReadback = vi.spyOn(readback._platformReadback, "destroy");
     generator._instanceVertexBufferBinding._buffer._isContentLost = true;
     engine.update();
 
     expect(isReady).not.toHaveBeenCalled();
-    expect(destroyReadback).toHaveBeenCalledTimes(1);
+    expect(resetReadback).toHaveBeenCalledTimes(1);
+    expect(destroyReadback).toHaveBeenCalledTimes(0);
     expect(generator._trajectoryReadback).to.equal(null);
+
+    engine.resourceManager.gc();
+    expect(destroyReadback).toHaveBeenCalledTimes(1);
 
     parent.entity.destroy();
     child.entity.destroy();
