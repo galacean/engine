@@ -24,8 +24,8 @@ import {
 } from "@galacean/engine";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
-function getTrajectoryReadbackQueue(generator: object): Array<{ request: any; commands: any[] }> {
-  return (generator as any)._trajectoryReadback?._queue ?? [];
+function getInFlightTrajectoryReadbackBatches(generator: object): Array<{ readback: any; commands: any[] }> {
+  return (generator as any)._trajectoryReadback?._inFlightBatches ?? [];
 }
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
@@ -42,9 +42,9 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
     for (const scene of engine.sceneManager.scenes) {
       const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
       for (const renderer of renderers) {
-        const slots = getTrajectoryReadbackQueue(renderer.generator);
-        for (let i = 0, n = slots.length; i < n; i++) {
-          slots[i].request._platformReadback.isReady = () => true;
+        const batches = getInFlightTrajectoryReadbackBatches(renderer.generator);
+        for (let i = 0, n = batches.length; i < n; i++) {
+          batches[i].readback._platformReadback.isReady = () => true;
         }
       }
     }
@@ -438,20 +438,20 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const queue = getTrajectoryReadbackQueue(generator);
-    const firstRequest = queue[0].request;
-    const firstRead = vi.spyOn(firstRequest, "getData");
-    firstRequest._platformReadback.isReady = () => false;
+    const batches = getInFlightTrajectoryReadbackBatches(generator);
+    const firstReadback = batches[0].readback;
+    const firstRead = vi.spyOn(firstReadback, "getData");
+    firstReadback._platformReadback.isReady = () => false;
     engine.update();
-    expect(queue).to.have.length(2);
-    const secondRequest = queue[1].request;
-    expect(secondRequest).not.to.equal(firstRequest);
-    const secondRead = vi.spyOn(secondRequest, "getData");
-    secondRequest._platformReadback.isReady = () => false;
+    expect(batches).to.have.length(2);
+    const secondReadback = batches[1].readback;
+    expect(secondReadback).not.to.equal(firstReadback);
+    const secondRead = vi.spyOn(secondReadback, "getData");
+    secondReadback._platformReadback.isReady = () => false;
     expect(firstRead).not.toHaveBeenCalled();
     expect(child.generator._getAliveParticleCount()).to.equal(0);
 
-    firstRequest._platformReadback.isReady = () => true;
+    firstReadback._platformReadback.isReady = () => true;
     engine.update();
     expect(firstRead).toHaveBeenCalledTimes(1);
     expect(secondRead).not.toHaveBeenCalled();
@@ -479,14 +479,14 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const queue = getTrajectoryReadbackQueue(generator);
-    queue[0].request._platformReadback.isReady = () => false;
+    const batches = getInFlightTrajectoryReadbackBatches(generator);
+    batches[0].readback._platformReadback.isReady = () => false;
     const initialPlayTime = generator._playTime;
     for (let i = 1; i < 5; i++) {
       engine.update();
-      queue[i].request._platformReadback.isReady = () => false;
+      batches[i].readback._platformReadback.isReady = () => false;
     }
-    expect(queue).to.have.length(5);
+    expect(batches).to.have.length(5);
     expect(generator._playTime - initialPlayTime).to.be.closeTo(0.4, 1e-6);
 
     parent.entity.destroy();
@@ -513,12 +513,12 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
-    request._platformReadback.isReady = () => false;
+    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
+    readback._platformReadback.isReady = () => false;
     slot.emitter = replacementChild;
     engine.update();
 
-    request._platformReadback.isReady = () => true;
+    readback._platformReadback.isReady = () => true;
     engine.update();
     expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
 
@@ -548,14 +548,14 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
-    request._platformReadback.isReady = () => false;
+    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
+    readback._platformReadback.isReady = () => false;
     const secondScene = new Scene(engine, "MovedPendingBirth_Scene");
     engine.sceneManager.addScene(secondScene);
     secondScene.addRootEntity(child.entity);
     engine.update();
 
-    request._platformReadback.isReady = () => true;
+    readback._platformReadback.isReady = () => true;
     engine.update();
     engine.update();
     expect(child.generator._getAliveParticleCount()).to.equal(0);
@@ -583,16 +583,16 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const queue = getTrajectoryReadbackQueue(generator);
-    queue[0].request._platformReadback.isReady = () => false;
+    const batches = getInFlightTrajectoryReadbackBatches(generator);
+    batches[0].readback._platformReadback.isReady = () => false;
     const particleBufferSize = generator._currentParticleCount;
     parent.generator.emit(150);
     expect(generator._currentParticleCount).to.be.greaterThan(particleBufferSize);
 
     engine.update();
-    expect(queue).to.have.length(2);
-    for (const slot of queue) {
-      slot.request._platformReadback.isReady = () => true;
+    expect(batches).to.have.length(2);
+    for (const batch of batches) {
+      batch.readback._platformReadback.isReady = () => true;
     }
     engine.update();
     expect(child.generator._getAliveParticleCount()).to.equal(152);
@@ -620,9 +620,9 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = getTrajectoryReadbackQueue(generator)[0].request;
-    const read = vi.spyOn(request, "getData");
-    request._platformReadback.isReady = () => false;
+    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
+    const read = vi.spyOn(readback, "getData");
+    readback._platformReadback.isReady = () => false;
     engine.update();
     expect(read).not.toHaveBeenCalled();
 
@@ -663,7 +663,7 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const destroyReadback = vi.spyOn(getTrajectoryReadbackQueue(generator)[0].request, "destroy");
+    const destroyReadback = vi.spyOn(getInFlightTrajectoryReadbackBatches(generator)[0].readback, "destroy");
     parent.entity.destroy();
     expect(destroyReadback).toHaveBeenCalledTimes(1);
 
@@ -688,8 +688,8 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = getTrajectoryReadbackQueue(generator)[0].request;
-    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + request.byteLength);
+    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
+    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
 
     generator._trajectoryReadback.destroy();
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
@@ -715,9 +715,9 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = getTrajectoryReadbackQueue(generator)[0].request;
-    const isReady = vi.spyOn(request, "isReady");
-    const destroyReadback = vi.spyOn(request._platformReadback, "destroy");
+    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
+    const isReady = vi.spyOn(readback, "isReady");
+    const destroyReadback = vi.spyOn(readback._platformReadback, "destroy");
     generator._instanceVertexBufferBinding._buffer._isContentLost = true;
     engine.update();
 
@@ -955,11 +955,11 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
-    request._platformReadback.isReady = () => false;
+    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
+    readback._platformReadback.isReady = () => false;
     engine.update();
 
-    request._platformReadback.isReady = () => true;
+    readback._platformReadback.isReady = () => true;
     engine.update();
     expect(parent.generator._getAliveParticleCount()).to.equal(1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
@@ -1261,8 +1261,8 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const readbackSlot = getTrajectoryReadbackQueue(parent.generator)[0];
-    readbackSlot.request._platformReadback.isReady = () => false;
+    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
+    batch.readback._platformReadback.isReady = () => false;
     deathSlot.deathEmitCount = 5;
     (parentColor.color as any).gradient = new ParticleGradient(
       [new GradientColorKey(0, new Color(0, 0, 1, 1)), new GradientColorKey(1, new Color(0, 0, 1, 1))],
@@ -1272,7 +1272,7 @@ describe("SubEmitter", () => {
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
 
-    readbackSlot.request._platformReadback.isReady = () => true;
+    batch.readback._platformReadback.isReady = () => true;
     engine.update();
 
     expect(child.generator._getAliveParticleCount()).to.equal(2);
@@ -1306,18 +1306,18 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const queue = getTrajectoryReadbackQueue(generator);
-    queue[0].request._platformReadback.isReady = () => false;
+    const batches = getInFlightTrajectoryReadbackBatches(generator);
+    batches[0].readback._platformReadback.isReady = () => false;
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
 
     parent.generator.emit(1);
     expect(parent.generator._getAliveParticleCount()).to.equal(1);
     engine.update();
     engine.update();
-    expect(queue).to.have.length(2);
+    expect(batches).to.have.length(2);
 
-    for (const slot of queue) {
-      slot.request._platformReadback.isReady = () => true;
+    for (const batch of batches) {
+      batch.readback._platformReadback.isReady = () => true;
     }
     engine.update();
     expect(child.generator._getAliveParticleCount()).to.equal(2);
@@ -1347,12 +1347,12 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
-    request._platformReadback.isReady = () => false;
+    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
+    readback._platformReadback.isReady = () => false;
     slot.emitter = replacementChild;
     engine.update();
 
-    request._platformReadback.isReady = () => true;
+    readback._platformReadback.isReady = () => true;
     engine.update();
     expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
 
@@ -1416,12 +1416,12 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const queue = getTrajectoryReadbackQueue(generator);
-    queue[0].request._platformReadback.isReady = () => true;
+    const batches = getInFlightTrajectoryReadbackBatches(generator);
+    batches[0].readback._platformReadback.isReady = () => true;
     engine.update();
 
-    expect(queue).to.have.length(1);
-    expect(queue[0].commands.map((command) => command.type)).to.deep.equal([
+    expect(batches).to.have.length(1);
+    expect(batches[0].commands.map((command) => command.type)).to.deep.equal([
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterType.Death
     ]);
@@ -1534,11 +1534,11 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const readbackSlot = getTrajectoryReadbackQueue(parent.generator)[0];
-    readbackSlot.request._platformReadback.isReady = () => false;
+    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
+    batch.readback._platformReadback.isReady = () => false;
     engine.update();
     engine.update();
-    readbackSlot.request._platformReadback.isReady = () => true;
+    batch.readback._platformReadback.isReady = () => true;
     engine.update();
     performance.now = () => time;
 

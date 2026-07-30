@@ -26,13 +26,13 @@ function createCommand() {
 
 describe("ParticleTrajectoryReadback", () => {
   let engine: WebGLEngine;
-  let simulator: any;
+  let source: any;
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    simulator = {
-      vertexStride: ParticleBufferUtils.feedbackTrajectoryStateVertexStride,
-      readBinding: { buffer: { _platformBuffer: {} } }
+    source = {
+      stride: ParticleBufferUtils.feedbackTrajectoryStateVertexStride,
+      buffer: { _platformBuffer: {} }
     };
   });
 
@@ -54,7 +54,7 @@ describe("ParticleTrajectoryReadback", () => {
 
     let error: Error | undefined;
     try {
-      readback.submit(simulator);
+      readback.submitPending(source);
     } catch (caughtError) {
       error = caughtError as Error;
     }
@@ -80,7 +80,7 @@ describe("ParticleTrajectoryReadback", () => {
 
     let error: Error | undefined;
     try {
-      readback.submit(simulator);
+      readback.submitPending(source);
     } catch (caughtError) {
       error = caughtError as Error;
     }
@@ -108,10 +108,10 @@ describe("ParticleTrajectoryReadback", () => {
       const command = createCommand();
       commands.push(command);
       readback.getPendingCommands(0, 1).push(command as any);
-      readback.submit(simulator);
+      readback.submitPending(source);
     }
 
-    readback.process();
+    readback.processReady();
     const destroyCountsBeforeTeardown = platformReadbacks.map(
       (platformReadback) => platformReadback.destroy.mock.calls.length
     );

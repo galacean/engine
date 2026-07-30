@@ -440,7 +440,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
       if (useTrajectoryFeedback && shouldUpdateFeedback) {
         this._retireActiveParticles(hasDeathSubEmitter, lastPlayTime, frameLastEngineTime, frameEngineTime);
-        this._trajectoryReadback?.submit(this._feedbackSimulator);
+        this._trajectoryReadback?.submitPending(this._feedbackSimulator.readBinding);
         this._freeRetiredParticles();
       }
     }
@@ -470,7 +470,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._trajectoryReadback?.destroy();
       this._trajectoryReadback = null;
     } else {
-      this._trajectoryReadback?.process();
+      this._trajectoryReadback?.processReady();
     }
     return isContentLost;
   }

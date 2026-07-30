@@ -1,13 +1,13 @@
 import { Vector3 } from "@galacean/engine-math";
 import { Buffer } from "../graphic/Buffer";
 import { BufferReadback } from "../graphic/BufferReadback";
+import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import type { ParticleGenerator } from "./ParticleGenerator";
-import type { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
 import type { ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 
 class ParticleTrajectoryReadbackBatch {
-  request: BufferReadback | null = null;
+  readback: BufferReadback | null = null;
   ringOrigin = 0;
   readbackElementCount = 0;
   ringCapacity = 0;
@@ -23,7 +23,7 @@ export class ParticleTrajectoryReadback {
   private readonly _velocity = new Vector3();
   private _data: Float32Array | null = null;
   private _pendingBatch: ParticleTrajectoryReadbackBatch | null = null;
-  private _queue: ParticleTrajectoryReadbackBatch[] = [];
+  private _inFlightBatches: ParticleTrajectoryReadbackBatch[] = [];
   private _spareBatch: ParticleTrajectoryReadbackBatch | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
@@ -39,7 +39,7 @@ export class ParticleTrajectoryReadback {
     return batch.commands;
   }
 
-  submit(simulator: ParticleTransformFeedbackSimulator): void {
+  submitPending(source: VertexBufferBinding): void {
     const batch = this._pendingBatch;
     if (!batch) {
       return;
@@ -53,42 +53,43 @@ export class ParticleTrajectoryReadback {
     }
 
     const ringCapacity = batch.ringCapacity;
-    const ringOrigin = batch.ringOrigin;
-    let firstOffset = ringCapacity;
-    let endOffset = 0;
+    const rangeOrigin = batch.ringOrigin;
+    let readbackStartOffset = ringCapacity;
+    let readbackEndOffset = 0;
     for (let i = 0, n = commands.length; i < n; i++) {
-      const offset = ParticleTrajectoryReadback._getRingDistance(ringOrigin, commands[i].ringIndex, ringCapacity);
-      firstOffset = Math.min(firstOffset, offset);
-      endOffset = Math.max(endOffset, offset + 1);
+      const offset = ParticleTrajectoryReadback._getRingDistance(rangeOrigin, commands[i].ringIndex, ringCapacity);
+      readbackStartOffset = Math.min(readbackStartOffset, offset);
+      readbackEndOffset = Math.max(readbackEndOffset, offset + 1);
     }
-    batch.ringOrigin = (ringOrigin + firstOffset) % ringCapacity;
-    batch.readbackElementCount = endOffset - firstOffset;
+    batch.ringOrigin = (rangeOrigin + readbackStartOffset) % ringCapacity;
+    batch.readbackElementCount = readbackEndOffset - readbackStartOffset;
 
-    const byteLength = batch.readbackElementCount * simulator.vertexStride;
-    let request = batch.request;
-    if (!request || request.byteLength < byteLength) {
-      request?.destroy();
-      batch.request = null;
-      request = batch.request = new BufferReadback(this._owner._renderer.engine, byteLength);
+    const stride = source.stride;
+    const byteLength = batch.readbackElementCount * stride;
+    let readback = batch.readback;
+    if (!readback || readback.byteLength < byteLength) {
+      readback?.destroy();
+      batch.readback = null;
+      readback = batch.readback = new BufferReadback(this._owner._renderer.engine, byteLength);
     }
 
-    this._copyRange(simulator.readBinding.buffer, request, batch, simulator.vertexStride);
-    request.submit();
-    this._queue.push(batch);
+    this._copyRingRange(source.buffer, readback, batch, stride);
+    readback.submit();
+    this._inFlightBatches.push(batch);
     this._pendingBatch = null;
   }
 
-  process(): void {
-    const queue = this._queue;
-    while (queue.length > 0) {
-      const batch = queue[0];
-      const request = batch.request!;
-      if (!request.isReady()) {
+  processReady(): void {
+    const inFlightBatches = this._inFlightBatches;
+    while (inFlightBatches.length > 0) {
+      const batch = inFlightBatches[0];
+      const readback = batch.readback!;
+      if (!readback.isReady()) {
         return;
       }
 
       this._consume(batch);
-      queue.shift();
+      inFlightBatches.shift();
       this._recycleBatch(batch);
     }
   }
@@ -99,33 +100,33 @@ export class ParticleTrajectoryReadback {
       this._pendingBatch = null;
       this._releaseAndRecycleBatch(pendingBatch);
     }
-    const queue = this._queue;
-    for (let i = 0, n = queue.length; i < n; i++) {
-      this._releaseAndRecycleBatch(queue[i]);
+    const inFlightBatches = this._inFlightBatches;
+    for (let i = 0, n = inFlightBatches.length; i < n; i++) {
+      this._releaseAndRecycleBatch(inFlightBatches[i]);
     }
-    queue.length = 0;
+    inFlightBatches.length = 0;
   }
 
   destroy(): void {
     this.cancel();
     const spareBatch = this._spareBatch;
     if (spareBatch) {
-      spareBatch.request?.destroy();
-      spareBatch.request = null;
+      spareBatch.readback?.destroy();
+      spareBatch.readback = null;
       this._spareBatch = null;
     }
     this._data = null;
   }
 
   private _consume(batch: ParticleTrajectoryReadbackBatch): void {
-    const request = batch.request!;
+    const readback = batch.readback!;
     const floatStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride / Float32Array.BYTES_PER_ELEMENT;
     const totalFloatCount = batch.readbackElementCount * floatStride;
     let data = this._data;
     if (!data || data.length < totalFloatCount) {
       data = this._data = new Float32Array(totalFloatCount);
     }
-    request.getData(data, 0, 0, totalFloatCount);
+    readback.getData(data, 0, 0, totalFloatCount);
 
     const position = this._position;
     const velocity = this._velocity;
@@ -161,17 +162,17 @@ export class ParticleTrajectoryReadback {
     commands.length = 0;
   }
 
-  private _copyRange(
+  private _copyRingRange(
     source: Buffer,
-    destination: BufferReadback,
+    readback: BufferReadback,
     batch: ParticleTrajectoryReadbackBatch,
     stride: number
   ): void {
-    const firstSegmentCount = Math.min(batch.readbackElementCount, batch.ringCapacity - batch.ringOrigin);
-    destination.copyFromBuffer(source, batch.ringOrigin * stride, 0, firstSegmentCount * stride);
-    const secondSegmentCount = batch.readbackElementCount - firstSegmentCount;
-    if (secondSegmentCount > 0) {
-      destination.copyFromBuffer(source, 0, firstSegmentCount * stride, secondSegmentCount * stride);
+    const tailElementCount = Math.min(batch.readbackElementCount, batch.ringCapacity - batch.ringOrigin);
+    readback.copyFromBuffer(source, batch.ringOrigin * stride, 0, tailElementCount * stride);
+    const headElementCount = batch.readbackElementCount - tailElementCount;
+    if (headElementCount > 0) {
+      readback.copyFromBuffer(source, 0, tailElementCount * stride, headElementCount * stride);
     }
   }
 
@@ -185,11 +186,11 @@ export class ParticleTrajectoryReadback {
   }
 
   private _recycleBatch(batch: ParticleTrajectoryReadbackBatch): void {
-    batch.request?.reset();
+    batch.readback?.reset();
     const spareBatch = this._spareBatch;
     if (spareBatch) {
-      spareBatch.request?.destroy();
-      spareBatch.request = null;
+      spareBatch.readback?.destroy();
+      spareBatch.readback = null;
     }
     this._spareBatch = batch;
   }
