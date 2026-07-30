@@ -25,18 +25,17 @@ export class ParticleTrajectoryReadback {
   private _data: Float32Array | null = null;
   private _pendingSlot: ParticleTrajectoryReadbackSlot | null = null;
   private _queue: ParticleTrajectoryReadbackSlot[] = [];
-  private _pool: ParticleTrajectoryReadbackSlot[] = [];
+  private _spareSlot: ParticleTrajectoryReadbackSlot | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
 
   getCommands(firstElement: number, particleCount: number): ParticleSubEmitterCommand[] {
     let slot = this._pendingSlot;
     if (!slot) {
-      slot = this._pendingSlot = this._pool.pop() ?? new ParticleTrajectoryReadbackSlot();
+      slot = this._pendingSlot = this._spareSlot ?? new ParticleTrajectoryReadbackSlot();
+      this._spareSlot = null;
       slot.firstElement = firstElement;
       slot.particleCount = particleCount;
-    } else if (slot.particleCount !== particleCount) {
-      throw new Error("Particle feedback buffer changed before its readback was submitted.");
     }
     return slot.commands;
   }
@@ -46,10 +45,10 @@ export class ParticleTrajectoryReadback {
     if (!slot) {
       return;
     }
-    this._pendingSlot = null;
 
     const commands = slot.commands;
     if (commands.length === 0) {
+      this._pendingSlot = null;
       this._recycleSlot(slot);
       return;
     }
@@ -71,12 +70,14 @@ export class ParticleTrajectoryReadback {
     let request = slot.request;
     if (!request || request.byteLength < byteLength) {
       request?.destroy();
+      slot.request = null;
       request = slot.request = new BufferReadback(this._owner._renderer.engine, byteLength);
     }
 
     this._copyRange(simulator.readBinding.buffer, request, slot, simulator.vertexStride);
     request.submit();
     this._queue.push(slot);
+    this._pendingSlot = null;
   }
 
   process(): void {
@@ -109,13 +110,12 @@ export class ParticleTrajectoryReadback {
 
   destroy(): void {
     this.cancel();
-    const pool = this._pool;
-    for (let i = 0, n = pool.length; i < n; i++) {
-      const slot = pool[i];
-      slot.request?.destroy();
-      slot.request = null;
+    const spareSlot = this._spareSlot;
+    if (spareSlot) {
+      spareSlot.request?.destroy();
+      spareSlot.request = null;
+      this._spareSlot = null;
     }
-    pool.length = 0;
     this._data = null;
   }
 
@@ -188,7 +188,12 @@ export class ParticleTrajectoryReadback {
 
   private _recycleSlot(slot: ParticleTrajectoryReadbackSlot): void {
     slot.request?.reset();
-    this._pool.push(slot);
+    const spareSlot = this._spareSlot;
+    if (spareSlot) {
+      spareSlot.request?.destroy();
+      spareSlot.request = null;
+    }
+    this._spareSlot = slot;
   }
 
   private static _getRingDistance(firstElement: number, endElement: number, particleCount: number): number {

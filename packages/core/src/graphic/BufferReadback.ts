@@ -10,15 +10,12 @@ export class BufferReadback extends GraphicsResource {
   /** Readback buffer capacity in bytes. */
   readonly byteLength: number;
 
-  private _platformReadback: IPlatformBufferReadback;
+  private _platformReadback: IPlatformBufferReadback | null = null;
 
   constructor(engine: Engine, byteLength: number) {
     super(engine);
     this.byteLength = byteLength;
     this.isGCIgnored = true;
-    if (!engine._isDeviceLost) {
-      this._platformReadback = this._createPlatformReadback();
-    }
   }
 
   copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
