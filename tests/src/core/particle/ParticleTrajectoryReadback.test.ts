@@ -50,7 +50,7 @@ describe("ParticleTrajectoryReadback", () => {
       });
     const readback = createReadback();
     const command = createCommand();
-    readback.getCommands(0, 1).push(command as any);
+    readback.getPendingCommands(0, 1).push(command as any);
 
     let error: Error | undefined;
     try {
@@ -76,7 +76,7 @@ describe("ParticleTrajectoryReadback", () => {
       .mockReturnValue(platformReadback);
     const readback = createReadback();
     const command = createCommand();
-    readback.getCommands(0, 1).push(command as any);
+    readback.getPendingCommands(0, 1).push(command as any);
 
     let error: Error | undefined;
     try {
@@ -107,7 +107,7 @@ describe("ParticleTrajectoryReadback", () => {
     for (let i = 0; i < 3; i++) {
       const command = createCommand();
       commands.push(command);
-      readback.getCommands(0, 1).push(command as any);
+      readback.getPendingCommands(0, 1).push(command as any);
       readback.submit(simulator);
     }
 

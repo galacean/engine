@@ -1442,7 +1442,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
     const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
     const instanceVertices = this._instanceVertices;
-    const commands = this._getTrajectoryReadback().getCommands(firstElement, this._currentParticleCount);
+    const commands = this._getTrajectoryReadback().getPendingCommands(firstElement, this._currentParticleCount);
 
     let ringIndex = firstElement;
     while (ringIndex !== endElement) {
@@ -1525,7 +1525,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
           framePlayTimeDelta > MathUtil.zeroTolerance
             ? MathUtil.clamp((bornTime + lifetime - frameLastPlayTime) / framePlayTimeDelta, 0, 1)
             : 1;
-        const commands = this._getTrajectoryReadback().getCommands(ringIndex, this._currentParticleCount);
+        const commands = this._getTrajectoryReadback().getPendingCommands(ringIndex, this._currentParticleCount);
         const commandStart = commands.length;
         const inheritedProperties = this.subEmitters._prepareDeathCommands(
           ringIndex,

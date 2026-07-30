@@ -28,7 +28,7 @@ export class ParticleTrajectoryReadback {
 
   constructor(private readonly _owner: ParticleGenerator) {}
 
-  getCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
+  getPendingCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
     let batch = this._pendingBatch;
     if (!batch) {
       batch = this._pendingBatch = this._spareBatch ?? new ParticleTrajectoryReadbackBatch();
