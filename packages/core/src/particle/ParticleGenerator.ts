@@ -324,19 +324,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   _update(elapsedTime: number, isBirthSubEmitterTarget: boolean): boolean {
     const shaderData = this._renderer.shaderData;
     const isContentLost = this._processFeedbackReadbacks();
-    const trajectoryReadback = this._trajectoryReadback;
-    if (!isContentLost && trajectoryReadback?.isSaturated) {
-      trajectoryReadback.deferUpdate(elapsedTime);
-      const hasActiveParticles = this._firstActiveElement !== this._firstFreeElement;
-      if (hasActiveParticles) {
-        shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
-        this._updateShaderData(shaderData);
-      }
-      return hasActiveParticles;
-    }
-    if (trajectoryReadback) {
-      elapsedTime = trajectoryReadback.resumeUpdate(elapsedTime);
-    }
 
     const lastAlive = this.isAlive;
     const { main, emission } = this;
@@ -481,6 +468,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
     if (isContentLost) {
       this._trajectoryReadback?.destroy();
+      this._trajectoryReadback = null;
     } else {
       this._trajectoryReadback?.process();
     }

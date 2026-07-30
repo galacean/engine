@@ -20,21 +20,14 @@ class ParticleTrajectoryReadbackSlot {
  * @internal
  */
 export class ParticleTrajectoryReadback {
-  private static readonly _maxPendingCount = 4;
-
   private readonly _position = new Vector3();
   private readonly _velocity = new Vector3();
   private _data: Float32Array | null = null;
   private _pendingSlot: ParticleTrajectoryReadbackSlot | null = null;
   private _queue: ParticleTrajectoryReadbackSlot[] = [];
   private _pool: ParticleTrajectoryReadbackSlot[] = [];
-  private _deferredUpdateTime = 0;
 
   constructor(private readonly _owner: ParticleGenerator) {}
-
-  get isSaturated(): boolean {
-    return this._queue.length >= ParticleTrajectoryReadback._maxPendingCount;
-  }
 
   getCommands(firstElement: number, particleCount: number): ParticleSubEmitterCommand[] {
     let slot = this._pendingSlot;
@@ -101,16 +94,6 @@ export class ParticleTrajectoryReadback {
     }
   }
 
-  deferUpdate(elapsedTime: number): void {
-    this._deferredUpdateTime += elapsedTime;
-  }
-
-  resumeUpdate(elapsedTime: number): number {
-    const totalTime = elapsedTime + this._deferredUpdateTime;
-    this._deferredUpdateTime = 0;
-    return totalTime;
-  }
-
   cancel(): void {
     const pendingSlot = this._pendingSlot;
     if (pendingSlot) {
@@ -122,7 +105,6 @@ export class ParticleTrajectoryReadback {
       this._releaseAndRecycleSlot(queue[i]);
     }
     queue.length = 0;
-    this._deferredUpdateTime = 0;
   }
 
   destroy(): void {

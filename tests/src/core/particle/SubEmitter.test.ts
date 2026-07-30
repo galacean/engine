@@ -461,9 +461,9 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("bounds pending trajectory readbacks and catches up after GPU backpressure", () => {
-    const child = createParticleRenderer(engine, "ReadbackBackpressure_Child");
-    const parent = createParticleRenderer(engine, "ReadbackBackpressure_Parent");
+  it("keeps updating while trajectory readbacks are pending", () => {
+    const child = createParticleRenderer(engine, "PendingReadback_Child");
+    const parent = createParticleRenderer(engine, "PendingReadback_Parent");
     child.generator.emission.rateOverTime.constant = 10;
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
@@ -481,21 +481,13 @@ describe("SubEmitter", () => {
     const generator = parent.generator as any;
     const queue = getTrajectoryReadbackQueue(generator);
     queue[0].request._platformReadback.isReady = () => false;
-    for (let i = 1; i < 4; i++) {
+    const initialPlayTime = generator._playTime;
+    for (let i = 1; i < 5; i++) {
       engine.update();
       queue[i].request._platformReadback.isReady = () => false;
     }
-    expect(queue).to.have.length(4);
-
-    const stalledPlayTime = generator._playTime;
-    engine.update();
-    expect(queue).to.have.length(4);
-    expect(generator._playTime).to.equal(stalledPlayTime);
-
-    queue[0].request._platformReadback.isReady = () => true;
-    engine.update();
-    expect(queue).to.have.length(4);
-    expect(generator._playTime - stalledPlayTime).to.be.closeTo(0.2, 1e-6);
+    expect(queue).to.have.length(5);
+    expect(generator._playTime - initialPlayTime).to.be.closeTo(0.4, 1e-6);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -731,6 +723,7 @@ describe("SubEmitter", () => {
 
     expect(isReady).not.toHaveBeenCalled();
     expect(destroyReadback).toHaveBeenCalledTimes(1);
+    expect(generator._trajectoryReadback).to.equal(null);
 
     parent.entity.destroy();
     child.entity.destroy();
