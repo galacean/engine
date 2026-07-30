@@ -6,12 +6,11 @@ import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
 import type { ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 
-class ParticleTrajectoryReadbackSlot {
+class ParticleTrajectoryReadbackBatch {
   request: BufferReadback | null = null;
-  firstElement = 0;
-  elementCount = 0;
-  particleCount = 0;
-  floatStride = 0;
+  ringOrigin = 0;
+  readbackElementCount = 0;
+  ringCapacity = 0;
   readonly commands: ParticleSubEmitterCommand[] = [];
 }
 
@@ -23,105 +22,105 @@ export class ParticleTrajectoryReadback {
   private readonly _position = new Vector3();
   private readonly _velocity = new Vector3();
   private _data: Float32Array | null = null;
-  private _pendingSlot: ParticleTrajectoryReadbackSlot | null = null;
-  private _queue: ParticleTrajectoryReadbackSlot[] = [];
-  private _spareSlot: ParticleTrajectoryReadbackSlot | null = null;
+  private _pendingBatch: ParticleTrajectoryReadbackBatch | null = null;
+  private _queue: ParticleTrajectoryReadbackBatch[] = [];
+  private _spareBatch: ParticleTrajectoryReadbackBatch | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
 
-  getCommands(firstElement: number, particleCount: number): ParticleSubEmitterCommand[] {
-    let slot = this._pendingSlot;
-    if (!slot) {
-      slot = this._pendingSlot = this._spareSlot ?? new ParticleTrajectoryReadbackSlot();
-      this._spareSlot = null;
-      slot.firstElement = firstElement;
-      slot.particleCount = particleCount;
+  getCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
+    let batch = this._pendingBatch;
+    if (!batch) {
+      batch = this._pendingBatch = this._spareBatch ?? new ParticleTrajectoryReadbackBatch();
+      this._spareBatch = null;
+      batch.ringOrigin = ringOrigin;
+      batch.ringCapacity = ringCapacity;
     }
-    return slot.commands;
+    return batch.commands;
   }
 
   submit(simulator: ParticleTransformFeedbackSimulator): void {
-    const slot = this._pendingSlot;
-    if (!slot) {
+    const batch = this._pendingBatch;
+    if (!batch) {
       return;
     }
 
-    const commands = slot.commands;
+    const commands = batch.commands;
     if (commands.length === 0) {
-      this._pendingSlot = null;
-      this._recycleSlot(slot);
+      this._pendingBatch = null;
+      this._recycleBatch(batch);
       return;
     }
 
-    const particleCount = slot.particleCount;
-    const rangeOrigin = slot.firstElement;
-    let firstOffset = particleCount;
+    const ringCapacity = batch.ringCapacity;
+    const ringOrigin = batch.ringOrigin;
+    let firstOffset = ringCapacity;
     let endOffset = 0;
     for (let i = 0, n = commands.length; i < n; i++) {
-      const offset = ParticleTrajectoryReadback._getRingDistance(rangeOrigin, commands[i].ringIndex, particleCount);
+      const offset = ParticleTrajectoryReadback._getRingDistance(ringOrigin, commands[i].ringIndex, ringCapacity);
       firstOffset = Math.min(firstOffset, offset);
       endOffset = Math.max(endOffset, offset + 1);
     }
-    slot.firstElement = (rangeOrigin + firstOffset) % particleCount;
-    slot.elementCount = endOffset - firstOffset;
-    slot.floatStride = simulator.vertexStride / 4;
+    batch.ringOrigin = (ringOrigin + firstOffset) % ringCapacity;
+    batch.readbackElementCount = endOffset - firstOffset;
 
-    const byteLength = slot.elementCount * simulator.vertexStride;
-    let request = slot.request;
+    const byteLength = batch.readbackElementCount * simulator.vertexStride;
+    let request = batch.request;
     if (!request || request.byteLength < byteLength) {
       request?.destroy();
-      slot.request = null;
-      request = slot.request = new BufferReadback(this._owner._renderer.engine, byteLength);
+      batch.request = null;
+      request = batch.request = new BufferReadback(this._owner._renderer.engine, byteLength);
     }
 
-    this._copyRange(simulator.readBinding.buffer, request, slot, simulator.vertexStride);
+    this._copyRange(simulator.readBinding.buffer, request, batch, simulator.vertexStride);
     request.submit();
-    this._queue.push(slot);
-    this._pendingSlot = null;
+    this._queue.push(batch);
+    this._pendingBatch = null;
   }
 
   process(): void {
     const queue = this._queue;
     while (queue.length > 0) {
-      const slot = queue[0];
-      const request = slot.request!;
+      const batch = queue[0];
+      const request = batch.request!;
       if (!request.isReady()) {
         return;
       }
 
-      this._consume(slot);
+      this._consume(batch);
       queue.shift();
-      this._recycleSlot(slot);
+      this._recycleBatch(batch);
     }
   }
 
   cancel(): void {
-    const pendingSlot = this._pendingSlot;
-    if (pendingSlot) {
-      this._pendingSlot = null;
-      this._releaseAndRecycleSlot(pendingSlot);
+    const pendingBatch = this._pendingBatch;
+    if (pendingBatch) {
+      this._pendingBatch = null;
+      this._releaseAndRecycleBatch(pendingBatch);
     }
     const queue = this._queue;
     for (let i = 0, n = queue.length; i < n; i++) {
-      this._releaseAndRecycleSlot(queue[i]);
+      this._releaseAndRecycleBatch(queue[i]);
     }
     queue.length = 0;
   }
 
   destroy(): void {
     this.cancel();
-    const spareSlot = this._spareSlot;
-    if (spareSlot) {
-      spareSlot.request?.destroy();
-      spareSlot.request = null;
-      this._spareSlot = null;
+    const spareBatch = this._spareBatch;
+    if (spareBatch) {
+      spareBatch.request?.destroy();
+      spareBatch.request = null;
+      this._spareBatch = null;
     }
     this._data = null;
   }
 
-  private _consume(slot: ParticleTrajectoryReadbackSlot): void {
-    const request = slot.request!;
-    const totalFloatCount = slot.elementCount * slot.floatStride;
+  private _consume(batch: ParticleTrajectoryReadbackBatch): void {
+    const request = batch.request!;
+    const floatStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride / Float32Array.BYTES_PER_ELEMENT;
+    const totalFloatCount = batch.readbackElementCount * floatStride;
     let data = this._data;
     if (!data || data.length < totalFloatCount) {
       data = this._data = new Float32Array(totalFloatCount);
@@ -130,7 +129,7 @@ export class ParticleTrajectoryReadback {
 
     const position = this._position;
     const velocity = this._velocity;
-    const commands = slot.commands;
+    const commands = batch.commands;
     const manager = this._owner._renderer._particleSystemManager;
     let lastRingIndex = -1;
     for (let i = 0, n = commands.length; i < n; i++) {
@@ -143,8 +142,7 @@ export class ParticleTrajectoryReadback {
       const ringIndex = command.ringIndex;
       if (ringIndex !== lastRingIndex) {
         const feedbackOffset =
-          ParticleTrajectoryReadback._getRingDistance(slot.firstElement, ringIndex, slot.particleCount) *
-          slot.floatStride;
+          ParticleTrajectoryReadback._getRingDistance(batch.ringOrigin, ringIndex, batch.ringCapacity) * floatStride;
         const positionOffset = feedbackOffset + ParticleBufferUtils.feedbackWorldPositionOffset;
         const velocityOffset = feedbackOffset + ParticleBufferUtils.feedbackTrajectoryVelocityOffset;
         position.set(data[positionOffset], data[positionOffset + 1], data[positionOffset + 2]);
@@ -166,37 +164,37 @@ export class ParticleTrajectoryReadback {
   private _copyRange(
     source: Buffer,
     destination: BufferReadback,
-    slot: ParticleTrajectoryReadbackSlot,
+    batch: ParticleTrajectoryReadbackBatch,
     stride: number
   ): void {
-    const firstSegmentCount = Math.min(slot.elementCount, slot.particleCount - slot.firstElement);
-    destination.copyFromBuffer(source, slot.firstElement * stride, 0, firstSegmentCount * stride);
-    const secondSegmentCount = slot.elementCount - firstSegmentCount;
+    const firstSegmentCount = Math.min(batch.readbackElementCount, batch.ringCapacity - batch.ringOrigin);
+    destination.copyFromBuffer(source, batch.ringOrigin * stride, 0, firstSegmentCount * stride);
+    const secondSegmentCount = batch.readbackElementCount - firstSegmentCount;
     if (secondSegmentCount > 0) {
       destination.copyFromBuffer(source, 0, firstSegmentCount * stride, secondSegmentCount * stride);
     }
   }
 
-  private _releaseAndRecycleSlot(slot: ParticleTrajectoryReadbackSlot): void {
-    const commands = slot.commands;
+  private _releaseAndRecycleBatch(batch: ParticleTrajectoryReadbackBatch): void {
+    const commands = batch.commands;
     for (let i = 0, n = commands.length; i < n; i++) {
       commands[i].release();
     }
     commands.length = 0;
-    this._recycleSlot(slot);
+    this._recycleBatch(batch);
   }
 
-  private _recycleSlot(slot: ParticleTrajectoryReadbackSlot): void {
-    slot.request?.reset();
-    const spareSlot = this._spareSlot;
-    if (spareSlot) {
-      spareSlot.request?.destroy();
-      spareSlot.request = null;
+  private _recycleBatch(batch: ParticleTrajectoryReadbackBatch): void {
+    batch.request?.reset();
+    const spareBatch = this._spareBatch;
+    if (spareBatch) {
+      spareBatch.request?.destroy();
+      spareBatch.request = null;
     }
-    this._spareSlot = slot;
+    this._spareBatch = batch;
   }
 
-  private static _getRingDistance(firstElement: number, endElement: number, particleCount: number): number {
-    return endElement >= firstElement ? endElement - firstElement : particleCount - firstElement + endElement;
+  private static _getRingDistance(ringOrigin: number, ringIndex: number, ringCapacity: number): number {
+    return ringIndex >= ringOrigin ? ringIndex - ringOrigin : ringCapacity - ringOrigin + ringIndex;
   }
 }
