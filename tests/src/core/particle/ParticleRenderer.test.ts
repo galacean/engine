@@ -12,7 +12,7 @@ import {
   ShaderMacro
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -96,19 +96,25 @@ describe("ParticleRenderer", () => {
     entity.destroy();
   });
 
-  it("updates particle shader data once per visible frame", () => {
+  it("updates generator and renderer shader data for active particles", () => {
     const entity = scene.createRootEntity("FeedbackParticle");
     const renderer = entity.addComponent(ParticleRenderer);
     const generator = renderer.generator;
+    renderer.lengthScale = 3;
+    renderer.velocityScale = 4;
+    renderer.pivot.set(1, 2, 3);
     generator.noise.enabled = true;
     generator.main.startLifetime.constant = 10;
     generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     generator.emit(1);
 
-    const updateShaderData = vi.spyOn(renderer, "_updateParticleShaderData");
     updateEngine(engine, 1);
 
-    expect(updateShaderData).toHaveBeenCalledTimes(1);
+    const shaderData = renderer.shaderData;
+    expect(shaderData.getFloat("renderer_CurrentTime")).to.equal(generator._playTime);
+    expect(shaderData.getFloat("renderer_StretchedBillboardLengthScale")).to.equal(3);
+    expect(shaderData.getFloat("renderer_StretchedBillboardSpeedScale")).to.equal(4);
+    expect(shaderData.getVector3("renderer_PivotOffset")).to.deep.equal(renderer.pivot);
     entity.destroy();
   });
 

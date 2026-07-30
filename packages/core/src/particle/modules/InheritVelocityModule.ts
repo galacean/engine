@@ -54,6 +54,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
       this._enabled = value;
       this._resyncEmitterVelocity();
       this._generator._setTransformFeedback();
+      this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 

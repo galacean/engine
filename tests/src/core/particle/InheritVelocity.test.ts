@@ -73,6 +73,21 @@ describe("InheritVelocityModule", () => {
     engine.destroy();
   });
 
+  it("keeps world-space inherited particles outside automatic frustum culling", () => {
+    const renderer = createParticleRenderer(engine, "inherit-velocity-bounds");
+    const generator = renderer.generator;
+    generator.play();
+
+    expect(renderer.bounds.min.x).to.equal(-Number.MAX_VALUE);
+    expect(renderer.bounds.max.x).to.equal(Number.MAX_VALUE);
+
+    generator.inheritVelocity.enabled = false;
+    expect(renderer.bounds.min.x).not.to.equal(-Number.MAX_VALUE);
+    expect(renderer.bounds.max.x).not.to.equal(Number.MAX_VALUE);
+
+    renderer.entity.destroy();
+  });
+
   it("Initial captures the particle system Entity velocity at birth", () => {
     const renderer = createParticleRenderer(engine, "initial-inherit-velocity");
     const generator = renderer.generator;

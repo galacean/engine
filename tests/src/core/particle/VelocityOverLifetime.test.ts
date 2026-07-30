@@ -132,7 +132,7 @@ describe("VelocityOverLifetimeModule", function () {
 
       const particleIndex = generator._firstFreeElement;
       generator.emit(1);
-      generator._update(deltaTime);
+      testRenderer._updateParticles(deltaTime, false);
       (engine as any)._hardwareRenderer._gl.finish();
 
       const result = new Float32Array(6);

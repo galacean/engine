@@ -24,6 +24,10 @@ import {
 } from "@galacean/engine";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
+function getTrajectoryReadbackQueue(generator: object): Array<{ request: any; commands: any[] }> {
+  return (generator as any)._trajectoryReadback?._queue ?? [];
+}
+
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
   engine._vSyncCount = Infinity;
@@ -38,7 +42,7 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
     for (const scene of engine.sceneManager.scenes) {
       const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
       for (const renderer of renderers) {
-        const slots = (renderer.generator as any)._feedbackReadbackQueue as Array<{ request: any }>;
+        const slots = getTrajectoryReadbackQueue(renderer.generator);
         for (let i = 0, n = slots.length; i < n; i++) {
           slots[i].request._platformReadback.isReady = () => true;
         }
@@ -298,14 +302,15 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const readback = vi.spyOn(parent.generator as any, "_copyReadbackRange");
+    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
     updateEngine(engine, 9);
-    expect(readback).not.toHaveBeenCalled();
+    expect(createReadback).not.toHaveBeenCalled();
 
     updateEngine(engine, 1);
-    expect(readback).toHaveBeenCalledTimes(1);
+    expect(createReadback).toHaveBeenCalledTimes(1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
+    createReadback.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });
@@ -433,12 +438,13 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const firstRequest = generator._feedbackReadbackQueue[0].request;
+    const queue = getTrajectoryReadbackQueue(generator);
+    const firstRequest = queue[0].request;
     const firstRead = vi.spyOn(firstRequest, "getData");
     firstRequest._platformReadback.isReady = () => false;
     engine.update();
-    expect(generator._feedbackReadbackQueue).to.have.length(2);
-    const secondRequest = generator._feedbackReadbackQueue[1].request;
+    expect(queue).to.have.length(2);
+    const secondRequest = queue[1].request;
     expect(secondRequest).not.to.equal(firstRequest);
     const secondRead = vi.spyOn(secondRequest, "getData");
     secondRequest._platformReadback.isReady = () => false;
@@ -450,6 +456,46 @@ describe("SubEmitter", () => {
     expect(firstRead).toHaveBeenCalledTimes(1);
     expect(secondRead).not.toHaveBeenCalled();
     expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("bounds pending trajectory readbacks and catches up after GPU backpressure", () => {
+    const child = createParticleRenderer(engine, "ReadbackBackpressure_Child");
+    const parent = createParticleRenderer(engine, "ReadbackBackpressure_Parent");
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+
+    const generator = parent.generator as any;
+    const queue = getTrajectoryReadbackQueue(generator);
+    queue[0].request._platformReadback.isReady = () => false;
+    for (let i = 1; i < 4; i++) {
+      engine.update();
+      queue[i].request._platformReadback.isReady = () => false;
+    }
+    expect(queue).to.have.length(4);
+
+    const stalledPlayTime = generator._playTime;
+    engine.update();
+    expect(queue).to.have.length(4);
+    expect(generator._playTime).to.equal(stalledPlayTime);
+
+    queue[0].request._platformReadback.isReady = () => true;
+    engine.update();
+    expect(queue).to.have.length(4);
+    expect(generator._playTime - stalledPlayTime).to.be.closeTo(0.2, 1e-6);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -475,7 +521,7 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = (parent.generator as any)._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
     request._platformReadback.isReady = () => false;
     slot.emitter = replacementChild;
     engine.update();
@@ -510,7 +556,7 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = (parent.generator as any)._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
     request._platformReadback.isReady = () => false;
     const secondScene = new Scene(engine, "MovedPendingBirth_Scene");
     engine.sceneManager.addScene(secondScene);
@@ -545,14 +591,15 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    generator._feedbackReadbackQueue[0].request._platformReadback.isReady = () => false;
+    const queue = getTrajectoryReadbackQueue(generator);
+    queue[0].request._platformReadback.isReady = () => false;
     const particleBufferSize = generator._currentParticleCount;
     parent.generator.emit(150);
     expect(generator._currentParticleCount).to.be.greaterThan(particleBufferSize);
 
     engine.update();
-    expect(generator._feedbackReadbackQueue).to.have.length(2);
-    for (const slot of generator._feedbackReadbackQueue) {
+    expect(queue).to.have.length(2);
+    for (const slot of queue) {
       slot.request._platformReadback.isReady = () => true;
     }
     engine.update();
@@ -581,7 +628,7 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = generator._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(generator)[0].request;
     const read = vi.spyOn(request, "getData");
     request._platformReadback.isReady = () => false;
     engine.update();
@@ -624,7 +671,7 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const destroyReadback = vi.spyOn(generator._feedbackReadbackQueue[0].request, "destroy");
+    const destroyReadback = vi.spyOn(getTrajectoryReadbackQueue(generator)[0].request, "destroy");
     parent.entity.destroy();
     expect(destroyReadback).toHaveBeenCalledTimes(1);
 
@@ -649,10 +696,10 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = generator._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(generator)[0].request;
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + request.byteLength);
 
-    generator._destroyFeedbackReadbacks();
+    generator._trajectoryReadback.destroy();
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
 
     parent.entity.destroy();
@@ -676,7 +723,7 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    const request = generator._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(generator)[0].request;
     const isReady = vi.spyOn(request, "isReady");
     const destroyReadback = vi.spyOn(request._platformReadback, "destroy");
     generator._instanceVertexBufferBinding._buffer._isContentLost = true;
@@ -915,7 +962,7 @@ describe("SubEmitter", () => {
     performance.now = () => (time += 100);
     engine.update();
 
-    const request = (parent.generator as any)._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
     request._platformReadback.isReady = () => false;
     engine.update();
 
@@ -1086,6 +1133,62 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("preserves both wrapped ring segments when the particle buffer shrinks", () => {
+    const child = createParticleRenderer(engine, "WrappedShrink_Child");
+    const parent = createParticleRenderer(engine, "WrappedShrink_Parent");
+    const generator = parent.generator as any;
+    parent.generator.main.maxParticles = 127;
+    parent.generator.main.startLifetime.constant = 0.1;
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    parent.generator.emit(100);
+    updateEngine(engine, 2);
+    expect(parent.generator._getAliveParticleCount()).to.equal(0);
+
+    parent.generator.main.startLifetime.constant = 10;
+    parent.generator.emit(50);
+    updateEngine(engine, 1);
+    expect(generator._firstRetiredElement).to.equal(100);
+    expect(generator._firstFreeElement).to.equal(22);
+
+    const statesByParticle = generator.subEmitters._birthStatesByParticle;
+    const tailState = statesByParticle[100][0];
+    const frontState = statesByParticle[0][0];
+    const instanceStride = generator._instanceVertices.length / generator._currentParticleCount;
+    generator._instanceVertices[100 * instanceStride] = 1000;
+    generator._instanceVertices[0] = 2000;
+
+    const feedbackStride = generator._feedbackSimulator.vertexStride / 4;
+    const feedbackData = new Float32Array(generator._currentParticleCount * feedbackStride);
+    feedbackData[100 * feedbackStride] = 3000;
+    feedbackData[0] = 4000;
+    generator._feedbackSimulator.readBinding.buffer.setData(feedbackData);
+
+    parent.generator.main.maxParticles = 60;
+    generator._resizeInstanceBuffer(false);
+
+    expect(generator._currentParticleCount).to.equal(61);
+    expect(generator._firstRetiredElement).to.equal(0);
+    expect(generator._firstActiveElement).to.equal(0);
+    expect(generator._firstFreeElement).to.equal(50);
+    expect(generator._instanceVertices[0]).to.equal(1000);
+    expect(generator._instanceVertices[28 * instanceStride]).to.equal(2000);
+    const resizedStatesByParticle = generator.subEmitters._birthStatesByParticle;
+    expect(resizedStatesByParticle[0][0]).to.equal(tailState);
+    expect(resizedStatesByParticle[28][0]).to.equal(frontState);
+
+    const resizedFeedback = new Float32Array(generator._currentParticleCount * feedbackStride);
+    generator._feedbackSimulator.readBinding.buffer.getData(resizedFeedback, 0, 0, resizedFeedback.length);
+    expect(resizedFeedback[0]).to.equal(3000);
+    expect(resizedFeedback[28 * feedbackStride]).to.equal(4000);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Death fires sub-emitter when parent particles age out", () => {
     const parent = createParticleRenderer(engine, "Parent_Death");
     const child = createParticleRenderer(engine, "Child_Death");
@@ -1119,14 +1222,16 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const readback = vi.spyOn(parent.generator as any, "_copyReadbackRange");
+    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
     updateEngine(engine, 4);
-    expect(readback).not.toHaveBeenCalled();
+    expect(createReadback).not.toHaveBeenCalled();
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
 
     updateEngine(engine, 1);
-    expect(readback).toHaveBeenCalledTimes(1);
+    expect(createReadback).toHaveBeenCalledTimes(1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
+    createReadback.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });
@@ -1163,7 +1268,7 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const readbackSlot = (parent.generator as any)._feedbackReadbackQueue[0];
+    const readbackSlot = getTrajectoryReadbackQueue(parent.generator)[0];
     readbackSlot.request._platformReadback.isReady = () => false;
     deathSlot.deathEmitCount = 5;
     (parentColor.color as any).gradient = new ParticleGradient(
@@ -1208,16 +1313,17 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    generator._feedbackReadbackQueue[0].request._platformReadback.isReady = () => false;
+    const queue = getTrajectoryReadbackQueue(generator);
+    queue[0].request._platformReadback.isReady = () => false;
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
 
     parent.generator.emit(1);
     expect(parent.generator._getAliveParticleCount()).to.equal(1);
     engine.update();
     engine.update();
-    expect(generator._feedbackReadbackQueue).to.have.length(2);
+    expect(queue).to.have.length(2);
 
-    for (const slot of generator._feedbackReadbackQueue) {
+    for (const slot of queue) {
       slot.request._platformReadback.isReady = () => true;
     }
     engine.update();
@@ -1248,7 +1354,7 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const request = (parent.generator as any)._feedbackReadbackQueue[0].request;
+    const request = getTrajectoryReadbackQueue(parent.generator)[0].request;
     request._platformReadback.isReady = () => false;
     slot.emitter = replacementChild;
     engine.update();
@@ -1282,13 +1388,14 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const readback = vi.spyOn(parent.generator as any, "_copyReadbackRange");
+    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
     updateEngine(engine, 2);
 
-    expect(readback).not.toHaveBeenCalled();
+    expect(createReadback).not.toHaveBeenCalled();
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
 
+    createReadback.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });
@@ -1316,11 +1423,12 @@ describe("SubEmitter", () => {
     engine.update();
 
     const generator = parent.generator as any;
-    generator._feedbackReadbackQueue[0].request._platformReadback.isReady = () => true;
+    const queue = getTrajectoryReadbackQueue(generator);
+    queue[0].request._platformReadback.isReady = () => true;
     engine.update();
 
-    expect(generator._feedbackReadbackQueue).to.have.length(1);
-    expect(generator._feedbackReadbackQueue[0].commands.map((command) => command.type)).to.deep.equal([
+    expect(queue).to.have.length(1);
+    expect(queue[0].commands.map((command) => command.type)).to.deep.equal([
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterType.Death
     ]);
@@ -1433,7 +1541,7 @@ describe("SubEmitter", () => {
     engine.update();
     engine.update();
 
-    const readbackSlot = (parent.generator as any)._feedbackReadbackQueue[0];
+    const readbackSlot = getTrajectoryReadbackQueue(parent.generator)[0];
     readbackSlot.request._platformReadback.isReady = () => false;
     engine.update();
     engine.update();

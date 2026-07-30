@@ -27,7 +27,6 @@ export class ParticleRenderer extends Renderer {
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
   private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
   private static readonly _speedScale = ShaderProperty.getByName("renderer_StretchedBillboardSpeedScale");
-  private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
   readonly generator: ParticleGenerator;
@@ -222,6 +221,12 @@ export class ParticleRenderer extends Renderer {
       worldBounds.max.copyFrom(worldPosition);
       return;
     }
+    if (generator.inheritVelocity.enabled && generator.main.simulationSpace === ParticleSimulationSpace.World) {
+      const extent = Number.MAX_VALUE;
+      worldBounds.min.set(-extent, -extent, -extent);
+      worldBounds.max.set(extent, extent, extent);
+      return;
+    }
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       generator._updateBoundsSimulationLocal(worldBounds);
     } else {
@@ -236,22 +241,16 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _updateParticleShaderData(): void {
-    const generator = this.generator;
-    const shaderData = this.shaderData;
-    shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
-    shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
-    shaderData.setFloat(ParticleRenderer._currentTime, generator._playTime);
-    shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
-    generator._updateShaderData(shaderData);
-  }
-
-  /**
-   * @internal
-   */
   _updateParticles(elapsedTime: number, isBirthSubEmitterTarget: boolean): void {
-    if (!this._supportInstancedArrays) return;
-    this.generator._update(elapsedTime, isBirthSubEmitterTarget);
+    if (!this._supportInstancedArrays) {
+      return;
+    }
+    if (this.generator._update(elapsedTime, isBirthSubEmitterTarget)) {
+      const shaderData = this.shaderData;
+      shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
+      shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
+      shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
+    }
   }
 
   protected override _render(context: RenderContext): void {
