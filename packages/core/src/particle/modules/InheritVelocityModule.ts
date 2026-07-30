@@ -1,16 +1,15 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
-import { ParticleGenerator } from "../ParticleGenerator";
+import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleInheritVelocityMode } from "../enums/ParticleInheritVelocityMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
- * Applies emitter velocity to particles, using parent particle velocity for Initial-mode sub-emissions.
+ * Controls how emitter velocity is applied to particles.
  */
 export class InheritVelocityModule extends ParticleGeneratorModule {
   private static readonly _currentMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_CURRENT");
@@ -24,6 +23,12 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   private static readonly _minCurveProperty = ShaderProperty.getByName("renderer_InheritVelocityMinCurve");
   private static readonly _maxCurveProperty = ShaderProperty.getByName("renderer_InheritVelocityMaxCurve");
 
+  /** @internal */
+  @ignoreClone
+  readonly _curveRand = new Rand(0, ParticleRandomSubSeeds.InheritVelocity);
+
+  private _mode = ParticleInheritVelocityMode.Initial;
+  private _curve: ParticleCompositeCurve;
   @ignoreClone
   private _emitterVelocity = new Vector3();
   @ignoreClone
@@ -36,44 +41,10 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   private _curveMacro: ShaderMacro;
   @ignoreClone
   private _randomMacro: ShaderMacro;
-  private _curve: ParticleCompositeCurve;
-  private _mode = ParticleInheritVelocityMode.Initial;
 
-  /** Whether to capture the emitter velocity at birth or follow it while the particle is alive. */
-  get mode(): ParticleInheritVelocityMode {
-    return this._mode;
-  }
-
-  set mode(value: ParticleInheritVelocityMode) {
-    if (value !== this._mode) {
-      this._mode = value;
-      this._resyncEmitterVelocity();
-      this._generator._setTransformFeedback();
-    }
-  }
-
-  /** Scale applied to the inherited velocity over each particle's lifetime. */
-  get curve(): ParticleCompositeCurve {
-    return this._curve;
-  }
-
-  set curve(value: ParticleCompositeCurve) {
-    const lastValue = this._curve;
-    if (value !== lastValue) {
-      this._curve = value;
-      this._onCompositeCurveChange(lastValue, value);
-    }
-  }
-
-  /** @internal */
-  @ignoreClone
-  readonly _curveRand = new Rand(0, ParticleRandomSubSeeds.InheritVelocity);
-
-  constructor(generator: ParticleGenerator) {
-    super(generator);
-    this.curve = new ParticleCompositeCurve(0);
-  }
-
+  /**
+   * @inheritdoc
+   */
   override get enabled(): boolean {
     return this._enabled;
   }
@@ -87,12 +58,49 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   }
 
   /**
+   * Whether to capture the emitter velocity at birth or follow it while the particle is alive.
+   */
+  get mode(): ParticleInheritVelocityMode {
+    return this._mode;
+  }
+
+  set mode(value: ParticleInheritVelocityMode) {
+    if (value !== this._mode) {
+      this._mode = value;
+      this._resyncEmitterVelocity();
+      this._generator._setTransformFeedback();
+    }
+  }
+
+  /**
+   * Scale applied to the inherited velocity over each particle's lifetime.
+   */
+  get curve(): ParticleCompositeCurve {
+    return this._curve;
+  }
+
+  set curve(value: ParticleCompositeCurve) {
+    const lastValue = this._curve;
+    if (value !== lastValue) {
+      this._curve = value;
+      this._onCompositeCurveChange(lastValue, value);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  constructor(generator: ParticleGenerator) {
+    super(generator);
+    this.curve = new ParticleCompositeCurve(0);
+  }
+
+  /**
    * @internal
    */
   _updateEmitterVelocity(elapsedTime: number): void {
     if (!this._usesEmitterVelocity()) {
-      this._emitterVelocity.set(0, 0, 0);
-      this._hasPreviousWorldPosition = false;
+      if (this._hasPreviousWorldPosition) this._resyncEmitterVelocity();
       return;
     }
 
@@ -133,12 +141,13 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     }
 
     const velocity = emitterVelocityOverride ?? this._emitterVelocity;
-    if (this._usesInitialCurve()) {
+    const curve = this.curve;
+    if (curve._isCurveMode()) {
       out.copyFrom(velocity);
       return velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0;
     }
 
-    const factor = this.curve.evaluate(undefined, this._curveRand.random());
+    const factor = curve.evaluate(undefined, this._curveRand.random());
     out.set(velocity.x * factor, velocity.y * factor, velocity.z * factor);
     return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
   }
@@ -160,18 +169,18 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
       if (usesCurrentVelocity) {
         shaderData.setVector3(InheritVelocityModule._velocityProperty, this._emitterVelocity);
       }
-      if (curve.mode === ParticleCurveMode.Curve || curve.mode === ParticleCurveMode.TwoCurves) {
+      const isRandomMode = curve._isRandomMode();
+      randomMacro = isRandomMode ? InheritVelocityModule._randomModeMacro : null;
+      if (curve._isCurveMode()) {
         curveMacro = InheritVelocityModule._curveModeMacro;
         shaderData.setFloatArray(InheritVelocityModule._maxCurveProperty, curve.curveMax._getTypeArray());
-        if (curve.mode === ParticleCurveMode.TwoCurves) {
-          randomMacro = InheritVelocityModule._randomModeMacro;
+        if (isRandomMode) {
           shaderData.setFloatArray(InheritVelocityModule._minCurveProperty, curve.curveMin._getTypeArray());
         }
       } else {
         curveMacro = InheritVelocityModule._constantModeMacro;
         shaderData.setFloat(InheritVelocityModule._maxConstantProperty, curve.constantMax);
-        if (curve.mode === ParticleCurveMode.TwoConstants) {
-          randomMacro = InheritVelocityModule._randomModeMacro;
+        if (isRandomMode) {
           shaderData.setFloat(InheritVelocityModule._minConstantProperty, curve.constantMin);
         }
       }
