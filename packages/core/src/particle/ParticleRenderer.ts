@@ -22,7 +22,6 @@ export class ParticleRenderer extends Renderer {
   private static readonly _billboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
   private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
   private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
-  private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
   private static readonly _meshModeMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
@@ -94,8 +93,6 @@ export class ParticleRenderer extends Renderer {
           break;
         case ParticleRenderMode.VerticalBillboard:
           throw "Not implemented";
-          renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
-          break;
         case ParticleRenderMode.Mesh:
           renderModeMacro = ParticleRenderer._meshModeMacro;
           break;
@@ -236,8 +233,6 @@ export class ParticleRenderer extends Renderer {
     }
   }
 
-  protected override _update(context: RenderContext): void {}
-
   /**
    * @internal
    */
@@ -257,7 +252,6 @@ export class ParticleRenderer extends Renderer {
   _updateParticles(elapsedTime: number, isBirthSubEmitterTarget: boolean): void {
     if (!this._supportInstancedArrays) return;
     this.generator._update(elapsedTime, isBirthSubEmitterTarget);
-    this._updateParticleShaderData();
   }
 
   protected override _render(context: RenderContext): void {

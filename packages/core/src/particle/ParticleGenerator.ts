@@ -443,8 +443,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const hasActiveParticles = this._firstActiveElement !== this._firstFreeElement;
       const shouldUpdateFeedback =
         this._useTransformFeedback && hasActiveParticles && (deltaTime > 0 || hasNewParticles);
-      if (shouldUpdateFeedback) {
+      if (hasActiveParticles) {
         this._renderer._updateParticleShaderData();
+      }
+      if (shouldUpdateFeedback) {
         this._updateFeedback(this._renderer.shaderData, deltaTime, firstNewElement);
         if (hasBirthSubEmitter) {
           this._prepareBirthRange(

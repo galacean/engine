@@ -12,7 +12,7 @@ import {
   ShaderMacro
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -93,6 +93,22 @@ describe("ParticleRenderer", () => {
     updateEngine(engine, 1);
     expect(generator._playTime).to.be.closeTo(culledPlayTime + 0.1, 1e-6);
 
+    entity.destroy();
+  });
+
+  it("updates particle shader data once per visible frame", () => {
+    const entity = scene.createRootEntity("FeedbackParticle");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+
+    const updateShaderData = vi.spyOn(renderer, "_updateParticleShaderData");
+    updateEngine(engine, 1);
+
+    expect(updateShaderData).toHaveBeenCalledTimes(1);
     entity.destroy();
   });
 
