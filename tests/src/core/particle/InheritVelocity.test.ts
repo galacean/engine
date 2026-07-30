@@ -188,11 +188,35 @@ describe("InheritVelocityModule", () => {
     expect(vertices[43]).to.equal(0);
     expect(vertices[44]).to.equal(0);
     expect(vertices[45]).to.be.within(0, 1);
-    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.025, 1e-5);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.0125, 1e-5);
 
     renderer.entity.transform.setPosition(3, 0, 0);
     tick(engine, time);
-    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.175, 1e-5);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.1125, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
+  it("Initial Curve keeps its analytic displacement through a no-op velocity limit", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity-curve-limit");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    generator.limitVelocityOverLifetime.enabled = true;
+    generator.limitVelocityOverLifetime.dampen = 0;
+    generator.emission.clearBurst();
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+    expect(generator._useTransformFeedback).to.equal(true);
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.0125, 1e-5);
 
     renderer.entity.destroy();
   });

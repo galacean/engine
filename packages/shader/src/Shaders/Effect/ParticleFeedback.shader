@@ -143,6 +143,7 @@ Shader "Effect/ParticleFeedback" {
               return v;
           }
           float normalizedAge = simulationAge / lifetime;
+          float previousNormalizedAge = previousAge / lifetime;
 
           vec4 worldRotation;
           if (renderer_SimulationSpace == 0) {
@@ -154,7 +155,16 @@ Shader "Effect/ParticleFeedback" {
 
           vec3 inheritedVelocityWorld = vec3(0.0);
 
-          #ifdef _INHERIT_VELOCITY_MODULE_ENABLED
+          #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+              vec3 unusedInheritedVelocityWorld;
+              vec3 inheritedPositionOffsetWorld =
+                  computeInitialInheritVelocityPositionOffset(attr, normalizedAge, unusedInheritedVelocityWorld);
+              vec3 previousInheritedPositionOffsetWorld =
+                  computeInitialInheritVelocityPositionOffset(attr, previousNormalizedAge, unusedInheritedVelocityWorld);
+              // Use the interval average so linear integration reproduces the exact Initial displacement
+              inheritedVelocityWorld =
+                  (inheritedPositionOffsetWorld - previousInheritedPositionOffsetWorld) / dt;
+          #elif defined(_INHERIT_VELOCITY_MODULE_ENABLED)
               inheritedVelocityWorld = evaluateInheritVelocity(attr, normalizedAge);
           #endif
 
