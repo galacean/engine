@@ -1,5 +1,4 @@
 import { WebGLEngine } from "@galacean/engine";
-import { ParticleBufferUtils } from "@galacean/engine-core/src/particle/ParticleBufferUtils";
 import { ParticleTrajectoryReadback } from "@galacean/engine-core/src/particle/ParticleTrajectoryReadback";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -26,14 +25,11 @@ function createCommand(ringIndex = 0) {
 
 describe("ParticleTrajectoryReadback", () => {
   let engine: WebGLEngine;
-  let source: any;
+  let sourceBuffer: any;
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    source = {
-      stride: ParticleBufferUtils.feedbackTrajectoryStateVertexStride,
-      buffer: { _platformBuffer: {} }
-    };
+    sourceBuffer = { _platformBuffer: {} };
   });
 
   afterEach(() => {
@@ -62,7 +58,7 @@ describe("ParticleTrajectoryReadback", () => {
 
     let error: Error | undefined;
     try {
-      readback.submitPending(source);
+      readback.submitPendingBatch(sourceBuffer);
     } catch (caughtError) {
       error = caughtError as Error;
     }
@@ -89,7 +85,7 @@ describe("ParticleTrajectoryReadback", () => {
 
     let error: Error | undefined;
     try {
-      readback.submitPending(source);
+      readback.submitPendingBatch(sourceBuffer);
     } catch (caughtError) {
       error = caughtError as Error;
     }
@@ -118,16 +114,16 @@ describe("ParticleTrajectoryReadback", () => {
       const command = createCommand();
       commands.push(command);
       readback.getPendingCommands(0, 1).push(command as any);
-      readback.submitPending(source);
+      readback.submitPendingBatch(sourceBuffer);
     }
 
-    readback.processReady();
+    readback.processCompletedBatches();
     readback.destroy();
 
     const nextReadback = createReadback();
     for (let i = 0; i < 3; i++) {
       nextReadback.getPendingCommands(0, 1).push(createCommand() as any);
-      nextReadback.submitPending(source);
+      nextReadback.submitPendingBatch(sourceBuffer);
     }
 
     expect(platformReadbacks).to.have.length(3);
@@ -135,7 +131,7 @@ describe("ParticleTrajectoryReadback", () => {
       true
     );
 
-    nextReadback.processReady();
+    nextReadback.processCompletedBatches();
     nextReadback.destroy();
     gcReadbackPool();
     createPlatformBufferReadback.mockRestore();
@@ -157,21 +153,21 @@ describe("ParticleTrajectoryReadback", () => {
       });
     const readback = createReadback();
     readback.getPendingCommands(0, 2).push(createCommand(0) as any);
-    readback.submitPending(source);
+    readback.submitPendingBatch(sourceBuffer);
     readback.getPendingCommands(0, 2).push(createCommand(0) as any, createCommand(1) as any);
-    readback.submitPending(source);
-    readback.processReady();
+    readback.submitPendingBatch(sourceBuffer);
+    readback.processCompletedBatches();
     readback.destroy();
 
     const nextReadback = createReadback();
     nextReadback.getPendingCommands(0, 2).push(createCommand(0) as any);
-    nextReadback.submitPending(source);
+    nextReadback.submitPendingBatch(sourceBuffer);
 
     expect(platformReadbacks).to.have.length(2);
     expect(platformReadbacks[0].submit).toHaveBeenCalledTimes(2);
     expect(platformReadbacks[1].submit).toHaveBeenCalledTimes(1);
 
-    nextReadback.processReady();
+    nextReadback.processCompletedBatches();
     nextReadback.destroy();
     gcReadbackPool();
     createPlatformBufferReadback.mockRestore();
@@ -192,19 +188,19 @@ describe("ParticleTrajectoryReadback", () => {
       });
     const readback = createReadback();
     readback.getPendingCommands(0, 2).push(createCommand(0) as any);
-    readback.submitPending(source);
-    readback.processReady();
+    readback.submitPendingBatch(sourceBuffer);
+    readback.processCompletedBatches();
     readback.destroy();
 
     const nextReadback = createReadback();
     nextReadback.getPendingCommands(0, 2).push(createCommand(0) as any, createCommand(1) as any);
-    nextReadback.submitPending(source);
+    nextReadback.submitPendingBatch(sourceBuffer);
 
     expect(platformReadbacks).to.have.length(2);
     expect(platformReadbacks[0].destroy).toHaveBeenCalledTimes(1);
     expect(platformReadbacks[1].destroy).toHaveBeenCalledTimes(0);
 
-    nextReadback.processReady();
+    nextReadback.processCompletedBatches();
     nextReadback.destroy();
     gcReadbackPool();
     createPlatformBufferReadback.mockRestore();
@@ -219,12 +215,12 @@ describe("ParticleTrajectoryReadback", () => {
       .mockReturnValue(platformReadback);
     const readback = createReadback();
     readback.getPendingCommands(0, 1).push(createCommand() as any);
-    readback.submitPending(source);
+    readback.submitPendingBatch(sourceBuffer);
 
     engine.resourceManager.gc();
     expect(platformReadback.destroy).toHaveBeenCalledTimes(0);
 
-    readback.processReady();
+    readback.processCompletedBatches();
     readback.destroy();
     engine.resourceManager.gc();
     createPlatformBufferReadback.mockRestore();

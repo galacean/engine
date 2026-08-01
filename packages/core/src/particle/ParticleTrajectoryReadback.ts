@@ -1,7 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
-import { Buffer } from "../graphic/Buffer";
+import type { Buffer } from "../graphic/Buffer";
 import type { BufferReadback } from "../graphic/BufferReadback";
-import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
@@ -23,7 +22,7 @@ export class ParticleTrajectoryReadback {
   private readonly _velocity = new Vector3();
   private readonly _inFlightBatches: ParticleTrajectoryReadbackBatch[] = [];
   private readonly _availableBatches: ParticleTrajectoryReadbackBatch[] = [];
-  private _data: Float32Array | null = null;
+  private _readbackData: Float32Array | null = null;
   private _pendingBatch: ParticleTrajectoryReadbackBatch | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
@@ -38,7 +37,7 @@ export class ParticleTrajectoryReadback {
     return batch.commands;
   }
 
-  submitPending(source: VertexBufferBinding): void {
+  submitPendingBatch(sourceBuffer: Buffer): void {
     const batch = this._pendingBatch;
     if (!batch) {
       return;
@@ -63,7 +62,7 @@ export class ParticleTrajectoryReadback {
     batch.ringOrigin = (rangeOrigin + readbackStartOffset) % ringCapacity;
     batch.readbackElementCount = readbackEndOffset - readbackStartOffset;
 
-    const stride = source.stride;
+    const stride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
     const byteLength = batch.readbackElementCount * stride;
     let readback = batch.readback;
     if (!readback || readback.byteLength < byteLength) {
@@ -73,29 +72,29 @@ export class ParticleTrajectoryReadback {
       readback = batch.readback = this._owner._renderer.engine._bufferReadbackPool.allocate(byteLength);
     }
 
-    this._copyRingRange(source.buffer, readback, batch, stride);
+    this._copyRingRange(sourceBuffer, readback, batch, stride);
     readback.submit();
     this._inFlightBatches.push(batch);
     this._pendingBatch = null;
   }
 
-  processReady(): void {
+  processCompletedBatches(): void {
     const inFlightBatches = this._inFlightBatches;
-    let completedCount = 0;
-    for (let n = inFlightBatches.length; completedCount < n; completedCount++) {
-      const batch = inFlightBatches[completedCount];
+    let processedBatchCount = 0;
+    for (let n = inFlightBatches.length; processedBatchCount < n; processedBatchCount++) {
+      const batch = inFlightBatches[processedBatchCount];
       const readback = batch.readback!;
       if (!readback.isReady()) {
         break;
       }
 
-      this._consume(batch);
+      this._resolveBatchCommands(batch);
       this._recycleBatch(batch);
     }
-    if (completedCount > 0) {
-      const remainingCount = inFlightBatches.length - completedCount;
+    if (processedBatchCount > 0) {
+      const remainingCount = inFlightBatches.length - processedBatchCount;
       for (let i = 0; i < remainingCount; i++) {
-        inFlightBatches[i] = inFlightBatches[i + completedCount];
+        inFlightBatches[i] = inFlightBatches[i + processedBatchCount];
       }
       inFlightBatches.length = remainingCount;
     }
@@ -105,11 +104,11 @@ export class ParticleTrajectoryReadback {
     const pendingBatch = this._pendingBatch;
     if (pendingBatch) {
       this._pendingBatch = null;
-      this._releaseAndRecycleBatch(pendingBatch);
+      this._discardBatch(pendingBatch);
     }
     const inFlightBatches = this._inFlightBatches;
     for (let i = 0, n = inFlightBatches.length; i < n; i++) {
-      this._releaseAndRecycleBatch(inFlightBatches[i]);
+      this._discardBatch(inFlightBatches[i]);
     }
     inFlightBatches.length = 0;
   }
@@ -117,16 +116,16 @@ export class ParticleTrajectoryReadback {
   destroy(): void {
     this.cancel();
     this._availableBatches.length = 0;
-    this._data = null;
+    this._readbackData = null;
   }
 
-  private _consume(batch: ParticleTrajectoryReadbackBatch): void {
+  private _resolveBatchCommands(batch: ParticleTrajectoryReadbackBatch): void {
     const readback = batch.readback!;
     const floatStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride / Float32Array.BYTES_PER_ELEMENT;
     const totalFloatCount = batch.readbackElementCount * floatStride;
-    let data = this._data;
+    let data = this._readbackData;
     if (!data || data.length < totalFloatCount) {
-      data = this._data = new Float32Array(totalFloatCount);
+      data = this._readbackData = new Float32Array(totalFloatCount);
     }
     readback.getData(data, 0, 0, totalFloatCount);
 
@@ -178,7 +177,7 @@ export class ParticleTrajectoryReadback {
     }
   }
 
-  private _releaseAndRecycleBatch(batch: ParticleTrajectoryReadbackBatch): void {
+  private _discardBatch(batch: ParticleTrajectoryReadbackBatch): void {
     const commands = batch.commands;
     for (let i = 0, n = commands.length; i < n; i++) {
       commands[i].release();
