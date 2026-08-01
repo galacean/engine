@@ -184,8 +184,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _eventRotation = new Vector3();
   @ignoreClone
-  private _eventDir = new Vector3();
-  @ignoreClone
   private _emitLocalPos = new Vector3();
   @ignoreClone
   private _emitDirection = new Vector3();
@@ -376,30 +374,32 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
     }
 
-    let remainingSubEmitterCapacity = Math.max(
-      Math.max(Math.floor(main.maxParticles), 0) - this._getNotRetiredParticleCount(),
-      0
-    );
     const incomingCommands = this._incomingSubEmitterCommands;
-    for (let i = 0, n = incomingCommands.length; i < n; i++) {
-      const command = incomingCommands[i];
-      let emittedCount: number;
-      if (command.type === ParticleSubEmitterType.Birth) {
-        emittedCount = this._consumeBirthSubEmitterCommand(command, remainingSubEmitterCapacity);
-      } else {
-        if (remainingSubEmitterCapacity <= 0) {
+    if (incomingCommands.length > 0) {
+      let remainingSubEmitterCapacity = Math.max(
+        Math.max(Math.floor(main.maxParticles), 0) - this._getNotRetiredParticleCount(),
+        0
+      );
+      for (let i = 0, n = incomingCommands.length; i < n; i++) {
+        const command = incomingCommands[i];
+        let emittedCount: number;
+        if (command.type === ParticleSubEmitterType.Birth) {
+          emittedCount = this._consumeBirthSubEmitterCommand(command, remainingSubEmitterCapacity);
+        } else {
+          if (remainingSubEmitterCapacity <= 0) {
+            command.release();
+            continue;
+          }
+          const emitPlayTime =
+            this._playTime -
+            Math.max(this._renderer.engine.time.elapsedTime - command.eventEngineTime, 0) * main.simulationSpeed;
+          emittedCount = this._emitDeathSubEmitter(command, emitPlayTime, remainingSubEmitterCapacity);
           command.release();
-          continue;
         }
-        const emitPlayTime =
-          this._playTime -
-          Math.max(this._renderer.engine.time.elapsedTime - command.eventEngineTime, 0) * main.simulationSpeed;
-        emittedCount = this._emitDeathSubEmitter(command, emitPlayTime, remainingSubEmitterCapacity);
-        command.release();
+        remainingSubEmitterCapacity -= emittedCount;
       }
-      remainingSubEmitterCapacity -= emittedCount;
+      incomingCommands.length = 0;
     }
-    incomingCommands.length = 0;
 
     // Retire all particles on device restore before bounds/volume bookkeeping
     if (isContentLost) {
@@ -1256,25 +1256,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   _consumeBirthSubEmitterCommand(command: BirthSubEmitterCommand, available: number): number {
     let emittedCount = 0;
 
-    try {
-      command.finalizeRequests(available);
-      const requests = command.requests;
-      for (let i = 0, n = command.requestCount; i < n && available > 0; i++) {
-        const request = requests[i];
-        const emitted = this._emitBirthSubEmitterParticles(
-          command,
-          request.time,
-          request.count,
-          request.hasPosition ? request.position! : undefined,
-          available
-        );
-        available -= emitted;
-        emittedCount += emitted;
-      }
-      return emittedCount;
-    } finally {
-      command.release();
+    command.finalizeRequests(available);
+    const requests = command.requests;
+    for (let i = 0, n = command.requestCount; i < n && available > 0; i++) {
+      const request = requests[i];
+      const emitted = this._emitBirthSubEmitterParticles(
+        command,
+        request.time,
+        request.count,
+        request.hasPosition ? request.position! : undefined,
+        available
+      );
+      available -= emitted;
+      emittedCount += emitted;
     }
+    command.release();
+    return emittedCount;
   }
 
   private _emitBirthSubEmitterParticles(
