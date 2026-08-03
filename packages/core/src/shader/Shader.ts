@@ -91,7 +91,7 @@ export class Shader implements IReferable {
       const shaderSource = shaderCompiler._parseShaderSource(nameOrShaderSource);
       if (shaderMap[shaderSource.name]) {
         console.error(`Shader named "${shaderSource.name}" already exists.`);
-        return;
+        return shaderMap[shaderSource.name];
       }
 
       const basePathForIncludeKey = new URL(path ?? "", ShaderPass._shaderRootPath).href;
@@ -141,7 +141,7 @@ export class Shader implements IReferable {
     } else {
       if (shaderMap[nameOrShaderSource]) {
         console.error(`Shader named "${nameOrShaderSource}" already exists.`);
-        return;
+        return shaderMap[nameOrShaderSource];
       }
       if (shaderPassesOrSubShadersOrPlatformTarget.length > 0) {
         if (shaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
@@ -175,7 +175,7 @@ export class Shader implements IReferable {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[data.name]) {
       console.error(`Shader named "${data.name}" already exists.`);
-      return;
+      return shaderMap[data.name];
     }
 
     const subShaderList = data.subShaders.map((subData) => {

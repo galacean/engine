@@ -35,8 +35,9 @@ describe("Shader", () => {
 
       // Create same name shader
       const errorSpy = vi.spyOn(console, "error");
-      Shader.create("custom", [new SubShader("Default", [makePass()])]);
+      const duplicateShader = Shader.create("custom", [new SubShader("Default", [makePass()])]);
       expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
+      expect(duplicateShader).equal(customShader);
       vi.resetAllMocks();
 
       // Create shader by empty SubShader array
