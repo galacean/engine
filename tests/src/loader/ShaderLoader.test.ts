@@ -31,6 +31,10 @@ const precompiledShader = JSON.stringify({
   subShaders: []
 });
 
+const conflictingShaderSource = shaderSource
+  .replace("Loader/ReusableAcrossEngines", "Loader/ConflictingAcrossEngines")
+  .replace("vec4(1.0)", "vec4(0.0)");
+
 describe("ShaderLoader", () => {
   it("reuses source and precompiled shaders across engine resource managers", async () => {
     const sourceURL = "Shaders/reusable-across-engines.shader";
@@ -81,6 +85,34 @@ describe("ShaderLoader", () => {
       engine2?.destroy();
       Shader.find("Loader/ReusableAcrossEngines")?.destroy(true);
       Shader.find("Loader/ReusablePrecompiledAcrossEngines")?.destroy(true);
+    }
+  });
+
+  it("rejects a same-name shader whose source changes across engines", async () => {
+    const url = "Shaders/conflicting-across-engines.shader";
+    const canvas = document.createElement("canvas");
+    const engine1 = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
+    vi.spyOn(engine1.resourceManager, "_requestByRemoteUrl")
+      // @ts-expect-error _requestByRemoteUrl is @internal
+      .mockReturnValue(AssetPromise.resolve(conflictingShaderSource));
+
+    let engine2: WebGLEngine;
+    try {
+      await engine1.resourceManager.load<Shader>({ url, type: AssetType.Shader });
+      engine1.destroy();
+
+      engine2 = await WebGLEngine.create({ canvas, shaderCompiler: new ShaderCompiler() });
+      vi.spyOn(engine2.resourceManager, "_requestByRemoteUrl")
+        // @ts-expect-error _requestByRemoteUrl is @internal
+        .mockReturnValue(AssetPromise.resolve(conflictingShaderSource.replace("vec4(0.0)", "vec4(0.5)")));
+
+      await expect(engine2.resourceManager.load<Shader>({ url, type: AssetType.Shader })).rejects.toThrow(
+        `Shader named "Loader/ConflictingAcrossEngines" from "${url}" conflicts`
+      );
+    } finally {
+      engine1.destroy();
+      engine2?.destroy();
+      Shader.find("Loader/ConflictingAcrossEngines")?.destroy(true);
     }
   });
 });

@@ -11,6 +11,7 @@ import {
 @resourceLoader(AssetType.Shader, ["shader", "shaderc"])
 class ShaderLoader extends Loader<Shader> {
   private static _shaderNameRegex = /^(?:(?:\s+)|(?:\/\/[^\r\n]*(?:\r?\n|$))|(?:\/\*[\s\S]*?\*\/))*Shader\s+"([^"]+)"/;
+  private static _shaderSourceMap = new WeakMap<Shader, { url: string; source: string }>();
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const url = item.url!;
@@ -19,16 +20,34 @@ class ShaderLoader extends Loader<Shader> {
       const source = code.trimStart();
       if (source.startsWith("{")) {
         const data = JSON.parse(source);
-        // @ts-expect-error _createFromPrecompiled is @internal
-        return Shader.find(data.name) ?? Shader._createFromPrecompiled(data);
+        return this._getOrCreateShader(data.name, url, code, () => {
+          // @ts-expect-error _createFromPrecompiled is @internal
+          return Shader._createFromPrecompiled(data);
+        });
       }
 
       const shaderName = ShaderLoader._shaderNameRegex.exec(source)?.[1];
-      const existingShader = shaderName && Shader.find(shaderName);
-      if (existingShader) {
+      if (!shaderName) {
+        throw new Error(`Unable to parse shader name from "${url}".`);
+      }
+      return this._getOrCreateShader(shaderName, url, code, () => Shader.create(code, undefined, url));
+    });
+  }
+
+  private _getOrCreateShader(name: string, url: string, source: string, create: () => Shader): Shader {
+    const existingShader = Shader.find(name);
+    if (existingShader) {
+      const existingSource = ShaderLoader._shaderSourceMap.get(existingShader);
+      if (existingSource?.url === url && existingSource.source === source) {
         return existingShader;
       }
-      return Shader.create(code, undefined, url);
-    });
+
+      const existingURL = existingSource ? `"${existingSource.url}"` : "an unknown source";
+      throw new Error(`Shader named "${name}" from "${url}" conflicts with the shader registered from ${existingURL}.`);
+    }
+
+    const shader = create();
+    ShaderLoader._shaderSourceMap.set(shader, { url, source });
+    return shader;
   }
 }
