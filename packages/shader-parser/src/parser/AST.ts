@@ -2,15 +2,6 @@ import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BranchSignature, EMPTY_BRANCH, sameBranch } from "../common/BaseToken";
-// #if _VERBOSE
-import {
-  canBranchesOverlap,
-  canDeclarationsCoexist,
-  getBranchCoverage,
-  isBranchReachable,
-  isBranchVisibleFrom
-} from "../common/BaseToken";
-// #endif
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
@@ -23,7 +14,6 @@ import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
-// #if _VERBOSE
 /** Texture-sampling builtins whose first argument is a sampler — used to flag a non-sampler arg0. */
 const TEXTURE_SAMPLING_BUILTINS = new Set([
   "texture",
@@ -41,7 +31,6 @@ const TEXTURE_SAMPLING_BUILTINS = new Set([
   "textureSize",
   "texelFetch"
 ]);
-// #endif
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -51,7 +40,9 @@ function ASTNodeDecorator(nonTerminal: NoneTerminal) {
 }
 
 export abstract class TreeNode implements IPoolElement {
-  static pool: ClearableObjectPool<TreeNode & { set: (loc: ShaderRange, children: NodeChild[]) => void }>;
+  static pool: ClearableObjectPool<
+    TreeNode & { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void }
+  >;
 
   /** The non-terminal in grammar. */
   nt: NoneTerminal;
@@ -68,9 +59,7 @@ export abstract class TreeNode implements IPoolElement {
    * is stamped with that branch. Mirrors codegen's per-branch visibility model.
    */
   _branch: BranchSignature = EMPTY_BRANCH;
-  // #if _VERBOSE
   _inMacroDefinition = false;
-  // #endif
 
   /**
    * Parent pointer for AST traversal.
@@ -91,36 +80,36 @@ export abstract class TreeNode implements IPoolElement {
     return this._location;
   }
 
-  set(loc: ShaderRange, children: NodeChild[]): void {
+  set(loc: ShaderRange, children: NodeChild[], trackAnalysis = false): void {
     this._location = loc;
     this._children = children;
-    // #if _VERBOSE
+    if (!trackAnalysis) {
+      for (const child of children) {
+        if (child instanceof TreeNode) child._parent = this;
+      }
+      this.init();
+      return;
+    }
+
     let branch: BranchSignature = EMPTY_BRANCH;
     let inheritedBranch = false;
     let inMacroDefinition = false;
-    // #endif
     for (const child of children) {
       if (child instanceof TreeNode) {
         child._parent = this;
-        // #if _VERBOSE
         if (!inheritedBranch) {
           branch = child._branch;
           inMacroDefinition = child._inMacroDefinition;
           inheritedBranch = true;
         }
-        // #endif
-        // #if _VERBOSE
       } else if (!inheritedBranch && child instanceof BaseToken) {
         branch = child.branch;
         inMacroDefinition = child.inMacroDefinition;
         inheritedBranch = true;
-        // #endif
       }
     }
-    // #if _VERBOSE
     this._branch = branch;
     this._inMacroDefinition = inMacroDefinition;
-    // #endif
 
     this.init();
   }
@@ -167,7 +156,7 @@ namespace ASTNodes {
     | BaseToken;
 
   export type ASTNodePool = ClearableObjectPool<
-    { set: (loc: ShaderRange, children: NodeChild[]) => void } & IPoolElement & TreeNode
+    { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void } & IPoolElement & TreeNode
   >;
 
   export function _unwrapToken(node: NodeChild) {
@@ -179,18 +168,20 @@ namespace ASTNodes {
 
   export function get(pool: ASTNodePool, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
     const node = pool.get();
-    node.set(loc, children);
-    // #if _VERBOSE
+    node.set(loc, children, sa.diagnosticsEnabled);
+    if (!sa.diagnosticsEnabled) {
+      node.semanticAnalyze(sa);
+      sa.semanticStack.push(node);
+      return;
+    }
+
     const prev = sa.symbolTableStack._currentBranch;
     const previousMacroDefinition = sa.inMacroDefinition;
     sa.symbolTableStack._currentBranch = node._branch;
     sa.inMacroDefinition = node._inMacroDefinition;
-    // #endif
     node.semanticAnalyze(sa);
-    // #if _VERBOSE
     sa.symbolTableStack._currentBranch = prev;
     sa.inMacroDefinition = previousMacroDefinition;
-    // #endif
     sa.semanticStack.push(node);
   }
 
@@ -231,7 +222,6 @@ namespace ASTNodes {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.conditionopt)
   export class ConditionOpt extends TreeNode {}
 
@@ -256,7 +246,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.expression_statement)
   export class ExpressionStatement extends TreeNode {}
-  // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
     protected _type?: GalaceanDataType;
@@ -272,7 +261,6 @@ namespace ASTNodes {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -291,7 +279,6 @@ namespace ASTNodes {
       }
     }
   }
-  // #endif
 
   /**
    * Canonical semantic description of one variable declarator.
@@ -359,9 +346,7 @@ namespace ASTNodes {
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
       const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-      // #if _VERBOSE
       sa.reportRedefinition(id.location, id.lexeme, insertResult);
-      // #endif
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -415,7 +400,6 @@ namespace ASTNodes {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.storage_qualifier)
   export class StorageQualifier extends BasicTypeQualifier {}
 
@@ -427,7 +411,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.invariant_qualifier)
   export class InvariantQualifier extends BasicTypeQualifier {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
@@ -461,7 +444,6 @@ namespace ASTNodes {
       const integerConstantExpr = this.children[1];
       if (!(integerConstantExpr instanceof IntegerConstantExpression)) return; // `[ ]` — unsized
       this.size = integerConstantExpr.value;
-      // #if _VERBOSE
       // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked, and
       // only when it resolves to a known non-const var. Unknown identifiers may be runtime macros.
       const exprChildren = integerConstantExpr.children;
@@ -475,18 +457,12 @@ namespace ASTNodes {
           const firstIsConst = (symbols[0] as VarSymbol).isConst;
           const divergent = symbols.some((symbol) => (symbol as VarSymbol).isConst !== firstIsConst);
           if (divergent) {
-            sa.reportBranchAmbiguity(
-              exprChildren[0].location,
-              bare.lexeme,
-              `Symbol '${bare.lexeme}' has conflicting const qualification across macro branches; constant-expression validation disabled at this reference.`,
-              "AmbiguousMacroBranchResolution"
-            );
+            sa.reportBranchAmbiguity(exprChildren[0].location, bare.lexeme, "const-qualification", bare.lexeme);
           } else if (!firstIsConst) {
-            sa.reportError(exprChildren[0].location, "Array size must be a constant expression.", "NonConstArraySize");
+            sa.reportNonConstArraySize(exprChildren[0].location);
           }
         }
       }
-      // #endif
     }
   }
 
@@ -609,9 +585,7 @@ namespace ASTNodes {
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        // #if _VERBOSE
         sa.reportRedefinition(id.location, id.lexeme, insertResult);
-        // #endif
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
         const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
@@ -628,9 +602,7 @@ namespace ASTNodes {
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        // #if _VERBOSE
         sa.reportRedefinition(id.location, id.lexeme, insertResult);
-        // #endif
       }
     }
   }
@@ -823,21 +795,17 @@ namespace ASTNodes {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.simple_statement)
   export class SimpleStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.compound_statement)
   export class CompoundStatement extends TreeNode {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
   export class CompoundStatementNoScope extends TreeNode {}
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.statement)
   export class Statement extends TreeNode {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
@@ -869,9 +837,7 @@ namespace ASTNodes {
       // the source, while `insert` independently reports whether two declarations can coexist.
       const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
-      // #if _VERBOSE
       sa.reportRedefinition(this.protoType.ident.location, this.protoType.ident.lexeme, conflict);
-      // #endif
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
@@ -906,10 +872,8 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
-    // #if _VERBOSE
     /** Scratch storage for the ambiguity-guard overload probe. */
     private static _overloadScratch: SymbolInfo[] = [];
-    // #endif
 
     override init(): void {
       super.init();
@@ -930,7 +894,6 @@ namespace ASTNodes {
             paramSig = paramList.paramSig as any;
           }
         }
-        // #if _VERBOSE
         if (sa.diagnosticsEnabled) {
           // GLSL forbids recursion. A self-call — same name AND same parameter signature as the
           // enclosing function (i.e. the same overload) — is short-circuited here: the function symbol
@@ -950,11 +913,7 @@ namespace ASTNodes {
           if (TEXTURE_SAMPLING_BUILTINS.has(fnIdent)) {
             const arg0 = paramSig?.[0];
             if (arg0 !== undefined && arg0 !== TypeAny && !TypeSystem.isSamplerType(arg0)) {
-              sa.reportError(
-                this.location,
-                `'${fnIdent}' expects a sampler as its first argument, got '${TypeSystem.typeName(arg0)}'.`,
-                "ExpectedSampler"
-              );
+              sa.reportExpectedSampler(this.location, fnIdent, arg0);
               return;
             }
           }
@@ -973,11 +932,12 @@ namespace ASTNodes {
           // unconditional call.
           const allMatches = FunctionCallGeneric._overloadScratch;
           sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
-          const branchCoverage = getBranchCoverage(
+          const branchCoverage = sa.getBranchCoverage(
             allMatches.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
             this._branch
           );
-          const branchCovered = branchCoverage === "covered" || FunctionCallGeneric._hasConflictingBranches(allMatches);
+          const branchCovered =
+            branchCoverage === "covered" || FunctionCallGeneric._hasConflictingBranches(sa, allMatches);
           const fnSymbol = branchCovered ? (allMatches[0] as FnSymbol | undefined) : undefined;
 
           // Ambiguity guard: when the call has TypeAny args, `SymbolInfo.equal` treats them as
@@ -997,7 +957,7 @@ namespace ASTNodes {
 
           if (!fnSymbol) {
             if (allMatches.length) {
-              sa.reportBranchAvailability(this.location, `Function '${fnIdent}'`, branchCoverage);
+              sa.reportBranchAvailability(this.location, "Function", fnIdent, branchCoverage);
               return;
             }
             // The lookup above is keyed by argument signature, so a miss conflates an unknown
@@ -1013,13 +973,9 @@ namespace ASTNodes {
             // macro that the material system supplies at bind time — hand responsibility back to the
             // author instead of hard-failing.
             if (nameDeclared) {
-              sa.reportError(this.location, `No overload function type found: ${fnIdent}`, "NoMatchingOverload");
+              sa.reportNoMatchingOverload(this.location, fnIdent);
             } else {
-              sa.reportWarning(
-                this.location,
-                `Undefined function '${fnIdent}' — ensure it is provided at runtime as a macro.`,
-                "UndefinedFunction"
-              );
+              sa.reportUndefinedFunction(this.location, fnIdent);
             }
             return;
           }
@@ -1027,7 +983,6 @@ namespace ASTNodes {
           this.fnSymbol = fnSymbol;
           return;
         }
-        // #endif
 
         const lookupSymbol = SemanticAnalyzer._lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
@@ -1038,15 +993,14 @@ namespace ASTNodes {
       }
     }
 
-    // #if _VERBOSE
-    private static _hasConflictingBranches(symbols: readonly SymbolInfo[]): boolean {
+    private static _hasConflictingBranches(sa: SemanticAnalyzer, symbols: readonly SymbolInfo[]): boolean {
       for (let i = 0, n = symbols.length; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
           const left = symbols[i] as FnSymbol;
           const right = symbols[j] as FnSymbol;
           if (
             FunctionCallGeneric._hasSameParameterSignature(left, right) &&
-            canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH)
+            sa.canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH)
           ) {
             return true;
           }
@@ -1063,7 +1017,6 @@ namespace ASTNodes {
         leftSignature.every((type, index) => type === rightSignature[index])
       );
     }
-    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
@@ -1192,9 +1145,7 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
-    // #if _VERBOSE
     private static _structScratch: SymbolInfo[] = [];
-    // #endif
 
     override init(): void {
       super.init();
@@ -1204,7 +1155,6 @@ namespace ASTNodes {
       }
     }
 
-    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       // `struct.field` reads the symbol table, so it stays inline; the stateless swizzle/index checks
       // (InvalidSwizzle, GlFragData, NonIndexableType, NonIntegerIndex, IndexOutOfBounds) moved to ShaderValidator.
@@ -1229,12 +1179,12 @@ namespace ASTNodes {
       const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
-      const coverage = getBranchCoverage(
+      const coverage = sa.getBranchCoverage(
         structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
         callsiteBranch
       );
       if (coverage !== "covered") {
-        sa.reportBranchAvailability(field.location, `Struct '${structName}'`, coverage);
+        sa.reportBranchAvailability(field.location, "Struct", structName, coverage);
         return;
       }
       const firstProp = (structs[0] as StructSymbol).astNode.propList.find(
@@ -1265,8 +1215,9 @@ namespace ASTNodes {
         sa.reportBranchAmbiguity(
           field.location,
           `${structName}.${field.lexeme}`,
-          `Member '${field.lexeme}' is missing from at least one reachable declaration of struct '${structName}'.`,
-          "AmbiguousMacroBranchResolution"
+          "struct-member-presence",
+          field.lexeme,
+          structName
         );
         return;
       }
@@ -1274,22 +1225,21 @@ namespace ASTNodes {
         sa.reportBranchAmbiguity(
           field.location,
           `${structName}.${field.lexeme}`,
-          `Member '${field.lexeme}' has divergent types across declarations of struct '${structName}'; type inference is disabled at this reference.`,
-          "AmbiguousMacroBranchType"
+          "struct-member-type",
+          field.lexeme,
+          structName
         );
         return;
       }
       if (firstProp) return;
-      sa.reportError(field.location, `'${field.lexeme}' : no such field in '${structName}'`, "UndeclaredStructMember");
+      sa.reportUndeclaredStructMember(field.location, structName, field.lexeme);
     }
-    // #endif
 
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitPostfixExpression(this));
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.unary_operator)
   export class UnaryOperator extends TreeNode {}
 
@@ -1436,7 +1386,6 @@ namespace ASTNodes {
       }
     }
   }
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
@@ -1455,9 +1404,7 @@ namespace ASTNodes {
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
         const insertResult = sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch);
-        // #if _VERBOSE
         sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult);
-        // #endif
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1707,9 +1654,7 @@ namespace ASTNodes {
       const sm = new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst);
 
       const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
-      // #if _VERBOSE
       sa.reportRedefinition(ident.location, ident.lexeme, insertResult);
-      // #endif
 
       if (children.length === 4) {
         this.isStatic = true;
@@ -1791,7 +1736,6 @@ namespace ASTNodes {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      // #if _VERBOSE
       if (sa.diagnosticsEnabled) {
         const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
         const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
@@ -1860,12 +1804,7 @@ namespace ASTNodes {
                 // Report once per (pass, symbol name) — a single divergent symbol may be referenced
                 // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
                 // with identical warnings buries the signal.
-                sa.reportBranchAmbiguity(
-                  this.location,
-                  name,
-                  `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
-                  "AmbiguousMacroBranchType"
-                );
+                sa.reportBranchAmbiguity(this.location, name, "symbol-type", name);
               }
             } else {
               this.typeInfo = firstType;
@@ -1885,7 +1824,6 @@ namespace ASTNodes {
         }
         return;
       }
-      // #endif
 
       this._semanticAnalyzeForCodegen(sa);
     }
@@ -1983,7 +1921,6 @@ namespace ASTNodes {
       this.arraySize = arraySizeDivergent ? undefined : dataType?.arraySpecifier?.size;
     }
 
-    // #if _VERBOSE
     /** Run the cross-arm shadowing probe for a MACRO_CALL site. No-op when the
      *  probe isn't meaningful: no macro name, name already resolved as a real
      *  reference, or name is a builtin (builtins can't be shadowed by a
@@ -2041,7 +1978,7 @@ namespace ASTNodes {
       let directlyVisibleCount = 0;
       for (let i = 0, n = symbols.length; i < n; i++) {
         const symbol = symbols[i];
-        if (isBranchVisibleFrom(symbol.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) {
+        if (sa.isBranchVisibleFrom(symbol.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) {
           symbols[directlyVisibleCount++] = symbol;
         }
       }
@@ -2053,8 +1990,9 @@ namespace ASTNodes {
             sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
             sa.reportBranchAvailability(
               missErrorLoc,
-              `Identifier '${name}'`,
-              getBranchCoverage(
+              "Identifier",
+              name,
+              sa.getBranchCoverage(
                 symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
                 callsiteBranch
               )
@@ -2066,30 +2004,26 @@ namespace ASTNodes {
           // "provided later" path is a runtime macro that the material system supplies at bind
           // time (`RENDERER_JOINTS_NUM` etc.). Report as a warning — the author is responsible for
           // confirming the runtime path supplies this identifier.
-          sa.reportWarning(
-            missErrorLoc,
-            `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
-            "UnknownVariable"
-          );
+          sa.reportUnknownVariable(missErrorLoc, name);
         }
         return false;
       }
-      const coverage = getBranchCoverage(
+      const coverage = sa.getBranchCoverage(
         symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
         callsiteBranch
       );
       if (
         !retainPartialBranchCandidates &&
         coverage !== "covered" &&
-        !VariableIdentifier._hasConflictingGlobalBranches(symbols)
+        !VariableIdentifier._hasConflictingGlobalBranches(sa, symbols)
       ) {
         if (missErrorLoc) {
-          sa.reportBranchAvailability(missErrorLoc, `Identifier '${name}'`, coverage);
+          sa.reportBranchAvailability(missErrorLoc, "Identifier", name, coverage);
         }
         return false;
       }
       const currentScopeSymbol = <VarSymbol | FnSymbol>(
-        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch)
+        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch, sa.branchSemantics)
       );
       const isGlobal = currentScopeSymbol
         ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
@@ -2100,20 +2034,22 @@ namespace ASTNodes {
       return true;
     }
 
-    private static _hasConflictingGlobalBranches(symbols: readonly (VarSymbol | FnSymbol)[]): boolean {
+    private static _hasConflictingGlobalBranches(
+      sa: SemanticAnalyzer,
+      symbols: readonly (VarSymbol | FnSymbol)[]
+    ): boolean {
       for (let i = 0, n = symbols.length; i < n; i++) {
         const left = symbols[i];
         if (!(left instanceof FnSymbol) && !left.isGlobalVariable) continue;
         for (let j = i + 1; j < n; j++) {
           const right = symbols[j];
           if (!(right instanceof FnSymbol) && !right.isGlobalVariable) continue;
-          if (canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH))
+          if (sa.canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH))
             return true;
         }
       }
       return false;
     }
-    // #endif
 
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitVariableIdentifier(this));
@@ -2332,7 +2268,6 @@ namespace ASTNodes {
       const refs = this.referenceSymbolNames;
       refs.length = 0;
       this.referenceSymbols.length = 0;
-      // #if _VERBOSE
       if (sa.diagnosticsEnabled) {
         // Filter `defList` to only entries reachable from this call site's
         // `#ifdef` branch. Without filtering, definitions
@@ -2348,7 +2283,7 @@ namespace ASTNodes {
         if (defList) {
           for (let i = 0, n = defList.length; i < n; i++) {
             const info = defList[i];
-            if (!canBranchesOverlap(info.branch, callSiteBranch)) continue;
+            if (!sa.canBranchesOverlap(info.branch, callSiteBranch)) continue;
             visibleCount++;
             if (info.valueAst == null) allAst = false;
             if (info.isFunction) isFn = true;
@@ -2391,7 +2326,6 @@ namespace ASTNodes {
         this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
         return;
       }
-      // #endif
 
       this._analyzeForCodegen(defList, refs);
     }

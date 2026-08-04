@@ -3,7 +3,7 @@ import {
   TreeNode,
   parseShaderPass,
   type ShaderClueIR
-} from "@galacean/engine-shader-parser/internal/verbose";
+} from "@galacean/engine-shader-parser/internal/analyzer";
 import { describe, expect, it } from "vitest";
 
 interface NeutralBackendSnapshot {

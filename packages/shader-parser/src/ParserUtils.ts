@@ -4,10 +4,8 @@ import { ASTNode, TreeNode } from "./parser/AST";
 import { BuiltinFunction } from "./parser/builtin";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
-// #if _VERBOSE
 import { VarSymbol } from "./parser/symbolTable";
 import { TypeSystem } from "./parser/TypeSystem";
-// #endif
 
 export class ParserUtils {
   private static _swizzleSets = ["xyzw", "rgba", "stpq"];
@@ -80,7 +78,6 @@ export class ParserUtils {
     return child instanceof Token ? child.lexeme : null;
   }
 
-  // #if _VERBOSE
   /**
    * Validate a `.field` access on a vector as a GLSL swizzle. Returns an error message when the
    * access is an invalid swizzle on a known vector type, or `null` when it is valid or the base
@@ -147,7 +144,6 @@ export class ParserUtils {
       return undefined;
     }
   }
-  // #endif
 
   /** Recursively walk a `type_qualifier` token chain for a keyword (e.g. `const`, `flat`; test by value as CONST === 0). */
   static hasQualifier(node: TreeNode, keyword: Keyword): boolean {
@@ -161,7 +157,6 @@ export class ParserUtils {
     return false;
   }
 
-  // #if _VERBOSE
   /**
    * Whether an expression is a compile-time constant per GLSL ES §4.3.3. Covers numeric literals,
    * bare identifiers whose symbol is `const`, `#define`d names, built-in function calls whose
@@ -258,5 +253,4 @@ export class ParserUtils {
   static isTerminal(sm: GrammarSymbol) {
     return sm < NoneTerminal.START;
   }
-  // #endif
 }

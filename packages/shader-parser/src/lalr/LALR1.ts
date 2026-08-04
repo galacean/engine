@@ -172,14 +172,12 @@ export class LALR1 {
       if (LALR1._isKnownShiftPreferred(terminal, exist, action)) {
         if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
       } else {
-        // #if _VERBOSE
         Logger.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",
           Utils.printAction(action)
         );
-        // #endif
       }
     }
     table.set(terminal, action);
@@ -187,7 +185,7 @@ export class LALR1 {
 
   // Catalog of expected shift/reduce conflicts. Each entry must correspond to
   // one of TargetParser.y's `%expect`-ed conflicts; any new conflict not in
-  // this list falls through to the verbose `conflict detect` warning so the
+  // this list falls through to the grammar `conflict detect` warning so the
   // grammar/runtime drift is loud rather than silent.
   //   - ELSE: dangling-else, bind to nearest `if`
   //   - '(' + `type_specifier_nonarray → macro_call_symbol`: macro-as-type-alias

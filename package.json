@@ -64,7 +64,6 @@
     "odiff-bin": "^2.5.0",
     "prettier": "^3.0.0",
     "rollup": "^2.36.1",
-    "rollup-plugin-jscc": "^2.0.0",
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.10.1",
     "ts-node": "^10",

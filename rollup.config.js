@@ -7,7 +7,6 @@ import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup"
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
-import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -25,7 +24,7 @@ const pkgs = fs
   });
 
 const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
-if (shaderParserPkg) pkgs.push({ ...shaderParserPkg, verboseMode: true });
+if (shaderParserPkg) pkgs.push({ ...shaderParserPkg, parserEntry: "analyzer" });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -62,13 +61,12 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson, verboseMode = false }) {
-  const entry = pkgJson.name === "@galacean/engine-shader-parser" && !verboseMode ? "runtime.ts" : "index.ts";
+function config({ location, pkgJson, parserEntry = "runtime" }) {
+  const isShaderParser = pkgJson.name === "@galacean/engine-shader-parser";
+  const entry = isShaderParser && parserEntry === "runtime" ? "runtime.ts" : "index.ts";
   const input = path.join(location, "src", entry);
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
-
-  curPlugins.push(jscc({ values: { _VERBOSE: verboseMode } }));
 
   const external = Object.keys(dependencies);
   const isExternal = (id) => external.some((dependency) => id === dependency || id.startsWith(`${dependency}/`));
@@ -78,9 +76,9 @@ function config({ location, pkgJson, verboseMode = false }) {
       __buildVersion: pkgJson.version
     })
   );
-  if (pkgJson.name === "@galacean/engine-shader-parser" && !verboseMode) {
-    // The verbose artifact remains readable; the default runtime keeps names and control flow but
-    // omits authoring comments so splitting parser/compiler does not increase shipped code size
+  if (isShaderParser && parserEntry === "runtime") {
+    // The analyzer-support artifact remains readable; the runtime entry keeps names and control
+    // flow but omits authoring comments so splitting parser/compiler does not increase shipped size.
     curPlugins.push(
       minify({
         compress: false,
@@ -120,14 +118,21 @@ function config({ location, pkgJson, verboseMode = false }) {
       };
     },
     module: () => {
-      const isShaderParser = pkgJson.name === "@galacean/engine-shader-parser";
       const esFile = path.join(
         location,
-        verboseMode ? "dist/module.verbose.js" : isShaderParser ? "dist/module.js" : pkgJson.module
+        isShaderParser && parserEntry === "analyzer"
+          ? "dist/module.analyzer.js"
+          : isShaderParser
+            ? "dist/module.js"
+            : pkgJson.module
       );
       const mainFile = path.join(
         location,
-        verboseMode ? "dist/main.verbose.js" : isShaderParser ? "dist/main.js" : pkgJson.main
+        isShaderParser && parserEntry === "analyzer"
+          ? "dist/main.analyzer.js"
+          : isShaderParser
+            ? "dist/main.js"
+            : pkgJson.main
       );
       return {
         input,

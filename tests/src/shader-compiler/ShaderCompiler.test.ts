@@ -358,7 +358,7 @@ describe("ShaderCompiler", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/global-varying-var.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
 
-    // Verify verbose mode: global "Varyings o;" should not produce "uniform Varyings o;"
+    // Global "Varyings o;" must not produce "uniform Varyings o;".
     // and should not duplicate varying declarations.
     const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];

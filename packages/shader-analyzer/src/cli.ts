@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
-import type { IncludeMap } from "@galacean/engine-shader-parser/internal/verbose";
+import type { IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "./ShaderAnalyzer";
 import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
 

@@ -1,5 +1,6 @@
 import { ETokenType } from "../common";
 import { BaseToken } from "../common/BaseToken";
+import type { BranchSemantics } from "../common/BranchSemantics";
 import { Keyword } from "../common/enums/Keyword";
 import { GSErrorName } from "../GSError";
 import type { GSError } from "../GSError";
@@ -12,6 +13,7 @@ import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
 import SematicAnalyzer from "./SemanticAnalyzer";
+import type { SemanticDiagnostics } from "./SemanticDiagnostics";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
 
@@ -35,49 +37,49 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
-  // #if _VERBOSE
   /** @internal */
   get errors() {
     return this.sematicAnalyzer.errors;
   }
-  // #endif
 
-  static _singleton: ShaderTargetParser;
+  private static _runtimeSingleton: ShaderTargetParser;
+  private static _analyzerSingleton: ShaderTargetParser;
 
-  static create() {
-    if (!this._singleton) {
+  static create(branchSemantics?: BranchSemantics, semanticDiagnostics?: SemanticDiagnostics) {
+    const singletonKey = semanticDiagnostics ? "_analyzerSingleton" : "_runtimeSingleton";
+    if (!this[singletonKey]) {
       const grammar = createGrammar();
       const generator = new LALR1(grammar);
       generator.generate();
-      this._singleton = new ShaderTargetParser(generator.actionTable, generator.gotoTable, grammar);
-      addTranslationRule(this._singleton.sematicAnalyzer);
+      const parser = new ShaderTargetParser(
+        generator.actionTable,
+        generator.gotoTable,
+        grammar,
+        branchSemantics,
+        semanticDiagnostics
+      );
+      addTranslationRule(parser.sematicAnalyzer);
+      this[singletonKey] = parser;
     }
 
-    return this._singleton;
+    return this[singletonKey];
   }
 
-  private constructor(actionTable: StateActionTable, gotoTable: StateGotoTable, grammar: Grammar) {
+  private constructor(
+    actionTable: StateActionTable,
+    gotoTable: StateGotoTable,
+    grammar: Grammar,
+    branchSemantics?: BranchSemantics,
+    semanticDiagnostics?: SemanticDiagnostics
+  ) {
     this.actionTable = actionTable;
     this.gotoTable = gotoTable;
     this.grammar = grammar;
-    this.sematicAnalyzer = new SematicAnalyzer();
+    this.sematicAnalyzer = new SematicAnalyzer(branchSemantics, semanticDiagnostics);
   }
 
-  // prettier-ignore
-  parse(
-    tokens: Generator<BaseToken, BaseToken>,
-    macroDefineList: MacroDefineList
-    // #if _VERBOSE
-    , diagnosticsEnabled = false
-    // #endif
-  ): ASTNode.GLShaderProgram | null {
-    // prettier-ignore
-    this.sematicAnalyzer.reset(
-      macroDefineList
-      // #if _VERBOSE
-      , diagnosticsEnabled
-      // #endif
-    );
+  parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
+    this.sematicAnalyzer.reset(macroDefineList);
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     // A prior parse that bailed early (syntax error -> `return null` below) leaves this working
     // stack dirty; the parser is a shared singleton, so start every parse from a clean stack or a
@@ -104,11 +106,9 @@ export class ShaderTargetParser {
             sematicAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
           }
         }
-        // #if _VERBOSE
-        if (diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
+        if (sematicAnalyzer.diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
           sematicAnalyzer.pushScope();
         }
-        // #endif
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
@@ -141,7 +141,6 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        // #if _VERBOSE
         const error = ShaderCompilerUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,
@@ -149,7 +148,6 @@ export class ShaderTargetParser {
           token.location
         );
         this.sematicAnalyzer.errors.push(<GSError>error);
-        // #endif
         return null;
       }
     }

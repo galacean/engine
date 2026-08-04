@@ -5,8 +5,8 @@ import {
   ShaderCompilerUtils,
   ShaderSourceParser,
   type PreprocessSourceMapSegment
-} from "@galacean/engine-shader-parser/internal/verbose";
-import type { ShaderRange } from "@galacean/engine-shader-parser/internal/verbose";
+} from "@galacean/engine-shader-parser/internal/analyzer";
+import type { ShaderRange } from "@galacean/engine-shader-parser/internal/analyzer";
 import type { IShaderPassSource, IShaderSource, IStatement } from "@galacean/engine-design";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticType } from "./Diagnostic";
@@ -48,7 +48,7 @@ export interface AnalysisResult {
 /**
  * Analyzes ShaderLab source and GLSL semantics without generating backend source.
  *
- * The analyzer consumes verbose parser facts independently from runtime compilation, so its
+ * The analyzer consumes parser facts through the analyzer-support entry independently from runtime compilation, so its
  * diagnostics cannot alter or block GLES code generation.
  */
 export class ShaderAnalyzer {

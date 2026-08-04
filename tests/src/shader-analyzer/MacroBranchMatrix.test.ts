@@ -1,7 +1,7 @@
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { Lexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/internal/verbose";
+import { AnalyzerLexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { describe, expect, it } from "vitest";
 
 function pass(body: string): string {
@@ -482,14 +482,13 @@ BranchData data;`,
 describe("macro branch matrix", () => {
   it("marks complementary #ifndef/#elif arms as complete", () => {
     const tokens = Array.from(
-      new Lexer(
+      new AnalyzerLexer(
         `#ifndef DISABLE_VALUE
 float u_value;
 #elif defined(DISABLE_VALUE)
 float u_value;
 #endif`,
-        {},
-        true
+        {}
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
@@ -502,14 +501,13 @@ float u_value;
 
   it("marks complementary #ifdef/#elif !defined arms as complete", () => {
     const tokens = Array.from(
-      new Lexer(
+      new AnalyzerLexer(
         `#ifdef USE_VALUE
 float u_value;
 #elif !defined(USE_VALUE)
 float u_value;
 #endif`,
-        {},
-        true
+        {}
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
@@ -522,14 +520,13 @@ float u_value;
 
   it("marks #ifdef/#elif !macro-value arms as complete", () => {
     const tokens = Array.from(
-      new Lexer(
+      new AnalyzerLexer(
         `#ifdef USE_VALUE
 float u_value;
 #elif !USE_VALUE
 float u_value;
 #endif`,
-        {},
-        true
+        {}
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);

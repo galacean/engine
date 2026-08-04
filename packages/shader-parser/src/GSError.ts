@@ -1,8 +1,6 @@
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
-// #if _VERBOSE
 import { formatDiagnosticSource } from "./formatDiagnostic";
-// #endif
 
 /** Error reported while parsing or analyzing shader source. */
 export class GSError extends Error {
@@ -32,13 +30,9 @@ export class GSError extends Error {
    * @returns Human-readable error text.
    */
   override toString(): string {
-    // #if _VERBOSE
     const { location } = this;
     const range = "start" in location ? location : { start: location, end: location };
     return formatDiagnosticSource(this.source || undefined, range, `${this.name}: ${this.message}`);
-    // #else
-    return `${this.name}: ${this.message}`;
-    // #endif
   }
 }
 

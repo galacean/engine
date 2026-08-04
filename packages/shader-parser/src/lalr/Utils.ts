@@ -9,6 +9,10 @@ import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { NodeChild } from "../parser/types";
 import { Keyword } from "../common/enums/Keyword";
 
+type ASTNodePool = ClearableObjectPool<
+  { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void } & IPoolElement & TreeNode
+>;
+
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
     return sm < NoneTerminal.START;
@@ -25,12 +29,35 @@ export default class GrammarUtils {
     goal: NoneTerminal,
     options: GrammarSymbol[][],
     /** the ast node */
-    astTypePool?: ClearableObjectPool<
-      { set: (loc: ShaderRange, children: NodeChild[]) => void } & IPoolElement & TreeNode
-    >
+    astTypePool?: ASTNodePool
   ) {
-    // Resolve the AST pool once per grammar production (not per reduce).
-    const pool = astTypePool ?? ASTNode.TrivialNode.pool;
+    return this._createProductionWithOptions(goal, options, astTypePool, astTypePool);
+  }
+
+  /**
+   * Creates productions whose typed AST nodes are needed only by analyzer diagnostics.
+   * @param goal - Production goal symbol.
+   * @param options - Alternative right-hand sides.
+   * @param analyzerPool - Typed node pool used by analyzer parses.
+   * @returns Grammar productions with mode-specific translation rules.
+   * @internal
+   */
+  static createAnalyzerProductionWithOptions(
+    goal: NoneTerminal,
+    options: GrammarSymbol[][],
+    analyzerPool: ASTNodePool
+  ) {
+    return this._createProductionWithOptions(goal, options, undefined, analyzerPool);
+  }
+
+  private static _createProductionWithOptions(
+    goal: NoneTerminal,
+    options: GrammarSymbol[][],
+    runtimePool?: ASTNodePool,
+    analyzerPool?: ASTNodePool
+  ) {
+    const runtimeResolvedPool = runtimePool ?? ASTNode.TrivialNode.pool;
+    const analyzerResolvedPool = analyzerPool ?? ASTNode.TrivialNode.pool;
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {
       // Single-`NonTerminal` RHS + no typed class → this production reduces
@@ -39,18 +66,21 @@ export default class GrammarUtils {
       // the parser's GOTO runs off `reduceProduction.goal`, not off the node
       // type on the stack. Single-Terminal RHS (e.g. `unary_operator → PLUS`)
       // isn't eligible — a `BaseToken` can't stand in for an AST node.
-      const canElide = !astTypePool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
+      const runtimeCanElide = !runtimePool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
+      const analyzerCanElide = !analyzerPool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
       ret.push([
         [goal, ...opt],
         function (sa, ...children) {
           if (!children[0]) return;
+          const analyzerMode = sa.diagnosticsEnabled;
+          const canElide = analyzerMode ? analyzerCanElide : runtimeCanElide;
           if (canElide) {
             sa.semanticStack.push(children[0] as TreeNode);
           } else {
             const start = children[0].location.start;
             const end = children[children.length - 1].location.end;
             const location = ShaderCompilerUtils.createRange(start, end);
-            ASTNode.get(pool, sa, location, children);
+            ASTNode.get(analyzerMode ? analyzerResolvedPool : runtimeResolvedPool, sa, location, children);
           }
         }
       ]);
@@ -75,7 +105,6 @@ export default class GrammarUtils {
     return a.action === b.action && a.target === b.target;
   }
 
-  // #if _VERBOSE
   static printAction(actionInfo: ActionInfo) {
     const production = Production.pool.get(actionInfo.target!);
     return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production)}>`;
@@ -85,5 +114,4 @@ export default class GrammarUtils {
     const deriv = production.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
     return `${NoneTerminal[production.goal]} :=> ${deriv}`;
   }
-  // #endif
 }

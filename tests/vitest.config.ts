@@ -17,7 +17,7 @@ export default defineProject({
       "@galacean/engine-shader-analyzer",
       "@galacean/engine-shader-compiler",
       "@galacean/engine-shader-parser/internal",
-      "@galacean/engine-shader-parser/internal/verbose",
+      "@galacean/engine-shader-parser/internal/analyzer",
       "playwright",
       "playwright-core",
       "fsevents"

@@ -1,12 +1,14 @@
 import {
-  Lexer,
+  AnalyzerLexer,
+  analyzerSemanticDiagnostics,
+  branchAnalysis,
   Preprocessor,
   ShaderClueIR,
   ShaderCompilerUtils,
   ShaderCoreInfo,
   ShaderSourceParser,
   ShaderTargetParser
-} from "@galacean/engine-shader-parser/internal/verbose";
+} from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
@@ -16,7 +18,7 @@ import { describe, expect, it } from "vitest";
  * correct code. Valid shaders (incl. the kind dev/2.0 compiles) must stay clean.
  */
 
-const parser = ShaderTargetParser.create();
+const parser = ShaderTargetParser.create(branchAnalysis, analyzerSemanticDiagnostics);
 const analyzer = new ShaderAnalyzer();
 const ioDiagnosticCodes = new Set([
   "InvalidIOStruct",
@@ -200,10 +202,10 @@ function analyzeSinglePass(source: string): { io: any; codes: string[] } {
   const pass = shaderSource.subShaders[0].passes.find((p) => !p.isUsePass)!;
   const macroDefineList = {};
   const content = Preprocessor.parse(pass.contents, "", {}, new Map());
-  const lexer = new Lexer(content, macroDefineList, true);
+  const lexer = new AnalyzerLexer(content, macroDefineList);
   const tokens = lexer.tokenize();
   ShaderCompilerUtils.processingPassText = content;
-  const program = parser.parse(tokens, macroDefineList, true)!;
+  const program = parser.parse(tokens, macroDefineList)!;
   const ir = new ShaderClueIR(program, content);
   const { io } = ShaderCoreInfo.create(ir, pass.vertexEntry, pass.fragmentEntry);
   ShaderCompilerUtils.processingPassText = undefined;

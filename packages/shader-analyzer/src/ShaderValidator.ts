@@ -1,6 +1,7 @@
 import {
   ASTNode,
   BaseToken,
+  branchAnalysis,
   ESymbolType,
   ETokenType,
   GSError,
@@ -18,8 +19,8 @@ import {
   TypeSystem,
   VarSymbol,
   FnSymbol
-} from "@galacean/engine-shader-parser/internal/verbose";
-import { getBranchCoverage } from "@galacean/engine-shader-parser/internal/verbose";
+} from "@galacean/engine-shader-parser/internal/analyzer";
+import { getBranchCoverage } from "@galacean/engine-shader-parser/internal/analyzer";
 import { DiagnosticType } from "./DiagnosticType";
 import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 
@@ -431,7 +432,7 @@ export class ShaderValidator {
       if (child instanceof BaseToken) {
         const lookup = ShaderValidator._varLookup;
         lookup.set(child.lexeme, ESymbolType.VAR);
-        const symbol = this._shaderData.symbolTable.getSymbol(lookup, true, node._branch);
+        const symbol = this._shaderData.symbolTable.getSymbol(lookup, true, node._branch, branchAnalysis);
         if (symbol instanceof VarSymbol) {
           if (symbol.isConst) return "a const-qualified variable";
           // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Check sampler before

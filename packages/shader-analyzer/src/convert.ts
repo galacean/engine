@@ -1,6 +1,6 @@
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticType, DiagnosticSeverity } from "./Diagnostic";
-import { GSError, GSErrorName } from "@galacean/engine-shader-parser/internal/verbose";
+import { GSError, GSErrorName } from "@galacean/engine-shader-parser/internal/analyzer";
 
 /**
  * Converts a parser error to a structured diagnostic.

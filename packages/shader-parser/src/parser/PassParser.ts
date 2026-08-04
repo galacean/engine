@@ -1,6 +1,8 @@
 import { ShaderTargetParser } from "./ShaderTargetParser";
 import { Preprocessor, type ChunkOutputCache, type IncludeMap } from "../Preprocessor";
-import { Lexer } from "../lexer/Lexer";
+import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
+import { branchAnalysis } from "../common/BranchAnalysis";
+import { analyzerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
 
@@ -28,17 +30,17 @@ export function parseShaderPass(
   passText: string;
   sourceMap: PreprocessSourceMapSegment[];
 } {
-  _parser ??= ShaderTargetParser.create();
+  _parser ??= ShaderTargetParser.create(branchAnalysis, analyzerSemanticDiagnostics);
   const macroDefineList = {};
   const {
     content: passText,
     errors: preprocessErrors,
     sourceMap
   } = Preprocessor.parseWithErrors(source, basePathForIncludeKey, includeMap, cache);
-  const tokens = new Lexer(passText, macroDefineList, true).tokenize();
+  const tokens = new AnalyzerLexer(passText, macroDefineList).tokenize();
   ShaderCompilerUtils.processingPassText = passText;
   try {
-    const program = _parser.parse(tokens, macroDefineList, true);
+    const program = _parser.parse(tokens, macroDefineList);
     const ir = program ? new ShaderClueIR(program, passText, sourceMap) : null;
     return { ir, errors: [...preprocessErrors, ..._parser.errors], passText, sourceMap };
   } finally {

@@ -1,8 +1,6 @@
 import { EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
-// #if _VERBOSE
-import { canBranchesOverlap, getDeclarationCoexistence, isBranchVisibleFrom } from "./BaseToken";
-// #endif
+import type { BranchSemantics } from "./BranchSemantics";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -16,21 +14,17 @@ export class SymbolTable<T extends IBaseSymbol> {
    * @param branchSignature - Macro conditions at the declaration site.
    * @returns Whether an equal declaration conflicts, is exclusive, or has unresolved branch overlap.
    */
-  // prettier-ignore
   insert(
     symbol: T,
     isInMacroBranch = false,
-    branchSignature: BranchSignature = EMPTY_BRANCH
-    // #if _VERBOSE
-    , branchAnalysisEnabled = true
-    // #endif
+    branchSignature: BranchSignature = EMPTY_BRANCH,
+    branchSemantics?: BranchSemantics
   ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
     symbol.isInMacroBranch = isInMacroBranch;
     symbol.branchSignature = branchSignature;
 
     const entry = this._table.get(symbol.ident) ?? [];
-    // #if _VERBOSE
-    if (!branchAnalysisEnabled) {
+    if (!branchSemantics) {
       return this._insertWithoutBranchAnalysis(entry, symbol);
     }
 
@@ -45,7 +39,7 @@ export class SymbolTable<T extends IBaseSymbol> {
         return "coexist";
       }
 
-      const coexistence = getDeclarationCoexistence(existingBranch, branchSignature);
+      const coexistence = branchSemantics.getDeclarationCoexistence(existingBranch, branchSignature);
       if (coexistence === "coexist") conflict = "coexist";
       else if (coexistence === "unknown" && conflict === "none") conflict = "unknown";
     }
@@ -53,9 +47,6 @@ export class SymbolTable<T extends IBaseSymbol> {
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
     return conflict;
-    // #else
-    return this._insertWithoutBranchAnalysis(entry, symbol);
-    // #endif
   }
 
   private _insertWithoutBranchAnalysis(entry: T[], symbol: T): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
@@ -75,24 +66,20 @@ export class SymbolTable<T extends IBaseSymbol> {
    * unconditional. Without a callsite branch, `includeMacro` controls whether macro-branch entries
    * are eligible. Iterates from latest inserted to first visible match.
    */
-  // prettier-ignore
   getSymbol(
     symbol: T,
-    includeMacro = false
-    // #if _VERBOSE
-    , callsiteBranch?: BranchSignature
-    // #endif
+    includeMacro = false,
+    callsiteBranch?: BranchSignature,
+    branchSemantics?: BranchSemantics
   ): T | undefined {
     const entry = this._table.get(symbol.ident);
     if (entry) {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
         let visible = includeMacro || !item.isInMacroBranch;
-        // #if _VERBOSE
-        if (callsiteBranch !== undefined) {
-          visible = isBranchVisibleFrom(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
+        if (branchSemantics && callsiteBranch !== undefined) {
+          visible = branchSemantics.isBranchVisibleFrom(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
         }
-        // #endif
         if (!visible) continue;
         if (item.equal(symbol)) return item;
       }
@@ -106,7 +93,6 @@ export class SymbolTable<T extends IBaseSymbol> {
     return out;
   }
 
-  // #if _VERBOSE
   /** Whether this scope contains an equal symbol without applying macro-branch visibility rules. */
   hasSymbol(symbol: T): boolean {
     const entry = this._table.get(symbol.ident);
@@ -116,21 +102,18 @@ export class SymbolTable<T extends IBaseSymbol> {
     }
     return false;
   }
-  // #endif
 
   /**
    * @internal
    * Collect every matching declaration that can coexist with the callsite. Consumers combine this
    * candidate set with `canBranchesCoverCallsite` before accepting an unconditional reference.
    */
-  // prettier-ignore
   _getSymbols(
     symbol: T,
     includeMacro = false,
-    out: T[]
-    // #if _VERBOSE
-    , callsiteBranch?: BranchSignature
-    // #endif
+    out: T[],
+    callsiteBranch?: BranchSignature,
+    branchSemantics?: BranchSemantics
   ): T[] {
     const entry = this._table.get(symbol.ident);
 
@@ -138,11 +121,9 @@ export class SymbolTable<T extends IBaseSymbol> {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
         let visible = includeMacro || !item.isInMacroBranch;
-        // #if _VERBOSE
-        if (callsiteBranch !== undefined) {
-          visible = canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
+        if (branchSemantics && callsiteBranch !== undefined) {
+          visible = branchSemantics.canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
         }
-        // #endif
         if (!visible) continue;
         if (item.equal(symbol)) out.push(item);
       }

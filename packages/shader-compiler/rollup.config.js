@@ -14,7 +14,7 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import swc from "rollup-plugin-swc3";
-import jscc from "rollup-plugin-jscc";
+import { fileURLToPath } from "node:url";
 
 const bundlerExternal = [
   // Pulled in dynamically by precompile.ts (`await import("../dist/main.js")`);
@@ -45,13 +45,18 @@ const swcPluginRuntime = swc({
   sourceMaps: true
 });
 
-const jsccPlugin = jscc({ values: { _VERBOSE: false } });
-
 // Nothing externalized at the runtime entry: `@galacean/engine-math` is
 // resolved to its `src/index.ts` via `mainFields: ["debug"]` and bundled
 // inline (no math/dist prerequisite). `@galacean/engine-design` imports are
 // all `import type` and erased by swc before they reach rollup.
 const runtimeExternal = [];
+const shaderParserRuntimeEntry = fileURLToPath(new URL("../shader-parser/src/runtime.ts", import.meta.url));
+const workspaceShaderParserSource = {
+  name: "workspace-shader-parser-source",
+  resolveId(id) {
+    if (id === "@galacean/engine-shader-parser/internal") return shaderParserRuntimeEntry;
+  }
+};
 
 export default [
   // Bootstrap runtime (release-mode). Lets the bundler CLI's
@@ -64,12 +69,12 @@ export default [
     ],
     external: runtimeExternal,
     plugins: [
-      // Prefer workspace source through `debug`; standard fields keep external dependencies
-      // resolvable when they do not participate in the repository's debug-entry convention.
-      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"], exportConditions: ["debug"] }),
+      // The parser root is intentionally unresolvable, so cold builds bind its runtime subpath
+      // directly to workspace source instead of publishing a source-only package condition.
+      workspaceShaderParserSource,
+      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
       swcPluginRuntime,
-      commonjs(),
-      jsccPlugin
+      commonjs()
     ]
   },
   {

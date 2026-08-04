@@ -12,15 +12,13 @@
   "exports": {
     "./internal": {
       "types": "./types/runtime.d.ts",
-      "debug": "./src/runtime.ts",
       "import": "./dist/module.js",
       "require": "./dist/main.js"
     },
-    "./internal/verbose": {
+    "./internal/analyzer": {
       "types": "./types/index.d.ts",
-      "debug": "./src/index.ts",
-      "import": "./dist/module.verbose.js",
-      "require": "./dist/main.verbose.js"
+      "import": "./dist/module.analyzer.js",
+      "require": "./dist/main.analyzer.js"
     },
     "./package.json": "./package.json"
   },
@@ -31,7 +29,7 @@
     "dist/**/*",
     "types/**/*",
     "internal/package.json",
-    "internal/verbose/package.json"
+    "internal/analyzer/package.json"
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
