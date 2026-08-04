@@ -64,11 +64,9 @@ export default [
     ],
     external: runtimeExternal,
     plugins: [
-      // `mainFields: ["debug"]` resolves workspace packages directly to their
-      // source (`debug` → `src/index.ts` by repo convention), so this build
-      // never depends on any other workspace dist being present and always
-      // uses the freshest source — no stale-dist risk on warm starts.
-      resolve({ extensions: [".js", ".ts"], mainFields: ["debug"], exportConditions: ["debug"] }),
+      // Prefer workspace source through `debug`; standard fields keep external dependencies
+      // resolvable when they do not participate in the repository's debug-entry convention.
+      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"], exportConditions: ["debug"] }),
       swcPluginRuntime,
       commonjs(),
       jsccPlugin

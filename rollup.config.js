@@ -25,7 +25,7 @@ const pkgs = fs
   });
 
 const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
-pkgs.push({ ...shaderParserPkg, verboseMode: true });
+if (shaderParserPkg) pkgs.push({ ...shaderParserPkg, verboseMode: true });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -120,8 +120,15 @@ function config({ location, pkgJson, verboseMode = false }) {
       };
     },
     module: () => {
-      const esFile = path.join(location, verboseMode ? "dist/module.verbose.js" : pkgJson.module);
-      const mainFile = path.join(location, verboseMode ? "dist/main.verbose.js" : pkgJson.main);
+      const isShaderParser = pkgJson.name === "@galacean/engine-shader-parser";
+      const esFile = path.join(
+        location,
+        verboseMode ? "dist/module.verbose.js" : isShaderParser ? "dist/module.js" : pkgJson.module
+      );
+      const mainFile = path.join(
+        location,
+        verboseMode ? "dist/main.verbose.js" : isShaderParser ? "dist/main.js" : pkgJson.main
+      );
       return {
         input,
         external: isExternal,

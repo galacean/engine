@@ -1,4 +1,4 @@
-import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { DiagnosticSeverity, ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
 function shader(condition: string): string {
@@ -50,6 +50,23 @@ describe("preprocessor expression diagnostics", () => {
     ).to.be.empty;
   });
 
+  it("does not reject a function-like macro invocation before expansion", () => {
+    const source = shader("IS_SET(A)").replace(
+      "#if IS_SET(A)",
+      "#define IS_SET(value) ((value) > 0)\n      #if IS_SET(A)"
+    );
+    const diagnostics = new ShaderAnalyzer().analyze(source).diagnostics;
+    expect(
+      diagnostics.filter((diagnostic) => diagnostic.code === "PreprocessorError"),
+      JSON.stringify(diagnostics)
+    ).to.be.empty;
+  });
+
+  it("contains an unexpected validator failure as a diagnostic", () => {
+    const nestedCondition = `${"(".repeat(20000)}1${")".repeat(20000)}`;
+    expect(() => new ShaderAnalyzer().analyze(shader(nestedCondition))).to.not.throw();
+  });
+
   it("ignores preprocessor-looking text inside comments", () => {
     const source = shader("A")
       .replace("#if A", "/* #if 123 defined(A) */\n      #if A")
@@ -73,8 +90,10 @@ describe("preprocessor expression diagnostics", () => {
       "#define ADD +\n      #define OPEN (\n      #define TRAILING value +\n      #if A"
     );
     const diagnostics = new ShaderAnalyzer().analyze(source).diagnostics;
-    expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error"), JSON.stringify(diagnostics)).to.be
-      .empty;
+    expect(
+      diagnostics.filter((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error),
+      JSON.stringify(diagnostics)
+    ).to.be.empty;
   });
 
   it("maps semantic diagnostics back to the full ShaderLab source", () => {

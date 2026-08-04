@@ -119,6 +119,23 @@ describe("shader analyzer regressions", () => {
     expect(codes(shader("const bool enabled = true;"))).to.not.include("NonConstInitializer");
   });
 
+  it("validates a global const initializer through the shared declarator facts", () => {
+    const result = codes(shader("float runtimeValue; const float invalidValue = runtimeValue;"));
+    expect(result.filter((code) => code === "NonConstInitializer")).to.have.lengthOf(1);
+  });
+
+  it("validates a local array initializer through the shared declarator facts", () => {
+    const result = codes(
+      shader(
+        "",
+        `float runtimeValue = 1.0;
+  const float invalidValues[2] = runtimeValue;
+  gl_FragColor = vec4(invalidValues[0]);`
+      )
+    );
+    expect(result).to.include("NonConstInitializer");
+  });
+
   it("preserves const qualification and initializer checks for every declarator", () => {
     const result = codes(
       shader(
@@ -190,7 +207,7 @@ float second(vec2 value) { return first(value.x); }`)
       basePathForIncludeKey: "shaders://root/folder/main.shader",
       includeMap: { "folder/common.glsl": "float includedValue;" }
     });
-    expect(result.diagnostics).to.be.empty;
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
   });
 
   it("maps included diagnostics to the include source", () => {
@@ -238,6 +255,22 @@ float second(vec2 value) { return first(value.x); }`)
     );
     expect(left.content).to.include("sharedValue");
     expect(right.content).to.include("sharedValue");
+  });
+
+  it("reports an include cycle without recursing indefinitely", () => {
+    const includeMap = {
+      "cycle/a.glsl": '#include "./b.glsl"',
+      "cycle/b.glsl": '#include "./a.glsl"'
+    };
+    const result = Preprocessor.parseWithErrors(
+      '#include "cycle/a.glsl"',
+      "shaders://root/main.shader",
+      includeMap,
+      new Map()
+    );
+    expect(result.errors, result.content).to.have.lengthOf(1);
+    expect(result.errors[0].message).to.include('cycle detected at "cycle/a.glsl"');
+    expect(result.errors[0].file).to.equal("cycle/b.glsl");
   });
 
   it.each([
@@ -326,10 +359,12 @@ void frag() { gl_FragColor = vec4(1.0); }
 
   it("does not let a prior source-structure error suppress an independent pass compile", () => {
     const compiler = new ShaderCompiler();
-    compiler._parseShaderSource(`Shader "bad" { SubShader "s" { Pass "p" {
+    expect(() =>
+      compiler._parseShaderSource(`Shader "bad" { SubShader "s" { Pass "p" {
 void vert() { gl_Position = vec4(0.0); }
 VertexShader = vert;
-} } }`);
+} } }`)
+    ).to.throw("Pass must bind both VertexShader and FragmentShader entries");
     expect(
       compiler._parseShaderPass(
         "void vert() { gl_Position = vec4(0.0); } void frag() { gl_FragColor = vec4(1.0); }",
@@ -339,6 +374,33 @@ VertexShader = vert;
         ""
       )
     ).to.not.be.undefined;
+  });
+
+  it("rejects precompilation when an invalid RenderState property was discarded", () => {
+    const source = `Shader "invalid-state" { SubShader "s" { Pass "p" {
+BlendState blend { NotARealProperty = true; }
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
+      "Invalid render state property"
+    );
+  });
+
+  it("rejects precompilation after a duplicate entry assignment", () => {
+    const source = `Shader "duplicate-entry" { SubShader "s" { Pass "p" {
+void firstVert() { gl_Position = vec4(0.0); }
+void secondVert() { gl_Position = vec4(1.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = firstVert;
+VertexShader = secondVert;
+FragmentShader = frag;
+} } }`;
+    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
+      "Reassignment of VertexShader entry"
+    );
   });
 
   it("does not let a dead macro branch satisfy the vertex-position requirement", () => {
@@ -392,7 +454,7 @@ VertexShader = vert;
 FragmentShader = frag;
 } } }`;
     const result = new ShaderAnalyzer().analyze(source);
-    expect(result.diagnostics).to.be.empty;
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
     const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
     const generated = new ShaderCompiler()._parseShaderPass(
       pass.contents,

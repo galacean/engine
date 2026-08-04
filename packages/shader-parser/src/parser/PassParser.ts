@@ -10,7 +10,7 @@ let _parser: ShaderTargetParser;
 export type PreprocessSourceMapSegment = ShaderSourceMapSegment;
 
 /**
- * Parses one shader pass into an AST and parse-stage diagnostics.
+ * Parses one shader pass into neutral IR and parse-stage diagnostics.
  * @param source - GLSL source for the shader pass.
  * @param includeMap - Include-path lookup table.
  * @param cache - Cache for expanded include chunks.

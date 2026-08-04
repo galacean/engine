@@ -358,16 +358,9 @@ namespace ASTNodes {
       const sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
-      sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+      const insertResult = sa.symbolTableStack.insert(sm, id.branch);
       // #if _VERBOSE
-      // A `const`-qualified variable's initializer must be a compile-time constant.
-      if (isConst && initializer && !ParserUtils.isConstExpr(initializer, sa)) {
-        sa.reportError(
-          initializer.location,
-          `'${id.lexeme}': const initializer must be a constant expression.`,
-          "NonConstInitializer"
-        );
-      }
+      sa.reportRedefinition(id.location, id.lexeme, insertResult);
       // #endif
     }
 
@@ -615,9 +608,9 @@ namespace ASTNodes {
           isGlobal: false
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
-        sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+        const insertResult = sa.symbolTableStack.insert(sm, id.branch);
         // #if _VERBOSE
-        this._validateInitializer(sa, id, initializer, sm.dataType!);
+        sa.reportRedefinition(id.location, id.lexeme, insertResult);
         // #endif
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
@@ -634,30 +627,12 @@ namespace ASTNodes {
           isGlobal: false
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
-        sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+        const insertResult = sa.symbolTableStack.insert(sm, id.branch);
         // #if _VERBOSE
-        this._validateInitializer(sa, id, initializer, typeInfo);
+        sa.reportRedefinition(id.location, id.lexeme, insertResult);
         // #endif
       }
     }
-
-    // #if _VERBOSE
-    private _validateInitializer(
-      sa: SemanticAnalyzer,
-      ident: BaseToken,
-      initializer: Initializer | undefined,
-      typeInfo: SymbolType
-    ): void {
-      if (!initializer) return;
-      if (this.isConst && !ParserUtils.isConstExpr(initializer, sa)) {
-        sa.reportError(
-          initializer.location,
-          `'${ident.lexeme}': const initializer must be a constant expression.`,
-          "NonConstInitializer"
-        );
-      }
-    }
-    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.identifier_list)
@@ -894,7 +869,9 @@ namespace ASTNodes {
       // the source, while `insert` independently reports whether two declarations can coexist.
       const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
+      // #if _VERBOSE
       sa.reportRedefinition(this.protoType.ident.location, this.protoType.ident.lexeme, conflict);
+      // #endif
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
@@ -1477,11 +1454,10 @@ namespace ASTNodes {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        sa.reportRedefinition(
-          this.ident.location,
-          this.ident.lexeme,
-          sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch)
-        );
+        const insertResult = sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch);
+        // #if _VERBOSE
+        sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult);
+        // #endif
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1730,7 +1706,10 @@ namespace ASTNodes {
       };
       const sm = new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst);
 
-      sa.reportRedefinition(ident.location, ident.lexeme, sa.symbolTableStack.insert(sm, ident.branch));
+      const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
+      // #if _VERBOSE
+      sa.reportRedefinition(ident.location, ident.lexeme, insertResult);
+      // #endif
 
       if (children.length === 4) {
         this.isStatic = true;
@@ -1794,6 +1773,15 @@ namespace ASTNodes {
 
     private _symbols: Array<VarSymbol | FnSymbol> = [];
 
+    /**
+     * Returns the symbols retained when this reference was resolved.
+     * @returns Branch-visible variable or function candidates for the reference.
+     * @internal
+     */
+    resolvedSymbols(): readonly (VarSymbol | FnSymbol)[] {
+      return this._symbols;
+    }
+
     override init(): void {
       this.typeInfo = TypeAny;
       this.isArray = false;
@@ -1817,7 +1805,7 @@ namespace ASTNodes {
         for (let i = 0; i < references.length; i++) {
           const { name, branch } = references[i];
 
-          if (sa.macroDefineList[name]) return;
+          if (sa.macroDefineList[name]) continue;
 
           // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
           if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {

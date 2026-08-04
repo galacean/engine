@@ -302,6 +302,8 @@ describe("preprocessor condition conformance", () => {
     ["0xffffffffu + 1u == 0u", [], true],
     ["-1 < 1u", [], true],
     ["0xffffffffu > 0u", [], false],
+    ["2147483648", [], true],
+    ["MODE == 2147483648", [["MODE", "2147483648"]], true],
     [
       "A && (10 / B)",
       [
@@ -363,7 +365,7 @@ describe("preprocessor condition conformance", () => {
     });
   }
 
-  for (const expression of malformedExpressions) {
+  for (const expression of [...malformedExpressions, "1.5"] as const) {
     it(`diagnoses malformed expression '${expression}' without making encoding a diagnostic gate`, () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
       const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);

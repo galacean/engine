@@ -335,6 +335,7 @@ describe("branch-aware SymbolTable lookup", () => {
   });
 
   it("does not report an integer-only coverage gap as an error", () => {
+    // These ranges cover every integer, but the non-backtracking witness search intentionally leaves coverage unknown.
     const src = pass(
       `#if MODE <= 0
         float branchValue;
@@ -369,8 +370,7 @@ describe("branch-aware SymbolTable lookup", () => {
       void vert() { gl_Position = vec4(0.0); }
       VertexShader = vert; FragmentShader = frag;`
     );
-    const result = new ShaderAnalyzer().analyze(src);
-    expect(result.diagnostics.filter((diagnostic) => diagnostic.code === "UseBeforeDeclaration")).to.have.lengthOf(1);
+    expect(errorsOf(src, "UseBeforeDeclaration")).to.have.lengthOf(1);
   });
 
   it("propagates a derived macro's defining branch", () => {
@@ -450,7 +450,7 @@ describe("branch-aware SymbolTable lookup", () => {
     const errors = result.diagnostics.filter(
       (diagnostic) => diagnostic.severity === "error" && diagnostic.code === "UseBeforeDeclaration"
     );
-    expect(errors.length).to.be.greaterThan(0);
+    expect(errors, JSON.stringify(result.diagnostics)).to.have.lengthOf(4);
   });
 
   it("accepts a helper implemented in every complete branch", () => {

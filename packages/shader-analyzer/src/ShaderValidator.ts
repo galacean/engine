@@ -331,7 +331,7 @@ export class ShaderValidator {
   }
 
   private _checkVariableDeclarator(declarator: ASTNode.VariableDeclaratorInfo): void {
-    const { identifier, initializer, typeInfo } = declarator;
+    const { identifier, initializer, isConst, typeInfo } = declarator;
     if (typeInfo.type === Keyword.VOID) {
       this._push(
         `Illegal use of type 'void' — '${identifier.lexeme}' cannot be declared as void.`,
@@ -346,6 +346,13 @@ export class ShaderValidator {
         )}' from '${TypeSystem.typeName(initializer.type)}'.`,
         initializer.location,
         DiagnosticType.AssignTypeMismatch
+      );
+    }
+    if (initializer && isConst && !ParserUtils.isConstExpr(initializer)) {
+      this._push(
+        `'${identifier.lexeme}': const initializer must be a constant expression.`,
+        initializer.location,
+        DiagnosticType.NonConstInitializer
       );
     }
   }

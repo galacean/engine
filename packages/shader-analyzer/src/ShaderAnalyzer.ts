@@ -15,11 +15,19 @@ import { validatePreprocessorExpressions } from "./PreprocessorExpressionValidat
 import { ShaderValidator } from "./ShaderValidator";
 import { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 import { ShaderIOValidator } from "./ShaderIOValidator";
+import { positionAt } from "./sourcePosition";
 
-/** Maps canonical shader include paths to source chunks. */
+/**
+ * Maps canonical shader include paths to source chunks.
+ *
+ * Keys use the same root-relative convention as compiler include resolution; an undefined value
+ * represents a known path whose source is unavailable.
+ */
 export type ShaderIncludeMap = Readonly<Record<string, string | undefined>>;
 
-/** Options used when analyzing shader source. */
+/**
+ * Controls include resolution and source attribution for one analysis request.
+ */
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
   includeMap?: ShaderIncludeMap;
@@ -29,7 +37,9 @@ export interface AnalyzerOptions {
   file?: string;
 }
 
-/** Result of analyzing shader source. */
+/**
+ * Contains every structured diagnostic produced for one ShaderLab document.
+ */
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
@@ -37,6 +47,9 @@ export interface AnalysisResult {
 
 /**
  * Analyzes ShaderLab source and GLSL semantics without generating backend source.
+ *
+ * The analyzer consumes verbose parser facts independently from runtime compilation, so its
+ * diagnostics cannot alter or block GLES code generation.
  */
 export class ShaderAnalyzer {
   /**
@@ -48,11 +61,11 @@ export class ShaderAnalyzer {
   analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
     const includeMap = options?.includeMap ?? {};
     const chunkOutputCache: ChunkOutputCache = new Map();
-
-    const diagnostics = validatePreprocessorExpressions(source, options?.file);
-    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
+    const diagnostics: Diagnostic[] = [];
 
     try {
+      diagnostics.push(...validatePreprocessorExpressions(source, options?.file));
+      ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
       const sourceResult = ShaderSourceParser.parseWithErrors(source);
       const shaderSource: IShaderSource = sourceResult.shaderSource;
       diagnostics.push(...sourceResult.errors.map((error) => gseErrorToDiagnostic(error)));
@@ -60,6 +73,15 @@ export class ShaderAnalyzer {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
           const statements = shaderSource.pendingContents.concat(subShader.pendingContents, pass.pendingContents);
+          const skipSemanticValidation = diagnostics.some(
+            (diagnostic) =>
+              diagnostic.code === DiagnosticType.PreprocessorError &&
+              statements.some(
+                (statement) =>
+                  diagnostic.range.start.offset >= statement.range.start.index &&
+                  diagnostic.range.start.offset <= statement.range.end.index
+              )
+          );
           this._analyzePass(
             pass,
             statements,
@@ -69,15 +91,7 @@ export class ShaderAnalyzer {
             chunkOutputCache,
             options?.basePathForIncludeKey,
             options?.file,
-            diagnostics.some(
-              (diagnostic) =>
-                diagnostic.code === DiagnosticType.PreprocessorError &&
-                statements.some(
-                  (statement) =>
-                    diagnostic.range.start.offset >= statement.range.start.index &&
-                    diagnostic.range.start.offset <= statement.range.end.index
-                )
-            )
+            skipSemanticValidation
           );
         }
       }
@@ -165,7 +179,7 @@ function remapPreprocessedDiagnostic(diagnostic: Diagnostic, segments: readonly 
     end: positionAt(startSegment.source, endOffset)
   };
   diagnostic.relatedSource = startSegment.source;
-  diagnostic.file = startSegment.file;
+  diagnostic.file = startSegment.file ?? diagnostic.file;
 }
 
 function findPreprocessSegment(
@@ -226,18 +240,4 @@ function remapOffset(offset: number, segments: readonly SourceMapSegment[]): num
       return segment.sourceStart + offset - segment.generatedStart;
     }
   }
-}
-
-function positionAt(source: string, offset: number): Diagnostic["range"]["start"] {
-  let line = 1;
-  let column = 1;
-  for (let index = 0; index < offset; index++) {
-    if (source.charCodeAt(index) === 10) {
-      line++;
-      column = 1;
-    } else {
-      column++;
-    }
-  }
-  return { line, column, offset };
 }

@@ -230,19 +230,17 @@ export class ShaderSourceParser {
   private static _parseRenderStateProperties(state: string): IRenderStates {
     const lexer = this._lexer;
     const renderStates = ShaderSourceFactory.createRenderStates();
-    while (lexer.getCurChar() !== "}") {
+    while (lexer.getCurChar() !== "}" && !lexer.isEnd()) {
       this._parseRenderStateProperty(state, renderStates);
       lexer.skipCommentsAndSpace();
     }
-    lexer.advance(1);
+    if (lexer.getCurChar() === "}") lexer.advance(1);
     return renderStates;
   }
 
   private static _createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: string): void {
     const error = this._lexer.createCompileError(message, location, code);
-    // #if _VERBOSE
     this.errors.push(error);
-    // #endif
   }
 
   private static _scanEnumConstValue(enumName: string): number | undefined {

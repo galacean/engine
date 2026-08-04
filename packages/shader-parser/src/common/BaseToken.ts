@@ -351,6 +351,7 @@ function hasAtomicCoverageCounterexample(
 
   const counterexampleFacts = getConditions(callSiteBranch);
   if (!isAtomicConjunctionSatisfiable(counterexampleFacts)) return false;
+  // This greedily keeps the first satisfiable negation; failure is unknown, not proof that no witness exists.
   for (let i = 0, n = candidates.length; i < n; i++) {
     const candidateConditions = getConditions(candidates[i]);
     if (!isAtomicConjunctionSatisfiable([...counterexampleFacts, ...candidateConditions])) continue;

@@ -72,7 +72,7 @@ export class Preprocessor {
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache
   ): PreprocessResult {
-    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache);
+    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache, new Set());
   }
 
   private static _expand(
@@ -80,6 +80,7 @@ export class Preprocessor {
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache,
+    activeIncludePaths: Set<string>,
     sourceFile?: string
   ): PreprocessResult {
     const errors: GSError[] = [];
@@ -136,10 +137,30 @@ export class Preprocessor {
         continue;
       }
 
+      if (activeIncludePaths.has(path)) {
+        errors.push(
+          this._createIncludeError(source, match.index, `Shader include cycle detected at "${path}".`, sourceFile)
+        );
+        sourceOffset = includeReg.lastIndex;
+        continue;
+      }
+
       let expanded = chunkOutputCache.get(path);
       if (!expanded) {
-        expanded = this._expand(chunk, this._canonicalIncludeURL(path), includeMap, chunkOutputCache, path);
-        chunkOutputCache.set(path, expanded);
+        activeIncludePaths.add(path);
+        try {
+          expanded = this._expand(
+            chunk,
+            this._canonicalIncludeURL(path),
+            includeMap,
+            chunkOutputCache,
+            activeIncludePaths,
+            path
+          );
+          chunkOutputCache.set(path, expanded);
+        } finally {
+          activeIncludePaths.delete(path);
+        }
       }
       parts.push(expanded.content);
       for (const segment of expanded.sourceMap) {

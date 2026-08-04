@@ -35,10 +35,12 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
+  // #if _VERBOSE
   /** @internal */
   get errors() {
     return this.sematicAnalyzer.errors;
   }
+  // #endif
 
   static _singleton: ShaderTargetParser;
 
@@ -61,12 +63,21 @@ export class ShaderTargetParser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
+  // prettier-ignore
   parse(
     tokens: Generator<BaseToken, BaseToken>,
-    macroDefineList: MacroDefineList,
-    diagnosticsEnabled = false
+    macroDefineList: MacroDefineList
+    // #if _VERBOSE
+    , diagnosticsEnabled = false
+    // #endif
   ): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset(macroDefineList, diagnosticsEnabled);
+    // prettier-ignore
+    this.sematicAnalyzer.reset(
+      macroDefineList
+      // #if _VERBOSE
+      , diagnosticsEnabled
+      // #endif
+    );
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     // A prior parse that bailed early (syntax error -> `return null` below) leaves this working
     // stack dirty; the parser is a shared singleton, so start every parse from a clean stack or a
@@ -130,13 +141,13 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
+        // #if _VERBOSE
         const error = ShaderCompilerUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,
           ShaderCompilerUtils.processingPassText,
           token.location
         );
-        // #if _VERBOSE
         this.sematicAnalyzer.errors.push(<GSError>error);
         // #endif
         return null;

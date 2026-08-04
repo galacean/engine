@@ -2,7 +2,7 @@ import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
+import { Lexer, ShaderSourceParser, type MacroDefineList } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
 function shader(declarations: string, fragmentBody: string): string {
@@ -63,6 +63,26 @@ function compileInWebGL(vertex: string, fragment: string): DriverResult | "no-we
 }
 
 describe("macro branch runtime", () => {
+  it("does not register definitions after a statically matched conditional arm", () => {
+    const macroDefineList: MacroDefineList = {};
+    const tokens = new Lexer(
+      `#if 1
+#define LIVE_VALUE 1
+#elif 1
+#define DEAD_ELIF_VALUE 2
+#else
+#define DEAD_ELSE_VALUE 3
+#endif`,
+      macroDefineList
+    ).tokenize();
+    for (const _token of tokens) {
+      // Exhausting the lexer performs directive registration.
+    }
+    expect(macroDefineList.LIVE_VALUE).to.be.ok;
+    expect(macroDefineList.DEAD_ELIF_VALUE).to.be.undefined;
+    expect(macroDefineList.DEAD_ELSE_VALUE).to.be.undefined;
+  });
+
   it("selects exactly one declaration after a mutually exclusive conditional #undef", () => {
     const source = shader(
       `#ifdef FIRST_PATH
@@ -195,6 +215,23 @@ float u_value;
     if (compiled !== "no-webgl") {
       expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
     }
+  });
+
+  it("ignores invalid macro replacement syntax after a statically true arm", () => {
+    const source = shader(
+      `#if 1
+float u_value;
+#elif 1
+#define STRINGIFY(X) #X
+#else
+#define STRINGIFY_ELSE(X) #X
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    const evaluated = evaluate(source, []);
+    expect(evaluated.fragment).to.include("uniform float u_value;");
+    expect(evaluated.fragment).to.not.include("STRINGIFY");
   });
 
   it("reports a non-complementary #ifndef/#elif declaration gap without blocking codegen", () => {

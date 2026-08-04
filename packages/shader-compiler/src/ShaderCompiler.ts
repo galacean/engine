@@ -5,16 +5,28 @@ import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
-import type { ASTNode } from "@galacean/engine-shader-parser/internal";
 import { Lexer } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "@galacean/engine-shader-parser/internal";
 import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser/internal";
 import { ShaderCompilerUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
+import type { ShaderSourceParseResult } from "@galacean/engine-shader-parser/internal";
 import type { ShaderBackend } from "./ShaderBackend";
 
-/** Compiles ShaderLab sources into GLES programs and precompiled instructions. */
+class ShaderSourceParseError extends Error {
+  constructor(readonly errors: readonly Error[]) {
+    super(errors.map((error) => error.toString()).join("\n"));
+    this.name = "ShaderSourceParseError";
+  }
+}
+
+/**
+ * Compiles ShaderLab sources into GLES programs and precompiled instructions.
+ *
+ * Source parsing and backend generation remain independent of authoring diagnostics; structural
+ * source errors reject compilation before a partial precompiled artifact can be serialized.
+ */
 export class ShaderCompiler {
   private static _parser?: ShaderTargetParser;
 
@@ -31,13 +43,15 @@ export class ShaderCompiler {
     this._chunkOutputCache.clear();
   }
 
-  /** @internal */
+  /**
+   * Parses one ShaderLab document into its source structure.
+   * @param sourceCode - Complete ShaderLab source.
+   * @returns Parsed subshaders, passes, entries, and render states.
+   * @throws ShaderSourceParseError when source-structure diagnostics were produced.
+   * @internal
+   */
   _parseShaderSource(sourceCode: string): IShaderSource {
-    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
-    const { shaderSource, errors } = ShaderSourceParser.parseWithErrors(sourceCode);
-    for (const error of errors) Logger.error(error.toString());
-
-    return shaderSource;
+    return this._requireValidShaderSource(this._parseShaderSourceWithErrors(sourceCode));
   }
 
   /** @internal */
@@ -83,25 +97,6 @@ export class ShaderCompiler {
     }
   }
 
-  /**
-   * Generates GLSL source and shader instructions from a parsed program.
-   * @param program - Parsed shader program.
-   * @param vertexEntry - Vertex entry-point name.
-   * @param fragmentEntry - Fragment entry-point name.
-   * @param backend - Target shader language.
-   * @returns Generated shader program source.
-   */
-  generate(
-    program: ASTNode.GLShaderProgram,
-    vertexEntry: string,
-    fragmentEntry: string,
-    backend: ShaderLanguage
-  ): IShaderProgramSource {
-    const ir = new ShaderClueIR(program, ShaderCompilerUtils.processingPassText ?? "");
-    const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
-    return this._generate(ir, coreInfo, backend);
-  }
-
   private _generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, backend: ShaderLanguage): IShaderProgramSource {
     if (!coreInfo.vertexEntry.functions.length) {
       throw new Error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
@@ -121,7 +116,8 @@ export class ShaderCompiler {
 
   /** @internal */
   _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePathForIncludeKey: string): IPrecompiledShader {
-    const shaderSource = this._parseShaderSource(sourceCode);
+    const sourceResult = this._parseShaderSourceWithErrors(sourceCode);
+    const shaderSource = this._requireValidShaderSource(sourceResult);
 
     const subShaders = shaderSource.subShaders.map((sub) => ({
       name: sub.name,
@@ -166,6 +162,16 @@ export class ShaderCompiler {
       platformTarget,
       subShaders
     };
+  }
+
+  private _parseShaderSourceWithErrors(sourceCode: string): ShaderSourceParseResult {
+    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
+    return ShaderSourceParser.parseWithErrors(sourceCode);
+  }
+
+  private _requireValidShaderSource(result: ShaderSourceParseResult): IShaderSource {
+    if (result.errors.length) throw new ShaderSourceParseError(result.errors);
+    return result.shaderSource;
   }
 
   private _serializeRenderStates(renderStates: IRenderStates): {

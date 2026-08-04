@@ -5,8 +5,7 @@ import { BuiltinFunction } from "./parser/builtin";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
 // #if _VERBOSE
-import SemanticAnalyzer from "./parser/SemanticAnalyzer";
-import { ESymbolType, VarSymbol } from "./parser/symbolTable";
+import { VarSymbol } from "./parser/symbolTable";
 import { TypeSystem } from "./parser/TypeSystem";
 // #endif
 
@@ -170,11 +169,12 @@ export class ParserUtils {
    * expression (binary / unary / ternary) whose sub-expressions are all constant.
    * Non-constant references (uniforms, non-const locals) return false. Called only by diagnostics
    * (NonConstInitializer / NonConstArraySize) — codegen doesn't consult it.
+   * @param node - Expression to classify using its retained symbol-resolution facts.
+   * @returns Whether every reachable operand is a compile-time constant.
    */
-  static isConstExpr(node: TreeNode, sa: SemanticAnalyzer): boolean {
+  static isConstExpr(node: TreeNode): boolean {
     if (ParserUtils.constNumericValue(node) !== undefined) return true;
-    const leaf = ParserUtils.unwrapBareIdentifier(node, { allowParens: true })?.children[0];
-    if (leaf instanceof Token && (leaf.type === Keyword.True || leaf.type === Keyword.False)) return true;
+    if (ParserUtils._isBooleanLiteral(node)) return true;
     const ident = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
     if (ident) {
       const child = ident.children[0];
@@ -182,11 +182,8 @@ export class ParserUtils {
       // it's a compile-time constant — its replacement is fixed before the compiler runs.
       if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return true;
       if (!(child instanceof Token)) return false;
-      if (sa.macroDefineList[child.lexeme]) return true;
-      const lookup = SemanticAnalyzer._lookupSymbol;
-      lookup.set(child.lexeme, ESymbolType.VAR);
-      const symbol = sa.symbolTableStack.lookup(lookup, true);
-      return symbol instanceof VarSymbol && symbol.isConst;
+      const symbols = ident.resolvedSymbols();
+      return symbols.length > 0 && symbols.every((symbol) => symbol instanceof VarSymbol && symbol.isConst);
     }
     // Built-in function call: constant iff every argument is constant. `FunctionIdentifier.isBuiltin`
     // covers keyword constructors (vec3/mat3/...); regular built-in functions (sin/cos/sqrt/...)
@@ -200,7 +197,7 @@ export class ParserUtils {
       const list = node.children[2];
       if (!(list instanceof ASTNode.FunctionCallParameterList)) return true;
       for (const arg of list.paramNodes) {
-        if (arg instanceof TreeNode && !ParserUtils.isConstExpr(arg, sa)) return false;
+        if (arg instanceof TreeNode && !ParserUtils.isConstExpr(arg)) return false;
       }
       return true;
     }
@@ -212,12 +209,35 @@ export class ParserUtils {
       for (const c of node.children) {
         if (c instanceof ASTNode.ExpressionAstNode) {
           sawSubExpr = true;
-          if (!ParserUtils.isConstExpr(c, sa)) return false;
+          if (!ParserUtils.isConstExpr(c)) return false;
         }
       }
       return sawSubExpr;
     }
     return false;
+  }
+
+  private static _isBooleanLiteral(node: TreeNode): boolean {
+    let current = node;
+    while (true) {
+      if (current instanceof ASTNode.PrimaryExpression) {
+        if (current.children.length === 3) {
+          const child = current.children[1];
+          if (!(child instanceof TreeNode)) return false;
+          current = child;
+          continue;
+        }
+        const token = current.children[0];
+        return token instanceof Token && (token.type === Keyword.True || token.type === Keyword.False);
+      }
+      if (current instanceof ASTNode.ExpressionAstNode && current.children.length === 1) {
+        const child = current.children[0];
+        if (!(child instanceof TreeNode)) return false;
+        current = child;
+        continue;
+      }
+      return false;
+    }
   }
 
   /** The first arithmetic-binary operand whose type can't be an operand (bool/sampler/struct), else undefined. */

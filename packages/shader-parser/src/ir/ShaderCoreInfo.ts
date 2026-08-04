@@ -83,7 +83,12 @@ export class ShaderCoreInfo {
     const mutableIO = createIOInfo();
     collectEntryIO(symbolTable, vertexFunctions, fragmentFunctions, mutableIO);
     this.roleConflicts = removeRoleConflicts(mutableIO);
-    deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO);
+    const conflictingStructNames = new Set<string>();
+    for (const conflict of this.roleConflicts) {
+      const name = conflict.struct.ident?.lexeme;
+      if (name) conflictingStructNames.add(name);
+    }
+    deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO, conflictingStructNames);
     this.io = mutableIO;
     this.outerGlobalMacroDeclarations = ir.shaderData.getOuterGlobalMacroDeclarations();
   }
@@ -212,11 +217,24 @@ function deriveStructVariableRoles(
   symbolTable: SymbolTable<SymbolInfo>,
   vertexFunctions: readonly FnSymbol[],
   fragmentFunctions: readonly FnSymbol[],
-  io: MutableShaderIOInfo
+  io: MutableShaderIOInfo,
+  excludedStructNames: ReadonlySet<string>
 ): void {
   const structRoles: Record<string, ShaderStructRole> = Object.create(null);
-  registerEntryStructRoles(vertexFunctions, ShaderStructRole.Attribute, ShaderStructRole.Varying, structRoles);
-  registerEntryStructRoles(fragmentFunctions, ShaderStructRole.Varying, ShaderStructRole.Mrt, structRoles);
+  registerEntryStructRoles(
+    vertexFunctions,
+    ShaderStructRole.Attribute,
+    ShaderStructRole.Varying,
+    structRoles,
+    excludedStructNames
+  );
+  registerEntryStructRoles(
+    fragmentFunctions,
+    ShaderStructRole.Varying,
+    ShaderStructRole.Mrt,
+    structRoles,
+    excludedStructNames
+  );
   populateStageVariables(io.vertexStructVarMap, vertexFunctions, structRoles);
   populateStageVariables(io.fragmentStructVarMap, fragmentFunctions, structRoles);
 
@@ -231,15 +249,22 @@ function registerEntryStructRoles(
   functions: readonly FnSymbol[],
   parameterRole: ShaderStructRole,
   returnRole: ShaderStructRole,
-  roles: Record<string, ShaderStructRole>
+  roles: Record<string, ShaderStructRole>,
+  excludedStructNames: ReadonlySet<string>
 ): void {
   for (const fn of functions) {
     const proto = fn.astNode.protoType;
     const firstParameter = proto.parameterList?.[0];
-    if (firstParameter && typeof firstParameter.typeInfo.type === "string") {
+    if (
+      firstParameter &&
+      typeof firstParameter.typeInfo.type === "string" &&
+      !excludedStructNames.has(firstParameter.typeInfo.typeLexeme)
+    ) {
       roles[firstParameter.typeInfo.typeLexeme] = parameterRole;
     }
-    if (typeof proto.returnType.type === "string") roles[proto.returnType.type] = returnRole;
+    if (typeof proto.returnType.type === "string" && !excludedStructNames.has(proto.returnType.type)) {
+      roles[proto.returnType.type] = returnRole;
+    }
   }
 }
 

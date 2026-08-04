@@ -229,6 +229,8 @@ describe("ShaderIOAnalyzer role-conflict recovery", () => {
     expect(io.varyingStructs, "varyingStructs must be empty after conflict").to.have.lengthOf(0);
     expect(io.attributeList, "attributeList props follow the struct removal").to.have.lengthOf(0);
     expect(io.varyingList, "varyingList props follow the struct removal").to.have.lengthOf(0);
+    expect(Object.keys(io.vertexStructVarMap), "vertex variable roles follow the struct removal").to.be.empty;
+    expect(Object.keys(io.fragmentStructVarMap), "fragment variable roles follow the struct removal").to.be.empty;
   });
 
   it("StructRoleConflict (Varying+MRT): the offending struct is dropped from every role array", () => {
@@ -247,5 +249,7 @@ describe("ShaderIOAnalyzer role-conflict recovery", () => {
     expect(codes).to.include("StructRoleConflict");
     expect(io.varyingStructs, "varyingStructs empty after conflict").to.have.lengthOf(0);
     expect(io.mrtStructs, "mrtStructs empty after conflict").to.have.lengthOf(0);
+    expect(io.vertexStructVarMap.o, "conflicting vertex local has no role").to.be.undefined;
+    expect(io.fragmentStructVarMap.i, "conflicting fragment parameter has no role").to.be.undefined;
   });
 });

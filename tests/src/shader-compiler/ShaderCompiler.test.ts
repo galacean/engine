@@ -9,6 +9,7 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader-compiler";
+import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { glslValidate } from "./ShaderValidate";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -87,7 +88,7 @@ describe("ShaderCompiler", async () => {
 
   it("render state", async () => {
     const demoShader = await readFile("src/shader-compiler/shaders/render-state.shader");
-    const shader = shaderCompilerRelease._parseShaderSource(demoShader);
+    const { shaderSource: shader } = ShaderSourceParser.parseWithErrors(demoShader);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
 
@@ -187,8 +188,10 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
-    const pass = result.subShaders[0].passes[0];
+    const result = ShaderSourceParser.parseWithErrors(shaderSource);
+    expect(result.errors.some((error) => error.message.includes("Bitwise OR '|' is not supported"))).to.equal(true);
+    const shader = result.shaderSource;
+    const pass = shader.subShaders[0].passes[0];
     // CompareFunction should not appear in constantMap because bitwise OR is not allowed on non-bitmask enums
     expect(pass.renderStates.constantMap[RenderStateElementKey.DepthStateCompareFunction]).to.be.undefined;
   });
@@ -203,8 +206,9 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
-    const pass = result.subShaders[0].passes[0];
+    const result = ShaderSourceParser.parseWithErrors(shaderSource);
+    expect(result.errors.some((error) => error.message.includes("Cannot mix enum types"))).to.equal(true);
+    const pass = result.shaderSource.subShaders[0].passes[0];
     // Mixed enum types should be rejected
     expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
   });
@@ -219,8 +223,9 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
-    const pass = result.subShaders[0].passes[0];
+    const result = ShaderSourceParser.parseWithErrors(shaderSource);
+    expect(result.errors.some((error) => error.message.includes("Invalid syntax after '|'"))).to.equal(true);
+    const pass = result.shaderSource.subShaders[0].passes[0];
     // ColorWriteMask should not appear in constantMap due to invalid syntax after '|'
     expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
   });

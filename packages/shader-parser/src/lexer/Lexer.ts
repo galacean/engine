@@ -174,6 +174,7 @@ export class Lexer extends BaseLexer {
   private _pendingOpaqueConditional: "push" | "advance" | null = null;
   // #endif
   private _pendingCodegenConditional: "push" | "advance" | null = null;
+  private _codegenDefinitelyMatched: boolean[] = [];
 
   *tokenize() {
     // #if _VERBOSE
@@ -194,7 +195,7 @@ export class Lexer extends BaseLexer {
     while (!this.isEnd()) {
       const tok = this.scanToken();
       if (this._pendingCodegenConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
-        const condition = Lexer._parseCodegenConstantCondition(tok.lexeme);
+        const parsedCondition = Lexer._parseCodegenConstantCondition(tok.lexeme);
         if (this._pendingCodegenConditional === "push") {
           const conditionalGroup = ++this._conditionalGroup;
           this._branchStack.push({
@@ -202,12 +203,15 @@ export class Lexer extends BaseLexer {
             defined: true,
             conditionalGroup,
             conditionalArm: 0,
-            condition
+            condition: parsedCondition
           });
+          this._codegenDefinitelyMatched.push(parsedCondition?.kind === "constant" && parsedCondition.value);
         } else {
           const index = this._branchStack.length - 1;
           const previous = this._branchStack[index];
           if (previous) {
+            const definitelyMatched = this._codegenDefinitelyMatched[index];
+            const condition = definitelyMatched ? { kind: "constant" as const, value: false } : parsedCondition;
             this._branchStack[index] = {
               name: previous.name,
               defined: true,
@@ -215,6 +219,9 @@ export class Lexer extends BaseLexer {
               conditionalArm: (previous.conditionalArm ?? 0) + 1,
               condition
             };
+            if (!definitelyMatched && parsedCondition?.kind === "constant" && parsedCondition.value) {
+              this._codegenDefinitelyMatched[index] = true;
+            }
           }
         }
         this._pendingCodegenConditional = null;
@@ -228,6 +235,7 @@ export class Lexer extends BaseLexer {
           conditionalGroup,
           conditionalArm: 0
         });
+        this._codegenDefinitelyMatched.push(false);
         this._pendingBranchPushDefined = null;
       }
 
@@ -250,17 +258,23 @@ export class Lexer extends BaseLexer {
           const index = this._branchStack.length - 1;
           const previous = this._branchStack[index];
           if (previous) {
+            const condition = this._codegenDefinitelyMatched[index]
+              ? { kind: "constant" as const, value: false }
+              : undefined;
             this._branchStack[index] = {
               name: previous.name,
               defined: tok.type === Keyword.MACRO_ELSE ? !previous.defined : true,
               conditionalGroup: previous.conditionalGroup,
-              conditionalArm: (previous.conditionalArm ?? 0) + 1
+              conditionalArm: (previous.conditionalArm ?? 0) + 1,
+              condition
             };
+            this._codegenDefinitelyMatched[index] = true;
           }
           break;
         }
         case Keyword.MACRO_ENDIF:
           this._branchStack.pop();
+          this._codegenDefinitelyMatched.pop();
           break;
       }
 
@@ -283,10 +297,13 @@ export class Lexer extends BaseLexer {
     return true;
   }
 
+  // prettier-ignore
   constructor(
     source: string,
-    public macroDefineList: MacroDefineList,
-    private readonly _branchAnalysisEnabled = false
+    public macroDefineList: MacroDefineList
+    // #if _VERBOSE
+    , private readonly _branchAnalysisEnabled = false
+    // #endif
   ) {
     super(source);
   }

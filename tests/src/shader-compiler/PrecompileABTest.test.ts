@@ -114,9 +114,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const engine = await WebGLEngine.create({ canvas });
   const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
   const ParticleSource = await readFile("../packages/shader/src/Shaders/Effect/Particle.shader");
-  const SSAOSource = await readFile(
-    "../packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader"
-  );
+  const SSAOSource = await readFile("../packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader");
 
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
   shaderCompiler._includeMap = ShaderFactory.includeMap;
@@ -319,14 +317,22 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     }
 
     it("Particle uses deterministic priority when render-mode macros overlap", () => {
-      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, [
+      const macros = [
         { name: "RENDERER_MODE_SPHERE_BILLBOARD" },
         { name: "RENDERER_MODE_STRETCHED_BILLBOARD" },
         { name: "RENDERER_MODE_HORIZONTAL_BILLBOARD" },
         { name: "RENDERER_MODE_VERTICAL_BILLBOARD" },
         { name: "RENDERER_MODE_MESH" },
         { name: "RENDERER_ENABLE_VERTEXCOLOR" }
-      ]);
+      ];
+      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, macros);
+
+      const precompiled = shaderCompiler._precompile(ParticleSource, ShaderLanguage.GLSLES100, "");
+      const pass = precompiled.subShaders[0].passes.find((candidate) => candidate.name === "Forward Pass");
+      const vertexSource = ShaderMacroProcessor.evaluate(pass!.vertexShaderInstructions!, makeMacroMap(macros));
+      expect(vertexSource).to.match(/normalize\s*\(\s*cross\s*\(\s*camera_Forward\s*,\s*camera_Up\s*\)\s*\)/);
+      expect(vertexSource).to.not.include("rotationZHalfPI");
+      expect(vertexSource).to.not.match(/cameraUpVector\s*=\s*vec3\s*\(\s*0\.0\s*,\s*1\.0\s*,\s*0\.0\s*\)/);
     });
 
     it("Particle mesh with separate random size-over-lifetime curves", () => {

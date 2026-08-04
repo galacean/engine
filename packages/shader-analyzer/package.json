@@ -15,9 +15,9 @@
   "types": "types/index.d.ts",
   "exports": {
     ".": {
+      "types": "./types/index.d.ts",
       "import": "./dist/module.js",
-      "require": "./dist/main.js",
-      "types": "./types/index.d.ts"
+      "require": "./dist/main.js"
     },
     "./package.json": "./package.json"
   },

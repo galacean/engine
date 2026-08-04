@@ -5,9 +5,9 @@
  * distinct shaders interleaved and after a throwing compile, asserting each result is unaffected
  * by what was compiled before.
  */
-import { ShaderLanguage } from "@galacean/engine-core";
+import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 const shaderA = `
 struct Attributes { vec3 POSITION; };
@@ -21,7 +21,7 @@ struct V2 { vec4 a; vec4 b; };
 V2 vert(Attr2 attr) { V2 o; o.a = vec4(attr.POSITION, 1.0); o.b = vec4(attr.UV, 0.0, 1.0); return o; }
 void frag(V2 i) { gl_FragColor = i.a + i.b; }`;
 
-// Missing entries take the soft-return path; compiling it must not leak visitor state.
+// Missing entries throw during generation, then the compiler logs, restores pass text, and returns undefined.
 const broken = `struct Attributes { vec3 POSITION; }; void notAnEntry() {}`;
 
 function compile(c: ShaderCompiler, src: string) {
@@ -41,8 +41,13 @@ describe("compiler state isolation (no cross-shader leak)", () => {
   it("a degraded compile (missing entries) does not corrupt the next valid compile", () => {
     const c = new ShaderCompiler();
     const clean = compile(c, shaderA);
-    const brokenOut = compile(c, broken);
-    expect(brokenOut).to.be.undefined;
+    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      expect(compile(c, broken)).to.be.undefined;
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      errorSpy.mockRestore();
+    }
     const after = compile(c, shaderA);
     expect(after!.vertex).to.equal(clean!.vertex);
     expect(after!.fragment).to.equal(clean!.fragment);

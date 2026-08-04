@@ -151,11 +151,13 @@ export default class SourceLexer extends BaseLexer {
     }
   }
 
-  scanToCharacter(char: string): void {
-    while (this.getCurChar() !== char && !this.isEnd()) {
+  scanToCharacter(char: string): boolean {
+    while (this.getCurChar() !== char && this.getCurChar() !== "}" && !this.isEnd()) {
       this.advance(1);
     }
+    if (this.getCurChar() !== char) return false;
     this.advance(1);
+    return true;
   }
 
   createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: string) {

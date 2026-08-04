@@ -62,13 +62,17 @@ export class LALR1 {
 
     const productionList = this.grammar.getProductionList(<NoneTerminal>item.curSymbol);
 
-    if (item.nextSymbol) {
+    if (item.nextSymbol !== undefined) {
       const newLookaheadSet = new Set<Terminal>();
       let lastFirstSet: Set<Terminal> | undefined;
       let terminalExist = false;
       // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
       // newLookAhead = First(Ca)
-      for (let i = 1, nextSymbol = item.symbolByOffset(1); nextSymbol; nextSymbol = item.symbolByOffset(++i)) {
+      for (
+        let i = 1, nextSymbol = item.symbolByOffset(1);
+        nextSymbol !== undefined;
+        nextSymbol = item.symbolByOffset(++i)
+      ) {
         if (GrammarUtils.isTerminal(nextSymbol)) {
           newLookaheadSet.add(<Terminal>nextSymbol);
           terminalExist = true;

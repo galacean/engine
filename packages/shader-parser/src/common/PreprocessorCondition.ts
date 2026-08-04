@@ -124,9 +124,11 @@ function scanNumber(context: ParserContext): number | undefined {
   if (!value) return undefined;
 
   const parsed = Number(value);
-  if (!Number.isFinite(parsed)) throwMalformedPreprocessorCondition(source);
+  if (!Number.isInteger(parsed) || parsed < -0x80000000 || parsed > 0x7fffffff) {
+    throwMalformedPreprocessorCondition(source);
+  }
   context.index += value.length;
-  return parsed | 0;
+  return parsed;
 }
 
 function scanIdentifier(context: ParserContext): string | undefined {

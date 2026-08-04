@@ -26,13 +26,7 @@ const shader = Shader.create(galaceanShaderCode);
 engine.run()
 ```
 
-There are two versions of the shader compiler: `Release` and `Verbose`. The `Verbose` version offers more user-friendly diagnostic information for debugging shader compilation errors, while the Release version provides superior performance.
-
-you can use `Verbose` version by import:
-
-```ts
-import { ShaderCompiler } from "@galacean/engine-shader-compiler/verbose";
-```
+Authoring diagnostics are provided separately by `@galacean/engine-shader-analyzer`; the runtime compiler does not include analyzer diagnostics.
 
 ## CFG Grammar conflict detection
 

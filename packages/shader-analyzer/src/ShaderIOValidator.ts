@@ -8,11 +8,15 @@ import {
   SymbolInfo,
   TypeSystem,
   ESymbolType,
-  type ShaderPosition,
+  ShaderPosition,
   type ShaderRange
 } from "@galacean/engine-shader-parser/internal/verbose";
 import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 import { DiagnosticType } from "./DiagnosticType";
+
+const zeroPosition = new ShaderPosition();
+zeroPosition.set(0, 0, 0);
+Object.freeze(zeroPosition);
 
 /**
  * Validates pipeline IO facts produced by `ShaderCoreInfo`.
@@ -205,7 +209,7 @@ export class ShaderIOValidator {
       errors,
       DiagnosticType.EntryNotFound,
       `Entry function '${entry}' not found.`,
-      location ?? <ShaderPosition>{ index: 0, line: 0, column: 0 },
+      location ?? zeroPosition,
       source
     );
   }

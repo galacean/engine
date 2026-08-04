@@ -16,8 +16,10 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    */
   _currentBranch: BranchSignature = EMPTY_BRANCH;
 
+  // #if _VERBOSE
   /** Whether insert/lookups retain analyzer-grade macro branch facts. */
   branchAnalysisEnabled = false;
+  // #endif
 
   get scope(): T {
     return this.stack[this.stack.length - 1];
@@ -53,18 +55,37 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     symbol: S,
     branchSignature: BranchSignature = this._currentBranch
   ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
+    // #if _VERBOSE
     return this.scope.insert(symbol, this.isInMacroBranch, branchSignature, this.branchAnalysisEnabled);
+    // #else
+    return this.scope.insert(symbol, this.isInMacroBranch, branchSignature);
+    // #endif
   }
 
-  lookup(symbol: S, includeMacro = false, callsiteBranch?: BranchSignature): S | undefined {
+  // prettier-ignore
+  lookup(
+    symbol: S,
+    includeMacro = false
+    // #if _VERBOSE
+    , callsiteBranch?: BranchSignature
+    // #endif
+  ): S | undefined {
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const symbolTable = this.stack[i];
-      const result = symbolTable.getSymbol(symbol, includeMacro, callsiteBranch);
+      // prettier-ignore
+      const result = symbolTable.getSymbol(
+        symbol,
+        includeMacro
+        // #if _VERBOSE
+        , callsiteBranch
+        // #endif
+      );
       if (result) return result;
     }
     return undefined;
   }
 
+  // #if _VERBOSE
   /** Whether any lexical scope contains an equal symbol, regardless of macro-branch visibility. */
   hasSymbol(symbol: S): boolean {
     for (let i = this.stack.length - 1; i >= 0; i--) {
@@ -72,21 +93,37 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     }
     return false;
   }
+  // #endif
 
   /**
-   * Collect every macro-compatible matching symbol from the nearest lexical scope. Callers must
-   * verify branch coverage before treating this candidate set as a guaranteed declaration.
+   * Collect every matching symbol from the nearest lexical scope.
    * @param symbol - Symbol shape used for name and kind matching.
    * @param includeMacro - Whether lookups include declarations from macro branches without a callsite branch.
    * @param out - Reusable output array.
    * @param callsiteBranch - Branch signature used for branch-aware visibility filtering.
    * @returns The supplied output array containing visible matches.
    */
-  lookupAll(symbol: S, includeMacro = false, out: S[], callsiteBranch?: BranchSignature): S[] {
+  // prettier-ignore
+  lookupAll(
+    symbol: S,
+    includeMacro = false,
+    out: S[]
+    // #if _VERBOSE
+    , callsiteBranch?: BranchSignature
+    // #endif
+  ): S[] {
     out.length = 0;
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const symbolTable = this.stack[i];
-      symbolTable._getSymbols(symbol, includeMacro, out, callsiteBranch);
+      // prettier-ignore
+      symbolTable._getSymbols(
+        symbol,
+        includeMacro,
+        out
+        // #if _VERBOSE
+        , callsiteBranch
+        // #endif
+      );
       // Match `lookup`: lexical shadowing stops at the nearest scope, while branch/overload
       // alternatives inside that scope remain available for ambiguity checks.
       if (out.length > 0) break;

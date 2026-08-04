@@ -41,6 +41,20 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostic!.range.start.column).to.equal(41);
   });
 
+  it("continues checking a replacement list after a macro-defined reference", () => {
+    const source = `Shader "macro-references" { SubShader "s" { Pass "p" {
+      #define KNOWN_VALUE 1.0
+      #define COMBINED_VALUE KNOWN_VALUE + missingValue
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(COMBINED_VALUE); }
+      VertexShader = vert; FragmentShader = frag;
+    } } }`;
+    const diagnostics = analyzer.analyze(source).diagnostics;
+    const unknown = diagnostics.filter((diagnostic) => diagnostic.code === "UnknownVariable");
+    expect(unknown, JSON.stringify(diagnostics)).to.have.lengthOf(1);
+    expect(unknown[0].message).to.include("missingValue");
+  });
+
   it("yields no diagnostics for a valid self-contained shader", () => {
     const source = `Shader "valid" {
   SubShader "Default" {
@@ -1509,5 +1523,13 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidRenderStateVariable");
     expect(diag, "invalid render state variable must report").to.be.ok;
     expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
+  });
+
+  it("stops render-state recovery at a closing brace when a semicolon is missing", () => {
+    const source = `Shader "rs-recovery" { SubShader "s" { Pass "p" {
+      BlendState broken { NotARealProperty = true }
+    } } }`;
+    const diagnostics = analyzer.analyze(source).diagnostics;
+    expect(diagnostics.some((diagnostic) => diagnostic.code === "InvalidRenderStateProperty")).to.equal(true);
   });
 });

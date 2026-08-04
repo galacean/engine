@@ -9,22 +9,18 @@
     "url": "https://github.com/galacean/engine.git"
   },
   "license": "MIT",
-  "main": "dist/main.js",
-  "module": "dist/module.js",
-  "debug": "src/runtime.ts",
-  "types": "types/runtime.d.ts",
   "exports": {
     "./internal": {
+      "types": "./types/runtime.d.ts",
       "debug": "./src/runtime.ts",
       "import": "./dist/module.js",
-      "require": "./dist/main.js",
-      "types": "./types/runtime.d.ts"
+      "require": "./dist/main.js"
     },
     "./internal/verbose": {
+      "types": "./types/index.d.ts",
       "debug": "./src/index.ts",
       "import": "./dist/module.verbose.js",
-      "require": "./dist/main.verbose.js",
-      "types": "./types/index.d.ts"
+      "require": "./dist/main.verbose.js"
     },
     "./package.json": "./package.json"
   },

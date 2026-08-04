@@ -105,7 +105,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     context.stage = EShaderStage.FRAGMENT;
     context.stageEntry = entryInfo.name;
 
-    // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements
+    // MRT structs come from ShaderCoreInfo; here only mark the fragment return statements.
     entryInfo.functions.forEach((fnSymbol) => {
       const { returnStatement } = fnSymbol.astNode;
       if (returnStatement) {
@@ -113,7 +113,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       }
     });
 
-    // Both stage struct-var maps are already populated in `visitShaderProgram`; just
+    // Both stage struct-var maps are already populated from ShaderCoreInfo; just
     // pre-walk macro refs so struct codegen sees the references.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 

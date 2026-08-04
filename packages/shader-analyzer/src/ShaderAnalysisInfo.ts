@@ -72,13 +72,8 @@ export class ShaderAnalysisInfo {
    * Returns every parsed function declaration.
    * @returns Function identities retained by the neutral IR.
    */
-  functions(): Iterable<ASTNode.FunctionDefinition> {
-    const groups = this._functionsByName.values();
-    return {
-      *[Symbol.iterator]() {
-        for (const functions of groups) yield* functions;
-      }
-    };
+  *functions(): IterableIterator<ASTNode.FunctionDefinition> {
+    for (const functions of this._functionsByName.values()) yield* functions;
   }
 
   /**

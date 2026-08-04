@@ -1,4 +1,5 @@
 import { DiagnosticSeverity, DiagnosticType, type Diagnostic } from "./Diagnostic";
+import { positionAt } from "./sourcePosition";
 
 type TokenKind = "identifier" | "number" | "operator" | "end" | "invalid";
 
@@ -13,6 +14,16 @@ interface ParseFailure {
   message: string;
   token: Token;
   certain: boolean;
+}
+
+class ExpressionParseFailure extends Error implements ParseFailure {
+  constructor(
+    message: string,
+    readonly token: Token,
+    readonly certain: boolean
+  ) {
+    super(message);
+  }
 }
 
 const binaryPrecedence: Readonly<Record<string, number>> = {
@@ -134,11 +145,13 @@ class ExpressionParser {
       this._parseConditional();
       const token = this._current();
       if (token.kind !== "end") {
-        const certain = token.kind !== "identifier" || token.text === "defined";
+        const followsExpandableFunctionName = this.sawExpandableIdentifier && token.text === "(";
+        const certain = !followsExpandableFunctionName && (token.kind !== "identifier" || token.text === "defined");
         this._fail(`Unexpected token '${token.text}' in preprocessor expression.`, token, certain);
       }
     } catch (failure) {
-      return failure as ParseFailure;
+      if (failure instanceof ExpressionParseFailure) return failure;
+      throw failure;
     }
   }
 
@@ -223,7 +236,7 @@ class ExpressionParser {
   }
 
   private _fail(message: string, token: Token, certain: boolean): never {
-    throw { message, token, certain } satisfies ParseFailure;
+    throw new ExpressionParseFailure(message, token, certain);
   }
 }
 
@@ -273,18 +286,4 @@ function tokenize(source: string): Token[] {
   }
   tokens.push({ kind: "end", text: "", start: source.length, end: source.length });
   return tokens;
-}
-
-function positionAt(source: string, offset: number): { line: number; column: number; offset: number } {
-  let line = 1;
-  let column = 1;
-  for (let index = 0; index < offset; index++) {
-    if (source.charCodeAt(index) === 10) {
-      line++;
-      column = 1;
-    } else {
-      column++;
-    }
-  }
-  return { line, column, offset };
 }
