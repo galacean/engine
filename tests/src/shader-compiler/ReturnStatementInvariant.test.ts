@@ -6,11 +6,7 @@ import { describe, expect, it } from "vitest";
  * enclosing function is non-void AND has a value return. The fragment-entry rewrite path
  * (`GLESVisitor._fragmentMain` → `visitJumpStatement`) reads it as an Expression at
  * `children[1]`; a bare `return;` inside a `void` fragment has a `;` token there, not an
- * expression, and the rewrite would emit malformed GLSL (`gl_FragColor = ;`) if the invariant
- * were relaxed to record void returns as well (as B2a briefly did).
- *
- * The built-in shaders never author `void frag(){ if (...) return; ... }`, so precompile /
- * e2e didn't catch it — this test covers the user-authored case directly.
+ * expression; recording a bare return would emit malformed GLSL (`gl_FragColor = ;`).
  */
 const shaderCompiler = new ShaderCompiler();
 

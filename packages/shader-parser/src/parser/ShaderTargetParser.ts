@@ -1,7 +1,8 @@
 import { ETokenType } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
-import { GSError, GSErrorName } from "../GSError";
+import { GSErrorName } from "../GSError";
+import type { GSError } from "../GSError";
 import { LALR1 } from "../lalr";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
@@ -60,8 +61,12 @@ export class ShaderTargetParser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset(macroDefineList);
+  parse(
+    tokens: Generator<BaseToken, BaseToken>,
+    macroDefineList: MacroDefineList,
+    diagnosticsEnabled = false
+  ): ASTNode.GLShaderProgram | null {
+    this.sematicAnalyzer.reset(macroDefineList, diagnosticsEnabled);
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     // A prior parse that bailed early (syntax error -> `return null` below) leaves this working
     // stack dirty; the parser is a shared singleton, so start every parse from a clean stack or a
@@ -88,10 +93,16 @@ export class ShaderTargetParser {
             sematicAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
           }
         }
+        // #if _VERBOSE
+        if (diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
+          sematicAnalyzer.pushScope();
+        }
+        // #endif
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
-        return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
+        const program = sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
+        return program;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
@@ -125,7 +136,9 @@ export class ShaderTargetParser {
           ShaderCompilerUtils.processingPassText,
           token.location
         );
+        // #if _VERBOSE
         this.sematicAnalyzer.errors.push(<GSError>error);
+        // #endif
         return null;
       }
     }

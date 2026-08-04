@@ -2,17 +2,20 @@ import {
   ChunkOutputCache,
   IncludeMap,
   parseShaderPass,
+  ShaderCoreInfo,
   ShaderCompilerUtils,
-  ShaderIOAnalyzer,
-  ShaderSourceParser
-} from "@galacean/engine-shader-parser";
-import type { ASTNode, ShaderRange } from "@galacean/engine-shader-parser";
-import type { IShaderAnalyzer, IShaderPassSource, IShaderProgram, IShaderSource } from "@galacean/engine-design";
-import { Logger } from "@galacean/engine-core";
+  ShaderSourceParser,
+  type PreprocessSourceMapSegment
+} from "@galacean/engine-shader-parser/verbose";
+import type { ShaderRange } from "@galacean/engine-shader-parser/verbose";
+import type { IShaderPassSource, IShaderSource, IStatement } from "@galacean/engine-design";
 import type { Diagnostic } from "./Diagnostic";
-import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
+import { DiagnosticType } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
+import { validatePreprocessorExpressions } from "./PreprocessorExpressionValidator";
 import { ShaderValidator } from "./ShaderValidator";
+import { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
+import { ShaderIOValidator } from "./ShaderIOValidator";
 
 /** Options used when analyzing shader source. */
 export interface AnalyzerOptions {
@@ -20,174 +23,219 @@ export interface AnalyzerOptions {
   includeMap?: IncludeMap;
   /** Base URL used to resolve relative `#include` paths. */
   basePathForIncludeKey?: string;
-}
-
-/** Parsed pass available for subsequent code generation. */
-export interface AnalyzedPass {
-  /**
-   * Parsed AST for this pass. Valid until the next call to {@link ShaderAnalyzer.analyze} because
-   * AST nodes are pooled.
-   */
-  program: ASTNode.GLShaderProgram;
-  /** Vertex entry-point name. */
-  vertexEntry: string;
-  /** Fragment entry-point name. */
-  fragmentEntry: string;
+  /** Logical file name attached to diagnostics. */
+  file?: string;
 }
 
 /** Result of analyzing shader source. */
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
-  /** Parsed passes in source order, empty when an error prevents code generation. */
-  passes: AnalyzedPass[];
 }
 
 /**
  * Analyzes ShaderLab source and GLSL semantics without generating backend source.
  */
-export class ShaderAnalyzer implements IShaderAnalyzer {
-  private _includeMap: IncludeMap = {};
-  private readonly _chunkOutputCache: ChunkOutputCache = new Map();
-
+export class ShaderAnalyzer {
   /**
    * Analyzes shader source.
    * @param source - ShaderLab source to analyze.
    * @param options - Analysis options.
-   * @returns Diagnostics and reusable parsed passes.
+   * @returns Structured diagnostics.
    */
   analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
-    if (options?.includeMap) {
-      this._includeMap = options.includeMap;
-      this._chunkOutputCache.clear();
-    }
+    const includeMap = options?.includeMap ?? {};
+    const chunkOutputCache: ChunkOutputCache = new Map();
 
-    const diagnostics: Diagnostic[] = [];
-    const passes: AnalyzedPass[] = [];
-
+    const diagnostics = validatePreprocessorExpressions(source, options?.file);
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
 
     try {
-      const shaderSource: IShaderSource = ShaderSourceParser.parse(source);
-      diagnostics.push(...ShaderSourceParser.errors.map((e) => gseErrorToDiagnostic(e)));
+      const sourceResult = ShaderSourceParser.parseWithErrors(source);
+      const shaderSource: IShaderSource = sourceResult.shaderSource;
+      diagnostics.push(...sourceResult.errors.map((error) => gseErrorToDiagnostic(error)));
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          const analyzed = this._analyzePass(pass, diagnostics, options?.basePathForIncludeKey);
-          if (analyzed) passes.push(analyzed);
+          const statements = shaderSource.pendingContents.concat(subShader.pendingContents, pass.pendingContents);
+          this._analyzePass(
+            pass,
+            statements,
+            source,
+            diagnostics,
+            includeMap,
+            chunkOutputCache,
+            options?.basePathForIncludeKey,
+            options?.file,
+            diagnostics.some(
+              (diagnostic) =>
+                diagnostic.code === DiagnosticType.PreprocessorError &&
+                statements.some(
+                  (statement) =>
+                    diagnostic.range.start.offset >= statement.range.start.index &&
+                    diagnostic.range.start.offset <= statement.range.end.index
+                )
+            )
+          );
         }
       }
     } catch (e) {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
 
-    if (diagnostics.some((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error)) passes.length = 0;
-    this._logDiagnostics(diagnostics);
-    return { diagnostics, passes };
-  }
-
-  /**
-   * @internal
-   * Diagnose an already-parsed program (no re-parse) plus its parse-stage errors, surfacing the
-   * result via Logger. Called by the compiler when this analyzer is injected.
-   */
-  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): boolean {
-    const glProgram = program as unknown as ASTNode.GLShaderProgram;
-    const shaderData = glProgram.shaderData;
-    const passText = ShaderCompilerUtils.processingPassText;
-    const diagnostics: Diagnostic[] = parseErrors.map((e) => gseErrorToDiagnostic(e));
-    for (const e of ShaderValidator.validate(glProgram, passText, vertexEntry, fragmentEntry))
-      diagnostics.push(gseErrorToDiagnostic(e));
-    const { errors: ioErrors } = ShaderIOAnalyzer.analyze(shaderData, vertexEntry, fragmentEntry, passText);
-    for (const e of ioErrors) diagnostics.push(gseErrorToDiagnostic(e));
-    this._logDiagnostics(diagnostics);
-    return !diagnostics.some((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error);
-  }
-
-  /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */
-  private _logDiagnostics(diagnostics: Diagnostic[]): void {
-    for (const d of diagnostics) {
-      switch (d.severity) {
-        case DiagnosticSeverity.Error:
-          Logger.error(formatDiagnostic(d));
-          break;
-        case DiagnosticSeverity.Warning:
-          Logger.warn(formatDiagnostic(d));
-          break;
-      }
+    if (options?.file) {
+      for (const diagnostic of diagnostics) diagnostic.file ??= options.file;
     }
+    return { diagnostics };
   }
 
   private _analyzePass(
     pass: IShaderPassSource,
+    statements: readonly IStatement[],
+    source: string,
     diagnostics: Diagnostic[],
-    basePathForIncludeKey: string | undefined
-  ): AnalyzedPass | null {
+    includeMap: IncludeMap,
+    chunkOutputCache: ChunkOutputCache,
+    basePathForIncludeKey: string | undefined,
+    file: string | undefined,
+    skipSemanticValidation: boolean
+  ): void {
     const { vertexEntry, fragmentEntry } = pass;
+    const passDiagnostics: Diagnostic[] = [];
+    let passText: string | undefined;
+    let preprocessSourceMap: PreprocessSourceMapSegment[] = [];
     try {
-      const { program, errors, passText } = parseShaderPass(
-        pass.contents,
-        this._includeMap,
-        this._chunkOutputCache,
-        basePathForIncludeKey
-      );
-      diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
-      if (program) {
-        diagnostics.push(
-          ...ShaderValidator.validate(program, passText, vertexEntry, fragmentEntry).map((e) => gseErrorToDiagnostic(e))
+      const parsed = parseShaderPass(pass.contents, includeMap, chunkOutputCache, basePathForIncludeKey);
+      const { ir, errors } = parsed;
+      passText = parsed.passText;
+      preprocessSourceMap = parsed.sourceMap;
+      for (const error of errors) {
+        const diagnostic = gseErrorToDiagnostic(error);
+        if (
+          !skipSemanticValidation ||
+          diagnostic.code === DiagnosticType.SyntaxError ||
+          diagnostic.code === DiagnosticType.PreprocessorError
+        ) {
+          passDiagnostics.push(diagnostic);
+        }
+      }
+      if (ir && !skipSemanticValidation) {
+        const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
+        const analysisInfo = new ShaderAnalysisInfo(ir, coreInfo);
+        passDiagnostics.push(...ShaderValidator.validate(analysisInfo).map((error) => gseErrorToDiagnostic(error)));
+        passDiagnostics.push(
+          ...ShaderIOValidator.validate(
+            analysisInfo,
+            pass.vertexEntryLocation as ShaderRange | undefined,
+            pass.fragmentEntryLocation as ShaderRange | undefined
+          ).map((error) => gseErrorToDiagnostic(error))
         );
-        // ShaderIOAnalyzer consumes the concrete parser range stored by the source parser.
-        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
-          program.shaderData,
-          vertexEntry,
-          fragmentEntry,
-          passText,
-          pass.vertexEntryLocation as ShaderRange | undefined,
-          pass.fragmentEntryLocation as ShaderRange | undefined
-        );
-        diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
-        return { program: this._cloneProgram(program), vertexEntry, fragmentEntry };
       }
     } catch (e) {
-      diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
+      passDiagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
-    return null;
-  }
 
-  private _cloneProgram(program: ASTNode.GLShaderProgram): ASTNode.GLShaderProgram {
-    return ShaderAnalyzer._cloneValue(program, new WeakMap()) as ASTNode.GLShaderProgram;
+    const sourceMap = createPassSourceMap(statements);
+    for (const diagnostic of passDiagnostics) {
+      if (passText !== undefined && diagnostic.relatedSource === passText) {
+        remapPreprocessedDiagnostic(diagnostic, preprocessSourceMap);
+      }
+      if (sourceMap.generatedSource === pass.contents && diagnostic.relatedSource === pass.contents) {
+        remapDiagnostic(diagnostic, sourceMap.segments, source);
+      }
+      diagnostic.file ??= file;
+      diagnostics.push(diagnostic);
+    }
   }
+}
 
-  private static _cloneValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
-    if (value === null || typeof value !== "object") return value;
-    const existing = seen.get(value);
-    if (existing) return existing;
-    if (Array.isArray(value)) {
-      const clone: unknown[] = [];
-      seen.set(value, clone);
-      for (const item of value) clone.push(this._cloneValue(item, seen));
-      return clone;
-    }
-    if (value instanceof Map) {
-      const clone = new Map();
-      seen.set(value, clone);
-      for (const [key, item] of value) clone.set(this._cloneValue(key, seen), this._cloneValue(item, seen));
-      return clone;
-    }
-    if (value instanceof Set) {
-      const clone = new Set();
-      seen.set(value, clone);
-      for (const item of value) clone.add(this._cloneValue(item, seen));
-      return clone;
-    }
-    const clone = Object.create(Object.getPrototypeOf(value));
-    seen.set(value, clone);
-    for (const key of Reflect.ownKeys(value)) {
-      const descriptor = Object.getOwnPropertyDescriptor(value, key);
-      if (!descriptor) continue;
-      if ("value" in descriptor) descriptor.value = this._cloneValue(descriptor.value, seen);
-      Object.defineProperty(clone, key, descriptor);
-    }
-    return clone;
+function remapPreprocessedDiagnostic(diagnostic: Diagnostic, segments: readonly PreprocessSourceMapSegment[]): void {
+  const startSegment = findPreprocessSegment(diagnostic.range.start.offset, segments, false);
+  if (!startSegment) return;
+  const endSegment = findPreprocessSegment(diagnostic.range.end.offset, segments, true);
+  const startOffset = startSegment.sourceStart + diagnostic.range.start.offset - startSegment.generatedStart;
+  let endOffset = startOffset;
+  if (endSegment && endSegment.source === startSegment.source && endSegment.file === startSegment.file) {
+    endOffset = endSegment.sourceStart + diagnostic.range.end.offset - endSegment.generatedStart;
   }
+  diagnostic.range = {
+    start: positionAt(startSegment.source, startOffset),
+    end: positionAt(startSegment.source, endOffset)
+  };
+  diagnostic.relatedSource = startSegment.source;
+  diagnostic.file = startSegment.file;
+}
+
+function findPreprocessSegment(
+  offset: number,
+  segments: readonly PreprocessSourceMapSegment[],
+  isEnd: boolean
+): PreprocessSourceMapSegment | undefined {
+  for (const segment of segments) {
+    if (
+      offset >= segment.generatedStart &&
+      (isEnd ? offset <= segment.generatedEnd && offset > segment.generatedStart : offset < segment.generatedEnd)
+    ) {
+      return segment;
+    }
+  }
+  const last = segments[segments.length - 1];
+  return last && offset === last.generatedEnd ? last : undefined;
+}
+
+interface SourceMapSegment {
+  generatedStart: number;
+  generatedEnd: number;
+  sourceStart: number;
+}
+
+function createPassSourceMap(statements: readonly IStatement[]): {
+  generatedSource: string;
+  segments: SourceMapSegment[];
+} {
+  const segments: SourceMapSegment[] = [];
+  let generatedSource = "";
+  for (let index = 0; index < statements.length; index++) {
+    if (index > 0) generatedSource += "\n";
+    const statement = statements[index];
+    const generatedStart = generatedSource.length;
+    generatedSource += statement.content;
+    segments.push({
+      generatedStart,
+      generatedEnd: generatedSource.length,
+      sourceStart: statement.range.start.index
+    });
+  }
+  return { generatedSource, segments };
+}
+
+function remapDiagnostic(diagnostic: Diagnostic, segments: readonly SourceMapSegment[], source: string): void {
+  const start = remapOffset(diagnostic.range.start.offset, segments);
+  if (start === undefined) return;
+  const end = remapOffset(diagnostic.range.end.offset, segments) ?? start;
+  diagnostic.range = { start: positionAt(source, start), end: positionAt(source, end) };
+  diagnostic.relatedSource = source;
+}
+
+function remapOffset(offset: number, segments: readonly SourceMapSegment[]): number | undefined {
+  for (let index = 0; index < segments.length; index++) {
+    const segment = segments[index];
+    if (offset >= segment.generatedStart && offset <= segment.generatedEnd) {
+      return segment.sourceStart + offset - segment.generatedStart;
+    }
+  }
+}
+
+function positionAt(source: string, offset: number): Diagnostic["range"]["start"] {
+  let line = 1;
+  let column = 1;
+  for (let index = 0; index < offset; index++) {
+    if (source.charCodeAt(index) === 10) {
+      line++;
+      column = 1;
+    } else {
+      column++;
+    }
+  }
+  return { line, column, offset };
 }

@@ -1,4 +1,4 @@
-import { BranchSignature, EMPTY_BRANCH } from "./BaseToken";
+import { BranchSignature, DeclarationCoexistence, EMPTY_BRANCH } from "./BaseToken";
 import { IBaseSymbol } from "./IBaseSymbol";
 import { SymbolTable } from "./SymbolTable";
 
@@ -15,6 +15,9 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    * callsite branch explicitly.
    */
   _currentBranch: BranchSignature = EMPTY_BRANCH;
+
+  /** Whether insert/lookups retain analyzer-grade macro branch facts. */
+  branchAnalysisEnabled = false;
 
   get scope(): T {
     return this.stack[this.stack.length - 1];
@@ -44,12 +47,13 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    * Insert a symbol into the current lexical scope.
    * @param symbol - Symbol to insert.
    * @param branchSignature - Macro branch at the declaration token.
-   * @returns Whether the declaration conflicts with an existing declaration in this scope.
+   * @returns Whether the declaration conflicts, is exclusive, or has unresolved branch overlap.
    */
-  insert(symbol: S, branchSignature: BranchSignature = this._currentBranch): boolean {
-    // Local macro choices can be constrained by the caller, unlike global declarations.
-    const diagnoseBranchConflict = this.stack.length === 1;
-    return this.scope.insert(symbol, this.isInMacroBranch, branchSignature, diagnoseBranchConflict);
+  insert(
+    symbol: S,
+    branchSignature: BranchSignature = this._currentBranch
+  ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
+    return this.scope.insert(symbol, this.isInMacroBranch, branchSignature, this.branchAnalysisEnabled);
   }
 
   lookup(symbol: S, includeMacro = false, callsiteBranch?: BranchSignature): S | undefined {

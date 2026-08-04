@@ -14,6 +14,7 @@
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import swc from "rollup-plugin-swc3";
+import jscc from "rollup-plugin-jscc";
 
 const bundlerExternal = [
   // Pulled in dynamically by precompile.ts (`await import("../dist/main.js")`);
@@ -44,6 +45,8 @@ const swcPluginRuntime = swc({
   sourceMaps: true
 });
 
+const jsccPlugin = jscc({ values: { _VERBOSE: false } });
+
 // Nothing externalized at the runtime entry: `@galacean/engine-math` is
 // resolved to its `src/index.ts` via `mainFields: ["debug"]` and bundled
 // inline (no math/dist prerequisite). `@galacean/engine-design` imports are
@@ -65,9 +68,10 @@ export default [
       // source (`debug` → `src/index.ts` by repo convention), so this build
       // never depends on any other workspace dist being present and always
       // uses the freshest source — no stale-dist risk on warm starts.
-      resolve({ extensions: [".js", ".ts"], mainFields: ["debug"] }),
+      resolve({ extensions: [".js", ".ts"], mainFields: ["debug"], exportConditions: ["debug"] }),
       swcPluginRuntime,
-      commonjs()
+      commonjs(),
+      jsccPlugin
     ]
   },
   {

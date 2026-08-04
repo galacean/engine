@@ -11,7 +11,15 @@ export default defineProject({
       "@galacean/engine-loader",
       "@galacean/engine-rhi-webgl",
       "@galacean/engine-math",
-      "@galacean/engine-core"
+      "@galacean/engine-core",
+      "@galacean/engine-design",
+      "@galacean/engine-shader",
+      "@galacean/engine-shader-analyzer",
+      "@galacean/engine-shader-compiler",
+      "@galacean/engine-shader-parser",
+      "playwright",
+      "playwright-core",
+      "fsevents"
     ]
   },
   test: {

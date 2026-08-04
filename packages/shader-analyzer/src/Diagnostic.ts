@@ -1,4 +1,5 @@
-import { DiagnosticType, formatDiagnosticSource } from "@galacean/engine-shader-parser";
+import { formatDiagnosticSource } from "@galacean/engine-shader-parser/verbose";
+import { DiagnosticType } from "./DiagnosticType";
 
 /** Severity assigned to a shader diagnostic. */
 export enum DiagnosticSeverity {
@@ -14,7 +15,9 @@ export interface Diagnostic {
   code: DiagnosticType;
   /** Human-readable explanation of the reported rule violation. */
   message: string;
-  /** Source range containing the reported issue. */
+  /** Source file associated with the range, when supplied by the host. */
+  file?: string;
+  /** Source range containing the reported issue. Lines and columns are 1-based; offsets are 0-based. */
   range: {
     start: { line: number; column: number; offset: number };
     end: { line: number; column: number; offset: number };

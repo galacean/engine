@@ -63,7 +63,7 @@ export class ShaderInstructionEncoder {
           break;
         }
         case "if": {
-          const cond = parsePreprocessorCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           backfillStack.push([idx]);
@@ -77,7 +77,7 @@ export class ShaderInstructionEncoder {
           stack.push(elseIdx);
           ShaderInstructionEncoder._backfillJump(instructions[prevIdx], instructions.length);
 
-          const cond = parsePreprocessorCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           stack.push(idx);
@@ -155,6 +155,14 @@ export class ShaderInstructionEncoder {
       instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
     } else {
       instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
+    }
+  }
+
+  private static _parseCondition(expression: string): Condition {
+    try {
+      return parsePreprocessorCondition(expression);
+    } catch {
+      return { t: "raw", e: expression };
     }
   }
 

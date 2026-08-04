@@ -7,6 +7,7 @@ import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup"
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
+import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -22,6 +23,9 @@ const pkgs = fs
       pkgJson: require(path.resolve(location, "package.json"))
     };
   });
+
+const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
+pkgs.push({ ...shaderParserPkg, verboseMode: true });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -58,12 +62,16 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson }) {
-  const input = path.join(location, "src", "index.ts");
+function config({ location, pkgJson, verboseMode = false }) {
+  const entry = pkgJson.name === "@galacean/engine-shader-parser" && !verboseMode ? "runtime.ts" : "index.ts";
+  const input = path.join(location, "src", entry);
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
 
+  curPlugins.push(jscc({ values: { _VERBOSE: verboseMode } }));
+
   const external = Object.keys(dependencies);
+  const isExternal = (id) => external.some((dependency) => id === dependency || id.startsWith(`${dependency}/`));
   curPlugins.push(
     replace({
       preventAssignment: true,
@@ -99,11 +107,11 @@ function config({ location, pkgJson }) {
       };
     },
     module: () => {
-      const esFile = path.join(location, pkgJson.module);
-      const mainFile = path.join(location, pkgJson.main);
+      const esFile = path.join(location, verboseMode ? "dist/module.verbose.js" : pkgJson.module);
+      const mainFile = path.join(location, verboseMode ? "dist/main.verbose.js" : pkgJson.main);
       return {
         input,
-        external,
+        external: isExternal,
         output: [
           {
             file: esFile,
@@ -125,7 +133,7 @@ function config({ location, pkgJson }) {
       const sourcesInput = path.join(location, "src", "sources.ts");
       return {
         input: sourcesInput,
-        external,
+        external: isExternal,
         output: [
           {
             file: path.join(location, "dist", "sources.module.js"),
@@ -141,6 +149,16 @@ function config({ location, pkgJson }) {
         plugins: curPlugins
       };
     },
+    analyzerCli: () => ({
+      input: path.join(location, "src", "cli.ts"),
+      external: (id) => isExternal(id) || id === "node:fs" || id === "node:path",
+      output: {
+        file: path.join(location, "dist", "cli.js"),
+        format: "commonjs",
+        banner: "#!/usr/bin/env node"
+      },
+      plugins: curPlugins
+    }),
     bundled: (compress) => {
       // ES module format with no external dependencies (bundled)
       const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
@@ -219,6 +237,11 @@ function getModule() {
   const shaderPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader");
   if (shaderPkg) {
     result.push(makeRollupConfig({ ...shaderPkg, type: "sources" }));
+  }
+
+  const analyzerPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader-analyzer");
+  if (analyzerPkg) {
+    result.push(makeRollupConfig({ ...analyzerPkg, type: "analyzerCli" }));
   }
 
   return result;

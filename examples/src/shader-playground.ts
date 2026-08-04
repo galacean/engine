@@ -122,6 +122,35 @@ const MACRO_SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
+  "宏分支 / 复杂算术条件完整覆盖": pass(`      #if A + B > 1
+        float u_complex;
+      #else
+        float u_complex;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_complex); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 复杂算术条件覆盖未知": pass(`      #if A + B > 1
+        float u_complex;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_complex); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 复杂算术条件互斥声明": pass(`      #if A + B > 1
+        float u_complex;
+      #endif
+      #if A + B <= 1
+        float u_complex;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
   "宏分支 / 嵌套互斥分支": pass(`      #ifdef OUTER
         #ifdef INNER
           float u_nested;
@@ -174,7 +203,7 @@ const MACRO_SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "宏分支 / 局部声明由调用方宏约束": pass(`      void vert() { gl_Position = vec4(0.0); }
+  "宏分支 / 独立局部宏可能并存": pass(`      void vert() { gl_Position = vec4(0.0); }
       void frag() {
         #ifdef CALLER_A
           float localValue = 0.0;
@@ -354,9 +383,15 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  [DiagnosticType.UseBeforeDeclaration]: pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.UnknownVariable]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(undeclared_color, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  [DiagnosticType.UnknownType]: pass(`      RUNTIME_TYPE u_value;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 

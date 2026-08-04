@@ -131,8 +131,8 @@ describe("branch resolution ambiguity", () => {
     ["base type", "float value;", "int value;"],
     ["array shape", "float value;", "float value[2];"],
     ["array size", "float value[2];", "float value[3];"]
-  ])("errors when a struct member has divergent %s", (_name, first, second) => {
-    const result = codes(`#ifdef A
+  ])("warns when a struct member has divergent %s", (_name, first, second) => {
+    const result = diagnostics(`#ifdef A
       struct S { ${first} };
     #else
       struct S { ${second} };
@@ -140,8 +140,10 @@ describe("branch resolution ambiguity", () => {
     S s;
     void frag() { gl_FragColor = vec4(s.value); }
     ${ENTRIES}`);
-    expect(result).to.include("AmbiguousMacroBranchResolution");
-    expect(result).to.not.include("UndeclaredStructMember");
+    const ambiguity = result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchType");
+    expect(ambiguity).to.have.lengthOf(1);
+    expect(ambiguity[0].severity).to.equal("warning");
+    expect(result.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
   });
 
   it("keeps definitive struct member results when branches agree", () => {

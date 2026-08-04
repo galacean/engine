@@ -1,13 +1,10 @@
-Shader "macro-author-error-unbalanced-bracket" {
+Shader "macro-token-fragment-trailing-comma" {
   SubShader "Default" {
     Pass "test" {
       mat4 renderer_MVPMat;
 
-      // Authoring error: the value isn't a valid GLSL expression. Same
-      // uniform diagnostic as other authoring-error shapes (trailing
-      // comma, trailing operator, leading punctuation). The user sees the
-      // macro name + value text and fixes their GLSL.
-      #define BAD u_a[u_b
+      // Replacement lists are preprocessing tokens and need not form standalone expressions.
+      #define BAD u_a, u_b,
 
       float u_a;
       float u_b;

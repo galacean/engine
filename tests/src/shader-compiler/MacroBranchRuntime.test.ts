@@ -19,16 +19,9 @@ FragmentShader = frag;
 
 function evaluate(source: string, macros: Array<[string, string]>) {
   const result = new ShaderAnalyzer().analyze(source);
-  expect(result.diagnostics, "only clean analysis results may enter code generation").to.be.empty;
-  const pass = result.passes[0];
-  expect(pass).to.not.be.undefined;
-
-  const generated = new ShaderCompiler().generate(
-    pass.program,
-    pass.vertexEntry,
-    pass.fragmentEntry,
-    ShaderLanguage.GLSLES100
-  );
+  expect(result.diagnostics).to.be.empty;
+  const generated = compile(new ShaderCompiler(), source);
+  expect(generated).to.not.be.undefined;
   expect(generated.vertexShaderInstructions).to.not.be.undefined;
   expect(generated.fragmentShaderInstructions).to.not.be.undefined;
 
@@ -39,15 +32,9 @@ function evaluate(source: string, macros: Array<[string, string]>) {
   };
 }
 
-function compileWithAnalyzer(compiler: ShaderCompiler, source: string) {
+function compile(compiler: ShaderCompiler, source: string) {
   const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
-  return compiler._parseShaderPass(
-    pass.contents,
-    pass.vertexEntry,
-    pass.fragmentEntry,
-    ShaderLanguage.GLSLES100,
-    ""
-  );
+  return compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES100, "");
 }
 
 interface DriverResult {
@@ -210,7 +197,7 @@ float u_value;
     }
   });
 
-  it("blocks codegen for a non-complementary #ifndef/#elif declaration gap", () => {
+  it("reports a non-complementary #ifndef/#elif declaration gap without blocking codegen", () => {
     const source = shader(
       `#ifndef DISABLE_VALUE
 float u_value;
@@ -223,14 +210,11 @@ float u_value;
     const analyzer = new ShaderAnalyzer();
     const result = analyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
-    expect(result.passes).to.be.empty;
-
     const compiler = new ShaderCompiler();
-    compiler._setAnalyzer(analyzer);
-    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+    expect(compile(compiler, source)).to.not.be.undefined;
   });
 
-  it("blocks codegen for a repeated #ifdef/#elif condition", () => {
+  it("reports a repeated #ifdef/#elif condition without blocking codegen", () => {
     const source = shader(
       `#ifdef USE_VALUE
 float u_value;
@@ -243,14 +227,11 @@ float u_value;
     const analyzer = new ShaderAnalyzer();
     const result = analyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
-    expect(result.passes).to.be.empty;
-
     const compiler = new ShaderCompiler();
-    compiler._setAnalyzer(analyzer);
-    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+    expect(compile(compiler, source)).to.not.be.undefined;
   });
 
-  it("rejects malformed #elif conditions before codegen", () => {
+  it("reports malformed #elif syntax while preserving compiler output", () => {
     const source = shader(
       `#ifdef USE_VALUE
 float u_value;
@@ -262,14 +243,12 @@ float u_value;
 
     const analyzer = new ShaderAnalyzer();
     const result = analyzer.analyze(source);
-    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["SyntaxError"]);
-    expect(result.passes).to.be.empty;
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
 
     const compiler = new ShaderCompiler();
-    compiler._setAnalyzer(analyzer);
     const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
     try {
-      expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+      expect(compile(compiler, source)).to.not.be.undefined;
     } finally {
       errorSpy.mockRestore();
     }
@@ -296,11 +275,10 @@ gl_FragColor = vec4(branchValue);`
 
       const result = new ShaderAnalyzer().analyze(source);
       expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
-      expect(result.passes).to.be.empty;
     }
   );
 
-  it("blocks compiler codegen when branch-local analysis fails", () => {
+  it("does not gate compiler codegen when branch-local analysis fails", () => {
     const source = shader(
       `#ifdef WRITE_PROHIBITED
 const float branchValue = 0.0;
@@ -316,14 +294,11 @@ gl_FragColor = vec4(branchValue);`
     const analyzer = new ShaderAnalyzer();
     const result = analyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
-    expect(result.passes).to.be.empty;
-
     const compiler = new ShaderCompiler();
-    compiler._setAnalyzer(analyzer);
-    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+    expect(compile(compiler, source)).to.not.be.undefined;
   });
 
-  it("blocks compiler codegen when a macro declaration does not cover its reference", () => {
+  it("does not gate compiler codegen when a macro declaration may not cover its reference", () => {
     const source = shader(
       `#ifdef DECLARED_ONLY_WITH_A
 float branchValue;
@@ -334,10 +309,7 @@ float branchValue;
     const analyzer = new ShaderAnalyzer();
     const result = analyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UseBeforeDeclaration");
-    expect(result.passes).to.be.empty;
-
     const compiler = new ShaderCompiler();
-    compiler._setAnalyzer(analyzer);
-    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+    expect(compile(compiler, source)).to.not.be.undefined;
   });
 });

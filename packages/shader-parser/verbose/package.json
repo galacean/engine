@@ -1,0 +1,5 @@
+{
+  "main": "../dist/main.verbose.js",
+  "module": "../dist/module.verbose.js",
+  "types": "../types/index.d.ts"
+}

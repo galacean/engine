@@ -1,22 +1,19 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
+import { BaseToken, BranchSignature, EMPTY_BRANCH, sameBranch } from "../common/BaseToken";
+// #if _VERBOSE
 import {
-  BaseToken,
-  BranchSignature,
-  canBranchesCoverCallsite,
   canBranchesOverlap,
   canDeclarationsCoexist,
-  EMPTY_BRANCH,
+  getBranchCoverage,
   isBranchReachable,
-  isBranchVisibleFrom,
-  isSelfGuardingBranch,
-  sameBranch
+  isBranchVisibleFrom
 } from "../common/BaseToken";
+// #endif
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
-import { DiagnosticType } from "../DiagnosticType";
 import { MacroDefineInfo } from "../Preprocessor";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
@@ -26,6 +23,7 @@ import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
+// #if _VERBOSE
 /** Texture-sampling builtins whose first argument is a sampler — used to flag a non-sampler arg0. */
 const TEXTURE_SAMPLING_BUILTINS = new Set([
   "texture",
@@ -43,6 +41,7 @@ const TEXTURE_SAMPLING_BUILTINS = new Set([
   "textureSize",
   "texelFetch"
 ]);
+// #endif
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
@@ -69,6 +68,9 @@ export abstract class TreeNode implements IPoolElement {
    * is stamped with that branch. Mirrors codegen's per-branch visibility model.
    */
   _branch: BranchSignature = EMPTY_BRANCH;
+  // #if _VERBOSE
+  _inMacroDefinition = false;
+  // #endif
 
   /**
    * Parent pointer for AST traversal.
@@ -92,16 +94,33 @@ export abstract class TreeNode implements IPoolElement {
   set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
+    // #if _VERBOSE
     let branch: BranchSignature = EMPTY_BRANCH;
+    let inheritedBranch = false;
+    let inMacroDefinition = false;
+    // #endif
     for (const child of children) {
       if (child instanceof TreeNode) {
         child._parent = this;
-        if (branch === EMPTY_BRANCH && child._branch !== EMPTY_BRANCH) branch = child._branch;
-      } else if (branch === EMPTY_BRANCH && child instanceof BaseToken && child.branch !== EMPTY_BRANCH) {
+        // #if _VERBOSE
+        if (!inheritedBranch) {
+          branch = child._branch;
+          inMacroDefinition = child._inMacroDefinition;
+          inheritedBranch = true;
+        }
+        // #endif
+        // #if _VERBOSE
+      } else if (!inheritedBranch && child instanceof BaseToken) {
         branch = child.branch;
+        inMacroDefinition = child.inMacroDefinition;
+        inheritedBranch = true;
+        // #endif
       }
     }
+    // #if _VERBOSE
     this._branch = branch;
+    this._inMacroDefinition = inMacroDefinition;
+    // #endif
 
     this.init();
   }
@@ -132,7 +151,12 @@ export abstract class TreeNode implements IPoolElement {
   semanticAnalyze(sa: SemanticAnalyzer) {}
 }
 
-export namespace ASTNode {
+namespace ASTNodes {
+  interface MacroReference {
+    name: string;
+    branch: BranchSignature;
+  }
+
   type MacroExpression =
     | MacroPushContext
     | MacroPopContext
@@ -156,10 +180,17 @@ export namespace ASTNode {
   export function get(pool: ASTNodePool, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
     const node = pool.get();
     node.set(loc, children);
+    // #if _VERBOSE
     const prev = sa.symbolTableStack._currentBranch;
+    const previousMacroDefinition = sa.inMacroDefinition;
     sa.symbolTableStack._currentBranch = node._branch;
+    sa.inMacroDefinition = node._inMacroDefinition;
+    // #endif
     node.semanticAnalyze(sa);
+    // #if _VERBOSE
     sa.symbolTableStack._currentBranch = prev;
+    sa.inMacroDefinition = previousMacroDefinition;
+    // #endif
     sa.semanticStack.push(node);
   }
 
@@ -190,7 +221,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children!;
-      if (ASTNode._unwrapToken(children[0]).type === Keyword.RETURN) {
+      if (ASTNodes._unwrapToken(children[0]).type === Keyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
       }
     }
@@ -200,6 +231,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.conditionopt)
   export class ConditionOpt extends TreeNode {}
 
@@ -213,13 +245,18 @@ export namespace ASTNode {
   export class ForInitStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.iteration_statement)
-  export class IterationStatement extends TreeNode {}
+  export class IterationStatement extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      if (sa.diagnosticsEnabled) sa.popScope();
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.selection_statement)
   export class SelectionStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.expression_statement)
   export class ExpressionStatement extends TreeNode {}
+  // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
     protected _type?: GalaceanDataType;
@@ -235,6 +272,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -253,15 +291,41 @@ export namespace ASTNode {
       }
     }
   }
+  // #endif
+
+  /**
+   * Canonical semantic description of one variable declarator.
+   *
+   * A comma-separated declaration owns one instance per identifier so array and initializer state
+   * cannot leak between siblings. Parser symbol registration and analyzer validation consume this
+   * same description instead of decoding grammar child counts independently.
+   */
+  export interface VariableDeclaratorInfo {
+    /** Identifier introduced by this declarator. */
+    identifier: BaseToken;
+    /** Fully resolved base and array type for this identifier. */
+    typeInfo: SymbolType;
+    /** Initializer attached to this identifier, when present. */
+    initializer?: Initializer;
+    /** Whether the shared declaration type is `const`-qualified. */
+    isConst: boolean;
+    /** Whether the declaration belongs to shader-global scope. */
+    isGlobal: boolean;
+  }
 
   @ASTNodeDecorator(NoneTerminal.single_declaration)
   export class SingleDeclaration extends TreeNode {
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
+    isConst: boolean;
+    /** Canonical information for the first declarator in a declaration list. */
+    declarator: VariableDeclaratorInfo;
 
     override init(): void {
       this.typeSpecifier = undefined;
       this.arraySpecifier = undefined;
+      this.isConst = false;
+      this.declarator = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -271,67 +335,40 @@ export namespace ASTNode {
       const typeSpecifier = fullyType.typeSpecifier;
       this.typeSpecifier = typeSpecifier;
       this.arraySpecifier = typeSpecifier.arraySpecifier;
-      typeSpecifier.validateCustomStructReference(sa);
 
       const id = children[1] as BaseToken;
       const isConst = fullyType.isConst;
+      this.isConst = isConst;
 
-      // GLSL ES §4.1.1 — `void` may only appear as a function return type or an empty parameter
-      // list. `void x;` is a hard driver error.
-      if (fullyType.type === Keyword.VOID) {
-        sa.reportError(
-          id.location,
-          `Illegal use of type 'void' — '${id.lexeme}' cannot be declared as void.`,
-          DiagnosticType.InvalidVoidVariable
-        );
-      }
-
-      let sm: VarSymbol;
+      let symbolType: SymbolType;
       let initializer: Initializer | undefined;
       if (childrenLen === 2 || childrenLen === 4) {
-        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
         initializer = children[3] as Initializer;
-
-        sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       } else {
         // Array-of-array is target-divergent (GLSL ES 3.00 / WGSL allow it, ES 1.00 doesn't) and the
         // backend can always emit it, so it's left to codegen/driver — not flagged here. The nested
         // array structure stays as the neutral clue.
         const arraySpecifier = children[2] as ArraySpecifier;
         this.arraySpecifier = arraySpecifier;
-        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
         initializer = children[4] as Initializer;
-
-        sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       }
+      this.declarator = { identifier: id, typeInfo: symbolType, initializer, isConst, isGlobal: false };
+      const sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
-      if (sa.symbolTableStack.insert(sm, id.branch)) {
-        sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
-      }
+      sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+      // #if _VERBOSE
       // A `const`-qualified variable's initializer must be a compile-time constant.
       if (isConst && initializer && !ParserUtils.isConstExpr(initializer, sa)) {
         sa.reportError(
           initializer.location,
           `'${id.lexeme}': const initializer must be a constant expression.`,
-          DiagnosticType.NonConstInitializer
+          "NonConstInitializer"
         );
       }
-      // GLSL ES §5.8 — declared type and initializer type must match exactly; explicit constructors
-      // are the only conversion mechanism (§5.4.1). Real drivers reject `float b = 1;` as a
-      // "cannot convert" error. Array initializers require component-level checking, skip those.
-      if (initializer && !this.arraySpecifier) {
-        const initType = initializer.type;
-        if (!TypeSystem.isAssignable(fullyType.type, initType)) {
-          sa.reportError(
-            initializer.location,
-            `Cannot initialize '${id.lexeme}' of type '${TypeSystem.typeName(
-              fullyType.type
-            )}' from '${TypeSystem.typeName(initType)}'.`,
-            DiagnosticType.AssignTypeMismatch
-          );
-        }
-      }
+      // #endif
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -385,6 +422,7 @@ export namespace ASTNode {
     }
   }
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.storage_qualifier)
   export class StorageQualifier extends BasicTypeQualifier {}
 
@@ -396,11 +434,10 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.invariant_qualifier)
   export class InvariantQualifier extends BasicTypeQualifier {}
+  // #endif
 
   @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
-    private static _structScratch: SymbolInfo[] = [];
-
     type: GalaceanDataType;
     lexeme: string;
     arraySize?: number;
@@ -421,38 +458,6 @@ export namespace ASTNode {
       this.arraySize = (children?.[1] as ArraySpecifier)?.size;
       this.isCustom = typeof this.type === "string";
     }
-
-    validateCustomStructReference(sa: SemanticAnalyzer): void {
-      if (!this.isCustom) return;
-
-      const typeName = (this.children[0] as TypeSpecifierNonArray).children[0];
-      if (!(typeName instanceof BaseToken)) return;
-
-      const lookup = SemanticAnalyzer._lookupSymbol;
-      lookup.set(typeName.lexeme, ESymbolType.STRUCT);
-      const structs = sa.symbolTableStack.lookupAll(lookup, true, TypeSpecifier._structScratch, this._branch);
-      if (!structs.length) {
-        const message = sa.symbolTableStack.hasSymbol(lookup)
-          ? `Type '${typeName.lexeme}' is declared only in macro branches that are not guaranteed at this reference.`
-          : `Type '${typeName.lexeme}' is not declared.`;
-        sa.reportError(typeName.location, message, DiagnosticType.UseBeforeDeclaration);
-        return;
-      }
-
-      if (
-        !canBranchesCoverCallsite(
-          structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
-          this._branch
-        ) &&
-        !structs.some((struct) => isSelfGuardingBranch(struct.branchSignature ?? EMPTY_BRANCH))
-      ) {
-        sa.reportError(
-          typeName.location,
-          `Type '${typeName.lexeme}' is declared only in macro branches that are not guaranteed at this reference.`,
-          DiagnosticType.UseBeforeDeclaration
-        );
-      }
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.array_specifier)
@@ -463,19 +468,9 @@ export namespace ASTNode {
       const integerConstantExpr = this.children[1];
       if (!(integerConstantExpr instanceof IntegerConstantExpression)) return; // `[ ]` — unsized
       this.size = integerConstantExpr.value;
-      // GLSL ES §4.1.9: array size must be an integer > 0. Driver rejects size <= 0 as
-      // "array size must be greater than zero". Only flag when the literal folded to a concrete
-      // number — a `undefined` size still falls through to the const-expression check below.
-      if (typeof this.size === "number" && this.size <= 0) {
-        sa.reportError(
-          integerConstantExpr.location,
-          `Array size ${this.size} must be greater than zero.`,
-          DiagnosticType.InvalidArraySize
-        );
-      }
+      // #if _VERBOSE
       // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked, and
-      // only when it resolves to a known non-const var. Unknown identifiers fall through to the
-      // UseBeforeDeclaration warning (they may be a runtime macro / conditional #include) — no error here.
+      // only when it resolves to a known non-const var. Unknown identifiers may be runtime macros.
       const exprChildren = integerConstantExpr.children;
       if (this.size === undefined && exprChildren.length === 1 && exprChildren[0] instanceof VariableIdentifier) {
         const bare = exprChildren[0].children[0];
@@ -491,17 +486,14 @@ export namespace ASTNode {
               exprChildren[0].location,
               bare.lexeme,
               `Symbol '${bare.lexeme}' has conflicting const qualification across macro branches; constant-expression validation disabled at this reference.`,
-              DiagnosticType.AmbiguousMacroBranchResolution
+              "AmbiguousMacroBranchResolution"
             );
           } else if (!firstIsConst) {
-            sa.reportError(
-              exprChildren[0].location,
-              "Array size must be a constant expression.",
-              DiagnosticType.NonConstArraySize
-            );
+            sa.reportError(exprChildren[0].location, "Array size must be a constant expression.", "NonConstArraySize");
           }
         }
       }
+      // #endif
     }
   }
 
@@ -588,37 +580,84 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.init_declarator_list)
   export class InitDeclaratorList extends TreeNode {
     typeInfo: SymbolType;
+    isConst: boolean;
+    /** Canonical information for the declarator appended by this list node. */
+    declarator?: VariableDeclaratorInfo;
+
+    override init(): void {
+      this.isConst = false;
+      this.declarator = undefined;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       let sm: VarSymbol;
       const children = this.children;
       const childrenLength = children.length;
       if (childrenLength === 1) {
-        const { typeSpecifier, arraySpecifier } = children[0] as SingleDeclaration;
+        const { typeSpecifier, arraySpecifier, isConst } = children[0] as SingleDeclaration;
         this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+        this.isConst = isConst;
       } else {
         const initDeclList = children[0] as InitDeclaratorList;
         this.typeInfo = initDeclList.typeInfo;
+        this.isConst = initDeclList.isConst;
       }
 
       if (childrenLength === 3 || childrenLength === 5) {
         const id = children[2] as BaseToken;
-        sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
-        if (sa.symbolTableStack.insert(sm, id.branch)) {
-          sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
-        }
+        const initializer = childrenLength === 5 ? (children[4] as Initializer) : undefined;
+        const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
+        this.declarator = {
+          identifier: id,
+          typeInfo,
+          initializer,
+          isConst: this.isConst,
+          isGlobal: false
+        };
+        sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
+        sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+        // #if _VERBOSE
+        this._validateInitializer(sa, id, initializer, sm.dataType!);
+        // #endif
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
-        const typeInfo = this.typeInfo;
+        const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
         const arraySpecifier = this.children[3] as ArraySpecifier;
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
-        sm = new VarSymbol(id.lexeme, typeInfo, false, this);
-        if (sa.symbolTableStack.insert(sm, id.branch)) {
-          sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
-        }
+        const initializer = childrenLength === 6 ? (children[5] as Initializer) : undefined;
+        this.declarator = {
+          identifier: id,
+          typeInfo,
+          initializer,
+          isConst: this.isConst,
+          isGlobal: false
+        };
+        sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
+        sa.reportRedefinition(id.location, id.lexeme, sa.symbolTableStack.insert(sm, id.branch));
+        // #if _VERBOSE
+        this._validateInitializer(sa, id, initializer, typeInfo);
+        // #endif
       }
     }
+
+    // #if _VERBOSE
+    private _validateInitializer(
+      sa: SemanticAnalyzer,
+      ident: BaseToken,
+      initializer: Initializer | undefined,
+      typeInfo: SymbolType
+    ): void {
+      if (!initializer) return;
+      if (this.isConst && !ParserUtils.isConstExpr(initializer, sa)) {
+        sa.reportError(
+          initializer.location,
+          `'${ident.lexeme}': const initializer must be a constant expression.`,
+          "NonConstInitializer"
+        );
+      }
+    }
+    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.identifier_list)
@@ -701,7 +740,6 @@ export namespace ASTNode {
       const children = this.children;
       this.ident = children[1] as BaseToken;
       this.returnType = children[0] as FullySpecifiedType;
-      this.returnType.typeSpecifier.validateCustomStructReference(sa);
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -807,21 +845,24 @@ export namespace ASTNode {
       const typeSpecifier = children[0] as TypeSpecifier;
       const arraySpecifier = children[2] as ArraySpecifier;
       this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
-      typeSpecifier.validateCustomStructReference(sa);
     }
   }
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.simple_statement)
   export class SimpleStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.compound_statement)
   export class CompoundStatement extends TreeNode {}
+  // #endif
 
   @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
   export class CompoundStatementNoScope extends TreeNode {}
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.statement)
   export class Statement extends TreeNode {}
+  // #endif
 
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
@@ -832,7 +873,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
-    returnStatement?: ASTNode.JumpStatement;
+    returnStatement?: ASTNodes.JumpStatement;
     protoType: FunctionProtoType;
     statements: CompoundStatementNoScope;
     isInMacroBranch: boolean;
@@ -852,14 +893,8 @@ export namespace ASTNode {
       // must all be inserted even when they conflict: codegen needs every macro arm to reproduce
       // the source, while `insert` independently reports whether two declarations can coexist.
       const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
-      const redefined = unconditionalDuplicate ? true : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
-      if (redefined) {
-        sa.reportError(
-          this.protoType.ident.location,
-          `Redefinition of '${this.protoType.ident.lexeme}' with the same signature.`,
-          DiagnosticType.Redefinition
-        );
-      }
+      const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
+      sa.reportRedefinition(this.protoType.ident.location, this.protoType.ident.lexeme, conflict);
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
@@ -894,8 +929,10 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
+    // #if _VERBOSE
     /** Scratch storage for the ambiguity-guard overload probe. */
     private static _overloadScratch: SymbolInfo[] = [];
+    // #endif
 
     override init(): void {
       super.init();
@@ -916,114 +953,115 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
-
-        // GLSL forbids recursion. A self-call — same name AND same parameter signature as the
-        // enclosing function (i.e. the same overload) — is short-circuited here: the function symbol
-        // isn't inserted until after its body, so the lookup below would otherwise mis-report it as
-        // Undefined / NoMatchingOverload. The validator reports RecursiveFunction; the exact-signature
-        // match avoids short-circuiting a call to a *different* overload of the same name.
-        const header = sa.curFunctionInfo.header;
-        if (header?.ident?.lexeme === fnIdent) {
-          const hSig = header.paramSig ?? [];
-          const cSig = paramSig ?? [];
-          if (hSig.length === cSig.length && hSig.every((t, i) => t === cSig[i])) {
+        // #if _VERBOSE
+        if (sa.diagnosticsEnabled) {
+          // GLSL forbids recursion. A self-call — same name AND same parameter signature as the
+          // enclosing function (i.e. the same overload) — is short-circuited here: the function symbol
+          // isn't inserted until after its body, so the lookup below would otherwise mis-report it as
+          // Undefined / NoMatchingOverload. The validator reports RecursiveFunction; the exact-signature
+          // match avoids short-circuiting a call to a *different* overload of the same name.
+          const header = sa.curFunctionInfo.header;
+          if (header?.ident?.lexeme === fnIdent) {
+            const hSig = header.paramSig ?? [];
+            const cSig = paramSig ?? [];
+            if (hSig.length === cSig.length && hSig.every((t, i) => t === cSig[i])) {
+              return;
+            }
+          }
+          // A texture-sampling builtin's first argument must be a sampler. Flag a known non-sampler arg0
+          // here (specific) rather than letting it fall through to the generic NoMatchingOverload below.
+          if (TEXTURE_SAMPLING_BUILTINS.has(fnIdent)) {
+            const arg0 = paramSig?.[0];
+            if (arg0 !== undefined && arg0 !== TypeAny && !TypeSystem.isSamplerType(arg0)) {
+              sa.reportError(
+                this.location,
+                `'${fnIdent}' expects a sampler as its first argument, got '${TypeSystem.typeName(arg0)}'.`,
+                "ExpectedSampler"
+              );
+              return;
+            }
+          }
+          const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
+          if (builtinFn) {
+            this.type = builtinFn.realReturnType;
             return;
           }
-        }
-        // A texture-sampling builtin's first argument must be a sampler. Flag a known non-sampler arg0
-        // here (specific) rather than letting it fall through to the generic NoMatchingOverload below.
-        if (TEXTURE_SAMPLING_BUILTINS.has(fnIdent)) {
-          const arg0 = paramSig?.[0];
-          if (arg0 !== undefined && arg0 !== TypeAny && !TypeSystem.isSamplerType(arg0)) {
-            sa.reportError(
-              this.location,
-              `'${fnIdent}' expects a sampler as its first argument, got '${TypeSystem.typeName(arg0)}'.`,
-              DiagnosticType.ExpectedSampler
-            );
+
+          const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+          lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
+
+          // Keep every macro-compatible overload, then require one declaration to be guaranteed or
+          // matching declarations in every arm of a complete conditional chain. This is the same
+          // contract as variable lookup: a helper hidden behind only `#ifdef X` cannot satisfy an
+          // unconditional call.
+          const allMatches = FunctionCallGeneric._overloadScratch;
+          sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
+          const branchCoverage = getBranchCoverage(
+            allMatches.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+            this._branch
+          );
+          const branchCovered = branchCoverage === "covered" || FunctionCallGeneric._hasConflictingBranches(allMatches);
+          const fnSymbol = branchCovered ? (allMatches[0] as FnSymbol | undefined) : undefined;
+
+          // Ambiguity guard: when the call has TypeAny args, `SymbolInfo.equal` treats them as
+          // wildcards, so the first overload in reverse-insertion order wins and fixes a specific
+          // return type from what may be several equally-valid candidates (e.g. `permute` ships as
+          // `float`/`vec3`/`vec4` overloads; a TypeAny-typed arg matched all three but committed
+          // to the last-inserted return type). If multiple overloads match and their return types
+          // diverge, keep the reference resolved (`fnSymbol` stays set) but drop the call's type
+          // to TypeAny — the caller's downstream inference stays open instead of committing.
+          let overloadTypeAmbiguous = false;
+          if (fnSymbol && paramSig?.some((t) => t === TypeAny)) {
+            if (allMatches.length > 1) {
+              const firstType = (allMatches[0] as FnSymbol).dataType?.type;
+              overloadTypeAmbiguous = allMatches.some((s) => (s as FnSymbol).dataType?.type !== firstType);
+            }
+          }
+
+          if (!fnSymbol) {
+            if (allMatches.length) {
+              sa.reportBranchAvailability(this.location, `Function '${fnIdent}'`, branchCoverage);
+              return;
+            }
+            // The lookup above is keyed by argument signature, so a miss conflates an unknown
+            // name with a known function called with the wrong arguments; re-probe by name
+            // alone (and the builtin registry) to report whichever it actually is.
+            lookupSymbol.set(fnIdent, ESymbolType.FN);
+            const nameDeclared =
+              sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch).length > 0 ||
+              BuiltinFunction.isExist(fnIdent);
+            // NoMatchingOverload = name is known, arg types are wrong → real type error.
+            // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
+            // the time the AST is built, so the only remaining "provided later" path is a runtime
+            // macro that the material system supplies at bind time — hand responsibility back to the
+            // author instead of hard-failing.
+            if (nameDeclared) {
+              sa.reportError(this.location, `No overload function type found: ${fnIdent}`, "NoMatchingOverload");
+            } else {
+              sa.reportWarning(
+                this.location,
+                `Undefined function '${fnIdent}' — ensure it is provided at runtime as a macro.`,
+                "UndefinedFunction"
+              );
+            }
             return;
           }
-        }
-
-        const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
-        if (builtinFn) {
-          this.type = builtinFn.realReturnType;
+          this.type = overloadTypeAmbiguous ? TypeAny : fnSymbol?.dataType?.type;
+          this.fnSymbol = fnSymbol;
           return;
         }
+        // #endif
 
         const lookupSymbol = SemanticAnalyzer._lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
-
-        // Keep every macro-compatible overload, then require one declaration to be guaranteed or
-        // matching declarations in every arm of a complete conditional chain. This is the same
-        // contract as variable lookup: a helper hidden behind only `#ifdef X` cannot satisfy an
-        // unconditional call.
-        const allMatches = FunctionCallGeneric._overloadScratch;
-        sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
-        const branchCovered =
-          canBranchesCoverCallsite(
-            allMatches.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
-            this._branch
-          ) ||
-          allMatches.some((symbol) => isSelfGuardingBranch(symbol.branchSignature ?? EMPTY_BRANCH)) ||
-          FunctionCallGeneric._hasConflictingBranches(allMatches);
-        const fnSymbol = branchCovered ? (allMatches[0] as FnSymbol | undefined) : undefined;
-
-        // Ambiguity guard: when the call has TypeAny args, `SymbolInfo.equal` treats them as
-        // wildcards, so the first overload in reverse-insertion order wins and fixes a specific
-        // return type from what may be several equally-valid candidates (e.g. `permute` ships as
-        // `float`/`vec3`/`vec4` overloads; a TypeAny-typed arg matched all three but committed
-        // to the last-inserted return type). If multiple overloads match and their return types
-        // diverge, keep the reference resolved (`fnSymbol` stays set) but drop the call's type
-        // to TypeAny — the caller's downstream inference stays open instead of committing.
-        let overloadTypeAmbiguous = false;
-        if (fnSymbol && paramSig?.some((t) => t === TypeAny)) {
-          if (allMatches.length > 1) {
-            const firstType = (allMatches[0] as FnSymbol).dataType?.type;
-            overloadTypeAmbiguous = allMatches.some((s) => (s as FnSymbol).dataType?.type !== firstType);
-          }
-        }
-
-        if (!fnSymbol) {
-          if (allMatches.length) {
-            sa.reportError(
-              this.location,
-              `Function '${fnIdent}' is declared only in macro branches that are not guaranteed at this reference.`,
-              DiagnosticType.UseBeforeDeclaration
-            );
-            return;
-          }
-          // The lookup above is keyed by argument signature, so a miss conflates an unknown
-          // name with a known function called with the wrong arguments; re-probe by name
-          // alone (and the builtin registry) to report whichever it actually is.
-          lookupSymbol.set(fnIdent, ESymbolType.FN);
-          const nameDeclared =
-            sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch).length > 0 ||
-            BuiltinFunction.isExist(fnIdent);
-          // NoMatchingOverload = name is known, arg types are wrong → real type error.
-          // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
-          // the time the AST is built, so the only remaining "provided later" path is a runtime
-          // macro that the material system supplies at bind time — hand responsibility back to the
-          // author instead of hard-failing.
-          if (nameDeclared) {
-            sa.reportError(
-              this.location,
-              `No overload function type found: ${fnIdent}`,
-              DiagnosticType.NoMatchingOverload
-            );
-          } else {
-            sa.reportWarning(
-              this.location,
-              `Undefined function '${fnIdent}' — ensure it is provided at runtime as a macro.`,
-              DiagnosticType.UndefinedFunction
-            );
-          }
-          return;
-        }
-        this.type = overloadTypeAmbiguous ? TypeAny : fnSymbol?.dataType?.type;
+        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol | undefined;
+        if (!fnSymbol) return;
+        this.type = fnSymbol.dataType?.type;
         this.fnSymbol = fnSymbol;
       }
     }
 
+    // #if _VERBOSE
     private static _hasConflictingBranches(symbols: readonly SymbolInfo[]): boolean {
       for (let i = 0, n = symbols.length; i < n; i++) {
         for (let j = i + 1; j < n; j++) {
@@ -1048,6 +1086,7 @@ export namespace ASTNode {
         leftSignature.every((type, index) => type === rightSignature[index])
       );
     }
+    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
@@ -1123,73 +1162,14 @@ export namespace ASTNode {
         const expr = this.children[0] as ConditionalExpression;
         this.type = expr.type ?? TypeAny;
       } else {
-        const lhs = this.children[0] as ExpressionAstNode;
-        // Grammar: `unary_expression assignment_operator assignment_expression`. `assignment_operator`
-        // reduces from a single ETokenType — inspect its first child token to distinguish `=` from
-        // the compound-op variants.
-        const opNode = this.children[1] as AssignmentOperator;
-        const opToken = opNode?.children?.[0] as BaseToken | undefined;
         const rhs = this.children[2] as AssignmentExpression;
         this.type = rhs.type ?? TypeAny;
-        // Compound-op assign (`+=` `-=` `*=` `/=`): GLSL treats `L op= R` as `L = L op R`, then
-        // assigns. Scalar⊙vector broadcasts under arithmetic (`vec3 *= float` is legal); use
-        // arithmeticResultType and check whether that composite is assignable back to L.
-        const opType = opToken?.type;
-        const isCompoundArith =
-          opType === ETokenType.MUL_ASSIGN ||
-          opType === ETokenType.DIV_ASSIGN ||
-          opType === ETokenType.ADD_ASSIGN ||
-          opType === ETokenType.SUB_ASSIGN;
-        const effectiveRhsType = isCompoundArith ? TypeSystem.arithmeticResultType(lhs.type, rhs.type) : rhs.type;
-        if (!TypeSystem.isAssignable(lhs.type, effectiveRhsType)) {
-          sa.reportError(
-            this.location,
-            `Cannot assign a value of type '${TypeSystem.typeName(rhs.type)}' to '${TypeSystem.typeName(lhs.type)}'.`,
-            DiagnosticType.AssignTypeMismatch
-          );
-        }
-        // MissingVertexPosition uses `glPositionReferences` as the "did the vertex shader write
-        // gl_Position?" clue — only assignment targets count. `gl_Position = ...` and
-        // `gl_Position.xyz = ...` (write to a component) both qualify; `vec4 x = gl_Position;`
-        // (a read) does not. Match on the leftmost identifier in the LHS chain.
-        if (isBranchReachable(this._branch) && AssignmentExpression._leftmostIdentLexeme(lhs) === "gl_Position") {
-          sa.shaderData.glPositionReferences.push(lhs.location);
-        }
-      }
-    }
-
-    /**
-     * Walk the LHS of an assignment down to the leftmost `VariableIdentifier` and return its
-     * lexeme (e.g. `gl_Position.xyz` → `gl_Position`). Returns `undefined` for compound LHS
-     * shapes that aren't a base name (parenthesised, indexed, etc.).
-     */
-    private static _leftmostIdentLexeme(node: TreeNode): string | undefined {
-      let cur: TreeNode = node;
-      while (true) {
-        if (cur instanceof VariableIdentifier) {
-          const child = cur.children[0];
-          return child instanceof BaseToken ? child.lexeme : undefined;
-        }
-        // Postfix `.field` / `[index]` — the base is at children[0]; keep descending.
-        if (cur instanceof PostfixExpression && cur.children.length >= 1) {
-          const base = cur.children[0];
-          if (!(base instanceof TreeNode)) return undefined;
-          cur = base;
-          continue;
-        }
-        // Single-child expression wrappers collapse to their child; walk down.
-        if (cur instanceof ExpressionAstNode && cur.children.length === 1) {
-          const child = cur.children[0];
-          if (!(child instanceof TreeNode)) return undefined;
-          cur = child;
-          continue;
-        }
-        return undefined;
       }
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.assignment_operator)
+  /** Assignment operator syntax retained for post-parse validation. @internal */
   export class AssignmentOperator extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.expression)
@@ -1235,7 +1215,9 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
+    // #if _VERBOSE
     private static _structScratch: SymbolInfo[] = [];
+    // #endif
 
     override init(): void {
       super.init();
@@ -1245,6 +1227,7 @@ export namespace ASTNode {
       }
     }
 
+    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       // `struct.field` reads the symbol table, so it stays inline; the stateless swizzle/index checks
       // (InvalidSwizzle, GlFragData, NonIndexableType, NonIntegerIndex, IndexOutOfBounds) moved to ShaderValidator.
@@ -1269,28 +1252,23 @@ export namespace ASTNode {
       const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
-      if (
-        !canBranchesCoverCallsite(
-          structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
-          callsiteBranch
-        ) &&
-        !structs.some((struct) => isSelfGuardingBranch(struct.branchSignature ?? EMPTY_BRANCH))
-      ) {
-        sa.reportError(
-          field.location,
-          `Struct '${structName}' is declared only in macro branches that are not guaranteed at this reference.`,
-          DiagnosticType.UseBeforeDeclaration
-        );
+      const coverage = getBranchCoverage(
+        structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
+        callsiteBranch
+      );
+      if (coverage !== "covered") {
+        sa.reportBranchAvailability(field.location, `Struct '${structName}'`, coverage);
         return;
       }
       const firstProp = (structs[0] as StructSymbol).astNode.propList.find(
         (prop) => prop.ident.lexeme === field.lexeme
       );
-      let divergent = false;
+      let memberPresenceDivergent = false;
+      let memberTypeDivergent = false;
       for (let i = 1; i < structs.length; i++) {
         const prop = (structs[i] as StructSymbol).astNode.propList.find((item) => item.ident.lexeme === field.lexeme);
         if (!!prop !== !!firstProp) {
-          divergent = true;
+          memberPresenceDivergent = true;
           break;
         }
         if (prop && firstProp) {
@@ -1301,33 +1279,40 @@ export namespace ASTNode {
             !!array !== !!firstArray ||
             array?.size !== firstArray?.size
           ) {
-            divergent = true;
+            memberTypeDivergent = true;
             break;
           }
         }
       }
-      if (divergent) {
+      if (memberPresenceDivergent) {
         sa.reportBranchAmbiguity(
           field.location,
           `${structName}.${field.lexeme}`,
-          `Struct '${structName}' resolves to incompatible declarations of member '${field.lexeme}' across macro branches; member validation disabled at this reference.`,
-          DiagnosticType.AmbiguousMacroBranchResolution
+          `Member '${field.lexeme}' is missing from at least one reachable declaration of struct '${structName}'.`,
+          "AmbiguousMacroBranchResolution"
+        );
+        return;
+      }
+      if (memberTypeDivergent) {
+        sa.reportBranchAmbiguity(
+          field.location,
+          `${structName}.${field.lexeme}`,
+          `Member '${field.lexeme}' has divergent types across declarations of struct '${structName}'; type inference is disabled at this reference.`,
+          "AmbiguousMacroBranchType"
         );
         return;
       }
       if (firstProp) return;
-      sa.reportError(
-        field.location,
-        `'${field.lexeme}' : no such field in '${structName}'`,
-        DiagnosticType.UndeclaredStructMember
-      );
+      sa.reportError(field.location, `'${field.lexeme}' : no such field in '${structName}'`, "UndeclaredStructMember");
     }
+    // #endif
 
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitPostfixExpression(this));
     }
   }
 
+  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.unary_operator)
   export class UnaryOperator extends TreeNode {}
 
@@ -1347,7 +1332,8 @@ export namespace ASTNode {
       } else {
         this.type = TypeSystem.arithmeticResultType(
           (this.children[0] as ExpressionAstNode).type,
-          (this.children[2] as ExpressionAstNode).type
+          (this.children[2] as ExpressionAstNode).type,
+          (this.children[1] as BaseToken).lexeme
         );
       }
     }
@@ -1362,7 +1348,8 @@ export namespace ASTNode {
       } else {
         this.type = TypeSystem.arithmeticResultType(
           (this.children[0] as ExpressionAstNode).type,
-          (this.children[2] as ExpressionAstNode).type
+          (this.children[2] as ExpressionAstNode).type,
+          (this.children[1] as BaseToken).lexeme
         );
       }
     }
@@ -1472,6 +1459,7 @@ export namespace ASTNode {
       }
     }
   }
+  // #endif
 
   @ASTNodeDecorator(NoneTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
@@ -1489,9 +1477,11 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        if (sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch)) {
-          sa.reportError(this.ident.location, `Redefinition of '${this.ident.lexeme}'.`, DiagnosticType.Redefinition);
-        }
+        sa.reportRedefinition(
+          this.ident.location,
+          this.ident.lexeme,
+          sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch)
+        );
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1570,8 +1560,6 @@ export namespace ASTNode {
         this._typeSpecifier = children[1] as TypeSpecifier;
         this._declaratorList = children[2] as StructDeclaratorList;
       }
-      this._typeSpecifier.validateCustomStructReference(sa);
-
       const firstChild = children[0];
       const { type, lexeme } = this._typeSpecifier;
       const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
@@ -1710,9 +1698,12 @@ export namespace ASTNode {
   export class VariableDeclaration extends TreeNode {
     type: FullySpecifiedType;
     isStatic: boolean;
+    /** Canonical information for this shader-global declarator. */
+    declarator: VariableDeclaratorInfo;
 
     override init(): void {
       this.isStatic = false;
+      this.declarator = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1720,15 +1711,6 @@ export namespace ASTNode {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
-      type.typeSpecifier.validateCustomStructReference(sa);
-      // GLSL ES §4.1.1 — `void` may only appear as a function return type or empty parameter list.
-      if (type.type === Keyword.VOID) {
-        sa.reportError(
-          ident.location,
-          `Illegal use of type 'void' — '${ident.lexeme}' cannot be declared as void.`,
-          DiagnosticType.InvalidVoidVariable
-        );
-      }
       // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
       // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
@@ -1737,34 +1719,21 @@ export namespace ASTNode {
       // Without it, `float arr[3]` at global scope stored as scalar `float`, then every `arr[i]`
       // ref misfires `NonIndexableType`. Recover the array-ness at symbol level.
       const arraySpecifier = children.length === 3 ? (children[2] as ArraySpecifier) : undefined;
-      const sm = new VarSymbol(
-        ident.lexeme,
-        new SymbolType(type.type, type.typeSpecifier.lexeme, arraySpecifier),
-        true,
-        this,
-        type.isConst,
-        !hasInitializer && !type.isConst
-      );
+      const initializer = hasInitializer ? (children[3] as Initializer) : undefined;
+      const typeInfo = new SymbolType(type.type, type.typeSpecifier.lexeme, arraySpecifier);
+      this.declarator = {
+        identifier: ident,
+        typeInfo,
+        initializer,
+        isConst: type.isConst,
+        isGlobal: true
+      };
+      const sm = new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst);
 
-      if (sa.symbolTableStack.insert(sm, ident.branch)) {
-        sa.reportError(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
-      }
+      sa.reportRedefinition(ident.location, ident.lexeme, sa.symbolTableStack.insert(sm, ident.branch));
 
       if (children.length === 4) {
         this.isStatic = true;
-        // GLSL ES §5.8 — declared type and initializer type must match exactly. Same rule the
-        // local `SingleDeclaration` path enforces; global scope was previously missing this check.
-        const initializer = children[3] as Initializer;
-        const initType = initializer.type;
-        if (!TypeSystem.isAssignable(type.type, initType)) {
-          sa.reportError(
-            initializer.location,
-            `Cannot initialize '${ident.lexeme}' of type '${TypeSystem.typeName(
-              type.type
-            )}' from '${TypeSystem.typeName(initType)}'.`,
-            DiagnosticType.AssignTypeMismatch
-          );
-        }
       }
     }
 
@@ -1834,107 +1803,199 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
-      const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
-      const symbols = this._symbols;
+      // #if _VERBOSE
+      if (sa.diagnosticsEnabled) {
+        const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
+        const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
+        const symbols = this._symbols;
 
-      // Real references — every name must resolve; miss is an authoring error.
-      const needFindNames = child instanceof BaseToken ? [child.lexeme] : child.referenceSymbolNames;
+        // Real references — every name must resolve; miss is an authoring error.
+        const references: readonly MacroReference[] =
+          child instanceof BaseToken ? [{ name: child.lexeme, branch: this._branch }] : child.referenceSymbols;
+        const needFindNames = references.map((reference) => reference.name);
 
-      for (let i = 0; i < needFindNames.length; i++) {
-        const name = needFindNames[i];
+        for (let i = 0; i < references.length; i++) {
+          const { name, branch } = references[i];
 
-        if (sa.macroDefineList[name]) continue;
+          if (sa.macroDefineList[name]) return;
 
-        // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
-        if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
-          continue;
+          // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
+          if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
+            continue;
+          }
+
+          const builtinVar = BuiltinVariable.getVar(name);
+          if (builtinVar) {
+            this.typeInfo = builtinVar.type;
+            continue;
+          }
+
+          const hit = VariableIdentifier._lookupAndMarkGlobalReference(
+            sa,
+            name,
+            symbols,
+            referenceGlobalSymbolNames,
+            this.location,
+            branch
+          );
+          // Expression-style macros have their own value AST; its real type isn't
+          // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
+          // is a `Varyings` struct but the macro call site's type should be the
+          // member type). Skip type inference for those and keep TypeAny.
+          if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
+            // Divergence guard: lookupAll returns every branch-visible decl; if their type identity
+            // (base type + isArray + arraySize) diverges, we can't confidently pick one — commit to
+            // TypeAny + isArray=false + arraySize=undefined so downstream checks self-disable rather
+            // than acting on an arbitrary last-inserted decl. Symmetric with FunctionCallGeneric's
+            // `overloadTypeAmbiguous` guard.
+            const first = symbols[0];
+            const firstType = first.dataType?.type;
+            const firstIsArray = !!first.dataType?.arraySpecifier;
+            const firstArraySize = first.dataType?.arraySpecifier?.size;
+            let divergent = false;
+            let arraySizeDivergent = false;
+            if (symbols.length > 1) {
+              for (let s = 1; s < symbols.length; s++) {
+                const d = symbols[s].dataType;
+                if (d?.type !== firstType || !!d?.arraySpecifier !== firstIsArray) {
+                  divergent = true;
+                  break;
+                }
+                if (d?.arraySpecifier?.size !== firstArraySize) arraySizeDivergent = true;
+              }
+            }
+            if (divergent) {
+              this.typeInfo = TypeAny;
+              this.isArray = false;
+              this.arraySize = undefined;
+              if (!symbols.every((symbol) => TypeSystem.isSamplerType(symbol.dataType?.type))) {
+                // Report once per (pass, symbol name) — a single divergent symbol may be referenced
+                // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
+                // with identical warnings buries the signal.
+                sa.reportBranchAmbiguity(
+                  this.location,
+                  name,
+                  `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
+                  "AmbiguousMacroBranchType"
+                );
+              }
+            } else {
+              this.typeInfo = firstType;
+              this.isArray = firstIsArray;
+              this.arraySize = arraySizeDivergent ? undefined : firstArraySize;
+            }
+          }
         }
+
+        // FXAA-style cross-arm shadowing: at a MACRO_CALL use site, silently
+        // probe the macro name itself so any sibling-arm `var` declaration is
+        // marked as referenced and codegen keeps it. Miss is the common
+        // single-arm case — no warning, no type inference. Grammar half of the
+        // cross-arm fix is in 87cb2b5f0.
+        if (!(child instanceof BaseToken)) {
+          VariableIdentifier._probeCrossArmShadowing(sa, child, needFindNames, symbols, referenceGlobalSymbolNames);
+        }
+        return;
+      }
+      // #endif
+
+      this._semanticAnalyzeForCodegen(sa);
+    }
+
+    private _semanticAnalyzeForCodegen(sa: SemanticAnalyzer): void {
+      const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
+      if (child instanceof BaseToken) {
+        const name = child.lexeme;
+        if (sa.macroDefineList[name]) return;
+        const builtinVar = BuiltinVariable.getVar(name);
+        if (builtinVar) {
+          this.typeInfo = builtinVar.type;
+          return;
+        }
+        this._resolveCodegenReference(sa, name, true);
+        return;
+      }
+
+      const references = child.referenceSymbolNames;
+      for (let i = 0; i < references.length; i++) {
+        const name = references[i];
+        if (sa.macroDefineList[name] || BuiltinFunction.isExist(name)) continue;
 
         const builtinVar = BuiltinVariable.getVar(name);
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
-          if (isBranchReachable(this._branch) && name === "gl_FragColor") {
-            sa.shaderData.glFragColorReferences.push(this.location);
-          }
-          // Every `gl_FragData` reference is captured here; ShaderValidator later strikes the ones
-          // that were actually indexed (`gl_FragData[i]`) — the residue is bare use, which the
-          // driver rejects.
-          if (isBranchReachable(this._branch) && name === "gl_FragData") {
-            sa.shaderData.glFragDataReferences.push(this.location);
-          }
-          // `gl_Position` writes are collected in `AssignmentExpression.semanticAnalyze` — reads
-          // (`vec4 x = gl_Position;`) don't count toward MissingVertexPosition.
           continue;
         }
-
-        const hit = VariableIdentifier._lookupAndMarkGlobalReference(
-          sa,
-          name,
-          symbols,
-          referenceGlobalSymbolNames,
-          this.location,
-          this._branch
-        );
-        // Expression-style macros have their own value AST; its real type isn't
-        // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
-        // is a `Varyings` struct but the macro call site's type should be the
-        // member type). Skip type inference for those and keep TypeAny.
-        if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
-          // Divergence guard: lookupAll returns every branch-visible decl; if their type identity
-          // (base type + isArray + arraySize) diverges, we can't confidently pick one — commit to
-          // TypeAny + isArray=false + arraySize=undefined so downstream checks self-disable rather
-          // than acting on an arbitrary last-inserted decl. Symmetric with FunctionCallGeneric's
-          // `overloadTypeAmbiguous` guard.
-          const first = symbols[0];
-          const firstType = first.dataType?.type;
-          const firstIsArray = !!first.dataType?.arraySpecifier;
-          const firstArraySize = first.dataType?.arraySpecifier?.size;
-          let divergent = false;
-          let arraySizeDivergent = false;
-          if (symbols.length > 1) {
-            for (let s = 1; s < symbols.length; s++) {
-              const d = symbols[s].dataType;
-              if (d?.type !== firstType || !!d?.arraySpecifier !== firstIsArray) {
-                divergent = true;
-                break;
-              }
-              if (d?.arraySpecifier?.size !== firstArraySize) arraySizeDivergent = true;
-            }
-          }
-          if (divergent) {
-            this.typeInfo = TypeAny;
-            this.isArray = false;
-            this.arraySize = undefined;
-            if (!symbols.every((symbol) => TypeSystem.isSamplerType(symbol.dataType?.type))) {
-              // Report once per (pass, symbol name) — a single divergent symbol may be referenced
-              // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
-              // with identical warnings buries the signal.
-              sa.reportBranchAmbiguity(
-                this.location,
-                name,
-                `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
-                DiagnosticType.AmbiguousMacroBranchType
-              );
-            }
-          } else {
-            this.typeInfo = firstType;
-            this.isArray = firstIsArray;
-            this.arraySize = arraySizeDivergent ? undefined : firstArraySize;
-          }
-        }
+        this._resolveCodegenReference(sa, name, !child.hasAstValue);
       }
 
-      // FXAA-style cross-arm shadowing: at a MACRO_CALL use site, silently
-      // probe the macro name itself so any sibling-arm `var` declaration is
-      // marked as referenced and codegen keeps it. Miss is the common
-      // single-arm case — no warning, no type inference. Grammar half of the
-      // cross-arm fix is in 87cb2b5f0.
-      if (!(child instanceof BaseToken)) {
-        VariableIdentifier._probeCrossArmShadowing(sa, child, needFindNames, symbols, referenceGlobalSymbolNames);
+      const macroName = child.macroName;
+      if (!macroName || BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return;
+      for (let i = 0; i < references.length; i++) {
+        if (references[i] === macroName) return;
+      }
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(macroName, ESymbolType.Any);
+      const symbol = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol | FnSymbol | undefined;
+      if (
+        symbol &&
+        (symbol instanceof FnSymbol || symbol.isGlobalVariable) &&
+        this.referenceGlobalSymbolNames.indexOf(macroName) === -1
+      ) {
+        this.referenceGlobalSymbolNames.push(macroName);
       }
     }
 
+    private _resolveCodegenReference(sa: SemanticAnalyzer, name: string, inferType: boolean): void {
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(name, ESymbolType.Any);
+      const symbols = this._symbols;
+      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+      if (!symbols.length) return;
+
+      const currentScopeSymbol = sa.symbolTableStack.scope.getSymbol(lookupSymbol, true) as
+        | VarSymbol
+        | FnSymbol
+        | undefined;
+      if (currentScopeSymbol) {
+        this._markCodegenReference(name, currentScopeSymbol);
+      } else {
+        for (let i = 0; i < symbols.length; i++) {
+          const symbol = symbols[i];
+          if (symbol instanceof FnSymbol || symbol.isGlobalVariable) {
+            this._markCodegenReference(name, symbol);
+            break;
+          }
+        }
+      }
+      if (!inferType) return;
+
+      const first = symbols[0].dataType;
+      let arraySizeDivergent = false;
+      for (let i = 1; i < symbols.length; i++) {
+        const current = symbols[i].dataType;
+        if (current?.type !== first?.type || !!current?.arraySpecifier !== !!first?.arraySpecifier) return;
+        if (current?.arraySpecifier?.size !== first?.arraySpecifier?.size) arraySizeDivergent = true;
+      }
+      this._setCodegenType(first, arraySizeDivergent);
+    }
+
+    private _markCodegenReference(name: string, symbol: VarSymbol | FnSymbol): void {
+      if (
+        (symbol instanceof FnSymbol || symbol.isGlobalVariable) &&
+        this.referenceGlobalSymbolNames.indexOf(name) === -1
+      ) {
+        this.referenceGlobalSymbolNames.push(name);
+      }
+    }
+
+    private _setCodegenType(dataType: SymbolType | undefined, arraySizeDivergent = false): void {
+      this.typeInfo = dataType?.type;
+      this.isArray = !!dataType?.arraySpecifier;
+      this.arraySize = arraySizeDivergent ? undefined : dataType?.arraySpecifier?.size;
+    }
+
+    // #if _VERBOSE
     /** Run the cross-arm shadowing probe for a MACRO_CALL site. No-op when the
      *  probe isn't meaningful: no macro name, name already resolved as a real
      *  reference, or name is a builtin (builtins can't be shadowed by a
@@ -2001,11 +2062,16 @@ export namespace ASTNode {
       if (!symbols.length) {
         if (missErrorLoc) {
           if (sa.symbolTableStack.hasSymbol(lookupSymbol)) {
-            sa.reportError(
+            sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+            sa.reportBranchAvailability(
               missErrorLoc,
-              `Identifier '${name}' is declared only in macro branches that are not guaranteed at this reference.`,
-              DiagnosticType.UseBeforeDeclaration
+              `Identifier '${name}'`,
+              getBranchCoverage(
+                symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+                callsiteBranch
+              )
             );
+            symbols.length = 0;
             return false;
           }
           // `#include` is already expanded by the time the AST is built, so the only remaining
@@ -2015,26 +2081,22 @@ export namespace ASTNode {
           sa.reportWarning(
             missErrorLoc,
             `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
-            DiagnosticType.UseBeforeDeclaration
+            "UnknownVariable"
           );
         }
         return false;
       }
+      const coverage = getBranchCoverage(
+        symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+        callsiteBranch
+      );
       if (
         !retainPartialBranchCandidates &&
-        !canBranchesCoverCallsite(
-          symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
-          callsiteBranch
-        ) &&
-        !symbols.some((symbol) => isSelfGuardingBranch(symbol.branchSignature ?? EMPTY_BRANCH)) &&
+        coverage !== "covered" &&
         !VariableIdentifier._hasConflictingGlobalBranches(symbols)
       ) {
         if (missErrorLoc) {
-          sa.reportError(
-            missErrorLoc,
-            `Identifier '${name}' is declared only in macro branches that are not guaranteed at this reference.`,
-            DiagnosticType.UseBeforeDeclaration
-          );
+          sa.reportBranchAvailability(missErrorLoc, `Identifier '${name}'`, coverage);
         }
         return false;
       }
@@ -2063,6 +2125,7 @@ export namespace ASTNode {
       }
       return false;
     }
+    // #endif
 
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitVariableIdentifier(this));
@@ -2250,6 +2313,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];
+    referenceSymbols: MacroReference[] = [];
     macroName: string;
     /** True iff every `MacroDefineInfo` visible from this call site's branch
      *  has a `valueAst` (i.e. was parsed via the `macro_define` CFG rule).
@@ -2265,6 +2329,7 @@ export namespace ASTNode {
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
+      this.referenceSymbols.length = 0;
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
       this.aliasesNonBuiltinIdent = false;
@@ -2275,68 +2340,122 @@ export namespace ASTNode {
       const macroName = nameToken.lexeme;
       this.macroName = macroName;
 
-      // Filter `defList` to only entries reachable from this call site's
-      // `#ifdef` branch (Issue #2980 nit fix). Without filtering, definitions
-      // in disjoint branches conflate at the call site and pollute type
-      // inference; with it, what remains is exactly what could substitute at
-      // this position.
-      const callSiteBranch = nameToken.branch;
       const defList = sa.macroDefineList[macroName];
       const refs = this.referenceSymbolNames;
       refs.length = 0;
-      let visibleCount = 0;
-      let allAst = true;
-      let isFn = false;
-      let allAliasNonBuiltinIdent = true;
-      if (defList) {
-        for (let i = 0, n = defList.length; i < n; i++) {
-          const info = defList[i];
-          if (!canBranchesOverlap(info.branch, callSiteBranch)) continue;
-          visibleCount++;
-          if (info.valueAst == null) allAst = false;
-          if (info.isFunction) isFn = true;
-          // Harvest references from the value AST. Legacy-form macros (no
-          // `valueAst`) hold non-expression token sequences with no user
-          // identifiers, so nothing to collect.
-          if (info.valueAst) {
-            MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
-          }
-          // aliasesNonBuiltinIdent: macro replacement is a single non-builtin
-          // identifier — best-effort proxy for "this macro call site aliases a
-          // user fn", since uniform/const aliases would surface as a GLSL
-          // compile error later anyway. Keyword replacements (`vec3`, `mat4`)
-          // reach here with `valueAst === undefined` (opaque path), so they
-          // automatically fail without an explicit keyword guard.
-          if (info.isFunction || !info.valueAst) {
-            allAliasNonBuiltinIdent = false;
-          } else {
-            const leadingIdent = ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: false });
-            const leadingChild = leadingIdent?.children[0];
-            const leadingId = leadingChild instanceof BaseToken ? leadingChild.lexeme : undefined;
-            if (!leadingId || BuiltinFunction.isExist(leadingId)) {
+      this.referenceSymbols.length = 0;
+      // #if _VERBOSE
+      if (sa.diagnosticsEnabled) {
+        // Filter `defList` to only entries reachable from this call site's
+        // `#ifdef` branch. Without filtering, definitions
+        // in disjoint branches conflate at the call site and pollute type
+        // inference; with it, what remains is exactly what could substitute at
+        // this position.
+        const callSiteBranch = nameToken.branch;
+        const referenceSymbols = this.referenceSymbols;
+        let visibleCount = 0;
+        let allAst = true;
+        let isFn = false;
+        let allAliasNonBuiltinIdent = true;
+        if (defList) {
+          for (let i = 0, n = defList.length; i < n; i++) {
+            const info = defList[i];
+            if (!canBranchesOverlap(info.branch, callSiteBranch)) continue;
+            visibleCount++;
+            if (info.valueAst == null) allAst = false;
+            if (info.isFunction) isFn = true;
+            // Harvest references from the value AST. Legacy-form macros (no
+            // `valueAst`) hold non-expression token sequences with no user
+            // identifiers, so nothing to collect.
+            if (info.valueAst) {
+              MacroCallSymbol._collectIdentifierRefs(
+                info.valueAst,
+                info.params,
+                refs,
+                referenceSymbols,
+                callSiteBranch
+              );
+            }
+            // aliasesNonBuiltinIdent: macro replacement is a single non-builtin
+            // identifier — best-effort proxy for "this macro call site aliases a
+            // user fn", since uniform/const aliases would surface as a GLSL
+            // compile error later anyway. Keyword replacements (`vec3`, `mat4`)
+            // reach here with `valueAst === undefined` (opaque path), so they
+            // automatically fail without an explicit keyword guard.
+            if (info.isFunction || !info.valueAst) {
               allAliasNonBuiltinIdent = false;
+            } else {
+              const leadingIdent = ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: false });
+              const leadingChild = leadingIdent?.children[0];
+              const leadingId = leadingChild instanceof BaseToken ? leadingChild.lexeme : undefined;
+              if (!leadingId || BuiltinFunction.isExist(leadingId)) {
+                allAliasNonBuiltinIdent = false;
+              }
             }
           }
         }
+        // Require *every* visible entry to be AST-form before taking the AST
+        // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
+        // forms through) falls back to legacy `referenceSymbolNames` inference
+        // instead of polluting the call site with TypeAny.
+        this.hasAstValue = visibleCount > 0 && allAst;
+        this.isFunctionLikeMacro = isFn;
+        this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
+        return;
       }
-      // Require *every* visible entry to be AST-form before taking the AST
-      // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
-      // forms through) falls back to legacy `referenceSymbolNames` inference
-      // instead of polluting the call site with TypeAny.
-      this.hasAstValue = visibleCount > 0 && allAst;
-      this.isFunctionLikeMacro = isFn;
-      this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
+      // #endif
+
+      this._analyzeForCodegen(defList, refs);
+    }
+
+    private _analyzeForCodegen(defList: MacroDefineInfo[] | undefined, refs: string[]): void {
+      let allAst = true;
+      let isFunctionLike = false;
+      let allAliasNonBuiltinIdent = true;
+      const count = defList?.length ?? 0;
+      for (let i = 0; i < count; i++) {
+        const info = defList![i];
+        if (!info.valueAst) allAst = false;
+        if (info.isFunction) isFunctionLike = true;
+        if (info.valueAst) MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
+
+        if (info.isFunction || !info.valueAst) {
+          allAliasNonBuiltinIdent = false;
+        } else {
+          const leadingIdent = ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: false });
+          const leadingChild = leadingIdent?.children[0];
+          const leadingId = leadingChild instanceof BaseToken ? leadingChild.lexeme : undefined;
+          if (!leadingId || BuiltinFunction.isExist(leadingId)) allAliasNonBuiltinIdent = false;
+        }
+      }
+      this.hasAstValue = count > 0 && allAst;
+      this.isFunctionLikeMacro = isFunctionLike;
+      this.aliasesNonBuiltinIdent = count > 0 && allAliasNonBuiltinIdent;
     }
 
     /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
      *  function-like parameter names (local to the macro, not call-site refs)
      *  and duplicates. */
-    private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
+    private static _collectIdentifierRefs(
+      node: TreeNode,
+      params: string[],
+      out: string[],
+      references?: MacroReference[],
+      callSiteBranch: BranchSignature = EMPTY_BRANCH
+    ): void {
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
         if (child instanceof BaseToken) {
           const name = child.lexeme;
-          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) out.push(name);
+          if (params.indexOf(name) === -1) {
+            if (out.indexOf(name) === -1) out.push(name);
+            if (references) {
+              const branch = [...callSiteBranch, ...node._branch];
+              if (!references.some((reference) => reference.name === name && sameBranch(reference.branch, branch))) {
+                references.push({ name, branch });
+              }
+            }
+          }
         }
         return;
       }
@@ -2344,7 +2463,7 @@ export namespace ASTNode {
       if (!children) return;
       for (let i = 0, n = children.length; i < n; i++) {
         const c = children[i];
-        if (c instanceof TreeNode) MacroCallSymbol._collectIdentifierRefs(c, params, out);
+        if (c instanceof TreeNode) MacroCallSymbol._collectIdentifierRefs(c, params, out, references, callSiteBranch);
       }
     }
   }
@@ -2352,6 +2471,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
     referenceSymbolNames: string[] = [];
+    referenceSymbols: MacroReference[] = [];
     macroName: string = "";
     hasAstValue: boolean = false;
     isFunctionLikeMacro: boolean = false;
@@ -2359,6 +2479,7 @@ export namespace ASTNode {
 
     override init(): void {
       this.referenceSymbolNames = [];
+      this.referenceSymbols = [];
       this.macroName = "";
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
@@ -2369,6 +2490,7 @@ export namespace ASTNode {
       const child = this.children[0] as MacroCallSymbol;
 
       this.referenceSymbolNames = child.referenceSymbolNames;
+      this.referenceSymbols = child.referenceSymbols;
       this.macroName = child.macroName;
       this.hasAstValue = child.hasAstValue;
       this.isFunctionLikeMacro = child.isFunctionLikeMacro;
@@ -2473,3 +2595,5 @@ export namespace ASTNode {
     }
   }
 }
+
+export import ASTNode = ASTNodes;

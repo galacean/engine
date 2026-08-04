@@ -1,7 +1,7 @@
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { Lexer, type IncludeMap } from "@galacean/engine-shader-parser";
+import { Lexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/verbose";
 import { describe, expect, it } from "vitest";
 
 function pass(body: string): string {
@@ -23,22 +23,20 @@ ${fragmentBody}
 function compile(source: string, includeMap?: IncludeMap) {
   const result = new ShaderAnalyzer().analyze(source, includeMap ? { includeMap } : undefined);
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
-  const hasError = result.diagnostics.some((diagnostic) => diagnostic.severity === "error");
-  if (hasError) {
-    expect(result.passes, "a blocking diagnostic must not expose codegen input").to.be.empty;
-    return { codes, fragment: undefined };
-  }
-  const pass = result.passes[0];
-  expect(pass, "a warning-only result must leave codegen input").to.not.be.undefined;
+  const passSource = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+  const compiler = new ShaderCompiler();
+  if (includeMap) compiler._setIncludeMap(includeMap);
+  const generated = compiler._parseShaderPass(
+    passSource.contents,
+    passSource.vertexEntry,
+    passSource.fragmentEntry,
+    ShaderLanguage.GLSLES100,
+    ""
+  );
 
   return {
     codes,
-    fragment: new ShaderCompiler().generate(
-      pass.program,
-      pass.vertexEntry,
-      pass.fragmentEntry,
-      ShaderLanguage.GLSLES100
-    ).fragment
+    fragment: generated?.fragment
   };
 }
 
@@ -165,7 +163,7 @@ float u_value;
 #endif`,
       "      gl_FragColor = vec4(u_value);"
     ),
-    codes: ["SyntaxError"],
+    codes: ["PreprocessorError"],
     fragments: []
   },
   {
@@ -361,7 +359,7 @@ float u_included;
     fragments: ["uniform float u_included;"]
   },
   {
-    name: "caller-owned local macro relation",
+    name: "independent local macro relation",
     source: shader(
       "",
       `      #ifdef CALLER_A
@@ -372,7 +370,7 @@ float u_included;
       #endif
       gl_FragColor = vec4(0.0);`
     ),
-    codes: [],
+    codes: ["Redefinition"],
     fragments: ["#ifdef CALLER_A", "#ifdef CALLER_B", "float localValue = 0.0", "float localValue = 1.0"]
   },
   {
@@ -415,7 +413,7 @@ float branchValues[4];
     fragments: ["#ifdef SHORT_ARRAY", "#else", "#endif"]
   },
   {
-    name: "local macro alternatives select the active declaration",
+    name: "independent local macro alternatives may coexist",
     source: shader(
       "",
       `      #ifdef MODE_A
@@ -428,7 +426,7 @@ float branchValues[4];
       #endif
       gl_FragColor = vec4(0.0);`
     ),
-    codes: [],
+    codes: ["Redefinition"],
     fragments: ["#ifdef MODE_A", "#ifdef MODE_B"]
   },
   {
@@ -490,7 +488,8 @@ float u_value;
 #elif defined(DISABLE_VALUE)
 float u_value;
 #endif`,
-        {}
+        {},
+        true
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
@@ -509,7 +508,8 @@ float u_value;
 #elif !defined(USE_VALUE)
 float u_value;
 #endif`,
-        {}
+        {},
+        true
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
@@ -528,7 +528,8 @@ float u_value;
 #elif !USE_VALUE
 float u_value;
 #endif`,
-        {}
+        {},
+        true
       ).tokenize()
     );
     const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
@@ -543,10 +544,6 @@ float u_value;
     it(`analyzes and generates ${testCase.name}`, () => {
       const { codes, fragment } = compile(testCase.source, testCase.includeMap);
       expect(codes).to.deep.equal(testCase.codes);
-      if (codes.length > 0) {
-        expect(fragment).to.be.undefined;
-        return;
-      }
       expect(fragment).to.not.be.undefined;
       const generatedFragment = fragment!;
       for (const fragmentPart of testCase.fragments) expect(generatedFragment).to.include(fragmentPart);

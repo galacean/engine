@@ -6,15 +6,16 @@ import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { NodeChild } from "@galacean/engine-shader-parser";
 import { ShaderData } from "@galacean/engine-shader-parser";
 import { ESymbolType, FnSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
-import { ShaderCompilerUtils, ShaderIOAnalyzer } from "@galacean/engine-shader-parser";
+import type { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
+import type { ShaderBackend } from "../ShaderBackend";
 
 /**
  * @internal
  */
-export abstract class GLESVisitor extends CodeGenVisitor {
+export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend {
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
@@ -31,23 +32,17 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
+  generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
     VisitorContext.reset();
     this.reset();
 
+    const node = ir.program;
     const shaderData = node.shaderData;
     const context = VisitorContext.context;
     context._passSymbolTable = shaderData.symbolTable;
 
-    const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
-
-    // IO structs + roles come from the parser's analyzer; codegen consumes them and ignores its diagnostics.
-    const { io } = ShaderIOAnalyzer.analyze(
-      shaderData,
-      vertexEntry,
-      fragmentEntry,
-      ShaderCompilerUtils.processingPassText
-    );
+    const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
+    const { io } = coreInfo;
     context.attributeStructs.push(...io.attributeStructs);
     context.attributeList.push(...io.attributeList);
     context.varyingStructs.push(...io.varyingStructs);
@@ -62,15 +57,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
 
     return {
-      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
-      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
+      vertex: this._vertexMain(coreInfo.vertexEntry.name, shaderData, outerGlobalMacroDeclarations),
+      fragment: this._fragmentMain(coreInfo.fragmentEntry.name, shaderData, outerGlobalMacroDeclarations)
     };
   }
 
   private _vertexMain(
     entry: string,
     data: ShaderData,
-    outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
   ): string {
     const context = VisitorContext.context;
     context.stage = EShaderStage.VERTEX;
@@ -85,7 +80,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     // and emitter concerns separated. Deduped so a missing entry warns once per compile.
     if (!fnSymbols.length) return this._softMissEntry(false);
 
-    // attribute/varying structs were collected in visitShaderProgram (ShaderIOAnalyzer).
+    // Attribute/varying structs were collected in ShaderCoreInfo.
 
     // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
@@ -113,7 +108,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _fragmentMain(
     entry: string,
     data: ShaderData,
-    outerGlobalMacroStatements: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
   ): string {
     const context = VisitorContext.context;
     context.stage = EShaderStage.FRAGMENT;
@@ -123,8 +118,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    // See vertex counterpart — analyzer's `EntryNotFound` covers the user-facing error;
-    // codegen soft-returns to keep the pipeline shape (`{ vertex, fragment }`) intact.
+    // Preserve the pipeline shape when the fragment entry is missing.
     if (!fnSymbols?.length) return this._softMissEntry(true);
 
     // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements.
@@ -160,10 +154,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   /**
-   * Soft path for a missing entry function: reset the per-stage visitor state (matching
-   * the throw-avoided branch's cleanup) and return an empty stage source. The analyzer's
-   * `EntryNotFound` diagnostic is the user-facing signal; codegen stays silent so precompile
-   * of built-in shaders never spams the console.
+   * Reset per-stage visitor state and return an empty source for a missing entry function.
    * `fullReset` mirrors the fragment path (final pass tear-down); vertex uses `reset(false)`.
    */
   private _softMissEntry(fullReset: boolean): string {
@@ -178,7 +169,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
    * struct codegen emits the declaration lists (`attribute …`, `varying …`, `MRT …`),
    * otherwise properties used only from macros would be missing from the output.
    */
-  private _preRegisterGlobalMacroRefs(macros: ASTNode.GlobalDeclaration[]): void {
+  private _preRegisterGlobalMacroRefs(macros: readonly ASTNode.GlobalDeclaration[]): void {
     for (const macro of macros) {
       this._walkMacroDefineTokens(macro.children);
     }
@@ -237,7 +228,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getGlobalMacroDeclarations(macros: ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
+  private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
     const context = VisitorContext.context;
     const referencedGlobals = context._referencedGlobals;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
@@ -256,7 +247,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const child = macro.children[0];
 
       if (child instanceof ASTNode.GlobalMacroIfStatement) {
-        let result: ICodeSegment[] = [];
+        const result: ICodeSegment[] = [];
         result.push(
           ...macro.macroExpressions.map((item) => ({
             text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),

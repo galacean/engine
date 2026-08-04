@@ -13,6 +13,17 @@
   "module": "dist/module.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/module.js",
+      "require": "./dist/main.js",
+      "types": "./types/index.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "galacean-shader-analyzer": "./dist/cli.js"
+  },
   "scripts": {
     "b:types": "tsc"
   },
@@ -21,8 +32,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-core": "workspace:*",
-    "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*"
   },
   "devDependencies": {

@@ -3,6 +3,7 @@ import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";
 import { GSError, GSErrorName } from "./GSError";
 import { ShaderPosition } from "./common/ShaderPosition";
+import type { ShaderSourceMapSegment } from "./ir";
 
 // Mirrors `ShaderPass._shaderRootPath` (from core's ShaderPass).
 const SHADER_ROOT_PATH = "shaders://root/";
@@ -14,6 +15,8 @@ export interface PreprocessResult {
   content: string;
   /** Include-resolution failures collected while expanding the source. */
   errors: GSError[];
+  /** Mapping from expanded offsets back to the source chunks that produced them. */
+  sourceMap: ShaderSourceMapSegment[];
 }
 
 export type ChunkOutputCache = Map<string, PreprocessResult>;
@@ -69,63 +72,113 @@ export class Preprocessor {
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache
   ): PreprocessResult {
-    const errors: GSError[] = [];
-    const content = source.replace(this._includeReg, (match, includeName: string | undefined, offset: number) =>
-      includeName
-        ? this._replace(includeName, basePathForIncludeKey, includeMap, chunkOutputCache, source, offset, errors)
-        : match
-    );
-    return { content, errors };
+    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache);
   }
 
-  private static _replace(
-    includeName: string,
+  private static _expand(
+    source: string,
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache,
-    source: string,
-    offset: number,
-    errors: GSError[]
-  ): string {
-    let path: string;
-    if (includeName[0] === ".") {
-      try {
-        path = new URL(includeName, basePathForIncludeKey).href.substring(SHADER_ROOT_PATH.length);
-      } catch {
+    sourceFile?: string
+  ): PreprocessResult {
+    const errors: GSError[] = [];
+    const sourceMap: ShaderSourceMapSegment[] = [];
+    const parts: string[] = [];
+    let sourceOffset = 0;
+    let generatedOffset = 0;
+    let match: RegExpExecArray | null;
+    const includeReg = new RegExp(this._includeReg.source, this._includeReg.flags);
+
+    const appendSource = (start: number, end: number): void => {
+      if (end <= start) return;
+      const text = source.slice(start, end);
+      parts.push(text);
+      sourceMap.push({
+        generatedStart: generatedOffset,
+        generatedEnd: generatedOffset + text.length,
+        sourceStart: start,
+        source,
+        file: sourceFile
+      });
+      generatedOffset += text.length;
+    };
+
+    while ((match = includeReg.exec(source))) {
+      appendSource(sourceOffset, match.index);
+      const includeName = match[1];
+      if (!includeName) {
+        appendSource(match.index, includeReg.lastIndex);
+        sourceOffset = includeReg.lastIndex;
+        continue;
+      }
+
+      const path = this._resolveIncludePath(includeName, basePathForIncludeKey);
+      if (!path) {
         errors.push(
           this._createIncludeError(
             source,
-            offset,
-            `Cannot resolve relative shader include "${includeName}" without a shader base path.`
+            match.index,
+            `Cannot resolve relative shader include "${includeName}" without a shader base path.`,
+            sourceFile
           )
         );
-        return "";
+        sourceOffset = includeReg.lastIndex;
+        continue;
       }
-    } else {
-      path = includeName;
-    }
 
-    const chunk = includeMap[path];
-    if (!chunk) {
-      errors.push(this._createIncludeError(source, offset, `Shader include "${path}" was not found.`));
-      return "";
-    }
+      const chunk = includeMap[path];
+      if (!chunk) {
+        errors.push(
+          this._createIncludeError(source, match.index, `Shader include "${path}" was not found.`, sourceFile)
+        );
+        sourceOffset = includeReg.lastIndex;
+        continue;
+      }
 
-    let cached = chunkOutputCache.get(path);
-    if (!cached) {
-      cached = this.parseWithErrors(chunk, basePathForIncludeKey, includeMap, chunkOutputCache);
-      chunkOutputCache.set(path, cached);
+      let expanded = chunkOutputCache.get(path);
+      if (!expanded) {
+        expanded = this._expand(chunk, this._canonicalIncludeURL(path), includeMap, chunkOutputCache, path);
+        chunkOutputCache.set(path, expanded);
+      }
+      parts.push(expanded.content);
+      for (const segment of expanded.sourceMap) {
+        sourceMap.push({
+          generatedStart: generatedOffset + segment.generatedStart,
+          generatedEnd: generatedOffset + segment.generatedEnd,
+          sourceStart: segment.sourceStart,
+          source: segment.source,
+          file: segment.file
+        });
+      }
+      generatedOffset += expanded.content.length;
+      errors.push(...expanded.errors);
+      sourceOffset = includeReg.lastIndex;
     }
-    errors.push(...cached.errors);
-    return cached.content;
+    appendSource(sourceOffset, source.length);
+    return { content: parts.join(""), errors, sourceMap };
   }
 
-  private static _createIncludeError(source: string, offset: number, message: string): GSError {
+  private static _resolveIncludePath(includeName: string, basePathForIncludeKey: string): string | undefined {
+    try {
+      const url =
+        includeName[0] === "." ? new URL(includeName, basePathForIncludeKey) : new URL(includeName, SHADER_ROOT_PATH);
+      return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private static _canonicalIncludeURL(path: string): string {
+    return new URL(path, SHADER_ROOT_PATH).href;
+  }
+
+  private static _createIncludeError(source: string, offset: number, message: string, file?: string): GSError {
     const before = source.slice(0, offset);
     const line = before.split("\n").length - 1;
     const lastBreak = Math.max(before.lastIndexOf("\n"), before.lastIndexOf("\r"));
     const position = new ShaderPosition();
     position.set(offset, line, offset - lastBreak - 1);
-    return new GSError(GSErrorName.PreprocessorError, message, position, source);
+    return new GSError(GSErrorName.PreprocessorError, message, position, source, file);
   }
 }

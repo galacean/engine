@@ -56,7 +56,7 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     label: "宏分支 / 非法 #elif 表达式",
     snippet: "#elif 123 defined(USE_BRANCH_VALUE)",
     diagnosticCount: 1,
-    diagnostic: "SyntaxError",
+    diagnostic: "PreprocessorError",
     severity: "error"
   },
   { label: "宏分支 / #ifndef / #else 互斥", snippet: "#ifndef DISABLE_BRANCH_VALUE", diagnosticCount: 0 },
@@ -69,6 +69,19 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
   },
   { label: "宏分支 / #ifndef / #elif 完整互补", snippet: "#elif defined(DISABLE_BRANCH_VALUE)", diagnosticCount: 0 },
   { label: "宏分支 / #if / #elif / #else 互斥", snippet: "#if MODE == 1", diagnosticCount: 0 },
+  { label: "宏分支 / 复杂算术条件完整覆盖", snippet: "#if A + B > 1", diagnosticCount: 0 },
+  {
+    label: "宏分支 / 复杂算术条件覆盖未知",
+    snippet: "#if A + B > 1",
+    diagnosticCount: 1,
+    diagnostic: "UseBeforeDeclaration",
+    severity: "warning"
+  },
+  {
+    label: "宏分支 / 复杂算术条件互斥声明",
+    snippet: "#if A + B <= 1",
+    diagnosticCount: 0
+  },
   { label: "宏分支 / 嵌套互斥分支", snippet: "#ifdef OUTER", diagnosticCount: 0 },
   {
     label: "宏分支 / 独立宏的全局重定义",
@@ -85,7 +98,13 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     diagnostic: "Redefinition",
     severity: "error"
   },
-  { label: "宏分支 / 局部声明由调用方宏约束", snippet: "#ifdef CALLER_A", diagnosticCount: 0 },
+  {
+    label: "宏分支 / 独立局部宏可能并存",
+    snippet: "#ifdef CALLER_A",
+    diagnosticCount: 1,
+    diagnostic: "Redefinition",
+    severity: "error"
+  },
   {
     label: "宏分支 / 同一 arm 重复",
     snippet: "#ifdef BROKEN_ARM",
@@ -105,7 +124,7 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     snippet: "#ifdef USE_VEC3",
     diagnosticCount: 1,
     diagnostic: "AmbiguousMacroBranchType",
-    severity: "error"
+    severity: "warning"
   },
   {
     label: "符号 / AmbiguousMacroBranchResolution",
@@ -149,11 +168,14 @@ describe("shader playground", () => {
       guiState.onChange!(scenario.label);
 
       expect(editor!.value).to.contain(scenario.snippet);
-      expect(output!.textContent).to.contain(`Diagnostics (${scenario.diagnosticCount})`);
+      expect(output!.textContent, scenario.label).to.contain(`Diagnostics (${scenario.diagnosticCount})`);
 
       if (scenario.diagnostic) {
         expect(output!.textContent).to.contain(scenario.diagnostic);
-        expect(output!.querySelector(`.diag.${scenario.severity}`)).not.toBeNull();
+        expect(
+          output!.querySelector(`.diag.${scenario.severity}`),
+          `${scenario.label} should render ${scenario.severity}: ${output!.textContent}`
+        ).not.toBeNull();
       } else {
         expect(output!.textContent).to.contain("No diagnostics");
       }

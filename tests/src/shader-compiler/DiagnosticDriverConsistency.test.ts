@@ -1,10 +1,9 @@
 /**
  * Analyzer/driver consistency for GLSL-body diagnostics.
  *
- * The compiler pipeline is intentionally lenient: `_parseShaderPass` runs the analyzer for
- * observation and then generates GLSL regardless of diagnostic severity — a shader author can
- * see all issues in one pass, and a runtime macro / conditional `#include` may fill in what
- * looks broken at precompile time. So the pipeline layers separate:
+ * The compiler pipeline is intentionally independent from authoring diagnostics. A runtime macro
+ * or conditional `#include` may fill in what looks broken at precompile time, so the layers stay
+ * separate:
  *   analyzer   → decides whether a diagnostic fires and at what severity
  *   codegen    → produces GLSL for the driver, without gating on diagnostics
  *   driver     → is the source of truth for what will actually run
@@ -14,7 +13,7 @@
  *   - drive the same pass content through the compiler to collect emitted GLSL
  *   - feed the emitted GLSL to a real WebGL2 context
  *   - assert the driver outcome matches the severity contract we set:
- *       severity=error   → driver must reject (analyzer's judgment is authoritative)
+ *       severity=error   → the independently emitted source must reach the driver, which rejects it
  *       severity=warning → the precompile GLSL alone still fails the driver; the warning
  *                          severity encodes intent ("a runtime macro may rescue this at bind
  *                          time"), NOT a claim that the driver would accept the GLSL as-is.
@@ -146,8 +145,8 @@ const cases: Case[] = [
     reason: "constant OOB index on a vec3 is rejected by GLSL ES §5.5 spec-conforming drivers"
   },
   {
-    name: "UseBeforeDeclaration — analyzer warns, driver rejects the precompile GLSL",
-    code: "UseBeforeDeclaration",
+    name: "UnknownVariable — analyzer warns, driver rejects the precompile GLSL",
+    code: "UnknownVariable",
     severity: "warning",
     passBody: `
       struct Attributes { vec3 POSITION; };
@@ -156,12 +155,10 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    // The warning severity models the *intent* (a runtime macro or conditional `#include` could
-    // supply the identifier at material bind time), but the *precompile GLSL* the driver receives
-    // here is not rescued — no macro is set — so it must reject. The severity gap is intentional
-    // under-report; it's not license for the driver to accept broken code.
+    // The analyzer cannot know whether the material supplies this identifier as a runtime macro.
+    // The concrete precompile variant does not define it, so the driver must still reject it.
     driverExpects: "reject",
-    reason: "warning is an under-report by design; the precompile GLSL itself is not runnable"
+    reason: "unknown identifiers may be runtime macros, but this concrete precompile GLSL is not runnable"
   },
   {
     name: "UndefinedFunction — analyzer warns, driver rejects the precompile GLSL",
@@ -175,7 +172,7 @@ const cases: Case[] = [
     vertEntry: "vert",
     fragEntry: "frag",
     driverExpects: "reject",
-    reason: "same rationale as UseBeforeDeclaration — warning is intent, driver still rejects"
+    reason: "same rationale as UnknownVariable — warning is intent, driver still rejects"
   },
   {
     name: "NoMatchingOverload (known name, wrong args) — analyzer errors, driver rejects",
@@ -620,7 +617,7 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    // Driver expands the macro then rejects the literal `1 = 2;`. Not our claim to make.
+    // Only the expanded source determines whether the assignment target is valid.
     driverExpects: "reject",
     reason: "expansion decides — analyzer refuses to pre-judge macros"
   },
@@ -766,8 +763,6 @@ const cases: Case[] = [
     name: "InvalidSwizzle — `.xx` on a void function-call result",
     code: "InvalidSwizzle",
     severity: "error",
-    // Codegen may return undefined for this shape; the analyzer still fires and that's the
-    // consistency claim we're checking here.
     passBody: `
       void f() {}
       void vert() { gl_Position = vec4(0.0); }
@@ -870,27 +865,17 @@ describe("analyzer/codegen/driver consistency", () => {
         expect(matching!.severity, `${c.name}: severity`).to.equal(c.severity);
       }
 
-      // 2) Codegen view — feed the same body through the compiler; capture Logger output too so a
-      // regression that stops routing diagnostics through the Logger fails here rather than silently.
+      // 2) Codegen view — feed the same body through the compiler independently of diagnostics.
       const compiler = new ShaderCompiler();
-      compiler._setAnalyzer(new ShaderAnalyzer());
       const compiled = captureLoggerDiagnostics(() =>
         compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES100, "")
       );
 
-      // Codegen contract: either returns GLSL (best-effort — the editor / IDE keeps the surrounding
-      // structure visible), OR returns undefined AND the analyzer flagged an error. It must not
-      // silently drop the shader when nothing is wrong.
-      if (compiled.result === undefined) {
-        expect(
-          analyzed.diagnostics.some((d) => d.severity === "error"),
-          `${c.name}: codegen returned undefined but analyzer produced no error — silent drop`
-        ).to.be.true;
-        return; // No GLSL to hand the driver.
-      }
+      expect(compiled.result, `${c.name}: analyzer-independent codegen must emit source for the driver`).not.to.be
+        .undefined;
 
       // 3) Driver view — try to compile the emitted GLSL on a real WebGL context.
-      const driver = driveWebGL(compiled.result.vertex, compiled.result.fragment);
+      const driver = driveWebGL(compiled.result!.vertex, compiled.result!.fragment);
       if (driver === "no-webgl") {
         console.warn(`[${c.name}] WebGL unavailable — driver check skipped`);
         return;

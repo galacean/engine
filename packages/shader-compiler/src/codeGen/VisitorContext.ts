@@ -3,7 +3,7 @@ import { EShaderStage } from "@galacean/engine-shader-parser";
 import { SymbolTable } from "@galacean/engine-shader-parser";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser";
-import { StructProp, StructRole } from "@galacean/engine-shader-parser";
+import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser";
 
 /** @internal */
 export class VisitorContext {
@@ -40,8 +40,8 @@ export class VisitorContext {
    * (e.g. `input`) resolves to the correct role for the current stage; module-level
    * globals populate both maps. Codegen picks the map via `getStructVarRole(varName)`.
    */
-  _vertexStructVarMap: Record<string, StructRole>;
-  _fragmentStructVarMap: Record<string, StructRole>;
+  _vertexStructVarMap: Record<string, ShaderStructRole>;
+  _fragmentStructVarMap: Record<string, ShaderStructRole>;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -62,7 +62,7 @@ export class VisitorContext {
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
       // Struct-var bindings are pass-scoped; both stage maps are cleared here and
-      // repopulated by `visitShaderProgram` from `ShaderIOAnalyzer` before codegen.
+      // repopulated from `ShaderCoreInfo` before codegen.
       this._vertexStructVarMap = Object.create(null);
       this._fragmentStructVarMap = Object.create(null);
     }
@@ -81,20 +81,20 @@ export class VisitorContext {
   }
 
   /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
-  getStructRole(typeLexeme: string): StructRole | undefined {
-    if (this.isAttributeStruct(typeLexeme)) return StructRole.Attribute;
-    if (this.isVaryingStruct(typeLexeme)) return StructRole.Varying;
-    if (this.isMRTStruct(typeLexeme)) return StructRole.Mrt;
+  getStructRole(typeLexeme: string): ShaderStructRole | undefined {
+    if (this.isAttributeStruct(typeLexeme)) return ShaderStructRole.Attribute;
+    if (this.isVaryingStruct(typeLexeme)) return ShaderStructRole.Varying;
+    if (this.isMRTStruct(typeLexeme)) return ShaderStructRole.Mrt;
   }
 
   /** Register a variable in a specific stage as holding a varying/attribute/mrt struct value. */
-  registerStructVar(stage: EShaderStage, varName: string, role: StructRole): void {
+  registerStructVar(stage: EShaderStage, varName: string, role: ShaderStructRole): void {
     const map = stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap;
     map[varName] = role;
   }
 
   /** Look up the role of a struct-typed variable in the stage currently being generated. */
-  getStructVarRole(varName: string): StructRole | undefined {
+  getStructVarRole(varName: string): ShaderStructRole | undefined {
     return (this.stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap)[varName];
   }
 

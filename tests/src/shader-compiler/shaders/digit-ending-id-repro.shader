@@ -1,14 +1,7 @@
 Shader "digit-ending-id-repro" {
   SubShader "Default" {
     Pass "0" {
-      // Regression: `_defineHasValue` previously checked only the single char
-      // before `.` to skip decimal points (`3.14`). But GLSL identifiers can
-      // end in digits (`v0`, `uv1`, `pos2D`), so `v.uv1.xy` and similar
-      // member-access via digit-ending fields were mis-routed to legacy and
-      // never got varying-flatten rewriting.
-      //
-      // Fix: walk back the entire alnum/_ run; member-access only when the
-      // run starts with alpha or `_`.
+      // Macro member access must distinguish digit-ending identifiers from decimal points.
       #define UV0  v.uv0.xy
       #define UV1  v.uv1.xy
       #define POS  v.pos2D

@@ -513,9 +513,8 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("rejects trailing tokens in a preprocessor condition", () => {
-      expect(() => ShaderInstructionEncoder.parse("#if 123 defined(FOO)\nBODY\n#endif\n")).toThrow(
-        "Unsupported or malformed preprocessor condition"
-      );
+      const instructions = ShaderInstructionEncoder.parse("#if 123 defined(FOO)\nBODY\n#endif\n");
+      expect(() => eval_(instructions, [])).toThrow("Invalid preprocessor expression");
     });
 
     it("#if MACRO == value: correct branch selected", () => {
@@ -1107,10 +1106,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Regression for SkyMat `material_AtmosphereThickness undeclared`. The
-    // fixture exercises paren / operator / fn-call / unary / nested-fn macro
-    // values; each must emit a DefineVal and every user identifier in the
-    // value must become a real `uniform` declaration.
+    // Complex object-like macro values must retain their referenced uniforms.
     it("emits object-like Define instructions and uniforms for complex macro values", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-value-refs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
@@ -1154,9 +1150,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Regression: comment text inside `#define` values must not leak into the
-    // identifier scanner. Real `u_used_*` refs are kept; `u_in_comment_*`
-    // mentions are not promoted to uniforms.
+    // Comment text inside `#define` values is not an identifier reference.
     it("does not collect identifiers from comments inside #define values", async () => {
       const source = await readFile("src/shader-compiler/shaders/macro-value-refs-with-comments.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);

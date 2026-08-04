@@ -1,10 +1,8 @@
-import {
-  BranchSignature,
-  canBranchesOverlap,
-  canDeclarationsCoexist,
-  EMPTY_BRANCH,
-  isBranchVisibleFrom
-} from "./BaseToken";
+import { EMPTY_BRANCH } from "./BaseToken";
+import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
+// #if _VERBOSE
+import { canBranchesOverlap, getDeclarationCoexistence, isBranchVisibleFrom } from "./BaseToken";
+// #endif
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -16,20 +14,31 @@ export class SymbolTable<T extends IBaseSymbol> {
    * @param symbol - Symbol to insert.
    * @param isInMacroBranch - Whether the declaration is inside a macro branch.
    * @param branchSignature - Macro conditions at the declaration site.
-   * @param diagnoseBranchConflict - Whether possible coexistence across macro branches is an error.
-   * @returns Whether an equal declaration conflicts in this scope.
+   * @returns Whether an equal declaration conflicts, is exclusive, or has unresolved branch overlap.
    */
   insert(
     symbol: T,
     isInMacroBranch = false,
     branchSignature: BranchSignature = EMPTY_BRANCH,
-    diagnoseBranchConflict = true
-  ): boolean {
+    branchAnalysisEnabled = true
+  ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
     symbol.isInMacroBranch = isInMacroBranch;
     symbol.branchSignature = branchSignature;
 
     const entry = this._table.get(symbol.ident) ?? [];
-    let redefined = false;
+    if (!branchAnalysisEnabled) {
+      for (let i = 0, n = entry.length; i < n; i++) {
+        if (entry[i].isInMacroBranch || !entry[i].equal(symbol)) continue;
+        entry[i] = symbol;
+        return "coexist";
+      }
+      entry.push(symbol);
+      this._table.set(symbol.ident, entry);
+      return "none";
+    }
+
+    // #if _VERBOSE
+    let conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none" = "none";
     for (let i = 0, n = entry.length; i < n; i++) {
       const existing = entry[i];
       if (!existing.equal(symbol)) continue;
@@ -37,15 +46,22 @@ export class SymbolTable<T extends IBaseSymbol> {
       const existingBranch = existing.branchSignature ?? EMPTY_BRANCH;
       if (existingBranch.length === 0 && branchSignature.length === 0) {
         entry[i] = symbol;
-        return true;
+        return "coexist";
       }
 
-      if (diagnoseBranchConflict && canDeclarationsCoexist(existingBranch, branchSignature)) redefined = true;
+      const coexistence = getDeclarationCoexistence(existingBranch, branchSignature);
+      if (coexistence === "coexist") conflict = "coexist";
+      else if (coexistence === "unknown" && conflict === "none") conflict = "unknown";
     }
 
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
-    return redefined;
+    return conflict;
+    // #else
+    entry.push(symbol);
+    this._table.set(symbol.ident, entry);
+    return "none";
+    // #endif
   }
 
   /**
@@ -59,11 +75,13 @@ export class SymbolTable<T extends IBaseSymbol> {
     if (entry) {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
+        let visible = includeMacro || !item.isInMacroBranch;
+        // #if _VERBOSE
         if (callsiteBranch !== undefined) {
-          if (!isBranchVisibleFrom(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) continue;
-        } else if (!includeMacro && item.isInMacroBranch) {
-          continue;
+          visible = isBranchVisibleFrom(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
         }
+        // #endif
+        if (!visible) continue;
         if (item.equal(symbol)) return item;
       }
     }
@@ -97,11 +115,13 @@ export class SymbolTable<T extends IBaseSymbol> {
     if (entry) {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
+        let visible = includeMacro || !item.isInMacroBranch;
+        // #if _VERBOSE
         if (callsiteBranch !== undefined) {
-          if (!canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) continue;
-        } else if (!includeMacro && item.isInMacroBranch) {
-          continue;
+          visible = canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
         }
+        // #endif
+        if (!visible) continue;
         if (item.equal(symbol)) out.push(item);
       }
     }

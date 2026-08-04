@@ -87,7 +87,7 @@ export class GLES300Visitor extends GLESVisitor {
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     const { context } = VisitorContext;
     if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
-      // gl_FragColor with MRT is invalid (flagged by ShaderIOAnalyzer); emit nothing for the error case.
+      // A conflicting fragment-output contract has no valid backend declaration to emit.
       if (context.mrtStructs.length) {
         return "";
       }

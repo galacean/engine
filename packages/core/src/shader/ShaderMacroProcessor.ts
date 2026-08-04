@@ -339,13 +339,40 @@ export class ShaderMacroProcessor {
         return !ShaderMacroProcessor._evalCondition(cond.c, valueMacros, funcMacros);
       case "bool":
         return cond.v;
+      case "raw":
+        return ShaderMacroProcessor._evalRawCondition(cond.e, valueMacros, funcMacros);
     }
+  }
+
+  private static _evalRawCondition(
+    expression: string,
+    valueMacros: Map<string, string>,
+    funcMacros: Map<string, FuncMacro>
+  ): boolean {
+    const withDefinedValues = expression.replace(
+      /\bdefined\s*(?:\(\s*([A-Za-z_]\w*)\s*\)|([A-Za-z_]\w*))/g,
+      (_match, parenthesized: string | undefined, bare: string | undefined) => {
+        const name = parenthesized ?? bare!;
+        return valueMacros.has(name) || funcMacros.has(name) ? "1" : "0";
+      }
+    );
+    const expandedNames = ShaderMacroProcessor._expandedNames;
+    expandedNames.clear();
+    const expanded = ShaderMacroProcessor._recursiveExpandMacro(
+      withDefinedValues,
+      valueMacros,
+      funcMacros,
+      expandedNames
+    );
+    return new PreprocessorExpressionEvaluator(expanded).evaluate() !== 0;
   }
 
   /**
    * Evaluate a comparison operator.
    */
   private static _compareValues(numVal: number, op: string, value: number): boolean {
+    numVal |= 0;
+    value |= 0;
     switch (op) {
       case "==":
         return numVal === value;
@@ -483,5 +510,225 @@ export class ShaderMacroProcessor {
       (charCode >= 48 && charCode <= 57) ||
       charCode === 95
     );
+  }
+}
+
+type ExpressionTokenKind = "number" | "identifier" | "operator" | "end";
+
+interface ExpressionToken {
+  kind: ExpressionTokenKind;
+  text: string;
+}
+
+const expressionPrecedence: Readonly<Record<string, number>> = {
+  "||": 1,
+  "&&": 2,
+  "|": 3,
+  "^": 4,
+  "&": 5,
+  "==": 6,
+  "!=": 6,
+  "<": 7,
+  "<=": 7,
+  ">": 7,
+  ">=": 7,
+  "<<": 8,
+  ">>": 8,
+  "+": 9,
+  "-": 9,
+  "*": 10,
+  "/": 10,
+  "%": 10
+};
+
+class PreprocessorExpressionEvaluator {
+  private readonly _tokens: ExpressionToken[];
+  private _index = 0;
+
+  constructor(expression: string) {
+    this._tokens = tokenizePreprocessorExpression(expression);
+  }
+
+  evaluate(): number {
+    const value = this._parseConditional(true);
+    const token = this._current();
+    if (token.kind !== "end") this._invalid(token);
+    return value;
+  }
+
+  private _parseConditional(active: boolean): number {
+    const condition = this._parseBinary(1, active);
+    if (!this._consume("?")) return condition;
+    const whenTrue = this._parseConditional(active && condition !== 0);
+    if (!this._consume(":")) this._invalid(this._current());
+    const whenFalse = this._parseConditional(active && condition === 0);
+    return !active ? 0 : condition !== 0 ? whenTrue : whenFalse;
+  }
+
+  private _parseBinary(minPrecedence: number, active: boolean): number {
+    let left = this._parseUnary(active);
+    while (true) {
+      const operator = this._current().text;
+      const precedence = expressionPrecedence[operator];
+      if (precedence === undefined || precedence < minPrecedence) return left;
+      this._index++;
+      const rightActive = active && !((operator === "&&" && left === 0) || (operator === "||" && left !== 0));
+      const right = this._parseBinary(precedence + 1, rightActive);
+      if (active) left = evaluateBinaryExpression(left, operator, right);
+    }
+  }
+
+  private _parseUnary(active: boolean): number {
+    const token = this._current();
+    if (
+      token.kind === "operator" &&
+      (token.text === "+" || token.text === "-" || token.text === "!" || token.text === "~")
+    ) {
+      this._index++;
+      const value = this._parseUnary(active);
+      if (!active) return 0;
+      switch (token.text) {
+        case "+":
+          return value | 0;
+        case "-":
+          return -value | 0;
+        case "!":
+          return value === 0 ? 1 : 0;
+        case "~":
+          return ~value;
+      }
+    }
+    return this._parsePrimary(active);
+  }
+
+  private _parsePrimary(active: boolean): number {
+    const token = this._current();
+    if (token.kind === "number") {
+      this._index++;
+      return active ? parseIntegerLiteral(token.text) : 0;
+    }
+    if (token.kind === "identifier") {
+      this._index++;
+      return 0;
+    }
+    if (this._consume("(")) {
+      const value = this._parseConditional(active);
+      if (!this._consume(")")) this._invalid(this._current());
+      return value;
+    }
+    this._invalid(token);
+  }
+
+  private _consume(text: string): boolean {
+    if (this._current().text !== text) return false;
+    this._index++;
+    return true;
+  }
+
+  private _current(): ExpressionToken {
+    return this._tokens[this._index];
+  }
+
+  private _invalid(token: ExpressionToken): never {
+    throw new Error(`Invalid preprocessor expression near '${token.text || "end of expression"}'.`);
+  }
+}
+
+function tokenizePreprocessorExpression(expression: string): ExpressionToken[] {
+  const tokens: ExpressionToken[] = [];
+  let index = 0;
+  while (index < expression.length) {
+    const char = expression[index];
+    if (/\s/.test(char)) {
+      index++;
+      continue;
+    }
+    if (expression.startsWith("//", index)) break;
+    if (expression.startsWith("/*", index)) {
+      const end = expression.indexOf("*/", index + 2);
+      if (end < 0) throw new Error("Invalid preprocessor expression: unterminated comment.");
+      index = end + 2;
+      continue;
+    }
+    const identifier = /^[A-Za-z_][A-Za-z0-9_]*/.exec(expression.slice(index))?.[0];
+    if (identifier) {
+      tokens.push({ kind: "identifier", text: identifier });
+      index += identifier.length;
+      continue;
+    }
+    const number = /^(?:0[xX][0-9A-Fa-f]+|0[0-7]*|[1-9][0-9]*)(?:[uUlL]{0,3})/.exec(expression.slice(index))?.[0];
+    if (number) {
+      tokens.push({ kind: "number", text: number });
+      index += number.length;
+      continue;
+    }
+    const pair = ["||", "&&", "==", "!=", "<=", ">=", "<<", ">>"].find((operator) =>
+      expression.startsWith(operator, index)
+    );
+    if (pair) {
+      tokens.push({ kind: "operator", text: pair });
+      index += pair.length;
+      continue;
+    }
+    if ("|^&<>+-*/%!~?:()".includes(char)) {
+      tokens.push({ kind: "operator", text: char });
+      index++;
+      continue;
+    }
+    throw new Error(`Invalid preprocessor expression near '${char}'.`);
+  }
+  tokens.push({ kind: "end", text: "" });
+  return tokens;
+}
+
+function parseIntegerLiteral(literal: string): number {
+  const value = literal.replace(/[uUlL]+$/, "");
+  if (/^0[xX]/.test(value)) return parseInt(value.slice(2), 16) | 0;
+  if (/^0[0-7]+$/.test(value)) return parseInt(value, 8) | 0;
+  return Number(value) | 0;
+}
+
+function evaluateBinaryExpression(left: number, operator: string, right: number): number {
+  switch (operator) {
+    case "||":
+      return left !== 0 || right !== 0 ? 1 : 0;
+    case "&&":
+      return left !== 0 && right !== 0 ? 1 : 0;
+    case "|":
+      return left | right;
+    case "^":
+      return left ^ right;
+    case "&":
+      return left & right;
+    case "==":
+      return left === right ? 1 : 0;
+    case "!=":
+      return left !== right ? 1 : 0;
+    case "<":
+      return left < right ? 1 : 0;
+    case "<=":
+      return left <= right ? 1 : 0;
+    case ">":
+      return left > right ? 1 : 0;
+    case ">=":
+      return left >= right ? 1 : 0;
+    case "<<":
+      return left << right;
+    case ">>":
+      return left >> right;
+    case "+":
+      return (left + right) | 0;
+    case "-":
+      return (left - right) | 0;
+    case "*":
+      return Math.imul(left, right);
+    case "/":
+      if (right === 0) throw new Error("Division by zero in preprocessor expression.");
+      return Math.trunc(left / right) | 0;
+    case "%":
+      if (right === 0) throw new Error("Division by zero in preprocessor expression.");
+      return left % right | 0;
+    default:
+      throw new Error(`Invalid preprocessor operator '${operator}'.`);
   }
 }

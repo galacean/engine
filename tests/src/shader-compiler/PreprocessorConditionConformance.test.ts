@@ -3,7 +3,11 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
-import { parsePreprocessorCondition, type PreprocessorCondition } from "@galacean/engine-shader-parser";
+import {
+  parsePreprocessorCondition,
+  ShaderSourceParser,
+  type PreprocessorCondition
+} from "@galacean/engine-shader-parser";
 import { describe, expect, it } from "vitest";
 
 interface MacroConfiguration {
@@ -141,17 +145,7 @@ const conditionCases: readonly ConditionCase[] = [
   }
 ];
 
-const malformedExpressions = [
-  "123 defined(USE)",
-  "defined()",
-  "defined(USE",
-  "USE &&",
-  "(USE",
-  "USE OTHER",
-  "USE == OTHER",
-  "!",
-  "USE || || OTHER"
-] as const;
+const malformedExpressions = ["123 defined(USE)", "defined()", "USE &&", "!", "USE || || OTHER"] as const;
 
 function shader(condition: string): string {
   return `Shader "preprocessor-condition-conformance" { SubShader "s" { Pass "p" {
@@ -188,30 +182,70 @@ function compileInWebGL(vertex: string, fragment: string): { ok: boolean; log: s
   };
 }
 
+function evaluateNativeCondition(
+  expression: string,
+  macros: readonly (readonly [string, string])[],
+): { supported: true; firstArm: boolean } | { supported: false; log: string } | "no-webgl" {
+  const macroNames = new Set(macros.map(([name]) => name));
+  const normalizedExpression = expression
+    .replace(
+      /\bdefined\s*(?:\(\s*([A-Za-z_]\w*)\s*\)|([A-Za-z_]\w*))/g,
+      (_match, parenthesized: string | undefined, bare: string | undefined) =>
+        macroNames.has(parenthesized ?? bare!) ? "1" : "0"
+    )
+    .replace(/\b[A-Za-z_]\w*\b/g, (name) => (macroNames.has(name) ? name : "0"));
+  const definitions = macros.map(([name, value]) => `#define ${name} ${value}`).join("\n");
+  const invalidDeclaration = "float native_condition_selected_the_wrong_arm = ;";
+  const compileProbe = (firstArm: boolean) => compileInWebGL(
+    "void main() { gl_Position = vec4(0.0); }",
+    `${definitions}
+#if ${normalizedExpression}
+${firstArm ? "const float native_condition_value = 1.0;" : invalidDeclaration}
+#else
+${firstArm ? invalidDeclaration : "const float native_condition_value = 0.0;"}
+#endif
+void main() { gl_FragColor = vec4(native_condition_value); }`
+  );
+  const firstProbe = compileProbe(true);
+  if (firstProbe === "no-webgl") return firstProbe;
+  if (firstProbe.ok) return { supported: true, firstArm: true };
+  const secondProbe = compileProbe(false);
+  if (secondProbe === "no-webgl") return secondProbe;
+  if (secondProbe.ok) return { supported: true, firstArm: false };
+  return { supported: false, log: `first=${firstProbe.log} second=${secondProbe.log}` };
+}
+
 describe("preprocessor condition conformance", () => {
   for (const conditionCase of conditionCases) {
-    it(`${conditionCase.name}: parser, analyzer, encoder, and WebGL agree`, () => {
+    it(`${conditionCase.name}: fast parser, analyzer, runtime, and WebGL agree`, () => {
       expect(parsePreprocessorCondition(conditionCase.expression)).to.have.property("t", conditionCase.root);
 
-      const result = new ShaderAnalyzer().analyze(shader(conditionCase.expression));
+      const source = shader(conditionCase.expression);
+      const result = new ShaderAnalyzer().analyze(source);
       expect(result.diagnostics).to.be.empty;
-      const pass = result.passes[0];
-      expect(pass).to.not.be.undefined;
-
-      const generated = new ShaderCompiler().generate(
-        pass.program,
+      const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+      const generated = new ShaderCompiler()._parseShaderPass(
+        pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
-        ShaderLanguage.GLSLES100
+        ShaderLanguage.GLSLES100,
+        ""
       );
-      expect(generated.vertexShaderInstructions).to.not.be.undefined;
-      expect(generated.fragmentShaderInstructions).to.not.be.undefined;
+      expect(generated).to.not.be.undefined;
+      expect(generated!.vertexShaderInstructions).to.not.be.undefined;
+      expect(generated!.fragmentShaderInstructions).to.not.be.undefined;
 
       for (const configuration of conditionCase.configurations) {
+        const native = evaluateNativeCondition(conditionCase.expression, configuration.macros);
+        if (native !== "no-webgl") {
+          expect(native.supported, native.supported ? "" : native.log).to.be.true;
+          if (native.supported) expect(native.firstArm).to.equal(configuration.firstArm);
+        }
+
         const macros = new Map(configuration.macros);
-        const vertex = ShaderMacroProcessor.evaluate(generated.vertexShaderInstructions!, macros);
+        const vertex = ShaderMacroProcessor.evaluate(generated!.vertexShaderInstructions!, macros);
         const fragment = ShaderMacroProcessor.evaluate(
-          generated.fragmentShaderInstructions!,
+          generated!.fragmentShaderInstructions!,
           new Map(configuration.macros)
         );
         const selectedArm = configuration.firstArm ? "1.0" : "2.0";
@@ -226,16 +260,86 @@ describe("preprocessor condition conformance", () => {
     });
   }
 
-  for (const expression of malformedExpressions) {
-    it(`rejects malformed expression '${expression}' before codegen`, () => {
-      expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
-      expect(() => ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`)).to.throw(
-        "Unsupported or malformed preprocessor condition"
+  for (const [expression, macros, firstArm] of [
+    [
+      "A + B > 1",
+      [
+        ["A", "1"],
+        ["B", "1"]
+      ],
+      true
+    ],
+    [
+      "A + B > 1",
+      [
+        ["A", "0"],
+        ["B", "1"]
+      ],
+      false
+    ],
+    ["(MASK & 3) == 2", [["MASK", "6"]], true],
+    [
+      "A ? B : C",
+      [
+        ["A", "0"],
+        ["B", "0"],
+        ["C", "1"]
+      ],
+      true
+    ],
+    ["((A == B || A == C))", [["A", "2"], ["B", "1"], ["C", "2"]], true],
+    ["(MASK >> 1) == 3", [["MASK", "6"]], true],
+    ["(~MASK & 0xffu) != 0", [["MASK", "255"]], false],
+    ["0xffffffffu + 1u == 0u", [], true],
+    ["-1 < 1u", [], true],
+    ["0xffffffffu > 0u", [], false],
+    ["A && (10 / B)", [["A", "0"], ["B", "0"]], false],
+    ["A ? (10 / B) : C", [["A", "0"], ["B", "0"], ["C", "1"]], true],
+    ["FIRST SECOND == 22", [["FIRST", "17"], ["SECOND", "+ 5"]], true]
+  ] as const) {
+    it(`evaluates full preprocessor expression '${expression}' through codegen and WebGL`, () => {
+      expect(() => parsePreprocessorCondition(expression)).to.throw();
+      const native = evaluateNativeCondition(expression, macros);
+      if (native !== "no-webgl" && !expression.includes("?")) {
+        expect(native.supported, native.supported ? "" : native.log).to.be.true;
+        if (native.supported) expect(native.firstArm).to.equal(firstArm);
+      }
+
+      const source = shader(expression);
+      const diagnostics = new ShaderAnalyzer().analyze(source).diagnostics;
+      expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
+
+      const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+      const generated = new ShaderCompiler()._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        ""
       );
+      expect(generated).to.not.be.undefined;
+
+      const vertex = ShaderMacroProcessor.evaluate(generated!.vertexShaderInstructions!, new Map(macros));
+      const fragment = ShaderMacroProcessor.evaluate(generated!.fragmentShaderInstructions!, new Map(macros));
+      const selectedArm = firstArm ? "1.0" : "2.0";
+      const otherArm = firstArm ? "2.0" : "1.0";
+      expect(fragment.match(/uniform\s+float\s+u_value\s*;/g)).to.have.lengthOf(1);
+      expect(fragment).to.contain(`const float u_selectedArm = ${selectedArm};`);
+      expect(fragment).not.to.contain(`const float u_selectedArm = ${otherArm};`);
+
+      const webgl = compileInWebGL(vertex, fragment);
+      if (webgl !== "no-webgl") expect(webgl.ok, webgl.log).to.be.true;
+    });
+  }
+
+  for (const expression of malformedExpressions) {
+    it(`diagnoses malformed expression '${expression}' without making encoding a diagnostic gate`, () => {
+      expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
+      const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);
 
       const result = new ShaderAnalyzer().analyze(shader(expression));
-      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["SyntaxError"]);
-      expect(result.passes).to.be.empty;
+      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
+      expect(() => ShaderMacroProcessor.evaluate(instructions, new Map())).to.throw("Invalid preprocessor expression");
     });
   }
 });

@@ -1,9 +1,10 @@
 import { Color } from "@galacean/engine-math";
 import { ShaderLanguage } from "@galacean/engine-core";
 import { Logger } from "@galacean/engine-core";
-import type { IPrecompiledShader, IRenderStates, IShaderAnalyzer, IShaderSource } from "@galacean/engine-design";
+import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser";
 import type { ASTNode } from "@galacean/engine-shader-parser";
 import { Lexer } from "@galacean/engine-shader-parser";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
@@ -11,14 +12,13 @@ import { ShaderTargetParser } from "@galacean/engine-shader-parser";
 import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser";
 import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser";
+import type { ShaderBackend } from "./ShaderBackend";
 
 export class ShaderCompiler {
-  private static _parser = ShaderTargetParser.create();
+  private static _parser?: ShaderTargetParser;
 
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
-  private _analyzer?: IShaderAnalyzer;
-  private _sourceErrors: Error[] = [];
 
   /** Replace the `#include` lookup table and clear the derived chunk cache. */
   _setIncludeMap(includeMap: IncludeMap): void {
@@ -26,19 +26,10 @@ export class ShaderCompiler {
     this._chunkOutputCache.clear();
   }
 
-  /**
-   * Attaches an analyzer used to diagnose parsed shader passes.
-   * @param analyzer - Analyzer to invoke after parsing a pass.
-   */
-  _setAnalyzer(analyzer: IShaderAnalyzer): void {
-    this._analyzer = analyzer;
-  }
-
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
-    const shaderSource = ShaderSourceParser.parse(sourceCode);
-    this._sourceErrors = [...ShaderSourceParser.errors];
-    for (const error of this._sourceErrors) Logger.error(error.toString());
+    const { shaderSource, errors } = ShaderSourceParser.parseWithErrors(sourceCode);
+    for (const error of errors) Logger.error(error.toString());
 
     return shaderSource;
   }
@@ -50,7 +41,6 @@ export class ShaderCompiler {
     backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    if (this._sourceErrors.length) return undefined;
     const macroDefineList = {};
     const { content: noIncludeContent, errors: preprocessErrors } = Preprocessor.parseWithErrors(
       source,
@@ -66,7 +56,7 @@ export class ShaderCompiler {
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 
     const tokens = lexer.tokenize();
-    const { _parser: parser } = ShaderCompiler;
+    const parser = (ShaderCompiler._parser ??= ShaderTargetParser.create());
 
     ShaderCompilerUtils.processingPassText = noIncludeContent;
 
@@ -75,9 +65,9 @@ export class ShaderCompiler {
     try {
       const program = parser.parse(tokens, macroDefineList);
       if (!program) return undefined;
-      if (this._analyzer && !this._analyzer._diagnose(program, parser.errors, vertexEntry, fragmentEntry))
-        return undefined;
-      return this.generate(program, vertexEntry, fragmentEntry, backend);
+      const ir = new ShaderClueIR(program, noIncludeContent);
+      const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
+      return this._generate(ir, coreInfo, backend);
     } catch (error) {
       Logger.error(error instanceof Error ? error.toString() : String(error));
       return undefined;
@@ -100,8 +90,15 @@ export class ShaderCompiler {
     fragmentEntry: string,
     backend: ShaderLanguage
   ): IShaderProgramSource {
-    const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
-    const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+    const ir = new ShaderClueIR(program, ShaderCompilerUtils.processingPassText ?? "");
+    const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
+    return this._generate(ir, coreInfo, backend);
+  }
+
+  private _generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, backend: ShaderLanguage): IShaderProgramSource {
+    const codeGen: ShaderBackend =
+      backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
+    const ret = codeGen.generate(ir, coreInfo);
     if (ret) {
       ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
       ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);

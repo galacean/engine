@@ -1,16 +1,20 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
-import { GSError, GSErrorName } from "./GSError";
-import type { DiagnosticType } from "./DiagnosticType";
+import { GSErrorName } from "./GSError";
 import { ShaderRange } from "./common/ShaderRange";
 import { ShaderPosition } from "./common/ShaderPosition";
+// #if _VERBOSE
+import { GSError } from "./GSError";
+// #endif
 
 export class ShaderCompilerUtils {
   private static _shaderCompilerObjectPoolSet: ClearableObjectPool<IPoolElement>[] = [];
   private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
   private static _shaderRangePool = ShaderCompilerUtils.createObjectPool(ShaderRange);
 
+  // #if _VERBOSE
   /** Source text of the pass being compiled, attached to diagnostics as context. */
   static processingPassText?: string;
+  // #endif
 
   static createObjectPool<T extends IPoolElement>(type: new () => T) {
     const pool = new ClearableObjectPool<T>(type);
@@ -20,7 +24,13 @@ export class ShaderCompilerUtils {
 
   static createPosition(index: number, line = 0, column = 0): ShaderPosition {
     const position = ShaderCompilerUtils._shaderPositionPool.get();
-    position.set(index, line, column);
+    position.set(
+      index,
+      // #if _VERBOSE
+      line,
+      column
+      // #endif
+    );
     return position;
   }
 
@@ -41,9 +51,15 @@ export class ShaderCompilerUtils {
     errorName: GSErrorName,
     source: string | undefined,
     location: ShaderRange | ShaderPosition,
-    code?: DiagnosticType,
+    code?: string,
     file?: string
-  ): GSError {
+  ): Error {
+    // #if _VERBOSE
     return new GSError(errorName, message, location, source, file, code);
+    // #else
+    const err = new Error(message);
+    err.name = errorName;
+    return err;
+    // #endif
   }
 }

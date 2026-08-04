@@ -1,7 +1,8 @@
-import type { DiagnosticType } from "./DiagnosticType";
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
+// #if _VERBOSE
 import { formatDiagnosticSource } from "./formatDiagnostic";
+// #endif
 
 /** Error reported while parsing or analyzing shader source. */
 export class GSError extends Error {
@@ -20,16 +21,20 @@ export class GSError extends Error {
     public readonly location: ShaderRange | ShaderPosition,
     public readonly source: string | undefined,
     public readonly file?: string,
-    public readonly code?: DiagnosticType
+    public readonly code?: string
   ) {
     super(message);
     this.name = name;
   }
 
   override toString(): string {
+    // #if _VERBOSE
     const { location } = this;
     const range = "start" in location ? location : { start: location, end: location };
     return formatDiagnosticSource(this.source || undefined, range, `${this.name}: ${this.message}`);
+    // #else
+    return `${this.name}: ${this.message}`;
+    // #endif
   }
 }
 

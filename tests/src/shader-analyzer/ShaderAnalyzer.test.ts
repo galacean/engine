@@ -1,6 +1,5 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import type { Diagnostic } from "@galacean/engine-shader-analyzer";
-import { Logger } from "@galacean/engine-core";
 import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 
@@ -9,15 +8,37 @@ const { readFile } = server.commands;
 describe("ShaderAnalyzer", () => {
   const analyzer = new ShaderAnalyzer();
 
-  it("surfaces a macro author error as a structured diagnostic", async () => {
-    const source = await readFile("src/shader-compiler/shaders/macro-author-error-unbalanced-paren.shader");
-    const { diagnostics } = analyzer.analyze(source);
-    expect(diagnostics.length).to.be.greaterThan(0);
-    const d = diagnostics[0];
-    expect(d.code).to.equal("SyntaxError");
-    expect(d.severity).to.equal("error");
-    expect(d.message).to.include("#define BAD");
-    expect(d.range.start.line).to.be.greaterThan(0);
+  it("accepts legal preprocessing-token fragments as macro replacement lists", async () => {
+    for (const name of ["trailing-comma", "unbalanced-bracket", "unbalanced-paren"]) {
+      const source = await readFile(`src/shader-compiler/shaders/macro-token-fragment-${name}.shader`);
+      const { diagnostics } = analyzer.analyze(source);
+      expect(
+        diagnostics.filter((diagnostic) => diagnostic.severity === "error"),
+        `${name} is legal until its expansion site forms an invalid shader`
+      ).to.be.empty;
+    }
+  });
+
+  it("defers macro replacement-list references to the expansion site", () => {
+    const unused = `Shader "macro" { SubShader "s" { Pass "p" {
+      #define VALUE value
+      float value;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;
+    } } }`;
+    expect(new ShaderAnalyzer().analyze(unused).diagnostics).to.be.empty;
+
+    const expanded = unused.replace("vec4(1.0)", "vec4(VALUE)");
+    expect(new ShaderAnalyzer().analyze(expanded).diagnostics).to.be.empty;
+
+    const missing = expanded.replace("float value;", "");
+    const diagnostic = new ShaderAnalyzer()
+      .analyze(missing)
+      .diagnostics.find((candidate) => candidate.code === "UnknownVariable");
+    expect(diagnostic).to.be.ok;
+    expect(diagnostic!.range.start.line).to.equal(5);
+    expect(diagnostic!.range.start.column).to.equal(41);
   });
 
   it("yields no diagnostics for a valid self-contained shader", () => {
@@ -52,10 +73,8 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const err = diagnostics.find((d: Diagnostic) => d.code === "UseBeforeDeclaration");
-    expect(err, "expected a C0-07 warning for the undeclared identifier").to.be.ok;
-    // Warning — a bare identifier may be defined by a runtime macro or a conditional #include
-    // that precompile doesn't see. See AST.ts VariableIdentifier.semanticAnalyze.
+    const err = diagnostics.find((d: Diagnostic) => d.code === "UnknownVariable");
+    expect(err, "expected a warning for the undeclared identifier").to.be.ok;
     expect(err!.severity).to.equal("warning");
     expect(err!.message).to.include("undeclared_color");
     expect(err!.range.start.line).to.be.greaterThan(0);
@@ -105,7 +124,7 @@ describe("ShaderAnalyzer", () => {
     expect(redef!.message).to.include("u_a");
   });
 
-  it("blocks codegen on redefinition", () => {
+  it("reports redefinition without exposing a codegen gate", () => {
     const source = `Shader "first-wins" {
   SubShader "Default" {
     Pass "test" {
@@ -120,8 +139,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics, passes } = analyzer.analyze(source);
-    expect(passes.length).to.equal(0);
+    const { diagnostics } = analyzer.analyze(source);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef).to.be.ok;
   });
@@ -294,39 +312,6 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics, "a valid shader must stay clean even after a prior parse failure").to.be.empty;
   });
 
-  it("prints diagnostics through Logger", () => {
-    const ra = new ShaderAnalyzer();
-    const logged: string[] = [];
-    const origError = Logger.error;
-    const origWarn = Logger.warn;
-    const capture = (...args: unknown[]): void => {
-      logged.push(args.join(" "));
-    };
-    Logger.error = capture;
-    Logger.warn = capture;
-    try {
-      ra.analyze(`Shader "log" {
-  SubShader "Default" {
-    Pass "test" {
-      mat4 renderer_MVPMat;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(doesNotExist(1.0)); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`);
-    } finally {
-      Logger.error = origError;
-      Logger.warn = origWarn;
-    }
-    expect(
-      logged.some((l) => l.includes("doesNotExist")),
-      "the analyzer should print the diagnostic via Logger"
-    ).to.be.true;
-  });
-
   it("flags a Pass that does not bind both vertex and fragment entries (MissingEntry)", () => {
     const source = `Shader "x" {
   SubShader "Default" {
@@ -342,7 +327,8 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
     expect(diag, "a Pass missing FragmentShader must report MissingEntry").to.be.ok;
     expect(diag!.severity).to.equal("error");
-    expect(diag!.range.start.line, "diagnostic points at the Pass").to.be.greaterThan(0);
+    expect(diag!.range.start.line, "diagnostic points at the Pass").to.equal(3);
+    expect(diag!.range.start.column).to.equal(9);
   });
 
   it("does not flag a Pass that binds both entries", () => {

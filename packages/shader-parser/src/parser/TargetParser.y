@@ -519,10 +519,7 @@ function_call:
 function_call_generic:
     function_identifier '(' function_call_parameter_list ')'
     | function_identifier '(' ')'
-    // Mirrors CFG.ts:681 verbatim. This alt is unreachable from any legal
-    // GLSL token stream (lexer never produces `f VOID )` without `(` between)
-    // — present since the LALR refactor (#2113, 2024-07). Tracked as latent
-    // bug; fix belongs in a separate PR with a `f(void)` regression test.
+    // Kept in sync with CFG.ts; the lexer does not emit this sequence for legal GLSL.
     | function_identifier void ')'
     ;
 

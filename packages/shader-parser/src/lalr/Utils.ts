@@ -75,6 +75,7 @@ export default class GrammarUtils {
     return a.action === b.action && a.target === b.target;
   }
 
+  // #if _VERBOSE
   static printAction(actionInfo: ActionInfo) {
     const production = Production.pool.get(actionInfo.target!);
     return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production)}>`;
@@ -84,4 +85,5 @@ export default class GrammarUtils {
     const deriv = production.derivation.map((gs) => GrammarUtils.toString(gs)).join("|");
     return `${NoneTerminal[production.goal]} :=> ${deriv}`;
   }
+  // #endif
 }

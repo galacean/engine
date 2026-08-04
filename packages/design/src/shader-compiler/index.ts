@@ -1,5 +1,4 @@
 export type { IShaderCompiler } from "./IShaderCompiler";
-export type { IShaderAnalyzer } from "./IShaderAnalyzer";
 export type { IShaderProgram } from "./IShaderProgram";
 export type {
   Condition,
@@ -7,6 +6,7 @@ export type {
   NotDefinedCondition,
   CompareCondition,
   BoolCondition,
+  RawCondition,
   ShaderInstruction
 } from "./ICondition";
 export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";

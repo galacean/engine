@@ -46,7 +46,7 @@ float u_value;
     expect(diagnostics).to.have.lengthOf(1);
   });
 
-  it("does not infer caller-owned macro relationships for local declarations", () => {
+  it("reports independently configurable local declarations", () => {
     const diagnostics = redefinitions(
       shader(`void localDeclarations() {
 #ifdef A
@@ -57,7 +57,8 @@ float u_value;
 #endif
 }`)
     );
-    expect(diagnostics).to.be.empty;
+    expect(diagnostics).to.have.lengthOf(1);
+    expect(diagnostics[0].severity).to.equal("error");
   });
 
   it("keeps unconditional local redefinition diagnostics", () => {
@@ -221,19 +222,59 @@ float u_value;
 
   it.each([
     ["overlapping numeric ranges", "MODE >= 1", "MODE > 1"],
-    ["different macro names", "FIRST == 1", "SECOND == 2"],
-    ["compound conditions outside the lightweight subset", "MODE == 1 || MODE == 2", "MODE == 2"]
-  ])("keeps conservative diagnostics for %s", (_name, first, second) => {
-    expect(
-      redefinitions(
+    ["different macro names", "FIRST == 1", "SECOND == 2"]
+  ])("reports proven overlap for %s", (_name, first, second) => {
+    const diagnostics = redefinitions(
+      shader(`#if ${first}
+float u_value;
+#endif
+#if ${second}
+float u_value;
+#endif`)
+    );
+    expect(diagnostics).to.have.lengthOf(1);
+    expect(diagnostics[0].severity).to.equal("error");
+  });
+
+  it.each([["compound and atomic", "MODE == 1 || MODE == 2", "MODE == 2"]])(
+    "warns when overlap cannot be proven for %s",
+    (_name, first, second) => {
+      const diagnostics = redefinitions(
         shader(`#if ${first}
 float u_value;
 #endif
 #if ${second}
 float u_value;
 #endif`)
-      )
-    ).to.have.lengthOf(1);
+      );
+      expect(diagnostics).to.have.lengthOf(1);
+      expect(diagnostics[0].severity).to.equal("warning");
+    }
+  );
+
+  it("proves canonical arithmetic comparisons are complementary", () => {
+    const diagnostics = redefinitions(
+      shader(`#if A + B > 1
+float u_value;
+#endif
+#if A+B <= 1
+float u_value;
+#endif`)
+    );
+    expect(diagnostics).to.be.empty;
+  });
+
+  it("does not treat comparisons inside a disjunction as complementary", () => {
+    const diagnostics = redefinitions(
+      shader(`#if A + B > 1 || C
+float u_value;
+#endif
+#if A + B <= 1 || C
+float u_value;
+#endif`)
+    );
+    expect(diagnostics).to.have.lengthOf(1);
+    expect(diagnostics[0].severity).to.equal("warning");
   });
 
   it("silences repeated canonical include guards", () => {
@@ -435,10 +476,9 @@ BranchData branchData;`,
       "vec4(branchData.value)",
       /struct\s+BranchData\b/g
     ]
-  ])("blocks codegen for conflicting declarations: %s", (_name, declarations, expression) => {
+  ])("reports conflicting declarations without acting as a codegen gate: %s", (_name, declarations, expression) => {
     const source = shader(declarations, expression);
-    const { diagnostics, passes } = analyze(source);
+    const { diagnostics } = analyze(source);
     expect(diagnostics.filter((diagnostic) => diagnostic.code === "Redefinition")).to.have.lengthOf(1);
-    expect(passes, "an analyzer error must make the pass unavailable to codegen").to.have.lengthOf(0);
   });
 });

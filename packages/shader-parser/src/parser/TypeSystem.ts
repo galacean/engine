@@ -3,6 +3,24 @@ import { Keyword } from "../common/enums/Keyword";
 
 export type { GalaceanDataType } from "../common/types";
 
+/** Proven reason that a binary arithmetic operation is invalid. */
+export type ArithmeticFailureReason = "non-arithmetic" | "family-mismatch" | "shape-mismatch" | "integer-required";
+
+/**
+ * Shared result of arithmetic type inference and validation.
+ *
+ * `valid` is undefined when an operand type is unresolved. A false value is therefore proof of an
+ * invalid operation, while unresolved macro-provided types remain non-blocking.
+ */
+export interface ArithmeticTypeResult {
+  /** Inferred result type, or `TypeAny` when it cannot be determined. */
+  resultType: GalaceanDataType | undefined;
+  /** Whether the operation is proven valid, proven invalid, or unresolved. */
+  valid: boolean | undefined;
+  /** Invalidity reason when `valid` is false. */
+  reason?: ArithmeticFailureReason;
+}
+
 /** Utility functions for GLSL type classification and compatibility. */
 export class TypeSystem {
   /**
@@ -19,14 +37,22 @@ export class TypeSystem {
     return target === source;
   }
 
-  /** Human-readable GLSL name of a resolved type, for diagnostic messages. */
+  /**
+   * Returns a human-readable GLSL type name.
+   * @param type - Type to format.
+   * @returns GLSL name or `unknown` when the type is unresolved.
+   */
   static typeName(type: GalaceanDataType | undefined): string {
     if (typeof type === "string") return type;
     if (type == undefined) return "unknown";
     return (Keyword[type] ?? String(type)).toLowerCase();
   }
 
-  /** A sampler (opaque) type — not constructible: it cannot be a function return, a local, or a value. */
+  /**
+   * Tests whether a type is an opaque GLSL sampler.
+   * @param type - Type to classify.
+   * @returns Whether the type is a sampler.
+   */
   static isSamplerType(type: GalaceanDataType | undefined): boolean {
     switch (type) {
       case Keyword.SAMPLER2D:
@@ -50,12 +76,20 @@ export class TypeSystem {
     }
   }
 
-  /** A boolean scalar/vector type. */
+  /**
+   * Tests whether a type is a boolean scalar or vector.
+   * @param type - Type to classify.
+   * @returns Whether the type belongs to the boolean family.
+   */
   static isBoolType(type: GalaceanDataType | undefined): boolean {
     return type === Keyword.BOOL || type === Keyword.BVEC2 || type === Keyword.BVEC3 || type === Keyword.BVEC4;
   }
 
-  /** An integer scalar/vector type (signed or unsigned). */
+  /**
+   * Tests whether a type is a signed or unsigned integer scalar or vector.
+   * @param type - Type to classify.
+   * @returns Whether the type belongs to an integer family.
+   */
   static isIntegerType(type: GalaceanDataType | undefined): boolean {
     switch (type) {
       case Keyword.INT:
@@ -73,9 +107,9 @@ export class TypeSystem {
   }
 
   /**
-   * True when `type` is a known type that cannot be an operand of an arithmetic operator (+, -, *, /):
-   * bool, sampler, or struct. Returns false for `TypeAny`/unknown so callers skip (continue-with-unknown).
-   * The numeric/vector/matrix size-compatibility rules are intentionally left to the type system.
+   * Tests whether a resolved type cannot participate in arithmetic.
+   * @param type - Type to classify.
+   * @returns Whether the type is a boolean, sampler, or struct. Unresolved types return false.
    */
   static nonArithmeticOperand(type: GalaceanDataType | undefined): boolean {
     return (
@@ -85,34 +119,138 @@ export class TypeSystem {
     );
   }
 
-  /** A scalar numeric/bool type (the things a vector is built from). */
+  /**
+   * Tests whether a type is a numeric or boolean scalar.
+   * @param type - Type to classify.
+   * @returns Whether the type is a scalar.
+   */
   static isScalarType(type: GalaceanDataType | undefined): boolean {
     return type === Keyword.FLOAT || type === Keyword.INT || type === Keyword.UINT || type === Keyword.BOOL;
   }
 
   /**
-   * Result type of an arithmetic binary operator (+, -, *, /) on operands `a` and `b`, for the
-   * confident GLSL cases only: same type → that type; numeric-scalar ⊙ vector/matrix → the vector/
-   * matrix (component-wise / scalar broadcast). Everything ambiguous (scalar promotion like int⊙float,
-   * matrix·vector, mismatched vector sizes, any non-arithmetic operand) returns `TypeAny` — leaving the
-   * type unknown exactly as before, so this only ever *adds* information and never mis-deduces.
+   * Infers and validates one GLSL arithmetic operation from a single rule table.
+   * @param left - Left operand type.
+   * @param right - Right operand type.
+   * @param operator - Arithmetic operator lexeme.
+   * @returns Shared inference and validity result.
+   */
+  static arithmeticOperation(
+    left: GalaceanDataType | undefined,
+    right: GalaceanDataType | undefined,
+    operator: string
+  ): ArithmeticTypeResult {
+    if (left == undefined || right == undefined || left === TypeAny || right === TypeAny) {
+      return { resultType: TypeAny, valid: undefined };
+    }
+
+    const leftFamily = this._arithmeticFamily(left);
+    const rightFamily = this._arithmeticFamily(right);
+    if (!leftFamily || !rightFamily) {
+      return { resultType: TypeAny, valid: false, reason: "non-arithmetic" };
+    }
+    if (leftFamily !== rightFamily) {
+      return { resultType: TypeAny, valid: false, reason: "family-mismatch" };
+    }
+    if (operator === "%" && leftFamily === "float") {
+      return { resultType: TypeAny, valid: false, reason: "integer-required" };
+    }
+
+    const leftScalar = this.isScalarType(left);
+    const rightScalar = this.isScalarType(right);
+    if (leftScalar || rightScalar) {
+      return { resultType: leftScalar ? right : left, valid: true };
+    }
+
+    const leftVectorSize = this.vectorComponentCount(left);
+    const rightVectorSize = this.vectorComponentCount(right);
+    const leftMatrix = this.matrixDimensions(left);
+    const rightMatrix = this.matrixDimensions(right);
+
+    if (leftVectorSize && rightVectorSize) {
+      return leftVectorSize === rightVectorSize
+        ? { resultType: left, valid: true }
+        : { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+    }
+
+    if (leftMatrix && rightMatrix) {
+      if (operator === "*") {
+        return leftMatrix.columns === rightMatrix.rows
+          ? { resultType: this._matrixType(rightMatrix.columns, leftMatrix.rows), valid: true }
+          : { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+      }
+      return leftMatrix.columns === rightMatrix.columns && leftMatrix.rows === rightMatrix.rows
+        ? { resultType: left, valid: true }
+        : { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+    }
+
+    if (operator === "*" && leftMatrix && rightVectorSize) {
+      return leftMatrix.columns === rightVectorSize
+        ? { resultType: this._vectorType(leftMatrix.rows), valid: true }
+        : { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+    }
+    if (operator === "*" && leftVectorSize && rightMatrix) {
+      return leftVectorSize === rightMatrix.rows
+        ? { resultType: this._vectorType(rightMatrix.columns), valid: true }
+        : { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+    }
+
+    return { resultType: TypeAny, valid: false, reason: "shape-mismatch" };
+  }
+
+  /**
+   * Result type compatibility wrapper for existing inference consumers.
+   * @param a - Left operand type.
+   * @param b - Right operand type.
+   * @param operator - Arithmetic operator lexeme.
+   * @returns Inferred type or `TypeAny` when invalid or unresolved.
    */
   static arithmeticResultType(
     a: GalaceanDataType | undefined,
-    b: GalaceanDataType | undefined
+    b: GalaceanDataType | undefined,
+    operator = "+"
   ): GalaceanDataType | undefined {
-    if (a == undefined || b == undefined || a === TypeAny || b === TypeAny) return TypeAny;
-    if (this.nonArithmeticOperand(a) || this.nonArithmeticOperand(b)) return TypeAny;
-    if (a === b) return a;
-    const aScalar = this.isScalarType(a);
-    const bScalar = this.isScalarType(b);
-    if (aScalar && bScalar) return TypeAny; // different scalars: int/float promotion — stay conservative
-    if (aScalar) return b; // scalar ⊙ vector/matrix
-    if (bScalar) return a;
-    return TypeAny; // vector·matrix, mismatched vector sizes — leave unknown
+    return this.arithmeticOperation(a, b, operator).resultType;
   }
 
-  /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
+  private static _arithmeticFamily(type: GalaceanDataType): "float" | "int" | "uint" | undefined {
+    if (typeof type === "string" || this.isBoolType(type) || this.isSamplerType(type)) return undefined;
+    if (this.matrixDimensions(type)) return "float";
+    switch (type) {
+      case Keyword.FLOAT:
+      case Keyword.VEC2:
+      case Keyword.VEC3:
+      case Keyword.VEC4:
+        return "float";
+      case Keyword.INT:
+      case Keyword.IVEC2:
+      case Keyword.IVEC3:
+      case Keyword.IVEC4:
+        return "int";
+      case Keyword.UINT:
+      case Keyword.UVEC2:
+      case Keyword.UVEC3:
+      case Keyword.UVEC4:
+        return "uint";
+      default:
+        return undefined;
+    }
+  }
+
+  private static _vectorType(size: number): GalaceanDataType {
+    return size === 2 ? Keyword.VEC2 : size === 3 ? Keyword.VEC3 : size === 4 ? Keyword.VEC4 : TypeAny;
+  }
+
+  private static _matrixType(columns: number, rows: number): GalaceanDataType {
+    const key = `MAT${columns}${columns === rows ? "" : `X${rows}`}` as keyof typeof Keyword;
+    return (Keyword[key] as GalaceanDataType | undefined) ?? TypeAny;
+  }
+
+  /**
+   * Returns the component count of a vector type.
+   * @param type - Type to inspect.
+   * @returns Two, three, or four for vectors; otherwise zero.
+   */
   static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
       case Keyword.VEC2:
@@ -136,15 +274,20 @@ export class TypeSystem {
   }
 
   /**
-   * Total component count of a matrix constructor: rows × cols. `mat3 = 9`, `mat2x3 = 6`, etc.
-   * Returns 0 for non-matrix types so callers can chain with `vectorComponentCount` fallthrough.
+   * Returns the total component count of a matrix type.
+   * @param type - Type to inspect.
+   * @returns Row count multiplied by column count, or zero for non-matrix types.
    */
   static matrixComponentCount(type: GalaceanDataType | undefined): number {
     const dimensions = this.matrixDimensions(type);
     return dimensions ? dimensions.columns * dimensions.rows : 0;
   }
 
-  /** Column and row counts of a matrix type, or `undefined` for non-matrix types. */
+  /**
+   * Returns the dimensions of a matrix type.
+   * @param type - Type to inspect.
+   * @returns Column and row counts, or `undefined` for non-matrix types.
+   */
   static matrixDimensions(type: GalaceanDataType | undefined): { columns: number; rows: number } | undefined {
     switch (type) {
       case Keyword.MAT2:

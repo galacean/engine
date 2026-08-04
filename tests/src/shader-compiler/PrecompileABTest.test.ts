@@ -113,6 +113,10 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
+  const ParticleSource = await readFile("../packages/shader/src/Shaders/Effect/Particle.shader");
+  const SSAOSource = await readFile(
+    "../packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader"
+  );
 
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
   shaderCompiler._includeMap = ShaderFactory.includeMap;
@@ -279,6 +283,17 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
     });
 
+    it("PBR with unsupported fog mode uses the no-fog fallback", () => {
+      const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "99" } : m));
+      validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, macros);
+    });
+
+    for (const quality of ["0", "1", "2", "99"]) {
+      it(`SSAO quality ${quality}`, () => {
+        validatePrecompiledWebGL(SSAOSource, ShaderLanguage.GLSLES100, [{ name: "SSAO_QUALITY", value: quality }]);
+      });
+    }
+
     it("PBR with UV1 + occlusion texture", () => {
       validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...uv1OcclusionMacros]);
     });
@@ -289,6 +304,52 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     it("PBR with tangent + normal texture", () => {
       validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...tangentNormalMacros]);
+    });
+
+    for (const mode of [
+      "RENDERER_MODE_SPHERE_BILLBOARD",
+      "RENDERER_MODE_STRETCHED_BILLBOARD",
+      "RENDERER_MODE_HORIZONTAL_BILLBOARD",
+      "RENDERER_MODE_VERTICAL_BILLBOARD",
+      "RENDERER_MODE_MESH"
+    ]) {
+      it(`Particle ${mode} mode`, () => {
+        validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, [{ name: mode }]);
+      });
+    }
+
+    it("Particle uses deterministic priority when render-mode macros overlap", () => {
+      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, [
+        { name: "RENDERER_MODE_SPHERE_BILLBOARD" },
+        { name: "RENDERER_MODE_STRETCHED_BILLBOARD" },
+        { name: "RENDERER_MODE_HORIZONTAL_BILLBOARD" },
+        { name: "RENDERER_MODE_VERTICAL_BILLBOARD" },
+        { name: "RENDERER_MODE_MESH" },
+        { name: "RENDERER_ENABLE_VERTEXCOLOR" }
+      ]);
+    });
+
+    it("Particle mesh with separate random size-over-lifetime curves", () => {
+      const macros = [
+        { name: "RENDERER_MODE_MESH" },
+        { name: "RENDERER_SOL_CURVE_MODE" },
+        { name: "RENDERER_SOL_IS_SEPARATE" },
+        { name: "RENDERER_SOL_IS_RANDOM_TWO" }
+      ];
+      validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, macros);
+
+      const precompiled = shaderCompiler._precompile(ParticleSource, ShaderLanguage.GLSLES100);
+      const pass = precompiled.subShaders[0].passes.find((candidate) => candidate.name === "Forward Pass");
+      expect(pass?.vertexShaderInstructions).toBeDefined();
+      const vertexSource = ShaderMacroProcessor.evaluate(pass!.vertexShaderInstructions!, makeMacroMap(macros));
+      for (const axis of ["X", "Y", "Z"]) {
+        expect(vertexSource).toMatch(
+          new RegExp(
+            `lifeSize${axis}\\s*=\\s*mix\\s*\\(\\s*evaluateParticleCurve\\s*\\(\\s*renderer_SOLMinCurve${axis}[^;]+lifeSize${axis}`
+          )
+        );
+      }
+      expect(vertexSource).toMatch(/size\s*\*=\s*vec3\s*\(\s*lifeSizeX\s*,\s*lifeSizeY\s*,\s*lifeSizeZ\s*\)/);
     });
 
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader", "multi-pass.shader"];

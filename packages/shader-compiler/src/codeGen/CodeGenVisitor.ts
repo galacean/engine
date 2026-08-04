@@ -4,7 +4,7 @@ import { NoneTerminal } from "@galacean/engine-shader-parser";
 import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser";
 import { NodeChild, StructProp } from "@galacean/engine-shader-parser";
 import { ParserUtils } from "@galacean/engine-shader-parser";
-import { StructRole } from "@galacean/engine-shader-parser";
+import { ShaderStructRole } from "@galacean/engine-shader-parser";
 import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
 import { VisitorContext } from "./VisitorContext";
 import { ReturnableObjectPool } from "@galacean/engine-core";
@@ -25,7 +25,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
-    let ret = pool.get();
+    const ret = pool.get();
     ret.dispose();
     for (const child of children) {
       if (child instanceof BaseToken) {
@@ -53,14 +53,14 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
         // types like `Varyings o;`), then AST static type (normal path when `semanticAnalyze` resolved
         // `postExpr.type`). Splitting the map per stage prevents a same-named param/local (e.g. `input`
         // in both `mainVert(a2v input)` and `mainFrag(v2f input)`) from collapsing into one role.
-        let role: StructRole | undefined;
+        let role: ShaderStructRole | undefined;
         const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
         if (directRoot) role = context.getStructVarRole(directRoot);
         if (!role) role = context.getStructRole(<string>postExpr.type);
 
         if (role) {
-          if (role === StructRole.Attribute) context.referenceAttribute(prop);
-          else if (role === StructRole.Varying) context.referenceVarying(prop);
+          if (role === ShaderStructRole.Attribute) context.referenceAttribute(prop);
+          else if (role === ShaderStructRole.Varying) context.referenceVarying(prop);
           else context.referenceMRTProp(prop);
           return prop.lexeme;
         }
@@ -79,7 +79,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    for (let name of node.referenceGlobalSymbolNames) {
+    for (const name of node.referenceGlobalSymbolNames) {
       VisitorContext.context.referenceGlobal(name, ESymbolType.Any);
     }
 
@@ -212,7 +212,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const context = VisitorContext.context;
       // Global variables whose declared type is a varying/attribute/mrt struct
       // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable's role comes
-      // from `ShaderIOAnalyzer`'s per-stage struct-var maps (module globals populate both),
+      // from `ShaderCoreInfo`'s per-stage struct-var maps (module globals populate both),
       // so `visitPostfixExpression` can flatten `o.field` at macro-value codegen time.
       if (context.getStructRole(fullType.typeSpecifier.lexeme)) {
         return "";
@@ -297,7 +297,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const isMRTStruct = mrtStructs.indexOf(node) !== -1;
 
     if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
-      let result: ICodeSegment[] = [];
+      const result: ICodeSegment[] = [];
 
       result.push(
         ...node.macroExpressions.map((item) => ({

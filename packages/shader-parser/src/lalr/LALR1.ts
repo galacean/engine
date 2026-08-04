@@ -63,12 +63,12 @@ export class LALR1 {
     const productionList = this.grammar.getProductionList(<NoneTerminal>item.curSymbol);
 
     if (item.nextSymbol) {
-      let newLookaheadSet = new Set<Terminal>();
+      const newLookaheadSet = new Set<Terminal>();
       let lastFirstSet: Set<Terminal> | undefined;
       let terminalExist = false;
       // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
       // newLookAhead = First(Ca)
-      for (let i = 1, nextSymbol = item.symbolByOffset(1); !!nextSymbol; nextSymbol = item.symbolByOffset(++i)) {
+      for (let i = 1, nextSymbol = item.symbolByOffset(1); nextSymbol; nextSymbol = item.symbolByOffset(++i)) {
         if (GrammarUtils.isTerminal(nextSymbol)) {
           newLookaheadSet.add(<Terminal>nextSymbol);
           terminalExist = true;
@@ -168,12 +168,14 @@ export class LALR1 {
       if (LALR1._isKnownShiftPreferred(terminal, exist, action)) {
         if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
       } else {
+        // #if _VERBOSE
         Logger.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",
           Utils.printAction(action)
         );
+        // #endif
       }
     }
     table.set(terminal, action);

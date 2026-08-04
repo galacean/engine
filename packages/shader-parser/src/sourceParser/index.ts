@@ -1,1 +1,1 @@
-export { ShaderSourceParser } from "./ShaderSourceParser";
+export { ShaderSourceParser, type ShaderSourceParseResult } from "./ShaderSourceParser";

@@ -1,12 +1,11 @@
 import {
   ASTNode,
   BaseToken,
-  DiagnosticType,
   ESymbolType,
   ETokenType,
-  GalaceanDataType,
   GSError,
   GSErrorName,
+  isBranchReachable,
   Keyword,
   NodeChild,
   ParserUtils,
@@ -19,7 +18,10 @@ import {
   TypeSystem,
   VarSymbol,
   FnSymbol
-} from "@galacean/engine-shader-parser";
+} from "@galacean/engine-shader-parser/verbose";
+import { getBranchCoverage } from "@galacean/engine-shader-parser/verbose";
+import { DiagnosticType } from "./DiagnosticType";
+import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 
 /**
  * Walk-local context threaded down the recursion: the enclosing function (for the declared return
@@ -51,20 +53,12 @@ const DERIVATIVE_BUILTINS = new Set(["dFdx", "dFdy", "fwidth"]);
 export class ShaderValidator {
   /**
    * Validate an already-parsed program and return collected diagnostics.
-   * @param program parsed AST
-   * @param source pass source text used for diagnostic ranges
-   * @param vertexEntry vertex entry name; forwarded to walk context for stage-conditional checks
-   * @param fragmentEntry fragment entry name; forwarded to walk context for stage-conditional checks
+   * @param analysis neutral IR plus analyzer-only graph information
    * @returns diagnostics as `GSError[]`
    */
-  static validate(
-    program: ASTNode.GLShaderProgram,
-    source: string,
-    vertexEntry: string = "",
-    fragmentEntry: string = ""
-  ): GSError[] {
-    const v = new ShaderValidator(source, vertexEntry, fragmentEntry, program.shaderData);
-    v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
+  static validate(analysis: ShaderAnalysisInfo): GSError[] {
+    const v = new ShaderValidator(analysis);
+    v._walk(analysis.ir.program, { currentFunction: null, loopDepth: 0, currentStage: null });
     v._reportMutualRecursion();
     v._reportDerivativeReachableFromVertex();
     v._reportBareGlFragData();
@@ -73,6 +67,9 @@ export class ShaderValidator {
 
   /** Scratch SymbolInfo reused by `_nonAssignableReason` for VAR lookups — avoids per-call allocation. */
   private static _varLookup = new SymbolInfo("", ESymbolType.VAR);
+  /** Scratch symbol and output reused while resolving custom type references. */
+  private static _typeLookup = new SymbolInfo("", ESymbolType.STRUCT);
+  private static _typeStructScratch: SymbolInfo[] = [];
 
   private _errors: GSError[] = [];
   /**
@@ -82,22 +79,25 @@ export class ShaderValidator {
    * `shaderData.glFragDataReferences` list; the residue is bare use.
    */
   private _indexedGlFragDataStarts = new Set<number>();
-  /** Function-definition identity → resolved functions it directly calls. */
-  private _callGraph = new Map<ASTNode.FunctionDefinition, Set<ASTNode.FunctionDefinition>>();
-  /** Entry name → every function definition with that name. */
-  private _functionDefinitions = new Map<string, ASTNode.FunctionDefinition[]>();
   /** Function definition → derivative call sites inside its body. Post-walk pass reports the ones
    *  reachable from the vertex entry via the call graph. */
   private _derivativeSites = new Map<ASTNode.FunctionDefinition, { name: string; location: ShaderRange }[]>();
 
-  private constructor(
-    private _source: string,
-    private _vertexEntry: string,
-    private _fragmentEntry: string,
-    private _shaderData: ASTNode.GLShaderProgram["shaderData"]
-  ) {}
+  private readonly _source: string;
+  private readonly _vertexEntry: string;
+  private readonly _fragmentEntry: string;
+  private readonly _shaderData: ASTNode.GLShaderProgram["shaderData"];
+
+  private constructor(private readonly _analysis: ShaderAnalysisInfo) {
+    this._source = _analysis.ir.source;
+    this._vertexEntry = _analysis.coreInfo.vertexEntry.name;
+    this._fragmentEntry = _analysis.coreInfo.fragmentEntry.name;
+    this._shaderData = _analysis.ir.shaderData;
+  }
 
   private _walk(node: TreeNode, ctx: WalkContext): void {
+    if (!isBranchReachable(node._branch)) return;
+    if (node instanceof ASTNode.MacroDefine) return;
     // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
     // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
     // raises the loop depth for its subtree.
@@ -113,9 +113,6 @@ export class ShaderValidator {
           : name === this._fragmentEntry && this._fragmentEntry
             ? "fragment"
             : null;
-      const definitions = this._functionDefinitions.get(name) ?? [];
-      definitions.push(node);
-      this._functionDefinitions.set(name, definitions);
       childCtx = { currentFunction: node, loopDepth: ctx.loopDepth, currentStage: stage };
     } else if (node instanceof ASTNode.IterationStatement) {
       this._checkIterationCondition(node);
@@ -137,17 +134,11 @@ export class ShaderValidator {
     } else if (node instanceof ASTNode.UnaryExpression) {
       this._checkUnaryOperand(node);
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
-      // A bad operand reports InvalidBinaryOperands and suppresses the divide-by-zero check on the
-      // same node — clean operands are the only case the const-zero check needs to consider.
-      if (!this._checkArithmeticOperands(node)) {
+      if (!this._checkArithmeticOperation(node)) {
         this._checkConstDivideByZero(node);
-        // `%` additionally requires integer operands per §5.9. Floats slip past _checkArithmetic-
-        // Operands because they're a valid arithmetic type, but the driver rejects `float % float`.
-        this._checkModuloOperandsInteger(node);
-        this._checkArithmeticFamilyMatch(node);
       }
     } else if (node instanceof ASTNode.AdditiveExpression) {
-      if (!this._checkArithmeticOperands(node)) this._checkArithmeticFamilyMatch(node);
+      this._checkArithmeticOperation(node);
     } else if (node instanceof ASTNode.ShiftExpression) {
       this._checkShiftRange(node);
       this._checkIntegerBinaryOperands(node);
@@ -171,8 +162,17 @@ export class ShaderValidator {
       this._checkLocalFunctionPrototype(node, ctx);
     } else if (node instanceof ASTNode.StructSpecifier) {
       this._checkStructSpecifier(node);
+    } else if (node instanceof ASTNode.TypeSpecifier && !(node.parent instanceof ASTNode.FunctionIdentifier)) {
+      this._checkCustomTypeReference(node);
+    } else if (node instanceof ASTNode.SingleDeclaration || node instanceof ASTNode.VariableDeclaration) {
+      this._checkVariableDeclarator(node.declarator);
+    } else if (node instanceof ASTNode.InitDeclaratorList && node.declarator) {
+      this._checkVariableDeclarator(node.declarator);
+    } else if (node instanceof ASTNode.ArraySpecifier) {
+      this._checkArraySpecifier(node);
     } else if (node instanceof ASTNode.AssignmentExpression) {
       this._checkAssignmentTarget(node);
+      this._checkAssignmentType(node);
     }
     const children = node.children;
     if (children) {
@@ -184,13 +184,13 @@ export class ShaderValidator {
 
   /**
    * `gl_FragData` is a fragment-output *array* — legal only when indexed (`gl_FragData[i] = ...`).
-   * A bare reference (r-value, l-value, swizzle, function arg) is invalid GLSL. The parser
-   * collects every `gl_FragData` location into `shaderData.glFragDataReferences`; `_checkPostfix`
+   * A bare reference (r-value, l-value, swizzle, function arg) is invalid GLSL. `ShaderAnalysisInfo`
+   * collects every `gl_FragData` location; `_checkPostfix`
    * records the base of every `gl_FragData[i]` shape in `_indexedGlFragDataStarts`. Anything left
    * over — first occurrence only — is reported here.
    */
   private _reportBareGlFragData(): void {
-    for (const loc of this._shaderData.glFragDataReferences) {
+    for (const loc of this._analysis.glFragDataReferences) {
       if (this._indexedGlFragDataStarts.has(loc.start.index)) continue;
       this._push(
         "'gl_FragData' must be indexed — write to `gl_FragData[i]` or return an MRT struct.",
@@ -203,8 +203,69 @@ export class ShaderValidator {
 
   private _push(message: string, location: ShaderRange, code: DiagnosticType): void {
     this._errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code)
+      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code) as GSError
     );
+  }
+
+  private _pushWarning(message: string, location: ShaderRange, code: DiagnosticType): void {
+    this._errors.push(
+      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationWarn, this._source, location, code) as GSError
+    );
+  }
+
+  private _checkCustomTypeReference(node: ASTNode.TypeSpecifier): void {
+    if (!node.isCustom) return;
+    const typeName = (node.children[0] as ASTNode.TypeSpecifierNonArray).children[0];
+    if (!(typeName instanceof BaseToken)) return;
+
+    const lookup = ShaderValidator._typeLookup;
+    lookup.set(typeName.lexeme, ESymbolType.STRUCT);
+    const symbolTable = this._shaderData.symbolTable;
+    const structs = symbolTable.getSymbols(lookup, true, ShaderValidator._typeStructScratch);
+    const referenceIndex = typeName.location.start.index;
+    let priorStructCount = 0;
+    for (let i = 0, n = structs.length; i < n; i++) {
+      const struct = structs[i] as StructSymbol;
+      if (struct.astNode.ident && struct.astNode.ident.location.start.index < referenceIndex) {
+        structs[priorStructCount++] = struct;
+      }
+    }
+    structs.length = priorStructCount;
+
+    if (!structs.length) {
+      if (symbolTable.hasSymbol(lookup)) {
+        this._push(
+          `Type '${typeName.lexeme}' is declared only after this reference or in an unavailable macro branch.`,
+          typeName.location,
+          DiagnosticType.UseBeforeDeclaration
+        );
+      } else {
+        this._pushWarning(
+          `Unknown type '${typeName.lexeme}' — ensure it is provided at runtime as a macro.`,
+          typeName.location,
+          DiagnosticType.UnknownType
+        );
+      }
+      return;
+    }
+
+    const coverage = getBranchCoverage(
+      structs.map((struct) => struct.branchSignature ?? []),
+      node._branch
+    );
+    if (coverage === "uncovered") {
+      this._push(
+        `Type '${typeName.lexeme}' is unavailable under at least one macro configuration reaching this reference.`,
+        typeName.location,
+        DiagnosticType.UseBeforeDeclaration
+      );
+    } else if (coverage === "unknown") {
+      this._pushWarning(
+        `Type '${typeName.lexeme}' may be unavailable under some macro configurations; align its declaration and reference conditions.`,
+        typeName.location,
+        DiagnosticType.UseBeforeDeclaration
+      );
+    }
   }
 
   /**
@@ -228,6 +289,76 @@ export class ShaderValidator {
         DiagnosticType.InvalidAssignmentTarget
       );
     }
+  }
+
+  private _checkAssignmentType(node: ASTNode.AssignmentExpression): void {
+    if (node.children.length !== 3) return;
+    const lhs = node.children[0] as ASTNode.ExpressionAstNode;
+    const operator = node.children[1] as ASTNode.AssignmentOperator;
+    const rhs = node.children[2] as ASTNode.AssignmentExpression;
+    const operatorType = (operator.children[0] as BaseToken | undefined)?.type;
+    const compoundOperator =
+      operatorType === ETokenType.MUL_ASSIGN
+        ? "*"
+        : operatorType === ETokenType.DIV_ASSIGN
+          ? "/"
+          : operatorType === ETokenType.MOD_ASSIGN
+            ? "%"
+            : operatorType === ETokenType.ADD_ASSIGN
+              ? "+"
+              : operatorType === ETokenType.SUB_ASSIGN
+                ? "-"
+                : undefined;
+    const arithmetic = compoundOperator
+      ? TypeSystem.arithmeticOperation(lhs.type, rhs.type, compoundOperator)
+      : undefined;
+    if (arithmetic?.valid === false) {
+      this._push(
+        `Operator '${compoundOperator}=' cannot combine '${TypeSystem.typeName(lhs.type)}' and '${TypeSystem.typeName(rhs.type)}'.`,
+        node.location,
+        DiagnosticType.InvalidBinaryOperands
+      );
+      return;
+    }
+    const assignedType = arithmetic?.resultType ?? rhs.type;
+    if (!TypeSystem.isAssignable(lhs.type, assignedType)) {
+      this._push(
+        `Cannot assign a value of type '${TypeSystem.typeName(rhs.type)}' to '${TypeSystem.typeName(lhs.type)}'.`,
+        node.location,
+        DiagnosticType.AssignTypeMismatch
+      );
+    }
+  }
+
+  private _checkVariableDeclarator(declarator: ASTNode.VariableDeclaratorInfo): void {
+    const { identifier, initializer, typeInfo } = declarator;
+    if (typeInfo.type === Keyword.VOID) {
+      this._push(
+        `Illegal use of type 'void' — '${identifier.lexeme}' cannot be declared as void.`,
+        identifier.location,
+        DiagnosticType.InvalidVoidVariable
+      );
+    }
+    if (initializer && !typeInfo.arraySpecifier && !TypeSystem.isAssignable(typeInfo.type, initializer.type)) {
+      this._push(
+        `Cannot initialize '${identifier.lexeme}' of type '${TypeSystem.typeName(
+          typeInfo.type
+        )}' from '${TypeSystem.typeName(initializer.type)}'.`,
+        initializer.location,
+        DiagnosticType.AssignTypeMismatch
+      );
+    }
+  }
+
+  private _checkArraySpecifier(node: ASTNode.ArraySpecifier): void {
+    if (typeof node.size !== "number" || node.size > 0) return;
+    const expression = node.children[1];
+    if (!(expression instanceof TreeNode)) return;
+    this._push(
+      `Array size ${node.size} must be greater than zero.`,
+      expression.location,
+      DiagnosticType.InvalidArraySize
+    );
   }
 
   /**
@@ -507,23 +638,22 @@ export class ShaderValidator {
     }
   }
 
-  /**
-   * Operands of `*` `/` `%` `+` `-` must be arithmetic (numeric scalar/vector/matrix), not
-   * bool/sampler/struct. Returns true when a bad operand was reported, so the caller can suppress a
-   * redundant divide-by-zero diagnostic on the same node.
-   */
-  private _checkArithmeticOperands(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): boolean {
+  /** Validate and infer arithmetic from the same TypeSystem operation result used by the parser. */
+  private _checkArithmeticOperation(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): boolean {
     if (node.children.length !== 3) return false;
-    const bad = ParserUtils.firstNonArithmeticOperand(node.children[0], node.children[2]);
-    if (bad) {
-      this._push(
-        `Type '${TypeSystem.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
-        bad.location,
-        DiagnosticType.InvalidBinaryOperands
-      );
-      return true;
-    }
-    return false;
+    const left = node.children[0];
+    const right = node.children[2];
+    const operator = node.children[1];
+    if (!(left instanceof ASTNode.ExpressionAstNode) || !(right instanceof ASTNode.ExpressionAstNode)) return false;
+    const operatorLexeme = operator instanceof BaseToken ? operator.lexeme : "op";
+    const result = TypeSystem.arithmeticOperation(left.type, right.type, operatorLexeme);
+    if (result.valid !== false) return false;
+    this._push(
+      `Operator '${operatorLexeme}' cannot combine '${TypeSystem.typeName(left.type)}' and '${TypeSystem.typeName(right.type)}'.`,
+      node.location,
+      DiagnosticType.InvalidBinaryOperands
+    );
+    return true;
   }
 
   /**
@@ -540,25 +670,6 @@ export class ShaderValidator {
       node.location,
       DiagnosticType.LocalFunctionPrototype
     );
-  }
-
-  /**
-   * `%` requires integer operands per §5.9. `_checkArithmeticOperands` accepts floats (they're a
-   * valid *arithmetic* type), so this is an additional pass that only fires for the `%` operator.
-   * Direct-operand check only — compound expressions resolve to TypeAny per Phase-2 constraint.
-   */
-  private _checkModuloOperandsInteger(node: ASTNode.MultiplicativeExpression): void {
-    if (node.children.length !== 3) return;
-    const op = node.children[1];
-    if (!(op instanceof BaseToken) || op.type !== ETokenType.PERCENT) return;
-    const bad = this._firstNonIntegerOperand(node.children[0], node.children[2]);
-    if (bad) {
-      this._push(
-        `Operator '%' requires integer operands, got '${TypeSystem.typeName(bad.type)}'.`,
-        bad.location,
-        DiagnosticType.InvalidBinaryOperands
-      );
-    }
   }
 
   /**
@@ -603,74 +714,6 @@ export class ShaderValidator {
         DiagnosticType.InvalidBinaryOperands
       );
     }
-  }
-
-  /** GLSL ES arithmetic requires matching numeric families and compatible vector/matrix shapes. */
-  private _checkArithmeticFamilyMatch(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): void {
-    if (node.children.length !== 3) return;
-    const left = node.children[0];
-    const right = node.children[2];
-    if (!(left instanceof ASTNode.ExpressionAstNode) || !(right instanceof ASTNode.ExpressionAstNode)) return;
-    const lf = ShaderValidator._arithmeticFamily(left.type);
-    const rf = ShaderValidator._arithmeticFamily(right.type);
-    if (lf === undefined || rf === undefined) return;
-    const op = node.children[1];
-    const opLexeme = op instanceof BaseToken ? op.lexeme : "op";
-    if (lf === rf && ShaderValidator._areArithmeticShapesCompatible(left.type, right.type, opLexeme)) return;
-    this._push(
-      `Operator '${opLexeme}' cannot combine '${TypeSystem.typeName(left.type)}' and '${TypeSystem.typeName(right.type)}'.`,
-      node.location,
-      DiagnosticType.InvalidBinaryOperands
-    );
-  }
-
-  /** Primitive family of a numeric scalar / vector / matrix, or undefined if unknown or non-numeric. */
-  private static _arithmeticFamily(t: GalaceanDataType | undefined): "float" | "int" | "uint" | undefined {
-    if (t === undefined || t === TypeAny || typeof t === "string") return undefined;
-    if (TypeSystem.isBoolType(t) || TypeSystem.isSamplerType(t)) return undefined;
-    if (TypeSystem.matrixComponentCount(t) > 0) return "float";
-    switch (t) {
-      case Keyword.FLOAT:
-      case Keyword.VEC2:
-      case Keyword.VEC3:
-      case Keyword.VEC4:
-        return "float";
-      case Keyword.INT:
-      case Keyword.IVEC2:
-      case Keyword.IVEC3:
-      case Keyword.IVEC4:
-        return "int";
-      case Keyword.UINT:
-      case Keyword.UVEC2:
-      case Keyword.UVEC3:
-      case Keyword.UVEC4:
-        return "uint";
-      default:
-        return undefined;
-    }
-  }
-
-  private static _areArithmeticShapesCompatible(
-    left: GalaceanDataType,
-    right: GalaceanDataType,
-    operator: string
-  ): boolean {
-    if (left === right || TypeSystem.isScalarType(left) || TypeSystem.isScalarType(right)) return true;
-    const leftVectorSize = TypeSystem.vectorComponentCount(left);
-    const rightVectorSize = TypeSystem.vectorComponentCount(right);
-    if (leftVectorSize || rightVectorSize) {
-      if (leftVectorSize && rightVectorSize) return leftVectorSize === rightVectorSize;
-      const matrix = leftVectorSize ? TypeSystem.matrixDimensions(right) : TypeSystem.matrixDimensions(left);
-      const vectorSize = leftVectorSize || rightVectorSize;
-      if (!matrix || operator !== "*") return false;
-      return leftVectorSize ? vectorSize === matrix.rows : vectorSize === matrix.columns;
-    }
-    const leftMatrix = TypeSystem.matrixDimensions(left);
-    const rightMatrix = TypeSystem.matrixDimensions(right);
-    if (!leftMatrix || !rightMatrix) return false;
-    return operator === "*"
-      ? leftMatrix.columns === rightMatrix.rows
-      : leftMatrix.columns === rightMatrix.columns && leftMatrix.rows === rightMatrix.rows;
   }
 
   /** First operand whose direct type is neither integer nor `TypeAny`. */
@@ -1071,12 +1114,6 @@ export class ShaderValidator {
     const callee = node.fnSymbol;
     if (callee instanceof FnSymbol) {
       if (callee.astNode !== currentFunction) {
-        let out = this._callGraph.get(currentFunction);
-        if (!out) {
-          out = new Set();
-          this._callGraph.set(currentFunction, out);
-        }
-        out.add(callee.astNode);
         return;
       }
       this._push(
@@ -1113,11 +1150,11 @@ export class ShaderValidator {
     // already on the stack that isn't the immediate self edge.
     const seen = new Set<ASTNode.FunctionDefinition>();
     const reported = new Set<ASTNode.FunctionDefinition>();
-    for (const start of this._callGraph.keys()) {
+    for (const start of this._analysis.functions()) {
       if (seen.has(start)) continue;
       const stack: ASTNode.FunctionDefinition[] = [start];
       const onStack = new Set<ASTNode.FunctionDefinition>([start]);
-      const iters: Array<Iterator<ASTNode.FunctionDefinition>> = [(this._callGraph.get(start) ?? new Set()).values()];
+      const iters: Array<Iterator<ASTNode.FunctionDefinition>> = [this._analysis.calleesOf(start).values()];
       while (stack.length) {
         const it = iters[iters.length - 1];
         const step = it.next();
@@ -1153,7 +1190,7 @@ export class ShaderValidator {
         if (seen.has(next)) continue;
         stack.push(next);
         onStack.add(next);
-        iters.push((this._callGraph.get(next) ?? new Set()).values());
+        iters.push(this._analysis.calleesOf(next).values());
       }
     }
   }
@@ -1164,18 +1201,11 @@ export class ShaderValidator {
    * are silent; helpers on both paths get flagged (the vertex path evaluates them illegally).
    */
   private _reportDerivativeReachableFromVertex(): void {
-    if (!this._vertexEntry) return;
-    const reachable = new Set<ASTNode.FunctionDefinition>();
-    const stack = [...(this._functionDefinitions.get(this._vertexEntry) ?? [])];
-    while (stack.length) {
-      const cur = stack.pop()!;
-      if (reachable.has(cur)) continue;
-      reachable.add(cur);
-      const callees = this._callGraph.get(cur);
-      if (callees) for (const c of callees) stack.push(c);
-    }
+    const vertexEntry = this._analysis.coreInfo.vertexEntry;
+    if (!vertexEntry.name) return;
+    const reachable = new Set(this._analysis.reachableFunctions(vertexEntry));
     // Vertex entry itself is handled inline in `_checkDerivativeCall`; skip it here.
-    for (const entry of this._functionDefinitions.get(this._vertexEntry) ?? []) reachable.delete(entry);
+    for (const entry of vertexEntry.functions) reachable.delete(entry.astNode);
     for (const fn of reachable) {
       const sites = this._derivativeSites.get(fn);
       if (!sites) continue;

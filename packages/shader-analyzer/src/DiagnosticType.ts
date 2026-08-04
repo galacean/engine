@@ -4,11 +4,11 @@
  * Severity is reported separately.
  */
 export enum DiagnosticType {
-  // Syntax
   SyntaxError = "SyntaxError",
+  PreprocessorError = "PreprocessorError",
 
-  // Symbol
   UndefinedFunction = "UndefinedFunction",
+  UnknownVariable = "UnknownVariable",
   NoMatchingOverload = "NoMatchingOverload",
   Redefinition = "Redefinition",
   UseBeforeDeclaration = "UseBeforeDeclaration",
@@ -16,8 +16,8 @@ export enum DiagnosticType {
   AmbiguousMacroBranchType = "AmbiguousMacroBranchType",
   AmbiguousMacroBranchResolution = "AmbiguousMacroBranchResolution",
 
-  // Type
   InvalidSwizzle = "InvalidSwizzle",
+  UnknownType = "UnknownType",
   UndeclaredStructMember = "UndeclaredStructMember",
   AssignTypeMismatch = "AssignTypeMismatch",
   InvalidAssignmentTarget = "InvalidAssignmentTarget",
@@ -38,7 +38,6 @@ export enum DiagnosticType {
   InvalidVoidVariable = "InvalidVoidVariable",
   NonFloatDerivativeArg = "NonFloatDerivativeArg",
 
-  // Function / control flow
   InvalidReturnType = "InvalidReturnType",
   MissingReturn = "MissingReturn",
   NonBoolCondition = "NonBoolCondition",
@@ -47,7 +46,6 @@ export enum DiagnosticType {
   MisplacedControlFlow = "MisplacedControlFlow",
   DerivativeInVertexShader = "DerivativeInVertexShader",
 
-  // Pipeline (vertex/fragment IO)
   InvalidIOStruct = "InvalidIOStruct",
   InvalidEntryReturnType = "InvalidEntryReturnType",
   StructRoleConflict = "StructRoleConflict",
@@ -60,7 +58,6 @@ export enum DiagnosticType {
   MissingVertexPosition = "MissingVertexPosition",
   NonFlatIntegerVarying = "NonFlatIntegerVarying",
 
-  // RenderState
   InvalidRenderStateProperty = "InvalidRenderStateProperty",
   InvalidEnumValue = "InvalidEnumValue",
   BitwiseOrOnNonBitmask = "BitwiseOrOnNonBitmask",

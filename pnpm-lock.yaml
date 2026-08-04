@@ -277,12 +277,6 @@ importers:
 
   packages/shader-analyzer:
     dependencies:
-      '@galacean/engine-core':
-        specifier: workspace:*
-        version: link:../core
-      '@galacean/engine-math':
-        specifier: workspace:*
-        version: link:../math
       '@galacean/engine-shader-parser':
         specifier: workspace:*
         version: link:../shader-parser

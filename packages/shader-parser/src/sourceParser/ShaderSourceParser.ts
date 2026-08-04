@@ -10,7 +10,6 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
-import { DiagnosticType } from "../DiagnosticType";
 import type {
   IRenderStates,
   IShaderPassSource,
@@ -22,7 +21,6 @@ import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-import { GSError } from "../GSError";
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { SymbolTable } from "../common/SymbolTable";
@@ -31,11 +29,20 @@ import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
 import SourceLexer from "./SourceLexer";
 
+/** Result of parsing one ShaderLab source document. */
+export interface ShaderSourceParseResult {
+  /** Parsed source structure, including subshaders, passes, entries, and render states. */
+  shaderSource: IShaderSource;
+  /** Source-structure diagnostics captured during this parse. */
+  errors: readonly Error[];
+}
+
 /**
  * @internal
  */
 export class ShaderSourceParser {
-  static readonly errors = new Array<GSError>();
+  /** @deprecated Consume the `errors` snapshot returned by `parseWithErrors`. */
+  static readonly errors = new Array<Error>();
 
   private static _renderStateConstMap = <Record<string, Record<string, number | string | boolean>>>{
     RenderQueueType,
@@ -50,7 +57,21 @@ export class ShaderSourceParser {
   private static _lexer = new SourceLexer();
   private static _lookupSymbol = new ShaderSourceSymbol("", null);
 
+  /**
+   * Parses ShaderLab source and returns the source object for compatibility callers.
+   * @param sourceCode - Complete ShaderLab source.
+   * @returns Parsed source structure.
+   */
   static parse(sourceCode: string): IShaderSource {
+    return this.parseWithErrors(sourceCode).shaderSource;
+  }
+
+  /**
+   * Parses ShaderLab source with a parse-local diagnostic snapshot.
+   * @param sourceCode - Complete ShaderLab source.
+   * @returns Parsed source structure and diagnostics from the same parse.
+   */
+  static parseWithErrors(sourceCode: string): ShaderSourceParseResult {
     // Clear previous data
     this.errors.length = 0;
     this._symbolTableStack.clear();
@@ -87,7 +108,7 @@ export class ShaderSourceParser {
       }
     }
 
-    return shaderSource;
+    return { shaderSource, errors: this.errors.slice() };
   }
 
   private static _parseShader(lexer: SourceLexer): IShaderSource {
@@ -163,7 +184,7 @@ export class ShaderSourceParser {
           this._createCompileError(
             `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme} — property will not be applied.`,
             nextToken.location,
-            DiagnosticType.InvalidRenderStateVariable
+            "InvalidRenderStateVariable"
           );
           return;
         }
@@ -217,13 +238,11 @@ export class ShaderSourceParser {
     return renderStates;
   }
 
-  private static _createCompileError(
-    message: string,
-    location?: ShaderPosition | ShaderRange,
-    code?: DiagnosticType
-  ): void {
+  private static _createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: string): void {
     const error = this._lexer.createCompileError(message, location, code);
-    this.errors.push(<GSError>error);
+    // #if _VERBOSE
+    this.errors.push(error);
+    // #endif
   }
 
   private static _scanEnumConstValue(enumName: string): number | undefined {
@@ -237,7 +256,7 @@ export class ShaderSourceParser {
       this._createCompileError(
         `Invalid engine constant: ${enumName}.${constValueToken.lexeme} — property will not be applied.`,
         constValueToken.location,
-        DiagnosticType.InvalidEnumValue
+        "InvalidEnumValue"
       );
       lexer.scanToCharacter(";");
     }
@@ -260,7 +279,7 @@ export class ShaderSourceParser {
         this._createCompileError(
           `Invalid syntax, expect '[' or '=', but got unexpected token`,
           undefined,
-          DiagnosticType.SyntaxError
+          "SyntaxError"
         );
         lexer.scanToCharacter(";");
         return;
@@ -272,12 +291,11 @@ export class ShaderSourceParser {
 
     const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
-      // Partial-application: unknown property → skip the write entirely and tell the user, so no
-      // silent difference between "user typo" and "engine forgot to plumb the state".
+      // Unknown properties are skipped, so the diagnostic must make the missing write explicit.
       this._createCompileError(
         `Invalid render state property ${propertyLexeme} — property will not be applied.`,
         undefined,
-        DiagnosticType.InvalidRenderStateProperty
+        "InvalidRenderStateProperty"
       );
       lexer.scanToCharacter(";");
       return;
@@ -311,7 +329,7 @@ export class ShaderSourceParser {
             this._createCompileError(
               `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this — property will not be applied.`,
               valueToken.location,
-              DiagnosticType.BitwiseOrOnNonBitmask
+              "BitwiseOrOnNonBitmask"
             );
             lexer.scanToCharacter(";");
             return;
@@ -323,7 +341,7 @@ export class ShaderSourceParser {
               this._createCompileError(
                 `Invalid syntax after '|', expect 'EnumType.Value'`,
                 nextEnumToken?.location,
-                DiagnosticType.SyntaxError
+                "SyntaxError"
               );
               lexer.scanToCharacter(";");
               return;
@@ -333,7 +351,7 @@ export class ShaderSourceParser {
               this._createCompileError(
                 `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}' — property will not be applied.`,
                 nextEnumToken.location,
-                DiagnosticType.MixedEnumTypes
+                "MixedEnumTypes"
               );
               lexer.scanToCharacter(";");
               return;
@@ -353,7 +371,7 @@ export class ShaderSourceParser {
           this._createCompileError(
             `Invalid ${stateLexeme} variable: ${valueToken.lexeme} — property will not be applied.`,
             valueToken.location,
-            DiagnosticType.InvalidRenderStateVariable
+            "InvalidRenderStateVariable"
           );
           lexer.scanToCharacter(";");
           return;
@@ -383,7 +401,7 @@ export class ShaderSourceParser {
       this._createCompileError(
         `Invalid syntax, expect character '=', but got ${token.lexeme}`,
         token.location,
-        DiagnosticType.SyntaxError
+        "SyntaxError"
       );
       return;
     }
@@ -399,7 +417,7 @@ export class ShaderSourceParser {
         this._createCompileError(
           `Invalid RenderQueueType variable: ${word.lexeme} — property will not be applied at runtime.`,
           word.location,
-          DiagnosticType.InvalidRenderQueueVariable
+          "InvalidRenderQueueVariable"
         );
         return;
       }
@@ -524,7 +542,7 @@ export class ShaderSourceParser {
             this._createCompileError(
               `Reassignment of ${isVertex ? "VertexShader" : "FragmentShader"} entry — the first binding is kept.`,
               entry.location,
-              DiagnosticType.DuplicateEntryAssignment
+              "DuplicateEntryAssignment"
             );
             lexer.scanLexeme(";");
             start = lexer.getShaderPosition(0);
@@ -545,7 +563,7 @@ export class ShaderSourceParser {
               this._createCompileError(
                 "Pass must bind both VertexShader and FragmentShader entries.",
                 passStart,
-                DiagnosticType.MissingEntry
+                "MissingEntry"
               );
             }
             this._popScope();

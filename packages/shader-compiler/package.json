@@ -29,6 +29,12 @@
       "require": "./bundler/precompile.cjs.js",
       "types": "./types/bundler/precompile.d.ts"
     },
+    "./verbose": {
+      "debug": "./src/index.ts",
+      "import": "./dist/module.js",
+      "require": "./dist/main.js",
+      "types": "./types/index.d.ts"
+    },
     "./src/*": "./src/*.ts",
     "./package.json": "./package.json"
   },

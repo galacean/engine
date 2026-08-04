@@ -15,12 +15,13 @@ export * from "./parser/AST";
 export * from "./parser/types";
 export * from "./parser/GrammarSymbol";
 export * from "./parser/ShaderInfo";
-export * from "./parser/ShaderIOAnalyzer";
 export * from "./parser/PassParser";
 export * from "./parser/ICodeGenVisitor";
 export * from "./parser/symbolTable";
 export * from "./parser/builtin";
 export * from "./parser/TypeSystem";
+
+export * from "./ir";
 
 export * from "./sourceParser";
 export * from "./sourceParser/ShaderSourceFactory";
@@ -29,5 +30,4 @@ export * from "./Preprocessor";
 export * from "./ParserUtils";
 export * from "./GSError";
 export * from "./formatDiagnostic";
-export * from "./DiagnosticType";
 export * from "./ShaderCompilerUtils";

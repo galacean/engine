@@ -50,6 +50,14 @@ export interface BoolCondition {
   v: boolean;
 }
 
+/** Preprocessor expression preserved for runtime evaluation with the active macro set. */
+export interface RawCondition {
+  /** Serialized condition kind. */
+  t: "raw";
+  /** Original preprocessor expression. */
+  e: string;
+}
+
 export type Condition =
   | DefinedCondition
   | NotDefinedCondition
@@ -57,7 +65,8 @@ export type Condition =
   | AndCondition
   | OrCondition
   | NotCondition
-  | BoolCondition;
+  | BoolCondition
+  | RawCondition;
 
 /**
  * Preprocessor instruction tuple: `[directive, ...operands]`

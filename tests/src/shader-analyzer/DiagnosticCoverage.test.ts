@@ -179,6 +179,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   },
   { code: "SyntaxError", source: pass(`void frag() { vec3 = ; } FragmentShader = frag;`) },
   {
+    code: "PreprocessorError",
+    source: pass(`#if 123 defined(USE)\nfloat value;\n#endif`)
+  },
+  {
     code: "GlFragColorWithMrt",
     source: pass(`
       struct MRT { vec4 c0; };
@@ -304,6 +308,8 @@ describe("diagnostic coverage map", () => {
       "RecursiveFunction",
       "Redefinition",
       "UndefinedFunction",
+      "UnknownType",
+      "UnknownVariable",
       "UseBeforeDeclaration"
     ]);
     const here = new Set(cases.map((c) => c.code));

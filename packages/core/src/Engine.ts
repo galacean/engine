@@ -3,7 +3,6 @@ import {
   IInputOptions,
   IPhysics,
   IPhysicsManager,
-  IShaderAnalyzer,
   IShaderCompiler,
   IXRDevice
 } from "@galacean/engine-design";
@@ -633,7 +632,7 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { shaderCompiler, shaderAnalyzer, physics } = configuration;
+    const { shaderCompiler, physics } = configuration;
 
     if (shaderCompiler && !Shader._shaderCompiler) {
       // Bind the runtime include map so the preprocessor sees every chunk
@@ -646,8 +645,6 @@ export class Engine extends EventDispatcher {
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }
-    if (shaderAnalyzer && Shader._shaderCompiler) Shader._shaderCompiler._setAnalyzer(shaderAnalyzer);
-
     const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
@@ -738,8 +735,6 @@ export interface EngineConfiguration {
   xrDevice?: IXRDevice;
   /** Shader compiler. */
   shaderCompiler?: IShaderCompiler;
-  /** Shader analyzer used while compiling shader passes. */
-  shaderAnalyzer?: IShaderAnalyzer;
   /** Input options. */
   input?: IInputOptions;
 }

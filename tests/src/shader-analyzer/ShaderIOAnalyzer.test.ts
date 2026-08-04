@@ -1,11 +1,13 @@
 import {
   Lexer,
   Preprocessor,
+  ShaderClueIR,
   ShaderCompilerUtils,
-  ShaderIOAnalyzer,
+  ShaderCoreInfo,
   ShaderSourceParser,
   ShaderTargetParser
-} from "@galacean/engine-shader-parser";
+} from "@galacean/engine-shader-parser/verbose";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -15,29 +17,25 @@ import { describe, expect, it } from "vitest";
  */
 
 const parser = ShaderTargetParser.create();
+const analyzer = new ShaderAnalyzer();
+const ioDiagnosticCodes = new Set([
+  "InvalidIOStruct",
+  "InvalidEntryReturnType",
+  "StructRoleConflict",
+  "GlFragColorWithMrt",
+  "NestedIOStruct",
+  "MissingVertexPosition",
+  "NonFlatIntegerVarying",
+  "EntryNotFound"
+]);
 
-/** Run ShaderIOAnalyzer over a shader source; return the IO diagnostic codes (with multiplicity). */
+/** Run the standalone analyzer and return IO diagnostic codes with multiplicity. */
 function ioCodes(source: string): string[] {
-  ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
-  const shaderSource = ShaderSourceParser.parse(source);
-  const codes: string[] = [];
-  for (const sub of shaderSource.subShaders) {
-    for (const pass of sub.passes) {
-      if (pass.isUsePass) continue;
-      const macroDefineList = {};
-      const content = Preprocessor.parse(pass.contents, "", {}, new Map());
-      const lexer = new Lexer(content, macroDefineList);
-      const tokens = lexer.tokenize();
-      ShaderCompilerUtils.processingPassText = content;
-      const program = parser.parse(tokens, macroDefineList);
-      if (program) {
-        const { errors } = ShaderIOAnalyzer.analyze(program.shaderData, pass.vertexEntry, pass.fragmentEntry, content);
-        for (const e of errors) codes.push(e.code ?? "?");
-      }
-      ShaderCompilerUtils.processingPassText = undefined;
-    }
-  }
-  return codes.sort();
+  return analyzer
+    .analyze(source)
+    .diagnostics.map((diagnostic) => diagnostic.code)
+    .filter((code) => ioDiagnosticCodes.has(code))
+    .sort();
 }
 
 function wrap(pass: string): string {
@@ -140,7 +138,7 @@ const cases: { name: string; source: string; expected: string[] }[] = [
   },
   {
     // Multi-level nesting: `Vary.b` is caught (`typeof prop.typeInfo.type === "string"`); the
-    // grandchild `B.a` is not iterated but the parent report is enough to unblock the user.
+    // Reporting the parent is sufficient; nested members are not diagnosed again.
     name: "NestedIOStruct: multi-level (Vary → B → A) → single report on B.b",
     expected: ["NestedIOStruct"],
     source: wrap(`
@@ -164,6 +162,26 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       void frag(Vary i) { gl_FragColor = i.arr[0].v; }
       VertexShader = vert;
       FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: a write in an unreachable helper does not satisfy the vertex entry",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      void unused() { gl_Position = vec4(0.0); }
+      void vert() {}
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: a write in a helper reachable from the vertex entry satisfies gl_Position",
+    expected: [],
+    source: wrap(`
+      void writePosition() { gl_Position = vec4(0.0); }
+      void vert() { writePosition(); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
   }
 ];
 
@@ -182,13 +200,14 @@ function analyzeSinglePass(source: string): { io: any; codes: string[] } {
   const pass = shaderSource.subShaders[0].passes.find((p) => !p.isUsePass)!;
   const macroDefineList = {};
   const content = Preprocessor.parse(pass.contents, "", {}, new Map());
-  const lexer = new Lexer(content, macroDefineList);
+  const lexer = new Lexer(content, macroDefineList, true);
   const tokens = lexer.tokenize();
   ShaderCompilerUtils.processingPassText = content;
-  const program = parser.parse(tokens, macroDefineList)!;
-  const { io, errors } = ShaderIOAnalyzer.analyze(program.shaderData, pass.vertexEntry, pass.fragmentEntry, content);
+  const program = parser.parse(tokens, macroDefineList, true)!;
+  const ir = new ShaderClueIR(program, content);
+  const { io } = ShaderCoreInfo.create(ir, pass.vertexEntry, pass.fragmentEntry);
   ShaderCompilerUtils.processingPassText = undefined;
-  return { io, codes: errors.map((e) => e.code ?? "?") };
+  return { io, codes: ioCodes(source) };
 }
 
 describe("ShaderIOAnalyzer role-conflict recovery", () => {

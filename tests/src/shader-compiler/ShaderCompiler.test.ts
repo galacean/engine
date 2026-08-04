@@ -245,8 +245,7 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  // Regression: function-like macro form params and macro-name-as-var cross-arm
-  // probes used to emit spurious "declared before used" warnings.
+  // Function-like parameters and cross-arm macro names are not undeclared references.
   it("function-like macro form params and macro names don't warn as undeclared", async () => {
     const src = await readFile("src/shader-compiler/shaders/macro-form-params-no-warn.shader");
     const warns: string[] = [];
@@ -271,11 +270,7 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  // Regression: when vertex and fragment entries share a param name (e.g. `input`),
-  // routing must resolve per stage — `input.POSITION` in vertex → attribute (emit
-  // `attribute vec4 POSITION;`), not varying. Pre-fix, a single stage-oblivious
-  // struct-var map let the fragment binding overwrite the vertex one, and the
-  // attribute decls were dropped from the emitted GLSL.
+  // Same-named entry parameters resolve their struct role independently per stage.
   it("struct-based-attribute (same-named params across stages routes per stage)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/struct-based-attribute.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -331,7 +326,7 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.equal(expectedFrag);
   });
 
-  it("macro-member-access-builtin-arg (Cocos FSInput pattern: member access macro as builtin fn arg)", async () => {
+  it("macro-member-access-builtin-arg (member access macro as builtin fn arg)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/macro-member-access-builtin-arg.shader");
 
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -354,7 +349,7 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.contain("texture2D");
   });
 
-  it("global-varying-var (Cocos VSOutput pattern: global Varyings var with #define macros)", async () => {
+  it("global-varying-var (global Varyings var with #define macros)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/global-varying-var.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
 
@@ -415,43 +410,41 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  // Authoring-error `#define` shapes (trailing comma, unbalanced bracket,
-  // leading punctuation, trailing operator, …) get one uniform diagnostic:
-  // "#define <name>: invalid replacement list — not a valid GLSL expression
-  // (\"<value>\")". The user reads the rule + value and fixes their GLSL —
-  // the engine doesn't categorize further.
-  const assertMacroAuthorError = async (fixturePath: string, expectedValueFragment: string) => {
+  const assertOpaqueMacro = async (fixturePath: string, expectedDirective: string) => {
     const source = await readFile(fixturePath);
+    glslValidate(engine, source, shaderCompilerRelease);
     const parsed = shaderCompilerRelease._parseShaderSource(source);
     const pass = parsed.subShaders[0].passes.find((p) => !p.isUsePass);
     if (!pass) throw new Error("test fixture missing a non-usepass");
-    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
-    try {
-      const result = shaderCompilerRelease._parseShaderPass(
-        pass.contents,
-        pass.vertexEntry,
-        pass.fragmentEntry,
-        ShaderLanguage.GLSLES100
-      );
-      expect(result, "invalid macro input must not reach codegen").to.be.undefined;
-      const message = errorSpy.mock.calls.map((call) => String(call[0])).join("\n");
-      expect(message).to.match(/#define BAD: invalid replacement list/);
-      expect(message).to.include(expectedValueFragment);
-    } finally {
-      errorSpy.mockRestore();
-    }
+    const result = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100
+    );
+    expect(result).to.not.be.undefined;
+    expect(result!.fragment).to.include(expectedDirective);
   };
 
-  it("macro-author-error: trailing comma surfaces a uniform diagnostic", async () => {
-    await assertMacroAuthorError("src/shader-compiler/shaders/macro-author-error-trailing-comma.shader", "u_a, u_b,");
+  it("preserves a trailing-comma macro replacement list", async () => {
+    await assertOpaqueMacro(
+      "src/shader-compiler/shaders/macro-token-fragment-trailing-comma.shader",
+      "#define BAD u_a, u_b,"
+    );
   });
 
-  it("macro-author-error: unbalanced bracket surfaces a uniform diagnostic", async () => {
-    await assertMacroAuthorError("src/shader-compiler/shaders/macro-author-error-unbalanced-bracket.shader", "u_a[u_b");
+  it("preserves an unbalanced-bracket macro replacement list", async () => {
+    await assertOpaqueMacro(
+      "src/shader-compiler/shaders/macro-token-fragment-unbalanced-bracket.shader",
+      "#define BAD u_a[u_b"
+    );
   });
 
-  it("macro-author-error: unbalanced paren surfaces a uniform diagnostic", async () => {
-    await assertMacroAuthorError("src/shader-compiler/shaders/macro-author-error-unbalanced-paren.shader", "u_a(");
+  it("preserves an unbalanced-parenthesis macro replacement list", async () => {
+    await assertOpaqueMacro(
+      "src/shader-compiler/shaders/macro-token-fragment-unbalanced-paren.shader",
+      "#define BAD u_a("
+    );
   });
 
   it("type-alias-repro (FXAA-style portability macros aliasing GLSL types)", async () => {
@@ -474,12 +467,12 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  it("define-in-comment-repro (Issue 2980 ex.1: regex must not false-positive on /* #define */)", async () => {
+  it("define-in-comment-repro (regex must not false-positive on /* #define */)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-in-comment-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  it("define-line-continuation-repro (Issue 2980 ex.2: \\-continuation in #define value)", async () => {
+  it("define-line-continuation-repro (\\-continuation in #define value)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-line-continuation-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
@@ -489,12 +482,12 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  it("define-comment-with-dot (reviewer P1-1: `.` inside block comment must not route to AST)", async () => {
+  it("define-comment-with-dot (`.` inside block comment must not route to AST)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-comment-with-dot.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  it("define-line-continuation-member-access (reviewer P1-2: `\\\\\\n` followed by .field must route to AST)", async () => {
+  it("define-line-continuation-member-access (`\\\\\\n` followed by .field must route to AST)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-line-continuation-member-access.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
@@ -519,7 +512,7 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
-  it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
+  it("frag-return-vec4 (fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
@@ -598,7 +591,7 @@ describe("ShaderCompiler", async () => {
     // for the call site uses the correct branch's value — `v_tangent`.
   });
 
-  it("define-mixed-form-repro (Issue 2980 nit: AST/legacy mixed across #ifdef branches must not pollute call-site type)", async () => {
+  it("define-mixed-form-repro (AST/legacy mixed across #ifdef branches must not pollute call-site type)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-mixed-form-repro.shader");
 
     // Both branches of the mixed `#define LIGHT_INPUT` are legal GLSL on their
@@ -623,10 +616,26 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.contain("normalize");
   });
 
-  // Regression: a struct used as BOTH varying and attribute must NOT land in codegen's
-  // in/out lists — analyzer drops it from every role array so no duplicate `in IO`/`out IO`
-  // for the same name ever leaves the compiler. Diagnosed by ShaderIOAnalyzer; codegen just
-  // has to produce non-duplicated declarations.
+  it("preserves unused token-fragment macro replacement lists", () => {
+    const shaderSource = `Shader "macro-token-fragments" { SubShader "Default" { Pass "p" {
+      #define ADD +
+      #define OPEN (
+      #define TRAILING value +
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const parsed = shaderCompilerRelease._parseShaderSource(shaderSource);
+    const pass = parsed.subShaders[0].passes[0];
+    const output = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    expect(output).to.not.be.undefined;
+    expect(output!.fragment).to.include("#define ADD +");
+    expect(output!.fragment).to.include("#define OPEN (");
+    expect(output!.fragment).to.include("#define TRAILING value +");
+  });
+
+  // A struct with conflicting pipeline roles must not produce duplicate stage declarations.
   it("struct-role-conflict codegen: no duplicate in/out declarations for the same struct name", () => {
     const conflict = `Shader "conf" { SubShader "s" { Pass "p" {
       struct IO { vec4 v; };
@@ -639,9 +648,7 @@ describe("ShaderCompiler", async () => {
     const pass = parsed.subShaders[0].passes[0];
     const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
     expect(out, "codegen still returns a result").not.to.be.undefined;
-    // Neither stage may declare `IO` as `in` and `out` in the same source; the strong statement
-    // is that neither declaration appears at all — the struct's role is ambiguous, so the analyzer
-    // has surfaced `StructRoleConflict` and codegen has emitted nothing for it.
+    // An ambiguous role emits neither direction.
     const combined = out!.vertex + "\n" + out!.fragment;
     expect(combined).not.to.match(/^\s*in\s+IO\b/m);
     expect(combined).not.to.match(/^\s*out\s+IO\b/m);
@@ -650,9 +657,7 @@ describe("ShaderCompiler", async () => {
     expect(combined).not.to.match(/^\s*varying\s+IO\b/m);
   });
 
-  // Regression: wrong entry-name binding (`VertexShader = notReal;`) — analyzer's
-  // `EntryNotFound` covers the user-facing error; codegen must degrade to an empty
-  // stage source instead of throwing (keeps validator and emitter concerns separated).
+  // Missing entry bindings degrade to an empty stage source without corrupting visitor state.
   it("missing entry codegen: soft-returns empty stage source instead of throwing", () => {
     const missingEntry = `Shader "miss" { SubShader "s" { Pass "p" {
       struct Attributes { vec3 POSITION; };

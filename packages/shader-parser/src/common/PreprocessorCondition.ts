@@ -21,14 +21,14 @@ interface ParserContext {
 }
 
 /**
- * Parse the supported shader-preprocessor condition grammar.
+ * Parse the subset of shader-preprocessor conditions used for branch reasoning.
  *
  * The result is shared by lexical branch analysis and runtime instruction encoding,
  * so both paths accept and interpret the same expressions.
  *
  * @param expression - Text following an `#if` or `#elif` directive.
  * @returns The parsed condition tree.
- * @throws Error when the expression is unsupported or malformed.
+ * @throws Error when the expression cannot be represented by this limited reasoning model.
  */
 export function parsePreprocessorCondition(expression: string): PreprocessorCondition {
   const context: ParserContext = { source: expression.trim(), index: 0 };
@@ -126,7 +126,7 @@ function scanNumber(context: ParserContext): number | undefined {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) throwMalformedPreprocessorCondition(source);
   context.index += value.length;
-  return parsed;
+  return parsed | 0;
 }
 
 function scanIdentifier(context: ParserContext): string | undefined {

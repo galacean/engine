@@ -1,4 +1,4 @@
-import { DiagnosticType } from "@galacean/engine-shader-parser";
+import { DiagnosticType } from "./DiagnosticType";
 
 /** High-level category assigned to a diagnostic type. */
 export enum DiagnosticCategory {
@@ -14,8 +14,10 @@ export enum DiagnosticCategory {
 /** Maps every diagnostic type to its high-level category. */
 export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.SyntaxError]: DiagnosticCategory.Syntax,
+  [DiagnosticType.PreprocessorError]: DiagnosticCategory.Syntax,
 
   [DiagnosticType.UndefinedFunction]: DiagnosticCategory.Symbol,
+  [DiagnosticType.UnknownVariable]: DiagnosticCategory.Symbol,
   [DiagnosticType.NoMatchingOverload]: DiagnosticCategory.Symbol,
   [DiagnosticType.Redefinition]: DiagnosticCategory.Symbol,
   [DiagnosticType.UseBeforeDeclaration]: DiagnosticCategory.Symbol,
@@ -25,6 +27,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.AmbiguousMacroBranchResolution]: DiagnosticCategory.Symbol,
 
   [DiagnosticType.InvalidSwizzle]: DiagnosticCategory.Type,
+  [DiagnosticType.UnknownType]: DiagnosticCategory.Type,
   [DiagnosticType.UndeclaredStructMember]: DiagnosticCategory.Type,
   [DiagnosticType.AssignTypeMismatch]: DiagnosticCategory.Type,
   [DiagnosticType.InvalidAssignmentTarget]: DiagnosticCategory.Type,
