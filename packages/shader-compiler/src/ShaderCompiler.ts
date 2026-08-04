@@ -96,6 +96,12 @@ export class ShaderCompiler {
   }
 
   private _generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, backend: ShaderLanguage): IShaderProgramSource {
+    if (!coreInfo.vertexEntry.functions.length) {
+      throw new Error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
+    }
+    if (!coreInfo.fragmentEntry.functions.length) {
+      throw new Error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
+    }
     const codeGen: ShaderBackend =
       backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
     const ret = codeGen.generate(ir, coreInfo);

@@ -5,7 +5,7 @@
  * or conditional `#include` may fill in what looks broken at precompile time, so the layers stay
  * separate:
  *   analyzer   → decides whether a diagnostic fires and at what severity
- *   codegen    → produces GLSL for the driver, without gating on diagnostics
+ *   codegen    → produces GLSL or rejects a structural source/entry failure, without reading diagnostics
  *   driver     → is the source of truth for what will actually run
  *
  * This suite ties the three together per case:
@@ -13,7 +13,7 @@
  *   - drive the same pass content through the compiler to collect emitted GLSL
  *   - feed the emitted GLSL to a real WebGL2 context
  *   - assert the driver outcome matches the severity contract we set:
- *       severity=error   → the independently emitted source must reach the driver, which rejects it
+ *       severity=error   → codegen rejects a structural failure, or the emitted source reaches the driver and is rejected
  *       severity=warning → the precompile GLSL alone still fails the driver; the warning
  *                          severity encodes intent ("a runtime macro may rescue this at bind
  *                          time"), NOT a claim that the driver would accept the GLSL as-is.
@@ -69,6 +69,7 @@ interface Case {
   passBody: string;
   vertEntry: string;
   fragEntry: string;
+  compilerExpects?: "emit" | "reject";
   driverExpects: "reject" | "accept" | "either";
   reason: string;
 }
@@ -594,9 +595,10 @@ const cases: Case[] = [
       void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(0.0); }
     `,
-    // Deliberately mis-spelled to trip EntryNotFound.
+    // Deliberately misspelled to trip EntryNotFound
     vertEntry: "vrt",
     fragEntry: "frag",
+    compilerExpects: "reject",
     driverExpects: "either",
     reason: "compile-time entry lookup miss — codegen has nothing to emit"
   },
@@ -828,6 +830,7 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
+    compilerExpects: "reject",
     driverExpects: "reject",
     reason: "GLSL ES §6: function prototypes only at global scope"
   }
@@ -870,6 +873,11 @@ describe("analyzer/codegen/driver consistency", () => {
       const compiled = captureLoggerDiagnostics(() =>
         compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES100, "")
       );
+
+      if (c.compilerExpects === "reject") {
+        expect(compiled.result, `${c.name}: structural generation failure`).to.be.undefined;
+        return;
+      }
 
       expect(compiled.result, `${c.name}: analyzer-independent codegen must emit source for the driver`).not.to.be
         .undefined;

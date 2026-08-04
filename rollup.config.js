@@ -78,6 +78,19 @@ function config({ location, pkgJson, verboseMode = false }) {
       __buildVersion: pkgJson.version
     })
   );
+  if (pkgJson.name === "@galacean/engine-shader-parser" && !verboseMode) {
+    // The verbose artifact remains readable; the default runtime keeps names and control flow but
+    // omits authoring comments so splitting parser/compiler does not increase shipped code size
+    curPlugins.push(
+      minify({
+        compress: false,
+        mangle: false,
+        module: true,
+        sourceMap: true,
+        format: { beautify: true, comments: false }
+      })
+    );
+  }
 
   return {
     umd: (compress) => {

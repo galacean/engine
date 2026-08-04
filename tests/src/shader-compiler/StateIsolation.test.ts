@@ -42,9 +42,7 @@ describe("compiler state isolation (no cross-shader leak)", () => {
     const c = new ShaderCompiler();
     const clean = compile(c, shaderA);
     const brokenOut = compile(c, broken);
-    // Codegen keeps the pipeline shape while emitting empty stage sources.
-    expect(brokenOut!.vertex).to.equal("");
-    expect(brokenOut!.fragment).to.equal("");
+    expect(brokenOut).to.be.undefined;
     const after = compile(c, shaderA);
     expect(after!.vertex).to.equal(clean!.vertex);
     expect(after!.fragment).to.equal(clean!.fragment);

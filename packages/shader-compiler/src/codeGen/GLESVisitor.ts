@@ -6,7 +6,7 @@ import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { NodeChild } from "@galacean/engine-shader-parser";
 import { ShaderData } from "@galacean/engine-shader-parser";
 import { ESymbolType, FnSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
-import type { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser";
+import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
@@ -57,36 +57,27 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     }
 
     return {
-      vertex: this._vertexMain(coreInfo.vertexEntry.name, shaderData, outerGlobalMacroDeclarations),
-      fragment: this._fragmentMain(coreInfo.fragmentEntry.name, shaderData, outerGlobalMacroDeclarations)
+      vertex: this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations),
+      fragment: this._fragmentMain(coreInfo.fragmentEntry, shaderData, outerGlobalMacroDeclarations)
     };
   }
 
   private _vertexMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
     outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
   ): string {
     const context = VisitorContext.context;
     context.stage = EShaderStage.VERTEX;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = data.symbolTable;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    // Entry-not-found is the analyzer's `EntryNotFound` diagnostic — codegen doesn't re-validate;
-    // it degrades to an empty stage source (invalid GLSL) rather than throwing, keeping validator
-    // and emitter concerns separated. Deduped so a missing entry warns once per compile.
-    if (!fnSymbols.length) return this._softMissEntry(false);
-
-    // Attribute/varying structs were collected in ShaderCoreInfo.
+    // Attribute/varying structs were collected in ShaderCoreInfo
 
     // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    VisitorContext.context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
@@ -106,23 +97,16 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   private _fragmentMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
     outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
   ): string {
     const context = VisitorContext.context;
     context.stage = EShaderStage.FRAGMENT;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const { symbolTable } = data;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    // Preserve the pipeline shape when the fragment entry is missing.
-    if (!fnSymbols?.length) return this._softMissEntry(true);
-
-    // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements.
-    fnSymbols.forEach((fnSymbol) => {
+    // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements
+    entryInfo.functions.forEach((fnSymbol) => {
       const { returnStatement } = fnSymbol.astNode;
       if (returnStatement) {
         returnStatement.isFragReturnStatement = true;
@@ -134,7 +118,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    VisitorContext.context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
@@ -151,16 +135,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.reset();
 
     return globalCode;
-  }
-
-  /**
-   * Reset per-stage visitor state and return an empty source for a missing entry function.
-   * `fullReset` mirrors the fragment path (final pass tear-down); vertex uses `reset(false)`.
-   */
-  private _softMissEntry(fullReset: boolean): string {
-    VisitorContext.context.reset(fullReset);
-    this.reset();
-    return "";
   }
 
   /**

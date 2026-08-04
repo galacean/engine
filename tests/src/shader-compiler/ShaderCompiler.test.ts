@@ -657,8 +657,7 @@ describe("ShaderCompiler", async () => {
     expect(combined).not.to.match(/^\s*varying\s+IO\b/m);
   });
 
-  // Missing entry bindings degrade to an empty stage source without corrupting visitor state.
-  it("missing entry codegen: soft-returns empty stage source instead of throwing", () => {
+  it("missing entry codegen: rejects before backend generation without corrupting visitor state", () => {
     const missingEntry = `Shader "miss" { SubShader "s" { Pass "p" {
       struct Attributes { vec3 POSITION; };
       void realVert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -668,17 +667,16 @@ describe("ShaderCompiler", async () => {
     } } }`;
     const parsed = shaderCompilerRelease._parseShaderSource(missingEntry);
     const pass = parsed.subShaders[0].passes[0];
-    let threw: unknown = null;
-    let out: any;
-    try {
-      out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
-    } catch (e) {
-      threw = e;
-    }
-    expect(threw, "codegen must not throw for a missing entry").to.be.null;
-    expect(out, "codegen returns pipeline shape even for a missing entry").not.to.be.undefined;
-    expect(out.vertex, "missing vertex entry → empty vertex source").to.equal("");
-    // Fragment entry is valid — still compiles.
-    expect(out.fragment).to.be.a("string").and.not.empty;
+    const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    expect(out, "a missing entry is a structural generation failure").to.be.undefined;
+
+    const valid = shaderCompilerRelease._parseShaderPass(
+      `void vert() { gl_Position = vec4(0.0); }
+       void frag() { gl_FragColor = vec4(1.0); }`,
+      "vert",
+      "frag",
+      0
+    );
+    expect(valid, "a failed entry lookup must not corrupt the next compile").not.to.be.undefined;
   });
 });
