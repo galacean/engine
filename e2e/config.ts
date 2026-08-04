@@ -425,6 +425,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.02553
     },
+    particleEmitMeshSizeOverLifetime: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-size-over-lifetime",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",

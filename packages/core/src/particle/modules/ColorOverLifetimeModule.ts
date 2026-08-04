@@ -1,5 +1,5 @@
 import { Color, Rand, Vector4 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -23,7 +23,6 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _gradientKeysCount = ShaderProperty.getByName("renderer_COLGradientKeysMaxTime");
 
   /** Color gradient over lifetime. */
-  @deepClone
   color = new ParticleCompositeGradient(
     new ParticleGradient(
       [new GradientColorKey(0.0, new Color(1, 1, 1)), new GradientColorKey(1.0, new Color(1, 1, 1))],

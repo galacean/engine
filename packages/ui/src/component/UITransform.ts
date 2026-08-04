@@ -1,13 +1,4 @@
-import {
-  Entity,
-  MathUtil,
-  Rect,
-  Transform,
-  TransformModifyFlags,
-  Vector2,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine";
+import { Entity, MathUtil, Rect, Transform, TransformModifyFlags, Vector2, ignoreClone } from "@galacean/engine";
 import { HorizontalAlignmentMode } from "../enums/HorizontalAlignmentMode";
 import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
 
@@ -19,7 +10,6 @@ export class UITransform extends Transform {
   private _size = new Vector2(100, 100);
   @ignoreClone
   private _pivot = new Vector2(0.5, 0.5);
-  @deepClone
   private _rect = new Rect(-50, -50, 100, 100);
 
   private _alignLeft = 0;
@@ -254,10 +244,11 @@ export class UITransform extends Transform {
     this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
-  // @ts-ignore
-  override _cloneTo(target: UITransform): void {
-    // @ts-ignore
-    super._cloneTo(target);
+  /**
+   * @inheritdoc
+   */
+  override _onClone(target: UITransform): void {
+    super._onClone(target);
     const { _size: size, _pivot: pivot } = target;
     // @ts-ignore
     size._onValueChanged = pivot._onValueChanged = null;

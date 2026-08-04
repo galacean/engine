@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * The character controllers.
@@ -13,7 +13,6 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
 export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  @deepClone
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 

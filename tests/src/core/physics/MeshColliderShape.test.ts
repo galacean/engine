@@ -5,12 +5,13 @@ import {
   SphereColliderShape,
   BoxColliderShape,
   DynamicCollider,
+  HitResult,
   StaticCollider,
   PhysicsMaterial,
   Script,
   ModelMesh
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
@@ -490,6 +491,34 @@ describe("MeshColliderShape PhysX", () => {
       meshMaterial?.destroy();
     });
 
+    it("should clone a kinematic triangle mesh that participates in raycasts", () => {
+      const entity = root.createChild("clonedKinematicMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = true;
+      dynamicCollider.automaticCenterOfMass = false;
+      dynamicCollider.automaticInertiaTensor = false;
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const mesh = createModelMesh(engine, [-5, 0, -5, 5, 0, -5, -5, 0, 5, 5, 0, 5], [0, 2, 1, 1, 2, 3]);
+      meshShape.mesh = mesh;
+      dynamicCollider.addShape(meshShape);
+
+      const clone = entity.clone();
+      root.addChild(clone);
+      const clonedCollider = clone.getComponent(DynamicCollider);
+      const clonedShape = clonedCollider.shapes[0];
+      entity.destroy();
+
+      const hit = new HitResult();
+      expect(physicsScene.raycast(new Ray(new Vector3(0, 2, 0), new Vector3(0, -1, 0)), hit)).toBe(true);
+      expect(hit.entity).toBe(clone);
+      expect(hit.shape).toBe(clonedShape);
+
+      clone.destroy();
+      meshMaterial?.destroy();
+    });
+
     it("should NOT log error when adding convex mesh to non-kinematic DynamicCollider", () => {
       const errorSpy = vi.spyOn(console, "error");
 
@@ -510,6 +539,32 @@ describe("MeshColliderShape PhysX", () => {
       errorSpy.mockRestore();
       entity.destroy();
       meshMaterial?.destroy();
+    });
+  });
+
+  describe("Native Shape Attachment", () => {
+    it("should not record a shape when PhysX rejects the native attachment", () => {
+      const entity = root.createChild("rejectedNativeShape");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      const material = shape.material;
+      const nativeCollider = (collider as any)._nativeCollider;
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
+
+      try {
+        expect(() => collider.addShape(shape)).toThrowError(
+          "PhysXCollider: failed to attach shape to the native actor."
+        );
+        expect(collider.shapes).toHaveLength(0);
+        expect(nativeCollider._shapes).toHaveLength(0);
+        expect(shape.collider).toBeFalsy();
+        expect((shape as any)._isShapeAttached).toBe(false);
+      } finally {
+        attachSpy.mockRestore();
+        entity.destroy();
+        (shape as any)._destroy();
+        material?.destroy();
+      }
     });
   });
 
@@ -762,6 +817,36 @@ describe("MeshColliderShape PhysX", () => {
       expect(dynamicCollider.collisionDetectionMode).toBe(1);
 
       entity.destroy();
+    });
+  });
+
+  describe("mesh refCount (slot-ownership contract)", () => {
+    it("clone acquires via the setter, churn transfers, destroy releases", () => {
+      const meshA = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
+      const meshB = createModelMesh(engine, [-2, 0, -2, 2, 0, -2, 0, 0, 2], [0, 1, 2]);
+      const entity = root.createChild("meshRefSlot");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new MeshColliderShape();
+      shape.mesh = meshA;
+      collider.addShape(shape);
+      expect(meshA.refCount).toBe(1);
+
+      const clone = entity.clone();
+      root.addChild(clone);
+      expect(meshA.refCount).toBe(2);
+
+      const clonedShape = clone.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
+      expect(clonedShape).not.toBe(shape);
+      clonedShape.mesh = meshB;
+      expect(meshA.refCount).toBe(1);
+      expect(meshB.refCount).toBe(1);
+
+      clone.destroy();
+      expect(meshB.refCount).toBe(0);
+      expect(meshA.refCount).toBe(1);
+
+      entity.destroy();
+      expect(meshA.refCount).toBe(0);
     });
   });
 });
