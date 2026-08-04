@@ -13,11 +13,18 @@ for (const legacyField of ["main", "module", "debug", "types"]) {
   assert.equal(packageJson[legacyField], undefined, `root legacy field '${legacyField}' must stay absent`);
 }
 
-const npmExecutable = process.platform === "win32" ? "npm.cmd" : "npm";
-const packed = spawnSync(npmExecutable, ["pack", "--dry-run", "--json"], {
-  cwd: packageRoot,
-  encoding: "utf8"
-});
+const npmArgs = ["pack", "--dry-run", "--json"];
+const npmExecPath = process.env.npm_execpath;
+const packed = npmExecPath
+  ? spawnSync(process.execPath, [npmExecPath, ...npmArgs], {
+      cwd: packageRoot,
+      encoding: "utf8"
+    })
+  : spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", npmArgs, {
+      cwd: packageRoot,
+      encoding: "utf8",
+      shell: process.platform === "win32"
+    });
 assert.equal(packed.status, 0, packed.stderr || packed.stdout);
 const packedFiles = new Set(JSON.parse(packed.stdout)[0].files.map((file) => file.path));
 for (const requiredFile of [
