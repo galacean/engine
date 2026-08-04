@@ -48,10 +48,10 @@ export class ParticleRenderer extends Renderer {
   _particleSystemManager: ParticleSystemManager | null = null;
   /** @internal */
   @ignoreClone
-  readonly _particleSystemTargets: ParticleRenderer[] = [];
+  readonly _particleUpdateDependents: ParticleRenderer[] = [];
   /** @internal */
   @ignoreClone
-  _particleSystemIndegree = 0;
+  _particleUpdateIndegree = 0;
   /** @internal */
   @ignoreClone
   _isBirthSubEmitterTarget = false;
@@ -241,11 +241,11 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _updateParticles(elapsedTime: number, isBirthSubEmitterTarget: boolean): void {
+  _updateParticles(elapsedTime: number): void {
     if (!this._supportInstancedArrays) {
       return;
     }
-    if (this.generator._update(elapsedTime, isBirthSubEmitterTarget)) {
+    if (this.generator._update(elapsedTime, this._isBirthSubEmitterTarget)) {
       const shaderData = this.shaderData;
       shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
       shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);

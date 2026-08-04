@@ -53,7 +53,7 @@ export class ParticleSystemManager {
       }
 
       renderer._hasParticleSystemUpdated = true;
-      renderer._updateParticles(deltaTime, renderer._isBirthSubEmitterTarget);
+      renderer._updateParticles(deltaTime);
     }
   }
 
@@ -74,8 +74,8 @@ export class ParticleSystemManager {
     ordered.length = 0;
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      renderer._particleSystemTargets.length = 0;
-      renderer._particleSystemIndegree = 0;
+      renderer._particleUpdateDependents.length = 0;
+      renderer._particleUpdateIndegree = 0;
       renderer._isBirthSubEmitterTarget = false;
     }
 
@@ -89,10 +89,10 @@ export class ParticleSystemManager {
         const target = slot.emitter;
         if (!target || target._particleSystemManager !== this) continue;
 
-        const targets = source._particleSystemTargets;
-        if (targets.indexOf(target) < 0) {
-          targets.push(target);
-          target._particleSystemIndegree++;
+        const dependents = source._particleUpdateDependents;
+        if (dependents.indexOf(target) < 0) {
+          dependents.push(target);
+          target._particleUpdateIndegree++;
         }
         if (slot.type === ParticleSubEmitterType.Birth) {
           target._isBirthSubEmitterTarget = true;
@@ -102,22 +102,22 @@ export class ParticleSystemManager {
 
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      if (renderer._particleSystemIndegree === 0) ordered.push(renderer);
+      if (renderer._particleUpdateIndegree === 0) ordered.push(renderer);
     }
 
     for (let head = 0; head < ordered.length; head++) {
       const source = ordered[head];
-      const targets = source._particleSystemTargets;
-      for (let i = 0, n = targets.length; i < n; i++) {
-        const target = targets[i];
-        if (--target._particleSystemIndegree === 0) ordered.push(target);
+      const dependents = source._particleUpdateDependents;
+      for (let i = 0, n = dependents.length; i < n; i++) {
+        const dependent = dependents[i];
+        if (--dependent._particleUpdateIndegree === 0) ordered.push(dependent);
       }
     }
 
     if (ordered.length !== renderers.length) {
       for (let i = 0, n = renderers.length; i < n; i++) {
         const renderer = renderers[i];
-        if (renderer._particleSystemIndegree > 0) ordered.push(renderer);
+        if (renderer._particleUpdateIndegree > 0) ordered.push(renderer);
       }
     }
 
