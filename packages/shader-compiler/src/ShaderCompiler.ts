@@ -4,28 +4,34 @@ import { Logger } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser";
-import type { ASTNode } from "@galacean/engine-shader-parser";
-import { Lexer } from "@galacean/engine-shader-parser";
+import { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
+import type { ASTNode } from "@galacean/engine-shader-parser/internal";
+import { Lexer } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
-import { ShaderTargetParser } from "@galacean/engine-shader-parser";
-import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser";
-import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
-import { ShaderSourceParser } from "@galacean/engine-shader-parser";
+import { ShaderTargetParser } from "@galacean/engine-shader-parser/internal";
+import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser/internal";
+import { ShaderCompilerUtils } from "@galacean/engine-shader-parser/internal";
+import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import type { ShaderBackend } from "./ShaderBackend";
 
+/** Compiles ShaderLab sources into GLES programs and precompiled instructions. */
 export class ShaderCompiler {
   private static _parser?: ShaderTargetParser;
 
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
-  /** Replace the `#include` lookup table and clear the derived chunk cache. */
+  /**
+   * Replaces the `#include` lookup table and clears the derived chunk cache.
+   * @param includeMap - Canonical include paths mapped to shader chunks.
+   * @internal
+   */
   _setIncludeMap(includeMap: IncludeMap): void {
     this._includeMap = includeMap;
     this._chunkOutputCache.clear();
   }
 
+  /** @internal */
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     const { shaderSource, errors } = ShaderSourceParser.parseWithErrors(sourceCode);
@@ -34,6 +40,7 @@ export class ShaderCompiler {
     return shaderSource;
   }
 
+  /** @internal */
   _parseShaderPass(
     source: string,
     vertexEntry: string,
@@ -112,6 +119,7 @@ export class ShaderCompiler {
     return ret;
   }
 
+  /** @internal */
   _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePathForIncludeKey: string): IPrecompiledShader {
     const shaderSource = this._parseShaderSource(sourceCode);
 

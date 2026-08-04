@@ -27,6 +27,10 @@ export class GSError extends Error {
     this.name = name;
   }
 
+  /**
+   * Formats the error with source context when the authoring parser is available.
+   * @returns Human-readable error text.
+   */
   override toString(): string {
     // #if _VERBOSE
     const { location } = this;

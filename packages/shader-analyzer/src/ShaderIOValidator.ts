@@ -10,7 +10,7 @@ import {
   ESymbolType,
   type ShaderPosition,
   type ShaderRange
-} from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
 import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 import { DiagnosticType } from "./DiagnosticType";
 

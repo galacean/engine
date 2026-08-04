@@ -1,4 +1,9 @@
-import { ShaderCoreInfo, TreeNode, parseShaderPass, type ShaderClueIR } from "@galacean/engine-shader-parser/verbose";
+import {
+  ShaderCoreInfo,
+  TreeNode,
+  parseShaderPass,
+  type ShaderClueIR
+} from "@galacean/engine-shader-parser/internal/verbose";
 import { describe, expect, it } from "vitest";
 
 interface NeutralBackendSnapshot {

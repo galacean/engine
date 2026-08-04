@@ -7,7 +7,7 @@ import {
   parseShaderPass,
   Preprocessor,
   ShaderSourceParser
-} from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
 import { describe, expect, it } from "vitest";
 
 function shader(declarations: string, fragmentBody = "gl_FragColor = vec4(1.0);"): string {

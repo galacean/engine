@@ -8,7 +8,7 @@ import {
   TreeNode,
   type ShaderEntryPointInfo,
   type ShaderRange
-} from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
 
 /**
  * Analyzer-only graph and reachability information derived from neutral shader IR.

@@ -1,6 +1,6 @@
-import { BaseToken } from "@galacean/engine-shader-parser";
-import { ASTNode } from "@galacean/engine-shader-parser";
-import { StructProp } from "@galacean/engine-shader-parser";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { ASTNode } from "@galacean/engine-shader-parser/internal";
+import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 

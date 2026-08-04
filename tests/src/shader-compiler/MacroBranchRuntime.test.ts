@@ -2,7 +2,7 @@ import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderSourceParser } from "@galacean/engine-shader-parser";
+import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
 function shader(declarations: string, fragmentBody: string): string {

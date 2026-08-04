@@ -5,7 +5,7 @@ import {
   areConditionsComplementary,
   getBranchCoverage,
   type BranchSignature
-} from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
 import { describe, expect, it } from "vitest";
 
 const analyzer = new ShaderAnalyzer();

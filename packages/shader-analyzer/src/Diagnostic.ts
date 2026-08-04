@@ -1,4 +1,4 @@
-import { formatDiagnosticSource } from "@galacean/engine-shader-parser/verbose";
+import { formatDiagnosticSource } from "@galacean/engine-shader-parser/internal/verbose";
 import { DiagnosticType } from "./DiagnosticType";
 
 /** Severity assigned to a shader diagnostic. */

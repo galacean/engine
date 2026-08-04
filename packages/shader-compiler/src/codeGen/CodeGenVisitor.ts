@@ -1,14 +1,14 @@
-import { BaseToken } from "@galacean/engine-shader-parser";
-import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
-import { NoneTerminal } from "@galacean/engine-shader-parser";
-import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser";
-import { NodeChild, StructProp } from "@galacean/engine-shader-parser";
-import { ParserUtils } from "@galacean/engine-shader-parser";
-import { ShaderStructRole } from "@galacean/engine-shader-parser";
-import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { NoneTerminal } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser/internal";
+import { NodeChild, StructProp } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
+import type { ICodeGenVisitor } from "@galacean/engine-shader-parser/internal";
 import { VisitorContext } from "./VisitorContext";
 import { ReturnableObjectPool } from "@galacean/engine-core";
-import { Keyword } from "@galacean/engine-shader-parser";
+import { Keyword } from "@galacean/engine-shader-parser/internal";
 import { TempArray } from "../TempArray";
 import { ICodeSegment } from "./types";
 

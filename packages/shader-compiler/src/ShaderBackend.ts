@@ -1,5 +1,5 @@
 import type { IShaderInfo } from "@galacean/engine-design";
-import type { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser";
+import type { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
 
 /**
  * Internal boundary implemented by shader source backends.

@@ -18,8 +18,8 @@ import {
   TypeSystem,
   VarSymbol,
   FnSymbol
-} from "@galacean/engine-shader-parser/verbose";
-import { getBranchCoverage } from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
+import { getBranchCoverage } from "@galacean/engine-shader-parser/internal/verbose";
 import { DiagnosticType } from "./DiagnosticType";
 import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 

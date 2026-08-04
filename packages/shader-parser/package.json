@@ -14,13 +14,13 @@
   "debug": "src/runtime.ts",
   "types": "types/runtime.d.ts",
   "exports": {
-    ".": {
+    "./internal": {
       "debug": "./src/runtime.ts",
       "import": "./dist/module.js",
       "require": "./dist/main.js",
       "types": "./types/runtime.d.ts"
     },
-    "./verbose": {
+    "./internal/verbose": {
       "debug": "./src/index.ts",
       "import": "./dist/module.verbose.js",
       "require": "./dist/main.verbose.js",
@@ -34,7 +34,8 @@
   "files": [
     "dist/**/*",
     "types/**/*",
-    "verbose/package.json"
+    "internal/package.json",
+    "internal/verbose/package.json"
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",

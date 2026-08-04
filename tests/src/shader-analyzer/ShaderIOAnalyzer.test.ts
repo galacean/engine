@@ -6,7 +6,7 @@ import {
   ShaderCoreInfo,
   ShaderSourceParser,
   ShaderTargetParser
-} from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 

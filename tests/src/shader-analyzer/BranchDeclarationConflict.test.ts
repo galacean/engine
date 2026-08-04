@@ -1,5 +1,5 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
-import type { IncludeMap } from "@galacean/engine-shader-parser";
+import type { IncludeMap } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it } from "vitest";
 
 function pass(body: string): string {

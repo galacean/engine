@@ -1,7 +1,7 @@
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { Lexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/verbose";
+import { Lexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/internal/verbose";
 import { describe, expect, it } from "vitest";
 
 function pass(body: string): string {

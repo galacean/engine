@@ -1,9 +1,9 @@
-import { BaseToken } from "@galacean/engine-shader-parser";
-import { EShaderStage } from "@galacean/engine-shader-parser";
-import { SymbolTable } from "@galacean/engine-shader-parser";
-import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
-import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser";
-import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { EShaderStage } from "@galacean/engine-shader-parser/internal";
+import { SymbolTable } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/internal";
 
 /** @internal */
 export class VisitorContext {

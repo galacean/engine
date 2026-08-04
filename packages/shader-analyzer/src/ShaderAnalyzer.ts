@@ -1,13 +1,12 @@
 import {
   ChunkOutputCache,
-  IncludeMap,
   parseShaderPass,
   ShaderCoreInfo,
   ShaderCompilerUtils,
   ShaderSourceParser,
   type PreprocessSourceMapSegment
-} from "@galacean/engine-shader-parser/verbose";
-import type { ShaderRange } from "@galacean/engine-shader-parser/verbose";
+} from "@galacean/engine-shader-parser/internal/verbose";
+import type { ShaderRange } from "@galacean/engine-shader-parser/internal/verbose";
 import type { IShaderPassSource, IShaderSource, IStatement } from "@galacean/engine-design";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticType } from "./Diagnostic";
@@ -17,10 +16,13 @@ import { ShaderValidator } from "./ShaderValidator";
 import { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 import { ShaderIOValidator } from "./ShaderIOValidator";
 
+/** Maps canonical shader include paths to source chunks. */
+export type ShaderIncludeMap = Readonly<Record<string, string | undefined>>;
+
 /** Options used when analyzing shader source. */
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
-  includeMap?: IncludeMap;
+  includeMap?: ShaderIncludeMap;
   /** Base URL used to resolve relative `#include` paths. */
   basePathForIncludeKey?: string;
   /** Logical file name attached to diagnostics. */
@@ -94,7 +96,7 @@ export class ShaderAnalyzer {
     statements: readonly IStatement[],
     source: string,
     diagnostics: Diagnostic[],
-    includeMap: IncludeMap,
+    includeMap: ShaderIncludeMap,
     chunkOutputCache: ChunkOutputCache,
     basePathForIncludeKey: string | undefined,
     file: string | undefined,

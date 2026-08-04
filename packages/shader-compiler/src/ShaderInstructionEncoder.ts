@@ -1,6 +1,6 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
-import { parsePreprocessorCondition } from "@galacean/engine-shader-parser";
+import { parsePreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 

@@ -7,7 +7,7 @@ import {
   parsePreprocessorCondition,
   ShaderSourceParser,
   type PreprocessorCondition
-} from "@galacean/engine-shader-parser";
+} from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it } from "vitest";
 
 interface MacroConfiguration {
@@ -184,7 +184,7 @@ function compileInWebGL(vertex: string, fragment: string): { ok: boolean; log: s
 
 function evaluateNativeCondition(
   expression: string,
-  macros: readonly (readonly [string, string])[],
+  macros: readonly (readonly [string, string])[]
 ): { supported: true; firstArm: boolean } | { supported: false; log: string } | "no-webgl" {
   const macroNames = new Set(macros.map(([name]) => name));
   const normalizedExpression = expression
@@ -196,16 +196,17 @@ function evaluateNativeCondition(
     .replace(/\b[A-Za-z_]\w*\b/g, (name) => (macroNames.has(name) ? name : "0"));
   const definitions = macros.map(([name, value]) => `#define ${name} ${value}`).join("\n");
   const invalidDeclaration = "float native_condition_selected_the_wrong_arm = ;";
-  const compileProbe = (firstArm: boolean) => compileInWebGL(
-    "void main() { gl_Position = vec4(0.0); }",
-    `${definitions}
+  const compileProbe = (firstArm: boolean) =>
+    compileInWebGL(
+      "void main() { gl_Position = vec4(0.0); }",
+      `${definitions}
 #if ${normalizedExpression}
 ${firstArm ? "const float native_condition_value = 1.0;" : invalidDeclaration}
 #else
 ${firstArm ? invalidDeclaration : "const float native_condition_value = 0.0;"}
 #endif
 void main() { gl_FragColor = vec4(native_condition_value); }`
-  );
+    );
   const firstProbe = compileProbe(true);
   if (firstProbe === "no-webgl") return firstProbe;
   if (firstProbe.ok) return { supported: true, firstArm: true };
@@ -287,15 +288,45 @@ describe("preprocessor condition conformance", () => {
       ],
       true
     ],
-    ["((A == B || A == C))", [["A", "2"], ["B", "1"], ["C", "2"]], true],
+    [
+      "((A == B || A == C))",
+      [
+        ["A", "2"],
+        ["B", "1"],
+        ["C", "2"]
+      ],
+      true
+    ],
     ["(MASK >> 1) == 3", [["MASK", "6"]], true],
     ["(~MASK & 0xffu) != 0", [["MASK", "255"]], false],
     ["0xffffffffu + 1u == 0u", [], true],
     ["-1 < 1u", [], true],
     ["0xffffffffu > 0u", [], false],
-    ["A && (10 / B)", [["A", "0"], ["B", "0"]], false],
-    ["A ? (10 / B) : C", [["A", "0"], ["B", "0"], ["C", "1"]], true],
-    ["FIRST SECOND == 22", [["FIRST", "17"], ["SECOND", "+ 5"]], true]
+    [
+      "A && (10 / B)",
+      [
+        ["A", "0"],
+        ["B", "0"]
+      ],
+      false
+    ],
+    [
+      "A ? (10 / B) : C",
+      [
+        ["A", "0"],
+        ["B", "0"],
+        ["C", "1"]
+      ],
+      true
+    ],
+    [
+      "FIRST SECOND == 22",
+      [
+        ["FIRST", "17"],
+        ["SECOND", "+ 5"]
+      ],
+      true
+    ]
   ] as const) {
     it(`evaluates full preprocessor expression '${expression}' through codegen and WebGL`, () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw();
