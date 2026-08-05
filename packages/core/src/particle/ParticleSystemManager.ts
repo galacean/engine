@@ -74,7 +74,6 @@ export class ParticleSystemManager {
     ordered.length = 0;
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      renderer._particleUpdateDependents.length = 0;
       renderer._particleUpdateIndegree = 0;
       renderer._isBirthSubEmitterTarget = false;
     }
@@ -89,11 +88,7 @@ export class ParticleSystemManager {
         const target = slot.emitter;
         if (!target || target._particleSystemManager !== this) continue;
 
-        const dependents = source._particleUpdateDependents;
-        if (dependents.indexOf(target) < 0) {
-          dependents.push(target);
-          target._particleUpdateIndegree++;
-        }
+        target._particleUpdateIndegree++;
         if (slot.type === ParticleSubEmitterType.Birth) {
           target._isBirthSubEmitterTarget = true;
         }
@@ -107,9 +102,12 @@ export class ParticleSystemManager {
 
     for (let head = 0; head < ordered.length; head++) {
       const source = ordered[head];
-      const dependents = source._particleUpdateDependents;
-      for (let i = 0, n = dependents.length; i < n; i++) {
-        const dependent = dependents[i];
+      const module = source.generator.subEmitters;
+      if (!module.enabled) continue;
+      const slots = module.subEmitters;
+      for (let i = 0, n = slots.length; i < n; i++) {
+        const dependent = slots[i].emitter;
+        if (!dependent || dependent._particleSystemManager !== this) continue;
         if (--dependent._particleUpdateIndegree === 0) ordered.push(dependent);
       }
     }

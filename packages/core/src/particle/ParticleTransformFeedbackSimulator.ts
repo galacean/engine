@@ -26,9 +26,6 @@ export class ParticleTransformFeedbackSimulator {
     "v_FeedbackTrajectoryVelocity"
   ];
 
-  /** @internal */
-  _particleInputBinding: VertexBufferBinding;
-
   readonly vertexStride: number;
 
   private _simulator: TransformFeedbackSimulator;
@@ -74,13 +71,11 @@ export class ParticleTransformFeedbackSimulator {
    * Resize feedback buffers.
    * Saves pre-resize buffers internally for subsequent `copyOldBufferData` / `destroyOldBuffers` calls.
    * @param particleCount - Number of particles to allocate
-   * @param particleInputBinding - New particle input vertex buffer binding
    */
-  resize(particleCount: number, particleInputBinding: VertexBufferBinding): void {
+  resize(particleCount: number): void {
     this._oldReadBuffer = this._simulator.readBinding?.buffer;
     this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
     this._simulator.resize(particleCount);
-    this._particleInputBinding = particleInputBinding;
   }
 
   /**
@@ -113,6 +108,7 @@ export class ParticleTransformFeedbackSimulator {
    * @param firstFree - First free particle index in ring buffer
    * @param firstNew - First particle initialized during this update
    * @param deltaTime - Frame delta time
+   * @param particleInputBinding - Particle input vertex buffer binding
    */
   update(
     shaderData: ShaderData,
@@ -120,7 +116,8 @@ export class ParticleTransformFeedbackSimulator {
     firstActive: number,
     firstFree: number,
     firstNew: number,
-    deltaTime: number
+    deltaTime: number,
+    particleInputBinding: VertexBufferBinding
   ): void {
     if (firstActive === firstFree) return;
 
@@ -131,7 +128,7 @@ export class ParticleTransformFeedbackSimulator {
       !this._simulator.beginUpdate(
         shaderData,
         this._feedbackStateVertexElements,
-        this._particleInputBinding,
+        particleInputBinding,
         ParticleBufferUtils.feedbackInitialDataVertexElements
       )
     )

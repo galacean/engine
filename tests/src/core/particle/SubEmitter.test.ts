@@ -1861,6 +1861,25 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("schedules a shared target once across multiple sub-emitter slots", () => {
+    const child = createParticleRenderer(engine, "SharedTopologyTarget_Child");
+    const parent = createParticleRenderer(engine, "SharedTopologyTarget_Parent");
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.enabled = true;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+
+    updateEngine(engine, 1);
+
+    const ordered = (parent.entity.scene as any)._componentsManager._particleSystemManager
+      ._orderedRenderers as ParticleRenderer[];
+    expect(ordered.indexOf(parent)).to.be.lessThan(ordered.indexOf(child));
+    expect(ordered.filter((renderer) => renderer === child)).to.have.length(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Indirect cycle A→B→A throws at configuration time", () => {
     const a = createParticleRenderer(engine, "Cycle_A");
     const b = createParticleRenderer(engine, "Cycle_B");

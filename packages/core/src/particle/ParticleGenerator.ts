@@ -482,7 +482,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._firstActiveElement,
       this._firstFreeElement,
       firstNewElement,
-      deltaTime
+      deltaTime,
+      this._instanceVertexBufferBinding
     );
 
     // After swap, update the render pass buffer binding to point to the latest output.
@@ -618,7 +619,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const instanceVertices = new Float32Array(newByteLength / 4);
     if (useFeedback) {
-      this._feedbackSimulator.resize(newParticleCount, vertexBufferBinding);
+      this._feedbackSimulator.resize(newParticleCount);
     }
 
     if (lastInstanceVertices) {
@@ -783,10 +784,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const needsResize =
         !readBinding || readBinding.buffer.byteLength !== this._currentParticleCount * simulator.vertexStride;
       if (needsResize) {
-        simulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
+        simulator.resize(this._currentParticleCount);
         simulator.destroyOldBuffers();
-      } else {
-        simulator._particleInputBinding = this._instanceVertexBufferBinding;
       }
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
       // Feedback buffer swaps every frame; VAO caching would bake stale buffer handles.
