@@ -181,5 +181,11 @@ describe("shader playground", () => {
       }
       expect(output!.textContent).not.to.contain("NonConstArraySize");
     }
+
+    for (const label of guiState.options.filter((option) => !option.startsWith("宏") && option.includes(" / "))) {
+      const diagnosticType = label.slice(label.lastIndexOf(" / ") + 3);
+      guiState.onChange!(label);
+      expect(output!.textContent, label).to.contain(diagnosticType);
+    }
   });
 });

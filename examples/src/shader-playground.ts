@@ -621,7 +621,10 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  [DiagnosticType.EmptyStruct]: pass(`      struct Empty { };
+  [DiagnosticType.EmptyStruct]: pass(`      struct Empty {
+        #ifdef EMPTY_MEMBER
+        #endif
+      };
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }

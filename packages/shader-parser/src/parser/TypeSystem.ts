@@ -33,7 +33,6 @@ export class TypeSystem {
     if (target == undefined || source == undefined || target === TypeAny || source === TypeAny) return true;
     // Struct types compare by name (§4.1.8: types are equal only if they are the same struct).
     // Mixed struct-vs-primitive is a conflict; struct-vs-struct with different names is a conflict.
-    if (typeof target === "string" || typeof source === "string") return target === source;
     return target === source;
   }
 

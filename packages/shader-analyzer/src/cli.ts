@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { lstatSync, readFileSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import type { IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "./ShaderAnalyzer";
@@ -29,7 +29,7 @@ try {
 function run(options: CliOptions): void {
   const source = readFileSync(options.file === "-" ? 0 : options.file, "utf8");
   const includeRoot = options.includeRoot ? resolve(options.includeRoot) : undefined;
-  const includeMap = includeRoot ? readIncludeMap(includeRoot) : undefined;
+  const includeMap = includeRoot ? createLazyIncludeMap(includeRoot) : undefined;
   const basePathForIncludeKey =
     includeRoot && options.file !== "-" ? sourceBasePath(options.file, includeRoot) : undefined;
   const diagnostics = new ShaderAnalyzer().analyze(source, {
@@ -79,17 +79,35 @@ function parseArgs(args: string[]): CliOptions {
   return { file, includeRoot, json, help };
 }
 
-function readIncludeMap(root: string): IncludeMap {
-  const includeMap: Record<string, string> = {};
-  const visit = (directory: string): void => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = join(directory, entry.name);
-      if (entry.isDirectory() && entry.name !== ".git" && entry.name !== "node_modules") visit(path);
-      else if (entry.isFile()) includeMap[toIncludeKey(relative(root, path))] = readFileSync(path, "utf8");
+function createLazyIncludeMap(root: string): IncludeMap {
+  const cache = Object.create(null) as Record<string, string | undefined>;
+  return new Proxy(cache, {
+    get(target, includeName): string | undefined {
+      if (typeof includeName !== "string") return undefined;
+      if (Object.prototype.hasOwnProperty.call(target, includeName)) return target[includeName];
+
+      let path = root;
+      try {
+        let stats: ReturnType<typeof lstatSync> | undefined;
+        for (const segment of includeName.split("/")) {
+          path = join(path, segment);
+          stats = lstatSync(path);
+          if (stats.isSymbolicLink()) {
+            target[includeName] = undefined;
+            return undefined;
+          }
+        }
+        const source = stats?.isFile() ? readFileSync(path, "utf8") : undefined;
+        target[includeName] = source;
+        return source;
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code !== "ENOENT" && code !== "ENOTDIR") throw error;
+        target[includeName] = undefined;
+        return undefined;
+      }
     }
-  };
-  visit(root);
-  return includeMap;
+  });
 }
 
 function sourceBasePath(file: string, includeRoot: string): string | undefined {

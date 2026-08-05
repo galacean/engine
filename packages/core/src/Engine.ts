@@ -645,6 +645,7 @@ export class Engine extends EventDispatcher {
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }
+
     const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
