@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -45,8 +45,9 @@ try {
   assert.deepEqual(JSON.parse(result.stdout).diagnostics, []);
 
   if (process.platform !== "win32") {
+    assert.notEqual(statSync(cliPath).mode & 0o111, 0, "shader-analyzer CLI is not executable");
     const directResult = spawnSync(cliPath, ["--help"], { encoding: "utf8" });
-    assert.equal(directResult.status, 0, directResult.stderr || directResult.stdout);
+    assert.equal(directResult.status, 0, directResult.error?.message || directResult.stderr || directResult.stdout);
   }
 } finally {
   if (blockedDirectoryLocked) chmodSync(blockedDirectory, 0o700);
