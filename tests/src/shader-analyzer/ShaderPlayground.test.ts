@@ -187,5 +187,13 @@ describe("shader playground", () => {
       guiState.onChange!(label);
       expect(output!.textContent, label).to.contain(diagnosticType);
     }
+
+    guiState.onChange!("宏分支 / 非法 #elif 表达式");
+    const renderedLines = output!.querySelector(".diag.error pre")!.textContent!.split("\n");
+    const sourceLineIndex = renderedLines.findIndex((line) => line.includes("#elif 123 defined(USE_BRANCH_VALUE)"));
+    const sourceLine = renderedLines[sourceLineIndex].slice(renderedLines[sourceLineIndex].indexOf("| ") + 2);
+    const markerLine = renderedLines[sourceLineIndex + 1].slice(renderedLines[sourceLineIndex + 1].indexOf("| ") + 2);
+    expect(markerLine.indexOf("^")).to.equal(sourceLine.indexOf("defined"));
+    expect(markerLine.trim()).to.equal("^^^^^^^");
   });
 });

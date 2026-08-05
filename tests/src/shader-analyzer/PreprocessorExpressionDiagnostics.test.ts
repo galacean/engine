@@ -42,6 +42,15 @@ describe("preprocessor expression diagnostics", () => {
     });
   }
 
+  it("points at the unexpected token in a malformed expression", () => {
+    const source = shader("123 defined(A)");
+    const diagnostic = new ShaderAnalyzer()
+      .analyze(source)
+      .diagnostics.find((candidate) => candidate.code === "PreprocessorError");
+    expect(diagnostic).to.be.ok;
+    expect(source.slice(diagnostic!.range.start.offset, diagnostic!.range.end.offset)).to.equal("defined");
+  });
+
   it("does not reject adjacent unknown macro tokens that expansion may make valid", () => {
     const diagnostics = new ShaderAnalyzer().analyze(shader("A CONDITION_TAIL")).diagnostics;
     expect(

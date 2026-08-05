@@ -34,9 +34,13 @@ export { DiagnosticType };
  * @returns Formatted diagnostic text.
  */
 export function formatDiagnostic(diagnostic: Diagnostic): string {
+  const { start, end } = diagnostic.range;
   return formatDiagnosticSource(
     diagnostic.relatedSource,
-    diagnostic.range,
+    {
+      start: { line: start.line - 1, column: start.column - 1 },
+      end: { line: end.line - 1, column: end.column - 1 }
+    },
     `${diagnostic.code}: ${diagnostic.message}`
   );
 }
