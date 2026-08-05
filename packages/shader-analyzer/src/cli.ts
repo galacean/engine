@@ -12,11 +12,31 @@ interface CliOptions {
 }
 
 const USAGE = "Usage: galacean-shader-analyzer [--json] [--include-root directory] [file|-]";
+const HELP = `${USAGE}
+
+Options:
+  --json                    Print machine-readable diagnostics.
+  --include-root directory  Resolve shader includes below this directory.
+  -h, --help                Show this help.
+
+Input:
+  file                      Analyze one ShaderLab file.
+  - or omitted              Read ShaderLab source from stdin.
+
+Exit codes:
+  0  No error diagnostics (warnings may be present).
+  1  At least one error diagnostic.
+  2  Invalid command-line usage.
+
+Examples:
+  galacean-shader-analyzer Assets/Shaders/PBR.shader
+  galacean-shader-analyzer --json --include-root Assets/Shaders Assets/Shaders/PBR.shader
+  galacean-shader-analyzer --json -`;
 
 try {
   const options = parseArgs(process.argv.slice(2));
   if (options.help) {
-    console.log(USAGE);
+    console.log(HELP);
   } else {
     run(options);
   }

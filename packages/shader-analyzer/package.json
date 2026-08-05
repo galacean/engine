@@ -28,6 +28,7 @@
     "b:types": "tsc"
   },
   "files": [
+    "README.md",
     "dist/**/*",
     "types/**/*"
   ],
