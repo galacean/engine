@@ -120,6 +120,33 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("lets a Birth target play independently after its active parent stops", () => {
+    const parent = createParticleRenderer(engine, "ActiveRole_Parent");
+    const child = createParticleRenderer(engine, "ActiveRole_Child");
+    child.generator.emission.rateOverTime.constant = 10;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.enabled = true;
+    const slot = subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    child.generator.play(false);
+
+    updateEngine(engine, 5);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.play(false);
+    updateEngine(engine, 5);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(5);
+    expect(subEmitters.subEmitters[0]).to.equal(slot);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth random sampling is independent of the particle ring index", () => {
     const sampleStartDelay = (name: string, ringIndex: number): number => {
       const parent = createParticleRenderer(engine, `${name}_Parent`);
@@ -988,6 +1015,45 @@ describe("SubEmitter", () => {
     engine.update();
     expect(parent.generator._playTime).to.equal(parentPlayTime);
     expect(child.generator._playTime).to.equal(childPlayTime);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("keeps a Birth target claimed while parent trajectory feedback is pending", () => {
+    const parent = createParticleRenderer(engine, "PendingRole_Parent");
+    const child = createParticleRenderer(engine, "PendingRole_Child");
+    parent.generator.main.duration = 0.1;
+    parent.generator.main.startLifetime.constant = 0.1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+    const batches = getInFlightTrajectoryReadbackBatches(parent.generator);
+    for (let i = 0, n = batches.length; i < n; i++) {
+      batches[i].readback._platformReadback.isReady = () => false;
+    }
+    engine.update();
+    const pendingBatches = getInFlightTrajectoryReadbackBatches(parent.generator);
+    for (let i = 0, n = pendingBatches.length; i < n; i++) {
+      pendingBatches[i].readback._platformReadback.isReady = () => false;
+    }
+
+    expect(parent.generator.isAlive).to.equal(false);
+    expect(pendingBatches.length).to.be.greaterThan(0);
+    child.generator.play(false);
+    engine.update();
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
 
     parent.entity.destroy();
     child.entity.destroy();

@@ -14,6 +14,7 @@ export class ParticleSystemManager {
 
     renderer._particleSystemManager = this;
     renderer._hasParticleSystemUpdated = false;
+    renderer._isBirthSubEmitterTarget = false;
     this._renderers.push(renderer);
     // Treat a newly enabled system as visible until the first culling result
     renderer._renderFrameCount = renderer.engine.time.frameCount;
@@ -43,17 +44,33 @@ export class ParticleSystemManager {
     for (let i = 0; i < ordered.length; i++) {
       const renderer = ordered[i];
       const generator = renderer.generator;
+      const subEmitters = generator.subEmitters;
+      if ((renderer._isBirthSubEmitterTarget || generator._hasActiveParticleWork()) && subEmitters.enabled) {
+        const slots = subEmitters.subEmitters;
+        for (let j = 0, n = slots.length; j < n; j++) {
+          const slot = slots[j];
+          const target = slot.emitter;
+          if (
+            slot.type === ParticleSubEmitterType.Birth &&
+            target?._particleSystemManager === this &&
+            !target._isBirthSubEmitterTarget
+          ) {
+            target._isBirthSubEmitterTarget = true;
+            target.generator.stop(false);
+          }
+        }
+      }
       if (
         renderer.isCulled &&
         renderer._hasParticleSystemUpdated &&
         generator._incomingSubEmitterCommands.length === 0
       ) {
         generator._processFeedbackReadbacks();
-        continue;
+      } else {
+        renderer._hasParticleSystemUpdated = true;
+        renderer._updateParticles(deltaTime);
       }
-
-      renderer._hasParticleSystemUpdated = true;
-      renderer._updateParticles(deltaTime);
+      renderer._isBirthSubEmitterTarget = false;
     }
   }
 
@@ -75,7 +92,6 @@ export class ParticleSystemManager {
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
       renderer._particleUpdateIndegree = 0;
-      renderer._isBirthSubEmitterTarget = false;
     }
 
     for (let i = 0, n = renderers.length; i < n; i++) {
@@ -89,9 +105,6 @@ export class ParticleSystemManager {
         if (!target || target._particleSystemManager !== this) continue;
 
         target._particleUpdateIndegree++;
-        if (slot.type === ParticleSubEmitterType.Birth) {
-          target._isBirthSubEmitterTarget = true;
-        }
       }
     }
 

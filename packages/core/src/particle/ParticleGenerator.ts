@@ -475,6 +475,15 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return isContentLost;
   }
 
+  /**
+   * @internal
+   */
+  _hasActiveParticleWork(): boolean {
+    return (
+      this.isAlive || this._incomingSubEmitterCommands.length > 0 || this._trajectoryReadback?.hasPendingWork() === true
+    );
+  }
+
   private _updateFeedback(shaderData: ShaderData, deltaTime: number, firstNewElement: number): void {
     this._feedbackSimulator.update(
       shaderData,

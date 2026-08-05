@@ -27,6 +27,10 @@ export class ParticleTrajectoryReadback {
 
   constructor(private readonly _owner: ParticleGenerator) {}
 
+  hasPendingWork(): boolean {
+    return this._pendingBatch !== null || this._inFlightBatches.length > 0;
+  }
+
   getPendingCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
     let batch = this._pendingBatch;
     if (!batch) {
