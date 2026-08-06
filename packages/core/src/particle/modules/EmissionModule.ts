@@ -268,8 +268,8 @@ export class EmissionModule extends ParticleGeneratorModule {
     let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      // Require elapsed time so rates above 1 / zeroTolerance still terminate after a tolerated boundary
-      const boundaryTolerance = cumulativeTime > 0 ? MathUtil.zeroTolerance : 0;
+      // Birth timelines may end here; ordinary emission only needs double-precision rounding tolerance
+      const boundaryTolerance = cumulativeTime > 0 ? (command ? MathUtil.zeroTolerance : Number.EPSILON) : 0;
       if (cumulativeTime + boundaryTolerance < emitInterval) {
         return;
       }

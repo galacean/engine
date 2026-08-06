@@ -7,6 +7,7 @@ import {
   GradientAlphaKey,
   GradientColorKey,
   Layer,
+  MathUtil,
   ParticleCompositeCurve,
   ParticleCurve,
   ParticleCurveMode,
@@ -141,7 +142,7 @@ describe("SubEmitter", () => {
 
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.play(false);
-    updateEngine(engine, 5);
+    updateEngine(engine, 5, 110);
 
     expect(child.generator._getAliveParticleCount()).to.equal(5);
     expect(subEmitters.subEmitters[0]).to.equal(slot);
@@ -466,6 +467,24 @@ describe("SubEmitter", () => {
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
     expect(child.generator._getAliveParticleCount()).to.equal(10); // 2 parents × 10/s × 0.5s
 
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("tolerates a Rate Over Time boundary at the end of a Birth timeline", () => {
+    const child = createParticleRenderer(engine, "BirthRateBoundary_Child");
+    const parent = createParticleRenderer(engine, "BirthRateBoundary_Parent");
+    const lifetime = MathUtil.zeroTolerance * 1.5;
+    child.generator.emission.rateOverTime.constant = 1 / (MathUtil.zeroTolerance * 2);
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const commands: any[] = [];
+    subEmitters._prepareBirthCommandsForParticle(0, 0, lifetime, 0, lifetime, 0, lifetime, commands);
+
+    expect(commands).to.have.length(1);
+    expect(commands[0].requestCount).to.equal(1);
+    commands.pop().release();
     parent.entity.destroy();
     child.entity.destroy();
   });

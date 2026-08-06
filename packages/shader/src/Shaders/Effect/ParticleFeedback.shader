@@ -312,7 +312,7 @@ Shader "Effect/ParticleFeedback" {
           }
           vec4 invWorldRotation = quaternionConjugate(worldRotation);
 
-          if (isNewParticle && simulationDuration > renderer_DeltaTime) {
+          if (isNewParticle && simulationDuration - renderer_DeltaTime > EPSILON) {
               // Normal stalls use one step per missed frame; pathological stalls are bounded to keep GPU work finite
               float timeStep = max(
                   renderer_DeltaTime,

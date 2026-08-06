@@ -144,7 +144,7 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     entity.destroy();
   });
 
-  it("tolerates a rate boundary once when emitInterval is below zeroTolerance", () => {
+  it("does not apply Birth boundary tolerance to ordinary emission", () => {
     const { entity, renderer } = buildEmitter(engine, "rate-boundary-tolerance");
     const generator = renderer.generator;
     generator.emission.rateOverTime.constant = 2 / MathUtil.zeroTolerance;
@@ -152,15 +152,10 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
 
-    const emit = vi.spyOn(generator, "_emit").mockImplementation(() => {
-      if (emit.mock.calls.length > 1) {
-        throw new Error("Rate boundary tolerance repeated without elapsed time");
-      }
-      return 0;
-    });
+    const emit = vi.spyOn(generator, "_emit");
     tick(engine, elapsed, MathUtil.zeroTolerance * 1000 * 0.25);
 
-    expect(emit).toHaveBeenCalledTimes(1);
+    expect(emit).not.toHaveBeenCalled();
     entity.destroy();
   });
 

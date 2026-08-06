@@ -8,14 +8,12 @@ export const updateForE2E = (
 ): void | Promise<void> => {
   engine._vSyncCount = Infinity;
   engine._time._lastSystemTime = 0;
-  let times = 0;
-  performance.now = function () {
-    times++;
-    return times * deltaTime;
-  };
+  let currentTime = 0;
+  performance.now = () => currentTime;
   const gl = engine._hardwareRenderer._gl;
   if (!waitForGPUReadback) {
     for (let i = 0; i < loopTime; ++i) {
+      currentTime += deltaTime;
       engine.update();
     }
     gl.finish();
@@ -24,12 +22,11 @@ export const updateForE2E = (
 
   return (async () => {
     for (let i = 0; i < loopTime; ++i) {
+      currentTime += deltaTime;
       engine.update();
       gl.finish();
       await new Promise<void>((resolve) => setTimeout(resolve, 0));
     }
-    const currentTime = times * deltaTime;
-    performance.now = () => currentTime;
     engine.update();
     gl.finish();
   })();
