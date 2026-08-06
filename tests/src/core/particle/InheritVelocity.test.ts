@@ -12,6 +12,7 @@ import {
   ParticleRenderer,
   ParticleSimulationSpace,
   ParticleStopMode,
+  Vector3,
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
@@ -79,17 +80,80 @@ describe("InheritVelocityModule", () => {
     engine.destroy();
   });
 
-  it("keeps world-space inherited particles outside automatic frustum culling", () => {
+  it("keeps finite conservative bounds for world-space inherited velocity", () => {
     const renderer = createParticleRenderer(engine, "inherit-velocity-bounds");
     const generator = renderer.generator;
-    generator.play();
+    generator.inheritVelocity.curve.constant = 3;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
 
-    expect(renderer.bounds.min.x).to.equal(-Number.MAX_VALUE);
-    expect(renderer.bounds.max.x).to.equal(Number.MAX_VALUE);
+    tick(engine, time);
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+    renderer.entity.transform.setPosition(2, 0, 0);
+    tick(engine, time);
 
-    generator.inheritVelocity.enabled = false;
-    expect(renderer.bounds.min.x).not.to.equal(-Number.MAX_VALUE);
-    expect(renderer.bounds.max.x).not.to.equal(Number.MAX_VALUE);
+    const bounds = renderer.bounds;
+    const feedbackPosition = getFeedbackPositionX(renderer);
+    expect(Number.isFinite(bounds.min.x)).to.equal(true);
+    expect(Number.isFinite(bounds.max.x)).to.equal(true);
+    expect(bounds.min.x).to.be.lessThanOrEqual(feedbackPosition);
+    expect(bounds.max.x).to.be.greaterThanOrEqual(feedbackPosition);
+    expect(bounds.max.x).to.be.lessThan(100);
+
+    const previousMax = bounds.max.x;
+    generator.inheritVelocity.curve.constant = 6;
+    const expandedMax = renderer.bounds.max.x;
+    expect(expandedMax).to.be.greaterThan(previousMax);
+
+    generator.main.startLifetime.constant = 0.1;
+    expect(renderer.bounds.max.x).to.be.greaterThanOrEqual(expandedMax);
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    expect(renderer.bounds.min.x).to.equal(2);
+    expect(renderer.bounds.max.x).to.equal(2);
+
+    renderer.entity.destroy();
+  });
+
+  it("includes world-space emission overrides without disabling culling", () => {
+    const renderer = createParticleRenderer(engine, "inherit-velocity-world-emission-bounds");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    expect(renderer.bounds.max.x).to.equal(0);
+    generator._emit(0, 1, new Vector3(100, 0, 0));
+
+    const bounds = renderer.bounds;
+    expect(Number.isFinite(bounds.min.x)).to.equal(true);
+    expect(Number.isFinite(bounds.max.x)).to.equal(true);
+    expect(bounds.min.x).to.be.lessThanOrEqual(100);
+    expect(bounds.max.x).to.be.greaterThanOrEqual(100);
+
+    renderer.entity.destroy();
+  });
+
+  it("keeps inherited displacement inside orbital bounds", () => {
+    const renderer = createParticleRenderer(engine, "inherit-velocity-orbital-bounds");
+    const generator = renderer.generator;
+    generator.main.startLifetime.constant = 2;
+    generator.inheritVelocity.curve.constant = 1;
+    generator.velocityOverLifetime.enabled = true;
+    generator.velocityOverLifetime.orbitalZ.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    tick(engine, time);
+    renderer.entity.transform.setPosition(10, 0, 0);
+    tick(engine, time);
+    tick(engine, time);
+
+    const feedback = new Float32Array(6);
+    generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+    const bounds = renderer.bounds;
+    expect(Math.abs(feedback[1])).to.be.greaterThan(2.5);
+    expect(bounds.min.y).to.be.lessThanOrEqual(feedback[1]);
+    expect(bounds.max.y).to.be.greaterThanOrEqual(feedback[1]);
 
     renderer.entity.destroy();
   });
@@ -170,6 +234,11 @@ describe("InheritVelocityModule", () => {
     expect(vertices[42]).to.be.closeTo(10, 1e-5);
     expect(vertices[43]).to.equal(0);
     expect(vertices[44]).to.equal(0);
+
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 2), new CurveKey(1, 2))
+    );
+    expect(renderer.bounds.max.x).to.be.greaterThanOrEqual(21);
 
     renderer.entity.destroy();
   });

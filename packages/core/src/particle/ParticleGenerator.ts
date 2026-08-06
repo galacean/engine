@@ -174,6 +174,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _firstFreeTransformedBoundingBox = 0;
   @ignoreClone
   private _playStartDelay = 0;
+  @ignoreClone
+  private _worldEmissionOffsetBounds: BoundingBox | null = null;
 
   @ignoreClone
   private _eventPos = new Vector3();
@@ -408,6 +410,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._waitProcessRetiredElementCount = 0;
       this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
       this.subEmitters._retireAllBirthStates();
+      this._resetWorldBoundsHistory();
     } else {
       const firstNewElement = this._firstNewElement;
       const hasNewParticles = firstNewElement !== this._firstFreeElement;
@@ -448,6 +451,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._generateTransformedBounds();
       }
     } else {
+      if (lastAlive && !isContentLost) {
+        this._resetWorldBoundsHistory();
+      }
       // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
       const discardTime = emission._shiftTimeOrigin(Math.floor(this._playTime / duration) * duration);
       this._playTime -= discardTime;
@@ -897,25 +903,43 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const index = firstActiveElement * ParticleBufferUtils.boundsFloatStride;
     bounds.min.copyFromArray(boundsArray, index);
     bounds.max.copyFromArray(boundsArray, index + 3);
+    let maxLifetime = boundsArray[index + ParticleBufferUtils.boundsMaxLifetimeOffset];
 
     if (firstActiveElement < firstFreeElement) {
       for (let i = firstActiveElement + 1; i < firstFreeElement; i++) {
-        this._mergeTransformedBounds(i, bounds);
+        maxLifetime = Math.max(maxLifetime, this._mergeTransformedBounds(i, bounds));
       }
     } else {
       for (let i = firstActiveElement + 1, n = this._transformedBoundsCount; i < n; i++) {
-        this._mergeTransformedBounds(i, bounds);
+        maxLifetime = Math.max(maxLifetime, this._mergeTransformedBounds(i, bounds));
       }
       if (firstFreeElement > 0) {
         for (let i = 0; i < firstFreeElement; i++) {
-          this._mergeTransformedBounds(i, bounds);
+          maxLifetime = Math.max(maxLifetime, this._mergeTransformedBounds(i, bounds));
         }
       }
     }
 
-    const maxLifetime = this.main.startLifetime._getMax();
-    if (!this._useOrbitalBounds()) {
+    const useOrbitalBounds = this._useOrbitalBounds();
+    if (!useOrbitalBounds) {
       this._addGravityToBounds(maxLifetime, bounds, bounds);
+    }
+    const worldEmissionOffsetBounds = this._worldEmissionOffsetBounds;
+    if (worldEmissionOffsetBounds) {
+      bounds.min.add(worldEmissionOffsetBounds.min);
+      bounds.max.add(worldEmissionOffsetBounds.max);
+    }
+
+    const inheritedVelocity = ParticleGenerator._tempVector34;
+    if (this.inheritVelocity._getMaxBoundsVelocity(inheritedVelocity)) {
+      if (useOrbitalBounds) {
+        const reach = inheritedVelocity.length() * maxLifetime;
+        inheritedVelocity.set(reach, reach, reach);
+      } else {
+        inheritedVelocity.scale(maxLifetime);
+      }
+      bounds.min.subtract(inheritedVelocity);
+      bounds.max.add(inheritedVelocity);
     }
   }
 
@@ -1427,6 +1451,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         break;
       }
     }
+    if (emittedCount > 0 && !simulationLocal && emitWorldPosition) {
+      this._recordWorldEmissionOffset(emitWorldPosition, transform.worldPosition);
+    }
     return emittedCount;
   }
 
@@ -1493,6 +1520,32 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._firstNewElement = firstFreeElement;
     this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
     this.subEmitters?._retireAllBirthStates();
+    this._resetWorldBoundsHistory();
+  }
+
+  private _recordWorldEmissionOffset(worldPosition: Vector3, emitterWorldPosition: Vector3): void {
+    const x = worldPosition.x - emitterWorldPosition.x;
+    const y = worldPosition.y - emitterWorldPosition.y;
+    const z = worldPosition.z - emitterWorldPosition.z;
+    if (x === 0 && y === 0 && z === 0) {
+      return;
+    }
+    const { min, max } = (this._worldEmissionOffsetBounds ||= new BoundingBox());
+    if (x < min.x || y < min.y || z < min.z || x > max.x || y > max.y || z > max.z) {
+      min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
+      max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
+      this._renderer._onWorldVolumeChanged();
+    }
+  }
+
+  private _resetWorldBoundsHistory(): void {
+    const worldEmissionOffsetBounds = this._worldEmissionOffsetBounds;
+    if (worldEmissionOffsetBounds) {
+      worldEmissionOffsetBounds.min.set(0, 0, 0);
+      worldEmissionOffsetBounds.max.set(0, 0, 0);
+    }
+    this.inheritVelocity._resetBoundsVelocity();
+    this._renderer._onWorldVolumeChanged();
   }
 
   private _retireActiveParticles(
@@ -1844,7 +1897,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     max.set(max.x + maxSize, max.y + maxSize, max.z + maxSize);
   }
 
-  private _mergeTransformedBounds(index: number, bounds: BoundingBox): void {
+  private _mergeTransformedBounds(index: number, bounds: BoundingBox): number {
     const { min, max } = bounds;
     const boundsArray = this._transformedBoundsArray;
 
@@ -1861,6 +1914,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       Math.max(max.y, boundsArray[offset + 4]),
       Math.max(max.z, boundsArray[offset + 5])
     );
+    return boundsArray[offset + ParticleBufferUtils.boundsMaxLifetimeOffset];
   }
 
   private _calculateTransformedBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {
@@ -2009,11 +2063,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
     if (noise.separateAxes) {
-      noiseMaxX = this._getCurveMagnitudeFromZero(noise.strengthX);
-      noiseMaxY = this._getCurveMagnitudeFromZero(noise.strengthY);
-      noiseMaxZ = this._getCurveMagnitudeFromZero(noise.strengthZ);
+      noiseMaxX = noise.strengthX._getMaxMagnitude();
+      noiseMaxY = noise.strengthY._getMaxMagnitude();
+      noiseMaxZ = noise.strengthZ._getMaxMagnitude();
     } else {
-      noiseMaxX = noiseMaxY = noiseMaxZ = this._getCurveMagnitudeFromZero(noise.strengthX);
+      noiseMaxX = noiseMaxY = noiseMaxZ = noise.strengthX._getMaxMagnitude();
     }
     out.set(noiseMaxX * maxLifetime, noiseMaxY * maxLifetime, noiseMaxZ * maxLifetime);
   }
@@ -2045,12 +2099,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _getVectorReach(value: Vector3): number {
     return Math.sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
-  }
-
-  private _getCurveMagnitudeFromZero(curve: ParticleCompositeCurve): number {
-    const minMax = ParticleGenerator._tempVector20;
-    this._getExtremeValueFromZero(curve, minMax);
-    return Math.max(Math.abs(minMax.x), Math.abs(minMax.y));
   }
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {

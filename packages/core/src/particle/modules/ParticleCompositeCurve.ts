@@ -260,6 +260,15 @@ export class ParticleCompositeCurve extends DataObject {
   /**
    * @internal
    */
+  _getMaxMagnitude(): number {
+    const minMax = ParticleCompositeCurve._minMaxRange;
+    this._getMinMax(minMax);
+    return Math.max(Math.abs(minMax.x), Math.abs(minMax.y));
+  }
+
+  /**
+   * @internal
+   */
   _isZero(): boolean {
     const minMax = ParticleCompositeCurve._minMaxRange;
     this._getMinMax(minMax);

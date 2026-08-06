@@ -214,12 +214,6 @@ export class ParticleRenderer extends Renderer {
       worldBounds.max.copyFrom(worldPosition);
       return;
     }
-    if (generator.inheritVelocity.enabled && generator.main.simulationSpace === ParticleSimulationSpace.World) {
-      const extent = Number.MAX_VALUE;
-      worldBounds.min.set(-extent, -extent, -extent);
-      worldBounds.max.set(extent, extent, extent);
-      return;
-    }
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       generator._updateBoundsSimulationLocal(worldBounds);
     } else {
