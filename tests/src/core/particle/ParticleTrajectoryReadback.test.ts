@@ -227,4 +227,33 @@ describe("ParticleTrajectoryReadback", () => {
 
     expect(platformReadback.destroy).toHaveBeenCalledTimes(1);
   });
+
+  it("does not reuse a canceled in-flight staging buffer", () => {
+    const platformReadbacks: ReturnType<typeof createPlatformReadback>[] = [];
+    const createPlatformBufferReadback = vi
+      .spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback")
+      .mockImplementation(() => {
+        const platformReadback = createPlatformReadback();
+        platformReadbacks.push(platformReadback);
+        return platformReadback;
+      });
+    const readback = createReadback();
+    readback.getPendingCommands(0, 1).push(createCommand() as any);
+    readback.submitPendingBatch(sourceBuffer);
+    readback.cancel();
+
+    const nextReadback = createReadback();
+    nextReadback.getPendingCommands(0, 1).push(createCommand() as any);
+    nextReadback.submitPendingBatch(sourceBuffer);
+
+    expect(platformReadbacks).to.have.length(2);
+    expect(platformReadbacks[0].destroy).toHaveBeenCalledTimes(1);
+
+    nextReadback.processCompletedBatches();
+    nextReadback.destroy();
+    gcReadbackPool();
+    createPlatformBufferReadback.mockRestore();
+
+    expect(platformReadbacks[1].destroy).toHaveBeenCalledTimes(1);
+  });
 });
