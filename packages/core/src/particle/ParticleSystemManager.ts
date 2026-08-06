@@ -42,20 +42,13 @@ export class ParticleSystemManager {
     if (this._topologyDirty) this._rebuildTopology();
 
     const ordered = this._orderedRenderers;
-    for (let i = 0, n = ordered.length; i < n; i++) {
-      ordered[i].generator._suppressPendingBirthTargetEmission();
-    }
-
     for (let i = 0; i < ordered.length; i++) {
       const renderer = ordered[i];
       const generator = renderer.generator;
       const frameCount = renderer.engine.time.frameCount;
       const incomingCommands = generator._incomingSubEmitterCommands;
-      for (let j = 0, n = incomingCommands.length; j < n; j++) {
-        if (incomingCommands[j].type === ParticleSubEmitterType.Birth) {
-          generator.stop(false);
-          break;
-        }
+      if (generator._hasPendingBirthSubEmitterCommand()) {
+        generator.stop(false);
       }
 
       const isSubEmitterDependency = renderer._subEmitterDependencyFrame === frameCount;

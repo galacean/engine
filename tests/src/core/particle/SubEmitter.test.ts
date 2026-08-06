@@ -397,6 +397,31 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("removes released Birth commands from their target index", () => {
+    const parent = createParticleRenderer(engine, "BirthCommandIndex_Parent");
+    const child = createParticleRenderer(engine, "BirthCommandIndex_Child");
+    child.generator.emission.rateOverTime.constant = 10;
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const commands: any[] = [];
+
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0, 0.1, commands);
+    subEmitters._prepareBirthCommandsForParticle(1, 0, 1, 0, 0.1, 0, 0.1, commands);
+    const firstCommand = commands[0];
+    const secondCommand = commands[1];
+    const targetCommands = (child.generator as any)._pendingBirthSubEmitterCommands;
+    expect(targetCommands).to.deep.equal([firstCommand, secondCommand]);
+
+    firstCommand.release();
+    expect(targetCommands).to.deep.equal([secondCommand]);
+
+    secondCommand.release();
+    expect(targetCommands).to.have.length(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth evaluates the target Burst separately for every parent", () => {
     const parent = createParticleRenderer(engine, "Parent_NoDouble");
     const child = createParticleRenderer(engine, "Child_NoDouble");
@@ -672,7 +697,9 @@ describe("SubEmitter", () => {
     const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
     readback._platformReadback.isReady = () => false;
     slot.emitter = replacementChild;
+    originalChild.generator.play(false);
     engine.update();
+    expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
 
     readback._platformReadback.isReady = () => true;
     engine.update();
@@ -709,7 +736,10 @@ describe("SubEmitter", () => {
     const secondScene = new Scene(engine, "MovedPendingBirth_Scene");
     engine.sceneManager.addScene(secondScene);
     secondScene.addRootEntity(child.entity);
+    child.generator.play(false);
     engine.update();
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
 
     readback._platformReadback.isReady = () => true;
     engine.update();

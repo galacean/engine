@@ -138,6 +138,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /** @internal */
   @ignoreClone
   readonly _incomingSubEmitterCommands: ParticleSubEmitterCommand[] = [];
+  /** @internal */
+  @ignoreClone
+  _pendingBirthSubEmitterCommands: BirthSubEmitterCommand[] | null = null;
 
   /** @internal */
   @ignoreClone
@@ -479,8 +482,18 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _suppressPendingBirthTargetEmission(): void {
-    this._trajectoryReadback?.suppressPendingBirthTargetEmission();
+  _hasPendingBirthSubEmitterCommand(): boolean {
+    const commands = this._pendingBirthSubEmitterCommands;
+    if (!commands?.length) return false;
+
+    const manager = this._renderer._particleSystemManager;
+    for (let i = 0, n = commands.length; i < n; i++) {
+      const command = commands[i];
+      if (command.isQueuedForTarget || command.source._renderer._particleSystemManager === manager) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private _updateFeedback(shaderData: ShaderData, deltaTime: number, firstNewElement: number): void {

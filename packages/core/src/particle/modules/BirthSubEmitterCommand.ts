@@ -40,6 +40,9 @@ export class BirthSubEmitterCommand {
   framePlayTime = 0;
   frameLastEngineTime = 0;
   frameEngineTime = 0;
+  isQueuedForTarget = false;
+
+  private _targetListIndex = -1;
 
   constructor(private readonly _pool: BirthSubEmitterCommand[]) {}
 
@@ -62,6 +65,10 @@ export class BirthSubEmitterCommand {
     this.target = target;
     this.state = state;
     state.retain();
+    const targetCommands = (target._pendingBirthSubEmitterCommands ||= []);
+    this._targetListIndex = targetCommands.length;
+    targetCommands.push(this);
+    this.isQueuedForTarget = false;
     this.inheritProperties = inheritProperties;
     this.ringIndex = ringIndex;
     this.lastEmissionTime = lastEmissionTime;
@@ -149,6 +156,14 @@ export class BirthSubEmitterCommand {
   }
 
   release(): void {
+    const targetCommands = this.target._pendingBirthSubEmitterCommands!;
+    const lastIndex = targetCommands.length - 1;
+    const replacement = targetCommands[lastIndex];
+    targetCommands[this._targetListIndex] = replacement;
+    targetCommands.length = lastIndex;
+    if (replacement !== this) {
+      replacement._targetListIndex = this._targetListIndex;
+    }
     this.state.release();
     this.source = null;
     this.target = null;

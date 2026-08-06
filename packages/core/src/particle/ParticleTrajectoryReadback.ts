@@ -3,7 +3,6 @@ import type { Buffer } from "../graphic/Buffer";
 import type { BufferReadback } from "../graphic/BufferReadback";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import type { ParticleGenerator } from "./ParticleGenerator";
-import type { ParticleSystemManager } from "./ParticleSystemManager";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 
@@ -28,20 +27,6 @@ export class ParticleTrajectoryReadback {
   private _pendingBatch: ParticleTrajectoryReadbackBatch | null = null;
 
   constructor(private readonly _owner: ParticleGenerator) {}
-
-  suppressPendingBirthTargetEmission(): void {
-    const manager = this._owner._renderer._particleSystemManager;
-    if (!manager) return;
-
-    const pendingBatch = this._pendingBatch;
-    if (pendingBatch) {
-      this._suppressBatchBirthTargetEmission(pendingBatch, manager);
-    }
-    const inFlightBatches = this._inFlightBatches;
-    for (let i = 0, n = inFlightBatches.length; i < n; i++) {
-      this._suppressBatchBirthTargetEmission(inFlightBatches[i], manager);
-    }
-  }
 
   getPendingCommands(ringOrigin: number, ringCapacity: number): ParticleSubEmitterCommand[] {
     let batch = this._pendingBatch;
@@ -171,28 +156,15 @@ export class ParticleTrajectoryReadback {
       command.resolveTrajectory(position, velocity);
       const target = command.target;
       if (manager && target._renderer._particleSystemManager === manager) {
+        if (command.type === ParticleSubEmitterType.Birth) {
+          command.isQueuedForTarget = true;
+        }
         target._incomingSubEmitterCommands.push(command);
       } else {
         command.cancel();
       }
     }
     commands.length = 0;
-  }
-
-  private _suppressBatchBirthTargetEmission(
-    batch: ParticleTrajectoryReadbackBatch,
-    manager: ParticleSystemManager
-  ): void {
-    const commands = batch.commands;
-    for (let i = 0, n = commands.length; i < n; i++) {
-      const command = commands[i];
-      if (
-        command.type === ParticleSubEmitterType.Birth &&
-        command.target._renderer._particleSystemManager === manager
-      ) {
-        command.target.stop(false);
-      }
-    }
   }
 
   private _copyRingRange(
