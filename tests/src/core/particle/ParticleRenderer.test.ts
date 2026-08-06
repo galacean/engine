@@ -2,6 +2,7 @@ import {
   BoxShape,
   Camera,
   Engine,
+  Layer,
   ModelMesh,
   ParticleRenderer,
   ParticleRenderMode,
@@ -9,6 +10,7 @@ import {
   ParticleStopMode,
   PrimitiveMesh,
   Scene,
+  Script,
   ShaderMacro
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
@@ -94,6 +96,26 @@ describe("ParticleRenderer", () => {
     expect(generator._playTime).to.be.closeTo(culledPlayTime + 0.1, 1e-6);
 
     entity.destroy();
+  });
+
+  it("updates renderer data when a particle system is added during onUpdate", () => {
+    let particleRenderer: ParticleRenderer;
+    class ParticleCreator extends Script {
+      override onUpdate(): void {
+        const entity = this.entity.createChild("DynamicParticle");
+        entity.layer = Layer.Layer3;
+        particleRenderer = entity.addComponent(ParticleRenderer);
+        particleRenderer.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+        this.enabled = false;
+      }
+    }
+
+    const host = scene.createRootEntity("ParticleCreator");
+    host.addComponent(ParticleCreator);
+    updateEngine(engine, 1);
+
+    expect(particleRenderer!.shaderData.getVector4("renderer_Layer").x).to.equal(Layer.Layer3);
+    host.destroy();
   });
 
   it("updates generator and renderer shader data for active particles", () => {

@@ -319,7 +319,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _update(elapsedTime: number, isBirthSubEmitterTarget: boolean): boolean {
+  _update(elapsedTime: number): boolean {
     const shaderData = this._renderer.shaderData;
     const isContentLost = this._processFeedbackReadbacks();
 
@@ -330,9 +330,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let deltaTime = elapsedTime * main.simulationSpeed;
     this.inheritVelocity._updateEmitterVelocity(elapsedTime);
 
-    if (isBirthSubEmitterTarget) {
-      this._playStartDelay = 0;
-    } else if (this._playStartDelay > 0) {
+    if (this._playStartDelay > 0) {
       if (deltaTime <= this._playStartDelay) {
         this._playStartDelay -= deltaTime;
         deltaTime = 0;
@@ -360,7 +358,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._retireTransformedBounds();
     }
 
-    if (!isBirthSubEmitterTarget && deltaTime > 0 && emission.enabled && this._isPlaying) {
+    if (deltaTime > 0 && emission.enabled && this._isPlaying) {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
       if (this._currentParticleCount > main._maxParticleBuffer) {
         const notRetireParticleCount = this._getNotRetiredParticleCount();
@@ -478,10 +476,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   /**
    * @internal
    */
-  _hasActiveParticleWork(): boolean {
-    return (
-      this.isAlive || this._incomingSubEmitterCommands.length > 0 || this._trajectoryReadback?.hasPendingWork() === true
-    );
+  _suppressPendingBirthTargetEmission(): void {
+    this._trajectoryReadback?.suppressPendingBirthTargetEmission();
   }
 
   private _updateFeedback(shaderData: ShaderData, deltaTime: number, firstNewElement: number): void {

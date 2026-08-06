@@ -6,6 +6,7 @@ import {
   Engine,
   GradientAlphaKey,
   GradientColorKey,
+  Layer,
   ParticleCompositeCurve,
   ParticleCurve,
   ParticleCurveMode,
@@ -84,18 +85,20 @@ function createParticleRenderer(
 
 describe("SubEmitter", () => {
   let engine: Engine;
+  let camera: Camera;
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
     const cameraEntity = rootEntity.createChild("Camera");
-    cameraEntity.addComponent(Camera);
+    camera = cameraEntity.addComponent(Camera);
     cameraEntity.transform.setPosition(0, 0, 10);
     engine.run();
   });
 
   afterEach(() => {
+    camera.cullingMask = Layer.Everything;
     (engine as any)._bufferReadbackPool.gc();
   });
 
@@ -145,6 +148,128 @@ describe("SubEmitter", () => {
 
     parent.entity.destroy();
     child.entity.destroy();
+  });
+
+  it("uses a visible Birth target as an independent hierarchy root while its parent is culled", () => {
+    const parent = createParticleRenderer(engine, "CulledRole_Parent");
+    const child = createParticleRenderer(engine, "CulledRole_Child");
+    const grandchild = createParticleRenderer(engine, "CulledRole_Grandchild");
+    camera.cullingMask = Layer.Layer0;
+    parent.entity.layer = Layer.Layer1;
+    child.entity.layer = Layer.Layer0;
+    grandchild.entity.layer = Layer.Layer1;
+    parent.generator.main.isLoop = true;
+    child.generator.emission.rateOverTime.constant = 10;
+    grandchild.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    child.generator.subEmitters.enabled = true;
+    child.generator.subEmitters.addSubEmitter(grandchild, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    grandchild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 3);
+    expect(parent.generator.isAlive).to.equal(true);
+    const parentPlayTime = parent.generator._playTime;
+
+    child.generator.play(false);
+    updateEngine(engine, 3);
+    expect(parent.generator._playTime).to.equal(parentPlayTime);
+    expect(child.generator._getAliveParticleCount()).to.be.greaterThan(0);
+    expect(grandchild.generator._getAliveParticleCount()).to.be.greaterThan(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    grandchild.entity.destroy();
+  });
+
+  it("updates a culled Birth hierarchy while its root remains visible", () => {
+    const parent = createParticleRenderer(engine, "CulledChain_Parent");
+    const child = createParticleRenderer(engine, "CulledChain_Child");
+    const grandchild = createParticleRenderer(engine, "CulledChain_Grandchild");
+    camera.cullingMask = Layer.Layer0;
+    parent.entity.layer = Layer.Layer0;
+    child.entity.layer = Layer.Layer1;
+    grandchild.entity.layer = Layer.Layer1;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    child.generator.subEmitters.enabled = true;
+    child.generator.subEmitters.addSubEmitter(grandchild, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    grandchild.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    grandchild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 8);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(grandchild.generator._getAliveParticleCount()).to.be.greaterThan(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    grandchild.entity.destroy();
+  });
+
+  it("updates a culled Death dependency while its hierarchy root remains visible", () => {
+    const parent = createParticleRenderer(engine, "CulledDeath_Parent");
+    const child = createParticleRenderer(engine, "CulledDeath_Child");
+    camera.cullingMask = Layer.Layer0;
+    parent.entity.layer = Layer.Layer0;
+    child.entity.layer = Layer.Layer1;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    parent.generator.main.isLoop = true;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    updateEngine(engine, 3);
+    const childPlayTime = child.generator._playTime;
+    child.generator.emit(1);
+    parent.generator.play(false);
+    updateEngine(engine, 3);
+
+    expect(child.generator._playTime).to.be.greaterThan(childPlayTime);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("updates a hierarchy once from the previous frame's camera visibility union", () => {
+    const parent = createParticleRenderer(engine, "CameraUnion_Parent");
+    const child = createParticleRenderer(engine, "CameraUnion_Child");
+    const cameraEntity = parent.entity.scene.createRootEntity("CameraUnion_Camera");
+    const secondCamera = cameraEntity.addComponent(Camera);
+    camera.cullingMask = Layer.Layer0;
+    secondCamera.cullingMask = Layer.Layer1;
+    cameraEntity.transform.setPosition(0, 0, 10);
+    parent.entity.layer = Layer.Layer1;
+    child.entity.layer = Layer.Layer2;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 8);
+
+    expect(parent.generator._playTime).to.be.closeTo(0.8, 1e-6);
+    expect(child.generator._getAliveParticleCount()).to.be.greaterThan(1);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    cameraEntity.destroy();
   });
 
   it("Birth random sampling is independent of the particle ring index", () => {
@@ -1023,15 +1148,18 @@ describe("SubEmitter", () => {
   it("keeps a Birth target claimed while parent trajectory feedback is pending", () => {
     const parent = createParticleRenderer(engine, "PendingRole_Parent");
     const child = createParticleRenderer(engine, "PendingRole_Child");
+    const sibling = createParticleRenderer(engine, "PendingRole_Sibling");
     parent.generator.main.duration = 0.1;
     parent.generator.main.startLifetime.constant = 0.1;
     child.generator.emission.rateOverTime.constant = 10;
+    sibling.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    sibling.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
     (engine as any)._vSyncCount = Infinity;
@@ -1051,12 +1179,56 @@ describe("SubEmitter", () => {
 
     expect(parent.generator.isAlive).to.equal(false);
     expect(pendingBatches.length).to.be.greaterThan(0);
+    parent.generator.subEmitters.addSubEmitter(sibling, ParticleSubEmitterType.Birth);
     child.generator.play(false);
+    sibling.generator.play(false);
     engine.update();
     expect(child.generator._getAliveParticleCount()).to.equal(0);
+    expect(sibling.generator._getAliveParticleCount()).to.equal(1);
 
     parent.entity.destroy();
     child.entity.destroy();
+    sibling.entity.destroy();
+  });
+
+  it("does not claim a Birth target for pending Death feedback", () => {
+    const parent = createParticleRenderer(engine, "PendingDeathRole_Parent");
+    const deathTarget = createParticleRenderer(engine, "PendingDeathRole_DeathTarget");
+    const birthTarget = createParticleRenderer(engine, "PendingDeathRole_BirthTarget");
+    parent.generator.main.duration = 0.1;
+    parent.generator.main.startLifetime.constant = 0.1;
+    birthTarget.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(deathTarget, ParticleSubEmitterType.Death);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    deathTarget.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    birthTarget.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+    engine.update();
+
+    const pendingBatches = getInFlightTrajectoryReadbackBatches(parent.generator);
+    expect(parent.generator.isAlive).to.equal(false);
+    expect(pendingBatches.length).to.be.greaterThan(0);
+    for (let i = 0, n = pendingBatches.length; i < n; i++) {
+      pendingBatches[i].readback._platformReadback.isReady = () => false;
+    }
+
+    parent.generator.subEmitters.addSubEmitter(birthTarget, ParticleSubEmitterType.Birth);
+    birthTarget.generator.play(false);
+    engine.update();
+    expect(birthTarget.generator._getAliveParticleCount()).to.equal(1);
+
+    parent.entity.destroy();
+    deathTarget.entity.destroy();
+    birthTarget.entity.destroy();
   });
 
   it("Birth evaluates target Start Delay, Burst, and Rate Over Distance", () => {

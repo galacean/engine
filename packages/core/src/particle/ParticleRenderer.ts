@@ -51,10 +51,7 @@ export class ParticleRenderer extends Renderer {
   _particleUpdateIndegree = 0;
   /** @internal */
   @ignoreClone
-  _isBirthSubEmitterTarget = false;
-  /** @internal */
-  @ignoreClone
-  _hasParticleSystemUpdated = false;
+  _subEmitterUpdateFrame = -1;
   @ignoreClone
   private _mesh: ModelMesh;
 
@@ -242,7 +239,7 @@ export class ParticleRenderer extends Renderer {
     if (!this._supportInstancedArrays) {
       return;
     }
-    if (this.generator._update(elapsedTime, this._isBirthSubEmitterTarget)) {
+    if (this.generator._update(elapsedTime)) {
       const shaderData = this.shaderData;
       shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
       shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);

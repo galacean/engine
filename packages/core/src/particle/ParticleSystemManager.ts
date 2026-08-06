@@ -13,11 +13,12 @@ export class ParticleSystemManager {
     if (renderer._particleSystemManager) return;
 
     renderer._particleSystemManager = this;
-    renderer._hasParticleSystemUpdated = false;
-    renderer._isBirthSubEmitterTarget = false;
+    renderer._subEmitterUpdateFrame = -1;
     this._renderers.push(renderer);
     // Treat a newly enabled system as visible until the first culling result
-    renderer._renderFrameCount = renderer.engine.time.frameCount;
+    const engine = renderer.engine;
+    const frameCount = engine.time.frameCount;
+    renderer._renderFrameCount = engine._frameInProcess ? frameCount - 1 : frameCount;
     this._markTopologyDirty();
   }
 
@@ -41,36 +42,44 @@ export class ParticleSystemManager {
     if (this._topologyDirty) this._rebuildTopology();
 
     const ordered = this._orderedRenderers;
+    for (let i = 0, n = ordered.length; i < n; i++) {
+      ordered[i].generator._suppressPendingBirthTargetEmission();
+    }
+
     for (let i = 0; i < ordered.length; i++) {
       const renderer = ordered[i];
       const generator = renderer.generator;
+      const frameCount = renderer.engine.time.frameCount;
+      const incomingCommands = generator._incomingSubEmitterCommands;
+      for (let j = 0, n = incomingCommands.length; j < n; j++) {
+        if (incomingCommands[j].type === ParticleSubEmitterType.Birth) {
+          generator.stop(false);
+          break;
+        }
+      }
+
+      const isDependencyUpdate = renderer._subEmitterUpdateFrame === frameCount;
+      const hasIncomingCommands = incomingCommands.length > 0;
+      const shouldUpdate = isDependencyUpdate || !renderer.isCulled || hasIncomingCommands;
       const subEmitters = generator.subEmitters;
-      if ((renderer._isBirthSubEmitterTarget || generator._hasActiveParticleWork()) && subEmitters.enabled) {
+      if (shouldUpdate && (isDependencyUpdate || generator.isAlive || hasIncomingCommands) && subEmitters.enabled) {
         const slots = subEmitters.subEmitters;
         for (let j = 0, n = slots.length; j < n; j++) {
           const slot = slots[j];
           const target = slot.emitter;
-          if (
-            slot.type === ParticleSubEmitterType.Birth &&
-            target?._particleSystemManager === this &&
-            !target._isBirthSubEmitterTarget
-          ) {
-            target._isBirthSubEmitterTarget = true;
-            target.generator.stop(false);
+          if (target?._particleSystemManager === this) {
+            target._subEmitterUpdateFrame = frameCount;
+            if (slot.type === ParticleSubEmitterType.Birth) {
+              target.generator.stop(false);
+            }
           }
         }
       }
-      if (
-        renderer.isCulled &&
-        renderer._hasParticleSystemUpdated &&
-        generator._incomingSubEmitterCommands.length === 0
-      ) {
-        generator._processFeedbackReadbacks();
-      } else {
-        renderer._hasParticleSystemUpdated = true;
+      if (shouldUpdate) {
         renderer._updateParticles(deltaTime);
+      } else {
+        generator._processFeedbackReadbacks();
       }
-      renderer._isBirthSubEmitterTarget = false;
     }
   }
 
