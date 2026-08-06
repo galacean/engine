@@ -78,9 +78,13 @@ export class ParticleBufferUtils {
 
   static readonly billboardIndexCount = 6;
 
-  static readonly boundsFloatStride = 8;
+  static readonly boundsFloatStride = 16;
   static readonly boundsTimeOffset = 6;
   static readonly boundsMaxLifetimeOffset = 7;
+  static readonly boundsCurrentDisplacementOffset = 8;
+  static readonly boundsCurrentReachOffset = 11;
+  static readonly boundsInitialDisplacementOffset = 12;
+  static readonly boundsInitialFactorOffset = 15;
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;

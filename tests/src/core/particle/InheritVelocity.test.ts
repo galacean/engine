@@ -158,6 +158,96 @@ describe("InheritVelocityModule", () => {
     renderer.entity.destroy();
   });
 
+  it("retires world-space emission override bounds independently", () => {
+    const renderer = createParticleRenderer(engine, "world-emission-bounds-retirement");
+    const generator = renderer.generator;
+    generator.inheritVelocity.enabled = false;
+    generator.main.startLifetime.constant = 0.2;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator._emit(generator._playTime, 1, new Vector3(100, 0, 0));
+    generator.emit(1);
+    expect(renderer.bounds.max.x).to.be.greaterThan(100);
+
+    for (let i = 0; i < 4; i++) {
+      tick(engine, time);
+      generator.emit(1);
+    }
+    expect(renderer.bounds.max.x).to.be.lessThan(10);
+
+    renderer.entity.destroy();
+  });
+
+  it("keeps same-frame world bounds lifetimes independent", () => {
+    const renderer = createParticleRenderer(engine, "same-frame-world-bounds-retirement");
+    const generator = renderer.generator;
+    generator.inheritVelocity.enabled = false;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    generator.main.startLifetime.constant = 0.1;
+    generator._emit(generator._playTime, 1, new Vector3(100, 0, 0));
+    generator.main.startLifetime.constant = 1;
+    generator.emit(1);
+    expect(renderer.bounds.max.x).to.be.greaterThan(100);
+
+    tick(engine, time);
+    tick(engine, time);
+    expect(renderer.bounds.max.x).to.be.lessThan(10);
+
+    renderer.entity.destroy();
+  });
+
+  it("retires Initial inherited velocity bounds independently", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity-bounds-retirement");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve.constant = 1;
+    generator.main.startLifetime.constant = 0.2;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    tick(engine, time);
+    renderer.entity.transform.setPosition(2, 0, 0);
+    tick(engine, time);
+    generator.emit(1);
+    expect(renderer.bounds.max.x).to.be.greaterThan(6);
+
+    for (let i = 0; i < 4; i++) {
+      tick(engine, time);
+      generator.emit(1);
+    }
+    expect(renderer.bounds.max.x).to.be.lessThan(5);
+
+    renderer.entity.destroy();
+  });
+
+  it("retires Current inherited velocity bounds independently", () => {
+    const renderer = createParticleRenderer(engine, "current-inherit-velocity-bounds-retirement");
+    const generator = renderer.generator;
+    generator.inheritVelocity.curve.constant = 1;
+    generator.main.startLifetime.constant = 0.5;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+    generator.emit(1);
+
+    tick(engine, time);
+    renderer.entity.transform.setPosition(2, 0, 0);
+    tick(engine, time);
+    expect(renderer.bounds.max.x).to.be.greaterThan(6);
+    generator.emit(1);
+
+    for (let i = 0; i < 7; i++) {
+      tick(engine, time);
+      generator.emit(1);
+    }
+    expect(renderer.bounds.max.x).to.be.lessThan(5);
+
+    renderer.entity.destroy();
+  });
+
   it("Initial captures the particle system Entity velocity at birth", () => {
     const renderer = createParticleRenderer(engine, "initial-inherit-velocity");
     const generator = renderer.generator;

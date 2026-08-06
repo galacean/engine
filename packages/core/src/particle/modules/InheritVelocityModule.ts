@@ -32,10 +32,6 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   @ignoreClone
   private _emitterVelocity = new Vector3();
   @ignoreClone
-  private _maxBoundsVelocity: Vector3 | null = null;
-  @ignoreClone
-  private _maxInitialCurveSourceVelocity: Vector3 | null = null;
-  @ignoreClone
   private _previousWorldPosition = new Vector3();
   @ignoreClone
   private _hasPreviousWorldPosition = false;
@@ -151,52 +147,29 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     const velocity = emitterVelocityOverride ?? this._emitterVelocity;
     const curve = this.curve;
     if (curve._isCurveMode()) {
-      if (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0) {
-        const x = Math.abs(velocity.x);
-        const y = Math.abs(velocity.y);
-        const z = Math.abs(velocity.z);
-        const maxVelocity = (this._maxInitialCurveSourceVelocity ||= new Vector3());
-        if (x > maxVelocity.x || y > maxVelocity.y || z > maxVelocity.z) {
-          maxVelocity.set(Math.max(maxVelocity.x, x), Math.max(maxVelocity.y, y), Math.max(maxVelocity.z, z));
-          this._generator._renderer._onWorldVolumeChanged();
-        }
-      }
       out.copyFrom(velocity);
       return velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0;
     }
 
     const factor = curve.evaluate(undefined, this._curveRand.random());
     out.set(velocity.x * factor, velocity.y * factor, velocity.z * factor);
-    this._recordBoundsVelocity(out, 1);
     return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
   }
 
   /**
    * @internal
    */
-  _getMaxBoundsVelocity(out: Vector3): boolean {
-    if (!this._maxBoundsVelocity && !this._maxInitialCurveSourceVelocity) {
+  _getCurrentBoundsVelocity(out: Vector3): boolean {
+    if (!this._needTransformFeedback()) {
       return false;
     }
-    if (this._needTransformFeedback() && this._generator._getAliveParticleCount() > 0) {
-      this._recordBoundsVelocity(this._emitterVelocity, this.curve._getMaxMagnitude());
-    } else if (this._usesInitialCurve() && this._maxInitialCurveSourceVelocity) {
-      this._recordBoundsVelocity(this._maxInitialCurveSourceVelocity, this.curve._getMaxMagnitude());
-    }
-    const maxVelocity = this._maxBoundsVelocity;
-    if (!maxVelocity || (maxVelocity.x === 0 && maxVelocity.y === 0 && maxVelocity.z === 0)) {
+    const factor = this.curve._getMaxMagnitude();
+    const velocity = this._emitterVelocity;
+    if (factor === 0 || (velocity.x === 0 && velocity.y === 0 && velocity.z === 0)) {
       return false;
     }
-    out.copyFrom(maxVelocity);
+    out.set(Math.abs(velocity.x) * factor, Math.abs(velocity.y) * factor, Math.abs(velocity.z) * factor);
     return true;
-  }
-
-  /**
-   * @internal
-   */
-  _resetBoundsVelocity(): void {
-    this._maxBoundsVelocity?.set(0, 0, 0);
-    this._maxInitialCurveSourceVelocity?.set(0, 0, 0);
   }
 
   /**
@@ -214,11 +187,7 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
         ? InheritVelocityModule._currentMacro
         : InheritVelocityModule._initialCurveMacro;
       if (usesCurrentVelocity) {
-        const emitterVelocity = this._emitterVelocity;
-        shaderData.setVector3(InheritVelocityModule._velocityProperty, emitterVelocity);
-        if (emitterVelocity.x !== 0 || emitterVelocity.y !== 0 || emitterVelocity.z !== 0) {
-          this._recordBoundsVelocity(emitterVelocity, curve._getMaxMagnitude());
-        }
+        shaderData.setVector3(InheritVelocityModule._velocityProperty, this._emitterVelocity);
       }
       const isRandomMode = curve._isRandomMode();
       randomMacro = isRandomMode ? InheritVelocityModule._randomModeMacro : null;
@@ -287,22 +256,5 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
       (this._mode === ParticleInheritVelocityMode.Initial ||
         this._generator._renderer.engine._hardwareRenderer.isWebGL2)
     );
-  }
-
-  private _recordBoundsVelocity(velocity: Vector3, factor: number): void {
-    if (factor === 0 || (velocity.x === 0 && velocity.y === 0 && velocity.z === 0)) {
-      return;
-    }
-    const x = Math.abs(velocity.x) * factor;
-    const y = Math.abs(velocity.y) * factor;
-    const z = Math.abs(velocity.z) * factor;
-    let maxVelocity = this._maxBoundsVelocity;
-    if (!maxVelocity) {
-      maxVelocity = this._maxBoundsVelocity = new Vector3();
-    }
-    if (x > maxVelocity.x || y > maxVelocity.y || z > maxVelocity.z) {
-      maxVelocity.set(Math.max(maxVelocity.x, x), Math.max(maxVelocity.y, y), Math.max(maxVelocity.z, z));
-      this._generator._renderer._onWorldVolumeChanged();
-    }
   }
 }
