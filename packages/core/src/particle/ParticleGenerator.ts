@@ -376,10 +376,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const incomingCommands = this._incomingSubEmitterCommands;
     if (incomingCommands.length > 0) {
-      let remainingSubEmitterCapacity = Math.max(
-        Math.max(Math.floor(main.maxParticles), 0) - this._getNotRetiredParticleCount(),
-        0
-      );
+      let remainingSubEmitterCapacity = Math.max(Math.floor(main.maxParticles) - this._getNotRetiredParticleCount(), 0);
       for (let i = 0, n = incomingCommands.length; i < n; i++) {
         const command = incomingCommands[i];
         let emittedCount: number;
@@ -1278,10 +1275,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     );
   }
 
-  /**
-   * @internal
-   */
-  _consumeBirthSubEmitterCommand(command: BirthSubEmitterCommand, available: number): number {
+  private _consumeBirthSubEmitterCommand(command: BirthSubEmitterCommand, available: number): number {
     let emittedCount = 0;
 
     command.finalizeRequests(available);
@@ -1465,9 +1459,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     frameLastEngineTime: number,
     frameEngineTime: number
   ): void {
-    if (firstElement === endElement) {
-      return;
-    }
     const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
     const instanceVertices = this._instanceVertices;
     const commands = this._getTrajectoryReadback().getPendingCommands(firstElement, this._currentParticleCount);

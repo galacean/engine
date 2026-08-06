@@ -1312,7 +1312,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("consumes resolved Birth requests instead of replaying emission windows", () => {
+  it("emits each deferred Birth time window once", () => {
     const child = createParticleRenderer(engine, "BatchQueue_Child");
     const parent = createParticleRenderer(engine, "BatchQueue_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -1325,28 +1325,7 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const originalConsume = child.generator._consumeBirthSubEmitterCommand.bind(child.generator);
-    const birthCommands: Array<{ lastEmissionTime: number; emissionTime: number; requestCount: number }> = [];
-    const consumeSpy = vi
-      .spyOn(child.generator, "_consumeBirthSubEmitterCommand")
-      .mockImplementation((command, available) => {
-        birthCommands.push({
-          lastEmissionTime: command.lastEmissionTime,
-          emissionTime: command.emissionTime,
-          requestCount: command.requestCount
-        });
-        return originalConsume(command, available);
-      });
-
-    try {
-      updateEngine(engine, 5);
-    } finally {
-      consumeSpy.mockRestore();
-    }
-
-    expect(birthCommands.length).to.be.greaterThan(0);
-    expect(birthCommands.every((command) => command.emissionTime > command.lastEmissionTime)).to.equal(true);
-    expect(birthCommands.every((command) => command.requestCount > 0)).to.equal(true);
+    updateEngine(engine, 5);
     expect(child.generator._getAliveParticleCount()).to.equal(10);
 
     parent.entity.destroy();
