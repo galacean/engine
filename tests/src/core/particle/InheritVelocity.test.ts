@@ -198,6 +198,26 @@ describe("InheritVelocityModule", () => {
     renderer.entity.destroy();
   });
 
+  it("retires later short-lived world bounds before an earlier long-lived record", () => {
+    const renderer = createParticleRenderer(engine, "out-of-order-world-bounds-retirement");
+    const generator = renderer.generator;
+    generator.inheritVelocity.enabled = false;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    generator.main.startLifetime.constant = 1;
+    generator.emit(1);
+    generator.main.startLifetime.constant = 0.1;
+    generator._emit(generator._playTime, 1, new Vector3(100, 0, 0));
+    expect(renderer.bounds.max.x).to.be.greaterThan(100);
+
+    tick(engine, time);
+    tick(engine, time);
+    expect(renderer.bounds.max.x).to.be.lessThan(10);
+
+    renderer.entity.destroy();
+  });
+
   it("retires Initial inherited velocity bounds independently", () => {
     const renderer = createParticleRenderer(engine, "initial-inherit-velocity-bounds-retirement");
     const generator = renderer.generator;

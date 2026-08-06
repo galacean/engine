@@ -27,12 +27,14 @@ import {
   ParticleSubEmitterType,
   SphereShape,
   Texture2D,
-  WebGLEngine
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({
-  canvas: "canvas"
+  canvas: "canvas",
+  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
 }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

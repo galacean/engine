@@ -12,6 +12,10 @@ interface EmissionRequest {
   order: number;
 }
 
+function compareEmissionRequests(left: EmissionRequest, right: EmissionRequest): number {
+  return left.time - right.time || left.order - right.order;
+}
+
 /**
  * Stores one deferred Birth emission command.
  * @internal
@@ -183,7 +187,7 @@ export class BirthSubEmitterCommand {
     const requests = this.requests;
     requests.length = this.requestCount;
     if (requests.length > 1) {
-      requests.sort((left, right) => left.time - right.time || left.order - right.order);
+      requests.sort(compareEmissionRequests);
     }
   }
 }

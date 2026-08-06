@@ -1780,10 +1780,14 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "DeathCatchUp_Child");
     parent.generator.main.startLifetime.constant = 0.1;
     parent.generator.main.startSpeed.constant = 0;
-    child.generator.main.startSpeed.constant = 1;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.main.gravityModifier.constant = 0;
+    child.generator.forceOverLifetime.enabled = true;
+    child.generator.forceOverLifetime.forceX.constant = 1;
     child.generator.limitVelocityOverLifetime.enabled = true;
     child.generator.limitVelocityOverLifetime.dampen = 0;
     child.generator.limitVelocityOverLifetime.speed.constant = 100;
+    const feedbackUpdate = vi.spyOn((child.generator as any)._feedbackSimulator, "update");
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
@@ -1814,7 +1818,18 @@ describe("SubEmitter", () => {
 
     const feedback = new Float32Array(6);
     child.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
-    expect(feedback[2]).to.be.closeTo(-particleAge, 1e-5);
+    const step = engine.time.deltaTime;
+    let remainingAge = particleAge;
+    let expectedVelocity = 0;
+    let expectedPosition = 0;
+    while (remainingAge > 1e-6) {
+      const deltaTime = Math.min(step, remainingAge);
+      expectedVelocity += deltaTime;
+      expectedPosition += expectedVelocity * deltaTime;
+      remainingAge -= deltaTime;
+    }
+    expect(feedback[0]).to.be.closeTo(expectedPosition, 1e-4);
+    expect(feedbackUpdate).toHaveBeenCalledTimes(1);
 
     parent.entity.destroy();
     child.entity.destroy();

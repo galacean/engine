@@ -179,6 +179,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _firstFreeTransformedBoundingBox = 0;
   @ignoreClone
+  private _nextTransformedBoundsExpiry = Infinity;
+  @ignoreClone
   private _lastTransformedBoundsEmissionFrame = -1;
   @ignoreClone
   private _currentInheritedBoundsDisplacement: Vector3 | null = null;
@@ -416,6 +418,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._firstRetiredElement = 0;
       this._waitProcessRetiredElementCount = 0;
       this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
+      this._nextTransformedBoundsExpiry = Infinity;
       this.subEmitters._retireAllBirthStates();
       this._resetWorldBoundsHistory();
     } else {
@@ -980,6 +983,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._transformedBoundsCount = 0;
     this._firstActiveTransformedBoundingBox = 0;
     this._firstFreeTransformedBoundingBox = 0;
+    this._nextTransformedBoundsExpiry = Infinity;
     this._resetWorldBoundsHistory();
   }
 
@@ -1537,6 +1541,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._firstActiveElement = firstFreeElement;
     this._firstNewElement = firstFreeElement;
     this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
+    this._nextTransformedBoundsExpiry = Infinity;
     this.subEmitters?._retireAllBirthStates();
     this._resetWorldBoundsHistory();
   }
@@ -1881,7 +1886,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _appendTransformedBoundsRecord(record: Float32Array): void {
-    const { boundsFloatStride, boundsTimeOffset } = ParticleBufferUtils;
+    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
+    const expiry = record[boundsTimeOffset] + record[boundsMaxLifetimeOffset];
     const firstActiveElement = this._firstActiveTransformedBoundingBox;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
     if (firstActiveElement !== firstFreeElement) {
@@ -1900,6 +1906,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
       if (canMerge) {
         boundsArray[previousOffset + boundsTimeOffset] = record[boundsTimeOffset];
+        this._nextTransformedBoundsExpiry = Math.min(this._nextTransformedBoundsExpiry, expiry);
         return;
       }
     }
@@ -1920,6 +1927,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._firstFreeTransformedBoundingBox * ParticleBufferUtils.boundsFloatStride
     );
     this._firstFreeTransformedBoundingBox = nextFreeElement;
+    this._nextTransformedBoundsExpiry = Math.min(this._nextTransformedBoundsExpiry, expiry);
   }
 
   private _mergeTransformedBoundsRecord(offset: number, record: Float32Array): void {
@@ -1943,6 +1951,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     for (let i = ParticleBufferUtils.boundsInitialDisplacementOffset; i < ParticleBufferUtils.boundsFloatStride; i++) {
       boundsArray[offset + i] = Math.max(boundsArray[offset + i], record[i]);
     }
+    this._nextTransformedBoundsExpiry = Math.min(
+      this._nextTransformedBoundsExpiry,
+      record[ParticleBufferUtils.boundsTimeOffset] + record[ParticleBufferUtils.boundsMaxLifetimeOffset]
+    );
   }
 
   private _preserveInitialCurveBoundsFactor(factor: number): void {
@@ -1994,24 +2006,59 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _retireTransformedBounds(): void {
+    const playTime = this._playTime;
+    if (playTime <= this._nextTransformedBoundsExpiry) {
+      return;
+    }
+
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
     const boundsArray = this._transformedBoundsArray;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
     const count = this._transformedBoundsCount;
-
-    while (this._firstActiveTransformedBoundingBox !== firstFreeElement) {
-      const index = this._firstActiveTransformedBoundingBox * boundsFloatStride;
-      const age = this._playTime - boundsArray[index + boundsTimeOffset];
-      if (age <= boundsArray[index + boundsMaxLifetimeOffset]) {
-        break;
+    let firstActiveElement = this._firstActiveTransformedBoundingBox;
+    let firstActiveOffset = firstActiveElement * boundsFloatStride;
+    let retired = false;
+    while (
+      firstActiveElement !== firstFreeElement &&
+      playTime >
+        boundsArray[firstActiveOffset + boundsTimeOffset] + boundsArray[firstActiveOffset + boundsMaxLifetimeOffset]
+    ) {
+      retired = true;
+      if (++firstActiveElement >= count) {
+        firstActiveElement = 0;
       }
+      firstActiveOffset = firstActiveElement * boundsFloatStride;
+    }
+    this._firstActiveTransformedBoundingBox = firstActiveElement;
 
-      if (++this._firstActiveTransformedBoundingBox >= count) {
-        this._firstActiveTransformedBoundingBox = 0;
+    let readElement = firstActiveElement;
+    let writeElement = readElement;
+    let nextExpiry = Infinity;
+    while (readElement !== firstFreeElement) {
+      const readOffset = readElement * boundsFloatStride;
+      const expiry = boundsArray[readOffset + boundsTimeOffset] + boundsArray[readOffset + boundsMaxLifetimeOffset];
+      if (playTime > expiry) {
+        retired = true;
+      } else {
+        if (readElement !== writeElement) {
+          const writeOffset = writeElement * boundsFloatStride;
+          boundsArray.copyWithin(writeOffset, readOffset, readOffset + boundsFloatStride);
+        }
+        nextExpiry = Math.min(nextExpiry, expiry);
+        if (++writeElement >= count) {
+          writeElement = 0;
+        }
       }
+      if (++readElement >= count) {
+        readElement = 0;
+      }
+    }
+    this._firstFreeTransformedBoundingBox = writeElement;
+    this._nextTransformedBoundsExpiry = nextExpiry;
+    if (retired) {
       this._renderer._onWorldVolumeChanged();
     }
-    if (this._firstActiveTransformedBoundingBox === firstFreeElement) {
+    if (this._firstActiveTransformedBoundingBox === writeElement) {
       this._currentInheritedBoundsDisplacement?.set(0, 0, 0);
       this._currentInheritedBoundsReach = 0;
     }
