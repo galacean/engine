@@ -19,6 +19,7 @@ import {
   ParticleStopMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
+  Quaternion,
   Scene,
   ConeShape,
   Vector3,
@@ -661,6 +662,60 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("catches a delayed Birth particle up from its historical event time", () => {
+    const child = createParticleRenderer(engine, "BirthCatchUp_Child");
+    const parent = createParticleRenderer(engine, "BirthCatchUp_Parent");
+    parent.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 2;
+    parent.generator.main.gravityModifier.constant = 0;
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.main.gravityModifier.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve.constant = 1;
+    // Force the child through Feedback so the caught-up position can be inspected directly
+    child.generator.limitVelocityOverLifetime.enabled = true;
+    child.generator.limitVelocityOverLifetime.speed.constant = 100;
+    child.generator.limitVelocityOverLifetime.dampen = 0;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+
+    const batches = getInFlightTrajectoryReadbackBatches(parent.generator);
+    const delayedReadback = batches[0].readback;
+    delayedReadback._platformReadback.isReady = () => false;
+    engine.update();
+    batches[1].readback._platformReadback.isReady = () => false;
+    engine.update();
+    batches[2].readback._platformReadback.isReady = () => false;
+    delayedReadback._platformReadback.isReady = () => true;
+    engine.update();
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const parentFeedback = new Float32Array(3);
+    const childFeedback = new Float32Array(3);
+    parent.generator._feedbackSimulator.readBinding.buffer.getData(parentFeedback, 0, 0, parentFeedback.length);
+    child.generator._feedbackSimulator.readBinding.buffer.getData(childFeedback, 0, 0, childFeedback.length);
+    expect(childFeedback[0]).to.be.closeTo(parentFeedback[0], 1e-4);
+    expect(childFeedback[1]).to.be.closeTo(parentFeedback[1], 1e-4);
+    expect(childFeedback[2]).to.be.closeTo(parentFeedback[2], 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("keeps updating while trajectory readbacks are pending", () => {
     const child = createParticleRenderer(engine, "PendingReadback_Child");
     const parent = createParticleRenderer(engine, "PendingReadback_Parent");
@@ -1020,6 +1075,104 @@ describe("SubEmitter", () => {
     secondChild.entity.destroy();
   });
 
+  it("Birth applies Initial constant Inherit Velocity to a Local target", () => {
+    const child = createParticleRenderer(engine, "LocalTargetVelocity_Child");
+    const parent = createParticleRenderer(engine, "LocalTargetVelocity_Parent");
+    parent.entity.transform.setPosition(2, 0, 0);
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 4;
+    child.entity.transform.rotation = new Vector3(90, 0, 0);
+    child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve.constant = 0.5;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    const inheritedWorldVelocity = new Vector3(
+      vertices[4] * vertices[18],
+      vertices[5] * vertices[18],
+      vertices[6] * vertices[18]
+    );
+    Vector3.transformByQuat(
+      inheritedWorldVelocity,
+      child.entity.transform.worldRotationQuaternion,
+      inheritedWorldVelocity
+    );
+    expect(inheritedWorldVelocity.x).to.be.closeTo(0, 1e-4);
+    expect(inheritedWorldVelocity.y).to.be.closeTo(0, 1e-4);
+    expect(inheritedWorldVelocity.z).to.be.closeTo(-2, 1e-4);
+    expect(child.bounds.max.x).to.be.greaterThanOrEqual(2);
+    expect(child.bounds.min.z).to.be.lessThanOrEqual(-20);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Birth preserves the Local target transform from the deferred event frame", () => {
+    const child = createParticleRenderer(engine, "LocalTargetTransform_Child");
+    const parent = createParticleRenderer(engine, "LocalTargetTransform_Parent");
+    parent.entity.transform.setPosition(2, 0, 0);
+    parent.generator.main.startSpeed.constant = 0;
+    child.entity.transform.setPosition(1, 0, 0);
+    child.entity.transform.rotation = new Vector3(0, 90, 0);
+    child.entity.transform.setScale(1, 1, 2);
+    child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    child.generator.main.startSpeed.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    const expectedLocalPosition = new Vector3();
+    Vector3.subtract(
+      parent.entity.transform.worldPosition,
+      child.entity.transform.worldPosition,
+      expectedLocalPosition
+    );
+    const inverseEventRotation = new Quaternion();
+    Quaternion.invert(child.entity.transform.worldRotationQuaternion, inverseEventRotation);
+    Vector3.transformByQuat(expectedLocalPosition, inverseEventRotation, expectedLocalPosition);
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+
+    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
+    readback._platformReadback.isReady = () => false;
+    child.entity.transform.setPosition(5, 0, 0);
+    child.entity.transform.rotation = new Vector3(0, -90, 0);
+    child.entity.transform.setScale(1, 1, 4);
+    readback._platformReadback.isReady = () => true;
+    engine.update();
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[0]).to.be.closeTo(expectedLocalPosition.x, 1e-4);
+    expect(vertices[1]).to.be.closeTo(expectedLocalPosition.y, 1e-4);
+    expect(vertices[2]).to.be.closeTo(expectedLocalPosition.z, 1e-4);
+    expect(vertices[6]).to.be.closeTo(-2, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Birth consumes the post-orbital TF position and finite-difference trajectory velocity", () => {
     const child = createParticleRenderer(engine, "SystemOrbital_Child");
     const parent = createParticleRenderer(engine, "SystemOrbital_Parent");
@@ -1306,6 +1459,33 @@ describe("SubEmitter", () => {
     expect(child.generator._getAliveParticleCount()).to.equal(0);
     updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Birth samples target Start Size curves from the parent event age", () => {
+    const child = createParticleRenderer(engine, "BirthStartSize_Child");
+    const parent = createParticleRenderer(engine, "BirthStartSize_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    child.generator.main.duration = 5;
+    child.generator.main.startDelay.constant = 0.2;
+    child.generator.main.startSize = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2))
+    );
+    child.generator.emission.rateOverTime.constant = 2;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 7);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect((child.generator as any)._instanceVertices[12]).to.be.closeTo(1, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1794,6 +1974,31 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Death samples target Start Size curves at the end of the parent lifetime", () => {
+    const parent = createParticleRenderer(engine, "DeathStartSize_Parent");
+    const child = createParticleRenderer(engine, "DeathStartSize_Child");
+    parent.generator.main.startLifetime.constant = 0.25;
+    child.generator.main.duration = 5;
+    child.generator.main.startSize = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2))
+    );
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 3);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect((child.generator as any)._instanceVertices[12]).to.be.closeTo(2, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("catches a delayed Death particle up in the target's single feedback pass", () => {
     const parent = createParticleRenderer(engine, "DeathCatchUp_Parent");
     const child = createParticleRenderer(engine, "DeathCatchUp_Child");
@@ -2259,15 +2464,15 @@ describe("SubEmitter", () => {
   });
 
   it("Size inherit at Death uses parent's SOL-modulated value (matches visible size)", () => {
-    // Parent: startSize 1, SOL Curve ramps 1 → 0.5 across lifetime.
+    // Parent: startSize 10, SOL Curve ramps 1 → 0.5 across lifetime.
     // Child:  startSize 2.
     // Death inherit Size → child.a_StartSize = parent.startSize × SOL(1) × child.startSize
-    //                                        = 1 × 0.5 × 2 = 1.0.
+    //                                        = 10 × 0.5 × 2 = 10.
     const parent = createParticleRenderer(engine, "Parent_SizeSOL");
     const child = createParticleRenderer(engine, "Child_SizeSOL");
 
     parent.generator.main.startLifetime.constant = 0.5;
-    parent.generator.main.startSize.constant = 1;
+    parent.generator.main.startSize.constant = 10;
     child.generator.main.startSize.constant = 2;
 
     const sizeCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 0.5));
@@ -2293,9 +2498,10 @@ describe("SubEmitter", () => {
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
     // a_StartSize @ float offsets 12..14
-    expect(verts[12]).to.be.closeTo(1.0, 1e-3); // x
-    expect(verts[13]).to.be.closeTo(1.0, 1e-3); // y
-    expect(verts[14]).to.be.closeTo(1.0, 1e-3); // z
+    expect(verts[12]).to.be.closeTo(10, 1e-3); // x
+    expect(verts[13]).to.be.closeTo(10, 1e-3); // y
+    expect(verts[14]).to.be.closeTo(10, 1e-3); // z
+    expect(child.bounds.max.x).to.be.greaterThanOrEqual(10);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2504,6 +2710,7 @@ describe("SubEmitter", () => {
     expect(vertices[5]).to.be.closeTo(1, 1e-4);
     expect(vertices[6]).to.be.closeTo(0, 1e-4);
     expect(vertices[18]).to.be.closeTo(1, 1e-4);
+    expect(child.bounds.max.y).to.be.greaterThanOrEqual(10);
 
     parent.entity.destroy();
     child.entity.destroy();

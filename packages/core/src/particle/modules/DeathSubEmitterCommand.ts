@@ -1,4 +1,4 @@
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, Quaternion, Vector3 } from "@galacean/engine-math";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
@@ -11,6 +11,9 @@ export class DeathSubEmitterCommand {
   readonly type = ParticleSubEmitterType.Death;
   readonly worldPosition = new Vector3();
   readonly parentWorldVelocity = new Vector3();
+  readonly targetWorldPosition = new Vector3();
+  readonly targetWorldRotation = new Quaternion();
+  readonly targetPositionScale = new Vector3();
 
   target: ParticleGenerator;
   ringIndex = 0;
@@ -31,6 +34,10 @@ export class DeathSubEmitterCommand {
     eventEngineTime: number
   ): this {
     this.target = target;
+    const targetTransform = target._renderer.entity.transform;
+    this.targetWorldPosition.copyFrom(targetTransform.worldPosition);
+    this.targetWorldRotation.copyFrom(targetTransform.worldRotationQuaternion);
+    this.targetPositionScale.copyFrom(target.main._getPositionScale());
     this.ringIndex = ringIndex;
     this.count = count;
     this.inheritProperties = inheritProperties;

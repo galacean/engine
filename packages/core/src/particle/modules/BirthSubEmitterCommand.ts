@@ -1,4 +1,4 @@
-import { MathUtil, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Quaternion, Vector3 } from "@galacean/engine-math";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
@@ -28,6 +28,9 @@ export class BirthSubEmitterCommand {
   readonly emissionEndPosition = new Vector3();
   readonly parentWorldPosition = new Vector3();
   readonly parentWorldVelocity = new Vector3();
+  readonly targetWorldPosition = new Vector3();
+  readonly targetWorldRotation = new Quaternion();
+  readonly targetPositionScale = new Vector3();
   readonly requests: EmissionRequest[] = [];
 
   inheritProperties = ParticleSubEmitterInheritProperty.None;
@@ -67,6 +70,10 @@ export class BirthSubEmitterCommand {
   ): void {
     this.source = source;
     this.target = target;
+    const targetTransform = target._renderer.entity.transform;
+    this.targetWorldPosition.copyFrom(targetTransform.worldPosition);
+    this.targetWorldRotation.copyFrom(targetTransform.worldRotationQuaternion);
+    this.targetPositionScale.copyFrom(target.main._getPositionScale());
     this.state = state;
     state.retain();
     const targetCommands = (target._pendingBirthSubEmitterCommands ||= []);

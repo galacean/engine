@@ -135,17 +135,22 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    * @internal
    */
   _getInitialVelocity(out: Vector3, emitterVelocityOverride: Vector3 | undefined): boolean {
+    if (!this._enabled || this._mode !== ParticleInheritVelocityMode.Initial) {
+      out.set(0, 0, 0);
+      return false;
+    }
+
+    const curve = this.curve;
+    // Local sub-emitters can apply a parent velocity at birth, while lifetime curves require world-space simulation
     if (
-      !this._enabled ||
-      this._mode !== ParticleInheritVelocityMode.Initial ||
-      this._generator.main.simulationSpace !== ParticleSimulationSpace.World
+      this._generator.main.simulationSpace !== ParticleSimulationSpace.World &&
+      (emitterVelocityOverride === undefined || curve._isCurveMode())
     ) {
       out.set(0, 0, 0);
       return false;
     }
 
     const velocity = emitterVelocityOverride ?? this._emitterVelocity;
-    const curve = this.curve;
     if (curve._isCurveMode()) {
       out.copyFrom(velocity);
       return velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0;
