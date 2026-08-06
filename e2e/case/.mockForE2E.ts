@@ -25,7 +25,8 @@ export const updateForE2E = (
       currentTime += deltaTime;
       engine.update();
       gl.finish();
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      // A zero-delay timer can repoll before software WebGL publishes fence completion
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
     }
     engine.update();
     gl.finish();
