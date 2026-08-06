@@ -124,8 +124,10 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    * @internal
    */
   _resyncEmitterVelocity(): void {
-    this._emitterVelocity.set(0, 0, 0);
-    this._hasPreviousWorldPosition = false;
+    if (this._hasPreviousWorldPosition) {
+      this._emitterVelocity.set(0, 0, 0);
+      this._hasPreviousWorldPosition = false;
+    }
   }
 
   /**

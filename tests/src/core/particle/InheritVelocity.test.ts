@@ -4,6 +4,7 @@ import {
   Color,
   CurveKey,
   Engine,
+  Layer,
   ParticleCompositeCurve,
   ParticleCurve,
   ParticleInheritVelocityMode,
@@ -14,7 +15,7 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 function tick(engine: Engine, time: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -58,15 +59,20 @@ function getFeedbackPositionX(renderer: ParticleRenderer): number {
 
 describe("InheritVelocityModule", () => {
   let engine: Engine;
+  let camera: Camera;
   let time: { value: number };
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    const camera = engine.sceneManager.activeScene.createRootEntity("Camera");
-    camera.addComponent(Camera);
-    camera.transform.setPosition(0, 0, 10);
+    const cameraEntity = engine.sceneManager.activeScene.createRootEntity("Camera");
+    camera = cameraEntity.addComponent(Camera);
+    cameraEntity.transform.setPosition(0, 0, 10);
     engine.run();
     time = { value: 0 };
+  });
+
+  afterEach(() => {
+    camera.cullingMask = Layer.Everything;
   });
 
   afterAll(function () {
@@ -110,6 +116,33 @@ describe("InheritVelocityModule", () => {
     expect(vertices[5]).to.be.closeTo(0, 1e-5);
     expect(vertices[6]).to.be.closeTo(0, 1e-5);
     expect(vertices[18]).to.be.closeTo(10, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
+  it("resets the emitter velocity baseline while simulation is culled", () => {
+    const renderer = createParticleRenderer(engine, "culled-inherit-velocity");
+    const generator = renderer.generator;
+    renderer.entity.layer = Layer.Layer1;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve.constant = 1;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    tick(engine, time);
+    camera.cullingMask = Layer.Layer0;
+    tick(engine, time);
+    renderer.entity.transform.setPosition(100, 0, 0);
+    tick(engine, time);
+
+    camera.cullingMask = Layer.Everything;
+    tick(engine, time);
+    tick(engine, time);
+    generator.emit(1);
+
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(vertices[18]).to.equal(0);
 
     renderer.entity.destroy();
   });

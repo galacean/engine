@@ -78,6 +78,7 @@ export class ParticleSystemManager {
       if (shouldUpdate) {
         renderer._updateParticles(deltaTime);
       } else {
+        generator.inheritVelocity._resyncEmitterVelocity();
         generator._processFeedbackReadbacks();
       }
     }
