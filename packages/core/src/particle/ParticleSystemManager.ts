@@ -13,7 +13,7 @@ export class ParticleSystemManager {
     if (renderer._particleSystemManager) return;
 
     renderer._particleSystemManager = this;
-    renderer._subEmitterUpdateFrame = -1;
+    renderer._subEmitterDependencyFrame = -1;
     this._renderers.push(renderer);
     // Treat a newly enabled system as visible until the first culling result
     const engine = renderer.engine;
@@ -58,17 +58,17 @@ export class ParticleSystemManager {
         }
       }
 
-      const isDependencyUpdate = renderer._subEmitterUpdateFrame === frameCount;
+      const isSubEmitterDependency = renderer._subEmitterDependencyFrame === frameCount;
       const hasIncomingCommands = incomingCommands.length > 0;
-      const shouldUpdate = isDependencyUpdate || !renderer.isCulled || hasIncomingCommands;
+      const shouldUpdate = isSubEmitterDependency || !renderer.isCulled || hasIncomingCommands;
       const subEmitters = generator.subEmitters;
-      if (shouldUpdate && (isDependencyUpdate || generator.isAlive || hasIncomingCommands) && subEmitters.enabled) {
+      if (shouldUpdate && (isSubEmitterDependency || generator.isAlive || hasIncomingCommands) && subEmitters.enabled) {
         const slots = subEmitters.subEmitters;
         for (let j = 0, n = slots.length; j < n; j++) {
           const slot = slots[j];
           const target = slot.emitter;
           if (target?._particleSystemManager === this) {
-            target._subEmitterUpdateFrame = frameCount;
+            target._subEmitterDependencyFrame = frameCount;
             if (slot.type === ParticleSubEmitterType.Birth) {
               target.generator.stop(false);
             }

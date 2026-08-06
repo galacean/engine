@@ -51,7 +51,7 @@ export class ParticleRenderer extends Renderer {
   _particleUpdateIndegree = 0;
   /** @internal */
   @ignoreClone
-  _subEmitterUpdateFrame = -1;
+  _subEmitterDependencyFrame = -1;
   @ignoreClone
   private _mesh: ModelMesh;
 
