@@ -104,7 +104,7 @@ export class ParticleTransformFeedbackSimulator {
    * Run one simulation step.
    * @param shaderData - Shader data with current macros and uniforms
    * @param particleCount - Total particle slot count
-   * @param firstActive - First active particle index in ring buffer
+   * @param firstElement - First particle index to update in the ring buffer
    * @param firstFree - First free particle index in ring buffer
    * @param firstNew - First particle initialized during this update
    * @param deltaTime - Frame delta time
@@ -113,13 +113,13 @@ export class ParticleTransformFeedbackSimulator {
   update(
     shaderData: ShaderData,
     particleCount: number,
-    firstActive: number,
+    firstElement: number,
     firstFree: number,
     firstNew: number,
     deltaTime: number,
     particleInputBinding: VertexBufferBinding
   ): void {
-    if (firstActive === firstFree) return;
+    if (firstElement === firstFree) return;
 
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstNewParticleProperty, firstNew);
@@ -134,10 +134,10 @@ export class ParticleTransformFeedbackSimulator {
     )
       return;
 
-    if (firstActive < firstFree) {
-      this._simulator.draw(MeshTopology.Points, firstActive, firstFree - firstActive);
+    if (firstElement < firstFree) {
+      this._simulator.draw(MeshTopology.Points, firstElement, firstFree - firstElement);
     } else {
-      this._simulator.draw(MeshTopology.Points, firstActive, particleCount - firstActive);
+      this._simulator.draw(MeshTopology.Points, firstElement, particleCount - firstElement);
       if (firstFree > 0) {
         this._simulator.draw(MeshTopology.Points, 0, firstFree);
       }

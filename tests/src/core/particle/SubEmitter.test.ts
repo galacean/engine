@@ -1667,6 +1667,39 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("reuses capacity retired during the trajectory feedback frame", () => {
+    const parent = createParticleRenderer(engine, "RetiredCapacity_Parent");
+    const child = createParticleRenderer(engine, "RetiredCapacity_Child");
+    parent.generator.main.maxParticles = 127;
+    parent.generator.main.startLifetime.constant = 0.1;
+    parent.generator.emission.rateOverTime.constant = 1270;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    (engine as any)._vSyncCount = Infinity;
+    (engine as any)._time._lastSystemTime = 0;
+    let time = 0;
+    performance.now = () => (time += 100);
+    engine.update();
+    expect(parent.generator._getAliveParticleCount()).to.equal(127);
+
+    engine.update();
+    expect(parent.generator._getAliveParticleCount()).to.equal(127);
+
+    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
+    batch.readback._platformReadback.isReady = () => true;
+    parent.generator.emission.rateOverTime.constant = 0;
+    engine.update();
+    expect(child.generator._getAliveParticleCount()).to.equal(127);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Death reads feedback only when a parent particle retires", () => {
     const parent = createParticleRenderer(engine, "DeathReadback_Parent");
     const child = createParticleRenderer(engine, "DeathReadback_Child");

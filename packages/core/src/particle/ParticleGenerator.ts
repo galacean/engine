@@ -326,7 +326,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return this._emitParticles(
       playTime,
       count,
-      main.maxParticles - this._getNotRetiredParticleCount(),
+      main.maxParticles - this._getAliveParticleCount(),
       main.simulationSpace === ParticleSimulationSpace.World ? emitWorldPositionOverride : undefined
     );
   }
@@ -363,9 +363,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       useTrajectoryFeedback && this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
     const frameEngineTime = useTrajectoryFeedback ? this._renderer.engine.time.elapsedTime : 0;
     const frameLastEngineTime = frameEngineTime - elapsedTime;
-    // Keep trajectory slots active through the single feedback pass; retirement makes them reusable next update
+    this._retireExpiredParticles();
+    // Trajectory feedback keeps logically retired slots intact until their final GPU state is copied
     if (!useTrajectoryFeedback) {
-      this._retireActiveParticles(false, lastPlayTime, frameLastEngineTime, frameEngineTime);
+      this._finalizeRetiredParticles(false, lastPlayTime, frameLastEngineTime, frameEngineTime);
       this._freeRetiredParticles();
     }
 
@@ -378,7 +379,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     if (deltaTime > 0 && emission.enabled && this._isPlaying) {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
-      if (this._currentParticleCount > main._maxParticleBuffer) {
+      if (
+        this._currentParticleCount > main._maxParticleBuffer &&
+        (!useTrajectoryFeedback || this._firstRetiredElement === this._firstActiveElement)
+      ) {
         const notRetireParticleCount = this._getNotRetiredParticleCount();
         if (notRetireParticleCount < main._maxParticleBuffer) {
           this._resizeInstanceBuffer(false);
@@ -392,7 +396,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const incomingCommands = this._incomingSubEmitterCommands;
     if (incomingCommands.length > 0) {
-      let remainingSubEmitterCapacity = Math.max(Math.floor(main.maxParticles) - this._getNotRetiredParticleCount(), 0);
+      let remainingSubEmitterCapacity = Math.max(Math.floor(main.maxParticles) - this._getAliveParticleCount(), 0);
       for (let i = 0, n = incomingCommands.length; i < n; i++) {
         const command = incomingCommands[i];
         let emittedCount: number;
@@ -432,19 +436,20 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._addActiveParticlesToVertexBuffer();
       }
 
-      const hasActiveParticles = this._firstActiveElement !== this._firstFreeElement;
+      const firstFeedbackElement = useTrajectoryFeedback ? this._firstRetiredElement : this._firstActiveElement;
+      const hasFeedbackParticles = firstFeedbackElement !== this._firstFreeElement;
       const shouldUpdateFeedback =
-        this._useTransformFeedback && hasActiveParticles && (deltaTime > 0 || hasNewParticles);
-      if (hasActiveParticles) {
+        this._useTransformFeedback && hasFeedbackParticles && (deltaTime > 0 || hasNewParticles);
+      if (hasFeedbackParticles) {
         shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
         this._updateShaderData(shaderData);
       }
       if (shouldUpdateFeedback) {
-        this._updateFeedback(shaderData, deltaTime, firstNewElement);
+        this._updateFeedback(shaderData, deltaTime, firstFeedbackElement, firstNewElement);
         this._accumulateCurrentInheritedBounds(deltaTime);
         if (hasBirthSubEmitter) {
           this._prepareBirthRange(
-            this._firstActiveElement,
+            firstFeedbackElement,
             this._firstFreeElement,
             lastPlayTime,
             this._playTime,
@@ -455,7 +460,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
 
       if (useTrajectoryFeedback && shouldUpdateFeedback) {
-        this._retireActiveParticles(hasDeathSubEmitter, lastPlayTime, frameLastEngineTime, frameEngineTime);
+        this._finalizeRetiredParticles(hasDeathSubEmitter, lastPlayTime, frameLastEngineTime, frameEngineTime);
         this._trajectoryReadback?.submitPendingBatch(this._feedbackSimulator.readBinding.buffer);
         this._freeRetiredParticles();
       }
@@ -511,11 +516,16 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return false;
   }
 
-  private _updateFeedback(shaderData: ShaderData, deltaTime: number, firstNewElement: number): void {
+  private _updateFeedback(
+    shaderData: ShaderData,
+    deltaTime: number,
+    firstFeedbackElement: number,
+    firstNewElement: number
+  ): void {
     this._feedbackSimulator.update(
       shaderData,
       this._currentParticleCount,
-      this._firstActiveElement,
+      firstFeedbackElement,
       this._firstFreeElement,
       firstNewElement,
       deltaTime,
@@ -1062,9 +1072,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     // Failure to adopt this approach may impede growth initiation
     // due to the initial alignment of 'freeElement' and 'firstRetiredElement'.
     if (nextFreeElement === this._firstRetiredElement) {
+      const protectedRetiredCount = this._useTrajectoryFeedback
+        ? this._getRingDistance(this._firstRetiredElement, this._firstActiveElement)
+        : 0;
       const increaseCount = Math.min(
         ParticleGenerator._particleIncreaseCount,
-        main._maxParticleBuffer - this._currentParticleCount
+        main._maxParticleBuffer + protectedRetiredCount - this._currentParticleCount
       );
       if (increaseCount === 0) {
         return;
@@ -1785,7 +1798,26 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._renderer._onWorldVolumeChanged();
   }
 
-  private _retireActiveParticles(
+  private _retireExpiredParticles(): void {
+    const instanceVertices = this._instanceVertices;
+    const firstNewElement = this._firstNewElement;
+
+    let ringIndex = this._firstActiveElement;
+    while (ringIndex !== firstNewElement) {
+      const particleOffset = ringIndex * ParticleBufferUtils.instanceVertexFloatStride;
+      const bornTime = instanceVertices[particleOffset + ParticleBufferUtils.timeOffset];
+      const lifetime = instanceVertices[particleOffset + ParticleBufferUtils.startLifeTimeOffset];
+      const particleAge = this._playTime - bornTime;
+      // Use `Math.fround` to ensure the precision of comparison is same
+      if (Math.fround(particleAge) < lifetime) {
+        break;
+      }
+
+      this._firstActiveElement = ringIndex = this._nextRingIndex(ringIndex);
+    }
+  }
+
+  private _finalizeRetiredParticles(
     hasDeathSubEmitter: boolean,
     frameLastPlayTime: number,
     frameLastEngineTime: number,
@@ -1794,22 +1826,17 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const engine = this._renderer.engine;
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
-    const firstNewElement = this._firstNewElement;
     const framePlayTimeDelta = this._playTime - frameLastPlayTime;
     const frameEngineTimeDelta = frameEngineTime - frameLastEngineTime;
 
-    let ringIndex = this._firstActiveElement;
-    while (ringIndex !== firstNewElement) {
+    let ringIndex = this._firstRetiredElement;
+    const firstActiveElement = this._firstActiveElement;
+    while (ringIndex !== firstActiveElement) {
       const activeParticleOffset = ringIndex * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
 
       const bornTime = instanceVertices[activeParticleTimeOffset];
       const lifetime = instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset];
-      const particleAge = this._playTime - bornTime;
-      // Use `Math.fround` to ensure the precision of comparison is same
-      if (Math.fround(particleAge) < lifetime) {
-        break;
-      }
 
       if (hasDeathSubEmitter) {
         const frameTime =
@@ -1846,7 +1873,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
       this.subEmitters._retireParticle(ringIndex);
       instanceVertices[activeParticleTimeOffset] = frameCount;
-      this._firstActiveElement = ringIndex = this._nextRingIndex(ringIndex);
+      ringIndex = this._nextRingIndex(ringIndex);
       if (!this._useTransformFeedback) {
         this._waitProcessRetiredElementCount++;
       }
@@ -1938,11 +1965,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private _addActiveParticlesToVertexBuffer(): void {
-    const firstActiveElement = this._firstActiveElement;
+    const firstUploadElement =
+      this._useTrajectoryFeedback && this._instanceBufferResized ? this._firstRetiredElement : this._firstActiveElement;
     const firstFreeElement = this._firstFreeElement;
 
-    // firstActiveElement == firstFreeElement should not update
-    if (firstActiveElement === firstFreeElement) {
+    if (firstUploadElement === firstFreeElement) {
       this._firstNewElement = firstFreeElement;
       this._waitProcessRetiredElementCount = 0;
       this._instanceBufferResized = false;
@@ -1956,17 +1983,17 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     // Feedback mode: upload in-place (indices match feedback buffer slots)
     // Non-feedback mode: compact to GPU offset 0
     const compact = !this._useTransformFeedback;
-    const start = firstActiveElement * byteStride;
-    if (firstActiveElement < firstFreeElement) {
+    const start = firstUploadElement * byteStride;
+    if (firstUploadElement < firstFreeElement) {
       instanceBuffer.setData(
         dataBuffer as ArrayBuffer,
         compact ? 0 : start,
         start,
-        (firstFreeElement - firstActiveElement) * byteStride,
+        (firstFreeElement - firstUploadElement) * byteStride,
         SetDataOptions.Discard
       );
     } else {
-      const firstSegmentSize = (this._currentParticleCount - firstActiveElement) * byteStride;
+      const firstSegmentSize = (this._currentParticleCount - firstUploadElement) * byteStride;
       instanceBuffer.setData(
         dataBuffer as ArrayBuffer,
         compact ? 0 : start,
