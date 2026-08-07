@@ -105,11 +105,11 @@ export class ParticleTrajectoryReadback {
     const pendingBatch = this._pendingBatch;
     if (pendingBatch) {
       this._pendingBatch = null;
-      this._discardBatch(pendingBatch, true);
+      this._discardBatch(pendingBatch);
     }
     const inFlightBatches = this._inFlightBatches;
     for (let i = 0, n = inFlightBatches.length; i < n; i++) {
-      this._discardBatch(inFlightBatches[i], false);
+      this._discardBatch(inFlightBatches[i]);
     }
     inFlightBatches.length = 0;
   }
@@ -181,19 +181,13 @@ export class ParticleTrajectoryReadback {
     }
   }
 
-  private _discardBatch(batch: ParticleTrajectoryReadbackBatch, canReuseReadback: boolean): void {
+  private _discardBatch(batch: ParticleTrajectoryReadbackBatch): void {
     const commands = batch.commands;
     for (let i = 0, n = commands.length; i < n; i++) {
       commands[i].release();
     }
     commands.length = 0;
-    if (canReuseReadback) {
-      this._recycleBatch(batch);
-    } else {
-      batch.readback?.destroy();
-      batch.readback = null;
-      this._availableBatches.push(batch);
-    }
+    this._recycleBatch(batch);
   }
 
   private _recycleBatch(batch: ParticleTrajectoryReadbackBatch): void {

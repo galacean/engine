@@ -906,7 +906,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("destroys in-flight readback resources when the generator is destroyed", () => {
+  it("returns in-flight readback resources to the pool when the generator is destroyed", () => {
     const child = createParticleRenderer(engine, "ReadbackDestroy_Child");
     const parent = createParticleRenderer(engine, "ReadbackDestroy_Parent");
     child.generator.emission.rateOverTime.constant = 10;
@@ -927,8 +927,8 @@ describe("SubEmitter", () => {
     const resetReadback = vi.spyOn(readback, "reset");
     const destroyReadback = vi.spyOn(readback, "destroy");
     parent.entity.destroy();
-    expect(resetReadback).toHaveBeenCalledTimes(0);
-    expect(destroyReadback).toHaveBeenCalledTimes(1);
+    expect(resetReadback).toHaveBeenCalledTimes(1);
+    expect(destroyReadback).toHaveBeenCalledTimes(0);
 
     engine.resourceManager.gc();
     expect(destroyReadback).toHaveBeenCalledTimes(1);
@@ -958,7 +958,7 @@ describe("SubEmitter", () => {
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
 
     generator._trajectoryReadback.destroy();
-    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
+    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
 
     engine.resourceManager.gc();
     expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
@@ -967,7 +967,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("destroys a stale readback without polling after device content loss", () => {
+  it("returns a stale readback to the pool without polling after device content loss", () => {
     const child = createParticleRenderer(engine, "ReadbackRestore_Child");
     const parent = createParticleRenderer(engine, "ReadbackRestore_Parent");
     child.generator.emission.rateOverTime.constant = 10;
@@ -993,7 +993,7 @@ describe("SubEmitter", () => {
 
     expect(isReady).not.toHaveBeenCalled();
     expect(resetReadback).toHaveBeenCalledTimes(1);
-    expect(destroyReadback).toHaveBeenCalledTimes(1);
+    expect(destroyReadback).toHaveBeenCalledTimes(0);
     expect(generator._trajectoryReadback).to.equal(null);
 
     engine.resourceManager.gc();

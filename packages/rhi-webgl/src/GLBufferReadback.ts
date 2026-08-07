@@ -7,9 +7,12 @@ import type { GLBuffer } from "./GLBuffer";
 export class GLBufferReadback implements IPlatformBufferReadback {
   private _gl: WebGL2RenderingContext;
   private _glBuffer: WebGLBuffer;
+  private readonly _byteLength: number;
   private _sync: WebGLSync = null;
   private _ready = false;
   private _needsFlush = false;
+  private _hasUnreadSubmission = false;
+  private _needsStorageReset = false;
 
   constructor(gl: WebGL2RenderingContext, byteLength: number) {
     const glBuffer = gl.createBuffer();
@@ -19,6 +22,7 @@ export class GLBufferReadback implements IPlatformBufferReadback {
 
     this._gl = gl;
     this._glBuffer = glBuffer;
+    this._byteLength = byteLength;
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, glBuffer);
     gl.bufferData(gl.COPY_WRITE_BUFFER, byteLength, gl.STREAM_READ);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
@@ -30,8 +34,13 @@ export class GLBufferReadback implements IPlatformBufferReadback {
     }
 
     const gl = this._gl;
-    gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, this._glBuffer);
+    if (this._needsStorageReset) {
+      // Orphan canceled unread storage before writing again to preserve the driver's readback shadow copy
+      gl.bufferData(gl.COPY_WRITE_BUFFER, this._byteLength, gl.STREAM_READ);
+      this._needsStorageReset = false;
+    }
+    gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
     gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteLength);
     gl.bindBuffer(gl.COPY_READ_BUFFER, null);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
@@ -50,6 +59,7 @@ export class GLBufferReadback implements IPlatformBufferReadback {
     this._sync = sync;
     this._ready = false;
     this._needsFlush = true;
+    this._hasUnreadSubmission = true;
   }
 
   isReady(): boolean {
@@ -79,6 +89,7 @@ export class GLBufferReadback implements IPlatformBufferReadback {
     gl.bindBuffer(gl.COPY_READ_BUFFER, this._glBuffer);
     gl.getBufferSubData(gl.COPY_READ_BUFFER, bufferByteOffset, data, dataOffset, dataLength);
     gl.bindBuffer(gl.COPY_READ_BUFFER, null);
+    this._hasUnreadSubmission = false;
   }
 
   reset(): void {
@@ -86,6 +97,8 @@ export class GLBufferReadback implements IPlatformBufferReadback {
       this._gl.deleteSync(this._sync);
       this._sync = null;
     }
+    this._needsStorageReset ||= this._hasUnreadSubmission;
+    this._hasUnreadSubmission = false;
     this._ready = false;
     this._needsFlush = false;
   }
