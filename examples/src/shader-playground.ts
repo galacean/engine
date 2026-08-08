@@ -7,7 +7,8 @@ import {
   formatDiagnostic,
   DiagnosticType,
   DiagnosticCategory,
-  DIAGNOSTIC_CATEGORY
+  DIAGNOSTIC_CATEGORY,
+  type AnalyzerOptions
 } from "@galacean/engine-shader-analyzer";
 import * as dat from "dat.gui";
 
@@ -16,6 +17,9 @@ function pass(body: string): string {
 }
 
 const MULTIPLE_ERRORS_LABEL = "Multiple errors";
+const RELATIVE_INCLUDE_LABEL = "Include / 项目相对 sourceFile";
+const ABSOLUTE_INCLUDE_LABEL = "Include / 绝对 sourceFile URL";
+const SCENARIO_LABELS = [RELATIVE_INCLUDE_LABEL, ABSOLUTE_INCLUDE_LABEL] as const;
 
 const MACRO_SAMPLES: Record<string, string> = {
   "宏定义 / 对象式 #define": pass(`      #define BRANCH_SCALE 0.5
@@ -325,6 +329,18 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
+  [RELATIVE_INCLUDE_LABEL]: pass(`      #include "./Broken.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(includedValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  [ABSOLUTE_INCLUDE_LABEL]: pass(`      #include "./Broken.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(includedValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
   ...MACRO_SAMPLES,
 
   [DiagnosticType.SyntaxError]: pass(`      void frag() { vec3 = ; }
@@ -631,6 +647,21 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert; FragmentShader = frag;`)
 };
 
+const SAMPLE_OPTIONS: Partial<Record<string, AnalyzerOptions>> = {
+  [RELATIVE_INCLUDE_LABEL]: {
+    sourceFile: "Assets/Shaders/Playground.shader",
+    includeMap: {
+      "Assets/Shaders/Broken.glsl": "float includedValue;\nfloat includedValue;"
+    }
+  },
+  [ABSOLUTE_INCLUDE_LABEL]: {
+    sourceFile: "file:///project/Assets/Shaders/Playground.shader",
+    includeMap: {
+      "file:///project/Assets/Shaders/Broken.glsl": "float includedValue;\nfloat includedValue;"
+    }
+  }
+};
+
 const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
   [DiagnosticCategory.Syntax]: "语法",
   [DiagnosticCategory.Symbol]: "符号",
@@ -643,10 +674,14 @@ const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
 
 const CATEGORY_ORDER = Object.values(DiagnosticCategory);
 const LABEL_TO_KEY: Record<string, string> = { [MULTIPLE_ERRORS_LABEL]: MULTIPLE_ERRORS_LABEL };
+for (const label of SCENARIO_LABELS) LABEL_TO_KEY[label] = label;
 for (const label of Object.keys(MACRO_SAMPLES)) LABEL_TO_KEY[label] = label;
 
 const codeKeys = Object.keys(SAMPLES).filter(
-  (key) => key !== MULTIPLE_ERRORS_LABEL && !(key in MACRO_SAMPLES)
+  (key) =>
+    key !== MULTIPLE_ERRORS_LABEL &&
+    !SCENARIO_LABELS.includes(key as (typeof SCENARIO_LABELS)[number]) &&
+    !(key in MACRO_SAMPLES)
 ) as DiagnosticType[];
 codeKeys.sort((a, b) => {
   const ca = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[a]);
@@ -703,9 +738,7 @@ const editor = document.getElementById("ed") as HTMLTextAreaElement;
 const gutter = document.getElementById("gutter") as HTMLDivElement;
 const output = document.getElementById("out") as HTMLDivElement;
 
-const analyzer = new ShaderAnalyzer();
-
-type Diag = ReturnType<ShaderAnalyzer["analyze"]>["diagnostics"][number];
+type Diag = ReturnType<typeof ShaderAnalyzer.analyze>["diagnostics"][number];
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
@@ -726,10 +759,12 @@ function renderConsoleBlock(d: Diag): string {
     return `${gutter}<span class="${contentClass}">${escapeHtml(content)}</span>`;
   });
 
-  return `<div class="diag ${d.severity}"><pre>${rows.join("\n")}</pre></div>`;
+  const sourceFile = d.sourceFile ? `<div>${escapeHtml(d.sourceFile)}</div>` : "";
+  return `<div class="diag ${d.severity}">${sourceFile}<pre>${rows.join("\n")}</pre></div>`;
 }
 
 const config = { diagnostic: DEFAULT_KEY };
+let currentSampleKey = DEFAULT_KEY;
 
 function renderGutter(lineCount: number): void {
   let lineNumbers = "";
@@ -737,7 +772,7 @@ function renderGutter(lineCount: number): void {
   gutter.textContent = lineNumbers;
 }
 
-function renderConsole(diagnostics: Diag[]): void {
+function renderConsole(diagnostics: readonly Diag[]): void {
   if (diagnostics.length === 0) {
     output.innerHTML = `<h3>Diagnostics (0)</h3><div class="ok">✓ No diagnostics</div>`;
     return;
@@ -750,7 +785,7 @@ function renderConsole(diagnostics: Diag[]): void {
 
 function render(): void {
   const src = editor.value;
-  const { diagnostics } = analyzer.analyze(src);
+  const { diagnostics } = ShaderAnalyzer.analyze(src, SAMPLE_OPTIONS[currentSampleKey]);
   renderGutter(src.split("\n").length);
   renderConsole(diagnostics);
 }
@@ -772,7 +807,8 @@ gui
   .add(config, "diagnostic", Object.keys(LABEL_TO_KEY))
   .name("Diagnostic")
   .onChange((label: string) => {
-    editor.value = SAMPLES[LABEL_TO_KEY[label]];
+    currentSampleKey = LABEL_TO_KEY[label];
+    editor.value = SAMPLES[currentSampleKey];
     editor.scrollTop = 0;
     editor.scrollLeft = 0;
     syncScroll();

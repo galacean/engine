@@ -7,6 +7,7 @@ npm install @galacean/engine-shader-compiler
 ## Usage
 
 ```typescript
+import { Shader, ShaderFactory, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // Create shader compiler
@@ -19,6 +20,10 @@ const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler });
 
 // Create shader by galacean shader code directly
 const shader = Shader.create(galaceanShaderCode);
+
+// Register project chunks before creating shaders that include them
+ShaderFactory.registerInclude("ShaderLibrary/UserCommon.glsl", userCommonSource);
+const shaderWithIncludes = Shader.create(galaceanShaderCodeWithIncludes);
 
 .......
 

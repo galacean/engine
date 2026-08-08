@@ -7,16 +7,27 @@ Standalone ShaderLab and ESSL diagnostics for authoring tools. The analyzer does
 ```ts
 import { DiagnosticSeverity, ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 
-const { diagnostics } = new ShaderAnalyzer().analyze(shaderSource, {
-  file: "Assets/Shaders/PBR.shader",
+const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
   includeMap: {
     "ShaderLibrary/Common.glsl": commonSource
-  },
-  basePathForIncludeKey: "shaders://root/Assets/Shaders/"
+  }
 });
 
 const hasErrors = diagnostics.some(({ severity }) => severity === DiagnosticSeverity.Error);
 ```
+
+`sourceFile` is optional. Supply it only when the complete root Shader uses relative includes or when an editor needs stable source attribution:
+
+```ts
+const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
+  sourceFile: "Assets/Shaders/PBR.shader",
+  includeMap: {
+    "Assets/Shaders/Common.glsl": commonSource
+  }
+});
+```
+
+The analyzer expands the complete root once. Diagnostics are then mapped back to the owning Shader or ShaderChunk; include fragments are never analyzed in isolation.
 
 Diagnostic lines and columns are one-based for display. Offsets are zero-based so editors can map ranges directly onto their text models.
 

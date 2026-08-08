@@ -151,7 +151,7 @@ mat3 _normalMatFromModel(mat3 m) {
    * @param includeSource - GLSL chunk source text.
    */
   static registerInclude(includeName: string, includeSource: string): void {
-    if (ShaderFactory.includeMap[includeName]) {
+    if (Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, includeName)) {
       throw `The "${includeName}" shader include already exist`;
     }
     ShaderFactory.includeMap[includeName] = includeSource;
@@ -161,8 +161,17 @@ mat3 _normalMatFromModel(mat3 m) {
    * Remove a registered shader chunk.
    * @param includeName - The path key passed to `registerInclude`.
    */
-  static unRegisterInclude(includeName: string): void {
+  static unregisterInclude(includeName: string): void {
     delete ShaderFactory.includeMap[includeName];
+  }
+
+  /**
+   * Remove a registered shader chunk.
+   * @param includeName - The path key passed to `registerInclude`.
+   * @deprecated Use `unregisterInclude`.
+   */
+  static unRegisterInclude(includeName: string): void {
+    ShaderFactory.unregisterInclude(includeName);
   }
 
   /**

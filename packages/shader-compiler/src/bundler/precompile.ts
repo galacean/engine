@@ -68,7 +68,7 @@ export interface PrecompileOptions {
 }
 
 interface ShaderCompilerInstance {
-  _precompile: (source: string, target: number, basePathForIncludeKey: string) => unknown;
+  _precompile: (source: string, target: number, sourceFile?: string) => unknown;
   _setIncludeMap: (includeMap: Record<string, string>) => void;
 }
 
@@ -218,9 +218,6 @@ async function collectIncludeMap(inputDir: string): Promise<Record<string, strin
   return map;
 }
 
-// Mirrors `ShaderPass._shaderRootPath` in engine; inlined to keep bundler engine-free.
-const SHADER_ROOT_PATH = "shaders://root/";
-
 function compileSingle(
   shaderCompiler: ShaderCompilerInstance,
   shaderPath: string,
@@ -232,12 +229,11 @@ function compileSingle(
   const relativePath = normalizePath(path.relative(inputDir, shaderPath));
   const bundleRelative = relativePath.replace(/\.shader$/, ".shaderc");
   const bundlePath = path.join(outputDir, bundleRelative);
-  const basePathForIncludeKey = new URL(relativePath, SHADER_ROOT_PATH).href;
 
   fs.mkdirSync(path.dirname(bundlePath), { recursive: true });
 
   try {
-    const precompiled = shaderCompiler._precompile(source, platformTarget, basePathForIncludeKey);
+    const precompiled = shaderCompiler._precompile(source, platformTarget, relativePath);
     fs.writeFileSync(bundlePath, JSON.stringify(precompiled));
     console.log(`  ${relativePath} -> ${bundleRelative}`);
     return true;

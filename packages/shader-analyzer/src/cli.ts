@@ -1,5 +1,5 @@
 import { lstatSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 import type { IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "./ShaderAnalyzer";
 import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
@@ -48,14 +48,16 @@ try {
 
 function run(options: CliOptions): void {
   const source = readFileSync(options.file === "-" ? 0 : options.file, "utf8");
-  const includeRoot = options.includeRoot ? resolve(options.includeRoot) : undefined;
+  const includeRoot = options.includeRoot
+    ? resolve(options.includeRoot)
+    : options.file === "-"
+      ? undefined
+      : resolve(".");
   const includeMap = includeRoot ? createLazyIncludeMap(includeRoot) : undefined;
-  const basePathForIncludeKey =
-    includeRoot && options.file !== "-" ? sourceBasePath(options.file, includeRoot) : undefined;
-  const diagnostics = new ShaderAnalyzer().analyze(source, {
-    file: options.file,
-    includeMap,
-    basePathForIncludeKey
+  const sourceFile = includeRoot && options.file !== "-" ? sourceFilePath(options.file, includeRoot) : undefined;
+  const diagnostics = ShaderAnalyzer.analyze(source, {
+    sourceFile,
+    includeMap
   }).diagnostics;
 
   if (options.json) {
@@ -64,7 +66,7 @@ function run(options: CliOptions): void {
     for (const diagnostic of diagnostics) {
       const { line, column } = diagnostic.range.start;
       console.log(
-        `${diagnostic.file ?? options.file}:${line}:${column} ${diagnostic.severity} ${formatDiagnostic(diagnostic)}`
+        `${diagnostic.sourceFile ?? options.file}:${line}:${column} ${diagnostic.severity} ${formatDiagnostic(diagnostic)}`
       );
     }
   }
@@ -130,12 +132,12 @@ function createLazyIncludeMap(root: string): IncludeMap {
   });
 }
 
-function sourceBasePath(file: string, includeRoot: string): string | undefined {
-  const sourceDirectory = dirname(resolve(file));
-  const relativeDirectory = relative(includeRoot, sourceDirectory);
-  if (relativeDirectory.startsWith("..")) return undefined;
-  const suffix = relativeDirectory ? `${toIncludeKey(relativeDirectory)}/` : "";
-  return `shaders://root/${suffix}`;
+function sourceFilePath(file: string, includeRoot: string): string {
+  const sourceFile = relative(includeRoot, resolve(file));
+  if (sourceFile === ".." || sourceFile.startsWith(`..${sep}`)) {
+    throw new Error(`Shader file must be inside the include root '${includeRoot}'.`);
+  }
+  return toIncludeKey(sourceFile);
 }
 
 function toIncludeKey(path: string): string {
