@@ -148,7 +148,8 @@ describe("ResourceManager", () => {
       ]);
       // @ts-ignore
       const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
-      const createSpy = vi.spyOn(Shader, "create").mockReturnValue({ name: "source" } as Shader);
+      // @ts-ignore - internal loader entry under test.
+      const createSpy = vi.spyOn(Shader, "_createFromSource").mockReturnValue({ name: "source" } as Shader);
 
       try {
         await resourceManager.load("Shaders/source.shader");
@@ -156,6 +157,31 @@ describe("ResourceManager", () => {
         expect(requestSpy).toHaveBeenCalledWith(physicalPath, expect.objectContaining({ type: "text" }));
         expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/source.shader");
       } finally {
+        requestSpy.mockRestore();
+        createSpy.mockRestore();
+      }
+    });
+
+    it("keeps a base-relative shader path as loader-owned source metadata", async () => {
+      const resourceManager = engine.resourceManager;
+      const previousBaseUrl = resourceManager.baseUrl;
+      resourceManager.baseUrl = "https://cdn.ali.com/project/";
+      const source = 'Shader "Custom/BaseRelativeSource" {}';
+      // @ts-ignore
+      const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
+      // @ts-ignore - internal loader entry under test.
+      const createSpy = vi.spyOn(Shader, "_createFromSource").mockReturnValue({ name: "source" } as Shader);
+
+      try {
+        await resourceManager.load({ url: "Shaders/base-relative-source.shader", type: AssetType.Shader });
+
+        expect(requestSpy).toHaveBeenCalledWith(
+          "https://cdn.ali.com/project/Shaders/base-relative-source.shader",
+          expect.objectContaining({ type: "text" })
+        );
+        expect(createSpy).toHaveBeenCalledWith(source, undefined, "Shaders/base-relative-source.shader");
+      } finally {
+        resourceManager.baseUrl = previousBaseUrl;
         requestSpy.mockRestore();
         createSpy.mockRestore();
       }

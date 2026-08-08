@@ -222,7 +222,7 @@ describe("preprocessor condition conformance", () => {
       expect(parsePreprocessorCondition(conditionCase.expression)).to.have.property("t", conditionCase.root);
 
       const source = shader(conditionCase.expression);
-      const result = new ShaderAnalyzer().analyze(source);
+      const result = ShaderAnalyzer.analyze(source);
       expect(result.diagnostics).to.be.empty;
       const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
       const generated = new ShaderCompiler()._parseShaderPass(
@@ -339,7 +339,7 @@ describe("preprocessor condition conformance", () => {
       }
 
       const source = shader(expression);
-      const diagnostics = new ShaderAnalyzer().analyze(source).diagnostics;
+      const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
       expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
 
       const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
@@ -370,7 +370,7 @@ describe("preprocessor condition conformance", () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
       const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);
 
-      const result = new ShaderAnalyzer().analyze(shader(expression));
+      const result = ShaderAnalyzer.analyze(shader(expression));
       expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
       expect(() => ShaderMacroProcessor.evaluate(instructions, new Map())).to.throw("Invalid preprocessor expression");
     });

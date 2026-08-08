@@ -8,8 +8,6 @@ import { describe, expect, it } from "vitest";
  * asserted here; report-once is enforced in ShaderIOAnalyzer.test.ts.
  */
 
-const analyzer = new ShaderAnalyzer();
-
 function pass(body: string): string {
   return `Shader "cov" { SubShader "s" { Pass "p" {\n${body}\n} } }`;
 }
@@ -286,7 +284,7 @@ describe("diagnostic coverage map", () => {
       continue;
     }
     it(`${c.code} is produced`, () => {
-      const codes = analyzer.analyze(c.source!).diagnostics.map((d) => d.code);
+      const codes = ShaderAnalyzer.analyze(c.source!).diagnostics.map((d) => d.code);
       expect(codes, `expected ${c.code}, got [${[...new Set(codes)].join(", ")}]`).to.include(c.code);
     });
   }

@@ -856,9 +856,8 @@ describe("analyzer/codegen/driver consistency", () => {
   for (const c of cases) {
     it(c.name, () => {
       // 1) Analyzer view — structured diagnostics off the DSL.
-      const analyzer = new ShaderAnalyzer();
       const dsl = wrapDSL(c.passBody, c.vertEntry, c.fragEntry);
-      const analyzed = analyzer.analyze(dsl);
+      const analyzed = ShaderAnalyzer.analyze(dsl);
       const matching: Diagnostic | undefined = c.code ? analyzed.diagnostics.find((d) => d.code === c.code) : undefined;
 
       if (c.severity === "none") {

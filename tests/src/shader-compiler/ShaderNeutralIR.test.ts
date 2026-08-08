@@ -1,9 +1,14 @@
 import {
+  ASTNode,
+  ShaderBuiltinSemantic,
   ShaderCoreInfo,
   TreeNode,
   parseShaderPass,
   type ShaderClueIR
 } from "@galacean/engine-shader-parser/internal/analyzer";
+import { ShaderLanguage } from "@galacean/engine-core";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { describe, expect, it } from "vitest";
 
 interface NeutralBackendSnapshot {
@@ -11,11 +16,16 @@ interface NeutralBackendSnapshot {
   io: { attributes: string[]; varyings: string[]; mrt: string[] };
   sourceFiles: string[];
   conditionalMacros: string[];
+  builtinSemantics: ShaderBuiltinSemantic[];
 }
 
 function inspectNeutralIR(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): NeutralBackendSnapshot {
   const conditionalMacros = new Set<string>();
+  const builtinSemantics = new Set<ShaderBuiltinSemantic>();
   const visit = (node: TreeNode): void => {
+    if (node instanceof ASTNode.VariableIdentifier && node.builtinSemantic !== undefined) {
+      builtinSemantics.add(node.builtinSemantic);
+    }
     for (const constraint of node._branch) {
       const condition = constraint.condition;
       if (condition?.kind === "defined" || condition?.kind === "comparison") {
@@ -39,8 +49,11 @@ function inspectNeutralIR(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): NeutralBa
       varyings: coreInfo.io.varyingStructs.map((node) => node.ident!.lexeme),
       mrt: coreInfo.io.mrtStructs.map((node) => node.ident!.lexeme)
     },
-    sourceFiles: [...new Set(ir.sourceMap.map((segment) => segment.file).filter((file): file is string => !!file))],
-    conditionalMacros: [...conditionalMacros].sort()
+    sourceFiles: [
+      ...new Set(ir.sourceMap.map((segment) => segment.sourceFile).filter((file): file is string => !!file))
+    ],
+    conditionalMacros: [...conditionalMacros].sort(),
+    builtinSemantics: [...builtinSemantics].sort()
   };
 }
 
@@ -70,8 +83,95 @@ void frag(Varyings input) { gl_FragColor = input.color; }
       entries: { vertex: "vert", fragment: "frag" },
       io: { attributes: ["Attributes"], varyings: ["Varyings"], mrt: [] },
       sourceFiles: ["common.glsl"],
-      conditionalMacros: ["USE_TINT"]
+      conditionalMacros: ["USE_TINT"],
+      builtinSemantics: [ShaderBuiltinSemantic.FragmentOutput0, ShaderBuiltinSemantic.VertexPosition].sort()
     });
     expect(ir.program.shaderData).to.equal(ir.shaderData);
+  });
+
+  it("keeps a parsed pass valid after later parses and backend generations", () => {
+    const sourceA = `
+void vertA() { gl_Position = vec4(1.0); }
+void fragA() { gl_FragColor = vec4(0.25); }
+`;
+    const parsedA = parseShaderPass(sourceA, {}, new Map());
+    expect(parsedA.errors).to.have.lengthOf(0);
+    expect(Object.isFrozen(parsedA)).to.equal(true);
+    expect(Object.isFrozen(parsedA.sourceMap)).to.equal(true);
+    expect(Object.isFrozen(parsedA.errors)).to.equal(true);
+
+    const compiler = new ShaderCompiler();
+    const generatedA = compiler._generateParsedShaderPass(parsedA, "vertA", "fragA", ShaderLanguage.GLSLES300);
+    expect(generatedA).to.not.equal(undefined);
+    const snapshotA = inspectNeutralIR(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"));
+
+    const parsedB = parseShaderPass(
+      `void vertB() { gl_Position = vec4(2.0); } void fragB() { gl_FragColor = vec4(0.75); }`,
+      {},
+      new Map()
+    );
+    expect(parsedB.errors).to.have.lengthOf(0);
+    expect(compiler._generateParsedShaderPass(parsedB, "vertB", "fragB", ShaderLanguage.GLSLES100)).to.not.equal(
+      undefined
+    );
+
+    expect(inspectNeutralIR(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"))).to.deep.equal(
+      snapshotA
+    );
+    expect(compiler._generateParsedShaderPass(parsedA, "vertA", "fragA", ShaderLanguage.GLSLES300)).to.deep.equal(
+      generatedA
+    );
+  });
+
+  it("reuses the analyzer parse for codegen without changing runtime output", () => {
+    const sourceFile = "Assets/Shaders/Root.shader";
+    const includeMap = {
+      "Assets/Shaders/Branch.glsl": `
+#if defined(USE_ALTERNATE)
+  #define BRANCH_VALUE 2.0
+#else
+  #define BRANCH_VALUE 1.0
+#endif
+`
+    };
+    const source = `Shader "SharedParse" {
+  SubShader "Default" {
+    Pass "p" {
+      #include "./Branch.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(BRANCH_VALUE); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+
+    const analysisUnit = ShaderAnalyzer._analyze(source, { includeMap, sourceFile });
+    expect(analysisUnit.diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.have.lengthOf(0);
+    expect(analysisUnit.parsedPasses).to.have.lengthOf(1);
+
+    const compiler = new ShaderCompiler();
+    compiler._setIncludeMap(includeMap);
+    const analyzedPass = analysisUnit.parsedPasses[0];
+    const reused = compiler._generateParsedShaderPass(
+      analyzedPass.parsed,
+      analyzedPass.vertexEntry,
+      analyzedPass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    );
+    const precompiled = compiler._precompile(
+      source,
+      ShaderLanguage.GLSLES300,
+      "shaders://root/Assets/Shaders/Root.shader"
+    );
+    const runtimePass = precompiled.subShaders[0].passes[0];
+
+    expect(runtimePass.isUsePass).to.equal(false);
+    if (runtimePass.isUsePass) throw new Error("Expected a compiled pass.");
+    expect(reused?.vertexShaderInstructions).to.deep.equal(runtimePass.vertexShaderInstructions);
+    expect(reused?.fragmentShaderInstructions).to.deep.equal(runtimePass.fragmentShaderInstructions);
+    expect(
+      analyzedPass.parsed.sourceMap.some((segment) => segment.sourceFile === "Assets/Shaders/Branch.glsl")
+    ).to.equal(true);
   });
 });

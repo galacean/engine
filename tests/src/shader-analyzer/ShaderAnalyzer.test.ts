@@ -6,12 +6,21 @@ import { describe, expect, it } from "vitest";
 const { readFile } = server.commands;
 
 describe("ShaderAnalyzer", () => {
-  const analyzer = new ShaderAnalyzer();
+  it("keeps the static API callable without a class receiver", () => {
+    const analyze = ShaderAnalyzer.analyze;
+    const source = `Shader "detached-static" { SubShader "Default" { Pass "p" {
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;
+    } } }`;
+
+    expect(analyze(source).diagnostics).to.be.empty;
+  });
 
   it("accepts legal preprocessing-token fragments as macro replacement lists", async () => {
     for (const name of ["trailing-comma", "unbalanced-bracket", "unbalanced-paren"]) {
       const source = await readFile(`src/shader-compiler/shaders/macro-token-fragment-${name}.shader`);
-      const { diagnostics } = analyzer.analyze(source);
+      const { diagnostics } = ShaderAnalyzer.analyze(source);
       expect(
         diagnostics.filter((diagnostic) => diagnostic.severity === "error"),
         `${name} is legal until its expansion site forms an invalid shader`
@@ -27,15 +36,15 @@ describe("ShaderAnalyzer", () => {
       void frag() { gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;
     } } }`;
-    expect(new ShaderAnalyzer().analyze(unused).diagnostics).to.be.empty;
+    expect(ShaderAnalyzer.analyze(unused).diagnostics).to.be.empty;
 
     const expanded = unused.replace("vec4(1.0)", "vec4(VALUE)");
-    expect(new ShaderAnalyzer().analyze(expanded).diagnostics).to.be.empty;
+    expect(ShaderAnalyzer.analyze(expanded).diagnostics).to.be.empty;
 
     const missing = expanded.replace("float value;", "");
-    const diagnostic = new ShaderAnalyzer()
-      .analyze(missing)
-      .diagnostics.find((candidate) => candidate.code === "UnknownVariable");
+    const diagnostic = ShaderAnalyzer.analyze(missing).diagnostics.find(
+      (candidate) => candidate.code === "UnknownVariable"
+    );
     expect(diagnostic).to.be.ok;
     expect(diagnostic!.range.start.line).to.equal(5);
     expect(diagnostic!.range.start.column).to.equal(41);
@@ -49,7 +58,7 @@ describe("ShaderAnalyzer", () => {
       void frag() { gl_FragColor = vec4(COMBINED_VALUE); }
       VertexShader = vert; FragmentShader = frag;
     } } }`;
-    const diagnostics = analyzer.analyze(source).diagnostics;
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
     const unknown = diagnostics.filter((diagnostic) => diagnostic.code === "UnknownVariable");
     expect(unknown, JSON.stringify(diagnostics)).to.have.lengthOf(1);
     expect(unknown[0].message).to.include("missingValue");
@@ -69,7 +78,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     expect(diagnostics).to.be.empty;
   });
 
@@ -86,7 +95,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const err = diagnostics.find((d: Diagnostic) => d.code === "UnknownVariable");
     expect(err, "expected a warning for the undeclared identifier").to.be.ok;
     expect(err!.severity).to.equal("warning");
@@ -107,7 +116,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const undef = diagnostics.find((d: Diagnostic) => d.code === "UndefinedFunction");
     expect(undef, "expected a C0-09 undefined-function diagnostic").to.be.ok;
     // Warning — an unknown function name may resolve to a builtin from a runtime macro / conditional
@@ -131,7 +140,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef, "expected a C0-10 redefinition error").to.be.ok;
     expect(redef!.severity).to.equal("error");
@@ -153,7 +162,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef).to.be.ok;
   });
@@ -178,7 +187,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef, "macro-arm siblings must not be flagged as redefinition").to.be.undefined;
   });
@@ -197,7 +206,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const sw = diagnostics.find((d: Diagnostic) => d.code === "InvalidSwizzle");
     expect(sw, "expected a C1-01 swizzle diagnostic").to.be.ok;
     expect(sw!.message).to.include("out of range");
@@ -221,7 +230,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const mismatch = diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(mismatch, "expected a C1-02 type-mismatch diagnostic").to.be.ok;
     expect(mismatch!.message).to.include("float");
@@ -248,7 +257,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const mismatch = diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(mismatch, "int -> float has no implicit conversion — must flag AssignTypeMismatch").to.be.ok;
   });
@@ -267,7 +276,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const ret = diagnostics.find((d: Diagnostic) => d.code === "InvalidReturnType");
     expect(ret, "expected a C1-03 return-type diagnostic").to.be.ok;
     expect(ret!.message).to.include("vec3");
@@ -289,7 +298,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(source);
+    const { diagnostics } = ShaderAnalyzer.analyze(source);
     const ret = diagnostics.find((d: Diagnostic) => d.code === "InvalidReturnType");
     expect(ret, "int -> float return is not a valid implicit conversion — must flag").to.be.ok;
   });
@@ -305,7 +314,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const brokenResult = analyzer.analyze(broken);
+    const brokenResult = ShaderAnalyzer.analyze(broken);
     expect(brokenResult.diagnostics.length, "the broken shader should produce a diagnostic").to.be.greaterThan(0);
 
     // The same valid shader must be clean afterwards — proving the failed parse left no residue.
@@ -322,7 +331,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = analyzer.analyze(valid);
+    const { diagnostics } = ShaderAnalyzer.analyze(valid);
     expect(diagnostics, "a valid shader must stay clean even after a prior parse failure").to.be.empty;
   });
 
@@ -338,7 +347,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
     expect(diag, "a Pass missing FragmentShader must report MissingEntry").to.be.ok;
     expect(diag!.severity).to.equal("error");
     expect(diag!.range.start.line, "diagnostic points at the Pass").to.equal(3);
@@ -358,7 +367,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
     expect(diag, "a Pass binding both entries must not report MissingEntry").to.be.undefined;
   });
 
@@ -374,7 +383,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "if (float) must report NonBoolCondition").to.be.ok;
     expect(diag!.severity).to.equal("error");
     expect(diag!.range.start.line, "diagnostic points at the condition").to.be.greaterThan(0);
@@ -392,7 +401,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "if (bool) must not report NonBoolCondition").to.be.undefined;
   });
 
@@ -409,7 +418,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diags = analyzer.analyze(source).diagnostics;
+    const diags = ShaderAnalyzer.analyze(source).diagnostics;
     const rec = diags.find((d: Diagnostic) => d.code === "RecursiveFunction");
     expect(rec, "a self-calling function must report RecursiveFunction").to.be.ok;
     expect(rec!.severity).to.equal("error");
@@ -432,7 +441,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const rec = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
+    const rec = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
     expect(rec, "a non-recursive function must not report RecursiveFunction").to.be.undefined;
   });
 
@@ -450,7 +459,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const rec = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
+    const rec = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
     expect(rec, "calling a different overload of the same name is not recursion").to.be.undefined;
   });
 
@@ -468,7 +477,9 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstructibleReturnType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "NonConstructibleReturnType"
+    );
     expect(diag, "a function returning a sampler must report NonConstructibleReturnType").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -486,7 +497,9 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstructibleReturnType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "NonConstructibleReturnType"
+    );
     expect(diag, "a normal return type must not report NonConstructibleReturnType").to.be.undefined;
   });
 
@@ -504,7 +517,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
     expect(diag, "a struct member of an IO struct must report NestedIOStruct").to.be.ok;
     expect(diag!.severity).to.equal("error");
     expect(diag!.message).to.include("nested");
@@ -523,7 +536,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
     expect(diag, "a flat IO struct must not report NestedIOStruct").to.be.undefined;
   });
 
@@ -539,7 +552,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
     expect(diag, "integer division by constant zero must report ConstDivideByZero").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -556,7 +569,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
     expect(diag, "float division by zero yields Inf, must not report ConstDivideByZero").to.be.undefined;
   });
 
@@ -572,7 +585,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
     expect(diag, "division by a non-zero constant must not report ConstDivideByZero").to.be.undefined;
   });
 
@@ -588,7 +601,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
     expect(diag, "a shift amount >= 32 must report ShiftOutOfRange").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -605,7 +618,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
     expect(diag, "an in-range shift must not report ShiftOutOfRange").to.be.undefined;
   });
 
@@ -621,7 +634,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "indexing a vec3 at 5 must report IndexOutOfBounds").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -638,7 +651,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "an in-bounds index must not report IndexOutOfBounds").to.be.undefined;
   });
 
@@ -654,7 +667,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "indexing a 3-element array at 5 must report IndexOutOfBounds").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -671,7 +684,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "an in-bounds array index must not report IndexOutOfBounds").to.be.undefined;
   });
 
@@ -687,7 +700,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
     expect(diag, "'!' on a float must report InvalidUnaryOperand").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -704,7 +717,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
     expect(diag, "'!' on a bool must not report InvalidUnaryOperand").to.be.undefined;
   });
 
@@ -720,7 +733,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
     expect(diag, "bool + float must report InvalidBinaryOperands").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -737,7 +750,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
     expect(diag, "numeric arithmetic must not report InvalidBinaryOperands").to.be.undefined;
   });
 
@@ -753,7 +766,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
     expect(diag, "a float index must report NonIntegerIndex").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -770,7 +783,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
     expect(diag, "an integer index must not report NonIntegerIndex").to.be.undefined;
   });
 
@@ -787,7 +800,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
     expect(diag, "float(sampler) must report ConstructorArgType").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -805,7 +818,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
     expect(diag, "vec2(sampler, ...) must report ConstructorArgType").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -822,7 +835,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diags = analyzer.analyze(source).diagnostics;
+    const diags = ShaderAnalyzer.analyze(source).diagnostics;
     expect(
       diags.find((d: Diagnostic) => d.code === "ConstructorArgType"),
       "numeric ctor: no ConstructorArgType"
@@ -841,7 +854,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
     expect(diag, "vec3(1.0, 2.0) must report ConstructorArgCount").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -858,7 +871,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
     expect(diag, "splat / exact-component constructors must not report ConstructorArgCount").to.be.undefined;
   });
 
@@ -874,7 +887,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
     expect(diag, "a vertex without gl_Position must report MissingVertexPosition").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -891,7 +904,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
     expect(diag, "a vertex writing gl_Position must not report MissingVertexPosition").to.be.undefined;
   });
 
@@ -907,7 +920,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(diag, "assigning vec3 (a+b) to float must report AssignTypeMismatch").to.be.ok;
   });
 
@@ -923,7 +936,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(diag, "vec3 = vec3 + vec3 must not report AssignTypeMismatch").to.be.undefined;
   });
 
@@ -939,7 +952,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
     expect(diag, "break outside a loop must report MisplacedControlFlow").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -956,7 +969,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
     expect(diag, "break inside a loop must not report MisplacedControlFlow").to.be.undefined;
   });
 
@@ -972,7 +985,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
     expect(diag, "continue outside a loop must report MisplacedControlFlow").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -989,7 +1002,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
     expect(diag, "continue inside a loop must not report MisplacedControlFlow").to.be.undefined;
   });
 
@@ -1005,7 +1018,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
     expect(diag, "indexing a scalar must report NonIndexableType").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1022,7 +1035,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
     expect(diag, "indexing an array or a vector must not report NonIndexableType").to.be.undefined;
   });
 
@@ -1038,7 +1051,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
     expect(diag, "texture() with a non-sampler first arg must report ExpectedSampler").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1056,7 +1069,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
     expect(diag, "texture(sampler2D, uv) must not report ExpectedSampler").to.be.undefined;
   });
 
@@ -1073,7 +1086,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
     expect(diag, "an integer varying without flat must report NonFlatIntegerVarying").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1091,7 +1104,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
     expect(diag, "a flat integer varying or a float varying must not report NonFlatIntegerVarying").to.be.undefined;
   });
 
@@ -1108,7 +1121,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
     expect(diag, "const initialized from a uniform must report NonConstInitializer").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1125,7 +1138,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
     expect(diag, "const = literal / const = const must not report NonConstInitializer").to.be.undefined;
   });
 
@@ -1141,7 +1154,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
     expect(diag, "an array sized by a non-const variable must report NonConstArraySize").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1158,7 +1171,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
     expect(diag, "an array sized by a literal or a const must not report NonConstArraySize").to.be.undefined;
   });
 
@@ -1175,7 +1188,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
     expect(diag, "a macro-sized array must not report NonConstArraySize").to.be.undefined;
   });
 
@@ -1191,7 +1204,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
     expect(diag, "binding an entry name that is not a function must report EntryNotFound").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1208,7 +1221,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
     expect(diag, "valid bound entries must not report EntryNotFound").to.be.undefined;
   });
 
@@ -1224,7 +1237,9 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "DerivativeInVertexShader");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "DerivativeInVertexShader"
+    );
     expect(diag, "dFdx in a vertex entry must report DerivativeInVertexShader").to.be.ok;
     expect(diag!.severity).to.equal("error");
     expect(diag!.message).to.include("dFdx");
@@ -1242,7 +1257,9 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "DerivativeInVertexShader");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "DerivativeInVertexShader"
+    );
     expect(diag, "dFdx in the fragment stage must not report DerivativeInVertexShader").to.be.undefined;
   });
 
@@ -1258,7 +1275,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
     expect(diag, "dFdx(int) must report NonFloatDerivativeArg").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
@@ -1275,7 +1292,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
     expect(diag, "dFdx(vec2) must not report NonFloatDerivativeArg").to.be.undefined;
   });
 
@@ -1291,7 +1308,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
     expect(diag, "vec3(1.0, 2.0, 3.0, 4.0) must report ConstructorArgCount").to.be.ok;
     expect(diag!.severity).to.equal("error");
     expect(diag!.message).to.include("3 components");
@@ -1310,7 +1327,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
     expect(diag, "single-scalar splat must not report ConstructorArgCount").to.be.undefined;
   });
 
@@ -1328,7 +1345,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(diag, "a function redeclared with the same signature must report Redefinition").to.be.ok;
     expect(diag!.message).to.include("dbl");
   });
@@ -1347,7 +1364,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(diag, "a different-signature overload must not report Redefinition").to.be.undefined;
   });
 
@@ -1363,7 +1380,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "while (float) must report NonBoolCondition").to.be.ok;
   });
 
@@ -1379,7 +1396,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "for (…; int; …) must report NonBoolCondition").to.be.ok;
   });
 
@@ -1395,7 +1412,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "float ? … : … must report NonBoolCondition").to.be.ok;
   });
 
@@ -1417,7 +1434,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "bool conditions must not report NonBoolCondition").to.be.undefined;
   });
 
@@ -1434,7 +1451,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
     expect(diag, "an if without else must not guarantee return").to.be.ok;
   });
 
@@ -1451,7 +1468,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
     expect(diag, "an if/else missing a return in one arm must report MissingReturn").to.be.ok;
   });
 
@@ -1468,7 +1485,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
     expect(diag, "both arms returning must not report MissingReturn").to.be.undefined;
   });
 
@@ -1484,7 +1501,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
     expect(diag, "a vertex that only reads gl_Position must report MissingVertexPosition").to.be.ok;
   });
 
@@ -1500,7 +1517,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
     expect(diag, "component-wise writes to gl_Position must count as a write").to.be.undefined;
   });
 
@@ -1511,7 +1528,9 @@ describe("ShaderAnalyzer", () => {
     const source = `Shader "rs-drop" { SubShader "s" { Pass "p" {
       BlendState bs { NotARealProperty = true; }
     } } }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidRenderStateProperty");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "InvalidRenderStateProperty"
+    );
     expect(diag, "invalid render state property must report").to.be.ok;
     expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
   });
@@ -1520,7 +1539,9 @@ describe("ShaderAnalyzer", () => {
     const source = `Shader "rs-drop-var" { SubShader "s" { Pass "p" {
       DepthState = undefinedDepthVar;
     } } }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidRenderStateVariable");
+    const diag = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (d: Diagnostic) => d.code === "InvalidRenderStateVariable"
+    );
     expect(diag, "invalid render state variable must report").to.be.ok;
     expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
   });
@@ -1529,7 +1550,7 @@ describe("ShaderAnalyzer", () => {
     const source = `Shader "rs-recovery" { SubShader "s" { Pass "p" {
       BlendState broken { NotARealProperty = true }
     } } }`;
-    const diagnostics = analyzer.analyze(source).diagnostics;
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
     expect(diagnostics.some((diagnostic) => diagnostic.code === "InvalidRenderStateProperty")).to.equal(true);
   });
 });

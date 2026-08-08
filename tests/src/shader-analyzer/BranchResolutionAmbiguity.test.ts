@@ -8,7 +8,7 @@ ${body}
 }
 
 function diagnostics(body: string) {
-  return new ShaderAnalyzer().analyze(pass(body)).diagnostics;
+  return ShaderAnalyzer.analyze(pass(body)).diagnostics;
 }
 
 function codes(body: string): string[] {

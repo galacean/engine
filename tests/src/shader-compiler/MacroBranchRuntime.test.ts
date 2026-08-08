@@ -18,7 +18,7 @@ FragmentShader = frag;
 }
 
 function evaluate(source: string, macros: Array<[string, string]>) {
-  const result = new ShaderAnalyzer().analyze(source);
+  const result = ShaderAnalyzer.analyze(source);
   expect(result.diagnostics).to.be.empty;
   const generated = compile(new ShaderCompiler(), source);
   expect(generated).to.not.be.undefined;
@@ -244,8 +244,7 @@ float u_value;
       "gl_FragColor = vec4(u_value);"
     );
 
-    const analyzer = new ShaderAnalyzer();
-    const result = analyzer.analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
     const compiler = new ShaderCompiler();
     expect(compile(compiler, source)).to.not.be.undefined;
@@ -261,8 +260,7 @@ float u_value;
       "gl_FragColor = vec4(u_value);"
     );
 
-    const analyzer = new ShaderAnalyzer();
-    const result = analyzer.analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
     const compiler = new ShaderCompiler();
     expect(compile(compiler, source)).to.not.be.undefined;
@@ -278,8 +276,7 @@ float u_value;
       "gl_FragColor = vec4(u_value);"
     );
 
-    const analyzer = new ShaderAnalyzer();
-    const result = analyzer.analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
 
     const compiler = new ShaderCompiler();
@@ -310,7 +307,7 @@ ${assignment}
 gl_FragColor = vec4(branchValue);`
       );
 
-      const result = new ShaderAnalyzer().analyze(source);
+      const result = ShaderAnalyzer.analyze(source);
       expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
     }
   );
@@ -328,8 +325,7 @@ branchValue = 1.0;
 gl_FragColor = vec4(branchValue);`
     );
 
-    const analyzer = new ShaderAnalyzer();
-    const result = analyzer.analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
     const compiler = new ShaderCompiler();
     expect(compile(compiler, source)).to.not.be.undefined;
@@ -343,8 +339,7 @@ float branchValue;
       "gl_FragColor = vec4(branchValue);"
     );
 
-    const analyzer = new ShaderAnalyzer();
-    const result = analyzer.analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UseBeforeDeclaration");
     const compiler = new ShaderCompiler();
     expect(compile(compiler, source)).to.not.be.undefined;

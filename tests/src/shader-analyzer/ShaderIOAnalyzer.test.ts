@@ -1,14 +1,4 @@
-import {
-  AnalyzerLexer,
-  analyzerSemanticDiagnostics,
-  branchAnalysis,
-  Preprocessor,
-  ShaderClueIR,
-  ShaderCompilerUtils,
-  ShaderCoreInfo,
-  ShaderSourceParser,
-  ShaderTargetParser
-} from "@galacean/engine-shader-parser/internal/analyzer";
+import { ShaderCoreInfo, ShaderSourceParser, parseShaderPass } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
@@ -18,8 +8,6 @@ import { describe, expect, it } from "vitest";
  * correct code. Valid shaders (incl. the kind dev/2.0 compiles) must stay clean.
  */
 
-const parser = ShaderTargetParser.create(branchAnalysis, analyzerSemanticDiagnostics);
-const analyzer = new ShaderAnalyzer();
 const ioDiagnosticCodes = new Set([
   "InvalidIOStruct",
   "InvalidEntryReturnType",
@@ -33,8 +21,7 @@ const ioDiagnosticCodes = new Set([
 
 /** Run the standalone analyzer and return IO diagnostic codes with multiplicity. */
 function ioCodes(source: string): string[] {
-  return analyzer
-    .analyze(source)
+  return ShaderAnalyzer.analyze(source)
     .diagnostics.map((diagnostic) => diagnostic.code)
     .filter((code) => ioDiagnosticCodes.has(code))
     .sort();
@@ -197,18 +184,10 @@ describe("ShaderIOAnalyzer (expectation-driven)", () => {
 
 /** Analyze one pass and return its `io` result — used to inspect struct/prop arrays post-conflict. */
 function analyzeSinglePass(source: string): { io: any; codes: string[] } {
-  ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
   const shaderSource = ShaderSourceParser.parse(source);
   const pass = shaderSource.subShaders[0].passes.find((p) => !p.isUsePass)!;
-  const macroDefineList = {};
-  const content = Preprocessor.parse(pass.contents, "", {}, new Map());
-  const lexer = new AnalyzerLexer(content, macroDefineList);
-  const tokens = lexer.tokenize();
-  ShaderCompilerUtils.processingPassText = content;
-  const program = parser.parse(tokens, macroDefineList)!;
-  const ir = new ShaderClueIR(program, content);
-  const { io } = ShaderCoreInfo.create(ir, pass.vertexEntry, pass.fragmentEntry);
-  ShaderCompilerUtils.processingPassText = undefined;
+  const parsed = parseShaderPass(pass.contents, {}, new Map());
+  const { io } = ShaderCoreInfo.create(parsed.ir!, pass.vertexEntry, pass.fragmentEntry);
   return { io, codes: ioCodes(source) };
 }
 

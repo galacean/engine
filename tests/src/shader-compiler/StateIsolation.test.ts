@@ -1,9 +1,7 @@
 /**
- * Guards the shared-mutable-state risk: the compiler reuses a singleton parser + VisitorContext +
- * static scratch + the `processingPassText` global, all reset per compile. A missed reset (or a
- * reset skipped by an early-return / throw) leaks state across shaders. These tests compile
- * distinct shaders interleaved and after a throwing compile, asserting each result is unaffected
- * by what was compiled before.
+ * Guards request isolation across parser and backend sessions. These tests compile distinct
+ * shaders interleaved and after a throwing compile, asserting each result is unaffected by what
+ * was compiled before.
  */
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -21,7 +19,7 @@ struct V2 { vec4 a; vec4 b; };
 V2 vert(Attr2 attr) { V2 o; o.a = vec4(attr.POSITION, 1.0); o.b = vec4(attr.UV, 0.0, 1.0); return o; }
 void frag(V2 i) { gl_FragColor = i.a + i.b; }`;
 
-// Missing entries throw during generation, then the compiler logs, restores pass text, and returns undefined.
+// Missing entries throw during generation; the compiler logs and returns undefined.
 const broken = `struct Attributes { vec3 POSITION; }; void notAnEntry() {}`;
 
 function compile(c: ShaderCompiler, src: string) {

@@ -182,10 +182,23 @@ describe("shader playground", () => {
       expect(output!.textContent).not.to.contain("NonConstArraySize");
     }
 
-    for (const label of guiState.options.filter((option) => !option.startsWith("宏") && option.includes(" / "))) {
+    for (const label of guiState.options.filter(
+      (option) => !option.startsWith("宏") && !option.startsWith("Include / ") && option.includes(" / ")
+    )) {
       const diagnosticType = label.slice(label.lastIndexOf(" / ") + 3);
       guiState.onChange!(label);
       expect(output!.textContent, label).to.contain(diagnosticType);
+    }
+
+    for (const [label, sourceFile] of [
+      ["Include / 项目相对 sourceFile", "Assets/Shaders/Broken.glsl"],
+      ["Include / 绝对 sourceFile URL", "file:///project/Assets/Shaders/Broken.glsl"]
+    ] as const) {
+      expect(guiState.options).to.include(label);
+      guiState.onChange!(label);
+      expect(editor!.value).to.contain('#include "./Broken.glsl"');
+      expect(output!.textContent, label).to.contain(sourceFile);
+      expect(output!.textContent, label).to.contain("Redefinition");
     }
 
     guiState.onChange!("宏分支 / 非法 #elif 表达式");

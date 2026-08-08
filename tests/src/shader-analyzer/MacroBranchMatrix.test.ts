@@ -21,7 +21,7 @@ ${fragmentBody}
 }
 
 function compile(source: string, includeMap?: IncludeMap) {
-  const result = new ShaderAnalyzer().analyze(source, includeMap ? { includeMap } : undefined);
+  const result = ShaderAnalyzer.analyze(source, includeMap ? { includeMap } : undefined);
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
   const passSource = ShaderSourceParser.parse(source).subShaders[0].passes[0];
   const compiler = new ShaderCompiler();

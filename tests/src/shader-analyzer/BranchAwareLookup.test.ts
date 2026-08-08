@@ -8,8 +8,6 @@ import {
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import { describe, expect, it } from "vitest";
 
-const analyzer = new ShaderAnalyzer();
-
 const HEADER = `Shader "cov" { SubShader "s" { Pass "p" {\n`;
 const FOOTER = `\n} } }`;
 
@@ -18,13 +16,13 @@ function pass(body: string): string {
 }
 
 function errorsOf(source: string, code?: string) {
-  const { diagnostics } = analyzer.analyze(source);
+  const { diagnostics } = ShaderAnalyzer.analyze(source);
   const errs = diagnostics.filter((d) => d.severity === "error");
   return code ? errs.filter((d) => d.code === code) : errs;
 }
 
 function warningsOf(source: string, code?: string) {
-  const { diagnostics } = analyzer.analyze(source);
+  const { diagnostics } = ShaderAnalyzer.analyze(source);
   const warnings = diagnostics.filter((diagnostic) => diagnostic.severity === "warning");
   return code ? warnings.filter((diagnostic) => diagnostic.code === code) : warnings;
 }
@@ -198,7 +196,7 @@ describe("branch-aware SymbolTable lookup", () => {
       void vert() { gl_Position = vec4(0.0); }
       VertexShader = vert; FragmentShader = frag;`
     );
-    const result = analyzer.analyze(src);
+    const result = ShaderAnalyzer.analyze(src);
     expect(result.diagnostics.filter((diagnostic) => diagnostic.code === "UseBeforeDeclaration")).to.have.lengthOf(1);
   });
 
@@ -430,7 +428,7 @@ describe("branch-aware SymbolTable lookup", () => {
   });
 
   it("keeps outer constraints when a declaration is inside a canonical include guard", () => {
-    const result = analyzer.analyze(
+    const result = ShaderAnalyzer.analyze(
       pass(
         `#ifdef FEATURE
           #ifndef DATA_INCLUDED
@@ -480,7 +478,7 @@ describe("branch-aware SymbolTable lookup", () => {
   });
 
   it("rejects a struct type that is missing on a macro path", () => {
-    const result = analyzer.analyze(
+    const result = ShaderAnalyzer.analyze(
       pass(
         `#ifdef A
           struct Data { float value; };
@@ -503,14 +501,14 @@ describe("branch-aware SymbolTable lookup", () => {
       void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`);
-    const diagnostics = analyzer.analyze(src).diagnostics;
+    const diagnostics = ShaderAnalyzer.analyze(src).diagnostics;
     const unknownType = diagnostics.find((diagnostic) => diagnostic.code === "UnknownType");
     expect(unknownType?.severity).to.equal("warning");
     expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
   });
 
   it("accepts a struct type declared by every arm of an exhaustive macro chain", () => {
-    const result = analyzer.analyze(
+    const result = ShaderAnalyzer.analyze(
       pass(
         `#ifdef A
           struct Data { float value; };
@@ -533,7 +531,7 @@ describe("branch-aware SymbolTable lookup", () => {
     ["function return", "Data helper() { return; }"],
     ["struct member", "struct Container { Data member; };"]
   ])("rejects an uncovered struct type in a %s declaration", (_name, declaration) => {
-    const result = analyzer.analyze(
+    const result = ShaderAnalyzer.analyze(
       pass(
         `#ifdef A
           struct Data { float value; };

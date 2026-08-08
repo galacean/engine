@@ -5,13 +5,11 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
-const analyzer = new ShaderAnalyzer();
-
 function pass(body: string): string {
   return `Shader "s" { SubShader "s" { Pass "p" {\n${body}\n} } }`;
 }
 function codes(src: string): string[] {
-  return analyzer.analyze(src).diagnostics.map((d) => d.code);
+  return ShaderAnalyzer.analyze(src).diagnostics.map((d) => d.code);
 }
 
 describe("diagnostic smoke", () => {
@@ -23,7 +21,7 @@ describe("diagnostic smoke", () => {
       void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert; FragmentShader = frag;`);
-    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
+    const d = ShaderAnalyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
     expect(d).toBeDefined();
     expect(d!.severity).to.equal("error");
   });
@@ -105,14 +103,14 @@ describe("diagnostic smoke", () => {
       void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(u_a); }
       VertexShader = vert; FragmentShader = frag;`);
-    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
+    const d = ShaderAnalyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
     expect(d).toBeDefined();
     expect(d!.severity).to.equal("error");
   });
 
   it("RenderState error message states property will not be applied", () => {
     const src = pass(`BlendState bs { NotARealProperty = true; }`);
-    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "InvalidRenderStateProperty");
+    const d = ShaderAnalyzer.analyze(src).diagnostics.find((x) => x.code === "InvalidRenderStateProperty");
     expect(d).toBeDefined();
     expect(d!.message).toMatch(/not\s+be\s+applied|will\s+not/i);
   });

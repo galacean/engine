@@ -17,7 +17,7 @@ function shader(declarations: string, fragmentExpression = "vec4(0.0)"): string 
 }
 
 function analyze(source: string, includeMap?: IncludeMap) {
-  return new ShaderAnalyzer().analyze(source, includeMap ? { includeMap } : undefined);
+  return ShaderAnalyzer.analyze(source, includeMap ? { includeMap } : undefined);
 }
 
 function redefinitions(source: string, includeMap?: IncludeMap) {

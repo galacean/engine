@@ -22,7 +22,7 @@ FragmentShader = frag;
 }
 
 function codes(source: string): string[] {
-  return new ShaderAnalyzer().analyze(source).diagnostics.map((diagnostic) => diagnostic.code);
+  return ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code);
 }
 
 describe("shader analyzer regressions", () => {
@@ -197,39 +197,79 @@ float second(vec2 value) { return first(value.x); }`)
   });
 
   it("reports missing includes as preprocessing errors", () => {
-    const result = new ShaderAnalyzer().analyze(shader('#include "missing.glsl"'));
+    const result = ShaderAnalyzer.analyze(shader('#include "missing.glsl"'));
     expect(result.diagnostics.some((diagnostic) => diagnostic.severity === "error")).to.equal(true);
     expect(result.diagnostics[0].message).to.include("was not found");
   });
 
+  it("accepts an empty registered include", () => {
+    const result = ShaderAnalyzer.analyze(shader('#include "empty.glsl"'), {
+      includeMap: { "empty.glsl": "" }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
   it("resolves relative includes from the supplied shader base path", () => {
-    const result = new ShaderAnalyzer().analyze(shader('#include "./common.glsl"'), {
-      basePathForIncludeKey: "shaders://root/folder/main.shader",
+    const result = ShaderAnalyzer.analyze(shader('#include "./common.glsl"'), {
+      sourceFile: "folder/main.shader",
       includeMap: { "folder/common.glsl": "float includedValue;" }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
+  it("resolves and maps relative includes from an absolute source URL", () => {
+    const sourceFile = "file:///workspace/Assets/Shaders/main.shader";
+    const includedFile = "file:///workspace/Assets/Shaders/common.glsl";
+    const included = "float includedValue;\nfloat includedValue;";
+    const result = ShaderAnalyzer.analyze(shader('#include "./common.glsl"'), {
+      sourceFile,
+      includeMap: { [includedFile]: included }
+    });
+    const diagnostic = result.diagnostics.find((candidate) => candidate.code === "Redefinition");
+    expect(diagnostic).to.be.ok;
+    expect(diagnostic!.sourceFile).to.equal(includedFile);
+    expect(diagnostic!.relatedSource).to.equal(included);
+  });
+
+  it("resolves nested relative includes from absolute source URLs", () => {
+    const result = ShaderAnalyzer.analyze(shader('#include "./chunks/common.glsl"'), {
+      sourceFile: "file:///workspace/Assets/Shaders/main.shader",
+      includeMap: {
+        "file:///workspace/Assets/Shaders/chunks/common.glsl": '#include "../values.glsl"',
+        "file:///workspace/Assets/Shaders/values.glsl": "float includedValue;"
+      }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
+  it("normalizes a project-root source path before resolving relative includes", () => {
+    const result = ShaderAnalyzer.analyze(shader('#include "./common.glsl"'), {
+      sourceFile: "/Assets/Shaders/main.shader",
+      includeMap: { "Assets/Shaders/common.glsl": "float includedValue;" }
     });
     expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
   });
 
   it("maps included diagnostics to the include source", () => {
     const included = "float includedValue;\nfloat includedValue;";
-    const result = new ShaderAnalyzer().analyze(shader('#include "folder/common.glsl"'), {
-      file: "main.shader",
+    const result = ShaderAnalyzer.analyze(shader('#include "folder/common.glsl"'), {
+      sourceFile: "main.shader",
       includeMap: { "folder/common.glsl": included }
     });
     const diagnostic = result.diagnostics.find((candidate) => candidate.code === "Redefinition");
     expect(diagnostic).to.be.ok;
-    expect(diagnostic!.file).to.equal("folder/common.glsl");
+    expect(diagnostic!.sourceFile).to.equal("folder/common.glsl");
     expect(diagnostic!.relatedSource).to.equal(included);
     expect(diagnostic!.range.start.line).to.equal(2);
     expect(diagnostic!.range.start.column).to.equal(7);
   });
 
   it("does not retain include inputs between analyses", () => {
-    const analyzer = new ShaderAnalyzer();
     const source = shader('#include "shared.glsl"');
-    expect(analyzer.analyze(source, { includeMap: { "shared.glsl": "float includedValue;" } }).diagnostics).to.be.empty;
+    expect(ShaderAnalyzer.analyze(source, { includeMap: { "shared.glsl": "float includedValue;" } }).diagnostics).to.be
+      .empty;
 
-    const diagnostics = analyzer.analyze(source).diagnostics;
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
     expect(diagnostics.some((diagnostic) => diagnostic.message.includes("was not found"))).to.equal(true);
   });
 
@@ -303,8 +343,8 @@ float second(vec2 value) { return first(value.x); }`)
     };
     const basePath = "shaders://root/left/main.shader";
     const runtime = Preprocessor.parseWithErrors(source, basePath, includeMap, new Map());
-    const analyzer = parseShaderPass(source, includeMap, new Map(), basePath);
-    expect(analyzer.passText).to.equal(runtime.content);
+    const analyzer = parseShaderPass(source, includeMap, new Map(), "left/main.shader");
+    expect(analyzer.expandedSource).to.equal(runtime.content);
   });
 
   it("formats source-parser positions that are not pooled ShaderPosition instances", () => {
@@ -404,7 +444,7 @@ FragmentShader = frag;
   });
 
   it("does not let a dead macro branch satisfy the vertex-position requirement", () => {
-    const result = new ShaderAnalyzer().analyze(`Shader "dead-position" { SubShader "s" { Pass "p" {
+    const result = ShaderAnalyzer.analyze(`Shader "dead-position" { SubShader "s" { Pass "p" {
 struct Attributes { vec3 POSITION; };
 void vert(Attributes attr) {
 #if 0
@@ -419,7 +459,7 @@ FragmentShader = frag;
   });
 
   it("does not treat a dead gl_FragColor write as an MRT conflict", () => {
-    const result = new ShaderAnalyzer().analyze(`Shader "dead-frag-color" { SubShader "s" { Pass "p" {
+    const result = ShaderAnalyzer.analyze(`Shader "dead-frag-color" { SubShader "s" { Pass "p" {
 struct MRT { vec4 color; };
 void vert() { gl_Position = vec4(0.0); }
 MRT frag() {
@@ -453,7 +493,7 @@ void frag(Varyings varyingInput) {
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    const result = new ShaderAnalyzer().analyze(source);
+    const result = ShaderAnalyzer.analyze(source);
     expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
     const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
     const generated = new ShaderCompiler()._parseShaderPass(

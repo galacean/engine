@@ -19,8 +19,7 @@ describe("built-in shader analyze() smoke", () => {
 
   for (const shader of shipping) {
     it(`${shader.path} — diagnostics match the reviewed contract`, () => {
-      const analyzer = new ShaderAnalyzer();
-      const { diagnostics } = analyzer.analyze(shader.source, { includeMap: ShaderFactory.includeMap });
+      const { diagnostics } = ShaderAnalyzer.analyze(shader.source, { includeMap: ShaderFactory.includeMap });
       const errors = diagnostics.filter((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error);
       expect(errors).to.deep.equal([]);
       expect(diagnostics.some((diagnostic) => diagnostic.code === "AmbiguousMacroBranchResolution")).to.equal(false);

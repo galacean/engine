@@ -16,7 +16,7 @@ ${passWithIssue}
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    const diagnostics = new ShaderAnalyzer().analyze(source).diagnostics;
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
     expect(diagnostics.some((diagnostic) => diagnostic.code === "UndeclaredStructMember")).to.be.true;
 
     const output = new ShaderCompiler()._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
@@ -56,7 +56,7 @@ ${pass}
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    expect(new ShaderAnalyzer().analyze(source).diagnostics).to.have.lengthOf(0);
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.have.lengthOf(0);
   });
 
   it("still rejects a missing include as a preprocessing failure", () => {
