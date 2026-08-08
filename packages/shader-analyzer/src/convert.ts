@@ -25,7 +25,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
     severity,
     code,
     message: error.message,
-    file: error.file,
+    sourceFile: error.file,
     range: gSErrorLocationToRange(error.location),
     relatedSource: error.source || undefined
   };

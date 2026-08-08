@@ -5,6 +5,7 @@ import {
   isBranchReachable,
   ShaderClueIR,
   ShaderCoreInfo,
+  ShaderBuiltinSemantic,
   TreeNode,
   type ShaderEntryPointInfo,
   type ShaderRange
@@ -22,7 +23,7 @@ export class ShaderAnalysisInfo {
   readonly glFragDataReferences: ShaderRange[] = [];
 
   private readonly _callGraph = new Map<ASTNode.FunctionDefinition, Set<ASTNode.FunctionDefinition>>();
-  private readonly _writes = new Map<ASTNode.FunctionDefinition, Set<string>>();
+  private readonly _writes = new Map<ASTNode.FunctionDefinition, Set<string | ShaderBuiltinSemantic>>();
   private readonly _functionsByName = new Map<string, ASTNode.FunctionDefinition[]>();
 
   /**
@@ -56,14 +57,14 @@ export class ShaderAnalysisInfo {
   }
 
   /**
-   * Checks whether an entry or a reachable helper writes a named value.
+   * Checks whether an entry or a reachable helper writes a source identifier or builtin semantic.
    * @param entry - Entry point whose call graph is inspected.
-   * @param name - Leftmost identifier of the assignment target.
-   * @returns Whether a reachable assignment writes the identifier.
+   * @param target - Leftmost source identifier or builtin semantic of the assignment target.
+   * @returns Whether a reachable assignment writes the target.
    */
-  hasReachableWrite(entry: ShaderEntryPointInfo, name: string): boolean {
+  hasReachableWrite(entry: ShaderEntryPointInfo, target: string | ShaderBuiltinSemantic): boolean {
     for (const functionNode of this.reachableFunctions(entry)) {
-      if (this._writes.get(functionNode)?.has(name)) return true;
+      if (this._writes.get(functionNode)?.has(target)) return true;
     }
     return false;
   }
@@ -108,19 +109,19 @@ export class ShaderAnalysisInfo {
     if (!isBranchReachable(node._branch) || node instanceof ASTNode.MacroDefine) return;
     if (node instanceof ASTNode.FunctionCallGeneric) this._recordCall(functionNode, node);
     if (node instanceof ASTNode.VariableIdentifier) {
-      const child = node.children[0];
-      if (child instanceof BaseToken) {
-        if (child.lexeme === "gl_FragColor") this.glFragColorReferences.push(node.location);
-        else if (child.lexeme === "gl_FragData") this.glFragDataReferences.push(node.location);
+      if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
+        this.glFragColorReferences.push(node.location);
+      } else if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
+        this.glFragDataReferences.push(node.location);
       }
     }
     if (node instanceof ASTNode.AssignmentExpression && node.children.length === 3) {
       const lhs = node.children[0];
       if (lhs instanceof TreeNode) {
-        const name = leftmostIdentifier(lhs);
-        if (name) {
-          const writes = this._writes.get(functionNode) ?? new Set<string>();
-          writes.add(name);
+        const target = leftmostIdentifierTarget(lhs);
+        if (target !== undefined) {
+          const writes = this._writes.get(functionNode) ?? new Set<string | ShaderBuiltinSemantic>();
+          writes.add(target);
           this._writes.set(functionNode, writes);
         }
       }
@@ -140,10 +141,11 @@ export class ShaderAnalysisInfo {
 
 const emptyFunctions: ReadonlySet<ASTNode.FunctionDefinition> = new Set();
 
-function leftmostIdentifier(node: TreeNode): string | undefined {
+function leftmostIdentifierTarget(node: TreeNode): string | ShaderBuiltinSemantic | undefined {
   let current = node;
   while (true) {
     if (current instanceof ASTNode.VariableIdentifier) {
+      if (current.builtinSemantic !== undefined) return current.builtinSemantic;
       const child = current.children[0];
       return child instanceof BaseToken ? child.lexeme : undefined;
     }

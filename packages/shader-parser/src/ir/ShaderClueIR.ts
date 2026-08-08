@@ -14,8 +14,8 @@ export interface ShaderSourceMapSegment {
   readonly sourceStart: number;
   /** Original source chunk. */
   readonly source: string;
-  /** Include key when the segment came from an included chunk. */
-  readonly file?: string;
+  /** Canonical source path represented by this segment. */
+  readonly sourceFile?: string;
 }
 
 /**

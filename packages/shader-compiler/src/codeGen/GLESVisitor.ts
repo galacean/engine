@@ -5,11 +5,10 @@ import { Keyword } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { NodeChild } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
-import { ESymbolType, FnSymbol, SymbolInfo } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType } from "@galacean/engine-shader-parser/internal";
 import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
-import { VisitorContext } from "./VisitorContext";
 import type { ShaderBackend } from "../ShaderBackend";
 
 /**
@@ -17,13 +16,12 @@ import type { ShaderBackend } from "../ShaderBackend";
  */
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend {
   private _globalCodeArray: ICodeSegment[] = [];
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _serializedGlobalKey = new Set();
+  private readonly _serializedGlobalKeys = new Set<string>();
 
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
+    this._serializedGlobalKeys.clear();
   }
 
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
@@ -33,12 +31,12 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
-    VisitorContext.reset();
+    this.context.reset();
     this.reset();
 
     const node = ir.program;
     const shaderData = node.shaderData;
-    const context = VisitorContext.context;
+    const context = this.context;
     context._passSymbolTable = shaderData.symbolTable;
 
     const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
@@ -67,7 +65,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     data: ShaderData,
     outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.VERTEX;
     context.stageEntry = entryInfo.name;
 
@@ -77,7 +75,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entryInfo.name, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
@@ -90,7 +88,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       .map((item) => item.text)
       .join("\n");
 
-    VisitorContext.context.reset(false);
+    context.reset(false);
     this.reset();
 
     return globalCode;
@@ -101,7 +99,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     data: ShaderData,
     outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.FRAGMENT;
     context.stageEntry = entryInfo.name;
 
@@ -109,7 +107,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     entryInfo.functions.forEach((fnSymbol) => {
       const { returnStatement } = fnSymbol.astNode;
       if (returnStatement) {
-        returnStatement.isFragReturnStatement = true;
+        context.fragmentReturns.add(returnStatement);
       }
     });
 
@@ -118,7 +116,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entryInfo.name, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
@@ -163,14 +161,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
+    const context = this.context;
     const { _referencedGlobals } = context;
     const lastLength = Object.keys(_referencedGlobals).length;
     if (lastLength === 0) return;
 
     for (const ident in _referencedGlobals) {
-      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
-      GLESVisitor._serializedGlobalKey.add(ident);
+      if (this._serializedGlobalKeys.has(ident)) continue;
+      this._serializedGlobalKeys.add(ident);
 
       const symbols = _referencedGlobals[ident];
       for (let i = 0, n = symbols.length; i < n; i++) {
@@ -203,7 +201,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   }
 
   private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
+    const context = this.context;
     const referencedGlobals = context._referencedGlobals;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
@@ -260,23 +258,23 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           index: child.location.start.index
         });
       } else if (child instanceof ASTNode.FunctionDefinition) {
-        if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
+        if (this.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol`
+            text: this.getCachedCode(child) ?? "",
             index: child.location.start.index
           });
         }
       } else if (child instanceof ASTNode.StructSpecifier) {
-        const context = VisitorContext.context;
+        const context = this.context;
         const stage = context.stage;
         if (
-          VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
+          context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
           (stage === EShaderStage.VERTEX
             ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
             : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
         ) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol` or `_getCustomStruct`
+            text: this.getCachedCode(child) ?? "",
             index: child.location.start.index
           });
         }
@@ -284,9 +282,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         const variableDeclarations = child.variableDeclarations;
         for (let i = 0; i < variableDeclarations.length; i++) {
           const variableDeclaration = variableDeclarations[i];
-          if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
+          if (this.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
             out.push({
-              text: variableDeclaration.getCache() + ";", // code has generated in `_getGlobalSymbol`
+              text: `${this.getCachedCode(variableDeclaration) ?? ""};`,
               index: variableDeclaration.location.start.index
             });
           }

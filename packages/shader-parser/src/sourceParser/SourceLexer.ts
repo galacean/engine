@@ -141,7 +141,7 @@ export default class SourceLexer extends BaseLexer {
       const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
       if (symbolKeyword !== undefined) {
         this.advance(1);
-        const token = BaseToken.pool.get();
+        const token = new BaseToken();
         token.set(symbolKeyword, currentChar, start);
         return token;
       }
@@ -185,7 +185,7 @@ export default class SourceLexer extends BaseLexer {
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = SourceLexer._keywordLexemeTable[lexeme] ?? ETokenType.ID;
     const range = ShaderCompilerUtils.createRange(start, end);
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     token.set(tokenType, lexeme, range);
     return token;
   }

@@ -11,7 +11,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.gs_shader_program,
     [[NoneTerminal.global_declaration], [NoneTerminal.gs_shader_program, NoneTerminal.global_declaration]],
-    ASTNode.GLShaderProgram.pool
+    ASTNode.GLShaderProgram
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -26,7 +26,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_define],
       [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
-    ASTNode.GlobalDeclaration.pool
+    ASTNode.GlobalDeclaration
   ),
 
   // Expression-style `#define` — lexer emits either:
@@ -54,13 +54,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         Keyword.MACRO_DEFINE_END
       ]
     ],
-    ASTNode.MacroDefine.pool
+    ASTNode.MacroDefine
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_call_symbol,
     [[Keyword.MACRO_CALL]],
-    ASTNode.MacroCallSymbol.pool
+    ASTNode.MacroCallSymbol
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -74,7 +74,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.RIGHT_PAREN
       ]
     ],
-    ASTNode.MacroCallFunction.pool
+    ASTNode.MacroCallFunction
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -83,7 +83,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.MACRO_UNDEF, ETokenType.ID],
       [Keyword.MACRO_UNDEF, Keyword.MACRO_CALL]
     ],
-    ASTNode.MacroUndef.pool
+    ASTNode.MacroUndef
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -95,31 +95,31 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.MACRO_IFDEF, NoneTerminal.macro_call_symbol],
       [Keyword.MACRO_IFNDEF, NoneTerminal.macro_call_symbol]
     ],
-    ASTNode.MacroPushContext.pool
+    ASTNode.MacroPushContext
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_pop_context,
     [[Keyword.MACRO_ENDIF]],
-    ASTNode.MacroPopContext.pool
+    ASTNode.MacroPopContext
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_elif_expression,
     [[Keyword.MACRO_ELIF, Keyword.MACRO_CONDITIONAL_EXPRESSION]],
-    ASTNode.MacroElifExpression.pool
+    ASTNode.MacroElifExpression
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_else_expression,
     [[Keyword.MACRO_ELSE]],
-    ASTNode.MacroElseExpression.pool
+    ASTNode.MacroElseExpression
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.global_macro_declaration,
     [[NoneTerminal.global_declaration], [NoneTerminal.global_macro_declaration, NoneTerminal.global_declaration]],
-    ASTNode.GlobalMacroDeclaration.pool
+    ASTNode.GlobalMacroDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -128,7 +128,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_push_context, NoneTerminal.global_macro_declaration, NoneTerminal.global_macro_branch],
       [NoneTerminal.macro_push_context, NoneTerminal.global_macro_branch]
     ],
-    ASTNode.GlobalMacroIfStatement.pool
+    ASTNode.GlobalMacroIfStatement
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -140,7 +140,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_elif_expression, NoneTerminal.global_macro_branch],
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
-    ASTNode.GlobalMacroBranch.pool
+    ASTNode.GlobalMacroBranch
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -150,7 +150,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier],
       [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
-    ASTNode.VariableDeclaration.pool
+    ASTNode.VariableDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -160,7 +160,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID],
       [NoneTerminal.variable_declaration_list, ETokenType.COMMA, ETokenType.ID, NoneTerminal.array_specifier]
     ],
-    ASTNode.VariableDeclarationList.pool
+    ASTNode.VariableDeclarationList
   ),
 
   ...GrammarUtils.createProductionWithOptions(NoneTerminal.variable_declaration_statement, [
@@ -212,7 +212,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.U_SAMPLER_CUBE],
       [Keyword.U_SAMPLER2D_ARRAY]
     ],
-    ASTNode.ExtBuiltinTypeSpecifierNonArray.pool
+    ASTNode.ExtBuiltinTypeSpecifierNonArray
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -228,13 +228,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       // macro calls.
       [NoneTerminal.macro_call_symbol]
     ],
-    ASTNode.TypeSpecifierNonArray.pool
+    ASTNode.TypeSpecifierNonArray
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.fully_specified_type,
     [[NoneTerminal.type_specifier], [NoneTerminal.type_qualifier, NoneTerminal.type_specifier]],
-    ASTNode.FullySpecifiedType.pool
+    ASTNode.FullySpecifiedType
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -243,13 +243,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.type_specifier_nonarray],
       [NoneTerminal.ext_builtin_type_specifier_nonarray, NoneTerminal.array_specifier]
     ],
-    ASTNode.TypeSpecifier.pool
+    ASTNode.TypeSpecifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.type_qualifier,
     [[NoneTerminal.single_type_qualifier], [NoneTerminal.type_qualifier, NoneTerminal.single_type_qualifier]],
-    ASTNode.TypeQualifier.pool
+    ASTNode.TypeQualifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -261,31 +261,31 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.invariant_qualifier],
       [Keyword.PRECISE]
     ],
-    ASTNode.SingleTypeQualifier.pool
+    ASTNode.SingleTypeQualifier
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.storage_qualifier,
     [[Keyword.CONST], [Keyword.IN], [Keyword.INOUT], [Keyword.OUT], [Keyword.CENTROID]],
-    ASTNode.StorageQualifier.pool
+    ASTNode.StorageQualifier
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.interpolation_qualifier,
     [[Keyword.SMOOTH], [Keyword.FLAT]],
-    ASTNode.InterpolationQualifier.pool
+    ASTNode.InterpolationQualifier
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.invariant_qualifier,
     [[Keyword.INVARIANT]],
-    ASTNode.InvariantQualifier.pool
+    ASTNode.InvariantQualifier
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.precision_qualifier,
     [[Keyword.HIGHP], [Keyword.MEDIUMP], [Keyword.LOWP]],
-    ASTNode.PrecisionQualifier.pool
+    ASTNode.PrecisionQualifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -307,13 +307,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.SEMICOLON
       ]
     ],
-    ASTNode.StructSpecifier.pool
+    ASTNode.StructSpecifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.struct_declaration_list,
     [[NoneTerminal.struct_declaration], [NoneTerminal.struct_declaration_list, NoneTerminal.struct_declaration]],
-    ASTNode.StructDeclarationList.pool
+    ASTNode.StructDeclarationList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -334,7 +334,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ],
       [NoneTerminal.macro_struct_declaration]
     ],
-    ASTNode.StructDeclaration.pool
+    ASTNode.StructDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -343,7 +343,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_push_context, NoneTerminal.struct_declaration_list, NoneTerminal.macro_struct_branch],
       [NoneTerminal.macro_push_context, NoneTerminal.macro_struct_branch]
     ],
-    ASTNode.MacroStructDeclaration.pool
+    ASTNode.MacroStructDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -355,7 +355,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_elif_expression, NoneTerminal.macro_struct_branch],
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
-    ASTNode.MacroStructBranch.pool
+    ASTNode.MacroStructBranch
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -370,7 +370,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.RIGHT_PAREN
       ]
     ],
-    ASTNode.LayoutQualifier.pool
+    ASTNode.LayoutQualifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -379,13 +379,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.struct_declarator],
       [NoneTerminal.struct_declarator_list, ETokenType.COMMA, NoneTerminal.struct_declarator]
     ],
-    ASTNode.StructDeclaratorList.pool
+    ASTNode.StructDeclaratorList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.struct_declarator,
     [[ETokenType.ID], [ETokenType.ID, NoneTerminal.array_specifier]],
-    ASTNode.StructDeclarator.pool
+    ASTNode.StructDeclarator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -394,13 +394,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.LEFT_BRACKET, ETokenType.RIGHT_BRACKET],
       [ETokenType.LEFT_BRACKET, NoneTerminal.integer_constant_expression, ETokenType.RIGHT_BRACKET]
     ],
-    ASTNode.ArraySpecifier.pool
+    ASTNode.ArraySpecifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.integer_constant_expression_operator,
     [[ETokenType.PLUS], [ETokenType.DASH], [ETokenType.STAR], [ETokenType.SLASH], [ETokenType.PERCENT]],
-    ASTNode.IntegerConstantExpressionOperator.pool
+    ASTNode.IntegerConstantExpressionOperator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -419,7 +419,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.variable_identifier
       ]
     ],
-    ASTNode.IntegerConstantExpression.pool
+    ASTNode.IntegerConstantExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -434,7 +434,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.assignment_expression
       ]
     ],
-    ASTNode.ConditionalExpression.pool
+    ASTNode.ConditionalExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -443,7 +443,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.logical_xor_expression],
       [NoneTerminal.logical_or_expression, ETokenType.OR_OP, NoneTerminal.logical_xor_expression]
     ],
-    ASTNode.LogicalOrExpression.pool
+    ASTNode.LogicalOrExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -452,7 +452,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.logical_and_expression],
       [NoneTerminal.logical_xor_expression, ETokenType.XOR_OP, NoneTerminal.logical_and_expression]
     ],
-    ASTNode.LogicalXorExpression.pool
+    ASTNode.LogicalXorExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -461,7 +461,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.inclusive_or_expression],
       [NoneTerminal.logical_and_expression, ETokenType.AND_OP, NoneTerminal.inclusive_or_expression]
     ],
-    ASTNode.LogicalAndExpression.pool
+    ASTNode.LogicalAndExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -470,7 +470,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.exclusive_or_expression],
       [NoneTerminal.inclusive_or_expression, ETokenType.VERTICAL_BAR, NoneTerminal.exclusive_or_expression]
     ],
-    ASTNode.InclusiveOrExpression.pool
+    ASTNode.InclusiveOrExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -479,7 +479,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.and_expression],
       [NoneTerminal.exclusive_or_expression, ETokenType.CARET, NoneTerminal.and_expression]
     ],
-    ASTNode.ExclusiveOrExpression.pool
+    ASTNode.ExclusiveOrExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -488,7 +488,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.equality_expression],
       [NoneTerminal.and_expression, ETokenType.AMPERSAND, NoneTerminal.equality_expression]
     ],
-    ASTNode.AndExpression.pool
+    ASTNode.AndExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -498,7 +498,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.equality_expression, ETokenType.EQ_OP, NoneTerminal.relational_expression],
       [NoneTerminal.equality_expression, ETokenType.NE_OP, NoneTerminal.relational_expression]
     ],
-    ASTNode.EqualityExpression.pool
+    ASTNode.EqualityExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -510,7 +510,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.relational_expression, ETokenType.LE_OP, NoneTerminal.shift_expression],
       [NoneTerminal.relational_expression, ETokenType.GE_OP, NoneTerminal.shift_expression]
     ],
-    ASTNode.RelationalExpression.pool
+    ASTNode.RelationalExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -520,7 +520,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.shift_expression, ETokenType.LEFT_OP, NoneTerminal.additive_expression],
       [NoneTerminal.shift_expression, ETokenType.RIGHT_OP, NoneTerminal.additive_expression]
     ],
-    ASTNode.ShiftExpression.pool
+    ASTNode.ShiftExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -530,7 +530,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.additive_expression, ETokenType.PLUS, NoneTerminal.multiplicative_expression],
       [NoneTerminal.additive_expression, ETokenType.DASH, NoneTerminal.multiplicative_expression]
     ],
-    ASTNode.AdditiveExpression.pool
+    ASTNode.AdditiveExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -541,7 +541,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.multiplicative_expression, ETokenType.SLASH, NoneTerminal.unary_expression],
       [NoneTerminal.multiplicative_expression, ETokenType.PERCENT, NoneTerminal.unary_expression]
     ],
-    ASTNode.MultiplicativeExpression.pool
+    ASTNode.MultiplicativeExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -552,13 +552,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.DEC_OP, NoneTerminal.unary_expression],
       [NoneTerminal.unary_operator, NoneTerminal.unary_expression]
     ],
-    ASTNode.UnaryExpression.pool
+    ASTNode.UnaryExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.unary_operator,
     [[ETokenType.PLUS], [ETokenType.DASH], [ETokenType.BANG], [ETokenType.TILDE]],
-    ASTNode.UnaryOperator.pool
+    ASTNode.UnaryOperator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -572,7 +572,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.postfix_expression, ETokenType.INC_OP],
       [NoneTerminal.postfix_expression, ETokenType.DEC_OP]
     ],
-    ASTNode.PostfixExpression.pool
+    ASTNode.PostfixExpression
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -585,7 +585,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.False],
       [ETokenType.LEFT_PAREN, NoneTerminal.expression, ETokenType.RIGHT_PAREN]
     ],
-    ASTNode.PrimaryExpression.pool
+    ASTNode.PrimaryExpression
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -594,7 +594,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.assignment_expression],
       [NoneTerminal.expression, ETokenType.COMMA, NoneTerminal.assignment_expression]
     ],
-    ASTNode.Expression.pool
+    ASTNode.Expression
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -603,7 +603,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.conditional_expression],
       [NoneTerminal.unary_expression, NoneTerminal.assignment_operator, NoneTerminal.assignment_expression]
     ],
-    ASTNode.AssignmentExpression.pool
+    ASTNode.AssignmentExpression
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -621,13 +621,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.XOR_ASSIGN],
       [ETokenType.OR_ASSIGN]
     ],
-    ASTNode.AssignmentOperator.pool
+    ASTNode.AssignmentOperator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_call,
     [[NoneTerminal.function_call_generic]],
-    ASTNode.FunctionCall.pool
+    ASTNode.FunctionCall
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -642,7 +642,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.function_identifier, ETokenType.LEFT_PAREN, ETokenType.RIGHT_PAREN],
       [NoneTerminal.function_identifier, Keyword.VOID, ETokenType.RIGHT_PAREN]
     ],
-    ASTNode.FunctionCallGeneric.pool
+    ASTNode.FunctionCallGeneric
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -653,7 +653,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_call_arg_block],
       [NoneTerminal.function_call_parameter_list, NoneTerminal.macro_call_arg_block]
     ],
-    ASTNode.FunctionCallParameterList.pool
+    ASTNode.FunctionCallParameterList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -665,7 +665,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_call_arg_case_list, NoneTerminal.macro_call_arg_block],
       [NoneTerminal.macro_call_arg_case_list, ETokenType.COMMA, NoneTerminal.assignment_expression]
     ],
-    ASTNode.MacroCallArgCaseList.pool
+    ASTNode.MacroCallArgCaseList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -674,7 +674,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_push_context, NoneTerminal.macro_call_arg_branch],
       [NoneTerminal.macro_push_context, NoneTerminal.macro_call_arg_case_list, NoneTerminal.macro_call_arg_branch]
     ],
-    ASTNode.MacroCallArgBlock.pool
+    ASTNode.MacroCallArgBlock
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -686,37 +686,37 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_elif_expression, NoneTerminal.macro_call_arg_branch],
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
-    ASTNode.MacroCallArgBranch.pool
+    ASTNode.MacroCallArgBranch
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_identifier,
     [[NoneTerminal.type_specifier]],
-    ASTNode.FunctionIdentifier.pool
+    ASTNode.FunctionIdentifier
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_definition,
     [[NoneTerminal.function_prototype, NoneTerminal.compound_statement_no_scope]],
-    ASTNode.FunctionDefinition.pool
+    ASTNode.FunctionDefinition
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_prototype,
     [[NoneTerminal.function_declarator, ETokenType.RIGHT_PAREN]],
-    ASTNode.FunctionProtoType.pool
+    ASTNode.FunctionProtoType
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_declarator,
     [[NoneTerminal.function_header], [NoneTerminal.function_header, NoneTerminal.function_parameter_list]],
-    ASTNode.FunctionDeclarator.pool
+    ASTNode.FunctionDeclarator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_header,
     [[NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN]],
-    ASTNode.FunctionHeader.pool
+    ASTNode.FunctionHeader
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -727,7 +727,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_param_block],
       [NoneTerminal.function_parameter_list, NoneTerminal.macro_param_block]
     ],
-    ASTNode.FunctionParameterList.pool
+    ASTNode.FunctionParameterList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -739,7 +739,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_param_case_list, NoneTerminal.macro_param_block],
       [NoneTerminal.macro_param_case_list, ETokenType.COMMA, NoneTerminal.parameter_declaration]
     ],
-    ASTNode.MacroParamCaseList.pool
+    ASTNode.MacroParamCaseList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -748,7 +748,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_push_context, NoneTerminal.macro_parameter_branch],
       [NoneTerminal.macro_push_context, NoneTerminal.macro_param_case_list, NoneTerminal.macro_parameter_branch]
     ],
-    ASTNode.MacroParamBlock.pool
+    ASTNode.MacroParamBlock
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -760,7 +760,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_elif_expression, NoneTerminal.macro_parameter_branch],
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
-    ASTNode.MacroParameterBranch.pool
+    ASTNode.MacroParameterBranch
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -771,7 +771,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_call_symbol],
       [NoneTerminal.macro_call_function]
     ],
-    ASTNode.ParameterDeclaration.pool
+    ASTNode.ParameterDeclaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -780,19 +780,19 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.type_specifier, ETokenType.ID],
       [NoneTerminal.type_specifier, ETokenType.ID, NoneTerminal.array_specifier]
     ],
-    ASTNode.ParameterDeclarator.pool
+    ASTNode.ParameterDeclarator
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.statement_list,
     [[NoneTerminal.statement], [NoneTerminal.statement_list, NoneTerminal.statement]],
-    ASTNode.StatementList.pool
+    ASTNode.StatementList
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.statement,
     [[NoneTerminal.compound_statement], [NoneTerminal.simple_statement]],
-    ASTNode.Statement.pool
+    ASTNode.Statement
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -801,7 +801,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
       [ETokenType.LEFT_BRACE, NoneTerminal.statement_list, ETokenType.RIGHT_BRACE]
     ],
-    ASTNode.CompoundStatementNoScope.pool
+    ASTNode.CompoundStatementNoScope
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -810,7 +810,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.LEFT_BRACE, ETokenType.RIGHT_BRACE],
       [NoneTerminal.scope_brace, NoneTerminal.statement_list, NoneTerminal.scope_end_brace]
     ],
-    ASTNode.CompoundStatement.pool
+    ASTNode.CompoundStatement
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -826,7 +826,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_define],
       [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
-    ASTNode.SimpleStatement.pool
+    ASTNode.SimpleStatement
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -843,7 +843,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.type_qualifier, ETokenType.ID, ETokenType.SEMICOLON],
       [NoneTerminal.type_qualifier, ETokenType.ID, NoneTerminal.identifier_list, ETokenType.SEMICOLON]
     ],
-    ASTNode.Declaration.pool
+    ASTNode.Declaration
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -852,7 +852,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [ETokenType.COMMA, ETokenType.ID],
       [NoneTerminal.identifier_list, ETokenType.COMMA, ETokenType.ID]
     ],
-    ASTNode.IdentifierList.pool
+    ASTNode.IdentifierList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -871,7 +871,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       ],
       [NoneTerminal.init_declarator_list, ETokenType.COMMA, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
-    ASTNode.InitDeclaratorList.pool
+    ASTNode.InitDeclaratorList
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -894,7 +894,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL],
       [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
-    ASTNode.SingleDeclaration.pool
+    ASTNode.SingleDeclaration
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -903,19 +903,19 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.assignment_expression],
       [ETokenType.LEFT_BRACE, NoneTerminal.initializer_list, ETokenType.RIGHT_BRACE]
     ],
-    ASTNode.Initializer.pool
+    ASTNode.Initializer
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.initializer_list,
     [[NoneTerminal.initializer], [NoneTerminal.initializer_list, ETokenType.COMMA, NoneTerminal.initializer]],
-    ASTNode.InitializerList.pool
+    ASTNode.InitializerList
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.expression_statement,
     [[ETokenType.SEMICOLON], [NoneTerminal.expression, ETokenType.SEMICOLON]],
-    ASTNode.ExpressionStatement.pool
+    ASTNode.ExpressionStatement
   ),
 
   // dangling else ambiguity
@@ -933,7 +933,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.statement
       ]
     ],
-    ASTNode.SelectionStatement.pool
+    ASTNode.SelectionStatement
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -949,7 +949,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.statement
       ]
     ],
-    ASTNode.IterationStatement.pool
+    ASTNode.IterationStatement
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -962,13 +962,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.SEMICOLON
       ]
     ],
-    ASTNode.PrecisionSpecifier.pool
+    ASTNode.PrecisionSpecifier
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.for_init_statement,
     [[NoneTerminal.expression_statement], [NoneTerminal.declaration]],
-    ASTNode.ForInitStatement.pool
+    ASTNode.ForInitStatement
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -977,7 +977,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.expression],
       [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
-    ASTNode.Condition.pool
+    ASTNode.Condition
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
@@ -986,13 +986,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.conditionopt, ETokenType.SEMICOLON],
       [NoneTerminal.conditionopt, ETokenType.SEMICOLON, NoneTerminal.expression]
     ],
-    ASTNode.ForRestStatement.pool
+    ASTNode.ForRestStatement
   ),
 
   ...GrammarUtils.createAnalyzerProductionWithOptions(
     NoneTerminal.conditionopt,
     [[ETokenType.EPSILON], [NoneTerminal.condition]],
-    ASTNode.ConditionOpt.pool
+    ASTNode.ConditionOpt
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -1004,25 +1004,21 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [Keyword.RETURN, NoneTerminal.expression, ETokenType.SEMICOLON],
       [Keyword.DISCARD, ETokenType.SEMICOLON]
     ],
-    ASTNode.JumpStatement.pool
+    ASTNode.JumpStatement
   ),
 
-  ...GrammarUtils.createProductionWithOptions(
-    NoneTerminal.scope_brace,
-    [[ETokenType.LEFT_BRACE]],
-    ASTNode.ScopeBrace.pool
-  ),
+  ...GrammarUtils.createProductionWithOptions(NoneTerminal.scope_brace, [[ETokenType.LEFT_BRACE]], ASTNode.ScopeBrace),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.scope_end_brace,
     [[ETokenType.RIGHT_BRACE]],
-    ASTNode.ScopeEndBrace.pool
+    ASTNode.ScopeEndBrace
   ),
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.variable_identifier,
     [[ETokenType.ID], [NoneTerminal.macro_call_symbol], [NoneTerminal.macro_call_function]],
-    ASTNode.VariableIdentifier.pool
+    ASTNode.VariableIdentifier
   ),
 
   // Macros ...
@@ -1032,7 +1028,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_push_context, NoneTerminal.statement_list, NoneTerminal.macro_branch],
       [NoneTerminal.macro_push_context, NoneTerminal.macro_branch]
     ],
-    ASTNode.MacroIfStatement.pool
+    ASTNode.MacroIfStatement
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -1044,7 +1040,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.macro_elif_expression, NoneTerminal.macro_branch],
       [NoneTerminal.macro_else_expression, NoneTerminal.macro_pop_context]
     ],
-    ASTNode.MacroBranch.pool
+    ASTNode.MacroBranch
   )
 ];
 

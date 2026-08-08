@@ -1,12 +1,15 @@
 import { ShaderTargetParser } from "./ShaderTargetParser";
-import { Preprocessor, type ChunkOutputCache, type IncludeMap } from "../Preprocessor";
+import type { ChunkOutputCache, IncludeMap } from "../Preprocessor";
 import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
 import { branchAnalysis } from "../common/BranchAnalysis";
-import { analyzerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
-import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
-
-let _parser: ShaderTargetParser;
+import { createAnalyzerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
+import type { ShaderSourceMapSegment } from "../ir";
+import {
+  normalizeShaderSourceFile,
+  parseShaderPassWith,
+  shaderSourceBaseURL,
+  type ParsedShaderPass
+} from "./ParsedShaderPass";
 
 /** Maps a range in expanded pass text back to its source chunk. */
 export type PreprocessSourceMapSegment = ShaderSourceMapSegment;
@@ -16,34 +19,24 @@ export type PreprocessSourceMapSegment = ShaderSourceMapSegment;
  * @param source - GLSL source for the shader pass.
  * @param includeMap - Include-path lookup table.
  * @param cache - Cache for expanded include chunks.
- * @param basePathForIncludeKey - Base URL for relative include paths.
+ * @param sourceFile - Canonical path of the root Shader source.
  * @returns Neutral IR, diagnostics, and preprocessed pass text.
  */
 export function parseShaderPass(
   source: string,
   includeMap: IncludeMap,
   cache: ChunkOutputCache,
-  basePathForIncludeKey = ""
-): {
-  ir: ShaderClueIR | null;
-  errors: Error[];
-  passText: string;
-  sourceMap: PreprocessSourceMapSegment[];
-} {
-  _parser ??= ShaderTargetParser.create(branchAnalysis, analyzerSemanticDiagnostics);
-  const macroDefineList = {};
-  const {
-    content: passText,
-    errors: preprocessErrors,
-    sourceMap
-  } = Preprocessor.parseWithErrors(source, basePathForIncludeKey, includeMap, cache);
-  const tokens = new AnalyzerLexer(passText, macroDefineList).tokenize();
-  ShaderCompilerUtils.processingPassText = passText;
-  try {
-    const program = _parser.parse(tokens, macroDefineList);
-    const ir = program ? new ShaderClueIR(program, passText, sourceMap) : null;
-    return { ir, errors: [...preprocessErrors, ..._parser.errors], passText, sourceMap };
-  } finally {
-    ShaderCompilerUtils.processingPassText = undefined;
-  }
+  sourceFile?: string
+): ParsedShaderPass {
+  const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
+  return parseShaderPassWith(
+    source,
+    includeMap,
+    cache,
+    shaderSourceBaseURL(normalizedSourceFile),
+    (expandedSource, macroDefineList) => new AnalyzerLexer(expandedSource, macroDefineList),
+    (expandedSource) =>
+      ShaderTargetParser.create(branchAnalysis, createAnalyzerSemanticDiagnostics(expandedSource), expandedSource),
+    normalizedSourceFile
+  );
 }

@@ -314,7 +314,7 @@ export class Lexer extends BaseLexer {
     }
 
     const start = this.getShaderPosition();
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     let curChar: string;
 
     switch (this.getCurChar()) {
@@ -571,7 +571,7 @@ export class Lexer extends BaseLexer {
     this.advance(1);
     const range = ShaderCompilerUtils.createRange(start, this.getShaderPosition());
 
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     token.set(ETokenType.STRING_CONST, buffer.join(""), range);
     return token;
   }
@@ -583,7 +583,7 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     this._scanFloatSuffix(buffer);
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
     return token;
   }
@@ -614,7 +614,7 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     const word = buffer.join("");
 
     if (word === "#define") {
@@ -891,7 +891,7 @@ export class Lexer extends BaseLexer {
       }
       this.advance(1);
     }
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     const lexeme = buffer.join("");
     this._currentMacroParamsLexeme = lexeme;
     // Value starts after the `)` we just consumed.
@@ -920,7 +920,7 @@ export class Lexer extends BaseLexer {
       valueEnd
     );
     this._inMacroDefineValue = false;
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     token.set(Keyword.MACRO_DEFINE_END, "\n", start);
     return token;
   }
@@ -1008,7 +1008,7 @@ export class Lexer extends BaseLexer {
     const start = this.getShaderPosition();
     this._scanUtilBreakLine(buffer);
     const word = buffer.join("");
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, word, start);
     return token;
   }
@@ -1021,7 +1021,7 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
-    const token = BaseToken.pool.get();
+    const token = new BaseToken();
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
 
@@ -1113,7 +1113,7 @@ export class Lexer extends BaseLexer {
         }
         this._scanIntegerSuffix(buffer);
 
-        const token = BaseToken.pool.get();
+        const token = new BaseToken();
         token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
         return token;
       }
@@ -1133,13 +1133,13 @@ export class Lexer extends BaseLexer {
       }
       this._scanFloatSuffix(buffer);
 
-      const token = BaseToken.pool.get();
+      const token = new BaseToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else if (curChar === "e" || curChar === "E") {
       this._scanFloatSuffix(buffer);
 
-      const token = BaseToken.pool.get();
+      const token = new BaseToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else if (curChar === "f" || curChar === "F") {
@@ -1147,13 +1147,13 @@ export class Lexer extends BaseLexer {
       buffer.push(curChar);
       this.advance(1);
 
-      const token = BaseToken.pool.get();
+      const token = new BaseToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else {
       this._scanIntegerSuffix(buffer);
 
-      const token = BaseToken.pool.get();
+      const token = new BaseToken();
       token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     }

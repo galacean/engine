@@ -11,6 +11,7 @@ import {
   NodeChild,
   ParserUtils,
   ShaderCompilerUtils,
+  ShaderBuiltinSemantic,
   ShaderRange,
   StructSymbol,
   SymbolInfo,
@@ -47,9 +48,8 @@ const DERIVATIVE_BUILTINS = new Set(["dFdx", "dFdy", "fwidth"]);
 
 /**
  * Post-parse validation pass. Walks the already-typed AST (the parser built the symbol table and
- * inferred `.type` inline; only validation moved here) and collects diagnostics. The pass source is
- * passed in — `parseShaderPass` clears `ShaderCompilerUtils.processingPassText` on exit, so the
- * caller supplies the same source context the inline check carried.
+ * inferred `.type` inline; only validation moved here) and collects diagnostics. The parsed pass
+ * source is retained by the neutral IR and attached to diagnostics emitted by this pass.
  */
 export class ShaderValidator {
   /**
@@ -67,10 +67,10 @@ export class ShaderValidator {
   }
 
   /** Scratch SymbolInfo reused by `_nonAssignableReason` for VAR lookups — avoids per-call allocation. */
-  private static _varLookup = new SymbolInfo("", ESymbolType.VAR);
+  private readonly _varLookup = new SymbolInfo("", ESymbolType.VAR);
   /** Scratch symbol and output reused while resolving custom type references. */
-  private static _typeLookup = new SymbolInfo("", ESymbolType.STRUCT);
-  private static _typeStructScratch: SymbolInfo[] = [];
+  private readonly _typeLookup = new SymbolInfo("", ESymbolType.STRUCT);
+  private readonly _typeStructScratch: SymbolInfo[] = [];
 
   private _errors: GSError[] = [];
   /**
@@ -219,10 +219,10 @@ export class ShaderValidator {
     const typeName = (node.children[0] as ASTNode.TypeSpecifierNonArray).children[0];
     if (!(typeName instanceof BaseToken)) return;
 
-    const lookup = ShaderValidator._typeLookup;
+    const lookup = this._typeLookup;
     lookup.set(typeName.lexeme, ESymbolType.STRUCT);
     const symbolTable = this._shaderData.symbolTable;
-    const structs = symbolTable.getSymbols(lookup, true, ShaderValidator._typeStructScratch);
+    const structs = symbolTable.getSymbols(lookup, true, this._typeStructScratch);
     const referenceIndex = typeName.location.start.index;
     let priorStructCount = 0;
     for (let i = 0, n = structs.length; i < n; i++) {
@@ -430,7 +430,7 @@ export class ShaderValidator {
       // A macro may expand to a legal l-value; its expansion is validated by the runtime compiler.
       if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return undefined;
       if (child instanceof BaseToken) {
-        const lookup = ShaderValidator._varLookup;
+        const lookup = this._varLookup;
         lookup.set(child.lexeme, ESymbolType.VAR);
         const symbol = this._shaderData.symbolTable.getSymbol(lookup, true, node._branch, branchAnalysis);
         if (symbol instanceof VarSymbol) {
@@ -833,7 +833,10 @@ export class ShaderValidator {
       const index = children[2];
       // `gl_FragData[i]` — record the base's location so `_reportBareGlFragData` treats this
       // occurrence as legal rather than reporting it as a bare use.
-      if (ParserUtils.extractDirectIdentLexeme(base) === "gl_FragData") {
+      if (
+        ParserUtils.unwrapBareIdentifier(base, { allowParens: true })?.builtinSemantic ===
+        ShaderBuiltinSemantic.FragmentOutputArray
+      ) {
         this._indexedGlFragDataStarts.add(base.location.start.index);
       }
       // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
@@ -908,8 +911,8 @@ export class ShaderValidator {
     }
   }
 
-  private static _structLookup = new SymbolInfo("", null);
-  private static _structScratch: StructSymbol[] = [];
+  private readonly _structLookup = new SymbolInfo("", null);
+  private readonly _structScratch: StructSymbol[] = [];
 
   /**
    * Recursively check whether a struct (by name) contains a sampler member at any nesting depth.
@@ -918,12 +921,12 @@ export class ShaderValidator {
   private _structContainsSampler(structName: string, visited: Set<string>): boolean {
     if (visited.has(structName)) return false;
     visited.add(structName);
-    const lookup = ShaderValidator._structLookup;
+    const lookup = this._structLookup;
     lookup.set(structName, ESymbolType.STRUCT);
     const structs = this._shaderData.symbolTable.getSymbols(
       lookup as unknown as StructSymbol,
       false,
-      ShaderValidator._structScratch
+      this._structScratch
     );
     for (const s of structs) {
       const astNode = s.astNode as ASTNode.StructSpecifier | undefined;

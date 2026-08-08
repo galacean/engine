@@ -2,17 +2,8 @@ import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ASTNode } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
-import { VisitorContext } from "./VisitorContext";
 
 export class GLES100Visitor extends GLESVisitor {
-  private static _singleton: GLES100Visitor;
-  static getVisitor(): GLES100Visitor {
-    if (!this._singleton) {
-      this._singleton = new GLES100Visitor();
-    }
-    return this._singleton;
-  }
-
   override getAttributeProp(prop: StructProp): string {
     return `attribute ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
@@ -28,7 +19,7 @@ export class GLES100Visitor extends GLESVisitor {
   override visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const { children } = node;
     const postExpr = children[0];
-    const { context } = VisitorContext;
+    const context = this.context;
     if (postExpr instanceof ASTNode.PostfixExpression && context.isMRTStruct(<string>postExpr.type)) {
       const propReferenced = children[2] as BaseToken;
       const prop = context.mrtList.find((item) => item.ident.lexeme === propReferenced.lexeme);
@@ -41,8 +32,8 @@ export class GLES100Visitor extends GLESVisitor {
   }
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
-    if (node.isFragReturnStatement) {
-      if (VisitorContext.context.mrtStructs.length) {
+    if (this.context.fragmentReturns.has(node)) {
+      if (this.context.mrtStructs.length) {
         return "";
       }
       const expression = node.children[1] as ASTNode.Expression;

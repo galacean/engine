@@ -1,39 +1,19 @@
-import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { GSErrorName } from "./GSError";
 import { ShaderRange } from "./common/ShaderRange";
 import { ShaderPosition } from "./common/ShaderPosition";
 import { GSError } from "./GSError";
 
 export class ShaderCompilerUtils {
-  private static _shaderCompilerObjectPoolSet: ClearableObjectPool<IPoolElement>[] = [];
-  private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
-  private static _shaderRangePool = ShaderCompilerUtils.createObjectPool(ShaderRange);
-
-  /** Source text of the pass being compiled, attached to diagnostics as context. */
-  static processingPassText?: string;
-
-  static createObjectPool<T extends IPoolElement>(type: new () => T) {
-    const pool = new ClearableObjectPool<T>(type);
-    ShaderCompilerUtils._shaderCompilerObjectPoolSet.push(pool);
-    return pool;
-  }
-
   static createPosition(index: number, line = 0, column = 0): ShaderPosition {
-    const position = ShaderCompilerUtils._shaderPositionPool.get();
+    const position = new ShaderPosition();
     position.set(index, line, column);
     return position;
   }
 
   static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
-    const range = ShaderCompilerUtils._shaderRangePool.get();
+    const range = new ShaderRange();
     range.set(start, end);
     return range;
-  }
-
-  static clearAllShaderCompilerObjectPool() {
-    for (let i = 0, n = ShaderCompilerUtils._shaderCompilerObjectPoolSet.length; i < n; i++) {
-      ShaderCompilerUtils._shaderCompilerObjectPoolSet[i].clear();
-    }
   }
 
   static createGSError(

@@ -3,16 +3,18 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import { Logger } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
-import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { ShaderClueIR, ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
-import { Lexer } from "@galacean/engine-shader-parser/internal";
+import { ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
-import { ShaderTargetParser } from "@galacean/engine-shader-parser/internal";
-import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser/internal";
-import { ShaderCompilerUtils } from "@galacean/engine-shader-parser/internal";
+import {
+  parseRuntimeShaderPass,
+  type ParsedShaderPass,
+  type ShaderClueIR,
+  type IncludeMap,
+  type ChunkOutputCache
+} from "@galacean/engine-shader-parser/internal";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import type { ShaderSourceParseResult } from "@galacean/engine-shader-parser/internal";
-import type { ShaderBackend } from "./ShaderBackend";
+import { GLESBackend } from "./GLESBackend";
 
 class ShaderSourceParseError extends Error {
   constructor(readonly errors: readonly Error[]) {
@@ -28,10 +30,8 @@ class ShaderSourceParseError extends Error {
  * source errors reject compilation before a partial precompiled artifact can be serialized.
  */
 export class ShaderCompiler {
-  private static _parser?: ShaderTargetParser;
-
   private _includeMap: IncludeMap = {};
-  private readonly _chunkOutputCache: ChunkOutputCache = new Map();
+  private _chunkOutputCache: ChunkOutputCache = new Map();
 
   /**
    * Replaces the `#include` lookup table and clears the derived chunk cache.
@@ -51,6 +51,7 @@ export class ShaderCompiler {
    * @internal
    */
   _parseShaderSource(sourceCode: string): IShaderSource {
+    this._chunkOutputCache = new Map();
     return this._requireValidShaderSource(this._parseShaderSourceWithErrors(sourceCode));
   }
 
@@ -60,40 +61,38 @@ export class ShaderCompiler {
     vertexEntry: string,
     fragmentEntry: string,
     backend: ShaderLanguage,
-    basePathForIncludeKey: string
+    sourceFile?: string
   ): IShaderProgramSource | undefined {
-    const macroDefineList = {};
-    const { content: noIncludeContent, errors: preprocessErrors } = Preprocessor.parseWithErrors(
-      source,
-      basePathForIncludeKey,
-      this._includeMap,
-      this._chunkOutputCache
-    );
-    if (preprocessErrors.length) {
-      for (const error of preprocessErrors) Logger.error(error.toString());
+    const parsed = parseRuntimeShaderPass(source, this._includeMap, this._chunkOutputCache, sourceFile);
+    if (parsed.errors.length) {
+      for (const error of parsed.errors) Logger.error(error.toString());
       return undefined;
     }
+    return this._generateParsedShaderPass(parsed, vertexEntry, fragmentEntry, backend);
+  }
 
-    const lexer = new Lexer(noIncludeContent, macroDefineList);
-
-    const tokens = lexer.tokenize();
-    const parser = (ShaderCompiler._parser ??= ShaderTargetParser.create());
-
-    ShaderCompilerUtils.processingPassText = noIncludeContent;
-
-    // finally so a parse miss (early return) or a codegen throw can't leave `processingPassText`
-    // pointing at this pass's text — the next compile would otherwise stamp errors with stale source.
+  /**
+   * Generates GLES source from an existing immutable parser result.
+   * @param parsed - Parsed pass produced by the runtime or analyzer parser entry.
+   * @param vertexEntry - Vertex entry function name.
+   * @param fragmentEntry - Fragment entry function name.
+   * @param backend - GLES language version to generate.
+   * @returns Generated and encoded stage source, or `undefined` when no IR was produced.
+   * @internal
+   */
+  _generateParsedShaderPass(
+    parsed: ParsedShaderPass,
+    vertexEntry: string,
+    fragmentEntry: string,
+    backend: ShaderLanguage
+  ): IShaderProgramSource | undefined {
+    if (!parsed.ir) return undefined;
     try {
-      const program = parser.parse(tokens, macroDefineList);
-      if (!program) return undefined;
-      const ir = new ShaderClueIR(program, noIncludeContent);
-      const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
-      return this._generate(ir, coreInfo, backend);
+      const coreInfo = ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
+      return this._generate(parsed.ir, coreInfo, backend);
     } catch (error) {
       Logger.error(error instanceof Error ? error.toString() : String(error));
       return undefined;
-    } finally {
-      ShaderCompilerUtils.processingPassText = undefined;
     }
   }
 
@@ -104,9 +103,7 @@ export class ShaderCompiler {
     if (!coreInfo.fragmentEntry.functions.length) {
       throw new Error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
     }
-    const codeGen: ShaderBackend =
-      backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
-    const ret = codeGen.generate(ir, coreInfo);
+    const ret = GLESBackend.generate(ir, coreInfo, backend);
     if (ret) {
       ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
       ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
@@ -115,7 +112,8 @@ export class ShaderCompiler {
   }
 
   /** @internal */
-  _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePathForIncludeKey: string): IPrecompiledShader {
+  _precompile(sourceCode: string, platformTarget: ShaderLanguage, sourceFile?: string): IPrecompiledShader {
+    this._chunkOutputCache = new Map();
     const sourceResult = this._parseShaderSourceWithErrors(sourceCode);
     const shaderSource = this._requireValidShaderSource(sourceResult);
 
@@ -137,7 +135,7 @@ export class ShaderCompiler {
           pass.vertexEntry,
           pass.fragmentEntry,
           platformTarget,
-          basePathForIncludeKey
+          sourceFile
         );
 
         if (!programSource) {
@@ -165,7 +163,6 @@ export class ShaderCompiler {
   }
 
   private _parseShaderSourceWithErrors(sourceCode: string): ShaderSourceParseResult {
-    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     return ShaderSourceParser.parseWithErrors(sourceCode);
   }
 

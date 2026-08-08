@@ -1,4 +1,3 @@
-import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken, BranchSignature, EMPTY_BRANCH, sameBranch } from "../common/BaseToken";
@@ -6,11 +5,11 @@ import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
 import { MacroDefineInfo } from "../Preprocessor";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
+import { ShaderBuiltinSemantic } from "../ir/ShaderBuiltinSemantic";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
@@ -35,21 +34,15 @@ const TEXTURE_SAMPLING_BUILTINS = new Set([
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
     ASTNode.prototype.nt = nonTerminal;
-    (<any>ASTNode).pool = ShaderCompilerUtils.createObjectPool(ASTNode);
   };
 }
 
-export abstract class TreeNode implements IPoolElement {
-  static pool: ClearableObjectPool<
-    TreeNode & { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void }
-  >;
-
+export abstract class TreeNode {
   /** The non-terminal in grammar. */
   nt: NoneTerminal;
   private _children: NodeChild[];
   private _parent: TreeNode;
   private _location: ShaderRange;
-  private _codeCache: string;
 
   /**
    * Snapshot of the `#ifdef` stack at this node's source position, inherited from its first
@@ -116,22 +109,9 @@ export abstract class TreeNode implements IPoolElement {
 
   init() {}
 
-  dispose(): void {}
-
-  setCache(code: string): string {
-    this._codeCache = code;
-    return code;
-  }
-
-  getCache(): string {
-    return this._codeCache;
-  }
-
   // Visitor pattern interface for code generation
   codeGen(visitor: ICodeGenVisitor) {
-    const code = visitor.defaultCodeGen(this.children);
-    this.setCache(code);
-    return code;
+    return visitor.cache(this, visitor.defaultCodeGen(this.children));
   }
 
   /**
@@ -155,9 +135,7 @@ namespace ASTNodes {
     | MacroDefine
     | BaseToken;
 
-  export type ASTNodePool = ClearableObjectPool<
-    { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void } & IPoolElement & TreeNode
-  >;
+  export type ASTNodeConstructor = new () => TreeNode;
 
   export function _unwrapToken(node: NodeChild) {
     if (node instanceof BaseToken) {
@@ -166,8 +144,8 @@ namespace ASTNodes {
     throw "not token";
   }
 
-  export function get(pool: ASTNodePool, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
-    const node = pool.get();
+  export function get(type: ASTNodeConstructor, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
+    const node = new type();
     node.set(loc, children, sa.diagnosticsEnabled);
     if (!sa.diagnosticsEnabled) {
       node.semanticAnalyze(sa);
@@ -204,12 +182,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
-    isFragReturnStatement: boolean;
-
-    override init(): void {
-      this.isFragReturnStatement = false;
-    }
-
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children!;
       if (ASTNodes._unwrapToken(children[0]).type === Keyword.RETURN) {
@@ -218,7 +190,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitJumpStatement(this));
+      return visitor.cache(this, visitor.visitJumpStatement(this));
     }
   }
 
@@ -350,7 +322,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitSingleDeclaration(this));
+      return visitor.cache(this, visitor.visitSingleDeclaration(this));
     }
   }
 
@@ -438,7 +410,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
-    private static _symbolScratch: SymbolInfo[] = [];
     size: number | undefined;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const integerConstantExpr = this.children[1];
@@ -450,9 +421,9 @@ namespace ASTNodes {
       if (this.size === undefined && exprChildren.length === 1 && exprChildren[0] instanceof VariableIdentifier) {
         const bare = exprChildren[0].children[0];
         if (bare instanceof BaseToken && !sa.macroDefineList[bare.lexeme]) {
-          const lookup = SemanticAnalyzer._lookupSymbol;
+          const lookup = sa.lookupSymbol;
           lookup.set(bare.lexeme, ESymbolType.VAR);
-          const symbols = sa.symbolTableStack.lookupAll(lookup, true, ArraySpecifier._symbolScratch, this._branch);
+          const symbols = sa.symbolTableStack.lookupAll(lookup, true, sa.arraySymbolScratch, this._branch);
           if (!symbols.length) return;
           const firstIsConst = (symbols[0] as VarSymbol).isConst;
           const divergent = symbols.some((symbol) => (symbol as VarSymbol).isConst !== firstIsConst);
@@ -636,7 +607,7 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitDeclaration(this));
+      return visitor.cache(this, visitor.visitDeclaration(this));
     }
   }
 
@@ -690,7 +661,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitFunctionHeader(this));
+      return visitor.cache(this, visitor.visitFunctionHeader(this));
     }
   }
 
@@ -732,7 +703,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitFunctionParameterList(this));
+      return visitor.cache(this, visitor.visitFunctionParameterList(this));
     }
   }
 
@@ -810,7 +781,7 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitStatementList(this));
+      return visitor.cache(this, visitor.visitStatementList(this));
     }
   }
 
@@ -854,7 +825,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitFunctionDefinition(this));
+      return visitor.cache(this, visitor.visitFunctionDefinition(this));
     }
   }
 
@@ -865,15 +836,13 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitFunctionCall(this));
+      return visitor.cache(this, visitor.visitFunctionCall(this));
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
-    /** Scratch storage for the ambiguity-guard overload probe. */
-    private static _overloadScratch: SymbolInfo[] = [];
 
     override init(): void {
       super.init();
@@ -923,14 +892,14 @@ namespace ASTNodes {
             return;
           }
 
-          const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+          const lookupSymbol = sa.lookupSymbol;
           lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
 
           // Keep every macro-compatible overload, then require one declaration to be guaranteed or
           // matching declarations in every arm of a complete conditional chain. This is the same
           // contract as variable lookup: a helper hidden behind only `#ifdef X` cannot satisfy an
           // unconditional call.
-          const allMatches = FunctionCallGeneric._overloadScratch;
+          const allMatches = sa.overloadScratch;
           sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
           const branchCoverage = sa.getBranchCoverage(
             allMatches.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
@@ -984,7 +953,7 @@ namespace ASTNodes {
           return;
         }
 
-        const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+        const lookupSymbol = sa.lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
         const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol | undefined;
         if (!fnSymbol) return;
@@ -1081,7 +1050,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitFunctionIdentifier(this));
+      return visitor.cache(this, visitor.visitFunctionIdentifier(this));
     }
   }
 
@@ -1145,8 +1114,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
-    private static _structScratch: SymbolInfo[] = [];
-
     override init(): void {
       super.init();
       if (this.children.length === 1) {
@@ -1174,9 +1141,9 @@ namespace ASTNodes {
       field: BaseToken,
       callsiteBranch: BranchSignature
     ): void {
-      const lookup = SemanticAnalyzer._lookupSymbol;
+      const lookup = sa.lookupSymbol;
       lookup.set(structName, ESymbolType.STRUCT);
-      const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
+      const structs = sa.symbolTableStack.lookupAll(lookup, true, sa.structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
       const coverage = sa.getBranchCoverage(
@@ -1236,7 +1203,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitPostfixExpression(this));
+      return visitor.cache(this, visitor.visitPostfixExpression(this));
     }
   }
 
@@ -1415,7 +1382,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache(visitor.visitStructSpecifier(this));
+      return visitor.cache(this, visitor.visitStructSpecifier(this));
     }
   }
 
@@ -1665,7 +1632,7 @@ namespace ASTNodes {
       if (this.isStatic) {
         return super.codeGen(visitor);
       } else {
-        return this.setCache(visitor.visitGlobalVariableDeclaration(this));
+        return visitor.cache(this, visitor.visitGlobalVariableDeclaration(this));
       }
     }
   }
@@ -1693,7 +1660,7 @@ namespace ASTNodes {
 
         const ident = children[2] as BaseToken;
 
-        const newVariable = VariableDeclaration.pool.get() as VariableDeclaration;
+        const newVariable = new VariableDeclaration();
         if (length === 3) {
           // variable_declaration_list ',' id
           newVariable.set(ident.location, [type, ident]);
@@ -1710,6 +1677,8 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
     typeInfo: GalaceanDataType;
+    /** Backend-neutral meaning when this is a direct stage-IO builtin reference. */
+    builtinSemantic?: ShaderBuiltinSemantic;
     /** Whether the resolved symbol is an array — `typeInfo` alone drops array-ness, but indexing rules need it. */
     isArray: boolean;
     /** A fixed array's element count, for constant index bounds-checking; `undefined` if unsized/unknown. */
@@ -1729,6 +1698,7 @@ namespace ASTNodes {
 
     override init(): void {
       this.typeInfo = TypeAny;
+      this.builtinSemantic = undefined;
       this.isArray = false;
       this.arraySize = undefined;
       this.referenceGlobalSymbolNames.length = 0;
@@ -1759,6 +1729,7 @@ namespace ASTNodes {
           const builtinVar = BuiltinVariable.getVar(name);
           if (builtinVar) {
             this.typeInfo = builtinVar.type;
+            if (child instanceof BaseToken) this.builtinSemantic = builtinVar.semantic;
             continue;
           }
 
@@ -1836,6 +1807,7 @@ namespace ASTNodes {
         const builtinVar = BuiltinVariable.getVar(name);
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
+          this.builtinSemantic = builtinVar.semantic;
           return;
         }
         this._resolveCodegenReference(sa, name, true);
@@ -1860,7 +1832,7 @@ namespace ASTNodes {
       for (let i = 0; i < references.length; i++) {
         if (references[i] === macroName) return;
       }
-      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(macroName, ESymbolType.Any);
       const symbol = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol | FnSymbol | undefined;
       if (
@@ -1873,7 +1845,7 @@ namespace ASTNodes {
     }
 
     private _resolveCodegenReference(sa: SemanticAnalyzer, name: string, inferType: boolean): void {
-      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       const symbols = this._symbols;
       sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
@@ -1969,7 +1941,7 @@ namespace ASTNodes {
       callsiteBranch: BranchSignature,
       retainPartialBranchCandidates = false
     ): boolean {
-      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       // Branch-aware: filter to declarations visible from the reference's own `#ifdef` branch.
       // A `float u_a` inside `#ifdef X` is invisible to a reference in `#else` (as it should be)
@@ -2052,7 +2024,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitVariableIdentifier(this));
+      return visitor.cache(this, visitor.visitVariableIdentifier(this));
     }
 
     getLexeme(visitor: ICodeGenVisitor): string {
@@ -2106,7 +2078,7 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache(super.codeGen(visitor) + "\n");
+      return visitor.cache(this, super.codeGen(visitor) + "\n");
     }
   }
 
@@ -2117,7 +2089,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+      return visitor.cache(this, "\n" + super.codeGen(visitor) + "\n");
     }
   }
 
@@ -2128,21 +2100,21 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+      return visitor.cache(this, "\n" + super.codeGen(visitor) + "\n");
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_elif_expression)
   export class MacroElifExpression extends TreeNode {
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+      return visitor.cache(this, "\n" + super.codeGen(visitor) + "\n");
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_else_expression)
   export class MacroElseExpression extends TreeNode {
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache("\n" + super.codeGen(visitor) + "\n");
+      return visitor.cache(this, "\n" + super.codeGen(visitor) + "\n");
     }
   }
 
@@ -2169,9 +2141,9 @@ namespace ASTNodes {
     override codeGen(visitor: ICodeGenVisitor) {
       const children = this.children as TreeNode[];
       if (children.length === 1) {
-        return this.setCache(children[0].codeGen(visitor));
+        return visitor.cache(this, children[0].codeGen(visitor));
       } else {
-        return this.setCache(`${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`);
+        return visitor.cache(this, `${children[0].codeGen(visitor)}\n${children[1].codeGen(visitor)}`);
       }
     }
   }
@@ -2420,7 +2392,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor) {
-      return this.setCache(visitor.visitMacroCallFunction(this));
+      return visitor.cache(this, visitor.visitMacroCallFunction(this));
     }
   }
 
@@ -2513,7 +2485,7 @@ namespace ASTNodes {
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
-      return this.setCache(visitor.visitMacroDefine(this));
+      return visitor.cache(this, visitor.visitMacroDefine(this));
     }
   }
 }

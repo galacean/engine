@@ -1,6 +1,5 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
-import type { IPoolElement } from "@galacean/engine-core";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 /**
@@ -84,9 +83,7 @@ export const EMPTY_BRANCH: BranchSignature = [];
 
 export { sameBranch } from "./BranchIdentity";
 
-export class BaseToken<T extends number = number> implements IPoolElement {
-  static pool = ShaderCompilerUtils.createObjectPool(BaseToken);
-
+export class BaseToken<T extends number = number> {
   type: T;
   lexeme: string;
   location: ShaderRange;
@@ -113,8 +110,6 @@ export class BaseToken<T extends number = number> implements IPoolElement {
       }
     }
   }
-
-  dispose(): void {}
 }
 
 export const EOF = new BaseToken();

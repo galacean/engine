@@ -3,6 +3,7 @@ import {
   GSErrorName,
   Keyword,
   ShaderCompilerUtils,
+  ShaderBuiltinSemantic,
   ShaderStructRole,
   StructSymbol,
   SymbolInfo,
@@ -23,8 +24,6 @@ Object.freeze(zeroPosition);
  * @internal
  */
 export class ShaderIOValidator {
-  private static readonly _lookup = new SymbolInfo("", null);
-
   /**
    * Validates stage entries and IO without participating in backend generation.
    * @param analysis - Analyzer-only facts and their neutral/core backing data.
@@ -63,7 +62,10 @@ export class ShaderIOValidator {
       );
     }
 
-    if (coreInfo.vertexEntry.functions.length && !analysis.hasReachableWrite(coreInfo.vertexEntry, "gl_Position")) {
+    if (
+      coreInfo.vertexEntry.functions.length &&
+      !analysis.hasReachableWrite(coreInfo.vertexEntry, ShaderBuiltinSemantic.VertexPosition)
+    ) {
       this._error(
         errors,
         DiagnosticType.MissingVertexPosition,
@@ -194,7 +196,7 @@ export class ShaderIOValidator {
     symbolTable: ShaderAnalysisInfo["ir"]["shaderData"]["symbolTable"],
     name: string
   ): StructSymbol[] {
-    const lookup = this._lookup;
+    const lookup = new SymbolInfo("", null);
     lookup.set(name, ESymbolType.STRUCT);
     return <StructSymbol[]>symbolTable.getSymbols(lookup, true, []);
   }

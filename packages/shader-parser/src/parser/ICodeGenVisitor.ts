@@ -1,8 +1,10 @@
-import type { ASTNode } from "./AST";
+import type { ASTNode, TreeNode } from "./AST";
 import type { NodeChild } from "./types";
 
 /** AST nodes call back into the code generator through this interface, so AST stays decoupled from the concrete `CodeGenVisitor`. */
 export interface ICodeGenVisitor {
+  cache(node: TreeNode, code: string): string;
+  getCachedCode(node: TreeNode): string | undefined;
   defaultCodeGen(children: NodeChild[]): string;
   visitPostfixExpression(node: ASTNode.PostfixExpression): string;
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string;

@@ -15,8 +15,8 @@ export interface Diagnostic {
   code: DiagnosticType;
   /** Human-readable explanation of the reported rule violation. */
   message: string;
-  /** Source file associated with the range, when supplied by the host. */
-  file?: string;
+  /** Canonical Shader or ShaderChunk source path that owns the range. */
+  sourceFile?: string;
   /** Source range containing the reported issue. Lines and columns are 1-based; offsets are 0-based. */
   range: {
     start: { line: number; column: number; offset: number };

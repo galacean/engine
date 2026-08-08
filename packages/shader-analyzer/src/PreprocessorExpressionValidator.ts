@@ -50,10 +50,10 @@ const binaryPrecedence: Readonly<Record<string, number>> = {
 /**
  * Validates preprocessor-expression syntax without evaluating macro configurations.
  * @param source - Shader source containing preprocessor directives.
- * @param file - Optional logical source name attached to diagnostics.
+ * @param sourceFile - Optional canonical source path attached to diagnostics.
  * @returns Diagnostics for syntax errors that remain certain before macro expansion.
  */
-export function validatePreprocessorExpressions(source: string, file?: string): Diagnostic[] {
+export function validatePreprocessorExpressions(source: string, sourceFile?: string): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   const linePattern = /^[\t ]*#[\t ]*(if|elif)\b(.*)$/gm;
   const logicalSource = maskCommentsAndJoinContinuedLines(source);
@@ -71,7 +71,7 @@ export function validatePreprocessorExpressions(source: string, file?: string): 
       severity: DiagnosticSeverity.Error,
       code: DiagnosticType.PreprocessorError,
       message: failure.message,
-      file,
+      sourceFile,
       range: {
         start: positionAt(source, startOffset),
         end: positionAt(source, Math.min(endOffset, source.length))

@@ -1,22 +1,14 @@
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { ASTNode } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
+import { ShaderBuiltinSemantic } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
-import { VisitorContext } from "./VisitorContext";
 
 const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
-  private static _singleton: GLES300Visitor;
-  static getVisitor(): GLES300Visitor {
-    if (!this._singleton) {
-      this._singleton = new GLES300Visitor();
-    }
-    return this._singleton;
-  }
-
   private _otherCodeArray: ICodeSegment[] = [];
   private _fragColorVariableRegistered = false;
 
@@ -40,7 +32,7 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override getVaryingProp(prop: StructProp): string {
-    const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
+    const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
     return `${qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
@@ -85,8 +77,8 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    const { context } = VisitorContext;
-    if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
+    const context = this.context;
+    if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
       // A conflicting fragment-output contract has no valid backend declaration to emit.
       if (context.mrtStructs.length) {
         return "";
@@ -98,8 +90,8 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
-    if (node.isFragReturnStatement) {
-      if (VisitorContext.context.mrtStructs.length) {
+    if (this.context.fragmentReturns.has(node)) {
+      if (this.context.mrtStructs.length) {
         return "";
       }
       this._registerFragColorVariable();

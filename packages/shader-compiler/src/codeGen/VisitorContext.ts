@@ -7,18 +7,7 @@ import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/int
 
 /** @internal */
 export class VisitorContext {
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _singleton: VisitorContext;
-  static get context() {
-    return this._singleton;
-  }
-
-  static reset() {
-    if (!this._singleton) {
-      this._singleton = new VisitorContext();
-    }
-    this._singleton.reset();
-  }
+  private readonly _lookupSymbol = new SymbolInfo("", null);
 
   attributeStructs: ASTNode.StructSpecifier[] = [];
   attributeList: StructProp[] = [];
@@ -44,8 +33,16 @@ export class VisitorContext {
   _fragmentStructVarMap: Record<string, ShaderStructRole>;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
+  codeCache = new WeakMap<TreeNode, string>();
+  fragmentReturns = new WeakSet<ASTNode.JumpStatement>();
+
+  constructor() {
+    this.reset();
+  }
 
   reset(resetAll = true) {
+    this.codeCache = new WeakMap();
+    this.fragmentReturns = new WeakSet();
     if (resetAll) {
       this.attributeStructs.length = 0;
       this.attributeList.length = 0;
@@ -115,7 +112,7 @@ export class VisitorContext {
 
     this._referencedGlobals[ident] = [];
 
-    const lookupSymbol = VisitorContext._lookupSymbol;
+    const lookupSymbol = this._lookupSymbol;
     lookupSymbol.set(ident, type);
     this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
   }

@@ -6,6 +6,8 @@ import { TypeSystem } from "./TypeSystem";
 import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagnostics";
 
 class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
+  constructor(private readonly _source: string) {}
+
   redefinition(
     location: ShaderRange,
     name: string,
@@ -119,12 +121,19 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
     return ShaderCompilerUtils.createGSError(
       message,
       warning ? GSErrorName.CompilationWarn : GSErrorName.CompilationError,
-      ShaderCompilerUtils.processingPassText,
+      this._source,
       location,
       code
     );
   }
 }
 
-/** Analyzer-only diagnostic mapper supplied to the analyzer parser instance. @internal */
-export const analyzerSemanticDiagnostics: SemanticDiagnostics = new AnalyzerSemanticDiagnostics();
+/**
+ * Creates a request-owned semantic diagnostic mapper.
+ * @param source - Expanded pass source attached to parser diagnostics.
+ * @returns Analyzer semantic diagnostic policy for one parser session.
+ * @internal
+ */
+export function createAnalyzerSemanticDiagnostics(source: string): SemanticDiagnostics {
+  return new AnalyzerSemanticDiagnostics(source);
+}

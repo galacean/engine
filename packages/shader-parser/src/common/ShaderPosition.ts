@@ -1,6 +1,4 @@
-import type { IPoolElement } from "@galacean/engine-core";
-
-export class ShaderPosition implements IPoolElement {
+export class ShaderPosition {
   index: number;
   line: number;
   column: number;
@@ -9,11 +7,5 @@ export class ShaderPosition implements IPoolElement {
     this.index = index;
     this.line = line;
     this.column = column;
-  }
-
-  dispose(): void {
-    this.index = 0;
-    this.line = 0;
-    this.column = 0;
   }
 }

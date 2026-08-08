@@ -105,8 +105,6 @@ interface MutableShaderIOInfo {
   fragmentStructVarMap: Record<string, ShaderStructRole>;
 }
 
-const lookupSymbol = new SymbolInfo("", null);
-
 function createIOInfo(): MutableShaderIOInfo {
   return {
     attributeStructs: [],
@@ -121,11 +119,13 @@ function createIOInfo(): MutableShaderIOInfo {
 }
 
 function findFunctions(symbolTable: SymbolTable<SymbolInfo>, entry: string): FnSymbol[] {
+  const lookupSymbol = new SymbolInfo("", null);
   lookupSymbol.set(entry, ESymbolType.FN);
   return <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
 }
 
 function findStructs(symbolTable: SymbolTable<SymbolInfo>, name: string): StructSymbol[] {
+  const lookupSymbol = new SymbolInfo("", null);
   lookupSymbol.set(name, ESymbolType.STRUCT);
   return <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
 }

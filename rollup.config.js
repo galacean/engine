@@ -24,7 +24,6 @@ const pkgs = fs
   });
 
 const shaderParserPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-parser");
-if (shaderParserPkg) pkgs.push({ ...shaderParserPkg, parserEntry: "analyzer" });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
@@ -61,10 +60,8 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson, parserEntry = "runtime" }) {
-  const isShaderParser = pkgJson.name === "@galacean/engine-shader-parser";
-  const entry = isShaderParser && parserEntry === "runtime" ? "runtime.ts" : "index.ts";
-  const input = path.join(location, "src", entry);
+function config({ location, pkgJson }) {
+  const input = path.join(location, "src/index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
 
@@ -76,20 +73,6 @@ function config({ location, pkgJson, parserEntry = "runtime" }) {
       __buildVersion: pkgJson.version
     })
   );
-  if (isShaderParser && parserEntry === "runtime") {
-    // The analyzer-support artifact remains readable; the runtime entry keeps names and control
-    // flow but omits authoring comments so splitting parser/compiler does not increase shipped size.
-    curPlugins.push(
-      minify({
-        compress: false,
-        mangle: false,
-        module: true,
-        sourceMap: true,
-        format: { beautify: true, comments: false }
-      })
-    );
-  }
-
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
@@ -118,22 +101,8 @@ function config({ location, pkgJson, parserEntry = "runtime" }) {
       };
     },
     module: () => {
-      const esFile = path.join(
-        location,
-        isShaderParser && parserEntry === "analyzer"
-          ? "dist/module.analyzer.js"
-          : isShaderParser
-            ? "dist/module.js"
-            : pkgJson.module
-      );
-      const mainFile = path.join(
-        location,
-        isShaderParser && parserEntry === "analyzer"
-          ? "dist/main.analyzer.js"
-          : isShaderParser
-            ? "dist/main.js"
-            : pkgJson.main
-      );
+      const esFile = path.join(location, pkgJson.module);
+      const mainFile = path.join(location, pkgJson.main);
       return {
         input,
         external: isExternal,
@@ -226,6 +195,55 @@ function config({ location, pkgJson, parserEntry = "runtime" }) {
   };
 }
 
+function shaderParserModuleConfig() {
+  const { location, pkgJson } = shaderParserPkg;
+  const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  const external = Object.keys(dependencies);
+  const isExternal = (id) => external.some((dependency) => id === dependency || id.startsWith(`${dependency}/`));
+  const plugins = Array.from(commonPlugins);
+  plugins.push(
+    replace({
+      preventAssignment: true,
+      __buildVersion: pkgJson.version
+    }),
+    minify({
+      compress: false,
+      mangle: false,
+      module: true,
+      sourceMap: true,
+      format: { beautify: true, comments: false }
+    })
+  );
+
+  const entryFileNames = (runtimeFile, analyzerFile) => (chunk) =>
+    chunk.name === "runtime" ? runtimeFile : analyzerFile;
+
+  return {
+    input: {
+      runtime: path.join(location, "src/runtime.ts"),
+      analyzer: path.join(location, "src/index.ts")
+    },
+    external: isExternal,
+    output: [
+      {
+        dir: path.join(location, "dist"),
+        format: "es",
+        sourcemap: true,
+        entryFileNames: entryFileNames("module.js", "module.analyzer.js"),
+        chunkFileNames: "shared/[name].module.js"
+      },
+      {
+        dir: path.join(location, "dist"),
+        format: "commonjs",
+        sourcemap: true,
+        entryFileNames: entryFileNames("main.js", "main.analyzer.js"),
+        chunkFileNames: "shared/[name].main.js"
+      }
+    ],
+    plugins
+  };
+}
+
 async function makeRollupConfig({ type, compress = true, visualizer = true, ..._ }) {
   return config({ ..._ })[type](compress, visualizer);
 }
@@ -266,8 +284,9 @@ function getUMD() {
 }
 
 function getModule() {
-  const configs = [...pkgs];
+  const configs = pkgs.filter((pkg) => pkg.pkgJson.name !== "@galacean/engine-shader-parser");
   const result = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  result.push(shaderParserModuleConfig());
 
   // Build shader package "sources" subpath entry (raw .shader strings for editor)
   const shaderPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader");

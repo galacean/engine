@@ -22,27 +22,41 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   abstract getMRTProp(prop: StructProp): string;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
+  protected readonly context = new VisitorContext();
+
+  cache(node: TreeNode, code: string): string {
+    this.context.codeCache.set(node, code);
+    return code;
+  }
+
+  getCachedCode(node: TreeNode): string | undefined {
+    return this.context.codeCache.get(node);
+  }
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
     const ret = pool.get();
     ret.dispose();
-    for (const child of children) {
-      if (child instanceof BaseToken) {
-        // Legacy opaque `#define` lexemes carry the directive verbatim — expression-style defines go through the AST path.
-        ret.array.push(child.lexeme);
-      } else {
-        ret.array.push(child.codeGen(this));
+    try {
+      for (const child of children) {
+        if (child instanceof BaseToken) {
+          // Legacy opaque `#define` lexemes carry the directive verbatim — expression-style defines go through the AST path.
+          ret.array.push(child.lexeme);
+        } else {
+          ret.array.push(child.codeGen(this));
+        }
       }
+      return ret.array.join(" ");
+    } finally {
+      ret.dispose();
+      pool.return(ret);
     }
-    pool.return(ret);
-    return ret.array.join(" ");
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const children = node.children;
     const derivationLength = children.length;
-    const context = VisitorContext.context;
+    const context = this.context;
 
     if (derivationLength === 3) {
       const postExpr = children[0] as ASTNode.PostfixExpression;
@@ -80,7 +94,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     for (const name of node.referenceGlobalSymbolNames) {
-      VisitorContext.context.referenceGlobal(name, ESymbolType.Any);
+      this.context.referenceGlobal(name, ESymbolType.Any);
     }
 
     return node.getLexeme(this);
@@ -89,14 +103,14 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   visitFunctionCall(node: ASTNode.FunctionCall): string {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol instanceof FnSymbol) {
-      VisitorContext.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
+      this.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
 
       const paramList = call.children[2];
       if (paramList instanceof ASTNode.FunctionCallParameterList) {
         const astNodes = paramList.paramNodes;
         const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
 
-        const context = VisitorContext.context;
+        const context = this.context;
         const params = astNodes.filter((_, i) => {
           const typeInfo = paramInfoList?.[i]?.typeInfo;
           // Drop struct-IO parameters (attribute/varying/mrt) — they're flattened
@@ -128,7 +142,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const paramList = children[2];
     if (paramList instanceof ASTNode.FunctionCallParameterList) {
       const astNodes = paramList.paramNodes;
-      const context = VisitorContext.context;
+      const context = this.context;
 
       // Drop bare IO-struct args only when the macro aliases a user fn (whose
       // formal was flattened). All other shapes preserve args verbatim.
@@ -200,7 +214,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
     const type = node.typeSpecifier.type;
     if (typeof type === "string") {
-      VisitorContext.context.referenceGlobal(type, ESymbolType.STRUCT);
+      this.context.referenceGlobal(type, ESymbolType.STRUCT);
     }
     return this.defaultCodeGen(node.children);
   }
@@ -209,7 +223,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const children = node.children;
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
-      const context = VisitorContext.context;
+      const context = this.context;
       // Global variables whose declared type is a varying/attribute/mrt struct
       // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable's role comes
       // from `ShaderCoreInfo`'s per-stage struct-var maps (module globals populate both),
@@ -223,7 +237,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitDeclaration(node: ASTNode.Declaration): string {
-    const { context } = VisitorContext;
+    const context = this.context;
     const children = node.children;
     const child = children[0];
 
@@ -235,7 +249,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     const params = node.parameterInfoList.filter(
       (item) => !item.typeInfo || !context.getStructRole(item.typeInfo.typeLexeme)
     );
@@ -257,7 +271,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
     const returnType = node.returnType.typeSpecifier.lexeme;
-    if (VisitorContext.context.isVaryingStruct(returnType)) {
+    if (this.context.isVaryingStruct(returnType)) {
       return `void ${node.ident.lexeme}(`;
     }
     return this.defaultCodeGen(node.children);
@@ -273,11 +287,11 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
           expr,
           NoneTerminal.variable_identifier
         );
-        if (VisitorContext.context.isVaryingStruct(<string>returnVar?.typeInfo)) {
+        if (this.context.isVaryingStruct(<string>returnVar?.typeInfo)) {
           return "";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        if (VisitorContext.context.isVaryingStruct(<string>returnFnCall?.type)) {
+        if (this.context.isVaryingStruct(<string>returnFnCall?.type)) {
           return `${expr.codeGen(this)};`;
         }
       }
@@ -290,7 +304,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitStructSpecifier(node: ASTNode.StructSpecifier): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     const { varyingStructs, attributeStructs, mrtStructs } = context;
     const isVaryingStruct = varyingStructs.indexOf(node) !== -1;
     const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
@@ -339,7 +353,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
   visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
     const fnName = fnNode.protoType.ident.lexeme;
-    const context = VisitorContext.context;
+    const context = this.context;
 
     if (fnName == context.stageEntry) {
       const statements = fnNode.statements.codeGen(this);

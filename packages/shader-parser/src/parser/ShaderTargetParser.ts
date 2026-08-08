@@ -42,27 +42,35 @@ export class ShaderTargetParser {
     return this.sematicAnalyzer.errors;
   }
 
-  private static _runtimeSingleton: ShaderTargetParser;
-  private static _analyzerSingleton: ShaderTargetParser;
+  private static _tables?: {
+    readonly actionTable: StateActionTable;
+    readonly gotoTable: StateGotoTable;
+    readonly grammar: Grammar;
+  };
 
-  static create(branchSemantics?: BranchSemantics, semanticDiagnostics?: SemanticDiagnostics) {
-    const singletonKey = semanticDiagnostics ? "_analyzerSingleton" : "_runtimeSingleton";
-    if (!this[singletonKey]) {
+  static create(branchSemantics?: BranchSemantics, semanticDiagnostics?: SemanticDiagnostics, source?: string) {
+    let tables = this._tables;
+    if (!tables) {
       const grammar = createGrammar();
       const generator = new LALR1(grammar);
       generator.generate();
-      const parser = new ShaderTargetParser(
-        generator.actionTable,
-        generator.gotoTable,
-        grammar,
-        branchSemantics,
-        semanticDiagnostics
-      );
-      addTranslationRule(parser.sematicAnalyzer);
-      this[singletonKey] = parser;
+      tables = this._tables = {
+        actionTable: generator.actionTable,
+        gotoTable: generator.gotoTable,
+        grammar
+      };
     }
 
-    return this[singletonKey];
+    const parser = new ShaderTargetParser(
+      tables.actionTable,
+      tables.gotoTable,
+      tables.grammar,
+      branchSemantics,
+      semanticDiagnostics,
+      source
+    );
+    addTranslationRule(parser.sematicAnalyzer);
+    return parser;
   }
 
   private constructor(
@@ -70,7 +78,8 @@ export class ShaderTargetParser {
     gotoTable: StateGotoTable,
     grammar: Grammar,
     branchSemantics?: BranchSemantics,
-    semanticDiagnostics?: SemanticDiagnostics
+    semanticDiagnostics?: SemanticDiagnostics,
+    private readonly _source?: string
   ) {
     this.actionTable = actionTable;
     this.gotoTable = gotoTable;
@@ -81,9 +90,6 @@ export class ShaderTargetParser {
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
     this.sematicAnalyzer.reset(macroDefineList);
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
-    // A prior parse that bailed early (syntax error -> `return null` below) leaves this working
-    // stack dirty; the parser is a shared singleton, so start every parse from a clean stack or a
-    // failed compile corrupts the next one.
     traceBackStack.length = 0;
     traceBackStack.push(0);
 
@@ -144,7 +150,7 @@ export class ShaderTargetParser {
         const error = ShaderCompilerUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,
-          ShaderCompilerUtils.processingPassText,
+          this._source,
           token.location
         );
         this.sematicAnalyzer.errors.push(<GSError>error);

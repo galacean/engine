@@ -1,9 +1,10 @@
 import {
   ChunkOutputCache,
+  normalizeShaderSourceFile,
   parseShaderPass,
   ShaderCoreInfo,
-  ShaderCompilerUtils,
   ShaderSourceParser,
+  type ParsedShaderPass,
   type PreprocessSourceMapSegment
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import type { ShaderRange } from "@galacean/engine-shader-parser/internal/analyzer";
@@ -20,8 +21,8 @@ import { positionAt } from "./sourcePosition";
 /**
  * Maps canonical shader include paths to source chunks.
  *
- * Keys use the same root-relative convention as compiler include resolution; an undefined value
- * represents a known path whose source is unavailable.
+ * Keys are project-root paths for normal includes. Relative includes from an absolute `sourceFile`
+ * use their resolved absolute URLs. An undefined value represents a known path whose source is unavailable.
  */
 export type ShaderIncludeMap = Readonly<Record<string, string | undefined>>;
 
@@ -29,12 +30,10 @@ export type ShaderIncludeMap = Readonly<Record<string, string | undefined>>;
  * Controls include resolution and source attribution for one analysis request.
  */
 export interface AnalyzerOptions {
-  /** `#include` lookup table; keys are include paths, values are chunk sources. */
+  /** `#include` lookup table using canonical project paths or resolved absolute URLs. */
   includeMap?: ShaderIncludeMap;
-  /** Base URL used to resolve relative `#include` paths. */
-  basePathForIncludeKey?: string;
-  /** Logical file name attached to diagnostics. */
-  file?: string;
+  /** Project path or absolute URL of the complete root Shader; required only for relative root includes. */
+  sourceFile?: string;
 }
 
 /**
@@ -42,7 +41,19 @@ export interface AnalyzerOptions {
  */
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
-  diagnostics: Diagnostic[];
+  readonly diagnostics: readonly Diagnostic[];
+}
+
+/** Parsed pass retained by the internal combined analysis/codegen path. @internal */
+export interface AnalyzedShaderPass {
+  readonly parsed: ParsedShaderPass;
+  readonly vertexEntry: string;
+  readonly fragmentEntry: string;
+}
+
+/** Analyzer result that lets first-party tooling reuse the same Parser IR for codegen. @internal */
+export interface ShaderAnalysisUnit extends AnalysisResult {
+  readonly parsedPasses: readonly AnalyzedShaderPass[];
 }
 
 /**
@@ -52,20 +63,34 @@ export interface AnalysisResult {
  * diagnostics cannot alter or block GLES code generation.
  */
 export class ShaderAnalyzer {
+  private constructor() {}
+
   /**
    * Analyzes shader source.
    * @param source - ShaderLab source to analyze.
    * @param options - Analysis options.
    * @returns Structured diagnostics.
    */
-  analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
+  static analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
+    return Object.freeze({ diagnostics: ShaderAnalyzer._analyze(source, options).diagnostics });
+  }
+
+  /**
+   * Analyzes a ShaderLab document and retains its immutable parsed passes for first-party codegen reuse.
+   * @param source - ShaderLab source to analyze.
+   * @param options - Include sources and optional root source path.
+   * @returns Diagnostics and parsed passes produced by the same parser calls.
+   * @internal
+   */
+  static _analyze(source: string, options?: AnalyzerOptions): ShaderAnalysisUnit {
     const includeMap = options?.includeMap ?? {};
+    const sourceFile = normalizeShaderSourceFile(options?.sourceFile);
     const chunkOutputCache: ChunkOutputCache = new Map();
     const diagnostics: Diagnostic[] = [];
+    const parsedPasses: AnalyzedShaderPass[] = [];
 
     try {
-      diagnostics.push(...validatePreprocessorExpressions(source, options?.file));
-      ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
+      diagnostics.push(...validatePreprocessorExpressions(source, sourceFile));
       const sourceResult = ShaderSourceParser.parseWithErrors(source);
       const shaderSource: IShaderSource = sourceResult.shaderSource;
       diagnostics.push(...sourceResult.errors.map((error) => gseErrorToDiagnostic(error)));
@@ -82,15 +107,15 @@ export class ShaderAnalyzer {
                   diagnostic.range.start.offset <= statement.range.end.index
               )
           );
-          this._analyzePass(
+          ShaderAnalyzer._analyzePass(
             pass,
             statements,
             source,
             diagnostics,
+            parsedPasses,
             includeMap,
             chunkOutputCache,
-            options?.basePathForIncludeKey,
-            options?.file,
+            sourceFile,
             skipSemanticValidation
           );
         }
@@ -99,32 +124,36 @@ export class ShaderAnalyzer {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
 
-    if (options?.file) {
-      for (const diagnostic of diagnostics) diagnostic.file ??= options.file;
+    if (sourceFile) {
+      for (const diagnostic of diagnostics) diagnostic.sourceFile ??= sourceFile;
     }
-    return { diagnostics };
+    return Object.freeze({
+      diagnostics: Object.freeze(diagnostics.slice()),
+      parsedPasses: Object.freeze(parsedPasses.map((pass) => Object.freeze(pass)))
+    });
   }
 
-  private _analyzePass(
+  private static _analyzePass(
     pass: IShaderPassSource,
     statements: readonly IStatement[],
     source: string,
     diagnostics: Diagnostic[],
+    parsedPasses: AnalyzedShaderPass[],
     includeMap: ShaderIncludeMap,
     chunkOutputCache: ChunkOutputCache,
-    basePathForIncludeKey: string | undefined,
-    file: string | undefined,
+    sourceFile: string | undefined,
     skipSemanticValidation: boolean
   ): void {
     const { vertexEntry, fragmentEntry } = pass;
     const passDiagnostics: Diagnostic[] = [];
-    let passText: string | undefined;
-    let preprocessSourceMap: PreprocessSourceMapSegment[] = [];
+    let expandedSource: string | undefined;
+    let preprocessSourceMap: readonly PreprocessSourceMapSegment[] = [];
     try {
-      const parsed = parseShaderPass(pass.contents, includeMap, chunkOutputCache, basePathForIncludeKey);
+      const parsed = parseShaderPass(pass.contents, includeMap, chunkOutputCache, sourceFile);
       const { ir, errors } = parsed;
-      passText = parsed.passText;
+      expandedSource = parsed.expandedSource;
       preprocessSourceMap = parsed.sourceMap;
+      parsedPasses.push({ parsed, vertexEntry, fragmentEntry });
       for (const error of errors) {
         const diagnostic = gseErrorToDiagnostic(error);
         if (
@@ -153,13 +182,13 @@ export class ShaderAnalyzer {
 
     const sourceMap = createPassSourceMap(statements);
     for (const diagnostic of passDiagnostics) {
-      if (passText !== undefined && diagnostic.relatedSource === passText) {
+      if (expandedSource !== undefined && diagnostic.relatedSource === expandedSource) {
         remapPreprocessedDiagnostic(diagnostic, preprocessSourceMap);
       }
       if (sourceMap.generatedSource === pass.contents && diagnostic.relatedSource === pass.contents) {
         remapDiagnostic(diagnostic, sourceMap.segments, source);
       }
-      diagnostic.file ??= file;
+      diagnostic.sourceFile ??= sourceFile;
       diagnostics.push(diagnostic);
     }
   }
@@ -171,7 +200,7 @@ function remapPreprocessedDiagnostic(diagnostic: Diagnostic, segments: readonly 
   const endSegment = findPreprocessSegment(diagnostic.range.end.offset, segments, true);
   const startOffset = startSegment.sourceStart + diagnostic.range.start.offset - startSegment.generatedStart;
   let endOffset = startOffset;
-  if (endSegment && endSegment.source === startSegment.source && endSegment.file === startSegment.file) {
+  if (endSegment && endSegment.source === startSegment.source && endSegment.sourceFile === startSegment.sourceFile) {
     endOffset = endSegment.sourceStart + diagnostic.range.end.offset - endSegment.generatedStart;
   }
   diagnostic.range = {
@@ -179,7 +208,7 @@ function remapPreprocessedDiagnostic(diagnostic: Diagnostic, segments: readonly 
     end: positionAt(startSegment.source, endOffset)
   };
   diagnostic.relatedSource = startSegment.source;
-  diagnostic.file = startSegment.file ?? diagnostic.file;
+  diagnostic.sourceFile = startSegment.sourceFile ?? diagnostic.sourceFile;
 }
 
 function findPreprocessSegment(

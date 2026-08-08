@@ -1,17 +1,13 @@
-import { ETokenType, ShaderRange } from "../common";
+import { ETokenType } from "../common";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
-import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
-import { NodeChild } from "../parser/types";
 import { Keyword } from "../common/enums/Keyword";
 
-type ASTNodePool = ClearableObjectPool<
-  { set: (loc: ShaderRange, children: NodeChild[], trackAnalysis?: boolean) => void } & IPoolElement & TreeNode
->;
+type ASTNodeConstructor = new () => TreeNode;
 
 export default class GrammarUtils {
   static isTerminal(sm: GrammarSymbol) {
@@ -29,35 +25,35 @@ export default class GrammarUtils {
     goal: NoneTerminal,
     options: GrammarSymbol[][],
     /** the ast node */
-    astTypePool?: ASTNodePool
+    astType?: ASTNodeConstructor
   ) {
-    return this._createProductionWithOptions(goal, options, astTypePool, astTypePool);
+    return this._createProductionWithOptions(goal, options, astType, astType);
   }
 
   /**
    * Creates productions whose typed AST nodes are needed only by analyzer diagnostics.
    * @param goal - Production goal symbol.
    * @param options - Alternative right-hand sides.
-   * @param analyzerPool - Typed node pool used by analyzer parses.
+   * @param analyzerType - Typed node constructor used by analyzer parses.
    * @returns Grammar productions with mode-specific translation rules.
    * @internal
    */
   static createAnalyzerProductionWithOptions(
     goal: NoneTerminal,
     options: GrammarSymbol[][],
-    analyzerPool: ASTNodePool
+    analyzerType: ASTNodeConstructor
   ) {
-    return this._createProductionWithOptions(goal, options, undefined, analyzerPool);
+    return this._createProductionWithOptions(goal, options, undefined, analyzerType);
   }
 
   private static _createProductionWithOptions(
     goal: NoneTerminal,
     options: GrammarSymbol[][],
-    runtimePool?: ASTNodePool,
-    analyzerPool?: ASTNodePool
+    runtimeType?: ASTNodeConstructor,
+    analyzerType?: ASTNodeConstructor
   ) {
-    const runtimeResolvedPool = runtimePool ?? ASTNode.TrivialNode.pool;
-    const analyzerResolvedPool = analyzerPool ?? ASTNode.TrivialNode.pool;
+    const runtimeResolvedType = runtimeType ?? ASTNode.TrivialNode;
+    const analyzerResolvedType = analyzerType ?? ASTNode.TrivialNode;
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {
       // Single-`NonTerminal` RHS + no typed class → this production reduces
@@ -66,8 +62,8 @@ export default class GrammarUtils {
       // the parser's GOTO runs off `reduceProduction.goal`, not off the node
       // type on the stack. Single-Terminal RHS (e.g. `unary_operator → PLUS`)
       // isn't eligible — a `BaseToken` can't stand in for an AST node.
-      const runtimeCanElide = !runtimePool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
-      const analyzerCanElide = !analyzerPool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
+      const runtimeCanElide = !runtimeType && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
+      const analyzerCanElide = !analyzerType && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
       ret.push([
         [goal, ...opt],
         function (sa, ...children) {
@@ -80,7 +76,7 @@ export default class GrammarUtils {
             const start = children[0].location.start;
             const end = children[children.length - 1].location.end;
             const location = ShaderCompilerUtils.createRange(start, end);
-            ASTNode.get(analyzerMode ? analyzerResolvedPool : runtimeResolvedPool, sa, location, children);
+            ASTNode.get(analyzerMode ? analyzerResolvedType : runtimeResolvedType, sa, location, children);
           }
         }
       ]);

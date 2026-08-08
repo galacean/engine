@@ -5,7 +5,6 @@ import { GSError, GSErrorName } from "./GSError";
 import { ShaderPosition } from "./common/ShaderPosition";
 import type { ShaderSourceMapSegment } from "./ir";
 
-// Mirrors `ShaderPass._shaderRootPath` (from core's ShaderPass).
 const SHADER_ROOT_PATH = "shaders://root/";
 
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
@@ -50,9 +49,10 @@ export class Preprocessor {
     source: string,
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
-    chunkOutputCache: ChunkOutputCache
+    chunkOutputCache: ChunkOutputCache,
+    sourceFile?: string
   ): string {
-    const result = this.parseWithErrors(source, basePathForIncludeKey, includeMap, chunkOutputCache);
+    const result = this.parseWithErrors(source, basePathForIncludeKey, includeMap, chunkOutputCache, sourceFile);
     for (const error of result.errors) Logger.error(error.toString());
     return result.content;
   }
@@ -64,15 +64,17 @@ export class Preprocessor {
    * @param basePathForIncludeKey - Base URL for relative include paths.
    * @param includeMap - Include-path lookup table.
    * @param chunkOutputCache - Cache for expanded include chunks.
+   * @param sourceFile - Canonical path of the root source.
    * @returns The expanded source and collected errors.
    */
   static parseWithErrors(
     source: string,
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
-    chunkOutputCache: ChunkOutputCache
+    chunkOutputCache: ChunkOutputCache,
+    sourceFile?: string
   ): PreprocessResult {
-    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache, new Set());
+    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache, new Set(), sourceFile);
   }
 
   private static _expand(
@@ -100,7 +102,7 @@ export class Preprocessor {
         generatedEnd: generatedOffset + text.length,
         sourceStart: start,
         source,
-        file: sourceFile
+        sourceFile
       });
       generatedOffset += text.length;
     };
@@ -129,7 +131,7 @@ export class Preprocessor {
       }
 
       const chunk = includeMap[path];
-      if (!chunk) {
+      if (chunk === undefined) {
         errors.push(
           this._createIncludeError(source, match.index, `Shader include "${path}" was not found.`, sourceFile)
         );
@@ -169,7 +171,7 @@ export class Preprocessor {
           generatedEnd: generatedOffset + segment.generatedEnd,
           sourceStart: segment.sourceStart,
           source: segment.source,
-          file: segment.file
+          sourceFile: segment.sourceFile
         });
       }
       generatedOffset += expanded.content.length;
@@ -184,14 +186,18 @@ export class Preprocessor {
     try {
       const url =
         includeName[0] === "." ? new URL(includeName, basePathForIncludeKey) : new URL(includeName, SHADER_ROOT_PATH);
-      return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : undefined;
+      return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : url.href;
     } catch {
       return undefined;
     }
   }
 
   private static _canonicalIncludeURL(path: string): string {
-    return new URL(path, SHADER_ROOT_PATH).href;
+    try {
+      return new URL(path).href;
+    } catch {
+      return new URL(path, SHADER_ROOT_PATH).href;
+    }
   }
 
   private static _createIncludeError(source: string, offset: number, message: string, file?: string): GSError {

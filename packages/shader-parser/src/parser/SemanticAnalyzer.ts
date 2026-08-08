@@ -21,10 +21,14 @@ type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none
  * - Static analysis
  */
 export default class SemanticAnalyzer {
-  /**
-   * @internal
-   */
-  static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
+  /** Request-owned lookup key reused during this parser session. @internal */
+  readonly lookupSymbol = new SymbolInfo("", null);
+  /** Request-owned scratch output for array-size symbol resolution. @internal */
+  readonly arraySymbolScratch: SymbolInfo[] = [];
+  /** Request-owned scratch output for overload resolution. @internal */
+  readonly overloadScratch: SymbolInfo[] = [];
+  /** Request-owned scratch output for struct resolution. @internal */
+  readonly structScratch: SymbolInfo[] = [];
 
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
