@@ -126,10 +126,14 @@ void fragA() { gl_FragColor = vec4(0.25); }
   it("reuses the analyzer parse for codegen without changing runtime output", () => {
     const sourceFile = "Assets/Shaders/Root.shader";
     const includeMap = {
-      "Assets/Shaders/Branch.glsl": `
+      "Assets/Shaders/chunks/Branch.glsl": `
+#include "../shared/Value.glsl"
 #if defined(USE_ALTERNATE)
   #define BRANCH_VALUE 2.0
-#else
+#endif
+`,
+      "Assets/Shaders/shared/Value.glsl": `
+#ifndef BRANCH_VALUE
   #define BRANCH_VALUE 1.0
 #endif
 `
@@ -137,7 +141,7 @@ void fragA() { gl_FragColor = vec4(0.25); }
     const source = `Shader "SharedParse" {
   SubShader "Default" {
     Pass "p" {
-      #include "./Branch.glsl"
+      #include "./chunks/Branch.glsl"
       void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(BRANCH_VALUE); }
       VertexShader = vert;
@@ -159,6 +163,9 @@ void fragA() { gl_FragColor = vec4(0.25); }
       analyzedPass.fragmentEntry,
       ShaderLanguage.GLSLES300
     );
+    expect(() =>
+      compiler._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Assets/Shaders/Root.shader")
+    ).not.to.throw();
     const precompiled = compiler._precompile(
       source,
       ShaderLanguage.GLSLES300,
@@ -171,7 +178,7 @@ void fragA() { gl_FragColor = vec4(0.25); }
     expect(reused?.vertexShaderInstructions).to.deep.equal(runtimePass.vertexShaderInstructions);
     expect(reused?.fragmentShaderInstructions).to.deep.equal(runtimePass.fragmentShaderInstructions);
     expect(
-      analyzedPass.parsed.sourceMap.some((segment) => segment.sourceFile === "Assets/Shaders/Branch.glsl")
+      analyzedPass.parsed.sourceMap.some((segment) => segment.sourceFile === "Assets/Shaders/shared/Value.glsl")
     ).to.equal(true);
   });
 
@@ -189,6 +196,49 @@ void frag() { gl_FragColor = vec4(1.0); }`,
 
     const generated = new ShaderCompiler()._generateParsedShaderPass(parsed, "vert", "frag", ShaderLanguage.GLSLES100);
     expect(generated).to.equal(undefined);
+  });
+
+  it("preserves a missing include path in precompile failures", () => {
+    const source = `Shader "MissingInclude" {
+  SubShader "Default" {
+    Pass "p" {
+      #include "./chunks/Missing.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+
+    expect(() =>
+      new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")
+    ).to.throw(
+      /Shaders\/Root\.shader: PreprocessorError: Shader include "Shaders\/chunks\/Missing\.glsl" was not found\.\n1 \| #include "\.\/chunks\/Missing\.glsl"\n  \| \^/
+    );
+  });
+
+  it("preserves the nested include source and syntax error in precompile failures", () => {
+    const source = `Shader "InvalidInclude" {
+  SubShader "Default" {
+    Pass "p" {
+      #include "./chunks/Common.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(chunkValue()); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const compiler = new ShaderCompiler();
+    compiler._setIncludeMap({
+      "Shaders/chunks/Common.glsl": '#include "../shared/Value.glsl"\nfloat chunkValue() { return 0.25; }',
+      "Shaders/shared/Value.glsl": "float brokenValue = ;"
+    });
+
+    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")).to.throw(
+      /Shaders\/shared\/Value\.glsl: CompilationError: Unexpected token ;\n1 \| float brokenValue = ;\n  \| {21}\^/
+    );
   });
 
   it("does not treat analyzer-only diagnostics as backend-blocking errors", () => {

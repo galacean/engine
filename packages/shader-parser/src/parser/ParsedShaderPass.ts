@@ -1,4 +1,7 @@
 import type { BaseToken } from "../common/BaseToken";
+import { ShaderPosition } from "../common/ShaderPosition";
+import { ShaderRange } from "../common/ShaderRange";
+import { GSError, GSErrorName } from "../GSError";
 import type { MacroDefineList } from "../Preprocessor";
 import { Preprocessor, type ChunkOutputCache, type IncludeMap } from "../Preprocessor";
 import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
@@ -58,6 +61,77 @@ export interface ParsedShaderPass {
   readonly errors: readonly Error[];
   /** Preprocessor and syntax errors that prevent backend generation. */
   readonly blockingErrors: readonly Error[];
+}
+
+/**
+ * Formats a parsed-pass error against its original Shader or ShaderChunk source.
+ * @param error - Error emitted from preprocessing or parsing.
+ * @param parsed - Parsed pass containing the expanded-source mapping.
+ * @returns Human-readable error text prefixed with the canonical source file when available.
+ * @internal
+ */
+export function formatParsedShaderError(error: Error, parsed: ParsedShaderPass): string {
+  let mappedError = error;
+  if (error instanceof GSError && error.source === parsed.expandedSource) {
+    const location = error.location;
+    const sourceRange = "start" in location ? location : { start: location, end: location };
+    const startSegment = findSourceMapSegment(sourceRange.start.index, parsed.sourceMap, false);
+    if (startSegment) {
+      const endSegment = findSourceMapSegment(sourceRange.end.index, parsed.sourceMap, true);
+      const startOffset = startSegment.sourceStart + sourceRange.start.index - startSegment.generatedStart;
+      const endOffset =
+        endSegment?.source === startSegment.source && endSegment.sourceFile === startSegment.sourceFile
+          ? endSegment.sourceStart + sourceRange.end.index - endSegment.generatedStart
+          : startOffset;
+      const start = shaderPositionAt(startSegment.source, startOffset);
+      const end = shaderPositionAt(startSegment.source, endOffset);
+      const mappedLocation = new ShaderRange();
+      mappedLocation.set(start, end);
+      mappedError = new GSError(
+        error.name as GSErrorName,
+        error.message,
+        mappedLocation,
+        startSegment.source,
+        startSegment.sourceFile ?? error.file,
+        error.code
+      );
+    }
+  }
+  const sourceFile = mappedError instanceof GSError ? mappedError.file : undefined;
+  return sourceFile ? `${sourceFile}: ${mappedError.toString()}` : mappedError.toString();
+}
+
+function findSourceMapSegment(
+  offset: number,
+  segments: readonly ShaderSourceMapSegment[],
+  isEnd: boolean
+): ShaderSourceMapSegment | undefined {
+  for (const segment of segments) {
+    if (
+      offset >= segment.generatedStart &&
+      (isEnd ? offset <= segment.generatedEnd && offset > segment.generatedStart : offset < segment.generatedEnd)
+    ) {
+      return segment;
+    }
+  }
+  const last = segments[segments.length - 1];
+  return last && offset === last.generatedEnd ? last : undefined;
+}
+
+function shaderPositionAt(source: string, offset: number): ShaderPosition {
+  let line = 0;
+  let column = 0;
+  for (let index = 0; index < offset; index++) {
+    if (source.charCodeAt(index) === 10) {
+      line++;
+      column = 0;
+    } else {
+      column++;
+    }
+  }
+  const position = new ShaderPosition();
+  position.set(offset, line, column);
+  return position;
 }
 
 /**

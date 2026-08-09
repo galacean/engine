@@ -7,6 +7,7 @@ import { ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import {
   parseRuntimeShaderPass,
+  formatParsedShaderError,
   type ParsedShaderPass,
   type ShaderClueIR,
   type IncludeMap,
@@ -131,12 +132,20 @@ export class ShaderCompiler {
           };
         }
 
-        const programSource = this._parseShaderPass(
-          pass.contents,
+        const parsedPass = parseRuntimeShaderPass(pass.contents, this._includeMap, this._chunkOutputCache, sourceFile);
+        if (parsedPass.blockingErrors.length) {
+          throw new Error(
+            [
+              `Shader pass "${shaderSource.name}.${sub.name}.${pass.name}" precompile failed:`,
+              ...parsedPass.blockingErrors.map((error) => formatParsedShaderError(error, parsedPass))
+            ].join("\n")
+          );
+        }
+        const programSource = this._generateParsedShaderPass(
+          parsedPass,
           pass.vertexEntry,
           pass.fragmentEntry,
-          platformTarget,
-          sourceFile
+          platformTarget
         );
 
         if (!programSource) {
