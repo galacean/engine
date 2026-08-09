@@ -29,22 +29,24 @@ export class ShaderIOValidator {
    * @param analysis - Analyzer-only facts and their neutral/core backing data.
    * @param vertexEntryLocation - ShaderLab source range of the vertex entry binding.
    * @param fragmentEntryLocation - ShaderLab source range of the fragment entry binding.
+   * @param entrySource - Complete ShaderLab source containing the entry bindings.
    * @returns Analyzer errors for invalid pipeline IO.
    */
   static validate(
     analysis: ShaderAnalysisInfo,
     vertexEntryLocation?: ShaderRange | ShaderPosition,
-    fragmentEntryLocation?: ShaderRange | ShaderPosition
+    fragmentEntryLocation?: ShaderRange | ShaderPosition,
+    entrySource?: string
   ): GSError[] {
     const { ir, coreInfo } = analysis;
     const source = ir.source;
     const errors: GSError[] = [];
 
     if (coreInfo.vertexEntry.name && !coreInfo.vertexEntry.functions.length) {
-      this._entryNotFound(errors, coreInfo.vertexEntry.name, vertexEntryLocation, source);
+      this._entryNotFound(errors, coreInfo.vertexEntry.name, vertexEntryLocation, entrySource ?? source);
     }
     if (coreInfo.fragmentEntry.name && !coreInfo.fragmentEntry.functions.length) {
-      this._entryNotFound(errors, coreInfo.fragmentEntry.name, fragmentEntryLocation, source);
+      this._entryNotFound(errors, coreInfo.fragmentEntry.name, fragmentEntryLocation, entrySource ?? source);
     }
 
     this._validateVertex(analysis, errors);
@@ -223,8 +225,6 @@ export class ShaderIOValidator {
     location: ShaderRange | ShaderPosition,
     source: string
   ): void {
-    errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, location, code) as GSError
-    );
+    errors.push(ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, location, code));
   }
 }

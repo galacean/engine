@@ -14,7 +14,7 @@ import { ShaderTargetParser } from "./ShaderTargetParser";
  * @param includeMap - Canonical include paths mapped to chunk sources.
  * @param cache - Request-owned expanded-include cache.
  * @param sourceFile - Canonical root source path used for relative includes and error attribution.
- * @returns Immutable parser output suitable for GLES generation.
+ * @returns Request-owned parser output suitable for GLES generation.
  * @internal
  */
 export function parseRuntimeShaderPass(

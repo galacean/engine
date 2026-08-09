@@ -11,7 +11,7 @@ import { NodeChild } from "./types";
 
 import { MacroDefineList } from "../Preprocessor";
 
-export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
+export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
 
 /**
@@ -38,7 +38,7 @@ export default class SemanticAnalyzer {
     returnStatement?: ASTNode.JumpStatement;
   } = {};
   private _shaderData = new ShaderData();
-  private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
+  private _translationRules: readonly (TranslationRule | undefined)[] = [];
 
   private _macroDefineList: MacroDefineList;
 
@@ -84,12 +84,13 @@ export default class SemanticAnalyzer {
     return this.symbolTableStack.popScope();
   }
 
-  addTranslationRule(pid: number, rule: TranslationRule) {
-    this._translationRuleTable.set(pid, rule);
+  /** Binds the immutable grammar translation table shared by parser sessions. @internal */
+  setTranslationRules(rules: readonly (TranslationRule | undefined)[]): void {
+    this._translationRules = rules;
   }
 
-  getTranslationRule(pid: number) {
-    return this._translationRuleTable.get(pid);
+  getTranslationRule(pid: number): TranslationRule | undefined {
+    return this._translationRules[pid];
   }
 
   /** Report a proven duplicate as an error and unresolved branch overlap as a warning. */

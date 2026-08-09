@@ -1207,6 +1207,8 @@ describe("ShaderAnalyzer", () => {
     const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
     expect(diag, "binding an entry name that is not a function must report EntryNotFound").to.be.ok;
     expect(diag!.severity).to.equal("error");
+    expect(source.slice(diag!.range.start.offset, diag!.range.end.offset)).to.equal("vrt");
+    expect(diag!.relatedSource).to.equal(source);
   });
 
   it("does not flag valid bound entries", () => {
@@ -1533,6 +1535,7 @@ describe("ShaderAnalyzer", () => {
     );
     expect(diag, "invalid render state property must report").to.be.ok;
     expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
+    expect(ShaderAnalyzer.analyze(source).diagnostics.some((item) => item.code === "SyntaxError")).to.equal(false);
   });
 
   it("InvalidRenderStateVariable message states the property will not be applied", () => {

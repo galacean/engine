@@ -1,5 +1,4 @@
 export type { IShaderCompiler } from "./IShaderCompiler";
-export type { IShaderProgram } from "./IShaderProgram";
 export type {
   Condition,
   DefinedCondition,

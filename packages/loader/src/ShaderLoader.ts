@@ -8,7 +8,12 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 
+const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
+
 function sourceFileForShader(url: string, baseUrl: string | null): string {
+  if (!ABSOLUTE_URL_PATTERN.test(url)) {
+    return url.split(/[?#]/, 1)[0].replace(/^\/+/, "");
+  }
   try {
     const sourceURL = new URL(url);
     sourceURL.search = "";
@@ -38,7 +43,7 @@ class ShaderLoader extends Loader<Shader> {
         return Shader._createFromPrecompiled(JSON.parse(source));
       }
 
-      // @ts-expect-error _createFromSource is @internal loader metadata plumbing.
+      // @ts-expect-error _createFromSource is @internal loader metadata plumbing
       return Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
     });
   }

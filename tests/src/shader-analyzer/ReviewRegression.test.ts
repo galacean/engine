@@ -264,6 +264,21 @@ float second(vec2 value) { return first(value.x); }`)
     expect(diagnostic!.range.start.column).to.equal(7);
   });
 
+  it("diagnoses malformed preprocessor expressions inside includes", () => {
+    const included = "#if 0\n#elif 123 defined(USE_VALUE)\nfloat includedValue;\n#endif";
+    const result = ShaderAnalyzer.analyze(shader('#include "folder/broken.glsl"'), {
+      sourceFile: "main.shader",
+      includeMap: { "folder/broken.glsl": included }
+    });
+    const diagnostic = result.diagnostics.find((candidate) => candidate.code === "PreprocessorError");
+    expect(diagnostic).to.be.ok;
+    expect(diagnostic!.sourceFile).to.equal("folder/broken.glsl");
+    expect(diagnostic!.relatedSource).to.equal(included);
+    expect(diagnostic!.range.start.line).to.equal(2);
+    expect(diagnostic!.range.start.column).to.equal(11);
+    expect(diagnostic!.range.end.column - diagnostic!.range.start.column).to.equal("defined".length);
+  });
+
   it("does not retain include inputs between analyses", () => {
     const source = shader('#include "shared.glsl"');
     expect(ShaderAnalyzer.analyze(source, { includeMap: { "shared.glsl": "float includedValue;" } }).diagnostics).to.be

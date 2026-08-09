@@ -273,6 +273,16 @@ describe("ShaderCompiler", async () => {
   it("mrt-struct", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
+
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
+    const pass = shader.subShaders[0].passes[0];
+    const program = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100
+    )!;
+    expect(program.fragment).not.toContain("null");
   });
 
   // Same-named entry parameters resolve their struct role independently per stage.

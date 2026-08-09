@@ -6,6 +6,7 @@ import { ShaderPosition } from "./common/ShaderPosition";
 import type { ShaderSourceMapSegment } from "./ir";
 
 const SHADER_ROOT_PATH = "shaders://root/";
+const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
 
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
 
@@ -150,19 +151,16 @@ export class Preprocessor {
       let expanded = chunkOutputCache.get(path);
       if (!expanded) {
         activeIncludePaths.add(path);
-        try {
-          expanded = this._expand(
-            chunk,
-            this._canonicalIncludeURL(path),
-            includeMap,
-            chunkOutputCache,
-            activeIncludePaths,
-            path
-          );
-          chunkOutputCache.set(path, expanded);
-        } finally {
-          activeIncludePaths.delete(path);
-        }
+        expanded = this._expand(
+          chunk,
+          this._canonicalIncludeURL(path),
+          includeMap,
+          chunkOutputCache,
+          activeIncludePaths,
+          path
+        );
+        activeIncludePaths.delete(path);
+        chunkOutputCache.set(path, expanded);
       }
       parts.push(expanded.content);
       for (const segment of expanded.sourceMap) {
@@ -183,27 +181,28 @@ export class Preprocessor {
   }
 
   private static _resolveIncludePath(includeName: string, basePathForIncludeKey: string): string | undefined {
-    try {
-      const url =
-        includeName[0] === "." ? new URL(includeName, basePathForIncludeKey) : new URL(includeName, SHADER_ROOT_PATH);
-      return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : url.href;
-    } catch {
-      return undefined;
-    }
+    if (includeName[0] === "." && !basePathForIncludeKey) return undefined;
+    const url =
+      includeName[0] === "." ? new URL(includeName, basePathForIncludeKey) : new URL(includeName, SHADER_ROOT_PATH);
+    return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : url.href;
   }
 
   private static _canonicalIncludeURL(path: string): string {
-    try {
-      return new URL(path).href;
-    } catch {
-      return new URL(path, SHADER_ROOT_PATH).href;
-    }
+    return ABSOLUTE_URL_PATTERN.test(path) ? new URL(path).href : new URL(path, SHADER_ROOT_PATH).href;
   }
 
   private static _createIncludeError(source: string, offset: number, message: string, file?: string): GSError {
-    const before = source.slice(0, offset);
-    const line = before.split("\n").length - 1;
-    const lastBreak = Math.max(before.lastIndexOf("\n"), before.lastIndexOf("\r"));
+    let line = 0;
+    let lastBreak = -1;
+    for (let i = 0; i < offset; i++) {
+      const char = source.charCodeAt(i);
+      if (char === 10) {
+        line++;
+        lastBreak = i;
+      } else if (char === 13) {
+        lastBreak = i;
+      }
+    }
     const position = new ShaderPosition();
     position.set(offset, line, offset - lastBreak - 1);
     return new GSError(GSErrorName.PreprocessorError, message, position, source, file);

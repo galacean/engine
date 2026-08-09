@@ -25,6 +25,7 @@ export class ShaderAnalysisInfo {
   private readonly _callGraph = new Map<ASTNode.FunctionDefinition, Set<ASTNode.FunctionDefinition>>();
   private readonly _writes = new Map<ASTNode.FunctionDefinition, Set<string | ShaderBuiltinSemantic>>();
   private readonly _functionsByName = new Map<string, ASTNode.FunctionDefinition[]>();
+  private readonly _reachableByEntry = new Map<ShaderEntryPointInfo, ReadonlySet<ASTNode.FunctionDefinition>>();
 
   /**
    * Builds analyzer-only facts without modifying the neutral IR or backend information.
@@ -45,6 +46,9 @@ export class ShaderAnalysisInfo {
    * @returns Reachable function identities.
    */
   reachableFunctions(entry: ShaderEntryPointInfo): ReadonlySet<ASTNode.FunctionDefinition> {
+    const cached = this._reachableByEntry.get(entry);
+    if (cached) return cached;
+
     const reachable = new Set<ASTNode.FunctionDefinition>();
     const pending = entry.functions.map((symbol) => symbol.astNode);
     while (pending.length) {
@@ -53,6 +57,7 @@ export class ShaderAnalysisInfo {
       reachable.add(functionNode);
       for (const callee of this._callGraph.get(functionNode) ?? []) pending.push(callee);
     }
+    this._reachableByEntry.set(entry, reachable);
     return reachable;
   }
 

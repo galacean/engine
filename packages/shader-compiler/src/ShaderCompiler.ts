@@ -31,7 +31,7 @@ class ShaderSourceParseError extends Error {
  */
 export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
-  private _chunkOutputCache: ChunkOutputCache = new Map();
+  private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
   /**
    * Replaces the `#include` lookup table and clears the derived chunk cache.
@@ -51,7 +51,7 @@ export class ShaderCompiler {
    * @internal
    */
   _parseShaderSource(sourceCode: string): IShaderSource {
-    this._chunkOutputCache = new Map();
+    this._chunkOutputCache.clear();
     return this._requireValidShaderSource(this._parseShaderSourceWithErrors(sourceCode));
   }
 
@@ -64,20 +64,16 @@ export class ShaderCompiler {
     sourceFile?: string
   ): IShaderProgramSource | undefined {
     const parsed = parseRuntimeShaderPass(source, this._includeMap, this._chunkOutputCache, sourceFile);
-    if (parsed.errors.length) {
-      for (const error of parsed.errors) Logger.error(error.toString());
-      return undefined;
-    }
     return this._generateParsedShaderPass(parsed, vertexEntry, fragmentEntry, backend);
   }
 
   /**
-   * Generates GLES source from an existing immutable parser result.
+   * Generates GLES source from an existing parser result without mutating it.
    * @param parsed - Parsed pass produced by the runtime or analyzer parser entry.
    * @param vertexEntry - Vertex entry function name.
    * @param fragmentEntry - Fragment entry function name.
    * @param backend - GLES language version to generate.
-   * @returns Generated and encoded stage source, or `undefined` when no IR was produced.
+   * @returns Generated and encoded stage source, or `undefined` when the pass cannot be generated.
    * @internal
    */
   _generateParsedShaderPass(
@@ -86,22 +82,27 @@ export class ShaderCompiler {
     fragmentEntry: string,
     backend: ShaderLanguage
   ): IShaderProgramSource | undefined {
-    if (!parsed.ir) return undefined;
-    try {
-      const coreInfo = ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
-      return this._generate(parsed.ir, coreInfo, backend);
-    } catch (error) {
-      Logger.error(error instanceof Error ? error.toString() : String(error));
+    if (parsed.blockingErrors.length) {
+      for (const error of parsed.blockingErrors) Logger.error(error.toString());
       return undefined;
     }
+    if (!parsed.ir) return undefined;
+    const coreInfo = ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
+    return this._generate(parsed.ir, coreInfo, backend);
   }
 
-  private _generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo, backend: ShaderLanguage): IShaderProgramSource {
+  private _generate(
+    ir: ShaderClueIR,
+    coreInfo: ShaderCoreInfo,
+    backend: ShaderLanguage
+  ): IShaderProgramSource | undefined {
     if (!coreInfo.vertexEntry.functions.length) {
-      throw new Error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
+      Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
+      return undefined;
     }
     if (!coreInfo.fragmentEntry.functions.length) {
-      throw new Error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
+      Logger.error(`Fragment entry function '${coreInfo.fragmentEntry.name}' not found.`);
+      return undefined;
     }
     const ret = GLESBackend.generate(ir, coreInfo, backend);
     if (ret) {
@@ -113,7 +114,7 @@ export class ShaderCompiler {
 
   /** @internal */
   _precompile(sourceCode: string, platformTarget: ShaderLanguage, sourceFile?: string): IPrecompiledShader {
-    this._chunkOutputCache = new Map();
+    this._chunkOutputCache.clear();
     const sourceResult = this._parseShaderSourceWithErrors(sourceCode);
     const shaderSource = this._requireValidShaderSource(sourceResult);
 

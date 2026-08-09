@@ -122,6 +122,7 @@ export class Lexer extends BaseLexer {
   // legacy entry mid-scan) and stamped onto every emitted token's `branch`
   // field so AST nodes know which branch they're inside.
   protected _branchStack: BranchConstraint[] = [];
+  private _branchSnapshot: BranchSignature = EMPTY_BRANCH;
   protected _conditionalGroup = 0;
   // True when the previous token was `#ifdef`/`#ifndef` and we're waiting on
   // the next ID token (the flag name) to actually push onto the stack.
@@ -182,7 +183,7 @@ export class Lexer extends BaseLexer {
         this._pendingBranchPushDefined = null;
       }
 
-      if (this._branchStack.length > 0) tok.branch = this._branchStack.slice();
+      if (this._branchStack.length > 0) tok.branch = this._captureBranchSignature();
 
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
@@ -246,20 +247,9 @@ export class Lexer extends BaseLexer {
   }
 
   /** @internal */
-  protected _beforeRegisterMacroDefine(_name: string): void {}
-
-  /** @internal */
   protected _sameDefinitionBranch(left: BranchSignature, right: BranchSignature): boolean {
     return Lexer._sameCodegenBranch(left, right);
   }
-
-  /** @internal */
-  protected _afterRegisterMacroDefine(
-    _name: string,
-    _paramsLexeme: string | undefined,
-    _valueStart: number,
-    _valueEnd: number
-  ): void {}
 
   /** @internal */
   protected _branchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
@@ -928,14 +918,12 @@ export class Lexer extends BaseLexer {
   // Register a `#define` directive. Both AST and legacy paths funnel through
   // here using ranges already extracted by `_peekMacroDefine` / the value
   // state machine — no re-parsing the directive text.
-  private _registerMacroDefine(
+  protected _registerMacroDefine(
     name: string,
     paramsLexeme: string | undefined,
     valueStart: number,
     valueEnd: number
   ): void {
-    this._beforeRegisterMacroDefine(name);
-
     const params = paramsLexeme
       ? paramsLexeme
           .slice(1, -1) // strip enclosing `(` `)`
@@ -952,7 +940,7 @@ export class Lexer extends BaseLexer {
       isFunction: paramsLexeme !== undefined,
       params,
       dedupKey,
-      branch: this._branchStack.length === 0 ? EMPTY_BRANCH : this._branchStack.slice()
+      branch: this._captureBranchSignature()
     };
     const arr = this.macroDefineList[name];
     if (!arr) {
@@ -970,7 +958,23 @@ export class Lexer extends BaseLexer {
       }
       if (!duplicate) arr.push(info);
     }
-    this._afterRegisterMacroDefine(name, paramsLexeme, valueStart, valueEnd);
+  }
+
+  protected _captureBranchSignature(): BranchSignature {
+    const stack = this._branchStack;
+    const snapshot = this._branchSnapshot;
+    if (stack.length === snapshot.length) {
+      let unchanged = true;
+      for (let i = 0; i < stack.length; i++) {
+        if (stack[i] !== snapshot[i]) {
+          unchanged = false;
+          break;
+        }
+      }
+      if (unchanged) return snapshot;
+    }
+
+    return (this._branchSnapshot = stack.length === 0 ? EMPTY_BRANCH : stack.slice());
   }
 
   /** Render a `[start, end)` value range as space-separated significant chars,

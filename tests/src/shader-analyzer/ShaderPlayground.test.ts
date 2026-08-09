@@ -208,5 +208,19 @@ describe("shader playground", () => {
     const markerLine = renderedLines[sourceLineIndex + 1].slice(renderedLines[sourceLineIndex + 1].indexOf("| ") + 2);
     expect(markerLine.indexOf("^")).to.equal(sourceLine.indexOf("defined"));
     expect(markerLine.trim()).to.equal("^^^^^^^");
+
+    guiState.onChange!("管线 IO / EntryNotFound");
+    const entryLines = output!.querySelector(".diag.error pre")!.textContent!.split("\n");
+    const entrySourceIndex = entryLines.findIndex((line) => line.includes("VertexShader = vrt"));
+    const entrySourceLine = entryLines[entrySourceIndex].slice(entryLines[entrySourceIndex].indexOf("| ") + 2);
+    const entryMarkerLine = entryLines[entrySourceIndex + 1].slice(entryLines[entrySourceIndex + 1].indexOf("| ") + 2);
+    expect(entryMarkerLine.indexOf("^")).to.equal(entrySourceLine.indexOf("vrt"));
+    expect(entryMarkerLine.trim()).to.equal("^^^");
+
+    for (const label of guiState.options.filter((option) => option.startsWith("RenderState / "))) {
+      guiState.onChange!(label);
+      expect(output!.textContent, label).not.to.contain("Cannot use 'in' operator");
+      expect(output!.textContent, label).not.to.contain("SyntaxError");
+    }
   });
 });

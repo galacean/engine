@@ -19,7 +19,7 @@ struct V2 { vec4 a; vec4 b; };
 V2 vert(Attr2 attr) { V2 o; o.a = vec4(attr.POSITION, 1.0); o.b = vec4(attr.UV, 0.0, 1.0); return o; }
 void frag(V2 i) { gl_FragColor = i.a + i.b; }`;
 
-// Missing entries throw during generation; the compiler logs and returns undefined.
+// Missing entries are rejected before backend generation
 const broken = `struct Attributes { vec3 POSITION; }; void notAnEntry() {}`;
 
 function compile(c: ShaderCompiler, src: string) {

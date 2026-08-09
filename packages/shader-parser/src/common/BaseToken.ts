@@ -79,10 +79,16 @@ export type DeclarationCoexistence = "coexist" | "exclusive" | "unknown";
 // Canonical empty branch signature shared by all default tokens — avoids
 // per-token allocation. The Lexer overwrites `branch` after `scanToken()`
 // for tokens that are inside an `#ifdef`.
-export const EMPTY_BRANCH: BranchSignature = [];
+export const EMPTY_BRANCH: BranchSignature = Object.freeze([]);
 
 export { sameBranch } from "./BranchIdentity";
 
+/**
+ * Token retained by parser AST and parsed-pass results.
+ *
+ * Instances are pass-owned because their ranges and lexemes can outlive the parse call. A reusable
+ * allocator must therefore be scoped to the lifetime of the whole parsed pass, not globally cleared.
+ */
 export class BaseToken<T extends number = number> {
   type: T;
   lexeme: string;

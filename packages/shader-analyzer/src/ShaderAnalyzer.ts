@@ -44,14 +44,20 @@ export interface AnalysisResult {
   readonly diagnostics: readonly Diagnostic[];
 }
 
-/** Parsed pass retained by the internal combined analysis/codegen path. @internal */
+/**
+ * Parsed pass retained by the internal combined analysis/codegen path.
+ * @internal
+ */
 export interface AnalyzedShaderPass {
   readonly parsed: ParsedShaderPass;
   readonly vertexEntry: string;
   readonly fragmentEntry: string;
 }
 
-/** Analyzer result that lets first-party tooling reuse the same Parser IR for codegen. @internal */
+/**
+ * Analyzer result that lets first-party tooling reuse the same Parser IR for codegen.
+ * @internal
+ */
 export interface ShaderAnalysisUnit extends AnalysisResult {
   readonly parsedPasses: readonly AnalyzedShaderPass[];
 }
@@ -72,22 +78,34 @@ export class ShaderAnalyzer {
    * @returns Structured diagnostics.
    */
   static analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
-    return Object.freeze({ diagnostics: ShaderAnalyzer._analyze(source, options).diagnostics });
+    return Object.freeze({ diagnostics: ShaderAnalyzer._analyzeSource(source, options) });
   }
 
   /**
-   * Analyzes a ShaderLab document and retains its immutable parsed passes for first-party codegen reuse.
+   * Analyzes a ShaderLab document and retains its request-owned parsed passes for first-party codegen reuse.
    * @param source - ShaderLab source to analyze.
    * @param options - Include sources and optional root source path.
    * @returns Diagnostics and parsed passes produced by the same parser calls.
    * @internal
    */
   static _analyze(source: string, options?: AnalyzerOptions): ShaderAnalysisUnit {
+    const parsedPasses: AnalyzedShaderPass[] = [];
+    const diagnostics = ShaderAnalyzer._analyzeSource(source, options, parsedPasses);
+    return Object.freeze({
+      diagnostics,
+      parsedPasses: Object.freeze(parsedPasses.map((pass) => Object.freeze(pass)))
+    });
+  }
+
+  private static _analyzeSource(
+    source: string,
+    options?: AnalyzerOptions,
+    parsedPasses?: AnalyzedShaderPass[]
+  ): readonly Diagnostic[] {
     const includeMap = options?.includeMap ?? {};
     const sourceFile = normalizeShaderSourceFile(options?.sourceFile);
     const chunkOutputCache: ChunkOutputCache = new Map();
     const diagnostics: Diagnostic[] = [];
-    const parsedPasses: AnalyzedShaderPass[] = [];
 
     try {
       diagnostics.push(...validatePreprocessorExpressions(source, sourceFile));
@@ -127,10 +145,7 @@ export class ShaderAnalyzer {
     if (sourceFile) {
       for (const diagnostic of diagnostics) diagnostic.sourceFile ??= sourceFile;
     }
-    return Object.freeze({
-      diagnostics: Object.freeze(diagnostics.slice()),
-      parsedPasses: Object.freeze(parsedPasses.map((pass) => Object.freeze(pass)))
-    });
+    return Object.freeze(diagnostics);
   }
 
   private static _analyzePass(
@@ -138,14 +153,17 @@ export class ShaderAnalyzer {
     statements: readonly IStatement[],
     source: string,
     diagnostics: Diagnostic[],
-    parsedPasses: AnalyzedShaderPass[],
+    parsedPasses: AnalyzedShaderPass[] | undefined,
     includeMap: ShaderIncludeMap,
     chunkOutputCache: ChunkOutputCache,
     sourceFile: string | undefined,
     skipSemanticValidation: boolean
   ): void {
+    if (pass.contents.trim().length === 0) return;
+
     const { vertexEntry, fragmentEntry } = pass;
     const passDiagnostics: Diagnostic[] = [];
+    let shouldSkipSemanticValidation = skipSemanticValidation;
     let expandedSource: string | undefined;
     let preprocessSourceMap: readonly PreprocessSourceMapSegment[] = [];
     try {
@@ -153,18 +171,30 @@ export class ShaderAnalyzer {
       const { ir, errors } = parsed;
       expandedSource = parsed.expandedSource;
       preprocessSourceMap = parsed.sourceMap;
-      parsedPasses.push({ parsed, vertexEntry, fragmentEntry });
+      parsedPasses?.push({ parsed, vertexEntry, fragmentEntry });
+      const hasIncludedSource = preprocessSourceMap.some(
+        (segment) => segment.source !== pass.contents || segment.sourceFile !== sourceFile
+      );
+      if (hasIncludedSource) {
+        for (const diagnostic of validatePreprocessorExpressions(expandedSource)) {
+          const segment = findPreprocessSegment(diagnostic.range.start.offset, preprocessSourceMap, false);
+          if (!segment || (segment.source === pass.contents && segment.sourceFile === sourceFile)) continue;
+          remapPreprocessedDiagnostic(diagnostic, preprocessSourceMap);
+          passDiagnostics.push(diagnostic);
+          shouldSkipSemanticValidation = true;
+        }
+      }
       for (const error of errors) {
         const diagnostic = gseErrorToDiagnostic(error);
         if (
-          !skipSemanticValidation ||
+          !shouldSkipSemanticValidation ||
           diagnostic.code === DiagnosticType.SyntaxError ||
           diagnostic.code === DiagnosticType.PreprocessorError
         ) {
           passDiagnostics.push(diagnostic);
         }
       }
-      if (ir && !skipSemanticValidation) {
+      if (ir && !shouldSkipSemanticValidation) {
         const coreInfo = ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry);
         const analysisInfo = new ShaderAnalysisInfo(ir, coreInfo);
         passDiagnostics.push(...ShaderValidator.validate(analysisInfo).map((error) => gseErrorToDiagnostic(error)));
@@ -172,7 +202,8 @@ export class ShaderAnalyzer {
           ...ShaderIOValidator.validate(
             analysisInfo,
             pass.vertexEntryLocation as ShaderRange | undefined,
-            pass.fragmentEntryLocation as ShaderRange | undefined
+            pass.fragmentEntryLocation as ShaderRange | undefined,
+            source
           ).map((error) => gseErrorToDiagnostic(error))
         );
       }

@@ -144,24 +144,15 @@ function config({ location, pkgJson }) {
       };
     },
     analyzerCli: () => {
-      const cliFile = path.join(location, "dist", "cli.js");
       return {
         input: path.join(location, "src", "cli.ts"),
         external: (id) => isExternal(id) || id === "node:fs" || id === "node:path",
         output: {
-          file: cliFile,
+          file: path.join(location, "dist", "cli.js"),
           format: "commonjs",
           banner: "#!/usr/bin/env node"
         },
-        plugins: [
-          ...curPlugins,
-          {
-            name: "executable-analyzer-cli",
-            writeBundle() {
-              if (process.platform !== "win32") fs.chmodSync(cliFile, 0o755);
-            }
-          }
-        ]
+        plugins: curPlugins
       };
     },
     bundled: (compress) => {

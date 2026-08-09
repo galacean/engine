@@ -174,4 +174,83 @@ void fragA() { gl_FragColor = vec4(0.25); }
       analyzedPass.parsed.sourceMap.some((segment) => segment.sourceFile === "Assets/Shaders/Branch.glsl")
     ).to.equal(true);
   });
+
+  it("rejects shared parser results that contain blocking errors", () => {
+    const parsed = parseShaderPass(
+      `#include "missing.glsl"
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }`,
+      {},
+      new Map()
+    );
+    expect(parsed.ir).to.not.equal(null);
+    expect(parsed.errors).to.not.have.lengthOf(0);
+    expect(parsed.blockingErrors).to.not.have.lengthOf(0);
+
+    const generated = new ShaderCompiler()._generateParsedShaderPass(parsed, "vert", "frag", ShaderLanguage.GLSLES100);
+    expect(generated).to.equal(undefined);
+  });
+
+  it("does not treat analyzer-only diagnostics as backend-blocking errors", () => {
+    const source = `Shader "AnalyzerOnly" {
+  SubShader "Default" {
+    Pass "p" {
+      struct Attributes { vec3 position; };
+      struct Varyings { vec4 color; };
+      Varyings vert(Attributes input) {
+        Varyings output;
+        gl_Position = vec4(input.position, 1.0);
+        output.color = vec4(1.0);
+        return output;
+      }
+      void frag(Varyings input) { gl_FragColor = input.missing; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const analysisUnit = ShaderAnalyzer._analyze(source);
+    expect(analysisUnit.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UndeclaredStructMember");
+    const analyzedPass = analysisUnit.parsedPasses[0];
+    expect(analyzedPass.parsed.errors).to.not.have.lengthOf(0);
+    expect(analyzedPass.parsed.blockingErrors).to.have.lengthOf(0);
+
+    const generated = new ShaderCompiler()._generateParsedShaderPass(
+      analyzedPass.parsed,
+      analyzedPass.vertexEntry,
+      analyzedPass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    );
+    expect(generated).to.not.equal(undefined);
+  });
+
+  it("emits shared IO declarations once for entry implementations in exclusive macro arms", () => {
+    const source = `
+struct Attributes { vec3 position; };
+struct Varyings { vec2 uv; };
+#ifdef USE_ALTERNATE
+Varyings vert(Attributes input) {
+  Varyings output;
+  gl_Position = vec4(input.position, 1.0);
+  output.uv = vec2(0.0);
+  return output;
+}
+#else
+Varyings vert(Attributes input) {
+  Varyings output;
+  gl_Position = vec4(input.position, 1.0);
+  output.uv = vec2(1.0);
+  return output;
+}
+#endif
+void frag(Varyings input) { gl_FragColor = vec4(input.uv, 0.0, 1.0); }
+`;
+    const parsed = parseShaderPass(source, {}, new Map());
+    expect(parsed.errors).to.have.lengthOf(0);
+
+    const generated = new ShaderCompiler()._generateParsedShaderPass(parsed, "vert", "frag", ShaderLanguage.GLSLES100);
+    expect(generated).to.not.equal(undefined);
+    expect(generated!.vertex.match(/attribute\s+vec3\s+position\s*;/g)).to.have.lengthOf(1);
+    expect(generated!.vertex.match(/varying\s+vec2\s+uv\s*;/g)).to.have.lengthOf(1);
+  });
 });

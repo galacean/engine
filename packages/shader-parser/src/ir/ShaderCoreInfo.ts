@@ -133,10 +133,13 @@ function findStructs(symbolTable: SymbolTable<SymbolInfo>, name: string): Struct
 function appendStructs(
   symbols: readonly StructSymbol[],
   structs: ASTNode.StructSpecifier[],
-  props: StructProp[]
+  props: StructProp[],
+  seen: Set<ASTNode.StructSpecifier>
 ): void {
   for (const symbol of symbols) {
     const node = symbol.astNode;
+    if (seen.has(node)) continue;
+    seen.add(node);
     structs.push(node);
     props.push(...node.propList);
   }
@@ -148,21 +151,24 @@ function collectEntryIO(
   fragmentFunctions: readonly FnSymbol[],
   io: MutableShaderIOInfo
 ): void {
+  const attributeStructs = new Set<ASTNode.StructSpecifier>();
+  const varyingStructs = new Set<ASTNode.StructSpecifier>();
+  const mrtStructs = new Set<ASTNode.StructSpecifier>();
   for (const fn of vertexFunctions) {
     const proto = fn.astNode.protoType;
     if (typeof proto.returnType.type === "string") {
-      appendStructs(findStructs(symbolTable, proto.returnType.type), io.varyingStructs, io.varyingList);
+      appendStructs(findStructs(symbolTable, proto.returnType.type), io.varyingStructs, io.varyingList, varyingStructs);
     }
     const attributeType = proto.parameterList?.[0]?.typeInfo.type;
     if (typeof attributeType === "string") {
-      appendStructs(findStructs(symbolTable, attributeType), io.attributeStructs, io.attributeList);
+      appendStructs(findStructs(symbolTable, attributeType), io.attributeStructs, io.attributeList, attributeStructs);
     }
   }
 
   for (const fn of fragmentFunctions) {
     const returnType = fn.astNode.protoType.returnType.type;
     if (typeof returnType === "string") {
-      appendStructs(findStructs(symbolTable, returnType), io.mrtStructs, io.mrtList);
+      appendStructs(findStructs(symbolTable, returnType), io.mrtStructs, io.mrtList, mrtStructs);
     }
   }
 }

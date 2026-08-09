@@ -16,16 +16,6 @@ interface ParseFailure {
   certain: boolean;
 }
 
-class ExpressionParseFailure extends Error implements ParseFailure {
-  constructor(
-    message: string,
-    readonly token: Token,
-    readonly certain: boolean
-  ) {
-    super(message);
-  }
-}
-
 const binaryPrecedence: Readonly<Record<string, number>> = {
   "||": 1,
   "&&": 2,
@@ -134,6 +124,7 @@ function maskCommentsAndJoinContinuedLines(source: string): string {
 class ExpressionParser {
   private readonly _tokens: Token[];
   private _index = 0;
+  private _failure?: ParseFailure;
   sawExpandableIdentifier = false;
 
   constructor(source: string) {
@@ -141,36 +132,41 @@ class ExpressionParser {
   }
 
   parse(): ParseFailure | undefined {
-    try {
-      this._parseConditional();
+    this._parseConditional();
+    if (!this._failure) {
       const token = this._current();
       if (token.kind !== "end") {
         const followsExpandableFunctionName = this.sawExpandableIdentifier && token.text === "(";
         const certain = !followsExpandableFunctionName && (token.kind !== "identifier" || token.text === "defined");
         this._fail(`Unexpected token '${token.text}' in preprocessor expression.`, token, certain);
       }
-    } catch (failure) {
-      if (failure instanceof ExpressionParseFailure) return failure;
-      throw failure;
     }
+    return this._failure;
   }
 
   private _parseConditional(): void {
     this._parseBinary(1);
+    if (this._failure) return;
     if (!this._consume("?")) return;
     this._parseConditional();
-    if (!this._consume(":")) this._fail("Expected ':' in conditional preprocessor expression.", this._current(), true);
+    if (this._failure) return;
+    if (!this._consume(":")) {
+      this._fail("Expected ':' in conditional preprocessor expression.", this._current(), true);
+      return;
+    }
     this._parseConditional();
   }
 
   private _parseBinary(minPrecedence: number): void {
     this._parseUnary();
+    if (this._failure) return;
     while (true) {
       const token = this._current();
       const precedence = binaryPrecedence[token.text];
       if (precedence === undefined || precedence < minPrecedence) return;
       this._index++;
       this._parseBinary(precedence + 1);
+      if (this._failure) return;
     }
   }
 
@@ -204,12 +200,16 @@ class ExpressionParser {
     }
     if (this._consume("(")) {
       this._parseConditional();
-      if (!this._consume(")")) this._fail("Expected ')' in preprocessor expression.", this._current(), false);
+      if (!this._failure && !this._consume(")")) {
+        this._fail("Expected ')' in preprocessor expression.", this._current(), false);
+      }
       return;
     }
-    if (token.kind === "end")
+    if (token.kind === "end") {
       this._fail("Expected an operand before the end of the preprocessor expression.", token, true);
-    this._fail(`Expected an operand, found '${token.text}'.`, token, true);
+    } else {
+      this._fail(`Expected an operand, found '${token.text}'.`, token, true);
+    }
   }
 
   private _parseDefined(): void {
@@ -218,6 +218,7 @@ class ExpressionParser {
     const name = this._current();
     if (name.kind !== "identifier" || name.text === "defined") {
       this._fail("Expected a macro name after 'defined'.", name, true);
+      return;
     }
     this._index++;
     if (parenthesized && !this._consume(")")) {
@@ -235,55 +236,135 @@ class ExpressionParser {
     return this._tokens[this._index];
   }
 
-  private _fail(message: string, token: Token, certain: boolean): never {
-    throw new ExpressionParseFailure(message, token, certain);
+  private _fail(message: string, token: Token, certain: boolean): void {
+    this._failure ??= { message, token, certain };
+    this._index = this._tokens.length - 1;
   }
 }
 
 function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
   let index = 0;
-  while (index < source.length) {
+  const length = source.length;
+  while (index < length) {
     const start = index;
-    const char = source[index];
-    if (/\s/.test(char)) {
+    const charCode = source.charCodeAt(index);
+    if (isWhitespace(charCode)) {
       index++;
       continue;
     }
-    if (source.startsWith("//", index)) break;
-    if (source.startsWith("/*", index)) {
+    if (charCode === 47 /* / */ && source.charCodeAt(index + 1) === 47 /* / */) break;
+    if (charCode === 47 /* / */ && source.charCodeAt(index + 1) === 42 /* * */) {
       const end = source.indexOf("*/", index + 2);
-      index = end === -1 ? source.length : end + 2;
+      index = end === -1 ? length : end + 2;
       continue;
     }
-    const identifier = /^[A-Za-z_][A-Za-z0-9_]*/.exec(source.slice(index))?.[0];
-    if (identifier) {
-      index += identifier.length;
-      tokens.push({ kind: "identifier", text: identifier, start, end: index });
-      continue;
-    }
-    const number = /^(?:0[xX][0-9A-Fa-f]+|0[0-7]*|[1-9][0-9]*)(?:[uUlL]{0,3})/.exec(source.slice(index))?.[0];
-    if (number) {
-      index += number.length;
-      tokens.push({ kind: "number", text: number, start, end: index });
-      continue;
-    }
-    const operator = ["||", "&&", "==", "!=", "<=", ">=", "<<", ">>"].find((candidate) =>
-      source.startsWith(candidate, index)
-    );
-    if (operator) {
-      index += operator.length;
-      tokens.push({ kind: "operator", text: operator, start, end: index });
-      continue;
-    }
-    if ("|^&<>+-*/%!~?:()".includes(char)) {
+
+    if (isIdentifierStart(charCode)) {
       index++;
-      tokens.push({ kind: "operator", text: char, start, end: index });
+      while (index < length && isIdentifierPart(source.charCodeAt(index))) index++;
+      tokens.push({ kind: "identifier", text: source.substring(start, index), start, end: index });
+      continue;
+    }
+
+    if (charCode >= 48 /* 0 */ && charCode <= 57 /* 9 */) {
+      if (
+        charCode === 48 /* 0 */ &&
+        (source.charCodeAt(index + 1) === 88 /* X */ || source.charCodeAt(index + 1) === 120) /* x */ &&
+        isHexDigit(source.charCodeAt(index + 2))
+      ) {
+        index += 3;
+        while (index < length && isHexDigit(source.charCodeAt(index))) index++;
+      } else if (charCode === 48 /* 0 */) {
+        index++;
+        while (index < length) {
+          const digit = source.charCodeAt(index);
+          if (digit < 48 /* 0 */ || digit > 55 /* 7 */) break;
+          index++;
+        }
+      } else {
+        index++;
+        while (index < length) {
+          const digit = source.charCodeAt(index);
+          if (digit < 48 /* 0 */ || digit > 57 /* 9 */) break;
+          index++;
+        }
+      }
+      for (let suffixLength = 0; suffixLength < 3 && isIntegerSuffix(source.charCodeAt(index)); suffixLength++) {
+        index++;
+      }
+      tokens.push({ kind: "number", text: source.substring(start, index), start, end: index });
+      continue;
+    }
+
+    if (isDoubleOperator(charCode, source.charCodeAt(index + 1))) {
+      index += 2;
+      tokens.push({ kind: "operator", text: source.substring(start, index), start, end: index });
+      continue;
+    }
+    if (isSingleOperator(charCode)) {
+      index++;
+      tokens.push({ kind: "operator", text: source[start], start, end: index });
       continue;
     }
     index++;
-    tokens.push({ kind: "invalid", text: char, start, end: index });
+    tokens.push({ kind: "invalid", text: source[start], start, end: index });
   }
-  tokens.push({ kind: "end", text: "", start: source.length, end: source.length });
+  tokens.push({ kind: "end", text: "", start: length, end: length });
   return tokens;
+}
+
+function isWhitespace(charCode: number): boolean {
+  return charCode === 32 /* space */ || (charCode >= 9 /* tab */ && charCode <= 13) /* carriage return */;
+}
+
+function isIdentifierStart(charCode: number): boolean {
+  return (charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122) || charCode === 95;
+}
+
+function isIdentifierPart(charCode: number): boolean {
+  return isIdentifierStart(charCode) || (charCode >= 48 && charCode <= 57);
+}
+
+function isHexDigit(charCode: number): boolean {
+  return (
+    (charCode >= 48 && charCode <= 57) || (charCode >= 65 && charCode <= 70) || (charCode >= 97 && charCode <= 102)
+  );
+}
+
+function isIntegerSuffix(charCode: number): boolean {
+  return charCode === 76 /* L */ || charCode === 85 /* U */ || charCode === 108 /* l */ || charCode === 117 /* u */;
+}
+
+function isDoubleOperator(charCode: number, nextCharCode: number): boolean {
+  return (
+    (charCode === 124 /* | */ && nextCharCode === 124) ||
+    (charCode === 38 /* & */ && nextCharCode === 38) ||
+    ((charCode === 33 /* ! */ || charCode === 61) /* = */ && nextCharCode === 61) ||
+    ((charCode === 60 /* < */ || charCode === 62) /* > */ && (nextCharCode === 61 || nextCharCode === charCode))
+  );
+}
+
+function isSingleOperator(charCode: number): boolean {
+  switch (charCode) {
+    case 33: // !
+    case 37: // %
+    case 38: // &
+    case 40: // (
+    case 41: // )
+    case 42: // *
+    case 43: // +
+    case 45: // -
+    case 47: // /
+    case 58: // :
+    case 60: // <
+    case 62: // >
+    case 63: // ?
+    case 94: // ^
+    case 124: // |
+    case 126: // ~
+      return true;
+    default:
+      return false;
+  }
 }

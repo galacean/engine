@@ -1050,13 +1050,10 @@ const createGrammar = () =>
     productionAndRules.map((item) => item[0])
   );
 
+const translationRules = productionAndRules.map((item) => item[1]);
+
 const addTranslationRule = (sa: SemanticAnalyzer) => {
-  for (let i = 0; i < productionAndRules.length; i++) {
-    const rule = productionAndRules[i][1];
-    if (rule) {
-      sa.addTranslationRule(i, rule);
-    }
-  }
+  sa.setTranslationRules(translationRules);
 };
 
 export { addTranslationRule, createGrammar };

@@ -204,13 +204,13 @@ export class ShaderValidator {
 
   private _push(message: string, location: ShaderRange, code: DiagnosticType): void {
     this._errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code) as GSError
+      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code)
     );
   }
 
   private _pushWarning(message: string, location: ShaderRange, code: DiagnosticType): void {
     this._errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationWarn, this._source, location, code) as GSError
+      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationWarn, this._source, location, code)
     );
   }
 

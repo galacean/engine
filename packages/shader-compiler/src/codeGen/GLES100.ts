@@ -13,7 +13,7 @@ export class GLES100Visitor extends GLESVisitor {
   }
 
   override getMRTProp(): string {
-    return null;
+    return "";
   }
 
   override visitPostfixExpression(node: ASTNode.PostfixExpression): string {

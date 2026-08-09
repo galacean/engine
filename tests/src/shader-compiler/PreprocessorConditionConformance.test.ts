@@ -366,13 +366,33 @@ describe("preprocessor condition conformance", () => {
   }
 
   for (const expression of [...malformedExpressions, "1.5"] as const) {
-    it(`diagnoses malformed expression '${expression}' without making encoding a diagnostic gate`, () => {
+    it(`diagnoses malformed expression '${expression}' without aborting runtime variant selection`, () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
       const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);
 
       const result = ShaderAnalyzer.analyze(shader(expression));
       expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
-      expect(() => ShaderMacroProcessor.evaluate(instructions, new Map())).to.throw("Invalid preprocessor expression");
+      expect(ShaderMacroProcessor.evaluate(instructions, new Map())).not.to.contain("BODY");
     });
   }
+
+  it("contains evaluator failures caused by the active macro configuration", () => {
+    const instructions = ShaderInstructionEncoder.parse("#if VALUE / ZERO\nBODY\n#endif\n");
+    const output = ShaderMacroProcessor.evaluate(
+      instructions,
+      new Map([
+        ["VALUE", "1"],
+        ["ZERO", "0"]
+      ])
+    );
+    expect(output).not.to.contain("BODY");
+  });
+
+  it("does not evaluate invalid arithmetic in an inactive short-circuit branch", () => {
+    const trueInstructions = ShaderInstructionEncoder.parse("#if 1 || 1 / 0\nBODY\n#endif\n");
+    const falseInstructions = ShaderInstructionEncoder.parse("#if 0 && 1 / 0\nBODY\n#endif\n");
+
+    expect(ShaderMacroProcessor.evaluate(trueInstructions, new Map())).to.contain("BODY");
+    expect(ShaderMacroProcessor.evaluate(falseInstructions, new Map())).not.to.contain("BODY");
+  });
 });

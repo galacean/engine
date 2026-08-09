@@ -24,18 +24,21 @@ export interface CompareCondition {
   v: number;
 }
 
+/** Logical conjunction of two preprocessor conditions. */
 export interface AndCondition {
   t: "and";
   l: Condition;
   r: Condition;
 }
 
+/** Logical disjunction of two preprocessor conditions. */
 export interface OrCondition {
   t: "or";
   l: Condition;
   r: Condition;
 }
 
+/** Logical negation of a preprocessor condition. */
 export interface NotCondition {
   t: "not";
   c: Condition;
@@ -58,6 +61,7 @@ export interface RawCondition {
   e: string;
 }
 
+/** Serializable preprocessor condition evaluated against the active macro set. */
 export type Condition =
   | DefinedCondition
   | NotDefinedCondition

@@ -245,6 +245,20 @@ describe("Shader", () => {
       }
     });
 
+    it("supports include keys that overlap Object prototype properties", () => {
+      const includePath = "__proto__";
+      ShaderFactory.registerInclude(includePath, "float includedValue() { return 1.0; }");
+      // @ts-ignore - internal compiler binding under test.
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      expect(Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, includePath)).to.equal(true);
+      expect(ShaderFactory.includeMap[includePath]).to.equal("float includedValue() { return 1.0; }");
+      const shader = Shader.create(shaderWithInclude("User/PrototypeInclude", includePath));
+      ShaderFactory.unregisterInclude(includePath);
+      // @ts-ignore - clear request-derived include cache after registry cleanup.
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      expect(shader).to.be.an.instanceOf(Shader);
+    });
+
     it("resolves relative includes from loader-owned source metadata", () => {
       const includePath = "Assets/Shaders/RelativeInclude.glsl";
       ShaderFactory.registerInclude(includePath, "float includedValue() { return 2.0; }");

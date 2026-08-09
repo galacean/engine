@@ -31,48 +31,69 @@ interface ParserContext {
  * @throws Error when the expression cannot be represented by this limited reasoning model.
  */
 export function parsePreprocessorCondition(expression: string): PreprocessorCondition {
-  const context: ParserContext = { source: expression.trim(), index: 0 };
-  const condition = parseOr(context);
-  skipWhitespace(context);
-  if (context.index !== context.source.length) throwMalformedPreprocessorCondition(expression);
+  const condition = tryParsePreprocessorCondition(expression);
+  if (!condition) throwMalformedPreprocessorCondition(expression);
   return condition;
 }
 
-function parseOr(context: ParserContext): PreprocessorCondition {
+/**
+ * Parses a preprocessor condition without using exceptions for unsupported expressions.
+ * @param expression - Text following an `#if` or `#elif` directive.
+ * @returns The parsed condition tree, or `undefined` when the limited reasoning model cannot represent it.
+ * @internal
+ */
+export function tryParsePreprocessorCondition(expression: string): PreprocessorCondition | undefined {
+  const context: ParserContext = { source: expression.trim(), index: 0 };
+  const condition = parseOr(context);
+  if (!condition) return undefined;
+  skipWhitespace(context);
+  return context.index === context.source.length ? condition : undefined;
+}
+
+function parseOr(context: ParserContext): PreprocessorCondition | undefined {
   let condition = parseAnd(context);
+  if (!condition) return undefined;
   skipWhitespace(context);
   while (consume(context, "||")) {
     skipWhitespace(context);
-    condition = { t: "or", l: condition, r: parseAnd(context) };
+    const right = parseAnd(context);
+    if (!right) return undefined;
+    condition = { t: "or", l: condition, r: right };
     skipWhitespace(context);
   }
   return condition;
 }
 
-function parseAnd(context: ParserContext): PreprocessorCondition {
+function parseAnd(context: ParserContext): PreprocessorCondition | undefined {
   let condition = parseUnary(context);
+  if (!condition) return undefined;
   skipWhitespace(context);
   while (consume(context, "&&")) {
     skipWhitespace(context);
-    condition = { t: "and", l: condition, r: parseUnary(context) };
+    const right = parseUnary(context);
+    if (!right) return undefined;
+    condition = { t: "and", l: condition, r: right };
     skipWhitespace(context);
   }
   return condition;
 }
 
-function parseUnary(context: ParserContext): PreprocessorCondition {
+function parseUnary(context: ParserContext): PreprocessorCondition | undefined {
   skipWhitespace(context);
-  if (consume(context, "!")) return { t: "not", c: parseUnary(context) };
+  if (consume(context, "!")) {
+    const condition = parseUnary(context);
+    return condition ? { t: "not", c: condition } : undefined;
+  }
   return parsePrimary(context);
 }
 
-function parsePrimary(context: ParserContext): PreprocessorCondition {
+function parsePrimary(context: ParserContext): PreprocessorCondition | undefined {
   skipWhitespace(context);
   if (consume(context, "(")) {
     const condition = parseOr(context);
+    if (!condition) return undefined;
     skipWhitespace(context);
-    if (!consume(context, ")")) throwMalformedPreprocessorCondition(context.source);
-    return condition;
+    return consume(context, ")") ? condition : undefined;
   }
 
   const number = scanNumber(context);
@@ -81,40 +102,37 @@ function parsePrimary(context: ParserContext): PreprocessorCondition {
     const operator = scanComparisonOperator(context);
     if (!operator) return { t: "bool", v: number !== 0 };
     const value = scanRequiredNumber(context);
-    return { t: "bool", v: evaluateNumericComparison(number, operator, value) };
+    return value === undefined ? undefined : { t: "bool", v: evaluateNumericComparison(number, operator, value) };
   }
 
   const identifier = scanIdentifier(context);
-  if (!identifier) throwMalformedPreprocessorCondition(context.source);
+  if (!identifier) return undefined;
   if (identifier === "defined") return parseDefined(context);
 
   skipWhitespace(context);
   const operator = scanComparisonOperator(context);
   if (!operator) return { t: "cmp", m: identifier, op: "!=", v: 0 };
-  return { t: "cmp", m: identifier, op: operator, v: scanRequiredNumber(context) };
+  const value = scanRequiredNumber(context);
+  return value === undefined ? undefined : { t: "cmp", m: identifier, op: operator, v: value };
 }
 
-function parseDefined(context: ParserContext): PreprocessorCondition {
+function parseDefined(context: ParserContext): PreprocessorCondition | undefined {
   skipWhitespace(context);
   if (consume(context, "(")) {
     skipWhitespace(context);
     const identifier = scanIdentifier(context);
-    if (!identifier) throwMalformedPreprocessorCondition(context.source);
+    if (!identifier) return undefined;
     skipWhitespace(context);
-    if (!consume(context, ")")) throwMalformedPreprocessorCondition(context.source);
-    return { t: "def", m: identifier };
+    return consume(context, ")") ? { t: "def", m: identifier } : undefined;
   }
 
   const identifier = scanIdentifier(context);
-  if (!identifier) throwMalformedPreprocessorCondition(context.source);
-  return { t: "def", m: identifier };
+  return identifier ? { t: "def", m: identifier } : undefined;
 }
 
-function scanRequiredNumber(context: ParserContext): number {
+function scanRequiredNumber(context: ParserContext): number | undefined {
   skipWhitespace(context);
-  const value = scanNumber(context);
-  if (value === undefined) throwMalformedPreprocessorCondition(context.source);
-  return value;
+  return scanNumber(context);
 }
 
 function scanNumber(context: ParserContext): number | undefined {
@@ -125,7 +143,7 @@ function scanNumber(context: ParserContext): number | undefined {
 
   const parsed = Number(value);
   if (!Number.isInteger(parsed) || parsed < -0x80000000 || parsed > 0x7fffffff) {
-    throwMalformedPreprocessorCondition(source);
+    return undefined;
   }
   context.index += value.length;
   return parsed;

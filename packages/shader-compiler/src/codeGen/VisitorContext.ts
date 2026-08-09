@@ -8,6 +8,9 @@ import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/int
 /** @internal */
 export class VisitorContext {
   private readonly _lookupSymbol = new SymbolInfo("", null);
+  private readonly _attributeStructTypes = new Set<string>();
+  private readonly _varyingStructTypes = new Set<string>();
+  private readonly _mrtStructTypes = new Set<string>();
 
   attributeStructs: ASTNode.StructSpecifier[] = [];
   attributeList: StructProp[] = [];
@@ -23,6 +26,7 @@ export class VisitorContext {
   _referencedVaryingList: Record<string, StructProp[]>;
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
+  readonly _referencedGlobalKeys: string[] = [];
   _referencedGlobalMacroASTs: TreeNode[] = [];
   /**
    * Per-stage variable-to-role maps. Split so a same-named param/local in both entries
@@ -32,7 +36,7 @@ export class VisitorContext {
   _vertexStructVarMap: Record<string, ShaderStructRole>;
   _fragmentStructVarMap: Record<string, ShaderStructRole>;
 
-  _passSymbolTable: SymbolTable<SymbolInfo>;
+  _passSymbolTable?: SymbolTable<SymbolInfo>;
   codeCache = new WeakMap<TreeNode, string>();
   fragmentReturns = new WeakSet<ASTNode.JumpStatement>();
 
@@ -50,31 +54,36 @@ export class VisitorContext {
       this.varyingList.length = 0;
       this.mrtStructs.length = 0;
       this.mrtList.length = 0;
+      this._attributeStructTypes.clear();
+      this._varyingStructTypes.clear();
+      this._mrtStructTypes.clear();
     }
 
     this._referencedAttributeList = Object.create(null);
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
+    this._referencedGlobalKeys.length = 0;
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
       // Struct-var bindings are pass-scoped; both stage maps are cleared here and
       // repopulated from `ShaderCoreInfo` before codegen.
       this._vertexStructVarMap = Object.create(null);
       this._fragmentStructVarMap = Object.create(null);
+      this._passSymbolTable = undefined;
     }
   }
 
   isAttributeStruct(type: string) {
-    return this.attributeStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+    return this._attributeStructTypes.has(type);
   }
 
   isVaryingStruct(type: string) {
-    return this.varyingStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+    return this._varyingStructTypes.has(type);
   }
 
   isMRTStruct(type: string) {
-    return this.mrtStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+    return this._mrtStructTypes.has(type);
   }
 
   /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
@@ -82,6 +91,19 @@ export class VisitorContext {
     if (this.isAttributeStruct(typeLexeme)) return ShaderStructRole.Attribute;
     if (this.isVaryingStruct(typeLexeme)) return ShaderStructRole.Varying;
     if (this.isMRTStruct(typeLexeme)) return ShaderStructRole.Mrt;
+  }
+
+  /** Registers stage-interface struct types for constant-time role lookup. @internal */
+  registerStructTypes(role: ShaderStructRole, structs: readonly ASTNode.StructSpecifier[]): void {
+    const types =
+      role === ShaderStructRole.Attribute
+        ? this._attributeStructTypes
+        : role === ShaderStructRole.Varying
+          ? this._varyingStructTypes
+          : this._mrtStructTypes;
+    for (const struct of structs) {
+      types.add(struct.ident!.lexeme);
+    }
   }
 
   /** Register a variable in a specific stage as holding a varying/attribute/mrt struct value. */
@@ -111,10 +133,11 @@ export class VisitorContext {
     if (this._referencedGlobals[ident]) return;
 
     this._referencedGlobals[ident] = [];
+    this._referencedGlobalKeys.push(ident);
 
     const lookupSymbol = this._lookupSymbol;
     lookupSymbol.set(ident, type);
-    this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    this._passSymbolTable!.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
   }
 
   // Track which IO props are actually referenced (drives in/out emission). A missing member is no

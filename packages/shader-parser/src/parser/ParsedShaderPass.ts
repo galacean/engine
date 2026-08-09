@@ -5,6 +5,8 @@ import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
 import type { ShaderTargetParser } from "./ShaderTargetParser";
 
 const SHADER_ROOT_URL = "shaders://root/";
+const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
+const EMPTY_ERRORS: readonly Error[] = Object.freeze([]);
 
 /**
  * Converts a caller-provided source location into the canonical form stored in source maps.
@@ -17,6 +19,9 @@ export function normalizeShaderSourceFile(sourceFile?: string): string | undefin
   if (!normalized) return undefined;
   if (normalized.startsWith(SHADER_ROOT_URL)) {
     return normalized.slice(SHADER_ROOT_URL.length) || undefined;
+  }
+  if (!ABSOLUTE_URL_PATTERN.test(normalized)) {
+    return normalized.replace(/^\/+/, "") || undefined;
   }
   try {
     return new URL(normalized).href;
@@ -31,16 +36,17 @@ export function normalizeShaderSourceFile(sourceFile?: string): string | undefin
  * @returns Base URL for include resolution, or an empty string when no source location exists.
  */
 export function shaderSourceBaseURL(sourceFile?: string): string {
-  const normalized = normalizeShaderSourceFile(sourceFile);
-  if (!normalized) return "";
-  try {
-    return new URL(normalized).href;
-  } catch {
-    return new URL(normalized, SHADER_ROOT_URL).href;
+  if (!sourceFile) return "";
+  if (!ABSOLUTE_URL_PATTERN.test(sourceFile)) {
+    return new URL(sourceFile, SHADER_ROOT_URL).href;
   }
+  return new URL(sourceFile).href;
 }
 
-/** Immutable parser output shared by analysis and backend generation. @internal */
+/**
+ * Request-owned parser output shared read-only by analysis and backend generation.
+ * @internal
+ */
 export interface ParsedShaderPass {
   /** Neutral typed IR, or `null` when parsing could not produce a program. */
   readonly ir: ShaderClueIR | null;
@@ -50,9 +56,14 @@ export interface ParsedShaderPass {
   readonly sourceMap: readonly ShaderSourceMapSegment[];
   /** Preprocessor, syntax, and parser-semantic errors. */
   readonly errors: readonly Error[];
+  /** Preprocessor and syntax errors that prevent backend generation. */
+  readonly blockingErrors: readonly Error[];
 }
 
-/** @internal */
+/**
+ * Minimal token source consumed by the shared pass parser.
+ * @internal
+ */
 export interface ShaderPassLexer {
   tokenize(): Generator<BaseToken, BaseToken>;
 }
@@ -65,7 +76,7 @@ export interface ShaderPassLexer {
  * @param basePathForIncludeKey - Internal base URL for resolving relative includes.
  * @param createLexer - Creates the runtime or analyzer lexer for the expanded source.
  * @param createParser - Creates a request-owned parser backed by shared immutable grammar tables.
- * @returns Immutable parsed-pass data.
+ * @returns Request-owned parsed-pass data whose public containers are read-only.
  * @internal
  */
 export function parseShaderPassWith(
@@ -86,11 +97,24 @@ export function parseShaderPassWith(
   const tokens = createLexer(expandedSource, macroDefineList).tokenize();
   const parser = createParser(expandedSource);
   const program = parser.parse(tokens, macroDefineList);
-  const frozenSourceMap = Object.freeze(sourceMap.map((segment) => Object.freeze({ ...segment })));
+  for (const segment of sourceMap) Object.freeze(segment);
+  const frozenSourceMap = Object.freeze(sourceMap);
+  const errors =
+    preprocessErrors.length || parser.errors.length
+      ? Object.freeze([...preprocessErrors, ...parser.errors])
+      : EMPTY_ERRORS;
+  let blockingErrors = EMPTY_ERRORS;
+  if (preprocessErrors.length || parser.blockingErrors.length) {
+    blockingErrors =
+      parser.errors.length === parser.blockingErrors.length
+        ? errors
+        : Object.freeze([...preprocessErrors, ...parser.blockingErrors]);
+  }
   return Object.freeze({
     ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null,
     expandedSource,
     sourceMap: frozenSourceMap,
-    errors: Object.freeze([...preprocessErrors, ...parser.errors])
+    errors,
+    blockingErrors
   });
 }

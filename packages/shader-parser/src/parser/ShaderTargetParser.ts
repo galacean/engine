@@ -3,7 +3,6 @@ import { BaseToken } from "../common/BaseToken";
 import type { BranchSemantics } from "../common/BranchSemantics";
 import { Keyword } from "../common/enums/Keyword";
 import { GSErrorName } from "../GSError";
-import type { GSError } from "../GSError";
 import { LALR1 } from "../lalr";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
@@ -12,19 +11,21 @@ import { ParserUtils } from "../ParserUtils";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
-import SematicAnalyzer from "./SemanticAnalyzer";
+import SemanticAnalyzer from "./SemanticAnalyzer";
 import type { SemanticDiagnostics } from "./SemanticDiagnostics";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
 
 /**
- * The syntax parser and sematic analyzer of `ShaderCompiler` compiler
+ * Parses shader tokens and performs the parser-owned semantic pass.
+ * @internal
  */
 export class ShaderTargetParser {
   readonly actionTable: StateActionTable;
   readonly gotoTable: StateGotoTable;
   readonly grammar: Grammar;
-  readonly sematicAnalyzer: SematicAnalyzer;
+  readonly semanticAnalyzer: SemanticAnalyzer;
+  readonly blockingErrors: Error[] = [];
   private _traceBackStack: (TraceStackItem | number)[] = [];
 
   private get curState() {
@@ -39,7 +40,7 @@ export class ShaderTargetParser {
 
   /** @internal */
   get errors() {
-    return this.sematicAnalyzer.errors;
+    return this.semanticAnalyzer.errors;
   }
 
   private static _tables?: {
@@ -48,7 +49,11 @@ export class ShaderTargetParser {
     readonly grammar: Grammar;
   };
 
-  static create(branchSemantics?: BranchSemantics, semanticDiagnostics?: SemanticDiagnostics, source?: string) {
+  static create(
+    branchSemantics?: BranchSemantics,
+    semanticDiagnostics?: SemanticDiagnostics,
+    source?: string
+  ): ShaderTargetParser {
     let tables = this._tables;
     if (!tables) {
       const grammar = createGrammar();
@@ -69,7 +74,7 @@ export class ShaderTargetParser {
       semanticDiagnostics,
       source
     );
-    addTranslationRule(parser.sematicAnalyzer);
+    addTranslationRule(parser.semanticAnalyzer);
     return parser;
   }
 
@@ -84,12 +89,13 @@ export class ShaderTargetParser {
     this.actionTable = actionTable;
     this.gotoTable = gotoTable;
     this.grammar = grammar;
-    this.sematicAnalyzer = new SematicAnalyzer(branchSemantics, semanticDiagnostics);
+    this.semanticAnalyzer = new SemanticAnalyzer(branchSemantics, semanticDiagnostics);
   }
 
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset(macroDefineList);
-    const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
+    this.semanticAnalyzer.reset(macroDefineList);
+    this.blockingErrors.length = 0;
+    const { _traceBackStack: traceBackStack, semanticAnalyzer } = this;
     traceBackStack.length = 0;
     traceBackStack.push(0);
 
@@ -107,23 +113,23 @@ export class ShaderTargetParser {
         // the production (only the function-like alternative needs it, and
         // it knows that from its own children).
         if (token.type === Keyword.MACRO_DEFINE_PARAMS) {
-          sematicAnalyzer.pushScope();
+          semanticAnalyzer.pushScope();
           for (const p of ParserUtils.parseMacroParamList(token.lexeme)) {
-            sematicAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
+            semanticAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
           }
         }
-        if (sematicAnalyzer.diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
-          sematicAnalyzer.pushScope();
+        if (semanticAnalyzer.diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
+          semanticAnalyzer.pushScope();
         }
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
-        sematicAnalyzer.acceptRule?.(sematicAnalyzer);
-        const program = sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
+        semanticAnalyzer.acceptRule?.(semanticAnalyzer);
+        const program = semanticAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
         return program;
       } else if (actionInfo?.action === EAction.Reduce) {
         const target = actionInfo.target!;
         const reduceProduction = this.grammar.getProductionByID(target)!;
-        const translationRule = sematicAnalyzer.getTranslationRule(reduceProduction.id);
+        const translationRule = semanticAnalyzer.getTranslationRule(reduceProduction.id);
 
         const values: (TreeNode | BaseToken)[] = [];
 
@@ -134,16 +140,16 @@ export class ShaderTargetParser {
           if (token instanceof BaseToken) {
             values.unshift(token);
           } else {
-            const astNode = sematicAnalyzer.semanticStack.pop()!;
+            const astNode = semanticAnalyzer.semanticStack.pop()!;
             values.unshift(astNode);
           }
         }
-        translationRule?.(sematicAnalyzer, ...values);
+        translationRule?.(semanticAnalyzer, ...values);
 
         const gotoTable = this.stateGotoTable;
         traceBackStack.push(reduceProduction.goal);
 
-        const nextState = gotoTable?.get(reduceProduction.goal)!;
+        const nextState = gotoTable!.get(reduceProduction.goal)!;
         traceBackStack.push(nextState);
         continue;
       } else {
@@ -153,7 +159,8 @@ export class ShaderTargetParser {
           this._source,
           token.location
         );
-        this.sematicAnalyzer.errors.push(<GSError>error);
+        this.semanticAnalyzer.errors.push(error);
+        this.blockingErrors.push(error);
         return null;
       }
     }

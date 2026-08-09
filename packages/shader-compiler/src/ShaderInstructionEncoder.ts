@@ -1,6 +1,6 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
-import { parsePreprocessorCondition } from "@galacean/engine-shader-parser/internal";
+import { tryParsePreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 
@@ -123,14 +123,14 @@ export class ShaderInstructionEncoder {
               ShaderInstructionEncoder._stripLineComment(funcMatch[3].trim())
             ]);
           } else {
-            const spaceIdx = rest.indexOf(" ");
-            if (spaceIdx === -1) {
+            const separator = ShaderInstructionEncoder._findInlineWhitespace(rest);
+            if (separator === rest.length) {
               instructions.push([ShaderPreprocessorDirective.Define, rest]);
             } else {
               instructions.push([
                 ShaderPreprocessorDirective.DefineVal,
-                rest.substring(0, spaceIdx),
-                ShaderInstructionEncoder._stripLineComment(rest.substring(spaceIdx + 1).trim())
+                rest.substring(0, separator),
+                ShaderInstructionEncoder._stripLineComment(rest.substring(separator + 1).trim())
               ]);
             }
           }
@@ -159,11 +159,7 @@ export class ShaderInstructionEncoder {
   }
 
   private static _parseCondition(expression: string): Condition {
-    try {
-      return parsePreprocessorCondition(expression);
-    } catch {
-      return { t: "raw", e: expression };
-    }
+    return tryParsePreprocessorCondition(expression) ?? { t: "raw", e: expression };
   }
 
   private static _findDirectiveStart(source: string, from: number, length: number): number {
@@ -185,6 +181,16 @@ export class ShaderInstructionEncoder {
       i = nl + 1;
     }
     return -1;
+  }
+
+  private static _findInlineWhitespace(source: string): number {
+    let index = 0;
+    while (index < source.length) {
+      const charCode = source.charCodeAt(index);
+      if (charCode === 32 /* space */ || charCode === 9 /* tab */) break;
+      index++;
+    }
+    return index;
   }
 
   private static _pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {

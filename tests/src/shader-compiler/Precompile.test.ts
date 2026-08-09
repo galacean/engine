@@ -464,6 +464,11 @@ describe("ShaderCompiler Precompile", async () => {
       expect(inst[0][2]).toEqual(["color"]);
       expect(inst[0][3]).toBe("color");
     });
+
+    it("parses a tab between an object-like macro name and value", () => {
+      const instructions = ShaderInstructionEncoder.parse("#define VALUE\t1\n#if VALUE\nBODY\n#endif\n");
+      expect(ShaderMacroProcessor.evaluate(instructions, new Map())).toContain("BODY");
+    });
   });
 
   // ─────────────────────────────────────────────────────────
@@ -512,9 +517,9 @@ describe("ShaderCompiler Precompile", async () => {
       expect(eval_(inst, [["FOO", "1"]])).toContain("BODY");
     });
 
-    it("rejects trailing tokens in a preprocessor condition", () => {
+    it("treats a malformed preprocessor condition as inactive", () => {
       const instructions = ShaderInstructionEncoder.parse("#if 123 defined(FOO)\nBODY\n#endif\n");
-      expect(() => eval_(instructions, [])).toThrow("Invalid preprocessor expression");
+      expect(eval_(instructions, [])).not.toContain("BODY");
     });
 
     it("#if MACRO == value: correct branch selected", () => {

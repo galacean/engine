@@ -154,7 +154,12 @@ mat3 _normalMatFromModel(mat3 m) {
     if (Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, includeName)) {
       throw `The "${includeName}" shader include already exist`;
     }
-    ShaderFactory.includeMap[includeName] = includeSource;
+    Object.defineProperty(ShaderFactory.includeMap, includeName, {
+      value: includeSource,
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
   }
 
   /**

@@ -37,20 +37,18 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const pool = CodeGenVisitor._tmpArrayPool;
     const ret = pool.get();
     ret.dispose();
-    try {
-      for (const child of children) {
-        if (child instanceof BaseToken) {
-          // Legacy opaque `#define` lexemes carry the directive verbatim — expression-style defines go through the AST path.
-          ret.array.push(child.lexeme);
-        } else {
-          ret.array.push(child.codeGen(this));
-        }
+    for (const child of children) {
+      if (child instanceof BaseToken) {
+        // Legacy opaque `#define` lexemes carry the directive verbatim; expression-style defines use the AST path
+        ret.array.push(child.lexeme);
+      } else {
+        ret.array.push(child.codeGen(this));
       }
-      return ret.array.join(" ");
-    } finally {
-      ret.dispose();
-      pool.return(ret);
     }
+    const result = ret.array.join(" ");
+    ret.dispose();
+    pool.return(ret);
+    return result;
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {

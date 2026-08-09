@@ -1,4 +1,5 @@
 import type { IShaderInfo } from "@galacean/engine-design";
+import type { IPoolElement } from "@galacean/engine-core";
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { Keyword } from "@galacean/engine-shader-parser/internal";
@@ -6,6 +7,7 @@ import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { NodeChild } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
@@ -14,14 +16,18 @@ import type { ShaderBackend } from "../ShaderBackend";
 /**
  * @internal
  */
-export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend {
+export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   private _globalCodeArray: ICodeSegment[] = [];
-  private readonly _serializedGlobalKeys = new Set<string>();
 
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    this._serializedGlobalKeys.clear();
+  }
+
+  /** Releases references retained by an idle visitor when its pool is collected. @internal */
+  dispose(): void {
+    this.context.reset();
+    this.reset();
   }
 
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
@@ -47,6 +53,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     context.varyingList.push(...io.varyingList);
     context.mrtStructs.push(...io.mrtStructs);
     context.mrtList.push(...io.mrtList);
+    context.registerStructTypes(ShaderStructRole.Attribute, io.attributeStructs);
+    context.registerStructTypes(ShaderStructRole.Varying, io.varyingStructs);
+    context.registerStructTypes(ShaderStructRole.Mrt, io.mrtStructs);
     for (const varName in io.vertexStructVarMap) {
       context.registerStructVar(EShaderStage.VERTEX, varName, io.vertexStructVarMap[varName]);
     }
@@ -162,15 +171,9 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
     const context = this.context;
-    const { _referencedGlobals } = context;
-    const lastLength = Object.keys(_referencedGlobals).length;
-    if (lastLength === 0) return;
-
-    for (const ident in _referencedGlobals) {
-      if (this._serializedGlobalKeys.has(ident)) continue;
-      this._serializedGlobalKeys.add(ident);
-
-      const symbols = _referencedGlobals[ident];
+    const { _referencedGlobals, _referencedGlobalKeys } = context;
+    for (let keyIndex = 0; keyIndex < _referencedGlobalKeys.length; keyIndex++) {
+      const symbols = _referencedGlobals[_referencedGlobalKeys[keyIndex]];
       for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
         const codeGenResult = sm.astNode.codeGen(this);
@@ -183,10 +186,6 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           });
         }
       }
-    }
-
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
-      this._getGlobalSymbol(out);
     }
   }
 
@@ -203,10 +202,12 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
     const context = this.context;
     const referencedGlobals = context._referencedGlobals;
+    const referencedGlobalKeys = context._referencedGlobalKeys;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (const symbols of Object.values(referencedGlobals)) {
+    for (let keyIndex = 0; keyIndex < referencedGlobalKeys.length; keyIndex++) {
+      const symbols = referencedGlobals[referencedGlobalKeys[keyIndex]];
       for (const symbol of symbols) {
         if (symbol.isInMacroBranch) {
           referencedGlobalMacroASTs.push(symbol.astNode);

@@ -2,6 +2,8 @@ import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticType, DiagnosticSeverity } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser/internal/analyzer";
 
+const diagnosticTypes = new Set<string>(Object.values(DiagnosticType));
+
 /**
  * Converts a parser error to a structured diagnostic.
  * @param error - Error reported while parsing or analyzing shader source.
@@ -32,7 +34,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
 }
 
 function isDiagnosticType(code: string | undefined): code is DiagnosticType {
-  return code !== undefined && Object.values(DiagnosticType).includes(code as DiagnosticType);
+  return code !== undefined && diagnosticTypes.has(code);
 }
 
 function gSErrorLocationToRange(location: InstanceType<typeof GSError>["location"]): Diagnostic["range"] {

@@ -1,5 +1,5 @@
 import { ETokenType } from "../common";
-import { parsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
+import { tryParsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import {
   type BranchCondition,
   type BranchConstraint,
@@ -94,7 +94,7 @@ export class AnalyzerLexer extends Lexer {
       // Stamp the branch onto the token only when inside an `#ifdef`. The
       // top-level case keeps the BaseToken default (shared empty signature),
       // so the hot path stays allocation-free.
-      if (this._branchStack.length > 0) tok.branch = this._branchStack.slice();
+      if (this._branchStack.length > 0) tok.branch = this._captureBranchSignature();
 
       // Update stack state based on the just-emitted token, so the *next*
       // token sees the correct snapshot. `#if expr` opens a level after its
@@ -487,11 +487,8 @@ export class AnalyzerLexer extends Lexer {
   }
 
   private _parseSimpleCondition(expression: string): BranchCondition | undefined {
-    try {
-      return this._toBranchCondition(parsePreprocessorCondition(expression));
-    } catch {
-      return AnalyzerLexer._parseOpaqueComparisonCondition(expression);
-    }
+    const condition = tryParsePreprocessorCondition(expression);
+    return condition ? this._toBranchCondition(condition) : AnalyzerLexer._parseOpaqueComparisonCondition(expression);
   }
 
   private static _parseOpaqueComparisonCondition(expression: string): BranchCondition | undefined {
@@ -783,7 +780,12 @@ export class AnalyzerLexer extends Lexer {
     return isBranchReachable(branch);
   }
 
-  protected override _beforeRegisterMacroDefine(name: string): void {
+  protected override _registerMacroDefine(
+    name: string,
+    paramsLexeme: string | undefined,
+    valueStart: number,
+    valueEnd: number
+  ): void {
     const branchIndex = this._branchStack.length - 1;
     const branch = this._branchStack[branchIndex];
     if (branch?.guardUndefBranches && branch.name === name && !branch.defined) {
@@ -795,19 +797,12 @@ export class AnalyzerLexer extends Lexer {
       const frame = this._conditionalFrames[this._conditionalFrames.length - 1];
       if (frame?.guardName === name) frame.selfGuarding = true;
     }
+    super._registerMacroDefine(name, paramsLexeme, valueStart, valueEnd);
+    this._applyMacroDefine(name, paramsLexeme, valueStart, valueEnd);
   }
 
   protected override _sameDefinitionBranch(left: BranchSignature, right: BranchSignature): boolean {
     return sameBranch(left, right);
-  }
-
-  protected override _afterRegisterMacroDefine(
-    name: string,
-    paramsLexeme: string | undefined,
-    valueStart: number,
-    valueEnd: number
-  ): void {
-    this._applyMacroDefine(name, paramsLexeme, valueStart, valueEnd);
   }
 
   protected override _branchesOverlap(left: BranchSignature, right: BranchSignature): boolean {

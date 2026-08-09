@@ -143,9 +143,10 @@ export function getDeclarationCoexistence(earlier: BranchSignature, later: Branc
     }
   }
 
-  const combined = [...earlier, ...later];
-  if (!hasOnlyAtomicConditions(combined)) return "unknown";
-  return isAtomicConjunctionSatisfiable(getConditions(combined)) ? "coexist" : "exclusive";
+  if (!hasOnlyAtomicConditions(earlier) || !hasOnlyAtomicConditions(later)) return "unknown";
+  const conditions = getConditions(earlier);
+  appendConditions(later, conditions);
+  return isAtomicConjunctionSatisfiable(conditions) ? "coexist" : "exclusive";
 }
 
 /**
@@ -154,7 +155,10 @@ export function getDeclarationCoexistence(earlier: BranchSignature, later: Branc
  * @returns Whether the constraints are satisfiable.
  */
 export function isBranchReachable(branch: BranchSignature): boolean {
-  const conditions = getConditions(branch);
+  return areConditionsReachable(getConditions(branch));
+}
+
+function areConditionsReachable(conditions: readonly BranchCondition[]): boolean {
   for (let i = 0, n = conditions.length; i < n; i++) {
     const condition = conditions[i];
     if (condition.kind === "constant" && !condition.value) return false;
@@ -186,7 +190,9 @@ export function canBranchesOverlap(left: BranchSignature, right: BranchSignature
     }
   }
 
-  return isBranchReachable([...left, ...right]);
+  const conditions = getConditions(left);
+  appendConditions(right, conditions);
+  return areConditionsReachable(conditions);
 }
 
 /**
@@ -569,8 +575,19 @@ function hasCompatibleGuardUndef(
 
 function getConditions(branch: BranchSignature): BranchCondition[] {
   const conditions: BranchCondition[] = [];
-  for (let i = 0, n = branch.length; i < n; i++) conditions.push(...getConstraintConditions(branch[i]));
+  appendConditions(branch, conditions);
   return conditions;
+}
+
+function appendConditions(branch: BranchSignature, conditions: BranchCondition[]): void {
+  for (let i = 0, n = branch.length; i < n; i++) {
+    const constraint = branch[i];
+    const preceding = constraint.precedingConditions;
+    if (preceding) {
+      for (let j = 0, m = preceding.length; j < m; j++) conditions.push(preceding[j]);
+    }
+    if (constraint.condition) conditions.push(constraint.condition);
+  }
 }
 
 function getConstraintConditions(constraint: BranchConstraint): readonly BranchCondition[] {
@@ -857,7 +874,6 @@ function isEmptyInterval(
   return lower.value > upper.value || (lower.value === upper.value && (!lower.inclusive || !upper.inclusive));
 }
 
-/** Analyzer-grade branch reasoning kept outside the runtime parser module graph. @internal */
 /** Analyzer branch-proof implementation injected into analyzer parser instances. @internal */
 export const branchAnalysis: BranchSemantics = {
   canBranchesOverlap,
