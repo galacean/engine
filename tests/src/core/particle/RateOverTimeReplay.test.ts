@@ -173,6 +173,22 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     entity.destroy();
   });
 
+  it("emits every exact constant-rate boundary across coarse frames", () => {
+    const { entity, renderer } = buildEmitter(engine, "rate-coarse-frame-boundary");
+    const generator = renderer.generator;
+    generator.main.duration = 100;
+    generator.emission.rateOverTime.constant = 10;
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+    for (let i = 0; i < 10; i++) {
+      tick(engine, elapsed, 300);
+    }
+
+    expect(generator._getAliveParticleCount()).to.equal(30);
+    entity.destroy();
+  });
+
   it("emits looped bursts only after their cycle time is reached", () => {
     const { entity, renderer } = buildEmitter(engine, "looped-burst-boundary");
     const generator = renderer.generator;
