@@ -155,6 +155,11 @@ export class ShaderPass extends ShaderPart {
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
+    if (isWebGL2) {
+      vertexSource = ShaderFactory.injectRealtimeIBLUniformBlocks(vertexSource);
+      fragmentSource = ShaderFactory.injectRealtimeIBLUniformBlocks(fragmentSource);
+    }
+
     let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {
       const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource);

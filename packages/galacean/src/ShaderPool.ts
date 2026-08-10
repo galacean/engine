@@ -22,6 +22,9 @@ import {
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
+  RealtimeIBLAccumulateSource,
+  RealtimeIBLProjectSHSource,
+  RealtimeIBLResolveSource,
   ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
 
@@ -74,12 +77,16 @@ export class ShaderPool {
       FinalSRGBSource,
       FinalAntiAliasingSource,
       BloomSource,
+      // Environment IBL baking shaders
+      RealtimeIBLAccumulateSource,
+      RealtimeIBLProjectSHSource,
+      RealtimeIBLResolveSource,
       // AO shader
       ScalableAmbientOcclusionSource
     ];
 
     for (const source of sources) {
-      // @ts-ignore — `_createFromPrecompiled` is `Shader` @internal.
+      // @ts-expect-error — `_createFromPrecompiled` is `Shader` @internal.
       Shader._createFromPrecompiled(source);
     }
 
@@ -87,7 +94,21 @@ export class ShaderPool {
     // The pass itself is later looked up via `Shader.find` inside
     // `ParticleTransformFeedbackSimulator`, so no caching needed here.
     const feedbackPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes[0];
-    // @ts-ignore — `_feedbackVaryings` is `ShaderPass` @internal.
+    // @ts-expect-error — `_feedbackVaryings` is `ShaderPass` @internal.
     feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+
+    const projectSphericalHarmonicsPass = Shader.find("Lighting/RealtimeIBLProjectSH").subShaders[0].passes[0];
+    // @ts-expect-error — `_feedbackVaryings` is `ShaderPass` @internal.
+    projectSphericalHarmonicsPass._feedbackVaryings = [
+      "v_SH0",
+      "v_SH1",
+      "v_SH2",
+      "v_SH3",
+      "v_SH4",
+      "v_SH5",
+      "v_SH6",
+      "v_SH7",
+      "v_SH8"
+    ];
   }
 }

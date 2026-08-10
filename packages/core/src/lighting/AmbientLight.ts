@@ -2,6 +2,7 @@ import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
 import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { Scene } from "../Scene";
+import { Buffer } from "../graphic/Buffer";
 import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -12,7 +13,11 @@ import { DiffuseMode } from "./enums/DiffuseMode";
  * Ambient light.
  */
 export class AmbientLight extends ReferResource {
+  /** GPU-authored pre-scaled SH used while runtime environment capture owns the diffuse environment. @internal */
+  _realtimeSphericalHarmonicsBuffer: Buffer | null = null;
+
   private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
+  private static _realtimeSHMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_REALTIME_SH");
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
 
   private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
@@ -74,6 +79,7 @@ export class AmbientLight extends ReferResource {
   }
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
+    this._setRealtimeSphericalHarmonicsBuffer(null);
     this._diffuseSphericalHarmonics = value;
     if (value) {
       this._preComputeSH(value, this._shArray);
@@ -144,6 +150,7 @@ export class AmbientLight extends ReferResource {
     shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
     this._setDiffuseMode(shaderData);
+    this._setRealtimeSphericalHarmonicsMode(shaderData);
     this._setSpecularTexture(shaderData);
   }
 
@@ -158,10 +165,29 @@ export class AmbientLight extends ReferResource {
     const shaderData = scene.shaderData;
     shaderData.setTexture(AmbientLight._specularTextureProperty, null);
     shaderData.disableMacro(AmbientLight._specularMacro);
+    shaderData.disableMacro(AmbientLight._realtimeSHMacro);
   }
 
   constructor(engine: Engine) {
     super(engine);
+  }
+
+  /** Installs or clears the GPU-authored runtime SH override. @internal */
+  _setRealtimeSphericalHarmonicsBuffer(buffer: Buffer | null): void {
+    const wasEnabled = this._realtimeSphericalHarmonicsBuffer !== null;
+    const isEnabled = buffer !== null;
+    this._realtimeSphericalHarmonicsBuffer = buffer;
+    if (wasEnabled !== isEnabled) {
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        this._setRealtimeSphericalHarmonicsMode(scenes[i].shaderData);
+      }
+    }
+  }
+
+  /** Returns the CPU-authored pre-scaled SH fallback used to seed runtime GPU projection. @internal */
+  _getDiffuseSphericalHarmonicsData(): Float32Array {
+    return this._shArray;
   }
 
   private _setDiffuseMode(sceneShaderData: ShaderData): void {
@@ -169,6 +195,14 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.enableMacro(AmbientLight._shMacro);
     } else {
       sceneShaderData.disableMacro(AmbientLight._shMacro);
+    }
+  }
+
+  private _setRealtimeSphericalHarmonicsMode(sceneShaderData: ShaderData): void {
+    if (this._realtimeSphericalHarmonicsBuffer) {
+      sceneShaderData.enableMacro(AmbientLight._realtimeSHMacro);
+    } else {
+      sceneShaderData.disableMacro(AmbientLight._realtimeSHMacro);
     }
   }
 

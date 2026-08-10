@@ -15,10 +15,13 @@ import { ShaderProperty } from "./ShaderProperty";
  */
 export class ShaderFactory {
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
+  static readonly REALTIME_IBL_SH_BLOCK_NAME = "RealtimeIBLSphericalHarmonics";
 
   static readonly uniformBlockBindingMap: Record<number, number> = {
     [ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId]:
-      ConstantBufferBindingPoint.RendererInstance
+      ConstantBufferBindingPoint.RendererInstance,
+    [ShaderBlockProperty.getByName(ShaderFactory.REALTIME_IBL_SH_BLOCK_NAME)._uniqueId]:
+      ConstantBufferBindingPoint.RealtimeIBLSphericalHarmonics
   };
 
   static readonly includeMap: Record<string, string> = {};
@@ -198,6 +201,16 @@ mat3 _normalMatFromModel(mat3 m) {
     }
 
     return shader;
+  }
+
+  /** Replaces the runtime SH array uniform with a std140 block after ShaderLab preprocessing. @internal */
+  static injectRealtimeIBLUniformBlocks(shader: string): string {
+    return shader.replace(
+      /uniform\s+(?:(?:lowp|mediump|highp)\s+)?vec4\s+scene_RealtimeEnvSH\s*\[\s*9\s*\]\s*;/g,
+      `layout(std140) uniform ${ShaderFactory.REALTIME_IBL_SH_BLOCK_NAME} {\n` +
+        "    vec4 scene_RealtimeEnvSH[9];\n" +
+        "};"
+    );
   }
 
   /**

@@ -124,7 +124,11 @@ struct EnvMapLight {
 EnvMapLight scene_EnvMapLight;
 
 #ifdef SCENE_USE_SH
-    vec3 scene_EnvSH[9];
+    #ifdef SCENE_USE_REALTIME_SH
+        #include "ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl"
+    #else
+        vec3 scene_EnvSH[9];
+    #endif
 #endif
 
 #ifdef SCENE_USE_SPECULAR_ENV

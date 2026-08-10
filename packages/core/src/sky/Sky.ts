@@ -7,6 +7,19 @@ import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
 /**
+ * Shader macros supplied while a sky is rendered into environment lighting.
+ * @remarks
+ * Custom sky shaders can use {@link SkyEnvironmentCaptureMacro.Capture} to distinguish environment capture from the
+ * visible sky and {@link SkyEnvironmentCaptureMacro.IncludeSun} to decide whether to draw an analytic solar disk.
+ */
+export enum SkyEnvironmentCaptureMacro {
+  /** Defined for diffuse SH and specular cubemap capture. */
+  Capture = "SCENE_ENVIRONMENT_CAPTURE",
+  /** Defined when the captured environment should contain the analytic solar disk. */
+  IncludeSun = "SCENE_ENVIRONMENT_CAPTURE_INCLUDE_SUN"
+}
+
+/**
  * Sky.
  */
 export class Sky {
