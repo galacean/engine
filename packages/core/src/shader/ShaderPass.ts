@@ -90,8 +90,7 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     feedbackVaryings?: string[]
   ): ShaderProgram {
-    const passProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
-    const shaderProgramMap = feedbackVaryings ? passProgramMap.getVariant(feedbackVaryings) : passProgramMap;
+    const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;

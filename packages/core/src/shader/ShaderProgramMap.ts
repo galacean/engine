@@ -7,7 +7,7 @@ type Tree = {
 };
 
 /**
- * Caches shader programs by program variant and shader macro bitmask.
+ * Map keyed by ShaderMacroCollection bitmask, caching ShaderProgram instances.
  * @internal
  */
 export class ShaderProgramMap {
@@ -15,22 +15,11 @@ export class ShaderProgramMap {
 
   private _cacheHierarchyDepth: number = 1;
   private _cacheMap: Tree = Object.create(null);
-  private _variantMaps: Map<object, ShaderProgramMap> | null = null;
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
 
   constructor(engine: Engine) {
     this.engine = engine;
-  }
-
-  getVariant(key: object): ShaderProgramMap {
-    const variants = (this._variantMaps ||= new Map());
-    let variant = variants.get(key);
-    if (!variant) {
-      variant = new ShaderProgramMap(this.engine);
-      variants.set(key, variant);
-    }
-    return variant;
   }
 
   get(macros: ShaderMacroCollection): ShaderProgram | null {
@@ -69,14 +58,6 @@ export class ShaderProgramMap {
     this._recursiveForEach(0, this._cacheMap);
     this._cacheMap = Object.create(null);
     this._cacheHierarchyDepth = 1;
-    const variants = this._variantMaps;
-    if (variants) {
-      for (const variant of variants.values()) {
-        variant.destroy();
-      }
-      variants.clear();
-      this._variantMaps = null;
-    }
   }
 
   private _recursiveForEach(hierarchy: number, cacheMap: Tree): void {

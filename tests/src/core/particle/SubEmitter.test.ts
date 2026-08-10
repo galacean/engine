@@ -24,7 +24,6 @@ import {
   Scene,
   Shader,
   ShaderMacro,
-  ShaderMacroCollection,
   ConeShape,
   Vector3,
   WebGLEngine
@@ -1215,7 +1214,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("reacquires the Gather program variant after the shader cache is cleared", () => {
+  it("reacquires the Gather program after generic shader precompilation", () => {
     const parent = createParticleRenderer(engine, "TrajectoryProgramRestore_Parent");
     const child = createParticleRenderer(engine, "TrajectoryProgramRestore_Child");
     parent.generator.subEmitters.enabled = true;
@@ -1238,10 +1237,7 @@ describe("SubEmitter", () => {
     // Mirrors the shader-program invalidation performed during device restore.
     (Shader as any)._clear(engine);
     (engine as any)._shaderProgramMaps.length = 0;
-    const gatherPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes.find(
-      (pass) => pass.name === "SubEmitterTrajectoryGather"
-    );
-    expect((gatherPass as any)._getShaderProgram(engine, new ShaderMacroCollection()).isValid).to.equal(true);
+    Shader.find("Effect/ParticleFeedback").compileVariant(engine, []);
 
     const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
     while (gl.getError() !== gl.NO_ERROR);

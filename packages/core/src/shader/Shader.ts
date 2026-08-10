@@ -421,9 +421,16 @@ export class Shader implements IReferable {
     const subShaders = this._subShaders;
     for (let i = 0, n = subShaders.length; i < n; i++) {
       const { passes } = subShaders[i];
+      let isFirstCompiledPass = true;
       for (let j = 0, m = passes.length; j < m; j++) {
-        const shaderProgram = passes[j]._getShaderProgram(engine, compileMacros);
-        isValid = j === 0 ? shaderProgram.isValid : isValid && shaderProgram.isValid;
+        const pass = passes[j];
+        // Transform Feedback outputs are configured by the runtime simulator before Program linking
+        if (pass.getTagValue("pipelineStage") === "TransformFeedback") {
+          continue;
+        }
+        const shaderProgram = pass._getShaderProgram(engine, compileMacros);
+        isValid = isFirstCompiledPass ? shaderProgram.isValid : isValid && shaderProgram.isValid;
+        isFirstCompiledPass = false;
       }
     }
     return isValid;
