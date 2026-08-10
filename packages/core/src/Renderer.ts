@@ -83,7 +83,9 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
     return this._shaderData;
   }
 
-  /** Whether no camera rendered this component in the previous frame */
+  /**
+   * Whether this renderer was culled by all cameras in the previous frame.
+   */
   get isCulled(): boolean {
     return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
   }
