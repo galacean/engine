@@ -16,7 +16,8 @@
   "jsdelivr": "dist/bundled.module.min.js",
   "files": [
     "dist/**/*",
-    "types/**/*"
+    "types/**/*",
+    "skills/**/*"
   ],
   "umd": {
     "name": "Galacean"
