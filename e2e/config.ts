@@ -453,7 +453,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-noise",
       threshold: 0,
-      diffPercentage: 0.0035
+      diffPercentage: 0
     },
     shapeTransform: {
       category: "Particle",
@@ -470,8 +470,8 @@ export const E2E_CONFIG = {
     subEmitter: {
       category: "Particle",
       caseFileName: "particleRenderer-sub-emitter",
-      threshold: 0.01,
-      diffPercentage: 0.002
+      threshold: 0,
+      diffPercentage: 0
     },
     rateOverDistance: {
       category: "Particle",
