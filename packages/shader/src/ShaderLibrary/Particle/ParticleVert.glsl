@@ -83,16 +83,16 @@ struct Attributes {
         vec3 a_FeedbackVelocity;
     #endif
 
-    #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-        vec3 a_SubEmitterWorldPosition;
-        vec3 a_SubEmitterWorldVelocity;
+    #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+        vec3 a_ParentSampleWorldPosition;
+        vec3 a_ParentTrajectoryVelocity;
     #endif
 
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 a_SimulationUV;
     #endif
 
-    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_SUB_EMITTER_TRAJECTORY)
+    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
         vec4 a_InheritVelocity;
     #endif
 };
@@ -150,9 +150,9 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 initialPosition, in 
 
     #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
         vec3 inheritVelocitySource = attributes.a_InheritVelocity.xyz;
-        #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-            if (isSubEmitterParticle(attributes)) {
-                inheritVelocitySource = attributes.a_SubEmitterWorldVelocity;
+        #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+            if (isSubEmitterSpawnedParticle(attributes)) {
+                inheritVelocitySource = attributes.a_ParentTrajectoryVelocity;
             }
         #endif
         vec3 inheritedVelocity;
@@ -182,8 +182,8 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 initialPosition, in 
 // billboard / mesh placement, and 3D rotation. Writes v.v_MeshColor when
 // running in mesh mode with vertex color enabled.
 vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inout Varyings v) {
-    #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-        bool isSubEmitter = isSubEmitterParticle(attr);
+    #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+        bool isSubEmitterSpawned = isSubEmitterSpawnedParticle(attr);
     #endif
     vec4 worldRotation;
     if (renderer_SimulationSpace == 0) {
@@ -218,9 +218,9 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
                 vec4 invWorldRotation = quaternionConjugate(worldRotation);
                 vec3 orbitalWorldOrigin = attr.a_SimulationWorldPosition;
-                #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-                    if (isSubEmitter) {
-                        orbitalWorldOrigin = getSubEmitterEmissionWorldPosition(attr);
+                #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                    if (isSubEmitterSpawned) {
+                        orbitalWorldOrigin = reconstructParentWorldPositionAtEmission(attr);
                     }
                 #endif
 
@@ -258,9 +258,9 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             #endif
 
             #ifdef _INHERIT_VELOCITY_MODULE_ENABLED
-                #if defined(RENDERER_SUB_EMITTER_TRAJECTORY) && defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE)
-                    vec3 inheritVelocitySource = isSubEmitter
-                        ? attr.a_SubEmitterWorldVelocity
+                #if defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES) && defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE)
+                    vec3 inheritVelocitySource = isSubEmitterSpawned
+                        ? attr.a_ParentTrajectoryVelocity
                         : attr.a_InheritVelocity.xyz;
                     visualWorldVelocity += evaluateInheritVelocityFromSource(attr, inheritVelocitySource, normalizedAge);
                 #else
@@ -272,11 +272,11 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         vec3 initialPosition = attr.a_ShapePositionStartLifeTime.xyz;
         vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
         vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
-        #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-            if (isSubEmitter) {
+        #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+            if (isSubEmitterSpawned) {
                 vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
                 vec3 parentLocalVelocity = rotationByQuaternions(
-                    attr.a_SubEmitterWorldVelocity,
+                    attr.a_ParentTrajectoryVelocity,
                     invSimulationWorldRotation
                 );
                 if (attr.a_InheritVelocity.y < 0.0) {
@@ -291,11 +291,11 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
                 if (renderer_SimulationSpace == 0) {
                     initialPosition += rotationByQuaternions(
-                        getSubEmitterEmissionWorldPosition(attr) - attr.a_SimulationWorldPosition,
+                        reconstructParentWorldPositionAtEmission(attr) - attr.a_SimulationWorldPosition,
                         invSimulationWorldRotation
                     );
                 } else {
-                    simulationWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+                    simulationWorldPosition = reconstructParentWorldPositionAtEmission(attr);
                 }
             }
         #endif

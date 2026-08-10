@@ -77,7 +77,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private static readonly _bakedInitialVelocityFactor = -1;
   private static readonly _transformFeedbackMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
   private static readonly _trajectoryFeedbackMacro = ShaderMacro.getByName("RENDERER_TRAJECTORY_FEEDBACK");
-  private static readonly _subEmitterTrajectoryMacro = ShaderMacro.getByName("RENDERER_SUB_EMITTER_TRAJECTORY");
+  private static readonly _hasSubEmitterSpawnedParticlesMacro = ShaderMacro.getByName(
+    "RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES"
+  );
   private static readonly _currentTimeProperty = ShaderProperty.getByName("renderer_CurrentTime");
   private static readonly _particleValueInheritanceMask =
     ParticleSubEmitterInheritProperty.Color |
@@ -604,7 +606,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const subEmitterSpawnState = this._subEmitterSpawnState;
     if (subEmitterSpawnState) {
       const subEmitterBindingIndex = vertexBufferBindings.length;
-      const elements = ParticleBufferUtils.renderSubEmitterStateVertexElements;
+      const elements = ParticleBufferUtils.renderSubEmitterSpawnStateVertexElements;
       for (let i = 0, n = elements.length; i < n; i++) {
         const element = elements[i];
         primitive.addVertexElement(
@@ -1109,7 +1111,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     inheritSize: Vector3 | undefined,
     inheritRotation: Vector3 | undefined,
     normalizedEmitAge: number,
-    isSubEmitter: boolean,
+    isSubEmitterSpawned: boolean,
     trajectoryTimeOffset: number,
     inheritParentDirection: boolean
   ): void {
@@ -1122,8 +1124,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const main = this.main;
 
     let pos: Vector3, rot: Quaternion;
-    if (main.simulationSpace === ParticleSimulationSpace.World || isSubEmitter) {
-      pos = isSubEmitter ? emitterWorldPosition : (emitWorldPositionOverride ?? emitterWorldPosition);
+    if (main.simulationSpace === ParticleSimulationSpace.World || isSubEmitterSpawned) {
+      pos = isSubEmitterSpawned ? emitterWorldPosition : (emitWorldPositionOverride ?? emitterWorldPosition);
       rot = emitterWorldRotation;
     }
 
@@ -1131,7 +1133,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let particleDirection = direction;
     const inheritVelocity = this.inheritVelocity;
     const inheritedWorldVelocity = ParticleGenerator._tempVector34;
-    const hasInheritedVelocity = !isSubEmitter && inheritVelocity._getInitialVelocity(inheritedWorldVelocity);
+    const hasInheritedVelocity = !isSubEmitterSpawned && inheritVelocity._getInitialVelocity(inheritedWorldVelocity);
     let inheritedBoundsX = hasInheritedVelocity ? Math.abs(inheritedWorldVelocity.x) : 0;
     let inheritedBoundsY = hasInheritedVelocity ? Math.abs(inheritedWorldVelocity.y) : 0;
     let inheritedBoundsZ = hasInheritedVelocity ? Math.abs(inheritedWorldVelocity.z) : 0;
@@ -1314,7 +1316,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
 
     const inheritVelocityOffset = offset + ParticleBufferUtils.inheritVelocityOffset;
-    if (isSubEmitter) {
+    if (isSubEmitterSpawned) {
       instanceVertices[inheritVelocityOffset] = inheritVelocity._getTrajectoryInitialFactor();
       instanceVertices[inheritVelocityOffset + 1] = inheritParentDirection ? -1 : 1;
       instanceVertices[inheritVelocityOffset + 2] = trajectoryTimeOffset;
@@ -1329,7 +1331,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       (inheritVelocity._needTransformFeedback() || usesInitialInheritCurve) && inheritVelocity.curve._isRandomMode()
         ? inheritVelocity._curveRand.random()
         : 0;
-    instanceVertices[offset + ParticleBufferUtils.inheritVelocityRandomOffset] = isSubEmitter
+    instanceVertices[offset + ParticleBufferUtils.inheritVelocityRandomOffset] = isSubEmitterSpawned
       ? -inheritVelocityRandom - 1
       : inheritVelocityRandom;
 
@@ -1486,8 +1488,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._ensureParticleCapacity(count);
     const main = this.main;
     const transform = this._renderer.entity.transform;
-    const isSubEmitter = !!subEmitterCommand;
-    if (isSubEmitter) {
+    const isSubEmitterSpawned = !!subEmitterCommand;
+    if (isSubEmitterSpawned) {
       this._ensureSubEmitterSpawnState();
     }
     const targetWorldPosition = transform.worldPosition;
@@ -1497,7 +1499,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const { emission } = this;
     const shape = emission.shape;
     const simulationLocal = main.simulationSpace === ParticleSimulationSpace.Local;
-    const usesInitialInheritCurve = this.inheritVelocity._usesInitialCurve(isSubEmitter);
+    const usesInitialInheritCurve = this.inheritVelocity._usesInitialCurve(isSubEmitterSpawned);
     const duration = main.duration;
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     const inheritedBounds = ParticleGenerator._tempVector33;
@@ -1505,7 +1507,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const position = ParticleGenerator._tempVector30;
     const direction = ParticleGenerator._tempVector31;
     const inheritParentDirection =
-      isSubEmitter && (subEmitterCommand.inheritProperties & ParticleSubEmitterInheritProperty.Velocity) !== 0;
+      isSubEmitterSpawned && (subEmitterCommand.inheritProperties & ParticleSubEmitterInheritProperty.Velocity) !== 0;
     const configuredSizeBounds = inheritSize ? this._getConfiguredParticleSizeBoundsExtent() : 0;
     let eventSizeBounds = 0;
     for (let i = 0; i < count; i++) {
@@ -1535,7 +1537,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         inheritSize,
         inheritRotation,
         normalizedEmitAge,
-        isSubEmitter,
+        isSubEmitterSpawned,
         trajectoryTimeOffset,
         inheritParentDirection
       );
@@ -1552,7 +1554,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         );
       }
     }
-    if (isSubEmitter) {
+    if (isSubEmitterSpawned) {
       this._activeSubEmitterParticleCount += count;
       this._recordSubEmitterTrajectoryBounds(playTime, subEmitterCommand, eventSizeBounds);
     } else if (!simulationLocal) {
@@ -1940,7 +1942,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       return;
     }
 
-    this._renderer.shaderData.disableMacro(ParticleGenerator._subEmitterTrajectoryMacro);
+    this._renderer.shaderData.disableMacro(ParticleGenerator._hasSubEmitterSpawnedParticlesMacro);
     state.destroy();
     this._subEmitterSpawnState = null;
     this.inheritVelocity._updateShaderData(this._renderer.shaderData, false);
@@ -1957,7 +1959,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._currentParticleCount,
       !this._useTransformFeedback
     );
-    this._renderer.shaderData.enableMacro(ParticleGenerator._subEmitterTrajectoryMacro);
+    this._renderer.shaderData.enableMacro(ParticleGenerator._hasSubEmitterSpawnedParticlesMacro);
     this._reorganizeGeometryBuffers();
   }
 

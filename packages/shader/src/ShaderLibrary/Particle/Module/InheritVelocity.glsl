@@ -25,8 +25,8 @@
     #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
         float getInheritVelocityRandom(Attributes attributes) {
             float random = attributes.a_InheritVelocity.w;
-            #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-                if (isSubEmitterParticle(attributes)) {
+            #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                if (isSubEmitterSpawnedParticle(attributes)) {
                     random = -random - 1.0;
                 }
             #endif

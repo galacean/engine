@@ -242,12 +242,12 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _usesInitialCurve(isSubEmitter: boolean): boolean {
+  _usesInitialCurve(isSubEmitterSpawned: boolean): boolean {
     return (
       this._enabled &&
       this._mode === ParticleInheritVelocityMode.Initial &&
       this.curve._isCurveMode() &&
-      (isSubEmitter || this._generator.main.simulationSpace === ParticleSimulationSpace.World)
+      (isSubEmitterSpawned || this._generator.main.simulationSpace === ParticleSimulationSpace.World)
     );
   }
 

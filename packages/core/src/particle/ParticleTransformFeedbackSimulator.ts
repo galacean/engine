@@ -98,7 +98,7 @@ export class ParticleTransformFeedbackSimulator {
    * @param resetTrajectory - Whether to discard the trajectory baseline from before a culling pause, or undefined when
    * trajectory feedback is disabled
    * @param particleInputBinding - Particle input vertex buffer binding
-   * @param subEmitterStateBinding - Resolved sub-emitter state, when present
+   * @param subEmitterSpawnStateBinding - Resolved sub-emitter spawn state, when present
    */
   update(
     shaderData: ShaderData,
@@ -109,7 +109,7 @@ export class ParticleTransformFeedbackSimulator {
     deltaTime: number,
     resetTrajectory: boolean | undefined,
     particleInputBinding: VertexBufferBinding,
-    subEmitterStateBinding?: VertexBufferBinding
+    subEmitterSpawnStateBinding?: VertexBufferBinding
   ): void {
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
     if (resetTrajectory !== undefined) {
@@ -119,8 +119,8 @@ export class ParticleTransformFeedbackSimulator {
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstFreeParticleProperty, firstFree);
     const inputBindings = ParticleTransformFeedbackSimulator._inputBindings;
     inputBindings[0] = particleInputBinding;
-    if (subEmitterStateBinding) {
-      inputBindings[1] = subEmitterStateBinding;
+    if (subEmitterSpawnStateBinding) {
+      inputBindings[1] = subEmitterSpawnStateBinding;
       inputBindings.length = 2;
     } else {
       inputBindings.length = 1;
@@ -129,8 +129,8 @@ export class ParticleTransformFeedbackSimulator {
       shaderData,
       this._feedbackStateVertexElements,
       inputBindings,
-      subEmitterStateBinding
-        ? ParticleBufferUtils.feedbackInitialSubEmitterDataVertexElements
+      subEmitterSpawnStateBinding
+        ? ParticleBufferUtils.feedbackInitialSubEmitterSpawnStateVertexElements
         : ParticleBufferUtils.feedbackInitialDataVertexElements
     );
     inputBindings.length = 0;

@@ -1,14 +1,15 @@
 #ifndef PARTICLE_COMMON_INCLUDED
 #define PARTICLE_COMMON_INCLUDED
 
-#ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-    bool isSubEmitterParticle(Attributes attributes) {
+#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+    // Sub-emitter particles encode the random value as -random - 1 to reserve negative values as their marker
+    bool isSubEmitterSpawnedParticle(Attributes attributes) {
         return attributes.a_InheritVelocity.w < 0.0;
     }
 
-    vec3 getSubEmitterEmissionWorldPosition(Attributes attributes) {
-        return attributes.a_SubEmitterWorldPosition -
-            attributes.a_SubEmitterWorldVelocity * attributes.a_InheritVelocity.z;
+    vec3 reconstructParentWorldPositionAtEmission(Attributes attributes) {
+        return attributes.a_ParentSampleWorldPosition -
+            attributes.a_ParentTrajectoryVelocity * attributes.a_InheritVelocity.z;
     }
 #endif
 

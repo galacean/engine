@@ -30,15 +30,15 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 0)
   ];
 
-  static readonly feedbackInitialSubEmitterDataVertexElements = [
+  static readonly feedbackInitialSubEmitterSpawnStateVertexElements = [
     ...ParticleBufferUtils.feedbackInitialDataVertexElements,
-    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldPosition, 0, VertexElementFormat.Vector3, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldVelocity, 12, VertexElementFormat.Vector3, 1)
+    new VertexElement(ParticleInstanceVertexAttribute.ParentSampleWorldPosition, 0, VertexElementFormat.Vector3, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.ParentTrajectoryVelocity, 12, VertexElementFormat.Vector3, 1)
   ];
 
-  static readonly renderSubEmitterStateVertexElements = [
-    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldPosition, 0, VertexElementFormat.Vector3, 0, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldVelocity, 12, VertexElementFormat.Vector3, 0, 1)
+  static readonly renderSubEmitterSpawnStateVertexElements = [
+    new VertexElement(ParticleInstanceVertexAttribute.ParentSampleWorldPosition, 0, VertexElementFormat.Vector3, 0, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.ParentTrajectoryVelocity, 12, VertexElementFormat.Vector3, 0, 1)
   ];
 
   static readonly feedbackStateVertexElements = [
@@ -76,7 +76,7 @@ export class ParticleBufferUtils {
 
   static readonly feedbackStateVertexStride = 24;
   static readonly feedbackTrajectoryStateVertexStride = 48;
-  static readonly subEmitterStateVertexStride = 24;
+  static readonly subEmitterSpawnStateVertexStride = 24;
   static readonly instanceVertexStride = 184;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 

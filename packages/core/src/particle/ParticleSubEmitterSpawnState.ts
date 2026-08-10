@@ -22,7 +22,7 @@ const GATHER_PASS_NAME = "SubEmitterTrajectoryGather";
  * @internal
  */
 export class ParticleSubEmitterSpawnState {
-  private static readonly _gatherVaryings = ["v_SubEmitterWorldPosition", "v_SubEmitterWorldVelocity"];
+  private static readonly _gatherVaryings = ["v_ParentSampleWorldPosition", "v_ParentTrajectoryVelocity"];
   private static readonly _gatherMacros = new ShaderMacroCollection();
 
   private readonly _gatherPass: ShaderPass;
@@ -74,7 +74,7 @@ export class ParticleSubEmitterSpawnState {
       this._renderBinding.buffer.destroy();
       this._renderBinding = this._createBinding(particleCount);
     }
-    const stride = ParticleBufferUtils.subEmitterStateVertexStride;
+    const stride = ParticleBufferUtils.subEmitterSpawnStateVertexStride;
     const simulationBuffer = this._simulationBinding.buffer;
     for (let i = 0, n = mappings.length; i < n; i++) {
       const mapping = mappings[i];
@@ -94,7 +94,7 @@ export class ParticleSubEmitterSpawnState {
       return;
     }
 
-    const stride = ParticleBufferUtils.subEmitterStateVertexStride;
+    const stride = ParticleBufferUtils.subEmitterSpawnStateVertexStride;
     const capacity = this._simulationBinding.buffer.byteLength / stride;
     const source = this._simulationBinding.buffer;
     const target = renderBinding.buffer;
@@ -116,7 +116,7 @@ export class ParticleSubEmitterSpawnState {
     childCount: number
   ): void {
     const targetTailCount =
-      this._simulationBinding.buffer.byteLength / ParticleBufferUtils.subEmitterStateVertexStride - targetIndex;
+      this._simulationBinding.buffer.byteLength / ParticleBufferUtils.subEmitterSpawnStateVertexStride - targetIndex;
     if (childCount > targetTailCount) {
       this._drawPendingRun();
       this._drawRange(sourceBinding, sourceIndex, targetIndex, targetTailCount, 1);
@@ -169,12 +169,12 @@ export class ParticleSubEmitterSpawnState {
     const buffer = new Buffer(
       this._primitive.engine,
       BufferBindFlag.VertexBuffer,
-      particleCount * ParticleBufferUtils.subEmitterStateVertexStride,
+      particleCount * ParticleBufferUtils.subEmitterSpawnStateVertexStride,
       BufferUsage.Dynamic,
       false
     );
     buffer.isGCIgnored = true;
-    return new VertexBufferBinding(buffer, ParticleBufferUtils.subEmitterStateVertexStride);
+    return new VertexBufferBinding(buffer, ParticleBufferUtils.subEmitterSpawnStateVertexStride);
   }
 
   private _drawPendingRun(): void {
@@ -217,7 +217,7 @@ export class ParticleSubEmitterSpawnState {
     primitive.instanceCount = parentCount;
 
     const outputCount = childrenPerParent * parentCount;
-    const outputStride = ParticleBufferUtils.subEmitterStateVertexStride;
+    const outputStride = ParticleBufferUtils.subEmitterSpawnStateVertexStride;
     const transformFeedback = this._transformFeedback;
     transformFeedback.bindBufferRange(
       0,

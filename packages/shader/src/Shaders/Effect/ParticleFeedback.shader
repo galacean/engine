@@ -45,13 +45,13 @@ Shader "Effect/ParticleFeedback" {
               vec4 a_Random2;
           #endif
 
-          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_SUB_EMITTER_TRAJECTORY)
+          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
               vec4 a_InheritVelocity;
           #endif
 
-          #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-              vec3 a_SubEmitterWorldPosition;
-              vec3 a_SubEmitterWorldVelocity;
+          #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+              vec3 a_ParentSampleWorldPosition;
+              vec3 a_ParentTrajectoryVelocity;
           #endif
 
       };
@@ -124,17 +124,17 @@ Shader "Effect/ParticleFeedback" {
           vec3 inheritedVelocityWorld = vec3(0.0);
           vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
 
-          #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-              if (isSubEmitterParticle(attr)) {
-                  simulationWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+          #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+              if (isSubEmitterSpawnedParticle(attr)) {
+                  simulationWorldPosition = reconstructParentWorldPositionAtEmission(attr);
               }
           #endif
 
           #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
               vec3 inheritVelocitySource = attr.a_InheritVelocity.xyz;
-              #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-                  if (isSubEmitterParticle(attr)) {
-                      inheritVelocitySource = attr.a_SubEmitterWorldVelocity;
+              #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                  if (isSubEmitterSpawnedParticle(attr)) {
+                      inheritVelocitySource = attr.a_ParentTrajectoryVelocity;
                   }
               #endif
               vec3 inheritedPositionOffsetWorld =
@@ -310,10 +310,10 @@ Shader "Effect/ParticleFeedback" {
           if (isNewParticle) {
               position = attr.a_ShapePositionStartLifeTime.xyz;
               localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
-              #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
-                  if (isSubEmitterParticle(attr)) {
-                      vec3 parentWorldVelocity = attr.a_SubEmitterWorldVelocity;
-                      vec3 parentWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+              #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                  if (isSubEmitterSpawnedParticle(attr)) {
+                      vec3 parentTrajectoryVelocity = attr.a_ParentTrajectoryVelocity;
+                      vec3 parentWorldPosition = reconstructParentWorldPositionAtEmission(attr);
                       vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
                       if (renderer_SimulationSpace == 0) {
                           position += rotationByQuaternions(
@@ -327,7 +327,7 @@ Shader "Effect/ParticleFeedback" {
                       }
                       if (attr.a_InheritVelocity.y < 0.0) {
                           vec3 parentLocalVelocity = rotationByQuaternions(
-                              parentWorldVelocity,
+                              parentTrajectoryVelocity,
                               invSimulationWorldRotation
                           );
                           float parentSpeed = length(parentLocalVelocity);
@@ -337,7 +337,7 @@ Shader "Effect/ParticleFeedback" {
                       }
                       #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
                           localVelocity += rotationByQuaternions(
-                              parentWorldVelocity * attr.a_InheritVelocity.x,
+                              parentTrajectoryVelocity * attr.a_InheritVelocity.x,
                               invSimulationWorldRotation
                           );
                       #endif
@@ -425,14 +425,14 @@ Shader "Effect/ParticleFeedback" {
       };
 
       struct Varyings {
-          vec3 v_SubEmitterWorldPosition;
-          vec3 v_SubEmitterWorldVelocity;
+          vec3 v_ParentSampleWorldPosition;
+          vec3 v_ParentTrajectoryVelocity;
       };
 
       Varyings gatherTrajectory(Attributes attr) {
           Varyings v;
-          v.v_SubEmitterWorldPosition = attr.a_FeedbackWorldPosition;
-          v.v_SubEmitterWorldVelocity = attr.a_FeedbackTrajectoryVelocity;
+          v.v_ParentSampleWorldPosition = attr.a_FeedbackWorldPosition;
+          v.v_ParentTrajectoryVelocity = attr.a_FeedbackTrajectoryVelocity;
           gl_Position = vec4(0.0);
           return v;
       }
