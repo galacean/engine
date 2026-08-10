@@ -1,4 +1,5 @@
 import {
+  BoundingBox,
   Burst,
   Camera,
   Color,
@@ -21,15 +22,14 @@ import {
   ParticleSubEmitterType,
   Quaternion,
   Scene,
+  Shader,
+  ShaderMacro,
+  ShaderMacroCollection,
   ConeShape,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
-
-function getInFlightTrajectoryReadbackBatches(generator: object): Array<{ readback: any; commands: any[] }> {
-  return (generator as any)._trajectoryReadback?._inFlightBatches ?? [];
-}
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -41,25 +41,37 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
     times++;
     return times * deltaTime;
   };
-  const resolveReadbacks = () => {
-    for (const scene of engine.sceneManager.scenes) {
-      const renderers = (scene as any)._componentsManager._particleSystemManager._renderers as ParticleRenderer[];
-      for (const renderer of renderers) {
-        const batches = getInFlightTrajectoryReadbackBatches(renderer.generator);
-        for (let i = 0, n = batches.length; i < n; i++) {
-          batches[i].readback._platformReadback.isReady = () => true;
-        }
-      }
-    }
-  };
   for (let i = 0; i < frames; i++) {
     engine.update();
-    resolveReadbacks();
   }
   const currentTime = times * deltaTime;
   performance.now = () => currentTime;
-  engine.update();
-  resolveReadbacks();
+}
+
+function readGpuParticleBuffer(renderer: ParticleRenderer, binding: any, ringIndex = 0): Float32Array {
+  const gl = (renderer.engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+  gl.finish();
+  const floatCount = binding.stride / Float32Array.BYTES_PER_ELEMENT;
+  const data = new Float32Array(floatCount);
+  binding.buffer.getData(data, ringIndex * binding.stride, 0, floatCount);
+  return data;
+}
+
+function readFeedbackParticle(renderer: ParticleRenderer, ringIndex = 0): Float32Array {
+  return readGpuParticleBuffer(renderer, (renderer.generator as any)._feedbackSimulator.readBinding, ringIndex);
+}
+
+function readSubEmitterSpawnState(renderer: ParticleRenderer, ringIndex = 0): Float32Array {
+  return readGpuParticleBuffer(
+    renderer,
+    (renderer.generator as any)._subEmitterSpawnState.simulationBinding,
+    ringIndex
+  );
+}
+
+function enableZeroNoiseFeedback(renderer: ParticleRenderer): void {
+  renderer.generator.noise.strengthX.constant = 0;
+  renderer.generator.noise.enabled = true;
 }
 
 function createParticleRenderer(
@@ -101,7 +113,6 @@ describe("SubEmitter", () => {
 
   afterEach(() => {
     camera.cullingMask = Layer.Everything;
-    (engine as any)._bufferReadbackPool.gc();
   });
 
   it("Birth runs the target EmissionModule for every live parent", () => {
@@ -284,7 +295,7 @@ describe("SubEmitter", () => {
 
       const subEmitters = parent.generator.subEmitters;
       subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-      subEmitters._prepareBirthCommandsForParticle(ringIndex, 0, 1, 0, 0, 0, 0, []);
+      subEmitters._prepareBirthCommandsForParticle(ringIndex, 0, 1, 0, 0, 0);
 
       const startDelay = (subEmitters as any)._birthStatesByParticle[ringIndex][0].startDelay;
       parent.entity.destroy();
@@ -293,6 +304,25 @@ describe("SubEmitter", () => {
     };
 
     expect(sampleStartDelay("BirthRandomFirst", 0)).to.equal(sampleStartDelay("BirthRandomSecond", 17));
+  });
+
+  it("Birth Start Delay does not consume the target's standalone random stream", () => {
+    const parent = createParticleRenderer(engine, "BirthRandomOwnership_Parent");
+    const child = createParticleRenderer(engine, "BirthRandomOwnership_Child");
+    const control = createParticleRenderer(engine, "BirthRandomOwnership_Control");
+    child.generator.randomSeed = control.generator.randomSeed = 123;
+    child.generator.main.startDelay = new ParticleCompositeCurve(0.2, 0.8);
+    control.generator.main.startDelay = new ParticleCompositeCurve(0.2, 0.8);
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0, 0);
+
+    expect(child.generator.main._startDelayRand.random()).to.equal(control.generator.main._startDelayRand.random());
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    control.entity.destroy();
   });
 
   it("lazily creates Birth state when a Birth slot is added to a live parent", () => {
@@ -330,95 +360,28 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "BirthStateReuse_Child");
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
+    const commands = child.generator._incomingSubEmitterCommands as any[];
     const statesByParticle = (subEmitters as any)._birthStatesByParticle;
     const statePool = (subEmitters as any)._birthStatePool;
 
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0, 0.1, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0);
     const firstState = statesByParticle[0][0];
-    firstState.emissionState.distanceAccumulator = 1;
-    firstState.emissionState.setLastEmitPosition(new Vector3(1, 0, 0));
-    firstState.resetDistanceOnNextFeedback = true;
+    firstState.emissionState.frameRateTime = 99;
+    firstState.emissionState.currentBurstIndex = 99;
 
     subEmitters._retireParticle(0);
     expect(statesByParticle[0]).to.have.length(0);
     expect(statePool).to.have.length(1);
     expect(statePool[0]).to.equal(firstState);
 
-    subEmitters._prepareBirthCommandsForParticle(1, 0.1, 1, 0.1, 0.2, 0.1, 0.2, commands);
+    subEmitters._prepareBirthCommandsForParticle(1, 0.1, 1, 0.1, 0.2, 0);
 
     const reusedState = statesByParticle[1][0];
     expect(reusedState).to.equal(firstState);
     expect(statePool).to.have.length(0);
-    expect(reusedState.resetDistanceOnNextFeedback).to.equal(true);
-    expect(reusedState.emissionState.distanceAccumulator).to.equal(0);
-    expect(reusedState.emissionState.hasLastEmitPosition).to.equal(false);
+    expect(reusedState.emissionState.frameRateTime).to.be.closeTo(0.1, 1e-6);
+    expect(reusedState.emissionState.currentBurstIndex).to.equal(0);
     expect(commands).to.have.length(0);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("isolates a retired Birth state while its pending Command completes", () => {
-    const parent = createParticleRenderer(engine, "BirthStateOverlap_Parent");
-    const child = createParticleRenderer(engine, "BirthStateOverlap_Child");
-    child.generator.emission.rateOverTime.constant = 10;
-    const subEmitters = parent.generator.subEmitters;
-    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
-    const statesByParticle = (subEmitters as any)._birthStatesByParticle;
-    const statePool = (subEmitters as any)._birthStatePool;
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0, 0.1, commands);
-    const pendingCommand = commands.pop();
-    const firstState = pendingCommand.state;
-    firstState.emissionState.distanceAccumulator = 1;
-
-    subEmitters._retireParticle(0);
-    expect(statesByParticle[0]).to.have.length(0);
-    expect(statePool).to.have.length(0);
-    child.generator.emission.rateOverTime.constant = 0;
-    subEmitters._prepareBirthCommandsForParticle(0, 0.1, 1, 0.1, 0.2, 0.1, 0.2, commands);
-
-    const replacementState = statesByParticle[0][0];
-    expect(replacementState).not.to.equal(firstState);
-    expect(pendingCommand.state).to.equal(firstState);
-    expect(firstState.emissionState.distanceAccumulator).to.equal(1);
-    expect(replacementState.emissionState.distanceAccumulator).to.equal(0);
-    expect(statePool).to.have.length(0);
-
-    pendingCommand.release();
-    expect(statePool).to.have.length(1);
-
-    subEmitters._prepareBirthCommandsForParticle(1, 0.2, 1, 0.2, 0.3, 0.2, 0.3, commands);
-    expect(statesByParticle[1][0]).to.equal(firstState);
-    expect(statePool).to.have.length(0);
-    expect(commands).to.have.length(0);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("removes released Birth commands from their target index", () => {
-    const parent = createParticleRenderer(engine, "BirthCommandIndex_Parent");
-    const child = createParticleRenderer(engine, "BirthCommandIndex_Child");
-    child.generator.emission.rateOverTime.constant = 10;
-    const subEmitters = parent.generator.subEmitters;
-    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0, 0.1, commands);
-    subEmitters._prepareBirthCommandsForParticle(1, 0, 1, 0, 0.1, 0, 0.1, commands);
-    const firstCommand = commands[0];
-    const secondCommand = commands[1];
-    const targetCommands = (child.generator as any)._pendingBirthSubEmitterCommands;
-    expect(targetCommands).to.deep.equal([firstCommand, secondCommand]);
-
-    firstCommand.release();
-    expect(targetCommands).to.deep.equal([secondCommand]);
-
-    secondCommand.release();
-    expect(targetCommands).to.have.length(0);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -467,6 +430,9 @@ describe("SubEmitter", () => {
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
     expect(child.generator._getAliveParticleCount()).to.equal(10); // 2 parents × 10/s × 0.5s
+    const emissionState = (parent.generator.subEmitters as any)._birthStatesByParticle[0][0].emissionState;
+    expect(emissionState._rateRand).to.equal(undefined);
+    expect(emissionState._burstRand).to.equal(undefined);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -480,8 +446,8 @@ describe("SubEmitter", () => {
 
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
-    subEmitters._prepareBirthCommandsForParticle(0, 0, lifetime, 0, lifetime, 0, lifetime, commands);
+    const commands = child.generator._incomingSubEmitterCommands as any[];
+    subEmitters._prepareBirthCommandsForParticle(0, 0, lifetime, 0, lifetime, 0);
 
     expect(commands).to.have.length(1);
     expect(commands[0].requestCount).to.equal(1);
@@ -490,33 +456,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("skips Birth feedback readback until an emission request is due", () => {
-    const child = createParticleRenderer(engine, "BirthReadback_Child");
-    const parent = createParticleRenderer(engine, "BirthReadback_Parent");
-    parent.generator.main.startLifetime.constant = 2;
-    child.generator.emission.rateOverTime.constant = 1;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
-    updateEngine(engine, 9);
-    expect(createReadback).not.toHaveBeenCalled();
-
-    updateEngine(engine, 1);
-    expect(createReadback).toHaveBeenCalledTimes(1);
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-
-    createReadback.mockRestore();
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("does not replay skipped Rate Over Time windows", () => {
+  it("does not replay disabled Rate Over Time windows", () => {
     const child = createParticleRenderer(engine, "BirthTimeGap_Child");
     const parent = createParticleRenderer(engine, "BirthTimeGap_Parent");
     child.generator.main.duration = 10;
@@ -524,367 +464,32 @@ describe("SubEmitter", () => {
 
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
+    const commands = child.generator._incomingSubEmitterCommands as any[];
 
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0, 0.1, 0, 0.1, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0, 0.1, 0);
     expect(commands).to.have.length(1);
     expect(commands[0].requestCount).to.equal(1);
     commands.pop().release();
 
     child.generator.emission.rateOverTime.constant = 0;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0.1, 3.1, 0.1, 3.1, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0.1, 3.1, 0);
     expect(commands).to.have.length(0);
 
     child.generator.emission.rateOverTime.constant = 10;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 3.1, 3.2, 3.1, 3.2, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 3.1, 3.2, 0);
     expect(commands).to.have.length(1);
     expect(commands[0].requestCount).to.equal(1);
     commands.pop().release();
 
     child.generator.emission.enabled = false;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 3.2, 4.2, 3.2, 4.2, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 3.2, 4.2, 0);
     expect(commands).to.have.length(0);
 
     child.generator.emission.enabled = true;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 4.2, 4.3, 4.2, 4.3, commands);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 4.2, 4.3, 0);
     expect(commands).to.have.length(1);
     expect(commands[0].requestCount).to.equal(1);
     commands.pop().release();
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 6.2, 6.3, 6.2, 6.3, commands);
-    expect(commands).to.have.length(1);
-    expect(commands[0].requestCount).to.equal(1);
-    commands.pop().release();
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("resets Rate Over Distance across inactive windows", () => {
-    const child = createParticleRenderer(engine, "BirthDistanceGap_Child");
-    const parent = createParticleRenderer(engine, "BirthDistanceGap_Parent");
-    child.generator.emission.rateOverDistance.constant = 10;
-
-    const subEmitters = parent.generator.subEmitters;
-    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0, 0.1, 0, 0.1, commands);
-    const initialCommand = commands.pop();
-    initialCommand.resolveTrajectory(new Vector3(0.1, 0, 0), new Vector3(1, 0, 0));
-    initialCommand.finalizeRequests(Infinity);
-    expect(initialCommand.requestCount).to.equal(1);
-    initialCommand.release();
-
-    child.generator.emission.rateOverDistance.constant = 0;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0.1, 1.1, 0.1, 1.1, commands);
-    expect(commands).to.have.length(0);
-
-    child.generator.emission.rateOverDistance.constant = 10;
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 1.1, 1.2, 1.1, 1.2, commands);
-    const resumedCommand = commands.pop();
-    resumedCommand.resolveTrajectory(new Vector3(1.2, 0, 0), new Vector3(1, 0, 0));
-    resumedCommand.finalizeRequests(Infinity);
-    expect(resumedCommand.requestCount).to.equal(0);
-    resumedCommand.release();
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 1.2, 1.3, 1.2, 1.3, commands);
-    const nextCommand = commands.pop();
-    nextCommand.resolveTrajectory(new Vector3(1.3, 0, 0), new Vector3(1, 0, 0));
-    nextCommand.finalizeRequests(Infinity);
-    expect(nextCommand.requestCount).to.equal(1);
-    nextCommand.release();
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("bounds deferred Rate Over Distance requests by target capacity", () => {
-    const child = createParticleRenderer(engine, "BirthDistanceCapacity_Child");
-    const parent = createParticleRenderer(engine, "BirthDistanceCapacity_Parent");
-    child.generator.emission.rateOverDistance.constant = 1000;
-
-    const subEmitters = parent.generator.subEmitters;
-    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands: any[] = [];
-
-    subEmitters._prepareBirthCommandsForParticle(0, 0, 10, 0, 0.1, 0, 0.1, commands);
-    const command = commands.pop();
-    command.resolveTrajectory(new Vector3(1, 0, 0), new Vector3(10, 0, 0));
-    command.finalizeRequests(2);
-
-    expect(command.requestCount).to.equal(2);
-    expect(command.requests).to.have.length(2);
-    command.release();
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("queues later Birth windows while an earlier GPU fence is pending", () => {
-    const child = createParticleRenderer(engine, "AsyncReadback_Child");
-    const parent = createParticleRenderer(engine, "AsyncReadback_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const generator = parent.generator as any;
-    const batches = getInFlightTrajectoryReadbackBatches(generator);
-    const firstReadback = batches[0].readback;
-    const firstRead = vi.spyOn(firstReadback, "getData");
-    firstReadback._platformReadback.isReady = () => false;
-    engine.update();
-    expect(batches).to.have.length(2);
-    const secondReadback = batches[1].readback;
-    expect(secondReadback).not.to.equal(firstReadback);
-    const secondRead = vi.spyOn(secondReadback, "getData");
-    secondReadback._platformReadback.isReady = () => false;
-    expect(firstRead).not.toHaveBeenCalled();
-    expect(child.generator._getAliveParticleCount()).to.equal(0);
-
-    firstReadback._platformReadback.isReady = () => true;
-    engine.update();
-    expect(firstRead).toHaveBeenCalledTimes(1);
-    expect(secondRead).not.toHaveBeenCalled();
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("catches a delayed Birth particle up from its historical event time", () => {
-    const child = createParticleRenderer(engine, "BirthCatchUp_Child");
-    const parent = createParticleRenderer(engine, "BirthCatchUp_Parent");
-    parent.generator.main.simulationSpace = ParticleSimulationSpace.World;
-    parent.generator.main.startLifetime.constant = 2;
-    parent.generator.main.startSpeed.constant = 2;
-    parent.generator.main.gravityModifier.constant = 0;
-    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
-    child.generator.main.startSpeed.constant = 0;
-    child.generator.main.gravityModifier.constant = 0;
-    child.generator.emission.rateOverTime.constant = 10;
-    child.generator.inheritVelocity.enabled = true;
-    child.generator.inheritVelocity.curve.constant = 1;
-    // Force the child through Feedback so the caught-up position can be inspected directly
-    child.generator.limitVelocityOverLifetime.enabled = true;
-    child.generator.limitVelocityOverLifetime.speed.constant = 100;
-    child.generator.limitVelocityOverLifetime.dampen = 0;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const batches = getInFlightTrajectoryReadbackBatches(parent.generator);
-    const delayedReadback = batches[0].readback;
-    delayedReadback._platformReadback.isReady = () => false;
-    engine.update();
-    batches[1].readback._platformReadback.isReady = () => false;
-    engine.update();
-    batches[2].readback._platformReadback.isReady = () => false;
-    delayedReadback._platformReadback.isReady = () => true;
-    engine.update();
-
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const parentFeedback = new Float32Array(3);
-    const childFeedback = new Float32Array(3);
-    parent.generator._feedbackSimulator.readBinding.buffer.getData(parentFeedback, 0, 0, parentFeedback.length);
-    child.generator._feedbackSimulator.readBinding.buffer.getData(childFeedback, 0, 0, childFeedback.length);
-    expect(childFeedback[0]).to.be.closeTo(parentFeedback[0], 1e-4);
-    expect(childFeedback[1]).to.be.closeTo(parentFeedback[1], 1e-4);
-    expect(childFeedback[2]).to.be.closeTo(parentFeedback[2], 1e-4);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("keeps updating while trajectory readbacks are pending", () => {
-    const child = createParticleRenderer(engine, "PendingReadback_Child");
-    const parent = createParticleRenderer(engine, "PendingReadback_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const generator = parent.generator as any;
-    const batches = getInFlightTrajectoryReadbackBatches(generator);
-    batches[0].readback._platformReadback.isReady = () => false;
-    const initialPlayTime = generator._playTime;
-    for (let i = 1; i < 5; i++) {
-      engine.update();
-      batches[i].readback._platformReadback.isReady = () => false;
-    }
-    expect(batches).to.have.length(5);
-    expect(generator._playTime - initialPlayTime).to.be.closeTo(0.4, 1e-6);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("delivers a resolved Birth command after its original target already updated", () => {
-    const originalChild = createParticleRenderer(engine, "LateBirth_OriginalChild");
-    const parent = createParticleRenderer(engine, "LateBirth_Parent");
-    const replacementChild = createParticleRenderer(engine, "LateBirth_ReplacementChild");
-    originalChild.generator.emission.rateOverTime.constant = 10;
-
-    parent.generator.subEmitters.enabled = true;
-    const slot = parent.generator.subEmitters.addSubEmitter(originalChild, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    originalChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    replacementChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
-    readback._platformReadback.isReady = () => false;
-    slot.emitter = replacementChild;
-    originalChild.generator.play(false);
-    engine.update();
-    expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
-
-    readback._platformReadback.isReady = () => true;
-    engine.update();
-    expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
-
-    engine.update();
-    expect(originalChild.generator._getAliveParticleCount()).to.equal(1);
-
-    parent.entity.destroy();
-    originalChild.entity.destroy();
-    replacementChild.entity.destroy();
-  });
-
-  it("cancels a resolved Birth command after its target moves to another scene", () => {
-    const child = createParticleRenderer(engine, "MovedPendingBirth_Child");
-    const parent = createParticleRenderer(engine, "MovedPendingBirth_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
-    readback._platformReadback.isReady = () => false;
-    const secondScene = new Scene(engine, "MovedPendingBirth_Scene");
-    engine.sceneManager.addScene(secondScene);
-    secondScene.addRootEntity(child.entity);
-    child.generator.play(false);
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-
-    readback._platformReadback.isReady = () => true;
-    engine.update();
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(0);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-    secondScene.destroy();
-  });
-
-  it("keeps queued Birth commands valid when the parent ring buffer grows", () => {
-    const child = createParticleRenderer(engine, "ReadbackResize_Child");
-    const parent = createParticleRenderer(engine, "ReadbackResize_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const generator = parent.generator as any;
-    const batches = getInFlightTrajectoryReadbackBatches(generator);
-    batches[0].readback._platformReadback.isReady = () => false;
-    const particleBufferSize = generator._currentParticleCount;
-    parent.generator.emit(150);
-    expect(generator._currentParticleCount).to.be.greaterThan(particleBufferSize);
-
-    engine.update();
-    expect(batches).to.have.length(2);
-    for (const batch of batches) {
-      batch.readback._platformReadback.isReady = () => true;
-    }
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(152);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("keeps static Rate Over Distance readback asynchronous", () => {
-    const child = createParticleRenderer(engine, "DistanceReadback_Child");
-    const parent = createParticleRenderer(engine, "DistanceReadback_Parent");
-    child.generator.emission.rateOverDistance.constant = 10;
-    parent.generator.main.startSpeed.constant = 0;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const generator = parent.generator as any;
-    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
-    const read = vi.spyOn(readback, "getData");
-    readback._platformReadback.isReady = () => false;
-    engine.update();
-    expect(read).not.toHaveBeenCalled();
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -906,40 +511,23 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("returns in-flight readback resources to the pool when the generator is destroyed", () => {
-    const child = createParticleRenderer(engine, "ReadbackDestroy_Child");
-    const parent = createParticleRenderer(engine, "ReadbackDestroy_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
+  it("does not allocate Birth slot state when an ordinary particle buffer grows", () => {
+    const renderer = createParticleRenderer(engine, "OrdinaryGrowth");
+    renderer.generator.main.maxParticles = 256;
+    renderer.generator.emit(130);
 
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    performance.now = () => 100;
-    engine.update();
+    const generator = renderer.generator as any;
+    expect(generator._currentParticleCount).to.equal(256);
+    expect(generator.subEmitters._birthStatesByParticle).to.have.length(0);
 
-    const generator = parent.generator as any;
-    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
-    const resetReadback = vi.spyOn(readback, "reset");
-    const destroyReadback = vi.spyOn(readback, "destroy");
-    parent.entity.destroy();
-    expect(resetReadback).toHaveBeenCalledTimes(1);
-    expect(destroyReadback).toHaveBeenCalledTimes(0);
-
-    engine.resourceManager.gc();
-    expect(destroyReadback).toHaveBeenCalledTimes(1);
-
-    child.entity.destroy();
+    renderer.entity.destroy();
   });
 
-  it("tracks staging buffer memory through the readback lifetime", () => {
-    const child = createParticleRenderer(engine, "ReadbackMemory_Child");
-    const parent = createParticleRenderer(engine, "ReadbackMemory_Parent");
+  it("keeps simple sub-emitter targets on formula simulation and lazily initializes spawn state", () => {
+    const parent = createParticleRenderer(engine, "FormulaTarget_Parent");
+    const child = createParticleRenderer(engine, "FormulaTarget_Child");
     child.generator.emission.rateOverTime.constant = 10;
+
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
@@ -947,57 +535,229 @@ describe("SubEmitter", () => {
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    const memoryBeforeReadback = engine.renderingStatistics.bufferMemory;
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    performance.now = () => 100;
-    engine.update();
+    updateEngine(engine, 0);
+    const childGenerator = child.generator as any;
+    expect(childGenerator._useTransformFeedback).to.equal(false);
+    expect(childGenerator._feedbackSimulator).to.not.exist;
+    expect(childGenerator._subEmitterSpawnState).to.equal(null);
 
-    const generator = parent.generator as any;
-    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
-    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(childGenerator._subEmitterSpawnState).to.exist;
 
-    generator._trajectoryReadback.destroy();
-    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback + readback.byteLength);
+    const enqueueParentTrajectory = vi.spyOn(childGenerator._subEmitterSpawnState, "enqueueParentTrajectory");
+    child.generator.emission.rateOverTime.constant = 0;
+    updateEngine(engine, 1);
+    expect(enqueueParentTrajectory).not.toHaveBeenCalled();
 
-    engine.resourceManager.gc();
-    expect(engine.renderingStatistics.bufferMemory).to.equal(memoryBeforeReadback);
-
+    enqueueParentTrajectory.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("returns a stale readback to the pool without polling after device content loss", () => {
-    const child = createParticleRenderer(engine, "ReadbackRestore_Child");
-    const parent = createParticleRenderer(engine, "ReadbackRestore_Parent");
-    child.generator.emission.rateOverTime.constant = 10;
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+  it("retains sub-emitter spawn state until particles outlive a removed Birth slot", () => {
+    const parent = createParticleRenderer(engine, "RemovedBirthSlot_Parent");
+    const child = createParticleRenderer(engine, "RemovedBirthSlot_Child");
+    parent.entity.transform.setPosition(3, 0, 0);
+    parent.generator.main.startSpeed.constant = 0;
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startLifetime.constant = 1;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    const subEmitters = parent.generator.subEmitters;
+    subEmitters.enabled = true;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    performance.now = () => 100;
-    engine.update();
+    updateEngine(engine, 1);
+    const childGenerator = child.generator as any;
+    const spawnState = childGenerator._subEmitterSpawnState;
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(childGenerator._activeSubEmitterParticleCount).to.equal(1);
+    expect(readSubEmitterSpawnState(child)[0]).to.be.closeTo(3, 1e-5);
 
-    const generator = parent.generator as any;
-    const readback = getInFlightTrajectoryReadbackBatches(generator)[0].readback;
-    const isReady = vi.spyOn(readback, "isReady");
-    const resetReadback = vi.spyOn(readback._platformReadback, "reset");
-    const destroyReadback = vi.spyOn(readback._platformReadback, "destroy");
-    generator._instanceVertexBufferBinding._buffer._isContentLost = true;
-    engine.update();
+    subEmitters.removeSubEmitterByIndex(0);
+    updateEngine(engine, 1);
 
-    expect(isReady).not.toHaveBeenCalled();
-    expect(resetReadback).toHaveBeenCalledTimes(1);
-    expect(destroyReadback).toHaveBeenCalledTimes(0);
-    expect(generator._trajectoryReadback).to.equal(null);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(childGenerator._subEmitterSpawnState).to.equal(spawnState);
+    expect(childGenerator._activeSubEmitterParticleCount).to.equal(1);
+    expect(readSubEmitterSpawnState(child)[0]).to.be.closeTo(3, 1e-5);
 
-    engine.resourceManager.gc();
-    expect(destroyReadback).toHaveBeenCalledTimes(1);
+    updateEngine(engine, 10);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+    expect(childGenerator._activeSubEmitterParticleCount).to.equal(0);
+    expect(childGenerator._subEmitterSpawnState).to.equal(null);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("clears Local Initial-curve shader state after the last sub-emitted particle retires", () => {
+    const parent = createParticleRenderer(engine, "ReleasedCurveState_Parent");
+    const child = createParticleRenderer(engine, "ReleasedCurveState_Child");
+    child.generator.main.startLifetime.constant = 0.5;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1))
+    );
+    child.generator.emission.rateOverTime.constant = 1;
+
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false);
+    parent.generator.play(false);
+
+    updateEngine(engine, 4, 1000);
+    const childGenerator = child.generator as any;
+    const initialCurveMacro = ShaderMacro.getByName("RENDERER_INHERIT_VELOCITY_INITIAL_CURVE");
+    expect(childGenerator._subEmitterSpawnState).to.exist;
+    expect(child.shaderData["_macroCollection"].isEnable(initialCurveMacro)).to.equal(true);
+
+    child.generator.main.startLifetime.constant = 10;
+    child.generator.emit(1);
+    child.generator.emission.rateOverTime.constant = 0;
+    updateEngine(engine, 2, 1000);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(childGenerator._subEmitterSpawnState).to.equal(null);
+    expect(child.shaderData["_macroCollection"].isEnable(initialCurveMacro)).to.equal(false);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("reuses sub-emitter spawn state when retirement and emission share a frame", () => {
+    const parent = createParticleRenderer(engine, "SpawnStateReuse_Parent");
+    const child = createParticleRenderer(engine, "SpawnStateReuse_Child");
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.main.startLifetime.constant = 0.1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    const childGenerator = child.generator as any;
+    const spawnState = childGenerator._subEmitterSpawnState;
+    const destroy = vi.spyOn(spawnState, "destroy");
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(childGenerator._activeSubEmitterParticleCount).to.equal(1);
+    expect(childGenerator._subEmitterSpawnState === spawnState).to.equal(true);
+    expect(destroy).not.toHaveBeenCalled();
+
+    destroy.mockRestore();
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("rebinds feedback input after an idle sub-emitter target recreates its spawn state", () => {
+    const parent = createParticleRenderer(engine, "SpawnStateRecreate_Parent");
+    const child = createParticleRenderer(engine, "SpawnStateRecreate_Child");
+    parent.entity.transform.setPosition(3, 0, 0);
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startLifetime.constant = 0.1;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+    enableZeroNoiseFeedback(child);
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    const childGenerator = child.generator as any;
+    const firstSpawnState = childGenerator._subEmitterSpawnState;
+    expect(readFeedbackParticle(child)[0]).to.be.closeTo(3, 1e-5);
+
+    child.generator.emission.rateOverTime.constant = 0;
+    updateEngine(engine, 1);
+    expect(childGenerator._subEmitterSpawnState).to.equal(null);
+
+    child.generator.emission.rateOverTime.constant = 10;
+    updateEngine(engine, 1);
+    expect(childGenerator._subEmitterSpawnState === firstSpawnState).to.equal(false);
+    expect(readFeedbackParticle(child, childGenerator._firstActiveElement)[0]).to.be.closeTo(3, 1e-5);
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("does not evaluate Rate over Distance for Birth slots", () => {
+    const parent = createParticleRenderer(engine, "BirthDistance_Parent");
+    const child = createParticleRenderer(engine, "BirthDistance_Child");
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 10;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverDistance.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 10);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+    expect((child.generator as any)._subEmitterSpawnState).to.equal(null);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("distinguishes independently emitted particles from sub-emitted particles", () => {
+    const parent = createParticleRenderer(engine, "MixedTarget_Parent");
+    const child = createParticleRenderer(engine, "MixedTarget_Child");
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1))
+    );
+    enableZeroNoiseFeedback(child);
+    (child.generator.inheritVelocity as any)._emitterVelocity.set(0, 3, 0);
+    child.generator.emit(1);
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    const stride = vertices.length / child.generator._currentParticleCount;
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
+    expect(vertices[43]).to.equal(3);
+    expect(vertices[45]).to.be.greaterThanOrEqual(0);
+    expect(vertices[stride + 43]).to.not.equal(0);
+    expect(vertices[stride + 45]).to.be.lessThan(0);
+    expect(readFeedbackParticle(child)[1]).to.be.closeTo(0.3, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1011,6 +771,7 @@ describe("SubEmitter", () => {
     child.generator.main.simulationSpace = ParticleSimulationSpace.World;
     child.generator.main.startSpeed.constant = 1;
     child.generator.emission.rateOverTime.constant = 10;
+    enableZeroNoiseFeedback(child);
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(
@@ -1029,10 +790,11 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[29]).to.be.closeTo(-0.4, 1e-4); // current TF parent position
-    expect(vertices[6]).to.be.closeTo(-1, 1e-4);
-    expect(vertices[18]).to.be.closeTo(3, 1e-4); // child 1 + complete parent speed 4 × 0.5
+    const feedback = readFeedbackParticle(child);
+    expect(feedback[2]).to.be.closeTo(-0.4, 1e-4);
+    expect(feedback[3]).to.be.closeTo(0, 1e-4);
+    expect(feedback[4]).to.be.closeTo(0, 1e-4);
+    expect(feedback[5]).to.be.closeTo(-3, 1e-4); // child 1 + parent speed 4 × 0.5
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1049,11 +811,13 @@ describe("SubEmitter", () => {
     firstChild.generator.emission.rateOverTime.constant = 10;
     firstChild.generator.inheritVelocity.enabled = true;
     firstChild.generator.inheritVelocity.curve.constant = 0.25;
+    enableZeroNoiseFeedback(firstChild);
     secondChild.generator.main.simulationSpace = ParticleSimulationSpace.World;
     secondChild.generator.main.startSpeed.constant = 0;
     secondChild.generator.emission.rateOverTime.constant = 10;
     secondChild.generator.inheritVelocity.enabled = true;
     secondChild.generator.inheritVelocity.curve.constant = 0.75;
+    enableZeroNoiseFeedback(secondChild);
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(firstChild, ParticleSubEmitterType.Birth);
@@ -1067,26 +831,182 @@ describe("SubEmitter", () => {
     updateEngine(engine, 1);
     expect(firstChild.generator._getAliveParticleCount()).to.equal(1);
     expect(secondChild.generator._getAliveParticleCount()).to.equal(1);
-    expect((firstChild.generator as any)._instanceVertices[18]).to.be.closeTo(1, 1e-4);
-    expect((secondChild.generator as any)._instanceVertices[18]).to.be.closeTo(3, 1e-4);
+    const firstFeedback = readFeedbackParticle(firstChild);
+    const secondFeedback = readFeedbackParticle(secondChild);
+    expect(firstFeedback[5]).to.be.closeTo(-1, 1e-4);
+    expect(secondFeedback[5]).to.be.closeTo(-3, 1e-4);
 
     parent.entity.destroy();
     firstChild.entity.destroy();
     secondChild.entity.destroy();
   });
 
-  it("Birth applies Initial constant Inherit Velocity to a Local target", () => {
-    const child = createParticleRenderer(engine, "LocalTargetVelocity_Child");
+  it("Birth applies Initial Inherit Velocity to Local targets", () => {
     const parent = createParticleRenderer(engine, "LocalTargetVelocity_Parent");
     parent.entity.transform.setPosition(2, 0, 0);
     parent.generator.main.startLifetime.constant = 1;
     parent.generator.main.startSpeed.constant = 4;
-    child.entity.transform.rotation = new Vector3(90, 0, 0);
+    parent.generator.subEmitters.enabled = true;
+    const children = [
+      createParticleRenderer(engine, "LocalTargetVelocity_ConstantChild"),
+      createParticleRenderer(engine, "LocalTargetVelocity_CurveChild")
+    ];
+    children[0].generator.inheritVelocity.curve.constant = 0.5;
+    children[1].generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0.5), new CurveKey(1, 0.5))
+    );
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      child.entity.transform.rotation = new Vector3(90, 0, 0);
+      child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+      child.generator.main.startSpeed.constant = 0;
+      child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      child.generator.inheritVelocity.enabled = true;
+      enableZeroNoiseFeedback(child);
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    }
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 2);
+
+    const constantFeedback = readFeedbackParticle(children[0]);
+    const curveFeedback = readFeedbackParticle(children[1]);
+    for (let i = 0; i < 3; i++) {
+      expect(curveFeedback[i]).to.be.closeTo(constantFeedback[i], 1e-4);
+    }
+    const inheritedWorldVelocity = new Vector3(constantFeedback[3], constantFeedback[4], constantFeedback[5]);
+    Vector3.transformByQuat(
+      inheritedWorldVelocity,
+      children[0].entity.transform.worldRotationQuaternion,
+      inheritedWorldVelocity
+    );
+    expect(inheritedWorldVelocity.x).to.be.closeTo(0, 1e-4);
+    expect(inheritedWorldVelocity.y).to.be.closeTo(0, 1e-4);
+    expect(inheritedWorldVelocity.z).to.be.closeTo(-2, 1e-4);
+    expect(curveFeedback[3]).to.be.closeTo(0, 1e-4);
+    expect(curveFeedback[4]).to.be.closeTo(0, 1e-4);
+    expect(curveFeedback[5]).to.be.closeTo(0, 1e-4);
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      expect(child.generator._getAliveParticleCount()).to.equal(1);
+      expect(child.bounds.max.x).to.be.greaterThanOrEqual(2);
+      expect(child.bounds.min.z).to.be.lessThanOrEqual(-20);
+      child.entity.destroy();
+    }
+
+    parent.entity.destroy();
+  });
+
+  it("applies Local target motion modules once to sub-emitter bounds", () => {
+    const parent = createParticleRenderer(engine, "LocalBounds_Parent");
+    const child = createParticleRenderer(engine, "LocalBounds_Child");
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    parentGenerator._subEmitterSourceBounds = new BoundingBox(new Vector3(), new Vector3());
+    parentGenerator._subEmitterSourceBoundsFrame = engine.time.frameCount;
+
     child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    child.generator.main.startLifetime.constant = 1;
     child.generator.main.startSpeed.constant = 0;
-    child.generator.emission.rateOverTime.constant = 10;
+    child.generator.main.startSize.constant = 0;
+    child.generator.velocityOverLifetime.enabled = true;
+    child.generator.velocityOverLifetime.velocityX.constant = 1;
+
+    childGenerator._recordSubEmitterTrajectoryBounds(
+      0,
+      {
+        source: parent.generator,
+        inheritProperties: ParticleSubEmitterInheritProperty.None
+      },
+      0
+    );
+    const bounds = new BoundingBox();
+    childGenerator._updateBoundsSimulationLocal(bounds);
+
+    expect(bounds.min.x).to.be.closeTo(0, 1e-5);
+    expect(bounds.max.x).to.be.closeTo(1, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("applies inherited parent direction speed once to sub-emitter bounds", () => {
+    const parent = createParticleRenderer(engine, "DirectionBounds_Parent");
+    const child = createParticleRenderer(engine, "DirectionBounds_Child");
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    parentGenerator._subEmitterSourceBounds = new BoundingBox(new Vector3(), new Vector3());
+    parentGenerator._subEmitterSourceBoundsFrame = engine.time.frameCount;
+
+    child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    child.generator.main.startLifetime.constant = 1;
+    child.generator.main.startSpeed.constant = 2;
+    child.generator.main.startSize.constant = 0;
+    child.generator.main.gravityModifier.constant = 0;
+
+    childGenerator._recordSubEmitterTrajectoryBounds(
+      0,
+      {
+        source: parent.generator,
+        inheritProperties: ParticleSubEmitterInheritProperty.Velocity
+      },
+      0
+    );
+    const bounds = new BoundingBox();
+    childGenerator._updateBoundsSimulationLocal(bounds);
+
+    expect(bounds.min.z).to.be.closeTo(-2, 1e-5);
+    expect(bounds.max.z).to.be.closeTo(2, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("keeps inherited sub-particle bounds valid when a Local parent teleports", () => {
+    const parent = createParticleRenderer(engine, "TeleportBounds_Parent");
+    const child = createParticleRenderer(engine, "TeleportBounds_Child");
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startLifetime.constant = 1;
+    child.generator.main.startSpeed.constant = 0;
     child.generator.inheritVelocity.enabled = true;
-    child.generator.inheritVelocity.curve.constant = 0.5;
+    child.generator.inheritVelocity.curve.constant = 1;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    parent.entity.transform.setPosition(100, 0, 0);
+    child.generator.emission.rateOverTime.constant = 10;
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    expect(child.bounds.max.x).to.be.greaterThanOrEqual(1100);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Birth preserves a negative target scale in World bounds", () => {
+    const child = createParticleRenderer(engine, "WorldTargetScale_Child");
+    const parent = createParticleRenderer(engine, "WorldTargetScale_Parent");
+    parent.generator.main.startSpeed.constant = 0;
+    child.entity.transform.setScale(1, 1, -2);
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startSpeed.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+    enableZeroNoiseFeedback(child);
+    const shape = new ConeShape();
+    shape.angle = 0;
+    shape.radius = 0;
+    child.generator.emission.shape = shape;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
@@ -1098,77 +1018,36 @@ describe("SubEmitter", () => {
     updateEngine(engine, 1);
 
     expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    const inheritedWorldVelocity = new Vector3(
-      vertices[4] * vertices[18],
-      vertices[5] * vertices[18],
-      vertices[6] * vertices[18]
-    );
-    Vector3.transformByQuat(
-      inheritedWorldVelocity,
-      child.entity.transform.worldRotationQuaternion,
-      inheritedWorldVelocity
-    );
-    expect(inheritedWorldVelocity.x).to.be.closeTo(0, 1e-4);
-    expect(inheritedWorldVelocity.y).to.be.closeTo(0, 1e-4);
-    expect(inheritedWorldVelocity.z).to.be.closeTo(-2, 1e-4);
-    expect(child.bounds.max.x).to.be.greaterThanOrEqual(2);
-    expect(child.bounds.min.z).to.be.lessThanOrEqual(-20);
+    const feedback = readFeedbackParticle(child);
+    expect(feedback[5]).to.be.closeTo(2, 1e-4);
+    expect(child.bounds.min.z).to.be.lessThanOrEqual(0);
+    expect(child.bounds.max.z).to.be.greaterThanOrEqual(20);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Birth preserves the Local target transform from the deferred event frame", () => {
-    const child = createParticleRenderer(engine, "LocalTargetTransform_Child");
-    const parent = createParticleRenderer(engine, "LocalTargetTransform_Parent");
-    parent.entity.transform.setPosition(2, 0, 0);
-    parent.generator.main.startSpeed.constant = 0;
-    child.entity.transform.setPosition(1, 0, 0);
-    child.entity.transform.rotation = new Vector3(0, 90, 0);
-    child.entity.transform.setScale(1, 1, 2);
-    child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
-    child.generator.main.startSpeed.constant = 1;
-    child.generator.emission.rateOverTime.constant = 10;
+  it("preserves target trajectory bounds while lazily resolving source bounds", () => {
+    const parent = createParticleRenderer(engine, "LazySourceBounds_Parent");
+    const child = createParticleRenderer(engine, "LazySourceBounds_Child");
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    parentGenerator._recordFixedEmissionBounds(0, 1, new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)));
+    parentGenerator._isPlaying = true;
+    child.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    child.generator.main.startLifetime.constant = 1;
+    child.generator.main.startSpeed.constant = 10;
 
-    const expectedLocalPosition = new Vector3();
-    Vector3.subtract(
-      parent.entity.transform.worldPosition,
-      child.entity.transform.worldPosition,
-      expectedLocalPosition
+    childGenerator._recordSubEmitterTrajectoryBounds(
+      0,
+      {
+        source: parent.generator,
+        inheritProperties: ParticleSubEmitterInheritProperty.None
+      },
+      0
     );
-    const inverseEventRotation = new Quaternion();
-    Quaternion.invert(child.entity.transform.worldRotationQuaternion, inverseEventRotation);
-    Vector3.transformByQuat(expectedLocalPosition, inverseEventRotation, expectedLocalPosition);
 
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
-    readback._platformReadback.isReady = () => false;
-    child.entity.transform.setPosition(5, 0, 0);
-    child.entity.transform.rotation = new Vector3(0, -90, 0);
-    child.entity.transform.setScale(1, 1, 4);
-    readback._platformReadback.isReady = () => true;
-    engine.update();
-
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[0]).to.be.closeTo(expectedLocalPosition.x, 1e-4);
-    expect(vertices[1]).to.be.closeTo(expectedLocalPosition.y, 1e-4);
-    expect(vertices[2]).to.be.closeTo(expectedLocalPosition.z, 1e-4);
-    expect(vertices[6]).to.be.closeTo(-2, 1e-4);
-
+    expect(childGenerator._emissionBoundsRecords[2]).to.be.lessThan(-10);
     parent.entity.destroy();
     child.entity.destroy();
   });
@@ -1204,23 +1083,328 @@ describe("SubEmitter", () => {
     updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const parentFeedback = new Float32Array(6);
-    parent.generator._feedbackSimulator.readBinding.buffer.getData(parentFeedback, 0, 0, parentFeedback.length);
-    const childVertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(childVertices[27]).to.be.closeTo(parentFeedback[0], 1e-5);
-    expect(childVertices[28]).to.be.closeTo(parentFeedback[1], 1e-5);
-    expect(childVertices[29]).to.be.closeTo(parentFeedback[2], 1e-5);
-
-    const childSpeed = childVertices[18];
-    expect(childVertices[4] * childSpeed).to.be.closeTo(parentFeedback[0] / 0.1, 1e-4);
-    expect(childVertices[5] * childSpeed).to.be.closeTo(parentFeedback[1] / 0.1, 1e-4);
-    expect(childVertices[6] * childSpeed).to.be.closeTo(parentFeedback[2] / 0.1, 1e-4);
+    const parentFeedback = readFeedbackParticle(parent);
+    const childFeedback = readSubEmitterSpawnState(child);
+    expect(childFeedback[0]).to.be.closeTo(parentFeedback[6], 1e-5);
+    expect(childFeedback[1]).to.be.closeTo(parentFeedback[7], 1e-5);
+    expect(childFeedback[2]).to.be.closeTo(parentFeedback[8], 1e-5);
+    expect(childFeedback[3]).to.be.closeTo(parentFeedback[9], 1e-4);
+    expect(childFeedback[4]).to.be.closeTo(parentFeedback[10], 1e-4);
+    expect(childFeedback[5]).to.be.closeTo(parentFeedback[11], 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Birth uses the current-frame orbital velocity after sparse feedback readback", () => {
+  it("uses the parent emission point as a World child's orbital origin", () => {
+    const child = createParticleRenderer(engine, "ChildOrbitalOrigin_Child");
+    const parent = createParticleRenderer(engine, "ChildOrbitalOrigin_Parent");
+    parent.entity.transform.setPosition(4, 0, 0);
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+
+    const childGenerator = child.generator;
+    childGenerator.main.simulationSpace = ParticleSimulationSpace.World;
+    childGenerator.main.startSpeed.constant = 0;
+    childGenerator.emission.rateOverTime.constant = 10;
+    childGenerator.velocityOverLifetime.enabled = true;
+    childGenerator.velocityOverLifetime.orbitalY = new ParticleCompositeCurve(Math.PI);
+    childGenerator.velocityOverLifetime.centerOffset.set(-1, 0, 0);
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    childGenerator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    const enableFrustumCulling = camera.enableFrustumCulling;
+    camera.enableFrustumCulling = false;
+    parent.generator.play(false);
+    updateEngine(engine, 3);
+    camera.enableFrustumCulling = enableFrustumCulling;
+
+    expect(childGenerator._getAliveParticleCount()).to.be.greaterThan(0);
+    const feedback = readFeedbackParticle(child);
+    expect(Math.hypot(feedback[0] - 3, feedback[1], feedback[2])).to.be.closeTo(1, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("gathers only requested parent trajectories and keeps the transfer on the GPU", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryCopy_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryCopy_Child");
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    while (gl.getError() !== gl.NO_ERROR);
+    updateEngine(engine, 1);
+    gl.finish();
+
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
+    const childGenerator = child.generator as any;
+    const sourceBuffer = (parent.generator as any)._feedbackSimulator.readBinding.buffer;
+    const spawnState = childGenerator._subEmitterSpawnState;
+    const enqueueParentTrajectory = vi.spyOn(spawnState, "enqueueParentTrajectory");
+    const gatherDraw = vi.spyOn(spawnState._primitive, "draw");
+    const getData = vi.spyOn(sourceBuffer, "getData");
+
+    child.generator.emission.rateOverTime.constant = 0;
+    updateEngine(engine, 1);
+    expect(enqueueParentTrajectory).not.toHaveBeenCalled();
+    expect(gatherDraw).not.toHaveBeenCalled();
+
+    child.generator.emission.rateOverTime.constant = 10;
+    updateEngine(engine, 1);
+    gl.finish();
+
+    expect(child.generator._getAliveParticleCount()).to.equal(4);
+    expect(enqueueParentTrajectory).toHaveBeenCalledTimes(2);
+    expect(gatherDraw).toHaveBeenCalledTimes(1);
+    expect(getData).not.toHaveBeenCalled();
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    enqueueParentTrajectory.mockRestore();
+    gatherDraw.mockRestore();
+    getData.mockRestore();
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("gathers parent trajectory records into matching child slots", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryWrap_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryWrap_Child");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    updateEngine(engine, 1);
+
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    const ringCapacity = parentGenerator._currentParticleCount;
+    const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
+    const sourceStride = sourceBinding.stride;
+    const recordStride = sourceStride / Float32Array.BYTES_PER_ELEMENT;
+    const sourceData = new Float32Array(recordStride * ringCapacity);
+    sourceData.set([1, 2, 3, 4, 5, 6], (ringCapacity - 1) * recordStride + 6);
+    sourceData.set([7, 8, 9, 10, 11, 12], 6);
+    sourceBinding.buffer.setData(sourceData);
+
+    const spawnState = childGenerator._subEmitterSpawnState;
+    spawnState.enqueueParentTrajectory(sourceBinding, ringCapacity - 1, 0, 1);
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, 1, 1);
+    spawnState.flush();
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+    gl.finish();
+
+    expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(Array.from(readSubEmitterSpawnState(child, 1))).to.deep.equal([7, 8, 9, 10, 11, 12]);
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("reacquires the Gather program variant after the shader cache is cleared", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryProgramRestore_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryProgramRestore_Child");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    updateEngine(engine, 1);
+
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
+    const recordStride = sourceBinding.stride / Float32Array.BYTES_PER_ELEMENT;
+    const sourceData = new Float32Array(recordStride * parentGenerator._currentParticleCount);
+    sourceData.set([1, 2, 3, 4, 5, 6], 6);
+    sourceBinding.buffer.setData(sourceData);
+
+    // Mirrors the shader-program invalidation performed during device restore.
+    (Shader as any)._clear(engine);
+    (engine as any)._shaderProgramMaps.length = 0;
+    const gatherPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes.find(
+      (pass) => pass.name === "SubEmitterTrajectoryGather"
+    );
+    expect((gatherPass as any)._getShaderProgram(engine, new ShaderMacroCollection()).isValid).to.equal(true);
+
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+    while (gl.getError() !== gl.NO_ERROR);
+    const spawnState = childGenerator._subEmitterSpawnState;
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, 0, 1);
+    spawnState.flush();
+    gl.finish();
+
+    expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("duplicates consecutive parent trajectories in child-slot order", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryBatch_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryBatch_Child");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    updateEngine(engine, 1);
+
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
+    const recordStride = sourceBinding.stride / Float32Array.BYTES_PER_ELEMENT;
+    const sourceData = new Float32Array(recordStride * 2);
+    sourceData.set([1, 2, 3, 4, 5, 6], 6);
+    sourceData.set([7, 8, 9, 10, 11, 12], recordStride + 6);
+    sourceBinding.buffer.setData(sourceData);
+
+    const spawnState = childGenerator._subEmitterSpawnState;
+    const gatherDraw = vi.spyOn(spawnState._primitive, "draw");
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, 0, 2);
+    spawnState.enqueueParentTrajectory(sourceBinding, 1, 2, 2);
+    spawnState.flush();
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+    gl.finish();
+
+    expect(gatherDraw).toHaveBeenCalledTimes(1);
+    expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(Array.from(readSubEmitterSpawnState(child, 1))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(Array.from(readSubEmitterSpawnState(child, 2))).to.deep.equal([7, 8, 9, 10, 11, 12]);
+    expect(Array.from(readSubEmitterSpawnState(child, 3))).to.deep.equal([7, 8, 9, 10, 11, 12]);
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    gatherDraw.mockRestore();
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("gathers trajectories from multiple parents sharing one target", () => {
+    const parentA = createParticleRenderer(engine, "TrajectoryShared_ParentA");
+    const parentB = createParticleRenderer(engine, "TrajectoryShared_ParentB");
+    const child = createParticleRenderer(engine, "TrajectoryShared_Child");
+    parentA.entity.transform.setPosition(-2, 0, 0);
+    parentB.entity.transform.setPosition(3, 0, 0);
+    child.generator.emission.rateOverTime.constant = 10;
+
+    for (const parent of [parentA, parentB]) {
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play(false);
+    }
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
+    const positions = [readSubEmitterSpawnState(child, 0)[0], readSubEmitterSpawnState(child, 1)[0]].sort(
+      (a, b) => a - b
+    );
+    expect(positions[0]).to.be.closeTo(-2, 1e-5);
+    expect(positions[1]).to.be.closeTo(3, 1e-5);
+
+    parentA.entity.destroy();
+    parentB.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("duplicates one parent trajectory across wrapped child slots", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryDuplicate_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryDuplicate_Child");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    updateEngine(engine, 1);
+
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
+    const sourceStride = sourceBinding.stride;
+    const sourceData = new Float32Array(sourceStride / Float32Array.BYTES_PER_ELEMENT);
+    sourceData.set([1, 2, 3, 4, 5, 6], 6);
+    sourceBinding.buffer.setData(sourceData);
+
+    const lastChildIndex = childGenerator._currentParticleCount - 1;
+    childGenerator._subEmitterSpawnState.enqueueParentTrajectory(sourceBinding, 0, lastChildIndex, 2);
+    childGenerator._subEmitterSpawnState.flush();
+    const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
+    gl.finish();
+
+    expect(Array.from(readSubEmitterSpawnState(child, lastChildIndex))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(gl.getError()).to.equal(gl.NO_ERROR);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("compacts wrapped parent trajectory state for formula rendering", () => {
+    const parent = createParticleRenderer(engine, "TrajectoryCompact_Parent");
+    const child = createParticleRenderer(engine, "TrajectoryCompact_Child");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.rateOverTime.constant = 10;
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+    updateEngine(engine, 1);
+
+    const parentGenerator = parent.generator as any;
+    const childGenerator = child.generator as any;
+    expect(childGenerator._useTransformFeedback).to.equal(false);
+
+    const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
+    const sourceStride = sourceBinding.stride / Float32Array.BYTES_PER_ELEMENT;
+    const sourceData = new Float32Array(sourceStride * 2);
+    sourceData.set([1, 2, 3, 4, 5, 6], 6);
+    sourceData.set([7, 8, 9, 10, 11, 12], sourceStride + 6);
+    sourceBinding.buffer.setData(sourceData);
+
+    const spawnState = childGenerator._subEmitterSpawnState;
+    const lastChildIndex = childGenerator._currentParticleCount - 1;
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, lastChildIndex, 1);
+    spawnState.enqueueParentTrajectory(sourceBinding, 1, 0, 1);
+    spawnState.flush();
+
+    childGenerator._firstActiveElement = lastChildIndex;
+    childGenerator._firstNewElement = lastChildIndex;
+    childGenerator._firstFreeElement = 1;
+    childGenerator._addActiveParticlesToVertexBuffer();
+
+    expect(childGenerator._primitive.vertexBufferBindings).to.include(spawnState.renderBinding);
+    expect(Array.from(readGpuParticleBuffer(child, spawnState.renderBinding, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
+    expect(Array.from(readGpuParticleBuffer(child, spawnState.renderBinding, 1))).to.deep.equal([7, 8, 9, 10, 11, 12]);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Birth uses the current-frame orbital trajectory velocity", () => {
     function simulate(name: string, frames: number, deltaTime: number) {
       const child = createParticleRenderer(engine, name + "_Child");
       const parent = createParticleRenderer(engine, name + "_Parent");
@@ -1247,17 +1431,15 @@ describe("SubEmitter", () => {
 
       expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-      const feedback = new Float32Array(12);
-      (parent.generator as any)._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
-      const vertices = (child.generator as any)._instanceVertices as Float32Array;
-      const childSpeed = vertices[18];
-      expect(vertices[4] * childSpeed).to.be.closeTo(feedback[9], 1e-4);
-      expect(vertices[5] * childSpeed).to.be.closeTo(feedback[10], 1e-4);
-      expect(vertices[6] * childSpeed).to.be.closeTo(feedback[11], 1e-4);
+      const parentFeedback = readFeedbackParticle(parent);
+      const childFeedback = readSubEmitterSpawnState(child);
+      expect(childFeedback[3]).to.be.closeTo(parentFeedback[9], 1e-4);
+      expect(childFeedback[4]).to.be.closeTo(parentFeedback[10], 1e-4);
+      expect(childFeedback[5]).to.be.closeTo(parentFeedback[11], 1e-4);
 
       parent.entity.destroy();
       child.entity.destroy();
-      return childSpeed;
+      return Math.hypot(childFeedback[3], childFeedback[4], childFeedback[5]);
     }
 
     const coarseSpeed = simulate("SparseOrbitalCoarse", 10, 100);
@@ -1290,156 +1472,85 @@ describe("SubEmitter", () => {
     updateEngine(engine, 1);
 
     expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[27]).to.be.closeTo(1, 1e-4);
-    expect(vertices[4] * vertices[18]).to.be.closeTo(10, 1e-4);
-    expect(vertices[5] * vertices[18]).to.be.closeTo(0, 1e-4);
-    expect(vertices[6] * vertices[18]).to.be.closeTo(0, 1e-4);
+    const feedback = readSubEmitterSpawnState(child);
+    expect(feedback[0]).to.be.closeTo(1, 1e-4);
+    expect(feedback[3]).to.be.closeTo(10, 1e-4);
+    expect(feedback[4]).to.be.closeTo(0, 1e-4);
+    expect(feedback[5]).to.be.closeTo(0, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("drains pending Birth feedback after the hierarchy is culled", () => {
-    const child = createParticleRenderer(engine, "SystemOrder_Child");
-    const parent = createParticleRenderer(engine, "SystemOrder_Parent");
-    parent.entity.transform.setPosition(100000, 0, 0);
-    child.entity.transform.setPosition(100000, 0, 0);
-    parent.generator.main.startLifetime.constant = 1;
-    child.generator.emission.rateOverTime.constant = 10;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(
-      child,
-      ParticleSubEmitterType.Birth,
-      ParticleSubEmitterInheritProperty.None,
-      1,
-      1
-    );
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
-    readback._platformReadback.isReady = () => false;
-    engine.update();
-
-    readback._platformReadback.isReady = () => true;
-    engine.update();
-    expect(parent.generator._getAliveParticleCount()).to.equal(1);
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-
-    const parentPlayTime = parent.generator._playTime;
-    const childPlayTime = child.generator._playTime;
-    engine.update();
-    engine.update();
-    expect(parent.generator._playTime).to.equal(parentPlayTime);
-    expect(child.generator._playTime).to.equal(childPlayTime);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("keeps a Birth target claimed while parent trajectory feedback is pending", () => {
-    const parent = createParticleRenderer(engine, "PendingRole_Parent");
-    const child = createParticleRenderer(engine, "PendingRole_Child");
-    const sibling = createParticleRenderer(engine, "PendingRole_Sibling");
-    parent.generator.main.duration = 0.1;
-    parent.generator.main.startLifetime.constant = 0.1;
-    child.generator.emission.rateOverTime.constant = 10;
-    sibling.generator.emission.rateOverTime.constant = 10;
+  it("resets the parent trajectory baseline after a culling pause", () => {
+    const parent = createParticleRenderer(engine, "CulledTrajectory_Parent");
+    const child = createParticleRenderer(engine, "CulledTrajectory_Child");
+    camera.cullingMask = Layer.Layer0;
+    parent.entity.layer = Layer.Layer0;
+    child.entity.layer = Layer.Layer1;
+    parent.generator.main.startSpeed.constant = 0;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    sibling.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    const batches = getInFlightTrajectoryReadbackBatches(parent.generator);
-    for (let i = 0, n = batches.length; i < n; i++) {
-      batches[i].readback._platformReadback.isReady = () => false;
-    }
-    engine.update();
-    const pendingBatches = getInFlightTrajectoryReadbackBatches(parent.generator);
-    for (let i = 0, n = pendingBatches.length; i < n; i++) {
-      pendingBatches[i].readback._platformReadback.isReady = () => false;
-    }
+    updateEngine(engine, 2);
+    camera.cullingMask = Layer.Layer1;
+    updateEngine(engine, 2);
+    const pausedPlayTime = parent.generator._playTime;
+    parent.entity.transform.setPosition(5, 0, 0);
+    updateEngine(engine, 1);
+    expect(parent.generator._playTime).to.equal(pausedPlayTime);
 
-    expect(parent.generator.isAlive).to.equal(false);
-    expect(pendingBatches.length).to.be.greaterThan(0);
-    parent.generator.subEmitters.addSubEmitter(sibling, ParticleSubEmitterType.Birth);
-    child.generator.play(false);
-    sibling.generator.play(false);
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(0);
-    expect(sibling.generator._getAliveParticleCount()).to.equal(1);
+    camera.cullingMask = Layer.Layer0;
+    updateEngine(engine, 2);
+
+    const feedback = readFeedbackParticle(parent);
+    expect(feedback[6]).to.be.closeTo(5, 1e-4);
+    expect(feedback[9]).to.be.closeTo(0, 1e-4);
+    expect(feedback[10]).to.be.closeTo(0, 1e-4);
+    expect(feedback[11]).to.be.closeTo(0, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
-    sibling.entity.destroy();
   });
 
-  it("does not claim a Birth target for pending Death feedback", () => {
-    const parent = createParticleRenderer(engine, "PendingDeathRole_Parent");
-    const deathTarget = createParticleRenderer(engine, "PendingDeathRole_DeathTarget");
-    const birthTarget = createParticleRenderer(engine, "PendingDeathRole_BirthTarget");
-    parent.generator.main.duration = 0.1;
-    parent.generator.main.startLifetime.constant = 0.1;
-    birthTarget.generator.emission.rateOverTime.constant = 10;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(deathTarget, ParticleSubEmitterType.Death);
+  it("resets the parent trajectory baseline while simulation is paused", () => {
+    const parent = createParticleRenderer(engine, "PausedTrajectory_Parent");
+    const child = createParticleRenderer(engine, "PausedTrajectory_Child");
+    parent.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    parent.generator.main.startSpeed.constant = 0;
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    deathTarget.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    birthTarget.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
 
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    engine.update();
+    updateEngine(engine, 1);
+    parent.generator.main.simulationSpeed = 0;
+    parent.entity.transform.setPosition(1, 0, 0);
+    updateEngine(engine, 1);
+    expect((parent.generator as any)._resetTrajectoryOnNextFeedback).to.equal(true);
 
-    const pendingBatches = getInFlightTrajectoryReadbackBatches(parent.generator);
-    expect(parent.generator.isAlive).to.equal(false);
-    expect(pendingBatches.length).to.be.greaterThan(0);
-    for (let i = 0, n = pendingBatches.length; i < n; i++) {
-      pendingBatches[i].readback._platformReadback.isReady = () => false;
-    }
-
-    parent.generator.subEmitters.addSubEmitter(birthTarget, ParticleSubEmitterType.Birth);
-    birthTarget.generator.play(false);
-    engine.update();
-    expect(birthTarget.generator._getAliveParticleCount()).to.equal(1);
+    parent.generator.main.simulationSpeed = 1;
+    updateEngine(engine, 1);
+    const feedback = readFeedbackParticle(parent);
+    expect(feedback[9]).to.be.closeTo(0, 1e-5);
 
     parent.entity.destroy();
-    deathTarget.entity.destroy();
-    birthTarget.entity.destroy();
+    child.entity.destroy();
   });
 
-  it("Birth evaluates target Start Delay, Burst, and Rate Over Distance", () => {
+  it("Birth evaluates target Start Delay and Burst", () => {
     const child = createParticleRenderer(engine, "SystemEmission_Child");
     const parent = createParticleRenderer(engine, "SystemEmission_Parent");
     parent.generator.main.startLifetime.constant = 1;
     parent.generator.main.startSpeed.constant = 1;
     child.generator.main.startDelay.constant = 0.2;
-    child.generator.emission.rateOverDistance.constant = 10;
     child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
 
     parent.generator.subEmitters.enabled = true;
@@ -1458,13 +1569,58 @@ describe("SubEmitter", () => {
     updateEngine(engine, 2);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
     updateEngine(engine, 1);
-    expect(child.generator._getAliveParticleCount()).to.equal(3);
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Birth samples target Start Size curves from the parent event age", () => {
+  it("ignores a stopped target's standalone Start Delay while simulating Birth dependencies", () => {
+    const child = createParticleRenderer(engine, "StandaloneDelay_Child");
+    const parent = createParticleRenderer(engine, "StandaloneDelay_Parent");
+    child.generator.main.startDelay.constant = 1;
+    child.generator.play(false);
+    child.generator.main.startDelay.constant = 0;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    expect((child.generator as any)._playTime).to.be.closeTo(0.1, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("timestamps Birth events after a parent Start Delay ends mid-frame", () => {
+    const child = createParticleRenderer(engine, "ParentDelay_Child");
+    const parent = createParticleRenderer(engine, "ParentDelay_Parent");
+    parent.generator.main.startDelay.constant = 0.05;
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    const childGenerator = child.generator as any;
+    const instanceStride = childGenerator._instanceVertices.length / childGenerator._currentParticleCount;
+    const particleOffset = childGenerator._firstActiveElement * instanceStride;
+    expect(childGenerator._instanceVertices[particleOffset + 7]).to.be.closeTo(0.05, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Birth samples target Start Size curves from the parent age including target Start Delay", () => {
     const child = createParticleRenderer(engine, "BirthStartSize_Child");
     const parent = createParticleRenderer(engine, "BirthStartSize_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -1485,7 +1641,7 @@ describe("SubEmitter", () => {
     updateEngine(engine, 7);
 
     expect(child.generator._getAliveParticleCount()).to.equal(1);
-    expect((child.generator as any)._instanceVertices[12]).to.be.closeTo(1, 1e-4);
+    expect((child.generator as any)._instanceVertices[12]).to.be.closeTo(1.4, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1497,7 +1653,7 @@ describe("SubEmitter", () => {
     parent.generator.main.startLifetime.constant = 1;
     parent.generator.main.startSpeed.constant = 10;
     child.generator.main.maxParticles = 3;
-    child.generator.emission.rateOverDistance.constant = 1000;
+    child.generator.emission.rateOverTime.constant = 1000;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
@@ -1541,7 +1697,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("emits each deferred Birth time window once", () => {
+  it("emits each Birth time window once", () => {
     const child = createParticleRenderer(engine, "BatchQueue_Child");
     const parent = createParticleRenderer(engine, "BatchQueue_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -1590,6 +1746,45 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("gathers into remapped child slots when Birth grows a wrapped ring", () => {
+    const child = createParticleRenderer(engine, "WrappedGrowth_Child");
+    const parent = createParticleRenderer(engine, "WrappedGrowth_Parent");
+    const childGenerator = child.generator as any;
+    child.generator.main.maxParticles = 256;
+    child.generator.main.startLifetime.constant = 0.05;
+    child.generator.emit(3);
+    child.generator.main.startLifetime.constant = 10;
+    child.generator.emit(123);
+    child.generator.stop(false);
+
+    updateEngine(engine, 1);
+    expect(childGenerator._currentParticleCount).to.equal(128);
+    expect(childGenerator._firstRetiredElement).to.equal(3);
+    expect(childGenerator._firstFreeElement).to.equal(126);
+    child.generator.emit(3);
+    expect(childGenerator._firstFreeElement).to.equal(1);
+
+    parent.entity.transform.setPosition(7, 0, 0);
+    parent.generator.main.startLifetime.constant = 2;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(5), 1, 0.01));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    expect(childGenerator._currentParticleCount).to.equal(256);
+    expect(childGenerator._firstFreeElement).to.equal(6);
+    for (const ringIndex of [1, 2, 3, 4, 5]) {
+      expect(readSubEmitterSpawnState(child, ringIndex)[0]).to.be.closeTo(7, 1e-5);
+    }
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("preserves both wrapped ring segments when the particle buffer shrinks", () => {
     const child = createParticleRenderer(engine, "WrappedShrink_Child");
     const parent = createParticleRenderer(engine, "WrappedShrink_Parent");
@@ -1618,14 +1813,16 @@ describe("SubEmitter", () => {
     generator._instanceVertices[100 * instanceStride] = 1000;
     generator._instanceVertices[0] = 2000;
 
-    const feedbackStride = generator._feedbackSimulator.vertexStride / 4;
+    const feedbackStride = generator._feedbackSimulator.readBinding.stride / 4;
+    const feedbackPrimitive = generator._feedbackSimulator._simulator._primitive;
+    feedbackPrimitive._readIsA = false;
     const feedbackData = new Float32Array(generator._currentParticleCount * feedbackStride);
     feedbackData[100 * feedbackStride] = 3000;
     feedbackData[0] = 4000;
     generator._feedbackSimulator.readBinding.buffer.setData(feedbackData);
 
     parent.generator.main.maxParticles = 60;
-    generator._resizeInstanceBuffer(false);
+    generator._resizeInstanceBuffer(61);
 
     expect(generator._currentParticleCount).to.equal(61);
     expect(generator._firstRetiredElement).to.equal(0);
@@ -1638,6 +1835,7 @@ describe("SubEmitter", () => {
     expect(resizedStatesByParticle[28][0]).to.equal(frontState);
 
     const resizedFeedback = new Float32Array(generator._currentParticleCount * feedbackStride);
+    expect(feedbackPrimitive._readIsA).to.equal(false);
     generator._feedbackSimulator.readBinding.buffer.getData(resizedFeedback, 0, 0, resizedFeedback.length);
     expect(resizedFeedback[0]).to.equal(3000);
     expect(resizedFeedback[28 * feedbackStride]).to.equal(4000);
@@ -1667,273 +1865,111 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("dispatches Death when a newly emitted particle expires during same-frame catch-up", () => {
+    const parent = createParticleRenderer(engine, "SameFrameDeath_Parent");
+    const child = createParticleRenderer(engine, "SameFrameDeath_Child");
+    const grandchild = createParticleRenderer(engine, "SameFrameDeath_Grandchild");
+    parent.generator.main.startLifetime.constant = 1;
+    child.generator.main.startLifetime.constant = 0.05;
+    child.generator.main.startSpeed.constant = 2;
+    grandchild.generator.main.simulationSpace = ParticleSimulationSpace.World;
+    grandchild.generator.main.startSpeed.constant = 0;
+    grandchild.generator.inheritVelocity.enabled = true;
+    grandchild.generator.inheritVelocity.curve.constant = 1;
+    enableZeroNoiseFeedback(grandchild);
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    child.generator.subEmitters.enabled = true;
+    child.generator.subEmitters.addSubEmitter(grandchild, ParticleSubEmitterType.Death);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    grandchild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+    expect(grandchild.generator._getAliveParticleCount()).to.equal(1);
+    const feedback = readFeedbackParticle(grandchild);
+    expect(feedback[3]).to.be.closeTo(0, 1e-4);
+    expect(feedback[4]).to.be.closeTo(0, 1e-4);
+    expect(feedback[5]).to.be.closeTo(-2, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    grandchild.entity.destroy();
+  });
+
+  it("retires an expired Birth particle during same-frame catch-up without downstream sub-emitters", () => {
+    const parent = createParticleRenderer(engine, "SameFrameRetire_Parent");
+    const child = createParticleRenderer(engine, "SameFrameRetire_Child");
+    parent.generator.main.startLifetime.constant = 1;
+    child.generator.main.startLifetime.constant = 0.01;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("reuses capacity retired during the trajectory feedback frame", () => {
     const parent = createParticleRenderer(engine, "RetiredCapacity_Parent");
     const child = createParticleRenderer(engine, "RetiredCapacity_Child");
-    parent.generator.main.maxParticles = 127;
+    parent.generator.main.maxParticles = 255;
     parent.generator.main.startLifetime.constant = 0.1;
-    parent.generator.emission.rateOverTime.constant = 1270;
+    parent.generator.emission.rateOverTime.constant = 2550;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    expect(parent.generator._getAliveParticleCount()).to.equal(127);
-
-    engine.update();
-    expect(parent.generator._getAliveParticleCount()).to.equal(127);
-
-    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
-    batch.readback._platformReadback.isReady = () => true;
-    parent.generator.emission.rateOverTime.constant = 0;
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(127);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("Death reads feedback only when a parent particle retires", () => {
-    const parent = createParticleRenderer(engine, "DeathReadback_Parent");
-    const child = createParticleRenderer(engine, "DeathReadback_Child");
-    parent.generator.main.startLifetime.constant = 0.5;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
-    updateEngine(engine, 4);
-    expect(createReadback).not.toHaveBeenCalled();
-    expect(child.generator._getAliveParticleCount()).to.equal(0);
 
     updateEngine(engine, 1);
-    expect(createReadback).toHaveBeenCalledTimes(1);
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-
-    createReadback.mockRestore();
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("snapshots Death emission intent before feedback becomes ready", () => {
-    const parent = createParticleRenderer(engine, "DeathIntent_Parent");
-    const child = createParticleRenderer(engine, "DeathIntent_Child");
-    parent.generator.main.startLifetime.constant = 0.1;
-    const parentColor = parent.generator.colorOverLifetime;
-    parentColor.enabled = true;
-    parentColor.color.mode = ParticleGradientMode.Gradient;
-    (parentColor.color as any).gradient = new ParticleGradient(
-      [new GradientColorKey(0, new Color(1, 0, 0, 1)), new GradientColorKey(1, new Color(1, 0, 0, 1))],
-      [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
-    );
-
-    parent.generator.subEmitters.enabled = true;
-    const deathSlot = parent.generator.subEmitters.addSubEmitter(
-      child,
-      ParticleSubEmitterType.Death,
-      ParticleSubEmitterInheritProperty.Color,
-      1,
-      2
-    );
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    engine.update();
-
-    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
-    batch.readback._platformReadback.isReady = () => false;
-    deathSlot.deathEmitCount = 5;
-    (parentColor.color as any).gradient = new ParticleGradient(
-      [new GradientColorKey(0, new Color(0, 0, 1, 1)), new GradientColorKey(1, new Color(0, 0, 1, 1))],
-      [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
-    );
-    engine.update();
-    expect(parent.generator._getAliveParticleCount()).to.equal(0);
+    expect(parent.generator._getAliveParticleCount()).to.equal(255);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
 
-    batch.readback._platformReadback.isReady = () => true;
-    engine.update();
+    const resizeInstanceBuffer = vi.spyOn(parent.generator as any, "_resizeInstanceBuffer");
+    updateEngine(engine, 1);
+    expect(parent.generator._getAliveParticleCount()).to.equal(255);
+    expect(child.generator._getAliveParticleCount()).to.equal(255);
+    const resizeCount = resizeInstanceBuffer.mock.calls.length;
+    expect(resizeCount).to.be.greaterThan(0);
 
-    expect(child.generator._getAliveParticleCount()).to.equal(2);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[8]).to.be.closeTo(1, 1e-5);
-    expect(vertices[9]).to.be.closeTo(0, 1e-5);
-    expect(vertices[10]).to.be.closeTo(0, 1e-5);
+    updateEngine(engine, 1);
+    expect(parent.generator._getAliveParticleCount()).to.equal(255);
+    expect(child.generator._getAliveParticleCount()).to.equal(510);
+    expect(resizeInstanceBuffer).toHaveBeenCalledTimes(resizeCount);
 
+    resizeInstanceBuffer.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
-  });
-
-  it("queues later Death events while an earlier feedback request is pending", () => {
-    const parent = createParticleRenderer(engine, "AsyncDeath_Parent");
-    const child = createParticleRenderer(engine, "AsyncDeath_Child");
-    parent.generator.main.maxParticles = 1;
-    parent.generator.main.startLifetime.constant = 0.1;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    engine.update();
-
-    const generator = parent.generator as any;
-    const batches = getInFlightTrajectoryReadbackBatches(generator);
-    batches[0].readback._platformReadback.isReady = () => false;
-    expect(parent.generator._getAliveParticleCount()).to.equal(0);
-
-    parent.generator.emit(1);
-    expect(parent.generator._getAliveParticleCount()).to.equal(1);
-    engine.update();
-    engine.update();
-    expect(batches).to.have.length(2);
-
-    for (const batch of batches) {
-      batch.readback._platformReadback.isReady = () => true;
-    }
-    engine.update();
-    expect(child.generator._getAliveParticleCount()).to.equal(2);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("delivers a resolved Death command after its original target already updated", () => {
-    const originalChild = createParticleRenderer(engine, "LateDeath_OriginalChild");
-    const parent = createParticleRenderer(engine, "LateDeath_Parent");
-    const replacementChild = createParticleRenderer(engine, "LateDeath_ReplacementChild");
-    parent.generator.main.startLifetime.constant = 0.1;
-
-    parent.generator.subEmitters.enabled = true;
-    const slot = parent.generator.subEmitters.addSubEmitter(originalChild, ParticleSubEmitterType.Death);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    originalChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    replacementChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    engine.update();
-
-    const readback = getInFlightTrajectoryReadbackBatches(parent.generator)[0].readback;
-    readback._platformReadback.isReady = () => false;
-    slot.emitter = replacementChild;
-    engine.update();
-
-    readback._platformReadback.isReady = () => true;
-    engine.update();
-    expect(originalChild.generator._getAliveParticleCount()).to.equal(0);
-
-    engine.update();
-    expect(originalChild.generator._getAliveParticleCount()).to.equal(1);
-
-    parent.entity.destroy();
-    originalChild.entity.destroy();
-    replacementChild.entity.destroy();
-  });
-
-  it("skips Death feedback when no Death event is accepted", () => {
-    const parent = createParticleRenderer(engine, "DeathProbability_Parent");
-    const child = createParticleRenderer(engine, "DeathProbability_Child");
-    parent.generator.main.startLifetime.constant = 0.1;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(
-      child,
-      ParticleSubEmitterType.Death,
-      ParticleSubEmitterInheritProperty.None,
-      0
-    );
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    const createReadback = vi.spyOn((engine as any)._hardwareRenderer, "createPlatformBufferReadback");
-    updateEngine(engine, 2);
-
-    expect(createReadback).not.toHaveBeenCalled();
-    expect(parent.generator._getAliveParticleCount()).to.equal(0);
-    expect(child.generator._getAliveParticleCount()).to.equal(0);
-
-    createReadback.mockRestore();
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("shares one feedback request between Birth and Death from the same simulation pass", () => {
-    const parent = createParticleRenderer(engine, "UnifiedFeedback_Parent");
-    const birthChild = createParticleRenderer(engine, "UnifiedFeedback_BirthChild");
-    const deathChild = createParticleRenderer(engine, "UnifiedFeedback_DeathChild");
-    parent.generator.main.startLifetime.constant = 0.2;
-    birthChild.generator.emission.rateOverTime.constant = 10;
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(birthChild, ParticleSubEmitterType.Birth);
-    parent.generator.subEmitters.addSubEmitter(deathChild, ParticleSubEmitterType.Death);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    birthChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    deathChild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play(false);
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-
-    const generator = parent.generator as any;
-    const batches = getInFlightTrajectoryReadbackBatches(generator);
-    batches[0].readback._platformReadback.isReady = () => true;
-    engine.update();
-
-    expect(batches).to.have.length(1);
-    expect(batches[0].commands.map((command) => command.type)).to.deep.equal([
-      ParticleSubEmitterType.Birth,
-      ParticleSubEmitterType.Death
-    ]);
-
-    parent.entity.destroy();
-    birthChild.entity.destroy();
-    deathChild.entity.destroy();
   });
 
   it("Death consumes the current transform-feedback position at the particle lifetime", () => {
     const parent = createParticleRenderer(engine, "Parent_DeathCurrentPosition");
     const child = createParticleRenderer(engine, "Child_DeathCurrentPosition");
     parent.generator.main.startLifetime.constant = 0.25;
-    parent.generator.main.startSpeed.constant = 2;
+    parent.generator.main.startSpeed.constant = 20;
     parent.generator.main.gravityModifier.constant = 0;
+    child.generator.main.startLifetime.constant = 1;
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.main.gravityModifier.constant = 0;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve.constant = 0.5;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
@@ -1943,13 +1979,17 @@ describe("SubEmitter", () => {
     child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
 
-    updateEngine(engine, 5);
+    updateEngine(engine, 1);
+    parent.generator.stop(false);
+    updateEngine(engine, 4);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[0]).to.be.closeTo(0, 1e-5);
-    expect(vertices[1]).to.be.closeTo(0, 1e-5);
-    expect(vertices[2]).to.be.closeTo(-0.5, 1e-5);
+    const feedback = readSubEmitterSpawnState(child);
+    expect(feedback[0]).to.be.closeTo(0, 1e-5);
+    expect(feedback[1]).to.be.closeTo(0, 1e-5);
+    expect(feedback[2]).to.be.closeTo(-5, 1e-5);
+    expect(child.bounds.min.z).to.be.lessThanOrEqual(-15);
+    expect(child.bounds.max.z).to.be.greaterThanOrEqual(-5);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -1965,6 +2005,7 @@ describe("SubEmitter", () => {
     child.generator.main.startSpeed.constant = 0;
     child.generator.inheritVelocity.enabled = true;
     child.generator.inheritVelocity.curve.constant = 0.5;
+    enableZeroNoiseFeedback(child);
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
@@ -1976,9 +2017,10 @@ describe("SubEmitter", () => {
     updateEngine(engine, 5);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[6]).to.be.closeTo(-1, 1e-4);
-    expect(vertices[18]).to.be.closeTo(2, 1e-4);
+    const feedback = readFeedbackParticle(child);
+    expect(feedback[3]).to.be.closeTo(0, 1e-4);
+    expect(feedback[4]).to.be.closeTo(0, 1e-4);
+    expect(feedback[5]).to.be.closeTo(-2, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2027,66 +2069,6 @@ describe("SubEmitter", () => {
 
     expect(child.generator._getAliveParticleCount()).to.equal(1);
     expect((child.generator as any)._instanceVertices[12]).to.be.closeTo(2, 1e-4);
-
-    parent.entity.destroy();
-    child.entity.destroy();
-  });
-
-  it("catches a delayed Death particle up in the target's single feedback pass", () => {
-    const parent = createParticleRenderer(engine, "DeathCatchUp_Parent");
-    const child = createParticleRenderer(engine, "DeathCatchUp_Child");
-    parent.generator.main.startLifetime.constant = 0.1;
-    parent.generator.main.startSpeed.constant = 0;
-    child.generator.main.startSpeed.constant = 0;
-    child.generator.main.gravityModifier.constant = 0;
-    child.generator.forceOverLifetime.enabled = true;
-    child.generator.forceOverLifetime.forceX.constant = 1;
-    child.generator.limitVelocityOverLifetime.enabled = true;
-    child.generator.limitVelocityOverLifetime.dampen = 0;
-    child.generator.limitVelocityOverLifetime.speed.constant = 100;
-    const feedbackUpdate = vi.spyOn((child.generator as any)._feedbackSimulator, "update");
-
-    parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play();
-
-    (engine as any)._vSyncCount = Infinity;
-    (engine as any)._time._lastSystemTime = 0;
-    let time = 0;
-    performance.now = () => (time += 100);
-    engine.update();
-    engine.update();
-
-    const batch = getInFlightTrajectoryReadbackBatches(parent.generator)[0];
-    batch.readback._platformReadback.isReady = () => false;
-    engine.update();
-    engine.update();
-    batch.readback._platformReadback.isReady = () => true;
-    engine.update();
-    performance.now = () => time;
-
-    expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    const particleAge = child.generator._playTime - vertices[7];
-    expect(particleAge).to.be.greaterThan(engine.time.deltaTime * 2);
-
-    const feedback = new Float32Array(6);
-    child.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
-    const step = engine.time.deltaTime;
-    let remainingAge = particleAge;
-    let expectedVelocity = 0;
-    let expectedPosition = 0;
-    while (remainingAge > 1e-6) {
-      const deltaTime = Math.min(step, remainingAge);
-      expectedVelocity += deltaTime;
-      expectedPosition += expectedVelocity * deltaTime;
-      remainingAge -= deltaTime;
-    }
-    expect(feedback[0]).to.be.closeTo(expectedPosition, 1e-4);
-    expect(feedbackUpdate).toHaveBeenCalledTimes(1);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2141,7 +2123,7 @@ describe("SubEmitter", () => {
 
     // Mimic deserialization: a Death slot is present but transform-feedback was never set up
     // (config restored without going through the setters that call _setTransformFeedback).
-    (parent.generator as any)._useTransformFeedback = false;
+    (parent.generator as any)._feedbackSimulator.destroy();
     (parent.generator as any)._feedbackSimulator = null;
 
     // Re-enable runs _onEnable, which reconciles transform-feedback from the current config.
@@ -2192,6 +2174,34 @@ describe("SubEmitter", () => {
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(3);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("does not allocate Birth runtime state while its target is disabled", () => {
+    const parent = createParticleRenderer(engine, "Parent_DisabledTarget");
+    const child = createParticleRenderer(engine, "Child_DisabledTarget");
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    child.enabled = false;
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(3), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 5);
+    const statesByParticle = (parent.generator.subEmitters as any)._birthStatesByParticle;
+    expect(statesByParticle.filter(Boolean)).to.have.length(0);
+    expect(child.generator._incomingSubEmitterCommands).to.have.length(0);
+    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
+
+    child.enabled = true;
+    updateEngine(engine, 1);
+    expect(statesByParticle.filter(Boolean)).to.have.length(3);
+    expect(child.generator._getAliveParticleCount()).to.equal(3);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2273,6 +2283,20 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
     liveTarget.entity.destroy();
     destroyedTarget.entity.destroy();
+  });
+
+  it("releases trajectory feedback when a sub-emitter target is cleared", () => {
+    const parent = createParticleRenderer(engine, "ClearedTarget_Parent");
+    const child = createParticleRenderer(engine, "ClearedTarget_Child");
+    const slot = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.subEmitters.enabled = true;
+
+    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
+    slot.emitter = null;
+    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(false);
+
+    parent.entity.destroy();
+    child.entity.destroy();
   });
 
   it("rejects sub-emitters from another scene at configuration time", () => {
@@ -2627,6 +2651,8 @@ describe("SubEmitter", () => {
       parent.generator.main.gravityModifier.constant = 0;
       parent.generator.main.startLifetime.constant = 0.5;
       parent.generator.main.startSpeed.constant = 2;
+      child.generator.main.startSpeed.constant = 1;
+      enableZeroNoiseFeedback(child);
       const shape = new ConeShape();
       shape.angle = 0;
       shape.radius = 0;
@@ -2650,18 +2676,17 @@ describe("SubEmitter", () => {
     const spun = build("VelSpun", 90);
     updateEngine(engine, 10);
 
-    // a_DirectionTime @ float offset 4..6 holds the child's (normalized) emission direction.
-    const s = (straight.child.generator as any)._instanceVertices as Float32Array;
     expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
-    expect(s[4]).to.be.closeTo(0, 1e-4);
-    expect(s[5]).to.be.closeTo(0, 1e-4);
-    expect(s[6]).to.be.closeTo(-1, 1e-4);
+    const straightFeedback = readFeedbackParticle(straight.child);
+    expect(straightFeedback[3]).to.be.closeTo(0, 1e-4);
+    expect(straightFeedback[4]).to.be.closeTo(0, 1e-4);
+    expect(straightFeedback[5]).to.be.closeTo(-1, 1e-4);
 
     // Spawn rotation 90° about X maps (0,0,-1) → (0,1,0); under the bug it stayed (0,0,-1).
-    const r = (spun.child.generator as any)._instanceVertices as Float32Array;
-    expect(r[4]).to.be.closeTo(0, 1e-4);
-    expect(r[5]).to.be.closeTo(1, 1e-4);
-    expect(r[6]).to.be.closeTo(0, 1e-4);
+    const spunFeedback = readFeedbackParticle(spun.child);
+    expect(spunFeedback[3]).to.be.closeTo(0, 1e-4);
+    expect(spunFeedback[4]).to.be.closeTo(1, 1e-4);
+    expect(spunFeedback[5]).to.be.closeTo(0, 1e-4);
 
     straight.parent.entity.destroy();
     straight.child.entity.destroy();
@@ -2696,18 +2721,16 @@ describe("SubEmitter", () => {
     const spun = build("BirthVelSpun", 90);
     updateEngine(engine, 1);
 
-    const s = (straight.child.generator as any)._instanceVertices as Float32Array;
     expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
-    expect(s[4]).to.be.closeTo(0, 1e-4);
-    expect(s[5]).to.be.closeTo(0, 1e-4);
-    expect(s[6]).to.be.closeTo(-1, 1e-4);
-    expect(s[18]).to.be.closeTo(2, 1e-4);
+    const straightFeedback = readSubEmitterSpawnState(straight.child);
+    expect(straightFeedback[3]).to.be.closeTo(0, 1e-4);
+    expect(straightFeedback[4]).to.be.closeTo(0, 1e-4);
+    expect(straightFeedback[5]).to.be.closeTo(-2, 1e-4);
 
-    const r = (spun.child.generator as any)._instanceVertices as Float32Array;
-    expect(r[4]).to.be.closeTo(0, 1e-4);
-    expect(r[5]).to.be.closeTo(1, 1e-4);
-    expect(r[6]).to.be.closeTo(0, 1e-4);
-    expect(r[18]).to.be.closeTo(2, 1e-4);
+    const spunFeedback = readSubEmitterSpawnState(spun.child);
+    expect(spunFeedback[3]).to.be.closeTo(0, 1e-4);
+    expect(spunFeedback[4]).to.be.closeTo(2, 1e-4);
+    expect(spunFeedback[5]).to.be.closeTo(0, 1e-4);
 
     straight.parent.entity.destroy();
     straight.child.entity.destroy();
@@ -2723,6 +2746,7 @@ describe("SubEmitter", () => {
     parent.entity.transform.rotation = new Vector3(90, 0, 0);
     child.generator.main.startSpeed.constant = 1;
     child.generator.emission.rateOverTime.constant = 10;
+    enableZeroNoiseFeedback(child);
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(
@@ -2738,11 +2762,10 @@ describe("SubEmitter", () => {
     updateEngine(engine, 1);
 
     expect(child.generator._getAliveParticleCount()).to.equal(1);
-    const vertices = (child.generator as any)._instanceVertices as Float32Array;
-    expect(vertices[4]).to.be.closeTo(0, 1e-4);
-    expect(vertices[5]).to.be.closeTo(1, 1e-4);
-    expect(vertices[6]).to.be.closeTo(0, 1e-4);
-    expect(vertices[18]).to.be.closeTo(1, 1e-4);
+    const feedback = readFeedbackParticle(child);
+    expect(feedback[3]).to.be.closeTo(0, 1e-4);
+    expect(feedback[4]).to.be.closeTo(1, 1e-4);
+    expect(feedback[5]).to.be.closeTo(0, 1e-4);
     expect(child.bounds.max.y).to.be.greaterThanOrEqual(10);
 
     parent.entity.destroy();
@@ -2829,6 +2852,9 @@ describe("SubEmitter", () => {
     expect((cloneSlot as any)._module).to.not.equal(parent.generator.subEmitters);
     expect((cloneRenderer.generator.subEmitters as any)._probabilityRand.random()).to.equal(
       (parent.generator.subEmitters as any)._probabilityRand.random()
+    );
+    expect((cloneRenderer.generator.inheritVelocity as any)._curveRand.random()).to.equal(
+      (parent.generator.inheritVelocity as any)._curveRand.random()
     );
 
     expect(() => (cloneSlot.type = ParticleSubEmitterType.Death)).to.not.throw();

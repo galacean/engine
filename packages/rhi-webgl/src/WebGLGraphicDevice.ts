@@ -7,7 +7,6 @@ import {
   Engine,
   GLCapabilityType,
   IPlatformBuffer,
-  IPlatformBufferReadback,
   IPlatformRenderTarget,
   IPlatformTexture2D,
   IPlatformTextureCube,
@@ -28,7 +27,6 @@ import {
 import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
-import { GLBufferReadback } from "./GLBufferReadback";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -274,13 +272,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     data?: ArrayBuffer | ArrayBufferView
   ): IPlatformBuffer {
     return new GLBuffer(this, type, byteLength, bufferUsage, data);
-  }
-
-  createPlatformBufferReadback(byteLength: number): IPlatformBufferReadback {
-    if (!this._isWebGL2) {
-      throw new Error("Buffer readback is only supported on WebGL2.");
-    }
-    return new GLBufferReadback(<WebGL2RenderingContext>this._gl, byteLength);
   }
 
   createPlatformTransformFeedback(): IPlatformTransformFeedback {

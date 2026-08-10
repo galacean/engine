@@ -1,6 +1,6 @@
 import { DataObject } from "../../base/DataObject";
 import { ignoreClone } from "../../clone/CloneDecorators";
-import { ParticleRenderer } from "../ParticleRenderer";
+import type { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { SubEmittersModule } from "./SubEmittersModule";
@@ -35,7 +35,9 @@ export class SubEmitter extends DataObject {
   }
 
   set emitter(value: ParticleRenderer) {
-    if (value === this._emitter) return;
+    if (value === this._emitter) {
+      return;
+    }
     this._module?._validateEmitter(value);
     this._emitter = value;
     this._module?._onSlotChanged(this);
@@ -49,7 +51,9 @@ export class SubEmitter extends DataObject {
   }
 
   set type(value: ParticleSubEmitterType) {
-    if (value === this._type) return;
+    if (value === this._type) {
+      return;
+    }
     this._type = value;
     this._module?._onSlotChanged(this);
   }

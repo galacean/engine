@@ -70,6 +70,19 @@ describe("ParticleRenderer", () => {
     expect(renderer.velocityScale).to.eq(0);
   });
 
+  it("resets the gravity modifier random stream with the generator seed", () => {
+    const entity = scene.createRootEntity("GravityRandomSeed");
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    const gravityRand = generator.main._gravityModifierRand;
+
+    generator.randomSeed = 123;
+    const first = gravityRand.random();
+    generator.randomSeed = 123;
+    expect(gravityRand.random()).to.equal(first);
+
+    entity.destroy();
+  });
+
   it("pauses simulation while culled and resumes without catch-up", () => {
     const entity = scene.createRootEntity("CulledParticle");
     entity.transform.setPosition(100000, 0, 0);
@@ -140,6 +153,28 @@ describe("ParticleRenderer", () => {
     entity.destroy();
   });
 
+  it("keeps Local simulation rotations independent between particle systems", () => {
+    const firstEntity = scene.createRootEntity("FirstLocalParticle");
+    const secondEntity = scene.createRootEntity("SecondLocalParticle");
+    secondEntity.transform.setRotation(0, 90, 0);
+    const firstRenderer = firstEntity.addComponent(ParticleRenderer);
+    const secondRenderer = secondEntity.addComponent(ParticleRenderer);
+    firstRenderer.generator.emit(1);
+    secondRenderer.generator.emit(1);
+
+    updateEngine(engine, 1);
+
+    const firstRotation = firstRenderer.shaderData.getVector4("renderer_WorldRotation");
+    const secondRotation = secondRenderer.shaderData.getVector4("renderer_WorldRotation");
+    expect(firstRotation).to.not.equal(secondRotation);
+    expect(firstRotation.w).to.be.closeTo(1, 1e-6);
+    expect(secondRotation.y).to.be.closeTo(Math.SQRT1_2, 1e-6);
+    expect(secondRotation.w).to.be.closeTo(Math.SQRT1_2, 1e-6);
+
+    firstEntity.destroy();
+    secondEntity.destroy();
+  });
+
   it("ParticleRenderer renderMode", () => {
     const renderer = scene.createRootEntity("Renderer").addComponent(ParticleRenderer);
     renderer.renderMode = ParticleRenderMode.None;
@@ -155,6 +190,22 @@ describe("ParticleRenderer", () => {
     expect(() => {
       renderer.renderMode = ParticleRenderMode.VerticalBillboard;
     }).to.throw("Not implemented");
+  });
+
+  it("releases mesh geometry bindings when the mesh is removed", () => {
+    const entity = scene.createRootEntity("MeshBindingCleanup");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.be.greaterThan(0);
+
+    renderer.mesh = null;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.equal(0);
+    expect(renderer.generator._primitive.indexBufferBinding).to.equal(null);
+
+    entity.destroy();
+    mesh.destroy();
   });
 
   it("refCount", () => {
@@ -258,18 +309,22 @@ describe("ParticleRenderer", () => {
     entity.destroy();
   });
 
-  it("reorganize geometry buffers with mesh render mode but no mesh", () => {
+  it("attaches the latest particle buffer when a render mesh is assigned", () => {
     const entity = scene.createRootEntity("NoMeshReorganize");
     const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator as any;
     renderer.renderMode = ParticleRenderMode.Mesh;
 
-    // Toggling noise module triggers buffer reorganization, which must tolerate a null mesh
-    expect(() => {
-      renderer.generator.noise.enabled = true;
-      renderer.generator.noise.enabled = false;
-    }).not.to.throw();
+    generator.noise.enabled = true;
+    generator._resizeInstanceBuffer(256);
+    expect(generator._primitive.vertexBufferBindings).to.have.length(0);
+
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = mesh;
+    expect(generator._primitive.vertexBufferBindings).to.include(generator._instanceVertexBufferBinding);
 
     entity.destroy();
+    mesh.destroy();
   });
 
   it("clone a grown particle system keeps capacity consistent", () => {

@@ -1,4 +1,4 @@
-import { Rand, Vector3 } from "@galacean/engine-math";
+import { Rand } from "@galacean/engine-math";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 
 /**
@@ -6,27 +6,28 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
  */
 export class EmissionState {
   frameRateTime = 0;
-  readonly rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);
-
-  distanceAccumulator = 0;
-  readonly lastEmitPosition = new Vector3();
-  hasLastEmitPosition = false;
-
   currentBurstIndex = 0;
-  readonly burstRand = new Rand(0, ParticleRandomSubSeeds.Burst);
+
+  private _seed = 0;
+  private _rateRand: Rand;
+  private _burstRand: Rand;
 
   resetRandomSeed(seed: number): void {
-    this.rateRand.reset(seed, ParticleRandomSubSeeds.EmissionRate);
-    this.burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
+    this._seed = seed;
+    this._rateRand?.reset(seed, ParticleRandomSubSeeds.EmissionRate);
+    this._burstRand?.reset(seed, ParticleRandomSubSeeds.Burst);
+  }
+
+  randomRate(): number {
+    return (this._rateRand ||= new Rand(this._seed, ParticleRandomSubSeeds.EmissionRate)).random();
+  }
+
+  randomBurst(): number {
+    return (this._burstRand ||= new Rand(this._seed, ParticleRandomSubSeeds.Burst)).random();
   }
 
   resyncTimeCursors(playTime: number): void {
     this.frameRateTime = playTime;
     this.currentBurstIndex = 0;
-  }
-
-  setLastEmitPosition(position: Vector3): void {
-    this.lastEmitPosition.copyFrom(position);
-    this.hasLastEmitPosition = true;
   }
 }

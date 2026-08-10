@@ -1,36 +1,17 @@
 import { Camera, Engine, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 
-export const updateForE2E = (
-  engine,
-  deltaTime = 100,
-  loopTime = 10,
-  waitForGPUReadback = false
-): void | Promise<void> => {
+export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
   engine._vSyncCount = Infinity;
   engine._time._lastSystemTime = 0;
-  let currentTime = 0;
-  performance.now = () => currentTime;
-  const gl = engine._hardwareRenderer._gl;
-  if (!waitForGPUReadback) {
-    for (let i = 0; i < loopTime; ++i) {
-      currentTime += deltaTime;
-      engine.update();
-    }
-    gl.finish();
-    return;
-  }
-
-  return (async () => {
-    for (let i = 0; i < loopTime; ++i) {
-      currentTime += deltaTime;
-      engine.update();
-      gl.finish();
-      // A zero-delay timer can repoll before software WebGL publishes fence completion
-      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-    }
+  let times = 0;
+  performance.now = function () {
+    times++;
+    return times * deltaTime;
+  };
+  for (let i = 0; i < loopTime; ++i) {
     engine.update();
-    gl.finish();
-  })();
+  }
+  engine._hardwareRenderer._gl.finish();
 };
 
 let screenshotCanvas: HTMLCanvasElement = null;

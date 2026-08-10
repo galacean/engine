@@ -50,9 +50,9 @@ WebGLEngine.create({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
       type: AssetType.Texture
     })
-    .then(async (texture) => {
+    .then((texture) => {
       createSubEmitterScene(engine, rootEntity, <Texture2D>texture);
-      await updateForE2E(engine, 50, 14, true);
+      updateForE2E(engine, 50, 14);
       initScreenshot(engine, camera);
     });
 });
@@ -84,7 +84,7 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   subMain.gravityModifier.constant = 0.3;
   subMain.simulationSpace = ParticleSimulationSpace.World;
   subMain.playOnEnabled = false;
-  subGenerator.emission.rateOverTime.constant = 0;
+  subGenerator.emission.rateOverTime.constant = 18;
 
   const subShape = new ConeShape();
   subShape.angle = 35;
@@ -140,11 +140,18 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   parentGenerator.subEmitters.enabled = true;
   parentGenerator.subEmitters.addSubEmitter(
     subRenderer,
+    ParticleSubEmitterType.Birth,
+    ParticleSubEmitterInheritProperty.Color |
+      ParticleSubEmitterInheritProperty.Size |
+      ParticleSubEmitterInheritProperty.Velocity
+  );
+  parentGenerator.subEmitters.addSubEmitter(
+    subRenderer,
     ParticleSubEmitterType.Death,
     ParticleSubEmitterInheritProperty.Color |
       ParticleSubEmitterInheritProperty.Size |
       ParticleSubEmitterInheritProperty.Velocity,
-    undefined,
+    1,
     4
   );
 

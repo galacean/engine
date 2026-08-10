@@ -1,12 +1,12 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderMacro } from "../../shader";
-import { ShaderData } from "../../shader/ShaderData";
+import type { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
-import { ParticleGenerator } from "../ParticleGenerator";
+import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
@@ -243,12 +243,12 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this.velocityY = new ParticleCompositeCurve(0);
     this.velocityZ = new ParticleCompositeCurve(0);
 
-    this.orbitalX = new ParticleCompositeCurve(0);
-    this.orbitalY = new ParticleCompositeCurve(0);
-    this.orbitalZ = new ParticleCompositeCurve(0);
-    this.radial = new ParticleCompositeCurve(0);
-    // @ts-ignore
-    this._offset._onValueChanged = () => this._generator._renderer._onGeneratorParamsChanged();
+    this._orbitalX = this._createOrbitalRadialCurve();
+    this._orbitalY = this._createOrbitalRadialCurve();
+    this._orbitalZ = this._createOrbitalRadialCurve();
+    this._radial = this._createOrbitalRadialCurve();
+    // @ts-expect-error Access internal Vector3 change callback
+    this._offset._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 
   /**
@@ -316,9 +316,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
 
-      const needTransformFeedback = this._needTransformFeedback();
-      const orbitalActive = needTransformFeedback && this._isOrbitalActive();
-      const radialActive = needTransformFeedback && this._isRadialActive();
+      const supportsTransformFeedback = this._generator._renderer.engine._hardwareRenderer.isWebGL2;
+      const orbitalActive = supportsTransformFeedback && this._isOrbitalActive();
+      const radialActive = supportsTransformFeedback && this._isRadialActive();
 
       if (orbitalActive) {
         const orbitalX = this._orbitalX;
@@ -459,7 +459,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
       (velocityX.mode === ParticleCurveMode.TwoCurves &&
         velocityY.mode === ParticleCurveMode.TwoCurves &&
         velocityZ.mode === ParticleCurveMode.TwoCurves);
-    if (!this._needTransformFeedback()) {
+    if (!this._enabled || !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
+      return isLinearRandomMode;
+    }
+
+    const orbitalActive = this._isOrbitalActive();
+    const radialActive = this._isRadialActive();
+    if (!orbitalActive && !radialActive) {
       return isLinearRandomMode;
     }
 
@@ -467,14 +473,22 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     const orbitalY = this._orbitalY;
     const orbitalZ = this._orbitalZ;
     const isOrbitalRandomMode =
-      (orbitalX.mode === ParticleCurveMode.TwoConstants &&
+      orbitalActive &&
+      ((orbitalX.mode === ParticleCurveMode.TwoConstants &&
         orbitalY.mode === ParticleCurveMode.TwoConstants &&
         orbitalZ.mode === ParticleCurveMode.TwoConstants) ||
-      (orbitalX.mode === ParticleCurveMode.TwoCurves &&
-        orbitalY.mode === ParticleCurveMode.TwoCurves &&
-        orbitalZ.mode === ParticleCurveMode.TwoCurves);
+        (orbitalX.mode === ParticleCurveMode.TwoCurves &&
+          orbitalY.mode === ParticleCurveMode.TwoCurves &&
+          orbitalZ.mode === ParticleCurveMode.TwoCurves));
 
-    return isLinearRandomMode || isOrbitalRandomMode || this._radial._isRandomMode();
+    return isLinearRandomMode || isOrbitalRandomMode || (radialActive && this._radial._isRandomMode());
+  }
+
+  private _createOrbitalRadialCurve(): ParticleCompositeCurve {
+    const curve = new ParticleCompositeCurve(0);
+    curve._registerOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
+    curve._registerOnValueChanged(this._onTransformFeedbackDirty);
+    return curve;
   }
 
   private _onOrbitalRadialChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {

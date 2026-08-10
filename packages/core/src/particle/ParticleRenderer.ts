@@ -1,12 +1,11 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
+import type { Entity } from "../Entity";
+import type { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
-import { ModelMesh } from "../mesh/ModelMesh";
+import type { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleGenerator } from "./ParticleGenerator";
@@ -39,10 +38,10 @@ export class ParticleRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _generatorBounds = new BoundingBox();
+  readonly _generatorBounds = new BoundingBox();
   /** @internal */
   @ignoreClone
-  _transformedBounds = new BoundingBox();
+  readonly _transformedBounds = new BoundingBox();
   /** @internal */
   @ignoreClone
   _particleSystemManager: ParticleSystemManager | null = null;
@@ -59,7 +58,7 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   @ignoreClone
   private _currentRenderModeMacro: ShaderMacro;
-  private _supportInstancedArrays: boolean;
+  private readonly _supportInstancedArrays: boolean;
 
   /**
    * Specifies how particles are rendered.
@@ -93,8 +92,12 @@ export class ParticleRenderer extends Renderer {
 
       if (this._currentRenderModeMacro !== renderModeMacro) {
         const { shaderData } = this;
-        this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
-        renderModeMacro && shaderData.enableMacro(renderModeMacro);
+        if (this._currentRenderModeMacro) {
+          shaderData.disableMacro(this._currentRenderModeMacro);
+        }
+        if (renderModeMacro) {
+          shaderData.enableMacro(renderModeMacro);
+        }
         this._currentRenderModeMacro = renderModeMacro;
       }
 
@@ -118,7 +121,9 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      if (lastMesh) {
+        this._addResourceReferCount(lastMesh, -1);
+      }
 
       if (value) {
         if (value.subMeshes.length !== 1) {
@@ -126,9 +131,9 @@ export class ParticleRenderer extends Renderer {
         }
 
         this._addResourceReferCount(value, 1);
-        if (this.renderMode === ParticleRenderMode.Mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+      }
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -173,14 +178,16 @@ export class ParticleRenderer extends Renderer {
    */
   override _onEnableInScene(): void {
     super._onEnableInScene();
-    this.scene._componentsManager._particleSystemManager.add(this);
+    if (this._supportInstancedArrays) {
+      this.scene._componentsManager._particleSystemManager.add(this);
+    }
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene._componentsManager._particleSystemManager.remove(this);
+    this._particleSystemManager?.remove(this);
     super._onDisableInScene();
   }
 
@@ -202,6 +209,7 @@ export class ParticleRenderer extends Renderer {
     //@todo: Don't need to update transform shader data, temp solution
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
 
@@ -225,19 +233,12 @@ export class ParticleRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
-  _updateParticles(elapsedTime: number): void {
-    if (!this._supportInstancedArrays) {
-      return;
-    }
-    if (this.generator._update(elapsedTime)) {
-      const shaderData = this.shaderData;
-      shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
-      shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
-      shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
-    }
+  protected override _update(context: RenderContext): void {
+    super._update(context);
+    const shaderData = this.shaderData;
+    shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
+    shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
+    shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
   }
 
   protected override _render(context: RenderContext): void {
@@ -275,8 +276,8 @@ export class ParticleRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     const mesh = this._mesh;
-    if (mesh) {
-      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    if (mesh && !mesh.destroyed) {
+      this._addResourceReferCount(mesh, -1);
     }
     super._onDestroy();
     this.generator._destroy();
@@ -325,7 +326,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   @ignoreClone
-  override _onTransformChanged(type: TransformModifyFlags): void {
+  override _onTransformChanged(): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
 }

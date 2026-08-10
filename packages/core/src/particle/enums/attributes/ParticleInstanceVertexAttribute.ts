@@ -14,5 +14,7 @@ export enum ParticleInstanceVertexAttribute {
   SimulationWorldRotation = "a_SimulationWorldRotation",
   SimulationUV = "a_SimulationUV",
   Random2 = "a_Random2",
-  InheritVelocity = "a_InheritVelocity"
+  InheritVelocity = "a_InheritVelocity",
+  SubEmitterWorldPosition = "a_SubEmitterWorldPosition",
+  SubEmitterWorldVelocity = "a_SubEmitterWorldVelocity"
 }

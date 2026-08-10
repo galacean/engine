@@ -18,8 +18,9 @@ Shader "Effect/ParticleFeedback" {
       int renderer_SimulationSpace;
       int renderer_FirstNewParticle;
       int renderer_FirstFreeParticle;
-
-      const int MAX_NEW_PARTICLE_CATCH_UP_STEPS = 64;
+      #ifdef RENDERER_TRAJECTORY_FEEDBACK
+          int renderer_ResetTrajectory;
+      #endif
 
       struct Attributes {
           vec3 a_FeedbackPosition;
@@ -44,9 +45,15 @@ Shader "Effect/ParticleFeedback" {
               vec4 a_Random2;
           #endif
 
-          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM)
+          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_SUB_EMITTER_TRAJECTORY)
               vec4 a_InheritVelocity;
           #endif
+
+          #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+              vec3 a_SubEmitterWorldPosition;
+              vec3 a_SubEmitterWorldVelocity;
+          #endif
+
       };
 
       struct Varyings {
@@ -65,6 +72,12 @@ Shader "Effect/ParticleFeedback" {
       #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
+
+      vec3 getParticleWorldPosition(vec3 position) {
+          return renderer_SimulationSpace == 0
+              ? rotationByQuaternions(position, renderer_WorldRotation) + renderer_WorldPosition
+              : position;
+      }
 
       // Get FOL instantaneous acceleration at normalizedAge
       vec3 getFOLAcceleration(Attributes attributes, float normalizedAge) {
@@ -109,13 +122,35 @@ Shader "Effect/ParticleFeedback" {
           float normalizedAge = simulationAge / lifetime;
           float previousNormalizedAge = previousAge / lifetime;
           vec3 inheritedVelocityWorld = vec3(0.0);
+          vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
+
+          #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+              if (isSubEmitterParticle(attr)) {
+                  simulationWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+              }
+          #endif
 
           #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
-              vec3 unusedInheritedVelocityWorld;
+              vec3 inheritVelocitySource = attr.a_InheritVelocity.xyz;
+              #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+                  if (isSubEmitterParticle(attr)) {
+                      inheritVelocitySource = attr.a_SubEmitterWorldVelocity;
+                  }
+              #endif
               vec3 inheritedPositionOffsetWorld =
-                  computeInitialInheritVelocityPositionOffset(attr, normalizedAge, unusedInheritedVelocityWorld);
+                  computeInitialInheritVelocityPositionOffsetFromSource(
+                      attr,
+                      inheritVelocitySource,
+                      normalizedAge,
+                      inheritedVelocityWorld
+                  );
               vec3 previousInheritedPositionOffsetWorld =
-                  computeInitialInheritVelocityPositionOffset(attr, previousNormalizedAge, unusedInheritedVelocityWorld);
+                  computeInitialInheritVelocityPositionOffsetFromSource(
+                      attr,
+                      inheritVelocitySource,
+                      previousNormalizedAge,
+                      inheritedVelocityWorld
+                  );
               // Use the interval average so linear integration reproduces the exact Initial displacement
               inheritedVelocityWorld =
                   (inheritedPositionOffsetWorld - previousInheritedPositionOffsetWorld) / dt;
@@ -212,7 +247,7 @@ Shader "Effect/ParticleFeedback" {
               } else {
                   noiseBasePos = rotationByQuaternions(
                       attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge,
-                      worldRotation) + attr.a_SimulationWorldPosition;
+                      worldRotation) + simulationWorldPosition;
               }
               baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
@@ -223,7 +258,11 @@ Shader "Effect/ParticleFeedback" {
           } else {
               totalLinearVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
           }
-          totalLinearVelocity += inheritedVelocityWorld;
+          if (renderer_SimulationSpace == 0) {
+              totalLinearVelocity += rotationByQuaternions(inheritedVelocityWorld, invWorldRotation);
+          } else {
+              totalLinearVelocity += inheritedVelocityWorld;
+          }
 
           #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
           {
@@ -231,7 +270,7 @@ Shader "Effect/ParticleFeedback" {
               if (renderer_SimulationSpace == 0) {
                   rel = position - renderer_VOLOffset;
               } else {
-                  rel = rotationByQuaternions(position - attr.a_SimulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
+                  rel = rotationByQuaternions(position - simulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
               }
 
               #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
@@ -248,7 +287,7 @@ Shader "Effect/ParticleFeedback" {
               if (renderer_SimulationSpace == 0) {
                   position = renderer_VOLOffset + rel;
               } else {
-                  position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
+                  position = simulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
               }
           }
           #endif
@@ -264,33 +303,68 @@ Shader "Effect/ParticleFeedback" {
               vec3 previousWorldPosition = attr.a_FeedbackWorldPosition;
           #endif
 
-          bool isNewParticle =
-              renderer_FirstNewParticle != renderer_FirstFreeParticle &&
+          bool isNewParticle = renderer_FirstNewParticle != renderer_FirstFreeParticle &&
               (renderer_FirstNewParticle < renderer_FirstFreeParticle
                   ? gl_VertexID >= renderer_FirstNewParticle && gl_VertexID < renderer_FirstFreeParticle
                   : gl_VertexID >= renderer_FirstNewParticle || gl_VertexID < renderer_FirstFreeParticle);
           if (isNewParticle) {
               position = attr.a_ShapePositionStartLifeTime.xyz;
               localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
-              if (renderer_SimulationSpace != 0) {
-                  position =
-                      rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
-                      attr.a_SimulationWorldPosition;
-              }
-              #ifdef RENDERER_TRAJECTORY_FEEDBACK
-                  previousWorldPosition = position;
-                  if (renderer_SimulationSpace == 0) {
-                      previousWorldPosition =
-                          rotationByQuaternions(position, renderer_WorldRotation) +
-                          renderer_WorldPosition;
+              #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+                  if (isSubEmitterParticle(attr)) {
+                      vec3 parentWorldVelocity = attr.a_SubEmitterWorldVelocity;
+                      vec3 parentWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+                      vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
+                      if (renderer_SimulationSpace == 0) {
+                          position += rotationByQuaternions(
+                              parentWorldPosition - attr.a_SimulationWorldPosition,
+                              invSimulationWorldRotation
+                          );
+                      } else {
+                          position =
+                              rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                              parentWorldPosition;
+                      }
+                      if (attr.a_InheritVelocity.y < 0.0) {
+                          vec3 parentLocalVelocity = rotationByQuaternions(
+                              parentWorldVelocity,
+                              invSimulationWorldRotation
+                          );
+                          float parentSpeed = length(parentLocalVelocity);
+                          localVelocity = parentSpeed > EPSILON
+                              ? parentLocalVelocity * (attr.a_StartSpeed / parentSpeed)
+                              : vec3(0.0, 0.0, -attr.a_StartSpeed);
+                      }
+                      #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+                          localVelocity += rotationByQuaternions(
+                              parentWorldVelocity * attr.a_InheritVelocity.x,
+                              invSimulationWorldRotation
+                          );
+                      #endif
+                  } else if (renderer_SimulationSpace != 0) {
+                      position =
+                          rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                          attr.a_SimulationWorldPosition;
+                  }
+              #else
+                  if (renderer_SimulationSpace != 0) {
+                      position =
+                          rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                          attr.a_SimulationWorldPosition;
                   }
               #endif
           }
 
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              if (isNewParticle || renderer_ResetTrajectory != 0) {
+                  previousWorldPosition = getParticleWorldPosition(position);
+              }
+          #endif
+
           float lifetime = attr.a_ShapePositionStartLifeTime.w;
           float age = renderer_CurrentTime - attr.a_DirectionTime.w;
           float simulationAge = min(age, lifetime);
-          // Existing particles consume this frame's delta; new delayed events catch up from birth
+          // Existing particles consume this frame's delta; new particles simulate from their emission time
           float previousAge = isNewParticle ? 0.0 : max(age - renderer_DeltaTime, 0.0);
           float simulationDuration = max(simulationAge - previousAge, 0.0);
           if (simulationDuration <= 0.0) {
@@ -312,51 +386,21 @@ Shader "Effect/ParticleFeedback" {
           }
           vec4 invWorldRotation = quaternionConjugate(worldRotation);
 
-          if (isNewParticle && simulationDuration - renderer_DeltaTime > EPSILON) {
-              // Normal stalls use one step per missed frame; pathological stalls are bounded to keep GPU work finite
-              float timeStep = max(
-                  renderer_DeltaTime,
-                  simulationDuration / float(MAX_NEW_PARTICLE_CATCH_UP_STEPS)
-              );
-              for (int i = 0; i < MAX_NEW_PARTICLE_CATCH_UP_STEPS; i++) {
-                  float nextAge = i == MAX_NEW_PARTICLE_CATCH_UP_STEPS - 1
-                      ? simulationAge
-                      : min(previousAge + timeStep, simulationAge);
-                  simulateParticleStep(
-                      attr,
-                      previousAge,
-                      nextAge,
-                      lifetime,
-                      worldRotation,
-                      invWorldRotation,
-                      position,
-                      localVelocity
-                  );
-                  previousAge = nextAge;
-                  if (previousAge >= simulationAge) {
-                      break;
-                  }
-              }
-          } else {
-              simulateParticleStep(
-                  attr,
-                  previousAge,
-                  simulationAge,
-                  lifetime,
-                  worldRotation,
-                  invWorldRotation,
-                  position,
-                  localVelocity
-              );
-          }
+          simulateParticleStep(
+              attr,
+              previousAge,
+              simulationAge,
+              lifetime,
+              worldRotation,
+              invWorldRotation,
+              position,
+              localVelocity
+          );
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
           #ifdef RENDERER_TRAJECTORY_FEEDBACK
-              vec3 worldPosition = position;
-              if (renderer_SimulationSpace == 0) {
-                  worldPosition = rotationByQuaternions(position, renderer_WorldRotation) + renderer_WorldPosition;
-              }
+              vec3 worldPosition = getParticleWorldPosition(position);
               v.v_FeedbackWorldPosition = worldPosition;
               v.v_FeedbackTrajectoryVelocity = (worldPosition - previousWorldPosition) / simulationDuration;
           #endif
@@ -368,5 +412,35 @@ Shader "Effect/ParticleFeedback" {
           discard;
       }
     }
+
+    Pass "SubEmitterTrajectoryGather" {
+      Tags { pipelineStage = "TransformFeedback" }
+
+      VertexShader = gatherTrajectory;
+      FragmentShader = gatherTrajectoryFrag;
+
+      struct Attributes {
+          vec3 a_FeedbackWorldPosition;
+          vec3 a_FeedbackTrajectoryVelocity;
+      };
+
+      struct Varyings {
+          vec3 v_SubEmitterWorldPosition;
+          vec3 v_SubEmitterWorldVelocity;
+      };
+
+      Varyings gatherTrajectory(Attributes attr) {
+          Varyings v;
+          v.v_SubEmitterWorldPosition = attr.a_FeedbackWorldPosition;
+          v.v_SubEmitterWorldVelocity = attr.a_FeedbackTrajectoryVelocity;
+          gl_Position = vec4(0.0);
+          return v;
+      }
+
+      void gatherTrajectoryFrag(Varyings v) {
+          discard;
+      }
+    }
+
   }
 }

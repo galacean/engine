@@ -1,31 +1,31 @@
+import type { IPlatformShaderProgram } from "@galacean/engine-design";
+import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import type { VertexElement } from "../graphic/VertexElement";
+
 /**
  * Platform interface for Transform Feedback primitive operations.
  * @internal
  */
 export interface IPlatformTransformFeedbackPrimitive {
   /**
-   * Update vertex layout. Auto-rebuilds when program changes.
+   * Bind the read layout, rebuilding cached state when its inputs change.
    * @param program - Shader program (for attribute locations)
-   * @param readBinding - Current read buffer binding
-   * @param writeBinding - Current write buffer binding
+   * @param bindingA - First feedback buffer binding
+   * @param bindingB - Second feedback buffer binding
    * @param feedbackElements - Vertex elements for feedback buffer
-   * @param inputBinding - Input buffer binding
-   * @param inputElements - Vertex elements for input buffer
-   */
-  updateVertexLayout(
-    program: any,
-    readBinding: any,
-    writeBinding: any,
-    feedbackElements: any[],
-    inputBinding: any,
-    inputElements: any[]
-  ): void;
-
-  /**
-   * Bind attribute state for the given read direction.
+   * @param inputBindings - Input buffer bindings
+   * @param inputElements - Vertex elements for input buffers
    * @param readIsA - Whether to use direction A as read
    */
-  bind(readIsA: boolean): void;
+  bind(
+    program: IPlatformShaderProgram,
+    bindingA: VertexBufferBinding,
+    bindingB: VertexBufferBinding,
+    feedbackElements: VertexElement[],
+    inputBindings: VertexBufferBinding[],
+    inputElements: VertexElement[],
+    readIsA: boolean
+  ): void;
 
   /**
    * Unbind attribute state.
@@ -41,7 +41,7 @@ export interface IPlatformTransformFeedbackPrimitive {
   draw(mode: number, first: number, count: number): void;
 
   /**
-   * Invalidate cached state, forcing rebuild on next updateVertexLayout.
+   * Invalidate cached state, forcing rebuild on next bind.
    */
   invalidate(): void;
 

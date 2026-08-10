@@ -1,11 +1,10 @@
 import { DataObject } from "../../base/DataObject";
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { TransformModifyFlags } from "../../Transform";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
-import { ShaderData } from "../../shader/ShaderData";
+import type { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { ParticleGenerator } from "../ParticleGenerator";
+import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleScaleMode } from "../enums/ParticleScaleMode";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
@@ -13,8 +12,7 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
 export class MainModule extends DataObject implements ICloneHook<MainModule> {
-  private _tempVector40 = new Vector4();
-  private static _vector3One = new Vector3(1, 1, 1);
+  private static readonly _vector3One = new Vector3(1, 1, 1);
 
   private static readonly _positionScale = ShaderProperty.getByName("renderer_PositionScale");
   private static readonly _sizeScale = ShaderProperty.getByName("renderer_SizeScale");
@@ -46,7 +44,6 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
 
   /** The mode of start color */
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
-  /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
   /** Override the default playback speed of the Particle Generator. */
   simulationSpeed = 1.0;
   /** Control how the Particle Generator applies its Transform component to the particles it emits. */
@@ -74,10 +71,12 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   /** @internal */
   @ignoreClone
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
-
+  /** @internal */
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
+  @ignoreClone
+  private readonly _worldRotationValue = new Vector4();
   private _startLifetime: ParticleCompositeCurve;
   private _startSpeed: ParticleCompositeCurve;
   private _startSize3D = false;
@@ -205,7 +204,8 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
       this._simulationSpace = value;
 
       const generator = this._generator;
-      generator._renderer._onTransformChanged(TransformModifyFlags.WorldMatrix);
+      generator._renderer._onTransformChanged();
+      generator.inheritVelocity._resyncEmitterVelocity();
       generator._setTransformFeedback();
       generator._releaseEmissionBoundsRecords();
     }
@@ -219,7 +219,11 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   }
 
   set maxParticles(value: number) {
-    this._maxParticleBuffer = value + 1;
+    const bufferCapacity = value + 1;
+    if (bufferCapacity !== this._maxParticleBuffer) {
+      this._maxParticleBuffer = bufferCapacity;
+      this._generator._markParticleCapacityDirty();
+    }
   }
 
   /**
@@ -252,11 +256,13 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
    * @internal
    */
   _resetRandomSeed(randomSeed: number): void {
+    this._startDelayRand.reset(randomSeed, ParticleRandomSubSeeds.StartDelay);
     this._startSpeedRand.reset(randomSeed, ParticleRandomSubSeeds.StartSpeed);
     this._startLifeTimeRand.reset(randomSeed, ParticleRandomSubSeeds.StartLifetime);
     this._startColorRand.reset(randomSeed, ParticleRandomSubSeeds.StartColor);
     this._startSizeRand.reset(randomSeed, ParticleRandomSubSeeds.StartSize);
     this._startRotationRand.reset(randomSeed, ParticleRandomSubSeeds.StartRotation);
+    this._gravityModifierRand.reset(randomSeed, ParticleRandomSubSeeds.GravityModifier);
   }
 
   /**
@@ -281,12 +287,15 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
     const transform = renderer.entity.transform;
 
     switch (this.simulationSpace) {
-      case ParticleSimulationSpace.Local:
+      case ParticleSimulationSpace.Local: {
         shaderData.setVector3(MainModule._worldPosition, transform.worldPosition);
-        const worldRotation = transform.worldRotationQuaternion;
-        const worldRotationV4 = this._tempVector40.copyFrom(worldRotation); // Maybe shaderData should support Quaternion
-        shaderData.setVector4(MainModule._worldRotation, worldRotationV4);
+        // Maybe ShaderData should support Quaternion
+        shaderData.setVector4(
+          MainModule._worldRotation,
+          this._worldRotationValue.copyFrom(transform.worldRotationQuaternion)
+        );
         break;
+      }
       case ParticleSimulationSpace.World:
         break;
       default:
@@ -294,16 +303,18 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
     }
 
     switch (this.scalingMode) {
-      case ParticleScaleMode.World:
-        var scale = transform.lossyWorldScale;
+      case ParticleScaleMode.World: {
+        const scale = transform.lossyWorldScale;
         shaderData.setVector3(MainModule._positionScale, scale);
         shaderData.setVector3(MainModule._sizeScale, scale);
         break;
-      case ParticleScaleMode.Local:
-        var scale = transform.scale;
+      }
+      case ParticleScaleMode.Local: {
+        const scale = transform.scale;
         shaderData.setVector3(MainModule._positionScale, scale);
         shaderData.setVector3(MainModule._sizeScale, scale);
         break;
+      }
       case ParticleScaleMode.Shape:
         shaderData.setVector3(MainModule._positionScale, transform.lossyWorldScale);
         shaderData.setVector3(MainModule._sizeScale, MainModule._vector3One);

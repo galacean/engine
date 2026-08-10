@@ -78,7 +78,7 @@ export class ShaderPool {
     ];
 
     for (const source of sources) {
-      // @ts-ignore — `_createFromPrecompiled` is `Shader` @internal.
+      // @ts-expect-error `_createFromPrecompiled` is `Shader` @internal
       Shader._createFromPrecompiled(source);
     }
   }

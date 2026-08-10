@@ -88,6 +88,21 @@ describe("VelocityOverLifetimeModule", function () {
     expect(() => generator._updateShaderData(particleRenderer.shaderData)).to.not.throw();
   });
 
+  it("inactive random orbital curves do not consume particle random data", function () {
+    if (!isWebGL2) return;
+
+    const vol = particleRenderer.generator.velocityOverLifetime;
+    vol.enabled = true;
+    vol.radial = new ParticleCompositeCurve(1);
+    vol.orbitalX.mode = ParticleCurveMode.TwoConstants;
+    vol.orbitalY.mode = ParticleCurveMode.TwoConstants;
+    vol.orbitalZ.mode = ParticleCurveMode.TwoConstants;
+
+    expect(vol._isOrbitalActive()).to.eq(false);
+    expect(vol._isRadialActive()).to.eq(true);
+    expect(vol._isRandomMode()).to.eq(false);
+  });
+
   it("orbital/radial pull in transform feedback when active", function () {
     const generator = particleRenderer.generator;
     const vol = generator.velocityOverLifetime;
@@ -101,6 +116,7 @@ describe("VelocityOverLifetimeModule", function () {
     expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
 
     vol.orbitalY = new ParticleCompositeCurve(0);
+    expect(generator._feedbackSimulator).to.not.exist;
     vol.radial = new ParticleCompositeCurve(1);
     expect(vol._needTransformFeedback()).to.eq(isWebGL2);
     expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
@@ -108,6 +124,7 @@ describe("VelocityOverLifetimeModule", function () {
     vol.radial = new ParticleCompositeCurve(0);
     expect(vol._needTransformFeedback()).to.eq(false);
     expect((generator as any)._useTransformFeedback).to.eq(false);
+    expect(generator._feedbackSimulator).to.not.exist;
   });
 
   it("integrates linear velocity after orbital displacement", function () {
@@ -132,7 +149,7 @@ describe("VelocityOverLifetimeModule", function () {
 
       const particleIndex = generator._firstFreeElement;
       generator.emit(1);
-      testRenderer._updateParticles(deltaTime);
+      generator._update(deltaTime);
       (engine as any)._hardwareRenderer._gl.finish();
 
       const result = new Float32Array(6);

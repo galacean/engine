@@ -171,7 +171,6 @@ export class ResourceManager {
   gc(): void {
     this._gc(false);
     this.engine._renderTargetPool.gc();
-    this.engine._bufferReadbackPool.gc();
     this.engine._pendingGC();
   }
 

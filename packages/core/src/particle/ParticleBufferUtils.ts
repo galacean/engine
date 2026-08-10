@@ -1,4 +1,4 @@
-import { Engine } from "../Engine";
+import type { Engine } from "../Engine";
 import { ContentRestorer } from "../asset/ContentRestorer";
 import { Buffer } from "../graphic/Buffer";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
@@ -26,8 +26,19 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 0),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 0),
     new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 0),
-    // xyz: Initial-mode source velocity; w: per-particle curve random
+    // Direct Initial uses xyz source velocity; sub-emission uses x factor, y direction, z time offset, and negative w marker
     new VertexElement(ParticleInstanceVertexAttribute.InheritVelocity, 168, VertexElementFormat.Vector4, 0)
+  ];
+
+  static readonly feedbackInitialSubEmitterDataVertexElements = [
+    ...ParticleBufferUtils.feedbackInitialDataVertexElements,
+    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldPosition, 0, VertexElementFormat.Vector3, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldVelocity, 12, VertexElementFormat.Vector3, 1)
+  ];
+
+  static readonly renderSubEmitterStateVertexElements = [
+    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldPosition, 0, VertexElementFormat.Vector3, 0, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.SubEmitterWorldVelocity, 12, VertexElementFormat.Vector3, 0, 1)
   ];
 
   static readonly feedbackStateVertexElements = [
@@ -65,6 +76,7 @@ export class ParticleBufferUtils {
 
   static readonly feedbackStateVertexStride = 24;
   static readonly feedbackTrajectoryStateVertexStride = 48;
+  static readonly subEmitterStateVertexStride = 24;
   static readonly instanceVertexStride = 184;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
@@ -81,13 +93,33 @@ export class ParticleBufferUtils {
   static readonly boundsFloatStride = 16;
   static readonly boundsTimeOffset = 6;
   static readonly boundsMaxLifetimeOffset = 7;
-  static readonly boundsCurrentDisplacementOffset = 8;
-  static readonly boundsCurrentReachOffset = 11;
+  static readonly boundsCurrentAxisReachOffset = 8;
+  static readonly boundsCurrentPathReachOffset = 11;
   static readonly boundsInitialDisplacementOffset = 12;
   static readonly boundsInitialFactorOffset = 15;
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
+
+  static createSubEmitterGatherSourceVertexElements(): VertexElement[] {
+    const bytesPerFloat = Float32Array.BYTES_PER_ELEMENT;
+    return [
+      new VertexElement(
+        ParticleFeedbackVertexAttribute.WorldPosition,
+        ParticleBufferUtils.feedbackWorldPositionOffset * bytesPerFloat,
+        VertexElementFormat.Vector3,
+        0,
+        1
+      ),
+      new VertexElement(
+        ParticleFeedbackVertexAttribute.TrajectoryVelocity,
+        ParticleBufferUtils.feedbackTrajectoryVelocityOffset * bytesPerFloat,
+        VertexElementFormat.Vector3,
+        0,
+        1
+      )
+    ];
+  }
 
   constructor(engine: Engine) {
     const stride = 16;
@@ -137,7 +169,7 @@ export class ParticleBufferUtils {
           super(indexBuffer);
         }
         restoreContent() {
-          indexData;
+          indexBuffer.setData(indexData);
         }
       })()
     );

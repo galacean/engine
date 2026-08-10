@@ -1,6 +1,7 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../../clone/CloneDecorators";
-import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
+import { ShaderMacro, ShaderProperty } from "../../shader";
+import type { ShaderData } from "../../shader";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleInheritVelocityMode } from "../enums/ParticleInheritVelocityMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -30,9 +31,9 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   private _mode = ParticleInheritVelocityMode.Initial;
   private _curve: ParticleCompositeCurve;
   @ignoreClone
-  private _emitterVelocity = new Vector3();
+  private readonly _emitterVelocity = new Vector3();
   @ignoreClone
-  private _previousWorldPosition = new Vector3();
+  private readonly _previousWorldPosition = new Vector3();
   @ignoreClone
   private _hasPreviousWorldPosition = false;
   @ignoreClone
@@ -101,12 +102,16 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateEmitterVelocity(elapsedTime: number): void {
-    if (!this._usesEmitterVelocity()) {
-      if (this._hasPreviousWorldPosition) this._resyncEmitterVelocity();
+    const renderer = this._generator._renderer;
+    if (
+      this._generator.main.simulationSpace !== ParticleSimulationSpace.World ||
+      (this._mode !== ParticleInheritVelocityMode.Initial && !renderer.engine._hardwareRenderer.isWebGL2)
+    ) {
+      this._resyncEmitterVelocity();
       return;
     }
 
-    const worldPosition = this._generator._renderer.entity.transform.worldPosition;
+    const worldPosition = renderer.entity.transform.worldPosition;
     if (this._hasPreviousWorldPosition && elapsedTime > MathUtil.zeroTolerance) {
       const previous = this._previousWorldPosition;
       this._emitterVelocity.set(
@@ -134,23 +139,19 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _getInitialVelocity(out: Vector3, emitterVelocityOverride: Vector3 | undefined): boolean {
+  _getInitialVelocity(out: Vector3): boolean {
     if (!this._enabled || this._mode !== ParticleInheritVelocityMode.Initial) {
       out.set(0, 0, 0);
       return false;
     }
 
     const curve = this.curve;
-    // Local sub-emitters can apply a parent velocity at birth, while lifetime curves require world-space simulation
-    if (
-      this._generator.main.simulationSpace !== ParticleSimulationSpace.World &&
-      (emitterVelocityOverride === undefined || curve._isCurveMode())
-    ) {
+    if (this._generator.main.simulationSpace !== ParticleSimulationSpace.World) {
       out.set(0, 0, 0);
       return false;
     }
 
-    const velocity = emitterVelocityOverride ?? this._emitterVelocity;
+    const velocity = this._emitterVelocity;
     if (curve._isCurveMode()) {
       out.copyFrom(velocity);
       return velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0;
@@ -159,6 +160,16 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
     const factor = curve.evaluate(undefined, this._curveRand.random());
     out.set(velocity.x * factor, velocity.y * factor, velocity.z * factor);
     return factor !== 0 && (velocity.x !== 0 || velocity.y !== 0 || velocity.z !== 0);
+  }
+
+  /**
+   * @internal
+   */
+  _getTrajectoryInitialFactor(): number {
+    if (!this._enabled || this._mode !== ParticleInheritVelocityMode.Initial || this.curve._isCurveMode()) {
+      return 0;
+    }
+    return this.curve.evaluate(undefined, this._curveRand.random());
   }
 
   /**
@@ -180,13 +191,13 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _updateShaderData(shaderData: ShaderData): void {
+  _updateShaderData(shaderData: ShaderData, hasSubEmitterParticles: boolean): void {
     let applicationMacro: ShaderMacro = null;
     let curveMacro: ShaderMacro = null;
     let randomMacro: ShaderMacro = null;
 
     const usesCurrentVelocity = this._needTransformFeedback();
-    if (usesCurrentVelocity || this._usesInitialCurve()) {
+    if (usesCurrentVelocity || this._usesInitialCurve(hasSubEmitterParticles)) {
       const curve = this.curve;
       applicationMacro = usesCurrentVelocity
         ? InheritVelocityModule._currentMacro
@@ -231,20 +242,13 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _usesInitialCurve(): boolean {
+  _usesInitialCurve(isSubEmitter: boolean): boolean {
     return (
       this._enabled &&
       this._mode === ParticleInheritVelocityMode.Initial &&
-      this._generator.main.simulationSpace === ParticleSimulationSpace.World &&
-      this.curve._isCurveMode()
+      this.curve._isCurveMode() &&
+      (isSubEmitter || this._generator.main.simulationSpace === ParticleSimulationSpace.World)
     );
-  }
-
-  /**
-   * @internal
-   */
-  _needsShaderRandom(): boolean {
-    return (this._needTransformFeedback() || this._usesInitialCurve()) && this.curve._isRandomMode();
   }
 
   /**
@@ -252,14 +256,5 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._curveRand.reset(seed, ParticleRandomSubSeeds.InheritVelocity);
-  }
-
-  private _usesEmitterVelocity(): boolean {
-    return (
-      this._enabled &&
-      this._generator.main.simulationSpace === ParticleSimulationSpace.World &&
-      (this._mode === ParticleInheritVelocityMode.Initial ||
-        this._generator._renderer.engine._hardwareRenderer.isWebGL2)
-    );
   }
 }

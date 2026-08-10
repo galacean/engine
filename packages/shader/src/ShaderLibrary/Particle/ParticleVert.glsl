@@ -83,11 +83,16 @@ struct Attributes {
         vec3 a_FeedbackVelocity;
     #endif
 
+    #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+        vec3 a_SubEmitterWorldPosition;
+        vec3 a_SubEmitterWorldVelocity;
+    #endif
+
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 a_SimulationUV;
     #endif
 
-    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM)
+    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_SUB_EMITTER_TRAJECTORY)
         vec4 a_InheritVelocity;
     #endif
 };
@@ -113,7 +118,7 @@ struct Varyings {
 #include "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
 #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
 
-vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
+vec3 computeParticlePosition(Attributes attributes, in vec3 initialPosition, in vec3 simulationWorldPosition, in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = startVelocity * age;
     vec3 finalPosition;
     vec3 localPositionOffset = startPosition;
@@ -144,17 +149,28 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in fl
     #endif
 
     #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+        vec3 inheritVelocitySource = attributes.a_InheritVelocity.xyz;
+        #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+            if (isSubEmitterParticle(attributes)) {
+                inheritVelocitySource = attributes.a_SubEmitterWorldVelocity;
+            }
+        #endif
         vec3 inheritedVelocity;
-        worldPositionOffset += computeInitialInheritVelocityPositionOffset(attributes, normalizedAge, inheritedVelocity);
+        worldPositionOffset += computeInitialInheritVelocityPositionOffsetFromSource(
+            attributes,
+            inheritVelocitySource,
+            normalizedAge,
+            inheritedVelocity
+        );
         worldVelocity += inheritedVelocity;
     #endif
 
-    finalPosition = rotationByQuaternions(attributes.a_ShapePositionStartLifeTime.xyz + localPositionOffset, worldRotation) + worldPositionOffset;
+    finalPosition = rotationByQuaternions(initialPosition + localPositionOffset, worldRotation) + worldPositionOffset;
 
     if (renderer_SimulationSpace == 0) {
         finalPosition = finalPosition + renderer_WorldPosition;
     } else if (renderer_SimulationSpace == 1) {
-        finalPosition = finalPosition + attributes.a_SimulationWorldPosition;
+        finalPosition = finalPosition + simulationWorldPosition;
     }
 
     finalPosition += 0.5 * gravityVelocity * age;
@@ -166,6 +182,9 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in fl
 // billboard / mesh placement, and 3D rotation. Writes v.v_MeshColor when
 // running in mesh mode with vertex color enabled.
 vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inout Varyings v) {
+    #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+        bool isSubEmitter = isSubEmitterParticle(attr);
+    #endif
     vec4 worldRotation;
     if (renderer_SimulationSpace == 0) {
         worldRotation = renderer_WorldRotation;
@@ -198,13 +217,19 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
                 vec4 invWorldRotation = quaternionConjugate(worldRotation);
+                vec3 orbitalWorldOrigin = attr.a_SimulationWorldPosition;
+                #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+                    if (isSubEmitter) {
+                        orbitalWorldOrigin = getSubEmitterEmissionWorldPosition(attr);
+                    }
+                #endif
 
                 vec3 rel;
                 if (renderer_SimulationSpace == 0) {
                     rel = attr.a_FeedbackPosition - renderer_VOLOffset;
                 } else {
                     rel = rotationByQuaternions(
-                        attr.a_FeedbackPosition - attr.a_SimulationWorldPosition,
+                        attr.a_FeedbackPosition - orbitalWorldOrigin,
                         invWorldRotation) - renderer_VOLOffset;
                 }
 
@@ -233,16 +258,54 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             #endif
 
             #ifdef _INHERIT_VELOCITY_MODULE_ENABLED
-                visualWorldVelocity += evaluateInheritVelocity(attr, normalizedAge);
+                #if defined(RENDERER_SUB_EMITTER_TRAJECTORY) && defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE)
+                    vec3 inheritVelocitySource = isSubEmitter
+                        ? attr.a_SubEmitterWorldVelocity
+                        : attr.a_InheritVelocity.xyz;
+                    visualWorldVelocity += evaluateInheritVelocityFromSource(attr, inheritVelocitySource, normalizedAge);
+                #else
+                    visualWorldVelocity += evaluateInheritVelocity(attr, normalizedAge);
+                #endif
             #endif
         #endif
     #else
+        vec3 initialPosition = attr.a_ShapePositionStartLifeTime.xyz;
+        vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
         vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+        #ifdef RENDERER_SUB_EMITTER_TRAJECTORY
+            if (isSubEmitter) {
+                vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
+                vec3 parentLocalVelocity = rotationByQuaternions(
+                    attr.a_SubEmitterWorldVelocity,
+                    invSimulationWorldRotation
+                );
+                if (attr.a_InheritVelocity.y < 0.0) {
+                    float parentSpeed = length(parentLocalVelocity);
+                    startVelocity = parentSpeed > EPSILON
+                        ? parentLocalVelocity * (attr.a_StartSpeed / parentSpeed)
+                        : vec3(0.0, 0.0, -attr.a_StartSpeed);
+                }
+                #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+                    startVelocity += parentLocalVelocity * attr.a_InheritVelocity.x;
+                #endif
+
+                if (renderer_SimulationSpace == 0) {
+                    initialPosition += rotationByQuaternions(
+                        getSubEmitterEmissionWorldPosition(attr) - attr.a_SimulationWorldPosition,
+                        invSimulationWorldRotation
+                    );
+                } else {
+                    simulationWorldPosition = getSubEmitterEmissionWorldPosition(attr);
+                }
+            }
+        #endif
         vec3 gravityVelocity = renderer_Gravity * attr.a_Random0.x * age;
         visualLocalVelocity = startVelocity;
         visualWorldVelocity = gravityVelocity;
         vec3 center = computeParticlePosition(
             attr,
+            initialPosition,
+            simulationWorldPosition,
             startVelocity,
             age,
             normalizedAge,

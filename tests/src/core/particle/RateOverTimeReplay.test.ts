@@ -159,6 +159,20 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     entity.destroy();
   });
 
+  it("does not scale ordinary boundary tolerance beyond one second", () => {
+    const { entity, renderer } = buildEmitter(engine, "rate-long-interval-boundary");
+    const generator = renderer.generator;
+    const emission = generator.emission;
+    emission.rateOverTime.constant = 0.5;
+    emission._resyncCursors(0);
+
+    const emit = vi.spyOn(generator, "_emit");
+    emission._emit(0, 2 - MathUtil.zeroTolerance * 1.5);
+
+    expect(emit).not.toHaveBeenCalled();
+    entity.destroy();
+  });
+
   it("emits looped bursts only after their cycle time is reached", () => {
     const { entity, renderer } = buildEmitter(engine, "looped-burst-boundary");
     const generator = renderer.generator;

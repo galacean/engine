@@ -1,4 +1,5 @@
 import {
+  BoundingBox,
   Burst,
   Camera,
   Color,
@@ -16,7 +17,7 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 function tick(engine: Engine, time: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -130,6 +131,43 @@ describe("InheritVelocityModule", () => {
     expect(bounds.min.x).to.be.lessThanOrEqual(100);
     expect(bounds.max.x).to.be.greaterThanOrEqual(100);
 
+    renderer.entity.destroy();
+  });
+
+  it("clears historical emission bounds when the last particle expires", () => {
+    const renderer = createParticleRenderer(engine, "expired-world-emission-bounds");
+    const generator = renderer.generator;
+    generator.inheritVelocity.enabled = false;
+    generator.main.startLifetime.constant = 0.1;
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator._emit(generator._playTime, 1, new Vector3(100, 0, 0));
+
+    expect(renderer.bounds.max.x).to.be.greaterThan(100);
+    tick(engine, time);
+
+    expect(generator.isAlive).to.equal(false);
+    expect(renderer.bounds.max.x).to.be.lessThan(10);
+
+    renderer.entity.destroy();
+  });
+
+  it("keeps baked Initial velocity bounds separate from same-frame fixed bounds", () => {
+    const renderer = createParticleRenderer(engine, "mixed-initial-velocity-bounds");
+    const generator = renderer.generator as any;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    generator._recordWorldEmissionBounds(generator._playTime, undefined, new Vector3(5, 0, 0), false);
+    generator._recordFixedEmissionBounds(
+      generator._playTime,
+      1,
+      new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1))
+    );
+    generator._isPlaying = true;
+
+    expect(generator._firstFreeEmissionBounds).to.equal(2);
+    expect(renderer.bounds.max.x).to.be.greaterThan(5);
     renderer.entity.destroy();
   });
 
@@ -353,6 +391,47 @@ describe("InheritVelocityModule", () => {
     renderer.entity.destroy();
   });
 
+  it("does not preserve Initial Curve bounds before the first emission", () => {
+    const renderer = createParticleRenderer(engine, "initial-inherit-velocity-empty-bounds");
+    const generator = renderer.generator;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    generator.emission.clearBurst();
+    generator.emission.rateOverTime.constant = 0;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    expect(() => renderer.bounds).not.toThrow();
+    expect((generator as any)._emissionBoundsRecords).to.equal(null);
+
+    renderer.entity.destroy();
+  });
+
+  it("does not sample Initial curves for independently emitted Local particles", () => {
+    const renderer = createParticleRenderer(engine, "local-inherit-velocity-curve");
+    const generator = renderer.generator;
+    generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+    generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)),
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 0))
+    );
+    generator.emission.clearBurst();
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    const random = vi.spyOn((generator.inheritVelocity as any)._curveRand, "random");
+    generator.emit(1);
+
+    expect(random).not.toHaveBeenCalled();
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    expect(Array.from(vertices.subarray(42, 46))).to.deep.equal([0, 0, 0, 0]);
+
+    random.mockRestore();
+    renderer.entity.destroy();
+  });
+
   it("Initial Curve remains available on WebGL1", async () => {
     const webgl1Engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
@@ -463,6 +542,27 @@ describe("InheritVelocityModule", () => {
 
     tick(engine, time);
     expect(getFeedbackPositionX(renderer)).to.be.closeTo(1, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
+  it("resets emitter velocity when switching simulation space", () => {
+    const renderer = createParticleRenderer(engine, "inherit-velocity-space-reset");
+    const generator = renderer.generator;
+    const inheritVelocity = generator.inheritVelocity as any;
+    generator.inheritVelocity.enabled = true;
+    generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
+
+    inheritVelocity._updateEmitterVelocity(1);
+    renderer.entity.transform.setPosition(1, 0, 0);
+    inheritVelocity._updateEmitterVelocity(1);
+    expect(inheritVelocity._emitterVelocity.x).to.equal(1);
+
+    generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    renderer.entity.transform.setPosition(2, 0, 0);
+    inheritVelocity._updateEmitterVelocity(1);
+    expect(inheritVelocity._emitterVelocity.x).to.equal(0);
 
     renderer.entity.destroy();
   });

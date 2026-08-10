@@ -1,15 +1,16 @@
-import { Engine } from "../Engine";
-import { Buffer } from "../graphic/Buffer";
+import type { Engine } from "../Engine";
+import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
+import type { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import type { VertexElement } from "../graphic/VertexElement";
 import { Shader } from "../shader/Shader";
-import { ShaderData } from "../shader/ShaderData";
+import type { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
 const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
+const FEEDBACK_PASS_NAME = "TransformFeedback";
 
 /**
  * @internal
@@ -17,6 +18,7 @@ const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
  */
 export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
+  private static readonly _resetTrajectoryProperty = ShaderProperty.getByName("renderer_ResetTrajectory");
   private static readonly _firstNewParticleProperty = ShaderProperty.getByName("renderer_FirstNewParticle");
   private static readonly _firstFreeParticleProperty = ShaderProperty.getByName("renderer_FirstFreeParticle");
   private static readonly _stateVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
@@ -25,13 +27,10 @@ export class ParticleTransformFeedbackSimulator {
     "v_FeedbackWorldPosition",
     "v_FeedbackTrajectoryVelocity"
   ];
+  private static readonly _inputBindings: VertexBufferBinding[] = [];
 
-  readonly vertexStride: number;
-
-  private _simulator: TransformFeedbackSimulator;
-  private _feedbackStateVertexElements: VertexElement[];
-  private _oldReadBuffer: Buffer;
-  private _oldWriteBuffer: Buffer;
+  private readonly _simulator: TransformFeedbackSimulator;
+  private readonly _feedbackStateVertexElements: VertexElement[];
 
   /**
    * The current read buffer binding for the render pass.
@@ -40,7 +39,12 @@ export class ParticleTransformFeedbackSimulator {
     return this._simulator.readBinding;
   }
 
-  constructor(engine: Engine, trajectoryEnabled: boolean) {
+  /**
+   * @param engine - Engine instance
+   * @param trajectoryEnabled - Whether parent trajectory data is captured for sub-emitters
+   * @param particleCount - Number of particle slots to allocate
+   */
+  constructor(engine: Engine, trajectoryEnabled: boolean, particleCount: number) {
     // The engine flavor owns shader registration; engine-core resolves the registered pass when needed
     const feedbackShader = Shader.find(FEEDBACK_SHADER_NAME);
     if (!feedbackShader) {
@@ -49,55 +53,38 @@ export class ParticleTransformFeedbackSimulator {
           `or register the shader manually if you build a custom engine flavor.`
       );
     }
+    const feedbackPass = feedbackShader.subShaders[0]?.passes.find((pass) => pass.name === FEEDBACK_PASS_NAME);
+    if (!feedbackPass) {
+      throw new Error(`${FEEDBACK_PASS_NAME} pass is not registered in ${FEEDBACK_SHADER_NAME}.`);
+    }
+
+    let vertexStride: number;
     let feedbackVaryings: string[];
     if (trajectoryEnabled) {
-      this.vertexStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
+      vertexStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
       this._feedbackStateVertexElements = ParticleBufferUtils.feedbackTrajectoryStateVertexElements;
       feedbackVaryings = ParticleTransformFeedbackSimulator._trajectoryStateVaryings;
     } else {
-      this.vertexStride = ParticleBufferUtils.feedbackStateVertexStride;
+      vertexStride = ParticleBufferUtils.feedbackStateVertexStride;
       this._feedbackStateVertexElements = ParticleBufferUtils.feedbackStateVertexElements;
       feedbackVaryings = ParticleTransformFeedbackSimulator._stateVaryings;
     }
     this._simulator = new TransformFeedbackSimulator(
       engine,
-      this.vertexStride,
-      feedbackShader.subShaders[0].passes[0],
+      vertexStride,
+      particleCount,
+      feedbackPass,
       feedbackVaryings
     );
   }
 
   /**
    * Resize feedback buffers.
-   * Saves pre-resize buffers internally for subsequent `copyOldBufferData` / `destroyOldBuffers` calls.
    * @param particleCount - Number of particles to allocate
+   * @param mappings - Ranges to preserve from the previous buffers
    */
-  resize(particleCount: number): void {
-    this._oldReadBuffer = this._simulator.readBinding?.buffer;
-    this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
-    this._simulator.resize(particleCount);
-  }
-
-  /**
-   * Copy data from pre-resize buffers to current buffers.
-   * Must be called after `resize` which saves the old buffers.
-   */
-  copyOldBufferData(srcElement: number, dstElement: number, elementCount: number): void {
-    const srcByteOffset = srcElement * this.vertexStride;
-    const dstByteOffset = dstElement * this.vertexStride;
-    const byteLength = elementCount * this.vertexStride;
-    this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer, srcByteOffset, dstByteOffset, byteLength);
-    this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
-  }
-
-  /**
-   * Destroy pre-resize buffers saved during `resize`.
-   */
-  destroyOldBuffers(): void {
-    this._oldReadBuffer?.destroy();
-    this._oldWriteBuffer?.destroy();
-    this._oldReadBuffer = null;
-    this._oldWriteBuffer = null;
+  resize(particleCount: number, mappings: ReadonlyArray<ElementRangeMapping>): void {
+    this._simulator.resize(particleCount, mappings);
   }
 
   /**
@@ -108,7 +95,10 @@ export class ParticleTransformFeedbackSimulator {
    * @param firstFree - First free particle index in ring buffer
    * @param firstNew - First particle initialized during this update
    * @param deltaTime - Frame delta time
+   * @param resetTrajectory - Whether to discard the trajectory baseline from before a culling pause, or undefined when
+   * trajectory feedback is disabled
    * @param particleInputBinding - Particle input vertex buffer binding
+   * @param subEmitterStateBinding - Resolved sub-emitter state, when present
    */
   update(
     shaderData: ShaderData,
@@ -117,22 +107,36 @@ export class ParticleTransformFeedbackSimulator {
     firstFree: number,
     firstNew: number,
     deltaTime: number,
-    particleInputBinding: VertexBufferBinding
+    resetTrajectory: boolean | undefined,
+    particleInputBinding: VertexBufferBinding,
+    subEmitterStateBinding?: VertexBufferBinding
   ): void {
-    if (firstElement === firstFree) return;
-
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
+    if (resetTrajectory !== undefined) {
+      shaderData.setInt(ParticleTransformFeedbackSimulator._resetTrajectoryProperty, resetTrajectory ? 1 : 0);
+    }
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstNewParticleProperty, firstNew);
     shaderData.setInt(ParticleTransformFeedbackSimulator._firstFreeParticleProperty, firstFree);
-    if (
-      !this._simulator.beginUpdate(
-        shaderData,
-        this._feedbackStateVertexElements,
-        particleInputBinding,
-        ParticleBufferUtils.feedbackInitialDataVertexElements
-      )
-    )
+    const inputBindings = ParticleTransformFeedbackSimulator._inputBindings;
+    inputBindings[0] = particleInputBinding;
+    if (subEmitterStateBinding) {
+      inputBindings[1] = subEmitterStateBinding;
+      inputBindings.length = 2;
+    } else {
+      inputBindings.length = 1;
+    }
+    const didBeginUpdate = this._simulator.beginUpdate(
+      shaderData,
+      this._feedbackStateVertexElements,
+      inputBindings,
+      subEmitterStateBinding
+        ? ParticleBufferUtils.feedbackInitialSubEmitterDataVertexElements
+        : ParticleBufferUtils.feedbackInitialDataVertexElements
+    );
+    inputBindings.length = 0;
+    if (!didBeginUpdate) {
       return;
+    }
 
     if (firstElement < firstFree) {
       this._simulator.draw(MeshTopology.Points, firstElement, firstFree - firstElement);
@@ -146,6 +150,6 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   destroy(): void {
-    this._simulator?.destroy();
+    this._simulator.destroy();
   }
 }
