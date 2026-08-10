@@ -102,12 +102,19 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     gl.bindVertexArray(vao);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, this._getGLBuffer(feedbackBinding));
-    this._bindElements(attribs, feedbackElements, feedbackBinding.stride);
+    for (let i = 0, n = feedbackElements.length; i < n; i++) {
+      this._bindElement(attribs, feedbackElements[i], feedbackBinding.stride);
+    }
 
-    for (let i = 0, n = inputBindings.length; i < n; i++) {
-      const inputBinding = inputBindings[i];
-      gl.bindBuffer(gl.ARRAY_BUFFER, this._getGLBuffer(inputBinding));
-      this._bindElements(attribs, inputElements, inputBinding.stride, i);
+    let lastInputBinding: VertexBufferBinding | undefined;
+    for (let i = 0, n = inputElements.length; i < n; i++) {
+      const element = inputElements[i];
+      const inputBinding = inputBindings[element.bindingIndex];
+      if (inputBinding !== lastInputBinding) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, this._getGLBuffer(inputBinding));
+        lastInputBinding = inputBinding;
+      }
+      this._bindElement(attribs, element, inputBinding.stride);
     }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
@@ -118,23 +125,13 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     return (binding.buffer as unknown as GLBufferOwner)._platformBuffer._glBuffer;
   }
 
-  private _bindElements(
-    attribs: Record<string, number>,
-    elements: VertexElement[],
-    stride: number,
-    bindingIndex?: number
-  ): void {
+  private _bindElement(attribs: Record<string, number>, element: VertexElement, stride: number): void {
     const gl = this._gl;
-    for (const element of elements) {
-      if (bindingIndex !== undefined && element.bindingIndex !== bindingIndex) {
-        continue;
-      }
-      const loc = attribs[element.attribute];
-      if (loc !== undefined && loc !== -1) {
-        const info = element._formatMetaInfo;
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
-      }
+    const loc = attribs[element.attribute];
+    if (loc !== undefined && loc !== -1) {
+      const info = element._formatMetaInfo;
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
     }
   }
 }
