@@ -131,23 +131,15 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
-              vec3 inheritVelocitySource = attr.a_InheritVelocity.xyz;
-              #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
-                  if (isSubEmitterSpawnedParticle(attr)) {
-                      inheritVelocitySource = attr.a_ParentTrajectoryVelocity;
-                  }
-              #endif
               vec3 inheritedPositionOffsetWorld =
-                  computeInitialInheritVelocityPositionOffsetFromSource(
+                  computeInitialInheritVelocityPositionOffset(
                       attr,
-                      inheritVelocitySource,
                       normalizedAge,
                       inheritedVelocityWorld
                   );
               vec3 previousInheritedPositionOffsetWorld =
-                  computeInitialInheritVelocityPositionOffsetFromSource(
+                  computeInitialInheritVelocityPositionOffset(
                       attr,
-                      inheritVelocitySource,
                       previousNormalizedAge,
                       inheritedVelocityWorld
                   );
@@ -312,7 +304,6 @@ Shader "Effect/ParticleFeedback" {
               localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
               #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
                   if (isSubEmitterSpawnedParticle(attr)) {
-                      vec3 parentTrajectoryVelocity = attr.a_ParentTrajectoryVelocity;
                       vec3 parentWorldPosition = reconstructParentWorldPositionAtEmission(attr);
                       vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
                       if (renderer_SimulationSpace == 0) {
@@ -325,22 +316,7 @@ Shader "Effect/ParticleFeedback" {
                               rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
                               parentWorldPosition;
                       }
-                      if (attr.a_InheritVelocity.y < 0.0) {
-                          vec3 parentLocalVelocity = rotationByQuaternions(
-                              parentTrajectoryVelocity,
-                              invSimulationWorldRotation
-                          );
-                          float parentSpeed = length(parentLocalVelocity);
-                          localVelocity = parentSpeed > EPSILON
-                              ? parentLocalVelocity * (attr.a_StartSpeed / parentSpeed)
-                              : vec3(0.0, 0.0, -attr.a_StartSpeed);
-                      }
-                      #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
-                          localVelocity += rotationByQuaternions(
-                              parentTrajectoryVelocity * attr.a_InheritVelocity.x,
-                              invSimulationWorldRotation
-                          );
-                      #endif
+                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, localVelocity);
                   } else if (renderer_SimulationSpace != 0) {
                       position =
                           rotationByQuaternions(position, attr.a_SimulationWorldRotation) +

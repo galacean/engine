@@ -60,29 +60,30 @@
         return factor;
     }
 
-    vec3 evaluateInheritVelocityFromSource(
-        Attributes attributes,
-        vec3 sourceVelocity,
-        float normalizedAge
-    ) {
-        return sourceVelocity * evaluateInheritVelocityFactor(attributes, normalizedAge);
-    }
-
-    vec3 evaluateInheritVelocity(Attributes attributes, float normalizedAge) {
+    vec3 getInheritVelocitySource(Attributes attributes) {
         #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
-            return evaluateInheritVelocityFromSource(attributes, attributes.a_InheritVelocity.xyz, normalizedAge);
+            #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                if (isSubEmitterSpawnedParticle(attributes)) {
+                    return attributes.a_ParentTrajectoryVelocity;
+                }
+            #endif
+            return attributes.a_InheritVelocity.xyz;
         #else
-            return evaluateInheritVelocityFromSource(attributes, renderer_InheritVelocity, normalizedAge);
+            return renderer_InheritVelocity;
         #endif
     }
 
+    vec3 evaluateInheritVelocity(Attributes attributes, float normalizedAge) {
+        return getInheritVelocitySource(attributes) * evaluateInheritVelocityFactor(attributes, normalizedAge);
+    }
+
     #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
-        vec3 computeInitialInheritVelocityPositionOffsetFromSource(
+        vec3 computeInitialInheritVelocityPositionOffset(
             Attributes attributes,
-            vec3 sourceVelocity,
             float normalizedAge,
             out vec3 currentVelocity
         ) {
+            vec3 sourceVelocity = getInheritVelocitySource(attributes);
             #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
                 float random = getInheritVelocityRandom(attributes);
             #endif

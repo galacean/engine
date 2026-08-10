@@ -21,6 +21,40 @@ vec4 quaternionConjugate(in vec4 q) {
     return vec4(-q.xyz, q.w);
 }
 
+#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+    void applyParentTrajectoryToStartVelocity(
+        Attributes attributes,
+        vec4 invSimulationWorldRotation,
+        inout vec3 startVelocity
+    ) {
+        bool inheritDirection = attributes.a_InheritVelocity.y < 0.0;
+        #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+            if (!inheritDirection) {
+                return;
+            }
+        #else
+            float inheritFactor = attributes.a_InheritVelocity.x;
+            if (!inheritDirection && inheritFactor == 0.0) {
+                return;
+            }
+        #endif
+
+        vec3 parentLocalVelocity = rotationByQuaternions(
+            attributes.a_ParentTrajectoryVelocity,
+            invSimulationWorldRotation
+        );
+        if (inheritDirection) {
+            float parentSpeed = length(parentLocalVelocity);
+            startVelocity = parentSpeed > EPSILON
+                ? parentLocalVelocity * (attributes.a_StartSpeed / parentSpeed)
+                : vec3(0.0, 0.0, -attributes.a_StartSpeed);
+        }
+        #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+            startVelocity += parentLocalVelocity * inheritFactor;
+        #endif
+    }
+#endif
+
 vec3 rotationByEuler(in vec3 vector, in vec3 rot) {
     float halfRoll = rot.z * 0.5;
     float halfPitch = rot.x * 0.5;
