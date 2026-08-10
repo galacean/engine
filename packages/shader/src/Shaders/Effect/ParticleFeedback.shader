@@ -113,14 +113,16 @@ Shader "Effect/ParticleFeedback" {
           float previousAge,
           float simulationAge,
           float lifetime,
-          vec4 worldRotation,
-          vec4 invWorldRotation,
           inout vec3 position,
           inout vec3 localVelocity
       ) {
           float dt = simulationAge - previousAge;
           float normalizedAge = simulationAge / lifetime;
           float previousNormalizedAge = previousAge / lifetime;
+          vec4 worldRotation = renderer_SimulationSpace == 0
+              ? renderer_WorldRotation
+              : attr.a_SimulationWorldRotation;
+          vec4 invWorldRotation = quaternionConjugate(worldRotation);
           vec3 inheritedVelocityWorld = vec3(0.0);
           vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
 
@@ -226,11 +228,11 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           // Step 4: Integrate position
-          vec3 baseVelocity;
+          vec3 totalLinearVelocity;
           if (renderer_SimulationSpace == 0) {
-            baseVelocity = localVelocity;
+              totalLinearVelocity = localVelocity;
           } else {
-            baseVelocity = rotationByQuaternions(localVelocity, worldRotation);
+              totalLinearVelocity = rotationByQuaternions(localVelocity, worldRotation);
           }
           #ifdef RENDERER_NOISE_MODULE_ENABLED
               vec3 noiseBasePos;
@@ -241,18 +243,16 @@ Shader "Effect/ParticleFeedback" {
                       attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge,
                       worldRotation) + simulationWorldPosition;
               }
-              baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
+              totalLinearVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
 
-          vec3 totalLinearVelocity;
           if (renderer_SimulationSpace == 0) {
-              totalLinearVelocity = baseVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
-          } else {
-              totalLinearVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
-          }
-          if (renderer_SimulationSpace == 0) {
+              totalLinearVelocity += volLocal;
+              totalLinearVelocity += rotationByQuaternions(volWorld, invWorldRotation);
               totalLinearVelocity += rotationByQuaternions(inheritedVelocityWorld, invWorldRotation);
           } else {
+              totalLinearVelocity += rotationByQuaternions(volLocal, worldRotation);
+              totalLinearVelocity += volWorld;
               totalLinearVelocity += inheritedVelocityWorld;
           }
 
@@ -354,21 +354,11 @@ Shader "Effect/ParticleFeedback" {
               return v;
           }
 
-          vec4 worldRotation;
-          if (renderer_SimulationSpace == 0) {
-              worldRotation = renderer_WorldRotation;
-          } else {
-              worldRotation = attr.a_SimulationWorldRotation;
-          }
-          vec4 invWorldRotation = quaternionConjugate(worldRotation);
-
           simulateParticleStep(
               attr,
               previousAge,
               simulationAge,
               lifetime,
-              worldRotation,
-              invWorldRotation,
               position,
               localVelocity
           );
