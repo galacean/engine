@@ -47,6 +47,20 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   @ignoreClone
   private _particleSequence = 0;
 
+  override get enabled(): boolean {
+    return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
+  }
+
+  override set enabled(value: boolean) {
+    if (value !== this._enabled) {
+      if (value) {
+        this._validateEmitterScenes();
+      }
+      this._enabled = value;
+      this._notifyTopologyChanged();
+    }
+  }
+
   /**
    * The configured sub-emitters.
    */
@@ -102,20 +116,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       this._recycleBirthState(statesByParticle[i]?.splice(index, 1)[0]);
     }
     this._notifyTopologyChanged();
-  }
-
-  override get enabled(): boolean {
-    return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
-  }
-
-  override set enabled(value: boolean) {
-    if (value !== this._enabled) {
-      if (value) {
-        this._validateEmitterScenes();
-      }
-      this._enabled = value;
-      this._notifyTopologyChanged();
-    }
   }
 
   /**
