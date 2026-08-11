@@ -164,6 +164,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     let birthStates = this._birthStatesByParticle[ringIndex];
     const frameStartParentAge = MathUtil.clamp(frameLastPlayTime - bornTime, 0, lifetime);
     const currentParentAge = MathUtil.clamp(framePlayTime - bornTime, 0, lifetime);
+    const hasParentAgeAdvanced = currentParentAge - frameStartParentAge > MathUtil.zeroTolerance;
     const subEmitters = this._subEmitters;
     const commandPool = this._birthCommandPool;
     let parentParticleSequence: number | undefined;
@@ -171,7 +172,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       const subEmitter = subEmitters[i];
       let state = birthStates?.[i];
       const targetRenderer = subEmitter.type === ParticleSubEmitterType.Birth ? subEmitter.emitter : null;
-      if (!targetRenderer || targetRenderer.destroyed || !this._isTargetScheduledWithSource(targetRenderer)) {
+      if (!targetRenderer || !this._isTargetScheduledWithSource(targetRenderer)) {
         if (state !== undefined) {
           this._recycleBirthState(state);
           birthStates![i] = undefined;
@@ -195,7 +196,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         this._resetBirthSubEmitterState(state, targetGenerator, parentParticleSequence, frameStartParentAge);
       }
 
-      if (!(currentParentAge - frameStartParentAge > MathUtil.zeroTolerance)) {
+      if (!hasParentAgeAdvanced) {
         continue;
       }
 
