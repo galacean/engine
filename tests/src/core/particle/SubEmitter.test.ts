@@ -365,8 +365,8 @@ describe("SubEmitter", () => {
 
     subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0);
     const firstState = statesByParticle[0][0];
-    firstState.emissionState.frameRateTime = 99;
-    firstState.emissionState.currentBurstIndex = 99;
+    firstState.frameRateTime = 99;
+    firstState.currentBurstIndex = 99;
 
     subEmitters._retireParticle(0);
     expect(statesByParticle[0]).to.have.length(0);
@@ -378,8 +378,8 @@ describe("SubEmitter", () => {
     const reusedState = statesByParticle[1][0];
     expect(reusedState).to.equal(firstState);
     expect(statePool).to.have.length(0);
-    expect(reusedState.emissionState.frameRateTime).to.be.closeTo(0.1, 1e-6);
-    expect(reusedState.emissionState.currentBurstIndex).to.equal(0);
+    expect(reusedState.frameRateTime).to.be.closeTo(0.1, 1e-6);
+    expect(reusedState.currentBurstIndex).to.equal(0);
     expect(commands).to.have.length(0);
 
     parent.entity.destroy();
@@ -429,7 +429,7 @@ describe("SubEmitter", () => {
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
     expect(child.generator._getAliveParticleCount()).to.equal(10); // 2 parents × 10/s × 0.5s
-    const emissionState = (parent.generator.subEmitters as any)._birthStatesByParticle[0][0].emissionState;
+    const emissionState = (parent.generator.subEmitters as any)._birthStatesByParticle[0][0];
     expect(emissionState._rateRand).to.equal(undefined);
     expect(emissionState._burstRand).to.equal(undefined);
 

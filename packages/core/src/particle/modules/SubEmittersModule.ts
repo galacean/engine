@@ -215,15 +215,14 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       const emission = targetGenerator.emission;
-      const emissionState = state.emissionState;
       if (!emission.enabled) {
-        emissionState.resyncTimeCursors(emissionTime);
+        state.resyncTimeCursors(emissionTime);
         continue;
       }
 
       const command = (this._birthCommandScratch ??=
         commandPool.pop() ?? new BirthSubEmitterCommand(this._generator, commandPool));
-      emission._prepareBirthTimedRequests(lastEmissionTime, emissionTime, emissionState, command);
+      emission._prepareBirthTimedRequests(lastEmissionTime, emissionTime, state, command);
       if (command.requestCount === 0) {
         continue;
       }
