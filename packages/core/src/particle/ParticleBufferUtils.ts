@@ -85,8 +85,8 @@ export class ParticleBufferUtils {
   static readonly simulationUVOffset = 34;
   static readonly inheritVelocityOffset = 42;
   static readonly inheritVelocityRandomOffset = 45;
-  static readonly feedbackWorldPositionOffset = 6;
-  static readonly feedbackTrajectoryVelocityOffset = 9;
+  static readonly feedbackWorldPositionByteOffset = 24;
+  static readonly feedbackTrajectoryVelocityByteOffset = 36;
 
   static readonly billboardIndexCount = 6;
 
@@ -100,26 +100,6 @@ export class ParticleBufferUtils {
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
-
-  static createSubEmitterGatherSourceVertexElements(): VertexElement[] {
-    const bytesPerFloat = Float32Array.BYTES_PER_ELEMENT;
-    return [
-      new VertexElement(
-        ParticleFeedbackVertexAttribute.WorldPosition,
-        ParticleBufferUtils.feedbackWorldPositionOffset * bytesPerFloat,
-        VertexElementFormat.Vector3,
-        0,
-        1
-      ),
-      new VertexElement(
-        ParticleFeedbackVertexAttribute.TrajectoryVelocity,
-        ParticleBufferUtils.feedbackTrajectoryVelocityOffset * bytesPerFloat,
-        VertexElementFormat.Vector3,
-        0,
-        1
-      )
-    ];
-  }
 
   constructor(engine: Engine) {
     const stride = 16;
