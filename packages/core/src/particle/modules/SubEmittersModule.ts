@@ -131,7 +131,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       const emitter = sub.emitter;
-      if (!emitter || !this._isTargetScheduledWithSource(emitter)) {
+      if (!emitter || !this._isTargetInSourceUpdateGraph(emitter)) {
         continue;
       }
 
@@ -172,7 +172,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       const subEmitter = subEmitters[i];
       let state = birthStates?.[i];
       const targetRenderer = subEmitter.type === ParticleSubEmitterType.Birth ? subEmitter.emitter : null;
-      if (!targetRenderer || !this._isTargetScheduledWithSource(targetRenderer)) {
+      if (!targetRenderer || !this._isTargetInSourceUpdateGraph(targetRenderer)) {
         if (state !== undefined) {
           this._recycleBirthState(state);
           birthStates![i] = undefined;
@@ -313,7 +313,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         subEmitter.type === type &&
         emitter &&
         !emitter.destroyed &&
-        (!scheduledOnly || this._isTargetScheduledWithSource(emitter))
+        (!scheduledOnly || this._isTargetInSourceUpdateGraph(emitter))
       ) {
         return true;
       }
@@ -390,7 +390,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     this._generator._setTransformFeedback();
   }
 
-  private _isTargetScheduledWithSource(emitter: ParticleRenderer): boolean {
+  private _isTargetInSourceUpdateGraph(emitter: ParticleRenderer): boolean {
     const manager = this._generator._renderer._particleSystemManager;
     return manager !== null && emitter._particleSystemManager === manager;
   }
