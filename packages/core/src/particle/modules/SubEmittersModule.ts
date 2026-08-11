@@ -131,7 +131,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       const emitter = sub.emitter;
-      if (!emitter || emitter.destroyed || !this._isTargetScheduledWithSource(emitter)) {
+      if (!emitter || !this._isTargetScheduledWithSource(emitter)) {
         continue;
       }
 
