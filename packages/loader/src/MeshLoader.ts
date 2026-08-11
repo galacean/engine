@@ -18,16 +18,16 @@ class MeshLoader extends Loader<ModelMesh> {
       ...item,
       type: "arraybuffer"
     };
-    const url = item.url;
+    const assetPath = item.url;
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
-        ._request(url, requestConfig)
+        ._request(assetPath, requestConfig)
         .then((data) => {
           return decode<ModelMesh>(data, resourceManager.engine);
         })
         .then((mesh: ModelMesh) => {
-          resourceManager.addContentRestorer(new MeshContentRestorer(mesh, url, requestConfig));
+          resourceManager.addContentRestorer(new MeshContentRestorer(mesh, assetPath, requestConfig));
           resolve(mesh);
         })
         .catch(reject);
@@ -38,7 +38,7 @@ class MeshLoader extends Loader<ModelMesh> {
 class MeshContentRestorer extends ContentRestorer<ModelMesh> {
   constructor(
     resource: ModelMesh,
-    public url: string,
+    public assetPath: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -50,7 +50,7 @@ class MeshContentRestorer extends ContentRestorer<ModelMesh> {
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
         // @ts-ignore
-        ._request<any>(this.url, this.requestConfig)
+        ._request<any>(this.assetPath, this.requestConfig)
         .then((data) => {
           return decode<ModelMesh>(data, engine, resource);
         })

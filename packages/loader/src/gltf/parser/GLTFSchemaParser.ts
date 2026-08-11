@@ -9,19 +9,19 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 export class GLTFSchemaParser extends GLTFParser {
   parse(context: GLTFParserContext): Promise<IGLTF> {
     const { glTFResource, contentRestorer, resourceManager } = context;
-    const url = glTFResource.url;
+    const assetPath = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
     return (
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._request<ArrayBuffer>(assetPath, requestConfig)
         .onProgress(undefined, context._onTaskDetail)
         .then((buffer) => {
           const parseResult = GLTFUtils.parseGLB(context, buffer);
           // If the buffer is a GLB file, we need to restore the buffer data
           if (parseResult?.glTF) {
-            restoreBufferRequests.push(new BufferRequestInfo(url, requestConfig));
+            restoreBufferRequests.push(new BufferRequestInfo(assetPath, requestConfig));
           }
           return parseResult;
         })

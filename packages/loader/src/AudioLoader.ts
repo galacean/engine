@@ -18,7 +18,7 @@ class AudioLoader extends Loader<AudioClip> {
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {
     return new AssetPromise((resolve, reject) => {
-      const { url } = item;
+      const assetPath = item.url;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
@@ -26,7 +26,7 @@ class AudioLoader extends Loader<AudioClip> {
 
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._request<ArrayBuffer>(assetPath, requestConfig)
         .then((arrayBuffer) => {
           const audioClip = new AudioClip(resourceManager.engine);
           AudioLoader._getDecodeContext()
@@ -35,9 +35,9 @@ class AudioLoader extends Loader<AudioClip> {
               // @ts-ignore
               audioClip._setAudioSource(result);
 
-              if (url.indexOf("data:") !== 0) {
-                const index = url.lastIndexOf("/");
-                audioClip.name = url.substring(index + 1);
+              if (assetPath.indexOf("data:") !== 0) {
+                const index = assetPath.lastIndexOf("/");
+                audioClip.name = assetPath.substring(index + 1);
               }
 
               resolve(audioClip);

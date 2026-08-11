@@ -46,11 +46,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           for (let i = 0; i < atlasItemsLen; i++) {
             const atlasItem = atlasItems[i];
             if (atlasItem.img) {
+              // @ts-ignore
+              const imageAssetPath = resourceManager._resolveAssetPath(item.url, atlasItem.img);
               chainPromises.push(
                 resourceManager
                   .load<Texture2D>({
-                    // @ts-ignore
-                    url: resourceManager._resolveVirtualPath(item.url, atlasItem.img),
+                    url: imageAssetPath,
                     type: atlasItem.type ?? AssetType.Texture,
                     params: { format, mipmap }
                   })

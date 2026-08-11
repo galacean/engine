@@ -12,9 +12,7 @@ import {
 class SourceFontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      // @ts-ignore
-      const remoteUrl = resourceManager._getRemoteUrl(item.url);
-      this._registerFont(item.url, remoteUrl)
+      this._registerFontFace(item.url, item.url, resourceManager)
         .then(() => {
           const font = new Font(resourceManager.engine, item.url);
           resolve(font);
@@ -25,8 +23,15 @@ class SourceFontLoader extends Loader<Font> {
     });
   }
 
-  private async _registerFont(fontName: string, fontUrl: string): Promise<void> {
-    const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+  private async _registerFontFace(
+    fontName: string,
+    fontAssetPath: string,
+    resourceManager: ResourceManager
+  ): Promise<void> {
+    // FontFace performs its own request, so convert the asset path at this browser boundary.
+    // @ts-ignore
+    const requestUrl = resourceManager._getRequestUrl(fontAssetPath);
+    const fontFace = new FontFace(fontName, `url(${requestUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
   }

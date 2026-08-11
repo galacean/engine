@@ -19,19 +19,15 @@ class FontLoader extends Loader<Font> {
           const { fontName, fontUrl } = data;
 
           if (fontUrl) {
-            // Resolve the embedded path in the editor's virtual file system before crossing the
-            // final browser request boundary used by FontFace.
             // @ts-ignore
-            const fontVirtualPath = resourceManager._resolveVirtualPath(item.url, fontUrl);
-            // @ts-ignore
-            const fontRemoteUrl = resourceManager._getRemoteUrl(fontVirtualPath);
-            this._registerFont(fontName, fontRemoteUrl)
+            const fontAssetPath = resourceManager._resolveAssetPath(item.url, fontUrl);
+            this._registerFontFace(fontName, fontAssetPath, resourceManager)
               .then(() => {
                 const font = new Font(resourceManager.engine, fontName);
                 resolve(font);
               })
               .catch((e) => {
-                reject(`load font ${fontVirtualPath} fail`);
+                reject(`load font ${fontAssetPath} fail`);
               });
           } else {
             const font = new Font(resourceManager.engine, fontName);
@@ -44,8 +40,15 @@ class FontLoader extends Loader<Font> {
     });
   }
 
-  private async _registerFont(fontName: string, fontUrl: string): Promise<void> {
-    const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+  private async _registerFontFace(
+    fontName: string,
+    fontAssetPath: string,
+    resourceManager: ResourceManager
+  ): Promise<void> {
+    // FontFace performs its own request, so convert the asset path at this browser boundary.
+    // @ts-ignore
+    const requestUrl = resourceManager._getRequestUrl(fontAssetPath);
+    const fontFace = new FontFace(fontName, `url(${requestUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
   }

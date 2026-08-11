@@ -19,7 +19,7 @@ describe("ResourceManager", () => {
       const textureUrl = "aa/bb/cc";
 
       // @ts-ignore
-      engine.resourceManager._assetUrlPool[textureUrl] = texture;
+      engine.resourceManager._assetByPath[textureUrl] = texture;
 
       let getResource = engine.resourceManager.getFromCache(textureUrl);
       expect(getResource).equal(texture);
@@ -37,28 +37,28 @@ describe("ResourceManager", () => {
     });
   });
 
-  describe("queryPath", () => {
+  describe("subAssetPath", () => {
     it("no encode", () => {
       // @ts-ignore
-      const { assetBaseURL } = engine.resourceManager._parseURL(
+      const { assetPath } = engine.resourceManager._parseAssetPath(
         "https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024"
       );
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
+      expect(assetPath).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
     });
 
     it("encode", () => {
       // @ts-ignore
-      const { assetBaseURL } = engine.resourceManager._parseURL(
+      const { assetPath } = engine.resourceManager._parseAssetPath(
         "https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024"
       );
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
+      expect(assetPath).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
     });
 
     it("query path", () => {
       // @ts-ignore
-      const { assetBaseURL, queryPath } = engine.resourceManager._parseURL("https://cdn.ali.com/inner.jpg?q=abc");
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg");
-      expect(queryPath).equal("abc");
+      const { assetPath, subAssetPath } = engine.resourceManager._parseAssetPath("https://cdn.ali.com/inner.jpg?q=abc");
+      expect(assetPath).equal("https://cdn.ali.com/inner.jpg");
+      expect(subAssetPath).equal("abc");
     });
   });
 
@@ -105,13 +105,17 @@ describe("ResourceManager", () => {
       ]);
 
       // @ts-ignore
-      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
+      expect(resourceManager._resolveAssetPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
         "Assets/Textures/Hero.png"
       );
       // @ts-ignore
-      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
+      expect(resourceManager._resolveAssetPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
         "Assets/Textures/Hero.png"
       );
+      // @ts-ignore
+      expect(resourceManager._getRequestUrl("Assets/Textures/Hero.png")).equal("https://cdn.ali.com/texture-hash");
+      // @ts-ignore
+      expect(resourceManager._getRequestUrl("https://cdn.ali.com/direct.png")).equal("https://cdn.ali.com/direct.png");
     });
 
     it("infers loader type from virtualPathResourceMap when type is omitted", () => {
@@ -143,7 +147,7 @@ describe("ResourceManager", () => {
       ]);
       // @ts-ignore
       const requestSpy = vi
-        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .spyOn(resourceManager as any, "_requestByUrl")
         .mockReturnValue(
           AssetPromise.resolve(JSON.stringify({ name: "custom", platformTarget: 0, subShaders: [] })) as any
         );
@@ -172,7 +176,9 @@ describe("ResourceManager", () => {
         }
       ]);
       // @ts-ignore
-      const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockReturnValue(AssetPromise.resolve(source));
+      const requestSpy = vi
+        .spyOn(resourceManager as any, "_requestByUrl")
+        .mockReturnValue(AssetPromise.resolve(source));
       const createSpy = vi.spyOn(Shader, "create").mockReturnValue({ name: "source" } as Shader);
 
       try {

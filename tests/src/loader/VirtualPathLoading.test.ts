@@ -65,11 +65,11 @@ describe("virtual path loading", () => {
     const requestSpy = vi
       .spyOn(resourceManager, "_request")
       .mockReturnValue(AssetPromise.resolve({ fontName: "Hero", fontUrl: "./Hero.woff" }) as any);
-    const registerSpy = vi.spyOn(loader as any, "_registerFont").mockResolvedValue(undefined);
+    const registerSpy = vi.spyOn(loader as any, "_registerFontFace").mockResolvedValue(undefined);
 
     try {
       const font = await loader.load({ url: fontAssetVirtualPath }, resourceManager);
-      expect(registerSpy).toHaveBeenCalledWith("Hero", sourceFontRemotePath);
+      expect(registerSpy).toHaveBeenCalledWith("Hero", sourceFontVirtualPath, resourceManager);
       font.destroy();
     } finally {
       registerSpy.mockRestore();
@@ -86,11 +86,11 @@ describe("virtual path loading", () => {
     ]);
     // @ts-ignore
     const loader = ResourceManager._loaders[AssetType.SourceFont];
-    const registerSpy = vi.spyOn(loader as any, "_registerFont").mockResolvedValue(undefined);
+    const registerSpy = vi.spyOn(loader as any, "_registerFontFace").mockResolvedValue(undefined);
 
     try {
       const font = await loader.load({ url: sourceFontVirtualPath }, resourceManager);
-      expect(registerSpy).toHaveBeenCalledWith(sourceFontVirtualPath, sourceFontRemotePath);
+      expect(registerSpy).toHaveBeenCalledWith(sourceFontVirtualPath, sourceFontVirtualPath, resourceManager);
       expect(font.name).equal(sourceFontVirtualPath);
       font.destroy();
     } finally {
@@ -119,12 +119,12 @@ describe("virtual path loading", () => {
     } as any;
     // @ts-ignore
     const requestSpy = vi
-      .spyOn(resourceManager, "_requestByRemoteUrl")
+      .spyOn(resourceManager as any, "_requestByUrl")
       .mockReturnValue(AssetPromise.resolve(new ArrayBuffer(4)) as any);
 
     try {
       await new GLTFBufferParser().parse(context, 0);
-      expect(contentRestorer.bufferRequests[0].url).equal(bufferVirtualPath);
+      expect(contentRestorer.bufferRequests[0].assetPath).equal(bufferVirtualPath);
       expect(requestSpy).toHaveBeenCalledWith(bufferRemotePath, expect.objectContaining({ type: "arraybuffer" }));
 
       await contentRestorer.restoreContent();

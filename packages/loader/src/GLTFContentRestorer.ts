@@ -28,11 +28,9 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         this.bufferRequests.map((bufferRequestInfo) => {
-          // Keep restore metadata in the virtual namespace and resolve the current remote path only
-          // when the restore request is issued.
           // @ts-ignore
           return this.resource.engine.resourceManager._request<ArrayBuffer>(
-            bufferRequestInfo.url,
+            bufferRequestInfo.assetPath,
             bufferRequestInfo.config
           );
         })
@@ -171,7 +169,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
  */
 export class BufferRequestInfo {
   constructor(
-    public url: string,
+    public assetPath: string,
     public config: RequestConfig
   ) {}
 }

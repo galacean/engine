@@ -11,13 +11,13 @@ export class PrefabResource extends ReferResource {
 
   /**
    * @internal
-   * @param url - The url of the prefab
+   * @param assetPath - Asset path of the prefab
    */
-  constructor(
-    engine: Engine,
-    public readonly url: string
-  ) {
+  readonly url: string;
+
+  constructor(engine: Engine, assetPath: string) {
     super(engine);
+    this.url = assetPath;
   }
 
   /**

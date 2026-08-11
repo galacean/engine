@@ -2,6 +2,7 @@ export type Vec3Tuple = [number, number, number];
 export type Vec4Tuple = [number, number, number, number];
 
 export interface RefItem {
+  /** Referenced asset path, normally a virtualPath registered by the project. */
   url: string;
   key?: string;
 }

@@ -73,10 +73,10 @@ class AmbientLightLoader extends Loader<AmbientLight> {
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;
-      const url = item.url;
+      const assetPath = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._request<ArrayBuffer>(assetPath, requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);
           const dataOffset = header.headerLength;
@@ -91,7 +91,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
             header.dataLength - AmbientLightLoader._shByteLength
           ).then((specularTexture) => {
             engine.resourceManager.addContentRestorer(
-              new AmbientLightContentRestorer(specularTexture, url, requestConfig)
+              new AmbientLightContentRestorer(specularTexture, assetPath, requestConfig)
             );
             const ambientLight = new AmbientLight(engine);
             ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
@@ -111,7 +111,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
 class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
-    public url: string,
+    public assetPath: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -123,7 +123,7 @@ class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
       const engine = resource.engine;
       engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        ._request<ArrayBuffer>(this.assetPath, this.requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);
           const dataOffset = header.headerLength;

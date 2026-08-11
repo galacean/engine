@@ -16,7 +16,7 @@ import {
  * The glTF resource.
  */
 export class GLTFResource extends ReferResource {
-  /** glTF file url. */
+  /** Asset path of the glTF file. */
   readonly url: string;
   /** The array of loaded textures. */
   readonly textures?: Texture2D[];
@@ -48,9 +48,9 @@ export class GLTFResource extends ReferResource {
   /**
    * @internal
    */
-  constructor(engine: Engine, url: string) {
+  constructor(engine: Engine, assetPath: string) {
     super(engine);
-    this.url = url;
+    this.url = assetPath;
   }
 
   /**

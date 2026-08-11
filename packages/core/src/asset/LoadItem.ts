@@ -28,7 +28,7 @@ export type LoadItem = {
   params?: Record<string, any>;
 } & PickOnlyOne<{
   /**
-   * Loading url.
+   * Asset path to load. Registered virtual paths keep their logical identity; ordinary URLs are used directly.
    */
   url: string;
   /**
