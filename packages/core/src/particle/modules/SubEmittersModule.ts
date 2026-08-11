@@ -83,7 +83,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     sub._module = this;
     this._subEmitters.push(sub);
     this._notifyTopologyChanged();
-    this._generator._setTransformFeedback();
     return sub;
   }
 
@@ -103,7 +102,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       this._recycleBirthState(statesByParticle[i]?.splice(index, 1)[0]);
     }
     this._notifyTopologyChanged();
-    this._generator._setTransformFeedback();
   }
 
   override get enabled(): boolean {
@@ -117,7 +115,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
       this._enabled = value;
       this._notifyTopologyChanged();
-      this._generator._setTransformFeedback();
     }
   }
 
@@ -288,15 +285,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
         }
       }
     }
-    for (let i = 0, n = oldStatesByParticle.length; i < n; i++) {
-      const birthStates = oldStatesByParticle[i];
-      if (!birthStates) {
-        continue;
-      }
-      for (let j = 0, m = birthStates.length; j < m; j++) {
-        this._recycleBirthState(birthStates[j]);
-      }
-    }
+    this._retireAllBirthStates();
     this._birthStatesByParticle = newStatesByParticle;
   }
 
@@ -371,7 +360,6 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
     }
     this._notifyTopologyChanged();
-    this._generator._setTransformFeedback();
   }
 
   private _resetBirthSubEmitterState(
@@ -398,6 +386,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   private _notifyTopologyChanged(): void {
     const scene = this._generator._renderer.entity.scene;
     scene?._componentsManager._particleSystemManager._markTopologyDirty();
+    this._generator._setTransformFeedback();
   }
 
   private _isTargetScheduledWithSource(emitter: ParticleRenderer): boolean {
