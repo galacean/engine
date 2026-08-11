@@ -6,8 +6,7 @@ import {
   ModelMesh,
   RequestConfig,
   Texture2D,
-  TypedArray,
-  request
+  TypedArray
 } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
@@ -29,7 +28,13 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         this.bufferRequests.map((bufferRequestInfo) => {
-          return request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
+          // Keep restore metadata in the virtual namespace and resolve the current remote path only
+          // when the restore request is issued.
+          // @ts-ignore
+          return this.resource.engine.resourceManager._request<ArrayBuffer>(
+            bufferRequestInfo.url,
+            bufferRequestInfo.config
+          );
         })
       )
         .then((buffers: ArrayBuffer[]) => {

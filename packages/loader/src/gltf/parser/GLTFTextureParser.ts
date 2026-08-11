@@ -6,8 +6,7 @@ import {
   Texture2D,
   TextureFormat,
   TextureUtils,
-  TextureWrapMode,
-  Utils
+  TextureWrapMode
 } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
@@ -47,7 +46,8 @@ export class GLTFTextureParser extends GLTFParser {
       const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
       texture = engine.resourceManager
         .load<Texture2D>({
-          url: Utils.resolveAbsoluteUrl(url, uri),
+          // @ts-ignore
+          url: engine.resourceManager._resolveVirtualPath(url, uri),
           type,
           params: {
             mipmap: samplerInfo?.mipmap,

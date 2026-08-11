@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Logger, Texture2D, Utils } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Logger, Texture2D } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { KTX2Loader } from "../../ktx2/KTX2Loader";
 import type { ITexture } from "../GLTFSchema";
@@ -29,7 +29,8 @@ class KHR_texture_basisu extends GLTFExtensionParser {
       const index = uri.lastIndexOf(".");
       const promise = engine.resourceManager
         .load<Texture2D>({
-          url: Utils.resolveAbsoluteUrl(url, uri),
+          // @ts-ignore
+          url: engine.resourceManager._resolveVirtualPath(url, uri),
           type: AssetType.KTX2
         })
         .onProgress(undefined, context._onTaskDetail)

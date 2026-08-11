@@ -89,6 +89,31 @@ describe("ResourceManager", () => {
   });
 
   describe("virtualPath loading", () => {
+    it("resolves relative and complete references in the virtual file system", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.registerVirtualResources([
+        {
+          virtualPath: "Assets/Models/Hero.gltf",
+          path: "https://cdn.ali.com/model-hash",
+          type: AssetType.GLTF
+        },
+        {
+          virtualPath: "Assets/Textures/Hero.png",
+          path: "https://cdn.ali.com/texture-hash",
+          type: AssetType.Texture
+        }
+      ]);
+
+      // @ts-ignore
+      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
+        "Assets/Textures/Hero.png"
+      );
+      // @ts-ignore
+      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
+        "Assets/Textures/Hero.png"
+      );
+    });
+
     it("infers loader type from virtualPathResourceMap when type is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([
@@ -311,7 +336,7 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
-    it("resolves virtualPath via map even when baseUrl is set", () => {
+    it("keeps the virtualPath as loader identity even when baseUrl is set", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([
         { virtualPath: "Assets/withBaseUrl", path: "https://cdn.ali.com/real.json", type: AssetType.Texture }
@@ -326,8 +351,40 @@ describe("ResourceManager", () => {
         resourceManager.load({ url: "Assets/withBaseUrl" });
         expect(loaderSpy).toHaveBeenCalled();
         expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+        expect(loaderSpy.mock.calls[0][0].url).equal("Assets/withBaseUrl");
       } finally {
         resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("keys cache and asset identity by virtualPath instead of remote path", async () => {
+      const resourceManager = engine.resourceManager;
+      const remotePath = "https://cdn.ali.com/shared-physical-resource";
+      const virtualPathA = "Assets/A/Shared.texture";
+      const virtualPathB = "Assets/B/Shared.texture";
+      const resourceA = { instanceId: 900000001 };
+      const resourceB = { instanceId: 900000002 };
+      resourceManager.registerVirtualResources([
+        { virtualPath: virtualPathA, path: remotePath, type: AssetType.Texture },
+        { virtualPath: virtualPathB, path: remotePath, type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValueOnce(AssetPromise.resolve(resourceA) as any)
+        .mockReturnValueOnce(AssetPromise.resolve(resourceB) as any);
+
+      try {
+        expect(await resourceManager.load(virtualPathA)).equal(resourceA);
+        expect(await resourceManager.load(virtualPathB)).equal(resourceB);
+        expect(loaderSpy).toHaveBeenCalledTimes(2);
+        expect(resourceManager.getFromCache(virtualPathA)).equal(resourceA);
+        expect(resourceManager.getFromCache(virtualPathB)).equal(resourceB);
+        expect(resourceManager.getFromCache(remotePath)).equal(null);
+        expect(resourceManager.getAssetPath(resourceA.instanceId)).equal(virtualPathA);
+        expect(resourceManager.getAssetPath(resourceB.instanceId)).equal(virtualPathB);
+      } finally {
         loaderSpy.mockRestore();
       }
     });

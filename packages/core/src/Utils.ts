@@ -82,10 +82,12 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    const head = "file://";
-    const encodedBaseUrl = head + this._encodePathComponents(baseUrl);
+    const head = "file:///";
+    const hasLeadingSlash = baseUrl.startsWith("/");
+    const encodedBaseUrl = head + this._encodePathComponents(hasLeadingSlash ? baseUrl.slice(1) : baseUrl);
     const encodedRelativeUrl = this._encodePathComponents(relativeUrl);
-    return decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
+    const resolvedUrl = decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
+    return hasLeadingSlash ? "/" + resolvedUrl : resolvedUrl;
   }
 
   /**
@@ -134,7 +136,7 @@ export class Utils {
    * @param path - The path of the property to get.
    * @returns Returns the resolved value.
    */
-  static _reflectGet(target: Object, path: string) {
+  static _reflectGet(target: object, path: string) {
     const pathArr = this._stringToPath(path);
 
     let object = target;

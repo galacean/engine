@@ -190,6 +190,25 @@ export class ResourceManager {
   }
 
   /**
+   * Resolve an asset reference without leaving the virtual file system.
+   * @param baseUrl - Virtual path of the asset containing the reference.
+   * @param url - Referenced virtual path or a path relative to `baseUrl`.
+   * @internal
+   */
+  _resolveVirtualPath(baseUrl: string, url: string): string {
+    if (Utils.isAbsoluteUrl(url) || Utils.isBase64Url(url)) {
+      return url;
+    }
+
+    const relativePath = Utils.resolveAbsoluteUrl(baseUrl, url);
+    const virtualPathResourceMap = this._virtualPathResourceMap;
+
+    // A path inside an asset is relative by default. If that candidate does not exist, accept an
+    // already-complete virtual path recorded by the editor.
+    return virtualPathResourceMap[relativePath] || !virtualPathResourceMap[url] ? relativePath : url;
+  }
+
+  /**
    * @internal
    */
   _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
@@ -208,14 +227,12 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
-
-    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
+    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve(value);
     } else {
       // Pending
-      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
         resolvedValue: value
       };
     }
@@ -342,38 +359,39 @@ export class ResourceManager {
     const { assetBaseURL, queryPath } = this._parseURL(item.url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
-    // Get remote asset base url
+    // Resolve load metadata from the virtual path before applying a normal base URL.
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
-    // Not absolute and base url is set
+    // A registered virtual path remains the logical identity seen by loaders. Only ordinary,
+    // non-virtual paths use `baseUrl` here; virtual-to-remote mapping happens in `_request`.
     item.url =
-      !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
+      !virtualResourceEntry && !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
         ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
         : assetBaseURL;
-    const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
+    const logicalAssetBaseURL = item.url;
 
     // Check cache
-    const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
+    const cacheObject = this._assetUrlPool[logicalAssetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
 
-    // Get asset url
-    let remoteAssetURL = remoteAssetBaseURL;
+    // Get logical asset url
+    let logicalAssetURL = logicalAssetBaseURL;
     if (queryPath) {
-      remoteAssetURL += "?q=" + paths.shift();
+      logicalAssetURL += "?q=" + paths.shift();
       let index: string;
       while ((index = paths.shift())) {
-        remoteAssetURL += `[${index}]`;
+        logicalAssetURL += `[${index}]`;
       }
     }
 
     // Check is loading
     const loadingPromises = this._loadingPromises;
-    const loadingPromise = loadingPromises[remoteAssetURL];
+    const loadingPromise = loadingPromises[logicalAssetURL];
     if (loadingPromise) {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
@@ -399,41 +417,41 @@ export class ResourceManager {
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        loadingPromises[remoteAssetBaseURL] ||
-        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
+        loadingPromises[logicalAssetBaseURL] ||
+        this._loadSubpackageAndMainAsset(loader, item, logicalAssetBaseURL, subpackageName);
 
-      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
+      return this._createSubAssetPromiseCallback<T>(logicalAssetBaseURL, logicalAssetURL, queryPath, mainPromise);
     }
 
-    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
+    return this._loadSubpackageAndMainAsset(loader, item, logicalAssetBaseURL, subpackageName);
   }
 
   // For adapter mini-game platform
   private _loadSubpackageAndMainAsset<T>(
     loader: Loader<T>,
     item: LoadItem,
-    remoteAssetBaseURL: string,
+    logicalAssetBaseURL: string,
     subpackageName: string
   ): AssetPromise<T> {
-    return this._loadMainAsset(loader, item, remoteAssetBaseURL);
+    return this._loadMainAsset(loader, item, logicalAssetBaseURL);
   }
 
-  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, logicalAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
-    loadingPromises[remoteAssetBaseURL] = promise;
+    loadingPromises[logicalAssetBaseURL] = promise;
 
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
-          this._addAsset(remoteAssetBaseURL, resource as EngineObject);
+          this._addAsset(logicalAssetBaseURL, resource as EngineObject);
         }
-        delete loadingPromises[remoteAssetBaseURL];
-        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
+        delete loadingPromises[logicalAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(logicalAssetBaseURL);
       },
       () => {
-        delete loadingPromises[remoteAssetBaseURL];
-        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
+        delete loadingPromises[logicalAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(logicalAssetBaseURL);
       }
     );
 
@@ -441,13 +459,13 @@ export class ResourceManager {
   }
 
   private _createSubAssetPromiseCallback<T>(
-    remoteAssetBaseURL: string,
-    remoteAssetURL: string,
+    logicalAssetBaseURL: string,
+    logicalAssetURL: string,
     assetSubPath: string,
     mainPromise: AssetPromise<unknown>
   ): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
-    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
+    const subPromiseCallback = this._subAssetPromiseCallbacks[logicalAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
 
     // Already resolved
@@ -457,7 +475,7 @@ export class ResourceManager {
 
     // Pending
     const promise = new AssetPromise<T>((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[logicalAssetBaseURL] ||= {})[assetSubPath] = {
         resolve,
         reject
       };
@@ -474,13 +492,13 @@ export class ResourceManager {
       }, reject);
     });
 
-    loadingPromises[remoteAssetURL] = promise;
+    loadingPromises[logicalAssetURL] = promise;
 
     promise.then(
       () => {
-        delete loadingPromises[remoteAssetURL];
+        delete loadingPromises[logicalAssetURL];
       },
-      () => delete loadingPromises[remoteAssetURL]
+      () => delete loadingPromises[logicalAssetURL]
     );
 
     return promise;

@@ -8,8 +8,7 @@ import {
   ResourceManager,
   Sprite,
   SpriteAtlas,
-  Texture2D,
-  Utils
+  Texture2D
 } from "@galacean/engine-core";
 import { AtlasConfig, AtlasSprite } from "@galacean/engine-core/types/2d/atlas/types";
 import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
@@ -50,7 +49,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               chainPromises.push(
                 resourceManager
                   .load<Texture2D>({
-                    url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
+                    // @ts-ignore
+                    url: resourceManager._resolveVirtualPath(item.url, atlasItem.img),
                     type: atlasItem.type ?? AssetType.Texture,
                     params: { format, mipmap }
                   })
