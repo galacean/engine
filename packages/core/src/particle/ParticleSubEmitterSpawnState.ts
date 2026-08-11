@@ -9,13 +9,11 @@ import type { ElementRangeMapping } from "../graphic/ElementRangeMapping";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import type { ShaderPass } from "../shader/ShaderPass";
 import type { ShaderProgram } from "../shader/ShaderProgram";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
-import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 
 const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
 const GATHER_PASS_NAME = "SubEmitterTrajectoryGather";
@@ -58,24 +56,13 @@ export class ParticleSubEmitterSpawnState {
     this._gatherPass = gatherPass;
 
     const primitive = (this._primitive = new Primitive(engine));
-    primitive.addVertexElement(
-      new VertexElement(
-        ParticleFeedbackVertexAttribute.WorldPosition,
-        ParticleBufferUtils.feedbackWorldPositionByteOffset,
-        VertexElementFormat.Vector3,
-        0,
-        1
-      )
-    );
-    primitive.addVertexElement(
-      new VertexElement(
-        ParticleFeedbackVertexAttribute.TrajectoryVelocity,
-        ParticleBufferUtils.feedbackTrajectoryVelocityByteOffset,
-        VertexElementFormat.Vector3,
-        0,
-        1
-      )
-    );
+    const gatherInputLayout = ParticleBufferUtils.subEmitterTrajectoryGatherInputVertexElements;
+    for (let i = 0, n = gatherInputLayout.length; i < n; i++) {
+      const element = gatherInputLayout[i];
+      primitive.addVertexElement(
+        new VertexElement(element.attribute, element.offset, element.format, 0, element.instanceStepRate)
+      );
+    }
     primitive.enableVAO = false;
     primitive.isGCIgnored = true;
     this._transformFeedback = new TransformFeedback(engine);
@@ -228,9 +215,10 @@ export class ParticleSubEmitterSpawnState {
       primitive.setVertexBufferBinding(0, sourceBinding);
     }
     const sourceByteOffset = sourceStart * sourceBinding.stride;
-    const elements = primitive.vertexElements;
-    elements[0].offset = sourceByteOffset + ParticleBufferUtils.feedbackWorldPositionByteOffset;
-    elements[1].offset = sourceByteOffset + ParticleBufferUtils.feedbackTrajectoryVelocityByteOffset;
+    const boundElements = primitive.vertexElements;
+    const inputLayout = ParticleBufferUtils.subEmitterTrajectoryGatherInputVertexElements;
+    boundElements[0].offset = sourceByteOffset + inputLayout[0].offset;
+    boundElements[1].offset = sourceByteOffset + inputLayout[1].offset;
     primitive.instanceCount = parentCount;
 
     const outputCount = childrenPerParent * parentCount;

@@ -30,7 +30,7 @@ export class ParticleTransformFeedbackSimulator {
   private static readonly _inputBindings: VertexBufferBinding[] = [];
 
   private readonly _simulator: TransformFeedbackSimulator;
-  private readonly _feedbackStateVertexElements: VertexElement[];
+  private readonly _stateInputVertexElements: VertexElement[];
 
   /**
    * The current read buffer binding for the render pass.
@@ -61,12 +61,12 @@ export class ParticleTransformFeedbackSimulator {
     let vertexStride: number;
     let feedbackVaryings: string[];
     if (trajectoryEnabled) {
-      vertexStride = ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
-      this._feedbackStateVertexElements = ParticleBufferUtils.feedbackTrajectoryStateVertexElements;
+      vertexStride = ParticleBufferUtils.feedbackStateWithTrajectoryVertexStride;
+      this._stateInputVertexElements = ParticleBufferUtils.feedbackStateWithTrajectoryInputVertexElements;
       feedbackVaryings = ParticleTransformFeedbackSimulator._trajectoryStateVaryings;
     } else {
       vertexStride = ParticleBufferUtils.feedbackStateVertexStride;
-      this._feedbackStateVertexElements = ParticleBufferUtils.feedbackStateVertexElements;
+      this._stateInputVertexElements = ParticleBufferUtils.feedbackStateInputVertexElements;
       feedbackVaryings = ParticleTransformFeedbackSimulator._stateVaryings;
     }
     this._simulator = new TransformFeedbackSimulator(
@@ -127,11 +127,11 @@ export class ParticleTransformFeedbackSimulator {
     }
     const didBeginUpdate = this._simulator.beginUpdate(
       shaderData,
-      this._feedbackStateVertexElements,
+      this._stateInputVertexElements,
       inputBindings,
       subEmitterSpawnStateBinding
-        ? ParticleBufferUtils.feedbackInitialSubEmitterSpawnStateVertexElements
-        : ParticleBufferUtils.feedbackInitialDataVertexElements
+        ? ParticleBufferUtils.feedbackInstanceWithSpawnStateInputVertexElements
+        : ParticleBufferUtils.feedbackInstanceInputVertexElements
     );
     inputBindings.length = 0;
     if (!didBeginUpdate) {

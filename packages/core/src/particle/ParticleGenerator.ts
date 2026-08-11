@@ -12,7 +12,6 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { MeshRenderer, VertexAttribute } from "../mesh";
 import type { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -29,7 +28,6 @@ import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import { ParticleSubEmitterInheritProperty } from "./enums/ParticleSubEmitterInheritProperty";
-import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { CustomDataModule } from "./modules/CustomDataModule";
 import { EmissionModule } from "./modules/EmissionModule";
@@ -202,7 +200,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   private get _useTrajectoryFeedback(): boolean {
-    return this._feedbackSimulator?.readBinding.stride === ParticleBufferUtils.feedbackTrajectoryStateVertexStride;
+    return this._feedbackSimulator?.readBinding.stride === ParticleBufferUtils.feedbackStateWithTrajectoryVertexStride;
   }
 
   /**
@@ -583,16 +581,16 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
     } else {
       renderer.shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
-      primitive.addVertexElement(ParticleBufferUtils.renderBillboardVertexElement);
+      primitive.addVertexElement(ParticleBufferUtils.forwardBillboardInputVertexElement);
       vertexBufferBindings.push(particleUtils.billboardVertexBufferBinding);
       primitive.setIndexBufferBinding(particleUtils.billboardIndexBufferBinding);
       this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
 
-    const renderInstanceVertexElements = ParticleBufferUtils.renderInstanceVertexElements;
+    const particleInstanceInputLayout = ParticleBufferUtils.forwardParticleInstanceInputVertexElements;
     const bindingIndex = vertexBufferBindings.length;
-    for (let i = 0, n = renderInstanceVertexElements.length; i < n; i++) {
-      const element = renderInstanceVertexElements[i];
+    for (let i = 0, n = particleInstanceInputLayout.length; i < n; i++) {
+      const element = particleInstanceInputLayout[i];
       primitive.addVertexElement(
         new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
       );
@@ -606,9 +604,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const subEmitterSpawnState = this._subEmitterSpawnState;
     if (subEmitterSpawnState) {
       const subEmitterBindingIndex = vertexBufferBindings.length;
-      const elements = ParticleBufferUtils.renderSubEmitterSpawnStateVertexElements;
-      for (let i = 0, n = elements.length; i < n; i++) {
-        const element = elements[i];
+      const spawnStateInstanceInputLayout = ParticleBufferUtils.forwardSubEmitterSpawnStateInstanceInputVertexElements;
+      for (let i = 0, n = spawnStateInstanceInputLayout.length; i < n; i++) {
+        const element = spawnStateInstanceInputLayout[i];
         primitive.addVertexElement(
           new VertexElement(
             element.attribute,
@@ -625,12 +623,13 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     // Add feedback buffer binding for render pass
     if (this._useTransformFeedback) {
       const bindingIndex = vertexBufferBindings.length;
-      primitive.addVertexElement(
-        new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, bindingIndex, 1)
-      );
-      primitive.addVertexElement(
-        new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, bindingIndex, 1)
-      );
+      const feedbackStateInstanceInputLayout = ParticleBufferUtils.forwardFeedbackStateInstanceInputVertexElements;
+      for (let i = 0, n = feedbackStateInstanceInputLayout.length; i < n; i++) {
+        const element = feedbackStateInstanceInputLayout[i];
+        primitive.addVertexElement(
+          new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
+        );
+      }
       vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     }
 
