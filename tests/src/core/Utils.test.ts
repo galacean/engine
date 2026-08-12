@@ -28,17 +28,11 @@ describe("Utils test", function () {
       "https://www.galacean.com/texture.png"
     );
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal(
-      "/path/to/file.html"
-    );
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal("/path/to/file.html");
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal(
-      "/path/file.html"
-    );
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal("/path/file.html");
 
-    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal(
-      "/a/空 格"
-    );
+    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal("/a/空 格");
 
     expect(Utils.resolveAbsoluteUrl("/a c%/中%20文/test1/test2", "../空 格/测%试.json")).to.equal(
       "/a c%/中%20文/空 格/测%试.json"
@@ -46,6 +40,10 @@ describe("Utils test", function () {
 
     expect(Utils.resolveAbsoluteUrl("Assets/UI/Hero.atlas", "../Textures/Hero.png")).to.equal(
       "Assets/Textures/Hero.png"
+    );
+
+    expect(Utils.resolveAbsoluteUrl("SpriteAtlas/Art/UI/auto-atlas.atlas", "/Shared/page.tex")).to.equal(
+      "/Shared/page.tex"
     );
 
     const base64Url = "data:application/octet-stream;base64,AAAAAImICD2JiIg9zczMPYmICD6rqio";
