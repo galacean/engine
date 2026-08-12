@@ -2307,7 +2307,10 @@ describe("SubEmitter", () => {
     expect(slot.emitter).to.equal(liveTarget);
 
     parent.generator.subEmitters.enabled = true;
+    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
     liveTarget.destroy();
+    updateEngine(engine, 1);
+    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(false);
     parent.generator.subEmitters.enabled = false;
     expect(() => (parent.generator.subEmitters.enabled = true)).not.to.throw();
 

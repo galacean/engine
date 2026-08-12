@@ -87,6 +87,7 @@ export class ParticleSystemManager {
 
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
+      renderer.generator._setTransformFeedback();
       renderer._particleUpdateIndegree = 0;
     }
 
