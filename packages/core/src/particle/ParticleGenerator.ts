@@ -2104,7 +2104,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       }
     }
     if (compact) {
-      this._subEmitterSpawnState?.compactForRendering(this._firstActiveElement, firstFreeElement);
+      this._subEmitterSpawnState?.copyActiveRangeForRendering(this._firstActiveElement, firstFreeElement);
     }
     this._firstNewElement = firstFreeElement;
     this._instanceBufferResized = false;

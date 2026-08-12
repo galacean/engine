@@ -47,7 +47,7 @@ export class ParticleSubEmitterSpawnState {
     return this._renderBinding ?? this._simulationBinding;
   }
 
-  constructor(engine: Engine, particleCapacity: number, needsRenderCompaction: boolean) {
+  constructor(engine: Engine, particleCapacity: number, needsRenderBinding: boolean) {
     const gatherPass = Shader.find(FEEDBACK_SHADER_NAME)?.subShaders[0]?.passes.find(
       (pass) => pass.name === GATHER_PASS_NAME
     );
@@ -70,7 +70,7 @@ export class ParticleSubEmitterSpawnState {
     this._transformFeedback = new TransformFeedback(engine);
     this._transformFeedback.isGCIgnored = true;
     this._simulationBinding = this._createSpawnStateBinding(particleCapacity);
-    this._renderBinding = needsRenderCompaction ? this._createSpawnStateBinding(particleCapacity) : null;
+    this._renderBinding = needsRenderBinding ? this._createSpawnStateBinding(particleCapacity) : null;
   }
 
   resize(particleCapacity: number, mappings: ReadonlyArray<ElementRangeMapping>): void {
@@ -95,9 +95,9 @@ export class ParticleSubEmitterSpawnState {
     oldSimulationBuffer.destroy();
   }
 
-  compactForRendering(firstActive: number, firstFree: number): void {
+  copyActiveRangeForRendering(firstActiveIndex: number, firstFreeIndex: number): void {
     const renderBinding = this._renderBinding;
-    if (!renderBinding || firstActive === firstFree) {
+    if (!renderBinding || firstActiveIndex === firstFreeIndex) {
       return;
     }
 
@@ -105,13 +105,18 @@ export class ParticleSubEmitterSpawnState {
     const capacity = this._simulationBinding.buffer.byteLength / stride;
     const simulationBuffer = this._simulationBinding.buffer;
     const renderBuffer = renderBinding.buffer;
-    if (firstActive < firstFree) {
-      renderBuffer.copyFromBuffer(simulationBuffer, firstActive * stride, 0, (firstFree - firstActive) * stride);
+    if (firstActiveIndex < firstFreeIndex) {
+      renderBuffer.copyFromBuffer(
+        simulationBuffer,
+        firstActiveIndex * stride,
+        0,
+        (firstFreeIndex - firstActiveIndex) * stride
+      );
     } else {
-      const tailByteLength = (capacity - firstActive) * stride;
-      renderBuffer.copyFromBuffer(simulationBuffer, firstActive * stride, 0, tailByteLength);
-      if (firstFree > 0) {
-        renderBuffer.copyFromBuffer(simulationBuffer, 0, tailByteLength, firstFree * stride);
+      const tailByteLength = (capacity - firstActiveIndex) * stride;
+      renderBuffer.copyFromBuffer(simulationBuffer, firstActiveIndex * stride, 0, tailByteLength);
+      if (firstFreeIndex > 0) {
+        renderBuffer.copyFromBuffer(simulationBuffer, 0, tailByteLength, firstFreeIndex * stride);
       }
     }
   }
