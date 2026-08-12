@@ -1176,7 +1176,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("gathers parent trajectory records into matching child slots", () => {
+  it("gathers non-coalesced parent trajectories into matching child slots in one output scope", () => {
     const parent = createParticleRenderer(engine, "TrajectoryWrap_Parent");
     const child = createParticleRenderer(engine, "TrajectoryWrap_Child");
     parent.generator.subEmitters.enabled = true;
@@ -1200,16 +1200,26 @@ describe("SubEmitter", () => {
     sourceBinding.buffer.setData(sourceData);
 
     const spawnState = childGenerator._subEmitterSpawnState;
+    const gatherDraw = vi.spyOn(spawnState._primitive, "draw");
+    const beginOutput = vi.spyOn(spawnState._transformFeedback, "begin");
+    const endOutput = vi.spyOn(spawnState._transformFeedback, "end");
     spawnState.enqueueParentTrajectory(sourceBinding, ringCapacity - 1, 0, 1);
-    spawnState.enqueueParentTrajectory(sourceBinding, 0, 1, 1);
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, 1, 2);
     spawnState.flush();
     const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
     gl.finish();
 
+    expect(gatherDraw).toHaveBeenCalledTimes(2);
+    expect(beginOutput).toHaveBeenCalledTimes(1);
+    expect(endOutput).toHaveBeenCalledTimes(1);
     expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
     expect(Array.from(readSubEmitterSpawnState(child, 1))).to.deep.equal([7, 8, 9, 10, 11, 12]);
+    expect(Array.from(readSubEmitterSpawnState(child, 2))).to.deep.equal([7, 8, 9, 10, 11, 12]);
     expect(gl.getError()).to.equal(gl.NO_ERROR);
 
+    gatherDraw.mockRestore();
+    beginOutput.mockRestore();
+    endOutput.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });
@@ -1313,11 +1323,29 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(2);
-    const positions = [readSubEmitterSpawnState(child, 0)[0], readSubEmitterSpawnState(child, 1)[0]].sort(
+    let positions = [readSubEmitterSpawnState(child, 0)[0], readSubEmitterSpawnState(child, 1)[0]].sort(
       (a, b) => a - b
     );
     expect(positions[0]).to.be.closeTo(-2, 1e-5);
     expect(positions[1]).to.be.closeTo(3, 1e-5);
+
+    const spawnState = (child.generator as any)._subEmitterSpawnState;
+    const gatherDraw = vi.spyOn(spawnState._primitive, "draw");
+    const beginOutput = vi.spyOn(spawnState._transformFeedback, "begin");
+    const endOutput = vi.spyOn(spawnState._transformFeedback, "end");
+    updateEngine(engine, 1);
+
+    expect(child.generator._getAliveParticleCount()).to.equal(4);
+    expect(gatherDraw).toHaveBeenCalledTimes(2);
+    expect(beginOutput).toHaveBeenCalledTimes(1);
+    expect(endOutput).toHaveBeenCalledTimes(1);
+    positions = [readSubEmitterSpawnState(child, 2)[0], readSubEmitterSpawnState(child, 3)[0]].sort((a, b) => a - b);
+    expect(positions[0]).to.be.closeTo(-2, 1e-5);
+    expect(positions[1]).to.be.closeTo(3, 1e-5);
+
+    gatherDraw.mockRestore();
+    beginOutput.mockRestore();
+    endOutput.mockRestore();
 
     parentA.entity.destroy();
     parentB.entity.destroy();
@@ -1345,15 +1373,22 @@ describe("SubEmitter", () => {
     sourceBinding.buffer.setData(sourceData);
 
     const lastChildIndex = childGenerator._currentParticleCount - 1;
-    childGenerator._subEmitterSpawnState.enqueueParentTrajectory(sourceBinding, 0, lastChildIndex, 2);
-    childGenerator._subEmitterSpawnState.flush();
+    const spawnState = childGenerator._subEmitterSpawnState;
+    const beginOutput = vi.spyOn(spawnState._transformFeedback, "begin");
+    const endOutput = vi.spyOn(spawnState._transformFeedback, "end");
+    spawnState.enqueueParentTrajectory(sourceBinding, 0, lastChildIndex, 2);
+    spawnState.flush();
     const gl = (engine as any)._hardwareRenderer._gl as WebGL2RenderingContext;
     gl.finish();
 
+    expect(beginOutput).toHaveBeenCalledTimes(2);
+    expect(endOutput).toHaveBeenCalledTimes(2);
     expect(Array.from(readSubEmitterSpawnState(child, lastChildIndex))).to.deep.equal([1, 2, 3, 4, 5, 6]);
     expect(Array.from(readSubEmitterSpawnState(child, 0))).to.deep.equal([1, 2, 3, 4, 5, 6]);
     expect(gl.getError()).to.equal(gl.NO_ERROR);
 
+    beginOutput.mockRestore();
+    endOutput.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
   });

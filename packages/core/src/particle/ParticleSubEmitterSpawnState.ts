@@ -19,7 +19,7 @@ const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
 const GATHER_PASS_NAME = "SubEmitterTrajectoryGather";
 
 /**
- * Stores parent trajectory state aligned with sub-emitted particle slots.
+ * Maintains parent trajectory state aligned with sub-emitted particle slots.
  * @internal
  */
 export class ParticleSubEmitterSpawnState {
@@ -32,7 +32,7 @@ export class ParticleSubEmitterSpawnState {
   private readonly _transformFeedback: TransformFeedback;
   private _simulationBinding: VertexBufferBinding;
   private _renderBinding: VertexBufferBinding | null = null;
-  private _pendingSourceBinding: VertexBufferBinding;
+  private _pendingSourceBinding: VertexBufferBinding | null = null;
   private _pendingSourceStart = 0;
   private _pendingTargetStart = 0;
   private _pendingChildrenPerParent = 0;
@@ -47,9 +47,10 @@ export class ParticleSubEmitterSpawnState {
     return this._renderBinding ?? this._simulationBinding;
   }
 
-  constructor(engine: Engine, particleCount: number, compactForRendering: boolean) {
-    const shader = Shader.find(FEEDBACK_SHADER_NAME);
-    const gatherPass = shader?.subShaders[0]?.passes.find((pass) => pass.name === GATHER_PASS_NAME);
+  constructor(engine: Engine, particleCount: number, needsRenderCompaction: boolean) {
+    const gatherPass = Shader.find(FEEDBACK_SHADER_NAME)?.subShaders[0]?.passes.find(
+      (pass) => pass.name === GATHER_PASS_NAME
+    );
     if (!gatherPass) {
       throw new Error(`${GATHER_PASS_NAME} pass is not registered in ${FEEDBACK_SHADER_NAME}.`);
     }
@@ -63,12 +64,13 @@ export class ParticleSubEmitterSpawnState {
         new VertexElement(element.attribute, element.offset, element.format, 0, element.instanceStepRate)
       );
     }
+    // Source offsets vary per batch, so a cached VAO would retain stale attribute pointers
     primitive.enableVAO = false;
     primitive.isGCIgnored = true;
     this._transformFeedback = new TransformFeedback(engine);
     this._transformFeedback.isGCIgnored = true;
     this._simulationBinding = this._createBinding(particleCount);
-    this._renderBinding = compactForRendering ? this._createBinding(particleCount) : null;
+    this._renderBinding = needsRenderCompaction ? this._createBinding(particleCount) : null;
   }
 
   resize(particleCount: number, mappings: ReadonlyArray<ElementRangeMapping>): void {
@@ -123,42 +125,41 @@ export class ParticleSubEmitterSpawnState {
     const targetTailCount =
       this._simulationBinding.buffer.byteLength / ParticleBufferUtils.subEmitterSpawnStateVertexStride - targetIndex;
     if (childCount > targetTailCount) {
-      this._drawPendingRun();
-      this._drawRange(sourceBinding, sourceIndex, targetIndex, targetTailCount, 1);
-      this._drawRange(sourceBinding, sourceIndex, 0, childCount - targetTailCount, 1);
+      this._drawPendingBatch();
+      this._drawBatch(sourceBinding, sourceIndex, targetIndex, targetTailCount, 1);
+      this._drawBatch(sourceBinding, sourceIndex, 0, childCount - targetTailCount, 1);
       return;
     }
 
     const parentCount = this._pendingParentCount;
-    const canAppend =
-      parentCount > 0 &&
+    if (
       sourceBinding === this._pendingSourceBinding &&
       childCount === this._pendingChildrenPerParent &&
       sourceIndex === this._pendingSourceStart + parentCount &&
-      targetIndex === this._pendingTargetStart + parentCount * childCount;
-    if (!canAppend) {
-      this._drawPendingRun();
-      this._pendingSourceBinding = sourceBinding;
-      this._pendingSourceStart = sourceIndex;
-      this._pendingTargetStart = targetIndex;
-      this._pendingChildrenPerParent = childCount;
-      this._pendingParentCount = 1;
-    } else {
-      this._pendingParentCount++;
+      targetIndex === this._pendingTargetStart + parentCount * childCount
+    ) {
+      this._pendingParentCount = parentCount + 1;
+      return;
     }
+
+    this._drawPendingBatch();
+    this._pendingSourceBinding = sourceBinding;
+    this._pendingSourceStart = sourceIndex;
+    this._pendingTargetStart = targetIndex;
+    this._pendingChildrenPerParent = childCount;
+    this._pendingParentCount = 1;
   }
 
   flush(): void {
-    this._drawPendingRun();
+    this._drawPendingBatch();
     if (!this._activeProgram) {
       return;
     }
 
-    const renderer = this._primitive.engine._hardwareRenderer;
+    this._transformFeedback.end();
     this._transformFeedback.unbindBuffer(0);
     this._transformFeedback.unbind();
-    renderer.disableRasterizerDiscard();
-    renderer.invalidateShaderProgramState();
+    this._primitive.engine._hardwareRenderer.disableRasterizerDiscard();
     this._activeProgram = null;
     this._primitive.vertexBufferBindings.length = 0;
   }
@@ -182,30 +183,31 @@ export class ParticleSubEmitterSpawnState {
     return new VertexBufferBinding(buffer, ParticleBufferUtils.subEmitterSpawnStateVertexStride);
   }
 
-  private _drawPendingRun(): void {
-    const parentCount = this._pendingParentCount;
-    if (parentCount === 0) {
+  private _drawPendingBatch(): void {
+    const sourceBinding = this._pendingSourceBinding;
+    if (!sourceBinding) {
       return;
     }
 
-    this._drawRange(
-      this._pendingSourceBinding,
+    this._pendingSourceBinding = null;
+    this._drawBatch(
+      sourceBinding,
       this._pendingSourceStart,
       this._pendingTargetStart,
       this._pendingChildrenPerParent,
-      parentCount
+      this._pendingParentCount
     );
-    this._pendingParentCount = 0;
   }
 
-  private _drawRange(
+  private _drawBatch(
     sourceBinding: VertexBufferBinding,
     sourceStart: number,
     targetStart: number,
     childrenPerParent: number,
     parentCount: number
   ): void {
-    const program = this._beginGather();
+    const activeProgram = this._activeProgram;
+    const program = activeProgram ?? this._beginGatherScope();
     if (!program) {
       return;
     }
@@ -221,31 +223,26 @@ export class ParticleSubEmitterSpawnState {
     boundElements[1].offset = sourceByteOffset + inputLayout[1].offset;
     primitive.instanceCount = parentCount;
 
-    const outputCount = childrenPerParent * parentCount;
-    const outputStride = ParticleBufferUtils.subEmitterSpawnStateVertexStride;
     const transformFeedback = this._transformFeedback;
-    transformFeedback.bindBufferRange(
-      0,
-      this._simulationBinding.buffer,
-      targetStart * outputStride,
-      outputCount * outputStride
-    );
-    transformFeedback.begin(MeshTopology.Points);
+    // Target slots are enqueued in ring order, so only index 0 starts a new output range
+    if (!activeProgram || targetStart === 0) {
+      if (activeProgram) {
+        transformFeedback.end();
+      }
+      const outputBuffer = this._simulationBinding.buffer;
+      const outputOffset = targetStart * ParticleBufferUtils.subEmitterSpawnStateVertexStride;
+      // Bind through the buffer tail so contiguous batches can share one Transform Feedback scope
+      transformFeedback.bindBufferRange(0, outputBuffer, outputOffset, outputBuffer.byteLength - outputOffset);
+      transformFeedback.begin(MeshTopology.Points);
+    }
     const subPrimitive = this._subPrimitive;
     subPrimitive.count = childrenPerParent;
     primitive.draw(program, subPrimitive);
-    transformFeedback.end();
   }
 
-  private _beginGather(): ShaderProgram | null {
-    const activeProgram = this._activeProgram;
-    if (activeProgram) {
-      return activeProgram;
-    }
-
-    const pass = this._gatherPass;
+  private _beginGatherScope(): ShaderProgram | null {
     const engine = this._primitive.engine;
-    const program = pass._getShaderProgram(
+    const program = this._gatherPass._getShaderProgram(
       engine,
       ParticleSubEmitterSpawnState._gatherMacros,
       ParticleSubEmitterSpawnState._gatherVaryings
@@ -254,11 +251,10 @@ export class ParticleSubEmitterSpawnState {
       return null;
     }
 
-    this._activeProgram = program;
     program.bind();
-    const renderer = engine._hardwareRenderer;
-    renderer.enableRasterizerDiscard();
+    engine._hardwareRenderer.enableRasterizerDiscard();
     this._transformFeedback.bind();
+    this._activeProgram = program;
     return program;
   }
 }
