@@ -5,7 +5,8 @@ import {
   Loader,
   LoadItem,
   resourceLoader,
-  ResourceManager
+  ResourceManager,
+  Utils
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Font, ["font"])
@@ -19,8 +20,7 @@ class FontLoader extends Loader<Font> {
           const { fontName, fontUrl } = data;
 
           if (fontUrl) {
-            // @ts-ignore
-            const fontPath = resourceManager._resolveDependencyPath(item.url, fontUrl);
+            const fontPath = Utils.resolveAbsoluteUrl(item.url, fontUrl);
             // FontFace performs its own request, so map to the remote URL at the browser boundary.
             // @ts-ignore
             const fontRemoteUrl = resourceManager._getRemoteUrl(fontPath);

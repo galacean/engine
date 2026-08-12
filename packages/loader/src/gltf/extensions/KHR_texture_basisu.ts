@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Logger, Texture2D } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Logger, Texture2D, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { KTX2Loader } from "../../ktx2/KTX2Loader";
 import type { ITexture } from "../GLTFSchema";
@@ -19,7 +19,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     textureInfo: ITexture
   ): AssetPromise<Texture2D> {
     const { glTF, glTFResource } = context;
-    const { engine, url: basePath } = glTFResource;
+    const { engine, url } = glTFResource;
 
     const { sampler, name: textureName } = textureInfo;
     const { source } = schema;
@@ -27,11 +27,9 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
     if (uri) {
       const index = uri.lastIndexOf(".");
-      // @ts-ignore
-      const imagePath = engine.resourceManager._resolveDependencyPath(basePath, uri);
       const promise = engine.resourceManager
         .load<Texture2D>({
-          url: imagePath,
+          url: Utils.resolveAbsoluteUrl(url, uri),
           type: AssetType.KTX2
         })
         .onProgress(undefined, context._onTaskDetail)

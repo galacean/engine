@@ -190,23 +190,6 @@ export class ResourceManager {
   }
 
   /**
-   * Resolve a dependency path against the path of its owning asset.
-   * @internal
-   */
-  _resolveDependencyPath(basePath: string, dependencyPath: string): string {
-    if (Utils.isAbsoluteUrl(dependencyPath) || Utils.isBase64Url(dependencyPath)) {
-      return dependencyPath;
-    }
-
-    const resolvedPath = Utils.resolveAbsoluteUrl(basePath, dependencyPath);
-    const resources = this._virtualPathResourceMap;
-    if (resources[resolvedPath]) {
-      return resolvedPath;
-    }
-    return resources[dependencyPath] ? dependencyPath : resolvedPath;
-  }
-
-  /**
    * @internal
    */
   _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {

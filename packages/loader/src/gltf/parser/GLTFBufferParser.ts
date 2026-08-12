@@ -1,4 +1,4 @@
-import { AssetPromise, RequestConfig } from "@galacean/engine-core";
+import { AssetPromise, RequestConfig, Utils } from "@galacean/engine-core";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import type { IBuffer } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
@@ -16,11 +16,10 @@ export class GLTFBufferParser extends GLTFParser {
 
   private _parseSingleBuffer(context: GLTFParserContext, bufferInfo: IBuffer): AssetPromise<ArrayBuffer> {
     const { glTFResource, contentRestorer, resourceManager } = context;
-    const basePath = glTFResource.url;
+    const url = glTFResource.url;
     const restoreBufferRequests = contentRestorer.bufferRequests;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
-    // @ts-ignore
-    const bufferPath = resourceManager._resolveDependencyPath(basePath, bufferInfo.uri);
+    const bufferPath = Utils.resolveAbsoluteUrl(url, bufferInfo.uri);
 
     restoreBufferRequests.push(new BufferRequestInfo(bufferPath, requestConfig));
     const promise = resourceManager

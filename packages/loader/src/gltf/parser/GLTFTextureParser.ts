@@ -6,7 +6,8 @@ import {
   Texture2D,
   TextureFormat,
   TextureUtils,
-  TextureWrapMode
+  TextureWrapMode,
+  Utils
 } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
@@ -33,7 +34,7 @@ export class GLTFTextureParser extends GLTFParser {
     isSRGBColorSpace?: boolean
   ): AssetPromise<Texture2D> {
     const { glTFResource, glTF } = context;
-    const { engine, url: basePath } = glTFResource;
+    const { engine, url } = glTFResource;
     const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[imageIndex];
 
     const useSampler = sampler !== undefined;
@@ -44,11 +45,9 @@ export class GLTFTextureParser extends GLTFParser {
       const extIndex = uri.lastIndexOf(".");
       const ext = uri.substring(extIndex + 1);
       const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
-      // @ts-ignore
-      const imagePath = engine.resourceManager._resolveDependencyPath(basePath, uri);
       texture = engine.resourceManager
         .load<Texture2D>({
-          url: imagePath,
+          url: Utils.resolveAbsoluteUrl(url, uri),
           type,
           params: {
             mipmap: samplerInfo?.mipmap,

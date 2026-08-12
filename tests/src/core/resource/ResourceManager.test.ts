@@ -89,39 +89,6 @@ describe("ResourceManager", () => {
   });
 
   describe("virtualPath loading", () => {
-    it("resolves relative and complete references in the virtual file system", () => {
-      const resourceManager = engine.resourceManager;
-      resourceManager.registerVirtualResources([
-        {
-          virtualPath: "Assets/Models/Hero.gltf",
-          path: "https://cdn.ali.com/model-hash",
-          type: AssetType.GLTF
-        },
-        {
-          virtualPath: "Assets/Textures/Hero.png",
-          path: "https://cdn.ali.com/texture-hash",
-          type: AssetType.Texture
-        }
-      ]);
-
-      // @ts-ignore
-      expect(resourceManager._resolveDependencyPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
-        "Assets/Textures/Hero.png"
-      );
-      // @ts-ignore
-      expect(resourceManager._resolveDependencyPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
-        "Assets/Textures/Hero.png"
-      );
-      // @ts-ignore
-      expect(
-        resourceManager._resolveDependencyPath("https://cdn.ali.com/Models/Hero.gltf", "../Textures/Hero.png")
-      ).equal("https://cdn.ali.com/Textures/Hero.png");
-      // @ts-ignore
-      expect(resourceManager._getRemoteUrl("Assets/Textures/Hero.png")).equal("https://cdn.ali.com/texture-hash");
-      // @ts-ignore
-      expect(resourceManager._getRemoteUrl("https://cdn.ali.com/direct.png")).equal("https://cdn.ali.com/direct.png");
-    });
-
     it("infers loader type from virtualPathResourceMap when type is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([
