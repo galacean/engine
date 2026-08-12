@@ -33,7 +33,7 @@ export class GLTFTextureParser extends GLTFParser {
     isSRGBColorSpace?: boolean
   ): AssetPromise<Texture2D> {
     const { glTFResource, glTF } = context;
-    const { engine, url: virtualPath } = glTFResource;
+    const { engine, url: basePath } = glTFResource;
     const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[imageIndex];
 
     const useSampler = sampler !== undefined;
@@ -45,10 +45,10 @@ export class GLTFTextureParser extends GLTFParser {
       const ext = uri.substring(extIndex + 1);
       const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
       // @ts-ignore
-      const imageVirtualPath = engine.resourceManager._resolveVirtualPath(virtualPath, uri);
+      const imagePath = engine.resourceManager._resolveDependencyPath(basePath, uri);
       texture = engine.resourceManager
         .load<Texture2D>({
-          url: imageVirtualPath,
+          url: imagePath,
           type,
           params: {
             mipmap: samplerInfo?.mipmap,

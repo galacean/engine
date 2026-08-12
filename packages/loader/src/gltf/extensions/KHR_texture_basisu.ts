@@ -19,7 +19,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     textureInfo: ITexture
   ): AssetPromise<Texture2D> {
     const { glTF, glTFResource } = context;
-    const { engine, url: virtualPath } = glTFResource;
+    const { engine, url: basePath } = glTFResource;
 
     const { sampler, name: textureName } = textureInfo;
     const { source } = schema;
@@ -28,10 +28,10 @@ class KHR_texture_basisu extends GLTFExtensionParser {
     if (uri) {
       const index = uri.lastIndexOf(".");
       // @ts-ignore
-      const imageVirtualPath = engine.resourceManager._resolveVirtualPath(virtualPath, uri);
+      const imagePath = engine.resourceManager._resolveDependencyPath(basePath, uri);
       const promise = engine.resourceManager
         .load<Texture2D>({
-          url: imageVirtualPath,
+          url: imagePath,
           type: AssetType.KTX2
         })
         .onProgress(undefined, context._onTaskDetail)

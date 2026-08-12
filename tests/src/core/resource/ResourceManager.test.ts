@@ -105,13 +105,17 @@ describe("ResourceManager", () => {
       ]);
 
       // @ts-ignore
-      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
+      expect(resourceManager._resolveDependencyPath("Assets/Models/Hero.gltf", "../Textures/Hero.png")).equal(
         "Assets/Textures/Hero.png"
       );
       // @ts-ignore
-      expect(resourceManager._resolveVirtualPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
+      expect(resourceManager._resolveDependencyPath("Assets/Models/Hero.gltf", "Assets/Textures/Hero.png")).equal(
         "Assets/Textures/Hero.png"
       );
+      // @ts-ignore
+      expect(
+        resourceManager._resolveDependencyPath("https://cdn.ali.com/Models/Hero.gltf", "../Textures/Hero.png")
+      ).equal("https://cdn.ali.com/Textures/Hero.png");
       // @ts-ignore
       expect(resourceManager._getRemoteUrl("Assets/Textures/Hero.png")).equal("https://cdn.ali.com/texture-hash");
       // @ts-ignore

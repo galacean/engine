@@ -20,17 +20,17 @@ class FontLoader extends Loader<Font> {
 
           if (fontUrl) {
             // @ts-ignore
-            const fontVirtualPath = resourceManager._resolveVirtualPath(item.url, fontUrl);
+            const fontPath = resourceManager._resolveDependencyPath(item.url, fontUrl);
             // FontFace performs its own request, so map to the remote URL at the browser boundary.
             // @ts-ignore
-            const fontRemoteUrl = resourceManager._getRemoteUrl(fontVirtualPath);
+            const fontRemoteUrl = resourceManager._getRemoteUrl(fontPath);
             this._registerFont(fontName, fontRemoteUrl)
               .then(() => {
                 const font = new Font(resourceManager.engine, fontName);
                 resolve(font);
               })
               .catch((e) => {
-                reject(`load font ${fontVirtualPath} fail`);
+                reject(`load font ${fontPath} fail`);
               });
           } else {
             const font = new Font(resourceManager.engine, fontName);

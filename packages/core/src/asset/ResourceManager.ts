@@ -190,20 +190,20 @@ export class ResourceManager {
   }
 
   /**
-   * Resolve a dependency path in the virtual path namespace.
+   * Resolve a dependency path against the path of its owning asset.
    * @internal
    */
-  _resolveVirtualPath(baseVirtualPath: string, dependencyPath: string): string {
+  _resolveDependencyPath(basePath: string, dependencyPath: string): string {
     if (Utils.isAbsoluteUrl(dependencyPath) || Utils.isBase64Url(dependencyPath)) {
       return dependencyPath;
     }
 
-    const relativeVirtualPath = Utils.resolveAbsoluteUrl(baseVirtualPath, dependencyPath);
+    const resolvedPath = Utils.resolveAbsoluteUrl(basePath, dependencyPath);
     const resources = this._virtualPathResourceMap;
-    if (resources[relativeVirtualPath]) {
-      return relativeVirtualPath;
+    if (resources[resolvedPath]) {
+      return resolvedPath;
     }
-    return resources[dependencyPath] ? dependencyPath : relativeVirtualPath;
+    return resources[dependencyPath] ? dependencyPath : resolvedPath;
   }
 
   /**
