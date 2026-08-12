@@ -30,7 +30,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
         this.bufferRequests.map((bufferRequestInfo) => {
           // @ts-ignore
           return this.resource.engine.resourceManager._request<ArrayBuffer>(
-            bufferRequestInfo.assetPath,
+            bufferRequestInfo.url,
             bufferRequestInfo.config
           );
         })
@@ -169,7 +169,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
  */
 export class BufferRequestInfo {
   constructor(
-    public assetPath: string,
+    public url: string,
     public config: RequestConfig
   ) {}
 }

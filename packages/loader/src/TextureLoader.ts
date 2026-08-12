@@ -22,16 +22,16 @@ import { HDRDecoder } from "./HDRDecoder";
 @resourceLoader(AssetType.Texture, ["tex", "png", "jpg", "webp", "jpeg", "hdr"])
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
-    const assetPath = item.url;
+    const url = item.url;
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(assetPath, requestConfig)
+        ._request<ArrayBuffer>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) => {
           this._decode(buffer, item, resourceManager).then((texture) => {
-            resourceManager.addContentRestorer(new TextureContentRestorer(texture, assetPath, requestConfig));
+            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, requestConfig));
             resolve(texture);
           }, reject);
         })
@@ -115,9 +115,9 @@ class TextureLoader extends Loader<Texture> {
     texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
     texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
-    const assetPath = item.url;
-    if (assetPath.indexOf("data:") !== 0) {
-      texture.name = assetPath.substring(assetPath.lastIndexOf("/") + 1);
+    const url = item.url;
+    if (url.indexOf("data:") !== 0) {
+      texture.name = url.substring(url.lastIndexOf("/") + 1);
     }
   }
 }
@@ -125,7 +125,7 @@ class TextureLoader extends Loader<Texture> {
 class TextureContentRestorer extends ContentRestorer<Texture> {
   constructor(
     resource: Texture,
-    public assetPath: string,
+    public url: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -135,7 +135,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
     return (
       this.resource.engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.assetPath, this.requestConfig)
+        ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
           if (FileHeader.checkMagic(buffer)) {
             return decode<Texture>(buffer, this.resource.engine, this.resource);

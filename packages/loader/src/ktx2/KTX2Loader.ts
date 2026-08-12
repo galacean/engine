@@ -246,10 +246,10 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         ...item,
         type: "arraybuffer"
       };
-      const assetPath = item.url;
+      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(assetPath, requestConfig)
+        ._request<ArrayBuffer>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
@@ -257,7 +257,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
               KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
             )
             .then((texture) => {
-              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, assetPath, requestConfig));
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, url, requestConfig));
               resolve(texture);
             })
         )
@@ -269,7 +269,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
   constructor(
     resource: Texture2D | TextureCube,
-    public assetPath: string,
+    public url: string,
     public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
@@ -281,7 +281,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.assetPath, requestConfig)
+        ._request<ArrayBuffer>(this.url, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>

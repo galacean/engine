@@ -25,8 +25,8 @@ export class ResourceManager {
     }
   }
 
-  private static _getTypeByPath(assetPath: string): string {
-    const path = assetPath.split("?")[0];
+  private static _getTypeByUrl(url: string): string {
+    const path = url.split("?")[0];
     return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1).toLowerCase()];
   }
 
@@ -41,10 +41,10 @@ export class ResourceManager {
 
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
-  /** Loaded asset paths indexed by resource instance ID. */
-  private _assetPathById: Record<number, string> = Object.create(null);
-  /** Loaded assets indexed by their logical asset path. */
-  private _assetByPath: Record<string, object> = Object.create(null);
+  /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
+  private _assetPool: Record<number, string> = Object.create(null);
+  /** Asset url pool, key is the asset path and the value is the asset. */
+  private _assetUrlPool: Record<string, object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
   private _referResourcePool: Record<number, ReferResource> = Object.create(null);
@@ -99,12 +99,12 @@ export class ResourceManager {
   }
 
   /**
-   * Get the resource from cache by asset path, return the resource object if it loaded, otherwise return null.
-   * @param path - Resource asset path
+   * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
+   * @param url - Resource url
    * @returns Resource object
    */
-  getFromCache<T>(path: string): T {
-    return (this._assetByPath[path] as T) ?? null;
+  getFromCache<T>(url: string): T {
+    return (this._assetUrlPool[url] as T) ?? null;
   }
 
   /**
@@ -125,12 +125,12 @@ export class ResourceManager {
   }
 
   /**
-   * Get asset path from instanceId.
+   * Get asset url from instanceId.
    * @param instanceId - Engine instance id
-   * @returns Asset path
+   * @returns Asset url
    */
   getAssetPath(instanceId: number): string {
-    return this._assetPathById[instanceId];
+    return this._assetPool[instanceId];
   }
 
   /**
@@ -139,26 +139,26 @@ export class ResourceManager {
   cancelNotLoaded(): void;
 
   /**
-   * Cancel the asset whose path has not finished loading.
-   * @param path - Resource asset path
+   * Cancel assets whose url has not finished loading.
+   * @param url - Resource url
    */
-  cancelNotLoaded(path: string): void;
+  cancelNotLoaded(url: string): void;
 
   /**
-   * Cancel the incompletely loaded assets at the given paths.
-   * @param paths - Resource asset paths
+   * Cancel the incompletely loaded assets in urls.
+   * @param urls - Resource urls
    */
-  cancelNotLoaded(paths: string[]): void;
+  cancelNotLoaded(urls: string[]): void;
 
-  cancelNotLoaded(path?: string | string[]): void {
-    if (!path) {
+  cancelNotLoaded(url?: string | string[]): void {
+    if (!url) {
       Utils.objectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
-    } else if (typeof path === "string") {
-      this._loadingPromises[path]?.cancel();
+    } else if (typeof url === "string") {
+      this._loadingPromises[url]?.cancel();
     } else {
-      path.forEach((p) => {
+      url.forEach((p) => {
         this._loadingPromises[p]?.cancel();
       });
     }
@@ -183,56 +183,56 @@ export class ResourceManager {
   }
 
   /**
-   * Convert an asset path to the URL used by the transport layer.
-   * @remarks This is the only boundary that reads the remote `path` from a virtual resource.
    * @internal
    */
-  _getRequestUrl(assetPath: string): string {
-    return this._virtualPathResourceMap[assetPath]?.path ?? assetPath;
+  _getRemoteUrl(url: string): string {
+    return this._virtualPathResourceMap[url]?.path ?? url;
   }
 
   /**
-   * Resolve a reference in the asset namespace without converting it to a request URL.
-   * @param baseAssetPath - Asset path of the file containing the reference.
-   * @param referencePath - Complete asset path or a path relative to `baseAssetPath`.
+   * Resolve a dependency path in the virtual path namespace.
    * @internal
    */
-  _resolveAssetPath(baseAssetPath: string, referencePath: string): string {
-    if (Utils.isAbsoluteUrl(referencePath) || Utils.isBase64Url(referencePath)) {
-      return referencePath;
+  _resolveVirtualPath(baseVirtualPath: string, dependencyPath: string): string {
+    if (Utils.isAbsoluteUrl(dependencyPath) || Utils.isBase64Url(dependencyPath)) {
+      return dependencyPath;
     }
 
-    const relativeAssetPath = Utils.resolveAbsoluteUrl(baseAssetPath, referencePath);
+    const relativeVirtualPath = Utils.resolveAbsoluteUrl(baseVirtualPath, dependencyPath);
     const resources = this._virtualPathResourceMap;
-
-    // References are relative by default. Fall back to the original value only when the editor
-    // registered it as an already-complete virtual path.
-    return resources[relativeAssetPath] || !resources[referencePath] ? relativeAssetPath : referencePath;
-  }
-
-  /**
-   * Request an asset by its logical path. The transport URL is intentionally resolved here, at
-   * the last possible boundary.
-   * @internal
-   */
-  _request<T>(assetPath: string, config: RequestConfig): AssetPromise<T> {
-    return this._requestByUrl(this._getRequestUrl(assetPath), config);
-  }
-
-  private _requestByUrl<T>(requestUrl: string, config: RequestConfig): AssetPromise<T> {
-    return request(requestUrl, config);
+    if (resources[relativeVirtualPath]) {
+      return relativeVirtualPath;
+    }
+    return resources[dependencyPath] ? dependencyPath : relativeVirtualPath;
   }
 
   /**
    * @internal
    */
-  _onSubAssetSuccess<T>(assetPath: string, assetSubPath: string, value: T): void {
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetPath]?.[assetSubPath];
+  _requestByRemoteUrl<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    return request(url, config);
+  }
+
+  /**
+   * @internal
+   */
+  _request<T>(url: string, config: RequestConfig): AssetPromise<T> {
+    const remoteUrl = this._getRemoteUrl(url);
+    return this._requestByRemoteUrl(remoteUrl, config);
+  }
+
+  /**
+   * @internal
+   */
+  _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
+    const remoteAssetBaseURL = this._virtualPathResourceMap[assetBaseURL]?.path ?? assetBaseURL;
+
+    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve(value);
     } else {
       // Pending
-      (this._subAssetPromiseCallbacks[assetPath] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
         resolvedValue: value
       };
     }
@@ -241,9 +241,9 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(assetPath: string, asset: EngineObject): void {
-    this._assetPathById[asset.instanceId] = assetPath;
-    this._assetByPath[assetPath] = asset;
+  _addAsset(path: string, asset: EngineObject): void {
+    this._assetPool[asset.instanceId] = path;
+    this._assetUrlPool[path] = asset;
   }
 
   /**
@@ -251,10 +251,10 @@ export class ResourceManager {
    */
   _deleteAsset(asset: EngineObject): void {
     const id = asset.instanceId;
-    const assetPath = this._assetPathById[id];
-    if (assetPath) {
-      delete this._assetPathById[id];
-      delete this._assetByPath[assetPath];
+    const path = this._assetPool[id];
+    if (path) {
+      delete this._assetPool[id];
+      delete this._assetUrlPool[path];
     }
   }
 
@@ -333,8 +333,8 @@ export class ResourceManager {
   _destroy(): void {
     this.cancelNotLoaded();
     this._gc(true);
-    this._assetPathById = null;
-    this._assetByPath = null;
+    this._assetPool = null;
+    this._assetUrlPool = null;
     this._referResourcePool = null;
     this._graphicResourcePool = null;
     this._contentRestorerPool = null;
@@ -342,7 +342,7 @@ export class ResourceManager {
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
-    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByPath(assetInfo.url);
+    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -353,41 +353,44 @@ export class ResourceManager {
   }
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
-    const item = typeof itemOrURL === "string" ? { url: itemOrURL } : { ...itemOrURL };
+    const item = typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL;
     item.url = item.url ?? item.urls.join(",");
-    const { assetPath: requestedAssetPath, subAssetPath } = this._parseAssetPath(item.url);
-    const subAssetKeys = subAssetPath ? this._parseSubAssetPath(subAssetPath) : [];
+    // Parse url
+    const { assetBaseURL, queryPath } = this._parseURL(item.url);
+    const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
-    // Registered virtual paths keep their identity. `baseUrl` only applies to ordinary paths.
-    const virtualResourceEntry = this._virtualPathResourceMap[requestedAssetPath];
+    // Get remote asset base url
+    const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
+
+    // Not absolute and base url is set. Registered virtual paths must stay in the virtual namespace.
     item.url =
-      !virtualResourceEntry && !Utils.isAbsoluteUrl(requestedAssetPath) && this.baseUrl
-        ? Utils.resolveAbsoluteUrl(this.baseUrl, requestedAssetPath)
-        : requestedAssetPath;
-    const assetPath = item.url;
+      !virtualResourceEntry && !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
+        ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
+        : assetBaseURL;
+    const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
 
     // Check cache
-    const cacheObject = this._assetByPath[assetPath];
+    const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
-        resolve(this._getResolveResource(cacheObject, subAssetKeys) as T);
+        resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
 
-    // Main assets and sub-assets have independent in-flight keys, both rooted at the asset path.
-    let loadingKey = assetPath;
-    if (subAssetPath) {
-      loadingKey += "?q=" + subAssetKeys.shift();
+    // Get asset url
+    let remoteAssetURL = remoteAssetBaseURL;
+    if (queryPath) {
+      remoteAssetURL += "?q=" + paths.shift();
       let index: string;
-      while ((index = subAssetKeys.shift())) {
-        loadingKey += `[${index}]`;
+      while ((index = paths.shift())) {
+        remoteAssetURL += `[${index}]`;
       }
     }
 
     // Check is loading
     const loadingPromises = this._loadingPromises;
-    const loadingPromise = loadingPromises[loadingKey];
+    const loadingPromise = loadingPromises[remoteAssetURL];
     if (loadingPromise) {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
@@ -410,43 +413,44 @@ export class ResourceManager {
     const subpackageName = virtualResourceEntry?.subpackageName;
 
     // Check sub asset
-    if (subAssetPath) {
+    if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        loadingPromises[assetPath] || this._loadSubpackageAndMainAsset(loader, item, assetPath, subpackageName);
+        loadingPromises[remoteAssetBaseURL] ||
+        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
 
-      return this._createSubAssetPromiseCallback<T>(assetPath, loadingKey, subAssetPath, mainPromise);
+      return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
     }
 
-    return this._loadSubpackageAndMainAsset(loader, item, assetPath, subpackageName);
+    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
   }
 
   // For adapter mini-game platform
   private _loadSubpackageAndMainAsset<T>(
     loader: Loader<T>,
     item: LoadItem,
-    assetPath: string,
+    remoteAssetBaseURL: string,
     subpackageName: string
   ): AssetPromise<T> {
-    return this._loadMainAsset(loader, item, assetPath);
+    return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
 
-  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, assetPath: string): AssetPromise<T> {
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
-    loadingPromises[assetPath] = promise;
+    loadingPromises[remoteAssetBaseURL] = promise;
 
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
-          this._addAsset(assetPath, resource as EngineObject);
+          this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
-        delete loadingPromises[assetPath];
-        this._releaseSubAssetPromiseCallback(assetPath);
+        delete loadingPromises[remoteAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       },
       () => {
-        delete loadingPromises[assetPath];
-        this._releaseSubAssetPromiseCallback(assetPath);
+        delete loadingPromises[remoteAssetBaseURL];
+        this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       }
     );
 
@@ -454,13 +458,13 @@ export class ResourceManager {
   }
 
   private _createSubAssetPromiseCallback<T>(
-    assetPath: string,
-    loadingKey: string,
+    remoteAssetBaseURL: string,
+    remoteAssetURL: string,
     assetSubPath: string,
     mainPromise: AssetPromise<unknown>
   ): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetPath]?.[assetSubPath];
+    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
 
     // Already resolved
@@ -470,7 +474,7 @@ export class ResourceManager {
 
     // Pending
     const promise = new AssetPromise<T>((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-      (this._subAssetPromiseCallbacks[assetPath] ||= {})[assetSubPath] = {
+      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
         resolve,
         reject
       };
@@ -480,20 +484,20 @@ export class ResourceManager {
       // strand a sub-asset request.
       mainPromise.onProgress(setTaskCompleteProgress, setTaskDetailProgress).then((resource) => {
         try {
-          resolve(this._getResolveResource(resource, this._parseSubAssetPath(assetSubPath)) as T);
+          resolve(this._getResolveResource(resource, this._parseQueryPath(assetSubPath)) as T);
         } catch (error) {
           reject(error);
         }
       }, reject);
     });
 
-    loadingPromises[loadingKey] = promise;
+    loadingPromises[remoteAssetURL] = promise;
 
     promise.then(
       () => {
-        delete loadingPromises[loadingKey];
+        delete loadingPromises[remoteAssetURL];
       },
-      () => delete loadingPromises[loadingKey]
+      () => delete loadingPromises[remoteAssetURL]
     );
 
     return promise;
@@ -523,26 +527,26 @@ export class ResourceManager {
     return subResource;
   }
 
-  private _parseAssetPath(path: string): { assetPath: string; subAssetPath: string } {
-    const [basePath, searchStr] = path.split("?");
-    let subAssetPath = undefined;
-    let assetPath = basePath;
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+    const [baseUrl, searchStr] = path.split("?");
+    let queryPath = undefined;
+    let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
       for (let i = params.length - 1; i >= 0; i--) {
         const param = params[i];
         if (param.startsWith(`q=`)) {
-          subAssetPath = decodeURIComponent(param.split("=")[1]);
+          queryPath = decodeURIComponent(param.split("=")[1]);
           params.splice(i, 1);
           break;
         }
       }
-      assetPath = params.length > 0 ? basePath + "?" + params.join("&") : basePath;
+      assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
     }
-    return { assetPath, subAssetPath };
+    return { assetBaseURL, queryPath };
   }
 
-  private _parseSubAssetPath(string): string[] {
+  private _parseQueryPath(string): string[] {
     const result = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
@@ -559,15 +563,16 @@ export class ResourceManager {
     return result;
   }
 
-  private _releaseSubAssetPromiseCallback(assetPath: string): void {
-    delete this._subAssetPromiseCallbacks[assetPath];
+  private _releaseSubAssetPromiseCallback(assetBaseURL: string): void {
+    delete this._subAssetPromiseCallbacks[assetBaseURL];
   }
 
   // Virtual resource mapping
 
   /** @internal */
   _objectPool: { [key: string]: any } = Object.create(null);
-  private _virtualPathResourceMap: Record<VirtualPath, VirtualResource> = Object.create(null);
+  /** @internal */
+  _virtualPathResourceMap: Record<VirtualPath, VirtualResource> = Object.create(null);
 
   /**
    * Register virtual asset paths and their load descriptors.
@@ -585,26 +590,26 @@ export class ResourceManager {
    * @beta Just for internal editor, not recommended for developers.
    */
   getResourceByRef<T extends EngineObject>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
-    const { url: assetPath, key, isClone } = ref;
-    if (!assetPath) {
+    const { url, key, isClone } = ref;
+    if (!url) {
       Logger.warn("ResourceManager.getResourceByRef: url is empty.");
       return AssetPromise.resolve(null);
     }
 
-    const cached = this._objectPool[assetPath];
+    const cached = this._objectPool[url];
     if (cached) {
       return AssetPromise.resolve(isClone ? <T>(<IClone>(<unknown>cached)).clone() : cached);
     }
 
-    const mapped = this._virtualPathResourceMap[assetPath];
+    const mapped = this._virtualPathResourceMap[url];
     if (!mapped) {
-      Logger.warn(`ResourceManager.getResourceByRef: url "${assetPath}" not found in virtualPathResourceMap.`);
+      Logger.warn(`ResourceManager.getResourceByRef: url "${url}" not found in virtualPathResourceMap.`);
       return AssetPromise.resolve(null);
     }
 
-    const loadPath = key ? assetPath + "?q=" + key : assetPath;
+    const loadUrl = key ? url + "?q=" + key : url;
     // type and params omitted: resolved from the virtualPath map, the single source of truth
-    const promise = this.load<T>({ url: loadPath });
+    const promise = this.load<T>({ url: loadUrl });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 }
@@ -643,9 +648,7 @@ const rePropName = RegExp(
 
 type VirtualPath = string;
 export interface VirtualResource {
-  /** Stable logical identity used by asset references, loaders, and caches. */
   virtualPath: string;
-  /** Physical URL used only when the runtime issues a request. */
   path: string;
   type: string;
   dependentAssetMap?: { [key: string]: string };
@@ -653,10 +656,10 @@ export interface VirtualResource {
   params?: Record<string, any>;
 }
 type SubAssetPromiseCallbacks<T> = Record<
-  // Main asset path, such as "Assets/Models/hero.glb".
+  // main asset url, ie. "https://***.glb"
   string,
   Record<
-    // Sub-asset path, such as "textures[0]".
+    // sub asset url, ie. "textures[0]"
     string,
     {
       // Already resolved

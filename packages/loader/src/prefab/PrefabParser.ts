@@ -6,8 +6,8 @@ import { ParserContext, ParserType } from "../resource-deserialize/resources/par
 import { PrefabResource } from "./PrefabResource";
 
 export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext> {
-  static parse(engine: Engine, assetPath: string, data: PrefabFile): Promise<PrefabResource> {
-    const prefabResource = new PrefabResource(engine, assetPath);
+  static parse(engine: Engine, url: string, data: PrefabFile): Promise<PrefabResource> {
+    const prefabResource = new PrefabResource(engine, url);
     const context = new ParserContext(engine, ParserType.Prefab, prefabResource);
     const parser = new PrefabParser(data, context, prefabResource);
     parser.start();

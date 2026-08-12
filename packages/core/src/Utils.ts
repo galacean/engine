@@ -136,7 +136,7 @@ export class Utils {
    * @param path - The path of the property to get.
    * @returns Returns the resolved value.
    */
-  static _reflectGet(target: object, path: string) {
+  static _reflectGet(target: Object, path: string) {
     const pathArr = this._stringToPath(path);
 
     let object = target;

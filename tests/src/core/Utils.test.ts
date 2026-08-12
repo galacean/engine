@@ -28,11 +28,17 @@ describe("Utils test", function () {
       "https://www.galacean.com/texture.png"
     );
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal("/path/to/file.html");
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal(
+      "/path/to/file.html"
+    );
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal("/path/file.html");
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal(
+      "/path/file.html"
+    );
 
-    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal("/a/空 格");
+    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal(
+      "/a/空 格"
+    );
 
     expect(Utils.resolveAbsoluteUrl("/a c%/中%20文/test1/test2", "../空 格/测%试.json")).to.equal(
       "/a c%/中%20文/空 格/测%试.json"

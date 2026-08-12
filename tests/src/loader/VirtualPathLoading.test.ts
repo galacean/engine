@@ -65,36 +65,15 @@ describe("virtual path loading", () => {
     const requestSpy = vi
       .spyOn(resourceManager, "_request")
       .mockReturnValue(AssetPromise.resolve({ fontName: "Hero", fontUrl: "./Hero.woff" }) as any);
-    const registerSpy = vi.spyOn(loader as any, "_registerFontFace").mockResolvedValue(undefined);
+    const registerSpy = vi.spyOn(loader as any, "_registerFont").mockResolvedValue(undefined);
 
     try {
       const font = await loader.load({ url: fontAssetVirtualPath }, resourceManager);
-      expect(registerSpy).toHaveBeenCalledWith("Hero", sourceFontVirtualPath, resourceManager);
+      expect(registerSpy).toHaveBeenCalledWith("Hero", sourceFontRemotePath);
       font.destroy();
     } finally {
       registerSpy.mockRestore();
       requestSpy.mockRestore();
-    }
-  });
-
-  it("keeps a source font identified by virtualPath while requesting its remote path", async () => {
-    const resourceManager = engine.resourceManager;
-    const sourceFontVirtualPath = "Assets/Fonts/Body.woff";
-    const sourceFontRemotePath = "https://cdn.ali.com/body-font-hash";
-    resourceManager.registerVirtualResources([
-      { virtualPath: sourceFontVirtualPath, path: sourceFontRemotePath, type: AssetType.SourceFont }
-    ]);
-    // @ts-ignore
-    const loader = ResourceManager._loaders[AssetType.SourceFont];
-    const registerSpy = vi.spyOn(loader as any, "_registerFontFace").mockResolvedValue(undefined);
-
-    try {
-      const font = await loader.load({ url: sourceFontVirtualPath }, resourceManager);
-      expect(registerSpy).toHaveBeenCalledWith(sourceFontVirtualPath, sourceFontVirtualPath, resourceManager);
-      expect(font.name).equal(sourceFontVirtualPath);
-      font.destroy();
-    } finally {
-      registerSpy.mockRestore();
     }
   });
 
@@ -119,12 +98,12 @@ describe("virtual path loading", () => {
     } as any;
     // @ts-ignore
     const requestSpy = vi
-      .spyOn(resourceManager as any, "_requestByUrl")
+      .spyOn(resourceManager, "_requestByRemoteUrl")
       .mockReturnValue(AssetPromise.resolve(new ArrayBuffer(4)) as any);
 
     try {
       await new GLTFBufferParser().parse(context, 0);
-      expect(contentRestorer.bufferRequests[0].assetPath).equal(bufferVirtualPath);
+      expect(contentRestorer.bufferRequests[0].url).equal(bufferVirtualPath);
       expect(requestSpy).toHaveBeenCalledWith(bufferRemotePath, expect.objectContaining({ type: "arraybuffer" }));
 
       await contentRestorer.restoreContent();

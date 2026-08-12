@@ -11,16 +11,16 @@ import {
 @resourceLoader(AssetType.Shader, ["shader", "shaderc"])
 class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    const assetPath = item.url!;
+    const url = item.url!;
     // @ts-expect-error _request is @internal
-    return resourceManager._request<string>(assetPath, { ...item, type: "text" }).then((code) => {
+    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       const source = code.trimStart();
       if (source.startsWith("{")) {
         // @ts-expect-error _createFromPrecompiled is @internal
         return Shader._createFromPrecompiled(JSON.parse(source));
       }
 
-      return Shader.create(code, undefined, assetPath);
+      return Shader.create(code, undefined, url);
     });
   }
 }
