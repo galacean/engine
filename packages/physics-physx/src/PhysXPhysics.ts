@@ -80,10 +80,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1781696156399/suyi/physx.release.simd.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1786450043249/suyi/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1781696156399/suyi/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1786450043249/suyi/physx.release.js";
     this._tolerancesScaleOptions = resolvedOptions?.tolerancesScale;
     const length = this._tolerancesScaleOptions?.length ?? 1;
     const speed = this._tolerancesScaleOptions?.speed ?? 10;
