@@ -14,18 +14,23 @@ import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
-function ASTNodeDecorator(nonTerminal: NoneTerminal) {
-  return function <T extends { new (): TreeNode }>(ASTNode: T) {
-    ASTNode.prototype.nt = nonTerminal;
-    (<any>ASTNode).pool = ShaderCompilerUtils.createObjectPool(ASTNode);
-  };
-}
-
 export abstract class TreeNode implements IPoolElement {
-  static pool: ClearableObjectPool<TreeNode & { set: (loc: ShaderRange, children: NodeChild[]) => void }>;
+  private static _pools = new WeakMap<object, ClearableObjectPool<TreeNode>>();
 
   /** The non-terminal in grammar. */
-  nt: NoneTerminal;
+  get nt(): NoneTerminal {
+    return (<typeof TreeNode & { readonly nonTerminal: NoneTerminal }>this.constructor).nonTerminal;
+  }
+
+  static get pool(): ClearableObjectPool<TreeNode> {
+    let pool = TreeNode._pools.get(this);
+    if (!pool) {
+      pool = ShaderCompilerUtils.createObjectPool(<new () => TreeNode>(<unknown>this));
+      TreeNode._pools.set(this, pool);
+    }
+    return pool;
+  }
+
   private _children: NodeChild[];
   private _parent: TreeNode;
   private _location: ShaderRange;
@@ -116,25 +121,26 @@ export namespace ASTNode {
     sa.semanticStack.push(node);
   }
 
-  @ASTNodeDecorator(NoneTerminal._ignore)
-  export class TrivialNode extends TreeNode {}
+  export class TrivialNode extends TreeNode {
+    static readonly nonTerminal = NoneTerminal._ignore;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.scope_brace)
   export class ScopeBrace extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.scope_brace;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.pushScope();
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.scope_end_brace)
   export class ScopeEndBrace extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.scope_end_brace;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.popScope();
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.jump_statement;
     isFragReturnStatement: boolean;
 
     override init(): void {
@@ -153,26 +159,33 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.conditionopt)
-  export class ConditionOpt extends TreeNode {}
+  export class ConditionOpt extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.conditionopt;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.for_rest_statement)
-  export class ForRestStatement extends TreeNode {}
+  export class ForRestStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.for_rest_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.condition)
-  export class Condition extends TreeNode {}
+  export class Condition extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.condition;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.for_init_statement)
-  export class ForInitStatement extends TreeNode {}
+  export class ForInitStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.for_init_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.iteration_statement)
-  export class IterationStatement extends TreeNode {}
+  export class IterationStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.iteration_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.selection_statement)
-  export class SelectionStatement extends TreeNode {}
+  export class SelectionStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.selection_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.expression_statement)
-  export class ExpressionStatement extends TreeNode {}
+  export class ExpressionStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.expression_statement;
+  }
   // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
@@ -190,16 +203,16 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.initializer_list;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const init = this.children[0] as Initializer | InitializerList;
       this.type = init.type;
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.initializer)
   export class Initializer extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.initializer;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AssignmentExpression>this.children[0]).type;
@@ -210,8 +223,8 @@ export namespace ASTNode {
   }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.single_declaration)
   export class SingleDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.single_declaration;
     typeSpecifier: TypeSpecifier;
     arraySpecifier?: ArraySpecifier;
 
@@ -257,8 +270,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.fully_specified_type)
   export class FullySpecifiedType extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.fully_specified_type;
     typeSpecifier: TypeSpecifier;
     type: GalaceanDataType;
 
@@ -269,11 +282,12 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.type_qualifier)
-  export class TypeQualifier extends TreeNode {}
+  export class TypeQualifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.type_qualifier;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.single_type_qualifier)
   export class SingleTypeQualifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.single_type_qualifier;
     qualifier: Keyword;
     lexeme: string;
 
@@ -301,21 +315,25 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.storage_qualifier)
-  export class StorageQualifier extends BasicTypeQualifier {}
+  export class StorageQualifier extends BasicTypeQualifier {
+    static readonly nonTerminal = NoneTerminal.storage_qualifier;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.precision_qualifier)
-  export class PrecisionQualifier extends BasicTypeQualifier {}
+  export class PrecisionQualifier extends BasicTypeQualifier {
+    static readonly nonTerminal = NoneTerminal.precision_qualifier;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.interpolation_qualifier)
-  export class InterpolationQualifier extends BasicTypeQualifier {}
+  export class InterpolationQualifier extends BasicTypeQualifier {
+    static readonly nonTerminal = NoneTerminal.interpolation_qualifier;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.invariant_qualifier)
-  export class InvariantQualifier extends BasicTypeQualifier {}
+  export class InvariantQualifier extends BasicTypeQualifier {
+    static readonly nonTerminal = NoneTerminal.invariant_qualifier;
+  }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.type_specifier;
     type: GalaceanDataType;
     lexeme: string;
     arraySize?: number;
@@ -338,8 +356,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.array_specifier;
     size: number | undefined;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const integerConstantExpr = this.children[1] as IntegerConstantExpression;
@@ -347,8 +365,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.integer_constant_expression_operator)
   export class IntegerConstantExpressionOperator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.integer_constant_expression_operator;
     compute: (a: number, b: number) => number;
     lexeme: string;
 
@@ -377,8 +395,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.integer_constant_expression)
   export class IntegerConstantExpression extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.integer_constant_expression;
     value?: number;
 
     override init(): void {
@@ -404,8 +422,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.type_specifier_nonarray)
   export class TypeSpecifierNonArray extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.type_specifier_nonarray;
     type: GalaceanDataType;
     lexeme: string;
 
@@ -426,8 +444,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.ext_builtin_type_specifier_nonarray)
   export class ExtBuiltinTypeSpecifierNonArray extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.ext_builtin_type_specifier_nonarray;
     type: TokenType;
     lexeme: string;
 
@@ -438,8 +456,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.init_declarator_list)
   export class InitDeclaratorList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.init_declarator_list;
     typeInfo: SymbolType;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -474,8 +492,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.identifier_list)
   export class IdentifierList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.identifier_list;
     idList: BaseToken[] = [];
 
     override init(): void {
@@ -500,15 +518,15 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.declaration;
     override codeGen(visitor: CodeGenVisitor): string {
       return this.setCache(visitor.visitDeclaration(this));
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_prototype)
   export class FunctionProtoType extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_prototype;
     ident: BaseToken;
     returnType: FullySpecifiedType;
     parameterList: IParamInfo[];
@@ -523,8 +541,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_declarator)
   export class FunctionDeclarator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_declarator;
     ident: BaseToken;
     returnType: FullySpecifiedType;
     parameterInfoList: IParamInfo[] | undefined;
@@ -544,8 +562,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_header)
   export class FunctionHeader extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_header;
     ident: BaseToken;
     returnType: FullySpecifiedType;
 
@@ -561,8 +579,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_parameter_list)
   export class FunctionParameterList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_parameter_list;
     parameterInfoList: IParamInfo[] = [];
     paramSig: GalaceanDataType[] = [];
 
@@ -603,17 +621,20 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_param_case_list)
-  export class MacroParamCaseList extends TreeNode {}
+  export class MacroParamCaseList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_param_case_list;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.macro_param_block)
-  export class MacroParamBlock extends TreeNode {}
+  export class MacroParamBlock extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_param_block;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.macro_parameter_branch)
-  export class MacroParameterBranch extends TreeNode {}
+  export class MacroParameterBranch extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_parameter_branch;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.parameter_declaration)
   export class ParameterDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.parameter_declaration;
     // Some syntax is not recognized, eg.
     // `#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap`
     typeInfo?: SymbolType;
@@ -648,8 +669,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.parameter_declarator)
   export class ParameterDeclarator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.parameter_declarator;
     ident: BaseToken;
     typeInfo: SymbolType;
 
@@ -663,30 +684,34 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.simple_statement)
-  export class SimpleStatement extends TreeNode {}
+  export class SimpleStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.simple_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.compound_statement)
-  export class CompoundStatement extends TreeNode {}
+  export class CompoundStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.compound_statement;
+  }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
-  export class CompoundStatementNoScope extends TreeNode {}
+  export class CompoundStatementNoScope extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.compound_statement_no_scope;
+  }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.statement)
-  export class Statement extends TreeNode {}
+  export class Statement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.statement;
+  }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.statement_list;
     override codeGen(visitor: CodeGenVisitor): string {
       return this.setCache(visitor.visitStatementList(this));
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_definition;
     returnStatement?: ASTNode.JumpStatement;
     protoType: FunctionProtoType;
     statements: CompoundStatementNoScope;
@@ -728,8 +753,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_call)
   export class FunctionCall extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.function_call;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       this.type = (this.children[0] as FunctionCallGeneric).type;
     }
@@ -739,8 +764,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.function_call_generic;
     fnSymbol: FnSymbol | StructSymbol | undefined;
 
     override init(): void {
@@ -787,8 +812,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_call_parameter_list)
   export class FunctionCallParameterList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_call_parameter_list;
     paramSig: GalaceanDataType[] = [];
     paramNodes: Array<AssignmentExpression | MacroCallArgBlock> = [];
 
@@ -818,15 +843,18 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_call_arg_case_list)
-  export class MacroCallArgCaseList extends TreeNode {}
-  @ASTNodeDecorator(NoneTerminal.macro_call_arg_block)
-  export class MacroCallArgBlock extends TreeNode {}
-  @ASTNodeDecorator(NoneTerminal.macro_call_arg_branch)
-  export class MacroCallArgBranch extends TreeNode {}
+  export class MacroCallArgCaseList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_call_arg_case_list;
+  }
+  export class MacroCallArgBlock extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_call_arg_block;
+  }
+  export class MacroCallArgBranch extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_call_arg_branch;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.precision_specifier)
   export class PrecisionSpecifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.precision_specifier;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (!sa.symbolTableStack.isInMacroBranch) {
         sa.shaderData.globalPrecisions.push(this);
@@ -834,8 +862,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.function_identifier)
   export class FunctionIdentifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.function_identifier;
     ident: GalaceanDataType;
     lexeme: string;
     isBuiltin: boolean;
@@ -853,8 +881,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.assignment_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -867,12 +895,13 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.assignment_operator)
-  export class AssignmentOperator extends TreeNode {}
+  export class AssignmentOperator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.assignment_operator;
+  }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -884,8 +913,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.primary_expression)
   export class PrimaryExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.primary_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const id = this.children[0];
@@ -912,8 +941,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.postfix_expression;
     override init(): void {
       super.init();
       if (this.children.length === 1) {
@@ -928,18 +957,19 @@ export namespace ASTNode {
   }
 
   // #if _VERBOSE
-  @ASTNodeDecorator(NoneTerminal.unary_operator)
-  export class UnaryOperator extends TreeNode {}
+  export class UnaryOperator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.unary_operator;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.unary_expression)
   export class UnaryExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.unary_expression;
     override init(): void {
       this.type = (this.children[0] as PostfixExpression).type;
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.multiplicative_expression)
   export class MultiplicativeExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.multiplicative_expression;
     override init(): void {
       super.init();
       if (this.children.length === 1) {
@@ -955,8 +985,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.additive_expression)
   export class AdditiveExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.additive_expression;
     override init(): void {
       super.init();
       if (this.children.length === 1) {
@@ -972,16 +1002,16 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.shift_expression)
   export class ShiftExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.shift_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.relational_expression)
   export class RelationalExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.relational_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ShiftExpression>this.children[0]).type;
@@ -991,8 +1021,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.equality_expression)
   export class EqualityExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.equality_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<RelationalExpression>this.children[0]).type;
@@ -1002,8 +1032,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.and_expression)
   export class AndExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.and_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1013,8 +1043,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.exclusive_or_expression)
   export class ExclusiveOrExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.exclusive_or_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<AndExpression>this.children[0]).type;
@@ -1024,8 +1054,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.inclusive_or_expression)
   export class InclusiveOrExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.inclusive_or_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<ExclusiveOrExpression>this.children[0]).type;
@@ -1035,8 +1065,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.logical_and_expression)
   export class LogicalAndExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.logical_and_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<InclusiveOrExpression>this.children[0]).type;
@@ -1046,8 +1076,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.logical_xor_expression)
   export class LogicalXorExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.logical_xor_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalAndExpression>this.children[0]).type;
@@ -1057,8 +1087,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.logical_or_expression)
   export class LogicalOrExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.logical_or_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalXorExpression>this.children[0]).type;
@@ -1068,8 +1098,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.conditional_expression)
   export class ConditionalExpression extends ExpressionAstNode {
+    static readonly nonTerminal = NoneTerminal.conditional_expression;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         this.type = (<LogicalOrExpression>this.children[0]).type;
@@ -1078,8 +1108,8 @@ export namespace ASTNode {
   }
   // #endif
 
-  @ASTNodeDecorator(NoneTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.struct_specifier;
     ident?: BaseToken;
     propList: StructProp[];
     macroExpressions: MacroExpression[];
@@ -1109,8 +1139,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.struct_declaration_list)
   export class StructDeclarationList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.struct_declaration_list;
     propList: StructProp[] = [];
     macroExpressions: MacroExpression[] = [];
 
@@ -1134,8 +1164,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.struct_declaration)
   export class StructDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.struct_declaration;
     props: StructProp[] = [];
     macroExpressions: MacroExpression[] = [];
 
@@ -1196,8 +1226,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_struct_declaration)
   export class MacroStructDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_struct_declaration;
     props: StructProp[] = [];
     macroExpressions: MacroExpression[] = [];
 
@@ -1223,8 +1253,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_struct_branch)
   export class MacroStructBranch extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_struct_branch;
     props: StructProp[] = [];
     macroExpressions: MacroExpression[] = [];
 
@@ -1255,8 +1285,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.layout_qualifier)
   export class LayoutQualifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.layout_qualifier;
     index: number;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1264,8 +1294,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.struct_declarator_list)
   export class StructDeclaratorList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.struct_declarator_list;
     declaratorList: StructDeclarator[] = [];
 
     override init(): void {
@@ -1289,8 +1319,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.struct_declarator)
   export class StructDeclarator extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.struct_declarator;
     ident: BaseToken;
     arraySpecifier: ArraySpecifier | undefined;
 
@@ -1305,8 +1335,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.variable_declaration)
   export class VariableDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.variable_declaration;
     type: FullySpecifiedType;
     isStatic: boolean;
 
@@ -1337,8 +1367,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.variable_declaration_list)
   export class VariableDeclarationList extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.variable_declaration_list;
     type: FullySpecifiedType;
     variableDeclarations: VariableDeclaration[] = [];
 
@@ -1374,8 +1404,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.variable_identifier;
     // @todo: typeInfo may be multiple types
     typeInfo: GalaceanDataType;
     referenceGlobalSymbolNames: string[] = [];
@@ -1508,8 +1538,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.gs_shader_program)
   export class GLShaderProgram extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.gs_shader_program;
     shaderData: ShaderData;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1518,8 +1548,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.global_declaration)
   export class GlobalDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.global_declaration;
     macroExpressions: Array<MacroExpression | MacroUndef | BaseToken> = [];
 
     override init(): void {
@@ -1546,15 +1576,15 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_undef;
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache(super.codeGen(visitor) + "\n");
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_push_context)
   export class MacroPushContext extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_push_context;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.symbolTableStack._macroLevel++;
     }
@@ -1564,8 +1594,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_pop_context)
   export class MacroPopContext extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_pop_context;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       sa.symbolTableStack._macroLevel--;
     }
@@ -1575,22 +1605,22 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_elif_expression)
   export class MacroElifExpression extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_elif_expression;
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_else_expression)
   export class MacroElseExpression extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_else_expression;
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.global_macro_declaration)
   export class GlobalMacroDeclaration extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.global_macro_declaration;
     macroExpressions: MacroExpression[] = [];
 
     override init(): void {
@@ -1619,8 +1649,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.global_macro_if_statement)
   export class GlobalMacroIfStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.global_macro_if_statement;
     macroExpressions: MacroExpression[] = [];
 
     override init(): void {
@@ -1642,8 +1672,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.global_macro_branch)
   export class GlobalMacroBranch extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.global_macro_branch;
     macroExpressions: MacroExpression[] = [];
 
     override init(): void {
@@ -1671,14 +1701,16 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_if_statement)
-  export class MacroIfStatement extends TreeNode {}
+  export class MacroIfStatement extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_if_statement;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.macro_branch)
-  export class MacroBranch extends TreeNode {}
+  export class MacroBranch extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_branch;
+  }
 
-  @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_call_symbol;
     referenceSymbolNames: string[] = [];
     macroName: string;
     /** True iff every `MacroDefineInfo` visible from this call site's branch
@@ -1779,8 +1811,8 @@ export namespace ASTNode {
     }
   }
 
-  @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_call_function;
     referenceSymbolNames: string[] = [];
     macroName: string = "";
     hasAstValue: boolean = false;
@@ -1822,8 +1854,8 @@ export namespace ASTNode {
    * Semantic analysis does not resolve symbols inside the value (the definition-site
    * scope is not the call-site scope). Lookup happens lazily during codegen.
    */
-  @ASTNodeDecorator(NoneTerminal.macro_define)
   export class MacroDefine extends TreeNode {
+    static readonly nonTerminal = NoneTerminal.macro_define;
     macroName: string;
     isFunction: boolean;
     valueExpression?: Expression;

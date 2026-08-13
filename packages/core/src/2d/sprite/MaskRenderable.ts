@@ -330,7 +330,6 @@ export function MaskRenderable<T extends RendererConstructor>(
     }
 
     /** @internal */
-    @ignoreClone
     _onSpriteChange(type: SpriteModifyFlags): void {
       switch (type) {
         case SpriteModifyFlags.texture:

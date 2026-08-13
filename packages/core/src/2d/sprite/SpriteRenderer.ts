@@ -485,7 +485,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
-  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
@@ -547,7 +546,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     }
   }
 
-  @ignoreClone
   private _onColorChanged(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }

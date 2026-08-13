@@ -6,7 +6,6 @@
     "declaration": true,
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "experimentalDecorators": true,
     "declarationDir": "types",
     "sourceMap": true,
     "baseUrl": "./",

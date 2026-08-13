@@ -35,13 +35,33 @@ const bundlerExternal = [
   "node:util"
 ];
 
-const swcPluginBundler = swc({ jsc: { target: "es2020" } });
+const standardDecoratorTransform = {
+  parser: {
+    decorators: true
+  },
+  transform: {
+    decoratorVersion: "2022-03",
+    useDefineForClassFields: true
+  }
+};
+
+const swcPluginBundler = swc({
+  jsc: {
+    ...standardDecoratorTransform,
+    target: "es2020"
+  }
+});
 
 // Match the root rollup's runtime transpile target so reusing this dist as-is
 // mid-`b:all` (between this build and the root rollup's rebuild) behaves
 // identically to the final shipped runtime.
 const swcPluginRuntime = swc({
-  jsc: { loose: true, externalHelpers: true, target: "es5" },
+  jsc: {
+    ...standardDecoratorTransform,
+    loose: true,
+    externalHelpers: true,
+    target: "es5"
+  },
   sourceMaps: true
 });
 

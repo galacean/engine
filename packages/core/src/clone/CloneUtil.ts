@@ -22,7 +22,7 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
-import { CloneMode, defaultCloneModeKey, fieldCloneModesKey, registerDefaultCloneMode } from "./CloneDecorators";
+import { CloneMode, defaultCloneModeKey, getFieldCloneModes, registerDefaultCloneMode } from "./CloneDecorators";
 import type { ICloneHook } from "./ICloneHook";
 
 /**
@@ -38,7 +38,7 @@ export class CloneUtil {
     cloneMap: Map<object, object>,
     deepCloneSubtree = false
   ): void {
-    const fieldModes = source[fieldCloneModesKey];
+    const fieldModes = getFieldCloneModes(source);
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];

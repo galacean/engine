@@ -89,7 +89,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
   }
 
-  @ignoreClone
   private _onTilingChanged(): void {
     const tiling = this.tiling;
     this._tillingInfo.set(1.0 / tiling.x, 1.0 / tiling.y, tiling.x * tiling.y);

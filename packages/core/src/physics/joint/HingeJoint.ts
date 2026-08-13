@@ -6,7 +6,6 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
 
 /**
@@ -174,7 +173,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onMotorChanged() {
     const motor = this._jointMotor;
     if (this._nativeJoint) {
@@ -185,7 +183,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onLimitsChanged() {
     const limits = this._limits;
     if (limits && this._nativeJoint) {
@@ -197,7 +194,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onAxisChanged(): void {
     //@ts-ignore
     this._axis._onValueChanged = null;

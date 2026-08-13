@@ -253,7 +253,6 @@ export abstract class Joint extends Component {
     this._updateActualAnchor(AnchorOwner.Connected);
   }
 
-  @ignoreClone
   private _handleConnectedAnchorChanged(): void {
     if (this._automaticConnectedAnchor) {
       console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
@@ -262,14 +261,12 @@ export abstract class Joint extends Component {
     }
   }
 
-  @ignoreClone
   private _onSelfTransformChanged(type: TransformModifyFlags): void {
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Self);
     }
   }
 
-  @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Connected);

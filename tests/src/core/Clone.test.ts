@@ -79,6 +79,13 @@ class DecoratedRefScript extends Script {
   ignoredEntity: Entity;
 }
 
+class Stage3DecoratedRefScript extends Script {
+  @assignmentClone
+  assignedEntity: Entity;
+  @ignoreClone
+  ignoredEntity: Entity;
+}
+
 /** Script with a @deepClone array of entities */
 class ArrayRefScript extends Script {
   @deepClone
@@ -689,6 +696,115 @@ describe("Clone remap", async () => {
   });
 
   describe("Field decorators take priority over Entity/Component remap", () => {
+    it("registers Stage-3 field modes on declaration metadata", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = rootEntity.createChild("sibling");
+      const child = parent.createChild("child");
+      const prototype = Stage3DecoratedRefScript.prototype;
+      const prototypeSymbolsBefore = Object.getOwnPropertySymbols(prototype);
+      const metadataKey = (Symbol as typeof Symbol & { metadata?: symbol }).metadata!;
+      const classMetadata = (Stage3DecoratedRefScript as unknown as Record<symbol, object>)[metadataKey];
+      const metadataSymbolsBefore = Object.getOwnPropertySymbols(classMetadata);
+      const script = parent.addComponent(Stage3DecoratedRefScript);
+      const siblingScript = sibling.addComponent(Stage3DecoratedRefScript);
+      script.assignedEntity = child;
+      script.ignoredEntity = child;
+
+      expect(metadataSymbolsBefore).toHaveLength(1);
+      expect(Object.getOwnPropertySymbols(classMetadata)).toEqual(metadataSymbolsBefore);
+      expect(Object.getOwnPropertySymbols(script)).toHaveLength(0);
+      expect(Object.getOwnPropertySymbols(siblingScript)).toHaveLength(0);
+      expect(Object.getOwnPropertySymbols(prototype)).toEqual(prototypeSymbolsBefore);
+
+      const cloned = parent.clone();
+      const clonedScript = cloned.getComponent(Stage3DecoratedRefScript);
+      expect(clonedScript.assignedEntity).eq(child);
+      expect(clonedScript.ignoredEntity).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it("keeps Stage-3 field modes isolated across inheritance overrides", () => {
+      class Stage3BaseOverrideScript extends Script {
+        @assignmentClone
+        target: Entity;
+        @ignoreClone
+        inherited: Entity;
+      }
+      class Stage3SubOverrideScript extends Stage3BaseOverrideScript {
+        @ignoreClone
+        target: Entity;
+      }
+      const metadataKey = (Symbol as typeof Symbol & { metadata?: symbol }).metadata!;
+      const baseMetadata = (Stage3BaseOverrideScript as unknown as Record<symbol, Record<symbol, unknown>>)[
+        metadataKey
+      ];
+      const subMetadata = (Stage3SubOverrideScript as unknown as Record<symbol, Record<symbol, unknown>>)[metadataKey];
+      const baseMetadataSymbols = Object.getOwnPropertySymbols(baseMetadata);
+      const subMetadataSymbols = Object.getOwnPropertySymbols(subMetadata);
+
+      expect(baseMetadataSymbols).toHaveLength(1);
+      expect(subMetadataSymbols).toEqual(baseMetadataSymbols);
+      expect(subMetadata[subMetadataSymbols[0]]).not.eq(baseMetadata[baseMetadataSymbols[0]]);
+
+      const rootEntity = scene.createRootEntity("root");
+      const external = rootEntity.createChild("external");
+      const baseEntity = rootEntity.createChild("base");
+      const subEntity = rootEntity.createChild("sub");
+      const baseScript = baseEntity.addComponent(Stage3BaseOverrideScript);
+      const subScript = subEntity.addComponent(Stage3SubOverrideScript);
+      baseScript.target = external;
+      baseScript.inherited = external;
+      subScript.target = external;
+      subScript.inherited = external;
+
+      const clonedBase = baseEntity.clone().getComponent(Stage3BaseOverrideScript);
+      const clonedSub = subEntity.clone().getComponent(Stage3SubOverrideScript);
+      expect(clonedBase.target).eq(external);
+      expect(clonedBase.inherited).eq(undefined);
+      expect(clonedSub.target).eq(undefined);
+      expect(clonedSub.inherited).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it("rejects unsupported Stage-3 decorator targets", () => {
+      expect(() => {
+        class StaticField {
+          @assignmentClone
+          static field: Entity;
+        }
+        return StaticField;
+      }).toThrowError(TypeError);
+
+      expect(() => {
+        class PrivateField {
+          @assignmentClone
+          #field: Entity;
+        }
+        return PrivateField;
+      }).toThrowError(TypeError);
+
+      expect(() => {
+        const field = Symbol("field");
+        class SymbolField {
+          @assignmentClone
+          [field]: Entity;
+        }
+        return SymbolField;
+      }).toThrowError(TypeError);
+
+      expect(() => {
+        class MethodTarget {
+          // @ts-expect-error Clone decorators only support fields.
+          @assignmentClone
+          method(): void {}
+        }
+        return MethodTarget;
+      }).toThrowError(TypeError);
+    });
+
     it("@assignmentClone entity ref shares the source reference (decorator wins)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

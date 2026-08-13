@@ -725,7 +725,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     charRenderInfos.length = 0;
   }
 
-  @ignoreClone
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
@@ -797,12 +796,10 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     textChunks.length = 0;
   }
 
-  @ignoreClone
   private _onColorChanged(): void {
     this._setDirtyFlagTrue(DirtyFlag.Color);
   }
 
-  @ignoreClone
   private _onOutlineColorChanged(): void {
     this.shaderData.setColor(TextRenderer._outlineColorProperty, this._outlineColor);
   }

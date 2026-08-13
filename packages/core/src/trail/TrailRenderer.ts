@@ -608,7 +608,6 @@ export class TrailRenderer extends Renderer {
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
-  @ignoreClone
   private _onTextureScaleChanged(): void {
     this._trailParams.y = this._textureScale.x;
     this._trailParams.z = this._textureScale.y;

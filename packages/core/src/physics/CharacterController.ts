@@ -5,7 +5,6 @@ import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
-import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * The character controllers.
@@ -169,7 +168,6 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider).getWorldPosition(this.entity.transform.worldPosition);
   }
 
-  @ignoreClone
   private _setUpDirection(): void {
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
