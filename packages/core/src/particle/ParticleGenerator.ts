@@ -183,8 +183,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _currentInheritedBoundsAxisReach: Vector3 | null = null;
   @ignoreClone
-  private _currentInheritedBoundsPathReach = 0;
-  @ignoreClone
   private _lastInitialCurveBoundsFactor = 0;
   @ignoreClone
   private _playStartDelay = 0;
@@ -807,10 +805,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       if (!this.inheritVelocity._getCurrentBoundsVelocity(currentInheritedVelocity)) {
         currentInheritedVelocity.set(0, 0, 0);
       }
-      const currentInheritedSpeed = currentInheritedVelocity.length();
       maxLifetime = Math.max(
         maxLifetime,
-        this._mergeWorldEmissionBounds(bounds, useOrbitalBounds, currentInheritedVelocity, currentInheritedSpeed)
+        this._mergeWorldEmissionBounds(bounds, useOrbitalBounds, currentInheritedVelocity)
       );
     }
     if (!useOrbitalBounds) {
@@ -1638,7 +1635,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     record[ParticleBufferUtils.boundsCurrentAxisReachOffset] = axisReach?.x ?? 0;
     record[ParticleBufferUtils.boundsCurrentAxisReachOffset + 1] = axisReach?.y ?? 0;
     record[ParticleBufferUtils.boundsCurrentAxisReachOffset + 2] = axisReach?.z ?? 0;
-    record[ParticleBufferUtils.boundsCurrentPathReachOffset] = this._currentInheritedBoundsPathReach;
     this._storeEmissionBoundsRecord(record);
   }
 
@@ -1664,7 +1660,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       boundsTimeOffset,
       boundsMaxLifetimeOffset,
       boundsCurrentAxisReachOffset,
-      boundsCurrentPathReachOffset,
       boundsInitialDisplacementOffset,
       boundsInitialFactorOffset
     } = ParticleBufferUtils;
@@ -1685,7 +1680,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     record[boundsCurrentAxisReachOffset] = axisReach?.x ?? 0;
     record[boundsCurrentAxisReachOffset + 1] = axisReach?.y ?? 0;
     record[boundsCurrentAxisReachOffset + 2] = axisReach?.z ?? 0;
-    record[boundsCurrentPathReachOffset] = this._currentInheritedBoundsPathReach;
     record[boundsInitialDisplacementOffset] = inheritedBoundsX;
     record[boundsInitialDisplacementOffset + 1] = inheritedBoundsY;
     record[boundsInitialDisplacementOffset + 2] = inheritedBoundsZ;
@@ -1707,7 +1701,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       boundsTimeOffset,
       boundsMaxLifetimeOffset,
       boundsCurrentAxisReachOffset,
-      boundsCurrentPathReachOffset,
       boundsInitialDisplacementOffset,
       boundsInitialFactorOffset
     } = ParticleBufferUtils;
@@ -1735,7 +1728,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
           records[previousOffset + boundsTimeOffset],
           record[boundsTimeOffset]
         );
-        for (let i = boundsCurrentAxisReachOffset; i <= boundsCurrentPathReachOffset; i++) {
+        for (let i = boundsCurrentAxisReachOffset; i < boundsInitialDisplacementOffset; i++) {
           records[previousOffset + i] = Math.min(records[previousOffset + i], record[i]);
         }
         for (let i = boundsInitialDisplacementOffset; i < boundsFloatStride; i++) {
@@ -1782,7 +1775,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._nextEmissionBoundsExpiry = Infinity;
     this._lastEmissionBoundsFrame = -1;
     this._currentInheritedBoundsAxisReach?.set(0, 0, 0);
-    this._currentInheritedBoundsPathReach = 0;
     this._lastInitialCurveBoundsFactor = 0;
     this._renderer._onWorldVolumeChanged();
   }
@@ -2088,7 +2080,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       axisReach.y + velocity.y * deltaTime,
       axisReach.z + velocity.z * deltaTime
     );
-    this._currentInheritedBoundsPathReach += velocity.length() * deltaTime;
     this._renderer._onWorldVolumeChanged();
   }
 
@@ -2144,7 +2135,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
     if (recordCount === 0) {
       this._currentInheritedBoundsAxisReach?.set(0, 0, 0);
-      this._currentInheritedBoundsPathReach = 0;
     }
   }
 
@@ -2296,8 +2286,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _mergeWorldEmissionBounds(
     bounds: BoundingBox,
     useOrbitalBounds: boolean,
-    currentInheritedVelocity: Vector3,
-    currentInheritedSpeed: number
+    currentInheritedVelocity: Vector3
   ): number {
     const boundsArray = this._emissionBoundsRecords;
     const { min, max } = bounds;
@@ -2305,7 +2294,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let maxLifetime = 0;
     for (let i = 0, n = this._emissionBoundsRecordCount; i < n; i++) {
       const offset = i * ParticleBufferUtils.boundsFloatStride;
-      this._getInheritedBoundsExtent(offset, useOrbitalBounds, currentInheritedVelocity, currentInheritedSpeed, extent);
+      this._getInheritedBoundsExtent(offset, useOrbitalBounds, currentInheritedVelocity, extent);
       min.set(
         Math.min(min.x, boundsArray[offset] - extent.x),
         Math.min(min.y, boundsArray[offset + 1] - extent.y),
@@ -2325,7 +2314,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     offset: number,
     useOrbitalBounds: boolean,
     currentInheritedVelocity: Vector3,
-    currentInheritedSpeed: number,
     out: Vector3
   ): void {
     const boundsArray = this._emissionBoundsRecords;
@@ -2347,12 +2335,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       0
     );
     if (useOrbitalBounds) {
-      const currentReach = Math.max(
-        this._currentInheritedBoundsPathReach - boundsArray[offset + ParticleBufferUtils.boundsCurrentPathReachOffset],
-        0
-      );
-      const initialReach = Math.sqrt(initialX * initialX + initialY * initialY + initialZ * initialZ);
-      const reach = currentReach + currentInheritedSpeed * remainingLifetime + initialReach;
+      const currentReach = currentX + currentY + currentZ;
+      const velocityReach = currentInheritedVelocity.x + currentInheritedVelocity.y + currentInheritedVelocity.z;
+      const initialReach = initialX + initialY + initialZ;
+      const reach = currentReach + velocityReach * remainingLifetime + initialReach;
       out.set(reach, reach, reach);
     } else {
       out.set(
