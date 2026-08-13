@@ -213,10 +213,17 @@ describe("ParticleRenderer", () => {
     };
     generator._incomingSubEmitterCommands.push(command);
     generator._instanceVertexBufferBinding.buffer._isContentLost = true;
-    const consumeDeathCommand = vi.spyOn(generator, "_emitDeathSubEmitter").mockReturnValue(0);
+    const emitParticles = vi.spyOn(generator, "_emitParticles").mockReturnValue(0);
     updateEngine(engine, 1);
 
-    expect(consumeDeathCommand).toHaveBeenCalledWith(command, generator._playTime, generator.main.maxParticles);
+    expect(emitParticles).toHaveBeenCalledWith(
+      generator._playTime,
+      undefined,
+      generator.main.maxParticles,
+      undefined,
+      command,
+      1
+    );
     expect(command.release).toHaveBeenCalledOnce();
     expect(generator._incomingSubEmitterCommands).to.have.length(0);
 

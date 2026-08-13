@@ -43,7 +43,6 @@ import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule, type ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
 import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
-import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 
 /**
  * Particle Generator.
@@ -176,9 +175,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _emissionBoundsRecords: Float32Array | null = null;
   @ignoreClone
-  private _firstActiveEmissionBounds = 0;
-  @ignoreClone
-  private _firstFreeEmissionBounds = 0;
+  private _emissionBoundsRecordCount = 0;
   @ignoreClone
   private _nextEmissionBoundsExpiry = Infinity;
   @ignoreClone
@@ -362,10 +359,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._freeRetiredParticles();
     }
 
-    if (
-      main.simulationSpace === ParticleSimulationSpace.World ||
-      this._firstActiveEmissionBounds !== this._firstFreeEmissionBounds
-    ) {
+    if (main.simulationSpace === ParticleSimulationSpace.World || this._emissionBoundsRecordCount > 0) {
       this._retireEmissionBounds();
     }
 
@@ -408,8 +402,27 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
             );
           } else {
             const emitPlayTime = this._getFramePlayTime(command.frameTime, lastPlayTime, frameSimulationStart);
-            emittedCount = this._emitDeathSubEmitter(command, emitPlayTime, remainingSubEmitterCapacity);
+            emittedCount = this._emitParticles(
+              emitPlayTime,
+              command.count,
+              remainingSubEmitterCapacity,
+              undefined,
+              command,
+              1
+            );
           }
+        }
+        if (emittedCount > 0) {
+          let firstEmittedElement = this._firstFreeElement - emittedCount;
+          if (firstEmittedElement < 0) {
+            firstEmittedElement += this._currentParticleCount;
+          }
+          this._subEmitterSpawnState!.enqueueParentTrajectory(
+            command.source._feedbackSimulator.readBinding,
+            command.ringIndex,
+            firstEmittedElement,
+            emittedCount
+          );
         }
         command.release();
         remainingSubEmitterCapacity -= emittedCount;
@@ -571,14 +584,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._subPrimitive.count = ParticleBufferUtils.billboardIndexCount;
     }
 
-    const particleInstanceInputLayout = ParticleBufferUtils.forwardParticleInstanceInputVertexElements;
     const bindingIndex = vertexBufferBindings.length;
-    for (let i = 0, n = particleInstanceInputLayout.length; i < n; i++) {
-      const element = particleInstanceInputLayout[i];
-      primitive.addVertexElement(
-        new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
-      );
-    }
+    ParticleGenerator._addVertexInputLayout(
+      primitive,
+      ParticleBufferUtils.forwardParticleInstanceInputVertexElements,
+      bindingIndex
+    );
 
     // If instance buffer already created
     if (this._instanceVertexBufferBinding) {
@@ -587,33 +598,21 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const subEmitterSpawnState = this._subEmitterSpawnState;
     if (subEmitterSpawnState) {
-      const subEmitterBindingIndex = vertexBufferBindings.length;
-      const spawnStateInstanceInputLayout = ParticleBufferUtils.forwardSubEmitterSpawnStateInstanceInputVertexElements;
-      for (let i = 0, n = spawnStateInstanceInputLayout.length; i < n; i++) {
-        const element = spawnStateInstanceInputLayout[i];
-        primitive.addVertexElement(
-          new VertexElement(
-            element.attribute,
-            element.offset,
-            element.format,
-            subEmitterBindingIndex,
-            element.instanceStepRate
-          )
-        );
-      }
+      ParticleGenerator._addVertexInputLayout(
+        primitive,
+        ParticleBufferUtils.forwardSubEmitterSpawnStateInstanceInputVertexElements,
+        vertexBufferBindings.length
+      );
       vertexBufferBindings.push(subEmitterSpawnState.renderBinding);
     }
 
     // Add feedback buffer binding for render pass
     if (this._feedbackSimulator) {
-      const bindingIndex = vertexBufferBindings.length;
-      const feedbackStateInstanceInputLayout = ParticleBufferUtils.forwardFeedbackStateInstanceInputVertexElements;
-      for (let i = 0, n = feedbackStateInstanceInputLayout.length; i < n; i++) {
-        const element = feedbackStateInstanceInputLayout[i];
-        primitive.addVertexElement(
-          new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
-        );
-      }
+      ParticleGenerator._addVertexInputLayout(
+        primitive,
+        ParticleBufferUtils.forwardFeedbackStateInstanceInputVertexElements,
+        vertexBufferBindings.length
+      );
       vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     }
 
@@ -689,18 +688,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     this._clearActiveParticles();
 
-    if (!useFeedback || feedbackLayoutChanged) {
-      this._feedbackSimulator?.destroy();
-      this._feedbackSimulator = null;
-    }
+    this._feedbackSimulator?.destroy();
+    this._feedbackSimulator = useFeedback
+      ? new ParticleTransformFeedbackSimulator(this._renderer.engine, useTrajectory, this._currentParticleCount)
+      : null;
     if (useFeedback) {
-      if (!this._feedbackSimulator) {
-        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(
-          this._renderer.engine,
-          useTrajectory,
-          this._currentParticleCount
-        );
-      }
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
       // Feedback buffer swaps every frame; VAO caching would bake stale buffer handles.
       this._primitive.enableVAO = false;
@@ -777,7 +769,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
-    const hasEmissionBounds = this._firstActiveEmissionBounds !== this._firstFreeEmissionBounds;
+    const hasEmissionBounds = this._emissionBoundsRecordCount > 0;
     const useOrbitalBounds = this._useOrbitalBounds();
     if (hasEmissionBounds) {
       const localBounds = ParticleGenerator._tempEmissionBounds;
@@ -798,15 +790,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _updateBoundsSimulationWorld(bounds: BoundingBox): void {
-    const firstActiveElement = this._firstActiveEmissionBounds;
-    const firstFreeElement = this._firstFreeEmissionBounds;
+    const emissionBoundsRecordCount = this._emissionBoundsRecordCount;
     const isPlaying = this._isPlaying;
     const useOrbitalBounds = this._useOrbitalBounds();
     let maxLifetime = isPlaying ? this.main.startLifetime._getMax() : 0;
     if (isPlaying) {
       bounds.copyFrom(this._renderer._transformedBounds);
     }
-    if (firstActiveElement !== firstFreeElement) {
+    if (emissionBoundsRecordCount > 0) {
       if (!isPlaying) {
         const extent = Number.MAX_VALUE;
         bounds.min.set(extent, extent, extent);
@@ -817,40 +808,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         currentInheritedVelocity.set(0, 0, 0);
       }
       const currentInheritedSpeed = currentInheritedVelocity.length();
-      if (firstActiveElement < firstFreeElement) {
-        maxLifetime = Math.max(
-          maxLifetime,
-          this._mergeWorldEmissionBoundsRange(
-            firstActiveElement,
-            firstFreeElement,
-            bounds,
-            useOrbitalBounds,
-            currentInheritedVelocity,
-            currentInheritedSpeed
-          )
-        );
-      } else {
-        const emissionBoundsCapacity = this._emissionBoundsRecords.length / ParticleBufferUtils.boundsFloatStride;
-        maxLifetime = Math.max(
-          maxLifetime,
-          this._mergeWorldEmissionBoundsRange(
-            firstActiveElement,
-            emissionBoundsCapacity,
-            bounds,
-            useOrbitalBounds,
-            currentInheritedVelocity,
-            currentInheritedSpeed
-          ),
-          this._mergeWorldEmissionBoundsRange(
-            0,
-            firstFreeElement,
-            bounds,
-            useOrbitalBounds,
-            currentInheritedVelocity,
-            currentInheritedSpeed
-          )
-        );
-      }
+      maxLifetime = Math.max(
+        maxLifetime,
+        this._mergeWorldEmissionBounds(bounds, useOrbitalBounds, currentInheritedVelocity, currentInheritedSpeed)
+      );
     }
     if (!useOrbitalBounds) {
       this._addGravityToBounds(maxLifetime, bounds, bounds);
@@ -862,7 +823,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _releaseEmissionBoundsRecords(): void {
     this._emissionBoundsRecords = null;
-    this._firstFreeEmissionBounds = 0;
     this._resetEmissionBoundsState();
   }
 
@@ -890,15 +850,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       const initialCurveFactor = this.inheritVelocity._usesInitialCurve(false)
         ? this.inheritVelocity.curve._getMaxMagnitude()
         : 0;
-      if (initialCurveFactor !== this._lastInitialCurveBoundsFactor) {
-        if (
-          initialCurveFactor > this._lastInitialCurveBoundsFactor &&
-          this._firstActiveEmissionBounds !== this._firstFreeEmissionBounds
-        ) {
-          this._preserveInitialCurveBoundsFactor(initialCurveFactor);
-        }
-        this._lastInitialCurveBoundsFactor = initialCurveFactor;
+      if (initialCurveFactor > this._lastInitialCurveBoundsFactor && this._emissionBoundsRecordCount > 0) {
+        this._preserveInitialCurveBoundsFactor(initialCurveFactor);
       }
+      this._lastInitialCurveBoundsFactor = initialCurveFactor;
     }
   }
 
@@ -1079,6 +1034,19 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       targetStart * stride
     );
     mappings?.push({ sourceStart, targetStart, count });
+  }
+
+  private static _addVertexInputLayout(
+    primitive: Primitive,
+    layout: readonly VertexElement[],
+    bindingIndex: number
+  ): void {
+    for (let i = 0, n = layout.length; i < n; i++) {
+      const element = layout[i];
+      primitive.addVertexElement(
+        new VertexElement(element.attribute, element.offset, element.format, bindingIndex, element.instanceStepRate)
+      );
+    }
   }
 
   private _addNewParticle(
@@ -1339,43 +1307,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._firstFreeElement = nextFreeElement;
   }
 
-  private _emitDeathSubEmitter(command: DeathSubEmitterCommand, playTime: number, available: number): number {
-    const inheritProperties = command.inheritProperties;
-    if ((inheritProperties & ParticleGenerator._particleValueInheritanceMask) !== 0) {
-      command.source._evaluateOverLifetime(
-        command.source._instanceVertices,
-        command.ringIndex * ParticleBufferUtils.instanceVertexFloatStride,
-        1,
-        ParticleGenerator._eventColor,
-        ParticleGenerator._eventSize,
-        ParticleGenerator._eventRotation
-      );
-    }
-    const emittedCount = this._emitParticles(
-      playTime,
-      command.count,
-      available,
-      undefined,
-      command,
-      (inheritProperties & ParticleSubEmitterInheritProperty.Color) !== 0 ? ParticleGenerator._eventColor : undefined,
-      (inheritProperties & ParticleSubEmitterInheritProperty.Size) !== 0 ? ParticleGenerator._eventSize : undefined,
-      (inheritProperties & ParticleSubEmitterInheritProperty.Rotation) !== 0
-        ? ParticleGenerator._eventRotation
-        : undefined,
-      1
-    );
-    if (emittedCount > 0) {
-      const firstEmittedElement = this._getRingRangeStart(this._firstFreeElement, emittedCount);
-      this._subEmitterSpawnState!.enqueueParentTrajectory(
-        command.source._feedbackSimulator.readBinding,
-        command.ringIndex,
-        firstEmittedElement,
-        emittedCount
-      );
-    }
-    return emittedCount;
-  }
-
   private _consumeBirthSubEmitterCommand(
     command: BirthSubEmitterCommand,
     available: number,
@@ -1387,68 +1318,27 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const requests = command.requests;
     for (let i = 0, n = command.requestCount; i < n && available > 0; i++) {
       const request = requests[i];
-      const emitted = this._emitBirthSubEmitterParticles(
-        command,
-        request.time,
-        request.count,
-        available,
+      const emissionTime = request.time;
+      const parentAge = emissionTime + command.startDelay;
+      const parentNormalizedAge = command.lifetime > 0 ? MathUtil.clamp(parentAge / command.lifetime, 0, 1) : 1;
+      const playTime = this._getFramePlayTime(
+        command.getFrameTime(emissionTime),
         targetLastPlayTime,
         targetFrameSimulationStart
+      );
+      const emitted = this._emitParticles(
+        playTime,
+        request.count,
+        available,
+        undefined,
+        command,
+        parentNormalizedAge,
+        command.getTrajectoryTimeOffset(emissionTime)
       );
       available -= emitted;
       emittedCount += emitted;
     }
-    if (emittedCount > 0) {
-      const firstEmittedElement = this._getRingRangeStart(this._firstFreeElement, emittedCount);
-      this._subEmitterSpawnState!.enqueueParentTrajectory(
-        command.source._feedbackSimulator.readBinding,
-        command.ringIndex,
-        firstEmittedElement,
-        emittedCount
-      );
-    }
     return emittedCount;
-  }
-
-  private _emitBirthSubEmitterParticles(
-    command: BirthSubEmitterCommand,
-    emissionTime: number,
-    count: number,
-    available: number,
-    targetLastPlayTime: number,
-    targetFrameSimulationStart: number
-  ): number {
-    const { source } = command;
-    const parentAge = emissionTime + command.startDelay;
-    const parentNormalizedAge = command.lifetime > 0 ? MathUtil.clamp(parentAge / command.lifetime, 0, 1) : 1;
-    const inherit = command.inheritProperties;
-    if ((inherit & ParticleGenerator._particleValueInheritanceMask) !== 0) {
-      source._evaluateOverLifetime(
-        source._instanceVertices,
-        command.ringIndex * ParticleBufferUtils.instanceVertexFloatStride,
-        parentNormalizedAge,
-        ParticleGenerator._eventColor,
-        ParticleGenerator._eventSize,
-        ParticleGenerator._eventRotation
-      );
-    }
-    const playTime = this._getFramePlayTime(
-      command.getFrameTime(emissionTime),
-      targetLastPlayTime,
-      targetFrameSimulationStart
-    );
-    return this._emitParticles(
-      playTime,
-      count,
-      available,
-      undefined,
-      command,
-      (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? ParticleGenerator._eventColor : undefined,
-      (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? ParticleGenerator._eventSize : undefined,
-      (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? ParticleGenerator._eventRotation : undefined,
-      parentNormalizedAge,
-      command.getTrajectoryTimeOffset(emissionTime)
-    );
   }
 
   private _emitParticles(
@@ -1457,9 +1347,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     available: number,
     emitWorldPosition?: Vector3,
     subEmitterCommand?: ParticleSubEmitterCommand,
-    inheritColor?: Color,
-    inheritSize?: Vector3,
-    inheritRotation?: Vector3,
     normalizedEmitAgeOverride?: number,
     trajectoryTimeOffset: number = 0
   ): number {
@@ -1485,6 +1372,26 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const usesInitialInheritCurve = this.inheritVelocity._usesInitialCurve(isSubEmitterSpawned);
     const duration = main.duration;
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
+    const inheritProperties = subEmitterCommand?.inheritProperties ?? ParticleSubEmitterInheritProperty.None;
+    if ((inheritProperties & ParticleGenerator._particleValueInheritanceMask) !== 0) {
+      const source = subEmitterCommand.source;
+      source._evaluateOverLifetime(
+        source._instanceVertices,
+        subEmitterCommand.ringIndex * ParticleBufferUtils.instanceVertexFloatStride,
+        normalizedEmitAge,
+        ParticleGenerator._eventColor,
+        ParticleGenerator._eventSize,
+        ParticleGenerator._eventRotation
+      );
+    }
+    const inheritColor =
+      (inheritProperties & ParticleSubEmitterInheritProperty.Color) !== 0 ? ParticleGenerator._eventColor : undefined;
+    const inheritSize =
+      (inheritProperties & ParticleSubEmitterInheritProperty.Size) !== 0 ? ParticleGenerator._eventSize : undefined;
+    const inheritRotation =
+      (inheritProperties & ParticleSubEmitterInheritProperty.Rotation) !== 0
+        ? ParticleGenerator._eventRotation
+        : undefined;
     const inheritedBounds = ParticleGenerator._tempVector33;
     inheritedBounds.set(0, 0, 0);
     const position = ParticleGenerator._tempVector30;
@@ -1795,37 +1702,83 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _storeEmissionBoundsRecord(record: Float32Array): void {
     const renderer = this._renderer;
     const frameCount = renderer.engine.time.frameCount;
-    if (
-      frameCount === this._lastEmissionBoundsFrame &&
-      this._firstActiveEmissionBounds !== this._firstFreeEmissionBounds
-    ) {
-      const records = this._emissionBoundsRecords;
-      let previousElement = this._firstFreeEmissionBounds - 1;
-      if (previousElement < 0) {
-        previousElement = records.length / ParticleBufferUtils.boundsFloatStride - 1;
-      }
-      const previousOffset = previousElement * ParticleBufferUtils.boundsFloatStride;
-      const factorOffset = ParticleBufferUtils.boundsInitialFactorOffset;
+    const {
+      boundsFloatStride,
+      boundsTimeOffset,
+      boundsMaxLifetimeOffset,
+      boundsCurrentAxisReachOffset,
+      boundsCurrentPathReachOffset,
+      boundsInitialDisplacementOffset,
+      boundsInitialFactorOffset
+    } = ParticleBufferUtils;
+    const recordCount = this._emissionBoundsRecordCount;
+    const sameFrame = frameCount === this._lastEmissionBoundsFrame;
+    const expiry = record[boundsTimeOffset] + record[boundsMaxLifetimeOffset];
+    let records = this._emissionBoundsRecords;
+    let merged = false;
+    this._lastEmissionBoundsFrame = frameCount;
+
+    if (recordCount > 0) {
+      const previousOffset = (recordCount - 1) * boundsFloatStride;
       const bakedFactor = ParticleGenerator._bakedInitialVelocityFactor;
-      const sameLifetime =
-        records[previousOffset + ParticleBufferUtils.boundsMaxLifetimeOffset] ===
-        record[ParticleBufferUtils.boundsMaxLifetimeOffset];
-      const sameInitialVelocityRepresentation =
-        (records[previousOffset + factorOffset] === bakedFactor) === (record[factorOffset] === bakedFactor);
-      if (sameLifetime && sameInitialVelocityRepresentation) {
-        this._mergeEmissionBoundsRecord(previousOffset, record);
-      } else {
-        this._appendEmissionBoundsRecord(record);
+      if (
+        sameFrame &&
+        records[previousOffset + boundsMaxLifetimeOffset] === record[boundsMaxLifetimeOffset] &&
+        (records[previousOffset + boundsInitialFactorOffset] === bakedFactor) ===
+          (record[boundsInitialFactorOffset] === bakedFactor)
+      ) {
+        for (let i = 0; i < 3; i++) {
+          records[previousOffset + i] = Math.min(records[previousOffset + i], record[i]);
+          records[previousOffset + i + 3] = Math.max(records[previousOffset + i + 3], record[i + 3]);
+        }
+        records[previousOffset + boundsTimeOffset] = Math.max(
+          records[previousOffset + boundsTimeOffset],
+          record[boundsTimeOffset]
+        );
+        for (let i = boundsCurrentAxisReachOffset; i <= boundsCurrentPathReachOffset; i++) {
+          records[previousOffset + i] = Math.min(records[previousOffset + i], record[i]);
+        }
+        for (let i = boundsInitialDisplacementOffset; i < boundsFloatStride; i++) {
+          records[previousOffset + i] = Math.max(records[previousOffset + i], record[i]);
+        }
+        merged = true;
+      } else if (!sameFrame) {
+        let sameRecord = true;
+        for (let i = 0; i < boundsFloatStride; i++) {
+          if (i !== boundsTimeOffset && records[previousOffset + i] !== record[i]) {
+            sameRecord = false;
+            break;
+          }
+        }
+        if (sameRecord) {
+          records[previousOffset + boundsTimeOffset] = Math.max(
+            records[previousOffset + boundsTimeOffset],
+            record[boundsTimeOffset]
+          );
+          merged = true;
+        }
       }
-    } else {
-      this._lastEmissionBoundsFrame = frameCount;
-      this._appendEmissionBoundsRecord(record);
     }
+
+    if (!merged) {
+      if (!records || recordCount * boundsFloatStride === records.length) {
+        const lastCapacity = records ? records.length / boundsFloatStride : 0;
+        const capacity = lastCapacity + Math.max(lastCapacity, ParticleGenerator._emissionBoundsIncreaseCount);
+        const resizedRecords = new Float32Array(capacity * boundsFloatStride);
+        if (records) {
+          resizedRecords.set(records);
+        }
+        this._emissionBoundsRecords = records = resizedRecords;
+      }
+      records.set(record, recordCount * boundsFloatStride);
+      this._emissionBoundsRecordCount = recordCount + 1;
+    }
+    this._nextEmissionBoundsExpiry = Math.min(this._nextEmissionBoundsExpiry, expiry);
     renderer._onWorldVolumeChanged();
   }
 
   private _resetEmissionBoundsState(): void {
-    this._firstActiveEmissionBounds = this._firstFreeEmissionBounds;
+    this._emissionBoundsRecordCount = 0;
     this._nextEmissionBoundsExpiry = Infinity;
     this._lastEmissionBoundsFrame = -1;
     this._currentInheritedBoundsAxisReach?.set(0, 0, 0);
@@ -1970,11 +1923,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _getNotRetiredParticleCount(): number {
     return this._getRingDistance(this._firstRetiredElement, this._firstFreeElement);
-  }
-
-  private _getRingRangeStart(endElement: number, count: number): number {
-    const startElement = endElement - count;
-    return startElement >= 0 ? startElement : startElement + this._currentParticleCount;
   }
 
   private _getFramePlayTime(frameTime: number, lastPlayTime: number, frameSimulationStart: number): number {
@@ -2144,91 +2092,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._renderer._onWorldVolumeChanged();
   }
 
-  private _appendEmissionBoundsRecord(record: Float32Array): void {
-    const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
-    const expiry = record[boundsTimeOffset] + record[boundsMaxLifetimeOffset];
-    const firstActiveElement = this._firstActiveEmissionBounds;
-    const firstFreeElement = this._firstFreeEmissionBounds;
-    let boundsArray = this._emissionBoundsRecords;
-    if (firstActiveElement !== firstFreeElement) {
-      let previousElement = firstFreeElement - 1;
-      if (previousElement < 0) {
-        previousElement = boundsArray.length / boundsFloatStride - 1;
-      }
-      const previousOffset = previousElement * boundsFloatStride;
-      let canMerge = true;
-      for (let i = 0; i < boundsFloatStride; i++) {
-        if (i !== boundsTimeOffset && boundsArray[previousOffset + i] !== record[i]) {
-          canMerge = false;
-          break;
-        }
-      }
-      if (canMerge) {
-        boundsArray[previousOffset + boundsTimeOffset] = Math.max(
-          boundsArray[previousOffset + boundsTimeOffset],
-          record[boundsTimeOffset]
-        );
-        this._nextEmissionBoundsExpiry = Math.min(this._nextEmissionBoundsExpiry, expiry);
-        return;
-      }
-    }
-
-    if (!boundsArray) {
-      this._resizeEmissionBoundsRecords();
-      boundsArray = this._emissionBoundsRecords;
-    }
-    let nextFreeElement = this._firstFreeEmissionBounds + 1;
-    if (nextFreeElement >= boundsArray.length / boundsFloatStride) {
-      nextFreeElement = 0;
-    }
-    if (nextFreeElement === this._firstActiveEmissionBounds) {
-      this._resizeEmissionBoundsRecords();
-      boundsArray = this._emissionBoundsRecords;
-      nextFreeElement = this._firstFreeEmissionBounds + 1;
-    }
-    boundsArray.set(record, this._firstFreeEmissionBounds * boundsFloatStride);
-    this._firstFreeEmissionBounds = nextFreeElement;
-    this._nextEmissionBoundsExpiry = Math.min(this._nextEmissionBoundsExpiry, expiry);
-  }
-
-  private _mergeEmissionBoundsRecord(offset: number, record: Float32Array): void {
-    const boundsArray = this._emissionBoundsRecords;
-    for (let i = 0; i < 3; i++) {
-      boundsArray[offset + i] = Math.min(boundsArray[offset + i], record[i]);
-      boundsArray[offset + i + 3] = Math.max(boundsArray[offset + i + 3], record[i + 3]);
-    }
-    boundsArray[offset + ParticleBufferUtils.boundsTimeOffset] = Math.max(
-      boundsArray[offset + ParticleBufferUtils.boundsTimeOffset],
-      record[ParticleBufferUtils.boundsTimeOffset]
-    );
-    boundsArray[offset + ParticleBufferUtils.boundsMaxLifetimeOffset] = Math.max(
-      boundsArray[offset + ParticleBufferUtils.boundsMaxLifetimeOffset],
-      record[ParticleBufferUtils.boundsMaxLifetimeOffset]
-    );
-    for (
-      let i = ParticleBufferUtils.boundsCurrentAxisReachOffset;
-      i <= ParticleBufferUtils.boundsCurrentPathReachOffset;
-      i++
-    ) {
-      boundsArray[offset + i] = Math.min(boundsArray[offset + i], record[i]);
-    }
-    for (let i = ParticleBufferUtils.boundsInitialDisplacementOffset; i < ParticleBufferUtils.boundsFloatStride; i++) {
-      boundsArray[offset + i] = Math.max(boundsArray[offset + i], record[i]);
-    }
-    this._nextEmissionBoundsExpiry = Math.min(
-      this._nextEmissionBoundsExpiry,
-      record[ParticleBufferUtils.boundsTimeOffset] + record[ParticleBufferUtils.boundsMaxLifetimeOffset]
-    );
-  }
-
   private _preserveInitialCurveBoundsFactor(factor: number): void {
     const factorOffset = ParticleBufferUtils.boundsInitialFactorOffset;
     const displacementOffset = ParticleBufferUtils.boundsInitialDisplacementOffset;
     const boundsArray = this._emissionBoundsRecords;
-    const count = boundsArray.length / ParticleBufferUtils.boundsFloatStride;
-    let index = this._firstActiveEmissionBounds;
-    const firstFreeElement = this._firstFreeEmissionBounds;
-    while (index !== firstFreeElement) {
+    const count = this._emissionBoundsRecordCount;
+    for (let index = 0; index < count; index++) {
       const offset = index * ParticleBufferUtils.boundsFloatStride;
       if (
         boundsArray[offset + factorOffset] !== ParticleGenerator._bakedInitialVelocityFactor &&
@@ -2238,38 +2107,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       ) {
         boundsArray[offset + factorOffset] = Math.max(boundsArray[offset + factorOffset], factor);
       }
-      if (++index >= count) {
-        index = 0;
-      }
     }
-  }
-
-  private _resizeEmissionBoundsRecords(): void {
-    const floatStride = ParticleBufferUtils.boundsFloatStride;
-    const lastBoundsArray = this._emissionBoundsRecords;
-    const lastCapacity = lastBoundsArray ? lastBoundsArray.length / floatStride : 0;
-    const increaseCount = Math.max(lastCapacity, ParticleGenerator._emissionBoundsIncreaseCount);
-    const boundsArray = new Float32Array((lastCapacity + increaseCount) * floatStride);
-
-    if (lastBoundsArray) {
-      const firstActiveElement = this._firstActiveEmissionBounds;
-      const firstFreeElement = this._firstFreeEmissionBounds;
-      if (firstActiveElement <= firstFreeElement) {
-        boundsArray.set(
-          lastBoundsArray.subarray(firstActiveElement * floatStride, firstFreeElement * floatStride),
-          firstActiveElement * floatStride
-        );
-      } else {
-        boundsArray.set(lastBoundsArray.subarray(0, firstFreeElement * floatStride));
-        boundsArray.set(
-          lastBoundsArray.subarray(firstActiveElement * floatStride),
-          (firstActiveElement + increaseCount) * floatStride
-        );
-        this._firstActiveEmissionBounds += increaseCount;
-      }
-    }
-
-    this._emissionBoundsRecords = boundsArray;
   }
 
   private _retireEmissionBounds(): void {
@@ -2280,52 +2118,31 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
     const boundsArray = this._emissionBoundsRecords;
-    const firstFreeElement = this._firstFreeEmissionBounds;
-    const count = boundsArray.length / boundsFloatStride;
-    let firstActiveElement = this._firstActiveEmissionBounds;
-    let firstActiveOffset = firstActiveElement * boundsFloatStride;
+    let recordCount = this._emissionBoundsRecordCount;
     let retired = false;
-    while (
-      firstActiveElement !== firstFreeElement &&
-      playTime >
-        boundsArray[firstActiveOffset + boundsTimeOffset] + boundsArray[firstActiveOffset + boundsMaxLifetimeOffset]
-    ) {
-      retired = true;
-      if (++firstActiveElement >= count) {
-        firstActiveElement = 0;
-      }
-      firstActiveOffset = firstActiveElement * boundsFloatStride;
-    }
-    this._firstActiveEmissionBounds = firstActiveElement;
-
-    let readElement = firstActiveElement;
-    let writeElement = readElement;
     let nextExpiry = Infinity;
-    while (readElement !== firstFreeElement) {
-      const readOffset = readElement * boundsFloatStride;
-      const expiry = boundsArray[readOffset + boundsTimeOffset] + boundsArray[readOffset + boundsMaxLifetimeOffset];
+    let index = 0;
+    while (index < recordCount) {
+      const offset = index * boundsFloatStride;
+      const expiry = boundsArray[offset + boundsTimeOffset] + boundsArray[offset + boundsMaxLifetimeOffset];
       if (playTime > expiry) {
         retired = true;
+        recordCount--;
+        if (index < recordCount) {
+          const lastOffset = recordCount * boundsFloatStride;
+          boundsArray.copyWithin(offset, lastOffset, lastOffset + boundsFloatStride);
+        }
       } else {
-        if (readElement !== writeElement) {
-          const writeOffset = writeElement * boundsFloatStride;
-          boundsArray.copyWithin(writeOffset, readOffset, readOffset + boundsFloatStride);
-        }
         nextExpiry = Math.min(nextExpiry, expiry);
-        if (++writeElement >= count) {
-          writeElement = 0;
-        }
-      }
-      if (++readElement >= count) {
-        readElement = 0;
+        index++;
       }
     }
-    this._firstFreeEmissionBounds = writeElement;
+    this._emissionBoundsRecordCount = recordCount;
     this._nextEmissionBoundsExpiry = nextExpiry;
     if (retired) {
       this._renderer._onWorldVolumeChanged();
     }
-    if (this._firstActiveEmissionBounds === writeElement) {
+    if (recordCount === 0) {
       this._currentInheritedBoundsAxisReach?.set(0, 0, 0);
       this._currentInheritedBoundsPathReach = 0;
     }
@@ -2333,12 +2150,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _mergeLocalEmissionBounds(bounds: BoundingBox): number {
     const boundsArray = this._emissionBoundsRecords;
-    const count = boundsArray.length / ParticleBufferUtils.boundsFloatStride;
-    const firstFreeElement = this._firstFreeEmissionBounds;
     const { min, max } = bounds;
     let maxLifetime = 0;
-    let index = this._firstActiveEmissionBounds;
-    while (index !== firstFreeElement) {
+    for (let index = 0, n = this._emissionBoundsRecordCount; index < n; index++) {
       const offset = index * ParticleBufferUtils.boundsFloatStride;
       min.set(
         Math.min(min.x, boundsArray[offset]),
@@ -2351,9 +2165,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         Math.max(max.z, boundsArray[offset + 5])
       );
       maxLifetime = Math.max(maxLifetime, boundsArray[offset + ParticleBufferUtils.boundsMaxLifetimeOffset]);
-      if (++index >= count) {
-        index = 0;
-      }
     }
     return maxLifetime;
   }
@@ -2482,9 +2293,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     return maxSize * 1.414;
   }
 
-  private _mergeWorldEmissionBoundsRange(
-    start: number,
-    end: number,
+  private _mergeWorldEmissionBounds(
     bounds: BoundingBox,
     useOrbitalBounds: boolean,
     currentInheritedVelocity: Vector3,
@@ -2494,7 +2303,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const { min, max } = bounds;
     const extent = ParticleGenerator._tempVector34;
     let maxLifetime = 0;
-    for (let i = start; i < end; i++) {
+    for (let i = 0, n = this._emissionBoundsRecordCount; i < n; i++) {
       const offset = i * ParticleBufferUtils.boundsFloatStride;
       this._getInheritedBoundsExtent(offset, useOrbitalBounds, currentInheritedVelocity, currentInheritedSpeed, extent);
       min.set(

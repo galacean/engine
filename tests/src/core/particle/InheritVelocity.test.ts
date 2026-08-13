@@ -166,7 +166,7 @@ describe("InheritVelocityModule", () => {
     );
     generator._isPlaying = true;
 
-    expect(generator._firstFreeEmissionBounds).to.equal(2);
+    expect(generator._emissionBoundsRecordCount).to.equal(2);
     expect(renderer.bounds.max.x).to.be.greaterThan(5);
     renderer.entity.destroy();
   });
