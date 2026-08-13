@@ -536,7 +536,6 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 0);
     const childGenerator = child.generator as any;
-    expect(childGenerator._useTransformFeedback).to.equal(false);
     expect(childGenerator._feedbackSimulator).to.not.exist;
     expect(childGenerator._subEmitterSpawnState).to.equal(null);
 
@@ -1407,7 +1406,7 @@ describe("SubEmitter", () => {
 
     const parentGenerator = parent.generator as any;
     const childGenerator = child.generator as any;
-    expect(childGenerator._useTransformFeedback).to.equal(false);
+    expect(childGenerator._feedbackSimulator).to.not.exist;
 
     const sourceBinding = parentGenerator._feedbackSimulator.readBinding;
     const sourceStride = sourceBinding.stride / Float32Array.BYTES_PER_ELEMENT;
@@ -2161,7 +2160,6 @@ describe("SubEmitter", () => {
     parent.entity.isActive = false;
     parent.entity.isActive = true;
 
-    expect((parent.generator as any)._useTransformFeedback).to.equal(true);
     expect((parent.generator as any)._feedbackSimulator).to.not.equal(null);
 
     parent.entity.destroy();
@@ -2227,7 +2225,7 @@ describe("SubEmitter", () => {
     const statesByParticle = (parent.generator.subEmitters as any)._birthStatesByParticle;
     expect(statesByParticle.filter(Boolean)).to.have.length(0);
     expect(child.generator._incomingSubEmitterCommands).to.have.length(0);
-    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled).to.equal(true);
 
     child.enabled = true;
     updateEngine(engine, 1);
@@ -2307,10 +2305,10 @@ describe("SubEmitter", () => {
     expect(slot.emitter).to.equal(liveTarget);
 
     parent.generator.subEmitters.enabled = true;
-    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled).to.equal(true);
     liveTarget.destroy();
     updateEngine(engine, 1);
-    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(false);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled ?? false).to.equal(false);
     parent.generator.subEmitters.enabled = false;
     expect(() => (parent.generator.subEmitters.enabled = true)).not.to.throw();
 
@@ -2325,9 +2323,9 @@ describe("SubEmitter", () => {
     const slot = parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     parent.generator.subEmitters.enabled = true;
 
-    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(true);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled).to.equal(true);
     slot.emitter = null;
-    expect((parent.generator as any)._useTrajectoryFeedback).to.equal(false);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled ?? false).to.equal(false);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2811,7 +2809,6 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "Encap_TypeChild");
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    expect((parent.generator as any)._useTransformFeedback).to.equal(true);
     expect((parent.generator as any)._feedbackSimulator).to.not.equal(null);
 
     parent.entity.destroy();
@@ -2854,7 +2851,6 @@ describe("SubEmitter", () => {
       parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
 
       expect(parent.generator.subEmitters.enabled).to.equal(false);
-      expect((parent.generator as any)._useTransformFeedback).to.equal(false);
       expect((parent.generator as any)._feedbackSimulator).to.not.exist;
 
       parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));

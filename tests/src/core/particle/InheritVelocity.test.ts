@@ -313,7 +313,7 @@ describe("InheritVelocityModule", () => {
     generator.inheritVelocity.curve.constant = 1;
     generator.emission.clearBurst();
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
-    expect(generator._useTransformFeedback).to.equal(false);
+    expect(generator._feedbackSimulator).to.not.exist;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
@@ -368,7 +368,7 @@ describe("InheritVelocityModule", () => {
     );
     generator.emission.clearBurst();
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
-    expect(generator._useTransformFeedback).to.equal(false);
+    expect(generator._feedbackSimulator).to.not.exist;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
@@ -450,7 +450,7 @@ describe("InheritVelocityModule", () => {
     );
     generator.emission.clearBurst();
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
-    expect(generator._useTransformFeedback).to.equal(false);
+    expect(generator._feedbackSimulator).to.not.exist;
 
     const webgl1Time = { value: 0 };
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -479,7 +479,7 @@ describe("InheritVelocityModule", () => {
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
     generator.noise.strengthX.constant = 0;
     generator.noise.enabled = true;
-    expect(generator._useTransformFeedback).to.equal(true);
+    expect(generator._feedbackSimulator).to.exist;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
@@ -514,7 +514,7 @@ describe("InheritVelocityModule", () => {
     generator.limitVelocityOverLifetime.dampen = 0;
     generator.emission.clearBurst();
     generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
-    expect(generator._useTransformFeedback).to.equal(true);
+    expect(generator._feedbackSimulator).to.exist;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
@@ -530,7 +530,7 @@ describe("InheritVelocityModule", () => {
   it("Current applies the emitter velocity after particles are born", () => {
     const renderer = createParticleRenderer(engine, "current-inherit-velocity");
     renderer.generator.inheritVelocity.curve.constant = 1;
-    expect(renderer.generator._useTransformFeedback).to.equal(true);
+    expect(renderer.generator._feedbackSimulator).to.exist;
 
     renderer.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     renderer.generator.play();
@@ -574,7 +574,7 @@ describe("InheritVelocityModule", () => {
       curve,
       new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
     );
-    expect(renderer.generator._useTransformFeedback).to.equal(true);
+    expect(renderer.generator._feedbackSimulator).to.exist;
 
     renderer.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     renderer.generator.play();

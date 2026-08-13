@@ -29,6 +29,9 @@ export class ParticleTransformFeedbackSimulator {
   ];
   private static readonly _inputBindings: VertexBufferBinding[] = [];
 
+  /** Whether parent trajectory data is captured for sub-emitters. */
+  readonly trajectoryEnabled: boolean;
+
   private readonly _simulator: TransformFeedbackSimulator;
   private readonly _stateInputVertexElements: VertexElement[];
 
@@ -45,6 +48,7 @@ export class ParticleTransformFeedbackSimulator {
    * @param particleCount - Number of particle slots to allocate
    */
   constructor(engine: Engine, trajectoryEnabled: boolean, particleCount: number) {
+    this.trajectoryEnabled = trajectoryEnabled;
     // The engine flavor owns shader registration; engine-core resolves the registered pass when needed
     const feedbackShader = Shader.find(FEEDBACK_SHADER_NAME);
     if (!feedbackShader) {

@@ -193,17 +193,6 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _playStartDelay = 0;
 
   /**
-   * @internal
-   */
-  get _useTransformFeedback(): boolean {
-    return this._feedbackSimulator !== null;
-  }
-
-  private get _useTrajectoryFeedback(): boolean {
-    return this._feedbackSimulator?.readBinding.stride === ParticleBufferUtils.feedbackStateWithTrajectoryVertexStride;
-  }
-
-  /**
    * Whether the particle generator is contain alive or is still creating particles.
    */
   get isAlive(): boolean {
@@ -359,7 +348,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
 
     this._playTime += deltaTime;
-    const useTrajectoryFeedback = this._useTrajectoryFeedback;
+    const useTrajectoryFeedback = this._feedbackSimulator?.trajectoryEnabled ?? false;
     let didRetireParticles = false;
     if (useTrajectoryFeedback && this._firstActiveElement !== this._firstFreeElement) {
       this._captureSubEmitterSourceBounds();
@@ -453,14 +442,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     } else {
       const firstNewElement = this._firstNewElement;
       const hasNewParticles = firstNewElement !== this._firstFreeElement;
-      if (hasNewParticles || (!this._useTransformFeedback && didRetireParticles) || this._instanceBufferResized) {
+      if (hasNewParticles || (!this._feedbackSimulator && didRetireParticles) || this._instanceBufferResized) {
         this._addActiveParticlesToVertexBuffer();
       }
 
       const firstSimulationElement = useTrajectoryFeedback ? this._firstRetiredElement : this._firstActiveElement;
       const hasSimulationParticles = firstSimulationElement !== this._firstFreeElement;
       const shouldUpdateFeedback =
-        this._useTransformFeedback && hasSimulationParticles && (deltaTime > 0 || hasNewParticles);
+        this._feedbackSimulator !== null && hasSimulationParticles && (deltaTime > 0 || hasNewParticles);
       if (hasSimulationParticles) {
         shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
         this._updateShaderData(shaderData);
@@ -621,7 +610,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
 
     // Add feedback buffer binding for render pass
-    if (this._useTransformFeedback) {
+    if (this._feedbackSimulator) {
       const bindingIndex = vertexBufferBindings.length;
       const feedbackStateInstanceInputLayout = ParticleBufferUtils.forwardFeedbackStateInstanceInputVertexElements;
       for (let i = 0, n = feedbackStateInstanceInputLayout.length; i < n; i++) {
@@ -698,8 +687,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this.noise.enabled ||
         this.inheritVelocity._needTransformFeedback() ||
         this.velocityOverLifetime._needTransformFeedback());
-    const feedbackLayoutChanged = useTrajectory !== this._useTrajectoryFeedback;
-    if (useFeedback === this._useTransformFeedback && !feedbackLayoutChanged) {
+    const feedbackLayoutChanged = useTrajectory !== (this._feedbackSimulator?.trajectoryEnabled ?? false);
+    if (useFeedback === (this._feedbackSimulator !== null) && !feedbackLayoutChanged) {
       return;
     }
 
@@ -742,7 +731,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    */
   _resyncAfterCulling(): void {
     this.inheritVelocity._resyncEmitterVelocity();
-    if (this._useTrajectoryFeedback) {
+    if (this._feedbackSimulator?.trajectoryEnabled) {
       this._resetTrajectoryFeedbackBaseline();
     }
   }
@@ -973,7 +962,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const vertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
 
     const lastInstanceVertices = this._instanceVertices;
-    const useFeedback = this._useTransformFeedback;
+    const useFeedback = this._feedbackSimulator !== null;
 
     const instanceVertices = new Float32Array(newByteLength / 4);
     const runtimeMappings: ElementRangeMapping[] | undefined = useFeedback || subEmitterSpawnState ? [] : undefined;
@@ -1048,7 +1037,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._firstFreeElement = migrateCount;
       }
 
-      if (runtimeMappings && this._useTrajectoryFeedback) {
+      if (runtimeMappings && this._feedbackSimulator?.trajectoryEnabled) {
         this.subEmitters._remapBirthStates(newParticleCount, runtimeMappings);
       }
       this._instanceBufferResized = true;
@@ -1956,7 +1945,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._subEmitterSpawnState = new ParticleSubEmitterSpawnState(
       this._renderer.engine,
       this._currentParticleCount,
-      !this._useTransformFeedback
+      !this._feedbackSimulator
     );
     this._renderer.shaderData.enableMacro(ParticleGenerator._hasSubEmitterSpawnedParticlesMacro);
     this._reorganizeGeometryBuffers();
@@ -2060,7 +2049,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _addActiveParticlesToVertexBuffer(): void {
     const firstUploadElement =
-      this._useTrajectoryFeedback && this._instanceBufferResized ? this._firstRetiredElement : this._firstActiveElement;
+      this._feedbackSimulator?.trajectoryEnabled && this._instanceBufferResized
+        ? this._firstRetiredElement
+        : this._firstActiveElement;
     const firstFreeElement = this._firstFreeElement;
 
     if (firstUploadElement === firstFreeElement) {
@@ -2075,7 +2066,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     // Feedback mode: upload in-place (indices match feedback buffer slots)
     // Non-feedback mode: compact to GPU offset 0
-    const compact = !this._useTransformFeedback;
+    const compact = !this._feedbackSimulator;
     const start = firstUploadElement * byteStride;
     if (firstUploadElement < firstFreeElement) {
       instanceBuffer.setData(

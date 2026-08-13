@@ -251,7 +251,7 @@ export class ParticleRenderer extends Renderer {
     }
     // Transform Feedback: render all slots (instance buffer not compacted, dead particles discarded in shader)
     // Non-Transform Feedback: render only alive particles (instance buffer compacted)
-    generator._primitive.instanceCount = generator._useTransformFeedback
+    generator._primitive.instanceCount = generator._feedbackSimulator
       ? generator._firstActiveElement <= generator._firstFreeElement
         ? generator._firstFreeElement
         : generator._currentParticleCount

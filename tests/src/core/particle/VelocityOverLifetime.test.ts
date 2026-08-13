@@ -109,21 +109,20 @@ describe("VelocityOverLifetimeModule", function () {
 
     vol.enabled = true;
     expect(vol._needTransformFeedback()).to.eq(false);
-    expect((generator as any)._useTransformFeedback).to.eq(false);
+    expect(generator._feedbackSimulator).to.not.exist;
 
     vol.orbitalY = new ParticleCompositeCurve(2);
     expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
 
     vol.orbitalY = new ParticleCompositeCurve(0);
     expect(generator._feedbackSimulator).to.not.exist;
     vol.radial = new ParticleCompositeCurve(1);
     expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
 
     vol.radial = new ParticleCompositeCurve(0);
     expect(vol._needTransformFeedback()).to.eq(false);
-    expect((generator as any)._useTransformFeedback).to.eq(false);
     expect(generator._feedbackSimulator).to.not.exist;
   });
 
