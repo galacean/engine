@@ -12,6 +12,7 @@ interface EmissionRequest {
  * @internal
  */
 export class BirthSubEmitterCommand {
+  readonly isBirth = true as const;
   readonly requests: EmissionRequest[] = [];
 
   requestCount = 0;

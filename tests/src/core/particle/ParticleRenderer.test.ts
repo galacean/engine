@@ -14,7 +14,7 @@ import {
   ShaderMacro
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -150,6 +150,76 @@ describe("ParticleRenderer", () => {
     expect(shaderData.getFloat("renderer_StretchedBillboardLengthScale")).to.equal(3);
     expect(shaderData.getFloat("renderer_StretchedBillboardSpeedScale")).to.equal(4);
     expect(shaderData.getVector3("renderer_PivotOffset")).to.deep.equal(renderer.pivot);
+    entity.destroy();
+  });
+
+  it("restores CPU-simulated particles after instance-buffer content loss", () => {
+    const entity = scene.createRootEntity("RestoredCpuParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const instanceBuffer = generator._instanceVertexBufferBinding.buffer;
+    instanceBuffer._isContentLost = true;
+    const setData = vi.spyOn(instanceBuffer, "setData");
+    updateEngine(engine, 1);
+
+    expect(generator._getAliveParticleCount()).to.equal(2);
+    expect(setData).toHaveBeenCalled();
+    expect(instanceBuffer.isContentLost).to.equal(false);
+
+    entity.destroy();
+  });
+
+  it("discards lost transform-feedback state once before accepting new emissions", () => {
+    const entity = scene.createRootEntity("RestoredFeedbackParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const lostBuffer = generator._instanceVertexBufferBinding.buffer;
+    lostBuffer._isContentLost = true;
+    generator.emit(1);
+    generator.emit(1);
+
+    expect(lostBuffer.destroyed).to.equal(true);
+    expect(generator._instanceVertexBufferBinding.buffer.isContentLost).to.equal(false);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    updateEngine(engine, 1);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    entity.destroy();
+  });
+
+  it("keeps sub-emitter commands queued for the restored target update", () => {
+    const entity = scene.createRootEntity("RestoredSubEmitterTarget");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+    updateEngine(engine, 1);
+
+    const command = {
+      isBirth: false,
+      frameTime: 1,
+      release: vi.fn()
+    };
+    generator._incomingSubEmitterCommands.push(command);
+    generator._instanceVertexBufferBinding.buffer._isContentLost = true;
+    const consumeDeathCommand = vi.spyOn(generator, "_emitDeathSubEmitter").mockReturnValue(0);
+    updateEngine(engine, 1);
+
+    expect(consumeDeathCommand).toHaveBeenCalledWith(command, generator._playTime, generator.main.maxParticles);
+    expect(command.release).toHaveBeenCalledOnce();
+    expect(generator._incomingSubEmitterCommands).to.have.length(0);
+
     entity.destroy();
   });
 

@@ -42,7 +42,7 @@ import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { SubEmittersModule, type ParticleSubEmitterCommand } from "./modules/SubEmittersModule";
-import { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
+import type { BirthSubEmitterCommand } from "./modules/BirthSubEmitterCommand";
 import type { DeathSubEmitterCommand } from "./modules/DeathSubEmitterCommand";
 
 /**
@@ -298,6 +298,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @param count - Number of particles to emit
    */
   emit(count: number): void {
+    this._discardLostGPUParticleState();
     this._emit(this._playTime, count);
   }
 
@@ -321,8 +322,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _update(elapsedTime: number): void {
+    this._discardLostGPUParticleState();
     const shaderData = this._renderer.shaderData;
-    const isContentLost = this._instanceVertexBufferBinding.buffer.isContentLost;
+    const instanceBufferContentLost = this._instanceVertexBufferBinding.buffer.isContentLost;
 
     const lastAlive = this.isAlive;
     const { main, emission } = this;
@@ -397,7 +399,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         const command = incomingCommands[i];
         let emittedCount = 0;
         if (remainingSubEmitterCapacity > 0) {
-          if (command instanceof BirthSubEmitterCommand) {
+          if (command.isBirth === true) {
             emittedCount = this._consumeBirthSubEmitterCommand(
               command,
               remainingSubEmitterCapacity,
@@ -429,69 +431,62 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._freeRetiredParticles();
     }
 
-    // Retire all particles on device restore before bounds/volume bookkeeping
-    if (isContentLost) {
-      this._firstActiveElement = 0;
-      this._firstNewElement = 0;
-      this._firstFreeElement = 0;
-      this._firstRetiredElement = 0;
-      this.subEmitters._retireAllBirthStates();
-      this._resetEmissionBoundsState();
-      this._activeSubEmitterParticleCount = 0;
-      this._resetTrajectoryFeedbackBaseline();
-    } else {
-      const firstNewElement = this._firstNewElement;
-      const hasNewParticles = firstNewElement !== this._firstFreeElement;
-      if (hasNewParticles || (!this._feedbackSimulator && didRetireParticles) || this._instanceBufferResized) {
-        this._addActiveParticlesToVertexBuffer();
-      }
+    const firstNewElement = this._firstNewElement;
+    const hasNewParticles = firstNewElement !== this._firstFreeElement;
+    if (
+      hasNewParticles ||
+      (!this._feedbackSimulator && didRetireParticles) ||
+      this._instanceBufferResized ||
+      instanceBufferContentLost
+    ) {
+      this._addActiveParticlesToVertexBuffer();
+    }
 
-      const firstSimulationElement = useTrajectoryFeedback ? this._firstRetiredElement : this._firstActiveElement;
-      const hasSimulationParticles = firstSimulationElement !== this._firstFreeElement;
-      const shouldUpdateFeedback =
-        this._feedbackSimulator !== null && hasSimulationParticles && (deltaTime > 0 || hasNewParticles);
-      if (hasSimulationParticles) {
-        shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
-        this._updateShaderData(shaderData);
+    const firstSimulationElement = useTrajectoryFeedback ? this._firstRetiredElement : this._firstActiveElement;
+    const hasSimulationParticles = firstSimulationElement !== this._firstFreeElement;
+    const shouldUpdateFeedback =
+      this._feedbackSimulator !== null && hasSimulationParticles && (deltaTime > 0 || hasNewParticles);
+    if (hasSimulationParticles) {
+      shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
+      this._updateShaderData(shaderData);
+    }
+    if (shouldUpdateFeedback) {
+      const resetTrajectory = this._resetTrajectoryOnNextFeedback;
+      this._updateFeedback(
+        shaderData,
+        deltaTime,
+        firstSimulationElement,
+        firstNewElement,
+        useTrajectoryFeedback ? resetTrajectory : undefined
+      );
+      if (useTrajectoryFeedback) {
+        this._resetTrajectoryOnNextFeedback = false;
       }
-      if (shouldUpdateFeedback) {
-        const resetTrajectory = this._resetTrajectoryOnNextFeedback;
-        this._updateFeedback(
-          shaderData,
-          deltaTime,
+      this._accumulateCurrentInheritedBounds(deltaTime);
+      if (useTrajectoryFeedback && this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, true)) {
+        this._prepareBirthRange(
           firstSimulationElement,
-          firstNewElement,
-          useTrajectoryFeedback ? resetTrajectory : undefined
+          this._firstFreeElement,
+          lastPlayTime,
+          this._playTime,
+          frameSimulationStart
         );
-        if (useTrajectoryFeedback) {
-          this._resetTrajectoryOnNextFeedback = false;
-        }
-        this._accumulateCurrentInheritedBounds(deltaTime);
-        if (useTrajectoryFeedback && this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth, true)) {
-          this._prepareBirthRange(
-            firstSimulationElement,
-            this._firstFreeElement,
-            lastPlayTime,
-            this._playTime,
-            frameSimulationStart
-          );
-        }
-        if (useTrajectoryFeedback) {
-          // New particles may already have reached the end of their lifetime while catching up to this frame
-          if (hasNewParticles) {
-            this._retireExpiredParticles(this._firstFreeElement);
-          }
-          this._finalizeRetiredParticles(
-            this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, true),
-            lastPlayTime,
-            frameSimulationStart
-          );
-          this._freeRetiredParticles();
-          this._captureTrajectoryBounds(resetTrajectory);
-        }
-      } else if (useTrajectoryFeedback) {
-        this._resetTrajectoryFeedbackBaseline();
       }
+      if (useTrajectoryFeedback) {
+        // New particles may already have reached the end of their lifetime while catching up to this frame
+        if (hasNewParticles) {
+          this._retireExpiredParticles(this._firstFreeElement);
+        }
+        this._finalizeRetiredParticles(
+          this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death, true),
+          lastPlayTime,
+          frameSimulationStart
+        );
+        this._freeRetiredParticles();
+        this._captureTrajectoryBounds(resetTrajectory);
+      }
+    } else if (useTrajectoryFeedback) {
+      this._resetTrajectoryFeedbackBaseline();
     }
 
     const isAlive = this.isAlive;
@@ -500,7 +495,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         this._generateTransformedBounds();
       }
     } else {
-      if (lastAlive && !isContentLost) {
+      if (lastAlive) {
         this._resetEmissionBoundsState();
       }
       // Reset play time when is not playing and no active particles to avoid potential precision problems in GPU
@@ -1596,6 +1591,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       incomingCommands[i].release();
     }
     incomingCommands.length = 0;
+    this._discardActiveParticles();
+  }
+
+  private _discardLostGPUParticleState(): void {
+    if (
+      this._instanceVertexBufferBinding.buffer.isContentLost &&
+      !this._renderer.engine._isDeviceLost &&
+      (this._feedbackSimulator || this._subEmitterSpawnState)
+    ) {
+      // GPU-generated state cannot be reconstructed from the CPU instance data
+      this._discardActiveParticles();
+      this._resizeInstanceBuffer(this._currentParticleCount);
+    }
+  }
+
+  private _discardActiveParticles(): void {
     const firstFreeElement = this._firstFreeElement;
     this._firstRetiredElement = firstFreeElement;
     this._firstActiveElement = firstFreeElement;
@@ -1643,7 +1654,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let inheritedExtentZ = 0;
     if (inheritVelocity.enabled && inheritVelocity.mode === ParticleInheritVelocityMode.Initial) {
       const trajectoryDuration =
-        command instanceof BirthSubEmitterCommand ? command.getTrajectoryDuration() : command.trajectoryDuration;
+        command.isBirth === true ? command.getTrajectoryDuration() : command.trajectoryDuration;
       if (trajectoryDuration > MathUtil.zeroTolerance) {
         const trajectoryDisplacement = command.source._trajectoryFrameDisplacement;
         const factor = (inheritVelocity.curve._getMaxMagnitude() * maxLifetime) / trajectoryDuration;

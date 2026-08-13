@@ -6,6 +6,7 @@ import type { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmit
  * @internal
  */
 export class DeathSubEmitterCommand {
+  readonly isBirth = false as const;
   ringIndex: number;
   count: number;
   inheritProperties: ParticleSubEmitterInheritProperty;
