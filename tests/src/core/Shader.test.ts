@@ -207,6 +207,26 @@ describe("Shader", () => {
     });
   });
 
+  describe("GPU instancing UBO", () => {
+    const buildLayout = (maxUniformBlockSize: number) =>
+      ShaderFactory.injectInstanceUBO(
+        { _hardwareRenderer: { maxUniformBlockSize } } as any,
+        "void main() {}",
+        "void main() {}"
+      ).instanceLayout!;
+
+    it("caps RendererInstanceData at 64 KiB", () => {
+      const layout = buildLayout(128 * 1024 * 1024);
+      expect(layout.instanceMaxCount).to.equal(Math.floor((64 * 1024) / layout.structSize));
+    });
+
+    it("preserves smaller uniform block limits", () => {
+      const maxUniformBlockSize = 16 * 1024;
+      const layout = buildLayout(maxUniformBlockSize);
+      expect(layout.instanceMaxCount).to.equal(Math.floor(maxUniformBlockSize / layout.structSize));
+    });
+  });
+
   describe("GLSL Convert test", () => {
     it("Shader api vertex replace test", async () => {
       expect(

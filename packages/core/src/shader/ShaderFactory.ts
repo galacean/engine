@@ -16,6 +16,8 @@ import { ShaderProperty } from "./ShaderProperty";
 export class ShaderFactory {
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
 
+  private static readonly _rendererInstanceBlockMaxSize = 64 * 1024;
+
   static readonly uniformBlockBindingMap: Record<number, number> = {
     [ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId]:
       ConstantBufferBindingPoint.RendererInstance
@@ -328,7 +330,10 @@ mat3 _normalMatFromModel(mat3 m) {
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {
-    const maxUBOSize = engine._hardwareRenderer.maxUniformBlockSize;
+    const maxUBOSize = Math.min(
+      engine._hardwareRenderer.maxUniformBlockSize,
+      ShaderFactory._rendererInstanceBlockMaxSize
+    );
     const std140Map = ShaderFactory._std140TypeInfoMap;
     const instanceFields: InstanceFieldInfo[] = [];
     let currentOffset = 0;
