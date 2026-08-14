@@ -1708,11 +1708,30 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const sameFrame = frameCount === this._lastEmissionBoundsFrame;
     const expiry = record[boundsTimeOffset] + record[boundsMaxLifetimeOffset];
     let records = this._emissionBoundsRecords;
-    let merged = false;
     this._lastEmissionBoundsFrame = frameCount;
+    this._nextEmissionBoundsExpiry = Math.min(this._nextEmissionBoundsExpiry, expiry);
 
     if (recordCount > 0) {
       const previousOffset = (recordCount - 1) * boundsFloatStride;
+      let sameRecord = true;
+      for (let i = 0; i < boundsFloatStride; i++) {
+        if (i !== boundsTimeOffset && records[previousOffset + i] !== record[i]) {
+          sameRecord = false;
+          break;
+        }
+      }
+      if (sameRecord) {
+        const timeOffset = previousOffset + boundsTimeOffset;
+        const recordTime = record[boundsTimeOffset];
+        if (recordTime > records[timeOffset]) {
+          records[timeOffset] = recordTime;
+          if (this.inheritVelocity._needTransformFeedback()) {
+            renderer._onWorldVolumeChanged();
+          }
+        }
+        return;
+      }
+
       const bakedFactor = ParticleGenerator._bakedInitialVelocityFactor;
       if (
         sameFrame &&
@@ -1734,39 +1753,22 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         for (let i = boundsInitialDisplacementOffset; i < boundsFloatStride; i++) {
           records[previousOffset + i] = Math.max(records[previousOffset + i], record[i]);
         }
-        merged = true;
-      } else if (!sameFrame) {
-        let sameRecord = true;
-        for (let i = 0; i < boundsFloatStride; i++) {
-          if (i !== boundsTimeOffset && records[previousOffset + i] !== record[i]) {
-            sameRecord = false;
-            break;
-          }
-        }
-        if (sameRecord) {
-          records[previousOffset + boundsTimeOffset] = Math.max(
-            records[previousOffset + boundsTimeOffset],
-            record[boundsTimeOffset]
-          );
-          merged = true;
-        }
+        renderer._onWorldVolumeChanged();
+        return;
       }
     }
 
-    if (!merged) {
-      if (!records || recordCount * boundsFloatStride === records.length) {
-        const lastCapacity = records ? records.length / boundsFloatStride : 0;
-        const capacity = lastCapacity + Math.max(lastCapacity, ParticleGenerator._emissionBoundsIncreaseCount);
-        const resizedRecords = new Float32Array(capacity * boundsFloatStride);
-        if (records) {
-          resizedRecords.set(records);
-        }
-        this._emissionBoundsRecords = records = resizedRecords;
+    if (!records || recordCount * boundsFloatStride === records.length) {
+      const lastCapacity = records ? records.length / boundsFloatStride : 0;
+      const capacity = lastCapacity + Math.max(lastCapacity, ParticleGenerator._emissionBoundsIncreaseCount);
+      const resizedRecords = new Float32Array(capacity * boundsFloatStride);
+      if (records) {
+        resizedRecords.set(records);
       }
-      records.set(record, recordCount * boundsFloatStride);
-      this._emissionBoundsRecordCount = recordCount + 1;
+      this._emissionBoundsRecords = records = resizedRecords;
     }
-    this._nextEmissionBoundsExpiry = Math.min(this._nextEmissionBoundsExpiry, expiry);
+    records.set(record, recordCount * boundsFloatStride);
+    this._emissionBoundsRecordCount = recordCount + 1;
     renderer._onWorldVolumeChanged();
   }
 
