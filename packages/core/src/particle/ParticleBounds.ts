@@ -71,15 +71,20 @@ export class ParticleBounds {
   generateTransformed(): void {
     const generator = this._generator;
     const renderer = generator._renderer;
-    const maxLifetime = generator.main.startLifetime._getMax();
     const generatorBoundsDirty = renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.GeneratorVolume);
+    const transformBoundsDirty = renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume);
+    if (!generatorBoundsDirty && !transformBoundsDirty) {
+      return;
+    }
+
+    const maxLifetime = generator.main.startLifetime._getMax();
 
     if (generatorBoundsDirty) {
       this._calculateGeneratorBounds(maxLifetime, this._generatorBounds, true);
       renderer._clearDirtyFlag(ParticleBoundsUpdateFlags.GeneratorVolume);
     }
 
-    if (renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume)) {
+    if (transformBoundsDirty) {
       this._calculateTransformedBounds(maxLifetime, this._generatorBounds, this._transformedBounds);
       renderer._clearDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume);
     }
