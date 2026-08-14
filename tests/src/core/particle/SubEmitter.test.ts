@@ -437,17 +437,21 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("tolerates a Rate Over Time boundary at the end of a Birth timeline", () => {
+  it("emits Birth Rate Over Time only after reaching its first interval", () => {
     const child = createParticleRenderer(engine, "BirthRateBoundary_Child");
     const parent = createParticleRenderer(engine, "BirthRateBoundary_Parent");
-    const lifetime = MathUtil.zeroTolerance * 1.5;
-    child.generator.emission.rateOverTime.constant = 1 / (MathUtil.zeroTolerance * 2);
+    const emitInterval = MathUtil.zeroTolerance * 4;
+    const beforeBoundary = MathUtil.zeroTolerance * 3.5;
+    child.generator.emission.rateOverTime.constant = 1 / emitInterval;
 
     const subEmitters = parent.generator.subEmitters;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
     const commands = child.generator._incomingSubEmitterCommands as any[];
-    subEmitters._prepareBirthCommandsForParticle(0, 0, lifetime, 0, lifetime, 0);
 
+    subEmitters._prepareBirthCommandsForParticle(0, 0, emitInterval, 0, beforeBoundary, 0);
+    expect(commands).to.have.length(0);
+
+    subEmitters._prepareBirthCommandsForParticle(1, 0, emitInterval, 0, emitInterval, 0);
     expect(commands).to.have.length(1);
     expect(commands[0].requestCount).to.equal(1);
     commands.pop().release();
