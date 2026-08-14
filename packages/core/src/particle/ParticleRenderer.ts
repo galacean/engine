@@ -8,9 +8,9 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import type { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { ParticleBoundsUpdateFlags } from "./ParticleBounds";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import type { ParticleSystemManager } from "./ParticleSystemManager";
 
@@ -36,12 +36,6 @@ export class ParticleRenderer extends Renderer {
   /** The pivot of particle. */
   pivot = new Vector3();
 
-  /** @internal */
-  @ignoreClone
-  readonly _generatorBounds = new BoundingBox();
-  /** @internal */
-  @ignoreClone
-  readonly _transformedBounds = new BoundingBox();
   /** @internal */
   @ignoreClone
   _particleSystemManager: ParticleSystemManager | null = null;
@@ -211,26 +205,7 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const { generator } = this;
-
-    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
-    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
-    // Must generate bounds even when there is no particle but in play state
-    if (!generator.isAlive) {
-      const worldPosition = this.entity.transform.worldPosition;
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-      return;
-    }
-    if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      generator._updateBoundsSimulationLocal(worldBounds);
-    } else {
-      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-        generator._generateTransformedBounds();
-        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
-      }
-      generator._updateBoundsSimulationWorld(worldBounds);
-    }
+    this.generator._bounds.update(worldBounds);
   }
 
   protected override _update(context: RenderContext): void {
@@ -295,14 +270,14 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _isContainDirtyFlag(type: number): boolean {
+  _hasDirtyFlag(type: number): boolean {
     return (this._dirtyUpdateFlag & type) != 0;
   }
 
   /**
    * @internal
    */
-  _setDirtyFlagFalse(type: number): void {
+  _clearDirtyFlag(type: number): void {
     this._dirtyUpdateFlag &= ~type;
   }
 
@@ -319,7 +294,9 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+      ParticleBoundsUpdateFlags.GeneratorVolume |
+      ParticleBoundsUpdateFlags.TransformVolume |
+      RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -327,16 +304,6 @@ export class ParticleRenderer extends Renderer {
    */
   @ignoreClone
   override _onTransformChanged(): void {
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= ParticleBoundsUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
-}
-
-/**
- * @internal
- */
-export enum ParticleUpdateFlags {
-  /** On World Transform Changed */
-  TransformVolume = 0x2,
-  /** On Generator Bounds Related Params Changed */
-  GeneratorVolume = 0x4
 }

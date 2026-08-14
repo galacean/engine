@@ -155,18 +155,15 @@ describe("InheritVelocityModule", () => {
   it("keeps baked Initial velocity bounds separate from same-frame fixed bounds", () => {
     const renderer = createParticleRenderer(engine, "mixed-initial-velocity-bounds");
     const generator = renderer.generator as any;
+    const bounds = generator._bounds as any;
     generator.inheritVelocity.mode = ParticleInheritVelocityMode.Initial;
     generator.stop(false, ParticleStopMode.StopEmittingAndClear);
 
-    generator._recordWorldEmissionBounds(generator._playTime, undefined, new Vector3(5, 0, 0), false);
-    generator._recordFixedEmissionBounds(
-      generator._playTime,
-      1,
-      new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1))
-    );
+    bounds.recordWorldEmission(generator._playTime, undefined, new Vector3(5, 0, 0), false);
+    bounds._recordFixedEmission(generator._playTime, 1, new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)));
     generator._isPlaying = true;
 
-    expect(generator._emissionBoundsRecordCount).to.equal(2);
+    expect(bounds._emissionRecordCount).to.equal(2);
     expect(renderer.bounds.max.x).to.be.greaterThan(5);
     renderer.entity.destroy();
   });
@@ -404,7 +401,7 @@ describe("InheritVelocityModule", () => {
     generator.play(false);
 
     expect(() => renderer.bounds).not.toThrow();
-    expect((generator as any)._emissionBoundsRecords).to.equal(null);
+    expect((generator._bounds as any)._emissionRecords).to.equal(null);
 
     renderer.entity.destroy();
   });

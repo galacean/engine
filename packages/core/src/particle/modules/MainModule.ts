@@ -207,7 +207,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
       generator._renderer._onTransformChanged();
       generator.inheritVelocity._resyncEmitterVelocity();
       generator._setTransformFeedback();
-      generator._releaseEmissionBoundsRecords();
+      generator._bounds.releaseEmissionRecords();
     }
   }
 
@@ -332,7 +332,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
    */
   _onClone(target: MainModule): void {
     if (target._simulationSpace === ParticleSimulationSpace.World) {
-      target._generator._generateTransformedBounds();
+      target._generator._bounds.generateTransformed();
     }
   }
 

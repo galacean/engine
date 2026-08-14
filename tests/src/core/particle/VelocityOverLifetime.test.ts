@@ -301,24 +301,24 @@ describe("VelocityOverLifetimeModule", function () {
   });
 
   it("centerOffset component changes dirty bounds after clone", function () {
-    // ParticleUpdateFlags: GeneratorVolume | TransformVolume | WorldVolume.
+    // ParticleBoundsUpdateFlags: GeneratorVolume | TransformVolume | WorldVolume.
     const dirtyBoundsFlags = 0x7;
-    // ParticleUpdateFlags.GeneratorVolume.
+    // ParticleBoundsUpdateFlags.GeneratorVolume.
     const generatorBoundsFlag = 0x4;
 
     const renderer = particleRenderer as any;
-    renderer._setDirtyFlagFalse(dirtyBoundsFlags);
+    renderer._clearDirtyFlag(dirtyBoundsFlags);
 
     particleRenderer.generator.velocityOverLifetime.centerOffset.x = 1;
 
-    expect(renderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+    expect(renderer._hasDirtyFlag(generatorBoundsFlag)).to.eq(true);
 
     const cloneEntity = entity.clone();
     const clonedRenderer = cloneEntity.getComponent(ParticleRenderer) as any;
-    clonedRenderer._setDirtyFlagFalse(dirtyBoundsFlags);
+    clonedRenderer._clearDirtyFlag(dirtyBoundsFlags);
 
     clonedRenderer.generator.velocityOverLifetime.centerOffset.set(2, 0, 0);
 
-    expect(clonedRenderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+    expect(clonedRenderer._hasDirtyFlag(generatorBoundsFlag)).to.eq(true);
   });
 });

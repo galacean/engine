@@ -907,8 +907,8 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "LocalBounds_Child");
     const parentGenerator = parent.generator as any;
     const childGenerator = child.generator as any;
-    parentGenerator._subEmitterSourceBounds = new BoundingBox(new Vector3(), new Vector3());
-    parentGenerator._subEmitterSourceBoundsFrame = engine.time.frameCount;
+    parentGenerator._bounds._sourceBounds = new BoundingBox(new Vector3(), new Vector3());
+    parentGenerator._bounds._sourceBoundsFrame = engine.time.frameCount;
 
     child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
     child.generator.main.startLifetime.constant = 1;
@@ -917,7 +917,7 @@ describe("SubEmitter", () => {
     child.generator.velocityOverLifetime.enabled = true;
     child.generator.velocityOverLifetime.velocityX.constant = 1;
 
-    childGenerator._recordSubEmitterTrajectoryBounds(
+    childGenerator._bounds.recordSubEmitterEmission(
       0,
       {
         source: parent.generator,
@@ -926,7 +926,7 @@ describe("SubEmitter", () => {
       0
     );
     const bounds = new BoundingBox();
-    childGenerator._updateBoundsSimulationLocal(bounds);
+    childGenerator._bounds._updateLocal(bounds);
 
     expect(bounds.min.x).to.be.closeTo(0, 1e-5);
     expect(bounds.max.x).to.be.closeTo(1, 1e-5);
@@ -940,8 +940,8 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "DirectionBounds_Child");
     const parentGenerator = parent.generator as any;
     const childGenerator = child.generator as any;
-    parentGenerator._subEmitterSourceBounds = new BoundingBox(new Vector3(), new Vector3());
-    parentGenerator._subEmitterSourceBoundsFrame = engine.time.frameCount;
+    parentGenerator._bounds._sourceBounds = new BoundingBox(new Vector3(), new Vector3());
+    parentGenerator._bounds._sourceBoundsFrame = engine.time.frameCount;
 
     child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
     child.generator.main.startLifetime.constant = 1;
@@ -949,7 +949,7 @@ describe("SubEmitter", () => {
     child.generator.main.startSize.constant = 0;
     child.generator.main.gravityModifier.constant = 0;
 
-    childGenerator._recordSubEmitterTrajectoryBounds(
+    childGenerator._bounds.recordSubEmitterEmission(
       0,
       {
         source: parent.generator,
@@ -958,7 +958,7 @@ describe("SubEmitter", () => {
       0
     );
     const bounds = new BoundingBox();
-    childGenerator._updateBoundsSimulationLocal(bounds);
+    childGenerator._bounds._updateLocal(bounds);
 
     expect(bounds.min.z).to.be.closeTo(-2, 1e-5);
     expect(bounds.max.z).to.be.closeTo(2, 1e-5);
@@ -1034,13 +1034,13 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "LazySourceBounds_Child");
     const parentGenerator = parent.generator as any;
     const childGenerator = child.generator as any;
-    parentGenerator._recordFixedEmissionBounds(0, 1, new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)));
+    parentGenerator._bounds._recordFixedEmission(0, 1, new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)));
     parentGenerator._isPlaying = true;
     child.generator.main.simulationSpace = ParticleSimulationSpace.World;
     child.generator.main.startLifetime.constant = 1;
     child.generator.main.startSpeed.constant = 10;
 
-    childGenerator._recordSubEmitterTrajectoryBounds(
+    childGenerator._bounds.recordSubEmitterEmission(
       0,
       {
         source: parent.generator,
@@ -1049,7 +1049,7 @@ describe("SubEmitter", () => {
       0
     );
 
-    expect(childGenerator._emissionBoundsRecords[2]).to.be.lessThan(-10);
+    expect(childGenerator._bounds._emissionRecords[2]).to.be.lessThan(-10);
     parent.entity.destroy();
     child.entity.destroy();
   });

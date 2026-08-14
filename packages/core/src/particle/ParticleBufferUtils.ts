@@ -110,14 +110,6 @@ export class ParticleBufferUtils {
   // Billboard geometry
   static readonly billboardIndexCount = 6;
 
-  // Bounds data layout
-  static readonly boundsFloatStride = 15;
-  static readonly boundsTimeOffset = 6;
-  static readonly boundsMaxLifetimeOffset = 7;
-  static readonly boundsCurrentAxisReachOffset = 8;
-  static readonly boundsInitialDisplacementOffset = 11;
-  static readonly boundsInitialFactorOffset = 14;
-
   readonly billboardVertexBufferBinding: VertexBufferBinding;
   readonly billboardIndexBufferBinding: IndexBufferBinding;
 
