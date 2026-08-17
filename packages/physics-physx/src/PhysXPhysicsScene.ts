@@ -50,7 +50,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
   private _contactEventCount = 0;
-  private _contactEventEnabled = true;
   private _triggerEvents: TriggerEvent[] = [];
   private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
 
@@ -196,11 +195,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.setContactEventEnabled }
    */
   setContactEventEnabled(enabled: boolean): void {
-    if (this._contactEventEnabled === enabled) {
-      return;
-    }
-
-    this._contactEventEnabled = enabled;
+    this._physXPhysics._physX.setContactEventEnabled?.(this._physXSimulationCallbackInstance, enabled);
     if (!enabled) {
       this._contactEventCount = 0;
     }
@@ -562,8 +557,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   private _bufferContactEvent(collision: ICollision, state: number): void {
-    if (!this._contactEventEnabled) return;
-
     const index = this._contactEventCount++;
     const event = (this._contactEvents[index] ||= new ContactEvent());
     event.shape0Id = collision.shape0Id;

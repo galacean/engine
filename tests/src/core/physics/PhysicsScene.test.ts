@@ -16,9 +16,13 @@ import {
   OverlapHitResult
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
+
+const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
+const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
+  .href;
 
 class CollisionTestScript extends Script {
   onCollisionEnter(other) {}
@@ -123,7 +127,10 @@ describe("Physics Test", () => {
       // Init engine with PhysXPhysics.
       enginePhysX = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
+          wasmModeUrl: physXWasmModeUrl,
+          wasmSIMDModeUrl: physXWasmSIMDModeUrl
+        })
       });
       physicsScene = enginePhysX.sceneManager.activeScene.physics;
 
@@ -204,6 +211,42 @@ describe("Physics Test", () => {
       }
     });
 
+    it("stops contact events at the native callback boundary", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-boundary");
+      const entity1 = root.createChild("dynamic-1");
+      const entity2 = root.createChild("dynamic-2");
+      const script = entity1.addComponent(CollisionDemandScript);
+      const bufferContactEvent = vi.spyOn((physicsScene as any)._nativePhysicsScene, "_bufferContactEvent");
+      const gravity = physicsScene.gravity.clone();
+
+      try {
+        physicsScene.gravity = new Vector3(0, 0, 0);
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent).toHaveBeenCalled();
+
+        script.enabled = false;
+        const enabledCallCount = bufferContactEvent.mock.calls.length;
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent).toHaveBeenCalledTimes(enabledCallCount);
+
+        script.enabled = true;
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent.mock.calls.length).toBeGreaterThan(enabledCallCount);
+      } finally {
+        physicsScene.gravity = gravity;
+        bufferContactEvent.mockRestore();
+        root.destroy();
+      }
+    });
+
     it("does not rescan contact event demand on every fixed substep", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -227,20 +270,27 @@ describe("Physics Test", () => {
       }
     });
 
-    it("keeps native contact events disabled when only trigger callbacks exist", () => {
+    it("keeps native contact events disabled without blocking trigger callbacks", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("contact-demand-trigger-only");
-      const entity = root.createChild("body");
-      const collider = entity.addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
-      entity.addComponent(TriggerDemandScript);
+      const triggerEntity = root.createChild("trigger");
+      const triggerCollider = triggerEntity.addComponent(DynamicCollider);
+      triggerCollider.isKinematic = true;
+      const triggerShape = new BoxColliderShape();
+      triggerShape.isTrigger = true;
+      triggerCollider.addShape(triggerShape);
+      root.createChild("static").addComponent(StaticCollider).addShape(new BoxColliderShape());
+      const script = triggerEntity.addComponent(TriggerDemandScript);
       const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+      const triggerEnter = vi.spyOn(script, "onTriggerEnter");
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
         expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+        expect(triggerEnter).toHaveBeenCalled();
       } finally {
+        triggerEnter.mockRestore();
         contactEventDemand.mockRestore();
         root.destroy();
       }
