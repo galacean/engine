@@ -285,14 +285,10 @@ export class DynamicCollider extends Collider {
       }
 
       this._isKinematic = value;
-      (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+      (<IDynamicCollider>this._nativeCollider).setMotionState(value, this._collisionDetectionMode);
 
-      // Resync properties that PhysX ignores/resets during kinematic mode
-      if (!value) {
-        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
-        if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
-          this._setMassAndUpdateInertia();
-        }
+      if (!value && (this._automaticCenterOfMass || this._automaticInertiaTensor)) {
+        this._setMassAndUpdateInertia();
       }
     }
   }
@@ -321,7 +317,7 @@ export class DynamicCollider extends Collider {
   set collisionDetectionMode(value: CollisionDetectionMode) {
     if (this._collisionDetectionMode !== value) {
       this._collisionDetectionMode = value;
-      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+      (<IDynamicCollider>this._nativeCollider).setMotionState(this._isKinematic, value);
     }
   }
 
@@ -484,6 +480,8 @@ export class DynamicCollider extends Collider {
   }
 
   protected override _syncNative(): void {
+    // Non-convex triangle meshes require a kinematic native actor before attachment
+    (<IDynamicCollider>this._nativeCollider).setMotionState(this._isKinematic, this._collisionDetectionMode);
     super._syncNative();
     (<IDynamicCollider>this._nativeCollider).setLinearDamping(this._linearDamping);
     (<IDynamicCollider>this._nativeCollider).setAngularDamping(this._angularDamping);
@@ -501,9 +499,7 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
     (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
-    (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
     (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);
-    (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
   }
 
   private _setMassAndUpdateInertia(): void {

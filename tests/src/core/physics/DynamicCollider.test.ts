@@ -518,56 +518,36 @@ describe("DynamicCollider", function () {
     ).toBeTruthy();
   });
 
-  it("defers swept CCD across kinematic transitions", function () {
+  it("keeps CCD valid across kinematic transitions", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
     const { actor, flags } = getPhysXRigidBody(boxCollider);
     const setRigidBodyFlag = vi.spyOn(actor, "setRigidBodyFlag");
-    const ccdFlag = () => actor.getRigidBodyFlags(flags.eENABLE_CCD);
+    const hasFlag = (flag: unknown) => actor.getRigidBodyFlags(flag);
 
     boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
-    expect(ccdFlag()).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
 
     setRigidBodyFlag.mockClear();
     boxCollider.isKinematic = true;
-    expect(ccdFlag()).toBeFalsy();
     expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eKINEMATIC);
-
-    setRigidBodyFlag.mockClear();
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-    expect(setRigidBodyFlag).not.toHaveBeenCalledWith(flags.eENABLE_CCD, true);
-    expect(ccdFlag()).toBeFalsy();
-    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.ContinuousDynamic);
-
-    boxCollider.isKinematic = false;
-    expect(ccdFlag()).toBeTruthy();
-    expect(actor.getRigidBodyFlags(flags.eENABLE_CCD_FRICTION)).toBeTruthy();
-  });
-
-  it("switches between swept and speculative CCD without overlapping flags", function () {
-    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
-    const boxCollider = box.getComponent(DynamicCollider);
-    const { actor, flags } = getPhysXRigidBody(boxCollider);
-    const setRigidBodyFlag = vi.spyOn(actor, "setRigidBodyFlag");
-    const ccdFlag = () => actor.getRigidBodyFlags(flags.eENABLE_CCD);
-    const speculativeCCDFlag = () => actor.getRigidBodyFlags(flags.eENABLE_SPECULATIVE_CCD);
-
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-    expect(speculativeCCDFlag()).toBeTruthy();
-
-    setRigidBodyFlag.mockClear();
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
-    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_SPECULATIVE_CCD, flags.eENABLE_CCD);
-    expect(ccdFlag()).toBeTruthy();
-    expect(speculativeCCDFlag()).toBeFalsy();
-
-    setRigidBodyFlag.mockClear();
-    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
     expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eENABLE_SPECULATIVE_CCD);
-    expect(speculativeCCDFlag()).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
 
-    boxCollider.isKinematic = true;
-    expect(speculativeCCDFlag()).toBeTruthy();
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.ContinuousDynamic);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
+
+    setRigidBodyFlag.mockClear();
+    boxCollider.isKinematic = false;
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eKINEMATIC, flags.eENABLE_CCD);
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_SPECULATIVE_CCD, flags.eENABLE_CCD);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_CCD_FRICTION)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeFalsy();
+    setRigidBodyFlag.mockRestore();
   });
 
   it("sleep", function () {
