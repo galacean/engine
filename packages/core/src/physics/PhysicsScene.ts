@@ -30,7 +30,7 @@ export class PhysicsScene {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
 
-  private _contactEventDemandCount = 0;
+  private _contactEventConsumerCount = 0;
 
   /**
    * The gravity of physics scene.
@@ -708,10 +708,12 @@ export class PhysicsScene {
   /**
    * @internal
    */
-  _changeContactEventDemand(delta: 1 | -1): void {
-    const count = (this._contactEventDemandCount += delta);
-    if (count === 0 || (count === 1 && delta === 1)) {
-      this._nativePhysicsScene?.setContactEventEnabled(count > 0);
+  _addContactEventConsumer(delta: 1 | -1): void {
+    const wasEnabled = this._contactEventConsumerCount > 0;
+    this._contactEventConsumerCount += delta;
+    const enabled = this._contactEventConsumerCount > 0;
+    if (wasEnabled !== enabled) {
+      this._nativePhysicsScene?.setContactEventEnabled(enabled);
     }
   }
 

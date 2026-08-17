@@ -66,11 +66,11 @@ class CollisionTestScript extends Script {
   }
 }
 
-class CollisionDemandScript extends Script {
+class CollisionConsumerScript extends Script {
   onCollisionEnter(): void {}
 }
 
-class TriggerDemandScript extends Script {
+class TriggerConsumerScript extends Script {
   onTriggerEnter(): void {}
 }
 
@@ -80,7 +80,7 @@ function updatePhysics(physics) {
   }
 }
 
-function watchNativeContactEventDemand(physicsScene: PhysicsScene) {
+function watchSetContactEventEnabled(physicsScene: PhysicsScene) {
   return vi.spyOn((physicsScene as any)._nativePhysicsScene, "setContactEventEnabled");
 }
 
@@ -164,19 +164,19 @@ describe("Physics Test", () => {
     it("enables native contact events for any active collision callback script", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
-      const root = scene.createRootEntity("contact-demand-global");
-      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
-      const script = root.createChild("script-only").addComponent(CollisionDemandScript);
+      const root = scene.createRootEntity("contact-event-global");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      const script = root.createChild("script-only").addComponent(CollisionConsumerScript);
 
       try {
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
 
         script.enabled = false;
-        expect(contactEventDemand).toHaveBeenCalledTimes(2);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(2);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(false);
       } finally {
-        contactEventDemand.mockRestore();
+        setContactEventEnabled.mockRestore();
         root.destroy();
       }
     });
@@ -184,25 +184,25 @@ describe("Physics Test", () => {
     it("toggles native contact events only at active collision callback count boundaries", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
-      const root = scene.createRootEntity("contact-demand-enabled");
-      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
-      const script1 = root.createChild("script-1").addComponent(CollisionDemandScript);
+      const root = scene.createRootEntity("contact-event-enabled");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      const script1 = root.createChild("script-1").addComponent(CollisionConsumerScript);
 
       try {
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
 
-        const script2 = root.createChild("script-2").addComponent(CollisionDemandScript);
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        const script2 = root.createChild("script-2").addComponent(CollisionConsumerScript);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
 
         script1.enabled = false;
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
 
         script2.enabled = false;
-        expect(contactEventDemand).toHaveBeenCalledTimes(2);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(2);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(false);
       } finally {
-        contactEventDemand.mockRestore();
+        setContactEventEnabled.mockRestore();
         root.destroy();
       }
     });
@@ -213,7 +213,7 @@ describe("Physics Test", () => {
       const root = scene.createRootEntity("contact-boundary");
       const entity1 = root.createChild("dynamic-1");
       const entity2 = root.createChild("dynamic-2");
-      const script = entity1.addComponent(CollisionDemandScript);
+      const script = entity1.addComponent(CollisionConsumerScript);
       const bufferContactEvent = vi.spyOn((physicsScene as any)._nativePhysicsScene, "_bufferContactEvent");
       const gravity = physicsScene.gravity.clone();
 
@@ -243,27 +243,27 @@ describe("Physics Test", () => {
       }
     });
 
-    it("does not update native contact demand during fixed substeps", () => {
+    it("does not toggle native contact events during fixed substeps", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const fixedTimeStep = physicsScene.fixedTimeStep;
-      const root = scene.createRootEntity("contact-demand-substeps");
+      const root = scene.createRootEntity("contact-event-substeps");
       const entity = root.createChild("body");
       const collider = entity.addComponent(StaticCollider);
       collider.addShape(new BoxColliderShape());
-      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
-      entity.addComponent(CollisionDemandScript);
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      entity.addComponent(CollisionConsumerScript);
 
       try {
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
 
         physicsScene.fixedTimeStep = 1 / 480;
         physicsScene._update(1 / 60);
-        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
       } finally {
         physicsScene.fixedTimeStep = fixedTimeStep;
-        contactEventDemand.mockRestore();
+        setContactEventEnabled.mockRestore();
         root.destroy();
       }
     });
@@ -271,8 +271,8 @@ describe("Physics Test", () => {
     it("keeps native contact events disabled without blocking trigger callbacks", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
-      const root = scene.createRootEntity("contact-demand-trigger-only");
-      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+      const root = scene.createRootEntity("contact-event-trigger-only");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
       const triggerEntity = root.createChild("trigger");
       const triggerCollider = triggerEntity.addComponent(DynamicCollider);
       triggerCollider.isKinematic = true;
@@ -280,16 +280,16 @@ describe("Physics Test", () => {
       triggerShape.isTrigger = true;
       triggerCollider.addShape(triggerShape);
       root.createChild("static").addComponent(StaticCollider).addShape(new BoxColliderShape());
-      const script = triggerEntity.addComponent(TriggerDemandScript);
+      const script = triggerEntity.addComponent(TriggerConsumerScript);
       const triggerEnter = vi.spyOn(script, "onTriggerEnter");
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(contactEventDemand).not.toHaveBeenCalled();
+        expect(setContactEventEnabled).not.toHaveBeenCalled();
         expect(triggerEnter).toHaveBeenCalled();
       } finally {
         triggerEnter.mockRestore();
-        contactEventDemand.mockRestore();
+        setContactEventEnabled.mockRestore();
         root.destroy();
       }
     });
