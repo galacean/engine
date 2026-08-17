@@ -12,8 +12,7 @@ describe("UIEvent", async () => {
 
   const engine = await WebGLEngine.create({ canvas: canvasDOM });
   const webCanvas = engine.canvas;
-  webCanvas.width = 300;
-  webCanvas.height = 300;
+  webCanvas.setResolution(300, 300);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
   const inputManager = engine.inputManager;

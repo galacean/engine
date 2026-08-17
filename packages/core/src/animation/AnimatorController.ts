@@ -85,7 +85,7 @@ export class AnimatorController extends ReferResource {
    */
   clearParameters(): void {
     this._parameters.length = 0;
-    for (let name in this._parametersMap) {
+    for (const name in this._parametersMap) {
       delete this._parametersMap[name];
     }
   }
@@ -140,7 +140,7 @@ export class AnimatorController extends ReferResource {
     }
     layers.length = 0;
 
-    for (let name in this._layersMap) {
+    for (const name in this._layersMap) {
       delete this._layersMap[name];
     }
     this._updateFlagManager.dispatch();

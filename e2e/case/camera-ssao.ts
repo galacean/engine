@@ -30,7 +30,7 @@ WebGLEngine.create({
   shaderCompiler: new ShaderCompiler(),
   graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

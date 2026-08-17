@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader",
-  "version": "2.0.0-alpha.38",
+  "version": "2.0.0-alpha.41",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -11,8 +11,9 @@
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "unpkg": "dist/browser.min.js",
+  "jsdelivr": "dist/browser.min.js",
   "debug": "src/index.ts",
-  "browser": "dist/browser.js",
   "types": "types/src/index.d.ts",
   "exports": {
     ".": {

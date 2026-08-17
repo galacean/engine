@@ -12,7 +12,6 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -30,9 +29,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
 
   /**
@@ -150,11 +147,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Image): void {
-    // @ts-ignore
-    super._cloneTo(target);
+  override _onClone(target: Image): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

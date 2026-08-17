@@ -61,9 +61,9 @@ export class Scene extends EngineObject {
    */
   readonly ambientOcclusion = new AmbientOcclusion(this);
 
-  /* @internal */
+  /** @internal */
   _lightManager: LightManager = new LightManager();
-  /* @internal */
+  /** @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
   _maskManager: MaskManager = new MaskManager();

@@ -55,7 +55,7 @@ export class AnimationClip extends EngineObject {
    * @param time - The time when the event be triggered
    * @param parameter - The parameter that is stored in the event and will be sent to the function
    */
-  addEvent(functionName: string, time: number, parameter: Object): void;
+  addEvent(functionName: string, time: number, parameter: object): void;
 
   /**
    * Adds an animation event to the clip.
@@ -63,7 +63,7 @@ export class AnimationClip extends EngineObject {
    */
   addEvent(event: AnimationEvent): void;
 
-  addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
+  addEvent(param: AnimationEvent | string, time?: number, parameter?: object): void {
     let newEvent: AnimationEvent;
     if (typeof param === "string") {
       const event = new AnimationEvent();

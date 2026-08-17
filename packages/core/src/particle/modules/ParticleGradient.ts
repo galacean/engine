@@ -1,13 +1,12 @@
+import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 
 /**
  * Particle gradient.
  */
-export class ParticleGradient {
-  @deepClone
+export class ParticleGradient extends DataObject {
   private _colorKeys: GradientColorKey[] = [];
-  @deepClone
   private _alphaKeys: GradientAlphaKey[] = [];
   @ignoreClone
   private _colorTypeArray: Float32Array;
@@ -37,6 +36,7 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys of the gradient
    */
   constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
+    super();
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
         const key = colorKeys[i];
@@ -286,7 +286,7 @@ export class ParticleGradient {
 /**
  * The color key of the particle gradient.
  */
-export class GradientColorKey {
+export class GradientColorKey extends DataObject {
   /** @internal */
   _onValueChanged: () => void = null;
 
@@ -324,6 +324,7 @@ export class GradientColorKey {
    * @param color - The alpha component of the gradient colorKey
    */
   constructor(time: number, color: Color) {
+    super();
     this._time = time;
     color && this._color.copyFrom(color);
     // @ts-ignore
@@ -334,7 +335,7 @@ export class GradientColorKey {
 /**
  * The alpha key of the particle gradient.
  */
-export class GradientAlphaKey {
+export class GradientAlphaKey extends DataObject {
   /** @internal */
   _onValueChanged: () => void = null;
 
@@ -371,6 +372,7 @@ export class GradientAlphaKey {
    * @param alpha - The alpha component of the gradient alpha key
    */
   constructor(time: number, alpha: number) {
+    super();
     this._time = time;
     this._alpha = alpha;
   }

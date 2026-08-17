@@ -25,8 +25,6 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   // Get scene and root entity
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("Root");

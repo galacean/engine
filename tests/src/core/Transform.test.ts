@@ -1,4 +1,4 @@
-import { deepClone, Entity, Scene, Script, Transform } from "@galacean/engine-core";
+import { deepClone, Entity, ICloneHook, Scene, Script, Transform } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -154,15 +154,15 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its (world) transform inside `_cloneTo` — exactly what the engine's own
-    // DynamicCollider does (`_cloneTo` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
+    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
+    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
     // Clone fills children before the parent's own components, so this read resolves the PARENT's
     // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
     // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved
     // value with the source's `null`, leaving `cache === null` while `_isParentDirty === false`
     // (a stale cache that is never revalidated), so after reparent the node renders at the origin.
-    class WorldReaderOnClone extends Script {
-      _cloneTo(target: any): void {
+    class WorldReaderOnClone extends Script implements ICloneHook<WorldReaderOnClone> {
+      _onClone(target: any): void {
         target.entity.transform.worldMatrix;
       }
     }
