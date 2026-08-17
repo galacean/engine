@@ -8,9 +8,9 @@ import {
   ParticleRenderer,
   ParticleStopMode
 } from "@galacean/engine-core";
-import { Color, MathUtil } from "@galacean/engine-math";
+import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -144,32 +144,27 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     entity.destroy();
   });
 
-  it("does not apply Birth boundary tolerance to ordinary emission", () => {
+  it("emits Rate Over Time only after reaching its Float32 boundary", () => {
     const { entity, renderer } = buildEmitter(engine, "rate-boundary-tolerance");
     const generator = renderer.generator;
-    generator.emission.rateOverTime.constant = 2 / MathUtil.zeroTolerance;
+    generator.emission.rateOverTime.constant = 1;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
+    for (let i = 0; i < 3; i++) {
+      tick(engine, elapsed, 300);
+    }
+    tick(engine, elapsed, 99.9995);
+    expect(generator._getAliveParticleCount()).to.equal(0);
 
-    const emit = vi.spyOn(generator, "_emit");
-    tick(engine, elapsed, MathUtil.zeroTolerance * 1000 * 0.25);
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    for (let i = 0; i < 3; i++) {
+      tick(engine, elapsed, 300);
+    }
+    tick(engine, elapsed, 100);
+    expect(generator._getAliveParticleCount()).to.equal(1);
 
-    expect(emit).not.toHaveBeenCalled();
-    entity.destroy();
-  });
-
-  it("does not scale ordinary boundary tolerance beyond one second", () => {
-    const { entity, renderer } = buildEmitter(engine, "rate-long-interval-boundary");
-    const generator = renderer.generator;
-    const emission = generator.emission;
-    emission.rateOverTime.constant = 0.5;
-    emission._resyncCursors(0);
-
-    const emit = vi.spyOn(generator, "_emit");
-    emission._emit(0, 2 - MathUtil.zeroTolerance * 1.5);
-
-    expect(emit).not.toHaveBeenCalled();
     entity.destroy();
   });
 

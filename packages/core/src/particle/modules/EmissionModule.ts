@@ -256,9 +256,8 @@ export class EmissionModule extends ParticleGeneratorModule {
     let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      // Scale the tolerance with the interval so rounding is absorbed without accepting a genuinely early boundary
-      const boundaryTolerance = cumulativeTime > 0 ? MathUtil.zeroTolerance * Math.min(emitInterval, 1) : 0;
-      if (cumulativeTime + boundaryTolerance < emitInterval) {
+      // Compare in the Float32 time domain used by particle simulation without accepting a wider epsilon window
+      if (!(cumulativeTime > 0) || Math.fround(cumulativeTime) < Math.fround(emitInterval)) {
         return;
       }
       cumulativeTime = Math.max(0, cumulativeTime - emitInterval);

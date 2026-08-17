@@ -437,24 +437,30 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("emits Birth Rate Over Time only after reaching its first interval", () => {
+  it("emits Birth Rate Over Time only after reaching its Float32 boundary", () => {
     const child = createParticleRenderer(engine, "BirthRateBoundary_Child");
     const parent = createParticleRenderer(engine, "BirthRateBoundary_Parent");
-    const emitInterval = MathUtil.zeroTolerance * 4;
-    const beforeBoundary = MathUtil.zeroTolerance * 3.5;
-    child.generator.emission.rateOverTime.constant = 1 / emitInterval;
+    parent.generator.main.startLifetime.constant = 2;
+    child.generator.emission.rateOverTime.constant = 1;
 
     const subEmitters = parent.generator.subEmitters;
+    subEmitters.enabled = true;
     subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    const commands = child.generator._incomingSubEmitterCommands as any[];
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.emit(1);
 
-    subEmitters._prepareBirthCommandsForParticle(0, 0, emitInterval, 0, beforeBoundary, 0);
-    expect(commands).to.have.length(0);
+    updateEngine(engine, 3, 300);
+    updateEngine(engine, 1, 99.9995);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
 
-    subEmitters._prepareBirthCommandsForParticle(1, 0, emitInterval, 0, emitInterval, 0);
-    expect(commands).to.have.length(1);
-    expect(commands[0].requestCount).to.equal(1);
-    commands.pop().release();
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.emit(1);
+    updateEngine(engine, 3, 300);
+    updateEngine(engine, 1, 100);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
     parent.entity.destroy();
     child.entity.destroy();
   });
