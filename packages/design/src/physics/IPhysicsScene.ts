@@ -47,7 +47,7 @@ export interface IPhysicsScene {
    * Enable contact event delivery.
    * @param enabled - Whether collision contact events should be delivered for dispatch.
    */
-  setContactEventEnabled?(enabled: boolean): void;
+  setContactEventEnabled(enabled: boolean): void;
 
   /**
    * Collect buffered collision and trigger events.

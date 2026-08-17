@@ -850,13 +850,13 @@ export class PhysicsScene {
       const scriptElements = scripts._elements;
       for (let j = scripts.length - 1; j >= 0; --j) {
         if (scriptElements[j]._hasCollisionEventCallbacks()) {
-          this._nativePhysicsScene.setContactEventEnabled?.(true);
+          this._nativePhysicsScene.setContactEventEnabled(true);
           return;
         }
       }
     }
 
-    this._nativePhysicsScene.setContactEventEnabled?.(false);
+    this._nativePhysicsScene.setContactEventEnabled(false);
   }
 
   private _setGravity(): void {
