@@ -161,18 +161,19 @@ describe("Physics Test", () => {
       expect(enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep).to.eq(fixedTimeStep);
     });
 
-    it("auto-disables native contact events when no active collider has a collision callback", () => {
+    it("enables native contact events for any active collision callback script", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
-      const root = scene.createRootEntity("contact-demand-disabled");
-      const entity = root.createChild("body");
-      const collider = entity.addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
-      root.createChild("script-only").addComponent(CollisionDemandScript);
+      const root = scene.createRootEntity("contact-demand-global");
       const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+      const script = root.createChild("script-only").addComponent(CollisionDemandScript);
 
       try {
-        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+
+        script.enabled = false;
+        expect(contactEventDemand).toHaveBeenCalledTimes(2);
         expect(contactEventDemand).toHaveBeenLastCalledWith(false);
       } finally {
         contactEventDemand.mockRestore();
@@ -180,30 +181,25 @@ describe("Physics Test", () => {
       }
     });
 
-    it("auto-enables native contact events only while an active collision callback exists", () => {
+    it("toggles native contact events only at active collision callback count boundaries", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("contact-demand-enabled");
-      const entity = root.createChild("body");
-      const collider = entity.addComponent(StaticCollider);
-      collider.addShape(new BoxColliderShape());
-      const script = entity.addComponent(CollisionDemandScript);
       const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+      const script1 = root.createChild("script-1").addComponent(CollisionDemandScript);
 
       try {
-        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
         expect(contactEventDemand).toHaveBeenLastCalledWith(true);
 
-        collider.enabled = false;
-        physicsScene._update(physicsScene.fixedTimeStep);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+        const script2 = root.createChild("script-2").addComponent(CollisionDemandScript);
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
 
-        collider.enabled = true;
-        physicsScene._update(physicsScene.fixedTimeStep);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+        script1.enabled = false;
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
 
-        script.enabled = false;
-        physicsScene._update(physicsScene.fixedTimeStep);
+        script2.enabled = false;
+        expect(contactEventDemand).toHaveBeenCalledTimes(2);
         expect(contactEventDemand).toHaveBeenLastCalledWith(false);
       } finally {
         contactEventDemand.mockRestore();
@@ -247,7 +243,7 @@ describe("Physics Test", () => {
       }
     });
 
-    it("does not rescan contact event demand on every fixed substep", () => {
+    it("does not update native contact demand during fixed substeps", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const fixedTimeStep = physicsScene.fixedTimeStep;
@@ -255,14 +251,16 @@ describe("Physics Test", () => {
       const entity = root.createChild("body");
       const collider = entity.addComponent(StaticCollider);
       collider.addShape(new BoxColliderShape());
-      entity.addComponent(CollisionDemandScript);
       const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+      entity.addComponent(CollisionDemandScript);
 
       try {
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+
         physicsScene.fixedTimeStep = 1 / 480;
         physicsScene._update(1 / 60);
         expect(contactEventDemand).toHaveBeenCalledTimes(1);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
       } finally {
         physicsScene.fixedTimeStep = fixedTimeStep;
         contactEventDemand.mockRestore();
@@ -274,6 +272,7 @@ describe("Physics Test", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("contact-demand-trigger-only");
+      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
       const triggerEntity = root.createChild("trigger");
       const triggerCollider = triggerEntity.addComponent(DynamicCollider);
       triggerCollider.isKinematic = true;
@@ -282,12 +281,11 @@ describe("Physics Test", () => {
       triggerCollider.addShape(triggerShape);
       root.createChild("static").addComponent(StaticCollider).addShape(new BoxColliderShape());
       const script = triggerEntity.addComponent(TriggerDemandScript);
-      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
       const triggerEnter = vi.spyOn(script, "onTriggerEnter");
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+        expect(contactEventDemand).not.toHaveBeenCalled();
         expect(triggerEnter).toHaveBeenCalled();
       } finally {
         triggerEnter.mockRestore();

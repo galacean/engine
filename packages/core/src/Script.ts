@@ -230,7 +230,7 @@ export class Script extends Component {
 
     this._entity._addScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._markContactEventDemandDirty();
+      this.scene.physics._changeContactEventDemand(1);
     }
   }
 
@@ -256,20 +256,8 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._markContactEventDemandDirty();
+      this.scene.physics._changeContactEventDemand(-1);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _hasCollisionEventCallbacks(): boolean {
-    const { prototype } = Script;
-    return (
-      this.onCollisionEnter !== prototype.onCollisionEnter ||
-      this.onCollisionExit !== prototype.onCollisionExit ||
-      this.onCollisionStay !== prototype.onCollisionStay
-    );
   }
 
   /**
@@ -278,6 +266,15 @@ export class Script extends Component {
   protected override _onDestroy(): void {
     super._onDestroy();
     this.onDestroy();
+  }
+
+  private _hasCollisionEventCallbacks(): boolean {
+    const { prototype } = Script;
+    return (
+      this.onCollisionEnter !== prototype.onCollisionEnter ||
+      this.onCollisionExit !== prototype.onCollisionExit ||
+      this.onCollisionStay !== prototype.onCollisionStay
+    );
   }
 }
 

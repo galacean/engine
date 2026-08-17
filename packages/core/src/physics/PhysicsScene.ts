@@ -30,7 +30,7 @@ export class PhysicsScene {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
 
-  private _contactEventDemandDirty = true;
+  private _contactEventDemandCount = 0;
 
   /**
    * The gravity of physics scene.
@@ -67,6 +67,7 @@ export class PhysicsScene {
     const engine = scene.engine;
     if (engine._physicsInitialized) {
       this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(engine._nativePhysicsManager);
+      this._nativePhysicsScene.setContactEventEnabled(false);
     }
   }
 
@@ -648,7 +649,6 @@ export class PhysicsScene {
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
       this._callColliderOnUpdate();
-      this._syncContactEventDemand();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
       this._dispatchEvents(nativePhysicsManager.updateEvents());
@@ -664,7 +664,6 @@ export class PhysicsScene {
     if (collider._index === -1) {
       collider._index = this._colliders.length;
       this._colliders.add(collider);
-      this._markContactEventDemandDirty();
     }
     this._nativePhysicsScene.addCollider(<ICollider>collider._nativeCollider);
   }
@@ -678,7 +677,6 @@ export class PhysicsScene {
     if (controller._index === -1) {
       controller._index = this._colliders.length;
       this._colliders.add(controller);
-      this._markContactEventDemandDirty();
     }
     this._nativePhysicsScene.addCharacterController(<ICharacterController>controller._nativeCollider);
   }
@@ -692,7 +690,6 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
-    this._markContactEventDemandDirty();
     this._nativePhysicsScene.removeCollider(<ICollider>collider._nativeCollider);
   }
 
@@ -705,15 +702,17 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(controller._index);
     replaced && (replaced._index = controller._index);
     controller._index = -1;
-    this._markContactEventDemandDirty();
     this._nativePhysicsScene.removeCharacterController(<ICharacterController>controller._nativeCollider);
   }
 
   /**
    * @internal
    */
-  _markContactEventDemandDirty(): void {
-    this._contactEventDemandDirty = true;
+  _changeContactEventDemand(delta: 1 | -1): void {
+    const count = (this._contactEventDemandCount += delta);
+    if (count === 0 || (count === 1 && delta === 1)) {
+      this._nativePhysicsScene?.setContactEventEnabled(count > 0);
+    }
   }
 
   /**
@@ -837,26 +836,6 @@ export class PhysicsScene {
           break;
       }
     }
-  }
-
-  private _syncContactEventDemand(): void {
-    if (!this._contactEventDemandDirty) return;
-    this._contactEventDemandDirty = false;
-    const { _elements: colliders } = this._colliders;
-
-    // Scan backward so newly appended colliders and scripts are checked first, increasing the chance of an early exit
-    for (let i = this._colliders.length - 1; i >= 0; --i) {
-      const scripts = colliders[i].entity._scripts;
-      const scriptElements = scripts._elements;
-      for (let j = scripts.length - 1; j >= 0; --j) {
-        if (scriptElements[j]._hasCollisionEventCallbacks()) {
-          this._nativePhysicsScene.setContactEventEnabled(true);
-          return;
-        }
-      }
-    }
-
-    this._nativePhysicsScene.setContactEventEnabled(false);
   }
 
   private _setGravity(): void {
