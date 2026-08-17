@@ -162,8 +162,9 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     frameSimulationStart: number
   ): void {
     let birthStates = this._birthStatesByParticle[ringIndex];
-    const frameStartParentAge = MathUtil.clamp(frameLastPlayTime - bornTime, 0, lifetime);
-    const currentParentAge = MathUtil.clamp(framePlayTime - bornTime, 0, lifetime);
+    // Match the Float32 current-time and birth-time subtraction used by particle shaders
+    const frameStartParentAge = MathUtil.clamp(Math.fround(Math.fround(frameLastPlayTime) - bornTime), 0, lifetime);
+    const currentParentAge = MathUtil.clamp(Math.fround(Math.fround(framePlayTime) - bornTime), 0, lifetime);
     const hasParentAgeAdvanced = currentParentAge - frameStartParentAge > MathUtil.zeroTolerance;
     const subEmitters = this._subEmitters;
     const commandPool = this._birthCommandPool;
@@ -373,7 +374,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     const main = targetGenerator.main;
     const startDelayRand = this._startDelayRand;
     startDelayRand.reset(seed, ParticleRandomSubSeeds.StartDelay);
-    const startDelay = Math.max(0, main.startDelay.evaluate(undefined, startDelayRand.random()));
+    const startDelay = Math.max(0, Math.fround(main.startDelay.evaluate(undefined, startDelayRand.random())));
     const initialEmissionTime = Math.max(initialParentAge - startDelay, 0);
     state.reset(seed, startDelay, main.isLoop ? initialEmissionTime : Math.min(initialEmissionTime, main.duration));
   }
