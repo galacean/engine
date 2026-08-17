@@ -168,6 +168,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   setMotionState(isKinematic: boolean, collisionDetectionMode: number): void {
     const { PxRigidBodyFlag } = this._physXPhysics._physX;
+    // PhysX 4.1 does not support sweep-based CCD on kinematic bodies.
     const useSpeculativeCCD =
       collisionDetectionMode === CollisionDetectionMode.ContinuousSpeculative ||
       (isKinematic && collisionDetectionMode !== CollisionDetectionMode.Discrete);

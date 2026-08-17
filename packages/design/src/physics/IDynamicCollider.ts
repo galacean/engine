@@ -123,7 +123,7 @@ export interface IDynamicCollider extends ICollider {
   setUseGravity(value: boolean): void;
 
   /**
-   * Sets the motion state of the dynamic collider.
+   * Sets the kinematic state and requested collision detection mode in one native transition.
    * @param isKinematic - Whether the dynamic collider is kinematic
    * @param collisionDetectionMode - The requested collision detection mode
    */

@@ -550,6 +550,37 @@ describe("DynamicCollider", function () {
     setRigidBodyFlag.mockRestore();
   });
 
+  it("uses speculative CCD behavior for non-discrete kinematic motion", function () {
+    const simulate = (kinematicMode: CollisionDetectionMode) => {
+      const moving = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-5, 0, 0));
+      const target = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
+      const movingCollider = moving.getComponent(DynamicCollider);
+      const targetCollider = target.getComponent(DynamicCollider);
+      movingCollider.isKinematic = true;
+      movingCollider.collisionDetectionMode = kinematicMode;
+      targetCollider.useGravity = false;
+      targetCollider.linearDamping = 0;
+      targetCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      movingCollider.move(new Vector3(5, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      const result = {
+        targetPosition: target.transform.position.x,
+        targetVelocity: targetCollider.linearVelocity.x
+      };
+      rootEntity.clearChildren();
+      return result;
+    };
+
+    const fallback = simulate(CollisionDetectionMode.Continuous);
+    const explicit = simulate(CollisionDetectionMode.ContinuousSpeculative);
+    expect(fallback.targetPosition).toBeGreaterThan(0);
+    expect(fallback.targetPosition).toBeCloseTo(explicit.targetPosition, 5);
+    expect(fallback.targetVelocity).toBeCloseTo(explicit.targetVelocity, 5);
+  });
+
   it("sleep", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
