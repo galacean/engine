@@ -48,6 +48,3 @@ CLAUDE.md
 # For bison generated files used by ShaderLab
 *.tab.c
 *.output
-
-# Local engineering notes
-/notes/
