@@ -100,7 +100,7 @@ export class ResourceManager {
 
   /**
    * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
-   * @param url - Resource URL or registered virtual path
+   * @param url - Resource URL
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
@@ -140,13 +140,13 @@ export class ResourceManager {
 
   /**
    * Cancel assets whose url has not finished loading.
-   * @param url - Resource URL or registered virtual path
+   * @param url - Resource URL
    */
   cancelNotLoaded(url: string): void;
 
   /**
    * Cancel the incompletely loaded assets in urls.
-   * @param urls - Resource URLs or registered virtual paths
+   * @param urls - Resource URLs
    */
   cancelNotLoaded(urls: string[]): void;
 
