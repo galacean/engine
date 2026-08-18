@@ -28,8 +28,7 @@ export type LoadItem = {
   params?: Record<string, any>;
 } & PickOnlyOne<{
   /**
-   * Requested resource identity. Virtual resources keep their virtual path so
-   * loaders can resolve dependent resources through ResourceManager.
+   * Resource URL.
    */
   url: string;
   /**
