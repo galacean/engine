@@ -308,8 +308,9 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * The requested collision detection mode.
-   * @remarks With the PhysX backend, non-discrete modes use speculative CCD while this collider is kinematic.
+   * The collision detection mode.
+   * @remarks With the PhysX backend, Continuous and ContinuousDynamic are mapped to speculative CCD while the collider
+   * is kinematic.
    */
   get collisionDetectionMode(): CollisionDetectionMode {
     return this._collisionDetectionMode;
