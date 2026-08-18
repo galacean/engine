@@ -1,6 +1,7 @@
 import { AssetPromise, Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
+import type { FileHeader } from "../../utils/FileHeader";
 import { HDRDecoder } from "../../../HDRDecoder";
 
 /**
@@ -9,7 +10,12 @@ import { HDRDecoder } from "../../../HDRDecoder";
  */
 @decoder("TextureCube")
 class TextureCubeDecoder {
-  static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: TextureCube): AssetPromise<TextureCube> {
+  static decode(
+    engine: Engine,
+    bufferReader: BufferReader,
+    _header: FileHeader,
+    restoredTexture?: TextureCube
+  ): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const url = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();

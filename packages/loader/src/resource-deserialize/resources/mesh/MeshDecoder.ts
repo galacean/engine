@@ -2,6 +2,7 @@ import { AssetPromise, BlendShape, Engine, ModelMesh } from "@galacean/engine-co
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
+import type { FileHeader } from "../../utils/FileHeader";
 import type { IEncodedModelMesh } from "./IModelMesh";
 
 /**
@@ -9,7 +10,12 @@ import type { IEncodedModelMesh } from "./IModelMesh";
  */
 @decoder("Mesh")
 export class MeshDecoder {
-  public static decode(engine: Engine, bufferReader: BufferReader, restoredMesh?: ModelMesh): AssetPromise<ModelMesh> {
+  public static decode(
+    engine: Engine,
+    bufferReader: BufferReader,
+    _header: FileHeader,
+    restoredMesh?: ModelMesh
+  ): AssetPromise<ModelMesh> {
     return new AssetPromise((resolve) => {
       const modelMesh = restoredMesh || new ModelMesh(engine);
       const jsonDataString = bufferReader.nextStr();
