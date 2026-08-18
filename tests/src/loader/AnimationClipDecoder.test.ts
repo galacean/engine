@@ -1,11 +1,23 @@
-import { Component, Loader } from "@galacean/engine-core";
+import { AssetPromise, Component, Loader } from "@galacean/engine-core";
+import type { Engine } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import type { AnimationClip } from "../../../packages/core/src/animation/AnimationClip";
 import { decode } from "../../../packages/loader/src/resource-deserialize";
+import type { BufferReader } from "../../../packages/loader/src/resource-deserialize/utils/BufferReader";
+import { decoder } from "../../../packages/loader/src/resource-deserialize/utils/Decorator";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 class TestComponent extends Component {
   value = 0;
+}
+
+const customDecoderType = "DecoderArgumentContract";
+
+@decoder(customDecoderType)
+class DecoderArgumentContract {
+  static decode(_engine: Engine, _bufferReader: BufferReader, value: object): AssetPromise<object> {
+    return AssetPromise.resolve(value);
+  }
 }
 
 function writeNumber(bytes: number[], byteLength: number, write: (view: DataView) => void): void {
@@ -32,12 +44,12 @@ function writeString(bytes: number[], value: string): void {
   bytes.push(...valueBytes);
 }
 
-function createAnimationClipBuffer(version: number, typeIndex = 0): ArrayBuffer {
+function createAnimationClipBuffer(version: number, typeIndex = 0, type = "AnimationClip"): ArrayBuffer {
   const bytes: number[] = [];
   writeUint32(bytes, 0x4e434c47);
   writeUint32(bytes, 0);
   bytes.push(version);
-  writeString(bytes, "AnimationClip");
+  writeString(bytes, type);
   writeString(bytes, "clip");
   while (bytes.length % 4) bytes.push(0);
 
@@ -72,6 +84,13 @@ beforeAll(async () => {
 afterAll(() => engine?.destroy());
 
 describe("AnimationClipDecoder", () => {
+  it("preserves custom decoder argument positions", async () => {
+    const sentinel = {};
+    const result = await decode<object>(createAnimationClipBuffer(1, 0, customDecoderType), engine, sentinel);
+
+    expect(result).toBe(sentinel);
+  });
+
   it("keeps v1 bindings at index 0 and applies a v2 binding to the indexed component", async () => {
     const v1 = await decode<AnimationClip>(createAnimationClipBuffer(1), engine);
     const v2 = await decode<AnimationClip>(createAnimationClipBuffer(2, 1), engine);

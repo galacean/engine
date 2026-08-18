@@ -1,10 +1,9 @@
 import { AssetPromise, BufferReader, Engine, decoder } from "@galacean/engine";
-import type { FileHeader } from "@galacean/engine";
 import { XRReferenceImage } from "../feature/trackable/image/XRReferenceImage";
 
 @decoder("XRReferenceImage")
 export class XRReferenceImageDecoder {
-  static decode(engine: Engine, bufferReader: BufferReader, _header: FileHeader): AssetPromise<XRReferenceImage> {
+  static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<XRReferenceImage> {
     return new AssetPromise((resolve, reject) => {
       const physicalWidth = bufferReader.nextFloat32();
       bufferReader.nextUint8();

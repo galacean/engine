@@ -23,7 +23,6 @@ import {
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
-import type { FileHeader } from "../../utils/FileHeader";
 
 export enum InterpolableValueType {
   Float,
@@ -41,10 +40,11 @@ export enum InterpolableValueType {
 
 @decoder("AnimationClip")
 export class AnimationClipDecoder {
-  public static decode(engine: Engine, bufferReader: BufferReader, header: FileHeader): AssetPromise<AnimationClip> {
+  public static decode(engine: Engine, bufferReader: BufferReader): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve) => {
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
+      const version = bufferReader.header?.version ?? 1;
       const eventsLen = bufferReader.nextUint16();
       for (let i = 0; i < eventsLen; ++i) {
         const event = new AnimationEvent();
@@ -59,7 +59,7 @@ export class AnimationClipDecoder {
         const relativePath = bufferReader.nextStr();
         const componentStr = bufferReader.nextStr();
         const componentType = Loader.getClass(componentStr);
-        const typeIndex = header.version >= 2 ? bufferReader.nextUint16() : 0;
+        const typeIndex = version >= 2 ? bufferReader.nextUint16() : 0;
         const property = bufferReader.nextStr();
         const getProperty = bufferReader.nextStr();
         let curve: AnimationCurve<KeyframeValueType>;
@@ -267,7 +267,7 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        if (header.version >= 2) {
+        if (version >= 2) {
           clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve);
         } else {
           clip.addCurveBinding(relativePath, componentType, property, getProperty, curve);

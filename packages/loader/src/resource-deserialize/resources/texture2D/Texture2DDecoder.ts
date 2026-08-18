@@ -1,7 +1,6 @@
 import { AssetPromise, Engine, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
-import type { FileHeader } from "../../utils/FileHeader";
 import { HDRDecoder } from "../../../HDRDecoder";
 
 /**
@@ -10,12 +9,7 @@ import { HDRDecoder } from "../../../HDRDecoder";
  */
 @decoder("Texture2D")
 class Texture2DDecoder {
-  static decode(
-    engine: Engine,
-    bufferReader: BufferReader,
-    _header: FileHeader,
-    restoredTexture?: Texture2D
-  ): AssetPromise<Texture2D> {
+  static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: Texture2D): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const url = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
