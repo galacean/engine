@@ -7,9 +7,6 @@ export class BufferReader {
   private _position: number;
   private _baseOffset: number;
 
-  /**
-   * @param header - Read-only file header attached by resource deserialization; undefined for generic readers.
-   */
   constructor(
     public data: Uint8Array,
     byteOffset: number = 0,
