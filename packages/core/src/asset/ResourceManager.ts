@@ -155,11 +155,12 @@ export class ResourceManager {
       Utils.objectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
+    } else if (typeof url === "string") {
+      this._loadingPromises[this._getRemoteUrl(url)]?.cancel();
     } else {
-      const urls = typeof url === "string" ? [url] : url;
-      urls.forEach((url) => {
-        this._loadingPromises[this._getRemoteUrl(url)]?.cancel();
-      });
+      for (let i = 0, n = url.length; i < n; i++) {
+        this._loadingPromises[this._getRemoteUrl(url[i])]?.cancel();
+      }
     }
   }
 
