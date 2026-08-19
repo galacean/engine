@@ -1,4 +1,6 @@
 import { Utils } from "@galacean/engine-core";
+import type { FileHeader } from "./FileHeader";
+
 export class BufferReader {
   private _dataView: DataView;
   private _littleEndian: boolean;
@@ -9,7 +11,8 @@ export class BufferReader {
     public data: Uint8Array,
     byteOffset: number = 0,
     byteLength?: number,
-    littleEndian: boolean = true
+    littleEndian: boolean = true,
+    public readonly header?: Readonly<FileHeader>
   ) {
     this._dataView = new DataView(
       data.buffer,
