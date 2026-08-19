@@ -267,11 +267,7 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        if (version >= 2) {
-          clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve);
-        } else {
-          clip.addCurveBinding(relativePath, componentType, property, getProperty, curve);
-        }
+        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve);
       }
       resolve(clip);
     });
