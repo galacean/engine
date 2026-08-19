@@ -82,16 +82,12 @@ export class Utils {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    // A relative virtual asset path (for example `SpriteAtlas/...`) must be
-    // treated as a path, not as the host portion of a file URL. The latter
-    // lowercases the first segment and breaks case-sensitive virtual-resource
-    // lookup in Editor previews
-    const resolvedHasLeadingSlash = baseUrl.startsWith("/") || relativeUrl.startsWith("/");
-    const head = "file:///";
-    const encodedBaseUrl = head + this._encodePathComponents(baseUrl.replace(/^\/+/, ""));
+    // Use an empty file URL host to preserve path casing
+    const hasLeadingSlash = baseUrl.startsWith("/") || relativeUrl.startsWith("/");
+    const encodedBaseUrl = "file:///" + this._encodePathComponents(baseUrl.replace(/^\/+/, ""));
     const encodedRelativeUrl = this._encodePathComponents(relativeUrl);
-    const resolvedPath = decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
-    return resolvedHasLeadingSlash ? `/${resolvedPath}` : resolvedPath;
+    const resolvedPath = decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).pathname);
+    return hasLeadingSlash ? resolvedPath : resolvedPath.slice(1);
   }
 
   /**
