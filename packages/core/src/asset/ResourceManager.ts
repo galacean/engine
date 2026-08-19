@@ -208,14 +208,12 @@ export class ResourceManager {
    * @internal
    */
   _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
-
-    const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
+    const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[this._getRemoteUrl(assetBaseURL)] ||= {});
+    const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve(value);
     } else {
-      // Pending
-      (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {})[assetSubPath] = {
+      subAssetPromiseCallbacks[assetSubPath] = {
         resolvedValue: value
       };
     }
@@ -346,9 +344,7 @@ export class ResourceManager {
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
-    // Keep a virtual resource's logical identity so loaders can resolve its
-    // sibling resources through the virtual-resource map. `baseUrl` only
-    // resolves ordinary relative transport URLs
+    // Only resolve unmapped relative URLs against baseUrl
     const loadItemUrl =
       virtualResourceEntry !== undefined || Utils.isAbsoluteUrl(assetBaseURL) || !this.baseUrl
         ? assetBaseURL
