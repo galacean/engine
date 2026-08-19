@@ -177,6 +177,27 @@ describe("CharacterController", function () {
     expect(formatValue(roleEntity.transform.position.y)).eq(1.5);
   });
 
+  it("preserves contactOffset when the native controller is recreated", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.shapes[0].contactOffset = 0.3;
+
+    controller.enabled = false;
+    controller.enabled = true;
+    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
+    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
+    engine.update();
+
+    expect(formatValue(roleEntity.transform.position.y)).eq(0.8);
+  });
+
+  it("recreates the native controller when contactOffset is zero", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.shapes[0].contactOffset = 0;
+    controller.enabled = false;
+
+    expect(() => (controller.enabled = true)).not.toThrow();
+  });
+
   it("slopeLimit notPass", () => {
     const { fixedTimeStep } = engine.sceneManager.activeScene.physics;
     const moveScript = roleEntity.getComponent(MoveScript);

@@ -157,22 +157,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
   }
 
-  /**
-   * @internal
-   */
-  _setNativeShapeAttached(shape: ColliderShape, attached: boolean): void {
-    const nativeShape = shape._nativeShape;
-    if (nativeShape && shape._isShapeAttached !== attached) {
-      if (attached) {
-        nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-        this._nativeCollider.addShape(nativeShape);
-      } else {
-        this._nativeCollider.removeShape(nativeShape);
-      }
-      shape._isShapeAttached = attached;
-    }
-  }
-
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
@@ -196,12 +180,17 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   protected _addNativeShape(shape: ColliderShape): void {
-    this._setNativeShapeAttached(shape, true);
+    if (shape._nativeShape) {
+      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
+      this._nativeCollider.addShape(shape._nativeShape);
+    }
     shape._collider = this;
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
-    this._setNativeShapeAttached(shape, false);
+    if (shape._nativeShape) {
+      this._nativeCollider.removeShape(shape._nativeShape);
+    }
     shape._collider = null;
   }
 

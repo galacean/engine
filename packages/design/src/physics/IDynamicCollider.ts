@@ -1,10 +1,10 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICollider } from "./ICollider";
+import { IRigidCollider } from "./IRigidCollider";
 
 /**
  * Interface of physics dynamic collider.
  */
-export interface IDynamicCollider extends ICollider {
+export interface IDynamicCollider extends IRigidCollider {
   /**
    * Set global transform of collider.
    * @param position - The global position

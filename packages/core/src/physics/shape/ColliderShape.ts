@@ -20,17 +20,14 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
-  /** @internal */
-  @ignoreClone
-  _isShapeAttached: boolean = false;
-
   @ignoreClone
   protected _id: number;
+  @ignoreClone
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
-  private _contactOffset: number = 0.02;
+  private _contactOffset: number | undefined;
 
   /**
    * @internal
@@ -55,10 +52,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Contact offset for this shape, the value must be greater than or equal to 0.
-   * @defaultValue 0.02
+   * @remarks The default is determined by the physics backend. PhysX uses `0.02 * tolerancesScale.length`.
    */
   get contactOffset(): number {
-    return this._contactOffset;
+    return this._contactOffset ?? Engine._nativePhysics?.getDefaultContactOffset?.() ?? 0.02;
   }
 
   set contactOffset(value: number) {
@@ -169,7 +166,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {
+    const defaultMaterial = target._material;
+    target._material = this._material;
     target._syncNative();
+    defaultMaterial.destroy();
   }
 
   /**
@@ -184,14 +184,21 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   protected _syncNative(): void {
-    if (!this._nativeShape) return;
-    this._nativeShape.setPosition(this._position);
-    this._nativeShape.setRotation(this._rotation);
-    this._nativeShape.setContactOffset(this._contactOffset);
-    this._nativeShape.setIsTrigger(this._isTrigger);
-    this._nativeShape.setMaterial(this._material._nativeMaterial);
+    const nativeShape = this._nativeShape;
+    if (!nativeShape) return;
+    this._syncNativeShape(nativeShape);
 
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+  }
+
+  protected _syncNativeShape(nativeShape: IColliderShape): void {
+    nativeShape.setPosition(this._position);
+    nativeShape.setRotation(this._rotation);
+    if (this._contactOffset !== undefined) {
+      nativeShape.setContactOffset(this._contactOffset);
+    }
+    nativeShape.setIsTrigger(this._isTrigger);
+    nativeShape.setMaterial(this._material._nativeMaterial);
   }
 
   @ignoreClone
