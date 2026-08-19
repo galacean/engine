@@ -156,10 +156,10 @@ export class ResourceManager {
         promise.cancel();
       });
     } else if (typeof url === "string") {
-      this._loadingPromises[this._getRemoteUrl(url)]?.cancel();
+      this._loadingPromises[this._getLoadingKey(url)]?.cancel();
     } else {
       for (let i = 0, n = url.length; i < n; i++) {
-        this._loadingPromises[this._getRemoteUrl(url[i])]?.cancel();
+        this._loadingPromises[this._getLoadingKey(url[i])]?.cancel();
       }
     }
   }
@@ -186,7 +186,9 @@ export class ResourceManager {
    * @internal
    */
   _getRemoteUrl(url: string): string {
-    return this._virtualPathResourceMap[url]?.path ?? url;
+    return (
+      this._virtualPathResourceMap[url]?.path ?? (this.baseUrl ? Utils.resolveAbsoluteUrl(this.baseUrl, url) : url)
+    );
   }
 
   /**
@@ -340,17 +342,12 @@ export class ResourceManager {
     const { assetBaseURL, queryPath } = this._parseURL(item.url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
-    // Get remote asset base url
     const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
-    // Only resolve unmapped relative URLs against baseUrl
-    const loadItemUrl =
-      virtualResourceEntry !== undefined || Utils.isAbsoluteUrl(assetBaseURL) || !this.baseUrl
-        ? assetBaseURL
-        : Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL);
-    item.url = loadItemUrl;
-    const remoteAssetBaseURL = this._getRemoteUrl(loadItemUrl);
+    const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
+    // Preserve virtual paths for loaders
+    item.url = virtualResourceEntry ? assetBaseURL : remoteAssetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -360,15 +357,7 @@ export class ResourceManager {
       });
     }
 
-    // Get asset url
-    let remoteAssetURL = remoteAssetBaseURL;
-    if (queryPath) {
-      remoteAssetURL += "?q=" + paths.shift();
-      let index: string;
-      while ((index = paths.shift())) {
-        remoteAssetURL += `[${index}]`;
-      }
-    }
+    const remoteAssetURL = this._getRemoteAssetURL(remoteAssetBaseURL, paths);
 
     // Check is loading
     const loadingPromises = this._loadingPromises;
@@ -507,6 +496,25 @@ export class ResourceManager {
       }
     }
     return subResource;
+  }
+
+  private _getLoadingKey(url: string): string {
+    const { assetBaseURL, queryPath } = this._parseURL(url);
+    const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
+    return queryPath
+      ? this._getRemoteAssetURL(remoteAssetBaseURL, this._parseQueryPath(queryPath))
+      : remoteAssetBaseURL;
+  }
+
+  private _getRemoteAssetURL(remoteAssetBaseURL: string, paths: string[]): string {
+    let remoteAssetURL = remoteAssetBaseURL;
+    if (paths.length > 0) {
+      remoteAssetURL += `?q=${paths[0]}`;
+      for (let i = 1, n = paths.length; i < n; i++) {
+        remoteAssetURL += `[${paths[i]}]`;
+      }
+    }
+    return remoteAssetURL;
   }
 
   private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {

@@ -48,6 +48,25 @@ describe("ResourceManager", () => {
         loaderSpy.mockRestore();
       }
     });
+
+    it("resolves relative cache keys against baseUrl", async () => {
+      const resourceManager = engine.resourceManager;
+      const relativePath = "Prefab/Cache/Relative.prefab";
+      const resource = { instanceId: 987654325 };
+      resourceManager.baseUrl = "https://base.example.com/project/";
+      // @ts-ignore -- replace the internal loader to isolate cache-key behavior
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Prefab], "load")
+        .mockReturnValue(AssetPromise.resolve(resource) as any);
+
+      try {
+        expect(await resourceManager.load(relativePath)).equal(resource);
+        expect(resourceManager.getFromCache(relativePath)).equal(resource);
+      } finally {
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
   });
 
   describe("findResourcesByType", () => {
@@ -192,13 +211,14 @@ describe("ResourceManager", () => {
         .mockReturnValue(new AssetPromise(() => {}));
 
       try {
-        resourceManager.load({ url: virtualPath });
+        resourceManager.load({ url: virtualPath }).catch(() => {});
 
         expect(loaderSpy).toHaveBeenCalled();
         const [loadItem] = loaderSpy.mock.calls[0];
         expect(loadItem.url).equal(virtualPath);
         expect(loadItem).not.toHaveProperty("resolvedUrl");
       } finally {
+        resourceManager.cancelNotLoaded(virtualPath);
         loaderSpy.mockRestore();
       }
     });
@@ -224,6 +244,54 @@ describe("ResourceManager", () => {
         expect(onCancelSpy).toHaveBeenCalledOnce();
       } finally {
         resourceManager.cancelNotLoaded(physicalPath);
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("cancels a pending relative resource with baseUrl", () => {
+      const resourceManager = engine.resourceManager;
+      const relativePath = "Prefab/Pending/Relative.prefab";
+      const onCancelSpy = vi.fn();
+      const pendingPromise = new AssetPromise((_resolve, _reject, _setComplete, _setDetail, onCancel) => {
+        onCancel(onCancelSpy);
+      });
+      resourceManager.baseUrl = "https://base.example.com/project/";
+      // @ts-ignore -- replace the internal loader to keep the request pending
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Prefab], "load")
+        .mockReturnValue(pendingPromise as any);
+
+      try {
+        resourceManager.load(relativePath).catch(() => {});
+        resourceManager.cancelNotLoaded(relativePath);
+
+        expect(onCancelSpy).toHaveBeenCalledOnce();
+      } finally {
+        resourceManager.cancelNotLoaded(relativePath);
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("cancels a pending virtual sub-asset by its logical path", async () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Assets/Pending/model.glb";
+      const subAssetPath = `${virtualPath}?q=materials[0]`;
+      resourceManager.registerVirtualResources([
+        { virtualPath, path: "blob:https://local.alipay.net/pending-model", type: AssetType.GLTF }
+      ]);
+      // @ts-ignore -- replace the internal loader to keep the main asset pending
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      try {
+        const subAssetPromise = resourceManager.load(subAssetPath);
+        resourceManager.cancelNotLoaded(subAssetPath);
+
+        await expect(subAssetPromise).rejects.toBe("canceled");
+      } finally {
+        resourceManager.cancelNotLoaded(virtualPath);
         loaderSpy.mockRestore();
       }
     });
