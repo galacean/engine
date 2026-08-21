@@ -15,6 +15,8 @@ export class AudioSource extends Component {
   private _isPlaying = false;
   @ignoreClone
   private _pendingPlay = false;
+  @ignoreClone
+  private _pendingPlaybackCallback: () => void;
 
   private _clip: AudioClip;
   @ignoreClone
@@ -139,6 +141,7 @@ export class AudioSource extends Component {
   constructor(entity: Entity) {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
+    this._pendingPlaybackCallback = this._startPendingPlayback.bind(this);
     // Gain node is created lazily on first play, not here: creating it would spin up the AudioContext
     // before any user gesture, and on iOS such a pre-gesture context never recovers from a phone-call
     // interruption (stays a silent zombie)
@@ -156,30 +159,11 @@ export class AudioSource extends Component {
       return;
     }
 
-    if (AudioManager.isAudioContextRunning()) {
+    if (AudioManager._canStartPlayback()) {
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
       this._pendingPlay = true;
-      AudioManager.resume().then(
-        () => {
-          // Check if cancelled by stop()/pause()
-          if (!this._pendingPlay) {
-            return;
-          }
-          this._pendingPlay = false;
-          // Check if still valid to play after async resume (page may have been hidden meanwhile)
-          if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
-            return;
-          }
-          this._startPlayback();
-        },
-        (e) => {
-          this._pendingPlay = false;
-          console.warn("Failed to resume AudioContext:", e);
-        }
-      );
+      AudioManager._requestPlayback(this._pendingPlaybackCallback);
     }
   }
 
@@ -187,6 +171,7 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
+    AudioManager._cancelPendingPlayback(this._pendingPlaybackCallback);
     this._pendingPlay = false;
 
     if (this._isPlaying) {
@@ -204,6 +189,7 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
+    AudioManager._cancelPendingPlayback(this._pendingPlaybackCallback);
     this._pendingPlay = false;
 
     if (this._isPlaying) {
@@ -261,6 +247,23 @@ export class AudioSource extends Component {
     this._pausedTime = -1;
     this._isPlaying = true;
     AudioManager._playingCount++;
+  }
+
+  private _startPendingPlayback(): void {
+    if (!this._pendingPlay) {
+      return;
+    }
+    if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
+      this._pendingPlay = false;
+      return;
+    }
+    if (!AudioManager._canStartPlayback()) {
+      AudioManager._requestPlayback(this._pendingPlaybackCallback);
+      return;
+    }
+
+    this._pendingPlay = false;
+    this._startPlayback();
   }
 
   private _initSourceNode(startTime: number): void {
