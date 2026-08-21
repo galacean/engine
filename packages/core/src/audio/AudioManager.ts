@@ -8,6 +8,7 @@ export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _resumePromise: Promise<void> = null;
+  private static _gestureResumePromise: Promise<void> = null;
   private static _needsUserGestureResume = false;
   private static _suspendedByCaller = false;
   private static _recovering = false;
@@ -55,9 +56,15 @@ export class AudioManager {
       // iOS Safari bfcache restore fires pageshow (persisted) but NOT visibilitychange, so recover here too
       window.addEventListener("pageshow", AudioManager._onPageShow);
       // iOS Safari requires a user gesture to resume the AudioContext
-      document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, { passive: true });
-      document.addEventListener("touchend", AudioManager._resumeAfterInterruption, { passive: true });
-      document.addEventListener("click", AudioManager._resumeAfterInterruption);
+      document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, {
+        passive: true,
+        capture: true
+      });
+      document.addEventListener("touchend", AudioManager._resumeAfterInterruption, {
+        passive: true,
+        capture: true
+      });
+      document.addEventListener("click", AudioManager._resumeAfterInterruption, true);
     }
     return context;
   }
@@ -131,13 +138,50 @@ export class AudioManager {
   }
 
   private static _resumeAfterInterruption(): void {
-    // iOS Safari gesture fallback for when auto-resume is blocked.
-    // _recovering: don't bypass the 100ms delay (would resume on a still-interrupted context)
-    if (AudioManager._recovering || AudioManager._suspendedByCaller || !AudioManager._needsUserGestureResume) {
+    // _recovering: don't bypass the 100ms delay (would resume on a still-interrupted context).
+    if (AudioManager._recovering || AudioManager._suspendedByCaller) {
       return;
     }
-    AudioManager.resume().catch((e) => {
+
+    // Interruption recovery deliberately coalesces with its timer-driven resume.
+    if (AudioManager._needsUserGestureResume) {
+      AudioManager.resume().catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
+      });
+      return;
+    }
+
+    const context = AudioManager._context;
+    if (!context || context.state === "running" || !AudioManager._resumePromise || AudioManager._gestureResumePromise) {
+      return;
+    }
+
+    // A cold-start resume issued before user activation may remain pending indefinitely. Calling the
+    // public resume() here would reuse that stale promise, so issue one fresh native resume in the
+    // trusted gesture. Once the context starts, the Web Audio algorithm settles earlier resume promises
+    // and AudioSource continues its pending play.
+    let nativeResumePromise: Promise<void>;
+    try {
+      nativeResumePromise = context.resume();
+    } catch (e) {
       console.warn("Failed to resume AudioContext:", e);
-    });
+      return;
+    }
+
+    const gestureResumePromise = nativeResumePromise
+      .then(() => {
+        if (context.state === "running") {
+          AudioManager._needsUserGestureResume = false;
+        }
+      })
+      .catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
+      })
+      .finally(() => {
+        if (AudioManager._gestureResumePromise === gestureResumePromise) {
+          AudioManager._gestureResumePromise = null;
+        }
+      });
+    AudioManager._gestureResumePromise = gestureResumePromise;
   }
 }

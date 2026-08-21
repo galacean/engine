@@ -95,13 +95,14 @@ function createAudioSource(): AudioSource {
 function resetAudioManagerState(): void {
   document.removeEventListener("visibilitychange", (AudioManager as any)._onVisibilityChange);
   window.removeEventListener("pageshow", (AudioManager as any)._onPageShow);
-  document.removeEventListener("touchstart", (AudioManager as any)._resumeAfterInterruption);
-  document.removeEventListener("touchend", (AudioManager as any)._resumeAfterInterruption);
-  document.removeEventListener("click", (AudioManager as any)._resumeAfterInterruption);
+  document.removeEventListener("touchstart", (AudioManager as any)._resumeAfterInterruption, true);
+  document.removeEventListener("touchend", (AudioManager as any)._resumeAfterInterruption, true);
+  document.removeEventListener("click", (AudioManager as any)._resumeAfterInterruption, true);
 
   (AudioManager as any)._context = null;
   (AudioManager as any)._gainNode = null;
   (AudioManager as any)._resumePromise = null;
+  (AudioManager as any)._gestureResumePromise = null;
   (AudioManager as any)._needsUserGestureResume = false;
   (AudioManager as any)._suspendedByCaller = false;
   (AudioManager as any)._recovering = false;
@@ -314,6 +315,48 @@ describe("AudioSource playback lifecycle", () => {
     await flushAsync();
 
     expect(audioSource.isPlaying).to.be.false;
+  });
+
+  it("reissues native resume on the first gesture when a cold-start resume is still pending", async () => {
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "suspended";
+
+    let releaseColdStartResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      // Web Audio keeps resume() pending when the context is not yet allowed to start.
+      new Promise<void>((resolve) => {
+        releaseColdStartResume = resolve;
+      }),
+      // A second native resume issued from the first user gesture is allowed to run.
+      Promise.resolve()
+    ];
+    const resumeSpy = vi.spyOn(context, "resume");
+
+    // playOnEnabled / startup playback happens before any user gesture.
+    audioSource.play();
+    const coldStartResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect((audioSource as any)._pendingPlay).to.be.true;
+
+    // jsdom cannot create real user activation; the second queued resume result models the browser
+    // becoming allowed-to-start during this first gesture.
+    document.dispatchEvent(new Event("click"));
+    document.dispatchEvent(new Event("click"));
+    await flushAsync();
+
+    // The gesture must reach the native AudioContext instead of reusing the cold-start Promise, while
+    // back-to-back gesture events still coalesce into one fresh native resume.
+    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect(context.state).to.equal("running");
+
+    // Per the Web Audio resume algorithm, starting the context settles earlier pending resume promises.
+    releaseColdStartResume!();
+    await coldStartResumePromise;
+    await flushAsync();
+
+    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect(audioSource.isPlaying).to.be.true;
   });
 
   it("cancels a one-shot pending play before resume resolves", async () => {
