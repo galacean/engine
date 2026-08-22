@@ -356,4 +356,38 @@ describe("ColliderShape PhysX", () => {
     expect((newCollider3.shapes[0] as CapsuleColliderShape).radius).to.eq(2);
     expect((newCollider3.shapes[0] as CapsuleColliderShape).height).to.eq(3);
   });
+
+  it("cloned shapes are independent instances owned by the cloned collider", () => {
+    const boxShape = new BoxColliderShape();
+    boxShape.size = new Vector3(2, 3, 4);
+    boxShape.position = new Vector3(1, 2, 3);
+    dynamicCollider.addShape(boxShape);
+
+    const srcEntity = dynamicCollider.entity;
+    const clonedEntity = srcEntity.clone();
+    srcEntity.parent.addChild(clonedEntity);
+    const clonedCollider = clonedEntity.getComponent(DynamicCollider);
+    const clonedShape = clonedCollider.shapes[0] as BoxColliderShape;
+
+    // Instance independence — not the source's shape shared by reference.
+    expect(clonedShape).not.to.eq(boxShape);
+    expect(clonedShape.id).not.to.eq(boxShape.id);
+    // @ts-ignore
+    expect(clonedShape._nativeShape).not.to.eq(boxShape._nativeShape);
+    // Ownership: each shape belongs to its own collider.
+    expect(clonedShape.collider).to.eq(clonedCollider);
+    expect(boxShape.collider).to.eq(dynamicCollider);
+    // Values copied.
+    expect(clonedShape.size).to.deep.include({ x: 2, y: 3, z: 4 });
+    expect(clonedShape.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    // Mutating the clone must not affect the source.
+    clonedShape.size = new Vector3(9, 9, 9);
+    expect(boxShape.size).to.deep.include({ x: 2, y: 3, z: 4 });
+
+    // Destroying the clone must not destroy the source's shape / native handle.
+    clonedEntity.destroy();
+    expect(boxShape.collider).to.eq(dynamicCollider);
+    // @ts-ignore
+    expect(boxShape._nativeShape).not.to.eq(null);
+  });
 });

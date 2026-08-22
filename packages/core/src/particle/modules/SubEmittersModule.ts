@@ -1,5 +1,5 @@
 import { Color, Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
@@ -44,7 +44,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     return found;
   }
 
-  @deepClone
   private _subEmitters: SubEmitter[] = [];
 
   /**
@@ -92,6 +91,17 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    */
   removeSubEmitterByIndex(index: number): void {
     this._subEmitters.splice(index, 1);
+    this._generator._setTransformFeedback();
+  }
+
+  /**
+   * Remove all sub-emitter slots.
+   */
+  clear(): void {
+    if (this._subEmitters.length === 0) {
+      return;
+    }
+    this._subEmitters.length = 0;
     this._generator._setTransformFeedback();
   }
 
@@ -166,17 +176,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       if (subEmitters[i].type === type) return true;
     }
     return false;
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: SubEmittersModule): void {
-    // _module is @ignoreClone, so re-link each cloned slot back to its new module
-    const subEmitters = target._subEmitters;
-    for (let i = 0, n = subEmitters.length; i < n; i++) {
-      subEmitters[i]._module = target;
-    }
   }
 
   /**

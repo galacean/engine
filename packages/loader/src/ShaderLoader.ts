@@ -12,17 +12,14 @@ import {
 class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const url = item.url!;
+    // @ts-expect-error _request is @internal
+    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
+      const source = code.trimStart();
+      if (source.startsWith("{")) {
+        // @ts-expect-error _createFromPrecompiled is @internal
+        return Shader._createFromPrecompiled(JSON.parse(source));
+      }
 
-    if (url.endsWith(".shaderc")) {
-      // @ts-ignore
-      return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
-        // @ts-ignore - _createFromPrecompiled is @internal
-        return Shader._createFromPrecompiled(data);
-      });
-    }
-
-    // @ts-ignore
-    return resourceManager._request<string>(url, { ...item, type: "text" }).then((code: string) => {
       return Shader.create(code, undefined, url);
     });
   }

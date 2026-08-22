@@ -10,7 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
-import { CloneUtils } from "./clone/CloneUtils";
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -241,7 +241,7 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name ?? "Entity";
-    let transformType: ComponentConstructor = Transform;
+    let transformType: ComponentConstructor;
     const n = components.length;
     for (let i = n - 1; i >= 0; i--) {
       const componentType = components[i];
@@ -250,12 +250,16 @@ export class Entity extends EngineObject {
         break;
       }
     }
-    this._transform = <Transform>this.addComponent(transformType);
+
+    this._transform = this.addComponent(Transform);
     for (let i = 0; i < n; i++) {
       const componentType = components[i];
       if (!Entity._isTransformType(componentType)) {
         this.addComponent(componentType);
       }
+    }
+    if (transformType && this._transform.constructor !== transformType) {
+      this.addComponent(transformType);
     }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
@@ -268,12 +272,10 @@ export class Entity extends EngineObject {
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     const needReplaceTransform = Entity._isTransformType(type) && this._transform;
-    if (needReplaceTransform) {
-      ComponentsDependencies._removeCheck(this, <ComponentConstructor>this._transform.constructor, type);
-    }
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     if (needReplaceTransform) {
+      ComponentsDependencies._removeCheck(this, <ComponentConstructor>this._transform.constructor, type);
       this._replaceTransform(<Transform>component);
     } else {
       this._components.push(component);
@@ -443,8 +445,9 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity();
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<object, object>());
+    const cloneMap = new Map<object, object>();
+    const cloneEntity = this._createCloneEntity(cloneMap);
+    this._parseCloneEntity(this, cloneEntity, cloneMap);
     return cloneEntity;
   }
 
@@ -459,19 +462,12 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _remap(srcRoot: Entity, targetRoot: Entity): Entity {
-    return CloneUtils.remapEntity(srcRoot, targetRoot, this);
-  }
-
-  /**
-   * @internal
-   */
   _markAsTemplate(templateResource: ReferResource): void {
     this._isTemplate = true;
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(): Entity {
+  private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -479,6 +475,11 @@ export class Entity extends EngineObject {
     }
     const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
     componentConstructors.length = 0;
+    cloneMap.set(this, cloneEntity);
+    const targetComponents = cloneEntity._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      cloneMap.set(components[i], targetComponents[i]);
+    }
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -489,27 +490,21 @@ export class Entity extends EngineObject {
     cloneEntity._isActive = this._isActive;
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity(cloneMap));
     }
     return cloneEntity;
   }
 
-  private _parseCloneEntity(
-    src: Entity,
-    target: Entity,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<object, object>
-  ): void {
+  private _parseCloneEntity(src: Entity, target: Entity, cloneMap: Map<object, object>): void {
     const srcChildren = src._children;
     const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], cloneMap);
     }
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
+      ComponentCloner.cloneComponent(components[i], target._components[i], cloneMap);
     }
   }
 
@@ -554,7 +549,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     const index = components.indexOf(component);
     // A replaced Transform is detached from the component slot immediately but
-    // can still reach here later because object destruction may be deferred.
+    // can still reach here later because object destruction may be deferred
     if (index < 0) return;
     ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     components.splice(index, 1);
@@ -791,13 +786,17 @@ export class Entity extends EngineObject {
   private _replaceTransform(value: Transform): void {
     const previous = this._transform;
     value.position.copyFrom(previous.position);
-    value.rotationQuaternion.copyFrom(previous.rotationQuaternion);
+    value.rotation.copyFrom(previous.rotation);
     value.scale.copyFrom(previous.scale);
     // Keep the unique Transform in the same component slot. Detach the old
-    // instance before destroy because destroy can be deferred during a frame.
+    // instance before destroy because destroy can be deferred during a frame
     const components = this._components;
     const previousIndex = components.indexOf(previous);
-    components[previousIndex] = value;
+    if (previousIndex >= 0) {
+      components[previousIndex] = value;
+    } else {
+      components.push(value);
+    }
     this._transform = value;
     previous.destroy();
     const children = this._children;
@@ -821,6 +820,8 @@ export class Entity extends EngineObject {
     return this._invModelMatrix;
   }
 }
+
+registerDefaultCloneMode(Entity, CloneMode.Remap);
 
 export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,

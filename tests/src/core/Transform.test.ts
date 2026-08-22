@@ -3,6 +3,7 @@ import {
   dependentComponents,
   DependentMode,
   Entity,
+  ICloneHook,
   MeshRenderer,
   Scene,
   Script,
@@ -151,7 +152,7 @@ describe("Transform test", function () {
     expect(entity1.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
   });
 
-  it("creates the unique Transform before constructor components", () => {
+  it("restores constructor components before the final Transform", () => {
     const entityWithRenderer = new Entity(engine, "entity-with-renderer", MeshRenderer);
     expect(entityWithRenderer._components[0]).to.equal(entityWithRenderer.transform);
     expect(entityWithRenderer.getComponent(MeshRenderer)).not.to.equal(null);
@@ -172,9 +173,34 @@ describe("Transform test", function () {
 
     const clone = entityWithLateTransform.clone();
     expect(clone.transform).to.be.instanceOf(SubClassOfTransform);
+    expect(clone._components[0]).to.equal(clone.transform);
     expect(clone._components.map((component) => component.constructor)).to.deep.equal(
       entityWithLateTransform._components.map((component) => component.constructor)
     );
+  });
+
+  it("clones Transform subclasses after their declared dependencies are restored", () => {
+    const checkOnlyEntity = new Entity(engine, "check-only-constructor", CheckOnlyDependentTransform, MeshRenderer);
+    expect(checkOnlyEntity.transform).to.be.instanceOf(CheckOnlyDependentTransform);
+    expect(checkOnlyEntity._components[0]).to.equal(checkOnlyEntity.transform);
+    expect(checkOnlyEntity._components[1]).to.be.instanceOf(MeshRenderer);
+
+    const checkOnlyClone = checkOnlyEntity.clone();
+    expect(checkOnlyClone.transform).to.be.instanceOf(CheckOnlyDependentTransform);
+    expect(checkOnlyClone._components[0]).to.equal(checkOnlyClone.transform);
+    expect(checkOnlyClone._components.map((component) => component.constructor)).to.deep.equal(
+      checkOnlyEntity._components.map((component) => component.constructor)
+    );
+
+    const autoAddEntity = new Entity(engine, "auto-add-constructor", AutoAddDependentTransform, MeshRenderer);
+    expect(autoAddEntity.transform).to.be.instanceOf(AutoAddDependentTransform);
+    expect(autoAddEntity._components[0]).to.equal(autoAddEntity.transform);
+    expect(autoAddEntity.getComponents(MeshRenderer, [])).to.have.lengthOf(1);
+
+    const autoAddClone = autoAddEntity.clone();
+    expect(autoAddClone.transform).to.be.instanceOf(AutoAddDependentTransform);
+    expect(autoAddClone._components[0]).to.equal(autoAddClone.transform);
+    expect(autoAddClone.getComponents(MeshRenderer, [])).to.have.lengthOf(1);
   });
 
   it("keeps the Transform slot unique while destruction is deferred", () => {
@@ -194,6 +220,12 @@ describe("Transform test", function () {
       engine._frameInProcess = false;
       previous.destroy();
     }
+
+    const transforms: Transform[] = [];
+    deferredEntity.getComponents(Transform, transforms);
+    expect(previous.destroyed).to.equal(true);
+    expect(deferredEntity.transform).to.equal(replacement);
+    expect(transforms).to.deep.equal([replacement]);
   });
 
   it("rolls back Transform replacement when a dependency prevents it", () => {
@@ -262,15 +294,15 @@ describe("Transform test", function () {
   });
 
   it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
-    // A component that reads its (world) transform inside `_cloneTo` — exactly what the engine's own
-    // DynamicCollider does (`_cloneTo` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
+    // A component that reads its (world) transform inside `_onClone` — exactly what the engine's own
+    // DynamicCollider does (`_onClone` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
     // Clone fills children before the parent's own components, so this read resolves the PARENT's
     // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
     // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved
     // value with the source's `null`, leaving `cache === null` while `_isParentDirty === false`
     // (a stale cache that is never revalidated), so after reparent the node renders at the origin.
-    class WorldReaderOnClone extends Script {
-      _cloneTo(target: any): void {
+    class WorldReaderOnClone extends Script implements ICloneHook<WorldReaderOnClone> {
+      _onClone(target: any): void {
         target.entity.transform.worldMatrix;
       }
     }

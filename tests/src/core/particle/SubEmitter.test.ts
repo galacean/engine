@@ -90,6 +90,23 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("clear removes every sub-emitter slot", () => {
+    const parent = createParticleRenderer(engine, "Parent_Clear");
+    const child = createParticleRenderer(engine, "Child_Clear");
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    expect((parent.generator as any)._useTransformFeedback).to.equal(true);
+
+    parent.generator.subEmitters.clear();
+
+    expect(parent.generator.subEmitters.subEmitters).to.have.length(0);
+    expect((parent.generator as any)._useTransformFeedback).to.equal(false);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Sub system's own EmissionModule does not double-fire when sub-emit drives it", () => {
     // The target renderer has its own t=0 burst AND is auto-playing on enable.
     // The slot must NOT read that burst and re-fire — sub system's own emission

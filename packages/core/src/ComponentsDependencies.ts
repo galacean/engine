@@ -40,8 +40,10 @@ export class ComponentsDependencies {
     const components = entity._components;
     const n = components.length;
     while (type !== Component) {
-      // The replacement still satisfies this type and all of its base types.
-      if (replace && (replace === type || replace.prototype instanceof type)) return;
+      // The replacement still satisfies this type and all of its base types
+      if (replace && (replace === type || replace.prototype instanceof type)) {
+        return;
+      }
       let count = 0;
       for (let i = 0; i < n; i++) {
         if (components[i] instanceof type && ++count > 1) return;

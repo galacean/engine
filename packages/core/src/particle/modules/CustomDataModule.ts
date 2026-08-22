@@ -1,5 +1,4 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { CloneManager, ignoreClone } from "../../clone/CloneManager";
 import { Logger } from "../../base/Logger";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -53,14 +52,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _zeroColor = new Color(0, 0, 0, 0);
   private static readonly _zeroVector4 = new Vector4(0, 0, 0, 0);
 
-  @ignoreClone
   private _curves: Map<string, ParticleCompositeCurve> = new Map();
-  @ignoreClone
   private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
-  @ignoreClone
   private _curveStreams: CurveStream[] = [];
-  @ignoreClone
   private _gradientStreams: GradientStream[] = [];
 
   /**
@@ -187,21 +182,22 @@ export class CustomDataModule extends ParticleGeneratorModule {
   }
 
   /**
-   * @internal
+   * Remove all custom data streams.
    */
-  _cloneTo(target: CustomDataModule): void {
-    // Shared across both loops so cross-entry sub-object references stay shared in the clone.
-    const deepInstanceMap = new Map<Object, Object>();
-    for (const [name, curve] of this._curves) {
-      const clonedCurve = new ParticleCompositeCurve(0);
-      CloneManager.deepCloneObject(curve, clonedCurve, deepInstanceMap);
-      target.addCurve(name, clonedCurve);
+  clear(): void {
+    const shaderData = this._generator._renderer.shaderData;
+    const curveStreams = this._curveStreams;
+    for (let i = 0, n = curveStreams.length; i < n; i++) {
+      this._zeroCurveUniforms(shaderData, curveStreams[i]);
     }
-    for (const [name, gradient] of this._gradients) {
-      const clonedGradient = new ParticleCompositeGradient(new Color());
-      CloneManager.deepCloneObject(gradient, clonedGradient, deepInstanceMap);
-      target.addGradient(name, clonedGradient);
+    const gradientStreams = this._gradientStreams;
+    for (let i = 0, n = gradientStreams.length; i < n; i++) {
+      this._zeroGradientUniforms(shaderData, gradientStreams[i]);
     }
+    this._curves.clear();
+    this._gradients.clear();
+    curveStreams.length = 0;
+    gradientStreams.length = 0;
   }
 
   /**

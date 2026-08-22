@@ -414,6 +414,7 @@ describe("UITransform", async () => {
 
       const cloned = original.clone();
       expect(cloned.transform).to.be.instanceOf(UITransform);
+      expect(cloned._components[0]).to.equal(cloned.transform);
       expect(cloned.getComponent(MeshRenderer)).not.to.equal(null);
       expect(cloned.getComponent(Image)).not.to.equal(null);
       expect(cloned._components.map((component) => component.constructor)).to.deep.equal(

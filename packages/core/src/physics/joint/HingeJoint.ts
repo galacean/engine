@@ -6,20 +6,17 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Entity } from "../../Entity";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  @deepClone
   private _axis = new Vector3(1, 0, 0);
   private _hingeFlags = HingeJointFlag.None;
   private _useSpring = false;
-  @deepClone
   private _jointMotor: JointMotor;
-  @deepClone
   private _limits: JointLimits;
   private _angle = 0;
   private _velocity = 0;

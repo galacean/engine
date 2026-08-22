@@ -1,3 +1,4 @@
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { Utils } from "./Utils";
 
@@ -13,7 +14,7 @@ export abstract class UpdateFlag {
    * @param bit - Bit
    * @param param - Parameter
    */
-  abstract dispatch(bit?: number, param?: Object): void;
+  abstract dispatch(bit?: number, param?: unknown): void;
 
   /**
    * Clear.
@@ -38,3 +39,5 @@ export abstract class UpdateFlag {
     }
   }
 }
+
+registerDefaultCloneMode(UpdateFlag, CloneMode.Ignore);
