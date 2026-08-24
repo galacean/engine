@@ -27,7 +27,7 @@ export class Entity extends EngineObject {
     return type === Transform || type.prototype instanceof Transform;
   }
 
-  private static _checkTransformType(type: ComponentConstructor): void {
+  private static _checkTransformDependencies(type: ComponentConstructor): void {
     if (ComponentsDependencies._hasDependencies(type)) {
       throw `Transform-compatible component ${type.name} cannot declare component dependencies`;
     }
@@ -258,7 +258,7 @@ export class Entity extends EngineObject {
     }
 
     // Install the final Transform before the remaining components.
-    Entity._checkTransformType(transformType);
+    Entity._checkTransformDependencies(transformType);
     const transform = <Transform>new transformType(this);
     this._components.push(transform);
     this._transform = transform;
@@ -282,7 +282,7 @@ export class Entity extends EngineObject {
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     const isTransform = Entity._isTransformType(type);
     if (isTransform) {
-      Entity._checkTransformType(type);
+      Entity._checkTransformDependencies(type);
       ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
     } else {
       ComponentsDependencies._addCheck(this, type);
