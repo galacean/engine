@@ -4,13 +4,13 @@ import { AudioManager, AudioSource } from "@galacean/engine-core/src/audio";
 const originalAudioContext = window.AudioContext;
 let restoreUserActivation: (() => void) | null = null;
 
-function mockUserActivation(initialActive: boolean): { set(active: boolean): void } {
+function mockUserActivation(initialActive: boolean | undefined): { set(active: boolean): void } {
   restoreUserActivation?.();
   const ownDescriptor = Object.getOwnPropertyDescriptor(navigator, "userActivation");
   let active = initialActive;
   Object.defineProperty(navigator, "userActivation", {
     configurable: true,
-    get: () => ({ hasBeenActive: active, isActive: active })
+    get: () => (active === undefined ? undefined : { hasBeenActive: active, isActive: active })
   });
   restoreUserActivation = () => {
     if (ownDescriptor) {
@@ -585,6 +585,42 @@ describe("AudioSource playback lifecycle", () => {
     await gestureResumePromise;
     await flushAsync();
     expect((AudioManager as any)._resumePromise).to.be.null;
+  });
+
+  it("recognizes a pre-document gesture play without the User Activation API", async () => {
+    mockUserActivation(undefined);
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "suspended";
+
+    let resolveEarlyResume: () => void;
+    let resolveDocumentResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveEarlyResume = resolve;
+      }),
+      new Promise<void>((resolve) => {
+        resolveDocumentResume = resolve;
+      })
+    ];
+    const resumeSpy = vi.spyOn(context, "resume");
+    const touchEnd = { isTrusted: true, type: "touchend" } as Event;
+    vi.spyOn(window, "event", "get").mockReturnValue(touchEnd);
+
+    // An application window-capture listener runs before AudioManager's document-capture listener
+    audioSource.play();
+    const earlyResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+    (AudioManager as any)._onUserGesture(touchEnd);
+    const documentResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+
+    resolveEarlyResume!();
+    await earlyResumePromise;
+    resolveDocumentResume!();
+    await documentResumePromise;
+    await flushAsync();
+
+    expect(audioSource.isPlaying).to.be.true;
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
   });
 
   it("does not auto-resume a caller-controlled suspend on a later gesture", async () => {

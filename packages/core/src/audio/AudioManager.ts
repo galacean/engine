@@ -38,7 +38,7 @@ export class AudioManager {
    */
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
-    return AudioManager._requestResume(navigator.userActivation?.isActive === true);
+    return AudioManager._requestResume(AudioManager._isUserGestureActive());
   }
 
   /**
@@ -105,6 +105,16 @@ export class AudioManager {
     return resumePromise;
   }
 
+  private static _isUserGestureActive(event: Event | undefined = window.event): boolean {
+    if (navigator.userActivation?.isActive === true) {
+      return true;
+    }
+    // Safari 16.3 and earlier expose the current listener event but not the User Activation API
+    return (
+      event?.isTrusted === true && (event.type === "touchstart" || event.type === "touchend" || event.type === "click")
+    );
+  }
+
   private static _onVisibilityChange(): void {
     if (document.hidden) {
       // Desktop/Android don't auto-suspend a running WebAudio context when backgrounded (only iOS does),
@@ -154,8 +164,7 @@ export class AudioManager {
   }
 
   private static _onUserGesture(event: Event): void {
-    // Ignore synthetic events unless a real user activation is already active
-    if (!event.isTrusted && !navigator.userActivation?.isActive) {
+    if (!AudioManager._isUserGestureActive(event)) {
       return;
     }
 
