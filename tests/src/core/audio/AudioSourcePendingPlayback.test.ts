@@ -594,13 +594,9 @@ describe("AudioSource playback lifecycle", () => {
     context.state = "suspended";
 
     let resolveEarlyResume: () => void;
-    let resolveDocumentResume: () => void;
     MockAudioContext.resumeResultQueue = [
       new Promise<void>((resolve) => {
         resolveEarlyResume = resolve;
-      }),
-      new Promise<void>((resolve) => {
-        resolveDocumentResume = resolve;
       })
     ];
     const resumeSpy = vi.spyOn(context, "resume");
@@ -612,11 +608,10 @@ describe("AudioSource playback lifecycle", () => {
     const earlyResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
     (AudioManager as any)._onUserGesture(touchEnd);
     const documentResumePromise = (AudioManager as any)._resumePromise as Promise<void>;
+    expect(documentResumePromise).toBe(earlyResumePromise);
 
     resolveEarlyResume!();
     await earlyResumePromise;
-    resolveDocumentResume!();
-    await documentResumePromise;
     await flushAsync();
 
     expect(audioSource.isPlaying).to.be.true;
