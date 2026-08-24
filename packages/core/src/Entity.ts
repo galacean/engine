@@ -27,6 +27,12 @@ export class Entity extends EngineObject {
     return type === Transform || type.prototype instanceof Transform;
   }
 
+  private static _checkTransformType(type: ComponentConstructor): void {
+    if (ComponentsDependencies._hasDependencies(type)) {
+      throw `Transform-compatible component ${type.name} cannot declare component dependencies`;
+    }
+  }
+
   /**
    * @internal
    */
@@ -241,7 +247,7 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name ?? "Entity";
-    let transformType: ComponentConstructor;
+    let transformType: ComponentConstructor = Transform;
     const n = components.length;
     for (let i = n - 1; i >= 0; i--) {
       const componentType = components[i];
@@ -251,15 +257,18 @@ export class Entity extends EngineObject {
       }
     }
 
-    this._transform = this.addComponent(Transform);
+    // Transform is the root component and always occupies slot 0.
+    Entity._checkTransformType(transformType);
+    const transform = <Transform>new transformType(this);
+    this._components.push(transform);
+    this._transform = transform;
+    transform._setActive(true, ActiveChangeFlag.All);
+
     for (let i = 0; i < n; i++) {
       const componentType = components[i];
       if (!Entity._isTransformType(componentType)) {
         this.addComponent(componentType);
       }
-    }
-    if (transformType && this._transform.constructor !== transformType) {
-      this.addComponent(transformType);
     }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
@@ -271,15 +280,14 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    const needReplaceTransform = Entity._isTransformType(type) && this._transform;
+    if (Entity._isTransformType(type)) {
+      Entity._checkTransformType(type);
+      return this._replaceTransform(type, args);
+    }
+
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
-    if (needReplaceTransform) {
-      ComponentsDependencies._removeCheck(this, <ComponentConstructor>this._transform.constructor, type);
-      this._replaceTransform(<Transform>component);
-    } else {
-      this._components.push(component);
-    }
+    this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -473,8 +481,12 @@ export class Entity extends EngineObject {
     for (let i = 0, n = components.length; i < n; i++) {
       componentConstructors[i] = components[i].constructor as ComponentConstructor;
     }
-    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
-    componentConstructors.length = 0;
+    let cloneEntity: Entity;
+    try {
+      cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
+    } finally {
+      componentConstructors.length = 0;
+    }
     cloneMap.set(this, cloneEntity);
     const targetComponents = cloneEntity._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -783,26 +795,32 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _replaceTransform(value: Transform): void {
+  private _replaceTransform<T extends ComponentConstructor>(type: T, args: ComponentArguments<T>): InstanceType<T> {
     const previous = this._transform;
-    value.position.copyFrom(previous.position);
-    value.rotation.copyFrom(previous.rotation);
-    value.scale.copyFrom(previous.scale);
-    // Keep the unique Transform in the same component slot. Detach the old
-    // instance before destroy because destroy can be deferred during a frame
     const components = this._components;
-    const previousIndex = components.indexOf(previous);
-    if (previousIndex >= 0) {
-      components[previousIndex] = value;
-    } else {
-      components.push(value);
+    if (components[0] !== previous) {
+      throw "The Entity Transform must be stored at component slot 0";
     }
-    this._transform = value;
+
+    // Validate before construction so a rejected replacement cannot leave side effects.
+    ComponentsDependencies._removeCheck(this, <ComponentConstructor>previous.constructor, type);
+
+    const replacement = <InstanceType<T> & Transform>new type(this, ...args);
+    replacement.position.copyFrom(previous.position);
+    replacement.rotation.copyFrom(previous.rotation);
+    replacement.scale.copyFrom(previous.scale);
+
+    components[0] = replacement;
+    this._transform = replacement;
     previous.destroy();
+
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform?._parentChange();
     }
+
+    replacement._setActive(true, ActiveChangeFlag.All);
+    return replacement;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------

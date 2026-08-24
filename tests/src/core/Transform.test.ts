@@ -152,7 +152,7 @@ describe("Transform test", function () {
     expect(entity1.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
   });
 
-  it("restores constructor components before the final Transform", () => {
+  it("installs the final Transform before constructor components", () => {
     const entityWithRenderer = new Entity(engine, "entity-with-renderer", MeshRenderer);
     expect(entityWithRenderer._components[0]).to.equal(entityWithRenderer.transform);
     expect(entityWithRenderer.getComponent(MeshRenderer)).not.to.equal(null);
@@ -179,28 +179,17 @@ describe("Transform test", function () {
     );
   });
 
-  it("clones Transform subclasses after their declared dependencies are restored", () => {
-    const checkOnlyEntity = new Entity(engine, "check-only-constructor", CheckOnlyDependentTransform, MeshRenderer);
-    expect(checkOnlyEntity.transform).to.be.instanceOf(CheckOnlyDependentTransform);
-    expect(checkOnlyEntity._components[0]).to.equal(checkOnlyEntity.transform);
-    expect(checkOnlyEntity._components[1]).to.be.instanceOf(MeshRenderer);
+  it("clones components that depend on the final Transform subtype", () => {
+    const source = new Entity(engine, "dependent-transform-clone", SubClassOfTransform);
+    source.addComponent(RequiresSubClassOfTransform);
 
-    const checkOnlyClone = checkOnlyEntity.clone();
-    expect(checkOnlyClone.transform).to.be.instanceOf(CheckOnlyDependentTransform);
-    expect(checkOnlyClone._components[0]).to.equal(checkOnlyClone.transform);
-    expect(checkOnlyClone._components.map((component) => component.constructor)).to.deep.equal(
-      checkOnlyEntity._components.map((component) => component.constructor)
+    const clone = source.clone();
+    expect(clone.transform).to.be.instanceOf(SubClassOfTransform);
+    expect(clone._components[0]).to.equal(clone.transform);
+    expect(clone.getComponent(RequiresSubClassOfTransform)).not.to.equal(null);
+    expect(clone._components.map((component) => component.constructor)).to.deep.equal(
+      source._components.map((component) => component.constructor)
     );
-
-    const autoAddEntity = new Entity(engine, "auto-add-constructor", AutoAddDependentTransform, MeshRenderer);
-    expect(autoAddEntity.transform).to.be.instanceOf(AutoAddDependentTransform);
-    expect(autoAddEntity._components[0]).to.equal(autoAddEntity.transform);
-    expect(autoAddEntity.getComponents(MeshRenderer, [])).to.have.lengthOf(1);
-
-    const autoAddClone = autoAddEntity.clone();
-    expect(autoAddClone.transform).to.be.instanceOf(AutoAddDependentTransform);
-    expect(autoAddClone._components[0]).to.equal(autoAddClone.transform);
-    expect(autoAddClone.getComponents(MeshRenderer, [])).to.have.lengthOf(1);
   });
 
   it("keeps the Transform slot unique while destruction is deferred", () => {
@@ -232,8 +221,9 @@ describe("Transform test", function () {
     const dependentEntity = new Entity(engine, "dependent-transform", SubClassOfTransform);
     const previous = dependentEntity.transform;
     dependentEntity.addComponent(RequiresSubClassOfTransform);
+    RejectedReplacementTransform.constructionCount = 0;
 
-    expect(() => dependentEntity.addComponent(Transform)).to.throw(
+    expect(() => dependentEntity.addComponent(RejectedReplacementTransform)).to.throw(
       "Should remove RequiresSubClassOfTransform before remove SubClassOfTransform"
     );
     const transforms: Transform[] = [];
@@ -241,27 +231,61 @@ describe("Transform test", function () {
     expect(dependentEntity.transform).to.equal(previous);
     expect(transforms).to.deep.equal([previous]);
     expect(dependentEntity._components[0]).to.equal(previous);
+    expect(RejectedReplacementTransform.constructionCount).to.equal(0);
   });
 
-  it("checks dependencies declared by a replacement Transform", () => {
-    const dependentEntity = new Entity(engine, "check-only-dependent-transform");
-    const previous = dependentEntity.transform;
+  it("keeps the previous Transform when replacement construction fails", () => {
+    const entity = new Entity(engine, "failed-transform-replacement");
+    const previous = entity.transform;
+    previous.position.set(1, 2, 3);
 
-    expect(() => dependentEntity.addComponent(CheckOnlyDependentTransform)).to.throw(
-      "Should add MeshRenderer before adding CheckOnlyDependentTransform"
+    expect(() => entity.addComponent(ThrowingReplacementTransform)).to.throw("transform construction failed");
+    expect(entity.transform).to.equal(previous);
+    expect(entity._components).to.deep.equal([previous]);
+    expect(previous.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(previous.destroyed).to.equal(false);
+  });
+
+  it("rejects dependencies declared by Transform-compatible components", () => {
+    expect(() => new Entity(engine, "invalid-transform", InvalidDependentTransform)).to.throw(
+      "Transform-compatible component InvalidDependentTransform cannot declare component dependencies"
     );
-    expect(dependentEntity.transform).to.equal(previous);
-    expect(dependentEntity._components).to.deep.equal([previous]);
+
+    const entity = new Entity(engine, "invalid-replacement");
+    const previous = entity.transform;
+    expect(() => entity.addComponent(InvalidDependentTransform)).to.throw(
+      "Transform-compatible component InvalidDependentTransform cannot declare component dependencies"
+    );
+    expect(entity.transform).to.equal(previous);
+    expect(entity._components).to.deep.equal([previous]);
   });
 
-  it("auto adds dependencies declared by a replacement Transform", () => {
-    const dependentEntity = new Entity(engine, "auto-add-dependent-transform");
-    const replacement = dependentEntity.addComponent(AutoAddDependentTransform);
+  it("does not allow the current Transform to be destroyed directly", () => {
+    const entity = new Entity(engine, "destroy-transform");
+    const transform = entity.transform;
 
-    expect(dependentEntity.transform).to.equal(replacement);
-    expect(dependentEntity._components[0]).to.equal(replacement);
-    expect(dependentEntity._components[1]).to.be.instanceOf(MeshRenderer);
-    expect(dependentEntity.getComponent(MeshRenderer)).not.to.equal(null);
+    expect(() => transform.destroy()).to.throw(
+      "Transform cannot be destroyed directly; replace it by adding another Transform-compatible component"
+    );
+    expect(transform.destroyed).to.equal(false);
+    expect(entity.transform).to.equal(transform);
+    expect(entity._components).to.deep.equal([transform]);
+  });
+
+  it("clears the clone constructor buffer when component construction fails", () => {
+    const source = new Entity(engine, "failed-clone");
+    source.addComponent(ThrowingCloneComponent);
+
+    ThrowingCloneComponent.throwOnConstruction = true;
+    try {
+      expect(() => source.clone()).to.throw("clone construction failed");
+    } finally {
+      ThrowingCloneComponent.throwOnConstruction = false;
+    }
+
+    const unrelated = new Entity(engine, "unrelated-clone");
+    const clone = unrelated.clone();
+    expect(clone._components).to.deep.equal([clone.transform]);
   });
 
   it("clone with worldMatrix listener should not produce stale parent cache after reparent", () => {
@@ -336,7 +360,31 @@ class SubClassOfTransform extends Transform {
 class RequiresSubClassOfTransform extends Script {}
 
 @dependentComponents(MeshRenderer, DependentMode.CheckOnly)
-class CheckOnlyDependentTransform extends Transform {}
+class InvalidDependentTransform extends Transform {}
 
-@dependentComponents(MeshRenderer, DependentMode.AutoAdd)
-class AutoAddDependentTransform extends Transform {}
+class RejectedReplacementTransform extends Transform {
+  static constructionCount = 0;
+
+  constructor(entity: Entity) {
+    super(entity);
+    RejectedReplacementTransform.constructionCount++;
+  }
+}
+
+class ThrowingReplacementTransform extends Transform {
+  constructor(entity: Entity) {
+    super(entity);
+    throw "transform construction failed";
+  }
+}
+
+class ThrowingCloneComponent extends Script {
+  static throwOnConstruction = false;
+
+  constructor(entity: Entity) {
+    super(entity);
+    if (ThrowingCloneComponent.throwOnConstruction) {
+      throw "clone construction failed";
+    }
+  }
+}

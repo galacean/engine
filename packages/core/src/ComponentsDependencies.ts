@@ -36,6 +36,19 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
+  static _hasDependencies(type: ComponentConstructor): boolean {
+    while (type !== Component) {
+      if (ComponentsDependencies._dependenciesMap.has(type)) {
+        return true;
+      }
+      type = Object.getPrototypeOf(type);
+    }
+    return false;
+  }
+
+  /**
+   * @internal
+   */
   static _removeCheck(entity: Entity, type: ComponentConstructor, replace?: ComponentConstructor): void {
     const components = entity._components;
     const n = components.length;
