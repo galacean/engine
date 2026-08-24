@@ -28,7 +28,7 @@ export type LoadItem = {
   params?: Record<string, any>;
 } & PickOnlyOne<{
   /**
-   * Logical resource URL passed to loaders. ResourceManager resolves it to a physical URL at the request boundary.
+   * URL of the resource to load.
    */
   url: string;
   /**
