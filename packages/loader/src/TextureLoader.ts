@@ -23,15 +23,17 @@ import { HDRDecoder } from "./HDRDecoder";
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
     const url = item.url;
+    // @ts-expect-error -- internal method is omitted from public declarations
+    const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) => {
           this._decode(buffer, item, resourceManager).then((texture) => {
-            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, requestConfig));
+            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
             resolve(texture);
           }, reject);
         })
@@ -116,6 +118,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
   constructor(
     resource: Texture,
     public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -125,7 +128,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
     return (
       this.resource.engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((buffer) => {
           if (FileHeader.checkMagic(buffer)) {
             return decode<Texture>(buffer, this.resource.engine, this.resource);

@@ -209,8 +209,8 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[this._getRemoteUrl(assetBaseURL)] ||= {});
+  _onSubAssetSuccess<T>(remoteAssetBaseURL: string, assetSubPath: string, value: T): void {
+    const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {});
     const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
       subPromiseCallback.resolve(value);
