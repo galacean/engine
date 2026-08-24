@@ -143,7 +143,7 @@ export class ParticleCompositeCurve extends DataObject {
     super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
     if (typeof constantOrCurve === "number") {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.constantMin = constantOrCurve;
         this.constantMax = <number>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoConstants;
@@ -152,7 +152,7 @@ export class ParticleCompositeCurve extends DataObject {
         this.mode = ParticleCurveMode.Constant;
       }
     } else {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.curveMin = constantOrCurve;
         this.curveMax = <ParticleCurve>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoCurves;

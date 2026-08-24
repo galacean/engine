@@ -135,6 +135,36 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("clear removes every sub-emitter slot and recycles Birth runtime state", () => {
+    const parent = createParticleRenderer(engine, "Parent_Clear");
+    const child = createParticleRenderer(engine, "Child_Clear");
+    const subEmitters = parent.generator.subEmitters;
+    child.generator.emission.enabled = false;
+
+    subEmitters.enabled = true;
+    const birthSlot = subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    const deathSlot = subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+    subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0);
+
+    const birthStates = (subEmitters as any)._birthStatesByParticle;
+    const birthStatePool = (subEmitters as any)._birthStatePool;
+    const birthState = birthStates[0][0];
+    expect(birthState).to.exist;
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled).to.equal(true);
+
+    subEmitters.clear();
+
+    expect(subEmitters.subEmitters).to.have.length(0);
+    expect((birthSlot as any)._module).to.equal(null);
+    expect((deathSlot as any)._module).to.equal(null);
+    expect(birthStates[0]).to.have.length(0);
+    expect(birthStatePool).to.contain(birthState);
+    expect(parent.generator._feedbackSimulator?.trajectoryEnabled ?? false).to.equal(false);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("lets a Birth target play independently after its active parent stops", () => {
     const parent = createParticleRenderer(engine, "ActiveRole_Parent");
     const child = createParticleRenderer(engine, "ActiveRole_Child");

@@ -119,6 +119,23 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   }
 
   /**
+   * Remove all sub-emitter slots.
+   */
+  clear(): void {
+    const subEmitters = this._subEmitters;
+    if (subEmitters.length === 0) {
+      return;
+    }
+
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      subEmitters[i]._module = null;
+    }
+    subEmitters.length = 0;
+    this._retireAllBirthStates();
+    this._notifyTopologyChanged();
+  }
+
+  /**
    * @internal
    */
   _prepareDeathCommands(ringIndex: number, frameTime: number, trajectoryDuration: number): void {
