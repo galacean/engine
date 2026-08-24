@@ -162,13 +162,20 @@ export class AudioSource extends Component {
       // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
       // Document-level events won't work - must call resume() directly here in play().
       this._pendingPlay = true;
-      AudioManager.resume().then(
+      const resumePromise = AudioManager.resume();
+      const resumeAttemptId = AudioManager._resumeAttemptId;
+      const resumeAttemptFromUserGesture = AudioManager._resumeAttemptFromUserGesture;
+      resumePromise.then(
         () => {
           // Check if cancelled by stop()/pause()
           if (!this._pendingPlay) {
             return;
           }
           this._pendingPlay = false;
+          // A later gesture superseded the resume attempt, so this one-shot request is now stale
+          if (!resumeAttemptFromUserGesture && resumeAttemptId !== AudioManager._resumeAttemptId) {
+            return;
+          }
           // Check if still valid to play after async resume (page may have been hidden meanwhile)
           if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
             return;
@@ -177,7 +184,9 @@ export class AudioSource extends Component {
         },
         (e) => {
           this._pendingPlay = false;
-          console.warn("Failed to resume AudioContext:", e);
+          if (resumeAttemptFromUserGesture || resumeAttemptId === AudioManager._resumeAttemptId) {
+            console.warn("Failed to resume AudioContext:", e);
+          }
         }
       );
     }
