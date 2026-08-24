@@ -104,13 +104,14 @@ export class ShaderCompiler {
     }
     if (!parsed.ir) return undefined;
     const coreInfo = ShaderCoreInfo.create(parsed.ir, vertexEntry, fragmentEntry);
-    return this._generate(parsed.ir, coreInfo, backend);
+    return this._generate(parsed.ir, coreInfo, backend, parsed.preprocessorExpressions);
   }
 
   private _generate(
     ir: ShaderClueIR,
     coreInfo: ShaderCoreInfo,
-    backend: ShaderLanguage
+    backend: ShaderLanguage,
+    preprocessorExpressions: ParsedShaderPass["preprocessorExpressions"]
   ): IShaderProgramSource | undefined {
     if (!coreInfo.vertexEntry.functions.length) {
       Logger.error(`Vertex entry function '${coreInfo.vertexEntry.name}' not found.`);
@@ -122,8 +123,8 @@ export class ShaderCompiler {
     }
     const ret = GLESBackend.generate(ir, coreInfo, backend);
     if (ret) {
-      ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
-      ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
+      ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex, preprocessorExpressions);
+      ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment, preprocessorExpressions);
     }
     return ret;
   }

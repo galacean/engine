@@ -1,4 +1,4 @@
-import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import type { Condition, PreprocessorExpressionParseResult, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
 import { parsePreprocessorExpression, toPreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 
@@ -11,7 +11,10 @@ export class ShaderInstructionEncoder {
   private static _DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
 
-  static parse(glsl: string): ShaderInstruction[] {
+  static parse(
+    glsl: string,
+    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
+  ): ShaderInstruction[] {
     const instructions: ShaderInstruction[] = [];
     const length = glsl.length;
     let pos = 0;
@@ -63,7 +66,7 @@ export class ShaderInstructionEncoder {
           break;
         }
         case "if": {
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest, preprocessorExpressions);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           backfillStack.push([idx]);
@@ -77,7 +80,7 @@ export class ShaderInstructionEncoder {
           stack.push(elseIdx);
           ShaderInstructionEncoder._backfillJump(instructions[prevIdx], instructions.length);
 
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest, preprocessorExpressions);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           stack.push(idx);
@@ -158,8 +161,11 @@ export class ShaderInstructionEncoder {
     }
   }
 
-  private static _parseCondition(expression: string): Condition {
-    const result = parsePreprocessorExpression(expression);
+  private static _parseCondition(
+    expression: string,
+    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
+  ): Condition {
+    const result = preprocessorExpressions?.get(expression) ?? parsePreprocessorExpression(expression);
     if ("error" in result) {
       if (!result.error.certain && result.hasExpandableIdentifier) return { t: "deferred", e: expression };
       throw new Error(result.error.message);

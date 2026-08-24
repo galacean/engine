@@ -41,7 +41,7 @@ beforeAll(() => {
       2
     )
   );
-  const install = spawnSync("pnpm", ["install", "--offline", "--ignore-scripts"], {
+  const install = spawnSync("pnpm", ["install", "--prefer-offline", "--ignore-scripts"], {
     cwd: consumerDirectory,
     encoding: "utf8"
   });
@@ -172,10 +172,7 @@ describe("published shader packages", () => {
     expect(probe.status, probe.stderr).toBe(0);
     const marker = probe.stdout.lastIndexOf("MEMORY_RESULT:");
     expect(marker).toBeGreaterThanOrEqual(0);
-    const measurements = JSON.parse(probe.stdout.slice(marker + "MEMORY_RESULT:".length)) as Record<
-      string,
-      number[]
-    >;
+    const measurements = JSON.parse(probe.stdout.slice(marker + "MEMORY_RESULT:".length)) as Record<string, number[]>;
     for (const samples of Object.values(measurements)) {
       const baseline = samples[0];
       expect(samples.at(-1)! - baseline).toBeLessThan(4 * 1024 * 1024);

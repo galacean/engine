@@ -112,9 +112,9 @@ const normalize = (s: string) =>
 describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
-  const PBRSource = await readFile("packages/shader/src/Shaders/PBR.shader");
-  const ParticleSource = await readFile("packages/shader/src/Shaders/Effect/Particle.shader");
-  const SSAOSource = await readFile("packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader");
+  const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
+  const ParticleSource = await readFile("../packages/shader/src/Shaders/Effect/Particle.shader");
+  const SSAOSource = await readFile("../packages/shader/src/Shaders/Lighting/ScalableAmbientOcclusion.shader");
 
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
   shaderCompiler._includeMap = ShaderFactory.includeMap;
@@ -135,7 +135,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     for (const file of testShaders) {
       it(`${file}: live instructions === precompiled instructions`, async () => {
-        const source = await readFile(`tests/src/shader-compiler/shaders/${file}`);
+        const source = await readFile(`src/shader-compiler/shaders/${file}`);
         const parsed = shaderCompiler._parseShaderSource(source);
         const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
@@ -361,7 +361,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader", "multi-pass.shader"];
     for (const file of simpleShaders) {
       it(`${file}: precompiled GLSL → WebGL`, async () => {
-        const source = await readFile(`tests/src/shader-compiler/shaders/${file}`);
+        const source = await readFile(`src/shader-compiler/shaders/${file}`);
         validatePrecompiledWebGL(source, ShaderLanguage.GLSLES100, baseMacros);
       });
     }
@@ -433,7 +433,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader"];
     for (const file of simpleShaders) {
       it(`${file}: .shaderc → WebGL`, async () => {
-        const source = await readFile(`tests/src/shader-compiler/shaders/${file}`);
+        const source = await readFile(`src/shader-compiler/shaders/${file}`);
         validateGspRoundTrip(source, ShaderLanguage.GLSLES100, baseMacros);
       });
     }
@@ -444,7 +444,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("A/B: RenderState equivalence", () => {
     it("multi-pass: renderStates match between paths", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const parsed = shaderCompiler._parseShaderSource(source);
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
@@ -497,7 +497,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     for (const file of tagShaders) {
       it(`${file}: metadata matches between paths`, async () => {
-        const source = await readFile(`tests/src/shader-compiler/shaders/${file}`);
+        const source = await readFile(`src/shader-compiler/shaders/${file}`);
         const parsed = shaderCompiler._parseShaderSource(source);
         const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
@@ -532,7 +532,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("A/B: Macro expansion", () => {
     it("macro-pre: evaluateInstructions output matches live compilation per macro combo", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const parsed = shaderCompiler._parseShaderSource(source);
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
@@ -588,7 +588,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("A/B: instruction optimization", () => {
     it("noFragArgs (single TEXT instruction): still compiles with full macro set", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const sub of precompiled.subShaders) {
@@ -618,7 +618,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     });
 
     it("mrt-struct (single TEXT instruction): compiles correctly", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/mrt-struct.shader");
+      const source = await readFile("src/shader-compiler/shaders/mrt-struct.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const sub of precompiled.subShaders) {

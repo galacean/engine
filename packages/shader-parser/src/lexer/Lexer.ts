@@ -4,7 +4,11 @@ import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BR
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import { evaluateContextFreePreprocessorExpression, validatePreprocessorExpression } from "@galacean/engine-design";
+import {
+  evaluateContextFreePreprocessorCondition,
+  parsePreprocessorExpression,
+  type PreprocessorExpressionParseResult
+} from "@galacean/engine-design";
 import { GSError, GSErrorName } from "../GSError";
 
 /**
@@ -13,6 +17,8 @@ import { GSError, GSErrorName } from "../GSError";
 export class Lexer extends BaseLexer {
   /** Preprocessor-expression failures found during the normal token scan. @internal */
   readonly expressionErrors: GSError[] = [];
+  /** Complete expression trees retained for the instruction encoder. @internal */
+  readonly preprocessorExpressions = new Map<string, PreprocessorExpressionParseResult>();
   private static _lexemeTable = <Record<string, Keyword>>{
     const: Keyword.CONST,
     bool: Keyword.BOOL,
@@ -143,7 +149,7 @@ export class Lexer extends BaseLexer {
     while (!this.isEnd()) {
       const tok = this.scanToken();
       if (this._pendingCodegenConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
-        const parsedCondition = Lexer._parseCodegenConstantCondition(tok.lexeme);
+        const parsedCondition = this._parseCodegenConstantCondition(tok.lexeme);
         if (this._pendingCodegenConditional === "push") {
           const conditionalGroup = ++this._conditionalGroup;
           this._branchStack.push({
@@ -231,8 +237,9 @@ export class Lexer extends BaseLexer {
     return EOF;
   }
 
-  private static _parseCodegenConstantCondition(expression: string): BranchCondition | undefined {
-    const value = evaluateContextFreePreprocessorExpression(expression);
+  private _parseCodegenConstantCondition(expression: string): BranchCondition | undefined {
+    const parsed = this.preprocessorExpressions.get(expression.trim());
+    const value = parsed?.ok ? evaluateContextFreePreprocessorCondition(parsed.condition) : undefined;
     return value === undefined ? undefined : { kind: "constant", value: value !== 0 };
   }
 
@@ -1030,7 +1037,8 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     const word = buffer.join("");
-    const result = validatePreprocessorExpression(word);
+    const result = parsePreprocessorExpression(word);
+    this.preprocessorExpressions.set(word.trim(), result);
     if ("error" in result && (result.error.certain || !result.hasExpandableIdentifier)) {
       const errorStart = this._positionInExpression(start, word, result.error.start);
       const errorEnd = this._positionInExpression(start, word, result.error.end);

@@ -4,6 +4,7 @@
  * was compiled before.
  */
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ASTNode, ParserObjectPool, TreeNode, parseRuntimeShaderPass } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
@@ -22,6 +23,20 @@ void frag(V2 i) { gl_FragColor = i.a + i.b; }`;
 
 // Missing entries are rejected before backend generation
 const broken = `struct Attributes { vec3 POSITION; }; void notAnEntry() {}`;
+
+const conditionalShader = `Shader "ConditionReuse" {
+  SubShader "Default" {
+    Pass "p" {
+      #if FOO + 1 > 1
+        float branchValue = 1.0;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
 
 function compile(c: ShaderCompiler, src: string) {
   return c._parseShaderPass(src, "vert", "frag", ShaderLanguage.GLSLES300, "");
@@ -69,6 +84,22 @@ describe("compiler state isolation (no cross-shader leak)", () => {
 
     expect(arraySpecifier).toBeDefined();
     expect(arraySpecifier!.size).toBeUndefined();
+  });
+
+  it("reuses parser-owned preprocessor trees during backend instruction encoding", () => {
+    const unit = ShaderAnalyzer._analyzeWithParsedPasses(conditionalShader);
+    const pass = unit.parsedPasses[0];
+    const cacheGet = vi.spyOn(pass.parsed.preprocessorExpressions, "get");
+
+    const generated = new ShaderCompiler()._generateParsedShaderPass(
+      pass.parsed,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100
+    );
+
+    expect(generated).toBeDefined();
+    expect(cacheGet).toHaveBeenCalledWith("FOO + 1 > 1");
   });
 });
 

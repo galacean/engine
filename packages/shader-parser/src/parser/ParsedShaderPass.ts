@@ -1,5 +1,5 @@
 import type { BaseToken } from "../common/BaseToken";
-import { normalizeShaderIncludeKey } from "@galacean/engine-design";
+import { normalizeShaderIncludeKey, type PreprocessorExpressionParseResult } from "@galacean/engine-design";
 import { ShaderPosition } from "../common/ShaderPosition";
 import { ShaderRange } from "../common/ShaderRange";
 import { GSError, GSErrorName } from "../GSError";
@@ -57,6 +57,8 @@ export interface ParsedShaderPass {
   readonly sourceMap: readonly ShaderSourceMapSegment[];
   /** Preprocessor, syntax, and parser-semantic errors. */
   readonly errors: readonly Error[];
+  /** Complete preprocessor expression trees keyed by normalized directive text. */
+  readonly preprocessorExpressions: ReadonlyMap<string, PreprocessorExpressionParseResult>;
   /** Preprocessor and syntax errors that prevent backend generation. */
   readonly blockingErrors: readonly Error[];
 }
@@ -162,6 +164,7 @@ function shaderPositionAt(source: string, offset: number): ShaderPosition {
  */
 export interface ShaderPassLexer {
   readonly expressionErrors: readonly GSError[];
+  readonly preprocessorExpressions: ReadonlyMap<string, PreprocessorExpressionParseResult>;
   tokenize(): Generator<BaseToken, BaseToken>;
 }
 
@@ -233,6 +236,7 @@ export function parseShaderPassWith(
     ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null,
     expandedSource,
     sourceMap: frozenSourceMap,
+    preprocessorExpressions: lexer.preprocessorExpressions,
     errors,
     blockingErrors
   });

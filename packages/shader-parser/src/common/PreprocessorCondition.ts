@@ -1,7 +1,8 @@
 import {
   evaluateContextFreePreprocessorCondition,
   parsePreprocessorExpression,
-  type Condition
+  type Condition,
+  type PreprocessorExpressionParseResult
 } from "@galacean/engine-design";
 import type { BoolCondition, CompareCondition, DefinedCondition } from "@galacean/engine-design";
 
@@ -31,11 +32,15 @@ export function parsePreprocessorCondition(expression: string): PreprocessorCond
 /**
  * Parses a condition without throwing when static branch reasoning cannot represent it.
  * @param expression - Text following an `#if` or `#elif` directive.
+ * @param parsedExpression - Complete parser result already produced while lexing.
  * @returns Parsed branch condition, or `undefined` for malformed or richer expressions.
  * @internal
  */
-export function tryParsePreprocessorCondition(expression: string): PreprocessorCondition | undefined {
-  const result = parsePreprocessorExpression(expression);
+export function tryParsePreprocessorCondition(
+  expression: string,
+  parsedExpression: PreprocessorExpressionParseResult = parsePreprocessorExpression(expression)
+): PreprocessorCondition | undefined {
+  const result = parsedExpression;
   if (!result.ok) return undefined;
   const constantValue = evaluateContextFreePreprocessorCondition(result.condition);
   if (constantValue !== undefined) return { t: "bool", v: constantValue !== 0 };

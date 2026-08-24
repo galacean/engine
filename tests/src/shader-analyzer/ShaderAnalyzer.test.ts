@@ -19,7 +19,7 @@ describe("ShaderAnalyzer", () => {
 
   it("accepts legal preprocessing-token fragments as macro replacement lists", async () => {
     for (const name of ["trailing-comma", "unbalanced-bracket", "unbalanced-paren"]) {
-      const source = await readFile(`tests/src/shader-compiler/shaders/macro-token-fragment-${name}.shader`);
+      const source = await readFile(`src/shader-compiler/shaders/macro-token-fragment-${name}.shader`);
       const { diagnostics } = ShaderAnalyzer.analyze(source);
       expect(
         diagnostics.filter((diagnostic) => diagnostic.severity === "error"),

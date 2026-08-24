@@ -494,7 +494,7 @@ export class AnalyzerLexer extends Lexer {
   }
 
   private _parseSimpleCondition(expression: string, token: BaseToken): BranchCondition | undefined {
-    const condition = tryParsePreprocessorCondition(expression);
+    const condition = tryParsePreprocessorCondition(expression, this.preprocessorExpressions.get(expression.trim()));
     const invalidMacro = condition && this._findInvalidMacroValue(condition);
     if (invalidMacro) {
       this.expressionErrors.push(
@@ -507,7 +507,7 @@ export class AnalyzerLexer extends Lexer {
       );
       return { kind: "constant", value: false };
     }
-    return condition ? this._toBranchCondition(condition) : AnalyzerLexer._parseOpaqueComparisonCondition(expression);
+    return condition ? this._toBranchCondition(condition) : undefined;
   }
 
   private _findInvalidMacroValue(condition: PreprocessorCondition): { name: string; message: string } | undefined {
@@ -525,87 +525,6 @@ export class AnalyzerLexer extends Lexer {
       case "def":
         return undefined;
     }
-  }
-
-  private static _parseOpaqueComparisonCondition(expression: string): BranchCondition | undefined {
-    const source = AnalyzerLexer._unwrapConditionParentheses(expression.trim());
-    let depth = 0;
-    let comparisonIndex = -1;
-    let comparisonOperator: "==" | "!=" | ">" | ">=" | "<" | "<=" | undefined;
-
-    for (let i = 0; i < source.length; i++) {
-      const char = source[i];
-      if (char === "(") {
-        depth++;
-        continue;
-      }
-      if (char === ")") {
-        if (--depth < 0) return undefined;
-        continue;
-      }
-      if (depth !== 0) continue;
-      const pair = source.slice(i, i + 2);
-      if (pair === "&&" || pair === "||" || char === "?" || char === ",") return undefined;
-      if (pair === "<<" || pair === ">>") {
-        i++;
-        continue;
-      }
-      const operator =
-        pair === "==" || pair === "!=" || pair === ">=" || pair === "<="
-          ? pair
-          : char === ">" || char === "<"
-            ? char
-            : undefined;
-      if (!operator) continue;
-      if (comparisonOperator) return undefined;
-      comparisonIndex = i;
-      comparisonOperator = operator;
-      i += operator.length - 1;
-    }
-    if (depth !== 0 || comparisonIndex < 0 || !comparisonOperator) return undefined;
-
-    const left = source.slice(0, comparisonIndex).replace(/\s+/g, "");
-    const right = source.slice(comparisonIndex + comparisonOperator.length).replace(/\s+/g, "");
-    if (!left || !right) return undefined;
-    const names = Array.from(new Set(`${left} ${right}`.match(/[A-Za-z_]\w*/g) ?? [])).sort();
-    const [baseOperator, negated] =
-      comparisonOperator === "!="
-        ? (["==", true] as const)
-        : comparisonOperator === "<="
-          ? ([">", true] as const)
-          : comparisonOperator === "<"
-            ? ([">=", true] as const)
-            : ([comparisonOperator, false] as const);
-    return {
-      kind: "expression",
-      expression: `${baseOperator}(${left},${right})`,
-      operator: "&&",
-      operands: [],
-      names,
-      versions: names.map(() => 0),
-      negated,
-      opaque: true
-    };
-  }
-
-  private static _unwrapConditionParentheses(expression: string): string {
-    let source = expression;
-    while (source.startsWith("(") && source.endsWith(")")) {
-      let depth = 0;
-      let wrapsAll = true;
-      for (let i = 0; i < source.length; i++) {
-        if (source[i] === "(") depth++;
-        else if (source[i] === ")") depth--;
-        if (depth === 0 && i < source.length - 1) {
-          wrapsAll = false;
-          break;
-        }
-        if (depth < 0) return source;
-      }
-      if (!wrapsAll || depth !== 0) break;
-      source = source.slice(1, -1).trim();
-    }
-    return source;
   }
 
   private _toBranchCondition(condition: PreprocessorCondition): BranchCondition {

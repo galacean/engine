@@ -25,7 +25,7 @@ function makeMacroMap(entries: Array<[string, string]>): Map<string, string> {
 describe("ShaderCompiler Precompile", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas, shaderCompiler });
-  const PBRSource = await readFile("packages/shader/src/Shaders/PBR.shader");
+  const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
 
   // ─────────────────────────────────────────────────────────
   // 1. JSON Serialization round-trip
@@ -881,7 +881,7 @@ describe("ShaderCompiler Precompile", async () => {
     // Note: This first test is a self-check (idempotency) — it verifies that calling
     // evaluateShaderInstructions twice with the same inputs produces identical output.
     it("evaluateShaderInstructions is deterministic (same input → same output)", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const macroCombinations: Array<Array<[string, string]>> = [
@@ -904,7 +904,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("evaluateShaderInstructions output survives JSON round-trip of instructions", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const subShader of precompiled.subShaders) {
@@ -988,7 +988,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("simple shader (noFragArgs) → instructions should be single TEXT", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const subShader of precompiled.subShaders) {
@@ -1004,7 +1004,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("macro-heavy shader → instructions with conditionals", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let foundMacroPass = false;
@@ -1023,7 +1023,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("multi-pass shader → renderStates have constantMap entries (BlendState)", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let hasConstant = false;
@@ -1038,7 +1038,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("multi-pass shader → UsePass correctly flagged", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const allPasses = precompiled.subShaders.flatMap((s) => s.passes);
@@ -1066,7 +1066,7 @@ describe("ShaderCompiler Precompile", async () => {
     // Hammersley `radicalInverse_VdC` bit twiddle (from
     // `galacean-tools/baker/IBLBaker.shader`) so `<<`/`>>` are covered too.
     it("preserves every GLSL ES 3.00 numeric literal form", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/numeric-literals.shader");
+      const source = await readFile("src/shader-compiler/shaders/numeric-literals.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
       const pass = precompiled.subShaders[0].passes[0];
       const text = [
@@ -1114,7 +1114,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     // Complex object-like macro values must retain their referenced uniforms.
     it("emits object-like Define instructions and uniforms for complex macro values", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-value-refs.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-value-refs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
 
@@ -1158,7 +1158,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     // Comment text inside `#define` values is not an identifier reference.
     it("does not collect identifiers from comments inside #define values", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-value-refs-with-comments.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-value-refs-with-comments.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
       const fragText = fragInstr
@@ -1181,7 +1181,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("subShader tags are preserved", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const sub = precompiled.subShaders[0];
@@ -1190,7 +1190,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("pass tags are preserved", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const pass = precompiled.subShaders[0].passes[0];
@@ -1208,7 +1208,7 @@ describe("ShaderCompiler Precompile", async () => {
   describe("MacroCallFunction calleeKind-aware arg filtering", () => {
     let evaluated: string;
     beforeAll(async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-as-type-args.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-as-type-args.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const vi = precompiled.subShaders[0].passes[0].vertexShaderInstructions ?? [];
       evaluated = ShaderMacroProcessor.evaluate(vi as any, new Map());
@@ -1261,7 +1261,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("platformTarget is set on each ShaderPass", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PlatformTarget" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1277,7 +1277,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("_vertexShaderInstructions / _fragmentShaderInstructions are set correctly", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1295,7 +1295,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("_vertexShaderInstructions populated for macro-heavy shader", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1317,7 +1317,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("SubShader tags are preserved after _createFromPrecompiled", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_Tags" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1329,7 +1329,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("ShaderPass tags are preserved after _createFromPrecompiled", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PassTags" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1353,7 +1353,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("UsePass in multi-pass shader is handled without throwing", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMultiPass_CFP_UsePass" };
 
@@ -1377,7 +1377,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     for (const shaderFile of testShaders) {
       it(`${shaderFile}: precompile output matches live compilation`, async () => {
-        const source = await readFile(`tests/src/shader-compiler/shaders/${shaderFile}`);
+        const source = await readFile(`src/shader-compiler/shaders/${shaderFile}`);
         const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
         const liveSource = shaderCompiler._parseShaderSource(source);
 
@@ -1404,7 +1404,7 @@ describe("ShaderCompiler Precompile", async () => {
     }
 
     it("GLSLES300 precompile output matches GLSLES300 live compilation", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
       const liveSource = shaderCompiler._parseShaderSource(source);
 
@@ -1455,7 +1455,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("evaluateShaderInstructions is fast on macro-heavy shader", async () => {
-      const source = await readFile("tests/src/shader-compiler/shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let fragmentShaderInstructions: ShaderInstruction[] | undefined;

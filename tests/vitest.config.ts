@@ -1,7 +1,9 @@
-import { configDefaults, defineProject } from "vitest/config";
+import { defineProject } from "vitest/config";
 import type {} from "@vitest/browser/providers/playwright";
+import { fileURLToPath } from "node:url";
 
 export default defineProject({
+  root: fileURLToPath(new URL(".", import.meta.url)),
   server: {
     port: 51204
   },
@@ -24,7 +26,7 @@ export default defineProject({
     ]
   },
   test: {
-    exclude: [...configDefaults.exclude, "e2e/**", "tests/package-consumer/**"],
+    include: ["src/**/*.test.ts"],
     browser: {
       provider: "playwright",
       enabled: true,
