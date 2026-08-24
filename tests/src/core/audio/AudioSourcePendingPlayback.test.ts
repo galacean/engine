@@ -2,6 +2,30 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AudioManager, AudioSource } from "@galacean/engine-core/src/audio";
 
 const originalAudioContext = window.AudioContext;
+let restoreUserActivation: (() => void) | null = null;
+
+function mockUserActivation(initialActive: boolean): { set(active: boolean): void } {
+  restoreUserActivation?.();
+  const ownDescriptor = Object.getOwnPropertyDescriptor(navigator, "userActivation");
+  let active = initialActive;
+  Object.defineProperty(navigator, "userActivation", {
+    configurable: true,
+    get: () => ({ hasBeenActive: active, isActive: active })
+  });
+  restoreUserActivation = () => {
+    if (ownDescriptor) {
+      Object.defineProperty(navigator, "userActivation", ownDescriptor);
+    } else {
+      delete (navigator as any).userActivation;
+    }
+    restoreUserActivation = null;
+  };
+  return {
+    set(value: boolean) {
+      active = value;
+    }
+  };
+}
 
 class MockGainNode {
   gain = {
@@ -143,6 +167,7 @@ function mockDocumentHidden(initialHidden: boolean): { set(hidden: boolean): voi
 describe("AudioSource playback lifecycle", () => {
   beforeEach(() => {
     resetAudioManagerState();
+    mockUserActivation(false);
     (window as any).AudioContext = MockAudioContext;
     MockAudioContext.shouldResumeSucceed = true;
     MockAudioContext.shouldSuspendSucceed = true;
@@ -152,6 +177,7 @@ describe("AudioSource playback lifecycle", () => {
   afterEach(async () => {
     await flushAsync();
     resetAudioManagerState();
+    restoreUserActivation?.();
     (window as any).AudioContext = originalAudioContext;
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -235,7 +261,7 @@ describe("AudioSource playback lifecycle", () => {
     // (c) pending play -> noop
     audioSource.stop();
     context.state = "suspended";
-    (audioSource as any)._pendingPlay = true;
+    (audioSource as any)._pendingPlay = Promise.resolve();
     audioSource.play();
     expect(audioSource.isPlaying).to.be.false;
   });
@@ -254,7 +280,7 @@ describe("AudioSource playback lifecycle", () => {
     await flushAsync();
 
     expect(audioSource.isPlaying).to.be.false;
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
     expect(ctxSuspendSpy).not.toHaveBeenCalled();
     expect(managerSuspendSpy).not.toHaveBeenCalled();
   });
@@ -268,7 +294,7 @@ describe("AudioSource playback lifecycle", () => {
     const documentHidden = mockDocumentHidden(true);
     audioSource.play();
     expect(audioSource.isPlaying).to.be.false;
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
 
     documentHidden.set(false);
     document.dispatchEvent(new Event("visibilitychange"));
@@ -277,7 +303,7 @@ describe("AudioSource playback lifecycle", () => {
     documentHidden.restore();
 
     expect(audioSource.isPlaying).to.be.false;
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
   });
 
   it("replays the pending play on the resume it triggered", async () => {
@@ -287,12 +313,12 @@ describe("AudioSource playback lifecycle", () => {
     context.state = "suspended";
 
     audioSource.play();
-    expect((audioSource as any)._pendingPlay).to.be.true;
+    expect((audioSource as any)._pendingPlay).to.not.be.null;
 
     await flushAsync();
     documentHidden.restore();
 
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
     expect(audioSource.isPlaying).to.be.true;
   });
 
@@ -308,10 +334,11 @@ describe("AudioSource playback lifecycle", () => {
     audioSource.play();
     await flushAsync();
 
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
     expect(audioSource.isPlaying).to.be.false;
 
     MockAudioContext.shouldResumeSucceed = true;
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click"));
     await flushAsync();
 
@@ -340,17 +367,18 @@ describe("AudioSource playback lifecycle", () => {
     opening.play();
     const coldStartResumePromise = (AudioManager as any)._resumePromise;
     expect(resumeSpy).toHaveBeenCalledTimes(1);
-    expect((opening as any)._pendingPlay).to.be.true;
+    expect((opening as any)._pendingPlay).to.not.be.null;
 
     const canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
     canvas.addEventListener("touchend", () => bgm.play(), { capture: true, passive: true, once: true });
+    mockUserActivation(true);
     canvas.dispatchEvent(new Event("touchend", { bubbles: true }));
 
     const gestureResumePromise = (AudioManager as any)._resumePromise;
     expect(resumeSpy).toHaveBeenCalledTimes(2);
     expect(gestureResumePromise).not.toBe(coldStartResumePromise);
-    expect((bgm as any)._pendingPlay).to.be.true;
+    expect((bgm as any)._pendingPlay).to.not.be.null;
 
     // Repeated events coalesce once a gesture-originated attempt is active
     document.dispatchEvent(new Event("click"));
@@ -362,19 +390,69 @@ describe("AudioSource playback lifecycle", () => {
     await coldStartResumePromise;
     await flushAsync();
     expect((AudioManager as any)._resumePromise).toBe(gestureResumePromise);
-    expect((opening as any)._pendingPlay).to.be.false;
+    expect((opening as any)._pendingPlay).to.be.null;
     expect(opening.isPlaying).to.be.false;
     expect(bgm.isPlaying).to.be.false;
 
     resolveGestureResume!();
     await gestureResumePromise;
     await flushAsync();
-    expect((bgm as any)._pendingPlay).to.be.false;
+    expect((bgm as any)._pendingPlay).to.be.null;
     expect(bgm.isPlaying).to.be.true;
     expect(opening.isPlaying).to.be.false;
     canvas.remove();
 
     expect((AudioManager as any)._resumePromise).to.be.null;
+  });
+
+  it("keeps a restarted play pending when the superseded resume settles", async () => {
+    const audioSource = createAudioSource();
+    const documentHidden = mockDocumentHidden(false);
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "suspended";
+
+    let resolveColdStartResume: () => void;
+    let resolveGestureResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveColdStartResume = resolve;
+      }),
+      new Promise<void>((resolve) => {
+        resolveGestureResume = resolve;
+      })
+    ];
+
+    audioSource.play();
+    const coldStartResumePromise = (AudioManager as any)._resumePromise;
+
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    canvas.addEventListener(
+      "touchend",
+      () => {
+        audioSource.stop();
+        audioSource.play();
+      },
+      { capture: true, passive: true, once: true }
+    );
+    mockUserActivation(true);
+    canvas.dispatchEvent(new Event("touchend", { bubbles: true }));
+
+    const gestureResumePromise = (AudioManager as any)._resumePromise;
+    expect(gestureResumePromise).not.toBe(coldStartResumePromise);
+
+    resolveColdStartResume!();
+    await coldStartResumePromise;
+    await flushAsync();
+    expect(audioSource.isPlaying).to.be.false;
+
+    resolveGestureResume!();
+    await gestureResumePromise;
+    await flushAsync();
+    documentHidden.restore();
+    canvas.remove();
+
+    expect(audioSource.isPlaying).to.be.true;
   });
 
   it("cancels a one-shot pending play before resume resolves", async () => {
@@ -391,10 +469,10 @@ describe("AudioSource playback lifecycle", () => {
     ];
 
     audioSource.play();
-    expect((audioSource as any)._pendingPlay).to.be.true;
+    expect((audioSource as any)._pendingPlay).to.not.be.null;
 
     audioSource.stop();
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
 
     resolveResume!();
     await flushAsync();
@@ -417,10 +495,11 @@ describe("AudioSource playback lifecycle", () => {
     audioSource.play();
     await flushAsync();
 
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
 
     MockAudioContext.shouldResumeSucceed = true;
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click"));
     await flushAsync();
 
@@ -463,6 +542,51 @@ describe("AudioSource playback lifecycle", () => {
     expect(resumeSpy).toHaveBeenCalledTimes(2);
   });
 
+  it("ignores synthetic gesture events while allowing an activated resume to supersede", async () => {
+    createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "suspended";
+
+    let resolveProgrammaticResume: () => void;
+    let resolveGestureResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveProgrammaticResume = resolve;
+      }),
+      new Promise<void>((resolve) => {
+        resolveGestureResume = resolve;
+      })
+    ];
+    const resumeSpy = vi.spyOn(context, "resume");
+    const userActivation = mockUserActivation(false);
+
+    const programmaticResumePromise = AudioManager.resume();
+    document.dispatchEvent(new Event("click"));
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._resumePromise).toBe(programmaticResumePromise);
+    expect((AudioManager as any)._resumeAttemptFromUserGesture).to.be.false;
+
+    userActivation.set(true);
+    const gestureResumePromise = AudioManager.resume();
+    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect(gestureResumePromise).not.toBe(programmaticResumePromise);
+    expect((AudioManager as any)._resumeAttemptFromUserGesture).to.be.true;
+
+    document.dispatchEvent(new Event("click"));
+    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect((AudioManager as any)._resumePromise).toBe(gestureResumePromise);
+
+    resolveProgrammaticResume!();
+    await programmaticResumePromise;
+    await flushAsync();
+    expect((AudioManager as any)._resumePromise).toBe(gestureResumePromise);
+
+    resolveGestureResume!();
+    await gestureResumePromise;
+    await flushAsync();
+    expect((AudioManager as any)._resumePromise).to.be.null;
+  });
+
   it("does not auto-resume a caller-controlled suspend on a later gesture", async () => {
     createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
@@ -472,6 +596,7 @@ describe("AudioSource playback lifecycle", () => {
     await AudioManager.suspend();
     await flushAsync();
 
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click"));
     document.dispatchEvent(new Event("touchend"));
     await flushAsync();
@@ -617,6 +742,7 @@ describe("AudioSource playback lifecycle", () => {
     vi.useRealTimers();
     MockAudioContext.resumeResultQueue = null;
     MockAudioContext.shouldResumeSucceed = true;
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click"));
     await flushAsync();
     documentHidden.restore();
@@ -665,6 +791,7 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._recovering).to.be.true;
 
     const resumeSpy = vi.spyOn(context, "resume");
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click")); // gesture inside the 100ms window
     await flushAsync();
     expect(resumeSpy).not.toHaveBeenCalled(); // gesture did NOT resume (recovery owns it)
@@ -709,6 +836,7 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._recovering).to.be.false;
     expect((AudioManager as any)._resumeAttemptFromUserGesture).to.be.false;
 
+    mockUserActivation(true);
     document.dispatchEvent(new Event("click"));
     const gestureResumePromise = (AudioManager as any)._resumePromise;
     expect(resumeSpy).toHaveBeenCalledTimes(2);
@@ -726,6 +854,7 @@ describe("AudioSource playback lifecycle", () => {
     await recoveryResumePromise;
     await flushAsync();
     expect((AudioManager as any)._resumePromise).toBe(gestureResumePromise);
+    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
 
     resolveGestureResume!();
     await gestureResumePromise;
@@ -794,7 +923,7 @@ describe("AudioSource playback lifecycle", () => {
     expect((audioSource as any)._pausedTime).to.equal(-1);
     expect((audioSource as any)._playTime).to.equal(-1);
     expect((AudioManager as any)._playingCount).to.equal(playingCount2 - 1);
-    expect((audioSource as any)._pendingPlay).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.null;
   });
 
   // stop() from a PAUSED state must reset the offset so the next play() starts from 0, not the pause point

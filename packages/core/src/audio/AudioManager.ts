@@ -38,7 +38,7 @@ export class AudioManager {
    */
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
-    return AudioManager._resumePromise ?? AudioManager._startResume(false);
+    return AudioManager._requestResume(navigator.userActivation?.isActive === true);
   }
 
   /**
@@ -79,11 +79,20 @@ export class AudioManager {
     return AudioManager.getContext().state === "running";
   }
 
+  private static _requestResume(fromUserGesture: boolean): Promise<void> {
+    const resumePromise = AudioManager._resumePromise;
+    return resumePromise && (!fromUserGesture || AudioManager._resumeAttemptFromUserGesture)
+      ? resumePromise
+      : AudioManager._startResume(fromUserGesture);
+  }
+
   private static _startResume(fromUserGesture: boolean): Promise<void> {
     const resumePromise = AudioManager.getContext()
       .resume()
       .then(() => {
-        AudioManager._needsUserGestureResume = false;
+        if (AudioManager._resumePromise === resumePromise) {
+          AudioManager._needsUserGestureResume = false;
+        }
       })
       .finally(() => {
         if (AudioManager._resumePromise === resumePromise) {
@@ -144,7 +153,12 @@ export class AudioManager {
     }
   }
 
-  private static _onUserGesture(): void {
+  private static _onUserGesture(event: Event): void {
+    // Ignore synthetic events unless a real user activation is already active
+    if (!event.isTrusted && !navigator.userActivation?.isActive) {
+      return;
+    }
+
     // _recovering: don't bypass the 100ms delay (would resume on a still-interrupted context)
     if (AudioManager._recovering || AudioManager._suspendedByCaller) {
       return;
@@ -159,12 +173,8 @@ export class AudioManager {
       return;
     }
 
-    // A trusted gesture may supersede a pending programmatic attempt, while repeated
-    // events coalesce with the active gesture attempt
-    const resumePromise =
-      AudioManager._resumePromise && AudioManager._resumeAttemptFromUserGesture
-        ? AudioManager._resumePromise
-        : AudioManager._startResume(true);
+    // A real gesture may supersede a pending programmatic attempt, while repeated events coalesce
+    const resumePromise = AudioManager._requestResume(true);
     resumePromise.catch((e) => {
       console.warn("Failed to resume AudioContext:", e);
     });
