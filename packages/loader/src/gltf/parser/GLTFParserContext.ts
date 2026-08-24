@@ -39,6 +39,7 @@ export class GLTFParserContext {
   _getPromises: AssetPromise<unknown>[] = [];
 
   private _resourceCache = new Map<string, any>();
+  private readonly _remoteAssetBaseURL: string;
   private _progress = {
     taskDetail: {},
     taskComplete: { loaded: 0, total: 0 }
@@ -54,6 +55,8 @@ export class GLTFParserContext {
     public resourceManager: ResourceManager,
     public params: GLTFParams
   ) {
+    // @ts-expect-error -- internal method is omitted from public declarations
+    this._remoteAssetBaseURL = resourceManager._getRemoteUrl(glTFResource.url);
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }
 
@@ -177,7 +180,7 @@ export class GLTFParserContext {
     if (type === GLTFParserType.Entity) {
       (this.glTFResource[glTFResourceKey] ||= [])[index] = <Entity>resource;
     } else {
-      const url = this.glTFResource.url;
+      const remoteAssetBaseURL = this._remoteAssetBaseURL;
 
       (<AssetPromise<T>>resource)
         .then((item: T) => {
@@ -191,19 +194,23 @@ export class GLTFParserContext {
             for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
               const mesh = item[i] as ModelMesh;
               // @ts-ignore
-              this.resourceManager._onSubAssetSuccess<ModelMesh>(url, `${glTFResourceKey}[${index}][${i}]`, mesh);
+              this.resourceManager._onSubAssetSuccess<ModelMesh>(
+                remoteAssetBaseURL,
+                `${glTFResourceKey}[${index}][${i}]`,
+                mesh
+              );
             }
           } else {
             // @ts-ignore
             this.resourceManager._onSubAssetSuccess<T>(
-              url,
+              remoteAssetBaseURL,
               `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
               item
             );
 
             if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
               // @ts-ignore
-              this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
+              this.resourceManager._onSubAssetSuccess<Entity>(remoteAssetBaseURL, `defaultSceneRoot`, item as Entity);
             }
           }
         })

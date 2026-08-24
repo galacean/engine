@@ -16,10 +16,12 @@ import {
 class RenderTargetLoader extends Loader<RenderTarget> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<RenderTarget> {
     const { engine } = resourceManager;
+    // @ts-expect-error -- internal method is omitted from public declarations
+    const remoteAssetBaseURL = resourceManager._getRemoteUrl(item.url);
     return (
       resourceManager
         // @ts-ignore
-        ._request<IRenderTargetData>(item.url, {
+        ._requestByRemoteUrl<IRenderTargetData>(remoteAssetBaseURL, {
           ...item,
           type: "json"
         })
@@ -48,7 +50,7 @@ class RenderTargetLoader extends Loader<RenderTarget> {
           // Notify pending sub-asset requests for colorTextures
           for (let i = 0, n = colorTextures.length; i < n; i++) {
             // @ts-ignore
-            resourceManager._onSubAssetSuccess(item.url, `colorTextures[${i}]`, colorTextures[i]);
+            resourceManager._onSubAssetSuccess(remoteAssetBaseURL, `colorTextures[${i}]`, colorTextures[i]);
           }
 
           return rt;
