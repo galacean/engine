@@ -192,7 +192,7 @@ describe("Transform test", function () {
     );
   });
 
-  it("keeps the Transform slot unique while destruction is deferred", () => {
+  it("keeps a single Transform while destruction is deferred", () => {
     const deferredEntity = new Entity(engine, "deferred-transform");
     const previous = deferredEntity.transform;
     let replacement: SubClassOfTransform;
@@ -217,13 +217,12 @@ describe("Transform test", function () {
     expect(transforms).to.deep.equal([replacement]);
   });
 
-  it("rolls back Transform replacement when a dependency prevents it", () => {
+  it("rejects Transform replacement before construction when a dependency prevents it", () => {
     const dependentEntity = new Entity(engine, "dependent-transform", SubClassOfTransform);
     const previous = dependentEntity.transform;
     dependentEntity.addComponent(RequiresSubClassOfTransform);
-    RejectedReplacementTransform.constructionCount = 0;
 
-    expect(() => dependentEntity.addComponent(RejectedReplacementTransform)).to.throw(
+    expect(() => dependentEntity.addComponent(ThrowingReplacementTransform)).to.throw(
       "Should remove RequiresSubClassOfTransform before remove SubClassOfTransform"
     );
     const transforms: Transform[] = [];
@@ -231,7 +230,6 @@ describe("Transform test", function () {
     expect(dependentEntity.transform).to.equal(previous);
     expect(transforms).to.deep.equal([previous]);
     expect(dependentEntity._components[0]).to.equal(previous);
-    expect(RejectedReplacementTransform.constructionCount).to.equal(0);
   });
 
   it("keeps the previous Transform when replacement construction fails", () => {
@@ -361,15 +359,6 @@ class RequiresSubClassOfTransform extends Script {}
 
 @dependentComponents(MeshRenderer, DependentMode.CheckOnly)
 class InvalidDependentTransform extends Transform {}
-
-class RejectedReplacementTransform extends Transform {
-  static constructionCount = 0;
-
-  constructor(entity: Entity) {
-    super(entity);
-    RejectedReplacementTransform.constructionCount++;
-  }
-}
 
 class ThrowingReplacementTransform extends Transform {
   constructor(entity: Entity) {

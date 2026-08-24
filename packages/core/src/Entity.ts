@@ -257,7 +257,7 @@ export class Entity extends EngineObject {
       }
     }
 
-    // Transform is the root component and always occupies slot 0.
+    // Install the final Transform before the remaining components.
     Entity._checkTransformType(transformType);
     const transform = <Transform>new transformType(this);
     this._components.push(transform);
@@ -280,14 +280,20 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    if (Entity._isTransformType(type)) {
+    const isTransform = Entity._isTransformType(type);
+    if (isTransform) {
       Entity._checkTransformType(type);
-      return this._replaceTransform(type, args);
+      ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
+    } else {
+      ComponentsDependencies._addCheck(this, type);
     }
 
-    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
-    this._components.push(component);
+    if (isTransform) {
+      this._replaceTransform(<Transform>component);
+    } else {
+      this._components.push(component);
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -795,22 +801,13 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _replaceTransform<T extends ComponentConstructor>(type: T, args: ComponentArguments<T>): InstanceType<T> {
+  private _replaceTransform(replacement: Transform): void {
     const previous = this._transform;
-    const components = this._components;
-    if (components[0] !== previous) {
-      throw "The Entity Transform must be stored at component slot 0";
-    }
-
-    // Validate before construction so a rejected replacement cannot leave side effects.
-    ComponentsDependencies._removeCheck(this, <ComponentConstructor>previous.constructor, type);
-
-    const replacement = <InstanceType<T> & Transform>new type(this, ...args);
     replacement.position.copyFrom(previous.position);
     replacement.rotation.copyFrom(previous.rotation);
     replacement.scale.copyFrom(previous.scale);
 
-    components[0] = replacement;
+    this._components[0] = replacement;
     this._transform = replacement;
     previous.destroy();
 
@@ -818,9 +815,6 @@ export class Entity extends EngineObject {
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform?._parentChange();
     }
-
-    replacement._setActive(true, ActiveChangeFlag.All);
-    return replacement;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
