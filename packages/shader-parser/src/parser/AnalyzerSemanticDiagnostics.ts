@@ -1,28 +1,29 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
-import type { BranchCoverage, DeclarationCoexistence } from "../common/BaseToken";
+import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { TypeSystem } from "./TypeSystem";
 import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagnostics";
 
-class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
-  constructor(private readonly _source: string) {}
+class ParserSemanticDiagnostics implements SemanticDiagnostics {
+  constructor(
+    private _source: string,
+    private readonly _includeAnalyzerDiagnostics: boolean
+  ) {}
+
+  setSource(source: string): void {
+    this._source = source;
+  }
 
   redefinition(
     location: ShaderRange,
     name: string,
-    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none"
+    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none",
+    branch: BranchSignature
   ): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics && branch.length === 0) return;
     if (conflict === "coexist") {
       return this._create(`Redefinition of '${name}'.`, location, "Redefinition");
-    }
-    if (conflict === "unknown") {
-      return this._create(
-        `Declaration '${name}' may overlap another macro-guarded declaration; align their branch conditions.`,
-        location,
-        "Redefinition",
-        true
-      );
     }
   }
 
@@ -32,23 +33,18 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
     name: string,
     coverage: BranchCoverage
   ): Error | undefined {
-    if (coverage === "covered") return;
+    if (!this._includeAnalyzerDiagnostics) return;
+    if (coverage !== "uncovered") return;
     const subject = `${subjectKind} '${name}'`;
-    return coverage === "uncovered"
-      ? this._create(
-          `${subject} is unavailable under at least one macro configuration reaching this reference.`,
-          location,
-          "UseBeforeDeclaration"
-        )
-      : this._create(
-          `${subject} may be unavailable under some macro configurations; align its declaration and reference conditions.`,
-          location,
-          "UseBeforeDeclaration",
-          true
-        );
+    return this._create(
+      `${subject} is unavailable under at least one macro configuration reaching this reference.`,
+      location,
+      "UseBeforeDeclaration"
+    );
   }
 
-  branchAmbiguity(location: ShaderRange, kind: SemanticAmbiguityKind, name: string, owner?: string): Error {
+  branchAmbiguity(location: ShaderRange, kind: SemanticAmbiguityKind, name: string, owner?: string): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     switch (kind) {
       case "const-qualification":
         return this._create(
@@ -79,11 +75,13 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
     }
   }
 
-  nonConstArraySize(location: ShaderRange): Error {
+  nonConstArraySize(location: ShaderRange): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create("Array size must be a constant expression.", location, "NonConstArraySize");
   }
 
-  expectedSampler(location: ShaderRange, functionName: string, actualType: GalaceanDataType): Error {
+  expectedSampler(location: ShaderRange, functionName: string, actualType: GalaceanDataType): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(
       `'${functionName}' expects a sampler as its first argument, got '${TypeSystem.typeName(actualType)}'.`,
       location,
@@ -91,11 +89,13 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
     );
   }
 
-  noMatchingOverload(location: ShaderRange, functionName: string): Error {
+  noMatchingOverload(location: ShaderRange, functionName: string): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(`No overload function type found: ${functionName}`, location, "NoMatchingOverload");
   }
 
-  undefinedFunction(location: ShaderRange, functionName: string): Error {
+  undefinedFunction(location: ShaderRange, functionName: string): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(
       `Undefined function '${functionName}' — ensure it is provided at runtime as a macro.`,
       location,
@@ -104,11 +104,13 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
     );
   }
 
-  undeclaredStructMember(location: ShaderRange, structName: string, memberName: string): Error {
+  undeclaredStructMember(location: ShaderRange, structName: string, memberName: string): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(`'${memberName}' : no such field in '${structName}'`, location, "UndeclaredStructMember");
   }
 
-  unknownVariable(location: ShaderRange, name: string): Error {
+  unknownVariable(location: ShaderRange, name: string): Error | undefined {
+    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(
       `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
       location,
@@ -135,5 +137,15 @@ class AnalyzerSemanticDiagnostics implements SemanticDiagnostics {
  * @internal
  */
 export function createAnalyzerSemanticDiagnostics(source: string): SemanticDiagnostics {
-  return new AnalyzerSemanticDiagnostics(source);
+  return new ParserSemanticDiagnostics(source, true);
+}
+
+/**
+ * Creates proven macro-declaration diagnostics that are safe to block offline generation.
+ * @param source - Expanded pass source attached to parser diagnostics.
+ * @returns Compiler semantic diagnostics for one parser session.
+ * @internal
+ */
+export function createCompilerSemanticDiagnostics(source: string): SemanticDiagnostics {
+  return new ParserSemanticDiagnostics(source, false);
 }

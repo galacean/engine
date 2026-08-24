@@ -237,7 +237,7 @@ float u_value;
   });
 
   it.each([["compound and atomic", "MODE == 1 || MODE == 2", "MODE == 2"]])(
-    "warns when overlap cannot be proven for %s",
+    "stays silent when overlap cannot be proven for %s",
     (_name, first, second) => {
       const diagnostics = redefinitions(
         shader(`#if ${first}
@@ -247,8 +247,7 @@ float u_value;
 float u_value;
 #endif`)
       );
-      expect(diagnostics).to.have.lengthOf(1);
-      expect(diagnostics[0].severity).to.equal("warning");
+      expect(diagnostics).to.be.empty;
     }
   );
 
@@ -264,7 +263,7 @@ float u_value;
     expect(diagnostics).to.be.empty;
   });
 
-  it("does not treat comparisons inside a disjunction as complementary", () => {
+  it("does not guess whether comparisons inside a disjunction overlap", () => {
     const diagnostics = redefinitions(
       shader(`#if A + B > 1 || C
 float u_value;
@@ -273,8 +272,7 @@ float u_value;
 float u_value;
 #endif`)
     );
-    expect(diagnostics).to.have.lengthOf(1);
-    expect(diagnostics[0].severity).to.equal("warning");
+    expect(diagnostics).to.be.empty;
   });
 
   it("silences repeated canonical include guards", () => {

@@ -33,9 +33,7 @@
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*"
-  },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
   }
 }

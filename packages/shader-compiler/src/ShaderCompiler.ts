@@ -6,8 +6,12 @@ import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-
 import { ShaderCoreInfo } from "@galacean/engine-shader-parser/internal";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import {
+  GSError,
+  ParserObjectPool,
+  createRuntimeShaderTargetParser,
+  createValidatedShaderTargetParser,
   parseRuntimeShaderPass,
-  formatParsedShaderError,
+  parseValidatedShaderPass,
   type ParsedShaderPass,
   type ShaderClueIR,
   type IncludeMap,
@@ -33,6 +37,9 @@ class ShaderSourceParseError extends Error {
 export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
+  private readonly _parserObjectPool = new ParserObjectPool();
+  private readonly _runtimeParser = createRuntimeShaderTargetParser(this._parserObjectPool);
+  private readonly _validatedParser = createValidatedShaderTargetParser(this._parserObjectPool);
 
   /**
    * Replaces the `#include` lookup table and clears the derived chunk cache.
@@ -64,17 +71,25 @@ export class ShaderCompiler {
     backend: ShaderLanguage,
     sourceFile?: string
   ): IShaderProgramSource | undefined {
-    const parsed = parseRuntimeShaderPass(source, this._includeMap, this._chunkOutputCache, sourceFile);
+    const parsed = parseRuntimeShaderPass(
+      source,
+      this._includeMap,
+      this._chunkOutputCache,
+      sourceFile,
+      this._parserObjectPool,
+      this._runtimeParser,
+      false
+    );
     return this._generateParsedShaderPass(parsed, vertexEntry, fragmentEntry, backend);
   }
 
   /**
-   * Generates GLES source from an existing parser result without mutating it.
-   * @param parsed - Parsed pass produced by the runtime or analyzer parser entry.
+   * Generates backend source from an existing immutable parser result.
+   * @param parsed - Parser result produced for the same shader pass.
    * @param vertexEntry - Vertex entry function name.
    * @param fragmentEntry - Fragment entry function name.
-   * @param backend - GLES language version to generate.
-   * @returns Generated and encoded stage source, or `undefined` when the pass cannot be generated.
+   * @param backend - Target GLES language version.
+   * @returns Generated stage source, or `undefined` when parsing or entry validation failed.
    * @internal
    */
   _generateParsedShaderPass(
@@ -132,12 +147,19 @@ export class ShaderCompiler {
           };
         }
 
-        const parsedPass = parseRuntimeShaderPass(pass.contents, this._includeMap, this._chunkOutputCache, sourceFile);
+        const parsedPass = parseValidatedShaderPass(
+          pass.contents,
+          this._includeMap,
+          this._chunkOutputCache,
+          sourceFile,
+          this._parserObjectPool,
+          this._validatedParser
+        );
         if (parsedPass.blockingErrors.length) {
           throw new Error(
             [
               `Shader pass "${shaderSource.name}.${sub.name}.${pass.name}" precompile failed:`,
-              ...parsedPass.blockingErrors.map((error) => formatParsedShaderError(error, parsedPass))
+              ...parsedPass.blockingErrors.map(formatShaderError)
             ].join("\n")
           );
         }
@@ -199,4 +221,9 @@ export class ShaderCompiler {
       variableMap: renderStates.variableMap
     };
   }
+}
+
+function formatShaderError(error: Error): string {
+  const text = error.toString();
+  return error instanceof GSError && error.file ? `${error.file}: ${text}` : text;
 }

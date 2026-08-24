@@ -1,6 +1,6 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
+import type { ParserObjectPool } from "../ParserObjectPool";
 
 /**
  * One condition in a branch signature: `defined: true` for `#ifdef X` (the
@@ -100,6 +100,9 @@ export class BaseToken<T extends number = number> {
   branch: BranchSignature = EMPTY_BRANCH;
   inMacroDefinition = false;
 
+  /** @internal */
+  constructor(private readonly _objectPool?: ParserObjectPool) {}
+
   set(type: T, lexeme: string, start?: ShaderPosition);
   set(type: T, lexeme: string, location?: ShaderRange);
   set(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
@@ -111,11 +114,25 @@ export class BaseToken<T extends number = number> {
       if (arg instanceof ShaderRange) {
         this.location = arg as ShaderRange;
       } else {
-        const end = ShaderCompilerUtils.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
-        this.location = ShaderCompilerUtils.createRange(arg, end);
+        const end = this._objectPool
+          ? this._objectPool.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length)
+          : createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
+        this.location = this._objectPool ? this._objectPool.createRange(arg, end) : createRange(arg, end);
       }
     }
   }
+}
+
+function createPosition(index: number, line: number, column: number): ShaderPosition {
+  const position = new ShaderPosition();
+  position.set(index, line, column);
+  return position;
+}
+
+function createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
+  const range = new ShaderRange();
+  range.set(start, end);
+  return range;
 }
 
 export const EOF = new BaseToken();

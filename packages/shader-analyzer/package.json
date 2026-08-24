@@ -33,9 +33,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@galacean/engine-design": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*"
-  },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
   }
 }

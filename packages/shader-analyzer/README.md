@@ -16,7 +16,7 @@ const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
 const hasErrors = diagnostics.some(({ severity }) => severity === DiagnosticSeverity.Error);
 ```
 
-`sourceFile` is optional. Supply it only when the complete root Shader uses relative includes or when an editor needs stable source attribution:
+`sourceFile` is optional metadata, not a requirement for analysis. Without it, `./Common.glsl` resolves from the logical include-registry root. Supply it when relative includes should resolve from a logical subdirectory or when an editor needs stable source attribution:
 
 ```ts
 const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
@@ -49,7 +49,13 @@ npm install --offline \
   ./galacean-engine-shader-analyzer-*.tgz
 ```
 
-Analyze a file and resolve `#include` paths from a shader directory:
+Analyze a file. Without `--include-root`, includes resolve from the input file's directory:
+
+```sh
+galacean-shader-analyzer Assets/Shaders/PBR.shader
+```
+
+Use `--include-root` when project-root include keys must resolve from a broader shader directory:
 
 ```sh
 galacean-shader-analyzer --include-root Assets/Shaders Assets/Shaders/PBR.shader

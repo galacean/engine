@@ -63,6 +63,61 @@ function compileInWebGL(vertex: string, fragment: string): DriverResult | "no-we
 }
 
 describe("macro branch runtime", () => {
+  it("blocks the same proven redefinition in analyzer and codegen", () => {
+    const source = shader(
+      `#ifdef FIRST_SOURCE
+float u_conflict;
+#endif
+#ifdef SECOND_SOURCE
+float u_conflict;
+#endif`,
+      "gl_FragColor = vec4(u_conflict);"
+    );
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
+
+    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+  });
+
+  it("keeps unresolved overlap silent while concrete codegen remains authoritative", () => {
+    const source = shader(
+      `#if MODE == 1 || MODE == 2
+float u_conflict;
+#endif
+#if MODE == 2
+float u_conflict;
+#endif`,
+      "gl_FragColor = vec4(u_conflict);"
+    );
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("Redefinition");
+
+    const precompiled = new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100);
+    const generated = precompiled.subShaders[0].passes[0];
+    const macros = new Map([["MODE", "2"]]);
+    const vertex = ShaderMacroProcessor.evaluate(generated.vertexShaderInstructions!, macros);
+    const fragment = ShaderMacroProcessor.evaluate(generated.fragmentShaderInstructions!, macros);
+    const driver = compileInWebGL(vertex, fragment);
+    if (driver !== "no-webgl") expect(driver.ok, driver.fragmentLog).to.equal(false);
+  });
+
+  it("reports a deterministic 32-bit overflow consistently in analyzer and offline codegen", () => {
+    const source = shader(
+      `#define VALUE 4294967296
+#if VALUE
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(1.0);"
+    );
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("Redefinition");
+
+    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+      "Integer literal exceeds 32 bits in preprocessor expression"
+    );
+  });
+
   it("does not register definitions after a statically matched conditional arm", () => {
     const macroDefineList: MacroDefineList = {};
     const tokens = new Lexer(
@@ -266,7 +321,7 @@ float u_value;
     expect(compile(compiler, source)).to.not.be.undefined;
   });
 
-  it("reports malformed #elif syntax while preserving compiler output", () => {
+  it("reports malformed #elif syntax and blocks compiler output", () => {
     const source = shader(
       `#ifdef USE_VALUE
 float u_value;
@@ -282,7 +337,7 @@ float u_value;
     const compiler = new ShaderCompiler();
     const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
     try {
-      expect(compile(compiler, source)).to.not.be.undefined;
+      expect(compile(compiler, source)).to.be.undefined;
     } finally {
       errorSpy.mockRestore();
     }

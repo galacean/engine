@@ -155,7 +155,7 @@ describe("Precompile Benchmark", async () => {
 
   for (const entry of shaderFiles) {
     if (!entry.source && entry.file) {
-      entry.source = await readFile(`src/shader-compiler/shaders/${entry.file}`);
+      entry.source = await readFile(`tests/src/shader-compiler/shaders/${entry.file}`);
     }
   }
 

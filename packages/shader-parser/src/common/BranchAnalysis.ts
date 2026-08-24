@@ -214,8 +214,7 @@ export function canBranchesCoverCallsite(
  * Classify declaration coverage without treating an incomplete symbolic proof as a definite error.
  *
  * `uncovered` is returned only when a concrete counterexample follows from atomic macro facts.
- * Complex or opaque expressions stay `unknown`, allowing diagnostic clients to warn without
- * blocking code generation.
+ * Complex or opaque expressions stay `unknown`; incomplete proof is not a diagnostic fact.
  * @param candidates - Branch signatures of matching declarations in one lexical scope.
  * @param callSiteBranch - Branch signature at the reference.
  * @returns Whether coverage is proven, disproven, or unknown.

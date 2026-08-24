@@ -10,6 +10,7 @@
     "preinstall": "npx only-allow pnpm",
     "pretest": "vitest --version && playwright install --with-deps chromium",
     "test": "vitest",
+    "test:package-consumer": "vitest --config tests/vitest.package-consumer.config.ts --run",
     "coverage": "cross-env HEADLESS=true vitest --coverage",
     "examples": "pnpm --filter @galacean/engine-examples dev",
     "build": "npm run b:module && npm run b:types",

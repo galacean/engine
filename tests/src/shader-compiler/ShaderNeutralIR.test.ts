@@ -9,6 +9,7 @@ import {
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { GLESBackend } from "@galacean/engine-shader-compiler/src/GLESBackend";
 import { describe, expect, it } from "vitest";
 
 interface NeutralBackendSnapshot {
@@ -100,8 +101,11 @@ void fragA() { gl_FragColor = vec4(0.25); }
     expect(Object.isFrozen(parsedA.sourceMap)).to.equal(true);
     expect(Object.isFrozen(parsedA.errors)).to.equal(true);
 
-    const compiler = new ShaderCompiler();
-    const generatedA = compiler._generateParsedShaderPass(parsedA, "vertA", "fragA", ShaderLanguage.GLSLES300);
+    const generatedA = GLESBackend.generate(
+      parsedA.ir!,
+      ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"),
+      ShaderLanguage.GLSLES300
+    );
     expect(generatedA).to.not.equal(undefined);
     const snapshotA = inspectNeutralIR(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"));
 
@@ -111,90 +115,26 @@ void fragA() { gl_FragColor = vec4(0.25); }
       new Map()
     );
     expect(parsedB.errors).to.have.lengthOf(0);
-    expect(compiler._generateParsedShaderPass(parsedB, "vertB", "fragB", ShaderLanguage.GLSLES100)).to.not.equal(
-      undefined
-    );
+    GLESBackend.generate(parsedB.ir!, ShaderCoreInfo.create(parsedB.ir!, "vertB", "fragB"), ShaderLanguage.GLSLES100);
 
     expect(inspectNeutralIR(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"))).to.deep.equal(
       snapshotA
     );
-    expect(compiler._generateParsedShaderPass(parsedA, "vertA", "fragA", ShaderLanguage.GLSLES300)).to.deep.equal(
-      generatedA
-    );
-  });
-
-  it("reuses the analyzer parse for codegen without changing runtime output", () => {
-    const sourceFile = "Assets/Shaders/Root.shader";
-    const includeMap = {
-      "Assets/Shaders/chunks/Branch.glsl": `
-#include "../shared/Value.glsl"
-#if defined(USE_ALTERNATE)
-  #define BRANCH_VALUE 2.0
-#endif
-`,
-      "Assets/Shaders/shared/Value.glsl": `
-#ifndef BRANCH_VALUE
-  #define BRANCH_VALUE 1.0
-#endif
-`
-    };
-    const source = `Shader "SharedParse" {
-  SubShader "Default" {
-    Pass "p" {
-      #include "./chunks/Branch.glsl"
-      void vert() { gl_Position = vec4(0.0); }
-      void frag() { gl_FragColor = vec4(BRANCH_VALUE); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-
-    const analysisUnit = ShaderAnalyzer._analyze(source, { includeMap, sourceFile });
-    expect(analysisUnit.diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.have.lengthOf(0);
-    expect(analysisUnit.parsedPasses).to.have.lengthOf(1);
-
-    const compiler = new ShaderCompiler();
-    compiler._setIncludeMap(includeMap);
-    const analyzedPass = analysisUnit.parsedPasses[0];
-    const reused = compiler._generateParsedShaderPass(
-      analyzedPass.parsed,
-      analyzedPass.vertexEntry,
-      analyzedPass.fragmentEntry,
-      ShaderLanguage.GLSLES300
-    );
-    expect(() =>
-      compiler._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Assets/Shaders/Root.shader")
-    ).not.to.throw();
-    const precompiled = compiler._precompile(
-      source,
-      ShaderLanguage.GLSLES300,
-      "shaders://root/Assets/Shaders/Root.shader"
-    );
-    const runtimePass = precompiled.subShaders[0].passes[0];
-
-    expect(runtimePass.isUsePass).to.equal(false);
-    if (runtimePass.isUsePass) throw new Error("Expected a compiled pass.");
-    expect(reused?.vertexShaderInstructions).to.deep.equal(runtimePass.vertexShaderInstructions);
-    expect(reused?.fragmentShaderInstructions).to.deep.equal(runtimePass.fragmentShaderInstructions);
     expect(
-      analyzedPass.parsed.sourceMap.some((segment) => segment.sourceFile === "Assets/Shaders/shared/Value.glsl")
-    ).to.equal(true);
+      GLESBackend.generate(parsedA.ir!, ShaderCoreInfo.create(parsedA.ir!, "vertA", "fragA"), ShaderLanguage.GLSLES300)
+    ).to.deep.equal(generatedA);
   });
 
   it("rejects shared parser results that contain blocking errors", () => {
-    const parsed = parseShaderPass(
-      `#include "missing.glsl"
+    const source = `#include "missing.glsl"
 void vert() { gl_Position = vec4(0.0); }
-void frag() { gl_FragColor = vec4(1.0); }`,
-      {},
-      new Map()
-    );
+void frag() { gl_FragColor = vec4(1.0); }`;
+    const parsed = parseShaderPass(source, {}, new Map());
     expect(parsed.ir).to.not.equal(null);
     expect(parsed.errors).to.not.have.lengthOf(0);
     expect(parsed.blockingErrors).to.not.have.lengthOf(0);
 
-    const generated = new ShaderCompiler()._generateParsedShaderPass(parsed, "vert", "frag", ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
     expect(generated).to.equal(undefined);
   });
 
@@ -241,6 +181,40 @@ void frag() { gl_FragColor = vec4(1.0); }`,
     );
   });
 
+  it("keeps analyzer and precompile attribution identical for nested expression errors", () => {
+    const source = `Shader "InvalidExpressionInclude" {
+  SubShader "Default" {
+    Pass "p" {
+      #include "./chunks/Common.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const brokenSource = "#if 0\n#elif 123 defined(USE_VALUE)\n#endif";
+    const includeMap = {
+      "Shaders/chunks/Common.glsl": '#include "../shared/Broken.glsl"',
+      "Shaders/shared/Broken.glsl": brokenSource
+    };
+    const sourceFile = "Shaders/Root.shader";
+    const diagnostic = ShaderAnalyzer.analyze(source, { includeMap, sourceFile }).diagnostics.find(
+      (candidate) => candidate.code === "PreprocessorError"
+    );
+    expect(diagnostic).to.be.ok;
+    expect(diagnostic!.sourceFile).to.equal("Shaders/shared/Broken.glsl");
+    expect(diagnostic!.relatedSource).to.equal(brokenSource);
+    expect(diagnostic!.range.start.line).to.equal(2);
+    expect(brokenSource.slice(diagnostic!.range.start.offset, diagnostic!.range.end.offset)).to.equal("defined");
+
+    const compiler = new ShaderCompiler();
+    compiler._setIncludeMap(includeMap);
+    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, sourceFile)).to.throw(
+      /Shaders\/shared\/Broken\.glsl: PreprocessorError: Unexpected token 'defined'.*\n2 \| #elif 123 defined\(USE_VALUE\)\n  \| {11}\^{7}/s
+    );
+  });
+
   it("does not treat analyzer-only diagnostics as backend-blocking errors", () => {
     const source = `Shader "AnalyzerOnly" {
   SubShader "Default" {
@@ -259,16 +233,13 @@ void frag() { gl_FragColor = vec4(1.0); }`,
     }
   }
 }`;
-    const analysisUnit = ShaderAnalyzer._analyze(source);
-    expect(analysisUnit.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UndeclaredStructMember");
-    const analyzedPass = analysisUnit.parsedPasses[0];
-    expect(analyzedPass.parsed.errors).to.not.have.lengthOf(0);
-    expect(analyzedPass.parsed.blockingErrors).to.have.lengthOf(0);
-
-    const generated = new ShaderCompiler()._generateParsedShaderPass(
-      analyzedPass.parsed,
-      analyzedPass.vertexEntry,
-      analyzedPass.fragmentEntry,
+    const result = ShaderAnalyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UndeclaredStructMember");
+    const pass = new ShaderCompiler()._parseShaderSource(source).subShaders[0].passes[0];
+    const generated = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
       ShaderLanguage.GLSLES300
     );
     expect(generated).to.not.equal(undefined);
@@ -298,7 +269,7 @@ void frag(Varyings input) { gl_FragColor = vec4(input.uv, 0.0, 1.0); }
     const parsed = parseShaderPass(source, {}, new Map());
     expect(parsed.errors).to.have.lengthOf(0);
 
-    const generated = new ShaderCompiler()._generateParsedShaderPass(parsed, "vert", "frag", ShaderLanguage.GLSLES100);
+    const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
     expect(generated).to.not.equal(undefined);
     expect(generated!.vertex.match(/attribute\s+vec3\s+position\s*;/g)).to.have.lengthOf(1);
     expect(generated!.vertex.match(/varying\s+vec2\s+uv\s*;/g)).to.have.lengthOf(1);

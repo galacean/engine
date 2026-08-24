@@ -1,5 +1,5 @@
 import { lstatSync, readFileSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { dirname, join, relative, resolve, sep } from "node:path";
 import type { IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "./ShaderAnalyzer";
 import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
@@ -52,7 +52,7 @@ function run(options: CliOptions): void {
     ? resolve(options.includeRoot)
     : options.file === "-"
       ? undefined
-      : resolve(".");
+      : dirname(resolve(options.file));
   const includeMap = includeRoot ? createLazyIncludeMap(includeRoot) : undefined;
   const sourceFile = includeRoot && options.file !== "-" ? sourceFilePath(options.file, includeRoot) : undefined;
   const diagnostics = ShaderAnalyzer.analyze(source, {

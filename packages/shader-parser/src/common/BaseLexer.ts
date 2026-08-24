@@ -2,6 +2,7 @@ import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
+import type { ParserObjectPool } from "../ParserObjectPool";
 import { Logger } from "@galacean/engine-core";
 
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
@@ -83,7 +84,6 @@ export abstract class BaseLexer {
 
   protected _currentIndex = 0;
   protected _source: string;
-
   protected _column = 0;
   protected _line = 0;
 
@@ -103,8 +103,11 @@ export abstract class BaseLexer {
     return this._column;
   }
 
-  constructor(source?: string) {
-    this._source = source;
+  constructor(
+    source?: string,
+    protected readonly _objectPool?: ParserObjectPool
+  ) {
+    this.setSource(source ?? "");
   }
 
   setSource(source: string): void {
@@ -114,7 +117,25 @@ export abstract class BaseLexer {
   }
 
   getShaderPosition(backOffset = 0): ShaderPosition {
-    return ShaderCompilerUtils.createPosition(this._currentIndex - backOffset, this._line, this._column - backOffset);
+    const index = this._currentIndex - backOffset;
+    return this._createPosition(index, this._line, this._column - backOffset);
+  }
+
+  /** @internal */
+  protected _createPosition(index: number, line: number, column: number): ShaderPosition {
+    return this._objectPool
+      ? this._objectPool.createPosition(index, line, column)
+      : ShaderCompilerUtils.createPosition(index, line, column);
+  }
+
+  /** @internal */
+  protected _createToken(): BaseToken {
+    return this._objectPool ? this._objectPool.createToken() : new BaseToken();
+  }
+
+  /** @internal */
+  protected _createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
+    return this._objectPool ? this._objectPool.createRange(start, end) : ShaderCompilerUtils.createRange(start, end);
   }
 
   isEnd(): boolean {
@@ -133,7 +154,7 @@ export abstract class BaseLexer {
     const source = this._source;
     const startIndex = this._currentIndex;
     for (let i = 0; i < count; i++) {
-      if (source[startIndex + i] === "\n") {
+      if (source.charCodeAt(startIndex + i) === 10) {
         this._line += 1;
         this._column = 0;
       } else {

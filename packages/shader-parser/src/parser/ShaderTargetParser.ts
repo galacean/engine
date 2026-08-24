@@ -11,10 +11,12 @@ import { ParserUtils } from "../ParserUtils";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
+import { NoneTerminal } from "./GrammarSymbol";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import type { SemanticDiagnostics } from "./SemanticDiagnostics";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
+import type { ParserObjectPool } from "../ParserObjectPool";
 
 /**
  * Parses shader tokens and performs the parser-owned semantic pass.
@@ -52,7 +54,10 @@ export class ShaderTargetParser {
   static create(
     branchSemantics?: BranchSemantics,
     semanticDiagnostics?: SemanticDiagnostics,
-    source?: string
+    source?: string,
+    objectPool?: ParserObjectPool,
+    semanticErrorsBlockCodegen = false,
+    authoringAnalysisEnabled = semanticDiagnostics !== undefined
   ): ShaderTargetParser {
     let tables = this._tables;
     if (!tables) {
@@ -72,7 +77,10 @@ export class ShaderTargetParser {
       tables.grammar,
       branchSemantics,
       semanticDiagnostics,
-      source
+      source,
+      objectPool,
+      semanticErrorsBlockCodegen,
+      authoringAnalysisEnabled
     );
     addTranslationRule(parser.semanticAnalyzer);
     return parser;
@@ -84,12 +92,26 @@ export class ShaderTargetParser {
     grammar: Grammar,
     branchSemantics?: BranchSemantics,
     semanticDiagnostics?: SemanticDiagnostics,
-    private readonly _source?: string
+    private _source?: string,
+    objectPool?: ParserObjectPool,
+    readonly semanticErrorsBlockCodegen = false,
+    authoringAnalysisEnabled = semanticDiagnostics !== undefined
   ) {
     this.actionTable = actionTable;
     this.gotoTable = gotoTable;
     this.grammar = grammar;
-    this.semanticAnalyzer = new SemanticAnalyzer(branchSemantics, semanticDiagnostics);
+    this.semanticAnalyzer = new SemanticAnalyzer(
+      branchSemantics,
+      semanticDiagnostics,
+      objectPool,
+      authoringAnalysisEnabled
+    );
+  }
+
+  /** Replaces the source used to format errors for a reused runtime parser. @internal */
+  setSource(source: string): void {
+    this._source = source;
+    this.semanticAnalyzer.semanticDiagnostics?.setSource?.(source);
   }
 
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
@@ -118,7 +140,7 @@ export class ShaderTargetParser {
             semanticAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
           }
         }
-        if (semanticAnalyzer.diagnosticsEnabled && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
+        if (semanticAnalyzer.semanticDiagnostics && (token.type === Keyword.FOR || token.type === Keyword.WHILE)) {
           semanticAnalyzer.pushScope();
         }
         nextToken = tokens.next();
@@ -145,6 +167,15 @@ export class ShaderTargetParser {
           }
         }
         translationRule?.(semanticAnalyzer, ...values);
+        // Runtime grammar elides the analyzer-only IterationStatement node, so compiler semantic
+        // validation closes the scope at reduction instead of relying on that node's callback.
+        if (
+          semanticAnalyzer.semanticDiagnostics &&
+          !semanticAnalyzer.diagnosticsEnabled &&
+          reduceProduction.goal === NoneTerminal.iteration_statement
+        ) {
+          semanticAnalyzer.popScope();
+        }
 
         const gotoTable = this.stateGotoTable;
         traceBackStack.push(reduceProduction.goal);

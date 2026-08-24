@@ -86,14 +86,23 @@ export class VisitorContext {
     return this._mrtStructTypes.has(type);
   }
 
-  /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
+  /**
+   * Finds the stage-interface role of a struct type.
+   * @param typeLexeme - Struct type name.
+   * @returns Interface role, or `undefined` for a non-interface struct.
+   */
   getStructRole(typeLexeme: string): ShaderStructRole | undefined {
     if (this.isAttributeStruct(typeLexeme)) return ShaderStructRole.Attribute;
     if (this.isVaryingStruct(typeLexeme)) return ShaderStructRole.Varying;
     if (this.isMRTStruct(typeLexeme)) return ShaderStructRole.Mrt;
   }
 
-  /** Registers stage-interface struct types for constant-time role lookup. @internal */
+  /**
+   * Registers stage-interface struct types for constant-time role lookup.
+   * @param role - Interface role shared by the supplied structs.
+   * @param structs - Struct declarations derived from parser IR.
+   * @internal
+   */
   registerStructTypes(role: ShaderStructRole, structs: readonly ASTNode.StructSpecifier[]): void {
     const types =
       role === ShaderStructRole.Attribute
@@ -106,13 +115,22 @@ export class VisitorContext {
     }
   }
 
-  /** Register a variable in a specific stage as holding a varying/attribute/mrt struct value. */
+  /**
+   * Registers a stage-local variable that holds an interface struct.
+   * @param stage - Shader stage owning the variable.
+   * @param varName - Variable name.
+   * @param role - Struct interface role.
+   */
   registerStructVar(stage: EShaderStage, varName: string, role: ShaderStructRole): void {
     const map = stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap;
     map[varName] = role;
   }
 
-  /** Look up the role of a struct-typed variable in the stage currently being generated. */
+  /**
+   * Finds the interface role of a variable in the active stage.
+   * @param varName - Variable name.
+   * @returns Interface role, or `undefined` for a non-interface value.
+   */
   getStructVarRole(varName: string): ShaderStructRole | undefined {
     return (this.stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap)[varName];
   }

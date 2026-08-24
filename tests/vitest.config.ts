@@ -1,4 +1,4 @@
-import { defineProject } from "vitest/config";
+import { configDefaults, defineProject } from "vitest/config";
 import type {} from "@vitest/browser/providers/playwright";
 
 export default defineProject({
@@ -24,6 +24,7 @@ export default defineProject({
     ]
   },
   test: {
+    exclude: [...configDefaults.exclude, "e2e/**", "tests/package-consumer/**"],
     browser: {
       provider: "playwright",
       enabled: true,

@@ -19,9 +19,9 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { vi, describe, expect, it } from "vitest";
 
 const shaderCompiler = new ShaderCompiler();
-// @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
+// @ts-expect-error -- bind runtime include map so the compiler can resolve `#include`
 shaderCompiler._includeMap = ShaderFactory.includeMap;
-// @ts-ignore
+// @ts-expect-error -- bind the internal compiler used by Shader.create
 Shader._shaderCompiler = shaderCompiler;
 
 const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
@@ -223,15 +223,42 @@ describe("Shader", () => {
     it("resolves registered includes without exposing a source path on Shader.create", () => {
       const includePath = "User/PublicInclude.glsl";
       ShaderFactory.registerInclude(includePath, "float includedValue() { return 1.0; }");
-      // @ts-ignore - internal compiler binding under test.
+      // @ts-expect-error -- internal compiler binding under test
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       try {
         const shader = Shader.create(shaderWithInclude("User/PublicInclude", includePath));
         expect(shader).to.be.an.instanceOf(Shader);
       } finally {
         ShaderFactory.unregisterInclude(includePath);
-        // @ts-ignore - clear request-derived include cache after registry cleanup.
+        // @ts-expect-error -- clear request-derived include cache after registry cleanup
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      }
+    });
+
+    it("resolves root-relative includes from Shader.create without a source path", () => {
+      const includePath = "Math.glsl";
+      ShaderFactory.registerInclude(includePath, "float includedValue() { return 1.0; }");
+      // @ts-expect-error -- internal compiler binding under test
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      try {
+        const shader = Shader.create(shaderWithInclude("User/RootRelativeInclude", "./Math.glsl"));
+        expect(shader).to.be.an.instanceOf(Shader);
+      } finally {
+        ShaderFactory.unregisterInclude(includePath);
+        // @ts-expect-error -- clear request-derived include cache after registry cleanup
+        shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      }
+    });
+
+    it("canonicalizes leading-slash include keys and rejects aliases", () => {
+      ShaderFactory.registerInclude("/User/Canonical.glsl", "float includedValue() { return 1.0; }");
+      try {
+        expect(ShaderFactory.includeMap["User/Canonical.glsl"]).to.equal("float includedValue() { return 1.0; }");
+        expect(() => ShaderFactory.registerInclude("User/Canonical.glsl", "float otherValue;")).to.throw(
+          "already registered"
+        );
+      } finally {
+        ShaderFactory.unregisterInclude("User/Canonical.glsl");
       }
     });
 
@@ -248,13 +275,13 @@ describe("Shader", () => {
     it("supports include keys that overlap Object prototype properties", () => {
       const includePath = "__proto__";
       ShaderFactory.registerInclude(includePath, "float includedValue() { return 1.0; }");
-      // @ts-ignore - internal compiler binding under test.
+      // @ts-expect-error -- internal compiler binding under test
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       expect(Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, includePath)).to.equal(true);
       expect(ShaderFactory.includeMap[includePath]).to.equal("float includedValue() { return 1.0; }");
       const shader = Shader.create(shaderWithInclude("User/PrototypeInclude", includePath));
       ShaderFactory.unregisterInclude(includePath);
-      // @ts-ignore - clear request-derived include cache after registry cleanup.
+      // @ts-expect-error -- clear request-derived include cache after registry cleanup
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       expect(shader).to.be.an.instanceOf(Shader);
     });
@@ -262,10 +289,10 @@ describe("Shader", () => {
     it("resolves relative includes from loader-owned source metadata", () => {
       const includePath = "Assets/Shaders/RelativeInclude.glsl";
       ShaderFactory.registerInclude(includePath, "float includedValue() { return 2.0; }");
-      // @ts-ignore - internal compiler binding under test.
+      // @ts-expect-error -- internal compiler binding under test
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       try {
-        // @ts-ignore - source location is intentionally restricted to loaders and first-party authoring tools.
+        // @ts-expect-error -- source location is restricted to loaders and first-party authoring tools
         const shader = Shader._createFromSource(
           shaderWithInclude("User/RelativeInclude", "./RelativeInclude.glsl"),
           undefined,
@@ -274,7 +301,7 @@ describe("Shader", () => {
         expect(shader).to.be.an.instanceOf(Shader);
       } finally {
         ShaderFactory.unregisterInclude(includePath);
-        // @ts-ignore - clear request-derived include cache after registry cleanup.
+        // @ts-expect-error -- clear request-derived include cache after registry cleanup
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       }
     });
@@ -282,7 +309,7 @@ describe("Shader", () => {
     it("does not reuse a stale include expansion across root Shader compilations", () => {
       const includePath = "User/ReplaceableInclude.glsl";
       ShaderFactory.registerInclude(includePath, "float includedValue() { return 3.0; }");
-      // @ts-ignore - internal compiler binding under test.
+      // @ts-expect-error -- internal compiler binding under test
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       try {
         expect(Shader.create(shaderWithInclude("User/ReplaceableIncludeA", includePath))).to.be.an.instanceOf(Shader);
@@ -291,7 +318,7 @@ describe("Shader", () => {
         expect(() => Shader.create(shaderWithInclude("User/ReplaceableIncludeB", includePath))).to.throw();
       } finally {
         ShaderFactory.unregisterInclude(includePath);
-        // @ts-ignore - clear request-derived include cache after registry cleanup.
+        // @ts-expect-error -- clear request-derived include cache after registry cleanup
         shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       }
     });

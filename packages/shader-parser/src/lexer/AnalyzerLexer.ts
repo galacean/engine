@@ -1,6 +1,7 @@
 import { ETokenType } from "../common";
 import { tryParsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import {
+  type BaseToken,
   type BranchCondition,
   type BranchConstraint,
   type BranchSignature,
@@ -9,12 +10,15 @@ import {
 } from "../common/BaseToken";
 import { canBranchesOverlap, isBranchReachable, isConditionalChainExhaustive } from "../common/BranchAnalysis";
 import { Keyword } from "../common/enums/Keyword";
+import { evaluateContextFreePreprocessorExpression, parsePreprocessorExpression } from "@galacean/engine-design";
+import { GSError, GSErrorName } from "../GSError";
 import { Lexer } from "./Lexer";
 
 interface MacroState {
   defined: boolean | undefined;
   definedCondition: BranchCondition;
   value: number | undefined;
+  valueError?: string;
   version: number;
 }
 
@@ -85,7 +89,7 @@ export class AnalyzerLexer extends Lexer {
         this._pendingGuardUndef = false;
       }
       if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
-        const condition = this._parseSimpleCondition(tok.lexeme);
+        const condition = this._parseSimpleCondition(tok.lexeme, tok);
         if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition);
         else this._advanceOpaqueConditionalArm(condition);
         this._pendingOpaqueConditional = null;
@@ -423,11 +427,13 @@ export class AnalyzerLexer extends Lexer {
   ): void {
     if (!isBranchReachable(this._branchStack)) return;
     this._markMacroMutation(name);
-    const value =
-      paramsLexeme === undefined
-        ? AnalyzerLexer._parseNumericLiteral(AnalyzerLexer._normalizeValueText(this._source, valueStart, valueEnd))
-        : undefined;
-    this._setMacroState(name, true, value);
+    const valueText =
+      paramsLexeme === undefined ? AnalyzerLexer._normalizeValueText(this._source, valueStart, valueEnd) : undefined;
+    const value = valueText === undefined ? undefined : AnalyzerLexer._parseNumericLiteral(valueText);
+    const parsedValue = valueText === undefined ? undefined : parsePreprocessorExpression(valueText);
+    let valueError: string | undefined;
+    if (parsedValue && "error" in parsedValue && parsedValue.error.certain) valueError = parsedValue.error.message;
+    this._setMacroState(name, true, value, valueError);
   }
 
   private _markMacroMutation(name: string): void {
@@ -439,11 +445,12 @@ export class AnalyzerLexer extends Lexer {
     }
   }
 
-  private _setMacroState(name: string, defined: boolean, value: number | undefined): void {
+  private _setMacroState(name: string, defined: boolean, value: number | undefined, valueError?: string): void {
     this._macroStates[name] = {
       defined,
       definedCondition: { kind: "constant", value: defined },
       value,
+      valueError,
       version: this._nextMacroVersion(name)
     };
   }
@@ -486,9 +493,38 @@ export class AnalyzerLexer extends Lexer {
     );
   }
 
-  private _parseSimpleCondition(expression: string): BranchCondition | undefined {
+  private _parseSimpleCondition(expression: string, token: BaseToken): BranchCondition | undefined {
     const condition = tryParsePreprocessorCondition(expression);
+    const invalidMacro = condition && this._findInvalidMacroValue(condition);
+    if (invalidMacro) {
+      this.expressionErrors.push(
+        new GSError(
+          GSErrorName.PreprocessorError,
+          `Invalid preprocessor expression after expanding '${invalidMacro.name}': ${invalidMacro.message}`,
+          token.location,
+          this._source
+        )
+      );
+      return { kind: "constant", value: false };
+    }
     return condition ? this._toBranchCondition(condition) : AnalyzerLexer._parseOpaqueComparisonCondition(expression);
+  }
+
+  private _findInvalidMacroValue(condition: PreprocessorCondition): { name: string; message: string } | undefined {
+    switch (condition.t) {
+      case "cmp": {
+        const message = this._macroState(condition.m).valueError;
+        return message ? { name: condition.m, message } : undefined;
+      }
+      case "and":
+      case "or":
+        return this._findInvalidMacroValue(condition.l) ?? this._findInvalidMacroValue(condition.r);
+      case "not":
+        return this._findInvalidMacroValue(condition.c);
+      case "bool":
+      case "def":
+        return undefined;
+    }
   }
 
   private static _parseOpaqueComparisonCondition(expression: string): BranchCondition | undefined {
@@ -736,9 +772,7 @@ export class AnalyzerLexer extends Lexer {
   }
 
   private static _parseNumericLiteral(source: string): number | undefined {
-    if (!/^[-+]?(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?)$/.test(source)) return undefined;
-    const value = Number(source);
-    return Number.isFinite(value) ? value : undefined;
+    return evaluateContextFreePreprocessorExpression(source);
   }
 
   private static _matchesComparison(
@@ -771,6 +805,7 @@ export class AnalyzerLexer extends Lexer {
     return (
       left.defined === right.defined &&
       left.value === right.value &&
+      left.valueError === right.valueError &&
       left.version === right.version &&
       AnalyzerLexer._sameCondition(left.definedCondition, right.definedCondition)
     );

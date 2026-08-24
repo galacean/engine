@@ -1,4 +1,5 @@
 import type { BaseToken } from "../common/BaseToken";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { ShaderPosition } from "../common/ShaderPosition";
 import { ShaderRange } from "../common/ShaderRange";
 import { GSError, GSErrorName } from "../GSError";
@@ -6,6 +7,7 @@ import type { MacroDefineList } from "../Preprocessor";
 import { Preprocessor, type ChunkOutputCache, type IncludeMap } from "../Preprocessor";
 import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
 import type { ShaderTargetParser } from "./ShaderTargetParser";
+import type { ParserObjectPool } from "../ParserObjectPool";
 
 const SHADER_ROOT_URL = "shaders://root/";
 const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
@@ -21,16 +23,12 @@ export function normalizeShaderSourceFile(sourceFile?: string): string | undefin
   const normalized = sourceFile.trim().replace(/\\/g, "/");
   if (!normalized) return undefined;
   if (normalized.startsWith(SHADER_ROOT_URL)) {
-    return normalized.slice(SHADER_ROOT_URL.length) || undefined;
+    return normalized === SHADER_ROOT_URL ? undefined : normalizeShaderIncludeKey(normalized);
   }
   if (!ABSOLUTE_URL_PATTERN.test(normalized)) {
-    return normalized.replace(/^\/+/, "") || undefined;
+    return normalizeShaderIncludeKey(normalized);
   }
-  try {
-    return new URL(normalized).href;
-  } catch {
-    return normalized.replace(/^\/+/, "") || undefined;
-  }
+  return new URL(normalized).href;
 }
 
 /**
@@ -64,41 +62,65 @@ export interface ParsedShaderPass {
 }
 
 /**
- * Formats a parsed-pass error against its original Shader or ShaderChunk source.
- * @param error - Error emitted from preprocessing or parsing.
- * @param parsed - Parsed pass containing the expanded-source mapping.
- * @returns Human-readable error text prefixed with the canonical source file when available.
+ * Original source and range resolved from an expanded shader-pass range.
  * @internal
  */
-export function formatParsedShaderError(error: Error, parsed: ParsedShaderPass): string {
-  let mappedError = error;
-  if (error instanceof GSError && error.source === parsed.expandedSource) {
-    const location = error.location;
-    const sourceRange = "start" in location ? location : { start: location, end: location };
-    const startSegment = findSourceMapSegment(sourceRange.start.index, parsed.sourceMap, false);
-    if (startSegment) {
-      const endSegment = findSourceMapSegment(sourceRange.end.index, parsed.sourceMap, true);
-      const startOffset = startSegment.sourceStart + sourceRange.start.index - startSegment.generatedStart;
-      const endOffset =
-        endSegment?.source === startSegment.source && endSegment.sourceFile === startSegment.sourceFile
-          ? endSegment.sourceStart + sourceRange.end.index - endSegment.generatedStart
-          : startOffset;
-      const start = shaderPositionAt(startSegment.source, startOffset);
-      const end = shaderPositionAt(startSegment.source, endOffset);
-      const mappedLocation = new ShaderRange();
-      mappedLocation.set(start, end);
-      mappedError = new GSError(
-        error.name as GSErrorName,
-        error.message,
-        mappedLocation,
-        startSegment.source,
-        startSegment.sourceFile ?? error.file,
-        error.code
-      );
-    }
-  }
-  const sourceFile = mappedError instanceof GSError ? mappedError.file : undefined;
-  return sourceFile ? `${sourceFile}: ${mappedError.toString()}` : mappedError.toString();
+export interface MappedShaderSourceRange {
+  readonly source: string;
+  readonly sourceFile?: string;
+  readonly start: ShaderPosition;
+  readonly end: ShaderPosition;
+}
+
+/**
+ * Maps one expanded pass range to the Shader or ShaderChunk that produced it.
+ * @param startOffset - Zero-based start offset in expanded source.
+ * @param endOffset - Zero-based exclusive end offset in expanded source.
+ * @param segments - Parser-owned include source map.
+ * @returns Original source and local range, or `undefined` outside mapped text.
+ * @internal
+ */
+export function mapExpandedShaderRange(
+  startOffset: number,
+  endOffset: number,
+  segments: readonly ShaderSourceMapSegment[]
+): MappedShaderSourceRange | undefined {
+  const startSegment = findSourceMapSegment(startOffset, segments, false);
+  if (!startSegment) return undefined;
+  const endSegment = findSourceMapSegment(endOffset, segments, true);
+  const mappedStartOffset = startSegment.sourceStart + startOffset - startSegment.generatedStart;
+  const mappedEndOffset =
+    endSegment?.source === startSegment.source && endSegment.sourceFile === startSegment.sourceFile
+      ? endSegment.sourceStart + endOffset - endSegment.generatedStart
+      : mappedStartOffset;
+  return {
+    source: startSegment.source,
+    sourceFile: startSegment.sourceFile,
+    start: shaderPositionAt(startSegment.source, mappedStartOffset),
+    end: shaderPositionAt(startSegment.source, mappedEndOffset)
+  };
+}
+
+function mapExpandedShaderError(
+  error: Error,
+  expandedSource: string,
+  segments: readonly ShaderSourceMapSegment[]
+): Error {
+  if (!(error instanceof GSError) || error.source !== expandedSource) return error;
+  const location = error.location;
+  const range = "start" in location ? location : { start: location, end: location };
+  const mapped = mapExpandedShaderRange(range.start.index, range.end.index, segments);
+  if (!mapped) return error;
+  const mappedLocation = new ShaderRange();
+  mappedLocation.set(mapped.start, mapped.end);
+  return new GSError(
+    error.name as GSErrorName,
+    error.message,
+    mappedLocation,
+    mapped.source,
+    mapped.sourceFile ?? error.file,
+    error.code
+  );
 }
 
 function findSourceMapSegment(
@@ -139,6 +161,7 @@ function shaderPositionAt(source: string, offset: number): ShaderPosition {
  * @internal
  */
 export interface ShaderPassLexer {
+  readonly expressionErrors: readonly GSError[];
   tokenize(): Generator<BaseToken, BaseToken>;
 }
 
@@ -150,6 +173,9 @@ export interface ShaderPassLexer {
  * @param basePathForIncludeKey - Internal base URL for resolving relative includes.
  * @param createLexer - Creates the runtime or analyzer lexer for the expanded source.
  * @param createParser - Creates a request-owned parser backed by shared immutable grammar tables.
+ * @param sourceFile - Optional canonical root location for relative includes and attribution.
+ * @param objectPool - Optional pool for a synchronous consumer that does not retain parsed passes.
+ * @param trackSourceMap - Whether to retain include-source mapping for this parse.
  * @returns Request-owned parsed-pass data whose public containers are read-only.
  * @internal
  */
@@ -158,31 +184,50 @@ export function parseShaderPassWith(
   includeMap: IncludeMap,
   cache: ChunkOutputCache,
   basePathForIncludeKey: string,
-  createLexer: (expandedSource: string, macroDefineList: MacroDefineList) => ShaderPassLexer,
-  createParser: (expandedSource: string) => ShaderTargetParser,
-  sourceFile?: string
+  createLexer: (
+    expandedSource: string,
+    macroDefineList: MacroDefineList,
+    objectPool?: ParserObjectPool
+  ) => ShaderPassLexer,
+  createParser: (expandedSource: string, objectPool?: ParserObjectPool) => ShaderTargetParser,
+  sourceFile?: string,
+  objectPool?: ParserObjectPool,
+  trackSourceMap = true
 ): ParsedShaderPass {
+  objectPool?.reset();
   const macroDefineList: MacroDefineList = {};
   const {
     content: expandedSource,
     errors: preprocessErrors,
     sourceMap
-  } = Preprocessor.parseWithErrors(source, basePathForIncludeKey, includeMap, cache, sourceFile);
-  const tokens = createLexer(expandedSource, macroDefineList).tokenize();
-  const parser = createParser(expandedSource);
+  } = Preprocessor.parseWithErrors(source, basePathForIncludeKey, includeMap, cache, sourceFile, trackSourceMap);
+  const lexer = createLexer(expandedSource, macroDefineList, objectPool);
+  const tokens = lexer.tokenize();
+  const parser = createParser(expandedSource, objectPool);
   const program = parser.parse(tokens, macroDefineList);
   for (const segment of sourceMap) Object.freeze(segment);
   const frozenSourceMap = Object.freeze(sourceMap);
+  const mappedParserErrors = parser.errors.map((error) =>
+    mapExpandedShaderError(error, expandedSource, frozenSourceMap)
+  );
+  const mappedExpressionErrors = lexer.expressionErrors.map((error) =>
+    mapExpandedShaderError(error, expandedSource, frozenSourceMap)
+  );
   const errors =
-    preprocessErrors.length || parser.errors.length
-      ? Object.freeze([...preprocessErrors, ...parser.errors])
+    preprocessErrors.length || mappedExpressionErrors.length || mappedParserErrors.length
+      ? Object.freeze([...preprocessErrors, ...mappedExpressionErrors, ...mappedParserErrors])
       : EMPTY_ERRORS;
+  const parserBlockingErrors = parser.semanticErrorsBlockCodegen ? parser.errors : parser.blockingErrors;
   let blockingErrors = EMPTY_ERRORS;
-  if (preprocessErrors.length || parser.blockingErrors.length) {
-    blockingErrors =
-      parser.errors.length === parser.blockingErrors.length
-        ? errors
-        : Object.freeze([...preprocessErrors, ...parser.blockingErrors]);
+  if (preprocessErrors.length || mappedExpressionErrors.length || parserBlockingErrors.length) {
+    if (parser.errors.length === parserBlockingErrors.length) {
+      blockingErrors = errors;
+    } else {
+      const mappedParserBlockingErrors = parserBlockingErrors.map((error) =>
+        mapExpandedShaderError(error, expandedSource, frozenSourceMap)
+      );
+      blockingErrors = Object.freeze([...preprocessErrors, ...mappedExpressionErrors, ...mappedParserBlockingErrors]);
+    }
   }
   return Object.freeze({
     ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null,

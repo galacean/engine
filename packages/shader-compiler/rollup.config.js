@@ -47,8 +47,8 @@ const swcPluginRuntime = swc({
 
 // Nothing externalized at the runtime entry: `@galacean/engine-math` is
 // resolved to its `src/index.ts` via `mainFields: ["debug"]` and bundled
-// inline (no math/dist prerequisite). `@galacean/engine-design` imports are
-// all `import type` and erased by swc before they reach rollup.
+// inline (no workspace dist prerequisite). The shared preprocessor-expression
+// parser in `@galacean/engine-design` resolves through the same debug entry.
 const runtimeExternal = [];
 const shaderParserRuntimeEntry = fileURLToPath(new URL("../shader-parser/src/runtime.ts", import.meta.url));
 const workspaceShaderParserSource = {

@@ -145,7 +145,16 @@ const conditionCases: readonly ConditionCase[] = [
   }
 ];
 
-const malformedExpressions = ["123 defined(USE)", "defined()", "USE &&", "!", "USE || || OTHER"] as const;
+const malformedExpressions = [
+  "123 defined(USE)",
+  "defined()",
+  "USE &&",
+  "!",
+  "USE || || OTHER",
+  "1uuu",
+  "1value",
+  "4294967296"
+] as const;
 
 function shader(condition: string): string {
   return `Shader "preprocessor-condition-conformance" { SubShader "s" { Pass "p" {
@@ -328,10 +337,20 @@ describe("preprocessor condition conformance", () => {
         ["SECOND", "+ 5"]
       ],
       true
-    ]
+    ],
+    [
+      "CONNECT defined(FLAG)",
+      [
+        ["CONNECT", "1 &&"],
+        ["FLAG", "1"]
+      ],
+      true
+    ],
+    ["OPEN 1)", [["OPEN", "("]], true]
   ] as const) {
     it(`evaluates full preprocessor expression '${expression}' through codegen and WebGL`, () => {
-      expect(() => parsePreprocessorCondition(expression)).to.throw();
+      if (macros.length === 0) expect(() => parsePreprocessorCondition(expression)).not.to.throw();
+      else expect(() => parsePreprocessorCondition(expression)).to.throw();
       const native = evaluateNativeCondition(expression, macros);
       if (native !== "no-webgl" && !expression.includes("?")) {
         expect(native.supported, native.supported ? "" : native.log).to.be.true;
@@ -366,26 +385,43 @@ describe("preprocessor condition conformance", () => {
   }
 
   for (const expression of [...malformedExpressions, "1.5"] as const) {
-    it(`diagnoses malformed expression '${expression}' without aborting runtime variant selection`, () => {
+    it(`blocks malformed expression '${expression}' before runtime variant selection`, () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
-      const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);
+      expect(() => ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`)).to.throw();
 
       const result = ShaderAnalyzer.analyze(shader(expression));
       expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
-      expect(ShaderMacroProcessor.evaluate(instructions, new Map())).not.to.contain("BODY");
+      const pass = ShaderSourceParser.parse(shader(expression)).subShaders[0].passes[0];
+      expect(
+        new ShaderCompiler()._parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          ShaderLanguage.GLSLES100,
+          ""
+        )
+      ).to.be.undefined;
     });
   }
 
-  it("contains evaluator failures caused by the active macro configuration", () => {
+  it("surfaces evaluator failures caused by the active macro configuration", () => {
     const instructions = ShaderInstructionEncoder.parse("#if VALUE / ZERO\nBODY\n#endif\n");
-    const output = ShaderMacroProcessor.evaluate(
-      instructions,
-      new Map([
-        ["VALUE", "1"],
-        ["ZERO", "0"]
-      ])
+    expect(() =>
+      ShaderMacroProcessor.evaluate(
+        instructions,
+        new Map([
+          ["VALUE", "1"],
+          ["ZERO", "0"]
+        ])
+      )
+    ).to.throw("Division by zero in active preprocessor expression");
+  });
+
+  it("rejects a source macro whose expanded integer literal exceeds 32 bits", () => {
+    const instructions = ShaderInstructionEncoder.parse("#define VALUE 4294967296\n#if VALUE\nBODY\n#endif\n");
+    expect(() => ShaderMacroProcessor.evaluate(instructions, new Map())).to.throw(
+      "Integer literal exceeds 32 bits in preprocessor expression"
     );
-    expect(output).not.to.contain("BODY");
   });
 
   it("does not evaluate invalid arithmetic in an inactive short-circuit branch", () => {

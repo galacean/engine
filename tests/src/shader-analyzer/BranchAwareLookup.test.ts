@@ -332,7 +332,7 @@ describe("branch-aware SymbolTable lookup", () => {
     expect(warningsOf(src, "UseBeforeDeclaration")).to.be.empty;
   });
 
-  it("does not report an integer-only coverage gap as an error", () => {
+  it("does not report an integer-only coverage relation that remains unknown", () => {
     // These ranges cover every integer, but the non-backtracking witness search intentionally leaves coverage unknown.
     const src = pass(
       `#if MODE <= 0
@@ -350,7 +350,7 @@ describe("branch-aware SymbolTable lookup", () => {
     );
 
     expect(errorsOf(src, "UseBeforeDeclaration")).to.be.empty;
-    expect(warningsOf(src, "UseBeforeDeclaration")).to.have.lengthOf(1);
+    expect(warningsOf(src, "UseBeforeDeclaration")).to.be.empty;
   });
 
   it("reports a numeric branch gap without host-specific macro assumptions", () => {
@@ -409,7 +409,7 @@ describe("branch-aware SymbolTable lookup", () => {
       VertexShader = vert; FragmentShader = frag;`
     );
     expect(errorsOf(src, "UseBeforeDeclaration")).to.be.empty;
-    expect(warningsOf(src, "UseBeforeDeclaration")).to.have.lengthOf(1);
+    expect(warningsOf(src, "UseBeforeDeclaration")).to.be.empty;
   });
 
   it("applies a macro replacement's definition branch to its references", () => {
@@ -494,6 +494,27 @@ describe("branch-aware SymbolTable lookup", () => {
     );
     expect(errors).to.have.lengthOf(1);
     expect(errors[0].message).to.contain("Type 'Data'");
+  });
+
+  it("stays silent when custom-type coverage cannot be proven or disproven", () => {
+    const result = ShaderAnalyzer.analyze(
+      pass(
+        `#if MODE <= 0
+          struct Data { float value; };
+        #endif
+        #if MODE == 1
+          struct Data { float value; };
+        #endif
+        #if MODE >= 2
+          struct Data { float value; };
+        #endif
+        Data data;
+        void frag() { gl_FragColor = vec4(data.value); }
+        void vert() { gl_Position = vec4(0.0); }
+        VertexShader = vert; FragmentShader = frag;`
+      )
+    );
+    expect(result.diagnostics.filter((diagnostic) => diagnostic.code === "UseBeforeDeclaration")).to.be.empty;
   });
 
   it("warns when an unknown type may be supplied as a runtime macro", () => {

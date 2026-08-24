@@ -217,6 +217,60 @@ float second(vec2 value) { return first(value.x); }`)
     expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
   });
 
+  it("treats the logical include registry as the default root when sourceFile is omitted", () => {
+    const result = ShaderAnalyzer.analyze(shader('#include "./common.glsl"'), {
+      includeMap: { "common.glsl": "float includedValue;" }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
+  it.each(["./test.glsl", "../PBR/test.glsl", "ShaderLibrary/PBR/test.glsl", "/ShaderLibrary/PBR/test.glsl"])(
+    "resolves '%s' against one canonical logical registry",
+    (includePath) => {
+      const result = ShaderAnalyzer.analyze(shader(`#include "${includePath}"`), {
+        sourceFile: "ShaderLibrary/PBR/Root.shader",
+        includeMap: { "ShaderLibrary/PBR/test.glsl": "float includedValue;" }
+      });
+      expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+    }
+  );
+
+  it("normalizes project-root include registration keys", () => {
+    const result = ShaderAnalyzer.analyze(shader('#include "/User/Common.glsl"'), {
+      includeMap: { "/User/Common.glsl": "float includedValue;" }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
+  it("rejects include-map aliases that collide after canonicalization", () => {
+    expect(() =>
+      ShaderAnalyzer.analyze(shader('#include "User/Common.glsl"'), {
+        includeMap: {
+          "User/Common.glsl": "float firstValue;",
+          "/User/Common.glsl": "float secondValue;"
+        }
+      })
+    ).to.throw('resolves to "User/Common.glsl"');
+  });
+
+  it("accepts include keys containing spaces, hyphens, and at signs", () => {
+    const includePath = "User Effects/@shared/Math-Functions.glsl";
+    const result = ShaderAnalyzer.analyze(shader(`#include "${includePath}"`), {
+      includeMap: { [includePath]: "float includedValue;" }
+    });
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+  });
+
+  it("reports malformed include directives instead of leaving them in generated source", () => {
+    const result = ShaderAnalyzer.analyze(shader("#include <Common.glsl>"));
+    expect(
+      result.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.code === "PreprocessorError" && diagnostic.message === "Invalid shader include directive."
+      )
+    ).to.equal(true);
+  });
+
   it("resolves and maps relative includes from an absolute source URL", () => {
     const sourceFile = "file:///workspace/Assets/Shaders/main.shader";
     const includedFile = "file:///workspace/Assets/Shaders/common.glsl";

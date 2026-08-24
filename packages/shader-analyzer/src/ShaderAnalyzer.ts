@@ -1,5 +1,6 @@
 import {
   ChunkOutputCache,
+  mapExpandedShaderRange,
   normalizeShaderSourceFile,
   parseShaderPass,
   ShaderCoreInfo,
@@ -9,10 +10,10 @@ import {
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import type { ShaderRange } from "@galacean/engine-shader-parser/internal/analyzer";
 import type { IShaderPassSource, IShaderSource, IStatement } from "@galacean/engine-design";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticType } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
-import { validatePreprocessorExpressions } from "./PreprocessorExpressionValidator";
 import { ShaderValidator } from "./ShaderValidator";
 import { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 import { ShaderIOValidator } from "./ShaderIOValidator";
@@ -32,7 +33,7 @@ export type ShaderIncludeMap = Readonly<Record<string, string | undefined>>;
 export interface AnalyzerOptions {
   /** `#include` lookup table using canonical project paths or resolved absolute URLs. */
   includeMap?: ShaderIncludeMap;
-  /** Project path or absolute URL of the complete root Shader; required only for relative root includes. */
+  /** Optional project path or absolute URL used as the relative-include base and for diagnostic attribution. */
   sourceFile?: string;
 }
 
@@ -45,20 +46,24 @@ export interface AnalysisResult {
 }
 
 /**
- * Parsed pass retained by the internal combined analysis/codegen path.
+ * One analyzer-parsed pass retained for first-party backend generation.
  * @internal
  */
 export interface AnalyzedShaderPass {
+  /** Request-owned immutable parser result. */
   readonly parsed: ParsedShaderPass;
+  /** Vertex entry function name declared by the ShaderLab pass. */
   readonly vertexEntry: string;
+  /** Fragment entry function name declared by the ShaderLab pass. */
   readonly fragmentEntry: string;
 }
 
 /**
- * Analyzer result that lets first-party tooling reuse the same Parser IR for codegen.
+ * Analysis result that retains parser output for a same-request codegen consumer.
  * @internal
  */
 export interface ShaderAnalysisUnit extends AnalysisResult {
+  /** Parsed passes in ShaderLab source order. */
   readonly parsedPasses: readonly AnalyzedShaderPass[];
 }
 
@@ -82,13 +87,13 @@ export class ShaderAnalyzer {
   }
 
   /**
-   * Analyzes a ShaderLab document and retains its request-owned parsed passes for first-party codegen reuse.
+   * Analyzes source while retaining the request-owned parsed passes for codegen reuse.
    * @param source - ShaderLab source to analyze.
-   * @param options - Include sources and optional root source path.
-   * @returns Diagnostics and parsed passes produced by the same parser calls.
+   * @param options - Include sources and optional root source location.
+   * @returns Diagnostics and the exact parsed passes used to produce them.
    * @internal
    */
-  static _analyze(source: string, options?: AnalyzerOptions): ShaderAnalysisUnit {
+  static _analyzeWithParsedPasses(source: string, options?: AnalyzerOptions): ShaderAnalysisUnit {
     const parsedPasses: AnalyzedShaderPass[] = [];
     const diagnostics = ShaderAnalyzer._analyzeSource(source, options, parsedPasses);
     return Object.freeze({
@@ -102,13 +107,12 @@ export class ShaderAnalyzer {
     options?: AnalyzerOptions,
     parsedPasses?: AnalyzedShaderPass[]
   ): readonly Diagnostic[] {
-    const includeMap = options?.includeMap ?? {};
+    const includeMap = normalizeIncludeMap(options?.includeMap);
     const sourceFile = normalizeShaderSourceFile(options?.sourceFile);
     const chunkOutputCache: ChunkOutputCache = new Map();
     const diagnostics: Diagnostic[] = [];
 
     try {
-      diagnostics.push(...validatePreprocessorExpressions(source, sourceFile));
       const sourceResult = ShaderSourceParser.parseWithErrors(source);
       const shaderSource: IShaderSource = sourceResult.shaderSource;
       diagnostics.push(...sourceResult.errors.map((error) => gseErrorToDiagnostic(error)));
@@ -116,25 +120,15 @@ export class ShaderAnalyzer {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
           const statements = shaderSource.pendingContents.concat(subShader.pendingContents, pass.pendingContents);
-          const skipSemanticValidation = diagnostics.some(
-            (diagnostic) =>
-              diagnostic.code === DiagnosticType.PreprocessorError &&
-              statements.some(
-                (statement) =>
-                  diagnostic.range.start.offset >= statement.range.start.index &&
-                  diagnostic.range.start.offset <= statement.range.end.index
-              )
-          );
           ShaderAnalyzer._analyzePass(
             pass,
             statements,
             source,
             diagnostics,
-            parsedPasses,
             includeMap,
             chunkOutputCache,
             sourceFile,
-            skipSemanticValidation
+            parsedPasses
           );
         }
       }
@@ -153,39 +147,27 @@ export class ShaderAnalyzer {
     statements: readonly IStatement[],
     source: string,
     diagnostics: Diagnostic[],
-    parsedPasses: AnalyzedShaderPass[] | undefined,
     includeMap: ShaderIncludeMap,
     chunkOutputCache: ChunkOutputCache,
     sourceFile: string | undefined,
-    skipSemanticValidation: boolean
+    parsedPasses?: AnalyzedShaderPass[]
   ): void {
     if (pass.contents.trim().length === 0) return;
 
     const { vertexEntry, fragmentEntry } = pass;
     const passDiagnostics: Diagnostic[] = [];
-    let shouldSkipSemanticValidation = skipSemanticValidation;
+    let shouldSkipSemanticValidation = false;
     let expandedSource: string | undefined;
     let preprocessSourceMap: readonly PreprocessSourceMapSegment[] = [];
     try {
       const parsed = parseShaderPass(pass.contents, includeMap, chunkOutputCache, sourceFile);
       const { ir, errors } = parsed;
+      parsedPasses?.push({ parsed, vertexEntry, fragmentEntry });
       expandedSource = parsed.expandedSource;
       preprocessSourceMap = parsed.sourceMap;
-      parsedPasses?.push({ parsed, vertexEntry, fragmentEntry });
-      const hasIncludedSource = preprocessSourceMap.some(
-        (segment) => segment.source !== pass.contents || segment.sourceFile !== sourceFile
-      );
-      if (hasIncludedSource) {
-        for (const diagnostic of validatePreprocessorExpressions(expandedSource)) {
-          const segment = findPreprocessSegment(diagnostic.range.start.offset, preprocessSourceMap, false);
-          if (!segment || (segment.source === pass.contents && segment.sourceFile === sourceFile)) continue;
-          remapPreprocessedDiagnostic(diagnostic, preprocessSourceMap);
-          passDiagnostics.push(diagnostic);
-          shouldSkipSemanticValidation = true;
-        }
-      }
       for (const error of errors) {
         const diagnostic = gseErrorToDiagnostic(error);
+        if (diagnostic.code === DiagnosticType.PreprocessorError) shouldSkipSemanticValidation = true;
         if (
           !shouldSkipSemanticValidation ||
           diagnostic.code === DiagnosticType.SyntaxError ||
@@ -214,7 +196,7 @@ export class ShaderAnalyzer {
     const sourceMap = createPassSourceMap(statements);
     for (const diagnostic of passDiagnostics) {
       if (expandedSource !== undefined && diagnostic.relatedSource === expandedSource) {
-        remapPreprocessedDiagnostic(diagnostic, preprocessSourceMap);
+        remapExpandedDiagnostic(diagnostic, preprocessSourceMap);
       }
       if (sourceMap.generatedSource === pass.contents && diagnostic.relatedSource === pass.contents) {
         remapDiagnostic(diagnostic, sourceMap.segments, source);
@@ -225,38 +207,55 @@ export class ShaderAnalyzer {
   }
 }
 
-function remapPreprocessedDiagnostic(diagnostic: Diagnostic, segments: readonly PreprocessSourceMapSegment[]): void {
-  const startSegment = findPreprocessSegment(diagnostic.range.start.offset, segments, false);
-  if (!startSegment) return;
-  const endSegment = findPreprocessSegment(diagnostic.range.end.offset, segments, true);
-  const startOffset = startSegment.sourceStart + diagnostic.range.start.offset - startSegment.generatedStart;
-  let endOffset = startOffset;
-  if (endSegment && endSegment.source === startSegment.source && endSegment.sourceFile === startSegment.sourceFile) {
-    endOffset = endSegment.sourceStart + diagnostic.range.end.offset - endSegment.generatedStart;
+function normalizeIncludeMap(includeMap?: ShaderIncludeMap): ShaderIncludeMap {
+  if (!includeMap) return Object.create(null);
+  const normalized: Record<string, string | undefined> = Object.create(null);
+  for (const inputKey of Object.keys(includeMap)) {
+    const key = normalizeShaderIncludeKey(inputKey);
+    if (Object.prototype.hasOwnProperty.call(normalized, key)) {
+      throw new Error(`Shader include key collision after normalization: "${inputKey}" resolves to "${key}".`);
+    }
+    Object.defineProperty(normalized, key, {
+      value: includeMap[inputKey],
+      enumerable: true,
+      configurable: false,
+      writable: false
+    });
   }
-  diagnostic.range = {
-    start: positionAt(startSegment.source, startOffset),
-    end: positionAt(startSegment.source, endOffset)
-  };
-  diagnostic.relatedSource = startSegment.source;
-  diagnostic.sourceFile = startSegment.sourceFile ?? diagnostic.sourceFile;
+  return new Proxy(normalized, {
+    get(target, property): string | undefined {
+      if (typeof property !== "string") return undefined;
+      if (Object.prototype.hasOwnProperty.call(target, property)) return target[property];
+      const source = includeMap[property];
+      const value = typeof source === "string" ? source : undefined;
+      Object.defineProperty(target, property, {
+        value,
+        enumerable: true,
+        configurable: false,
+        writable: false
+      });
+      return value;
+    }
+  });
 }
 
-function findPreprocessSegment(
-  offset: number,
-  segments: readonly PreprocessSourceMapSegment[],
-  isEnd: boolean
-): PreprocessSourceMapSegment | undefined {
-  for (const segment of segments) {
-    if (
-      offset >= segment.generatedStart &&
-      (isEnd ? offset <= segment.generatedEnd && offset > segment.generatedStart : offset < segment.generatedEnd)
-    ) {
-      return segment;
+function remapExpandedDiagnostic(diagnostic: Diagnostic, segments: readonly PreprocessSourceMapSegment[]): void {
+  const mapped = mapExpandedShaderRange(diagnostic.range.start.offset, diagnostic.range.end.offset, segments);
+  if (!mapped) return;
+  diagnostic.range = {
+    start: {
+      offset: mapped.start.index,
+      line: mapped.start.line + 1,
+      column: mapped.start.column + 1
+    },
+    end: {
+      offset: mapped.end.index,
+      line: mapped.end.line + 1,
+      column: mapped.end.column + 1
     }
-  }
-  const last = segments[segments.length - 1];
-  return last && offset === last.generatedEnd ? last : undefined;
+  };
+  diagnostic.relatedSource = mapped.source;
+  diagnostic.sourceFile = mapped.sourceFile ?? diagnostic.sourceFile;
 }
 
 interface SourceMapSegment {

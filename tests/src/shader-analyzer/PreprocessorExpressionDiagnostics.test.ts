@@ -105,6 +105,27 @@ describe("preprocessor expression diagnostics", () => {
     ).to.be.empty;
   });
 
+  it("propagates a 32-bit macro value into branch reachability", () => {
+    const replacement = "0xffffffffu";
+    const condition = "VALUE == 0";
+    const source = shader(condition).replace(
+      `#if ${condition}`,
+      `#define VALUE ${replacement}\n      #if ${condition}\n        float duplicateValue;\n        float duplicateValue;`
+    );
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+    expect(diagnostics.filter((diagnostic) => diagnostic.code === "Redefinition")).to.be.empty;
+  });
+
+  it("reports a macro value that exceeds 32 bits instead of inventing a branch conflict", () => {
+    const source = shader("VALUE").replace(
+      "#if VALUE",
+      "#define VALUE 4294967296\n      #if VALUE\n        float duplicateValue;\n        float duplicateValue;"
+    );
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+    expect(diagnostics.filter((diagnostic) => diagnostic.code === "PreprocessorError")).to.have.lengthOf(1);
+    expect(diagnostics.filter((diagnostic) => diagnostic.code === "Redefinition")).to.be.empty;
+  });
+
   it("maps semantic diagnostics back to the full ShaderLab source", () => {
     const source = `Shader "mapping" {
   float headerValue;

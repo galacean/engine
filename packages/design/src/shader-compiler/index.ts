@@ -5,14 +5,21 @@ export type {
   NotDefinedCondition,
   CompareCondition,
   BoolCondition,
-  RawCondition,
+  NumericCondition,
+  IdentifierCondition,
+  UnaryCondition,
+  BinaryCondition,
+  SelectCondition,
+  DeferredCondition,
   ShaderInstruction
 } from "./ICondition";
+export * from "./PreprocessorExpression";
+export * from "./ShaderIncludePath";
 export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
 export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";
-export { IRenderStates } from "./shaderSource/IRenderStates";
-export { IShaderPassSource } from "./shaderSource/IShaderPassSource";
-export { IShaderPosition } from "./shaderSource/IShaderPosition";
+export type { IRenderStates } from "./shaderSource/IRenderStates";
+export type { IShaderPassSource } from "./shaderSource/IShaderPassSource";
+export type { IShaderPosition } from "./shaderSource/IShaderPosition";
 export type { IShaderSource } from "./shaderSource/IShaderSource";
-export { IStatement } from "./shaderSource/IStatement";
-export { ISubShaderSource } from "./shaderSource/ISubShaderSource";
+export type { IStatement } from "./shaderSource/IStatement";
+export type { ISubShaderSource } from "./shaderSource/ISubShaderSource";

@@ -198,13 +198,12 @@ importers:
 
   packages/core:
     dependencies:
-      '@galacean/engine-math':
-        specifier: workspace:*
-        version: link:../math
-    devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
 
   packages/design:
     dependencies:
@@ -274,13 +273,12 @@ importers:
 
   packages/shader-analyzer:
     dependencies:
-      '@galacean/engine-shader-parser':
-        specifier: workspace:*
-        version: link:../shader-parser
-    devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+      '@galacean/engine-shader-parser':
+        specifier: workspace:*
+        version: link:../shader-parser
 
   packages/shader-compiler:
     dependencies:
@@ -306,13 +304,12 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
-      '@galacean/engine-math':
-        specifier: workspace:*
-        version: link:../math
-    devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
 
   packages/ui:
     devDependencies:

@@ -21,7 +21,11 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
   }
 
   const severity = error.name === GSErrorName.CompilationWarn ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
-  const code = isDiagnosticType(error.code) ? error.code : DiagnosticType.SyntaxError;
+  const code = isDiagnosticType(error.code)
+    ? error.code
+    : error.name === GSErrorName.PreprocessorError
+      ? DiagnosticType.PreprocessorError
+      : DiagnosticType.SyntaxError;
 
   return {
     severity,

@@ -1,5 +1,5 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
-import type { BranchCoverage, DeclarationCoexistence } from "../common/BaseToken";
+import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
 
 /** Analyzer-only ambiguity categories emitted while semantic facts are projected. @internal */
 export type SemanticAmbiguityKind =
@@ -8,20 +8,28 @@ export type SemanticAmbiguityKind =
   | "struct-member-type"
   | "symbol-type";
 
-/** Structured parser facts that an analyzer may map to diagnostics. @internal */
+/** Structured parser facts mapped to analyzer or offline-compiler diagnostics. @internal */
 export interface SemanticDiagnostics {
+  /**
+   * Replaces the expanded source attached to subsequent diagnostics.
+   * @param source - Expanded shader-pass source for the current parser request.
+   * @internal
+   */
+  setSource?(source: string): void;
   /**
    * Maps a declaration conflict to a diagnostic.
    * @param location - Declaration range.
    * @param name - Declared symbol name.
    * @param conflict - Proven or unresolved coexistence state.
+   * @param branch - Macro branch containing the later declaration.
    * @returns A diagnostic when the conflict is reportable.
    * @internal
    */
   redefinition(
     location: ShaderRange,
     name: string,
-    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none"
+    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none",
+    branch: BranchSignature
   ): Error | undefined;
   /**
    * Maps declaration coverage to a reference diagnostic.
@@ -29,7 +37,7 @@ export interface SemanticDiagnostics {
    * @param subjectKind - Referenced declaration category.
    * @param name - Referenced symbol name.
    * @param coverage - Proven or unresolved coverage state.
-   * @returns A diagnostic when coverage is not proven.
+   * @returns A diagnostic when absence is proven.
    * @internal
    */
   branchAvailability(
@@ -47,14 +55,14 @@ export interface SemanticDiagnostics {
    * @returns The mapped ambiguity diagnostic.
    * @internal
    */
-  branchAmbiguity(location: ShaderRange, kind: SemanticAmbiguityKind, name: string, owner?: string): Error;
+  branchAmbiguity?(location: ShaderRange, kind: SemanticAmbiguityKind, name: string, owner?: string): Error | undefined;
   /**
    * Creates a non-constant array-size diagnostic.
    * @param location - Array-size range.
    * @returns The mapped diagnostic.
    * @internal
    */
-  nonConstArraySize(location: ShaderRange): Error;
+  nonConstArraySize?(location: ShaderRange): Error | undefined;
   /**
    * Creates a sampler-argument diagnostic.
    * @param location - Call range.
@@ -63,7 +71,7 @@ export interface SemanticDiagnostics {
    * @returns The mapped diagnostic.
    * @internal
    */
-  expectedSampler(location: ShaderRange, functionName: string, actualType: GalaceanDataType): Error;
+  expectedSampler?(location: ShaderRange, functionName: string, actualType: GalaceanDataType): Error | undefined;
   /**
    * Creates an overload-resolution diagnostic.
    * @param location - Call range.
@@ -71,7 +79,7 @@ export interface SemanticDiagnostics {
    * @returns The mapped diagnostic.
    * @internal
    */
-  noMatchingOverload(location: ShaderRange, functionName: string): Error;
+  noMatchingOverload?(location: ShaderRange, functionName: string): Error | undefined;
   /**
    * Creates an undefined-function diagnostic.
    * @param location - Call range.
@@ -79,7 +87,7 @@ export interface SemanticDiagnostics {
    * @returns The mapped diagnostic.
    * @internal
    */
-  undefinedFunction(location: ShaderRange, functionName: string): Error;
+  undefinedFunction?(location: ShaderRange, functionName: string): Error | undefined;
   /**
    * Creates an unknown-struct-member diagnostic.
    * @param location - Member range.
@@ -88,7 +96,7 @@ export interface SemanticDiagnostics {
    * @returns The mapped diagnostic.
    * @internal
    */
-  undeclaredStructMember(location: ShaderRange, structName: string, memberName: string): Error;
+  undeclaredStructMember?(location: ShaderRange, structName: string, memberName: string): Error | undefined;
   /**
    * Creates an unknown-variable diagnostic.
    * @param location - Reference range.
@@ -96,5 +104,5 @@ export interface SemanticDiagnostics {
    * @returns The mapped diagnostic.
    * @internal
    */
-  unknownVariable(location: ShaderRange, name: string): Error;
+  unknownVariable?(location: ShaderRange, name: string): Error | undefined;
 }

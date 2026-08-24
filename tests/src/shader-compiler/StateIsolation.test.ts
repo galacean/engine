@@ -5,6 +5,7 @@
  */
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ASTNode, ParserObjectPool, TreeNode, parseRuntimeShaderPass } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
 const shaderA = `
@@ -50,4 +51,33 @@ describe("compiler state isolation (no cross-shader leak)", () => {
     expect(after!.vertex).to.equal(clean!.vertex);
     expect(after!.fragment).to.equal(clean!.fragment);
   });
+
+  it("does not retain a fixed array size when a pooled node becomes unsized", () => {
+    const pool = new ParserObjectPool();
+    const parse = (declaration: string) =>
+      parseRuntimeShaderPass(
+        `${declaration}\nvoid vert() { gl_Position = vec4(0.0); }\nvoid frag() { gl_FragColor = vec4(1.0); }`,
+        Object.create(null),
+        new Map(),
+        undefined,
+        pool
+      );
+
+    parse("float values[4];");
+    const unsized = parse("float values[];");
+    const arraySpecifier = findNode(unsized.ir!.program, ASTNode.ArraySpecifier);
+
+    expect(arraySpecifier).toBeDefined();
+    expect(arraySpecifier!.size).toBeUndefined();
+  });
 });
+
+function findNode<T extends TreeNode>(root: TreeNode, type: new () => T): T | undefined {
+  if (root instanceof type) return root;
+  for (const child of root.children) {
+    if (child instanceof TreeNode) {
+      const match = findNode(child, type);
+      if (match) return match;
+    }
+  }
+}

@@ -10,6 +10,7 @@ import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagn
 import { NodeChild } from "./types";
 
 import { MacroDefineList } from "../Preprocessor";
+import type { ParserObjectPool } from "../ParserObjectPool";
 
 export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
@@ -58,9 +59,15 @@ export default class SemanticAnalyzer {
 
   constructor(
     readonly branchSemantics?: BranchSemantics,
-    private readonly _semanticDiagnostics?: SemanticDiagnostics
+    readonly semanticDiagnostics?: SemanticDiagnostics,
+    /**
+     * Request allocator used only by synchronous compiler-owned parses.
+     * @internal
+     */
+    readonly objectPool?: ParserObjectPool,
+    diagnosticsEnabled = semanticDiagnostics !== undefined
   ) {
-    this.diagnosticsEnabled = _semanticDiagnostics !== undefined;
+    this.diagnosticsEnabled = diagnosticsEnabled;
     this.symbolTableStack.branchSemantics = branchSemantics;
     this.pushScope();
   }
@@ -84,7 +91,11 @@ export default class SemanticAnalyzer {
     return this.symbolTableStack.popScope();
   }
 
-  /** Binds the immutable grammar translation table shared by parser sessions. @internal */
+  /**
+   * Binds the immutable grammar translation table shared by parser sessions.
+   * @param rules - Translation callbacks indexed by production ID.
+   * @internal
+   */
   setTranslationRules(rules: readonly (TranslationRule | undefined)[]): void {
     this._translationRules = rules;
   }
@@ -93,19 +104,31 @@ export default class SemanticAnalyzer {
     return this._translationRules[pid];
   }
 
-  /** Report a proven duplicate as an error and unresolved branch overlap as a warning. */
-  reportRedefinition(loc: ShaderRange, name: string, conflict: RedefinitionConflict): void {
-    this._report(this._semanticDiagnostics?.redefinition(loc, name, conflict));
+  /**
+   * Reports a declaration conflict only when branch coexistence is proven.
+   * @param loc - Conflicting declaration range.
+   * @param name - Declared symbol name.
+   * @param conflict - Proven or unresolved coexistence state.
+   * @param branch - Macro branch containing the later declaration.
+   */
+  reportRedefinition(loc: ShaderRange, name: string, conflict: RedefinitionConflict, branch: BranchSignature): void {
+    this._report(this.semanticDiagnostics?.redefinition(loc, name, conflict, branch));
   }
 
-  /** Report a proven missing declaration as an error and uncertain coverage as a warning. */
+  /**
+   * Reports a missing declaration only when a reachable uncovered configuration is proven.
+   * @param loc - Reference range.
+   * @param subjectKind - Referenced symbol category.
+   * @param name - Referenced symbol name.
+   * @param coverage - Branch coverage result.
+   */
   reportBranchAvailability(
     loc: ShaderRange,
     subjectKind: "Function" | "Struct" | "Identifier",
     name: string,
     coverage: BranchCoverage
   ): void {
-    this._report(this._semanticDiagnostics?.branchAvailability(loc, subjectKind, name, coverage));
+    this._report(this.semanticDiagnostics?.branchAvailability(loc, subjectKind, name, coverage));
   }
 
   /**
@@ -123,41 +146,44 @@ export default class SemanticAnalyzer {
     name: string,
     owner?: string
   ): void {
-    if (!this._semanticDiagnostics) return;
+    const createDiagnostic = this.semanticDiagnostics?.branchAmbiguity;
+    if (!createDiagnostic) return;
     const dedupKey = `${kind}:${key}`;
     if (this._ambiguousReported.has(dedupKey)) return;
+    const error = createDiagnostic.call(this.semanticDiagnostics, loc, kind, name, owner);
+    if (!error) return;
     this._ambiguousReported.add(dedupKey);
-    this._report(this._semanticDiagnostics.branchAmbiguity(loc, kind, name, owner));
+    this._report(error);
   }
 
   /** @internal */
   reportNonConstArraySize(loc: ShaderRange): void {
-    this._report(this._semanticDiagnostics?.nonConstArraySize(loc));
+    this._report(this.semanticDiagnostics?.nonConstArraySize?.(loc));
   }
 
   /** @internal */
   reportExpectedSampler(loc: ShaderRange, functionName: string, actualType: GalaceanDataType): void {
-    this._report(this._semanticDiagnostics?.expectedSampler(loc, functionName, actualType));
+    this._report(this.semanticDiagnostics?.expectedSampler?.(loc, functionName, actualType));
   }
 
   /** @internal */
   reportNoMatchingOverload(loc: ShaderRange, functionName: string): void {
-    this._report(this._semanticDiagnostics?.noMatchingOverload(loc, functionName));
+    this._report(this.semanticDiagnostics?.noMatchingOverload?.(loc, functionName));
   }
 
   /** @internal */
   reportUndefinedFunction(loc: ShaderRange, functionName: string): void {
-    this._report(this._semanticDiagnostics?.undefinedFunction(loc, functionName));
+    this._report(this.semanticDiagnostics?.undefinedFunction?.(loc, functionName));
   }
 
   /** @internal */
   reportUndeclaredStructMember(loc: ShaderRange, structName: string, memberName: string): void {
-    this._report(this._semanticDiagnostics?.undeclaredStructMember(loc, structName, memberName));
+    this._report(this.semanticDiagnostics?.undeclaredStructMember?.(loc, structName, memberName));
   }
 
   /** @internal */
   reportUnknownVariable(loc: ShaderRange, name: string): void {
-    this._report(this._semanticDiagnostics?.unknownVariable(loc, name));
+    this._report(this.semanticDiagnostics?.unknownVariable?.(loc, name));
   }
 
   /** @internal */

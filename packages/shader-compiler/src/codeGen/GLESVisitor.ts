@@ -19,23 +19,40 @@ import type { ShaderBackend } from "../ShaderBackend";
 export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   private _globalCodeArray: ICodeSegment[] = [];
 
+  /**
+   * Clears pass-local output retained by the pooled visitor.
+   */
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
   }
 
-  /** Releases references retained by an idle visitor when its pool is collected. @internal */
+  /**
+   * Releases references retained by an idle visitor when its pool is collected.
+   * @internal
+   */
   dispose(): void {
     this.context.reset();
     this.reset();
   }
 
+  /**
+   * Emits target-specific declarations that precede generated global code.
+   * @param data - Parser-owned shader facts.
+   * @param out - Destination code segments.
+   */
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
     for (const precision of data.globalPrecisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
   }
 
+  /**
+   * Generates vertex and fragment source from neutral parser facts.
+   * @param ir - Request-owned neutral shader IR.
+   * @param coreInfo - Entry and stage-interface facts derived from the same IR.
+   * @returns Generated vertex and fragment source.
+   */
   generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
     this.context.reset();
     this.reset();

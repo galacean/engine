@@ -1,6 +1,6 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
-import { tryParsePreprocessorCondition } from "@galacean/engine-shader-parser/internal";
+import { parsePreprocessorExpression, toPreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 
@@ -159,7 +159,14 @@ export class ShaderInstructionEncoder {
   }
 
   private static _parseCondition(expression: string): Condition {
-    return tryParsePreprocessorCondition(expression) ?? { t: "raw", e: expression };
+    const result = parsePreprocessorExpression(expression);
+    if ("error" in result) {
+      if (!result.error.certain && result.hasExpandableIdentifier) return { t: "deferred", e: expression };
+      throw new Error(result.error.message);
+    }
+    const compact = toPreprocessorCondition(result.condition);
+    if (compact && !result.hasExpandableIdentifier) return compact;
+    return result.hasExpandableIdentifier ? { t: "deferred", e: expression } : result.condition;
   }
 
   private static _findDirectiveStart(source: string, from: number, length: number): number {

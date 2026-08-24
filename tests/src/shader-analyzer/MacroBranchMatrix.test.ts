@@ -1,7 +1,7 @@
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { AnalyzerLexer, ShaderSourceParser, type IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
+import { AnalyzerLexer, type IncludeMap } from "@galacean/engine-shader-parser/internal/analyzer";
 import { describe, expect, it } from "vitest";
 
 function pass(body: string): string {
@@ -21,17 +21,15 @@ ${fragmentBody}
 }
 
 function compile(source: string, includeMap?: IncludeMap) {
-  const result = ShaderAnalyzer.analyze(source, includeMap ? { includeMap } : undefined);
+  const result = ShaderAnalyzer._analyzeWithParsedPasses(source, includeMap ? { includeMap } : undefined);
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
-  const passSource = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+  const analyzedPass = result.parsedPasses[0];
   const compiler = new ShaderCompiler();
-  if (includeMap) compiler._setIncludeMap(includeMap);
-  const generated = compiler._parseShaderPass(
-    passSource.contents,
-    passSource.vertexEntry,
-    passSource.fragmentEntry,
-    ShaderLanguage.GLSLES100,
-    ""
+  const generated = compiler._generateParsedShaderPass(
+    analyzedPass.parsed,
+    analyzedPass.vertexEntry,
+    analyzedPass.fragmentEntry,
+    ShaderLanguage.GLSLES100
   );
 
   return {
@@ -541,6 +539,10 @@ float u_value;
     it(`analyzes and generates ${testCase.name}`, () => {
       const { codes, fragment } = compile(testCase.source, testCase.includeMap);
       expect(codes).to.deep.equal(testCase.codes);
+      if (testCase.codes.includes("PreprocessorError")) {
+        expect(fragment).to.be.undefined;
+        return;
+      }
       expect(fragment).to.not.be.undefined;
       const generatedFragment = fragment!;
       for (const fragmentPart of testCase.fragments) expect(generatedFragment).to.include(fragmentPart);

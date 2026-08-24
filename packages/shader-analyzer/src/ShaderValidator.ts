@@ -260,12 +260,6 @@ export class ShaderValidator {
         typeName.location,
         DiagnosticType.UseBeforeDeclaration
       );
-    } else if (coverage === "unknown") {
-      this._pushWarning(
-        `Type '${typeName.lexeme}' may be unavailable under some macro configurations; align its declaration and reference conditions.`,
-        typeName.location,
-        DiagnosticType.UseBeforeDeclaration
-      );
     }
   }
 

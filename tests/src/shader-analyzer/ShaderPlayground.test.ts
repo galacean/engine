@@ -73,9 +73,7 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
   {
     label: "宏分支 / 复杂算术条件覆盖未知",
     snippet: "#if A + B > 1",
-    diagnosticCount: 1,
-    diagnostic: "UseBeforeDeclaration",
-    severity: "warning"
+    diagnosticCount: 0
   },
   {
     label: "宏分支 / 复杂算术条件互斥声明",

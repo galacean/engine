@@ -75,7 +75,9 @@ export default class GrammarUtils {
           } else {
             const start = children[0].location.start;
             const end = children[children.length - 1].location.end;
-            const location = ShaderCompilerUtils.createRange(start, end);
+            const location = sa.objectPool
+              ? sa.objectPool.createRange(start, end)
+              : ShaderCompilerUtils.createRange(start, end);
             ASTNode.get(analyzerMode ? analyzerResolvedType : runtimeResolvedType, sa, location, children);
           }
         }

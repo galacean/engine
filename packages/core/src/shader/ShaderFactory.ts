@@ -1,4 +1,5 @@
 import { Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
@@ -21,7 +22,7 @@ export class ShaderFactory {
       ConstantBufferBindingPoint.RendererInstance
   };
 
-  static readonly includeMap: Record<string, string> = {};
+  static readonly includeMap: Record<string, string> = Object.create(null);
 
   static readonly shaderExtension = [
     "GL_EXT_shader_texture_lod",
@@ -151,10 +152,11 @@ mat3 _normalMatFromModel(mat3 m) {
    * @param includeSource - GLSL chunk source text.
    */
   static registerInclude(includeName: string, includeSource: string): void {
-    if (Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, includeName)) {
-      throw `The "${includeName}" shader include already exist`;
+    const key = normalizeShaderIncludeKey(includeName);
+    if (Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, key)) {
+      throw new Error(`The shader include "${key}" is already registered.`);
     }
-    Object.defineProperty(ShaderFactory.includeMap, includeName, {
+    Object.defineProperty(ShaderFactory.includeMap, key, {
       value: includeSource,
       writable: true,
       enumerable: true,
@@ -167,7 +169,7 @@ mat3 _normalMatFromModel(mat3 m) {
    * @param includeName - The path key passed to `registerInclude`.
    */
   static unregisterInclude(includeName: string): void {
-    delete ShaderFactory.includeMap[includeName];
+    delete ShaderFactory.includeMap[normalizeShaderIncludeKey(includeName)];
   }
 
   /**

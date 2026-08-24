@@ -145,7 +145,7 @@ namespace ASTNodes {
   }
 
   export function get(type: ASTNodeConstructor, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
-    const node = new type();
+    const node = sa.objectPool ? sa.objectPool.createNode(type) : new type();
     node.set(loc, children, sa.diagnosticsEnabled);
     if (!sa.diagnosticsEnabled) {
       node.semanticAnalyze(sa);
@@ -318,7 +318,7 @@ namespace ASTNodes {
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
       const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-      sa.reportRedefinition(id.location, id.lexeme, insertResult);
+      sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -411,6 +411,11 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
     size: number | undefined;
+
+    override init(): void {
+      this.size = undefined;
+    }
+
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const integerConstantExpr = this.children[1];
       if (!(integerConstantExpr instanceof IntegerConstantExpression)) return; // `[ ]` — unsized
@@ -556,7 +561,7 @@ namespace ASTNodes {
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        sa.reportRedefinition(id.location, id.lexeme, insertResult);
+        sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
         const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
@@ -573,7 +578,7 @@ namespace ASTNodes {
         };
         sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        sa.reportRedefinition(id.location, id.lexeme, insertResult);
+        sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
       }
     }
   }
@@ -808,7 +813,12 @@ namespace ASTNodes {
       // the source, while `insert` independently reports whether two declarations can coexist.
       const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
-      sa.reportRedefinition(this.protoType.ident.location, this.protoType.ident.lexeme, conflict);
+      sa.reportRedefinition(
+        this.protoType.ident.location,
+        this.protoType.ident.lexeme,
+        conflict,
+        this.protoType.ident.branch
+      );
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
@@ -1371,7 +1381,7 @@ namespace ASTNodes {
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
         const insertResult = sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch);
-        sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult);
+        sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult, this.ident.branch);
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1621,7 +1631,7 @@ namespace ASTNodes {
       const sm = new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst);
 
       const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
-      sa.reportRedefinition(ident.location, ident.lexeme, insertResult);
+      sa.reportRedefinition(ident.location, ident.lexeme, insertResult, ident.branch);
 
       if (children.length === 4) {
         this.isStatic = true;

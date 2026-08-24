@@ -1,6 +1,7 @@
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { GSError, GSErrorName } from "./GSError";
 import { ShaderPosition } from "./common/ShaderPosition";
 import type { ShaderSourceMapSegment } from "./ir";
@@ -44,7 +45,8 @@ export interface MacroDefineList {
 
 export class Preprocessor {
   // Block-comment alternation prevents expanding `#include` inside doc comments.
-  private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include +"([\w\d./]+)"/gm;
+  private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include\b([^\r\n]*)/gm;
+  private static readonly _includePathReg = /^[ \t]*"([^"\r\n]+)"[ \t]*(?:(?:\/\/.*)|(?:\/\*.*\*\/[ \t]*))?$/;
 
   static parse(
     source: string,
@@ -66,6 +68,7 @@ export class Preprocessor {
    * @param includeMap - Include-path lookup table.
    * @param chunkOutputCache - Cache for expanded include chunks.
    * @param sourceFile - Canonical path of the root source.
+   * @param trackSourceMap - Whether to retain generated-to-original source segments.
    * @returns The expanded source and collected errors.
    */
   static parseWithErrors(
@@ -73,9 +76,18 @@ export class Preprocessor {
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache,
-    sourceFile?: string
+    sourceFile?: string,
+    trackSourceMap = true
   ): PreprocessResult {
-    return this._expand(source, basePathForIncludeKey, includeMap, chunkOutputCache, new Set(), sourceFile);
+    return this._expand(
+      source,
+      basePathForIncludeKey,
+      includeMap,
+      chunkOutputCache,
+      new Set(),
+      sourceFile,
+      trackSourceMap
+    );
   }
 
   private static _expand(
@@ -84,7 +96,8 @@ export class Preprocessor {
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache,
     activeIncludePaths: Set<string>,
-    sourceFile?: string
+    sourceFile: string | undefined,
+    trackSourceMap: boolean
   ): PreprocessResult {
     const errors: GSError[] = [];
     const sourceMap: ShaderSourceMapSegment[] = [];
@@ -98,21 +111,29 @@ export class Preprocessor {
       if (end <= start) return;
       const text = source.slice(start, end);
       parts.push(text);
-      sourceMap.push({
-        generatedStart: generatedOffset,
-        generatedEnd: generatedOffset + text.length,
-        sourceStart: start,
-        source,
-        sourceFile
-      });
+      if (trackSourceMap) {
+        sourceMap.push({
+          generatedStart: generatedOffset,
+          generatedEnd: generatedOffset + text.length,
+          sourceStart: start,
+          source,
+          sourceFile
+        });
+      }
       generatedOffset += text.length;
     };
 
     while ((match = includeReg.exec(source))) {
       appendSource(sourceOffset, match.index);
-      const includeName = match[1];
-      if (!includeName) {
+      const includeDirective = match[1];
+      if (includeDirective === undefined) {
         appendSource(match.index, includeReg.lastIndex);
+        sourceOffset = includeReg.lastIndex;
+        continue;
+      }
+      const includeName = this._includePathReg.exec(includeDirective)?.[1];
+      if (!includeName) {
+        errors.push(this._createIncludeError(source, match.index, "Invalid shader include directive.", sourceFile));
         sourceOffset = includeReg.lastIndex;
         continue;
       }
@@ -157,20 +178,23 @@ export class Preprocessor {
           includeMap,
           chunkOutputCache,
           activeIncludePaths,
-          path
+          path,
+          trackSourceMap
         );
         activeIncludePaths.delete(path);
         chunkOutputCache.set(path, expanded);
       }
       parts.push(expanded.content);
-      for (const segment of expanded.sourceMap) {
-        sourceMap.push({
-          generatedStart: generatedOffset + segment.generatedStart,
-          generatedEnd: generatedOffset + segment.generatedEnd,
-          sourceStart: segment.sourceStart,
-          source: segment.source,
-          sourceFile: segment.sourceFile
-        });
+      if (trackSourceMap) {
+        for (const segment of expanded.sourceMap) {
+          sourceMap.push({
+            generatedStart: generatedOffset + segment.generatedStart,
+            generatedEnd: generatedOffset + segment.generatedEnd,
+            sourceStart: segment.sourceStart,
+            source: segment.source,
+            sourceFile: segment.sourceFile
+          });
+        }
       }
       generatedOffset += expanded.content.length;
       errors.push(...expanded.errors);
@@ -181,10 +205,11 @@ export class Preprocessor {
   }
 
   private static _resolveIncludePath(includeName: string, basePathForIncludeKey: string): string | undefined {
-    if (includeName[0] === "." && !basePathForIncludeKey) return undefined;
-    const url =
-      includeName[0] === "." ? new URL(includeName, basePathForIncludeKey) : new URL(includeName, SHADER_ROOT_PATH);
-    return url.href.startsWith(SHADER_ROOT_PATH) ? url.href.substring(SHADER_ROOT_PATH.length) : url.href;
+    const url = new URL(
+      includeName,
+      includeName[0] === "." ? basePathForIncludeKey || SHADER_ROOT_PATH : SHADER_ROOT_PATH
+    );
+    return normalizeShaderIncludeKey(url.href);
   }
 
   private static _canonicalIncludeURL(path: string): string {

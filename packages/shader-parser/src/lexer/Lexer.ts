@@ -1,14 +1,18 @@
-import { ETokenType } from "../common";
+import { ETokenType, type ShaderPosition } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BRANCH, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
+import type { ParserObjectPool } from "../ParserObjectPool";
+import { evaluateContextFreePreprocessorExpression, validatePreprocessorExpression } from "@galacean/engine-design";
+import { GSError, GSErrorName } from "../GSError";
 
 /**
  * The Lexer of Shader Compiler
  */
 export class Lexer extends BaseLexer {
+  /** Preprocessor-expression failures found during the normal token scan. @internal */
+  readonly expressionErrors: GSError[] = [];
   private static _lexemeTable = <Record<string, Keyword>>{
     const: Keyword.CONST,
     bool: Keyword.BOOL,
@@ -228,9 +232,8 @@ export class Lexer extends BaseLexer {
   }
 
   private static _parseCodegenConstantCondition(expression: string): BranchCondition | undefined {
-    const source = expression.trim();
-    if (!/^[+-]?(?:0[xX][0-9a-fA-F]+|\d+)$/.test(source)) return undefined;
-    return { kind: "constant", value: Number(source) !== 0 };
+    const value = evaluateContextFreePreprocessorExpression(expression);
+    return value === undefined ? undefined : { kind: "constant", value: value !== 0 };
   }
 
   private static _isCodegenBranchReachable(branch: BranchSignature): boolean {
@@ -258,9 +261,10 @@ export class Lexer extends BaseLexer {
 
   constructor(
     source: string,
-    public macroDefineList: MacroDefineList
+    public macroDefineList: MacroDefineList,
+    objectPool?: ParserObjectPool
   ) {
-    super(source);
+    super(source, objectPool);
   }
 
   override scanToken(): BaseToken {
@@ -304,7 +308,7 @@ export class Lexer extends BaseLexer {
     }
 
     const start = this.getShaderPosition();
-    const token = new BaseToken();
+    const token = this._createToken();
     let curChar: string;
 
     switch (this.getCurChar()) {
@@ -559,9 +563,9 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     this.advance(1);
-    const range = ShaderCompilerUtils.createRange(start, this.getShaderPosition());
+    const range = this._createRange(start, this.getShaderPosition());
 
-    const token = new BaseToken();
+    const token = this._createToken();
     token.set(ETokenType.STRING_CONST, buffer.join(""), range);
     return token;
   }
@@ -573,7 +577,7 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     this._scanFloatSuffix(buffer);
-    const token = new BaseToken();
+    const token = this._createToken();
     token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
     return token;
   }
@@ -604,7 +608,7 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
-    const token = new BaseToken();
+    const token = this._createToken();
     const word = buffer.join("");
 
     if (word === "#define") {
@@ -881,7 +885,7 @@ export class Lexer extends BaseLexer {
       }
       this.advance(1);
     }
-    const token = new BaseToken();
+    const token = this._createToken();
     const lexeme = buffer.join("");
     this._currentMacroParamsLexeme = lexeme;
     // Value starts after the `)` we just consumed.
@@ -910,7 +914,7 @@ export class Lexer extends BaseLexer {
       valueEnd
     );
     this._inMacroDefineValue = false;
-    const token = new BaseToken();
+    const token = this._createToken();
     token.set(Keyword.MACRO_DEFINE_END, "\n", start);
     return token;
   }
@@ -1010,11 +1014,52 @@ export class Lexer extends BaseLexer {
   private _scanMacroConditionExpression(): BaseToken {
     const buffer = new Array<string>();
     const start = this.getShaderPosition();
-    this._scanUtilBreakLine(buffer);
+    const source = this._source;
+    while (!this.isEnd()) {
+      const afterContinuation = Lexer._skipLineContinuation(source, this._currentIndex, source.length);
+      if (afterContinuation !== this._currentIndex) {
+        while (this._currentIndex < afterContinuation) {
+          const character = source[this._currentIndex];
+          buffer.push(character === "\\" ? " " : character);
+          this.advance(1);
+        }
+        continue;
+      }
+      if (source.charCodeAt(this._currentIndex) === 10) break;
+      buffer.push(source[this._currentIndex]);
+      this.advance(1);
+    }
     const word = buffer.join("");
-    const token = new BaseToken();
+    const result = validatePreprocessorExpression(word);
+    if ("error" in result && (result.error.certain || !result.hasExpandableIdentifier)) {
+      const errorStart = this._positionInExpression(start, word, result.error.start);
+      const errorEnd = this._positionInExpression(start, word, result.error.end);
+      this.expressionErrors.push(
+        new GSError(
+          GSErrorName.PreprocessorError,
+          result.error.message,
+          this._createRange(errorStart, errorEnd),
+          source
+        )
+      );
+    }
+    const token = this._createToken();
     token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, word, start);
     return token;
+  }
+
+  private _positionInExpression(start: ShaderPosition, expression: string, offset: number): ShaderPosition {
+    let line = start.line;
+    let column = start.column;
+    for (let index = 0; index < offset; index++) {
+      if (expression.charCodeAt(index) === 10) {
+        line++;
+        column = 0;
+      } else {
+        column++;
+      }
+    }
+    return this._createPosition(start.index + offset, line, column);
   }
 
   private _scanWord(): BaseToken {
@@ -1025,7 +1070,7 @@ export class Lexer extends BaseLexer {
       buffer.push(this.getCurChar());
       this.advance(1);
     }
-    const token = new BaseToken();
+    const token = this._createToken();
     const word = buffer.join("");
     const kt = Lexer._lexemeTable[word];
 
@@ -1117,7 +1162,7 @@ export class Lexer extends BaseLexer {
         }
         this._scanIntegerSuffix(buffer);
 
-        const token = new BaseToken();
+        const token = this._createToken();
         token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
         return token;
       }
@@ -1137,13 +1182,13 @@ export class Lexer extends BaseLexer {
       }
       this._scanFloatSuffix(buffer);
 
-      const token = new BaseToken();
+      const token = this._createToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else if (curChar === "e" || curChar === "E") {
       this._scanFloatSuffix(buffer);
 
-      const token = new BaseToken();
+      const token = this._createToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else if (curChar === "f" || curChar === "F") {
@@ -1151,13 +1196,13 @@ export class Lexer extends BaseLexer {
       buffer.push(curChar);
       this.advance(1);
 
-      const token = new BaseToken();
+      const token = this._createToken();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     } else {
       this._scanIntegerSuffix(buffer);
 
-      const token = new BaseToken();
+      const token = this._createToken();
       token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
     }
