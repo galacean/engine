@@ -44,7 +44,7 @@ export class Utils {
    * @returns Whether the url is absolute url.
    */
   static isAbsoluteUrl(url: string): boolean {
-    return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
+    return /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(url);
   }
 
   /**
@@ -71,10 +71,6 @@ export class Utils {
    */
   static resolveAbsoluteUrl(baseUrl: string, relativeUrl: string): string {
     if (Utils.isAbsoluteUrl(relativeUrl)) {
-      return relativeUrl;
-    }
-
-    if (Utils.isBase64Url(relativeUrl)) {
       return relativeUrl;
     }
 

@@ -346,8 +346,7 @@ export class ResourceManager {
     this._resolveLoadItemOptions(item, virtualResourceEntry);
 
     const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
-    // Preserve virtual paths for loaders
-    item.url = virtualResourceEntry ? assetBaseURL : remoteAssetBaseURL;
+    item.url = assetBaseURL;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];

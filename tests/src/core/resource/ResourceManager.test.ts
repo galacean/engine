@@ -118,6 +118,24 @@ describe("ResourceManager", () => {
   });
 
   describe("load asset", () => {
+    it("resolves a relative baseUrl once at the request boundary", async () => {
+      const resourceManager = engine.resourceManager;
+      const requestSpy = vi
+        .spyOn(resourceManager, "_requestByRemoteUrl")
+        .mockReturnValue(AssetPromise.resolve("content") as any);
+      resourceManager.baseUrl = "assets/";
+
+      try {
+        const asset = await resourceManager.load({ type: AssetType.Text, url: "text/file.txt" });
+
+        expect(requestSpy).toHaveBeenCalledWith("assets/text/file.txt", expect.objectContaining({ type: "text" }));
+        asset.destroy();
+      } finally {
+        resourceManager.baseUrl = null;
+        requestSpy.mockRestore();
+      }
+    });
+
     it("not found", async () => {
       try {
         await engine.resourceManager.load("/model.glb");

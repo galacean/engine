@@ -5,7 +5,8 @@ import {
   Loader,
   LoadItem,
   resourceLoader,
-  ResourceManager
+  ResourceManager,
+  Utils
 } from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Font, ["font"])
@@ -19,7 +20,10 @@ class FontLoader extends Loader<Font> {
           const { fontName, fontUrl } = data;
 
           if (fontUrl) {
-            this._registerFont(fontName, fontUrl)
+            const absoluteUrl = Utils.resolveAbsoluteUrl(item.url, fontUrl);
+            // @ts-ignore
+            const remoteUrl = resourceManager._getRemoteUrl(absoluteUrl);
+            this._registerFont(fontName, remoteUrl)
               .then(() => {
                 const font = new Font(resourceManager.engine, fontName);
                 resolve(font);

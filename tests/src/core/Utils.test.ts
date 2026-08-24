@@ -5,6 +5,17 @@ describe("Utils test", function () {
   it("is absolute", () => {
     expect(Utils.isAbsoluteUrl("/test.png")).to.false;
     expect(Utils.isAbsoluteUrl("https://www.galacean.com/test.png")).to.true;
+
+    const absoluteUrls = [
+      "blob:https://www.galacean.com/font",
+      "data:font/woff2;base64,AAAA",
+      "file:///Assets/Fonts/Hero.woff",
+      "galacean-asset:Hero.woff"
+    ];
+    for (const url of absoluteUrls) {
+      expect(Utils.isAbsoluteUrl(url)).to.true;
+      expect(Utils.resolveAbsoluteUrl("Assets/Fonts/Hero.font", url)).to.equal(url);
+    }
   });
 
   it("resolve base url", () => {
