@@ -107,8 +107,11 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contactOffset = offset;
     const controllers = this._controllers;
+    if (controllers.length && (!Number.isFinite(offset) || offset <= 0)) {
+      throw new Error("CharacterController contactOffset must be a positive finite number.");
+    }
+    this._contactOffset = offset;
     if (controllers.length) {
       for (let i = 0, n = controllers.length; i < n; i++) {
         controllers.get(i)._pxController?.setContactOffset(offset);

@@ -4,7 +4,7 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
-import { ColliderShape } from "./shape";
+import { BoxColliderShape, CapsuleColliderShape } from "./shape";
 import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
@@ -106,9 +106,16 @@ export class CharacterController extends Collider {
    * Add collider shape on this controller.
    * @param shape - Collider shape
    */
-  override addShape(shape: ColliderShape): void {
+  override addShape(shape: BoxColliderShape | CapsuleColliderShape): void {
     if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
+    }
+    if (!(shape instanceof BoxColliderShape || shape instanceof CapsuleColliderShape)) {
+      throw new Error("CharacterController only supports BoxColliderShape or CapsuleColliderShape.");
+    }
+    const contactOffset = shape.contactOffset;
+    if (!Number.isFinite(contactOffset) || contactOffset <= 0) {
+      throw new Error("CharacterController contactOffset must be a positive finite number.");
     }
     super.addShape(shape);
     this._updateFlag.flag = true;

@@ -62,14 +62,12 @@ export class PhysXPhysics implements IPhysics {
   /**
    * Create a PhysXPhysics instance.
    * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the runtime URLs
    * @param options - PhysX options.
    */
-  constructor(runtimeMode?: PhysXRuntimeMode, runtimeUrls?: PhysXRuntimeUrls, options?: PhysXPhysicsOptions);
+  constructor(runtimeMode?: PhysXRuntimeMode, options?: PhysXPhysicsOptions);
   constructor(options?: PhysXPhysicsOptions);
   constructor(
     runtimeModeOrOptions: PhysXRuntimeMode | PhysXPhysicsOptions = PhysXRuntimeMode.Auto,
-    runtimeUrls?: PhysXRuntimeUrls,
     options?: PhysXPhysicsOptions
   ) {
     const isOptionsObject = typeof runtimeModeOrOptions === "object";
@@ -86,10 +84,10 @@ export class PhysXPhysics implements IPhysics {
 
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
-      runtimeUrls?.wasmSIMDModeUrl ??
+      resolvedOptions?.wasmSIMDModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.simd.js";
     this._wasmModeUrl =
-      runtimeUrls?.wasmModeUrl ??
+      resolvedOptions?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.js";
     this._tolerancesScaleLength = length;
     this._tolerancesScaleSpeed = speed;
@@ -335,7 +333,7 @@ export class PhysXPhysics implements IPhysics {
     // PxPhysics and PxCookingParams copy the scale.
     tolerancesScale.delete();
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
-    cookingParams.meshWeldTolerance = 0.001;
+    cookingParams.meshWeldTolerance = 0.001 * this._tolerancesScaleLength;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
     if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
       physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
@@ -364,13 +362,6 @@ enum InitializeState {
   Initialized
 }
 
-interface PhysXRuntimeUrls {
-  /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
-  wasmModeUrl?: string;
-  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
-  wasmSIMDModeUrl?: string;
-}
-
 export interface PhysXTolerancesScale {
   /** Approximate object length in the simulation unit. Must be positive and finite. PhysX default is 1. */
   length?: number;
@@ -379,6 +370,10 @@ export interface PhysXTolerancesScale {
 }
 
 export interface PhysXPhysicsOptions {
+  /** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
+  wasmModeUrl?: string;
+  /** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  wasmSIMDModeUrl?: string;
   /** PhysX world unit scale, copied before PxPhysics, PxSceneDesc and PxCookingParams are created. */
   tolerancesScale?: PhysXTolerancesScale;
 }

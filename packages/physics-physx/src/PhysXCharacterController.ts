@@ -155,10 +155,10 @@ export class PhysXCharacterController implements ICharacterController {
     }
 
     desc.setMaterial(shape._pxMaterial);
+    desc.contactOffset = shape._contactOffset;
     this._pxController = pxManager._getControllerManager().createController(desc);
     desc.delete();
 
-    this._pxController.setContactOffset(shape._contactOffset);
     this._pxController.setUUID(shape._id);
 
     this._updateNativePosition();

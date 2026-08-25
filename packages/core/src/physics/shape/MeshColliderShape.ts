@@ -23,9 +23,7 @@ export class MeshColliderShape extends ColliderShape {
   private _mesh: ModelMesh = null;
   private _isConvex = false;
   @assignmentClone
-  private _positions: Vector3[] = null;
-  @assignmentClone
-  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+  private _meshData: MeshData | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
   /** @internal */
@@ -45,7 +43,8 @@ export class MeshColliderShape extends ColliderShape {
         return;
       }
 
-      const nativeShape = this._createNativeShape(this._positions, this._indices, this._isConvex, value);
+      const { positions, indices } = this._meshData;
+      const nativeShape = this._createNativeShape(positions, indices, this._isConvex, value);
       if (!nativeShape) return;
 
       this._replaceNativeShape(nativeShape);
@@ -56,7 +55,7 @@ export class MeshColliderShape extends ColliderShape {
   /**
    * Whether to use convex mesh mode.
    * @remarks
-   * - When true, generates a convex hull from the mesh vertices. Works with all collider types.
+   * - When true, generates a convex hull from the mesh vertices. Works with StaticCollider or DynamicCollider.
    * - When false, uses the original triangle mesh. Only works with StaticCollider or kinematic DynamicCollider, and the mesh must have indices.
    */
   get isConvex(): boolean {
@@ -71,22 +70,18 @@ export class MeshColliderShape extends ColliderShape {
         return;
       }
 
-      let positions = this._positions;
-      let indices = this._indices;
-      if (!value && !indices) {
-        const meshData = this._getMeshData(mesh, false);
+      let meshData = this._meshData;
+      if (!value && !meshData.indices) {
+        meshData = this._getMeshData(mesh, false);
         if (!meshData) return;
-        positions = meshData.positions;
-        indices = meshData.indices;
       }
 
-      const nativeShape = this._createNativeShape(positions, indices, value, this._cookingFlags);
+      const nativeShape = this._createNativeShape(meshData.positions, meshData.indices, value, this._cookingFlags);
       if (!nativeShape) return;
 
       this._replaceNativeShape(nativeShape);
       this._isConvex = value;
-      this._positions = positions;
-      this._indices = indices;
+      this._meshData = meshData;
     }
   }
 
@@ -113,11 +108,10 @@ export class MeshColliderShape extends ColliderShape {
         if (!nativeShape) return;
 
         this._replaceNativeShape(nativeShape);
-        this._positions = meshData.positions;
-        this._indices = meshData.indices;
+        this._meshData = meshData;
       } else {
         this._replaceNativeShape(null);
-        this._clearMeshData();
+        this._meshData = null;
       }
 
       this._mesh?._addReferCount(-1);
@@ -146,12 +140,7 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh._addReferCount(-1);
       this._mesh = null;
     }
-    this._clearMeshData();
-  }
-
-  private _clearMeshData(): void {
-    this._positions = null;
-    this._indices = null;
+    this._meshData = null;
   }
 
   private _getMeshData(mesh: ModelMesh, isConvex: boolean): MeshData | null {
@@ -220,13 +209,14 @@ export class MeshColliderShape extends ColliderShape {
     super._onClone(target);
     const mesh = target._mesh;
     if (mesh) {
+      const meshData = target._meshData;
       const nativeShape =
-        target._positions &&
-        target._createNativeShape(target._positions, target._indices, target._isConvex, target._cookingFlags);
+        meshData &&
+        target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags);
       if (!nativeShape) {
         target._mesh = null;
         target._nativeShape = null;
-        target._clearMeshData();
+        target._meshData = null;
         return;
       }
       target._nativeShape = nativeShape;

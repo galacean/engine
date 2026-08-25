@@ -11,7 +11,8 @@ import {
   Script,
   ControllerCollisionFlag,
   Layer,
-  ColliderShapeUpAxis
+  ColliderShapeUpAxis,
+  MeshColliderShape
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
@@ -129,6 +130,19 @@ describe("CharacterController", function () {
     expect(controller.shapes.length).eq(1);
   });
 
+  it("rejects unsupported shapes before assigning an owner", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+    const shape = new MeshColliderShape();
+
+    expect(() => controller.addShape(shape as unknown as BoxColliderShape)).toThrow();
+    expect(controller.shapes).toHaveLength(0);
+    expect(shape.collider).toBeFalsy();
+
+    shape._destroy();
+    shape.material.destroy();
+  });
+
   it("shape position", () => {
     const controller = roleEntity.getComponent(CharacterController);
     controller.clearShapes();
@@ -190,12 +204,26 @@ describe("CharacterController", function () {
     expect(formatValue(roleEntity.transform.position.y)).eq(0.8);
   });
 
-  it("recreates the native controller when contactOffset is zero", () => {
+  it("rejects zero contactOffset before attaching the shape", () => {
     const controller = roleEntity.getComponent(CharacterController);
-    controller.shapes[0].contactOffset = 0;
-    controller.enabled = false;
+    controller.clearShapes();
+    const shape = new BoxColliderShape();
+    shape.contactOffset = 0;
 
-    expect(() => (controller.enabled = true)).not.toThrow();
+    expect(() => controller.addShape(shape)).toThrow();
+    expect(controller.shapes).toHaveLength(0);
+    expect(shape.collider).toBeFalsy();
+
+    shape._destroy();
+    shape.material.destroy();
+  });
+
+  it("keeps contactOffset when an attached shape rejects zero", () => {
+    const shape = roleEntity.getComponent(CharacterController).shapes[0];
+    shape.contactOffset = 0.3;
+
+    expect(() => (shape.contactOffset = 0)).toThrow();
+    expect(shape.contactOffset).toBe(0.3);
   });
 
   it("slopeLimit notPass", () => {

@@ -59,10 +59,13 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   set contactOffset(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("ColliderShape contactOffset must be finite.");
+    }
     value = Math.max(0, value);
     if (this._contactOffset !== value) {
-      this._contactOffset = value;
       this._nativeShape?.setContactOffset(value);
+      this._contactOffset = value;
     }
   }
 

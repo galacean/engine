@@ -32,6 +32,7 @@ describe("PhysXPhysics", () => {
     const nativeScale = physics._pxPhysics.getTolerancesScale();
     expect(nativeScale.length).toBeCloseTo(2);
     expect(nativeScale.speed).toBeCloseTo(20);
+    expect(physics._pxCookingParams.meshWeldTolerance).toBeCloseTo(0.002);
 
     const entity = engine.sceneManager.activeScene.createRootEntity("scaledDefaults");
     const collider = entity.addComponent(DynamicCollider);
@@ -40,5 +41,22 @@ describe("PhysXPhysics", () => {
 
     expect(shape.contactOffset).toBeCloseTo(0.04);
     expect(collider.sleepThreshold).toBeCloseTo(0.02);
+  });
+
+  it("rejects non-finite contactOffset without changing the public value", () => {
+    const entity = engine.sceneManager.activeScene.createRootEntity("finiteContactOffset");
+    const collider = entity.addComponent(DynamicCollider);
+    const shape = new BoxColliderShape();
+    const material = shape.material;
+    collider.addShape(shape);
+    shape.contactOffset = 0.3;
+
+    for (const value of [NaN, Infinity, -Infinity]) {
+      expect(() => (shape.contactOffset = value)).toThrow();
+      expect(shape.contactOffset).toBe(0.3);
+    }
+
+    entity.destroy();
+    material.destroy();
   });
 });

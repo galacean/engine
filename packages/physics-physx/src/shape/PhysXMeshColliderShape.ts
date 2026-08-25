@@ -34,23 +34,25 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
     const { _physX: physX, _pxPhysics: physics } = physXPhysics;
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
-    const shapeFlags = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
     const meshFlag = isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
-    const createShapeFn = isConvex ? physX.createConvexMeshShape : physX.createTriMeshShape;
+    const pxGeometry = isConvex
+      ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
+      : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+    const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
+    const pxShape = physics.createShape(pxGeometry, material._pxMaterial, true, shapeFlags);
+    shapeFlags.delete();
 
-    const pxShape = createShapeFn(pxMesh, scaleX, scaleY, scaleZ, meshFlag, shapeFlags, material._pxMaterial, physics);
     if (!pxShape) {
+      pxGeometry.delete();
       pxMesh.release();
       return;
     }
 
-    this._pxShape = pxShape;
     this._id = uniqueID;
     this._pxMaterial = material._pxMaterial;
     this._pxMesh = pxMesh;
-    this._pxGeometry = isConvex
-      ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
-      : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+    this._pxGeometry = pxGeometry;
+    this._pxShape = pxShape;
     this._pxShape.setUUID(uniqueID);
     this._setLocalPose();
   }
