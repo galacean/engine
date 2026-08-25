@@ -8,8 +8,9 @@ const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const skillRoot = resolve(packageRoot, "skills/engine-knowledge");
 const expectedMarkdownFiles = [
   "SKILL.md",
+  "references/coordinates-and-space.md",
   "references/lifecycle-and-frame-order.md",
-  "references/physics-and-collision.md",
+  "references/physics-setup.md",
   "references/primitive-geometry.md",
   "references/rendering-and-color.md",
   "references/resource-ownership.md"

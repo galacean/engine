@@ -7,6 +7,7 @@ Use this reference when deciding whether an object should be shared, cloned, gar
 - Engine resources derived from `ReferResource` participate in reference counting. Assigning them to owning Engine objects changes their retained lifetime through those owners.
 - Ordinary destruction succeeds only when the resource is no longer referenced. Forced destruction overrides that protection and can invalidate consumers.
 - Resource-manager garbage collection considers unreferenced resources and skips resources marked to ignore ordinary GC. Engine teardown may still force their destruction.
+- Presence in the ResourceManager cache provides identity reuse but does not itself increment a `ReferResource` reference count. Cache identity and lifetime retention are separate concerns.
 - A resource can retain other resources. GC must respect those relationships, so a zero direct count alone is not always sufficient to destroy it.
 
 ## Clone and instance choices

@@ -15,7 +15,7 @@ The relevant order within a rendered frame is:
 
 1. Run pending `onStart` callbacks.
 2. Run zero or more fixed physics steps. Each step invokes active `onPhysicsUpdate` callbacks before simulation.
-3. Update pointer events.
+3. Dispatch pointer Script callbacks after the frame's raw input sampling and physics work.
 4. Run active `onUpdate` callbacks.
 5. Advance animation.
 6. Run active `onLateUpdate` callbacks.
@@ -23,7 +23,7 @@ The relevant order within a rendered frame is:
 
 Fixed physics frequency is independent of rendered-frame frequency. A rendered frame can therefore contain no physics step, one step, or several steps.
 
-`onBeginRender` and `onEndRender` are per-camera callbacks. A Script can receive them multiple times during one rendered frame when multiple cameras render.
+`onBeginRender` and `onEndRender` are per-camera callbacks sent to Scripts on that Camera's Entity. A Script on an Entity with multiple active Cameras can therefore receive them multiple times during one rendered frame.
 
 ## Ownership guidance
 
