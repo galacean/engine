@@ -159,8 +159,7 @@ export class AudioSource extends Component {
     if (AudioManager.isAudioContextRunning()) {
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
+      // Join the Manager-owned resume attempt so document capture and playback share the same request
       const resumePromise = AudioManager.resume();
       this._pendingPlay = resumePromise;
       const resumeAttemptId = AudioManager._resumeAttemptId;

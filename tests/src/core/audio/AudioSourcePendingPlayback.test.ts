@@ -369,10 +369,16 @@ describe("AudioSource playback lifecycle", () => {
     expect(resumeSpy).toHaveBeenCalledTimes(1);
     expect((opening as any)._pendingPlay).to.not.be.null;
 
+    const userActivation = mockUserActivation(false);
+    (AudioManager as any)._onUserGesture({ isTrusted: true, type: "touchstart" } as Event);
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._resumePromise).toBe(coldStartResumePromise);
+    expect((AudioManager as any)._resumeAttemptFromUserGesture).to.be.false;
+
     const canvas = document.createElement("canvas");
     document.body.appendChild(canvas);
     canvas.addEventListener("touchend", () => bgm.play(), { capture: true, passive: true, once: true });
-    mockUserActivation(true);
+    userActivation.set(true);
     canvas.dispatchEvent(new Event("touchend", { bubbles: true }));
 
     const gestureResumePromise = (AudioManager as any)._resumePromise;

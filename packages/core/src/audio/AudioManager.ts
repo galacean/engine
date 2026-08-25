@@ -105,10 +105,12 @@ export class AudioManager {
     return resumePromise;
   }
 
-  private static _isUserGestureActive(event: Event | undefined = window.event): boolean {
-    if (navigator.userActivation?.isActive === true) {
-      return true;
+  private static _isUserGestureActive(event?: Event): boolean {
+    const userActivation = navigator.userActivation;
+    if (userActivation) {
+      return userActivation.isActive;
     }
+    event ??= window.event;
     // Safari 16.3 and earlier expose the current listener event but not the User Activation API
     return (
       event?.isTrusted === true && (event.type === "touchstart" || event.type === "touchend" || event.type === "click")
