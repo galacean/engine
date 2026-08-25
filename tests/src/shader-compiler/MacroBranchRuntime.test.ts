@@ -498,4 +498,48 @@ float branchValue;
     const compiler = new ShaderCompiler();
     expect(compile(compiler, source)).to.not.be.undefined;
   });
+
+  it("retains a guarded global when analyzer coverage is unknown", () => {
+    const source = shader(
+      `#ifndef CHUNK_INCLUDED
+#define CHUNK_INCLUDED
+#if defined(EXTERNAL_VALUE)
+#define INTERNAL_VALUE
+#endif
+#if defined(INTERNAL_VALUE) || defined(ALTERNATE_VALUE)
+#define MODULE_ENABLED
+#endif
+#ifdef MODULE_ENABLED
+#ifdef INTERNAL_VALUE
+int u_space;
+#endif
+#endif
+#endif`,
+      `#ifdef INTERNAL_VALUE
+gl_FragColor = vec4(float(u_space));
+#else
+gl_FragColor = vec4(1.0);
+#endif`
+    );
+
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    const generated = new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100);
+    expect(generated).to.not.be.undefined;
+    expect(generated!.fragment).to.match(/uniform\s+int\s+u_space\s*;/);
+
+    const fragment = ShaderMacroProcessor.evaluate(
+      generated!.fragmentShaderInstructions!,
+      new Map([["EXTERNAL_VALUE", ""]])
+    );
+    expect(fragment).to.match(/uniform\s+int\s+u_space\s*;/);
+    const compiled = compileInWebGL(
+      ShaderMacroProcessor.evaluate(generated!.vertexShaderInstructions!, new Map([["EXTERNAL_VALUE", ""]])),
+      fragment
+    );
+    if (compiled !== "no-webgl") {
+      expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
+    }
+  });
 });

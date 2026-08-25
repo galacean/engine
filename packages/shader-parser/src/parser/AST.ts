@@ -2068,6 +2068,17 @@ namespace ASTNodes {
         symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
         callsiteBranch
       );
+      const currentScopeSymbol = <VarSymbol | FnSymbol>(
+        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch, sa.branchSemantics)
+      );
+      const isGlobal = currentScopeSymbol
+        ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
+        : symbols.some((symbol) => symbol instanceof FnSymbol || symbol.isGlobalVariable);
+      // Coverage controls diagnostics and type inference, not backend reachability. Keep compatible
+      // global declarations under their original runtime macro guards even when coverage is unproven.
+      if (isGlobal && referenceGlobalSymbolNames.indexOf(name) === -1) {
+        referenceGlobalSymbolNames.push(name);
+      }
       if (
         !retainPartialBranchCandidates &&
         coverage !== "covered" &&
@@ -2077,15 +2088,6 @@ namespace ASTNodes {
           sa.reportBranchAvailability(missErrorLoc, "Identifier", name, coverage);
         }
         return false;
-      }
-      const currentScopeSymbol = <VarSymbol | FnSymbol>(
-        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch, sa.branchSemantics)
-      );
-      const isGlobal = currentScopeSymbol
-        ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
-        : symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable);
-      if (isGlobal && referenceGlobalSymbolNames.indexOf(name) === -1) {
-        referenceGlobalSymbolNames.push(name);
       }
       return true;
     }

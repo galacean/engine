@@ -185,6 +185,28 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         }
       });
     }
+
+    it("Particle: live instructions === precompiled instructions", () => {
+      const parsed = shaderCompiler._parseShaderSource(ParticleSource);
+      const precompiled = shaderPrecompiler.precompile(ParticleSource, ShaderLanguage.GLSLES100);
+
+      for (let i = 0; i < parsed.subShaders.length; i++) {
+        for (let j = 0; j < parsed.subShaders[i].passes.length; j++) {
+          const livePass = parsed.subShaders[i].passes[j];
+          if (livePass.isUsePass) continue;
+
+          const liveProgram = shaderCompiler._parseShaderPass(
+            livePass.contents,
+            livePass.vertexEntry,
+            livePass.fragmentEntry,
+            ShaderLanguage.GLSLES100
+          );
+          const pass = precompiled.subShaders[i].passes[j];
+          expect(pass.vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+          expect(pass.fragmentShaderInstructions).toEqual(liveProgram.fragmentShaderInstructions);
+        }
+      }
+    });
   });
 
   // ═══════════════════════════════════════════════════════════
@@ -315,6 +337,15 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     ]) {
       it(`Particle ${mode} mode`, () => {
         validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, [{ name: mode }]);
+      });
+    }
+
+    for (const mode of ["RENDERER_VOL_CONSTANT_MODE", "RENDERER_VOL_CURVE_MODE"]) {
+      it(`Particle ${mode} mode`, () => {
+        validatePrecompiledWebGL(ParticleSource, ShaderLanguage.GLSLES100, [
+          { name: "RENDERER_MODE_SPHERE_BILLBOARD" },
+          { name: mode }
+        ]);
       });
     }
 
