@@ -2036,6 +2036,15 @@ namespace ASTNodes {
       }
       if (directlyVisibleCount) symbols.length = directlyVisibleCount;
 
+      // A conditional declaration in the nearest lexical scope shadows an outer declaration only
+      // in configurations where it exists. Retain outer runtime fallbacks as exact alternatives so
+      // coverage, type inference, and downstream identity consumers describe the same configurations.
+      for (let i = 0, n = runtimeFallbacks.length; i < n; i++) {
+        const fallback = runtimeFallbacks[i];
+        if (!(fallback instanceof VarSymbol || fallback instanceof FnSymbol)) continue;
+        if (symbols.indexOf(fallback) === -1) symbols.push(fallback);
+      }
+
       if (!symbols.length) {
         if (missErrorLoc) {
           if (sa.symbolTableStack.hasSymbol(lookupSymbol)) {

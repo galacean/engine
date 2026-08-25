@@ -303,6 +303,46 @@ FragmentShader = frag;
     expect(generated).to.not.equal(undefined);
   });
 
+  it.each([
+    ["invalid assignment target", "1 = 2;", "InvalidAssignmentTarget", /modifiable l-value/],
+    ["non-bool condition", "if (1.0) {}", "NonBoolCondition", /must be a bool/],
+    ["assignment type mismatch", "vec3 value; value = 1.0;", "AssignTypeMismatch", /Cannot assign a value/],
+    ["constructor component count", "vec3 value = vec3(1.0, 2.0);", "ConstructorArgCount", /needs 3 components/]
+  ])("blocks a proven %s during offline precompile", (_name, fragmentBody, diagnosticCode, message) => {
+    const source = `Shader "OfflineSemanticFailure" { SubShader "Default" { Pass "p" {
+void vert() { gl_Position = vec4(0.0); }
+void frag() { ${fragmentBody} gl_FragColor = vec4(0.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(diagnosticCode);
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(message);
+  });
+
+  it("blocks a branch-local struct containing a sampler during offline precompile", () => {
+    const source = `Shader "OfflineOpaqueReturn" { SubShader "Default" { Pass "p" {
+#ifdef USE_BAD_RETURN
+struct Payload { mediump sampler2D textureValue; };
+Payload payload;
+Payload readPayload() { return payload; }
+#else
+struct Payload { float value; };
+Payload payload;
+Payload readPayload() { return payload; }
+#endif
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(0.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "NonConstructibleReturnType"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+      /structs containing samplers cannot be returned/
+    );
+  });
+
   it("emits shared IO declarations once for entry implementations in exclusive macro arms", () => {
     const source = `
 struct Attributes { vec3 position; };

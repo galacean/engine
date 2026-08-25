@@ -1,7 +1,6 @@
 import {
   ASTNode,
   BaseToken,
-  branchAnalysis,
   ESymbolType,
   ETokenType,
   GSError,
@@ -9,6 +8,7 @@ import {
   isBranchReachable,
   Keyword,
   NodeChild,
+  ParserSemanticValidation,
   ParserUtils,
   ShaderCompilerUtils,
   ShaderBuiltinSemantic,
@@ -18,7 +18,6 @@ import {
   TreeNode,
   TypeAny,
   TypeSystem,
-  VarSymbol,
   FnSymbol
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import { getBranchCoverage } from "@galacean/engine-shader-parser/internal/analyzer";
@@ -66,8 +65,6 @@ export class ShaderValidator {
     return v._errors;
   }
 
-  /** Scratch SymbolInfo reused by `_nonAssignableReason` for VAR lookups — avoids per-call allocation. */
-  private readonly _varLookup = new SymbolInfo("", ESymbolType.VAR);
   /** Scratch symbol and output reused while resolving custom type references. */
   private readonly _typeLookup = new SymbolInfo("", ESymbolType.STRUCT);
   private readonly _typeStructScratch: SymbolInfo[] = [];
@@ -263,57 +260,18 @@ export class ShaderValidator {
    * that isn't assignable.
    */
   private _checkAssignmentTarget(node: ASTNode.AssignmentExpression): void {
-    // Only the ternary `lhs op rhs` shape has an LHS to inspect; the single-child form is a pure
-    // r-value chain that reaches AssignmentExpression only because of the grammar's precedence tree.
-    if (node.children.length !== 3) return;
-    const lhs = node.children[0] as ASTNode.ExpressionAstNode;
-    const reason = this._nonAssignableReason(lhs);
-    if (reason) {
-      this._push(
-        `Cannot assign to ${reason} — the left operand of '=' must be a modifiable l-value.`,
-        lhs.location,
-        DiagnosticType.InvalidAssignmentTarget
-      );
-    }
+    const issue = ParserSemanticValidation.assignmentTargetIssue(node);
+    if (issue) this._push(issue.message, issue.location, DiagnosticType.InvalidAssignmentTarget);
   }
 
   private _checkAssignmentType(node: ASTNode.AssignmentExpression): void {
-    if (node.children.length !== 3) return;
-    const lhs = node.children[0] as ASTNode.ExpressionAstNode;
-    const operator = node.children[1] as ASTNode.AssignmentOperator;
-    const rhs = node.children[2] as ASTNode.AssignmentExpression;
-    const operatorType = (operator.children[0] as BaseToken | undefined)?.type;
-    const compoundOperator =
-      operatorType === ETokenType.MUL_ASSIGN
-        ? "*"
-        : operatorType === ETokenType.DIV_ASSIGN
-          ? "/"
-          : operatorType === ETokenType.MOD_ASSIGN
-            ? "%"
-            : operatorType === ETokenType.ADD_ASSIGN
-              ? "+"
-              : operatorType === ETokenType.SUB_ASSIGN
-                ? "-"
-                : undefined;
-    const arithmetic = compoundOperator
-      ? TypeSystem.arithmeticOperation(lhs.type, rhs.type, compoundOperator)
-      : undefined;
-    if (arithmetic?.valid === false) {
-      this._push(
-        `Operator '${compoundOperator}=' cannot combine '${TypeSystem.typeName(lhs.type)}' and '${TypeSystem.typeName(rhs.type)}'.`,
-        node.location,
-        DiagnosticType.InvalidBinaryOperands
-      );
-      return;
-    }
-    const assignedType = arithmetic?.resultType ?? rhs.type;
-    if (!TypeSystem.isAssignable(lhs.type, assignedType)) {
-      this._push(
-        `Cannot assign a value of type '${TypeSystem.typeName(rhs.type)}' to '${TypeSystem.typeName(lhs.type)}'.`,
-        node.location,
-        DiagnosticType.AssignTypeMismatch
-      );
-    }
+    const issue = ParserSemanticValidation.assignmentTypeIssue(node);
+    if (!issue) return;
+    const code =
+      issue.code === DiagnosticType.InvalidBinaryOperands
+        ? DiagnosticType.InvalidBinaryOperands
+        : DiagnosticType.AssignTypeMismatch;
+    this._push(issue.message, issue.location, code);
   }
 
   private _checkVariableDeclarator(declarator: ASTNode.VariableDeclaratorInfo): void {
@@ -355,101 +313,12 @@ export class ShaderValidator {
   }
 
   /**
-   * Describe why `node` is not an l-value, or return undefined if it is one. The descent mirrors
-   * the grammar's operator-precedence chain — single-child wrappers pass through, r-value-only
-   * constructs (function calls, compound arithmetic, ternary) terminate with a specific reason.
-   */
-  private _nonAssignableReason(node: TreeNode): string | undefined {
-    // Compound / arithmetic / logical / relational shapes produce r-values; the grammar wraps them
-    // in AssignmentExpression → ConditionalExpression → ... → PrimaryExpression when only a
-    // single-child pass-through fires, so a >1-child form of any of these terminates as non-lvalue.
-    if (node instanceof ASTNode.ConditionalExpression && node.children.length > 1) {
-      return "a ternary expression result";
-    }
-    if (
-      (node instanceof ASTNode.LogicalOrExpression ||
-        node instanceof ASTNode.LogicalXorExpression ||
-        node instanceof ASTNode.LogicalAndExpression ||
-        node instanceof ASTNode.InclusiveOrExpression ||
-        node instanceof ASTNode.ExclusiveOrExpression ||
-        node instanceof ASTNode.AndExpression ||
-        node instanceof ASTNode.EqualityExpression ||
-        node instanceof ASTNode.RelationalExpression ||
-        node instanceof ASTNode.ShiftExpression ||
-        node instanceof ASTNode.AdditiveExpression ||
-        node instanceof ASTNode.MultiplicativeExpression) &&
-      node.children.length > 1
-    ) {
-      return "a compound expression";
-    }
-    if (node instanceof ASTNode.UnaryExpression && node.children.length > 1) {
-      return "a unary-operator result";
-    }
-    if (node instanceof ASTNode.FunctionCallGeneric) {
-      return "a function call result";
-    }
-    if (node instanceof ASTNode.PostfixExpression) {
-      const base = node.children[0];
-      if (!(base instanceof TreeNode)) return "an unassignable postfix expression";
-      return this._nonAssignableReason(base);
-    }
-    if (node instanceof ASTNode.PrimaryExpression) {
-      if (node.children.length === 1) {
-        const child = node.children[0];
-        if (child instanceof ASTNode.VariableIdentifier) return this._nonAssignableReason(child);
-        if (child instanceof BaseToken) {
-          if (child.type === ETokenType.INT_CONSTANT || child.type === ETokenType.FLOAT_CONSTANT) {
-            return "a numeric literal";
-          }
-          if (child.type === Keyword.True || child.type === Keyword.False) return "a boolean literal";
-        }
-        return undefined;
-      }
-      // Parenthesised: `( expr )` — l-value-ness passes through the wrapped expression.
-      const inner = node.children[1];
-      if (inner instanceof TreeNode) return this._nonAssignableReason(inner);
-      return undefined;
-    }
-    if (node instanceof ASTNode.VariableIdentifier) {
-      const child = node.children[0];
-      // A macro may expand to a legal l-value; its expansion is validated by the runtime compiler.
-      if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return undefined;
-      if (child instanceof BaseToken) {
-        const lookup = this._varLookup;
-        lookup.set(child.lexeme, ESymbolType.VAR);
-        const symbol = this._shaderData.symbolTable.getSymbol(lookup, true, node._branch, branchAnalysis);
-        if (symbol instanceof VarSymbol) {
-          if (symbol.isConst) return "a const-qualified variable";
-          // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Check sampler before
-          // uniform — a sampler is *always* uniform in ES (§4.1.7), so both branches would fire,
-          // but "a sampler" is a more actionable diagnostic than the generic uniform text.
-          if (TypeSystem.isSamplerType(symbol.dataType?.type)) return "a sampler";
-          // Galacean's implicit uniform (global, no initializer). Driver rejects `u_i++` as
-          // "l-value required (can't modify a uniform "u_i")".
-          if (symbol.isUniform) return "a uniform variable";
-        }
-      }
-      return undefined;
-    }
-    // Single-child expression wrappers (Expression, ConditionalExpression when children.length===1,
-    // etc.) don't add semantics — descend into the child.
-    if (node.children.length === 1) {
-      const child = node.children[0];
-      if (child instanceof TreeNode) return this._nonAssignableReason(child);
-    }
-    return undefined;
-  }
-
-  /**
    * `if (cond)` — cond must be a bool. GLSL ES has no implicit scalar→bool, so a float/int
    * condition is an error. Skip TypeAny (unknown) to avoid false positives (continue-with-unknown).
    */
   private _checkNonBoolCondition(node: ASTNode.SelectionStatement): void {
-    const condition = node.children.find((c) => c instanceof ASTNode.ExpressionAstNode) as
-      | ASTNode.ExpressionAstNode
-      | undefined;
-    if (!condition) return;
-    this._reportNonBoolCondition(condition, "'if' condition");
+    const issue = ParserSemanticValidation.selectionConditionIssue(node);
+    if (issue) this._push(issue.message, issue.location, DiagnosticType.NonBoolCondition);
   }
 
   /**
@@ -458,39 +327,8 @@ export class ShaderValidator {
    * A `Condition` in `type id = init` form uses the initializer's type.
    */
   private _checkIterationCondition(node: ASTNode.IterationStatement): void {
-    const children = node.children;
-    const kw = children[0];
-    if (!(kw instanceof BaseToken)) return;
-    if (kw.type === Keyword.WHILE) {
-      const cond = children[2];
-      if (cond instanceof ASTNode.Condition) this._checkConditionNode(cond, "'while' condition");
-    } else if (kw.type === Keyword.FOR) {
-      const rest = children[3];
-      if (rest instanceof ASTNode.ForRestStatement) {
-        const opt = rest.children[0];
-        if (opt instanceof ASTNode.ConditionOpt && opt.children.length === 1) {
-          const inner = opt.children[0];
-          if (inner instanceof ASTNode.Condition) this._checkConditionNode(inner, "'for' condition");
-        }
-      }
-    }
-  }
-
-  /**
-   * Resolve a `Condition` node (either `expression` or `type id = initializer` form) to its
-   * expression-typed slot and delegate to the shared non-bool reporter.
-   */
-  private _checkConditionNode(cond: ASTNode.Condition, label: string): void {
-    const c = cond.children;
-    // `condition: expression`
-    if (c.length === 1 && c[0] instanceof ASTNode.ExpressionAstNode) {
-      this._reportNonBoolCondition(c[0] as ASTNode.ExpressionAstNode, label);
-      return;
-    }
-    // `condition: fully_specified_type id '=' initializer` — the initializer at children[3] carries the type.
-    if (c.length === 4 && c[3] instanceof ASTNode.ExpressionAstNode) {
-      this._reportNonBoolCondition(c[3] as ASTNode.ExpressionAstNode, label);
-    }
+    const issue = ParserSemanticValidation.iterationConditionIssue(node);
+    if (issue) this._push(issue.message, issue.location, DiagnosticType.NonBoolCondition);
   }
 
   /**
@@ -498,22 +336,8 @@ export class ShaderValidator {
    * the 1-child collapse form is not a ternary and is skipped.
    */
   private _checkTernaryCondition(node: ASTNode.ConditionalExpression): void {
-    if (node.children.length !== 5) return;
-    const condition = node.children[0];
-    if (!(condition instanceof ASTNode.ExpressionAstNode)) return;
-    this._reportNonBoolCondition(condition, "ternary condition");
-  }
-
-  /** Emit NonBoolCondition when `condition.type` is known and not bool. Skips TypeAny. */
-  private _reportNonBoolCondition(condition: ASTNode.ExpressionAstNode, label: string): void {
-    const t = condition.type;
-    if (t !== TypeAny && t !== Keyword.BOOL) {
-      this._push(
-        `${label[0].toUpperCase()}${label.slice(1)} must be a bool, got '${TypeSystem.typeName(t)}'.`,
-        condition.location,
-        DiagnosticType.NonBoolCondition
-      );
-    }
+    const issue = ParserSemanticValidation.ternaryConditionIssue(node);
+    if (issue) this._push(issue.message, issue.location, DiagnosticType.NonBoolCondition);
   }
 
   /**
@@ -522,59 +346,13 @@ export class ShaderValidator {
    * ConstructorArgCount. A single scalar is a valid splat (short-circuit).
    */
   private _checkConstructorArgs(node: ASTNode.FunctionCallGeneric): void {
-    const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
-    if (!functionIdentifier.isBuiltin) return;
-    if (!(node.children.length === 4 && node.children[2] instanceof ASTNode.FunctionCallParameterList)) return;
-    const list = node.children[2] as ASTNode.FunctionCallParameterList;
-    const badIndex = list.paramSig.findIndex((t) => TypeSystem.isSamplerType(t) || typeof t === "string");
-    if (badIndex >= 0) {
-      const argNode = list.paramNodes[badIndex] as TreeNode | undefined;
-      this._push(
-        `Cannot construct '${TypeSystem.typeName(functionIdentifier.ident)}' from a '${TypeSystem.typeName(
-          list.paramSig[badIndex]
-        )}' argument.`,
-        argNode?.location ?? list.location,
-        DiagnosticType.ConstructorArgType
-      );
-      return;
-    }
-    // A vecN / matN constructor needs exactly N components (or N×M for matrices) from its args.
-    // Skip when we can't count any side. A single scalar is a valid splat and short-circuits before
-    // the exact-count check. Mismatch either direction is ConstructorArgCount.
-    const matrixNeed = TypeSystem.matrixComponentCount(functionIdentifier.ident);
-    const need = TypeSystem.vectorComponentCount(functionIdentifier.ident) || matrixNeed;
-    if (need <= 0) return;
-    // GLSL ES §5.4.3: `matN(matM)` — a matrix constructor with a single matrix argument. Always
-    // legal regardless of M vs N (source is truncated / padded diagonally). Short-circuit before
-    // the component-count check, which would otherwise fire on the source's total component count.
-    if (matrixNeed > 0 && list.paramSig.length === 1 && TypeSystem.matrixComponentCount(list.paramSig[0]) > 0) {
-      return;
-    }
-    // GLSL ES §5.4.2: constructing a shorter vector from one longer vector drops trailing
-    // components, e.g. `vec3(vec4Value)`. The reverse direction still lacks components.
-    if (matrixNeed === 0 && list.paramSig.length === 1 && TypeSystem.vectorComponentCount(list.paramSig[0]) >= need) {
-      return;
-    }
-    let total = 0;
-    let countable = list.paramSig.length > 0;
-    for (const t of list.paramSig) {
-      const c = TypeSystem.isScalarType(t)
-        ? 1
-        : TypeSystem.vectorComponentCount(t) || TypeSystem.matrixComponentCount(t);
-      if (c === 0) {
-        countable = false;
-        break;
-      }
-      total += c;
-    }
-    const singleScalar = list.paramSig.length === 1 && TypeSystem.isScalarType(list.paramSig[0]);
-    if (countable && !singleScalar && total !== need) {
-      this._push(
-        `Constructor '${TypeSystem.typeName(functionIdentifier.ident)}' needs ${need} components but the arguments provide ${total}.`,
-        list.location,
-        DiagnosticType.ConstructorArgCount
-      );
-    }
+    const issue = ParserSemanticValidation.constructorIssue(node);
+    if (!issue) return;
+    const code =
+      issue.code === DiagnosticType.ConstructorArgType
+        ? DiagnosticType.ConstructorArgType
+        : DiagnosticType.ConstructorArgCount;
+    this._push(issue.message, issue.location, code);
   }
 
   /**
@@ -593,7 +371,7 @@ export class ShaderValidator {
     ) {
       const operand = node.children[1];
       if (operand instanceof TreeNode) {
-        const reason = this._nonAssignableReason(operand);
+        const reason = ParserSemanticValidation.nonAssignableReason(operand);
         if (reason) {
           this._push(
             `Cannot apply '${firstChild.lexeme}' to ${reason} — the operand of '${firstChild.lexeme}' must be a modifiable l-value.`,
@@ -774,7 +552,7 @@ export class ShaderValidator {
       const op = children[1];
       const operand = children[0];
       if ((op.type === ETokenType.INC_OP || op.type === ETokenType.DEC_OP) && operand instanceof TreeNode) {
-        const reason = this._nonAssignableReason(operand);
+        const reason = ParserSemanticValidation.nonAssignableReason(operand);
         if (reason) {
           this._push(
             `Cannot apply '${op.lexeme}' to ${reason} — the operand of '${op.lexeme}' must be a modifiable l-value.`,
@@ -894,53 +672,8 @@ export class ShaderValidator {
    * an already-declared struct).
    */
   private _checkReturnType(node: ASTNode.FunctionDeclarator): void {
-    const returnType = node.returnType;
-    const t = returnType.type;
-    if (TypeSystem.isSamplerType(t)) {
-      this._push(
-        `Function return type '${TypeSystem.typeName(t)}' is not constructible; samplers cannot be returned.`,
-        returnType.location,
-        DiagnosticType.NonConstructibleReturnType
-      );
-      return;
-    }
-    if (typeof t === "string" && this._structContainsSampler(t, new Set())) {
-      this._push(
-        `Function return type '${t}' is not constructible; structs containing samplers cannot be returned.`,
-        returnType.location,
-        DiagnosticType.NonConstructibleReturnType
-      );
-    }
-  }
-
-  private readonly _structLookup = new SymbolInfo("", null);
-  private readonly _structScratch: StructSymbol[] = [];
-
-  /**
-   * Recursively check whether a struct (by name) contains a sampler member at any nesting depth.
-   * `visited` breaks cycles that could arise via mutually-referenced typedefs / macros.
-   */
-  private _structContainsSampler(structName: string, visited: Set<string>): boolean {
-    if (visited.has(structName)) return false;
-    visited.add(structName);
-    const lookup = this._structLookup;
-    lookup.set(structName, ESymbolType.STRUCT);
-    const structs = this._shaderData.symbolTable.getSymbols(
-      lookup as unknown as StructSymbol,
-      false,
-      this._structScratch
-    );
-    for (const s of structs) {
-      const astNode = s.astNode as ASTNode.StructSpecifier | undefined;
-      const propList = astNode?.propList;
-      if (!propList) continue;
-      for (const prop of propList) {
-        const pt = prop.typeInfo.type;
-        if (TypeSystem.isSamplerType(pt)) return true;
-        if (typeof pt === "string" && this._structContainsSampler(pt, visited)) return true;
-      }
-    }
-    return false;
+    const issue = ParserSemanticValidation.functionReturnTypeIssue(node);
+    if (issue) this._push(issue.message, issue.location, DiagnosticType.NonConstructibleReturnType);
   }
 
   /**

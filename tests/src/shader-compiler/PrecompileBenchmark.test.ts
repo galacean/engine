@@ -283,23 +283,24 @@ describe("Precompile Benchmark", async () => {
 
       Logger.disable();
 
+      const liveName = uid("PBR_live");
+      const liveSource = PBRSource.replace(/Shader\s+"[^"]+"/, `Shader "${liveName}"`);
+
       const liveResult = bench(
         "Shader.create (live)",
         () => {
-          const name = uid("PBR_live");
-          Shader.create(PBRSource);
-          Shader.find(name)?.destroy(true);
+          Shader.create(liveSource).destroy(true);
         },
         5,
         1
       );
 
+      const precompiledName = uid("PBR_pre");
       const preResult = bench(
         "JSON.parse + _createFromPrecompiled",
         () => {
           const parsed = JSON.parse(jsonStr);
-          const name = uid("PBR_pre");
-          const shader = Shader._createFromPrecompiled({ ...parsed, name });
+          const shader = Shader._createFromPrecompiled({ ...parsed, name: precompiledName });
           shader?.destroy(true);
         },
         5,

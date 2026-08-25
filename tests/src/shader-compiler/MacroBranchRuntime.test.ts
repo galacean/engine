@@ -88,9 +88,7 @@ function compileInWebGL(
 describe("macro branch runtime", () => {
   it("blocks an unconditional redefinition in analyzer and offline codegen", () => {
     const source = shader("float u_conflict;\nfloat u_conflict;", "gl_FragColor = vec4(u_conflict);");
-    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
-      "Redefinition"
-    );
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
     expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
   });
 
@@ -105,8 +103,9 @@ VertexShader = vert;
 FragmentShader = frag;
 } } }`;
     const includeMap = { "Shared.glsl": "float u_value;" };
-    expect(ShaderAnalyzer.analyze(source, { includeMap }).diagnostics.map((diagnostic) => diagnostic.code)).not.to
-      .include("Redefinition");
+    expect(
+      ShaderAnalyzer.analyze(source, { includeMap }).diagnostics.map((diagnostic) => diagnostic.code)
+    ).not.to.include("Redefinition");
 
     const precompiler = new ShaderPrecompiler();
     precompiler.setIncludeMap(includeMap);
@@ -166,9 +165,7 @@ VertexShader = vert;
 FragmentShader = frag;
 } } }`;
 
-    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
-      "Redefinition"
-    );
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
     expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
   });
 
@@ -214,9 +211,7 @@ BranchData data;`,
       "gl_FragColor = vec4(data.value);"
     );
     const analysis = ShaderAnalyzer.analyze(source);
-    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include(
-      "AmbiguousMacroBranchResolution"
-    );
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
     expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
       "missing from at least one reachable declaration"
     );
@@ -698,6 +693,117 @@ FragmentShader = frag;
                 `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
               ).to.be.true;
             }
+          }
+        }
+      }
+    }
+  });
+
+  it("keeps a local struct owner across independent guards separated by undef", () => {
+    const source = `Shader "runtime-struct-mutation" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalVaryings { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#define LOCAL_SHADOW
+#ifdef LOCAL_SHADOW
+  LocalVaryings v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#ifndef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
+      expect(offline.isUsePass).to.be.false;
+      if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+      for (const [pipeline, program] of [
+        ["analyzer handoff", compiler.generate(analysis.passes[0], platformTarget)!],
+        ["live compiler", compile(compiler, source, platformTarget)!],
+        ["offline precompiler", offline]
+      ] as const) {
+        const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
+        const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, new Map());
+        const label = `${pipeline} platform=${platformTarget}`;
+        expect(fragment, label).to.match(/v\s*\.\s*uv\s*=\s*vec2\s*\(\s*0\.25\s*\)/);
+        expect(fragment, label).to.match(/vec4\s*\(\s*v\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+        expect(fragment, label).not.to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+
+        const compiled = compileInWebGL(vertex, fragment, platformTarget);
+        if (compiled !== "no-webgl") {
+          expect(
+            compiled.ok,
+            `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+          ).to.be.true;
+        }
+      }
+    }
+  });
+
+  it("combines a conditional local with its outer runtime fallback after undef", () => {
+    const source = `Shader "runtime-scope-fallback" { SubShader "s" { Pass "p" {
+struct GlobalValue { vec2 uv; };
+struct LocalValue { vec2 uv; };
+GlobalValue v;
+void vert() { gl_Position = vec4(0.0); }
+void frag() {
+#ifdef LOCAL_SHADOW
+  LocalValue v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#ifndef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
+      expect(offline.isUsePass).to.be.false;
+      if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+      for (const [pipeline, program] of [
+        ["analyzer handoff", compiler.generate(analysis.passes[0], platformTarget)!],
+        ["live compiler", compile(compiler, source, platformTarget)!],
+        ["offline precompiler", offline]
+      ] as const) {
+        for (const localShadow of [false, true]) {
+          const macros = new Map<string, string>();
+          if (localShadow) macros.set("LOCAL_SHADOW", "");
+          const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, macros);
+          const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, macros);
+          const label = `${pipeline} platform=${platformTarget} LOCAL_SHADOW=${localShadow}`;
+          expect(fragment, label).to.match(/vec4\s*\(\s*v\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+          if (localShadow) expect(fragment, label).to.match(/v\s*\.\s*uv\s*=\s*vec2\s*\(\s*0\.25\s*\)/);
+
+          const compiled = compileInWebGL(vertex, fragment, platformTarget);
+          if (compiled !== "no-webgl") {
+            expect(
+              compiled.ok,
+              `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+            ).to.be.true;
           }
         }
       }

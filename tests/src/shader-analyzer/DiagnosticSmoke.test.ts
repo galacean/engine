@@ -338,6 +338,29 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("NonConstructibleReturnType");
   });
 
+  it("uses the exact branch-local struct identity for sampler return validation", () => {
+    const src = pass(`
+      #ifdef USE_BAD_RETURN
+      struct Payload { mediump sampler2D textureValue; };
+      Payload payload;
+      Payload readPayload() { return payload; }
+      #else
+      struct Payload { float value; };
+      Payload payload;
+      Payload readPayload() { return payload; }
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() {
+        #ifdef USE_BAD_RETURN
+        gl_FragColor = texture2D(readPayload().textureValue, vec2(0.0));
+        #else
+        gl_FragColor = vec4(readPayload().value);
+        #endif
+      }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonConstructibleReturnType");
+  });
+
   it("mat3 constructor with too-few floats fires ConstructorArgCount", () => {
     const src = pass(`
       void frag() { mat3 m = mat3(1.0, 2.0, 3.0, 4.0, 5.0); gl_FragColor = vec4(m[0], 1.0); }

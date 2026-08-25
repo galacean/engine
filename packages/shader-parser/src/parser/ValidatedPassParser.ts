@@ -1,16 +1,19 @@
 import { branchAnalysis } from "../common/BranchAnalysis";
+import { GSErrorName } from "../GSError";
 import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
 import type { ChunkOutputCache, IncludeMap } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { createCompilerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
-import { parseShaderPassWith, type ParsedShaderPassData } from "./ParsedShaderPass";
+import { ParserSemanticValidation } from "./ParserSemanticValidation";
+import { mapExpandedShaderError, parseShaderPassWith, type ParsedShaderPassData } from "./ParsedShaderPass";
 import { normalizeShaderSourceFile, shaderSourceBaseURL } from "./ShaderIncludePath";
 import { ShaderTargetParser } from "./ShaderTargetParser";
 
 /**
- * Creates the offline parser that shares proven macro facts with authoring analysis.
+ * Creates the offline parser that admits only parser-proven valid semantic facts.
  * @param objectPool - Precompiler-owned allocator for synchronous parser requests.
- * @returns Reusable parser whose proven semantic conflicts block artifact generation.
+ * @returns Reusable parser whose proven semantic failures block artifact generation.
  * @internal
  */
 export function createValidatedShaderTargetParser(objectPool?: ParserObjectPool): ShaderTargetParser {
@@ -46,7 +49,7 @@ export function parseValidatedShaderPass(
   sourceScopeStarts?: readonly number[]
 ): ParsedShaderPassData {
   const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
-  return parseShaderPassWith(
+  const parsed = parseShaderPassWith(
     source,
     includeMap,
     cache,
@@ -62,4 +65,25 @@ export function parseValidatedShaderPass(
     true,
     sourceScopeStarts
   );
+  if (!parsed.ir) return parsed;
+  const issues = ParserSemanticValidation.collect(parsed.ir.program);
+  if (!issues.length) return parsed;
+  const semanticErrors = issues.map((issue) =>
+    mapExpandedShaderError(
+      ShaderCompilerUtils.createGSError(
+        issue.message,
+        GSErrorName.CompilationError,
+        parsed.expandedSource,
+        issue.location,
+        issue.code
+      ),
+      parsed.expandedSource,
+      parsed.sourceMap
+    )
+  );
+  return Object.freeze({
+    ...parsed,
+    errors: Object.freeze([...parsed.errors, ...semanticErrors]),
+    blockingErrors: Object.freeze([...parsed.blockingErrors, ...semanticErrors])
+  });
 }

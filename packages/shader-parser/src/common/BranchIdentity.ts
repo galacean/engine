@@ -68,10 +68,9 @@ export function getLexicalDeclarationCoexistence(
   for (const left of earlier) {
     for (const right of later) {
       if (
-        (left.conditionalGroup !== undefined &&
-          left.conditionalGroup === right.conditionalGroup &&
-          left.conditionalArm !== right.conditionalArm) ||
-        (left.name === right.name && left.defined !== right.defined)
+        left.conditionalGroup !== undefined &&
+        left.conditionalGroup === right.conditionalGroup &&
+        left.conditionalArm !== right.conditionalArm
       ) {
         return "exclusive";
       }

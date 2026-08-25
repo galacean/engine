@@ -25,6 +25,7 @@ export * from "./parser/ICodeGenVisitor";
 export * from "./parser/symbolTable";
 export * from "./parser/builtin";
 export * from "./parser/TypeSystem";
+export * from "./parser/ParserSemanticValidation";
 
 export * from "./ir";
 

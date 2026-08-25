@@ -139,11 +139,27 @@ new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
       const probe = runNode(
         `${imports}
          const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 0);
-         process.stdout.write(JSON.stringify({ hasRuntimePrecompiler: "ShaderPrecompiler" in runtime, name: precompiled.name }));`,
+         let invalidAssignmentRejected = false;
+         try {
+           new ShaderPrecompiler().precompile(${JSON.stringify(
+             shaderSource(undefined, "1.0").replace("gl_FragColor = vec4(1.0);", "1 = 2; gl_FragColor = vec4(1.0);")
+           )}, 0);
+         } catch (error) {
+           invalidAssignmentRejected = String(error).includes("modifiable l-value");
+         }
+         process.stdout.write(JSON.stringify({
+           hasRuntimePrecompiler: "ShaderPrecompiler" in runtime,
+           invalidAssignmentRejected,
+           name: precompiled.name
+         }));`,
         mode === "import"
       );
       expect(probe.status, probe.stderr).toBe(0);
-      expect(JSON.parse(probe.stdout)).toEqual({ hasRuntimePrecompiler: false, name: "Consumer" });
+      expect(JSON.parse(probe.stdout)).toEqual({
+        hasRuntimePrecompiler: false,
+        invalidAssignmentRejected: true,
+        name: "Consumer"
+      });
     }
   });
 
@@ -194,7 +210,10 @@ new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
 
     mkdirSync(join(shaderDirectory, "Nested"), { recursive: true });
     mkdirSync(join(shaderDirectory, "User Effects"), { recursive: true });
-    writeFileSync(join(shaderDirectory, "User Effects", "Math Functions.glsl"), "float absoluteValue() { return 2.0; }");
+    writeFileSync(
+      join(shaderDirectory, "User Effects", "Math Functions.glsl"),
+      "float absoluteValue() { return 2.0; }"
+    );
     writeFileSync(
       join(shaderDirectory, "Nested", "Absolute.shader"),
       shaderSource("/User Effects/Math Functions.glsl", "absoluteValue()")
@@ -308,20 +327,16 @@ void vert()`
 
     const outsideSource = join(consumerDirectory, "Outside.shader");
     writeFileSync(outsideSource, shaderSource(undefined, "1.0"));
-    const outside = spawnSync(
-      installedCompilerBinary(),
-      [inputDirectory, outputDirectory, "--only", outsideSource],
-      { cwd: consumerDirectory, encoding: "utf8" }
-    );
+    const outside = spawnSync(installedCompilerBinary(), [inputDirectory, outputDirectory, "--only", outsideSource], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
     expect(outside.status).toBe(1);
     expect(outside.stderr + outside.stdout).toContain("must be a .shader file inside the input directory");
 
     mkdirSync(join(inputDirectory, "ShaderLibrary", "Common"), { recursive: true });
     mkdirSync(join(consumerDirectory, "ShaderLibrary", "Common"), { recursive: true });
-    writeFileSync(
-      join(inputDirectory, "ShaderLibrary", "Common", "Common.glsl"),
-      "float localValue() { return 1.0; }"
-    );
+    writeFileSync(join(inputDirectory, "ShaderLibrary", "Common", "Common.glsl"), "float localValue() { return 1.0; }");
     writeFileSync(
       join(consumerDirectory, "ShaderLibrary", "Common", "Common.glsl"),
       "float libraryValue() { return 2.0; }"

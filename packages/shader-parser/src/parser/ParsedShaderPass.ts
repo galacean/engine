@@ -27,7 +27,7 @@ export interface ParsedShaderPassData {
   readonly errors: readonly Error[];
   /** Complete preprocessor expression trees keyed by normalized directive text. */
   readonly preprocessorExpressions: ReadonlyMap<string, PreprocessorExpressionParseResult>;
-  /** Preprocessor and syntax errors that prevent backend generation. */
+  /** Preprocessor, syntax, and parser-proven semantic errors that prevent backend generation. */
   readonly blockingErrors: readonly Error[];
 }
 
@@ -71,7 +71,7 @@ export function mapExpandedShaderRange(
   };
 }
 
-function mapExpandedShaderError(
+export function mapExpandedShaderError(
   error: Error,
   expandedSource: string,
   segments: readonly ShaderSourceMapSegment[]
