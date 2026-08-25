@@ -31,6 +31,16 @@ export default class SemanticAnalyzer {
   readonly overloadScratch: SymbolInfo[] = [];
   /** Request-owned scratch output for struct resolution. @internal */
   readonly structScratch: SymbolInfo[] = [];
+  /**
+   * Request-owned nearest-scope output for secondary runtime-reference probes.
+   * @internal
+   */
+  readonly runtimeLookupScratch: SymbolInfo[] = [];
+  /**
+   * Request-owned runtime-owner candidates, including conditional outer-scope fallbacks.
+   * @internal
+   */
+  readonly runtimeFallbackScratch: SymbolInfo[] = [];
 
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
@@ -87,6 +97,8 @@ export default class SemanticAnalyzer {
     this.curFunctionInfo.header = undefined;
     this.curFunctionInfo.localVariables.length = 0;
     this.curFunctionInfo.calledFunctions.length = 0;
+    this.runtimeLookupScratch.length = 0;
+    this.runtimeFallbackScratch.length = 0;
   }
 
   pushScope() {

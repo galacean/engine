@@ -26,6 +26,32 @@ export function sameBranch(a: BranchSignature, b: BranchSignature): boolean {
 }
 
 /**
+ * Determines whether lexical conditional-chain identity alone proves a declaration active at a reference.
+ * @param declaration - Branch signature at the declaration.
+ * @param reference - Branch signature at the reference.
+ * @returns Whether every declaration arm lexically encloses the reference.
+ * @internal
+ */
+export function isLexicalBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
+  for (let i = 0; i < declaration.length; i++) {
+    const declarationConstraint = declaration[i];
+    const group = declarationConstraint.conditionalGroup;
+    if (group === undefined) return false;
+
+    let matched = false;
+    for (let j = 0; j < reference.length; j++) {
+      const referenceConstraint = reference[j];
+      if (referenceConstraint.conditionalGroup !== group) continue;
+      if (referenceConstraint.conditionalArm !== declarationConstraint.conditionalArm) return false;
+      matched = true;
+      break;
+    }
+    if (!matched) return false;
+  }
+  return true;
+}
+
+/**
  * Classifies only coexistence facts encoded directly in lexical branch identities.
  *
  * This intentionally does not evaluate `#if` expressions. The runtime compiler uses it to avoid

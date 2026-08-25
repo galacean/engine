@@ -1921,38 +1921,27 @@ namespace ASTNodes {
       }
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(macroName, ESymbolType.Any);
-      const symbol = sa.symbolTableStack.lookup(lookupSymbol, true) as VarSymbol | FnSymbol | undefined;
-      if (
-        symbol &&
-        (symbol instanceof FnSymbol || symbol.isGlobalVariable) &&
-        this.referenceGlobalSymbolNames.indexOf(macroName) === -1
-      ) {
-        this.referenceGlobalSymbolNames.push(macroName);
-      }
+      sa.symbolTableStack.lookupAllWithRuntimeFallbacks(
+        lookupSymbol,
+        true,
+        sa.runtimeLookupScratch,
+        sa.runtimeFallbackScratch,
+        this._branch
+      );
+      this._markCodegenReference(macroName, sa.runtimeLookupScratch);
+      this._markCodegenReference(macroName, sa.runtimeFallbackScratch);
     }
 
     private _resolveCodegenReference(sa: SemanticAnalyzer, name: string, inferType: boolean): void {
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       const symbols = this._symbols;
-      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+      const runtimeFallbacks = sa.runtimeFallbackScratch;
+      sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, this._branch);
       if (!symbols.length) return;
 
-      const currentScopeSymbol = sa.symbolTableStack.scope.getSymbol(lookupSymbol, true) as
-        | VarSymbol
-        | FnSymbol
-        | undefined;
-      if (currentScopeSymbol) {
-        this._markCodegenReference(name, currentScopeSymbol);
-      } else {
-        for (let i = 0; i < symbols.length; i++) {
-          const symbol = symbols[i];
-          if (symbol instanceof FnSymbol || symbol.isGlobalVariable) {
-            this._markCodegenReference(name, symbol);
-            break;
-          }
-        }
-      }
+      this._markCodegenReference(name, symbols);
+      this._markCodegenReference(name, runtimeFallbacks);
       if (!inferType) return;
 
       const first = symbols[0].dataType;
@@ -1965,12 +1954,15 @@ namespace ASTNodes {
       this._setCodegenType(first, arraySizeDivergent);
     }
 
-    private _markCodegenReference(name: string, symbol: VarSymbol | FnSymbol): void {
-      if (
-        (symbol instanceof FnSymbol || symbol.isGlobalVariable) &&
-        this.referenceGlobalSymbolNames.indexOf(name) === -1
-      ) {
-        this.referenceGlobalSymbolNames.push(name);
+    private _markCodegenReference(name: string, symbols: readonly SymbolInfo[]): void {
+      for (let i = 0; i < symbols.length; i++) {
+        const symbol = symbols[i];
+        if (symbol instanceof FnSymbol || (symbol instanceof VarSymbol && symbol.isGlobalVariable)) {
+          if (this.referenceGlobalSymbolNames.indexOf(name) === -1) {
+            this.referenceGlobalSymbolNames.push(name);
+          }
+          return;
+        }
       }
     }
 
@@ -2033,7 +2025,8 @@ namespace ASTNodes {
       // Branch-aware: filter to declarations visible from the reference's own `#ifdef` branch.
       // A `float u_a` inside `#ifdef X` is invisible to a reference in `#else` (as it should be)
       // and visible to a reference in the same branch (so type inference recovers).
-      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols, callsiteBranch);
+      const runtimeFallbacks = sa.runtimeFallbackScratch;
+      sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, callsiteBranch);
       let directlyVisibleCount = 0;
       for (let i = 0, n = symbols.length; i < n; i++) {
         const symbol = symbols[i];
@@ -2068,15 +2061,13 @@ namespace ASTNodes {
         symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
         callsiteBranch
       );
-      const currentScopeSymbol = <VarSymbol | FnSymbol>(
-        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch, sa.branchSemantics)
-      );
-      const isGlobal = currentScopeSymbol
-        ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
-        : symbols.some((symbol) => symbol instanceof FnSymbol || symbol.isGlobalVariable);
-      // Coverage controls diagnostics and type inference, not backend reachability. Keep compatible
-      // global declarations under their original runtime macro guards even when coverage is unproven.
-      if (isGlobal && referenceGlobalSymbolNames.indexOf(name) === -1) {
+      // Coverage controls diagnostics and type inference, not backend reachability
+      // Keep compatible globals under their runtime macro guards even when coverage is unproven
+      if (
+        (VariableIdentifier._containsGlobalSymbol(symbols) ||
+          VariableIdentifier._containsGlobalSymbol(runtimeFallbacks)) &&
+        referenceGlobalSymbolNames.indexOf(name) === -1
+      ) {
         referenceGlobalSymbolNames.push(name);
       }
       if (
@@ -2105,6 +2096,14 @@ namespace ASTNodes {
           if (sa.canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH))
             return true;
         }
+      }
+      return false;
+    }
+
+    private static _containsGlobalSymbol(symbols: readonly SymbolInfo[]): boolean {
+      for (let i = 0; i < symbols.length; i++) {
+        const symbol = symbols[i];
+        if (symbol instanceof FnSymbol || (symbol instanceof VarSymbol && symbol.isGlobalVariable)) return true;
       }
       return false;
     }

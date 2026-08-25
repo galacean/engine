@@ -542,4 +542,63 @@ gl_FragColor = vec4(1.0);
       expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
     }
   });
+
+  it("retains an outer global when conditional local shadowing can disappear at runtime", () => {
+    const source = shader(
+      "float branchValue;",
+      `#if defined(A) && VALUE * VALUE > 1
+float branchValue = 2.0;
+#endif
+#ifdef A
+gl_FragColor = vec4(branchValue);
+#else
+gl_FragColor = vec4(1.0);
+#endif`
+    );
+
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    const compiler = new ShaderCompiler();
+    const generated = compiler.generate(analysis.passes[0], ShaderLanguage.GLSLES100);
+    expect(generated).to.not.be.undefined;
+
+    const live = compile(compiler, source);
+    expect(live).to.not.be.undefined;
+
+    const precompiledPass = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100).subShaders[0]
+      .passes[0];
+    expect(precompiledPass.isUsePass).to.be.false;
+    if (precompiledPass.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+    for (const [pipeline, program] of [
+      ["analyzer handoff", generated!],
+      ["live compiler", live!],
+      ["offline precompiler", precompiledPass]
+    ] as const) {
+      for (const value of ["0", "2"]) {
+        const macros = new Map([
+          ["A", ""],
+          ["VALUE", value]
+        ]);
+        const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, macros);
+        const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, macros);
+
+        expect(fragment, `${pipeline} VALUE=${value}`).to.match(/uniform\s+float\s+branchValue\s*;/);
+        if (value === "0") {
+          expect(fragment, `${pipeline} VALUE=${value}`).not.to.match(/float\s+branchValue\s*=\s*2\.0/);
+        } else {
+          expect(fragment, `${pipeline} VALUE=${value}`).to.match(/float\s+branchValue\s*=\s*2\.0/);
+        }
+
+        const compiled = compileInWebGL(vertex, fragment);
+        if (compiled !== "no-webgl") {
+          expect(
+            compiled.ok,
+            `${pipeline} VALUE=${value} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`
+          ).to.be.true;
+        }
+      }
+    }
+  });
 });

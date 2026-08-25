@@ -1,5 +1,6 @@
 import { BranchSignature, DeclarationCoexistence, EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSemantics } from "./BranchSemantics";
+import { isLexicalBranchVisibleFrom } from "./BranchIdentity";
 import { IBaseSymbol } from "./IBaseSymbol";
 import { SymbolTable } from "./SymbolTable";
 
@@ -92,5 +93,57 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
       if (out.length > 0) break;
     }
     return out;
+  }
+
+  /**
+   * Collects semantic candidates from the nearest scope and runtime-owner candidates from outer fallback scopes.
+   * @param symbol - Symbol shape used for name and kind matching.
+   * @param includeMacro - Whether lookups include declarations from macro branches without a callsite branch.
+   * @param out - Reusable output array receiving candidates from the nearest matching scope.
+   * @param runtimeFallbacks - Reusable output array receiving outer declarations that may own a runtime reference.
+   * @param callsiteBranch - Branch signature used for branch-aware visibility filtering.
+   * @returns The supplied `out` array containing semantic candidates from the nearest matching scope.
+   */
+  lookupAllWithRuntimeFallbacks(
+    symbol: S,
+    includeMacro: boolean,
+    out: S[],
+    runtimeFallbacks: S[],
+    callsiteBranch?: BranchSignature
+  ): S[] {
+    out.length = 0;
+    runtimeFallbacks.length = 0;
+
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      if (!out.length) {
+        this.stack[i]._getSymbols(symbol, includeMacro, out, callsiteBranch, this.branchSemantics);
+        if (!out.length) continue;
+        if (this._runtimeCandidatesCoverCallsite(out, callsiteBranch)) break;
+      } else {
+        const fallbackStart = runtimeFallbacks.length;
+        this.stack[i]._getSymbols(symbol, includeMacro, runtimeFallbacks, callsiteBranch, this.branchSemantics);
+        if (
+          runtimeFallbacks.length > fallbackStart &&
+          this._runtimeCandidatesCoverCallsite(runtimeFallbacks, callsiteBranch)
+        ) {
+          break;
+        }
+      }
+    }
+
+    return out;
+  }
+
+  private _runtimeCandidatesCoverCallsite(candidates: readonly S[], callsiteBranch?: BranchSignature): boolean {
+    for (let i = 0; i < candidates.length; i++) {
+      const candidate = candidates[i];
+      if (
+        !candidate.isInMacroBranch ||
+        (callsiteBranch && isLexicalBranchVisibleFrom(candidate.branchSignature ?? EMPTY_BRANCH, callsiteBranch))
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 }
