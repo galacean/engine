@@ -1,68 +1,43 @@
 ---
 name: engine-knowledge
-description: "Use when implementing or debugging runtime Galacean Script behavior for the Engine version that ships this Skill: lifecycle, input, physics, camera, collision, coordinates, and engine types. Do not use for Editor API payload schemas or CLI transaction workflow."
+description: "Use for non-derivable runtime semantics of the exact @galacean/engine package version that ships this Skill, especially Script lifecycle, coordinate conventions, and physics ownership. Use the installed declarations as the authority for exports and signatures."
 ---
 
-# Galacean Runtime Script Knowledge
+# Engine Runtime Semantics
 
-This Skill owns runtime Engine behavior. Scene construction and serialized
-assets belong to Editor APIs; CLI transactions belong to `galacean-cli`.
+This Skill is a small, versioned companion to `@galacean/engine`. It records
+runtime behavior that types cannot express. Engine source and generated
+declarations remain authoritative for exports, signatures, overloads, and
+deprecations. Optional packages own their own capabilities and behavior.
 
-## Workflow
+This Skill does not define how a host creates, serializes, builds, or publishes
+project assets. Those protocols belong to the host that provides them.
 
-1. Identify the runtime behavior and the script or component that owns it.
-2. Read one routed reference only when it resolves a concrete behavior question
-   or diagnostic. `references/sbx-runtime-mistakes.md` is a targeted map for a
-   matching SBX trap, not a mandatory pre-write checklist. Do not preflight every
-   referenced Engine class or member.
-3. Submit source through the current agent's validated script-mutation boundary.
-   New assets use `action:"create"` with complete code; existing assets use
-   `action:"update"` with focused edits or an intentional full replacement.
-   Validation must pass before the asset is accepted. If one concrete compiler
-   or runtime diagnostic still depends on an exact current-version export,
-   class, member, overload, or signature, use one bounded `engine_api` query
-   instead of reading declaration files, then repair the coherent draft.
-4. Mount the returned canonical script path with the typed Editor API and bind
-   stable entity/component references during the same construction transaction.
-5. Verify the requested behavior with project build and, when behavioral,
-   browser evidence.
+## Method
 
-## Stable Runtime Boundaries
+1. Identify the runtime behavior that affects the current decision.
+2. Resolve exact symbols and signatures from the installed package declarations.
+3. Prefer compiler diagnostics and observable runtime behavior over remembered
+   examples. Do not infer APIs from prose.
 
-- A custom script extends `Script` and uses a default-exported class. Lifecycle
-  callbacks are public runtime methods.
-- Runtime scripts own runtime state and behavior. Create scenes, render assets,
-  colliders, UI components, and serialized script mounts through Editor/CLI
-  construction before play.
-- `getComponent` takes a runtime class reference, not a string. Cross-script
-  collaboration imports the default class or uses an explicitly bound reference.
-- UI runtime classes such as `Button`, `Text`, and `UITransform` come from
-  `@galacean/engine-ui`, not `@galacean/engine`.
-- Runtime resource and scene loading uses the build manifest's stable logical
-  path. It equals the Editor canonical VFS path without its leading slash and
-  keeps the user-visible extension (for example `/Textures/icon.png` becomes
-  `Textures/icon.png`). Encoded extensions and CDN locations are Builder-owned
-  physical mappings; `/oss/...` is only an import source.
-- Give movement, damage, score, event registration, and scene transition one
-  authoritative owner each. Do not let transform writes and physics simulation
-  compete for the same entity.
-- Component caches account for missing components and lifecycle timing; do not
-  hide uncertainty with unchecked casts or fictional internal APIs.
-- Galacean is right-handed and a Camera renders along its local `-Z`. The game
-  world's forward direction, camera placement, and light orientation still come
-  from the actual scene design; there is no universal world-forward template.
+## Stable Semantics
 
-## Reference Router
+- `onAwake` runs once when the entity first becomes active in its hierarchy; it
+  is not gated by the component's `enabled` state.
+- `onEnable` and `onDisable` follow transitions of the combined entity-active
+  and component-enabled state. `onStart` runs once before that Script's first
+  frame-level update.
+- Physics is opt-in through the Engine configuration. `onPhysicsUpdate` belongs
+  to fixed simulation steps, so a rendered frame may contain zero, one, or
+  multiple physics updates.
+- A non-kinematic dynamic body is simulation-owned. A direct transform write is
+  a teleport input, while velocity and forces express continuous motion. For a
+  kinematic dynamic body, use its supported path-motion API when swept
+  interaction matters.
+- Collision data passed to a Script callback is valid only for that callback.
+  Copy any values that must outlive it.
+- Local and world coordinates are right-handed. Engine forward and Camera view
+  direction are local `-Z`.
 
-| Need | Read |
-|------|------|
-| A matching SBX runtime or package trap | `references/sbx-runtime-mistakes.md` |
-| Reusable script shapes | `references/script-templates.md` |
-| Colliders, triggers, and dynamic physics | `references/physics-setup.md` |
-| Geometry default dimensions | `references/geometry-sizes.md` |
-| Deep Engine behavior not covered above | `references/galacean-knowledge/index.md` |
-| Exact current-project Engine symbol or signature | `engine_api` tool |
-
-Do not pre-read every reference, scan `node_modules`, or open whole declaration
-files. Use compiler/runtime diagnostics and `engine_api` to select the smallest
-fact that can resolve the next decision.
+For all API shape and provider-specific behavior, use the exact installed
+declarations and runtime tests instead of treating this Skill as an API catalog.
