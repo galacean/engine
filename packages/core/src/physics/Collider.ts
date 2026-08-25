@@ -63,6 +63,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
 
   /**
    * Add collider shape on this collider.
+   * @remarks If the shape belongs to another Collider, it is removed from that Collider first.
    * @param shape - Collider shape
    */
   addShape(shape: ColliderShape): void {

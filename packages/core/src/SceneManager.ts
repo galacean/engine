@@ -85,10 +85,10 @@ export class SceneManager {
   }
 
   /**
-   * Load and activate scene.
-   * @param url - the path of the scene
-   * @param destroyOldScene - whether to destroy old scene
-   * @returns scene promise
+   * Load and activate a Scene.
+   * @param url - The path of the Scene
+   * @param destroyOldScene - Whether to destroy every currently managed Scene before adding the loaded Scene. Defaults to `true`
+   * @returns A promise for the loaded Scene
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
     const scenePromise = this.engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });

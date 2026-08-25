@@ -21,8 +21,8 @@ export class PrefabResource extends ReferResource {
   }
 
   /**
-   * Instantiate prefab.
-   * @returns prefab's root entity
+   * Instantiate the prefab.
+   * @returns A cloned prefab root Entity detached from any parent and Scene. Attach it to a parent Entity or add it to a Scene before expecting it to update or render
    */
   instantiate(): Entity {
     return this._root?.clone();

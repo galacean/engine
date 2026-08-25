@@ -4,21 +4,10 @@ Use a recipe only when the task needs the same multi-API closure. These recipes 
 
 ## Physics-backed screen picking
 
-Built-in 3D pointer callbacks and manual screen raycasts share the same physical target: an eligible collider shape in a physics-enabled Scene. A visible mesh alone is not pickable, and the supplied shape must match its visual target. See [coordinates-and-space.md](coordinates-and-space.md), [physics-setup.md](physics-setup.md), and [primitive-geometry.md](primitive-geometry.md).
+Built-in 3D pointer callbacks and manual screen raycasts share the same physical target: an eligible collider shape in a physics-enabled Scene. A visible mesh alone is not pickable. The caller owns the target's Collider, shape, collision layer, trigger behavior, and query policy; this recipe does not create a collider or move a shape from another owner. See [coordinates-and-space.md](coordinates-and-space.md), [physics-setup.md](physics-setup.md), and [primitive-geometry.md](primitive-geometry.md).
 
 ```ts
-import {
-  Camera,
-  ColliderShape,
-  Entity,
-  HitResult,
-  PointerEventData,
-  Ray,
-  Scene,
-  Script,
-  StaticCollider,
-  Vector2
-} from "@galacean/engine";
+import { Camera, Entity, HitResult, Layer, PointerEventData, Ray, Scene, Script, Vector2 } from "@galacean/engine";
 
 class Pickable extends Script {
   onPointerDown(event: PointerEventData): void {
@@ -26,15 +15,20 @@ class Pickable extends Script {
   }
 }
 
-export function enable3DPicking(entity: Entity, shape: ColliderShape): void {
-  const collider = entity.addComponent(StaticCollider);
-  collider.addShape(shape);
-  entity.addComponent(Pickable);
+export function enable3DPicking(entity: Entity): Pickable {
+  return entity.getComponent(Pickable) ?? entity.addComponent(Pickable);
 }
 
-export function pickFromScreen(camera: Camera, scene: Scene, point: Vector2, outHit: HitResult): boolean {
+export function pickFromScreen(
+  camera: Camera,
+  scene: Scene,
+  point: Vector2,
+  outHit: HitResult,
+  maxDistance: number = camera.farClipPlane,
+  layerMask: Layer = camera.cullingMask
+): boolean {
   const ray = camera.screenPointToRay(point, new Ray());
-  return scene.physics.raycast(ray, camera.farClipPlane, camera.cullingMask, outHit);
+  return scene.physics.raycast(ray, maxDistance, layerMask, outHit);
 }
 ```
 
@@ -81,16 +75,27 @@ Normal maps contain linear data. When only one Renderer should change, request i
 import { AssetType, Engine, MeshRenderer, PBRMaterial, Texture2D } from "@galacean/engine";
 
 export async function assignNormalMap(engine: Engine, renderer: MeshRenderer, url: string): Promise<boolean> {
+  const assignedMaterial = renderer.getMaterial(0);
+  if (!(assignedMaterial instanceof PBRMaterial)) {
+    return false;
+  }
+
+  const texture = await engine.resourceManager.load<Texture2D>({
+    type: AssetType.Texture,
+    url,
+    params: { isSRGBColorSpace: false }
+  });
+
+  if (renderer.getMaterial(0) !== assignedMaterial) {
+    return false;
+  }
+
   const material = renderer.getInstanceMaterial(0);
   if (!(material instanceof PBRMaterial)) {
     return false;
   }
 
-  material.normalTexture = await engine.resourceManager.load<Texture2D>({
-    type: AssetType.Texture,
-    url,
-    params: { isSRGBColorSpace: false }
-  });
+  material.normalTexture = texture;
   return true;
 }
 ```
@@ -119,26 +124,37 @@ export function createTriangle(engine: Engine, entity: Entity): void {
 
 ## Collider-bounded local bloom
 
-A local PostProcess takes its influence volume from collider shapes on the same Entity. It requires a physics-enabled Scene, an enabled Camera post-process path, and an actual effect; without any one of them, the volume has no observable result. See [physics-setup.md](physics-setup.md).
+A local PostProcess takes its influence volume from enabled collider shapes on the same Entity. The caller owns those colliders and their physical behavior; this recipe consumes but never creates or reconfigures that volume. It also requires the Camera and volume to share a physics-enabled Scene, an enabled Camera post-process path, and an actual effect. See [physics-setup.md](physics-setup.md).
 
 ```ts
-import { BloomEffect, Camera, ColliderShape, Entity, PostProcess, StaticCollider } from "@galacean/engine";
+import { BloomEffect, Camera, Collider, Entity, PostProcess } from "@galacean/engine";
 
-export function createLocalBloom(
-  camera: Camera,
-  entity: Entity,
-  shape: ColliderShape,
-  blendDistance: number
-): PostProcess {
-  camera.enablePostProcess = true;
+export function createLocalBloom(camera: Camera, entity: Entity, blendDistance: number): PostProcess {
+  if (!entity.scene || camera.scene !== entity.scene) {
+    throw new Error("Local post-process requires the Camera and volume Entity to share a Scene");
+  }
+
+  const colliders: Collider[] = [];
+  entity.getComponents(Collider, colliders);
+  if (!colliders.some((collider) => collider.enabled && collider.shapes.length > 0)) {
+    throw new Error("Local post-process requires an enabled collider shape owned by the same Entity");
+  }
+
+  if (entity.getComponent(PostProcess)) {
+    throw new Error("The volume Entity already owns a PostProcess");
+  }
 
   const volume = entity.addComponent(PostProcess);
-  volume.addEffect(BloomEffect).intensity.value = 1;
   volume.isGlobal = false;
-  volume.blendDistance = blendDistance;
+  if (volume.isGlobal) {
+    volume.destroy();
+    throw new Error("Local post-process requires a physics-enabled Scene");
+  }
 
-  const collider = entity.addComponent(StaticCollider);
-  collider.addShape(shape);
+  volume.blendDistance = blendDistance;
+  volume.addEffect(BloomEffect).intensity.value = 1;
+  camera.enablePostProcess = true;
+
   return volume;
 }
 ```

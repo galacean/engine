@@ -10,7 +10,7 @@ Use this reference when backend version, instance ownership, lifecycle timing, c
 ## Resource and instance ownership
 
 - Create runtime entities through the resource's instantiate operation. The resource owns shared skeleton data, animation-state data, and its discovered atlas textures; each instance receives a fresh skeleton and animation state.
-- Tracks, listeners, poses, slots, and attachments are instance state. Mix configuration reached through an instance state's shared data belongs to the resource, so changing it affects sibling instances created from that resource.
+- Tracks, listeners, poses, slots, and each slot's active attachment selection are instance state. Attachment objects stored by shared skins or skeleton data may be shared, so mutating one can affect sibling instances. Mix configuration reached through an instance state's shared data also belongs to the resource.
 - An additional atlas loaded for runtime attachment replacement is not automatically retained by the original Spine resource. Keep that atlas alive through an explicit owner.
 
 ## Activation and animation
