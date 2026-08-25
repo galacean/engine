@@ -163,16 +163,16 @@ export class AudioSource extends Component {
       const resumePromise = AudioManager.resume();
       this._pendingPlay = resumePromise;
       const resumeAttemptId = AudioManager._resumeAttemptId;
-      const resumeAttemptFromUserGesture = AudioManager._resumeAttemptFromUserGesture;
+      const resumeAttemptCanBeSuperseded = !AudioManager._resumeAttemptFromUserGesture;
       resumePromise.then(
         () => {
-          // Only the request that installed this Promise may consume or clear it
+          // The source may cancel this play or switch to another resume attempt before this one settles
           if (this._pendingPlay !== resumePromise) {
             return;
           }
           this._pendingPlay = null;
-          // A later gesture superseded the resume attempt, so this one-shot request is now stale
-          if (!resumeAttemptFromUserGesture && resumeAttemptId !== AudioManager._resumeAttemptId) {
+          // Drop a pre-gesture play if a user gesture replaced the resume attempt it was waiting for
+          if (resumeAttemptCanBeSuperseded && resumeAttemptId !== AudioManager._resumeAttemptId) {
             return;
           }
           // Check if still valid to play after async resume (page may have been hidden meanwhile)
@@ -186,9 +186,10 @@ export class AudioSource extends Component {
             return;
           }
           this._pendingPlay = null;
-          if (resumeAttemptFromUserGesture || resumeAttemptId === AudioManager._resumeAttemptId) {
-            console.warn("Failed to resume AudioContext:", e);
+          if (resumeAttemptCanBeSuperseded && resumeAttemptId !== AudioManager._resumeAttemptId) {
+            return;
           }
+          console.warn("Failed to resume AudioContext:", e);
         }
       );
     }
