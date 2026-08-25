@@ -176,11 +176,7 @@ export class AudioManager {
     }
 
     const context = AudioManager._context;
-    if (
-      !context ||
-      context.state === "running" ||
-      (!AudioManager._needsUserGestureResume && !AudioManager._resumePromise)
-    ) {
+    if (context.state === "running" || (!AudioManager._needsUserGestureResume && !AudioManager._resumePromise)) {
       return;
     }
 
