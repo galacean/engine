@@ -128,7 +128,7 @@ function resetAudioManagerState(): void {
   (AudioManager as any)._resumePromise = null;
   (AudioManager as any)._resumeAttemptId = 0;
   (AudioManager as any)._resumeAttemptFromUserGesture = false;
-  (AudioManager as any)._needsUserGestureResume = false;
+  (AudioManager as any)._interruptionRecoveryPending = false;
   (AudioManager as any)._suspendedByCaller = false;
   (AudioManager as any)._recovering = false;
   (AudioManager as any)._playingCount = 0;
@@ -502,7 +502,7 @@ describe("AudioSource playback lifecycle", () => {
     await flushAsync();
 
     expect((audioSource as any)._pendingPlay).to.be.null;
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.false;
 
     MockAudioContext.shouldResumeSucceed = true;
     mockUserActivation(true);
@@ -516,12 +516,12 @@ describe("AudioSource playback lifecycle", () => {
     createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
     context.state = "suspended";
-    (AudioManager as any)._needsUserGestureResume = true;
+    (AudioManager as any)._interruptionRecoveryPending = true;
 
     await AudioManager.resume();
 
     expect(context.state).to.equal("running");
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.false;
   });
 
   it("coalesces overlapping resume() calls and re-issues a later resume", async () => {
@@ -640,7 +640,7 @@ describe("AudioSource playback lifecycle", () => {
 
     expect(resumeSpy).not.toHaveBeenCalled();
     expect(context.state).to.equal("suspended");
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.false;
   });
 
   it("keeps a playing source playing across a hide without tearing down the node", async () => {
@@ -773,7 +773,7 @@ describe("AudioSource playback lifecycle", () => {
     vi.advanceTimersByTime(100);
     await flushAsync();
 
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.true;
     expect(context.state).to.equal("suspended");
 
     vi.useRealTimers();
@@ -784,7 +784,7 @@ describe("AudioSource playback lifecycle", () => {
     await flushAsync();
     documentHidden.restore();
 
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.false;
     expect(context.state).to.equal("running");
   });
 
@@ -891,7 +891,7 @@ describe("AudioSource playback lifecycle", () => {
     await recoveryResumePromise;
     await flushAsync();
     expect((AudioManager as any)._resumePromise).toBe(gestureResumePromise);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.true;
 
     resolveGestureResume!();
     await gestureResumePromise;
@@ -900,7 +900,7 @@ describe("AudioSource playback lifecycle", () => {
 
     expect(context.state).to.equal("running");
     expect((AudioManager as any)._resumePromise).to.be.null;
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect((AudioManager as any)._interruptionRecoveryPending).to.be.false;
   });
 
   it("treats a non-persisted pageshow as a no-op", () => {

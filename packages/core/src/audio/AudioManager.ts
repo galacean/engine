@@ -12,7 +12,7 @@ export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _resumePromise: Promise<void> = null;
-  private static _needsUserGestureResume = false;
+  private static _interruptionRecoveryPending = false;
   private static _suspendedByCaller = false;
   private static _recovering = false;
 
@@ -91,7 +91,7 @@ export class AudioManager {
       .resume()
       .then(() => {
         if (AudioManager._resumePromise === resumePromise) {
-          AudioManager._needsUserGestureResume = false;
+          AudioManager._interruptionRecoveryPending = false;
         }
       })
       .finally(() => {
@@ -142,7 +142,7 @@ export class AudioManager {
       return;
     }
     AudioManager._recovering = true;
-    AudioManager._needsUserGestureResume = true; // fallback if the auto-resume below is rejected
+    AudioManager._interruptionRecoveryPending = true; // Remains pending if the automatic resume fails or stalls
     const context = AudioManager.getContext();
     context.suspend().catch(() => {});
     // 100ms empirical delay (resume too soon after suspend is unreliable on iOS); _recovering is cleared
@@ -176,7 +176,7 @@ export class AudioManager {
     }
 
     const context = AudioManager._context;
-    if (context.state === "running" || (!AudioManager._needsUserGestureResume && !AudioManager._resumePromise)) {
+    if (context.state === "running" || (!AudioManager._interruptionRecoveryPending && !AudioManager._resumePromise)) {
       return;
     }
 
