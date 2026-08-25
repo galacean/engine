@@ -166,12 +166,12 @@ export class AudioSource extends Component {
       const resumeAttemptCanBeSuperseded = !AudioManager._resumeAttemptFromUserGesture;
       resumePromise.then(
         () => {
-          // The source may cancel this play or switch to another resume attempt before this one settles
+          // Source-local guard: stop(), pause(), or a newer request may revoke this callback's ownership
           if (this._pendingPlay !== resumePromise) {
             return;
           }
           this._pendingPlay = null;
-          // Drop a pre-gesture play if a user gesture replaced the resume attempt it was waiting for
+          // Manager-global guard: discard playback tied to a pre-gesture attempt superseded by a gesture
           if (resumeAttemptCanBeSuperseded && resumeAttemptId !== AudioManager._resumeAttemptId) {
             return;
           }
