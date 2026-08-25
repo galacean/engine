@@ -6,6 +6,14 @@ import { describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const skillRoot = resolve(packageRoot, "skills/engine-knowledge");
+const expectedMarkdownFiles = [
+  "SKILL.md",
+  "references/lifecycle-and-frame-order.md",
+  "references/physics-and-collision.md",
+  "references/primitive-geometry.md",
+  "references/rendering-and-color.md",
+  "references/resource-ownership.md"
+];
 
 function markdownFiles(root: string, directory = root): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -18,18 +26,24 @@ function markdownFiles(root: string, directory = root): string[] {
 }
 
 describe("engine-knowledge Skill contract", () => {
-  it("keeps one versioned entry point instead of a hand-maintained API catalog", () => {
+  it("keeps one versioned entry point with focused progressive references", () => {
     const skill = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
     const frontmatter = skill.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/);
 
     expect(frontmatter).not.toBeNull();
     expect(frontmatter?.[1]).toMatch(/^name: engine-knowledge$/m);
     expect(frontmatter?.[1]).toMatch(/^description: .+$/m);
-    expect(markdownFiles(skillRoot)).toEqual(["SKILL.md"]);
+    expect(markdownFiles(skillRoot).sort()).toEqual(expectedMarkdownFiles);
+
+    const linkedReferences = [...skill.matchAll(/\]\((references\/[^)]+\.md)\)/g)].map((match) => match[1]).sort();
+    expect(linkedReferences).toEqual(expectedMarkdownFiles.slice(1));
+    for (const reference of linkedReferences) {
+      expect(readFileSync(resolve(skillRoot, reference), "utf8").length).toBeGreaterThan(0);
+    }
   });
 
-  it("does not mirror host protocols, retired backends, or API examples", () => {
-    const content = readFileSync(resolve(skillRoot, "SKILL.md"), "utf8");
+  it("does not mirror host protocols, retired backends, or API catalogs", () => {
+    const content = expectedMarkdownFiles.map((path) => readFileSync(resolve(skillRoot, path), "utf8")).join("\n");
     const forbiddenPatterns = [
       /\bSBX\b/i,
       /\bEditor API\b/i,
@@ -40,13 +54,14 @@ describe("engine-knowledge Skill contract", () => {
       /\bsource-v2\b/i,
       /\/skills\//i,
       /\/oss\//i,
+      /\bOasis(?:BE)?\b/i,
       /\b(?:physics-lite|LitePhysics)\b/i
     ];
 
     for (const pattern of forbiddenPatterns) {
       expect(content).not.toMatch(pattern);
     }
-    expect(content).not.toContain("references/");
+    expect(content).not.toContain("references/galacean-knowledge");
     expect(content).not.toContain("```");
   });
 
@@ -66,6 +81,6 @@ describe("engine-knowledge Skill contract", () => {
       .filter((path) => path.startsWith("skills/"))
       .sort();
 
-    expect(skillFiles).toEqual(["skills/engine-knowledge/SKILL.md"]);
+    expect(skillFiles).toEqual(expectedMarkdownFiles.map((path) => `skills/engine-knowledge/${path}`).sort());
   });
 });
