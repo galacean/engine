@@ -1,7 +1,16 @@
 import { execFileSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
-import { relative, resolve, sep } from "node:path";
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  createProgram,
+  formatDiagnosticsWithColorAndContext,
+  getPreEmitDiagnostics,
+  ModuleKind,
+  ModuleResolutionKind,
+  ScriptTarget
+} from "typescript";
 import { describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -14,8 +23,17 @@ const expectedMarkdownFiles = [
   "references/primitive-geometry.md",
   "references/rendering-and-color.md",
   "references/resource-ownership.md",
+  "references/runtime-recipes.md",
   "references/spine.md",
   "references/xr.md"
+];
+const expectedRecipeHeadings = [
+  "Physics-backed screen picking",
+  "Shadow-ready main light",
+  "Drawable skybox",
+  "Linear normal map on one renderer",
+  "Draw-ready custom mesh",
+  "Collider-bounded local bloom"
 ];
 
 function markdownFiles(root: string, directory = root): string[] {
@@ -47,6 +65,10 @@ describe("engine-knowledge Skill contract", () => {
 
   it("does not mirror host protocols, retired backends, or API catalogs", () => {
     const content = expectedMarkdownFiles.map((path) => readFileSync(resolve(skillRoot, path), "utf8")).join("\n");
+    const proseContent = expectedMarkdownFiles
+      .filter((path) => path !== "references/runtime-recipes.md")
+      .map((path) => readFileSync(resolve(skillRoot, path), "utf8"))
+      .join("\n");
     const forbiddenPatterns = [
       /\bSBX\b/i,
       /\bEditor API\b/i,
@@ -65,7 +87,7 @@ describe("engine-knowledge Skill contract", () => {
       expect(content).not.toMatch(pattern);
     }
     expect(content).not.toContain("references/galacean-knowledge");
-    expect(content).not.toContain("```");
+    expect(proseContent).not.toContain("```");
   });
 
   it("preserves source-verified composition semantics without restoring copyable example pages", () => {
@@ -81,6 +103,49 @@ describe("engine-knowledge Skill contract", () => {
     expect(rendering).toContain("instance material");
     expect(spine).toContain("each instance receives a fresh skeleton and animation state");
     expect(xr).toContain("None -> Initializing -> Initialized -> Running <-> Paused -> None");
+  });
+
+  it("type-checks every retained runtime recipe against the packaged declarations", () => {
+    const recipes = readFileSync(resolve(skillRoot, "references/runtime-recipes.md"), "utf8");
+    const headings = [...recipes.matchAll(/^## (.+)$/gm)].map((match) => match[1]);
+    const codeBlocks = [...recipes.matchAll(/```([^\r\n]*)\r?\n([\s\S]*?)\r?\n```/g)];
+    expect(headings).toEqual(expectedRecipeHeadings);
+    expect(codeBlocks).toHaveLength(expectedRecipeHeadings.length);
+    expect(recipes.match(/^```/gm)).toHaveLength(codeBlocks.length * 2);
+    expect(codeBlocks.every((match) => match[1] === "ts")).toBe(true);
+    const examples = codeBlocks.map((match) => match[2]);
+
+    const temporaryRoot = mkdtempSync(join(tmpdir(), "engine-knowledge-recipes-"));
+    try {
+      const files = examples.map((example, index) => {
+        const path = resolve(temporaryRoot, `recipe-${index + 1}.ts`);
+        writeFileSync(path, example);
+        return path;
+      });
+      const program = createProgram(files, {
+        allowSyntheticDefaultImports: true,
+        baseUrl: packageRoot,
+        module: ModuleKind.ESNext,
+        moduleResolution: ModuleResolutionKind.Node10,
+        noEmit: true,
+        paths: { "@galacean/engine": ["types/index.d.ts"] },
+        skipLibCheck: true,
+        strict: true,
+        target: ScriptTarget.ESNext
+      });
+      const diagnostics = getPreEmitDiagnostics(program);
+      if (diagnostics.length > 0) {
+        throw new Error(
+          formatDiagnosticsWithColorAndContext(diagnostics, {
+            getCanonicalFileName: (fileName) => fileName,
+            getCurrentDirectory: () => packageRoot,
+            getNewLine: () => "\n"
+          })
+        );
+      }
+    } finally {
+      rmSync(temporaryRoot, { recursive: true, force: true });
+    }
   });
 
   it("ships the complete Skill in the npm tarball", () => {
