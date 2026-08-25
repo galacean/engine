@@ -1,6 +1,7 @@
 import { EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
 import type { BranchSemantics } from "./BranchSemantics";
+import { getLexicalDeclarationCoexistence } from "./BranchIdentity";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -133,8 +134,10 @@ export class SymbolTable<T extends IBaseSymbol> {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
         let visible = includeMacro || !item.isInMacroBranch;
-        if (branchSemantics && callsiteBranch !== undefined) {
-          visible = branchSemantics.canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch);
+        if (callsiteBranch !== undefined) {
+          visible = branchSemantics
+            ? branchSemantics.canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch)
+            : getLexicalDeclarationCoexistence(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch) !== "exclusive";
         }
         if (!visible) continue;
         if (item.equal(symbol)) out.push(item);

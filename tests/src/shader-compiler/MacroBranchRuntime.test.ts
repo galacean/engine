@@ -33,26 +33,38 @@ function evaluate(source: string, macros: Array<[string, string]>) {
   };
 }
 
-function compile(compiler: ShaderCompiler, source: string) {
+function compile(compiler: ShaderCompiler, source: string, platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100) {
   const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
-  return compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES100, "");
+  return compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, platformTarget, "");
 }
 
 interface DriverResult {
   ok: boolean;
   vertexLog: string;
   fragmentLog: string;
+  programLog: string;
 }
 
-function compileInWebGL(vertex: string, fragment: string): DriverResult | "no-webgl" {
-  const gl = document.createElement("canvas").getContext("webgl");
+function compileInWebGL(
+  vertex: string,
+  fragment: string,
+  platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100
+): DriverResult | "no-webgl" {
+  const contextType = platformTarget === ShaderLanguage.GLSLES300 ? "webgl2" : "webgl";
+  const gl = document.createElement("canvas").getContext(contextType) as
+    | WebGLRenderingContext
+    | WebGL2RenderingContext
+    | null;
   if (!gl) return "no-webgl";
+  const version = platformTarget === ShaderLanguage.GLSLES300 ? "#version 300 es\n" : "";
 
-  const compile = (source: string, type: number): { ok: boolean; log: string } => {
+  const compile = (source: string, type: number): { shader: WebGLShader; ok: boolean; log: string } => {
     const shader = gl.createShader(type)!;
-    gl.shaderSource(shader, type === gl.FRAGMENT_SHADER ? `precision mediump float;\n${source}` : source);
+    const precision = type === gl.FRAGMENT_SHADER ? "precision mediump float;\n" : "";
+    gl.shaderSource(shader, `${version}${precision}${source}`);
     gl.compileShader(shader);
     return {
+      shader,
       ok: gl.getShaderParameter(shader, gl.COMPILE_STATUS) as boolean,
       log: gl.getShaderInfoLog(shader) || ""
     };
@@ -60,7 +72,17 @@ function compileInWebGL(vertex: string, fragment: string): DriverResult | "no-we
 
   const vertexResult = compile(vertex, gl.VERTEX_SHADER);
   const fragmentResult = compile(fragment, gl.FRAGMENT_SHADER);
-  return { ok: vertexResult.ok && fragmentResult.ok, vertexLog: vertexResult.log, fragmentLog: fragmentResult.log };
+  const program = gl.createProgram()!;
+  gl.attachShader(program, vertexResult.shader);
+  gl.attachShader(program, fragmentResult.shader);
+  gl.linkProgram(program);
+  const linked = gl.getProgramParameter(program, gl.LINK_STATUS) as boolean;
+  return {
+    ok: vertexResult.ok && fragmentResult.ok && linked,
+    vertexLog: vertexResult.log,
+    fragmentLog: fragmentResult.log,
+    programLog: gl.getProgramInfoLog(program) || ""
+  };
 }
 
 describe("macro branch runtime", () => {
@@ -597,6 +619,86 @@ gl_FragColor = vec4(1.0);
             compiled.ok,
             `${pipeline} VALUE=${value} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`
           ).to.be.true;
+        }
+      }
+    }
+  });
+
+  it("resolves a struct IO global when an opposite macro arm declares a same-named local", () => {
+    const fragmentBodies = [
+      `#ifdef LOCAL_SHADOW
+float v = 1.0;
+gl_FragColor = vec4(v);
+#else
+gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif`,
+      `#ifdef LOCAL_SHADOW
+gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#else
+float v = 1.0;
+gl_FragColor = vec4(v);
+#endif`
+    ];
+
+    for (const [caseIndex, fragmentBody] of fragmentBodies.entries()) {
+      const source = `Shader "runtime-struct-shadow-${caseIndex}" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+${fragmentBody}
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+      const analysis = ShaderAnalyzer.analyze(source);
+      expect(analysis.diagnostics, `case=${caseIndex}`).to.be.empty;
+
+      for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+        const compiler = new ShaderCompiler();
+        const generated = compiler.generate(analysis.passes[0], platformTarget)!;
+        const live = compile(compiler, source, platformTarget)!;
+        const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
+        expect(offline.isUsePass).to.be.false;
+        if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+        for (const [pipeline, program] of [
+          ["analyzer handoff", generated],
+          ["live compiler", live],
+          ["offline precompiler", offline]
+        ] as const) {
+          for (const localShadow of [false, true]) {
+            const macros = new Map<string, string>();
+            if (localShadow) macros.set("LOCAL_SHADOW", "");
+            const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, macros);
+            const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, macros);
+            const usesGlobal = caseIndex === Number(localShadow);
+            const label = `${pipeline} case=${caseIndex} platform=${platformTarget} LOCAL_SHADOW=${localShadow}`;
+
+            expect(fragment, label).to.match(
+              platformTarget === ShaderLanguage.GLSLES100 ? /varying\s+vec2\s+uv\s*;/ : /in\s+vec2\s+uv\s*;/
+            );
+            if (usesGlobal) {
+              expect(fragment, label).to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+              expect(fragment, label).not.to.match(/v\s*\.\s*uv/);
+            } else {
+              expect(fragment, label).to.match(/float\s+v\s*=\s*1\.0/);
+              expect(fragment, label).to.match(/vec4\s*\(\s*v\s*\)/);
+            }
+
+            const compiled = compileInWebGL(vertex, fragment, platformTarget);
+            if (compiled !== "no-webgl") {
+              expect(
+                compiled.ok,
+                `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+              ).to.be.true;
+            }
+          }
         }
       }
     }
