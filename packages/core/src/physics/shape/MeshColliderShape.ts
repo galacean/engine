@@ -155,13 +155,10 @@ export class MeshColliderShape extends ColliderShape {
       return null;
     }
 
-    let indices: Uint8Array | Uint16Array | Uint32Array | null = null;
-    if (!isConvex) {
-      indices = mesh.getIndices();
-      if (!indices) {
-        console.warn("MeshColliderShape: Non-convex mesh requires indices.");
-        return null;
-      }
+    const indices = mesh.getIndices();
+    if (!isConvex && !indices) {
+      console.warn("MeshColliderShape: Non-convex mesh requires indices.");
+      return null;
     }
 
     return { positions, indices };
@@ -182,7 +179,7 @@ export class MeshColliderShape extends ColliderShape {
     const nativeShape = Engine._nativePhysics.createMeshColliderShape(
       this._id,
       positions,
-      indices,
+      isConvex ? null : indices,
       isConvex,
       this._material._nativeMaterial,
       cookingFlags,

@@ -795,6 +795,32 @@ describe("MeshColliderShape PhysX", () => {
       defaultMaterial?.destroy();
     });
 
+    it("should switch to non-convex using cached indices after mesh data is released", () => {
+      const entity = root.createChild("releasedConvexMeshData");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      const mesh = createModelMesh(
+        engine,
+        [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+        [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+      );
+      meshShape.isConvex = true;
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+      mesh.uploadData(true);
+      const nativeShape = (meshShape as any)._nativeShape;
+
+      meshShape.isConvex = false;
+
+      expect(meshShape.isConvex).toBe(false);
+      expect((meshShape as any)._nativeShape).not.toBe(nativeShape);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
     it("should keep the convex shape when switching requires missing indices", () => {
       const warnSpy = vi.spyOn(console, "warn");
 
