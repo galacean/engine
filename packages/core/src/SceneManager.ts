@@ -87,7 +87,7 @@ export class SceneManager {
   /**
    * Load and activate a Scene.
    * @param url - The path of the Scene
-   * @param destroyOldScene - Whether to destroy every currently managed Scene before adding the loaded Scene. Defaults to `true`
+   * @param destroyOldScene - Whether to destroy all managed Scenes before adding the loaded Scene. Defaults to `true`
    * @returns A promise for the loaded Scene
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
