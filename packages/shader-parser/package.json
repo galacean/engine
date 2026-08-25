@@ -20,6 +20,11 @@
       "import": "./dist/module.analyzer.js",
       "require": "./dist/main.analyzer.js"
     },
+    "./shared": {
+      "types": "./types/shared.d.ts",
+      "import": "./dist/module.shared.js",
+      "require": "./dist/main.shared.js"
+    },
     "./package.json": "./package.json"
   },
   "scripts": {
@@ -29,7 +34,8 @@
     "dist/**/*",
     "types/**/*",
     "internal/package.json",
-    "internal/analyzer/package.json"
+    "internal/analyzer/package.json",
+    "shared/package.json"
   ],
   "dependencies": {
     "@galacean/engine-core": "workspace:*",

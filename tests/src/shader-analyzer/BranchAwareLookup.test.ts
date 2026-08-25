@@ -517,15 +517,13 @@ describe("branch-aware SymbolTable lookup", () => {
     expect(result.diagnostics.filter((diagnostic) => diagnostic.code === "UseBeforeDeclaration")).to.be.empty;
   });
 
-  it("warns when an unknown type may be supplied as a runtime macro", () => {
+  it("does not diagnose an unknown type that may be supplied as a runtime macro", () => {
     const src = pass(`RUNTIME_TYPE u_value;
       void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`);
     const diagnostics = ShaderAnalyzer.analyze(src).diagnostics;
-    const unknownType = diagnostics.find((diagnostic) => diagnostic.code === "UnknownType");
-    expect(unknownType?.severity).to.equal("warning");
-    expect(diagnostics.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
+    expect(diagnostics, JSON.stringify(diagnostics)).to.be.empty;
   });
 
   it("accepts a struct type declared by every arm of an exhaustive macro chain", () => {

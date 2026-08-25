@@ -31,18 +31,27 @@ export class ShaderSourceFactory {
     return {
       name,
       pendingContents: [],
+      contentScopeStarts: [],
+      isUsePass: false,
       tags: {},
-      renderStates: this.createRenderStates()
-    } as IShaderPassSource;
+      renderStates: this.createRenderStates(),
+      contents: "",
+      vertexEntry: "",
+      fragmentEntry: ""
+    };
   }
 
   static createUsePass(name: string): IShaderPassSource {
     return {
       name,
       pendingContents: [],
+      contentScopeStarts: [],
       isUsePass: true,
       tags: {},
-      renderStates: this.createRenderStates()
-    } as IShaderPassSource;
+      renderStates: this.createRenderStates(),
+      contents: "",
+      vertexEntry: "",
+      fragmentEntry: ""
+    };
   }
 }

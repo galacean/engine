@@ -5,21 +5,15 @@
  * or conditional `#include` may fill in what looks broken at precompile time, so the layers stay
  * separate:
  *   analyzer   → decides whether a diagnostic fires and at what severity
- *   codegen    → produces GLSL or rejects a structural source/entry failure, without reading diagnostics
+ *   codegen    → produces GLSL or rejects a parser-owned backend admission failure, without reading analyzer rules
  *   driver     → is the source of truth for what will actually run
  *
  * This suite ties the three together per case:
  *   - drive the DSL through the analyzer to collect diagnostics
  *   - drive the same pass content through the compiler to collect emitted GLSL
  *   - feed the emitted GLSL to a real WebGL2 context
- *   - assert the driver outcome matches the severity contract we set:
- *       severity=error   → codegen rejects a structural failure, or the emitted source reaches the driver and is rejected
- *       severity=warning → the precompile GLSL alone still fails the driver; the warning
- *                          severity encodes intent ("a runtime macro may rescue this at bind
- *                          time"), NOT a claim that the driver would accept the GLSL as-is.
- *                          If a case genuinely leaves driver behavior open (e.g. spec-undefined
- *                          folding), it is marked `driverExpects: "either"` and documented.
- *       no diagnostic    → driver must accept (clean shader stays clean)
+ *   - assert proven analyzer errors and the concrete driver outcome independently. An unresolved
+ *     runtime-macro reference produces no analyzer diagnostic even though this concrete variant is rejected.
  */
 
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
@@ -65,7 +59,7 @@ FragmentShader = ${fragEntry};
 interface Case {
   name: string;
   code: string;
-  severity: "error" | "warning" | "none";
+  severity: "error" | "none";
   passBody: string;
   vertEntry: string;
   fragEntry: string;
@@ -146,9 +140,9 @@ const cases: Case[] = [
     reason: "constant OOB index on a vec3 is rejected by GLSL ES §5.5 spec-conforming drivers"
   },
   {
-    name: "UnknownVariable — analyzer warns, driver rejects the precompile GLSL",
-    code: "UnknownVariable",
-    severity: "warning",
+    name: "unresolved variable — analyzer defers, concrete GLSL is rejected",
+    code: "",
+    severity: "none",
     passBody: `
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -156,15 +150,13 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    // The analyzer cannot know whether the material supplies this identifier as a runtime macro.
-    // The concrete precompile variant does not define it, so the driver must still reject it.
     driverExpects: "reject",
-    reason: "unknown identifiers may be runtime macros, but this concrete precompile GLSL is not runnable"
+    reason: "the identifier may be a runtime macro, while the concrete unresolved variant is not runnable"
   },
   {
-    name: "UndefinedFunction — analyzer warns, driver rejects the precompile GLSL",
-    code: "UndefinedFunction",
-    severity: "warning",
+    name: "unresolved function — analyzer defers, concrete GLSL is rejected",
+    code: "",
+    severity: "none",
     passBody: `
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -173,7 +165,7 @@ const cases: Case[] = [
     vertEntry: "vert",
     fragEntry: "frag",
     driverExpects: "reject",
-    reason: "same rationale as UnknownVariable — warning is intent, driver still rejects"
+    reason: "the function may be a runtime macro, while the concrete unresolved variant is not runnable"
   },
   {
     name: "NoMatchingOverload (known name, wrong args) — analyzer errors, driver rejects",
@@ -527,7 +519,7 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    // Codegen may reject entirely; if it produces GLSL, driver typically rejects too.
+    compilerExpects: "reject",
     driverExpects: "either",
     reason: "a struct can play at most one IO role — attributes / varyings / MRT"
   },
@@ -536,7 +528,7 @@ const cases: Case[] = [
     code: "GlFragColorWithMrt",
     severity: "error",
     passBody: `
-      struct MRT { vec4 c0; };
+      struct MRT { layout(location = 0) vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
     `,
@@ -898,10 +890,7 @@ describe("analyzer/codegen/driver consistency", () => {
         expect(bothCompiled, `${c.name}: expected driver to reject — vertex/fragment both compiled unexpectedly`).to.be
           .false;
       }
-      // "either" is reserved for cases where the driver's outcome is genuinely spec-undefined
-      // (e.g. constant integer division by zero, shift-overflow), NOT for warning-severity cases —
-      // those must still declare `"reject"` on the precompile GLSL and rely on the file header to
-      // explain that warning severity encodes intent, not driver acceptance.
+      // "either" is reserved for cases where the driver's outcome is genuinely spec-undefined.
     });
   }
 });

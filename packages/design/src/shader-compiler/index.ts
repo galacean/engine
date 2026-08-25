@@ -9,7 +9,6 @@ export type {
   IdentifierCondition,
   UnaryCondition,
   BinaryCondition,
-  SelectCondition,
   DeferredCondition,
   ShaderInstruction
 } from "./ICondition";

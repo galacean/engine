@@ -34,21 +34,6 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   },
   // ── B: RenderState ──
   {
-    code: "AmbiguousMacroBranchType",
-    source: pass(
-      `void frag() {
-        #ifdef X
-          vec3 v;
-        #else
-          vec4 v;
-        #endif
-        gl_FragColor = vec4(v.x);
-      }
-      void vert() { gl_Position = vec4(0.0); }
-      VertexShader = vert; FragmentShader = frag;`
-    )
-  },
-  {
     code: "AmbiguousMacroBranchResolution",
     source: pass(
       `void frag() {
@@ -154,6 +139,14 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vrt; FragmentShader = frag;`)
   },
   {
+    code: "AmbiguousEntryPoint",
+    source: pass(`
+      void vert(float value) { gl_Position = vec4(value); }
+      void vert(vec2 value) { gl_Position = vec4(value, 0.0, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
     code: "MissingVertexPosition",
     source: pass(
       `void vert() { } void frag() { gl_FragColor = vec4(0.0); } VertexShader = vert; FragmentShader = frag;`
@@ -183,9 +176,17 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   {
     code: "GlFragColorWithMrt",
     source: pass(`
-      struct MRT { vec4 c0; };
+      struct MRT { layout(location = 0) vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "InvalidMrtOutput",
+    source: pass(`
+      struct MRT { vec4 colorWithoutLocation; };
+      void vert() { gl_Position = vec4(0.0); }
+      MRT frag() { MRT outputValue; return outputValue; }
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
@@ -251,6 +252,20 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
+    code: "LegacyFragmentOutputConflict",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(1.0); gl_FragData[0] = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "NonConstFragmentOutputIndex",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int target = 0; gl_FragData[target] = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
     code: "InvalidAssignmentTarget",
     // Macro-as-LHS is now handled by the runtime driver — the analyzer no longer flags it
     // because a macro's l-value-ness depends on its expansion (`#define X vec.z` is a legal
@@ -309,9 +324,6 @@ describe("diagnostic coverage map", () => {
       "NonBoolCondition",
       "RecursiveFunction",
       "Redefinition",
-      "UndefinedFunction",
-      "UnknownType",
-      "UnknownVariable",
       "UseBeforeDeclaration"
     ]);
     const here = new Set(cases.map((c) => c.code));

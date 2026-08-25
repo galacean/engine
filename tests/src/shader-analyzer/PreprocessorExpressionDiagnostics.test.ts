@@ -18,7 +18,7 @@ function shader(condition: string): string {
 }
 
 describe("preprocessor expression diagnostics", () => {
-  for (const condition of ["A + B > 1", "defined(A) && (B << 2) >= 4", "A ? B : C", "~A & 0xffu", "A || B && C"]) {
+  for (const condition of ["A + B > 1", "defined(A) && (B << 2) >= 4", "~A & 0xffu", "A || B && C"]) {
     it(`accepts valid ESSL syntax without evaluating '${condition}'`, () => {
       const diagnostics = ShaderAnalyzer.analyze(shader(condition)).diagnostics;
       expect(diagnostics.filter((diagnostic) => diagnostic.code === "PreprocessorError")).to.be.empty;
@@ -29,7 +29,8 @@ describe("preprocessor expression diagnostics", () => {
     ["123 defined(A)", "defined"],
     ["defined()", "macro name"],
     ["A +", "operand"],
-    ["A + * B", "operand"]
+    ["A + * B", "operand"],
+    ["A ? B : C", "?"]
   ]) {
     it(`reports provably malformed syntax '${condition}'`, () => {
       const diagnostic = ShaderAnalyzer.analyze(shader(condition), { sourceFile: "condition.shader" }).diagnostics.find(
@@ -71,9 +72,14 @@ describe("preprocessor expression diagnostics", () => {
     ).to.be.empty;
   });
 
-  it("contains an unexpected validator failure as a diagnostic", () => {
+  it("reports excessive expression nesting without overflowing the stack", () => {
     const nestedCondition = `${"(".repeat(20000)}1${")".repeat(20000)}`;
-    expect(() => ShaderAnalyzer.analyze(shader(nestedCondition))).to.not.throw();
+    const diagnostics = ShaderAnalyzer.analyze(shader(nestedCondition)).diagnostics;
+    expect(diagnostics.find((diagnostic) => diagnostic.code === "PreprocessorError")).to.include({
+      severity: "error",
+      code: "PreprocessorError",
+      message: "Preprocessor expression nesting exceeds the supported depth of 256."
+    });
   });
 
   it("ignores preprocessor-looking text inside comments", () => {
@@ -91,6 +97,17 @@ describe("preprocessor expression diagnostics", () => {
       diagnostics.filter((diagnostic) => diagnostic.code === "PreprocessorError"),
       JSON.stringify(diagnostics)
     ).to.be.empty;
+  });
+
+  it("keeps malformed continued-expression ranges on the original physical line", () => {
+    const source = shader("defined(A) && \\\n        123 defined(B)");
+    const diagnostic = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (candidate) => candidate.code === "PreprocessorError"
+    );
+
+    expect(diagnostic).to.be.ok;
+    expect(diagnostic!.range.start.line).to.equal(5);
+    expect(source.slice(diagnostic!.range.start.offset, diagnostic!.range.end.offset)).to.equal("defined");
   });
 
   it("does not diagnose valid token-fragment macro replacement lists", () => {

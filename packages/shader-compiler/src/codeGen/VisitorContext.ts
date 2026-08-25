@@ -2,15 +2,17 @@ import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { EShaderStage } from "@galacean/engine-shader-parser/internal";
 import { SymbolTable } from "@galacean/engine-shader-parser/internal";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
-import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, SymbolInfo, VarSymbol } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/internal";
 
 /** @internal */
 export class VisitorContext {
   private readonly _lookupSymbol = new SymbolInfo("", null);
-  private readonly _attributeStructTypes = new Set<string>();
-  private readonly _varyingStructTypes = new Set<string>();
-  private readonly _mrtStructTypes = new Set<string>();
+  private readonly _structRoles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
+  private readonly _vertexUnresolvedVariableRoles = new Map<string, ShaderStructRole>();
+  private readonly _fragmentUnresolvedVariableRoles = new Map<string, ShaderStructRole>();
+  private readonly _vertexAmbiguousVariableNames = new Set<string>();
+  private readonly _fragmentAmbiguousVariableNames = new Set<string>();
 
   attributeStructs: ASTNode.StructSpecifier[] = [];
   attributeList: StructProp[] = [];
@@ -28,25 +30,21 @@ export class VisitorContext {
   _referencedGlobals: Record<string, SymbolInfo[]>;
   readonly _referencedGlobalKeys: string[] = [];
   _referencedGlobalMacroASTs: TreeNode[] = [];
-  /**
-   * Per-stage variable-to-role maps. Split so a same-named param/local in both entries
-   * (e.g. `input`) resolves to the correct role for the current stage; module-level
-   * globals populate both maps. Codegen picks the map via `getStructVarRole(varName)`.
-   */
-  _vertexStructVarMap: Record<string, ShaderStructRole>;
-  _fragmentStructVarMap: Record<string, ShaderStructRole>;
+  private readonly _structVariableRoles = new Map<VarSymbol, ShaderStructRole>();
 
   _passSymbolTable?: SymbolTable<SymbolInfo>;
-  codeCache = new WeakMap<TreeNode, string>();
-  fragmentReturns = new WeakSet<ASTNode.JumpStatement>();
+  readonly codeCache = new Map<TreeNode, string>();
+  private readonly fragmentReturnModes = new Map<ASTNode.JumpStatement, FragmentReturnMode>();
+  private readonly terminalInterfaceReturns = new Set<ASTNode.JumpStatement>();
 
   constructor() {
     this.reset();
   }
 
   reset(resetAll = true) {
-    this.codeCache = new WeakMap();
-    this.fragmentReturns = new WeakSet();
+    this.codeCache.clear();
+    this.fragmentReturnModes.clear();
+    this.terminalInterfaceReturns.clear();
     if (resetAll) {
       this.attributeStructs.length = 0;
       this.attributeList.length = 0;
@@ -54,9 +52,11 @@ export class VisitorContext {
       this.varyingList.length = 0;
       this.mrtStructs.length = 0;
       this.mrtList.length = 0;
-      this._attributeStructTypes.clear();
-      this._varyingStructTypes.clear();
-      this._mrtStructTypes.clear();
+      this._structRoles.clear();
+      this._vertexUnresolvedVariableRoles.clear();
+      this._fragmentUnresolvedVariableRoles.clear();
+      this._vertexAmbiguousVariableNames.clear();
+      this._fragmentAmbiguousVariableNames.clear();
     }
 
     this._referencedAttributeList = Object.create(null);
@@ -66,35 +66,34 @@ export class VisitorContext {
     this._referencedGlobalKeys.length = 0;
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
-      // Struct-var bindings are pass-scoped; both stage maps are cleared here and
-      // repopulated from `ShaderCoreInfo` before codegen.
-      this._vertexStructVarMap = Object.create(null);
-      this._fragmentStructVarMap = Object.create(null);
+      this._structVariableRoles.clear();
       this._passSymbolTable = undefined;
     }
   }
 
-  isAttributeStruct(type: string) {
-    return this._attributeStructTypes.has(type);
-  }
-
-  isVaryingStruct(type: string) {
-    return this._varyingStructTypes.has(type);
-  }
-
-  isMRTStruct(type: string) {
-    return this._mrtStructTypes.has(type);
+  /**
+   * Finds the shared interface role of custom-struct declaration candidates.
+   * @param declarations - Exact parser struct identities resolved at one type occurrence.
+   * @returns Interface role, or `undefined` when the type is not an unambiguous interface struct.
+   */
+  getStructRole(declarations: readonly ASTNode.StructSpecifier[]): ShaderStructRole | undefined {
+    let resolvedRole: ShaderStructRole | undefined;
+    for (const declaration of declarations) {
+      const role = this._structRoles.get(declaration);
+      if (!role || (resolvedRole && resolvedRole !== role)) return;
+      resolvedRole = role;
+    }
+    return resolvedRole;
   }
 
   /**
-   * Finds the stage-interface role of a struct type.
-   * @param typeLexeme - Struct type name.
-   * @returns Interface role, or `undefined` for a non-interface struct.
+   * Tests the exact interface role of one struct declaration.
+   * @param declaration - Parser struct identity.
+   * @param role - Expected interface role.
+   * @returns Whether the declaration owns that role.
    */
-  getStructRole(typeLexeme: string): ShaderStructRole | undefined {
-    if (this.isAttributeStruct(typeLexeme)) return ShaderStructRole.Attribute;
-    if (this.isVaryingStruct(typeLexeme)) return ShaderStructRole.Varying;
-    if (this.isMRTStruct(typeLexeme)) return ShaderStructRole.Mrt;
+  hasStructRole(declaration: ASTNode.StructSpecifier, role: ShaderStructRole): boolean {
+    return this._structRoles.get(declaration) === role;
   }
 
   /**
@@ -104,35 +103,95 @@ export class VisitorContext {
    * @internal
    */
   registerStructTypes(role: ShaderStructRole, structs: readonly ASTNode.StructSpecifier[]): void {
-    const types =
-      role === ShaderStructRole.Attribute
-        ? this._attributeStructTypes
-        : role === ShaderStructRole.Varying
-          ? this._varyingStructTypes
-          : this._mrtStructTypes;
     for (const struct of structs) {
-      types.add(struct.ident!.lexeme);
+      this._structRoles.set(struct, role);
     }
   }
 
   /**
-   * Registers a stage-local variable that holds an interface struct.
-   * @param stage - Shader stage owning the variable.
-   * @param varName - Variable name.
+   * Registers a resolved variable that holds an interface struct.
+   * @param variable - Parser symbol identity for the declaration.
    * @param role - Struct interface role.
+   * @param stage - Optional stage from whose entry the variable is reachable. Omit when only exact
+   * symbol lookup is required.
    */
-  registerStructVar(stage: EShaderStage, varName: string, role: ShaderStructRole): void {
-    const map = stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap;
-    map[varName] = role;
+  registerStructVar(variable: VarSymbol, role: ShaderStructRole, stage?: EShaderStage): void {
+    this._structVariableRoles.set(variable, role);
+    if (stage === undefined) return;
+    const roles =
+      stage === EShaderStage.VERTEX ? this._vertexUnresolvedVariableRoles : this._fragmentUnresolvedVariableRoles;
+    const ambiguous =
+      stage === EShaderStage.VERTEX ? this._vertexAmbiguousVariableNames : this._fragmentAmbiguousVariableNames;
+    const name = variable.ident;
+    if (ambiguous.has(name)) return;
+    const existing = roles.get(name);
+    if (existing && existing !== role) {
+      roles.delete(name);
+      ambiguous.add(name);
+    } else {
+      roles.set(name, role);
+    }
   }
 
   /**
-   * Finds the interface role of a variable in the active stage.
-   * @param varName - Variable name.
-   * @returns Interface role, or `undefined` for a non-interface value.
+   * Finds an interface role for a global macro value that has no lexical symbol identity.
+   * @param variableName - Bare variable name in the macro replacement AST.
+   * @returns A role only when every stage-reachable declaration with that name agrees.
    */
-  getStructVarRole(varName: string): ShaderStructRole | undefined {
-    return (this.stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap)[varName];
+  getUnresolvedStructVarRole(variableName: string): ShaderStructRole | undefined {
+    const roles =
+      this.stage === EShaderStage.VERTEX ? this._vertexUnresolvedVariableRoles : this._fragmentUnresolvedVariableRoles;
+    const ambiguous =
+      this.stage === EShaderStage.VERTEX ? this._vertexAmbiguousVariableNames : this._fragmentAmbiguousVariableNames;
+    return ambiguous.has(variableName) ? undefined : roles.get(variableName);
+  }
+
+  /**
+   * Finds the shared interface role of branch-visible variable candidates.
+   * @param symbols - Exact parser symbols resolved at one reference.
+   * @returns Interface role, or `undefined` when the reference is not an unambiguous interface value.
+   */
+  getStructVarRole(symbols: readonly SymbolInfo[]): ShaderStructRole | undefined {
+    let resolvedRole: ShaderStructRole | undefined;
+    for (const symbol of symbols) {
+      if (!(symbol instanceof VarSymbol)) return;
+      const role = this._structVariableRoles.get(symbol);
+      if (!role || (resolvedRole && resolvedRole !== role)) return;
+      resolvedRole = role;
+    }
+    return resolvedRole;
+  }
+
+  /**
+   * Marks a value-return belonging to a fragment entry for backend lowering.
+   * @param statement - Exact return statement identity.
+   * @param mode - Fragment output contract of the containing entry declaration.
+   */
+  registerFragmentReturn(statement: ASTNode.JumpStatement, mode: FragmentReturnMode): void {
+    this.fragmentReturnModes.set(statement, mode);
+  }
+
+  /**
+   * Finds the output contract for a fragment-entry return statement.
+   * @param statement - Return statement identity.
+   * @returns Output mode, or `undefined` for ordinary helper/vertex returns.
+   */
+  getFragmentReturnMode(statement: ASTNode.JumpStatement): FragmentReturnMode | undefined {
+    return this.fragmentReturnModes.get(statement);
+  }
+
+  /** Marks a syntactically final interface return whose control-flow exit can be omitted. */
+  registerTerminalInterfaceReturn(statement: ASTNode.JumpStatement): void {
+    this.terminalInterfaceReturns.add(statement);
+  }
+
+  /**
+   * Tests whether an interface return is the final syntactic statement in its function.
+   * @param statement - Return statement identity.
+   * @returns Whether backend lowering may omit a trailing `return;`.
+   */
+  isTerminalInterfaceReturn(statement: ASTNode.JumpStatement): boolean {
+    return this.terminalInterfaceReturns.has(statement);
   }
 
   referenceAttribute(ident: BaseToken): void {
@@ -165,3 +224,6 @@ export class VisitorContext {
     refList[name] = list.filter((item) => item.ident.lexeme === name);
   }
 }
+
+/** @internal */
+export type FragmentReturnMode = "color" | "mrt";

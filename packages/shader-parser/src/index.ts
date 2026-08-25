@@ -33,6 +33,7 @@ export * from "./sourceParser/ShaderSourceFactory";
 
 export * from "./Preprocessor";
 export * from "./PreprocessorExpression";
+export * from "./ParserObjectPool";
 export * from "./ParserUtils";
 export * from "./GSError";
 export * from "./formatDiagnostic";

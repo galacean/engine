@@ -109,7 +109,6 @@ describe("branch resolution ambiguity", () => {
     ${ENTRIES}`);
     expect(result).to.include("NonConstArraySize");
     expect(result).to.not.include("AmbiguousMacroBranchResolution");
-    expect(result).to.not.include("AmbiguousMacroBranchType");
   });
 
   it("errors when a struct member exists in only one visible branch", () => {
@@ -131,7 +130,7 @@ describe("branch resolution ambiguity", () => {
     ["base type", "float value;", "int value;"],
     ["array shape", "float value;", "float value[2];"],
     ["array size", "float value[2];", "float value[3];"]
-  ])("warns when a struct member has divergent %s", (_name, first, second) => {
+  ])("stays silent when a struct member has divergent %s", (_name, first, second) => {
     const result = diagnostics(`#ifdef A
       struct S { ${first} };
     #else
@@ -140,10 +139,7 @@ describe("branch resolution ambiguity", () => {
     S s;
     void frag() { gl_FragColor = vec4(s.value); }
     ${ENTRIES}`);
-    const ambiguity = result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchType");
-    expect(ambiguity).to.have.lengthOf(1);
-    expect(ambiguity[0].severity).to.equal("warning");
-    expect(result.filter((diagnostic) => diagnostic.severity === "error")).to.be.empty;
+    expect(result).to.be.empty;
   });
 
   it("keeps definitive struct member results when branches agree", () => {

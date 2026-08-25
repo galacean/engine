@@ -1,6 +1,7 @@
 import type { Plugin } from "rollup";
 import { runFull, startWatcher, normalizePath } from "./precompile";
 
+/** Controls the offline precompile step started by the Rollup plugin. */
 export interface ShaderPrecompileOptions {
   /** Directory containing `.shader` source files. */
   input: string;
@@ -16,6 +17,7 @@ export interface ShaderPrecompileOptions {
   platformTarget?: number;
 }
 
+/** Configures shader asset transformation and optional offline precompilation. */
 export interface ShaderPluginOptions {
   /**
    * Override the default include pattern. The plugin always matches `.glsl`,
@@ -55,6 +57,9 @@ function transformAsModule(code: string, id: string): { code: string; map: { map
  * - When `precompile` option is set: runs a full precompile in buildStart and,
  *   in watch mode, starts a background watcher that mirrors `.shader` source
  *   changes into `.shaderc` outputs and refreshes the aggregated index.
+ * @param options - Transform filter and optional offline precompile configuration.
+ * @returns Rollup plugin for shader source and artifact modules.
+ * @throws Error during `buildStart` when offline precompilation reports failures.
  */
 export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
   const { filter, precompile } = options;
@@ -72,7 +77,8 @@ export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
     async buildStart() {
       if (!precompileOptions || initialDone) return;
       initialDone = true;
-      await runFull(precompileOptions);
+      const { failed } = await runFull(precompileOptions);
+      if (failed > 0) this.error(`${failed} shader(s) failed to precompile.`);
 
       if (this.meta.watchMode && !watcherStarted) {
         watcherStarted = true;

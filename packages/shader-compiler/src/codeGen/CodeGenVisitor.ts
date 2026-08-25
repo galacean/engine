@@ -61,14 +61,20 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const prop = children[2];
 
       if (prop instanceof BaseToken) {
-        // Struct role priority: the current stage's var map by bare root ident (covers forward-declared
-        // types like `Varyings o;`), then AST static type (normal path when `semanticAnalyze` resolved
-        // `postExpr.type`). Splitting the map per stage prevents a same-named param/local (e.g. `input`
-        // in both `mainVert(a2v input)` and `mainFrag(v2f input)`) from collapsing into one role.
+        // Direct variables use parser symbol identity so lexical shadowing cannot inherit an IO role
+        // from a same-named declaration. Macro-expanded identifiers can lack a resolved symbol, so
+        // only that zero-symbol path falls back to the expression's unambiguous struct type.
         let role: ShaderStructRole | undefined;
-        const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
-        if (directRoot) role = context.getStructVarRole(directRoot);
-        if (!role) role = context.getStructRole(<string>postExpr.type);
+        const directRoot = ParserUtils.unwrapBareIdentifier(postExpr, { allowParens: true });
+        if (directRoot) {
+          const symbols = directRoot.resolvedValueSymbols();
+          const unresolvedName = ParserUtils.extractDirectIdentLexeme(postExpr);
+          role = symbols.length
+            ? context.getStructVarRole(symbols)
+            : unresolvedName
+              ? context.getUnresolvedStructVarRole(unresolvedName)
+              : undefined;
+        }
 
         if (role) {
           if (role === ShaderStructRole.Attribute) context.referenceAttribute(prop);
@@ -110,10 +116,14 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
 
         const context = this.context;
         const params = astNodes.filter((_, i) => {
-          const typeInfo = paramInfoList?.[i]?.typeInfo;
+          const parameter = paramInfoList?.[i]?.astNode;
           // Drop struct-IO parameters (attribute/varying/mrt) — they're flattened
           // into top-level declarations and no longer exist as function-call args.
-          return !typeInfo || !context.getStructRole(typeInfo.typeLexeme);
+          return (
+            !(parameter instanceof ASTNode.ParameterDeclaration) ||
+            !parameter.symbol ||
+            !context.getStructVarRole([parameter.symbol])
+          );
         });
 
         let paramsCode = "";
@@ -151,11 +161,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
         params = astNodes.filter((arg) => {
           if (arg instanceof ASTNode.AssignmentExpression) {
             const variableParam = ParserUtils.unwrapBareIdentifier(arg, { allowParens: false });
-            if (
-              variableParam &&
-              typeof variableParam.typeInfo === "string" &&
-              context.getStructRole(variableParam.typeInfo)
-            ) {
+            if (variableParam && context.getStructVarRole(variableParam.resolvedValueSymbols())) {
               return false;
             }
           }
@@ -222,11 +228,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       const context = this.context;
-      // Global variables whose declared type is a varying/attribute/mrt struct
-      // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable's role comes
-      // from `ShaderCoreInfo`'s per-stage struct-var maps (module globals populate both),
-      // so `visitPostfixExpression` can flatten `o.field` at macro-value codegen time.
-      if (context.getStructRole(fullType.typeSpecifier.lexeme)) {
+      // Global interface variables are flattened and therefore are not emitted as uniforms.
+      if (context.getStructVarRole([node.declarator.symbol])) {
         return "";
       }
       context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
@@ -240,17 +243,25 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const child = children[0];
 
     if (child instanceof ASTNode.InitDeclaratorList) {
-      const typeLexeme = child.typeInfo.typeLexeme;
-      if (context.isVaryingStruct(typeLexeme) || context.isMRTStruct(typeLexeme)) return "";
+      const first = child.children[0];
+      const declarator =
+        child.declarator ?? (first instanceof ASTNode.SingleDeclaration ? first.declarator : undefined);
+      const role = declarator && context.getStructVarRole([declarator.symbol]);
+      if (role === ShaderStructRole.Varying || role === ShaderStructRole.Mrt) return "";
     }
     return this.defaultCodeGen(children);
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
     const context = this.context;
-    const params = node.parameterInfoList.filter(
-      (item) => !item.typeInfo || !context.getStructRole(item.typeInfo.typeLexeme)
-    );
+    const params = node.parameterInfoList.filter((item) => {
+      const parameter = item.astNode;
+      return (
+        !(parameter instanceof ASTNode.ParameterDeclaration) ||
+        !parameter.symbol ||
+        !context.getStructVarRole([parameter.symbol])
+      );
+    });
 
     let out = "";
     for (let i = 0, length = params.length; i < length; i++) {
@@ -268,8 +279,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
-    const returnType = node.returnType.typeSpecifier.lexeme;
-    if (this.context.isVaryingStruct(returnType)) {
+    const returnType = node.returnType.typeSpecifier;
+    if (this.context.getStructRole(returnType.structDeclarations) === ShaderStructRole.Varying) {
       return `void ${node.ident.lexeme}(`;
     }
     return this.defaultCodeGen(node.children);
@@ -285,12 +296,17 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
           expr,
           NoneTerminal.variable_identifier
         );
-        if (this.context.isVaryingStruct(<string>returnVar?.typeInfo)) {
-          return "";
+        if (returnVar && this.context.getStructVarRole(returnVar.resolvedValueSymbols()) === ShaderStructRole.Varying) {
+          return this.context.isTerminalInterfaceReturn(node) ? "" : "return;";
         }
         const returnFnCall = ParserUtils.unwrapNodeByType<ASTNode.FunctionCall>(expr, NoneTerminal.function_call);
-        if (this.context.isVaryingStruct(<string>returnFnCall?.type)) {
-          return `${expr.codeGen(this)};`;
+        const calledFunction = returnFnCall?.children[0] as ASTNode.FunctionCallGeneric | undefined;
+        const returnDeclarations =
+          calledFunction?.fnSymbol instanceof FnSymbol
+            ? calledFunction.fnSymbol.astNode.protoType.returnType.typeSpecifier.structDeclarations
+            : [];
+        if (this.context.getStructRole(returnDeclarations) === ShaderStructRole.Varying) {
+          return `${expr.codeGen(this)};${this.context.isTerminalInterfaceReturn(node) ? "" : " return;"}`;
         }
       }
     }
@@ -352,6 +368,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   visitFunctionDefinition(fnNode: ASTNode.FunctionDefinition): string {
     const fnName = fnNode.protoType.ident.lexeme;
     const context = this.context;
+    const terminal = ParserUtils.lastStatement(fnNode.statements);
+    if (terminal instanceof ASTNode.JumpStatement) context.registerTerminalInterfaceReturn(terminal);
 
     if (fnName == context.stageEntry) {
       const statements = fnNode.statements.codeGen(this);

@@ -9,6 +9,7 @@ import {
 import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { GLESBackend } from "@galacean/engine-shader-compiler/src/GLESBackend";
 import { describe, expect, it } from "vitest";
 
@@ -130,12 +131,43 @@ void fragA() { gl_FragColor = vec4(0.25); }
 void vert() { gl_Position = vec4(0.0); }
 void frag() { gl_FragColor = vec4(1.0); }`;
     const parsed = parseShaderPass(source, {}, new Map());
-    expect(parsed.ir).to.not.equal(null);
+    expect(parsed.ir).to.equal(null);
     expect(parsed.errors).to.not.have.lengthOf(0);
     expect(parsed.blockingErrors).to.not.have.lengthOf(0);
 
     const generated = new ShaderCompiler()._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
     expect(generated).to.equal(undefined);
+  });
+
+  it("rejects analyzer pass handoff when preprocessing expressions are malformed", () => {
+    const source = `Shader "MalformedExpression" { SubShader "Default" { Pass "p" {
+#if 123 defined(USE_VALUE)
+float invalidValue;
+#endif
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
+    expect(analysis.passes).to.have.lengthOf(1);
+    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100)).to.equal(undefined);
+  });
+
+  it("rejects analyzer pass handoff when parser semantics prove a redefinition", () => {
+    const source = `Shader "Redefinition" { SubShader "Default" { Pass "p" {
+float repeated;
+float repeated;
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(repeated); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
+    expect(analysis.passes).to.have.lengthOf(1);
+    expect(new ShaderCompiler().generate(analysis.passes[0], ShaderLanguage.GLSLES100)).to.equal(undefined);
   });
 
   it("preserves a missing include path in precompile failures", () => {
@@ -152,7 +184,7 @@ void frag() { gl_FragColor = vec4(1.0); }`;
 }`;
 
     expect(() =>
-      new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")
+      new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")
     ).to.throw(
       /Shaders\/Root\.shader: PreprocessorError: Shader include "Shaders\/chunks\/Missing\.glsl" was not found\.\n1 \| #include "\.\/chunks\/Missing\.glsl"\n  \| \^/
     );
@@ -170,15 +202,41 @@ void frag() { gl_FragColor = vec4(1.0); }`;
     }
   }
 }`;
-    const compiler = new ShaderCompiler();
-    compiler._setIncludeMap({
+    const compiler = new ShaderPrecompiler();
+    compiler.setIncludeMap({
       "Shaders/chunks/Common.glsl": '#include "../shared/Value.glsl"\nfloat chunkValue() { return 0.25; }',
       "Shaders/shared/Value.glsl": "float brokenValue = ;"
     });
 
-    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")).to.throw(
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, "shaders://root/Shaders/Root.shader")).to.throw(
       /Shaders\/shared\/Value\.glsl: CompilationError: Unexpected token ;\n1 \| float brokenValue = ;\n  \| {21}\^/
     );
+  });
+
+  it("canonicalizes compiler include maps exactly like the analyzer", () => {
+    const source = `Shader "CanonicalIncludeMap" {
+  SubShader "Default" {
+    Pass "p" {
+      #include "/User Effects/Common Math.glsl"
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(includedValue()); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const compiler = new ShaderPrecompiler();
+    compiler.setIncludeMap({
+      "User Effects/Common Math.glsl": "float includedValue() { return 1.0; }"
+    });
+
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, "Shaders/Root.shader")).not.to.throw();
+    expect(() =>
+      compiler.setIncludeMap({
+        "User/Common.glsl": "float firstValue;",
+        "/User/Common.glsl": "float secondValue;"
+      })
+    ).to.throw('resolves to "User/Common.glsl"');
   });
 
   it("keeps analyzer and precompile attribution identical for nested expression errors", () => {
@@ -208,9 +266,9 @@ void frag() { gl_FragColor = vec4(1.0); }`;
     expect(diagnostic!.range.start.line).to.equal(2);
     expect(brokenSource.slice(diagnostic!.range.start.offset, diagnostic!.range.end.offset)).to.equal("defined");
 
-    const compiler = new ShaderCompiler();
-    compiler._setIncludeMap(includeMap);
-    expect(() => compiler._precompile(source, ShaderLanguage.GLSLES100, sourceFile)).to.throw(
+    const compiler = new ShaderPrecompiler();
+    compiler.setIncludeMap(includeMap);
+    expect(() => compiler.precompile(source, ShaderLanguage.GLSLES100, sourceFile)).to.throw(
       /Shaders\/shared\/Broken\.glsl: PreprocessorError: Unexpected token 'defined'.*\n2 \| #elif 123 defined\(USE_VALUE\)\n  \| {11}\^{7}/s
     );
   });

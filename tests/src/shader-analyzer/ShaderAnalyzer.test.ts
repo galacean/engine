@@ -42,12 +42,7 @@ describe("ShaderAnalyzer", () => {
     expect(ShaderAnalyzer.analyze(expanded).diagnostics).to.be.empty;
 
     const missing = expanded.replace("float value;", "");
-    const diagnostic = ShaderAnalyzer.analyze(missing).diagnostics.find(
-      (candidate) => candidate.code === "UnknownVariable"
-    );
-    expect(diagnostic).to.be.ok;
-    expect(diagnostic!.range.start.line).to.equal(5);
-    expect(diagnostic!.range.start.column).to.equal(41);
+    expect(ShaderAnalyzer.analyze(missing).diagnostics).to.be.empty;
   });
 
   it("continues checking a replacement list after a macro-defined reference", () => {
@@ -58,10 +53,7 @@ describe("ShaderAnalyzer", () => {
       void frag() { gl_FragColor = vec4(COMBINED_VALUE); }
       VertexShader = vert; FragmentShader = frag;
     } } }`;
-    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
-    const unknown = diagnostics.filter((diagnostic) => diagnostic.code === "UnknownVariable");
-    expect(unknown, JSON.stringify(diagnostics)).to.have.lengthOf(1);
-    expect(unknown[0].message).to.include("missingValue");
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
   });
 
   it("yields no diagnostics for a valid self-contained shader", () => {
@@ -82,7 +74,7 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics).to.be.empty;
   });
 
-  it("surfaces an undeclared identifier as a warning diagnostic", () => {
+  it("does not diagnose an identifier whose type may be supplied by a runtime macro", () => {
     const source = `Shader "c2" {
   SubShader "Default" {
     Pass "test" {
@@ -95,15 +87,10 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = ShaderAnalyzer.analyze(source);
-    const err = diagnostics.find((d: Diagnostic) => d.code === "UnknownVariable");
-    expect(err, "expected a warning for the undeclared identifier").to.be.ok;
-    expect(err!.severity).to.equal("warning");
-    expect(err!.message).to.include("undeclared_color");
-    expect(err!.range.start.line).to.be.greaterThan(0);
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
   });
 
-  it("reports an undefined function call distinctly from an overload mismatch", () => {
+  it("does not diagnose a function name that may be supplied by a runtime macro", () => {
     const source = `Shader "c0-09" {
   SubShader "Default" {
     Pass "test" {
@@ -116,13 +103,7 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const { diagnostics } = ShaderAnalyzer.analyze(source);
-    const undef = diagnostics.find((d: Diagnostic) => d.code === "UndefinedFunction");
-    expect(undef, "expected a C0-09 undefined-function diagnostic").to.be.ok;
-    // Warning — an unknown function name may resolve to a builtin from a runtime macro / conditional
-    // #include that precompile doesn't see. Overload mismatch on a known name is still an error.
-    expect(undef!.severity).to.equal("warning");
-    expect(undef!.message).to.include("doesNotExist");
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
   });
 
   it("rejects a variable redeclared in the same scope (first-wins, spec alignment)", () => {
@@ -352,6 +333,18 @@ describe("ShaderAnalyzer", () => {
     expect(diag!.severity).to.equal("error");
     expect(diag!.range.start.line, "diagnostic points at the Pass").to.equal(3);
     expect(diag!.range.start.column).to.equal(9);
+  });
+
+  it("does not silently accept a bound pass with no shader body", () => {
+    const source = `Shader "empty" { SubShader "Default" { Pass "p" {
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+
+    const result = ShaderAnalyzer.analyze(source);
+
+    expect(result.diagnostics.some((diagnostic) => diagnostic.severity === "error")).to.equal(true);
+    expect(result.passes).to.have.lengthOf(1);
   });
 
   it("does not flag a Pass that binds both entries", () => {

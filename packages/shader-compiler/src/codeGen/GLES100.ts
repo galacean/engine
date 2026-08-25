@@ -1,5 +1,6 @@
 import { BaseToken } from "@galacean/engine-shader-parser/internal";
 import { ASTNode } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils, ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 
@@ -20,7 +21,21 @@ export class GLES100Visitor extends GLESVisitor {
     const { children } = node;
     const postExpr = children[0];
     const context = this.context;
-    if (postExpr instanceof ASTNode.PostfixExpression && context.isMRTStruct(<string>postExpr.type)) {
+    const directRoot =
+      postExpr instanceof ASTNode.PostfixExpression
+        ? ParserUtils.unwrapBareIdentifier(postExpr, { allowParens: true })
+        : undefined;
+    const directSymbols = directRoot?.resolvedValueSymbols() ?? [];
+    const unresolvedName =
+      postExpr instanceof ASTNode.PostfixExpression ? ParserUtils.extractDirectIdentLexeme(postExpr) : null;
+    const directRole = directRoot
+      ? directSymbols.length
+        ? context.getStructVarRole(directSymbols)
+        : unresolvedName
+          ? context.getUnresolvedStructVarRole(unresolvedName)
+          : undefined
+      : undefined;
+    if (directRole === ShaderStructRole.Mrt) {
       const propReferenced = children[2] as BaseToken;
       const prop = context.mrtList.find((item) => item.ident.lexeme === propReferenced.lexeme);
       // The parser already validated struct fields (UndeclaredStructMember); a miss here is an
@@ -32,12 +47,12 @@ export class GLES100Visitor extends GLESVisitor {
   }
 
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
-    if (this.context.fragmentReturns.has(node)) {
-      if (this.context.mrtStructs.length) {
-        return "";
-      }
+    const mode = this.context.getFragmentReturnMode(node);
+    const terminal = this.context.isTerminalInterfaceReturn(node);
+    if (mode === "mrt") return terminal ? "" : "return;";
+    if (mode === "color") {
       const expression = node.children[1] as ASTNode.Expression;
-      return `gl_FragColor = ${expression.codeGen(this)};`;
+      return `gl_FragColor = ${expression.codeGen(this)};${terminal ? "" : " return;"}`;
     }
     return super.visitJumpStatement(node);
   }

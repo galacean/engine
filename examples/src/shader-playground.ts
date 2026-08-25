@@ -323,7 +323,6 @@ const SAMPLES: Record<string, string> = {
       void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
       void frag() {
         float a = u_uv.z;                                 // InvalidSwizzle
-        a = missingFn(a);                                 // UndefinedFunction
         gl_FragColor = vec4(a, 0.0, 0.0, 1.0);
       }
       VertexShader = vert;
@@ -378,36 +377,6 @@ const SAMPLES: Record<string, string> = {
         gl_FragColor = vec4(values[0]);
       }
       void vert() { gl_Position = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  [DiagnosticType.AmbiguousMacroBranchType]: pass(`      void frag() {
-        #ifdef USE_VEC3
-          vec3 branchColor;
-        #else
-          vec4 branchColor;
-        #endif
-        gl_FragColor = vec4(branchColor.x);
-      }
-      void vert() { gl_Position = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  [DiagnosticType.UndefinedFunction]: pass(`      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = doesNotExist(1.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  [DiagnosticType.UnknownVariable]: pass(`      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(undeclared_color, 1.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  [DiagnosticType.UnknownType]: pass(`      RUNTIME_TYPE u_value;
-      void vert() { gl_Position = vec4(0.0); }
-      void frag() { gl_FragColor = vec4(1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
@@ -554,9 +523,21 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vrt;                                 // 'vrt' is not a function
       FragmentShader = frag;`),
 
-  [DiagnosticType.GlFragColorWithMrt]: pass(`      struct MRT { vec4 c0; };
+  [DiagnosticType.AmbiguousEntryPoint]: pass(`      void vert(float value) { gl_Position = vec4(value); }
+      void vert(vec2 value) { gl_Position = vec4(value, 0.0, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;                                // two overloads coexist
+      FragmentShader = frag;`),
+
+  [DiagnosticType.GlFragColorWithMrt]: pass(`      struct MRT { layout(location = 0) vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  [DiagnosticType.InvalidMrtOutput]: pass(`      struct MRT { vec4 colorWithoutLocation; };
+      void vert() { gl_Position = vec4(0.0); }
+      MRT frag() { MRT outputValue; return outputValue; }
       VertexShader = vert;
       FragmentShader = frag;`),
 

@@ -16,6 +16,8 @@ export interface ShaderSourceMapSegment {
   readonly source: string;
   /** Canonical source path represented by this segment. */
   readonly sourceFile?: string;
+  /** ShaderLab inheritance layer that contributed this source. */
+  readonly sourceScope?: number;
 }
 
 /**

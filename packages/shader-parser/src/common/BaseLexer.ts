@@ -1,9 +1,8 @@
-import { ShaderPosition, ShaderRange } from ".";
+import { ETokenType, ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import { Logger } from "@galacean/engine-core";
 
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
@@ -134,6 +133,14 @@ export abstract class BaseLexer {
   }
 
   /** @internal */
+  protected _createEOFToken(): BaseToken {
+    const position = this.getShaderPosition();
+    const token = this._createToken();
+    token.set(ETokenType.EOF, "/EOF", this._createRange(position, position));
+    return token;
+  }
+
+  /** @internal */
   protected _createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
     return this._objectPool ? this._objectPool.createRange(start, end) : ShaderCompilerUtils.createRange(start, end);
   }
@@ -232,7 +239,6 @@ export abstract class BaseLexer {
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: unknown[]) {
     const error = ShaderCompilerUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
-    Logger.error(error.toString());
     throw error;
   }
 
@@ -266,6 +272,9 @@ export abstract class BaseLexer {
       }
     }
 
+    if (currentIndex === sourceLength) {
+      this.throwError(this.getShaderPosition(), `Expect closing character "${right}" before end of source.`);
+    }
     this.advance(currentIndex + 1 - this._currentIndex);
 
     return source.substring(start, currentIndex);

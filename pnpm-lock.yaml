@@ -285,6 +285,9 @@ importers:
       '@galacean/engine-core':
         specifier: workspace:*
         version: link:../core
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
@@ -294,10 +297,6 @@ importers:
       '@rollup/pluginutils':
         specifier: ^5.0.0
         version: 5.2.0(rollup@4.27.2)
-    devDependencies:
-      '@galacean/engine-design':
-        specifier: workspace:*
-        version: link:../design
 
   packages/shader-parser:
     dependencies:

@@ -111,8 +111,18 @@ function createLazyIncludeMap(root: string): IncludeMap {
       let path = root;
       try {
         let stats: ReturnType<typeof lstatSync> | undefined;
-        for (const segment of includeName.split("/")) {
+        for (const encodedSegment of includeName.split("/")) {
+          const segment = decodeIncludePathSegment(encodedSegment);
+          if (segment === undefined) {
+            target[includeName] = undefined;
+            return undefined;
+          }
           path = join(path, segment);
+          const relativePath = relative(root, path);
+          if (relativePath === ".." || relativePath.startsWith(`..${sep}`)) {
+            target[includeName] = undefined;
+            return undefined;
+          }
           stats = lstatSync(path);
           if (stats.isSymbolicLink()) {
             target[includeName] = undefined;
@@ -130,6 +140,17 @@ function createLazyIncludeMap(root: string): IncludeMap {
       }
     }
   });
+}
+
+function decodeIncludePathSegment(segment: string): string | undefined {
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    return;
+  }
+  if (!decoded || decoded === "." || decoded === ".." || /[\\/\0]/.test(decoded)) return;
+  return decoded;
 }
 
 function sourceFilePath(file: string, includeRoot: string): string {

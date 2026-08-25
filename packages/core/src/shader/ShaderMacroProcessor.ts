@@ -1,6 +1,8 @@
 import {
+  expandPreprocessorExpressionMacros,
   evaluatePreprocessorExpression,
   parsePreprocessorExpression,
+  resolvePreprocessorDefinedOperators,
   type Condition,
   type ShaderInstruction
 } from "@galacean/engine-design";
@@ -338,22 +340,18 @@ export class ShaderMacroProcessor {
     valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>
   ): boolean {
-    const withDefinedValues = expression.replace(
-      /\bdefined\s*(?:\(\s*([A-Za-z_]\w*)\s*\)|([A-Za-z_]\w*))/g,
-      (_match, parenthesized: string | undefined, bare: string | undefined) => {
-        const name = parenthesized ?? bare!;
-        return valueMacros.has(name) || funcMacros.has(name) ? "1" : "0";
-      }
+    const withDefinedValues = resolvePreprocessorDefinedOperators(
+      expression,
+      (name) => valueMacros.has(name) || funcMacros.has(name)
     );
-    const expandedNames = ShaderMacroProcessor._expandedNames;
-    expandedNames.clear();
-    const expanded = ShaderMacroProcessor._recursiveExpandMacro(
-      withDefinedValues,
-      valueMacros,
-      funcMacros,
-      expandedNames
-    );
-    const result = parsePreprocessorExpression(expanded);
+    const expanded = expandPreprocessorExpressionMacros(withDefinedValues, (name) => {
+      const func = funcMacros.get(name);
+      if (func) return { body: func.body, parameters: func.params };
+      const body = valueMacros.get(name);
+      return body === undefined ? undefined : { body };
+    });
+    if (expanded.error) throw new Error(expanded.error);
+    const result = parsePreprocessorExpression(expanded.expression);
     if ("error" in result) {
       throw new Error(`Invalid preprocessor expression after macro expansion: ${result.error.message}`);
     }

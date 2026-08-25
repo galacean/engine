@@ -82,7 +82,10 @@ export class ShaderValidator {
   private _indexedGlFragDataStarts = new Set<number>();
   /** Function definition → derivative call sites inside its body. Post-walk pass reports the ones
    *  reachable from the vertex entry via the call graph. */
-  private _derivativeSites = new Map<ASTNode.FunctionDefinition, { name: string; location: ShaderRange }[]>();
+  private _derivativeSites = new Map<
+    ASTNode.FunctionDefinition,
+    { name: string; location: ShaderRange; branch: ASTNode.FunctionCallGeneric["_branch"] }[]
+  >();
 
   private readonly _source: string;
   private readonly _vertexEntry: string;
@@ -208,12 +211,6 @@ export class ShaderValidator {
     );
   }
 
-  private _pushWarning(message: string, location: ShaderRange, code: DiagnosticType): void {
-    this._errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationWarn, this._source, location, code)
-    );
-  }
-
   private _checkCustomTypeReference(node: ASTNode.TypeSpecifier): void {
     if (!node.isCustom) return;
     const typeName = (node.children[0] as ASTNode.TypeSpecifierNonArray).children[0];
@@ -239,12 +236,6 @@ export class ShaderValidator {
           `Type '${typeName.lexeme}' is declared only after this reference or in an unavailable macro branch.`,
           typeName.location,
           DiagnosticType.UseBeforeDeclaration
-        );
-      } else {
-        this._pushWarning(
-          `Unknown type '${typeName.lexeme}' — ensure it is provided at runtime as a macro.`,
-          typeName.location,
-          DiagnosticType.UnknownType
         );
       }
       return;
@@ -827,10 +818,10 @@ export class ShaderValidator {
       const index = children[2];
       // `gl_FragData[i]` — record the base's location so `_reportBareGlFragData` treats this
       // occurrence as legal rather than reporting it as a bare use.
-      if (
+      const isFragmentOutputArray =
         ParserUtils.unwrapBareIdentifier(base, { allowParens: true })?.builtinSemantic ===
-        ShaderBuiltinSemantic.FragmentOutputArray
-      ) {
+        ShaderBuiltinSemantic.FragmentOutputArray;
+      if (isFragmentOutputArray) {
         this._indexedGlFragDataStarts.add(base.location.start.index);
       }
       // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
@@ -849,6 +840,23 @@ export class ShaderValidator {
         const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
         this._push(m, index.location, DiagnosticType.NonIntegerIndex);
         return;
+      }
+      if (isFragmentOutputArray && !ParserUtils.isConstExpr(index)) {
+        this._push(
+          "Fragment output array index must be a constant integral expression.",
+          index.location,
+          DiagnosticType.NonConstFragmentOutputIndex
+        );
+      }
+      if (isFragmentOutputArray) {
+        const outputIndex = ParserUtils.constIntegerValue(index);
+        if (outputIndex !== undefined && outputIndex < 0) {
+          this._push(
+            `Fragment output index ${outputIndex} is out of bounds.`,
+            index.location,
+            DiagnosticType.IndexOutOfBounds
+          );
+        }
       }
       // Array-of-vector base like `ivec2 arr[N]` — a[i] indexes the outer array, not the inner
       // vec2. Skip the vector-bounds check when the base is an array; the array-size check
@@ -941,8 +949,7 @@ export class ShaderValidator {
    * statement is either a `return value;` or an `if/else` where both arms guarantee. Loops / macros
    * / switch are conservatively treated as "may not return" — a `for {…return…}` doesn't count
    * because the loop might not execute. The void-with-value case is reported per-jump in
-   * `_checkJump` (the parser no longer records `returnStatement` for void functions — codegen
-   * invariant, see AST.ts FunctionDefinition.semanticAnalyze).
+   * `_checkJump`.
    */
   private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
@@ -1116,11 +1123,9 @@ export class ShaderValidator {
     if (functionIdentifier.isBuiltin) return;
     const fnIdent = functionIdentifier.ident as string;
     const proto = currentFunction.protoType;
-    const callee = node.fnSymbol;
-    if (callee instanceof FnSymbol) {
-      if (callee.astNode !== currentFunction) {
-        return;
-      }
+    const callees = node.fnSymbols ?? (node.fnSymbol instanceof FnSymbol ? [node.fnSymbol] : []);
+    if (callees.length) {
+      if (!callees.some((callee) => callee.astNode === currentFunction)) return;
       this._push(
         `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
         functionIdentifier.location,
@@ -1151,52 +1156,20 @@ export class ShaderValidator {
    * call site by `_checkRecursiveCall`, so ignore length-1 cycles here.
    */
   private _reportMutualRecursion(): void {
-    // Iterative DFS with a recursion stack — for each starting fn, look for a back-edge to something
-    // already on the stack that isn't the immediate self edge.
-    const seen = new Set<ASTNode.FunctionDefinition>();
     const reported = new Set<ASTNode.FunctionDefinition>();
-    for (const start of this._analysis.functions()) {
-      if (seen.has(start)) continue;
-      const stack: ASTNode.FunctionDefinition[] = [start];
-      const onStack = new Set<ASTNode.FunctionDefinition>([start]);
-      const iters: Array<Iterator<ASTNode.FunctionDefinition>> = [this._analysis.calleesOf(start).values()];
-      while (stack.length) {
-        const it = iters[iters.length - 1];
-        const step = it.next();
-        if (step.done) {
-          const done = stack.pop()!;
-          onStack.delete(done);
-          seen.add(done);
-          iters.pop();
-          continue;
-        }
-        const next = step.value;
-        if (onStack.has(next)) {
-          // cycle detected — extract the participants from the stack
-          const cycleStart = stack.indexOf(next);
-          const cycle = stack.slice(cycleStart);
-          if (cycle.length >= 2) {
-            const marker = cycle.reduce((first, candidate) =>
-              candidate.protoType.ident.lexeme < first.protoType.ident.lexeme ? candidate : first
-            );
-            if (!reported.has(marker)) {
-              reported.add(marker);
-              this._push(
-                `Mutual recursion detected in call chain: ${cycle
-                  .map((fn) => fn.protoType.ident.lexeme)
-                  .join(" → ")} → ${next.protoType.ident.lexeme} (GLSL forbids recursion).`,
-                marker.protoType.ident.location,
-                DiagnosticType.RecursiveFunction
-              );
-            }
-          }
-          continue;
-        }
-        if (seen.has(next)) continue;
-        stack.push(next);
-        onStack.add(next);
-        iters.push(this._analysis.calleesOf(next).values());
-      }
+    for (const cycle of this._analysis.mutualRecursionCycles()) {
+      const marker = cycle.reduce((first, candidate) =>
+        candidate.protoType.ident.lexeme < first.protoType.ident.lexeme ? candidate : first
+      );
+      if (reported.has(marker)) continue;
+      reported.add(marker);
+      this._push(
+        `Mutual recursion detected in call chain: ${cycle
+          .map((fn) => fn.protoType.ident.lexeme)
+          .join(" → ")} → ${cycle[0].protoType.ident.lexeme} (GLSL forbids recursion).`,
+        marker.protoType.ident.location,
+        DiagnosticType.RecursiveFunction
+      );
     }
   }
 
@@ -1215,6 +1188,7 @@ export class ShaderValidator {
       const sites = this._derivativeSites.get(fn);
       if (!sites) continue;
       for (const s of sites) {
+        if (!this._analysis.isFunctionBranchReachable(vertexEntry, fn, s.branch)) continue;
         this._push(
           `Derivative function '${s.name}' is reached from the vertex entry via '${fn.protoType.ident.lexeme}' — derivatives are fragment-only.`,
           s.location,
@@ -1251,7 +1225,7 @@ export class ShaderValidator {
         sites = [];
         this._derivativeSites.set(enclosing, sites);
       }
-      sites.push({ name, location: node.location });
+      sites.push({ name, location: node.location, branch: node._branch });
     }
 
     // Spec: derivative builtins take `genType` (float/vec2/vec3/vec4); anything else is a type error.

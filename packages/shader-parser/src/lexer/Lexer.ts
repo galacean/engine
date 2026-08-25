@@ -1,6 +1,6 @@
 import { ETokenType, type ShaderPosition } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
-import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BRANCH, EOF } from "../common/BaseToken";
+import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
@@ -142,7 +142,7 @@ export class Lexer extends BaseLexer {
 
   *tokenize() {
     yield* this._tokenizeForCodegen();
-    return EOF;
+    return this._createEOFToken();
   }
 
   private *_tokenizeForCodegen() {
@@ -234,7 +234,7 @@ export class Lexer extends BaseLexer {
 
       yield tok;
     }
-    return EOF;
+    return this._createEOFToken();
   }
 
   private _parseCodegenConstantCondition(expression: string): BranchCondition | undefined {
@@ -294,7 +294,7 @@ export class Lexer extends BaseLexer {
     } else {
       this.skipCommentsAndSpace();
       if (this.isEnd()) {
-        return EOF;
+        return this._createEOFToken();
       }
     }
 
@@ -1038,7 +1038,8 @@ export class Lexer extends BaseLexer {
     }
     const word = buffer.join("");
     const result = parsePreprocessorExpression(word);
-    this.preprocessorExpressions.set(word.trim(), result);
+    const emittedWord = word.replace(/[\r\n]/g, " ");
+    this.preprocessorExpressions.set(emittedWord.trim(), result);
     if ("error" in result && (result.error.certain || !result.hasExpandableIdentifier)) {
       const errorStart = this._positionInExpression(start, word, result.error.start);
       const errorEnd = this._positionInExpression(start, word, result.error.end);
@@ -1050,9 +1051,18 @@ export class Lexer extends BaseLexer {
           source
         )
       );
+    } else if (result.ok && result.evaluationError) {
+      this.expressionErrors.push(
+        new GSError(
+          GSErrorName.PreprocessorError,
+          result.evaluationError,
+          this._createRange(start, this.getShaderPosition()),
+          source
+        )
+      );
     }
     const token = this._createToken();
-    token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, word, start);
+    token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, emittedWord, start);
     return token;
   }
 

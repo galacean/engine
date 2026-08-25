@@ -41,10 +41,10 @@ export function tryParsePreprocessorCondition(
   parsedExpression: PreprocessorExpressionParseResult = parsePreprocessorExpression(expression)
 ): PreprocessorCondition | undefined {
   const result = parsedExpression;
-  if (!result.ok) return undefined;
+  if (!result.ok || result.evaluationError) return undefined;
   const constantValue = evaluateContextFreePreprocessorCondition(result.condition);
   if (constantValue !== undefined) return { t: "bool", v: constantValue !== 0 };
-  return result.requiresFullIntegerSemantics ? undefined : toPreprocessorCondition(result.condition);
+  return toPreprocessorCondition(result.condition);
 }
 
 /**
@@ -83,7 +83,6 @@ export function toPreprocessorCondition(condition: Condition): PreprocessorCondi
     case "ndef":
       return { t: "not", c: { t: "def", m: condition.m } };
     case "unary":
-    case "select":
       return undefined;
     case "deferred":
       return undefined;
@@ -93,31 +92,42 @@ export function toPreprocessorCondition(condition: Condition): PreprocessorCondi
 function toComparisonCondition(
   condition: Extract<Condition, { t: "binary" }>
 ): CompareCondition | BoolCondition | undefined {
-  if (
-    condition.l.t === "id" &&
-    condition.r.t === "num" &&
-    (condition.op === "==" ||
-      condition.op === "!=" ||
-      condition.op === ">" ||
-      condition.op === ">=" ||
-      condition.op === "<" ||
-      condition.op === "<=")
-  ) {
-    return { t: "cmp", m: condition.l.m, op: condition.op, v: condition.r.v };
+  if (!isComparisonOperator(condition.op)) return undefined;
+  const right = evaluateContextFreePreprocessorCondition(condition.r);
+  if (condition.l.t === "id" && right !== undefined) {
+    return { t: "cmp", m: condition.l.m, op: condition.op, v: right };
   }
-  if (
-    condition.l.t === "num" &&
-    condition.r.t === "num" &&
-    (condition.op === "==" ||
-      condition.op === "!=" ||
-      condition.op === ">" ||
-      condition.op === ">=" ||
-      condition.op === "<" ||
-      condition.op === "<=")
-  ) {
-    return evaluateStaticCondition(condition);
+  const left = evaluateContextFreePreprocessorCondition(condition.l);
+  if (condition.r.t === "id" && left !== undefined) {
+    return { t: "cmp", m: condition.r.m, op: reverseComparison(condition.op), v: left };
   }
-  return undefined;
+  return evaluateStaticCondition(condition);
+}
+
+function isComparisonOperator(operator: string): operator is CompareCondition["op"] {
+  return (
+    operator === "==" ||
+    operator === "!=" ||
+    operator === ">" ||
+    operator === ">=" ||
+    operator === "<" ||
+    operator === "<="
+  );
+}
+
+function reverseComparison(operator: CompareCondition["op"]): CompareCondition["op"] {
+  switch (operator) {
+    case "<":
+      return ">";
+    case "<=":
+      return ">=";
+    case ">":
+      return "<";
+    case ">=":
+      return "<=";
+    default:
+      return operator;
+  }
 }
 
 function evaluateStaticCondition(condition: Condition): BoolCondition | undefined {

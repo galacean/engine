@@ -16,6 +16,19 @@ const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
 const hasErrors = diagnostics.some(({ severity }) => severity === DiagnosticSeverity.Error);
 ```
 
+When diagnostics and code generation are both needed, pass the parser-owned handles from the same result directly to
+the compiler. No ShaderLab pass is parsed a second time:
+
+```ts
+import { ShaderLanguage } from "@galacean/engine-core";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+
+const analysis = ShaderAnalyzer.analyze(shaderSource);
+const compiler = new ShaderCompiler();
+const programs = analysis.passes.map((pass) => compiler.generate(pass, ShaderLanguage.GLSLES300));
+```
+
 `sourceFile` is optional metadata, not a requirement for analysis. Without it, `./Common.glsl` resolves from the logical include-registry root. Supply it when relative includes should resolve from a logical subdirectory or when an editor needs stable source attribution:
 
 ```ts
@@ -44,6 +57,7 @@ For a fully disconnected install with an empty cache, provide the analyzer and i
 ```sh
 npm install --offline \
   ./galacean-engine-math-*.tgz \
+  ./galacean-engine-design-*.tgz \
   ./galacean-engine-core-*.tgz \
   ./galacean-engine-shader-parser-*.tgz \
   ./galacean-engine-shader-analyzer-*.tgz

@@ -3,7 +3,7 @@ import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "..
 import type { BranchSemantics } from "../common/BranchSemantics";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
-import { SymbolInfo } from "../parser/symbolTable";
+import { FnSymbol, SymbolInfo, VarSymbol } from "../parser/symbolTable";
 import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
 import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagnostics";
@@ -11,6 +11,7 @@ import { NodeChild } from "./types";
 
 import { MacroDefineList } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
+import type { ShaderSourceMapSegment } from "../ir";
 
 export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
@@ -36,10 +37,12 @@ export default class SemanticAnalyzer {
   symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
-    returnStatement?: ASTNode.JumpStatement;
-  } = {};
+    readonly localVariables: VarSymbol[];
+    readonly calledFunctions: FnSymbol[];
+  } = { localVariables: [], calledFunctions: [] };
   private _shaderData = new ShaderData();
   private _translationRules: readonly (TranslationRule | undefined)[] = [];
+  private _sourceMap: readonly ShaderSourceMapSegment[] = [];
 
   private _macroDefineList: MacroDefineList;
 
@@ -81,6 +84,9 @@ export default class SemanticAnalyzer {
     this.errors.length = 0;
     this.inMacroDefinition = false;
     this._ambiguousReported.clear();
+    this.curFunctionInfo.header = undefined;
+    this.curFunctionInfo.localVariables.length = 0;
+    this.curFunctionInfo.calledFunctions.length = 0;
   }
 
   pushScope() {
@@ -100,8 +106,62 @@ export default class SemanticAnalyzer {
     this._translationRules = rules;
   }
 
+  /**
+   * Replaces the generated-source provenance for the next semantic-analysis request.
+   * @param sourceMap - Ordered source segments carrying ShaderLab inheritance scopes.
+   * @internal
+   */
+  setSourceMap(sourceMap: readonly ShaderSourceMapSegment[]): void {
+    this._sourceMap = sourceMap;
+  }
+
+  /**
+   * Assigns the ShaderLab inheritance scope containing a declaration.
+   * @param symbol - Symbol created for the declaration.
+   * @param location - Declaration range in expanded pass source.
+   * @returns The same symbol with its source scope assigned.
+   * @internal
+   */
+  assignSourceScope<T extends SymbolInfo>(symbol: T, location: ShaderRange): T {
+    const offset = location.start.index;
+    const segments = this._sourceMap;
+    let low = 0;
+    let high = segments.length - 1;
+    while (low <= high) {
+      const mid = (low + high) >>> 1;
+      const segment = segments[mid];
+      if (offset < segment.generatedStart) {
+        high = mid - 1;
+      } else if (offset >= segment.generatedEnd) {
+        low = mid + 1;
+      } else {
+        symbol.sourceScope = segment.sourceScope ?? 0;
+        return symbol;
+      }
+    }
+    symbol.sourceScope = 0;
+    return symbol;
+  }
+
   getTranslationRule(pid: number): TranslationRule | undefined {
     return this._translationRules[pid];
+  }
+
+  /** @internal */
+  beginFunction(header: ASTNode.FunctionDeclarator): void {
+    this.curFunctionInfo.header = header;
+    this.curFunctionInfo.localVariables.length = 0;
+    this.curFunctionInfo.calledFunctions.length = 0;
+  }
+
+  /** @internal */
+  recordFunctionVariable(variable: VarSymbol): void {
+    if (this.curFunctionInfo.header) this.curFunctionInfo.localVariables.push(variable);
+  }
+
+  /** @internal */
+  recordFunctionCall(fn: FnSymbol): void {
+    if (this.curFunctionInfo.header) this.curFunctionInfo.calledFunctions.push(fn);
   }
 
   /**
@@ -172,18 +232,8 @@ export default class SemanticAnalyzer {
   }
 
   /** @internal */
-  reportUndefinedFunction(loc: ShaderRange, functionName: string): void {
-    this._report(this.semanticDiagnostics?.undefinedFunction?.(loc, functionName));
-  }
-
-  /** @internal */
   reportUndeclaredStructMember(loc: ShaderRange, structName: string, memberName: string): void {
     this._report(this.semanticDiagnostics?.undeclaredStructMember?.(loc, structName, memberName));
-  }
-
-  /** @internal */
-  reportUnknownVariable(loc: ShaderRange, name: string): void {
-    this._report(this.semanticDiagnostics?.unknownVariable?.(loc, name));
   }
 
   /** @internal */

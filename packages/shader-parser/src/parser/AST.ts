@@ -31,6 +31,10 @@ const TEXTURE_SAMPLING_BUILTINS = new Set([
   "texelFetch"
 ]);
 
+const EMPTY_FN_SYMBOLS: readonly FnSymbol[] = Object.freeze([]);
+const EMPTY_STRUCT_DECLARATIONS: readonly ASTNode.StructSpecifier[] = Object.freeze([]);
+const EMPTY_VALUE_SYMBOLS: readonly (VarSymbol | FnSymbol)[] = Object.freeze([]);
+
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
     ASTNode.prototype.nt = nonTerminal;
@@ -41,7 +45,7 @@ export abstract class TreeNode {
   /** The non-terminal in grammar. */
   nt: NoneTerminal;
   private _children: NodeChild[];
-  private _parent: TreeNode;
+  private _parent: TreeNode | undefined;
   private _location: ShaderRange;
 
   /**
@@ -61,7 +65,7 @@ export abstract class TreeNode {
    * DO NOT rely on `parent` during the `semanticAnalyze` phase, as the AST may still be under construction.
    * It is safe to use `parent` during code generation or any phase after AST construction.
    */
-  get parent(): TreeNode {
+  get parent(): TreeNode | undefined {
     return this._parent;
   }
 
@@ -73,17 +77,10 @@ export abstract class TreeNode {
     return this._location;
   }
 
-  set(loc: ShaderRange, children: NodeChild[], trackAnalysis = false): void {
+  set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
-    if (!trackAnalysis) {
-      for (const child of children) {
-        if (child instanceof TreeNode) child._parent = this;
-      }
-      this.init();
-      return;
-    }
-
+    this._parent = undefined;
     let branch: BranchSignature = EMPTY_BRANCH;
     let inheritedBranch = false;
     let inMacroDefinition = false;
@@ -146,7 +143,7 @@ namespace ASTNodes {
 
   export function get(type: ASTNodeConstructor, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
     const node = sa.objectPool ? sa.objectPool.createNode(type) : new type();
-    node.set(loc, children, sa.diagnosticsEnabled);
+    node.set(loc, children);
     if (!sa.diagnosticsEnabled) {
       node.semanticAnalyze(sa);
       sa.semanticStack.push(node);
@@ -182,13 +179,6 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.jump_statement)
   export class JumpStatement extends TreeNode {
-    override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const children = this.children!;
-      if (ASTNodes._unwrapToken(children[0]).type === Keyword.RETURN) {
-        sa.curFunctionInfo.returnStatement = this;
-      }
-    }
-
     override codeGen(visitor: ICodeGenVisitor): string {
       return visitor.cache(this, visitor.visitJumpStatement(this));
     }
@@ -270,6 +260,8 @@ namespace ASTNodes {
     isConst: boolean;
     /** Whether the declaration belongs to shader-global scope. */
     isGlobal: boolean;
+    /** Exact variable symbol inserted for this declarator. @internal */
+    symbol: VarSymbol;
   }
 
   @ASTNodeDecorator(NoneTerminal.single_declaration)
@@ -302,7 +294,12 @@ namespace ASTNodes {
       let symbolType: SymbolType;
       let initializer: Initializer | undefined;
       if (childrenLen === 2 || childrenLen === 4) {
-        symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        symbolType = new SymbolType(
+          fullyType.type,
+          typeSpecifier.lexeme,
+          this.arraySpecifier,
+          typeSpecifier.structDeclarations
+        );
         initializer = children[3] as Initializer;
       } else {
         // Array-of-array is target-divergent (GLSL ES 3.00 / WGSL allow it, ES 1.00 doesn't) and the
@@ -310,11 +307,17 @@ namespace ASTNodes {
         // array structure stays as the neutral clue.
         const arraySpecifier = children[2] as ArraySpecifier;
         this.arraySpecifier = arraySpecifier;
-        symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        symbolType = new SymbolType(
+          fullyType.type,
+          typeSpecifier.lexeme,
+          this.arraySpecifier,
+          typeSpecifier.structDeclarations
+        );
         initializer = children[4] as Initializer;
       }
-      this.declarator = { identifier: id, typeInfo: symbolType, initializer, isConst, isGlobal: false };
-      const sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
+      const sm = sa.assignSourceScope(new VarSymbol(id.lexeme, symbolType, false, initializer, isConst), id.location);
+      this.declarator = { identifier: id, typeInfo: symbolType, initializer, isConst, isGlobal: false, symbol: sm };
+      sa.recordFunctionVariable(sm);
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
       const insertResult = sa.symbolTableStack.insert(sm, id.branch);
@@ -390,9 +393,12 @@ namespace ASTNodes {
     lexeme: string;
     arraySize?: number;
     isCustom: boolean;
+    /** Exact custom-struct declarations visible at this type occurrence. @internal */
+    structDeclarations: readonly StructSpecifier[];
 
     override init(): void {
       this.arraySize = undefined;
+      this.structDeclarations = EMPTY_STRUCT_DECLARATIONS;
     }
     get arraySpecifier(): ArraySpecifier {
       return this.children[1] as ArraySpecifier;
@@ -405,6 +411,14 @@ namespace ASTNodes {
       this.lexeme = firstChild.lexeme;
       this.arraySize = (children?.[1] as ArraySpecifier)?.size;
       this.isCustom = typeof this.type === "string";
+      if (this.isCustom) {
+        const lookup = sa.lookupSymbol;
+        lookup.set(this.lexeme, ESymbolType.STRUCT);
+        const structs = sa.symbolTableStack.lookupAll(lookup, true, sa.structScratch, this._branch);
+        this.structDeclarations = structs.length
+          ? structs.map((symbol) => (symbol as StructSymbol).astNode)
+          : EMPTY_STRUCT_DECLARATIONS;
+      }
     }
   }
 
@@ -540,7 +554,12 @@ namespace ASTNodes {
       const childrenLength = children.length;
       if (childrenLength === 1) {
         const { typeSpecifier, arraySpecifier, isConst } = children[0] as SingleDeclaration;
-        this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+        this.typeInfo = new SymbolType(
+          typeSpecifier.type,
+          typeSpecifier.lexeme,
+          arraySpecifier,
+          typeSpecifier.structDeclarations
+        );
         this.isConst = isConst;
       } else {
         const initDeclList = children[0] as InitDeclaratorList;
@@ -551,32 +570,46 @@ namespace ASTNodes {
       if (childrenLength === 3 || childrenLength === 5) {
         const id = children[2] as BaseToken;
         const initializer = childrenLength === 5 ? (children[4] as Initializer) : undefined;
-        const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
+        const typeInfo = new SymbolType(
+          this.typeInfo.type,
+          this.typeInfo.typeLexeme,
+          undefined,
+          this.typeInfo.structDeclarations
+        );
+        sm = sa.assignSourceScope(new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst), id.location);
         this.declarator = {
           identifier: id,
           typeInfo,
           initializer,
           isConst: this.isConst,
-          isGlobal: false
+          isGlobal: false,
+          symbol: sm
         };
-        sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
+        sa.recordFunctionVariable(sm);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
         sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
-        const typeInfo = new SymbolType(this.typeInfo.type, this.typeInfo.typeLexeme);
+        const typeInfo = new SymbolType(
+          this.typeInfo.type,
+          this.typeInfo.typeLexeme,
+          undefined,
+          this.typeInfo.structDeclarations
+        );
         const arraySpecifier = this.children[3] as ArraySpecifier;
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         const initializer = childrenLength === 6 ? (children[5] as Initializer) : undefined;
+        sm = sa.assignSourceScope(new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst), id.location);
         this.declarator = {
           identifier: id,
           typeInfo,
           initializer,
           isConst: this.isConst,
-          isGlobal: false
+          isGlobal: false,
+          symbol: sm
         };
-        sm = new VarSymbol(id.lexeme, typeInfo, false, this, this.isConst);
+        sa.recordFunctionVariable(sm);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
         sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
       }
@@ -640,8 +673,7 @@ namespace ASTNodes {
     paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.curFunctionInfo.returnStatement = null;
-      sa.curFunctionInfo.header = this;
+      sa.beginFunction(this);
 
       const children = this.children;
       const header = children[0] as FunctionHeader;
@@ -727,10 +759,13 @@ namespace ASTNodes {
     // `#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap`
     typeInfo?: SymbolType;
     ident?: BaseToken;
+    /** Exact variable symbol inserted for this parameter. @internal */
+    symbol?: VarSymbol;
 
     override init(): void {
       this.typeInfo = undefined;
       this.ident = undefined;
+      this.symbol = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -752,6 +787,7 @@ namespace ASTNodes {
           false,
           parameterDeclarator
         );
+        this.symbol = varSymbol;
         sa.symbolTableStack.insert(varSymbol, parameterDeclarator.ident.branch);
       }
     }
@@ -767,7 +803,12 @@ namespace ASTNodes {
       this.ident = children[1] as BaseToken;
       const typeSpecifier = children[0] as TypeSpecifier;
       const arraySpecifier = children[2] as ArraySpecifier;
-      this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+      this.typeInfo = new SymbolType(
+        typeSpecifier.type,
+        typeSpecifier.lexeme,
+        arraySpecifier,
+        typeSpecifier.structDeclarations
+      );
     }
   }
 
@@ -792,14 +833,9 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
-    returnStatement?: ASTNodes.JumpStatement;
     protoType: FunctionProtoType;
     statements: CompoundStatementNoScope;
     isInMacroBranch: boolean;
-
-    override init(): void {
-      this.returnStatement = undefined;
-    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
@@ -807,11 +843,20 @@ namespace ASTNodes {
       this.statements = children[1] as CompoundStatementNoScope;
 
       sa.popScope();
-      const sm = new FnSymbol(this.protoType.ident.lexeme, this);
+      const sm = sa.assignSourceScope(
+        new FnSymbol(
+          this.protoType.ident.lexeme,
+          this,
+          sa.curFunctionInfo.localVariables,
+          sa.curFunctionInfo.calledFunctions
+        ),
+        this.protoType.ident.location
+      );
       // Preserve the legacy keep-first behavior for unconditional duplicates. Branch declarations
       // must all be inserted even when they conflict: codegen needs every macro arm to reproduce
       // the source, while `insert` independently reports whether two declarations can coexist.
-      const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
+      const existing = this.protoType.ident.branch.length === 0 ? sa.symbolTableStack.lookup(sm) : undefined;
+      const unconditionalDuplicate = existing && existing.sourceScope === sm.sourceScope;
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
       sa.reportRedefinition(
         this.protoType.ident.location,
@@ -821,17 +866,7 @@ namespace ASTNodes {
       );
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
-      const { curFunctionInfo } = sa;
-      // Codegen invariant: `returnStatement` is set ONLY for non-void functions with a value return.
-      // The fragment-entry rewrite (GLES100/300 visitJumpStatement) reads it as an Expression at
-      // children[1] — a bare `return;` in a void function has no expression there and would emit
-      // malformed GLSL if recorded.
-      this.returnStatement =
-        this.protoType.returnType.type === Keyword.VOID || curFunctionInfo.returnStatement?.children.length !== 3
-          ? undefined
-          : curFunctionInfo.returnStatement;
-      curFunctionInfo.header = undefined;
-      curFunctionInfo.returnStatement = undefined;
+      sa.curFunctionInfo.header = undefined;
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -853,10 +888,17 @@ namespace ASTNodes {
   @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
+    /**
+     * Matching user-function declarations retained across macro alternatives. An empty list means
+     * `TypeAny` matched different overload signatures, so no concrete call edge is proven.
+     * @internal
+     */
+    fnSymbols: readonly FnSymbol[] | undefined;
 
     override init(): void {
       super.init();
       this.fnSymbol = undefined;
+      this.fnSymbols = undefined;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -935,6 +977,11 @@ namespace ASTNodes {
           }
 
           if (!fnSymbol) {
+            const codegenFn = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol | undefined;
+            if (codegenFn) {
+              this.fnSymbol = codegenFn;
+              sa.recordFunctionCall(codegenFn);
+            }
             if (allMatches.length) {
               sa.reportBranchAvailability(this.location, "Function", fnIdent, branchCoverage);
               return;
@@ -946,20 +993,28 @@ namespace ASTNodes {
             const nameDeclared =
               sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch).length > 0 ||
               BuiltinFunction.isExist(fnIdent);
-            // NoMatchingOverload = name is known, arg types are wrong → real type error.
-            // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
-            // the time the AST is built, so the only remaining "provided later" path is a runtime
-            // macro that the material system supplies at bind time — hand responsibility back to the
-            // author instead of hard-failing.
+            // A known function with incompatible arguments is proven invalid. An unknown function may
+            // still be supplied by a runtime macro, so analysis leaves that type unresolved without a diagnostic.
             if (nameDeclared) {
               sa.reportNoMatchingOverload(this.location, fnIdent);
-            } else {
-              sa.reportUndefinedFunction(this.location, fnIdent);
             }
             return;
           }
           this.type = overloadTypeAmbiguous ? TypeAny : fnSymbol?.dataType?.type;
           this.fnSymbol = fnSymbol;
+          if (allMatches.length > 1) {
+            const first = allMatches[0] as FnSymbol;
+            this.fnSymbols = allMatches.every((candidate) =>
+              FunctionCallGeneric._hasSameParameterSignature(first, candidate as FnSymbol)
+            )
+              ? (allMatches.slice() as FnSymbol[])
+              : EMPTY_FN_SYMBOLS;
+          }
+          if (this.fnSymbols !== undefined) {
+            for (const candidate of this.fnSymbols) sa.recordFunctionCall(candidate);
+          } else if (fnSymbol instanceof FnSymbol) {
+            sa.recordFunctionCall(fnSymbol);
+          }
           return;
         }
 
@@ -969,6 +1024,7 @@ namespace ASTNodes {
         if (!fnSymbol) return;
         this.type = fnSymbol.dataType?.type;
         this.fnSymbol = fnSymbol;
+        if (fnSymbol instanceof FnSymbol) sa.recordFunctionCall(fnSymbol);
       }
     }
 
@@ -1199,13 +1255,6 @@ namespace ASTNodes {
         return;
       }
       if (memberTypeDivergent) {
-        sa.reportBranchAmbiguity(
-          field.location,
-          `${structName}.${field.lexeme}`,
-          "struct-member-type",
-          field.lexeme,
-          structName
-        );
         return;
       }
       if (firstProp) return;
@@ -1380,7 +1429,10 @@ namespace ASTNodes {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        const insertResult = sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch);
+        const insertResult = sa.symbolTableStack.insert(
+          sa.assignSourceScope(new StructSymbol(this.ident.lexeme, this), this.ident.location),
+          this.ident.branch
+        );
         sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult, this.ident.branch);
 
         this.propList = (children[3] as StructDeclarationList).propList;
@@ -1465,7 +1517,7 @@ namespace ASTNodes {
       const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
-        const typeInfo = new SymbolType(type, lexeme);
+        const typeInfo = new SymbolType(type, lexeme, undefined, this._typeSpecifier.structDeclarations);
         const prop = new StructProp(typeInfo, declarator.ident, firstChild.index, isInMacroBranch);
         props.push(prop);
       } else {
@@ -1477,7 +1529,12 @@ namespace ASTNodes {
         props.length = declaratorListLength;
         for (let i = 0; i < declaratorListLength; i++) {
           const declarator = declaratorList[i];
-          const typeInfo = new SymbolType(type, lexeme, declarator.arraySpecifier);
+          const typeInfo = new SymbolType(
+            type,
+            lexeme,
+            declarator.arraySpecifier,
+            this._typeSpecifier.structDeclarations
+          );
           const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch, isFlat);
           props[i] = prop;
         }
@@ -1620,15 +1677,24 @@ namespace ASTNodes {
       // ref misfires `NonIndexableType`. Recover the array-ness at symbol level.
       const arraySpecifier = children.length === 3 ? (children[2] as ArraySpecifier) : undefined;
       const initializer = hasInitializer ? (children[3] as Initializer) : undefined;
-      const typeInfo = new SymbolType(type.type, type.typeSpecifier.lexeme, arraySpecifier);
+      const typeInfo = new SymbolType(
+        type.type,
+        type.typeSpecifier.lexeme,
+        arraySpecifier,
+        type.typeSpecifier.structDeclarations
+      );
+      const sm = sa.assignSourceScope(
+        new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst),
+        ident.location
+      );
       this.declarator = {
         identifier: ident,
         typeInfo,
         initializer,
         isConst: type.isConst,
-        isGlobal: true
+        isGlobal: true,
+        symbol: sm
       };
-      const sm = new VarSymbol(ident.lexeme, typeInfo, true, this, type.isConst, !hasInitializer && !type.isConst);
 
       const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
       sa.reportRedefinition(ident.location, ident.lexeme, insertResult, ident.branch);
@@ -1670,7 +1736,7 @@ namespace ASTNodes {
 
         const ident = children[2] as BaseToken;
 
-        const newVariable = new VariableDeclaration();
+        const newVariable = sa.objectPool ? sa.objectPool.createNode(VariableDeclaration) : new VariableDeclaration();
         if (length === 3) {
           // variable_declaration_list ',' id
           newVariable.set(ident.location, [type, ident]);
@@ -1703,6 +1769,23 @@ namespace ASTNodes {
      * @internal
      */
     resolvedSymbols(): readonly (VarSymbol | FnSymbol)[] {
+      return this._symbols;
+    }
+
+    /**
+     * Returns symbols that represent this expression's value identity.
+     *
+     * AST-backed macro calls retain their replacement dependencies in `resolvedSymbols()`, but the
+     * macro result is not the referenced root variable itself (`#define POS v.position`). Backends
+     * must therefore avoid treating `POS.field` as `v.field`.
+     * @returns Direct value symbols, or an empty list for AST-backed macro results.
+     * @internal
+     */
+    resolvedValueSymbols(): readonly (VarSymbol | FnSymbol)[] {
+      const child = this.children[0];
+      if ((child instanceof MacroCallSymbol || child instanceof MacroCallFunction) && child.hasAstValue) {
+        return EMPTY_VALUE_SYMBOLS;
+      }
       return this._symbols;
     }
 
@@ -1755,7 +1838,7 @@ namespace ASTNodes {
           // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
           // is a `Varyings` struct but the macro call site's type should be the
           // member type). Skip type inference for those and keep TypeAny.
-          if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
+          if (hit && (child instanceof BaseToken || !child.visibleHasAstValue)) {
             // Divergence guard: lookupAll returns every branch-visible decl; if their type identity
             // (base type + isArray + arraySize) diverges, we can't confidently pick one — commit to
             // TypeAny + isArray=false + arraySize=undefined so downstream checks self-disable rather
@@ -1781,12 +1864,6 @@ namespace ASTNodes {
               this.typeInfo = TypeAny;
               this.isArray = false;
               this.arraySize = undefined;
-              if (!symbols.every((symbol) => TypeSystem.isSamplerType(symbol.dataType?.type))) {
-                // Report once per (pass, symbol name) — a single divergent symbol may be referenced
-                // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
-                // with identical warnings buries the signal.
-                sa.reportBranchAmbiguity(this.location, name, "symbol-type", name);
-              }
             } else {
               this.typeInfo = firstType;
               this.isArray = firstIsArray;
@@ -1982,11 +2059,8 @@ namespace ASTNodes {
             symbols.length = 0;
             return false;
           }
-          // `#include` is already expanded by the time the AST is built, so the only remaining
-          // "provided later" path is a runtime macro that the material system supplies at bind
-          // time (`RENDERER_JOINTS_NUM` etc.). Report as a warning — the author is responsible for
-          // confirming the runtime path supplies this identifier.
-          sa.reportUnknownVariable(missErrorLoc, name);
+          // Runtime macros may still provide this identifier, so its type remains unresolved without
+          // a diagnostic. Rules that require a concrete type must self-disable for this reference.
         }
         return false;
       }
@@ -2228,6 +2302,8 @@ namespace ASTNodes {
      *  a root of `referenceSymbolNames`. Mixed forms across branches → false,
      *  fall back to legacy inference. */
     hasAstValue: boolean = false;
+    /** Whether every branch-visible replacement has an expression AST. */
+    visibleHasAstValue: boolean = false;
     /** `#define NAME(params) …` form — drives function-like vs object-like codegen. */
     isFunctionLikeMacro: boolean = false;
     /** Every visible replacement is a non-builtin identifier — assume user fn alias. */
@@ -2237,6 +2313,7 @@ namespace ASTNodes {
       this.referenceSymbolNames.length = 0;
       this.referenceSymbols.length = 0;
       this.hasAstValue = false;
+      this.visibleHasAstValue = false;
       this.isFunctionLikeMacro = false;
       this.aliasesNonBuiltinIdent = false;
     }
@@ -2251,6 +2328,7 @@ namespace ASTNodes {
       refs.length = 0;
       this.referenceSymbols.length = 0;
       if (sa.diagnosticsEnabled) {
+        this._analyzeForCodegen(defList, refs);
         // Filter `defList` to only entries reachable from this call site's
         // `#ifdef` branch. Without filtering, definitions
         // in disjoint branches conflate at the call site and pollute type
@@ -2258,17 +2336,15 @@ namespace ASTNodes {
         // this position.
         const callSiteBranch = nameToken.branch;
         const referenceSymbols = this.referenceSymbols;
+        const visibleRefs: string[] = [];
         let visibleCount = 0;
         let allAst = true;
-        let isFn = false;
-        let allAliasNonBuiltinIdent = true;
         if (defList) {
           for (let i = 0, n = defList.length; i < n; i++) {
             const info = defList[i];
             if (!sa.canBranchesOverlap(info.branch, callSiteBranch)) continue;
             visibleCount++;
             if (info.valueAst == null) allAst = false;
-            if (info.isFunction) isFn = true;
             // Harvest references from the value AST. Legacy-form macros (no
             // `valueAst`) hold non-expression token sequences with no user
             // identifiers, so nothing to collect.
@@ -2276,26 +2352,10 @@ namespace ASTNodes {
               MacroCallSymbol._collectIdentifierRefs(
                 info.valueAst,
                 info.params,
-                refs,
+                visibleRefs,
                 referenceSymbols,
                 callSiteBranch
               );
-            }
-            // aliasesNonBuiltinIdent: macro replacement is a single non-builtin
-            // identifier — best-effort proxy for "this macro call site aliases a
-            // user fn", since uniform/const aliases would surface as a GLSL
-            // compile error later anyway. Keyword replacements (`vec3`, `mat4`)
-            // reach here with `valueAst === undefined` (opaque path), so they
-            // automatically fail without an explicit keyword guard.
-            if (info.isFunction || !info.valueAst) {
-              allAliasNonBuiltinIdent = false;
-            } else {
-              const leadingIdent = ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: false });
-              const leadingChild = leadingIdent?.children[0];
-              const leadingId = leadingChild instanceof BaseToken ? leadingChild.lexeme : undefined;
-              if (!leadingId || BuiltinFunction.isExist(leadingId)) {
-                allAliasNonBuiltinIdent = false;
-              }
             }
           }
         }
@@ -2303,9 +2363,7 @@ namespace ASTNodes {
         // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
         // forms through) falls back to legacy `referenceSymbolNames` inference
         // instead of polluting the call site with TypeAny.
-        this.hasAstValue = visibleCount > 0 && allAst;
-        this.isFunctionLikeMacro = isFn;
-        this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
+        this.visibleHasAstValue = visibleCount > 0 && allAst;
         return;
       }
 
@@ -2378,14 +2436,16 @@ namespace ASTNodes {
     referenceSymbols: MacroReference[] = [];
     macroName: string = "";
     hasAstValue: boolean = false;
+    visibleHasAstValue: boolean = false;
     isFunctionLikeMacro: boolean = false;
     aliasesNonBuiltinIdent: boolean = false;
 
     override init(): void {
-      this.referenceSymbolNames = [];
-      this.referenceSymbols = [];
+      this.referenceSymbolNames.length = 0;
+      this.referenceSymbols.length = 0;
       this.macroName = "";
       this.hasAstValue = false;
+      this.visibleHasAstValue = false;
       this.isFunctionLikeMacro = false;
       this.aliasesNonBuiltinIdent = false;
     }
@@ -2393,10 +2453,11 @@ namespace ASTNodes {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0] as MacroCallSymbol;
 
-      this.referenceSymbolNames = child.referenceSymbolNames;
-      this.referenceSymbols = child.referenceSymbols;
+      this.referenceSymbolNames.push(...child.referenceSymbolNames);
+      this.referenceSymbols.push(...child.referenceSymbols);
       this.macroName = child.macroName;
       this.hasAstValue = child.hasAstValue;
+      this.visibleHasAstValue = child.visibleHasAstValue;
       this.isFunctionLikeMacro = child.isFunctionLikeMacro;
       this.aliasesNonBuiltinIdent = child.aliasesNonBuiltinIdent;
     }

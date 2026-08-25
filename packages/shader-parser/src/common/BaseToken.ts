@@ -73,6 +73,9 @@ export type BranchSignature = readonly BranchConstraint[];
 /** Result of checking whether macro-guarded declarations cover a reference site. */
 export type BranchCoverage = "covered" | "uncovered" | "unknown";
 
+/** Whether at least one macro configuration is proven to reach a branch. */
+export type BranchReachability = "reachable" | "unreachable" | "unknown";
+
 /** Whether two declarations are proven to coexist, proven exclusive, or unresolved. */
 export type DeclarationCoexistence = "coexist" | "exclusive" | "unknown";
 
@@ -103,22 +106,20 @@ export class BaseToken<T extends number = number> {
   /** @internal */
   constructor(private readonly _objectPool?: ParserObjectPool) {}
 
-  set(type: T, lexeme: string, start?: ShaderPosition);
-  set(type: T, lexeme: string, location?: ShaderRange);
-  set(type: T, lexeme: string, arg?: ShaderRange | ShaderPosition) {
+  set(type: T, lexeme: string, start: ShaderPosition);
+  set(type: T, lexeme: string, location: ShaderRange);
+  set(type: T, lexeme: string, arg: ShaderRange | ShaderPosition) {
     this.type = type;
     this.lexeme = lexeme;
     this.branch = EMPTY_BRANCH;
     this.inMacroDefinition = false;
-    if (arg) {
-      if (arg instanceof ShaderRange) {
-        this.location = arg as ShaderRange;
-      } else {
-        const end = this._objectPool
-          ? this._objectPool.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length)
-          : createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
-        this.location = this._objectPool ? this._objectPool.createRange(arg, end) : createRange(arg, end);
-      }
+    if (arg instanceof ShaderRange) {
+      this.location = arg as ShaderRange;
+    } else {
+      const end = this._objectPool
+        ? this._objectPool.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length)
+        : createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
+      this.location = this._objectPool ? this._objectPool.createRange(arg, end) : createRange(arg, end);
     }
   }
 }
@@ -136,4 +137,5 @@ function createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
 }
 
 export const EOF = new BaseToken();
-EOF.set(ETokenType.EOF, "/EOF");
+const EOF_POSITION = createPosition(0, 0, 0);
+EOF.set(ETokenType.EOF, "/EOF", createRange(EOF_POSITION, EOF_POSITION));

@@ -205,6 +205,68 @@ float u_value;
     ).to.be.empty;
   });
 
+  it.each(["MODE > 2147483647", "MODE < -2147483648", "MODE > 0x7fffffffu", "MODE < 0x80000000u"])(
+    "does not report declarations outside the signed 32-bit macro domain: %s",
+    (condition) => {
+      expect(
+        redefinitions(
+          shader(`#if ${condition}
+float u_value;
+float u_value;
+#endif`)
+        )
+      ).to.be.empty;
+    }
+  );
+
+  it("keeps the incoming macro state on paths where a conditional define does not execute", () => {
+    const diagnostics = redefinitions(
+      shader(`#ifdef FEATURE_A
+#define DERIVED_VALUE 1
+#endif
+#ifdef DERIVED_VALUE
+float u_value;
+#endif
+#ifndef FEATURE_A
+float u_value;
+#endif`)
+    );
+
+    expect(diagnostics).to.have.lengthOf(1);
+  });
+
+  it("merges a conditional undef with the incoming macro state", () => {
+    const diagnostics = redefinitions(
+      shader(`#ifdef FEATURE_A
+#undef DERIVED_VALUE
+#endif
+#ifndef DERIVED_VALUE
+float u_value;
+#endif
+#ifndef FEATURE_A
+float u_value;
+#endif`)
+    );
+
+    expect(diagnostics).to.have.lengthOf(1);
+  });
+
+  it("keeps mutually exclusive states after a conditional undef", () => {
+    const diagnostics = redefinitions(
+      shader(`#ifdef FEATURE_A
+#undef DERIVED_VALUE
+#endif
+#ifndef DERIVED_VALUE
+float u_value;
+#endif
+#if !defined(FEATURE_A) && defined(DERIVED_VALUE)
+float u_value;
+#endif`)
+    );
+
+    expect(diagnostics).to.be.empty;
+  });
+
   it("includes preceding #if negations in #elif branch constraints", () => {
     expect(
       redefinitions(
@@ -237,7 +299,7 @@ float u_value;
   });
 
   it.each([["compound and atomic", "MODE == 1 || MODE == 2", "MODE == 2"]])(
-    "stays silent when overlap cannot be proven for %s",
+    "reports proven overlap for %s",
     (_name, first, second) => {
       const diagnostics = redefinitions(
         shader(`#if ${first}
@@ -247,7 +309,7 @@ float u_value;
 float u_value;
 #endif`)
       );
-      expect(diagnostics).to.be.empty;
+      expect(diagnostics).to.have.lengthOf(1);
     }
   );
 

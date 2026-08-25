@@ -3,10 +3,19 @@ import type {
   BranchCondition,
   BranchConstraint,
   BranchCoverage,
+  BranchReachability,
   BranchSignature,
   DeclarationCoexistence
 } from "./BaseToken";
 import { sameBranch, sameCondition, sameExpression } from "./BranchIdentity";
+
+const SIGNED_INT32_MIN = -0x80000000;
+const SIGNED_INT32_MAX = 0x7fffffff;
+// Symbolic macro states can produce nested disjunctions. Stop before adversarial source turns an
+// analyzer proof into exponential work; exhausting the budget yields "unknown", never a diagnostic.
+const MAX_BRANCH_PROOF_STATES = 256;
+
+type ConditionSatisfiability = "satisfiable" | "unsatisfiable" | "unknown";
 
 /**
  * Whether two simple macro conditions are exact logical negations.
@@ -143,10 +152,15 @@ export function getDeclarationCoexistence(earlier: BranchSignature, later: Branc
     }
   }
 
-  if (!hasOnlyAtomicConditions(earlier) || !hasOnlyAtomicConditions(later)) return "unknown";
+  if (hasUnresolvedCondition(earlier) || hasUnresolvedCondition(later)) return "unknown";
   const conditions = getConditions(earlier);
   appendConditions(later, conditions);
-  return isAtomicConjunctionSatisfiable(conditions) ? "coexist" : "exclusive";
+  const satisfiability = getConditionConjunctionSatisfiability(conditions);
+  return satisfiability === "satisfiable" ? "coexist" : satisfiability === "unsatisfiable" ? "exclusive" : "unknown";
+}
+
+function hasUnresolvedCondition(branch: BranchSignature): boolean {
+  return branch.some((constraint) => !constraint.condition && (constraint.precedingConditions?.length ?? 0) === 0);
 }
 
 /**
@@ -155,7 +169,32 @@ export function getDeclarationCoexistence(earlier: BranchSignature, later: Branc
  * @returns Whether the constraints are satisfiable.
  */
 export function isBranchReachable(branch: BranchSignature): boolean {
-  return areConditionsReachable(getConditions(branch));
+  return getBranchReachability(branch) !== "unreachable";
+}
+
+/**
+ * Classifies branch reachability without treating an incomplete proof as reachable evidence.
+ * @param branch - Branch constraints to classify.
+ * @returns Proven reachability, proven impossibility, or an unresolved complex condition.
+ */
+export function getBranchReachability(branch: BranchSignature): BranchReachability {
+  for (let i = 0, n = branch.length; i < n; i++) {
+    const left = branch[i];
+    if (left.conditionalGroup === undefined) continue;
+    for (let j = i + 1; j < n; j++) {
+      const right = branch[j];
+      if (right.conditionalGroup === left.conditionalGroup && right.conditionalArm !== left.conditionalArm) {
+        return "unreachable";
+      }
+    }
+  }
+  if (hasUnresolvedCondition(branch)) return "unknown";
+  const satisfiability = getConditionConjunctionSatisfiability(getConditions(branch));
+  return satisfiability === "satisfiable"
+    ? "reachable"
+    : satisfiability === "unsatisfiable"
+      ? "unreachable"
+      : "unknown";
 }
 
 function areConditionsReachable(conditions: readonly BranchCondition[]): boolean {
@@ -166,7 +205,39 @@ function areConditionsReachable(conditions: readonly BranchCondition[]): boolean
       if (areConditionsMutuallyExclusive(conditions[i], conditions[j])) return false;
     }
   }
-  return true;
+  return getConditionConjunctionSatisfiability(conditions) !== "unsatisfiable";
+}
+
+function getConditionConjunctionSatisfiability(
+  conditions: readonly BranchCondition[],
+  budget = { remaining: MAX_BRANCH_PROOF_STATES }
+): ConditionSatisfiability {
+  if (--budget.remaining < 0) return "unknown";
+
+  const expressionIndex = conditions.findIndex((condition) => condition.kind === "expression");
+  if (expressionIndex < 0) {
+    return conditions.every(hasExactIntegerValue)
+      ? isAtomicConjunctionSatisfiable(conditions)
+        ? "satisfiable"
+        : "unsatisfiable"
+      : "unknown";
+  }
+
+  const expression = conditions[expressionIndex] as Extract<BranchCondition, { kind: "expression" }>;
+  if (expression.opaque) return "unknown";
+  const remaining = conditions.slice();
+  remaining.splice(expressionIndex, 1);
+  const operands = expression.negated ? expression.operands.map(negateCondition) : expression.operands;
+  const operator = expression.negated ? (expression.operator === "&&" ? "||" : "&&") : expression.operator;
+  if (operator === "&&") return getConditionConjunctionSatisfiability([...remaining, ...operands], budget);
+
+  let sawUnknown = false;
+  for (let i = 0, n = operands.length; i < n; i++) {
+    const result = getConditionConjunctionSatisfiability([...remaining, operands[i]], budget);
+    if (result === "satisfiable") return result;
+    if (result === "unknown") sawUnknown = true;
+  }
+  return sawUnknown ? "unknown" : "unsatisfiable";
 }
 
 /**
@@ -283,10 +354,12 @@ function hasAtomicCoverageCounterexample(
 function hasOnlyAtomicConditions(branch: BranchSignature): boolean {
   for (let i = 0, n = branch.length; i < n; i++) {
     const constraint = branch[i];
-    if (!constraint.condition || constraint.condition.kind === "expression") return false;
-    if (!hasExactIntegerValue(constraint.condition)) return false;
-    if (constraint.precedingConditions?.some((condition) => condition.kind === "expression")) return false;
-    if (constraint.precedingConditions?.some((condition) => !hasExactIntegerValue(condition))) return false;
+    const preceding = constraint.precedingConditions;
+    if (!constraint.condition && !preceding?.length) return false;
+    if (constraint.condition?.kind === "expression") return false;
+    if (constraint.condition && !hasExactIntegerValue(constraint.condition)) return false;
+    if (preceding?.some((condition) => condition.kind === "expression")) return false;
+    if (preceding?.some((condition) => !hasExactIntegerValue(condition))) return false;
   }
   return true;
 }
@@ -294,7 +367,7 @@ function hasOnlyAtomicConditions(branch: BranchSignature): boolean {
 function hasExactIntegerValue(condition: BranchCondition): boolean {
   return (
     condition.kind !== "comparison" ||
-    (Number.isSafeInteger(condition.value) && Math.abs(condition.value) < Number.MAX_SAFE_INTEGER)
+    (Number.isInteger(condition.value) && condition.value >= SIGNED_INT32_MIN && condition.value <= SIGNED_INT32_MAX)
   );
 }
 
@@ -332,8 +405,8 @@ function isAtomicConjunctionSatisfiable(conditions: readonly BranchCondition[]):
     }
 
     let exact: number | undefined;
-    let minimum = Number.NEGATIVE_INFINITY;
-    let maximum = Number.POSITIVE_INFINITY;
+    let minimum = SIGNED_INT32_MIN;
+    let maximum = SIGNED_INT32_MAX;
     const excluded = new Set<number>();
     for (let i = 0, n = state.comparisons.length; i < n; i++) {
       const comparison = state.comparisons[i];

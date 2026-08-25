@@ -46,6 +46,12 @@ BuiltinVariable.createVariable(
   EShaderStage.FRAGMENT,
   ShaderBuiltinSemantic.FragmentDepth
 );
+BuiltinVariable.createVariable(
+  "gl_FragDepthEXT",
+  Keyword.FLOAT,
+  EShaderStage.FRAGMENT,
+  ShaderBuiltinSemantic.FragmentDepth
+);
 BuiltinVariable.createVariable("gl_PointCoord", Keyword.VEC2, EShaderStage.FRAGMENT);
 BuiltinVariable.createVariable(
   "gl_FragColor",

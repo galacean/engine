@@ -27,7 +27,10 @@ export class ParserObjectPool {
   private readonly _ranges: ObjectList<ShaderRange> = { values: [], used: 0 };
   private readonly _nodes: ObjectList<unknown>[] = [];
 
-  /** Resets allocation cursors without releasing the high-water storage. @internal */
+  /**
+   * Resets allocation cursors without releasing the high-water storage.
+   * @internal
+   */
   reset(): void {
     this._tokens.used = 0;
     this._positions.used = 0;
@@ -37,14 +40,25 @@ export class ParserObjectPool {
     }
   }
 
-  /** Returns a reusable token. @internal */
+  /**
+   * Acquires a reusable token.
+   * @returns Token storage owned by this pool.
+   * @internal
+   */
   createToken(): BaseToken {
     const list = this._tokens;
     const index = list.used++;
     return list.values[index] ?? (list.values[index] = new BaseToken(this));
   }
 
-  /** Returns a reusable source position. @internal */
+  /**
+   * Acquires and initializes a reusable source position.
+   * @param index - Zero-based source offset.
+   * @param line - Zero-based source line.
+   * @param column - Zero-based source column.
+   * @returns Source-position storage owned by this pool.
+   * @internal
+   */
   createPosition(index: number, line: number, column: number): ShaderPosition {
     const list = this._positions;
     const itemIndex = list.used++;
@@ -53,7 +67,13 @@ export class ParserObjectPool {
     return position;
   }
 
-  /** Returns a reusable source range. @internal */
+  /**
+   * Acquires and initializes a reusable source range.
+   * @param start - Inclusive range start.
+   * @param end - Exclusive range end.
+   * @returns Source-range storage owned by this pool.
+   * @internal
+   */
   createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
     const list = this._ranges;
     const index = list.used++;
@@ -62,7 +82,12 @@ export class ParserObjectPool {
     return range;
   }
 
-  /** Returns a reusable AST node of the requested concrete type. @internal */
+  /**
+   * Acquires a reusable AST node of the requested concrete type.
+   * @param type - Concrete AST-node constructor.
+   * @returns Node storage owned by this pool.
+   * @internal
+   */
   createNode<T>(type: new () => T): T {
     const pooledType = type as PooledNodeConstructor<T>;
     const poolId = pooledType.__parserObjectPoolId ?? (pooledType.__parserObjectPoolId = nextNodePoolId++);

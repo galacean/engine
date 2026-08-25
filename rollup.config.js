@@ -10,6 +10,11 @@ import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
+// Root builds may start from a checkout with no parser dist. The compiler package build emits a
+// repo-local self-contained precompiler specifically for this build graph; published bundler users
+// continue to load the dependency-sharing release entry.
+process.env.GALACEAN_SHADER_COMPILER_BOOTSTRAP = "true";
+
 const pkgsRoot = path.join(__dirname, "packages");
 const pkgs = fs
   .readdirSync(pkgsRoot)
@@ -190,7 +195,15 @@ function shaderParserModuleConfig() {
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const external = Object.keys(dependencies);
   const isExternal = (id) => external.some((dependency) => id === dependency || id.startsWith(`${dependency}/`));
-  const plugins = Array.from(commonPlugins);
+  const plugins = [
+    {
+      name: "clean-shader-parser-dist",
+      buildStart() {
+        fs.rmSync(path.join(location, "dist"), { recursive: true, force: true });
+      }
+    },
+    ...commonPlugins
+  ];
   plugins.push(
     replace({
       preventAssignment: true,
@@ -205,13 +218,22 @@ function shaderParserModuleConfig() {
     })
   );
 
-  const entryFileNames = (runtimeFile, analyzerFile) => (chunk) =>
-    chunk.name === "runtime" ? runtimeFile : analyzerFile;
+  const entryFileNames = (format) => (chunk) => {
+    switch (chunk.name) {
+      case "runtime":
+        return format === "module" ? "module.js" : "main.js";
+      case "analyzer":
+        return format === "module" ? "module.analyzer.js" : "main.analyzer.js";
+      default:
+        return format === "module" ? "module.shared.js" : "main.shared.js";
+    }
+  };
 
   return {
     input: {
       runtime: path.join(location, "src/runtime.ts"),
-      analyzer: path.join(location, "src/index.ts")
+      analyzer: path.join(location, "src/index.ts"),
+      shared: path.join(location, "src/shared.ts")
     },
     external: isExternal,
     output: [
@@ -219,14 +241,14 @@ function shaderParserModuleConfig() {
         dir: path.join(location, "dist"),
         format: "es",
         sourcemap: true,
-        entryFileNames: entryFileNames("module.js", "module.analyzer.js"),
+        entryFileNames: entryFileNames("module"),
         chunkFileNames: "shared/[name].module.js"
       },
       {
         dir: path.join(location, "dist"),
         format: "commonjs",
         sourcemap: true,
-        entryFileNames: entryFileNames("main.js", "main.analyzer.js"),
+        entryFileNames: entryFileNames("main"),
         chunkFileNames: "shared/[name].main.js"
       }
     ],

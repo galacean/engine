@@ -59,6 +59,22 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("GlFragData");
   });
 
+  it("accepts a constant integral expression as a gl_FragData index", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { const int target = 0; gl_FragData[target + 0] = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("NonConstFragmentOutputIndex");
+  });
+
+  it("rejects a dynamic gl_FragData index", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int target = 0; gl_FragData[target] = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonConstFragmentOutputIndex");
+  });
+
   it("NonBoolCondition fires on while", () => {
     const src = pass(`
       void frag() { float x = 1.0; while (x) { break; } gl_FragColor = vec4(0.0); }
@@ -196,6 +212,75 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("DerivativeInVertexShader");
   });
 
+  it("a derivative in any macro-selected helper candidate fires DerivativeInVertexShader", () => {
+    const src = pass(`
+      #ifdef USE_PLAIN_HELPER
+      float helper(float x) { return x; }
+      #else
+      float helper(float x) { return dFdx(x); }
+      #endif
+      void vert() { gl_Position = vec4(helper(1.0)); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("DerivativeInVertexShader");
+  });
+
+  it("does not join incompatible macro arms across a transitive derivative call", () => {
+    const src = pass(`
+      float derivativeHelper(float x) { return dFdx(x); }
+      float middle(float x) {
+      #ifdef USE_DERIVATIVE
+        return derivativeHelper(x);
+      #else
+        return x;
+      #endif
+      }
+      void vert() {
+      #ifndef USE_DERIVATIVE
+        gl_Position = vec4(middle(1.0));
+      #else
+        gl_Position = vec4(0.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("DerivativeInVertexShader");
+  });
+
+  it("reports a transitive derivative call when the macro path is satisfiable", () => {
+    const src = pass(`
+      float derivativeHelper(float x) { return dFdx(x); }
+      float middle(float x) {
+      #ifdef USE_DERIVATIVE
+        return derivativeHelper(x);
+      #else
+        return x;
+      #endif
+      }
+      void vert() {
+      #ifdef USE_DERIVATIVE
+        gl_Position = vec4(middle(1.0));
+      #else
+        gl_Position = vec4(0.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("DerivativeInVertexShader");
+  });
+
+  it("does not invent a derivative path from an unresolved overload", () => {
+    const src = pass(`
+      float helper(float x) { return dFdx(x); }
+      float helper(vec2 x) { return x.x; }
+      void vert() { gl_Position = vec4(helper(unknownValue)); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    const result = codes(src);
+    expect(result).to.not.include("UnknownVariable");
+    expect(result).to.not.include("DerivativeInVertexShader");
+  });
+
   it("mutual recursion (f ↔ g) fires RecursiveFunction", () => {
     // Forward declarations aren't accepted by our grammar; author both bodies. `g` references `f`
     // which is defined later — that identifier resolution is deferred until walk-time, so the SCC
@@ -208,10 +293,8 @@ describe("diagnostic smoke", () => {
       void frag() { gl_FragColor = vec4(f(1.0)); }
       VertexShader = vert; FragmentShader = frag;`);
     const c = codes(src);
-    // Either RecursiveFunction (mutual detected) is fine, or UndefinedFunction (grammar rejects
-    // forward decl). Accept RecursiveFunction as the primary signal; skip the assertion when the
-    // grammar refuses the forward-decl form to keep the test portable.
-    if (!c.includes("SyntaxError") && !c.includes("UndefinedFunction")) {
+    // The grammar may reject the forward-declaration form before recursion analysis runs.
+    if (!c.includes("SyntaxError")) {
       expect(c).to.include("RecursiveFunction");
     }
   });

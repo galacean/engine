@@ -4,12 +4,8 @@ import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
 import { branchAnalysis } from "../common/BranchAnalysis";
 import { createAnalyzerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
 import type { ShaderSourceMapSegment } from "../ir";
-import {
-  normalizeShaderSourceFile,
-  parseShaderPassWith,
-  shaderSourceBaseURL,
-  type ParsedShaderPass
-} from "./ParsedShaderPass";
+import { parseShaderPassWith, type ParsedShaderPassData } from "./ParsedShaderPass";
+import { normalizeShaderSourceFile, shaderSourceBaseURL } from "./ShaderIncludePath";
 
 /** Maps a range in expanded pass text back to its source chunk. */
 export type PreprocessSourceMapSegment = ShaderSourceMapSegment;
@@ -20,14 +16,16 @@ export type PreprocessSourceMapSegment = ShaderSourceMapSegment;
  * @param includeMap - Include-path lookup table.
  * @param cache - Cache for expanded include chunks.
  * @param sourceFile - Canonical path of the root Shader source.
+ * @param sourceScopeStarts - Start offsets of inherited ShaderLab content layers.
  * @returns Neutral IR, diagnostics, and preprocessed pass text.
  */
 export function parseShaderPass(
   source: string,
   includeMap: IncludeMap,
   cache: ChunkOutputCache,
-  sourceFile?: string
-): ParsedShaderPass {
+  sourceFile?: string,
+  sourceScopeStarts?: readonly number[]
+): ParsedShaderPassData {
   const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
   return parseShaderPassWith(
     source,
@@ -36,7 +34,17 @@ export function parseShaderPass(
     shaderSourceBaseURL(normalizedSourceFile),
     (expandedSource, macroDefineList) => new AnalyzerLexer(expandedSource, macroDefineList),
     (expandedSource) =>
-      ShaderTargetParser.create(branchAnalysis, createAnalyzerSemanticDiagnostics(expandedSource), expandedSource),
-    normalizedSourceFile
+      ShaderTargetParser.create(
+        branchAnalysis,
+        createAnalyzerSemanticDiagnostics(expandedSource),
+        expandedSource,
+        undefined,
+        true,
+        true
+      ),
+    normalizedSourceFile,
+    undefined,
+    true,
+    sourceScopeStarts
   );
 }

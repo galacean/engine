@@ -1,5 +1,6 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { ShaderLanguage } from "@galacean/engine-core";
 import {
   GSError,
@@ -26,6 +27,60 @@ function codes(source: string): string[] {
 }
 
 describe("shader analyzer regressions", () => {
+  it("does not combine mutually exclusive MRT and gl_FragColor entry alternatives", () => {
+    const source = `Shader "entry-alternatives" { SubShader "s" { Pass "p" {
+struct Attributes { vec3 POSITION; };
+struct Outputs { layout(location = 0) vec4 color; };
+void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+#ifdef USE_MRT
+Outputs frag() { Outputs outputValue; outputValue.color = vec4(1.0); return outputValue; }
+#else
+void frag() { gl_FragColor = vec4(1.0); }
+#endif
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(codes(source)).to.not.include("GlFragColorWithMrt");
+  });
+
+  it("reports gl_FragColor reachable from the same MRT entry alternative", () => {
+    const source = `Shader "entry-alternatives" { SubShader "s" { Pass "p" {
+struct Attributes { vec3 POSITION; };
+struct Outputs { layout(location = 0) vec4 color; };
+void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+void writeLegacyOutput() { gl_FragColor = vec4(1.0); }
+#ifdef USE_MRT
+Outputs frag() { writeLegacyOutput(); Outputs outputValue; return outputValue; }
+#else
+void frag() { }
+#endif
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(codes(source)).to.include("GlFragColorWithMrt");
+  });
+
+  it("rejects entry overloads that coexist in one macro configuration", () => {
+    const source = `Shader "ambiguous-entry" { SubShader "s" { Pass "p" {
+void vert(float value) { gl_Position = vec4(value); }
+void vert(vec2 value) { gl_Position = vec4(value, 0.0, 1.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(codes(source)).to.include("AmbiguousEntryPoint");
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    expect(
+      new ShaderCompiler()._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        ""
+      )
+    ).to.be.undefined;
+  });
+
   it("accepts vector truncation constructors", () => {
     expect(codes(shader("vec3 shortValue = vec3(vec4(1.0));"))).to.not.include("ConstructorArgCount");
   });
@@ -53,7 +108,7 @@ describe("shader analyzer regressions", () => {
   gl_FragColor = vec4(float(i));`
       )
     );
-    expect(result).to.include("UnknownVariable");
+    expect(result).to.not.include("UnknownVariable");
   });
 
   it("rejects incompatible vector and matrix arithmetic shapes", () => {
@@ -192,7 +247,7 @@ float guardedValue;
       shader(`float first(float value) { return second(vec2(value)); }
 float second(vec2 value) { return first(value.x); }`)
     );
-    expect(result).to.include("UndefinedFunction");
+    expect(result).to.not.include("UndefinedFunction");
     expect(result).to.not.include("RecursiveFunction");
   });
 
@@ -452,6 +507,42 @@ VertexShader = vert;
     expect(valid.errors).to.be.empty;
   });
 
+  it("reports an unterminated ShaderLab scope without leaking an internal TypeError", () => {
+    const source = `Shader "unterminated" { SubShader "s" { Pass "p" {
+void vert() { gl_Position = vec4(0.0); }`;
+    const parsed = ShaderSourceParser.parseWithErrors(source);
+    expect(parsed.errors).to.have.lengthOf(1);
+    expect(parsed.errors[0]).to.include({ name: "CompilationError", code: "SyntaxError" });
+    expect(parsed.errors[0].message).to.equal("Unexpected end of source while parsing Pass.");
+
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+    expect(
+      diagnostics.find((diagnostic) => diagnostic.message === "Unexpected end of source while parsing Pass.")
+    ).to.include({ severity: "error", code: "SyntaxError", relatedSource: source });
+    expect(diagnostics.every((diagnostic) => !diagnostic.message.includes("TypeError"))).to.equal(true);
+    expect(() => new ShaderCompiler()._parseShaderSource(source)).to.throw(
+      "Unexpected end of source while parsing Pass."
+    );
+  });
+
+  it.each([
+    ["empty document", ""],
+    ["shader name", 'Shader "unterminated'],
+    ["editor block", 'Shader "s" { Editor { text'],
+    ["tags block", 'Shader "s" { SubShader "ss" { Tags { Mode = "Opaque"'],
+    ["render state", 'Shader "s" { SubShader "ss" { Pass "p" { DepthState = { WriteEnabled ='],
+    ["render state binding", 'Shader "s" { SubShader "ss" { Pass "p" { DepthState ='],
+    ["entry binding", 'Shader "s" { SubShader "ss" { Pass "p" { VertexShader =']
+  ])("keeps truncated %s input on structured diagnostic paths", (_caseName, source) => {
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+
+    expect(diagnostics.length).to.be.greaterThan(0);
+    expect(diagnostics.every((diagnostic) => !/TypeError|Cannot read properties/.test(diagnostic.message))).to.equal(
+      true
+    );
+    expect(diagnostics.every((diagnostic) => diagnostic.code === "SyntaxError")).to.equal(true);
+  });
+
   it("keeps the first entry binding and its source range", () => {
     const source = `Shader "entry" { SubShader "s" { Pass "p" {
 VertexShader = firstVert;
@@ -493,7 +584,7 @@ void frag() { gl_FragColor = vec4(1.0); }
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
       "Invalid render state property"
     );
   });
@@ -507,7 +598,7 @@ VertexShader = firstVert;
 VertexShader = secondVert;
 FragmentShader = frag;
 } } }`;
-    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100, "")).to.throw(
       "Reassignment of VertexShader entry"
     );
   });
@@ -529,7 +620,7 @@ FragmentShader = frag;
 
   it("does not treat a dead gl_FragColor write as an MRT conflict", () => {
     const result = ShaderAnalyzer.analyze(`Shader "dead-frag-color" { SubShader "s" { Pass "p" {
-struct MRT { vec4 color; };
+struct MRT { layout(location = 0) vec4 color; };
 void vert() { gl_Position = vec4(0.0); }
 MRT frag() {
   MRT outputValue;
@@ -543,6 +634,34 @@ VertexShader = vert;
 FragmentShader = frag;
 } } }`);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.not.include("GlFragColorWithMrt");
+  });
+
+  it("does not treat an unreachable helper gl_FragColor write as an MRT conflict", () => {
+    const source = `Shader "unused-frag-color" { SubShader "s" { Pass "p" {
+struct MRT { layout(location = 0) vec4 color; };
+void unusedOutput() { gl_FragColor = vec4(0.0); }
+void vert() { gl_Position = vec4(0.0); }
+MRT frag() { MRT outputValue; outputValue.color = vec4(1.0); return outputValue; }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.not.include(
+      "GlFragColorWithMrt"
+    );
+  });
+
+  it("reports a reachable helper gl_FragColor write with an MRT fragment entry", () => {
+    const source = `Shader "used-frag-color" { SubShader "s" { Pass "p" {
+struct MRT { layout(location = 0) vec4 color; };
+void writeOutput() { gl_FragColor = vec4(0.0); }
+void vert() { gl_Position = vec4(0.0); }
+MRT frag() { MRT outputValue; writeOutput(); outputValue.color = vec4(1.0); return outputValue; }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "GlFragColorWithMrt"
+    );
   });
 
   it("does not apply an opposite-stage struct role to a local with the same name", () => {
@@ -573,5 +692,36 @@ FragmentShader = frag;
       ""
     );
     expect(generated!.fragment).to.include("input.x");
+  });
+
+  it("does not apply an entry-parameter role to a same-stage shadowing local", () => {
+    const source = `Shader "same-stage-shadow" { SubShader "s" { Pass "p" {
+struct Attributes { vec3 POSITION; };
+struct Varyings { vec4 color; };
+Varyings vert(Attributes input) {
+  Varyings outputValue;
+  {
+    vec4 input = vec4(1.0);
+    outputValue.color = vec4(input.x);
+  }
+  gl_Position = vec4(input.POSITION, 1.0);
+  return outputValue;
+}
+void frag(Varyings input) { gl_FragColor = input.color; }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const result = ShaderAnalyzer.analyze(source);
+    expect(result.diagnostics, JSON.stringify(result.diagnostics)).to.be.empty;
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    const generated = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100,
+      ""
+    );
+    expect(generated!.vertex).to.include("input.x");
+    expect(generated!.vertex).not.to.match(/attribute\s+\w+\s+x\s*;/);
   });
 });

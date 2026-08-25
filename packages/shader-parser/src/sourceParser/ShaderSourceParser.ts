@@ -18,9 +18,11 @@ import type {
 } from "@galacean/engine-design";
 import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
+import { GSError } from "../GSError";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
+import type { ParserObjectPool } from "../ParserObjectPool";
 import { SymbolTable } from "../common/SymbolTable";
 import { ShaderSourceFactory } from "./ShaderSourceFactory";
 import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
@@ -59,22 +61,51 @@ export class ShaderSourceParser {
   }
 
   /**
+   * Parses ShaderLab source without converting scanner exceptions into diagnostics.
+   * @param sourceCode - Complete ShaderLab source.
+   * @param objectPool - Optional compiler-owned allocator for synchronous source parsing.
+   * @returns Parsed source structure and recoverable structural diagnostics.
+   * @throws GSError when token scanning cannot continue.
+   * @internal
+   */
+  static parseStrict(sourceCode: string, objectPool?: ParserObjectPool): ShaderSourceParseResult {
+    return new ShaderSourceParserSession(objectPool).parse(sourceCode);
+  }
+
+  /**
    * Parses ShaderLab source with a parse-local diagnostic snapshot.
    * @param sourceCode - Complete ShaderLab source.
    * @returns Parsed source structure and diagnostics from the same parse.
    */
   static parseWithErrors(sourceCode: string): ShaderSourceParseResult {
-    return new ShaderSourceParserSession().parse(sourceCode);
+    return new ShaderSourceParserSession().parseWithErrors(sourceCode);
   }
 }
 
 class ShaderSourceParserSession {
   private readonly _errors: Error[] = [];
   private readonly _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
-  private readonly _lexer = new SourceLexer();
+  private readonly _lexer: SourceLexer;
   private readonly _lookupSymbol = new ShaderSourceSymbol("", null);
+  private _shaderSource = ShaderSourceFactory.createShaderSource("");
+  private _reportedUnexpectedEnd = false;
+
+  constructor(private readonly _objectPool?: ParserObjectPool) {
+    this._lexer = new SourceLexer(undefined, this._objectPool);
+  }
+
+  parseWithErrors(sourceCode: string): ShaderSourceParseResult {
+    try {
+      return this.parse(sourceCode);
+    } catch (error) {
+      if (!(error instanceof GSError)) throw error;
+      this._errors.push(error);
+      return { shaderSource: this._shaderSource, errors: Object.freeze(this._errors.slice()) };
+    }
+  }
 
   parse(sourceCode: string): ShaderSourceParseResult {
+    this._objectPool?.reset();
     this._pushScope();
 
     const lexer = this._lexer;
@@ -86,7 +117,6 @@ class ShaderSourceParserSession {
     const shaderRenderStates = shaderSource.renderStates;
     for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
       const subShader = shaderSource.subShaders[i];
-      const curSubShaderGlobalStatements = shaderPendingContents.concat(subShader.pendingContents);
       const globalSubShaderStates = {
         constantMap: { ...shaderRenderStates.constantMap },
         variableMap: { ...shaderRenderStates.variableMap }
@@ -103,12 +133,35 @@ class ShaderSourceParserSession {
         pass.renderStates = globalPassRenderStates;
 
         if (pass.isUsePass) continue;
-        const passGlobalStatements = curSubShaderGlobalStatements.concat(pass.pendingContents);
-        pass.contents = passGlobalStatements.map((item) => item.content).join("\n");
+        const composed = this._composePassContents([
+          shaderPendingContents,
+          subShader.pendingContents,
+          pass.pendingContents
+        ]);
+        pass.contents = composed.contents;
+        pass.contentScopeStarts = composed.scopeStarts;
       }
     }
 
     return { shaderSource, errors: Object.freeze(this._errors.slice()) };
+  }
+
+  private _composePassContents(groups: readonly (readonly IStatement[])[]): {
+    contents: string;
+    scopeStarts: readonly number[];
+  } {
+    const parts: string[] = [];
+    const scopeStarts: number[] = [];
+    let length = 0;
+    for (const group of groups) {
+      scopeStarts.push(length);
+      for (const statement of group) {
+        if (parts.length) length++;
+        parts.push(statement.content);
+        length += statement.content.length;
+      }
+    }
+    return { contents: parts.join("\n"), scopeStarts: Object.freeze(scopeStarts) };
   }
 
   private _parseShader(lexer: SourceLexer): IShaderSource {
@@ -116,6 +169,7 @@ class ShaderSourceParserSession {
     lexer.scanLexeme("Shader");
     const name = lexer.scanPairedChar('"', '"', false, false);
     const shaderSource = ShaderSourceFactory.createShaderSource(name);
+    this._shaderSource = shaderSource;
     lexer.scanLexeme("{");
 
     let braceLevel = 1;
@@ -126,12 +180,18 @@ class ShaderSourceParserSession {
     while (true) {
       const token = lexer.scanToken();
       switch (token.type) {
-        case Keyword.GSSubShader:
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, pendingContents);
+          this._reportUnexpectedEnd(token, "Shader");
+          this._popScope();
+          return shaderSource;
+        case Keyword.GSSubShader: {
           this._addPendingContents(start, token.lexeme.length, pendingContents);
           const subShader = this._parseSubShader();
           shaderSource.subShaders.push(subShader);
           start = lexer.getShaderPosition(0);
           break;
+        }
         case Keyword.GSEditorProperties:
         case Keyword.GSEditorMacros:
         case Keyword.GSEditor:
@@ -167,6 +227,7 @@ class ShaderSourceParserSession {
     } else if (token.lexeme === "=") {
       // Check if it's direct assignment syntax sugar or variable assignment
       const nextToken = lexer.scanToken();
+      if (nextToken.type === ETokenType.EOF) return;
 
       let renderState: IRenderStates;
       if (nextToken.lexeme === "{") {
@@ -309,6 +370,7 @@ class ShaderSourceParserSession {
     } else {
       const valueToken = lexer.scanToken();
       const valueTokenType = valueToken.type;
+      if (valueTokenType === ETokenType.EOF) return;
 
       if (valueTokenType === Keyword.True) {
         propertyValue = true;
@@ -452,18 +514,25 @@ class ShaderSourceParserSession {
     while (true) {
       const token = lexer.scanToken();
       switch (token.type) {
-        case Keyword.GSPass:
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, subShaderSource.pendingContents);
+          this._reportUnexpectedEnd(token, "SubShader");
+          this._popScope();
+          return subShaderSource;
+        case Keyword.GSPass: {
           this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
           const pass = this._parsePass();
           subShaderSource.passes.push(pass);
           start = lexer.getShaderPosition(0);
           break;
-        case Keyword.GSUsePass:
+        }
+        case Keyword.GSUsePass: {
           this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
           const name = lexer.scanPairedChar('"', '"', false, false);
           subShaderSource.passes.push(ShaderSourceFactory.createUsePass(name));
           start = lexer.getShaderPosition(0);
           break;
+        }
         case Keyword.LeftBrace:
           ++braceLevel;
           break;
@@ -521,8 +590,13 @@ class ShaderSourceParserSession {
     while (true) {
       const token = lexer.scanToken();
       switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, passSource.pendingContents);
+          this._reportUnexpectedEnd(token, "Pass");
+          this._popScope();
+          return passSource;
         case Keyword.GSVertexShader:
-        case Keyword.GSFragmentShader:
+        case Keyword.GSFragmentShader: {
           this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
           lexer.scanLexeme("=");
           const entry = lexer.scanToken();
@@ -543,10 +617,11 @@ class ShaderSourceParserSession {
             break;
           }
           passSource[key] = entry.lexeme;
-          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = entry.location;
+          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = this._retainRange(entry.location);
           lexer.scanLexeme(";");
           start = lexer.getShaderPosition(0);
           break;
+        }
         case Keyword.LeftBrace:
           ++braceLevel;
           break;
@@ -574,6 +649,23 @@ class ShaderSourceParserSession {
           );
       }
     }
+  }
+
+  private _reportUnexpectedEnd(token: BaseToken, construct: string): void {
+    if (this._reportedUnexpectedEnd) return;
+    this._reportedUnexpectedEnd = true;
+    this._createCompileError(`Unexpected end of source while parsing ${construct}.`, token.location, "SyntaxError");
+  }
+
+  private _retainRange(range: ShaderRange): ShaderRange {
+    if (!this._objectPool) return range;
+    const start = new ShaderPosition();
+    start.set(range.start.index, range.start.line, range.start.column);
+    const end = new ShaderPosition();
+    end.set(range.end.index, range.end.line, range.end.column);
+    const retained = new ShaderRange();
+    retained.set(start, end);
+    return retained;
   }
 
   private _parseRenderStateAndTags(

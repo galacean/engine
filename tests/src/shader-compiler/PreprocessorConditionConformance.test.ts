@@ -2,6 +2,7 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import {
   parsePreprocessorCondition,
@@ -153,7 +154,8 @@ const malformedExpressions = [
   "USE || || OTHER",
   "1uuu",
   "1value",
-  "4294967296"
+  "4294967296",
+  "A ? B : C"
 ] as const;
 
 function shader(condition: string): string {
@@ -270,7 +272,7 @@ describe("preprocessor condition conformance", () => {
     });
   }
 
-  for (const [expression, macros, firstArm] of [
+  for (const [expression, macros, firstArm, hasCompactBranchRepresentation = macros.length === 0] of [
     [
       "A + B > 1",
       [
@@ -289,15 +291,6 @@ describe("preprocessor condition conformance", () => {
     ],
     ["(MASK & 3) == 2", [["MASK", "6"]], true],
     [
-      "A ? B : C",
-      [
-        ["A", "0"],
-        ["B", "0"],
-        ["C", "1"]
-      ],
-      true
-    ],
-    [
       "((A == B || A == C))",
       [
         ["A", "2"],
@@ -312,7 +305,13 @@ describe("preprocessor condition conformance", () => {
     ["-1 < 1u", [], true],
     ["0xffffffffu > 0u", [], false],
     ["2147483648", [], true],
-    ["MODE == 2147483648", [["MODE", "2147483648"]], true],
+    ["MODE == 2147483648", [["MODE", "2147483648"]], true, true],
+    ["(-1 >> 1) == 2147483647", [], true],
+    ["2147483647 + 1 == -2147483648", [], true],
+    ["(-2147483648 - 1) == 2147483647", [], true],
+    ["65536 * 65536 == 0", [], true],
+    ["(-2147483648 / -1) == 2147483647", [], true],
+    ["(-2147483648 % -1) == 0", [], true],
     [
       "A && (10 / B)",
       [
@@ -320,15 +319,6 @@ describe("preprocessor condition conformance", () => {
         ["B", "0"]
       ],
       false
-    ],
-    [
-      "A ? (10 / B) : C",
-      [
-        ["A", "0"],
-        ["B", "0"],
-        ["C", "1"]
-      ],
-      true
     ],
     [
       "FIRST SECOND == 22",
@@ -349,10 +339,10 @@ describe("preprocessor condition conformance", () => {
     ["OPEN 1)", [["OPEN", "("]], true]
   ] as const) {
     it(`evaluates full preprocessor expression '${expression}' through codegen and WebGL`, () => {
-      if (macros.length === 0) expect(() => parsePreprocessorCondition(expression)).not.to.throw();
+      if (hasCompactBranchRepresentation) expect(() => parsePreprocessorCondition(expression)).not.to.throw();
       else expect(() => parsePreprocessorCondition(expression)).to.throw();
       const native = evaluateNativeCondition(expression, macros);
-      if (native !== "no-webgl" && !expression.includes("?")) {
+      if (native !== "no-webgl") {
         expect(native.supported, native.supported ? "" : native.log).to.be.true;
         if (native.supported) expect(native.firstArm).to.equal(firstArm);
       }
@@ -384,7 +374,7 @@ describe("preprocessor condition conformance", () => {
     });
   }
 
-  for (const expression of [...malformedExpressions, "1.5"] as const) {
+  for (const expression of [...malformedExpressions, "1.5", "1L", "1ll"] as const) {
     it(`blocks malformed expression '${expression}' before runtime variant selection`, () => {
       expect(() => parsePreprocessorCondition(expression)).to.throw("Unsupported or malformed preprocessor condition");
       expect(() => ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`)).to.throw();
@@ -417,10 +407,132 @@ describe("preprocessor condition conformance", () => {
     ).to.throw("Division by zero in active preprocessor expression");
   });
 
+  it.each(["1 / 0", "1 % 0", "1 << -1", "1 << 32", "1 >> -1", "1 >> 32"])(
+    "blocks a definite evaluation failure before variant selection: %s",
+    (expression) => {
+      const native = evaluateNativeCondition(expression, []);
+      if (native !== "no-webgl") expect(native.supported).to.be.false;
+      expect(() => ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`)).to.throw();
+
+      const source = shader(expression);
+      const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+      expect(diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
+      const diagnostic = diagnostics.find((candidate) => candidate.code === "PreprocessorError")!;
+      expect(source.slice(diagnostic.range.start.offset, diagnostic.range.end.offset).trim()).to.equal(expression);
+      const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+      expect(
+        new ShaderCompiler()._parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          ShaderLanguage.GLSLES100,
+          ""
+        )
+      ).to.be.undefined;
+    }
+  );
+
+  it("blocks a definite failure after expanding a source-defined macro", () => {
+    const expression = "1 << SHIFT";
+    const source = shader(expression).replace(`#if ${expression}`, `#define SHIFT 32\n#if ${expression}`);
+    const native = evaluateNativeCondition(expression, [["SHIFT", "32"]]);
+    if (native !== "no-webgl") expect(native.supported).to.be.false;
+
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "PreprocessorError"
+    );
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    expect(
+      new ShaderCompiler()._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        ""
+      )
+    ).to.be.undefined;
+  });
+
+  it.each([
+    ["1 / 0", "VALUE + 0", "Division by zero"],
+    ["4294967296", "VALUE + 0", "Integer literal exceeds 32 bits"],
+    ["/", "1 VALUE 0", "Division by zero"]
+  ])("blocks a definite source replacement failure: #define VALUE %s", (replacement, expression, message) => {
+    const source = shader(expression).replace(`#if ${expression}`, `#define VALUE ${replacement}\n#if ${expression}`);
+    const diagnostics = ShaderAnalyzer.analyze(source).diagnostics;
+    expect(diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
+    expect(diagnostics.some((diagnostic) => diagnostic.message.includes(message))).to.be.true;
+    const diagnostic = diagnostics.find((candidate) => candidate.message.includes(message))!;
+    expect(source.slice(diagnostic.range.start.offset, diagnostic.range.end.offset).trim()).to.equal(expression);
+
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    expect(
+      new ShaderCompiler()._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        ""
+      )
+    ).to.be.undefined;
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(message);
+  });
+
+  it.each([
+    ["EXTERNAL && 1 / 0", "0", "1"],
+    ["EXTERNAL || 1 / 0", "1", "0"]
+  ])("defers a conditionally reachable source error to runtime: %s", (expression, safeValue, failingValue) => {
+    const source = shader(expression);
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
+
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    const program = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100,
+      ""
+    );
+    expect(program).not.to.be.undefined;
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+    expect(() =>
+      ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map([["EXTERNAL", safeValue]]))
+    ).not.to.throw();
+    expect(() =>
+      ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map([["EXTERNAL", failingValue]]))
+    ).to.throw("Division by zero");
+  });
+
   it("rejects a source macro whose expanded integer literal exceeds 32 bits", () => {
     const instructions = ShaderInstructionEncoder.parse("#define VALUE 4294967296\n#if VALUE\nBODY\n#endif\n");
     expect(() => ShaderMacroProcessor.evaluate(instructions, new Map())).to.throw(
       "Integer literal exceeds 32 bits in preprocessor expression"
+    );
+  });
+
+  it("rejects an empty replacement used as a preprocessor expression", () => {
+    const expression = "EMPTY";
+    const source = shader(expression).replace(`#if ${expression}`, `#define EMPTY\n#if ${expression}`);
+    const native = evaluateNativeCondition(expression, [["EMPTY", ""]]);
+    if (native !== "no-webgl") expect(native.supported).to.be.false;
+
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "PreprocessorError"
+    );
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    expect(
+      new ShaderCompiler()._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        ""
+      )
+    ).to.be.undefined;
+
+    const instructions = ShaderInstructionEncoder.parse("#if EMPTY\nBODY\n#endif\n");
+    expect(() => ShaderMacroProcessor.evaluate(instructions, new Map([["EMPTY", ""]]))).to.throw(
+      "Expected an operand before the end of the preprocessor expression"
     );
   });
 
@@ -430,5 +542,168 @@ describe("preprocessor condition conformance", () => {
 
     expect(ShaderMacroProcessor.evaluate(trueInstructions, new Map())).to.contain("BODY");
     expect(ShaderMacroProcessor.evaluate(falseInstructions, new Map())).not.to.contain("BODY");
+  });
+
+  it("evaluates multiline if and elif expressions from one logical directive", () => {
+    const instructions = ShaderInstructionEncoder.parse(`#if 0
+FIRST
+#elif defined(ENABLED) && \\
+  VALUE == 2
+BODY
+#else
+FALLBACK
+#endif
+`);
+
+    expect(
+      ShaderMacroProcessor.evaluate(
+        instructions,
+        new Map([
+          ["ENABLED", "1"],
+          ["VALUE", "2"]
+        ])
+      )
+    ).to.contain("BODY");
+    expect(ShaderMacroProcessor.evaluate(instructions, new Map())).to.contain("FALLBACK");
+  });
+
+  it("evaluates multiline macro replacement text before a condition", () => {
+    const instructions = ShaderInstructionEncoder.parse(`#define VALUE 1 + \\
+  1
+#if VALUE == 2
+BODY
+#endif
+`);
+
+    expect(ShaderMacroProcessor.evaluate(instructions, new Map())).to.contain("BODY");
+  });
+
+  it("uses parser tokenization for comments inside the defined operator", () => {
+    const instructions = ShaderInstructionEncoder.parse(`#define JOIN 1 &&
+#define FLAG 1
+#if JOIN defined/* comment */(FLAG)
+BODY
+#endif
+`);
+
+    expect(ShaderMacroProcessor.evaluate(instructions, new Map())).to.contain("BODY");
+  });
+
+  it("does not expand macro names inside preprocessor comments", () => {
+    const instructions = ShaderInstructionEncoder.parse(`#define BAD */ 1 / 0
+#if EXTERNAL || 1 /* BAD */
+BODY
+#endif
+`);
+
+    expect(ShaderMacroProcessor.evaluate(instructions, new Map([["EXTERNAL", "1"]]))).to.contain("BODY");
+  });
+
+  it("preserves continued conditions through analyzer, compiler, and offline precompile", () => {
+    const source = `Shader "continued-condition" { SubShader "s" { Pass "p" {
+#if defined(ENABLED) && \\
+  VALUE == 2
+const float selectedValue = 1.0;
+#else
+const float selectedValue = 0.0;
+#endif
+void vert() { gl_Position = vec4(selectedValue); }
+void frag() { gl_FragColor = vec4(selectedValue); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
+
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    const program = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100,
+      ""
+    );
+    expect(program).not.to.be.undefined;
+    const enabled = new Map([
+      ["ENABLED", "1"],
+      ["VALUE", "2"]
+    ]);
+    expect(ShaderMacroProcessor.evaluate(program!.vertexShaderInstructions!, enabled)).to.contain(
+      "selectedValue = 1.0"
+    );
+    expect(ShaderMacroProcessor.evaluate(program!.vertexShaderInstructions!, new Map())).to.contain(
+      "selectedValue = 0.0"
+    );
+
+    const precompiled = new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100);
+    const precompiledPass = precompiled.subShaders[0].passes[0];
+    expect(precompiledPass.isUsePass).to.be.false;
+    if (!precompiledPass.isUsePass) {
+      expect(ShaderMacroProcessor.evaluate(precompiledPass.vertexShaderInstructions!, enabled)).to.contain(
+        "selectedValue = 1.0"
+      );
+    }
+  });
+
+  it("preserves commented defined operators through compiler and offline precompile", () => {
+    const source = `Shader "commented-defined" { SubShader "s" { Pass "p" {
+#define JOIN 1 &&
+#define FLAG 1
+#if JOIN defined/* comment */(FLAG)
+const float selectedValue = 1.0;
+#else
+const float selectedValue = 0.0;
+#endif
+void vert() { gl_Position = vec4(selectedValue); }
+void frag() { gl_FragColor = vec4(selectedValue); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
+
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    const program = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100,
+      ""
+    );
+    expect(program).not.to.be.undefined;
+    expect(ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map())).to.contain(
+      "selectedValue = 1.0"
+    );
+
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+  });
+
+  it("does not expand macro names inside replacement-list comments", () => {
+    const source = `Shader "commented-replacement" { SubShader "s" { Pass "p" {
+#define BAD */ 1 / 0
+#define VALUE 1 /* BAD */
+#if VALUE
+const float selectedValue = 1.0;
+#else
+const float selectedValue = 0.0;
+#endif
+void vert() { gl_Position = vec4(selectedValue); }
+void frag() { gl_FragColor = vec4(selectedValue); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
+
+    const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+    const program = new ShaderCompiler()._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100,
+      ""
+    );
+    expect(program).not.to.be.undefined;
+    expect(ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map())).to.contain(
+      "selectedValue = 1.0"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
   });
 });

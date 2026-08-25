@@ -1,6 +1,7 @@
 import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { describe, expect, it, vi } from "vitest";
 
 const passWithIssue = `
@@ -10,7 +11,7 @@ Varyings vert(Attributes attr) { Varyings o; o.color = vec4(attr.POSITION, 1.0);
 void frag(Varyings i) { gl_FragColor = i.notAField; }`;
 
 describe("standalone analyzer and runtime compiler", () => {
-  it("reports an analyzer error without blocking compiler code generation", () => {
+  it("keeps runtime codegen lean while blocking the same proven error in offline codegen", () => {
     const source = `Shader "separate" { SubShader "Default" { Pass "p" {
 ${passWithIssue}
 VertexShader = vert;
@@ -20,7 +21,23 @@ FragmentShader = frag;
     expect(diagnostics.some((diagnostic) => diagnostic.code === "UndeclaredStructMember")).to.be.true;
 
     const output = new ShaderCompiler()._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
-    expect(output, "diagnostics are not a compiler gate").to.not.be.undefined;
+    expect(output, "runtime generation leaves final validation to the WebGL driver").to.not.be.undefined;
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES300)).to.throw(
+      "no such field in 'Varyings'"
+    );
+  });
+
+  it("does not expose reusable codegen handles for a structurally invalid ShaderLab document", () => {
+    const source = `Shader "partial" { SubShader "Default" { Pass "p" {
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} }`;
+    const result = ShaderAnalyzer.analyze(source);
+
+    expect(result.diagnostics.length).to.be.greaterThan(0);
+    expect(result.passes).to.be.empty;
   });
 
   it("preserves a valid condition that is opaque to branch reasoning", () => {
@@ -62,7 +79,8 @@ FragmentShader = frag;
   it("still rejects a missing include as a preprocessing failure", () => {
     const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
     try {
-      const output = new ShaderCompiler()._parseShaderPass(
+      const compiler = new ShaderCompiler();
+      const output = compiler._parseShaderPass(
         '#include "missing.glsl"\nvoid vert() { gl_Position = vec4(0.0); }\nvoid frag() { gl_FragColor = vec4(1.0); }',
         "vert",
         "frag",
@@ -70,8 +88,31 @@ FragmentShader = frag;
         ""
       );
       expect(output).to.be.undefined;
+      expect(
+        compiler._parseShaderPass('#include "missing.glsl"', "vert", "frag", ShaderLanguage.GLSLES300, "")
+      ).to.be.undefined;
+      expect(compiler._parseShaderPass("", "vert", "frag", ShaderLanguage.GLSLES300, "")).to.be.undefined;
+      expect(errorSpy.mock.calls.flat().join("\n")).to.include('Shader include "missing.glsl" was not found.');
+      expect(errorSpy.mock.calls.flat().join("\n")).to.include("Unexpected token /EOF");
     } finally {
       errorSpy.mockRestore();
     }
+  });
+
+  it("reports malformed absolute include URLs as preprocessor errors", () => {
+    const source = `Shader "bad-include-url" { SubShader "s" { Pass "p" {
+#include "http://["
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const result = ShaderAnalyzer.analyze(source);
+
+    expect(result.diagnostics).to.have.length(1);
+    expect(result.diagnostics[0]).to.include({
+      code: "PreprocessorError",
+      message: 'Invalid shader include path "http://[".'
+    });
   });
 });

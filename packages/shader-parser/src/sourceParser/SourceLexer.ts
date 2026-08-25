@@ -9,6 +9,11 @@ import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 export default class SourceLexer extends BaseLexer {
   hasPendingContent = false;
 
+  override setSource(source: string): void {
+    super.setSource(source);
+    this.hasPendingContent = false;
+  }
+
   private static _keywordLexemeTable = <Record<string, Keyword>>{
     RenderQueueType: Keyword.GSRenderQueueType,
     BlendState: Keyword.GSBlendState,
@@ -92,12 +97,11 @@ export default class SourceLexer extends BaseLexer {
   scanColor(): Color {
     this.scanLexeme("(");
 
-    let r = 0;
+    const r = this.scanNumber();
     let g = 0;
     let b = 0;
     let a = 1;
 
-    r = this.scanNumber();
     this.skipCommentsAndSpace();
     if (this.peek(1) !== ")") {
       this.scanLexeme(",");
@@ -124,7 +128,7 @@ export default class SourceLexer extends BaseLexer {
       this.skipCommentsAndSpace();
 
       if (this.isEnd()) {
-        return;
+        return this._createEOFToken();
       }
 
       const start = this.getShaderPosition(0);
@@ -141,7 +145,7 @@ export default class SourceLexer extends BaseLexer {
       const symbolKeyword = SourceLexer._symbolLexemeTable[currentChar];
       if (symbolKeyword !== undefined) {
         this.advance(1);
-        const token = new BaseToken();
+        const token = this._createToken();
         token.set(symbolKeyword, currentChar, start);
         return token;
       }
@@ -184,8 +188,8 @@ export default class SourceLexer extends BaseLexer {
 
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = SourceLexer._keywordLexemeTable[lexeme] ?? ETokenType.ID;
-    const range = ShaderCompilerUtils.createRange(start, end);
-    const token = new BaseToken();
+    const range = this._createRange(start, end);
+    const token = this._createToken();
     token.set(tokenType, lexeme, range);
     return token;
   }

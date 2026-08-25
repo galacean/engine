@@ -1,4 +1,4 @@
-import type { BranchCondition, BranchSignature } from "./BaseToken";
+import type { BranchCondition, BranchSignature, DeclarationCoexistence } from "./BaseToken";
 
 /**
  * Whether two signatures express the same macro conditions. Lexical group/arm identity is
@@ -23,6 +23,42 @@ export function sameBranch(a: BranchSignature, b: BranchSignature): boolean {
     }
   }
   return true;
+}
+
+/**
+ * Classifies only coexistence facts encoded directly in lexical branch identities.
+ *
+ * This intentionally does not evaluate `#if` expressions. The runtime compiler uses it to avoid
+ * bundling the analyzer's bounded macro solver; offline validation supplies the full proof function.
+ * @param earlier - Earlier declaration branch.
+ * @param later - Later declaration branch.
+ * @returns Proven coexistence, proven lexical exclusivity, or an unresolved relation.
+ * @internal
+ */
+export function getLexicalDeclarationCoexistence(
+  earlier: BranchSignature,
+  later: BranchSignature
+): DeclarationCoexistence {
+  for (const left of earlier) {
+    for (const right of later) {
+      if (
+        (left.conditionalGroup !== undefined &&
+          left.conditionalGroup === right.conditionalGroup &&
+          left.conditionalArm !== right.conditionalArm) ||
+        (left.name === right.name && left.defined !== right.defined)
+      ) {
+        return "exclusive";
+      }
+    }
+  }
+
+  for (const constraint of earlier) {
+    if (constraint.condition !== undefined) return "unknown";
+  }
+  for (const constraint of later) {
+    if (constraint.condition !== undefined) return "unknown";
+  }
+  return "coexist";
 }
 
 /**

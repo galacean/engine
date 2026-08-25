@@ -2,6 +2,7 @@ import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { Lexer, ShaderSourceParser, type MacroDefineList } from "@galacean/engine-shader-parser/internal";
 import { describe, expect, it, vi } from "vitest";
 
@@ -63,6 +64,92 @@ function compileInWebGL(vertex: string, fragment: string): DriverResult | "no-we
 }
 
 describe("macro branch runtime", () => {
+  it("blocks an unconditional redefinition in analyzer and offline codegen", () => {
+    const source = shader("float u_conflict;\nfloat u_conflict;", "gl_FragColor = vec4(u_conflict);");
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "Redefinition"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+  });
+
+  it("allows a Pass declaration to override an inherited include declaration", () => {
+    const source = `Shader "hierarchy-override" {
+#include "Shared.glsl"
+SubShader "Default" { Pass "p" {
+vec3 u_value;
+void vert() { gl_Position = vec4(u_value, 1.0); }
+void frag() { gl_FragColor = vec4(u_value, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const includeMap = { "Shared.glsl": "float u_value;" };
+    expect(ShaderAnalyzer.analyze(source, { includeMap }).diagnostics.map((diagnostic) => diagnostic.code)).not.to
+      .include("Redefinition");
+
+    const precompiler = new ShaderPrecompiler();
+    precompiler.setIncludeMap(includeMap);
+    expect(() => precompiler.precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+  });
+
+  it("allows an unconditional Pass declaration to override an inherited conditional declaration", () => {
+    const source = `Shader "conditional-hierarchy-override" {
+#ifdef OUTER_VALUE
+float u_value;
+#endif
+SubShader "Default" { Pass "p" {
+vec3 u_value;
+void vert() { gl_Position = vec4(u_value, 1.0); }
+void frag() { gl_FragColor = vec4(u_value, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).not.to.include(
+      "Redefinition"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+  });
+
+  it("allows a Pass declaration to override an inherited declaration under the same condition", () => {
+    const source = `Shader "matched-conditional-hierarchy-override" {
+#ifdef USE_VALUE
+float u_value;
+#endif
+SubShader "Default" { Pass "p" {
+#ifdef USE_VALUE
+vec3 u_value;
+#endif
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).not.to.include(
+      "Redefinition"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
+  });
+
+  it("blocks a conditional Pass declaration that cannot fully replace an inherited declaration", () => {
+    const source = `Shader "partial-hierarchy-override" {
+float u_value;
+SubShader "Default" { Pass "p" {
+#ifdef USE_VALUE
+vec3 u_value;
+#endif
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "Redefinition"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+  });
+
   it("blocks the same proven redefinition in analyzer and codegen", () => {
     const source = shader(
       `#ifdef FIRST_SOURCE
@@ -76,10 +163,10 @@ float u_conflict;
     const analysis = ShaderAnalyzer.analyze(source);
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
 
-    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
   });
 
-  it("keeps unresolved overlap silent while concrete codegen remains authoritative", () => {
+  it("blocks a proven compound-condition overlap in analyzer and codegen", () => {
     const source = shader(
       `#if MODE == 1 || MODE == 2
 float u_conflict;
@@ -90,15 +177,27 @@ float u_conflict;
       "gl_FragColor = vec4(u_conflict);"
     );
     const analysis = ShaderAnalyzer.analyze(source);
-    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("Redefinition");
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("Redefinition");
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw("Redefinition");
+  });
 
-    const precompiled = new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100);
-    const generated = precompiled.subShaders[0].passes[0];
-    const macros = new Map([["MODE", "2"]]);
-    const vertex = ShaderMacroProcessor.evaluate(generated.vertexShaderInstructions!, macros);
-    const fragment = ShaderMacroProcessor.evaluate(generated.fragmentShaderInstructions!, macros);
-    const driver = compileInWebGL(vertex, fragment);
-    if (driver !== "no-webgl") expect(driver.ok, driver.fragmentLog).to.equal(false);
+  it("blocks a branch-divergent struct contract in analyzer and offline codegen", () => {
+    const source = shader(
+      `#ifdef HAS_VALUE
+struct BranchData { float value; };
+#else
+struct BranchData { float other; };
+#endif
+BranchData data;`,
+      "gl_FragColor = vec4(data.value);"
+    );
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "AmbiguousMacroBranchResolution"
+    );
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+      "missing from at least one reachable declaration"
+    );
   });
 
   it("reports a deterministic 32-bit overflow consistently in analyzer and offline codegen", () => {
@@ -113,7 +212,7 @@ float u_value;
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("PreprocessorError");
     expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("Redefinition");
 
-    expect(() => new ShaderCompiler()._precompile(source, ShaderLanguage.GLSLES100)).to.throw(
+    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(
       "Integer literal exceeds 32 bits in preprocessor expression"
     );
   });

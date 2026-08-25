@@ -11,6 +11,14 @@ export class ShaderInstructionEncoder {
   private static _DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
 
+  /**
+   * Encodes generated GLSL directives into runtime-selectable instructions.
+   * @param glsl - Generated stage source.
+   * @param preprocessorExpressions - Parser-owned expression trees keyed by logical directive text.
+   * @returns Runtime shader instruction stream.
+   * @throws Error when a conditional directive is malformed or has a deterministic evaluation failure.
+   * @internal
+   */
   static parse(
     glsl: string,
     preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
@@ -32,9 +40,8 @@ export class ShaderInstructionEncoder {
         ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart);
       }
 
-      let lineEnd = glsl.indexOf("\n", directiveStart);
-      if (lineEnd === -1) lineEnd = length;
-      const line = glsl.substring(directiveStart, lineEnd);
+      const lineEnd = ShaderInstructionEncoder._findLogicalLineEnd(glsl, directiveStart, length);
+      const line = glsl.substring(directiveStart, lineEnd).replace(/\\(?:\r\n|\n|\r)/g, " ");
       pos = lineEnd < length ? lineEnd + 1 : length;
 
       const match = ShaderInstructionEncoder._DIRECTIVE_RE.exec(line);
@@ -170,6 +177,7 @@ export class ShaderInstructionEncoder {
       if (!result.error.certain && result.hasExpandableIdentifier) return { t: "deferred", e: expression };
       throw new Error(result.error.message);
     }
+    if (result.evaluationError) throw new Error(result.evaluationError);
     const compact = toPreprocessorCondition(result.condition);
     if (compact && !result.hasExpandableIdentifier) return compact;
     return result.hasExpandableIdentifier ? { t: "deferred", e: expression } : result.condition;
@@ -194,6 +202,16 @@ export class ShaderInstructionEncoder {
       i = nl + 1;
     }
     return -1;
+  }
+
+  private static _findLogicalLineEnd(source: string, start: number, length: number): number {
+    let lineEnd = source.indexOf("\n", start);
+    while (lineEnd !== -1) {
+      const beforeBreak = source.charCodeAt(lineEnd - 1) === 13 ? lineEnd - 2 : lineEnd - 1;
+      if (beforeBreak < start || source.charCodeAt(beforeBreak) !== 92) return lineEnd;
+      lineEnd = source.indexOf("\n", lineEnd + 1);
+    }
+    return length;
   }
 
   private static _findInlineWhitespace(source: string): number {

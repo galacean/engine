@@ -150,6 +150,7 @@ mat3 _normalMatFromModel(mat3 m) {
    * Register a chunk source so `#include` resolves it.
    * @param includeName - The path key referenced in `#include "..."`.
    * @param includeSource - GLSL chunk source text.
+   * @throws Error when the key is empty, malformed, or already registered after normalization.
    */
   static registerInclude(includeName: string, includeSource: string): void {
     const key = normalizeShaderIncludeKey(includeName);
@@ -167,6 +168,7 @@ mat3 _normalMatFromModel(mat3 m) {
   /**
    * Remove a registered shader chunk.
    * @param includeName - The path key passed to `registerInclude`.
+   * @throws Error when the key is empty or malformed.
    */
   static unregisterInclude(includeName: string): void {
     delete ShaderFactory.includeMap[normalizeShaderIncludeKey(includeName)];
@@ -176,6 +178,7 @@ mat3 _normalMatFromModel(mat3 m) {
    * Remove a registered shader chunk.
    * @param includeName - The path key passed to `registerInclude`.
    * @deprecated Use `unregisterInclude`.
+   * @throws Error when the key is empty or malformed.
    */
   static unRegisterInclude(includeName: string): void {
     ShaderFactory.unregisterInclude(includeName);

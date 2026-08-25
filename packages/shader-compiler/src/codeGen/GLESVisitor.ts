@@ -8,6 +8,7 @@ import { NodeChild } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
@@ -73,12 +74,13 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     context.registerStructTypes(ShaderStructRole.Attribute, io.attributeStructs);
     context.registerStructTypes(ShaderStructRole.Varying, io.varyingStructs);
     context.registerStructTypes(ShaderStructRole.Mrt, io.mrtStructs);
-    for (const varName in io.vertexStructVarMap) {
-      context.registerStructVar(EShaderStage.VERTEX, varName, io.vertexStructVarMap[varName]);
-    }
-    for (const varName in io.fragmentStructVarMap) {
-      context.registerStructVar(EShaderStage.FRAGMENT, varName, io.fragmentStructVarMap[varName]);
-    }
+    io.structVariableRoles.forEach((role, variable) => context.registerStructVar(variable, role));
+    io.vertexStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.VERTEX);
+    });
+    io.fragmentStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.FRAGMENT);
+    });
 
     return {
       vertex: this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations),
@@ -128,17 +130,28 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     const context = this.context;
     context.stage = EShaderStage.FRAGMENT;
     context.stageEntry = entryInfo.name;
+    this.prepareFragment(entryInfo, outerGlobalMacroStatements);
 
-    // MRT structs come from ShaderCoreInfo; here only mark the fragment return statements.
+    // Every value-return must preserve early-exit control flow after entry return values are
+    // lowered into fragment outputs.
     entryInfo.functions.forEach((fnSymbol) => {
-      const { returnStatement } = fnSymbol.astNode;
-      if (returnStatement) {
-        context.fragmentReturns.add(returnStatement);
+      const returnType = fnSymbol.astNode.protoType.returnType;
+      const mode =
+        returnType.type === Keyword.VEC4
+          ? "color"
+          : returnType.typeSpecifier.structDeclarations.some((struct) =>
+                context.hasStructRole(struct, ShaderStructRole.Mrt)
+              )
+            ? "mrt"
+            : undefined;
+      if (mode) {
+        const statements = fnSymbol.astNode.statements;
+        this._registerFragmentReturns(statements, mode, ParserUtils.lastStatement(statements));
       }
     });
 
-    // Both stage struct-var maps are already populated from ShaderCoreInfo; just
-    // pre-walk macro refs so struct codegen sees the references.
+    // Struct-variable identities are already populated from ShaderCoreInfo; just pre-walk macro
+    // refs so struct codegen sees the references.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;
@@ -159,6 +172,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this.reset();
 
     return globalCode;
+  }
+
+  protected prepareFragment(
+    entryInfo: ShaderEntryPointInfo,
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
+  ): void {
+    void entryInfo;
+    void outerGlobalMacroStatements;
   }
 
   /**
@@ -183,6 +204,17 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       } else if (child instanceof TreeNode) {
         this._walkMacroDefineTokens(child.children);
       }
+    }
+  }
+
+  private _registerFragmentReturns(node: TreeNode, mode: "color" | "mrt", terminal?: TreeNode): void {
+    if (node instanceof ASTNode.JumpStatement && node.children.length === 3) {
+      this.context.registerFragmentReturn(node, mode);
+      if (node === terminal) this.context.registerTerminalInterfaceReturn(node);
+      return;
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._registerFragmentReturns(child, mode, terminal);
     }
   }
 
@@ -288,8 +320,10 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         if (
           context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
           (stage === EShaderStage.VERTEX
-            ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
-            : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
+            ? context.hasStructRole(child, ShaderStructRole.Attribute) ||
+              context.hasStructRole(child, ShaderStructRole.Varying)
+            : context.hasStructRole(child, ShaderStructRole.Varying) ||
+              context.hasStructRole(child, ShaderStructRole.Mrt))
         ) {
           out.push({
             text: this.getCachedCode(child) ?? "",

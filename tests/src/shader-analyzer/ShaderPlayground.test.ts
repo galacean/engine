@@ -118,13 +118,6 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     severity: "error"
   },
   {
-    label: "符号 / AmbiguousMacroBranchType",
-    snippet: "#ifdef USE_VEC3",
-    diagnosticCount: 1,
-    diagnostic: "AmbiguousMacroBranchType",
-    severity: "warning"
-  },
-  {
     label: "符号 / AmbiguousMacroBranchResolution",
     snippet: "#ifdef USE_CONST_SIZE",
     diagnosticCount: 1,

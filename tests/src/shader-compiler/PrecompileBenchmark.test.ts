@@ -13,6 +13,7 @@ import {
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/src/ShaderPrecompiler";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { shaders as builtinShaders } from "@galacean/engine-shader/sources";
@@ -32,6 +33,7 @@ function builtinSource(path: string): string {
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();
+const shaderPrecompiler = new ShaderPrecompiler();
 
 // ─── Bench utility ─────────────────────────────────────────────────────
 
@@ -130,8 +132,8 @@ function uid(base: string) {
 describe("Precompile Benchmark", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
-  // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-  shaderCompiler._includeMap = ShaderFactory.includeMap;
+  shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+  shaderPrecompiler.setIncludeMap(ShaderFactory.includeMap);
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 
@@ -160,9 +162,9 @@ describe("Precompile Benchmark", async () => {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 1. Full _precompile() pipeline
+  // 1. Full precompile() pipeline
   // ═══════════════════════════════════════════════════════════
-  describe("1. Full _precompile() pipeline", () => {
+  describe("1. Full precompile() pipeline", () => {
     it("benchmark each shader", () => {
       Logger.disable();
       const results: BenchResult[] = [];
@@ -171,7 +173,7 @@ describe("Precompile Benchmark", async () => {
           bench(
             label,
             () => {
-              shaderCompiler._precompile(source!, ShaderLanguage.GLSLES100);
+              shaderPrecompiler.precompile(source!, ShaderLanguage.GLSLES100);
             },
             10,
             2
@@ -179,7 +181,7 @@ describe("Precompile Benchmark", async () => {
         );
       }
       Logger.enable();
-      logTable("Full _precompile() Pipeline", results);
+      logTable("Full precompile() Pipeline", results);
     });
   });
 
@@ -188,7 +190,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("2. Per-stage: parseShaderInstructions", () => {
     it("parseShaderInstructions timing for PBR vertex/fragment", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES100);
       const results: BenchResult[] = [];
 
       for (const sub of precompiled.subShaders) {
@@ -238,7 +240,7 @@ describe("Precompile Benchmark", async () => {
       const results: Array<{ label: string; size: number; stringify: BenchResult; parse: BenchResult }> = [];
 
       for (const { label, source } of shaderFiles) {
-        const precompiled = shaderCompiler._precompile(source!, ShaderLanguage.GLSLES100);
+        const precompiled = shaderPrecompiler.precompile(source!, ShaderLanguage.GLSLES100);
         const strResult = bench(
           `${label} stringify`,
           () => {
@@ -276,7 +278,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("4. Shader reconstruction", () => {
     it("_createFromPrecompiled vs Shader.create (PBR)", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES100);
       const jsonStr = JSON.stringify(precompiled);
 
       Logger.disable();
@@ -321,7 +323,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("5. Macro expansion: evaluateShaderInstructions", () => {
     it("PBR fragment with different macro combos", () => {
-      const precompiled = shaderCompiler._precompile(PBRSource, ShaderLanguage.GLSLES100);
+      const precompiled = shaderPrecompiler.precompile(PBRSource, ShaderLanguage.GLSLES100);
 
       let fragShaderInstructions: ShaderInstruction[] | undefined;
       for (const sub of precompiled.subShaders) {

@@ -1,14 +1,16 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
 import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
 
-/** Analyzer-only ambiguity categories emitted while semantic facts are projected. @internal */
-export type SemanticAmbiguityKind =
-  | "const-qualification"
-  | "struct-member-presence"
-  | "struct-member-type"
-  | "symbol-type";
+/**
+ * Analyzer-only ambiguity categories emitted while semantic facts are projected.
+ * @internal
+ */
+export type SemanticAmbiguityKind = "const-qualification" | "struct-member-presence";
 
-/** Structured parser facts mapped to analyzer or offline-compiler diagnostics. @internal */
+/**
+ * Structured parser facts mapped to analyzer or offline-compiler diagnostics.
+ * @internal
+ */
 export interface SemanticDiagnostics {
   /**
    * Replaces the expanded source attached to subsequent diagnostics.
@@ -81,14 +83,6 @@ export interface SemanticDiagnostics {
    */
   noMatchingOverload?(location: ShaderRange, functionName: string): Error | undefined;
   /**
-   * Creates an undefined-function diagnostic.
-   * @param location - Call range.
-   * @param functionName - Called function name.
-   * @returns The mapped diagnostic.
-   * @internal
-   */
-  undefinedFunction?(location: ShaderRange, functionName: string): Error | undefined;
-  /**
    * Creates an unknown-struct-member diagnostic.
    * @param location - Member range.
    * @param structName - Struct type name.
@@ -97,12 +91,4 @@ export interface SemanticDiagnostics {
    * @internal
    */
   undeclaredStructMember?(location: ShaderRange, structName: string, memberName: string): Error | undefined;
-  /**
-   * Creates an unknown-variable diagnostic.
-   * @param location - Reference range.
-   * @param name - Referenced variable name.
-   * @returns The mapped diagnostic.
-   * @internal
-   */
-  unknownVariable?(location: ShaderRange, name: string): Error | undefined;
 }

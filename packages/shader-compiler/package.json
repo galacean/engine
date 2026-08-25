@@ -21,6 +21,11 @@
       "require": "./dist/main.js",
       "types": "./types/index.d.ts"
     },
+    "./offline": {
+      "import": "./dist/offline.module.js",
+      "require": "./dist/offline.main.js",
+      "types": "./types/offline.d.ts"
+    },
     "./bundler/rollup": {
       "import": "./bundler/rollup.js",
       "require": "./bundler/rollup.cjs.js",
@@ -38,7 +43,7 @@
     "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && node -e \"require('fs').chmodSync('bundler/cli.js', 0o755)\"",
+    "build": "rollup -c rollup.config.js",
     "b:types": "tsc"
   },
   "umd": {
@@ -57,9 +62,7 @@
     "@rollup/pluginutils": "^5.0.0",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*"
-  },
-  "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
   }
 }

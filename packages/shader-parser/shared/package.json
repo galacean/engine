@@ -1,0 +1,5 @@
+{
+  "main": "../dist/main.shared.js",
+  "module": "../dist/module.shared.js",
+  "types": "../types/shared.d.ts"
+}

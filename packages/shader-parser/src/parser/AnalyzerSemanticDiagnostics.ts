@@ -1,5 +1,5 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
-import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
+import type { BranchCoverage, DeclarationCoexistence } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { TypeSystem } from "./TypeSystem";
@@ -8,7 +8,7 @@ import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagn
 class ParserSemanticDiagnostics implements SemanticDiagnostics {
   constructor(
     private _source: string,
-    private readonly _includeAnalyzerDiagnostics: boolean
+    private readonly _includeAmbiguityDiagnostics: boolean
   ) {}
 
   setSource(source: string): void {
@@ -18,10 +18,8 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
   redefinition(
     location: ShaderRange,
     name: string,
-    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none",
-    branch: BranchSignature
+    conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none"
   ): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics && branch.length === 0) return;
     if (conflict === "coexist") {
       return this._create(`Redefinition of '${name}'.`, location, "Redefinition");
     }
@@ -33,7 +31,6 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
     name: string,
     coverage: BranchCoverage
   ): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
     if (coverage !== "uncovered") return;
     const subject = `${subjectKind} '${name}'`;
     return this._create(
@@ -44,7 +41,7 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
   }
 
   branchAmbiguity(location: ShaderRange, kind: SemanticAmbiguityKind, name: string, owner?: string): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
+    if (!this._includeAmbiguityDiagnostics) return;
     switch (kind) {
       case "const-qualification":
         return this._create(
@@ -58,30 +55,14 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
           location,
           "AmbiguousMacroBranchResolution"
         );
-      case "struct-member-type":
-        return this._create(
-          `Member '${name}' has divergent types across declarations of struct '${owner}'; type inference is disabled at this reference.`,
-          location,
-          "AmbiguousMacroBranchType",
-          true
-        );
-      case "symbol-type":
-        return this._create(
-          `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
-          location,
-          "AmbiguousMacroBranchType",
-          true
-        );
     }
   }
 
   nonConstArraySize(location: ShaderRange): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
     return this._create("Array size must be a constant expression.", location, "NonConstArraySize");
   }
 
   expectedSampler(location: ShaderRange, functionName: string, actualType: GalaceanDataType): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(
       `'${functionName}' expects a sampler as its first argument, got '${TypeSystem.typeName(actualType)}'.`,
       location,
@@ -90,43 +71,15 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
   }
 
   noMatchingOverload(location: ShaderRange, functionName: string): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(`No overload function type found: ${functionName}`, location, "NoMatchingOverload");
   }
 
-  undefinedFunction(location: ShaderRange, functionName: string): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
-    return this._create(
-      `Undefined function '${functionName}' — ensure it is provided at runtime as a macro.`,
-      location,
-      "UndefinedFunction",
-      true
-    );
-  }
-
   undeclaredStructMember(location: ShaderRange, structName: string, memberName: string): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
     return this._create(`'${memberName}' : no such field in '${structName}'`, location, "UndeclaredStructMember");
   }
 
-  unknownVariable(location: ShaderRange, name: string): Error | undefined {
-    if (!this._includeAnalyzerDiagnostics) return;
-    return this._create(
-      `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
-      location,
-      "UnknownVariable",
-      true
-    );
-  }
-
-  private _create(message: string, location: ShaderRange, code: string, warning = false): Error {
-    return ShaderCompilerUtils.createGSError(
-      message,
-      warning ? GSErrorName.CompilationWarn : GSErrorName.CompilationError,
-      this._source,
-      location,
-      code
-    );
+  private _create(message: string, location: ShaderRange, code: string): Error {
+    return ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code);
   }
 }
 
@@ -147,5 +100,5 @@ export function createAnalyzerSemanticDiagnostics(source: string): SemanticDiagn
  * @internal
  */
 export function createCompilerSemanticDiagnostics(source: string): SemanticDiagnostics {
-  return new ParserSemanticDiagnostics(source, false);
+  return new ParserSemanticDiagnostics(source, true);
 }

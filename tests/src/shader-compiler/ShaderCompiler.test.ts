@@ -9,6 +9,7 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader-compiler";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { glslValidate } from "./ShaderValidate";
 
@@ -394,6 +395,21 @@ describe("ShaderCompiler", async () => {
     expect(varyingMatches).to.have.lengthOf(1);
   });
 
+  it("tracks stage IO variables through a reachable helper without rescanning its AST", () => {
+    const source = `
+struct Varyings { vec4 color; };
+#define READ_COLOR input.color
+Varyings vert() { Varyings output; output.color = vec4(1.0); gl_Position = vec4(0.0); return output; }
+vec4 readColor(Varyings input) { return READ_COLOR; }
+void frag(Varyings input) { gl_FragColor = readColor(input); }`;
+
+    const result = shaderCompilerRelease._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100);
+
+    expect(result).toBeDefined();
+    expect(result!.fragment).to.contain("varying vec4 color;");
+    expect(result!.fragment).to.contain("#define READ_COLOR color");
+  });
+
   it("define-ctor-with-member (constructor-style macro with struct member access)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-ctor-with-member.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -531,6 +547,222 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
+  it("preserves every early return while lowering a vec4 fragment entry", () => {
+    const source = `Shader "early-color-return" { SubShader "Default" { Pass "Forward" {
+      bool material_UseFirst;
+      void vert() { gl_Position = vec4(0.0); }
+      vec4 frag() {
+        if (material_UseFirst) return vec4(1.0);
+        return vec4(0.0);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source, shaderCompilerRelease);
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    const fragment = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    )!.fragment;
+    expect(fragment.match(/GS_glFragColor\s*=/g)).to.have.lengthOf(2);
+    expect(fragment.match(/return\s*;/g)).to.have.lengthOf(1);
+    expect(fragment).not.to.match(/return\s+vec4/);
+  });
+
+  it("preserves every early return while lowering a varying vertex entry", () => {
+    const source = `Shader "early-varying-return" { SubShader "Default" { Pass "Forward" {
+      bool material_UseFirst;
+      struct Varyings { vec4 color; };
+      Varyings vert() {
+        Varyings outputValue;
+        if (material_UseFirst) {
+          outputValue.color = vec4(1.0);
+          gl_Position = vec4(1.0);
+          return outputValue;
+        }
+        outputValue.color = vec4(0.0);
+        gl_Position = vec4(0.0);
+        return outputValue;
+      }
+      void frag(Varyings input) { gl_FragColor = input.color; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source, shaderCompilerRelease);
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    const vertex = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    )!.vertex;
+    expect(vertex.match(/return\s*;/g)).to.have.lengthOf(1);
+    expect(vertex).not.to.match(/return\s+outputValue/);
+  });
+
+  it("rejects a varying constructor return instead of emitting it from void main", () => {
+    const source = `Shader "invalid-varying-return" { SubShader "Default" { Pass "Forward" {
+      struct Varyings { vec4 color; };
+      Varyings vert() { gl_Position = vec4(0.0); return Varyings(vec4(1.0)); }
+      void frag(Varyings input) { gl_FragColor = input.color; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "InvalidEntryReturnType"
+    );
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    expect(
+      shaderCompilerRelease._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES300
+      )
+    ).to.be.undefined;
+  });
+
+  it("preserves early exits while lowering an MRT fragment entry", () => {
+    const source = `Shader "early-mrt-return" { SubShader "Default" { Pass "Forward" {
+      bool material_UseFirst;
+      struct Outputs { layout(location = 0) vec4 color; };
+      void vert() { gl_Position = vec4(0.0); }
+      Outputs frag() {
+        Outputs outputValue;
+        if (material_UseFirst) {
+          outputValue.color = vec4(1.0);
+          return outputValue;
+        }
+        outputValue.color = vec4(0.0);
+        return outputValue;
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source, shaderCompilerRelease);
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    const fragment = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES100
+    )!.fragment;
+    expect(fragment.match(/gl_FragData\[0\]\s*=/g)).to.have.lengthOf(2);
+    expect(fragment.match(/return\s*;/g)).to.have.lengthOf(1);
+    expect(fragment).not.to.match(/return\s+outputValue/);
+  });
+
+  it("rejects an MRT contract that would emit an undefined output location", () => {
+    const source = `Shader "invalid-mrt-output" { SubShader "Default" { Pass "Forward" {
+      struct Outputs { vec4 colorWithoutLocation; };
+      void vert() { gl_Position = vec4(0.0); }
+      Outputs frag() { Outputs outputValue; return outputValue; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    expect(
+      shaderCompilerRelease._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES300
+      )
+    ).to.be.undefined;
+  });
+
+  it("rejects an MRT constructor return instead of silently dropping its values", () => {
+    const source = `Shader "invalid-mrt-return" { SubShader "Default" { Pass "Forward" {
+      struct Outputs { layout(location = 0) vec4 color; };
+      void vert() { gl_Position = vec4(0.0); }
+      Outputs frag() { return Outputs(vec4(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(
+      "InvalidMrtOutput"
+    );
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    expect(
+      shaderCompilerRelease._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES300
+      )
+    ).to.be.undefined;
+  });
+
+  it("keeps mutually exclusive color and MRT fragment-entry modes compilable", () => {
+    const source = `Shader "conditional-fragment-mode" { SubShader "Default" { Pass "Forward" {
+      struct Outputs { layout(location = 0) vec4 color; };
+      void vert() { gl_Position = vec4(0.0); }
+      #ifdef USE_MRT
+      Outputs frag() { Outputs outputValue; outputValue.color = vec4(1.0); return outputValue; }
+      #else
+      void frag() { gl_FragColor = vec4(0.0); }
+      #endif
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    glslValidate(engine, source, shaderCompilerRelease);
+    glslValidate(engine, source, shaderCompilerRelease, [{ name: "USE_MRT" }]);
+  });
+
+  it("lowers fragment builtin semantics for GLES300", () => {
+    const source = `Shader "fragment-builtins" { SubShader "Default" { Pass "Forward" {
+      void vert() { gl_Position = vec4(0.0); }
+      void writeFragmentOutput() {
+        const int target = 0;
+        gl_FragDepthEXT = 0.5;
+        gl_FragData[target + 0] = vec4(1.0);
+      }
+      void frag() { writeFragmentOutput(); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes[0];
+    const fragment = shaderCompilerRelease._parseShaderPass(
+      pass.contents,
+      pass.vertexEntry,
+      pass.fragmentEntry,
+      ShaderLanguage.GLSLES300
+    )!.fragment;
+    expect(fragment).to.include("gl_FragDepth = 0.5");
+    expect(fragment).to.include("layout(location = 0) out vec4 GS_glFragData0;");
+    expect(fragment).to.include("GS_glFragData0 = vec4");
+    expect(fragment).not.to.include("gl_FragDepthEXT");
+    expect(fragment).not.to.include("gl_FragData[");
+
+    const gl = document.createElement("canvas").getContext("webgl2");
+    if (gl) {
+      const shader = gl.createShader(gl.FRAGMENT_SHADER)!;
+      gl.shaderSource(shader, `#version 300 es\nprecision mediump float;\n${fragment}`);
+      gl.compileShader(shader);
+      expect(gl.getShaderParameter(shader, gl.COMPILE_STATUS), gl.getShaderInfoLog(shader) || "").to.be.true;
+
+      const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
+      gl.shaderSource(vertexShader, "#version 300 es\nvoid main() { gl_Position = vec4(0.0); }");
+      gl.compileShader(vertexShader);
+      const program = gl.createProgram()!;
+      gl.attachShader(program, vertexShader);
+      gl.attachShader(program, shader);
+      gl.linkProgram(program);
+      expect(gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program) || "").to.be.true;
+      expect(gl.getFragDataLocation(program, "GS_glFragData0")).to.equal(0);
+      expect(gl.getFragDataLocation(program, "GS_glFragData1")).to.equal(-1);
+    }
+  });
+
   it("macro-type-alias (macro-defined type aliases in declarations, params, struct members, return types)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/macro-type-alias.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -649,8 +881,7 @@ describe("ShaderCompiler", async () => {
     expect(output!.fragment).to.include("#define TRAILING value +");
   });
 
-  // A struct with conflicting pipeline roles must not produce duplicate stage declarations.
-  it("struct-role-conflict codegen: no duplicate in/out declarations for the same struct name", () => {
+  it("struct-role-conflict codegen: rejects before emitting an incomplete stage interface", () => {
     const conflict = `Shader "conf" { SubShader "s" { Pass "p" {
       struct IO { vec4 v; };
       IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
@@ -661,14 +892,7 @@ describe("ShaderCompiler", async () => {
     const parsed = shaderCompilerRelease._parseShaderSource(conflict);
     const pass = parsed.subShaders[0].passes[0];
     const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
-    expect(out, "codegen still returns a result").not.to.be.undefined;
-    // An ambiguous role emits neither direction.
-    const combined = out!.vertex + "\n" + out!.fragment;
-    expect(combined).not.to.match(/^\s*in\s+IO\b/m);
-    expect(combined).not.to.match(/^\s*out\s+IO\b/m);
-    // `attribute IO` / `varying IO` cover the GLSL ES 1.00 codegen path (same rationale).
-    expect(combined).not.to.match(/^\s*attribute\s+IO\b/m);
-    expect(combined).not.to.match(/^\s*varying\s+IO\b/m);
+    expect(out, "the backend cannot deterministically lower a struct with conflicting IO roles").to.be.undefined;
   });
 
   it("missing entry codegen: rejects before backend generation without corrupting visitor state", () => {

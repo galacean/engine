@@ -1,16 +1,14 @@
-import { branchAnalysis } from "../common/BranchAnalysis";
-import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
 import { Lexer } from "../lexer/Lexer";
-import type { ChunkOutputCache, IncludeMap } from "../Preprocessor";
-import {
-  normalizeShaderSourceFile,
-  parseShaderPassWith,
-  shaderSourceBaseURL,
-  type ParsedShaderPass
-} from "./ParsedShaderPass";
+import { Preprocessor, type ChunkOutputCache, type IncludeMap, type MacroDefineList } from "../Preprocessor";
+import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
+import type { ParsedShaderPassData } from "./ParsedShaderPass";
+import { normalizeShaderSourceFile, shaderSourceBaseURL } from "./ShaderIncludePath";
 import { ShaderTargetParser } from "./ShaderTargetParser";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import { createCompilerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
+
+const EMPTY_ERRORS: readonly Error[] = Object.freeze([]);
+const EMPTY_SOURCE_MAP: readonly ShaderSourceMapSegment[] = Object.freeze([]);
+const EMPTY_PREPROCESSOR_EXPRESSIONS: ReadonlyMap<string, never> = new Map<string, never>();
 
 /**
  * Creates the lean parser used by runtime shader compilation.
@@ -23,23 +21,6 @@ export function createRuntimeShaderTargetParser(objectPool?: ParserObjectPool): 
 }
 
 /**
- * Creates the offline compiler parser that shares proven macro facts with the analyzer.
- * @param objectPool - Compiler-owned allocator for synchronous parser requests.
- * @returns Reusable parser whose proven macro declaration conflicts block export.
- * @internal
- */
-export function createValidatedShaderTargetParser(objectPool?: ParserObjectPool): ShaderTargetParser {
-  return ShaderTargetParser.create(
-    branchAnalysis,
-    createCompilerSemanticDiagnostics(""),
-    undefined,
-    objectPool,
-    true,
-    false
-  );
-}
-
-/**
  * Parses one shader pass using the lean runtime lexer.
  * @param source - GLSL source for one ShaderLab pass.
  * @param includeMap - Canonical include paths mapped to chunk sources.
@@ -47,7 +28,6 @@ export function createValidatedShaderTargetParser(objectPool?: ParserObjectPool)
  * @param sourceFile - Canonical root source path used for relative includes and error attribution.
  * @param objectPool - Compiler-owned pool used only while synchronously consuming this pass.
  * @param runtimeParser - Compiler-owned parser whose source is replaced for each pass.
- * @param trackSourceMap - Whether include-source locations must be retained for diagnostics.
  * @returns Request-owned parser output suitable for GLES generation.
  * @internal
  */
@@ -57,60 +37,54 @@ export function parseRuntimeShaderPass(
   cache: ChunkOutputCache,
   sourceFile?: string,
   objectPool?: ParserObjectPool,
-  runtimeParser?: ShaderTargetParser,
-  trackSourceMap = objectPool === undefined
-): ParsedShaderPass {
+  runtimeParser?: ShaderTargetParser
+): ParsedShaderPassData {
+  objectPool?.reset();
   const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
-  return parseShaderPassWith(
+  const preprocessResult = Preprocessor.parseWithErrors(
     source,
+    shaderSourceBaseURL(normalizedSourceFile),
     includeMap,
     cache,
-    shaderSourceBaseURL(normalizedSourceFile),
-    (expandedSource, macroDefineList, parserObjectPool) => new Lexer(expandedSource, macroDefineList, parserObjectPool),
-    (expandedSource, parserObjectPool) => {
-      const parser = runtimeParser ?? createRuntimeShaderTargetParser(parserObjectPool);
-      parser.setSource(expandedSource);
-      return parser;
-    },
     normalizedSourceFile,
-    objectPool,
-    trackSourceMap
+    false
   );
+  const expandedSource = preprocessResult.content;
+  if (preprocessResult.errors.length) {
+    const errors = freezeErrors(preprocessResult.errors);
+    return Object.freeze({
+      ir: null,
+      expandedSource,
+      sourceMap: EMPTY_SOURCE_MAP,
+      preprocessorExpressions: EMPTY_PREPROCESSOR_EXPRESSIONS,
+      errors,
+      blockingErrors: errors
+    });
+  }
+  const macroDefineList: MacroDefineList = {};
+  const lexer = new Lexer(expandedSource, macroDefineList, objectPool);
+  const parser = runtimeParser ?? createRuntimeShaderTargetParser(objectPool);
+  parser.setSource(expandedSource);
+  parser.setSourceMap(EMPTY_SOURCE_MAP);
+  const program = parser.parse(lexer.tokenize(), macroDefineList);
+  const errors = freezeErrors(preprocessResult.errors, lexer.expressionErrors, parser.errors);
+  const blockingErrors = freezeErrors(preprocessResult.errors, lexer.expressionErrors, parser.blockingErrors);
+
+  return Object.freeze({
+    ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, EMPTY_SOURCE_MAP)) : null,
+    expandedSource,
+    sourceMap: EMPTY_SOURCE_MAP,
+    preprocessorExpressions: lexer.preprocessorExpressions,
+    errors,
+    blockingErrors
+  });
 }
 
-/**
- * Parses one shader pass for offline export with proven macro-conflict validation.
- * @param source - Shader pass source before include expansion.
- * @param includeMap - Canonical include paths mapped to chunk sources.
- * @param cache - Compiler-owned expanded-include cache.
- * @param sourceFile - Canonical root source path used for includes and attribution.
- * @param objectPool - Compiler-owned synchronous parse allocator.
- * @param parser - Reusable validated parser.
- * @returns Parsed pass with source-mapped blocking errors.
- * @internal
- */
-export function parseValidatedShaderPass(
-  source: string,
-  includeMap: IncludeMap,
-  cache: ChunkOutputCache,
-  sourceFile: string | undefined,
-  objectPool: ParserObjectPool,
-  parser: ShaderTargetParser
-): ParsedShaderPass {
-  const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
-  return parseShaderPassWith(
-    source,
-    includeMap,
-    cache,
-    shaderSourceBaseURL(normalizedSourceFile),
-    (expandedSource, macroDefineList, parserObjectPool) =>
-      new AnalyzerLexer(expandedSource, macroDefineList, parserObjectPool),
-    (expandedSource) => {
-      parser.setSource(expandedSource);
-      return parser;
-    },
-    normalizedSourceFile,
-    objectPool,
-    true
-  );
+function freezeErrors(...groups: readonly (readonly Error[])[]): readonly Error[] {
+  let count = 0;
+  for (const group of groups) count += group.length;
+  if (count === 0) return EMPTY_ERRORS;
+  const errors: Error[] = [];
+  for (const group of groups) errors.push(...group);
+  return Object.freeze(errors);
 }

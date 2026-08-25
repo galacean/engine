@@ -20,6 +20,7 @@ export type SymbolAstNode =
   | ASTNode.VariableDeclaration;
 
 export class SymbolInfo implements IBaseSymbol {
+  sourceScope = 0;
   /**
    * Snapshot of the `#ifdef` stack at the declaration site. Empty means the declaration is
    * unconditional (top-level). Non-empty means the declaration is only active when every

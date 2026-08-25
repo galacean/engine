@@ -96,6 +96,86 @@ describe("published shader packages", () => {
     expect(sharedFiles.some((file) => file.endsWith(".main.js"))).toBe(true);
   });
 
+  it("publishes a typed Analyzer-to-Codegen shared-parse contract", () => {
+    const sourceFile = join(consumerDirectory, "shared-parse.ts");
+    writeFileSync(
+      sourceFile,
+      `import { ShaderLanguage } from "@galacean/engine-core";
+import { ShaderAnalyzer, type ParsedShaderPass } from "@galacean/engine-shader-analyzer";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+
+const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
+const pass: ParsedShaderPass = analysis.passes[0];
+new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
+`
+    );
+    const typecheck = spawnSync(
+      join(repositoryRoot, "node_modules", ".bin", "tsc"),
+      [
+        "--noEmit",
+        "--strict",
+        "--skipLibCheck",
+        "--target",
+        "ES2022",
+        "--module",
+        "Node16",
+        "--moduleResolution",
+        "Node16",
+        sourceFile
+      ],
+      { cwd: consumerDirectory, encoding: "utf8" }
+    );
+    expect(typecheck.status, typecheck.stderr || typecheck.stdout).toBe(0);
+  });
+
+  it("publishes the offline precompiler without adding it to the runtime entry", () => {
+    for (const mode of ["require", "import"] as const) {
+      const imports =
+        mode === "require"
+          ? `const runtime = require("@galacean/engine-shader-compiler");
+             const { ShaderPrecompiler } = require("@galacean/engine-shader-compiler/offline");`
+          : `const runtime = await import("@galacean/engine-shader-compiler");
+             const { ShaderPrecompiler } = await import("@galacean/engine-shader-compiler/offline");`;
+      const probe = runNode(
+        `${imports}
+         const precompiled = new ShaderPrecompiler().precompile(${JSON.stringify(shaderSource(undefined, "1.0"))}, 0);
+         process.stdout.write(JSON.stringify({ hasRuntimePrecompiler: "ShaderPrecompiler" in runtime, name: precompiled.name }));`,
+        mode === "import"
+      );
+      expect(probe.status, probe.stderr).toBe(0);
+      expect(JSON.parse(probe.stdout)).toEqual({ hasRuntimePrecompiler: false, name: "Consumer" });
+    }
+  });
+
+  it("reuses analyzer output for codegen in installed ESM and CommonJS packages", () => {
+    for (const mode of ["require", "import"] as const) {
+      const imports =
+        mode === "require"
+          ? `const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
+             const { ShaderCompiler } = require("@galacean/engine-shader-compiler");`
+          : `const { ShaderAnalyzer } = await import("@galacean/engine-shader-analyzer");
+             const { ShaderCompiler } = await import("@galacean/engine-shader-compiler");`;
+      const probe = runNode(
+        `${imports}
+         const analysis = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
+         const generated = new ShaderCompiler().generate(analysis.passes[0], 0);
+         process.stdout.write("SHARED_PARSE_RESULT:" + JSON.stringify({
+           diagnostics: analysis.diagnostics,
+           passCount: analysis.passes.length,
+           fragment: generated?.fragment
+         }));`,
+        mode === "import"
+      );
+      expect(probe.status, probe.stderr).toBe(0);
+      const marker = probe.stdout.lastIndexOf("SHARED_PARSE_RESULT:");
+      expect(marker).toBeGreaterThanOrEqual(0);
+      const output = JSON.parse(probe.stdout.slice(marker + "SHARED_PARSE_RESULT:".length));
+      expect(output.diagnostics).toEqual([]);
+      expect(output.passCount).toBe(1);
+      expect(output.fragment).toContain("gl_FragColor");
+    }
+  });
+
   it("runs help, include, stdin, diagnostic, and usage contracts through the installed bin", () => {
     const binary = installedBinary();
     const help = spawnSync(binary, ["--help"], { cwd: consumerDirectory, encoding: "utf8" });
@@ -112,6 +192,37 @@ describe("published shader packages", () => {
     });
     expect(valid.status, valid.stderr || valid.stdout).toBe(0);
 
+    mkdirSync(join(shaderDirectory, "Nested"), { recursive: true });
+    mkdirSync(join(shaderDirectory, "User Effects"), { recursive: true });
+    writeFileSync(join(shaderDirectory, "User Effects", "Math Functions.glsl"), "float absoluteValue() { return 2.0; }");
+    writeFileSync(
+      join(shaderDirectory, "Nested", "Absolute.shader"),
+      shaderSource("/User Effects/Math Functions.glsl", "absoluteValue()")
+    );
+    const absolute = spawnSync(
+      binary,
+      ["--include-root", shaderDirectory, join(shaderDirectory, "Nested", "Absolute.shader")],
+      { cwd: consumerDirectory, encoding: "utf8" }
+    );
+    expect(absolute.status, absolute.stderr || absolute.stdout).toBe(0);
+
+    writeFileSync(
+      join(shaderDirectory, "Dead.shader"),
+      shaderSource(undefined, "1.0").replace(
+        "void vert()",
+        `#if 0
+#include "missing.glsl"
+float deadValue = ;
+#endif
+void vert()`
+      )
+    );
+    const dead = spawnSync(binary, [join(shaderDirectory, "Dead.shader")], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(dead.status, dead.stderr || dead.stdout).toBe(0);
+
     writeFileSync(join(shaderDirectory, "chunks", "Broken.glsl"), "#if 123 defined(USE)\n#endif");
     writeFileSync(join(shaderDirectory, "Broken.shader"), shaderSource("./chunks/Broken.glsl", "1.0"));
     const invalid = spawnSync(binary, ["--json", join(shaderDirectory, "Broken.shader")], {
@@ -126,6 +237,20 @@ describe("published shader packages", () => {
       expect.objectContaining({ code: "PreprocessorError", sourceFile: "chunks/Broken.glsl" })
     );
 
+    writeFileSync(join(consumerDirectory, "Assets", "Outside.glsl"), "float outsideValue() { return 4.0; }");
+    writeFileSync(
+      join(shaderDirectory, "Escaped.shader"),
+      shaderSource("/chunks%2F..%2F..%2FOutside.glsl", "outsideValue()")
+    );
+    const escaped = spawnSync(binary, ["--json", join(shaderDirectory, "Escaped.shader")], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(escaped.status).toBe(1);
+    expect(JSON.parse(escaped.stdout).diagnostics).toContainEqual(
+      expect.objectContaining({ code: "PreprocessorError" })
+    );
+
     const stdin = spawnSync(binary, ["--json", "-"], {
       cwd: consumerDirectory,
       encoding: "utf8",
@@ -138,6 +263,79 @@ describe("published shader packages", () => {
     expect(usage.status).toBe(2);
   });
 
+  it("precompiles relative and root-relative disk includes through the installed offline bin", () => {
+    const inputDirectory = join(consumerDirectory, "Offline Shaders");
+    const outputDirectory = join(consumerDirectory, "Offline Output");
+    mkdirSync(join(inputDirectory, "Nested"), { recursive: true });
+    mkdirSync(join(inputDirectory, "User Effects"), { recursive: true });
+    writeFileSync(join(inputDirectory, "User Effects", "Values.glsl"), "float diskValue() { return 3.0; }");
+    writeFileSync(
+      join(inputDirectory, "User Effects", "Common Math.glsl"),
+      '#include "./Values.glsl"\nfloat includedValue() { return diskValue(); }'
+    );
+    writeFileSync(
+      join(inputDirectory, "Nested", "Root.shader"),
+      shaderSource("/User Effects/Common Math.glsl", "includedValue()")
+    );
+
+    const valid = spawnSync(installedCompilerBinary(), [inputDirectory, outputDirectory, "--emit-index"], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(valid.status, valid.stderr || valid.stdout).toBe(0);
+    expect(JSON.parse(readFileSync(join(outputDirectory, "Nested", "Root.shaderc"), "utf8")).name).toBe("Consumer");
+    expect(readFileSync(join(outputDirectory, "index.ts"), "utf8")).toContain("RootSource");
+
+    writeFileSync(join(inputDirectory, "Broken.shader"), shaderSource("/Missing.glsl", "1.0"));
+    const invalid = spawnSync(installedCompilerBinary(), [inputDirectory, outputDirectory], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(invalid.status).toBe(1);
+    expect(invalid.stderr + invalid.stdout).toContain('Shader include "Missing.glsl" was not found.');
+
+    const programmatic = runNode(
+      `const { precompile } = await import("@galacean/engine-shader-compiler/bundler/precompile");
+       try {
+         await precompile(${JSON.stringify({ input: inputDirectory, output: outputDirectory })});
+       } catch (error) {
+         process.stdout.write("PROGRAMMATIC_FAILURE:" + error.message);
+       }`,
+      true
+    );
+    expect(programmatic.status, programmatic.stderr).toBe(0);
+    expect(programmatic.stdout).toContain("PROGRAMMATIC_FAILURE:1 shader(s) failed to precompile.");
+
+    const outsideSource = join(consumerDirectory, "Outside.shader");
+    writeFileSync(outsideSource, shaderSource(undefined, "1.0"));
+    const outside = spawnSync(
+      installedCompilerBinary(),
+      [inputDirectory, outputDirectory, "--only", outsideSource],
+      { cwd: consumerDirectory, encoding: "utf8" }
+    );
+    expect(outside.status).toBe(1);
+    expect(outside.stderr + outside.stdout).toContain("must be a .shader file inside the input directory");
+
+    mkdirSync(join(inputDirectory, "ShaderLibrary", "Common"), { recursive: true });
+    mkdirSync(join(consumerDirectory, "ShaderLibrary", "Common"), { recursive: true });
+    writeFileSync(
+      join(inputDirectory, "ShaderLibrary", "Common", "Common.glsl"),
+      "float localValue() { return 1.0; }"
+    );
+    writeFileSync(
+      join(consumerDirectory, "ShaderLibrary", "Common", "Common.glsl"),
+      "float libraryValue() { return 2.0; }"
+    );
+    const duplicate = spawnSync(installedCompilerBinary(), [inputDirectory, outputDirectory], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(duplicate.status).toBe(1);
+    expect(duplicate.stderr + duplicate.stdout).toContain(
+      'Shader include "ShaderLibrary/Common/Common.glsl" is registered more than once.'
+    );
+  });
+
   it("does not retain request-owned parser state across analyzer-only or shared codegen calls", () => {
     const probe = spawnSync(
       process.execPath,
@@ -147,6 +345,7 @@ describe("published shader packages", () => {
         `const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
          const { ShaderCompiler } = require("@galacean/engine-shader-compiler");
          const source = ${JSON.stringify(shaderSource(undefined, "1.0"))};
+         const passBody = "void vert() { gl_Position = vec4(0.0); }\\nvoid frag() { gl_FragColor = vec4(1.0); }";
          const compiler = new ShaderCompiler();
          const measure = (run, iterations) => {
            for (let i = 0; i < 100; i++) run();
@@ -160,12 +359,15 @@ describe("published shader packages", () => {
          };
          const analyzerOnly = measure(() => ShaderAnalyzer.analyze(source), 400);
          const sharedCodegen = measure(() => {
-           const unit = ShaderAnalyzer._analyzeWithParsedPasses(source);
-           for (const pass of unit.parsedPasses) {
-             compiler._generateParsedShaderPass(pass.parsed, pass.vertexEntry, pass.fragmentEntry, 0);
+           const analysis = ShaderAnalyzer.analyze(source);
+           for (const pass of analysis.passes) {
+             compiler.generate(pass, 0);
            }
          }, 200);
-         process.stdout.write("MEMORY_RESULT:" + JSON.stringify({ analyzerOnly, sharedCodegen }));`
+         const runtimeCodegen = measure(() => {
+           compiler._parseShaderPass(passBody, "vert", "frag", 0, "");
+         }, 400);
+         process.stdout.write("MEMORY_RESULT:" + JSON.stringify({ analyzerOnly, sharedCodegen, runtimeCodegen }));`
       ],
       { cwd: consumerDirectory, encoding: "utf8" }
     );
@@ -191,6 +393,11 @@ function runNode(source: string, esm: boolean): { status: number | null; stdout:
 
 function installedBinary(): string {
   const name = process.platform === "win32" ? "galacean-shader-analyzer.cmd" : "galacean-shader-analyzer";
+  return join(consumerDirectory, "node_modules", ".bin", name);
+}
+
+function installedCompilerBinary(): string {
+  const name = process.platform === "win32" ? "shader-compiler-precompile.cmd" : "shader-compiler-precompile";
   return join(consumerDirectory, "node_modules", ".bin", name);
 }
 

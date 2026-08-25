@@ -1,5 +1,5 @@
 import type { BaseToken } from "../common/BaseToken";
-import { normalizeShaderIncludeKey, type PreprocessorExpressionParseResult } from "@galacean/engine-design";
+import type { PreprocessorExpressionParseResult } from "@galacean/engine-design";
 import { ShaderPosition } from "../common/ShaderPosition";
 import { ShaderRange } from "../common/ShaderRange";
 import { GSError, GSErrorName } from "../GSError";
@@ -9,46 +9,14 @@ import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
 import type { ShaderTargetParser } from "./ShaderTargetParser";
 import type { ParserObjectPool } from "../ParserObjectPool";
 
-const SHADER_ROOT_URL = "shaders://root/";
-const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
 const EMPTY_ERRORS: readonly Error[] = Object.freeze([]);
-
-/**
- * Converts a caller-provided source location into the canonical form stored in source maps.
- * @param sourceFile - Project-relative path, project-root path, or absolute URL.
- * @returns Canonical source location, or `undefined` when no location was supplied.
- */
-export function normalizeShaderSourceFile(sourceFile?: string): string | undefined {
-  if (!sourceFile) return undefined;
-  const normalized = sourceFile.trim().replace(/\\/g, "/");
-  if (!normalized) return undefined;
-  if (normalized.startsWith(SHADER_ROOT_URL)) {
-    return normalized === SHADER_ROOT_URL ? undefined : normalizeShaderIncludeKey(normalized);
-  }
-  if (!ABSOLUTE_URL_PATTERN.test(normalized)) {
-    return normalizeShaderIncludeKey(normalized);
-  }
-  return new URL(normalized).href;
-}
-
-/**
- * Creates the internal URL used to resolve relative includes from a canonical source location.
- * @param sourceFile - Project path or absolute URL returned by `normalizeShaderSourceFile`.
- * @returns Base URL for include resolution, or an empty string when no source location exists.
- */
-export function shaderSourceBaseURL(sourceFile?: string): string {
-  if (!sourceFile) return "";
-  if (!ABSOLUTE_URL_PATTERN.test(sourceFile)) {
-    return new URL(sourceFile, SHADER_ROOT_URL).href;
-  }
-  return new URL(sourceFile).href;
-}
+const EMPTY_PREPROCESSOR_EXPRESSIONS: ReadonlyMap<string, never> = new Map<string, never>();
 
 /**
  * Request-owned parser output shared read-only by analysis and backend generation.
  * @internal
  */
-export interface ParsedShaderPass {
+export interface ParsedShaderPassData {
   /** Neutral typed IR, or `null` when parsing could not produce a program. */
   readonly ir: ShaderClueIR | null;
   /** Source after recursive `#include` expansion. */
@@ -179,6 +147,7 @@ export interface ShaderPassLexer {
  * @param sourceFile - Optional canonical root location for relative includes and attribution.
  * @param objectPool - Optional pool for a synchronous consumer that does not retain parsed passes.
  * @param trackSourceMap - Whether to retain include-source mapping for this parse.
+ * @param sourceScopeStarts - Start offsets of inherited ShaderLab content layers.
  * @returns Request-owned parsed-pass data whose public containers are read-only.
  * @internal
  */
@@ -195,21 +164,42 @@ export function parseShaderPassWith(
   createParser: (expandedSource: string, objectPool?: ParserObjectPool) => ShaderTargetParser,
   sourceFile?: string,
   objectPool?: ParserObjectPool,
-  trackSourceMap = true
-): ParsedShaderPass {
+  trackSourceMap = true,
+  sourceScopeStarts?: readonly number[]
+): ParsedShaderPassData {
   objectPool?.reset();
   const macroDefineList: MacroDefineList = {};
   const {
     content: expandedSource,
     errors: preprocessErrors,
     sourceMap
-  } = Preprocessor.parseWithErrors(source, basePathForIncludeKey, includeMap, cache, sourceFile, trackSourceMap);
+  } = Preprocessor.parseWithErrors(
+    source,
+    basePathForIncludeKey,
+    includeMap,
+    cache,
+    sourceFile,
+    trackSourceMap,
+    sourceScopeStarts
+  );
+  for (const segment of sourceMap) Object.freeze(segment);
+  const frozenSourceMap = Object.freeze(sourceMap);
+  if (preprocessErrors.length) {
+    const errors = Object.freeze([...preprocessErrors]);
+    return Object.freeze({
+      ir: null,
+      expandedSource,
+      sourceMap: frozenSourceMap,
+      preprocessorExpressions: EMPTY_PREPROCESSOR_EXPRESSIONS,
+      errors,
+      blockingErrors: errors
+    });
+  }
   const lexer = createLexer(expandedSource, macroDefineList, objectPool);
   const tokens = lexer.tokenize();
   const parser = createParser(expandedSource, objectPool);
+  parser.setSourceMap(frozenSourceMap);
   const program = parser.parse(tokens, macroDefineList);
-  for (const segment of sourceMap) Object.freeze(segment);
-  const frozenSourceMap = Object.freeze(sourceMap);
   const mappedParserErrors = parser.errors.map((error) =>
     mapExpandedShaderError(error, expandedSource, frozenSourceMap)
   );

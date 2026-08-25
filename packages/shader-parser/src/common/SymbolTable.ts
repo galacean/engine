@@ -28,6 +28,18 @@ export class SymbolTable<T extends IBaseSymbol> {
       return this._insertWithoutBranchAnalysis(entry, symbol);
     }
 
+    const sourceScope = symbol.sourceScope ?? 0;
+    for (let i = entry.length - 1; i >= 0; i--) {
+      const existing = entry[i];
+      if (
+        existing.equal(symbol) &&
+        (existing.sourceScope ?? 0) < sourceScope &&
+        branchSemantics.isBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
+      ) {
+        entry.splice(i, 1);
+      }
+    }
+
     let conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none" = "none";
     for (let i = 0, n = entry.length; i < n; i++) {
       const existing = entry[i];

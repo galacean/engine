@@ -5,10 +5,8 @@ import {
   ShaderCompilerUtils,
   ShaderBuiltinSemantic,
   ShaderStructRole,
-  StructSymbol,
-  SymbolInfo,
+  type StructSymbol,
   TypeSystem,
-  ESymbolType,
   ShaderPosition,
   type ShaderRange
 } from "@galacean/engine-shader-parser/internal/analyzer";
@@ -48,25 +46,84 @@ export class ShaderIOValidator {
     if (coreInfo.fragmentEntry.name && !coreInfo.fragmentEntry.functions.length) {
       this._entryNotFound(errors, coreInfo.fragmentEntry.name, fragmentEntryLocation, entrySource ?? source);
     }
+    if (coreInfo.vertexEntry.hasDefiniteAmbiguity) {
+      this._ambiguousEntry(
+        errors,
+        coreInfo.vertexEntry.name,
+        vertexEntryLocation,
+        entrySource,
+        coreInfo.vertexEntry.functions[1].astNode.protoType.ident.location,
+        source
+      );
+    }
+    if (coreInfo.fragmentEntry.hasDefiniteAmbiguity) {
+      this._ambiguousEntry(
+        errors,
+        coreInfo.fragmentEntry.name,
+        fragmentEntryLocation,
+        entrySource,
+        coreInfo.fragmentEntry.functions[1].astNode.protoType.ident.location,
+        source
+      );
+    }
 
     this._validateVertex(analysis, errors);
     this._validateFragment(analysis, errors);
     this._validateRoleConflicts(analysis, errors);
     this._validateStructMembers(analysis, errors);
-
-    if (coreInfo.io.mrtStructs.length && analysis.glFragColorReferences.length) {
+    this._validateMrtOutputs(analysis, errors);
+    for (const location of coreInfo.invalidMrtReturnLocations) {
       this._error(
         errors,
-        DiagnosticType.GlFragColorWithMrt,
-        "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
-        analysis.glFragColorReferences[0],
+        DiagnosticType.InvalidMrtOutput,
+        "MRT fragment entries must return a struct variable after assigning its members.",
+        location,
+        source
+      );
+    }
+    for (const location of coreInfo.invalidVaryingReturnLocations) {
+      this._error(
+        errors,
+        DiagnosticType.InvalidEntryReturnType,
+        "Vertex entries returning varyings must return a struct variable or a function result of the same type.",
+        location,
         source
       );
     }
 
+    for (const fragmentFunction of coreInfo.fragmentEntry.functions) {
+      const returnStructs = fragmentFunction.astNode.protoType.returnType.typeSpecifier.structDeclarations;
+      const returnsMrt = returnStructs.some((struct) => coreInfo.io.mrtStructs.includes(struct));
+      if (!returnsMrt) continue;
+      const reachableFragmentOutputs = analysis.reachableFragmentOutput0ReferencesFrom(fragmentFunction);
+      if (reachableFragmentOutputs.length) {
+        this._error(
+          errors,
+          DiagnosticType.GlFragColorWithMrt,
+          "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
+          reachableFragmentOutputs[0],
+          source
+        );
+        break;
+      }
+    }
+
+    for (const fragmentFunction of coreInfo.fragmentEntry.functions) {
+      const conflict = analysis.coexistingLegacyFragmentOutputsFrom(fragmentFunction);
+      if (!conflict) continue;
+      this._error(
+        errors,
+        DiagnosticType.LegacyFragmentOutputConflict,
+        "gl_FragColor and gl_FragData cannot be used in the same fragment shader configuration.",
+        conflict.outputArray,
+        source
+      );
+      break;
+    }
+
     if (
       coreInfo.vertexEntry.functions.length &&
-      !analysis.hasReachableWrite(coreInfo.vertexEntry, ShaderBuiltinSemantic.VertexPosition)
+      analysis.getReachableWriteCoverage(coreInfo.vertexEntry, ShaderBuiltinSemantic.VertexPosition) === "uncovered"
     ) {
       this._error(
         errors,
@@ -82,12 +139,11 @@ export class ShaderIOValidator {
 
   private static _validateVertex(analysis: ShaderAnalysisInfo, errors: GSError[]): void {
     const { coreInfo, ir } = analysis;
-    const symbolTable = ir.shaderData.symbolTable;
     for (const functionSymbol of coreInfo.vertexEntry.functions) {
       const proto = functionSymbol.astNode.protoType;
       const returnType = proto.returnType;
       if (typeof returnType.type === "string") {
-        if (!this._findStructs(symbolTable, returnType.type).length) {
+        if (!returnType.typeSpecifier.structDeclarations.length) {
           this._error(
             errors,
             DiagnosticType.InvalidIOStruct,
@@ -108,7 +164,7 @@ export class ShaderIOValidator {
 
       const attribute = proto.parameterList?.[0];
       if (attribute && typeof attribute.typeInfo.type === "string") {
-        if (!this._findStructs(symbolTable, attribute.typeInfo.type).length) {
+        if (!attribute.typeInfo.structDeclarations.length) {
           this._error(
             errors,
             DiagnosticType.InvalidIOStruct,
@@ -123,11 +179,10 @@ export class ShaderIOValidator {
 
   private static _validateFragment(analysis: ShaderAnalysisInfo, errors: GSError[]): void {
     const { coreInfo, ir } = analysis;
-    const symbolTable = ir.shaderData.symbolTable;
     for (const functionSymbol of coreInfo.fragmentEntry.functions) {
       const returnType = functionSymbol.astNode.protoType.returnType;
       if (typeof returnType.type === "string") {
-        if (!this._findStructs(symbolTable, returnType.type).length) {
+        if (!returnType.typeSpecifier.structDeclarations.length) {
           this._error(
             errors,
             DiagnosticType.InvalidIOStruct,
@@ -194,13 +249,26 @@ export class ShaderIOValidator {
     inspect(io.mrtStructs, ShaderStructRole.Mrt);
   }
 
-  private static _findStructs(
-    symbolTable: ShaderAnalysisInfo["ir"]["shaderData"]["symbolTable"],
-    name: string
-  ): StructSymbol[] {
-    const lookup = new SymbolInfo("", null);
-    lookup.set(name, ESymbolType.STRUCT);
-    return <StructSymbol[]>symbolTable.getSymbols(lookup, true, []);
+  private static _validateMrtOutputs(analysis: ShaderAnalysisInfo, errors: GSError[]): void {
+    for (const issue of analysis.coreInfo.mrtOutputIssues) {
+      const prop = issue.prop;
+      let message: string;
+      switch (issue.kind) {
+        case "missing-location":
+          message = `MRT output '${prop.ident.lexeme}' requires layout(location = N).`;
+          break;
+        case "invalid-location":
+          message = `MRT output '${prop.ident.lexeme}' requires a non-negative integer location.`;
+          break;
+        case "duplicate-location":
+          message = `MRT output location ${prop.mrtIndex} is already used by another member.`;
+          break;
+        default:
+          message = `MRT output '${prop.ident.lexeme}' must have type vec4 for GLES portability.`;
+          break;
+      }
+      this._error(errors, DiagnosticType.InvalidMrtOutput, message, prop.ident.location, analysis.ir.source);
+    }
   }
 
   private static _entryNotFound(
@@ -215,6 +283,23 @@ export class ShaderIOValidator {
       `Entry function '${entry}' not found.`,
       location ?? zeroPosition,
       source
+    );
+  }
+
+  private static _ambiguousEntry(
+    errors: GSError[],
+    entry: string,
+    bindingLocation: ShaderRange | ShaderPosition | undefined,
+    entrySource: string | undefined,
+    declarationLocation: ShaderRange,
+    passSource: string
+  ): void {
+    this._error(
+      errors,
+      DiagnosticType.AmbiguousEntryPoint,
+      `Entry function '${entry}' resolves to multiple declarations in the same macro configuration.`,
+      bindingLocation ?? declarationLocation,
+      bindingLocation && entrySource ? entrySource : passSource
     );
   }
 

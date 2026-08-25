@@ -1,4 +1,9 @@
-import { ShaderCoreInfo, ShaderSourceParser, parseShaderPass } from "@galacean/engine-shader-parser/internal/analyzer";
+import {
+  ShaderCoreInfo,
+  ShaderSourceParser,
+  ShaderStructRole,
+  parseShaderPass
+} from "@galacean/engine-shader-parser/internal/analyzer";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
@@ -13,6 +18,8 @@ const ioDiagnosticCodes = new Set([
   "InvalidEntryReturnType",
   "StructRoleConflict",
   "GlFragColorWithMrt",
+  "LegacyFragmentOutputConflict",
+  "InvalidMrtOutput",
   "NestedIOStruct",
   "MissingVertexPosition",
   "NonFlatIntegerVarying",
@@ -107,9 +114,33 @@ const cases: { name: string; source: string; expected: string[] }[] = [
     name: "GlFragColorWithMrt: fragment returns MRT yet writes gl_FragColor",
     expected: ["GlFragColorWithMrt"],
     source: wrap(`
-      struct MRT { vec4 c0; };
+      struct MRT { layout(location = 0) vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "LegacyFragmentOutputConflict: one variant writes both legacy output forms",
+    expected: ["LegacyFragmentOutputConflict"],
+    source: wrap(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); gl_FragData[0] = vec4(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: mutually exclusive macro variants choose one legacy output form",
+    expected: [],
+    source: wrap(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() {
+        #ifdef USE_MRT
+          gl_FragData[0] = vec4(1.0);
+        #else
+          gl_FragColor = vec4(0.0);
+        #endif
+      }
       VertexShader = vert;
       FragmentShader = frag;`)
   },
@@ -171,6 +202,135 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: a direct write in only one macro arm does not cover every variant",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      void vert() {
+      #ifdef WRITE_POSITION
+        gl_Position = vec4(0.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "unknown: an opaque macro condition does not invent a missing-write error",
+    expected: [],
+    source: wrap(`
+      void vert() {
+      #if FIRST_VALUE + SECOND_VALUE > 1
+        gl_Position = vec4(0.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: complementary direct-write arms cover every vertex variant",
+    expected: [],
+    source: wrap(`
+      void vert() {
+      #ifdef FIRST_POSITION
+        gl_Position = vec4(0.0);
+      #else
+        gl_Position = vec4(1.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: one macro-selected helper overload does not write the position",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      #ifdef FIRST_HELPER
+      void writePosition() {}
+      #else
+      void writePosition() { gl_Position = vec4(0.0); }
+      #endif
+      void vert() { writePosition(); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: complementary call and direct-write arms cover every vertex variant",
+    expected: [],
+    source: wrap(`
+      void writePosition() { gl_Position = vec4(0.0); }
+      void vert() {
+      #ifdef USE_HELPER
+        writePosition();
+      #else
+        gl_Position = vec4(1.0);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: an out parameter writes gl_Position at the call site",
+    expected: [],
+    source: wrap(`
+      void writePosition(out vec4 target) { target = vec4(0.0); }
+      void vert() { writePosition(gl_Position); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "valid: an inout parameter writes gl_Position at the call site",
+    expected: [],
+    source: wrap(`
+      void writePosition(inout vec4 target) { target = vec4(0.0); }
+      void vert() { writePosition(gl_Position); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: a conditional out-parameter call does not cover every variant",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      void writePosition(out vec4 target) { target = vec4(0.0); }
+      void vert() {
+      #ifdef WRITE_POSITION
+        writePosition(gl_Position);
+      #endif
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: only one macro-selected parameter qualifier writes the argument",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      #ifdef OUTPUT_PARAMETER
+      void updatePosition(out vec4 target) { target = vec4(0.0); }
+      #else
+      void updatePosition(in vec4 target) { vec4 copy = target; }
+      #endif
+      void vert() { updatePosition(gl_Position); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+  },
+  {
+    name: "MissingVertexPosition: an in parameter does not write gl_Position",
+    expected: ["MissingVertexPosition"],
+    source: wrap(`
+      void readPosition(in vec4 target) { vec4 copy = target; }
+      void vert() { readPosition(gl_Position); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
   }
 ];
 
@@ -210,8 +370,7 @@ describe("ShaderIOAnalyzer role-conflict recovery", () => {
     expect(io.varyingStructs, "varyingStructs must be empty after conflict").to.have.lengthOf(0);
     expect(io.attributeList, "attributeList props follow the struct removal").to.have.lengthOf(0);
     expect(io.varyingList, "varyingList props follow the struct removal").to.have.lengthOf(0);
-    expect(Object.keys(io.vertexStructVarMap), "vertex variable roles follow the struct removal").to.be.empty;
-    expect(Object.keys(io.fragmentStructVarMap), "fragment variable roles follow the struct removal").to.be.empty;
+    expect(io.structVariableRoles.size, "variable roles follow the struct removal").to.equal(0);
   });
 
   it("StructRoleConflict (Varying+MRT): the offending struct is dropped from every role array", () => {
@@ -230,7 +389,8 @@ describe("ShaderIOAnalyzer role-conflict recovery", () => {
     expect(codes).to.include("StructRoleConflict");
     expect(io.varyingStructs, "varyingStructs empty after conflict").to.have.lengthOf(0);
     expect(io.mrtStructs, "mrtStructs empty after conflict").to.have.lengthOf(0);
-    expect(io.vertexStructVarMap.o, "conflicting vertex local has no role").to.be.undefined;
-    expect(io.fragmentStructVarMap.i, "conflicting fragment parameter has no role").to.be.undefined;
+    expect([...io.structVariableRoles.values()], "only the independent attribute keeps its role").to.deep.equal([
+      ShaderStructRole.Attribute
+    ]);
   });
 });

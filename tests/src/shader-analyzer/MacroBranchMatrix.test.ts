@@ -21,16 +21,11 @@ ${fragmentBody}
 }
 
 function compile(source: string, includeMap?: IncludeMap) {
-  const result = ShaderAnalyzer._analyzeWithParsedPasses(source, includeMap ? { includeMap } : undefined);
+  const result = ShaderAnalyzer.analyze(source, includeMap ? { includeMap } : undefined);
   const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
-  const analyzedPass = result.parsedPasses[0];
+  const parsedPass = result.passes[0];
   const compiler = new ShaderCompiler();
-  const generated = compiler._generateParsedShaderPass(
-    analyzedPass.parsed,
-    analyzedPass.vertexEntry,
-    analyzedPass.fragmentEntry,
-    ShaderLanguage.GLSLES100
-  );
+  const generated = compiler.generate(parsedPass, ShaderLanguage.GLSLES100);
 
   return {
     codes,
@@ -194,7 +189,11 @@ float u_value;
       "      gl_FragColor = vec4(u_value);"
     ),
     codes: [],
-    fragments: ["#if 0", "#elif 0", "#elif 1", "#else", "#endif", "uniform float u_value;"]
+    fragments: ["#if 0", "#elif 0", "#elif 1", "#endif", "uniform float u_value;"],
+    occurrences: [
+      ["#elif 1", 1],
+      ["#else", 0]
+    ]
   },
   {
     name: "inactive #if body ignores an otherwise invalid stringifying macro",
@@ -206,7 +205,8 @@ float u_value;`,
       "      gl_FragColor = vec4(u_value);"
     ),
     codes: [],
-    fragments: ["#if 0", "#define STRINGIFY(X) #X", "#endif", "uniform float u_value;"]
+    fragments: ["#if 0", "#endif", "uniform float u_value;"],
+    occurrences: [["#define STRINGIFY(X) #X", 0]]
   },
   {
     name: "#if/#elif/#else siblings",
@@ -297,8 +297,8 @@ float u_guarded;
     fragments: ["#ifndef MATRIX_INCLUDED", "#define MATRIX_INCLUDED", "uniform float u_guarded;"],
     occurrences: [
       ["#ifndef MATRIX_INCLUDED", 2],
-      ["#define MATRIX_INCLUDED", 2],
-      ["uniform float u_guarded;", 2]
+      ["#define MATRIX_INCLUDED", 1],
+      ["uniform float u_guarded;", 1]
     ]
   },
   {
@@ -341,8 +341,8 @@ float u_included;
     fragments: ["#ifndef MATRIX_INCLUDED", "#define MATRIX_INCLUDED", "uniform float u_included;"],
     occurrences: [
       ["#ifndef MATRIX_INCLUDED", 2],
-      ["#define MATRIX_INCLUDED", 2],
-      ["uniform float u_included;", 2]
+      ["#define MATRIX_INCLUDED", 1],
+      ["uniform float u_included;", 1]
     ]
   },
   {
@@ -394,7 +394,7 @@ vec4 branchColor;
 #endif`,
       "      gl_FragColor = vec4(branchColor.x);"
     ),
-    codes: ["AmbiguousMacroBranchType"],
+    codes: [],
     fragments: ["#ifdef USE_VEC3", "uniform vec3 branchColor;", "uniform vec4 branchColor;"]
   },
   {
@@ -539,7 +539,7 @@ float u_value;
     it(`analyzes and generates ${testCase.name}`, () => {
       const { codes, fragment } = compile(testCase.source, testCase.includeMap);
       expect(codes).to.deep.equal(testCase.codes);
-      if (testCase.codes.includes("PreprocessorError")) {
+      if (testCase.codes.length > 0) {
         expect(fragment).to.be.undefined;
         return;
       }

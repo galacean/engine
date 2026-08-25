@@ -1,24 +1,15 @@
 import { ETokenType } from "../common";
 import { tryParsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
-import {
-  type BaseToken,
-  type BranchCondition,
-  type BranchConstraint,
-  type BranchSignature,
-  EOF,
-  sameBranch
-} from "../common/BaseToken";
+import { type BranchCondition, type BranchConstraint, type BranchSignature, sameBranch } from "../common/BaseToken";
 import { canBranchesOverlap, isBranchReachable, isConditionalChainExhaustive } from "../common/BranchAnalysis";
 import { Keyword } from "../common/enums/Keyword";
-import { evaluateContextFreePreprocessorExpression, parsePreprocessorExpression } from "@galacean/engine-design";
-import { GSError, GSErrorName } from "../GSError";
+import { evaluateContextFreePreprocessorExpression } from "@galacean/engine-design";
 import { Lexer } from "./Lexer";
 
 interface MacroState {
   defined: boolean | undefined;
   definedCondition: BranchCondition;
   value: number | undefined;
-  valueError?: string;
   version: number;
 }
 
@@ -89,7 +80,7 @@ export class AnalyzerLexer extends Lexer {
         this._pendingGuardUndef = false;
       }
       if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
-        const condition = this._parseSimpleCondition(tok.lexeme, tok);
+        const condition = this._parseSimpleCondition(tok.lexeme);
         if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition);
         else this._advanceOpaqueConditionalArm(condition);
         this._pendingOpaqueConditional = null;
@@ -131,7 +122,7 @@ export class AnalyzerLexer extends Lexer {
 
       yield tok;
     }
-    return EOF;
+    return this._createEOFToken();
   }
 
   private _pushOpaqueConditional(condition?: BranchCondition): void {
@@ -316,16 +307,7 @@ export class AnalyzerLexer extends Lexer {
 
   /** Resolve a macro test from the symbolic state produced by preceding define and undef directives. */
   private _resolveDefinedMacroCondition(condition: Extract<BranchCondition, { kind: "defined" }>): BranchCondition {
-    let macroDefined = this._macroState(condition.name).definedCondition;
-    const definitions = this.macroDefineList[condition.name];
-    if (
-      definitions?.some(
-        (definition) =>
-          !definition.branch.some((constraint) => constraint.name === condition.name && constraint.selfGuarding)
-      )
-    ) {
-      macroDefined = AnalyzerLexer._substituteExternalMacroState(macroDefined, condition.name);
-    }
+    const macroDefined = this._macroState(condition.name).definedCondition;
     return condition.defined ? macroDefined : AnalyzerLexer._negateSimpleCondition(macroDefined)!;
   }
 
@@ -430,10 +412,7 @@ export class AnalyzerLexer extends Lexer {
     const valueText =
       paramsLexeme === undefined ? AnalyzerLexer._normalizeValueText(this._source, valueStart, valueEnd) : undefined;
     const value = valueText === undefined ? undefined : AnalyzerLexer._parseNumericLiteral(valueText);
-    const parsedValue = valueText === undefined ? undefined : parsePreprocessorExpression(valueText);
-    let valueError: string | undefined;
-    if (parsedValue && "error" in parsedValue && parsedValue.error.certain) valueError = parsedValue.error.message;
-    this._setMacroState(name, true, value, valueError);
+    this._setMacroState(name, true, value);
   }
 
   private _markMacroMutation(name: string): void {
@@ -445,12 +424,11 @@ export class AnalyzerLexer extends Lexer {
     }
   }
 
-  private _setMacroState(name: string, defined: boolean, value: number | undefined, valueError?: string): void {
+  private _setMacroState(name: string, defined: boolean, value: number | undefined): void {
     this._macroStates[name] = {
       defined,
       definedCondition: { kind: "constant", value: defined },
       value,
-      valueError,
       version: this._nextMacroVersion(name)
     };
   }
@@ -493,38 +471,9 @@ export class AnalyzerLexer extends Lexer {
     );
   }
 
-  private _parseSimpleCondition(expression: string, token: BaseToken): BranchCondition | undefined {
+  private _parseSimpleCondition(expression: string): BranchCondition | undefined {
     const condition = tryParsePreprocessorCondition(expression, this.preprocessorExpressions.get(expression.trim()));
-    const invalidMacro = condition && this._findInvalidMacroValue(condition);
-    if (invalidMacro) {
-      this.expressionErrors.push(
-        new GSError(
-          GSErrorName.PreprocessorError,
-          `Invalid preprocessor expression after expanding '${invalidMacro.name}': ${invalidMacro.message}`,
-          token.location,
-          this._source
-        )
-      );
-      return { kind: "constant", value: false };
-    }
     return condition ? this._toBranchCondition(condition) : undefined;
-  }
-
-  private _findInvalidMacroValue(condition: PreprocessorCondition): { name: string; message: string } | undefined {
-    switch (condition.t) {
-      case "cmp": {
-        const message = this._macroState(condition.m).valueError;
-        return message ? { name: condition.m, message } : undefined;
-      }
-      case "and":
-      case "or":
-        return this._findInvalidMacroValue(condition.l) ?? this._findInvalidMacroValue(condition.r);
-      case "not":
-        return this._findInvalidMacroValue(condition.c);
-      case "bool":
-      case "def":
-        return undefined;
-    }
   }
 
   private _toBranchCondition(condition: PreprocessorCondition): BranchCondition {
@@ -602,19 +551,6 @@ export class AnalyzerLexer extends Lexer {
       if (!AnalyzerLexer._sameCondition(left.operands[i], right.operands[i])) return false;
     }
     return true;
-  }
-
-  private static _substituteExternalMacroState(condition: BranchCondition, macroName: string): BranchCondition {
-    if (condition.kind === "constant" || condition.kind === "comparison") return condition;
-    if (condition.kind === "defined") {
-      return condition.name === macroName ? { kind: "constant", value: !condition.defined } : condition;
-    }
-    if (condition.opaque) return condition;
-    const substituted = AnalyzerLexer._combineConditions(
-      condition.operator,
-      condition.operands.map((operand) => AnalyzerLexer._substituteExternalMacroState(operand, macroName))
-    );
-    return condition.negated ? AnalyzerLexer._negateSimpleCondition(substituted)! : substituted;
   }
 
   private static _combineConditions(operator: "&&" | "||", conditions: readonly BranchCondition[]): BranchCondition {
@@ -724,7 +660,6 @@ export class AnalyzerLexer extends Lexer {
     return (
       left.defined === right.defined &&
       left.value === right.value &&
-      left.valueError === right.valueError &&
       left.version === right.version &&
       AnalyzerLexer._sameCondition(left.definedCondition, right.definedCondition)
     );

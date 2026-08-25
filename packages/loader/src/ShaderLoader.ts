@@ -14,21 +14,17 @@ function sourceFileForShader(url: string, baseUrl: string | null): string {
   if (!ABSOLUTE_URL_PATTERN.test(url)) {
     return url.split(/[?#]/, 1)[0].replace(/^\/+/, "");
   }
-  try {
-    const sourceURL = new URL(url);
-    sourceURL.search = "";
-    sourceURL.hash = "";
-    if (baseUrl) {
-      const resolvedBase = new URL(baseUrl);
-      const baseDirectory = resolvedBase.href.endsWith("/") ? resolvedBase : new URL(".", resolvedBase);
-      if (sourceURL.origin === baseDirectory.origin && sourceURL.href.startsWith(baseDirectory.href)) {
-        return decodeURIComponent(sourceURL.href.slice(baseDirectory.href.length));
-      }
+  const sourceURL = new URL(url);
+  sourceURL.search = "";
+  sourceURL.hash = "";
+  if (baseUrl) {
+    const resolvedBase = new URL(baseUrl);
+    const baseDirectory = resolvedBase.href.endsWith("/") ? resolvedBase : new URL(".", resolvedBase);
+    if (sourceURL.origin === baseDirectory.origin && sourceURL.href.startsWith(baseDirectory.href)) {
+      return decodeURI(sourceURL.href.slice(baseDirectory.href.length));
     }
-    return sourceURL.href;
-  } catch {
-    return url.split(/[?#]/, 1)[0].replace(/^\/+/, "");
   }
+  return sourceURL.href;
 }
 
 @resourceLoader(AssetType.Shader, ["shader", "shaderc"])

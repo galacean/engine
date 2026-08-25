@@ -17,6 +17,7 @@ import type { SemanticDiagnostics } from "./SemanticDiagnostics";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
 import type { ParserObjectPool } from "../ParserObjectPool";
+import type { ShaderSourceMapSegment } from "../ir";
 
 /**
  * Parses shader tokens and performs the parser-owned semantic pass.
@@ -40,7 +41,11 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
-  /** @internal */
+  /**
+   * Gets semantic errors collected for the current parse.
+   * @returns Mutable parser-owned error storage.
+   * @internal
+   */
   get errors() {
     return this.semanticAnalyzer.errors;
   }
@@ -51,6 +56,16 @@ export class ShaderTargetParser {
     readonly grammar: Grammar;
   };
 
+  /**
+   * Creates a parser that reuses the immutable generated grammar tables.
+   * @param branchSemantics - Optional analyzer branch-proof implementation.
+   * @param semanticDiagnostics - Optional semantic diagnostic factory.
+   * @param source - Source attached to parser errors.
+   * @param objectPool - Optional high-water object pool for synchronous compilation.
+   * @param semanticErrorsBlockCodegen - Whether semantic errors enter the backend admission gate.
+   * @param authoringAnalysisEnabled - Whether analyzer-only semantic facts are collected.
+   * @returns Configured shader target parser.
+   */
   static create(
     branchSemantics?: BranchSemantics,
     semanticDiagnostics?: SemanticDiagnostics,
@@ -108,12 +123,31 @@ export class ShaderTargetParser {
     );
   }
 
-  /** Replaces the source used to format errors for a reused runtime parser. @internal */
+  /**
+   * Replaces the source used to format errors for a reused parser.
+   * @param source - Expanded source for the next parse.
+   * @internal
+   */
   setSource(source: string): void {
     this._source = source;
     this.semanticAnalyzer.semanticDiagnostics?.setSource?.(source);
   }
 
+  /**
+   * Replaces the generated-source provenance used for ShaderLab inheritance-aware declarations.
+   * @param sourceMap - Ordered source segments for the next parse.
+   * @internal
+   */
+  setSourceMap(sourceMap: readonly ShaderSourceMapSegment[]): void {
+    this.semanticAnalyzer.setSourceMap(sourceMap);
+  }
+
+  /**
+   * Parses one token stream and performs parser-owned semantic analysis.
+   * @param tokens - Token stream ending with an explicit EOF token.
+   * @param macroDefineList - Visible macro definitions collected by the lexer.
+   * @returns Parsed program, or `null` after a blocking syntax failure.
+   */
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
     this.semanticAnalyzer.reset(macroDefineList);
     this.blockingErrors.length = 0;
@@ -133,7 +167,7 @@ export class ShaderTargetParser {
         // function parameters. Push on shift of `MACRO_DEFINE_PARAMS`; the
         // matching `popScope` runs when `MacroDefine.semanticAnalyze` reduces
         // the production (only the function-like alternative needs it, and
-        // it knows that from its own children).
+        // it knows that from its own children)
         if (token.type === Keyword.MACRO_DEFINE_PARAMS) {
           semanticAnalyzer.pushScope();
           for (const p of ParserUtils.parseMacroParamList(token.lexeme)) {
@@ -168,7 +202,7 @@ export class ShaderTargetParser {
         }
         translationRule?.(semanticAnalyzer, ...values);
         // Runtime grammar elides the analyzer-only IterationStatement node, so compiler semantic
-        // validation closes the scope at reduction instead of relying on that node's callback.
+        // validation closes the scope at reduction instead of relying on that node's callback
         if (
           semanticAnalyzer.semanticDiagnostics &&
           !semanticAnalyzer.diagnosticsEnabled &&
