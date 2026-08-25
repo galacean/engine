@@ -241,15 +241,16 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
+    // @ts-expect-error -- internal method is omitted from public declarations
+    const remoteUrl = resourceManager._getRemoteUrl(item.url);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
       };
-      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
@@ -257,7 +258,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
               KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
             )
             .then((texture) => {
-              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, url, requestConfig));
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, remoteUrl, requestConfig));
               resolve(texture);
             })
         )
@@ -269,7 +270,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
   constructor(
     resource: Texture2D | TextureCube,
-    public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
@@ -281,7 +282,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>

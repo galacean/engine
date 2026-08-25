@@ -407,7 +407,18 @@ describe("preprocessor condition conformance", () => {
     ).to.throw("Division by zero in active preprocessor expression");
   });
 
-  it.each(["1 / 0", "1 % 0", "1 << -1", "1 << 32", "1 >> -1", "1 >> 32"])(
+  it.each([
+    "1 / 0",
+    "1 % 0",
+    "1 << -1",
+    "1 << 32",
+    "1 >> -1",
+    "1 >> 32",
+    "EXTERNAL / 0",
+    "EXTERNAL % 0",
+    "EXTERNAL << 32",
+    "EXTERNAL >> -1"
+  ])(
     "blocks a definite evaluation failure before variant selection: %s",
     (expression) => {
       const native = evaluateNativeCondition(expression, []);
@@ -429,6 +440,7 @@ describe("preprocessor condition conformance", () => {
           ""
         )
       ).to.be.undefined;
+      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw();
     }
   );
 

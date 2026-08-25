@@ -23,15 +23,17 @@ import { HDRDecoder } from "./HDRDecoder";
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
     const url = item.url;
+    // @ts-expect-error -- internal method is omitted from public declarations
+    const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) => {
           this._decode(buffer, item, resourceManager).then((texture) => {
-            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, requestConfig));
+            resourceManager.addContentRestorer(new TextureContentRestorer(texture, url, remoteUrl, requestConfig));
             resolve(texture);
           }, reject);
         })
@@ -72,39 +74,29 @@ class TextureLoader extends Loader<Texture> {
   }
 
   private _decodeImage(buffer: ArrayBuffer, item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      const blob = new Blob([buffer]);
-      const img = new Image();
-      img.onload = () => {
-        URL.revokeObjectURL(img.src);
-        const {
-          format = TextureFormat.R8G8B8A8,
-          isSRGBColorSpace = true,
-          mipmap = true
-        } = (item.params as Partial<TextureParams>) ?? {};
+    return decodeImage(buffer, item.url!).then((img) => {
+      const {
+        format = TextureFormat.R8G8B8A8,
+        isSRGBColorSpace = true,
+        mipmap = true
+      } = (item.params as Partial<TextureParams>) ?? {};
 
-        const engine = resourceManager.engine;
-        const { width, height } = img;
-        const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-          engine,
-          width,
-          height,
-          format,
-          mipmap,
-          isSRGBColorSpace
-        );
+      const engine = resourceManager.engine;
+      const { width, height } = img;
+      const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+        engine,
+        width,
+        height,
+        format,
+        mipmap,
+        isSRGBColorSpace
+      );
 
-        const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
-        texture.setImageSource(img);
-        generateMipmap && texture.generateMipmaps();
-        this._applyParams(texture, item);
-        resolve(texture);
-      };
-      img.onerror = (e) => {
-        URL.revokeObjectURL(img.src);
-        reject(e);
-      };
-      img.src = URL.createObjectURL(blob);
+      const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+      texture.setImageSource(img);
+      generateMipmap && texture.generateMipmaps();
+      this._applyParams(texture, item);
+      return texture;
     });
   }
 
@@ -126,6 +118,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
   constructor(
     resource: Texture,
     public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -135,7 +128,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
     return (
       this.resource.engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((buffer) => {
           if (FileHeader.checkMagic(buffer)) {
             return decode<Texture>(buffer, this.resource.engine, this.resource);
@@ -151,24 +144,31 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
             return texture;
           }
 
-          return new AssetPromise<Texture>((resolve, reject) => {
-            const blob = new Blob([buffer]);
-            const img = new Image();
-            img.onload = () => {
-              URL.revokeObjectURL(img.src);
-              texture.setImageSource(img);
-              texture.mipmapCount > 1 && texture.generateMipmaps();
-              resolve(texture);
-            };
-            img.onerror = (e) => {
-              URL.revokeObjectURL(img.src);
-              reject(e);
-            };
-            img.src = URL.createObjectURL(blob);
+          return decodeImage(buffer, this.url).then((img) => {
+            texture.setImageSource(img);
+            texture.mipmapCount > 1 && texture.generateMipmaps();
+            return texture;
           });
         })
     );
   }
+}
+
+function decodeImage(buffer: ArrayBuffer, url: string): AssetPromise<HTMLImageElement> {
+  return new AssetPromise((resolve, reject) => {
+    const objectUrl = URL.createObjectURL(new Blob([buffer]));
+    const image = new Image();
+    const releaseObjectUrl = () => URL.revokeObjectURL(objectUrl);
+    image.onload = () => {
+      releaseObjectUrl();
+      resolve(image);
+    };
+    image.onerror = () => {
+      releaseObjectUrl();
+      reject(new Error(`TextureLoader: failed to decode texture "${url}" (${buffer.byteLength} bytes).`));
+    };
+    image.src = objectUrl;
+  });
 }
 
 /**

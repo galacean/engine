@@ -383,6 +383,12 @@ type PreprocessorExpressionEvaluationError =
   | "Shift count must be between 0 and 31 in active preprocessor expression."
   | "Deferred preprocessor expressions must be expanded before evaluation.";
 
+const DIVISION_BY_ZERO_ERROR: PreprocessorExpressionEvaluationError =
+  "Division by zero in active preprocessor expression.";
+const MODULO_BY_ZERO_ERROR: PreprocessorExpressionEvaluationError = "Modulo by zero in active preprocessor expression.";
+const INVALID_SHIFT_COUNT_ERROR: PreprocessorExpressionEvaluationError =
+  "Shift count must be between 0 and 31 in active preprocessor expression.";
+
 function evaluatePreprocessorExpressionInternal(
   condition: Condition,
   context: PreprocessorExpressionContext
@@ -725,11 +731,11 @@ function evaluateBinaryExpression(left: number, operator: string, right: number)
     case ">=":
       return left >= right ? 1 : 0;
     case "<<": {
-      if (right < 0 || right > 31) return "Shift count must be between 0 and 31 in active preprocessor expression.";
+      if (right < 0 || right > 31) return INVALID_SHIFT_COUNT_ERROR;
       return left << right;
     }
     case ">>": {
-      if (right < 0 || right > 31) return "Shift count must be between 0 and 31 in active preprocessor expression.";
+      if (right < 0 || right > 31) return INVALID_SHIFT_COUNT_ERROR;
       return (left >>> right) | 0;
     }
     case "+":
@@ -739,14 +745,26 @@ function evaluateBinaryExpression(left: number, operator: string, right: number)
     case "*":
       return Math.imul(left, right);
     case "/":
-      if (right === 0) return "Division by zero in active preprocessor expression.";
+      if (right === 0) return DIVISION_BY_ZERO_ERROR;
       if (left === -0x80000000 && right === -1) return 0x7fffffff;
       return Math.trunc(left / right) | 0;
     case "%":
-      if (right === 0) return "Modulo by zero in active preprocessor expression.";
+      if (right === 0) return MODULO_BY_ZERO_ERROR;
       return left % right | 0;
     default:
       throw new Error(`Unsupported preprocessor operator '${operator}'.`);
+  }
+}
+
+function validateBinaryRightOperand(
+  operator: string,
+  right: number | undefined
+): PreprocessorExpressionEvaluationError | undefined {
+  if ((operator === "/" || operator === "%") && right === 0) {
+    return operator === "/" ? DIVISION_BY_ZERO_ERROR : MODULO_BY_ZERO_ERROR;
+  }
+  if ((operator === "<<" || operator === ">>") && right !== undefined && (right < 0 || right > 31)) {
+    return INVALID_SHIFT_COUNT_ERROR;
   }
 }
 
@@ -778,6 +796,8 @@ function evaluateStaticallyKnownPreprocessorCondition(
       const right = evaluateStaticallyKnownPreprocessorCondition(condition.r, context);
       if (typeof left === "string") return left;
       if (typeof right === "string") return right;
+      const rightOperandError = validateBinaryRightOperand(condition.op, right);
+      if (rightOperandError) return rightOperandError;
       if (left === undefined || right === undefined) {
         return context ? evaluateBoundedIdentifierComparison(condition, left, right) : undefined;
       }

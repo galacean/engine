@@ -70,13 +70,14 @@ class AmbientLightLoader extends Loader<AmbientLight> {
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AmbientLight> {
+    // @ts-expect-error -- internal method is omitted from public declarations
+    const remoteUrl = resourceManager._getRemoteUrl(item.url);
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;
-      const url = item.url;
       resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);
           const dataOffset = header.headerLength;
@@ -91,7 +92,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
             header.dataLength - AmbientLightLoader._shByteLength
           ).then((specularTexture) => {
             engine.resourceManager.addContentRestorer(
-              new AmbientLightContentRestorer(specularTexture, url, requestConfig)
+              new AmbientLightContentRestorer(specularTexture, remoteUrl, requestConfig)
             );
             const ambientLight = new AmbientLight(engine);
             ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
@@ -111,7 +112,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
 class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
-    public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -123,7 +124,7 @@ class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
       const engine = resource.engine;
       engine.resourceManager
         // @ts-ignore
-        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);
           const dataOffset = header.headerLength;

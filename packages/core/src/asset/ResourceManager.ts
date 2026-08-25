@@ -100,7 +100,7 @@ export class ResourceManager {
 
   /**
    * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
-   * @param url - Resource url
+   * @param url - Resource URL
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
@@ -140,13 +140,13 @@ export class ResourceManager {
 
   /**
    * Cancel assets whose url has not finished loading.
-   * @param url - Resource url
+   * @param url - Resource URL
    */
   cancelNotLoaded(url: string): void;
 
   /**
    * Cancel the incompletely loaded assets in urls.
-   * @param urls - Resource urls
+   * @param urls - Resource URLs
    */
   cancelNotLoaded(urls: string[]): void;
 
@@ -209,8 +209,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetSuccess<T>(assetBaseURL: string, assetSubPath: string, value: T): void {
-    const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
+  _onSubAssetSuccess<T>(remoteAssetBaseURL: string, assetSubPath: string, value: T): void {
     const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {});
     const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
