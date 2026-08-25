@@ -1,11 +1,11 @@
 ---
 name: engine-knowledge
-description: "Use for non-derivable runtime semantics of the exact @galacean/engine package version that ships this Skill, especially Script lifecycle, coordinate conventions, and physics ownership. Use the installed declarations as the authority for exports and signatures."
+description: "Use for non-derivable runtime semantics of the exact @galacean/engine package version that ships this Skill, including Script lifecycle, coordinate conventions, physics ownership, and version-matched Spine or XR companions. Use installed declarations as the authority for exports and signatures."
 ---
 
 # Engine Runtime Knowledge
 
-This Skill is a versioned companion to `@galacean/engine`. It records runtime behavior that declarations cannot express. Engine source and generated declarations remain authoritative for exports, signatures, overloads, enum members, and deprecations. Optional packages own their own capabilities.
+This Skill is a versioned companion to `@galacean/engine`. It records runtime behavior that declarations cannot express. Engine source and generated declarations remain authoritative for exports, signatures, overloads, enum members, and deprecations. It also routes stable cross-package semantics for version-matched Spine and XR companions without treating them as exports of the core package.
 
 This Skill does not define how a host creates, serializes, builds, or publishes project assets. Those protocols belong to the host that provides them.
 
@@ -24,5 +24,7 @@ This Skill does not define how a host creates, serializes, builds, or publishes 
 - For built-in mesh dimensions and orientation, read [primitive-geometry.md](references/primitive-geometry.md).
 - For cloning, reference counts, garbage collection, and shared resources, read [resource-ownership.md](references/resource-ownership.md).
 - For material sharing, color-space intent, and final output, read [rendering-and-color.md](references/rendering-and-color.md).
+- For Spine backend, instance, animation-state, and render ownership, read [spine.md](references/spine.md).
+- For XR device, origin, camera, session, input, and frame ownership, read [xr.md](references/xr.md).
 
 Do not pre-read every reference. For all API shape and provider-specific behavior, use the exact installed declarations and runtime tests instead of treating these references as an API catalog.

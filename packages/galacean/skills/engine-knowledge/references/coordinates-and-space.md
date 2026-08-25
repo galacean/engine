@@ -18,3 +18,7 @@ Use this reference when handedness, direction, or coordinate conversion changes 
 ## Decision rule
 
 Keep positions and directions in an explicitly chosen space. Convert at the boundary, and preserve the Engine's `-Z` forward convention when orienting cameras, models, rays, or movement.
+
+## Transform-owned motion pattern
+
+For non-physics motion updated once per rendered frame, scale displacement by the callback's `deltaTime` and move toward local `-Z` when the intent is “forward.” This makes the distance time-based instead of frame-count-based. Do not apply this Transform pattern to a simulation-owned dynamic body; choose its physics motion owner instead.

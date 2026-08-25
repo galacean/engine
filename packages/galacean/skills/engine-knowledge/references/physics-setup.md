@@ -19,6 +19,7 @@ This ordering means a pose or force chosen in `onPhysicsUpdate` affects the upco
 ## Shapes and events
 
 - A collider needs at least one shape to participate in contacts or queries.
+- 3D Script pointer targeting is physics-backed: the pointer ray is tested against eligible collider shapes before callbacks are dispatched to the hit Entity. A visible mesh alone is not a pointer target. The active Camera, culling mask, collision layer, shape raycast flag, and physics provider all participate in that selection.
 - Trigger callbacks receive the other `ColliderShape`. Collision callbacks receive a `Collision` whose `shape` identifies the peer shape.
 - `Collision` and its native contact data are temporary callback data. Copy positions, normals, impulses, or other values that must outlive the callback.
 - Collision layers, trigger mode, collider type, and provider capability all affect whether a pair produces contacts. Resolve the exact current API from the installed declarations instead of copying a provider-specific setup.

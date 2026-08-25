@@ -13,7 +13,9 @@ const expectedMarkdownFiles = [
   "references/physics-setup.md",
   "references/primitive-geometry.md",
   "references/rendering-and-color.md",
-  "references/resource-ownership.md"
+  "references/resource-ownership.md",
+  "references/spine.md",
+  "references/xr.md"
 ];
 
 function markdownFiles(root: string, directory = root): string[] {
@@ -64,6 +66,21 @@ describe("engine-knowledge Skill contract", () => {
     }
     expect(content).not.toContain("references/galacean-knowledge");
     expect(content).not.toContain("```");
+  });
+
+  it("preserves source-verified composition semantics without restoring copyable example pages", () => {
+    const coordinates = readFileSync(resolve(skillRoot, "references/coordinates-and-space.md"), "utf8");
+    const physics = readFileSync(resolve(skillRoot, "references/physics-setup.md"), "utf8");
+    const rendering = readFileSync(resolve(skillRoot, "references/rendering-and-color.md"), "utf8");
+    const spine = readFileSync(resolve(skillRoot, "references/spine.md"), "utf8");
+    const xr = readFileSync(resolve(skillRoot, "references/xr.md"), "utf8");
+
+    expect(coordinates).toContain("deltaTime");
+    expect(physics).toContain("pointer targeting is physics-backed");
+    expect(rendering).toContain("SubMesh");
+    expect(rendering).toContain("instance material");
+    expect(spine).toContain("each instance receives a fresh skeleton and animation state");
+    expect(xr).toContain("None -> Initializing -> Initialized -> Running <-> Paused -> None");
   });
 
   it("ships the complete Skill in the npm tarball", () => {
