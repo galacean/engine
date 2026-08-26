@@ -303,20 +303,69 @@ FragmentShader = frag;
     expect(generated).to.not.equal(undefined);
   });
 
+  it("keeps analyzer-only stage diagnostics non-blocking for parsed-pass handoff", () => {
+    const source = `Shader "AnalyzerOnlyStage" { SubShader "Default" { Pass "p" {
+void vert() {}
+void frag() { gl_FragColor = vec4(0.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const result = ShaderAnalyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("MissingVertexPosition");
+    expect(new ShaderCompiler().generate(result.passes[0], ShaderLanguage.GLSLES300)).to.not.equal(undefined);
+  });
+
   it.each([
     ["invalid assignment target", "1 = 2;", "InvalidAssignmentTarget", /modifiable l-value/],
+    [
+      "invalid prefix increment target",
+      "const float locked = 1.0; ++locked;",
+      "InvalidAssignmentTarget",
+      /modifiable l-value/
+    ],
+    [
+      "invalid postfix increment target",
+      "const float locked = 1.0; locked++;",
+      "InvalidAssignmentTarget",
+      /modifiable l-value/
+    ],
     ["non-bool condition", "if (1.0) {}", "NonBoolCondition", /must be a bool/],
     ["assignment type mismatch", "vec3 value; value = 1.0;", "AssignTypeMismatch", /Cannot assign a value/],
     ["constructor component count", "vec3 value = vec3(1.0, 2.0);", "ConstructorArgCount", /needs 3 components/]
-  ])("blocks a proven %s during offline precompile", (_name, fragmentBody, diagnosticCode, message) => {
+  ])("blocks a proven %s in every authoring pipeline", (_name, fragmentBody, diagnosticCode, message) => {
     const source = `Shader "OfflineSemanticFailure" { SubShader "Default" { Pass "p" {
 void vert() { gl_Position = vec4(0.0); }
 void frag() { ${fragmentBody} gl_FragColor = vec4(0.0); }
 VertexShader = vert;
 FragmentShader = frag;
 } } }`;
-    expect(ShaderAnalyzer.analyze(source).diagnostics.map((diagnostic) => diagnostic.code)).to.include(diagnosticCode);
-    expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw(message);
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include(diagnosticCode);
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      expect(new ShaderCompiler().generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(message);
+    }
+  });
+
+  it("admits modifiable prefix and postfix increment targets in every authoring pipeline", () => {
+    const source = `Shader "OfflineSemanticSuccess" { SubShader "Default" { Pass "p" {
+void vert() { gl_Position = vec4(0.0); }
+void frag() {
+  float prefixValue = 0.0;
+  float postfixValue = 0.0;
+  ++prefixValue;
+  postfixValue++;
+  gl_FragColor = vec4(prefixValue + postfixValue);
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).not.to.include("InvalidAssignmentTarget");
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      expect(new ShaderCompiler().generate(analysis.passes[0], target)).not.to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).not.to.throw();
+    }
   });
 
   it("blocks a branch-local struct containing a sampler during offline precompile", () => {

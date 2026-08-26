@@ -93,7 +93,8 @@ export class ShaderPrecompiler {
                 parsed.ir,
                 pass.vertexEntry,
                 pass.fragmentEntry,
-                branchAnalysis.getDeclarationCoexistence
+                branchAnalysis.getDeclarationCoexistence,
+                branchAnalysis.getBranchCoverage
               )
             : undefined;
           const program = generateParsedShaderPassData(

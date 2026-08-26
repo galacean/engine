@@ -1,12 +1,9 @@
 import { branchAnalysis } from "../common/BranchAnalysis";
-import { GSErrorName } from "../GSError";
 import { AnalyzerLexer } from "../lexer/AnalyzerLexer";
 import type { ChunkOutputCache, IncludeMap } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { createCompilerSemanticDiagnostics } from "./AnalyzerSemanticDiagnostics";
-import { ParserSemanticValidation } from "./ParserSemanticValidation";
-import { mapExpandedShaderError, parseShaderPassWith, type ParsedShaderPassData } from "./ParsedShaderPass";
+import { parseShaderPassWith, type ParsedShaderPassData } from "./ParsedShaderPass";
 import { normalizeShaderSourceFile, shaderSourceBaseURL } from "./ShaderIncludePath";
 import { ShaderTargetParser } from "./ShaderTargetParser";
 
@@ -49,7 +46,7 @@ export function parseValidatedShaderPass(
   sourceScopeStarts?: readonly number[]
 ): ParsedShaderPassData {
   const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
-  const parsed = parseShaderPassWith(
+  return parseShaderPassWith(
     source,
     includeMap,
     cache,
@@ -65,25 +62,4 @@ export function parseValidatedShaderPass(
     true,
     sourceScopeStarts
   );
-  if (!parsed.ir) return parsed;
-  const issues = ParserSemanticValidation.collect(parsed.ir.program);
-  if (!issues.length) return parsed;
-  const semanticErrors = issues.map((issue) =>
-    mapExpandedShaderError(
-      ShaderCompilerUtils.createGSError(
-        issue.message,
-        GSErrorName.CompilationError,
-        parsed.expandedSource,
-        issue.location,
-        issue.code
-      ),
-      parsed.expandedSource,
-      parsed.sourceMap
-    )
-  );
-  return Object.freeze({
-    ...parsed,
-    errors: Object.freeze([...parsed.errors, ...semanticErrors]),
-    blockingErrors: Object.freeze([...parsed.blockingErrors, ...semanticErrors])
-  });
 }

@@ -90,6 +90,15 @@ export class ShaderIOValidator {
         source
       );
     }
+    for (const location of coreInfo.ambiguousStructMemberOwnerLocations) {
+      this._error(
+        errors,
+        DiagnosticType.AmbiguousMacroBranchResolution,
+        "This member reference may resolve to stage IO or an ordinary variable across runtime macro configurations.",
+        location,
+        source
+      );
+    }
 
     for (const fragmentFunction of coreInfo.fragmentEntry.functions) {
       const returnStructs = fragmentFunction.astNode.protoType.returnType.typeSpecifier.structDeclarations;

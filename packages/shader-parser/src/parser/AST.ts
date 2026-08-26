@@ -1832,7 +1832,8 @@ namespace ASTNodes {
             symbols,
             referenceGlobalSymbolNames,
             this.location,
-            branch
+            branch,
+            this
           );
           // Expression-style macros have their own value AST; its real type isn't
           // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
@@ -1940,8 +1941,8 @@ namespace ASTNodes {
       sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, this._branch);
       if (!symbols.length) return;
 
+      this._appendCodegenRuntimeFallbacks(sa, symbols, runtimeFallbacks);
       this._markCodegenReference(name, symbols);
-      this._markCodegenReference(name, runtimeFallbacks);
       if (!inferType) return;
 
       const first = symbols[0].dataType;
@@ -1952,6 +1953,20 @@ namespace ASTNodes {
         if (current?.arraySpecifier?.size !== first?.arraySpecifier?.size) arraySizeDivergent = true;
       }
       this._setCodegenType(first, arraySizeDivergent);
+    }
+
+    private _appendCodegenRuntimeFallbacks(
+      sa: SemanticAnalyzer,
+      symbols: Array<VarSymbol | FnSymbol>,
+      runtimeFallbacks: readonly SymbolInfo[]
+    ): void {
+      const fallbackStart = symbols.length;
+      for (let i = 0, n = runtimeFallbacks.length; i < n; i++) {
+        const fallback = runtimeFallbacks[i];
+        if (!(fallback instanceof VarSymbol || fallback instanceof FnSymbol)) continue;
+        if (symbols.indexOf(fallback) === -1) symbols.push(fallback);
+      }
+      this._registerRuntimeFallbackReference(sa, fallbackStart);
     }
 
     private _markCodegenReference(name: string, symbols: readonly SymbolInfo[]): void {
@@ -1996,6 +2011,7 @@ namespace ASTNodes {
         referenceGlobalSymbolNames,
         null,
         EMPTY_BRANCH,
+        undefined,
         true
       );
     }
@@ -2018,6 +2034,7 @@ namespace ASTNodes {
       referenceGlobalSymbolNames: string[],
       missErrorLoc: ShaderRange | null,
       callsiteBranch: BranchSignature,
+      resolvedReference?: VariableIdentifier,
       retainPartialBranchCandidates = false
     ): boolean {
       const lookupSymbol = sa.lookupSymbol;
@@ -2035,6 +2052,7 @@ namespace ASTNodes {
         }
       }
       if (directlyVisibleCount) symbols.length = directlyVisibleCount;
+      const fallbackStart = symbols.length;
 
       // A conditional declaration in the nearest lexical scope shadows an outer declaration only
       // in configurations where it exists. Retain outer runtime fallbacks as exact alternatives so
@@ -2044,6 +2062,7 @@ namespace ASTNodes {
         if (!(fallback instanceof VarSymbol || fallback instanceof FnSymbol)) continue;
         if (symbols.indexOf(fallback) === -1) symbols.push(fallback);
       }
+      resolvedReference?._registerRuntimeFallbackReference(sa, fallbackStart);
 
       if (!symbols.length) {
         if (missErrorLoc) {
@@ -2090,6 +2109,15 @@ namespace ASTNodes {
         return false;
       }
       return true;
+    }
+
+    private _registerRuntimeFallbackReference(sa: SemanticAnalyzer, fallbackStart: number): void {
+      if (fallbackStart >= this._symbols.length) return;
+      sa.shaderData.runtimeFallbackReferences.push({
+        reference: this,
+        symbols: this._symbols.slice(),
+        fallbackStart
+      });
     }
 
     private static _hasConflictingGlobalBranches(

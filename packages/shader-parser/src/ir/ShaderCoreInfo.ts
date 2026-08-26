@@ -1,10 +1,11 @@
 import { EShaderStage } from "../common/enums/ShaderStage";
 import { Keyword } from "../common/enums/Keyword";
-import type { BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
-import { getLexicalDeclarationCoexistence } from "../common/BranchIdentity";
+import { BaseToken, type BranchCoverage, type BranchSignature, type DeclarationCoexistence } from "../common/BaseToken";
+import { getLexicalDeclarationCoexistence, isLexicalBranchVisibleFrom } from "../common/BranchIdentity";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { NoneTerminal } from "../parser/GrammarSymbol";
 import { ParserUtils } from "../ParserUtils";
+import type { RuntimeFallbackReference } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, SymbolInfo, SymbolTable, VarSymbol } from "../parser/symbolTable";
 import type { StructProp } from "../parser/types";
 import type { ShaderRange } from "../common/ShaderRange";
@@ -84,6 +85,14 @@ export class ShaderCoreInfo {
   readonly invalidMrtReturnLocations: readonly ShaderRange[];
   /** Varying entry returns that cannot be represented by the flattened GLES output contract. */
   readonly invalidVaryingReturnLocations: readonly ShaderRange[];
+  /**
+   * Member references whose runtime owners mix flattened IO values and ordinary variables.
+   */
+  readonly ambiguousStructMemberOwnerLocations: readonly ShaderRange[];
+  /**
+   * Member references that a backend cannot lower safely for every retained macro configuration.
+   */
+  readonly unlowerableStructMemberOwnerLocations: readonly ShaderRange[];
   /** Global preprocessor declarations that backends may reproduce. */
   readonly outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[];
 
@@ -93,22 +102,25 @@ export class ShaderCoreInfo {
    * @param vertexEntry - Vertex entry function name.
    * @param fragmentEntry - Fragment entry function name.
    * @param getDeclarationCoexistence - Optional full macro-proof function for authoring/offline validation.
+   * @param getBranchCoverage - Optional full coverage proof for conditional runtime owners.
    * @returns Lightweight backend information with no diagnostics.
    */
   static create(
     ir: ShaderClueIR,
     vertexEntry: string,
     fragmentEntry: string,
-    getDeclarationCoexistence: DeclarationCoexistenceResolver = getLexicalDeclarationCoexistence
+    getDeclarationCoexistence: DeclarationCoexistenceResolver = getLexicalDeclarationCoexistence,
+    getBranchCoverage: BranchCoverageResolver = getRuntimeBranchCoverage
   ): ShaderCoreInfo {
-    return new ShaderCoreInfo(ir, vertexEntry, fragmentEntry, getDeclarationCoexistence);
+    return new ShaderCoreInfo(ir, vertexEntry, fragmentEntry, getDeclarationCoexistence, getBranchCoverage);
   }
 
   private constructor(
     ir: ShaderClueIR,
     vertexEntry: string,
     fragmentEntry: string,
-    getDeclarationCoexistence: DeclarationCoexistenceResolver
+    getDeclarationCoexistence: DeclarationCoexistenceResolver,
+    getBranchCoverage: BranchCoverageResolver
   ) {
     const symbolTable = ir.shaderData.symbolTable;
     const vertexFunctions = findFunctions(symbolTable, vertexEntry);
@@ -133,12 +145,112 @@ export class ShaderCoreInfo {
     this.invalidMrtReturnLocations = collectInvalidMrtReturns(fragmentFunctions, mutableIO.mrtStructs);
     this.invalidVaryingReturnLocations = collectInvalidVaryingReturns(vertexFunctions, mutableIO.varyingStructs);
     deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO);
+    const ownerFacts = collectStructMemberOwnerFacts(
+      [...vertexFunctions, ...fragmentFunctions],
+      ir.shaderData.runtimeFallbackReferences,
+      mutableIO.structVariableRoles,
+      getBranchCoverage
+    );
+    this.ambiguousStructMemberOwnerLocations = ownerFacts.ambiguousLocations;
+    this.unlowerableStructMemberOwnerLocations = ownerFacts.unlowerableLocations;
     this.io = mutableIO;
     this.outerGlobalMacroDeclarations = ir.shaderData.getOuterGlobalMacroDeclarations();
   }
 }
 
+function collectStructMemberOwnerFacts(
+  entries: readonly FnSymbol[],
+  references: readonly RuntimeFallbackReference[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
+  getBranchCoverage: BranchCoverageResolver
+): { ambiguousLocations: ShaderRange[]; unlowerableLocations: ShaderRange[] } {
+  const ambiguousLocations: ShaderRange[] = [];
+  const unlowerableLocations: ShaderRange[] = [];
+  const ambiguousReferences = new Set<ASTNode.VariableIdentifier>();
+  const unlowerableReferences = new Set<ASTNode.VariableIdentifier>();
+  const visitedFunctions = new Set<FnSymbol>();
+  const reachableFunctions = new Set<ASTNode.FunctionDefinition>();
+  const pending = entries.slice();
+  while (pending.length) {
+    const fn = pending.pop()!;
+    if (visitedFunctions.has(fn)) continue;
+    visitedFunctions.add(fn);
+    reachableFunctions.add(fn.astNode);
+    pending.push(...fn.calledFunctions);
+  }
+  const primaryBranches: BranchSignature[] = [];
+  for (const fallbackReference of references) {
+    const { reference, symbols, fallbackStart } = fallbackReference;
+    if (!isReachableStructMemberReference(reference, reachableFunctions)) continue;
+    primaryBranches.length = 0;
+    for (let i = 0; i < fallbackStart; i++) primaryBranches.push(symbols[i].branchSignature);
+    const coverage = getBranchCoverage(primaryBranches, reference._branch);
+    if (coverage === "covered") continue;
+
+    let resolvedRole: ShaderStructRole | undefined;
+    let hasOrdinaryOwner = false;
+    let hasRoleConflict = false;
+    for (const symbol of symbols) {
+      if (!(symbol instanceof VarSymbol)) continue;
+      const role = variableRoles.get(symbol);
+      if (!role) {
+        hasOrdinaryOwner = true;
+      } else if (resolvedRole && resolvedRole !== role) {
+        hasRoleConflict = true;
+      } else {
+        resolvedRole = role;
+      }
+    }
+    if (hasRoleConflict || (resolvedRole && hasOrdinaryOwner)) {
+      if (!unlowerableReferences.has(reference)) {
+        unlowerableReferences.add(reference);
+        unlowerableLocations.push(reference.location);
+      }
+      if (coverage === "uncovered" && !ambiguousReferences.has(reference)) {
+        ambiguousReferences.add(reference);
+        ambiguousLocations.push(reference.location);
+      }
+    }
+  }
+  return { ambiguousLocations, unlowerableLocations };
+}
+
+function isReachableStructMemberReference(
+  reference: ASTNode.VariableIdentifier,
+  reachableFunctions: ReadonlySet<ASTNode.FunctionDefinition>
+): boolean {
+  let isStructMember = false;
+  let current = reference.parent;
+  while (current) {
+    if (
+      current instanceof ASTNode.PostfixExpression &&
+      current.children.length === 3 &&
+      current.children[2] instanceof BaseToken &&
+      ParserUtils.unwrapBareIdentifier(current.children[0] as TreeNode, { allowParens: true }) === reference
+    ) {
+      isStructMember = true;
+    }
+    if (current instanceof ASTNode.FunctionDefinition) return isStructMember && reachableFunctions.has(current);
+    current = current.parent;
+  }
+  return false;
+}
+
 type DeclarationCoexistenceResolver = (earlier: BranchSignature, later: BranchSignature) => DeclarationCoexistence;
+type BranchCoverageResolver = (
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+) => BranchCoverage;
+
+function getRuntimeBranchCoverage(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): BranchCoverage {
+  for (let i = 0; i < candidates.length; i++) {
+    if (isLexicalBranchVisibleFrom(candidates[i], callSiteBranch)) return "covered";
+  }
+  return "unknown";
+}
 
 function collectInvalidVaryingReturns(
   vertexFunctions: readonly FnSymbol[],

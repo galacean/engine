@@ -93,6 +93,10 @@ function generateShaderProgram(
     Logger.error("Varying vertex entries must return a struct variable or same-type function result.");
     return undefined;
   }
+  if (coreInfo.unlowerableStructMemberOwnerLocations.length) {
+    Logger.error("A struct member reference cannot mix flattened stage IO and ordinary runtime owners.");
+    return undefined;
+  }
   const result = GLESBackend.generate(ir, coreInfo, backend);
   if (result) {
     result.vertexShaderInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);

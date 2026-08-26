@@ -5,9 +5,11 @@ import { ShaderRange } from "../common/ShaderRange";
 import { GSError, GSErrorName } from "../GSError";
 import type { MacroDefineList } from "../Preprocessor";
 import { Preprocessor, type ChunkOutputCache, type IncludeMap } from "../Preprocessor";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ShaderClueIR, type ShaderSourceMapSegment } from "../ir";
 import type { ShaderTargetParser } from "./ShaderTargetParser";
 import type { ParserObjectPool } from "../ParserObjectPool";
+import { ParserSemanticValidation } from "./ParserSemanticValidation";
 
 const EMPTY_ERRORS: readonly Error[] = Object.freeze([]);
 const EMPTY_PREPROCESSOR_EXPRESSIONS: ReadonlyMap<string, never> = new Map<string, never>();
@@ -222,8 +224,35 @@ export function parseShaderPassWith(
       blockingErrors = Object.freeze([...preprocessErrors, ...mappedExpressionErrors, ...mappedParserBlockingErrors]);
     }
   }
+  const ir = program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null;
+  if (ir) {
+    const semanticIssues = ParserSemanticValidation.collect(ir.program);
+    if (semanticIssues.length) {
+      const semanticErrors = semanticIssues.map((issue) =>
+        mapExpandedShaderError(
+          ShaderCompilerUtils.createGSError(
+            issue.message,
+            GSErrorName.CompilationError,
+            expandedSource,
+            issue.location,
+            issue.code
+          ),
+          expandedSource,
+          frozenSourceMap
+        )
+      );
+      return Object.freeze({
+        ir,
+        expandedSource,
+        sourceMap: frozenSourceMap,
+        preprocessorExpressions: lexer.preprocessorExpressions,
+        errors: Object.freeze([...errors, ...semanticErrors]),
+        blockingErrors: Object.freeze([...blockingErrors, ...semanticErrors])
+      });
+    }
+  }
   return Object.freeze({
-    ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null,
+    ir,
     expandedSource,
     sourceMap: frozenSourceMap,
     preprocessorExpressions: lexer.preprocessorExpressions,

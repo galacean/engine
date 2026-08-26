@@ -699,7 +699,7 @@ FragmentShader = frag;
     }
   });
 
-  it("keeps a local struct owner across independent guards separated by undef", () => {
+  it("reuses analyzer ownership proof across independent guards separated by undef", () => {
     const source = `Shader "runtime-struct-mutation" { SubShader "s" { Pass "p" {
 struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
@@ -729,13 +729,16 @@ FragmentShader = frag;
 
     for (const platformTarget of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
+      const generated = compiler.generate(analysis.passes[0], platformTarget);
+      const live = compile(compiler, source, platformTarget);
       const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
+      expect(generated, `analyzer handoff platform=${platformTarget}`).to.not.be.undefined;
+      expect(live, `lean runtime compiler platform=${platformTarget}`).to.be.undefined;
       expect(offline.isUsePass).to.be.false;
       if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
 
       for (const [pipeline, program] of [
-        ["analyzer handoff", compiler.generate(analysis.passes[0], platformTarget)!],
-        ["live compiler", compile(compiler, source, platformTarget)!],
+        ["analyzer handoff", generated!],
         ["offline precompiler", offline]
       ] as const) {
         const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
@@ -753,6 +756,116 @@ FragmentShader = frag;
           ).to.be.true;
         }
       }
+    }
+  });
+
+  it("keeps unresolved merged macro ownership silent in analysis and blocking in codegen", () => {
+    const source = `Shader "runtime-merged-macro-state" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalVaryings { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef CONFIG
+#define LOCAL_SHADOW
+#else
+#define LOCAL_SHADOW
+#endif
+#ifdef LOCAL_SHADOW
+  LocalVaryings v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#ifndef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics, analysis.diagnostics.map((diagnostic) => diagnostic.code).join(", ")).to.be.empty;
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("keeps repeated external guards in the same macro generation", () => {
+    const source = `Shader "runtime-repeated-guard" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalVaryings { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef LOCAL_SHADOW
+  LocalVaryings v;
+  v.uv = vec2(0.25);
+#endif
+#ifdef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).not.to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).not.to.throw();
+    }
+  });
+
+  it("rejects repeated guards separated by a definite macro generation", () => {
+    const source = `Shader "runtime-versioned-guard" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalVaryings { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef LOCAL_SHADOW
+  LocalVaryings v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#define LOCAL_SHADOW
+#ifdef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
     }
   });
 
@@ -807,6 +920,77 @@ FragmentShader = frag;
           }
         }
       }
+    }
+  });
+
+  it("rejects an IO/local owner ambiguity that cannot be lowered across macro mutation", () => {
+    const source = `Shader "runtime-io-owner-ambiguity" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalValue { vec2 uv; };
+Varyings v;
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef LOCAL_SHADOW
+  LocalValue v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#ifndef LOCAL_SHADOW
+  gl_FragColor = vec4(v.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("rejects the same IO/local ambiguity through an expression macro owner", () => {
+    const source = `Shader "runtime-macro-io-owner-ambiguity" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct LocalValue { vec2 uv; };
+Varyings v;
+#define OWNER v
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef LOCAL_SHADOW
+  LocalValue v;
+  v.uv = vec2(0.25);
+#endif
+#undef LOCAL_SHADOW
+#ifndef LOCAL_SHADOW
+  gl_FragColor = vec4(OWNER.uv, 0.0, 1.0);
+#endif
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
     }
   });
 });

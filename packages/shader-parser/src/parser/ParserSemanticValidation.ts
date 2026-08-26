@@ -6,7 +6,10 @@ import { ASTNode, TreeNode } from "./AST";
 import { VarSymbol } from "./symbolTable";
 import { TypeSystem } from "./TypeSystem";
 
-/** A semantic failure proven from parser-owned AST and symbol facts. @internal */
+/**
+ * A semantic failure proven from parser-owned AST and symbol facts.
+ * @internal
+ */
 export interface ParserSemanticIssue {
   /** Stable diagnostic identifier shared by authoring and offline validation. */
   readonly code: string;
@@ -16,7 +19,10 @@ export interface ParserSemanticIssue {
   readonly location: ShaderRange;
 }
 
-/** Parser-owned semantic rules shared by Analyzer and offline admission. @internal */
+/**
+ * Parser-owned semantic rules shared by Analyzer and offline admission.
+ * @internal
+ */
 export class ParserSemanticValidation {
   /**
    * Collects proven semantic failures from a complete parser IR.
@@ -33,6 +39,9 @@ export class ParserSemanticValidation {
         const typeIssue = this.assignmentTypeIssue(node);
         if (targetIssue) issues.push(targetIssue);
         if (typeIssue) issues.push(typeIssue);
+      } else if (node instanceof ASTNode.UnaryExpression || node instanceof ASTNode.PostfixExpression) {
+        const issue = this.incrementTargetIssue(node);
+        if (issue) issues.push(issue);
       } else if (node instanceof ASTNode.SelectionStatement) {
         const issue = this.selectionConditionIssue(node);
         if (issue) issues.push(issue);
@@ -155,6 +164,36 @@ export class ParserSemanticValidation {
           code: "InvalidAssignmentTarget",
           message: `Cannot assign to ${reason} — the left operand of '=' must be a modifiable l-value.`,
           location: lhs.location
+        }
+      : undefined;
+  }
+
+  /**
+   * Validates the target of a prefix or postfix increment operation.
+   * @param node - Unary or postfix expression to inspect.
+   * @returns A proven invalid-target issue, or `undefined` for other operators and modifiable targets.
+   * @internal
+   */
+  static incrementTargetIssue(
+    node: ASTNode.UnaryExpression | ASTNode.PostfixExpression
+  ): ParserSemanticIssue | undefined {
+    if (node.children.length !== 2) return;
+    const prefix = node instanceof ASTNode.UnaryExpression;
+    const operator = node.children[prefix ? 0 : 1];
+    const operand = node.children[prefix ? 1 : 0];
+    if (
+      !(operator instanceof Token) ||
+      (operator.type !== ETokenType.INC_OP && operator.type !== ETokenType.DEC_OP) ||
+      !(operand instanceof TreeNode)
+    ) {
+      return;
+    }
+    const reason = this.nonAssignableReason(operand);
+    return reason
+      ? {
+          code: "InvalidAssignmentTarget",
+          message: `Cannot apply '${operator.lexeme}' to ${reason} — the operand of '${operator.lexeme}' must be a modifiable l-value.`,
+          location: operand.location
         }
       : undefined;
   }

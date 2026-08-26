@@ -132,7 +132,13 @@ export class ShaderAnalyzer {
     const parsed = parseShaderPass(pass.contents, includeMap, chunkOutputCache, sourceFile, pass.contentScopeStarts);
     const { ir, errors } = parsed;
     const coreInfo = ir
-      ? ShaderCoreInfo.create(ir, vertexEntry, fragmentEntry, branchAnalysis.getDeclarationCoexistence)
+      ? ShaderCoreInfo.create(
+          ir,
+          vertexEntry,
+          fragmentEntry,
+          branchAnalysis.getDeclarationCoexistence,
+          branchAnalysis.getBranchCoverage
+        )
       : undefined;
     parsedPasses?.push(createParsedShaderPass(parsed, vertexEntry, fragmentEntry, coreInfo));
     for (const error of errors) {
