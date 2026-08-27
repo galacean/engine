@@ -1,26 +1,8 @@
-import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import type { Condition, PreprocessorExpressionParseResult, ShaderInstruction } from "@galacean/engine-design";
+import { ShaderPreprocessorDirective } from "@galacean/engine-core";
+import { parsePreprocessorExpression, toPreprocessorCondition } from "@galacean/engine-shader-parser/internal";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
-
-/** Must stay in sync with ShaderPreprocessorDirective in @galacean/engine-core */
-const ShaderPreprocessorDirective = {
-  Text: 0,
-  IfDef: 1,
-  IfNdef: 2,
-  IfCmp: 3,
-  IfExpr: 4,
-  Else: 5,
-  Endif: 6,
-  Define: 7,
-  DefineVal: 8,
-  DefineFunc: 9,
-  Undef: 10
-} as const;
-
-interface ExprCtx {
-  s: string;
-  i: number;
-}
 
 /**
  * @internal
@@ -29,7 +11,18 @@ export class ShaderInstructionEncoder {
   private static _DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
 
-  static parse(glsl: string): ShaderInstruction[] {
+  /**
+   * Encodes generated GLSL directives into runtime-selectable instructions.
+   * @param glsl - Generated stage source.
+   * @param preprocessorExpressions - Parser-owned expression trees keyed by logical directive text.
+   * @returns Runtime shader instruction stream.
+   * @throws Error when a conditional directive is malformed or has a deterministic evaluation failure.
+   * @internal
+   */
+  static parse(
+    glsl: string,
+    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
+  ): ShaderInstruction[] {
     const instructions: ShaderInstruction[] = [];
     const length = glsl.length;
     let pos = 0;
@@ -47,9 +40,8 @@ export class ShaderInstructionEncoder {
         ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart);
       }
 
-      let lineEnd = glsl.indexOf("\n", directiveStart);
-      if (lineEnd === -1) lineEnd = length;
-      const line = glsl.substring(directiveStart, lineEnd);
+      const lineEnd = ShaderInstructionEncoder._findLogicalLineEnd(glsl, directiveStart, length);
+      const line = glsl.substring(directiveStart, lineEnd).replace(/\\(?:\r\n|\n|\r)/g, " ");
       pos = lineEnd < length ? lineEnd + 1 : length;
 
       const match = ShaderInstructionEncoder._DIRECTIVE_RE.exec(line);
@@ -81,7 +73,7 @@ export class ShaderInstructionEncoder {
           break;
         }
         case "if": {
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest, preprocessorExpressions);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           backfillStack.push([idx]);
@@ -95,7 +87,7 @@ export class ShaderInstructionEncoder {
           stack.push(elseIdx);
           ShaderInstructionEncoder._backfillJump(instructions[prevIdx], instructions.length);
 
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = ShaderInstructionEncoder._parseCondition(rest, preprocessorExpressions);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           stack.push(idx);
@@ -141,14 +133,14 @@ export class ShaderInstructionEncoder {
               ShaderInstructionEncoder._stripLineComment(funcMatch[3].trim())
             ]);
           } else {
-            const spaceIdx = rest.indexOf(" ");
-            if (spaceIdx === -1) {
+            const separator = ShaderInstructionEncoder._findInlineWhitespace(rest);
+            if (separator === rest.length) {
               instructions.push([ShaderPreprocessorDirective.Define, rest]);
             } else {
               instructions.push([
                 ShaderPreprocessorDirective.DefineVal,
-                rest.substring(0, spaceIdx),
-                ShaderInstructionEncoder._stripLineComment(rest.substring(spaceIdx + 1).trim())
+                rest.substring(0, separator),
+                ShaderInstructionEncoder._stripLineComment(rest.substring(separator + 1).trim())
               ]);
             }
           }
@@ -176,6 +168,21 @@ export class ShaderInstructionEncoder {
     }
   }
 
+  private static _parseCondition(
+    expression: string,
+    preprocessorExpressions?: ReadonlyMap<string, PreprocessorExpressionParseResult>
+  ): Condition {
+    const result = preprocessorExpressions?.get(expression) ?? parsePreprocessorExpression(expression);
+    if ("error" in result) {
+      if (!result.error.certain && result.hasExpandableIdentifier) return { t: "deferred", e: expression };
+      throw new Error(result.error.message);
+    }
+    if (result.evaluationError) throw new Error(result.evaluationError);
+    const compact = toPreprocessorCondition(result.condition);
+    if (compact && !result.hasExpandableIdentifier) return compact;
+    return result.hasExpandableIdentifier ? { t: "deferred", e: expression } : result.condition;
+  }
+
   private static _findDirectiveStart(source: string, from: number, length: number): number {
     let i = from;
     while (i < length) {
@@ -195,6 +202,26 @@ export class ShaderInstructionEncoder {
       i = nl + 1;
     }
     return -1;
+  }
+
+  private static _findLogicalLineEnd(source: string, start: number, length: number): number {
+    let lineEnd = source.indexOf("\n", start);
+    while (lineEnd !== -1) {
+      const beforeBreak = source.charCodeAt(lineEnd - 1) === 13 ? lineEnd - 2 : lineEnd - 1;
+      if (beforeBreak < start || source.charCodeAt(beforeBreak) !== 92) return lineEnd;
+      lineEnd = source.indexOf("\n", lineEnd + 1);
+    }
+    return length;
+  }
+
+  private static _findInlineWhitespace(source: string): number {
+    let index = 0;
+    while (index < source.length) {
+      const charCode = source.charCodeAt(index);
+      if (charCode === 32 /* space */ || charCode === 9 /* tab */) break;
+      index++;
+    }
+    return index;
   }
 
   private static _pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {
@@ -225,193 +252,5 @@ export class ShaderInstructionEncoder {
   private static _stripLineComment(s: string): string {
     const idx = s.indexOf("//");
     return idx >= 0 ? s.substring(0, idx).trimEnd() : s;
-  }
-
-  private static _parseCondition(expr: string): Condition {
-    const ctx: ExprCtx = { s: expr.trim(), i: 0 };
-    return ShaderInstructionEncoder._parseOr(ctx);
-  }
-
-  private static _skipWs(ctx: ExprCtx): void {
-    while (
-      ctx.i < ctx.s.length &&
-      (ctx.s.charCodeAt(ctx.i) === 32 /* space */ || ctx.s.charCodeAt(ctx.i) === 9) /* tab */
-    )
-      ctx.i++;
-  }
-
-  private static _parseOr(ctx: ExprCtx): Condition {
-    let left = ShaderInstructionEncoder._parseAnd(ctx);
-    ShaderInstructionEncoder._skipWs(ctx);
-    while (
-      ctx.i < ctx.s.length - 1 &&
-      ctx.s.charCodeAt(ctx.i) === 124 /* '|' */ &&
-      ctx.s.charCodeAt(ctx.i + 1) === 124 /* '|' */
-    ) {
-      ctx.i += 2;
-      ShaderInstructionEncoder._skipWs(ctx);
-      left = { t: "or", l: left, r: ShaderInstructionEncoder._parseAnd(ctx) };
-      ShaderInstructionEncoder._skipWs(ctx);
-    }
-    return left;
-  }
-
-  private static _parseAnd(ctx: ExprCtx): Condition {
-    let left = ShaderInstructionEncoder._parseUnary(ctx);
-    ShaderInstructionEncoder._skipWs(ctx);
-    while (
-      ctx.i < ctx.s.length - 1 &&
-      ctx.s.charCodeAt(ctx.i) === 38 /* '&' */ &&
-      ctx.s.charCodeAt(ctx.i + 1) === 38 /* '&' */
-    ) {
-      ctx.i += 2;
-      ShaderInstructionEncoder._skipWs(ctx);
-      left = { t: "and", l: left, r: ShaderInstructionEncoder._parseUnary(ctx) };
-      ShaderInstructionEncoder._skipWs(ctx);
-    }
-    return left;
-  }
-
-  private static _parseUnary(ctx: ExprCtx): Condition {
-    ShaderInstructionEncoder._skipWs(ctx);
-    if (ctx.s.charCodeAt(ctx.i) === 33 /* '!' */) {
-      ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      return { t: "not", c: ShaderInstructionEncoder._parsePrimary(ctx) };
-    }
-    return ShaderInstructionEncoder._parsePrimary(ctx);
-  }
-
-  private static _parsePrimary(ctx: ExprCtx): Condition {
-    ShaderInstructionEncoder._skipWs(ctx);
-    const { s } = ctx;
-
-    // Parenthesized expression
-    if (s.charCodeAt(ctx.i) === 40 /* '(' */) {
-      ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const inner = ShaderInstructionEncoder._parseOr(ctx);
-      ShaderInstructionEncoder._skipWs(ctx);
-      if (s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
-      return inner;
-    }
-
-    // defined(MACRO) or defined MACRO
-    if (s.substring(ctx.i, ctx.i + 7) === "defined") {
-      ctx.i += 7;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const hasParen = s.charCodeAt(ctx.i) === 40; /* '(' */
-      if (hasParen) ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const name = ShaderInstructionEncoder._scanIdentifier(ctx);
-      ShaderInstructionEncoder._skipWs(ctx);
-      if (hasParen && s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
-      return { t: "def", m: name };
-    }
-
-    // Numeric literal
-    if (ctx.i < s.length && ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i))) {
-      const lhsNum = ShaderInstructionEncoder._scanNumber(ctx);
-      ShaderInstructionEncoder._skipWs(ctx);
-      const op = ShaderInstructionEncoder._scanOp(ctx);
-      if (op) {
-        ShaderInstructionEncoder._skipWs(ctx);
-        return {
-          t: "bool",
-          v: ShaderInstructionEncoder._evalNumOp(lhsNum, op, ShaderInstructionEncoder._scanNumber(ctx))
-        };
-      }
-      return { t: "bool", v: lhsNum !== 0 };
-    }
-
-    // Identifier — comparison or defined check
-    const name = ShaderInstructionEncoder._scanIdentifier(ctx);
-    if (!name) return { t: "bool", v: false };
-    ShaderInstructionEncoder._skipWs(ctx);
-    const op = ShaderInstructionEncoder._scanOp(ctx);
-    if (op) {
-      ShaderInstructionEncoder._skipWs(ctx);
-      return { t: "cmp", m: name, op, v: ShaderInstructionEncoder._scanNumber(ctx) };
-    }
-    return { t: "def", m: name };
-  }
-
-  private static _isDigit(charCode: number): boolean {
-    return charCode >= 48 /* '0' */ && charCode <= 57 /* '9' */;
-  }
-
-  private static _isAlnum(charCode: number): boolean {
-    return (
-      (charCode >= 65 /* 'A' */ && charCode <= 90) /* 'Z' */ ||
-      (charCode >= 97 /* 'a' */ && charCode <= 122) /* 'z' */ ||
-      (charCode >= 48 /* '0' */ && charCode <= 57) /* '9' */ ||
-      charCode === 95 /* '_' */
-    );
-  }
-
-  private static _scanIdentifier(ctx: ExprCtx): string {
-    const start = ctx.i;
-    while (ctx.i < ctx.s.length && ShaderInstructionEncoder._isAlnum(ctx.s.charCodeAt(ctx.i))) ctx.i++;
-    return ctx.s.substring(start, ctx.i);
-  }
-
-  private static _scanNumber(ctx: ExprCtx): number {
-    const start = ctx.i;
-    if (ctx.s.charCodeAt(ctx.i) === 45 /* '-' */) ctx.i++;
-    while (
-      ctx.i < ctx.s.length &&
-      (ShaderInstructionEncoder._isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46) /* '.' */
-    )
-      ctx.i++;
-    return Number(ctx.s.substring(start, ctx.i)) || 0;
-  }
-
-  private static _scanOp(ctx: ExprCtx): string {
-    const c = ctx.s.charCodeAt(ctx.i);
-    const c2 = ctx.i + 1 < ctx.s.length ? ctx.s.charCodeAt(ctx.i + 1) : 0;
-    if (c === 61 /* '=' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "==";
-    }
-    if (c === 33 /* '!' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "!=";
-    }
-    if (c === 62 /* '>' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return ">=";
-    }
-    if (c === 60 /* '<' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "<=";
-    }
-    if (c === 62 /* '>' */) {
-      ctx.i++;
-      return ">";
-    }
-    if (c === 60 /* '<' */) {
-      ctx.i++;
-      return "<";
-    }
-    return "";
-  }
-
-  private static _evalNumOp(lhs: number, op: string, rhs: number): boolean {
-    switch (op) {
-      case "==":
-        return lhs === rhs;
-      case "!=":
-        return lhs !== rhs;
-      case ">":
-        return lhs > rhs;
-      case "<":
-        return lhs < rhs;
-      case ">=":
-        return lhs >= rhs;
-      case "<=":
-        return lhs <= rhs;
-      default:
-        return false;
-    }
   }
 }

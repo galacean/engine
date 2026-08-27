@@ -1,190 +1,109 @@
 import type { IShaderInfo } from "@galacean/engine-design";
-import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { Keyword } from "../common/enums/Keyword";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { NodeChild } from "../parser/types";
-import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
+import type { IPoolElement } from "@galacean/engine-core";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { EShaderStage } from "@galacean/engine-shader-parser/internal";
+import { Keyword } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { NodeChild } from "@galacean/engine-shader-parser/internal";
+import { ShaderData } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
+import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
-import { StructRole, VisitorContext } from "./VisitorContext";
+import type { ShaderBackend } from "../ShaderBackend";
 
 /**
  * @internal
  */
-export abstract class GLESVisitor extends CodeGenVisitor {
+export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   private _globalCodeArray: ICodeSegment[] = [];
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _serializedGlobalKey = new Set();
 
+  /**
+   * Clears pass-local output retained by the pooled visitor.
+   */
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
   }
 
+  /**
+   * Releases references retained by an idle visitor when its pool is collected.
+   * @internal
+   */
+  dispose(): void {
+    this.context.reset();
+    this.reset();
+  }
+
+  /**
+   * Emits target-specific declarations that precede generated global code.
+   * @param data - Parser-owned shader facts.
+   * @param out - Destination code segments.
+   */
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
     for (const precision of data.globalPrecisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
   }
 
-  visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    // #if _VERBOSE
-    this.errors.length = 0;
-    // #endif
-    VisitorContext.reset();
+  /**
+   * Generates vertex and fragment source from neutral parser facts.
+   * @param ir - Request-owned neutral shader IR.
+   * @param coreInfo - Entry and stage-interface facts derived from the same IR.
+   * @returns Generated vertex and fragment source.
+   */
+  generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
+    this.context.reset();
     this.reset();
 
+    const node = ir.program;
     const shaderData = node.shaderData;
-    const context = VisitorContext.context;
+    const context = this.context;
     context._passSymbolTable = shaderData.symbolTable;
 
-    const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
-
-    // `_structVarMap` must span both stages so global `#define` references rewrite consistently across vertex/fragment outputs.
-    this._collectAllStructVars(vertexEntry, fragmentEntry);
+    const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
+    const { io } = coreInfo;
+    context.attributeStructs.push(...io.attributeStructs);
+    context.attributeList.push(...io.attributeList);
+    context.varyingStructs.push(...io.varyingStructs);
+    context.varyingList.push(...io.varyingList);
+    context.mrtStructs.push(...io.mrtStructs);
+    context.mrtList.push(...io.mrtList);
+    context.registerStructTypes(ShaderStructRole.Attribute, io.attributeStructs);
+    context.registerStructTypes(ShaderStructRole.Varying, io.varyingStructs);
+    context.registerStructTypes(ShaderStructRole.Mrt, io.mrtStructs);
+    io.structVariableRoles.forEach((role, variable) => context.registerStructVar(variable, role));
+    io.vertexStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.VERTEX);
+    });
+    io.fragmentStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.FRAGMENT);
+    });
 
     return {
-      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
-      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
+      vertex: this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations),
+      fragment: this._fragmentMain(coreInfo.fragmentEntry, shaderData, outerGlobalMacroDeclarations)
     };
-  }
-
-  /** Populate `_structVarMap` for varying/attribute/mrt-typed variables across both stages before codegen. */
-  private _collectAllStructVars(vertexEntry: string, fragmentEntry: string): void {
-    const context = VisitorContext.context;
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = context._passSymbolTable;
-
-    // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
-    const structRoles: Record<string, StructRole> = Object.create(null);
-
-    const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
-      lookupSymbol.set(entry, ESymbolType.FN);
-      const fns = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-      for (const fn of fns) {
-        const proto = fn.astNode.protoType;
-        const param0 = proto.parameterList?.[0];
-        if (param0 && typeof param0.typeInfo?.type === "string") {
-          structRoles[param0.typeInfo.typeLexeme] = paramRole;
-        }
-        if (typeof proto.returnType.type === "string") {
-          structRoles[<string>proto.returnType.type] = returnRole;
-        }
-      }
-      return fns;
-    };
-
-    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
-      addEntryRoles(fragmentEntry, "varying", "mrt")
-    );
-
-    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
-      if (!typeLexeme) return;
-      const role = structRoles[typeLexeme];
-      if (role) context.registerStructVar(varName, role);
-    };
-
-    const walkLocals = (node: TreeNode): void => {
-      for (const child of node.children) {
-        if (child instanceof ASTNode.InitDeclaratorList) {
-          const typeLexeme = child.typeInfo?.typeLexeme;
-          if (typeLexeme && structRoles[typeLexeme]) {
-            this._extractLocalVarNames(child, context, structRoles[typeLexeme]);
-          }
-        } else if (child instanceof TreeNode) {
-          walkLocals(child);
-        }
-      }
-    };
-
-    for (const fn of entryFns) {
-      const proto = fn.astNode.protoType;
-      if (proto.parameterList) {
-        for (const param of proto.parameterList) {
-          if (param.ident && typeof param.typeInfo?.type === "string") {
-            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
-          }
-        }
-      }
-      walkLocals(fn.astNode.statements);
-    }
-
-    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
-    symbolTable.forEach((sym) => {
-      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
-    });
   }
 
   private _vertexMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
-    outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.VERTEX;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = data.symbolTable;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols.length) throw `no entry function found: ${entry}`;
-
-    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
-    fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const returnType = fnNode.protoType.returnType;
-
-      if (typeof returnType.type === "string") {
-        lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-        const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!varyingSymbols.length) {
-          this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
-        } else {
-          for (let i = 0; i < varyingSymbols.length; i++) {
-            const varyingSymbol = varyingSymbols[i];
-            const astNode = varyingSymbol.astNode;
-            varyingStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              varyingList.push(prop);
-            }
-          }
-        }
-      } else if (returnType.type !== Keyword.VOID) {
-        this._reportError(returnType.location, "vertex main entry can only return struct or void.");
-      }
-
-      const paramList = fnNode.protoType.parameterList;
-      const attributeParam = paramList?.[0];
-      if (attributeParam) {
-        const attributeType = attributeParam.typeInfo.type;
-        if (typeof attributeType === "string") {
-          lookupSymbol.set(attributeType, ESymbolType.STRUCT);
-          const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-          if (!attributeSymbols.length) {
-            this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
-          } else {
-            for (let i = 0; i < attributeSymbols.length; i++) {
-              const attributeSymbol = attributeSymbols[i];
-              const astNode = attributeSymbol.astNode;
-              attributeStructs.push(astNode);
-              for (const prop of astNode.propList) {
-                attributeList.push(prop);
-              }
-            }
-          }
-        }
-      }
-    });
+    // Attribute/varying structs were collected in ShaderCoreInfo
 
     // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
@@ -197,63 +116,46 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       .map((item) => item.text)
       .join("\n");
 
-    VisitorContext.context.reset(false);
+    context.reset(false);
     this.reset();
 
     return globalCode;
   }
 
   private _fragmentMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
-    outerGlobalMacroStatements: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.FRAGMENT;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
+    this.prepareFragment(entryInfo, outerGlobalMacroStatements);
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const { symbolTable } = data;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
-
-    // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
-    fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
-      if (returnStatement) {
-        returnStatement.isFragReturnStatement = true;
-      }
-
-      const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
-      if (typeof returnDataType === "string") {
-        lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-        const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!mrtSymbols.length) {
-          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
-        } else {
-          for (let i = 0; i < mrtSymbols.length; i++) {
-            const mrtSymbol = mrtSymbols[i];
-            const astNode = mrtSymbol.astNode;
-            context.mrtStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              context.mrtList.push(prop);
-            }
-          }
-        }
-      } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
-        this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
+    // Every value-return must preserve early-exit control flow after entry return values are
+    // lowered into fragment outputs.
+    entryInfo.functions.forEach((fnSymbol) => {
+      const returnType = fnSymbol.astNode.protoType.returnType;
+      const mode =
+        returnType.type === Keyword.VEC4
+          ? "color"
+          : returnType.typeSpecifier.structDeclarations.some((struct) =>
+                context.hasStructRole(struct, ShaderStructRole.Mrt)
+              )
+            ? "mrt"
+            : undefined;
+      if (mode) {
+        const statements = fnSymbol.astNode.statements;
+        this._registerFragmentReturns(statements, mode, ParserUtils.lastStatement(statements));
       }
     });
 
-    // `_structVarMap` is already populated in `visitShaderProgram` with both stages'
-    // variables; just pre-walk macro refs so struct codegen sees the references.
+    // Struct-variable identities are already populated from ShaderCoreInfo; just pre-walk macro
+    // refs so struct codegen sees the references.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
@@ -272,23 +174,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return globalCode;
   }
 
-  private _extractLocalVarNames(node: ASTNode.InitDeclaratorList, context: VisitorContext, role: StructRole): void {
-    const children = node.children;
-    if (children.length === 1) {
-      const singleDecl = children[0] as ASTNode.SingleDeclaration;
-      const identChildren = singleDecl.children;
-      if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
-        context.registerStructVar(identChildren[1].lexeme, role);
-      }
-    } else if (children.length >= 3) {
-      const initDeclList = children[0];
-      if (initDeclList instanceof ASTNode.InitDeclaratorList) {
-        this._extractLocalVarNames(initDeclList, context, role);
-      }
-      if (children[2] instanceof BaseToken) {
-        context.registerStructVar((children[2] as BaseToken).lexeme, role);
-      }
-    }
+  protected prepareFragment(
+    entryInfo: ShaderEntryPointInfo,
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
+  ): void {
+    void entryInfo;
+    void outerGlobalMacroStatements;
   }
 
   /**
@@ -297,7 +188,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
    * struct codegen emits the declaration lists (`attribute …`, `varying …`, `MRT …`),
    * otherwise properties used only from macros would be missing from the output.
    */
-  private _preRegisterGlobalMacroRefs(macros: ASTNode.GlobalDeclaration[]): void {
+  private _preRegisterGlobalMacroRefs(macros: readonly ASTNode.GlobalDeclaration[]): void {
     for (const macro of macros) {
       this._walkMacroDefineTokens(macro.children);
     }
@@ -316,17 +207,22 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
+  private _registerFragmentReturns(node: TreeNode, mode: "color" | "mrt", terminal?: TreeNode): void {
+    if (node instanceof ASTNode.JumpStatement && node.children.length === 3) {
+      this.context.registerFragmentReturn(node, mode);
+      if (node === terminal) this.context.registerTerminalInterfaceReturn(node);
+      return;
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._registerFragmentReturns(child, mode, terminal);
+    }
+  }
+
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
-    const { _referencedGlobals } = context;
-    const lastLength = Object.keys(_referencedGlobals).length;
-    if (lastLength === 0) return;
-
-    for (const ident in _referencedGlobals) {
-      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
-      GLESVisitor._serializedGlobalKey.add(ident);
-
-      const symbols = _referencedGlobals[ident];
+    const context = this.context;
+    const { _referencedGlobals, _referencedGlobalKeys } = context;
+    for (let keyIndex = 0; keyIndex < _referencedGlobalKeys.length; keyIndex++) {
+      const symbols = _referencedGlobals[_referencedGlobalKeys[keyIndex]];
       for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
         const codeGenResult = sm.astNode.codeGen(this);
@@ -340,10 +236,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         }
       }
     }
-
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
-      this._getGlobalSymbol(out);
-    }
   }
 
   private _getCustomStruct(structNodes: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
@@ -356,13 +248,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     }
   }
 
-  private _getGlobalMacroDeclarations(macros: ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
+  private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
+    const context = this.context;
     const referencedGlobals = context._referencedGlobals;
+    const referencedGlobalKeys = context._referencedGlobalKeys;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (const symbols of Object.values(referencedGlobals)) {
+    for (let keyIndex = 0; keyIndex < referencedGlobalKeys.length; keyIndex++) {
+      const symbols = referencedGlobals[referencedGlobalKeys[keyIndex]];
       for (const symbol of symbols) {
         if (symbol.isInMacroBranch) {
           referencedGlobalMacroASTs.push(symbol.astNode);
@@ -375,7 +269,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const child = macro.children[0];
 
       if (child instanceof ASTNode.GlobalMacroIfStatement) {
-        let result: ICodeSegment[] = [];
+        const result: ICodeSegment[] = [];
         result.push(
           ...macro.macroExpressions.map((item) => ({
             text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
@@ -414,23 +308,25 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           index: child.location.start.index
         });
       } else if (child instanceof ASTNode.FunctionDefinition) {
-        if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
+        if (this.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol`
+            text: this.getCachedCode(child) ?? "",
             index: child.location.start.index
           });
         }
       } else if (child instanceof ASTNode.StructSpecifier) {
-        const context = VisitorContext.context;
+        const context = this.context;
         const stage = context.stage;
         if (
-          VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
+          context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
           (stage === EShaderStage.VERTEX
-            ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
-            : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
+            ? context.hasStructRole(child, ShaderStructRole.Attribute) ||
+              context.hasStructRole(child, ShaderStructRole.Varying)
+            : context.hasStructRole(child, ShaderStructRole.Varying) ||
+              context.hasStructRole(child, ShaderStructRole.Mrt))
         ) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol` or `_getCustomStruct`
+            text: this.getCachedCode(child) ?? "",
             index: child.location.start.index
           });
         }
@@ -438,9 +334,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         const variableDeclarations = child.variableDeclarations;
         for (let i = 0; i < variableDeclarations.length; i++) {
           const variableDeclaration = variableDeclarations[i];
-          if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
+          if (this.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
             out.push({
-              text: variableDeclaration.getCache() + ";", // code has generated in `_getGlobalSymbol`
+              text: `${this.getCachedCode(variableDeclaration) ?? ""};`,
               index: variableDeclaration.location.start.index
             });
           }

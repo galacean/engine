@@ -7,10 +7,7 @@ Shader "define-comment-with-dot" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      // Reviewer P1-1: `_defineHasValue` previously scanned for `.` in raw
-      // source without honoring comments. A `.` inside a block comment
-      // wrongly routed the directive to the AST path, where `highp` is not
-      // a valid expression starter — directive parse failed.
+      // Dots inside comments do not make a declaration-style replacement list an expression.
       #define HP /* a.b */ highp
 
       Varyings vert(Attributes a) {

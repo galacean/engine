@@ -1,0 +1,27 @@
+import { BaseToken } from "../common/BaseToken";
+import { ASTNode, TreeNode } from "./AST";
+import { NoneTerminal } from "./GrammarSymbol";
+import { SymbolDataType } from "./symbolTable/SymbolDataType";
+
+export type TraceStackItem = NoneTerminal | BaseToken;
+
+export class SymbolType extends SymbolDataType {}
+
+export class StructProp implements IParamInfo {
+  constructor(
+    public typeInfo: SymbolType,
+    public ident: BaseToken,
+    public mrtIndex?: number,
+    public isInMacroBranch = false,
+    /** Whether the member carries the `flat` interpolation qualifier — integer varyings require it. */
+    public isFlat = false
+  ) {}
+}
+
+export type NodeChild = TreeNode | BaseToken;
+
+export type IParamInfo = {
+  ident?: BaseToken;
+  typeInfo?: SymbolType;
+  astNode?: ASTNode.ParameterDeclaration | ASTNode.MacroParamBlock;
+};

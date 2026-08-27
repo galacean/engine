@@ -1,0 +1,729 @@
+import { Color } from "@galacean/engine-math";
+import {
+  BlendFactor,
+  BlendOperation,
+  ColorWriteMask,
+  CompareFunction,
+  CullMode,
+  RenderQueueType,
+  RenderStateElementKey,
+  StencilOperation
+} from "@galacean/engine-core";
+import type {
+  IRenderStates,
+  IShaderPassSource,
+  IShaderSource,
+  IStatement,
+  ISubShaderSource
+} from "@galacean/engine-design";
+import { ETokenType, ShaderPosition, ShaderRange } from "../common";
+import { BaseToken } from "../common/BaseToken";
+import { GSError } from "../GSError";
+import { SymbolTableStack } from "../common/SymbolTableStack";
+import { BaseLexer } from "../common/BaseLexer";
+import { Keyword } from "../common/enums/Keyword";
+import type { ParserObjectPool } from "../ParserObjectPool";
+import { SymbolTable } from "../common/SymbolTable";
+import { ShaderSourceFactory } from "./ShaderSourceFactory";
+import { ShaderSourceSymbol } from "./ShaderSourceSymbol";
+import SourceLexer from "./SourceLexer";
+
+/** Result of parsing one ShaderLab source document. */
+export interface ShaderSourceParseResult {
+  /** Parsed source structure, including subshaders, passes, entries, and render states. */
+  shaderSource: IShaderSource;
+  /** Source-structure diagnostics captured during this parse. */
+  errors: readonly Error[];
+}
+
+const renderStateConstMap = <Record<string, Record<string, number | string | boolean>>>{
+  RenderQueueType,
+  CompareFunction,
+  StencilOperation,
+  BlendOperation,
+  BlendFactor,
+  CullMode,
+  ColorWriteMask
+};
+
+/**
+ * Parses complete ShaderLab documents using a request-owned parser session.
+ * @internal
+ */
+export class ShaderSourceParser {
+  /**
+   * Parses ShaderLab source and returns the source object for compatibility callers.
+   * @param sourceCode - Complete ShaderLab source.
+   * @returns Parsed source structure.
+   */
+  static parse(sourceCode: string): IShaderSource {
+    return new ShaderSourceParserSession().parse(sourceCode).shaderSource;
+  }
+
+  /**
+   * Parses ShaderLab source without converting scanner exceptions into diagnostics.
+   * @param sourceCode - Complete ShaderLab source.
+   * @param objectPool - Optional compiler-owned allocator for synchronous source parsing.
+   * @returns Parsed source structure and recoverable structural diagnostics.
+   * @throws GSError when token scanning cannot continue.
+   * @internal
+   */
+  static parseStrict(sourceCode: string, objectPool?: ParserObjectPool): ShaderSourceParseResult {
+    return new ShaderSourceParserSession(objectPool).parse(sourceCode);
+  }
+
+  /**
+   * Parses ShaderLab source with a parse-local diagnostic snapshot.
+   * @param sourceCode - Complete ShaderLab source.
+   * @returns Parsed source structure and diagnostics from the same parse.
+   */
+  static parseWithErrors(sourceCode: string): ShaderSourceParseResult {
+    return new ShaderSourceParserSession().parseWithErrors(sourceCode);
+  }
+}
+
+class ShaderSourceParserSession {
+  private readonly _errors: Error[] = [];
+  private readonly _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
+  private readonly _lexer: SourceLexer;
+  private readonly _lookupSymbol = new ShaderSourceSymbol("", null);
+  private _shaderSource = ShaderSourceFactory.createShaderSource("");
+  private _reportedUnexpectedEnd = false;
+
+  constructor(private readonly _objectPool?: ParserObjectPool) {
+    this._lexer = new SourceLexer(undefined, this._objectPool);
+  }
+
+  parseWithErrors(sourceCode: string): ShaderSourceParseResult {
+    try {
+      return this.parse(sourceCode);
+    } catch (error) {
+      if (!(error instanceof GSError)) throw error;
+      this._errors.push(error);
+      return { shaderSource: this._shaderSource, errors: Object.freeze(this._errors.slice()) };
+    }
+  }
+
+  parse(sourceCode: string): ShaderSourceParseResult {
+    this._objectPool?.reset();
+    this._pushScope();
+
+    const lexer = this._lexer;
+    lexer.setSource(sourceCode);
+
+    const shaderSource = this._parseShader(lexer);
+
+    const shaderPendingContents = shaderSource.pendingContents;
+    const shaderRenderStates = shaderSource.renderStates;
+    for (let i = 0, n = shaderSource.subShaders.length; i < n; i++) {
+      const subShader = shaderSource.subShaders[i];
+      const globalSubShaderStates = {
+        constantMap: { ...shaderRenderStates.constantMap },
+        variableMap: { ...shaderRenderStates.variableMap }
+      };
+      this._mergeRenderStates(globalSubShaderStates, subShader.renderStates);
+
+      for (let j = 0, m = subShader.passes.length; j < m; j++) {
+        const pass = subShader.passes[j];
+        const globalPassRenderStates = {
+          constantMap: { ...globalSubShaderStates.constantMap },
+          variableMap: { ...globalSubShaderStates.variableMap }
+        };
+        this._mergeRenderStates(globalPassRenderStates, pass.renderStates);
+        pass.renderStates = globalPassRenderStates;
+
+        if (pass.isUsePass) continue;
+        const composed = this._composePassContents([
+          shaderPendingContents,
+          subShader.pendingContents,
+          pass.pendingContents
+        ]);
+        pass.contents = composed.contents;
+        pass.contentScopeStarts = composed.scopeStarts;
+      }
+    }
+
+    return { shaderSource, errors: Object.freeze(this._errors.slice()) };
+  }
+
+  private _composePassContents(groups: readonly (readonly IStatement[])[]): {
+    contents: string;
+    scopeStarts: readonly number[];
+  } {
+    const parts: string[] = [];
+    const scopeStarts: number[] = [];
+    let length = 0;
+    for (const group of groups) {
+      scopeStarts.push(length);
+      for (const statement of group) {
+        if (parts.length) length++;
+        parts.push(statement.content);
+        length += statement.content.length;
+      }
+    }
+    return { contents: parts.join("\n"), scopeStarts: Object.freeze(scopeStarts) };
+  }
+
+  private _parseShader(lexer: SourceLexer): IShaderSource {
+    // Parse shader header
+    lexer.scanLexeme("Shader");
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const shaderSource = ShaderSourceFactory.createShaderSource(name);
+    this._shaderSource = shaderSource;
+    lexer.scanLexeme("{");
+
+    let braceLevel = 1;
+    lexer.skipCommentsAndSpace();
+    let start = lexer.getShaderPosition(0);
+
+    const { pendingContents } = shaderSource;
+    while (true) {
+      const token = lexer.scanToken();
+      switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, pendingContents);
+          this._reportUnexpectedEnd(token, "Shader");
+          this._popScope();
+          return shaderSource;
+        case Keyword.GSSubShader: {
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          const subShader = this._parseSubShader();
+          shaderSource.subShaders.push(subShader);
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSEditorProperties:
+        case Keyword.GSEditorMacros:
+        case Keyword.GSEditor:
+          this._addPendingContents(start, token.lexeme.length, pendingContents);
+          lexer.scanPairedChar("{", "}", true, false);
+          start = lexer.getShaderPosition(0);
+          break;
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(start, token.lexeme.length, pendingContents);
+            this._popScope();
+            return shaderSource;
+          }
+          break;
+        default:
+          start = this._parseRenderState(token, start, pendingContents, shaderSource.renderStates);
+      }
+    }
+  }
+
+  private _parseRenderStateDeclarationOrAssignment(outRenderStates: IRenderStates, stateToken: BaseToken): void {
+    const lexer = this._lexer;
+    const token = lexer.scanToken();
+    if (token.type === ETokenType.ID) {
+      // Declaration
+      lexer.scanLexeme("{");
+      const renderState = this._parseRenderStateProperties(stateToken.lexeme);
+      const symbol = new ShaderSourceSymbol(token.lexeme, stateToken.type, renderState);
+      this._symbolTableStack.insert(symbol);
+    } else if (token.lexeme === "=") {
+      // Check if it's direct assignment syntax sugar or variable assignment
+      const nextToken = lexer.scanToken();
+      if (nextToken.type === ETokenType.EOF) return;
+
+      let renderState: IRenderStates;
+      if (nextToken.lexeme === "{") {
+        // Syntax: DepthState = { ... }
+        renderState = this._parseRenderStateProperties(stateToken.lexeme);
+      } else {
+        // Syntax: DepthState = customDepthState;
+        lexer.scanLexeme(";");
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(nextToken.lexeme, stateToken.type);
+        const sm = this._symbolTableStack.lookup(lookupSymbol);
+        if (!sm?.value) {
+          // Partial-application: the syntax-sugar assignment path takes an early return here — the
+          // outRenderStates never sees the intended merge, so the runtime silently gets nothing.
+          this._createCompileError(
+            `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme} — property will not be applied.`,
+            nextToken.location,
+            "InvalidRenderStateVariable"
+          );
+          return;
+        }
+        renderState = sm.value as IRenderStates;
+      }
+      this._mergeRenderStates(outRenderStates, renderState);
+    }
+  }
+
+  private _mergeRenderStates(outTarget: IRenderStates, source: IRenderStates): void {
+    // For each key in the source, remove it from the opposite map in target to ensure proper override
+    const { constantMap: targetConstantMap, variableMap: targetVariableMap } = outTarget;
+    const { constantMap: sourceConstantMap, variableMap: sourceVariableMap } = source;
+
+    for (const key in sourceConstantMap) {
+      delete targetVariableMap[key];
+      targetConstantMap[key] = sourceConstantMap[key];
+    }
+
+    for (const key in sourceVariableMap) {
+      delete targetConstantMap[key];
+      targetVariableMap[key] = sourceVariableMap[key];
+    }
+  }
+
+  private _parseVariableDeclaration(): void {
+    const lexer = this._lexer;
+    const token = lexer.scanToken();
+    lexer.scanLexeme(";");
+    const symbol = new ShaderSourceSymbol(token.lexeme, token.type);
+    this._symbolTableStack.insert(symbol);
+  }
+
+  private _pushScope(): void {
+    const symbolTable = new SymbolTable<ShaderSourceSymbol>();
+    this._symbolTableStack.pushScope(symbolTable);
+  }
+
+  private _popScope(): void {
+    this._symbolTableStack.popScope();
+  }
+
+  private _parseRenderStateProperties(state: string): IRenderStates {
+    const lexer = this._lexer;
+    const renderStates = ShaderSourceFactory.createRenderStates();
+    while (lexer.getCurChar() !== "}" && !lexer.isEnd()) {
+      this._parseRenderStateProperty(state, renderStates);
+      lexer.skipCommentsAndSpace();
+    }
+    if (lexer.getCurChar() === "}") lexer.advance(1);
+    return renderStates;
+  }
+
+  private _createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: string): void {
+    const error = this._lexer.createCompileError(message, location, code);
+    this._errors.push(error);
+  }
+
+  private _scanEnumConstValue(enumName: string): number | undefined {
+    const lexer = this._lexer;
+    lexer.advance(1);
+    const constValueToken = lexer.scanToken();
+    const value = renderStateConstMap[enumName]?.[constValueToken.lexeme] as number;
+    if (value == undefined) {
+      // Partial-application: the enclosing property is skipped after this error, so the render state
+      // never receives it — say so explicitly instead of silently dropping the write.
+      this._createCompileError(
+        `Invalid engine constant: ${enumName}.${constValueToken.lexeme} — property will not be applied.`,
+        constValueToken.location,
+        "InvalidEnumValue"
+      );
+      lexer.scanToCharacter(";");
+    }
+    return value;
+  }
+
+  private _parseRenderStateProperty(stateLexeme: string, out: IRenderStates): void {
+    const lexer = this._lexer;
+    const propertyToken = lexer.scanToken();
+    const propertyLexeme = propertyToken.lexeme;
+    let stateElementKey = propertyLexeme;
+    if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
+      let keyIndex = 0;
+      const scannedLexeme = lexer.scanTwoExpectedLexemes("[", "=");
+      if (scannedLexeme === "[") {
+        keyIndex = lexer.scanNumber();
+        lexer.scanLexeme("]");
+        lexer.scanLexeme("=");
+      } else if (scannedLexeme !== "=") {
+        this._createCompileError(
+          `Invalid syntax, expect '[' or '=', but got unexpected token`,
+          undefined,
+          "SyntaxError"
+        );
+        lexer.scanToCharacter(";");
+        return;
+      }
+      stateElementKey += keyIndex;
+    } else {
+      lexer.scanLexeme("=");
+    }
+
+    const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
+    if (renderStateElementKey === undefined) {
+      // Unknown properties are skipped, so the diagnostic must make the missing write explicit.
+      this._createCompileError(
+        `Invalid render state property ${propertyLexeme} — property will not be applied.`,
+        undefined,
+        "InvalidRenderStateProperty"
+      );
+      lexer.scanToCharacter(";");
+      return;
+    }
+
+    lexer.skipCommentsAndSpace();
+    let propertyValue: number | string | boolean | Color;
+
+    const curCharCode = lexer.getCurCharCode();
+    if (BaseLexer.isDigit(curCharCode) || curCharCode === 46) {
+      // Digit or '.'
+      propertyValue = lexer.scanNumber();
+    } else {
+      const valueToken = lexer.scanToken();
+      const valueTokenType = valueToken.type;
+      if (valueTokenType === ETokenType.EOF) return;
+
+      if (valueTokenType === Keyword.True) {
+        propertyValue = true;
+      } else if (valueTokenType === Keyword.False) {
+        propertyValue = false;
+      } else if (valueTokenType === Keyword.GSColor) {
+        propertyValue = lexer.scanColor();
+      } else if (lexer.getCurChar() === ".") {
+        propertyValue = this._scanEnumConstValue(valueToken.lexeme);
+        if (propertyValue == undefined) return;
+        // Support bitwise OR only for bitmask enums (e.g. ColorWriteMask)
+        lexer.skipCommentsAndSpace();
+        if (lexer.getCurChar() === "|") {
+          if (valueToken.lexeme !== "ColorWriteMask") {
+            // Partial-application: the whole property is dropped after this error.
+            this._createCompileError(
+              `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this — property will not be applied.`,
+              valueToken.location,
+              "BitwiseOrOnNonBitmask"
+            );
+            lexer.scanToCharacter(";");
+            return;
+          }
+          while (lexer.getCurChar() === "|") {
+            lexer.advance(1);
+            const nextEnumToken = lexer.scanToken();
+            if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
+              this._createCompileError(
+                `Invalid syntax after '|', expect 'EnumType.Value'`,
+                nextEnumToken?.location,
+                "SyntaxError"
+              );
+              lexer.scanToCharacter(";");
+              return;
+            }
+            if (nextEnumToken.lexeme !== valueToken.lexeme) {
+              // Partial-application: the whole property is dropped after this error.
+              this._createCompileError(
+                `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}' — property will not be applied.`,
+                nextEnumToken.location,
+                "MixedEnumTypes"
+              );
+              lexer.scanToCharacter(";");
+              return;
+            }
+            const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
+            if (nextValue == undefined) return;
+            propertyValue = (<number>propertyValue) | (<number>nextValue);
+            lexer.skipCommentsAndSpace();
+          }
+        }
+      } else {
+        propertyValue = valueToken.lexeme;
+        const lookupSymbol = this._lookupSymbol;
+        lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
+        if (!this._symbolTableStack.lookup(lookupSymbol)) {
+          // Partial-application: unknown variable binding → skip the write; the runtime never sees this state.
+          this._createCompileError(
+            `Invalid ${stateLexeme} variable: ${valueToken.lexeme} — property will not be applied.`,
+            valueToken.location,
+            "InvalidRenderStateVariable"
+          );
+          lexer.scanToCharacter(";");
+          return;
+        }
+      }
+    }
+    lexer.scanLexeme(";");
+    if (typeof propertyValue === "string") {
+      out.variableMap[renderStateElementKey] = propertyValue;
+    } else {
+      out.constantMap[renderStateElementKey] = propertyValue;
+    }
+  }
+
+  private _parseRenderQueueDeclarationOrAssignment(renderStates: IRenderStates): void {
+    const lexer = this._lexer;
+    const token = lexer.scanToken();
+    if (token.type === ETokenType.ID) {
+      // Declaration
+      lexer.scanLexeme(";");
+      const symbol = new ShaderSourceSymbol(token.lexeme, Keyword.GSRenderQueueType);
+      this._symbolTableStack.insert(symbol);
+      return;
+    }
+
+    if (token.lexeme !== "=") {
+      this._createCompileError(
+        `Invalid syntax, expect character '=', but got ${token.lexeme}`,
+        token.location,
+        "SyntaxError"
+      );
+      return;
+    }
+    const word = lexer.scanToken();
+    lexer.scanLexeme(";");
+    const value = renderStateConstMap.RenderQueueType[word.lexeme];
+    const key = RenderStateElementKey.RenderQueueType;
+    if (value == undefined) {
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
+      const sm = this._symbolTableStack.lookup(lookupSymbol);
+      if (!sm) {
+        this._createCompileError(
+          `Invalid RenderQueueType variable: ${word.lexeme} — property will not be applied at runtime.`,
+          word.location,
+          "InvalidRenderQueueVariable"
+        );
+        return;
+      }
+      renderStates.variableMap[key] = word.lexeme;
+    } else {
+      renderStates.constantMap[key] = value;
+    }
+  }
+
+  private _addPendingContents(start: ShaderPosition, backOffset: number, outPendingContents: IStatement[]): void {
+    const lexer = this._lexer;
+    if (lexer.hasPendingContent) {
+      const endIndex = lexer.currentIndex - backOffset;
+      outPendingContents.push({
+        range: { start, end: { ...lexer.getShaderPosition(0), index: endIndex - 1 } },
+        content: lexer.source.substring(start.index, endIndex - 1)
+      });
+      lexer.hasPendingContent = false;
+    }
+  }
+
+  private _parseSubShader(): ISubShaderSource {
+    const lexer = this._lexer;
+    this._pushScope();
+
+    let braceLevel = 1;
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const subShaderSource = ShaderSourceFactory.createSubShaderSource(name);
+    lexer.scanLexeme("{");
+
+    lexer.skipCommentsAndSpace();
+    let start = lexer.getShaderPosition(0);
+
+    while (true) {
+      const token = lexer.scanToken();
+      switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, subShaderSource.pendingContents);
+          this._reportUnexpectedEnd(token, "SubShader");
+          this._popScope();
+          return subShaderSource;
+        case Keyword.GSPass: {
+          this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
+          const pass = this._parsePass();
+          subShaderSource.passes.push(pass);
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.GSUsePass: {
+          this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
+          const name = lexer.scanPairedChar('"', '"', false, false);
+          subShaderSource.passes.push(ShaderSourceFactory.createUsePass(name));
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
+            this._popScope();
+            return subShaderSource;
+          }
+          break;
+        default:
+          start = this._parseRenderStateAndTags(
+            token,
+            start,
+            subShaderSource.pendingContents,
+            subShaderSource.renderStates,
+            subShaderSource.tags
+          );
+      }
+    }
+  }
+
+  private _parseTags(tags: Record<string, number | string | boolean>): void {
+    const lexer = this._lexer;
+    lexer.scanLexeme("{");
+    while (true) {
+      const ident = lexer.scanToken();
+      lexer.scanLexeme("=");
+      const value = lexer.scanPairedChar('"', '"', false, false);
+      lexer.skipCommentsAndSpace();
+
+      tags[ident.lexeme] = value;
+
+      if (lexer.peek(1) === "}") {
+        lexer.advance(1);
+        return;
+      }
+      lexer.scanLexeme(",");
+    }
+  }
+
+  private _parsePass(): IShaderPassSource {
+    this._pushScope();
+    const lexer = this._lexer;
+    const passStart = lexer.getShaderPosition(0);
+
+    const name = lexer.scanPairedChar('"', '"', false, false);
+    const passSource = ShaderSourceFactory.createShaderPassSource(name);
+    lexer.scanLexeme("{");
+    let braceLevel = 1;
+
+    lexer.skipCommentsAndSpace();
+    let start = lexer.getShaderPosition(0);
+
+    while (true) {
+      const token = lexer.scanToken();
+      switch (token.type) {
+        case ETokenType.EOF:
+          this._addPendingContents(start, 0, passSource.pendingContents);
+          this._reportUnexpectedEnd(token, "Pass");
+          this._popScope();
+          return passSource;
+        case Keyword.GSVertexShader:
+        case Keyword.GSFragmentShader: {
+          this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
+          lexer.scanLexeme("=");
+          const entry = lexer.scanToken();
+          const isVertex = token.type === Keyword.GSVertexShader;
+          const key = isVertex ? "vertexEntry" : "fragmentEntry";
+          if (passSource[key]) {
+            // Collect + continue (sibling MissingEntry uses the same collect flow). Keeps the first
+            // binding — codegen sees the same entry the driver would if this diagnostic were
+            // absent. Skips the reassignment so subsequent shader-body issues remain reachable in
+            // the same parse.
+            this._createCompileError(
+              `Reassignment of ${isVertex ? "VertexShader" : "FragmentShader"} entry — the first binding is kept.`,
+              entry.location,
+              "DuplicateEntryAssignment"
+            );
+            lexer.scanLexeme(";");
+            start = lexer.getShaderPosition(0);
+            break;
+          }
+          passSource[key] = entry.lexeme;
+          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = this._retainRange(entry.location);
+          lexer.scanLexeme(";");
+          start = lexer.getShaderPosition(0);
+          break;
+        }
+        case Keyword.LeftBrace:
+          ++braceLevel;
+          break;
+        case Keyword.RightBrace:
+          if (--braceLevel === 0) {
+            this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
+            if (!passSource.vertexEntry || !passSource.fragmentEntry) {
+              this._createCompileError(
+                "Pass must bind both VertexShader and FragmentShader entries.",
+                passStart,
+                "MissingEntry"
+              );
+            }
+            this._popScope();
+            return passSource;
+          }
+          break;
+        default:
+          start = this._parseRenderStateAndTags(
+            token,
+            start,
+            passSource.pendingContents,
+            passSource.renderStates,
+            passSource.tags
+          );
+      }
+    }
+  }
+
+  private _reportUnexpectedEnd(token: BaseToken, construct: string): void {
+    if (this._reportedUnexpectedEnd) return;
+    this._reportedUnexpectedEnd = true;
+    this._createCompileError(`Unexpected end of source while parsing ${construct}.`, token.location, "SyntaxError");
+  }
+
+  private _retainRange(range: ShaderRange): ShaderRange {
+    if (!this._objectPool) return range;
+    const start = new ShaderPosition();
+    start.set(range.start.index, range.start.line, range.start.column);
+    const end = new ShaderPosition();
+    end.set(range.end.index, range.end.line, range.end.column);
+    const retained = new ShaderRange();
+    retained.set(start, end);
+    return retained;
+  }
+
+  private _parseRenderStateAndTags(
+    token: BaseToken<number>,
+    start: ShaderPosition,
+    outGlobalContents: IStatement[],
+    outRenderStates: IRenderStates,
+    outTags: Record<string, number | string | boolean>
+  ): ShaderPosition {
+    switch (token.type) {
+      case Keyword.GSTags:
+        this._addPendingContents(start, token.lexeme.length, outGlobalContents);
+        this._parseTags(outTags);
+        start = this._lexer.getShaderPosition(0);
+        break;
+      default:
+        start = this._parseRenderState(token, start, outGlobalContents, outRenderStates);
+    }
+    return start;
+  }
+
+  private _parseRenderState(
+    token: BaseToken<number>,
+    start: ShaderPosition,
+    outGlobalContents: IStatement[],
+    outRenderStates: IRenderStates
+  ): ShaderPosition {
+    switch (token.type) {
+      case Keyword.GSBlendState:
+      case Keyword.GSDepthState:
+      case Keyword.GSRasterState:
+      case Keyword.GSStencilState:
+        this._addPendingContents(start, token.lexeme.length, outGlobalContents);
+        this._parseRenderStateDeclarationOrAssignment(outRenderStates, token);
+        start = this._lexer.getShaderPosition(0);
+        break;
+      case Keyword.GSBlendFactor:
+      case Keyword.GSBlendOperation:
+      case Keyword.GSBool:
+      case Keyword.GSNumber:
+      case Keyword.GSColor:
+      case Keyword.GSCompareFunction:
+      case Keyword.GSStencilOperation:
+      case Keyword.GSCullMode:
+      case Keyword.GSColorWriteMask:
+        this._addPendingContents(start, token.lexeme.length, outGlobalContents);
+        this._parseVariableDeclaration();
+        start = this._lexer.getShaderPosition(0);
+        break;
+      case Keyword.GSRenderQueueType:
+        this._addPendingContents(start, token.lexeme.length, outGlobalContents);
+        this._parseRenderQueueDeclarationOrAssignment(outRenderStates);
+        start = this._lexer.getShaderPosition(0);
+        break;
+      default:
+        // Unrecognized tokens are defined as pending content
+        this._lexer.hasPendingContent = true;
+    }
+    return start;
+  }
+}

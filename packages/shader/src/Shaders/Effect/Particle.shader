@@ -73,7 +73,7 @@ Shader "Effect/Particle" {
       void frag(Varyings v) {
           vec4 color = material_BaseColor * v.v_Color;
 
-          #if defined(RENDERER_MODE_MESH) && defined(RENDERER_ENABLE_VERTEXCOLOR)
+          #if defined(RENDERER_MODE_MESH) && !defined(RENDERER_MODE_SPHERE_BILLBOARD) && !defined(RENDERER_MODE_STRETCHED_BILLBOARD) && !defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) && !defined(RENDERER_MODE_VERTICAL_BILLBOARD) && defined(RENDERER_ENABLE_VERTEXCOLOR)
               color *= v.v_MeshColor;
           #endif
 

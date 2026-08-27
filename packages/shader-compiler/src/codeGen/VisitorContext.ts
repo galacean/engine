@@ -1,30 +1,18 @@
-import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { SymbolTable } from "../common/SymbolTable";
-import { GSErrorName } from "../GSError";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
-import { StructProp } from "../parser/types";
-import { ShaderCompiler } from "../ShaderCompiler";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
-
-/** Role of a struct type in the shader compiler's IO flattening. */
-export type StructRole = "varying" | "attribute" | "mrt";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { EShaderStage } from "@galacean/engine-shader-parser/internal";
+import { SymbolTable } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType, SymbolInfo, VarSymbol } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole, StructProp } from "@galacean/engine-shader-parser/internal";
 
 /** @internal */
 export class VisitorContext {
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _singleton: VisitorContext;
-  static get context() {
-    return this._singleton;
-  }
-
-  static reset() {
-    if (!this._singleton) {
-      this._singleton = new VisitorContext();
-    }
-    this._singleton.reset();
-  }
+  private readonly _lookupSymbol = new SymbolInfo("", null);
+  private readonly _structRoles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
+  private readonly _vertexUnresolvedVariableRoles = new Map<string, ShaderStructRole>();
+  private readonly _fragmentUnresolvedVariableRoles = new Map<string, ShaderStructRole>();
+  private readonly _vertexAmbiguousVariableNames = new Set<string>();
+  private readonly _fragmentAmbiguousVariableNames = new Set<string>();
 
   attributeStructs: ASTNode.StructSpecifier[] = [];
   attributeList: StructProp[] = [];
@@ -40,18 +28,23 @@ export class VisitorContext {
   _referencedVaryingList: Record<string, StructProp[]>;
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
+  readonly _referencedGlobalKeys: string[] = [];
   _referencedGlobalMacroASTs: TreeNode[] = [];
-  /**
-   * Maps variable names (function params, locals, and globals whose type is a
-   * varying/attribute/mrt struct) to their role. Populated during stage setup and
-   * used by macro-value rewriting to recognize `varName.prop` patterns that should
-   * be flattened against the IO lists.
-   */
-  _structVarMap: Record<string, StructRole>;
+  private readonly _structVariableRoles = new Map<VarSymbol, ShaderStructRole>();
 
-  _passSymbolTable: SymbolTable<SymbolInfo>;
+  _passSymbolTable?: SymbolTable<SymbolInfo>;
+  readonly codeCache = new Map<TreeNode, string>();
+  private readonly fragmentReturnModes = new Map<ASTNode.JumpStatement, FragmentReturnMode>();
+  private readonly terminalInterfaceReturns = new Set<ASTNode.JumpStatement>();
+
+  constructor() {
+    this.reset();
+  }
 
   reset(resetAll = true) {
+    this.codeCache.clear();
+    this.fragmentReturnModes.clear();
+    this.terminalInterfaceReturns.clear();
     if (resetAll) {
       this.attributeStructs.length = 0;
       this.attributeList.length = 0;
@@ -59,90 +52,178 @@ export class VisitorContext {
       this.varyingList.length = 0;
       this.mrtStructs.length = 0;
       this.mrtList.length = 0;
+      this._structRoles.clear();
+      this._vertexUnresolvedVariableRoles.clear();
+      this._fragmentUnresolvedVariableRoles.clear();
+      this._vertexAmbiguousVariableNames.clear();
+      this._fragmentAmbiguousVariableNames.clear();
     }
 
     this._referencedAttributeList = Object.create(null);
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
+    this._referencedGlobalKeys.length = 0;
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
-      // Struct-var bindings are pass-scoped, not stage-scoped — global `#define`
-      // values must see the same bindings in both the vertex and fragment outputs,
-      // so we keep the map across the vertex→fragment stage transition.
-      this._structVarMap = Object.create(null);
+      this._structVariableRoles.clear();
+      this._passSymbolTable = undefined;
     }
   }
 
-  isAttributeStruct(type: string) {
-    return this.attributeStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+  /**
+   * Finds the shared interface role of custom-struct declaration candidates.
+   * @param declarations - Exact parser struct identities resolved at one type occurrence.
+   * @returns Interface role, or `undefined` when the type is not an unambiguous interface struct.
+   */
+  getStructRole(declarations: readonly ASTNode.StructSpecifier[]): ShaderStructRole | undefined {
+    let resolvedRole: ShaderStructRole | undefined;
+    for (const declaration of declarations) {
+      const role = this._structRoles.get(declaration);
+      if (!role || (resolvedRole && resolvedRole !== role)) return;
+      resolvedRole = role;
+    }
+    return resolvedRole;
   }
 
-  isVaryingStruct(type: string) {
-    return this.varyingStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+  /**
+   * Tests the exact interface role of one struct declaration.
+   * @param declaration - Parser struct identity.
+   * @param role - Expected interface role.
+   * @returns Whether the declaration owns that role.
+   */
+  hasStructRole(declaration: ASTNode.StructSpecifier, role: ShaderStructRole): boolean {
+    return this._structRoles.get(declaration) === role;
   }
 
-  isMRTStruct(type: string) {
-    return this.mrtStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+  /**
+   * Registers stage-interface struct types for constant-time role lookup.
+   * @param role - Interface role shared by the supplied structs.
+   * @param structs - Struct declarations derived from parser IR.
+   * @internal
+   */
+  registerStructTypes(role: ShaderStructRole, structs: readonly ASTNode.StructSpecifier[]): void {
+    for (const struct of structs) {
+      this._structRoles.set(struct, role);
+    }
   }
 
-  /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
-  getStructRole(typeLexeme: string): StructRole | undefined {
-    if (this.isAttributeStruct(typeLexeme)) return "attribute";
-    if (this.isVaryingStruct(typeLexeme)) return "varying";
-    if (this.isMRTStruct(typeLexeme)) return "mrt";
+  /**
+   * Registers a resolved variable that holds an interface struct.
+   * @param variable - Parser symbol identity for the declaration.
+   * @param role - Struct interface role.
+   * @param stage - Optional stage from whose entry the variable is reachable. Omit when only exact
+   * symbol lookup is required.
+   */
+  registerStructVar(variable: VarSymbol, role: ShaderStructRole, stage?: EShaderStage): void {
+    this._structVariableRoles.set(variable, role);
+    if (stage === undefined) return;
+    const roles =
+      stage === EShaderStage.VERTEX ? this._vertexUnresolvedVariableRoles : this._fragmentUnresolvedVariableRoles;
+    const ambiguous =
+      stage === EShaderStage.VERTEX ? this._vertexAmbiguousVariableNames : this._fragmentAmbiguousVariableNames;
+    const name = variable.ident;
+    if (ambiguous.has(name)) return;
+    const existing = roles.get(name);
+    if (existing && existing !== role) {
+      roles.delete(name);
+      ambiguous.add(name);
+    } else {
+      roles.set(name, role);
+    }
   }
 
-  /** Register a variable as holding a value of a varying/attribute/mrt struct type. */
-  registerStructVar(varName: string, role: StructRole): void {
-    this._structVarMap[varName] = role;
+  /**
+   * Finds an interface role for a global macro value that has no lexical symbol identity.
+   * @param variableName - Bare variable name in the macro replacement AST.
+   * @returns A role only when every stage-reachable declaration with that name agrees.
+   */
+  getUnresolvedStructVarRole(variableName: string): ShaderStructRole | undefined {
+    const roles =
+      this.stage === EShaderStage.VERTEX ? this._vertexUnresolvedVariableRoles : this._fragmentUnresolvedVariableRoles;
+    const ambiguous =
+      this.stage === EShaderStage.VERTEX ? this._vertexAmbiguousVariableNames : this._fragmentAmbiguousVariableNames;
+    return ambiguous.has(variableName) ? undefined : roles.get(variableName);
   }
 
-  referenceAttribute(ident: BaseToken): Error | void {
-    return this._referenceProp(
-      "attribute",
-      ident.lexeme,
-      this.attributeList,
-      this._referencedAttributeList,
-      ident.location
-    );
+  /**
+   * Finds the shared interface role of branch-visible variable candidates.
+   * @param symbols - Exact parser symbols resolved at one reference.
+   * @returns Interface role, or `undefined` when the reference is not an unambiguous interface value.
+   */
+  getStructVarRole(symbols: readonly SymbolInfo[]): ShaderStructRole | undefined {
+    let resolvedRole: ShaderStructRole | undefined;
+    for (const symbol of symbols) {
+      if (!(symbol instanceof VarSymbol)) return;
+      const role = this._structVariableRoles.get(symbol);
+      if (!role || (resolvedRole && resolvedRole !== role)) return;
+      resolvedRole = role;
+    }
+    return resolvedRole;
   }
 
-  referenceVarying(ident: BaseToken): Error | void {
-    return this._referenceProp("varying", ident.lexeme, this.varyingList, this._referencedVaryingList, ident.location);
+  /**
+   * Marks a value-return belonging to a fragment entry for backend lowering.
+   * @param statement - Exact return statement identity.
+   * @param mode - Fragment output contract of the containing entry declaration.
+   */
+  registerFragmentReturn(statement: ASTNode.JumpStatement, mode: FragmentReturnMode): void {
+    this.fragmentReturnModes.set(statement, mode);
   }
 
-  referenceMRTProp(ident: BaseToken): Error | void {
-    return this._referenceProp("mrt", ident.lexeme, this.mrtList, this._referencedMRTList, ident.location);
+  /**
+   * Finds the output contract for a fragment-entry return statement.
+   * @param statement - Return statement identity.
+   * @returns Output mode, or `undefined` for ordinary helper/vertex returns.
+   */
+  getFragmentReturnMode(statement: ASTNode.JumpStatement): FragmentReturnMode | undefined {
+    return this.fragmentReturnModes.get(statement);
+  }
+
+  /** Marks a syntactically final interface return whose control-flow exit can be omitted. */
+  registerTerminalInterfaceReturn(statement: ASTNode.JumpStatement): void {
+    this.terminalInterfaceReturns.add(statement);
+  }
+
+  /**
+   * Tests whether an interface return is the final syntactic statement in its function.
+   * @param statement - Return statement identity.
+   * @returns Whether backend lowering may omit a trailing `return;`.
+   */
+  isTerminalInterfaceReturn(statement: ASTNode.JumpStatement): boolean {
+    return this.terminalInterfaceReturns.has(statement);
+  }
+
+  referenceAttribute(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.attributeList, this._referencedAttributeList);
+  }
+
+  referenceVarying(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.varyingList, this._referencedVaryingList);
+  }
+
+  referenceMRTProp(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.mrtList, this._referencedMRTList);
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
     if (this._referencedGlobals[ident]) return;
 
     this._referencedGlobals[ident] = [];
+    this._referencedGlobalKeys.push(ident);
 
-    const lookupSymbol = VisitorContext._lookupSymbol;
+    const lookupSymbol = this._lookupSymbol;
     lookupSymbol.set(ident, type);
-    this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    this._passSymbolTable!.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
   }
 
-  private _referenceProp(
-    role: StructRole,
-    name: string,
-    list: StructProp[],
-    refList: Record<string, StructProp[]>,
-    location: any
-  ): Error | void {
+  // Track which IO props are actually referenced (drives in/out emission). A missing member is no
+  // longer flagged here — that's the parser's struct-field check (UndeclaredStructMember).
+  private _referenceProp(name: string, list: StructProp[], refList: Record<string, StructProp[]>): void {
     if (refList[name]) return;
-    const props = list.filter((item) => item.ident.lexeme === name);
-    if (!props.length) {
-      return ShaderCompilerUtils.createGSError(
-        `referenced ${role} not found: ${name}`,
-        GSErrorName.CompilationError,
-        ShaderCompiler._processingPassText,
-        location
-      );
-    }
-    refList[name] = props;
+    refList[name] = list.filter((item) => item.ident.lexeme === name);
   }
 }
+
+/** @internal */
+export type FragmentReturnMode = "color" | "mrt";

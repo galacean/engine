@@ -1,0 +1,45 @@
+{
+  "name": "@galacean/engine-shader-parser",
+  "version": "2.0.0-alpha.42",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "license": "MIT",
+  "exports": {
+    "./internal": {
+      "types": "./types/runtime.d.ts",
+      "import": "./dist/module.js",
+      "require": "./dist/main.js"
+    },
+    "./internal/analyzer": {
+      "types": "./types/index.d.ts",
+      "import": "./dist/module.analyzer.js",
+      "require": "./dist/main.analyzer.js"
+    },
+    "./shared": {
+      "types": "./types/shared.d.ts",
+      "import": "./dist/module.shared.js",
+      "require": "./dist/main.shared.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*",
+    "internal/package.json",
+    "internal/analyzer/package.json",
+    "shared/package.json"
+  ],
+  "dependencies": {
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
+  }
+}

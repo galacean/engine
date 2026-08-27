@@ -1,4 +1,11 @@
-import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import {
+  expandPreprocessorExpressionMacros,
+  evaluatePreprocessorExpression,
+  parsePreprocessorExpression,
+  resolvePreprocessorDefinedOperators,
+  type Condition,
+  type ShaderInstruction
+} from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "./enums/ShaderPreprocessorDirective";
 
 interface FuncMacro {
@@ -19,6 +26,15 @@ export class ShaderMacroProcessor {
   private static _macroFirstCharsDirty = true;
   private static _replaceWordParts: string[] = [];
   private static _parsedFuncArgs = { values: [] as string[], end: 0 };
+  private static readonly _expressionContext = {
+    resolveIdentifier(name: string): number {
+      const value = ShaderMacroProcessor._valueMacros.get(name);
+      return value === undefined ? 0 : Number(value) | 0;
+    },
+    isDefined(name: string): boolean {
+      return ShaderMacroProcessor._valueMacros.has(name) || ShaderMacroProcessor._funcMacros.has(name);
+    }
+  };
 
   /**
    * Evaluate a flat instruction array with active macros.
@@ -315,52 +331,51 @@ export class ShaderMacroProcessor {
     valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>
   ): boolean {
-    switch (cond.t) {
-      case "def":
-        return valueMacros.has(cond.m) || funcMacros.has(cond.m);
-      case "ndef":
-        return !valueMacros.has(cond.m) && !funcMacros.has(cond.m);
-      case "cmp": {
-        const val = valueMacros.get(cond.m);
-        if (val === undefined) return false;
-        return ShaderMacroProcessor._compareValues(Number(val) || 0, cond.op, cond.v);
-      }
-      case "and":
-        return (
-          ShaderMacroProcessor._evalCondition(cond.l, valueMacros, funcMacros) &&
-          ShaderMacroProcessor._evalCondition(cond.r, valueMacros, funcMacros)
-        );
-      case "or":
-        return (
-          ShaderMacroProcessor._evalCondition(cond.l, valueMacros, funcMacros) ||
-          ShaderMacroProcessor._evalCondition(cond.r, valueMacros, funcMacros)
-        );
-      case "not":
-        return !ShaderMacroProcessor._evalCondition(cond.c, valueMacros, funcMacros);
-      case "bool":
-        return cond.v;
-    }
+    if (cond.t === "deferred") return ShaderMacroProcessor._evalDeferredCondition(cond.e, valueMacros, funcMacros);
+    return evaluatePreprocessorExpression(cond, ShaderMacroProcessor._expressionContext) !== 0;
   }
 
-  /**
-   * Evaluate a comparison operator.
-   */
-  private static _compareValues(numVal: number, op: string, value: number): boolean {
-    switch (op) {
+  private static _evalDeferredCondition(
+    expression: string,
+    valueMacros: Map<string, string>,
+    funcMacros: Map<string, FuncMacro>
+  ): boolean {
+    const withDefinedValues = resolvePreprocessorDefinedOperators(
+      expression,
+      (name) => valueMacros.has(name) || funcMacros.has(name)
+    );
+    const expanded = expandPreprocessorExpressionMacros(withDefinedValues, (name) => {
+      const func = funcMacros.get(name);
+      if (func) return { body: func.body, parameters: func.params };
+      const body = valueMacros.get(name);
+      return body === undefined ? undefined : { body };
+    });
+    if (expanded.error) throw new Error(expanded.error);
+    const result = parsePreprocessorExpression(expanded.expression);
+    if ("error" in result) {
+      throw new Error(`Invalid preprocessor expression after macro expansion: ${result.error.message}`);
+    }
+    return evaluatePreprocessorExpression(result.condition, ShaderMacroProcessor._expressionContext) !== 0;
+  }
+
+  private static _compareValues(left: number, operator: string, right: number): boolean {
+    left |= 0;
+    right |= 0;
+    switch (operator) {
       case "==":
-        return numVal === value;
+        return left === right;
       case "!=":
-        return numVal !== value;
+        return left !== right;
       case ">":
-        return numVal > value;
+        return left > right;
       case "<":
-        return numVal < value;
+        return left < right;
       case ">=":
-        return numVal >= value;
+        return left >= right;
       case "<=":
-        return numVal <= value;
+        return left <= right;
       default:
-        return false;
+        throw new Error(`Unsupported preprocessor comparison operator '${operator}'.`);
     }
   }
 

@@ -1,4 +1,5 @@
 import { Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
@@ -21,7 +22,7 @@ export class ShaderFactory {
       ConstantBufferBindingPoint.RendererInstance
   };
 
-  static readonly includeMap: Record<string, string> = {};
+  static readonly includeMap: Record<string, string> = Object.create(null);
 
   static readonly shaderExtension = [
     "GL_EXT_shader_texture_lod",
@@ -149,20 +150,38 @@ mat3 _normalMatFromModel(mat3 m) {
    * Register a chunk source so `#include` resolves it.
    * @param includeName - The path key referenced in `#include "..."`.
    * @param includeSource - GLSL chunk source text.
+   * @throws Error when the key is empty, malformed, or already registered after normalization.
    */
   static registerInclude(includeName: string, includeSource: string): void {
-    if (ShaderFactory.includeMap[includeName]) {
-      throw `The "${includeName}" shader include already exist`;
+    const key = normalizeShaderIncludeKey(includeName);
+    if (Object.prototype.hasOwnProperty.call(ShaderFactory.includeMap, key)) {
+      throw new Error(`The shader include "${key}" is already registered.`);
     }
-    ShaderFactory.includeMap[includeName] = includeSource;
+    Object.defineProperty(ShaderFactory.includeMap, key, {
+      value: includeSource,
+      writable: true,
+      enumerable: true,
+      configurable: true
+    });
   }
 
   /**
    * Remove a registered shader chunk.
    * @param includeName - The path key passed to `registerInclude`.
+   * @throws Error when the key is empty or malformed.
+   */
+  static unregisterInclude(includeName: string): void {
+    delete ShaderFactory.includeMap[normalizeShaderIncludeKey(includeName)];
+  }
+
+  /**
+   * Remove a registered shader chunk.
+   * @param includeName - The path key passed to `registerInclude`.
+   * @deprecated Use `unregisterInclude`.
+   * @throws Error when the key is empty or malformed.
    */
   static unRegisterInclude(includeName: string): void {
-    delete ShaderFactory.includeMap[includeName];
+    ShaderFactory.unregisterInclude(includeName);
   }
 
   /**
