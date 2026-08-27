@@ -24,9 +24,13 @@ export interface ReferenceResolutionSnapshot {
    */
   readonly callSiteBranch: BranchSignature;
   /**
-   * Structural path of a member owner inside an expression-macro replacement.
+   * Definition-owned AST identity of a member owner inside a macro replacement.
    */
-  readonly replacementMemberOwnerPath?: string;
+  readonly replacementMemberOwner?: ASTNode.VariableIdentifier;
+  /**
+   * Whether the owner is formed only after function-argument or nested-macro substitution.
+   */
+  readonly requiresRuntimeOwnerExpansion?: boolean;
 }
 
 export class ShaderData {

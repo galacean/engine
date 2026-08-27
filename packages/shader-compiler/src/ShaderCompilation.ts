@@ -94,7 +94,7 @@ function generateShaderProgram(
     return undefined;
   }
   if (coreInfo.structMemberOwnerIssues.length) {
-    Logger.error("A struct member reference cannot mix flattened stage IO and ordinary runtime owners.");
+    Logger.error("A struct member reference cannot be lowered safely across runtime macro expansion.");
     return undefined;
   }
   const result = GLESBackend.generate(ir, coreInfo, backend);

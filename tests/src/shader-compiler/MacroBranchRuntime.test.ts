@@ -1085,4 +1085,225 @@ FragmentShader = frag;
       expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
     }
   });
+
+  it("rejects an IO member owner substituted through a function-like macro", () => {
+    const source = `Shader "function-like-member-owner" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+Varyings v;
+#define GET_UV(x) x.uv
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(GET_UV(v), 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("rejects an IO member owner substituted through nested expression macros", () => {
+    const source = `Shader "nested-member-owner" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+Varyings v;
+#define OWNER v
+#define OWNER_UV OWNER.uv
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("rejects an IO member owner propagated through nested function-like macros", () => {
+    const source = `Shader "nested-function-member-owner" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+Varyings v;
+#define GET_UV(x) x.uv
+#define FORWARD_UV(x) GET_UV(x)
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(FORWARD_UV(v), 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("keeps unresolved replacement owners silent in analysis and blocking in codegen", () => {
+    const sources = [
+      `Shader "unknown-function-like-member-owner" { SubShader "s" { Pass "p" {
+#define GET_UV(x) x.uv
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(GET_UV(RUNTIME_OWNER), 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`,
+      `Shader "unknown-direct-member-owner" { SubShader "s" { Pass "p" {
+#define OWNER_UV RUNTIME_OWNER.uv
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`,
+      `Shader "opaque-nested-member-owner" { SubShader "s" { Pass "p" {
+#define OPAQUE_OWNER
+#define OWNER_UV OPAQUE_OWNER.uv
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`
+    ];
+
+    for (const [caseIndex, source] of sources.entries()) {
+      const analysis = ShaderAnalyzer.analyze(source);
+      expect(analysis.diagnostics, `case=${caseIndex}`).to.be.empty;
+
+      for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+        const compiler = new ShaderCompiler();
+        expect(compiler.generate(analysis.passes[0], target), `handoff case=${caseIndex}`).to.equal(undefined);
+        expect(compile(compiler, source, target), `live case=${caseIndex}`).to.equal(undefined);
+        expect(() => new ShaderPrecompiler().precompile(source, target), `offline case=${caseIndex}`).to.throw(
+          /precompile failed/
+        );
+      }
+    }
+  });
+
+  it("keeps a function-like member owner when the actual is an ordinary struct", () => {
+    const source = `Shader "ordinary-function-like-member-owner" { SubShader "s" { Pass "p" {
+struct Ordinary { vec2 uv; };
+Ordinary ordinary;
+#define GET_UV(x) x.uv
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(GET_UV(ordinary), 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
+      expect(offline.isUsePass).to.be.false;
+      if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+      for (const [pipeline, program] of [
+        ["analyzer handoff", compiler.generate(analysis.passes[0], target)!],
+        ["live compiler", compile(compiler, source, target)!],
+        ["offline precompiler", offline]
+      ] as const) {
+        const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
+        const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, new Map());
+        const label = `${pipeline} platform=${target}`;
+        expect(fragment, label).to.match(/ordinary\s*\.\s*uv/);
+
+        const compiled = compileInWebGL(vertex, fragment, target);
+        if (compiled !== "no-webgl") {
+          expect(
+            compiled.ok,
+            `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+          ).to.be.true;
+        }
+      }
+    }
+  });
+
+  it("lowers mutually exclusive expression-macro definitions independently", () => {
+    const source = `Shader "exclusive-replacement-member-owners" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct Ordinary { vec2 uv; };
+Varyings io;
+Ordinary ordinary;
+#ifdef USE_IO
+#define OWNER_UV io.uv
+#else
+#define OWNER_UV ordinary.uv
+#endif
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(OWNER_UV, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
+      expect(offline.isUsePass).to.be.false;
+      if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
+
+      for (const [pipeline, program] of [
+        ["analyzer handoff", compiler.generate(analysis.passes[0], target)!],
+        ["live compiler", compile(compiler, source, target)!],
+        ["offline precompiler", offline]
+      ] as const) {
+        for (const useIO of [false, true]) {
+          const macros = new Map<string, string>();
+          if (useIO) macros.set("USE_IO", "");
+          const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, macros);
+          const fragment = ShaderMacroProcessor.evaluate(program.fragmentShaderInstructions!, macros);
+          const label = `${pipeline} platform=${target} USE_IO=${useIO}`;
+          if (useIO) {
+            expect(fragment, label).to.match(/vec4\s*\(\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+            expect(fragment, label).not.to.match(/io\s*\.\s*uv/);
+          } else {
+            expect(fragment, label).to.match(/vec4\s*\(\s*ordinary\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+          }
+
+          const compiled = compileInWebGL(vertex, fragment, target);
+          if (compiled !== "no-webgl") {
+            expect(
+              compiled.ok,
+              `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+            ).to.be.true;
+          }
+        }
+      }
+    }
+  });
 });

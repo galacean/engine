@@ -52,10 +52,15 @@ export interface ShaderMrtOutputIssue {
   readonly kind: "missing-location" | "invalid-location" | "duplicate-location" | "invalid-type";
 }
 
-/** A member owner resolution that a backend cannot lower uniformly. @internal */
+/**
+ * A member owner resolution that a backend cannot lower uniformly.
+ * @internal
+ */
 export interface ShaderStructMemberOwnerIssue {
   /** Call-site range of the unsafe member projection. */
   readonly location: ShaderRange;
+  /** Backend-neutral reason the member projection is unsafe. */
+  readonly kind: "mixed-owner-roles" | "runtime-expanded-io-owner" | "unresolved-owner";
   /** Whether branch analysis proves the conflict or cannot decide it. */
   readonly certainty: "definite" | "unknown";
 }
@@ -198,13 +203,13 @@ function collectStructMemberOwnerIssues(
     referenceSnapshots.push(snapshot);
   }
 
-  const issues = new Map<ASTNode.VariableIdentifier, "definite" | "unknown">();
+  const issues = new Map<ASTNode.VariableIdentifier, OwnerIssue>();
   for (const reference of directMemberReferences) {
     if (!isReferenceReachable(reference, reachableFunctions)) continue;
     const child = reference.children[0];
     const referenceSnapshots = snapshotsByReference
       .get(reference)
-      ?.filter((snapshot) => snapshot.replacementMemberOwnerPath === undefined);
+      ?.filter((snapshot) => snapshot.replacementMemberOwner === undefined);
     let resolutions: readonly OwnerResolution[] | undefined;
     if (child instanceof BaseToken) {
       const symbols = reference.resolvedValueSymbols();
@@ -228,32 +233,49 @@ function collectStructMemberOwnerIssues(
       recordOwnerIssue(
         issues,
         reference,
+        "mixed-owner-roles",
         classifyOwnerResolutions(reference, resolutions, variableRoles, getBranchCoverage)
       );
     }
   }
 
-  const replacementGroups = new Map<ASTNode.VariableIdentifier, Map<string, ReferenceResolutionSnapshot[]>>();
+  // Definition-owned AST identity keeps path-equal replacements in independent macro arms separate.
+  const replacementOwnerGroups = new Map<
+    ASTNode.VariableIdentifier,
+    Map<ASTNode.VariableIdentifier, ReferenceResolutionSnapshot[]>
+  >();
   for (const snapshot of snapshots) {
-    const path = snapshot.replacementMemberOwnerPath;
-    if (path === undefined || !isReferenceReachable(snapshot.reference, reachableFunctions)) continue;
-    let groups = replacementGroups.get(snapshot.reference);
-    if (!groups) replacementGroups.set(snapshot.reference, (groups = new Map()));
-    let group = groups.get(path);
-    if (!group) groups.set(path, (group = []));
+    const owner = snapshot.replacementMemberOwner;
+    if (owner === undefined || !isReferenceReachable(snapshot.reference, reachableFunctions)) continue;
+    let ownerGroups = replacementOwnerGroups.get(snapshot.reference);
+    if (!ownerGroups) replacementOwnerGroups.set(snapshot.reference, (ownerGroups = new Map()));
+    let group = ownerGroups.get(owner);
+    if (!group) ownerGroups.set(owner, (group = []));
     group.push(snapshot);
   }
-  for (const [reference, groups] of replacementGroups) {
-    for (const resolutions of groups.values()) {
+  for (const [reference, ownerGroups] of replacementOwnerGroups) {
+    for (const resolutions of ownerGroups.values()) {
+      if (resolutions.some((resolution) => resolution.symbols.length === 0)) {
+        recordOwnerIssue(issues, reference, "unresolved-owner", "unknown");
+      }
+      if (resolutions.some((resolution) => resolution.requiresRuntimeOwnerExpansion)) {
+        recordOwnerIssue(
+          issues,
+          reference,
+          "runtime-expanded-io-owner",
+          classifyRuntimeExpandedOwner(resolutions, variableRoles, getBranchCoverage)
+        );
+      }
       recordOwnerIssue(
         issues,
         reference,
+        "mixed-owner-roles",
         classifyOwnerResolutions(reference, resolutions, variableRoles, getBranchCoverage)
       );
     }
   }
 
-  return Array.from(issues, ([reference, certainty]) => ({ location: reference.location, certainty }));
+  return Array.from(issues, ([reference, issue]) => ({ location: reference.location, ...issue }));
 }
 
 function isReferenceReachable(
@@ -307,6 +329,40 @@ function classifyOwnerResolutions(
   return replacementCoverage === "covered" ? "definite" : "unknown";
 }
 
+function classifyRuntimeExpandedOwner(
+  resolutions: readonly OwnerResolution[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
+  getBranchCoverage: BranchCoverageResolver
+): "definite" | "unknown" | undefined {
+  let hasUnknownIOOwner = false;
+  for (const resolution of resolutions) {
+    const primarySymbols = resolution.symbols.slice(0, resolution.fallbackStart);
+    const primaryCoverage = getBranchCoverage(
+      primarySymbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+      resolution.callSiteBranch
+    );
+    const retainedSymbols = primaryCoverage === "covered" ? primarySymbols : resolution.symbols;
+    if (!containsStructIORole(retainedSymbols, variableRoles)) continue;
+    const retainedCoverage =
+      primaryCoverage === "covered"
+        ? primaryCoverage
+        : getBranchCoverage(
+            retainedSymbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+            resolution.callSiteBranch
+          );
+    if (retainedCoverage === "covered") return "definite";
+    hasUnknownIOOwner = true;
+  }
+  return hasUnknownIOOwner ? "unknown" : undefined;
+}
+
+function containsStructIORole(
+  symbols: readonly (VarSymbol | FnSymbol)[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>
+): boolean {
+  return symbols.some((symbol) => symbol instanceof VarSymbol && variableRoles.has(symbol));
+}
+
 function collectOwnerKinds(
   symbols: readonly (VarSymbol | FnSymbol)[],
   variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
@@ -320,13 +376,22 @@ function collectOwnerKinds(
   return kinds;
 }
 
+interface OwnerIssue {
+  readonly kind: ShaderStructMemberOwnerIssue["kind"];
+  readonly certainty: ShaderStructMemberOwnerIssue["certainty"];
+}
+
 function recordOwnerIssue(
-  issues: Map<ASTNode.VariableIdentifier, "definite" | "unknown">,
+  issues: Map<ASTNode.VariableIdentifier, OwnerIssue>,
   reference: ASTNode.VariableIdentifier,
+  kind: ShaderStructMemberOwnerIssue["kind"],
   certainty: "definite" | "unknown" | undefined
 ): void {
   if (!certainty) return;
-  if (certainty === "definite" || !issues.has(reference)) issues.set(reference, certainty);
+  const existing = issues.get(reference);
+  if (!existing || (existing.certainty === "unknown" && certainty === "definite")) {
+    issues.set(reference, { kind, certainty });
+  }
 }
 
 type DeclarationCoexistenceResolver = (earlier: BranchSignature, later: BranchSignature) => DeclarationCoexistence;
