@@ -1,11 +1,17 @@
 import { EShaderStage } from "../common/enums/ShaderStage";
 import { Keyword } from "../common/enums/Keyword";
-import { BaseToken, type BranchCoverage, type BranchSignature, type DeclarationCoexistence } from "../common/BaseToken";
+import {
+  BaseToken,
+  EMPTY_BRANCH,
+  type BranchCoverage,
+  type BranchSignature,
+  type DeclarationCoexistence
+} from "../common/BaseToken";
 import { getLexicalDeclarationCoexistence, isLexicalBranchVisibleFrom } from "../common/BranchIdentity";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { NoneTerminal } from "../parser/GrammarSymbol";
 import { ParserUtils } from "../ParserUtils";
-import type { RuntimeFallbackReference } from "../parser/ShaderInfo";
+import type { ReferenceResolutionSnapshot } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, SymbolInfo, SymbolTable, VarSymbol } from "../parser/symbolTable";
 import type { StructProp } from "../parser/types";
 import type { ShaderRange } from "../common/ShaderRange";
@@ -44,6 +50,14 @@ export interface ShaderMrtOutputIssue {
   readonly prop: StructProp;
   /** Backend-neutral reason the member cannot be lowered consistently. */
   readonly kind: "missing-location" | "invalid-location" | "duplicate-location" | "invalid-type";
+}
+
+/** A member owner resolution that a backend cannot lower uniformly. @internal */
+export interface ShaderStructMemberOwnerIssue {
+  /** Call-site range of the unsafe member projection. */
+  readonly location: ShaderRange;
+  /** Whether branch analysis proves the conflict or cannot decide it. */
+  readonly certainty: "definite" | "unknown";
 }
 
 /** Backend-required shader input/output facts. @internal */
@@ -85,14 +99,8 @@ export class ShaderCoreInfo {
   readonly invalidMrtReturnLocations: readonly ShaderRange[];
   /** Varying entry returns that cannot be represented by the flattened GLES output contract. */
   readonly invalidVaryingReturnLocations: readonly ShaderRange[];
-  /**
-   * Member references whose runtime owners mix flattened IO values and ordinary variables.
-   */
-  readonly ambiguousStructMemberOwnerLocations: readonly ShaderRange[];
-  /**
-   * Member references that a backend cannot lower safely for every retained macro configuration.
-   */
-  readonly unlowerableStructMemberOwnerLocations: readonly ShaderRange[];
+  /** Member owner resolutions that cannot be lowered uniformly across retained macro configurations. */
+  readonly structMemberOwnerIssues: readonly ShaderStructMemberOwnerIssue[];
   /** Global preprocessor declarations that backends may reproduce. */
   readonly outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[];
 
@@ -145,29 +153,33 @@ export class ShaderCoreInfo {
     this.invalidMrtReturnLocations = collectInvalidMrtReturns(fragmentFunctions, mutableIO.mrtStructs);
     this.invalidVaryingReturnLocations = collectInvalidVaryingReturns(vertexFunctions, mutableIO.varyingStructs);
     deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO);
-    const ownerFacts = collectStructMemberOwnerFacts(
+    this.structMemberOwnerIssues = collectStructMemberOwnerIssues(
       [...vertexFunctions, ...fragmentFunctions],
-      ir.shaderData.runtimeFallbackReferences,
+      ir.shaderData.directMemberOwnerReferences,
+      ir.shaderData.referenceResolutionSnapshots,
       mutableIO.structVariableRoles,
       getBranchCoverage
     );
-    this.ambiguousStructMemberOwnerLocations = ownerFacts.ambiguousLocations;
-    this.unlowerableStructMemberOwnerLocations = ownerFacts.unlowerableLocations;
     this.io = mutableIO;
     this.outerGlobalMacroDeclarations = ir.shaderData.getOuterGlobalMacroDeclarations();
   }
 }
 
-function collectStructMemberOwnerFacts(
+interface OwnerResolution {
+  readonly symbols: readonly (VarSymbol | FnSymbol)[];
+  readonly fallbackStart: number;
+  readonly callSiteBranch: BranchSignature;
+}
+
+type ShaderStructOwnerKind = ShaderStructRole | "ordinary";
+
+function collectStructMemberOwnerIssues(
   entries: readonly FnSymbol[],
-  references: readonly RuntimeFallbackReference[],
+  directMemberReferences: readonly ASTNode.VariableIdentifier[],
+  snapshots: readonly ReferenceResolutionSnapshot[],
   variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
   getBranchCoverage: BranchCoverageResolver
-): { ambiguousLocations: ShaderRange[]; unlowerableLocations: ShaderRange[] } {
-  const ambiguousLocations: ShaderRange[] = [];
-  const unlowerableLocations: ShaderRange[] = [];
-  const ambiguousReferences = new Set<ASTNode.VariableIdentifier>();
-  const unlowerableReferences = new Set<ASTNode.VariableIdentifier>();
+): ShaderStructMemberOwnerIssue[] {
   const visitedFunctions = new Set<FnSymbol>();
   const reachableFunctions = new Set<ASTNode.FunctionDefinition>();
   const pending = entries.slice();
@@ -178,62 +190,143 @@ function collectStructMemberOwnerFacts(
     reachableFunctions.add(fn.astNode);
     pending.push(...fn.calledFunctions);
   }
-  const primaryBranches: BranchSignature[] = [];
-  for (const fallbackReference of references) {
-    const { reference, symbols, fallbackStart } = fallbackReference;
-    if (!isReachableStructMemberReference(reference, reachableFunctions)) continue;
-    primaryBranches.length = 0;
-    for (let i = 0; i < fallbackStart; i++) primaryBranches.push(symbols[i].branchSignature);
-    const coverage = getBranchCoverage(primaryBranches, reference._branch);
-    if (coverage === "covered") continue;
 
-    let resolvedRole: ShaderStructRole | undefined;
-    let hasOrdinaryOwner = false;
-    let hasRoleConflict = false;
-    for (const symbol of symbols) {
-      if (!(symbol instanceof VarSymbol)) continue;
-      const role = variableRoles.get(symbol);
-      if (!role) {
-        hasOrdinaryOwner = true;
-      } else if (resolvedRole && resolvedRole !== role) {
-        hasRoleConflict = true;
-      } else {
-        resolvedRole = role;
-      }
+  const snapshotsByReference = new Map<ASTNode.VariableIdentifier, ReferenceResolutionSnapshot[]>();
+  for (const snapshot of snapshots) {
+    let referenceSnapshots = snapshotsByReference.get(snapshot.reference);
+    if (!referenceSnapshots) snapshotsByReference.set(snapshot.reference, (referenceSnapshots = []));
+    referenceSnapshots.push(snapshot);
+  }
+
+  const issues = new Map<ASTNode.VariableIdentifier, "definite" | "unknown">();
+  for (const reference of directMemberReferences) {
+    if (!isReferenceReachable(reference, reachableFunctions)) continue;
+    const child = reference.children[0];
+    const referenceSnapshots = snapshotsByReference
+      .get(reference)
+      ?.filter((snapshot) => snapshot.replacementMemberOwnerPath === undefined);
+    let resolutions: readonly OwnerResolution[] | undefined;
+    if (child instanceof BaseToken) {
+      const symbols = reference.resolvedValueSymbols();
+      resolutions = referenceSnapshots?.length
+        ? referenceSnapshots
+        : [
+            {
+              symbols,
+              fallbackStart: symbols.length,
+              callSiteBranch: reference._branch
+            }
+          ];
+    } else if (
+      (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) &&
+      child.hasAstValue &&
+      child.aliasesNonBuiltinIdent
+    ) {
+      resolutions = referenceSnapshots;
     }
-    if (hasRoleConflict || (resolvedRole && hasOrdinaryOwner)) {
-      if (!unlowerableReferences.has(reference)) {
-        unlowerableReferences.add(reference);
-        unlowerableLocations.push(reference.location);
-      }
-      if (coverage === "uncovered" && !ambiguousReferences.has(reference)) {
-        ambiguousReferences.add(reference);
-        ambiguousLocations.push(reference.location);
-      }
+    if (resolutions?.length) {
+      recordOwnerIssue(
+        issues,
+        reference,
+        classifyOwnerResolutions(reference, resolutions, variableRoles, getBranchCoverage)
+      );
     }
   }
-  return { ambiguousLocations, unlowerableLocations };
+
+  const replacementGroups = new Map<ASTNode.VariableIdentifier, Map<string, ReferenceResolutionSnapshot[]>>();
+  for (const snapshot of snapshots) {
+    const path = snapshot.replacementMemberOwnerPath;
+    if (path === undefined || !isReferenceReachable(snapshot.reference, reachableFunctions)) continue;
+    let groups = replacementGroups.get(snapshot.reference);
+    if (!groups) replacementGroups.set(snapshot.reference, (groups = new Map()));
+    let group = groups.get(path);
+    if (!group) groups.set(path, (group = []));
+    group.push(snapshot);
+  }
+  for (const [reference, groups] of replacementGroups) {
+    for (const resolutions of groups.values()) {
+      recordOwnerIssue(
+        issues,
+        reference,
+        classifyOwnerResolutions(reference, resolutions, variableRoles, getBranchCoverage)
+      );
+    }
+  }
+
+  return Array.from(issues, ([reference, certainty]) => ({ location: reference.location, certainty }));
 }
 
-function isReachableStructMemberReference(
+function isReferenceReachable(
   reference: ASTNode.VariableIdentifier,
   reachableFunctions: ReadonlySet<ASTNode.FunctionDefinition>
 ): boolean {
-  let isStructMember = false;
   let current = reference.parent;
   while (current) {
-    if (
-      current instanceof ASTNode.PostfixExpression &&
-      current.children.length === 3 &&
-      current.children[2] instanceof BaseToken &&
-      ParserUtils.unwrapBareIdentifier(current.children[0] as TreeNode, { allowParens: true }) === reference
-    ) {
-      isStructMember = true;
-    }
-    if (current instanceof ASTNode.FunctionDefinition) return isStructMember && reachableFunctions.has(current);
+    if (current instanceof ASTNode.FunctionDefinition) return reachableFunctions.has(current);
     current = current.parent;
   }
   return false;
+}
+
+function classifyOwnerResolutions(
+  reference: ASTNode.VariableIdentifier,
+  resolutions: readonly OwnerResolution[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
+  getBranchCoverage: BranchCoverageResolver
+): "definite" | "unknown" | undefined {
+  const resolutionKinds: ShaderStructOwnerKind[] = [];
+  let hasUnknownConflict = false;
+  for (const resolution of resolutions) {
+    const primaryBranches: BranchSignature[] = [];
+    for (let i = 0; i < resolution.fallbackStart; i++) {
+      primaryBranches.push(resolution.symbols[i].branchSignature ?? EMPTY_BRANCH);
+    }
+    const primaryCoverage = getBranchCoverage(primaryBranches, resolution.callSiteBranch);
+    const primaryKinds = collectOwnerKinds(resolution.symbols, variableRoles, resolution.fallbackStart);
+    const retainedKinds =
+      primaryCoverage === "covered" ? primaryKinds : collectOwnerKinds(resolution.symbols, variableRoles);
+    if (retainedKinds.size > 1) {
+      if (
+        (primaryKinds.size > 1 && primaryCoverage === "covered") ||
+        (primaryKinds.size <= 1 && primaryCoverage === "uncovered")
+      ) {
+        return "definite";
+      }
+      hasUnknownConflict = true;
+    }
+    for (const kind of retainedKinds) {
+      if (resolutionKinds.indexOf(kind) === -1) resolutionKinds.push(kind);
+    }
+  }
+  if (hasUnknownConflict) return "unknown";
+  if (resolutionKinds.length <= 1) return undefined;
+  const replacementCoverage = getBranchCoverage(
+    resolutions.map((resolution) => resolution.callSiteBranch),
+    reference._branch
+  );
+  return replacementCoverage === "covered" ? "definite" : "unknown";
+}
+
+function collectOwnerKinds(
+  symbols: readonly (VarSymbol | FnSymbol)[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
+  end = symbols.length
+): Set<ShaderStructOwnerKind> {
+  const kinds = new Set<ShaderStructOwnerKind>();
+  for (let i = 0; i < end; i++) {
+    const symbol = symbols[i];
+    if (symbol instanceof VarSymbol) kinds.add(variableRoles.get(symbol) ?? "ordinary");
+  }
+  return kinds;
+}
+
+function recordOwnerIssue(
+  issues: Map<ASTNode.VariableIdentifier, "definite" | "unknown">,
+  reference: ASTNode.VariableIdentifier,
+  certainty: "definite" | "unknown" | undefined
+): void {
+  if (!certainty) return;
+  if (certainty === "definite" || !issues.has(reference)) issues.set(reference, certainty);
 }
 
 type DeclarationCoexistenceResolver = (earlier: BranchSignature, later: BranchSignature) => DeclarationCoexistence;

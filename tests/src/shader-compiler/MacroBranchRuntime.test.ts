@@ -993,4 +993,96 @@ FragmentShader = frag;
       expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
     }
   });
+
+  it("rejects same-scope macro arms with incompatible member owner roles", () => {
+    const source = `Shader "same-scope-owner-roles" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct Ordinary { vec2 uv; };
+#ifdef USE_IO
+Varyings v;
+#else
+Ordinary v;
+#endif
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(v.uv, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
+
+  it("keeps same-scope macro arms with the same member owner role", () => {
+    const source = `Shader "same-scope-compatible-owner-roles" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+#ifdef FIRST_LAYOUT
+Varyings v;
+#else
+Varyings v;
+#endif
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() { gl_FragColor = vec4(v.uv, 0.0, 1.0); }
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics).to.be.empty;
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).not.to.equal(undefined);
+      expect(compile(compiler, source, target)).not.to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).not.to.throw();
+    }
+  });
+
+  it("rejects a member owner projected inside an expression macro", () => {
+    const source = `Shader "replacement-member-owner" { SubShader "s" { Pass "p" {
+struct Varyings { vec2 uv; };
+struct Ordinary { vec2 uv; };
+Varyings v;
+#define OWNER_UV v.uv
+Varyings vert() {
+  Varyings output;
+  output.uv = vec2(0.5);
+  gl_Position = vec4(0.0);
+  return output;
+}
+void frag() {
+#ifdef LOCAL_SHADOW
+  Ordinary v;
+  v.uv = vec2(0.25);
+#endif
+  gl_FragColor = vec4(OWNER_UV, 0.0, 1.0);
+}
+VertexShader = vert;
+FragmentShader = frag;
+} } }`;
+    const analysis = ShaderAnalyzer.analyze(source);
+    expect(analysis.diagnostics.map((diagnostic) => diagnostic.code)).to.include("AmbiguousMacroBranchResolution");
+
+    for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
+      const compiler = new ShaderCompiler();
+      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
+      expect(compile(compiler, source, target)).to.equal(undefined);
+      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+    }
+  });
 });

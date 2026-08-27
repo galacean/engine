@@ -121,6 +121,7 @@ namespace ASTNodes {
   interface MacroReference {
     name: string;
     branch: BranchSignature;
+    replacementMemberOwnerPath?: string;
   }
 
   type MacroExpression =
@@ -1194,6 +1195,10 @@ namespace ASTNodes {
       const children = this.children;
       if (children.length === 3 && children[2] instanceof BaseToken) {
         const base = children[0] as ExpressionAstNode;
+        if (!this._inMacroDefinition) {
+          const reference = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+          if (reference) sa.shaderData.directMemberOwnerReferences.push(reference);
+        }
         if (typeof base.type === "string") {
           PostfixExpression._checkStructField(sa, base.type, children[2], this._branch);
         }
@@ -1810,7 +1815,7 @@ namespace ASTNodes {
         const needFindNames = references.map((reference) => reference.name);
 
         for (let i = 0; i < references.length; i++) {
-          const { name, branch } = references[i];
+          const { name, branch, replacementMemberOwnerPath } = references[i];
 
           if (sa.macroDefineList[name]) continue;
 
@@ -1833,7 +1838,10 @@ namespace ASTNodes {
             referenceGlobalSymbolNames,
             this.location,
             branch,
-            this
+            this,
+            false,
+            !(child instanceof BaseToken) && (replacementMemberOwnerPath !== undefined || child.aliasesNonBuiltinIdent),
+            replacementMemberOwnerPath
           );
           // Expression-style macros have their own value AST; its real type isn't
           // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
@@ -1898,13 +1906,15 @@ namespace ASTNodes {
           this.builtinSemantic = builtinVar.semantic;
           return;
         }
-        this._resolveCodegenReference(sa, name, true);
+        this._resolveCodegenReference(sa, name, true, this._branch);
         return;
       }
 
-      const references = child.referenceSymbolNames;
+      const references: readonly MacroReference[] = child.referenceSymbols.length
+        ? child.referenceSymbols
+        : child.referenceSymbolNames.map((name) => ({ name, branch: this._branch }));
       for (let i = 0; i < references.length; i++) {
-        const name = references[i];
+        const { name, branch, replacementMemberOwnerPath } = references[i];
         if (sa.macroDefineList[name] || BuiltinFunction.isExist(name)) continue;
 
         const builtinVar = BuiltinVariable.getVar(name);
@@ -1912,13 +1922,20 @@ namespace ASTNodes {
           this.typeInfo = builtinVar.type;
           continue;
         }
-        this._resolveCodegenReference(sa, name, !child.hasAstValue);
+        this._resolveCodegenReference(
+          sa,
+          name,
+          !child.hasAstValue,
+          branch,
+          replacementMemberOwnerPath !== undefined || child.aliasesNonBuiltinIdent,
+          replacementMemberOwnerPath
+        );
       }
 
       const macroName = child.macroName;
       if (!macroName || BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return;
       for (let i = 0; i < references.length; i++) {
-        if (references[i] === macroName) return;
+        if (references[i].name === macroName) return;
       }
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(macroName, ESymbolType.Any);
@@ -1933,15 +1950,29 @@ namespace ASTNodes {
       this._markCodegenReference(macroName, sa.runtimeFallbackScratch);
     }
 
-    private _resolveCodegenReference(sa: SemanticAnalyzer, name: string, inferType: boolean): void {
+    private _resolveCodegenReference(
+      sa: SemanticAnalyzer,
+      name: string,
+      inferType: boolean,
+      callSiteBranch: BranchSignature,
+      captureResolution = false,
+      replacementMemberOwnerPath?: string
+    ): void {
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       const symbols = this._symbols;
       const runtimeFallbacks = sa.runtimeFallbackScratch;
-      sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, this._branch);
+      sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, callSiteBranch);
       if (!symbols.length) return;
 
-      this._appendCodegenRuntimeFallbacks(sa, symbols, runtimeFallbacks);
+      this._appendCodegenRuntimeFallbacks(
+        sa,
+        symbols,
+        runtimeFallbacks,
+        callSiteBranch,
+        captureResolution,
+        replacementMemberOwnerPath
+      );
       this._markCodegenReference(name, symbols);
       if (!inferType) return;
 
@@ -1958,7 +1989,10 @@ namespace ASTNodes {
     private _appendCodegenRuntimeFallbacks(
       sa: SemanticAnalyzer,
       symbols: Array<VarSymbol | FnSymbol>,
-      runtimeFallbacks: readonly SymbolInfo[]
+      runtimeFallbacks: readonly SymbolInfo[],
+      callSiteBranch: BranchSignature,
+      captureResolution: boolean,
+      replacementMemberOwnerPath?: string
     ): void {
       const fallbackStart = symbols.length;
       for (let i = 0, n = runtimeFallbacks.length; i < n; i++) {
@@ -1966,7 +2000,13 @@ namespace ASTNodes {
         if (!(fallback instanceof VarSymbol || fallback instanceof FnSymbol)) continue;
         if (symbols.indexOf(fallback) === -1) symbols.push(fallback);
       }
-      this._registerRuntimeFallbackReference(sa, fallbackStart);
+      this._registerReferenceResolution(
+        sa,
+        fallbackStart,
+        callSiteBranch,
+        captureResolution,
+        replacementMemberOwnerPath
+      );
     }
 
     private _markCodegenReference(name: string, symbols: readonly SymbolInfo[]): void {
@@ -2035,7 +2075,9 @@ namespace ASTNodes {
       missErrorLoc: ShaderRange | null,
       callsiteBranch: BranchSignature,
       resolvedReference?: VariableIdentifier,
-      retainPartialBranchCandidates = false
+      retainPartialBranchCandidates = false,
+      captureResolution = false,
+      replacementMemberOwnerPath?: string
     ): boolean {
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
@@ -2062,7 +2104,13 @@ namespace ASTNodes {
         if (!(fallback instanceof VarSymbol || fallback instanceof FnSymbol)) continue;
         if (symbols.indexOf(fallback) === -1) symbols.push(fallback);
       }
-      resolvedReference?._registerRuntimeFallbackReference(sa, fallbackStart);
+      resolvedReference?._registerReferenceResolution(
+        sa,
+        fallbackStart,
+        callsiteBranch,
+        captureResolution,
+        replacementMemberOwnerPath
+      );
 
       if (!symbols.length) {
         if (missErrorLoc) {
@@ -2111,12 +2159,20 @@ namespace ASTNodes {
       return true;
     }
 
-    private _registerRuntimeFallbackReference(sa: SemanticAnalyzer, fallbackStart: number): void {
-      if (fallbackStart >= this._symbols.length) return;
-      sa.shaderData.runtimeFallbackReferences.push({
+    private _registerReferenceResolution(
+      sa: SemanticAnalyzer,
+      fallbackStart: number,
+      callSiteBranch: BranchSignature,
+      captureResolution: boolean,
+      replacementMemberOwnerPath?: string
+    ): void {
+      if (!this._symbols.length || (!captureResolution && fallbackStart >= this._symbols.length)) return;
+      sa.shaderData.referenceResolutionSnapshots.push({
         reference: this,
         symbols: this._symbols.slice(),
-        fallbackStart
+        fallbackStart,
+        callSiteBranch,
+        replacementMemberOwnerPath
       });
     }
 
@@ -2365,47 +2421,24 @@ namespace ASTNodes {
       const refs = this.referenceSymbolNames;
       refs.length = 0;
       this.referenceSymbols.length = 0;
-      if (sa.diagnosticsEnabled) {
-        this._analyzeForCodegen(defList, refs);
-        // Filter `defList` to only entries reachable from this call site's
-        // `#ifdef` branch. Without filtering, definitions
-        // in disjoint branches conflate at the call site and pollute type
-        // inference; with it, what remains is exactly what could substitute at
-        // this position.
-        const callSiteBranch = nameToken.branch;
-        const referenceSymbols = this.referenceSymbols;
-        const visibleRefs: string[] = [];
-        let visibleCount = 0;
-        let allAst = true;
-        if (defList) {
-          for (let i = 0, n = defList.length; i < n; i++) {
-            const info = defList[i];
-            if (!sa.canBranchesOverlap(info.branch, callSiteBranch)) continue;
-            visibleCount++;
-            if (info.valueAst == null) allAst = false;
-            // Harvest references from the value AST. Legacy-form macros (no
-            // `valueAst`) hold non-expression token sequences with no user
-            // identifiers, so nothing to collect.
-            if (info.valueAst) {
-              MacroCallSymbol._collectIdentifierRefs(
-                info.valueAst,
-                info.params,
-                visibleRefs,
-                referenceSymbols,
-                callSiteBranch
-              );
-            }
+      this._analyzeForCodegen(defList, refs);
+
+      const callSiteBranch = nameToken.branch;
+      const referenceSymbols = this.referenceSymbols;
+      let visibleCount = 0;
+      let allAst = true;
+      if (defList) {
+        for (let i = 0, n = defList.length; i < n; i++) {
+          const info = defList[i];
+          if (!sa.canBranchesOverlap(info.branch, callSiteBranch)) continue;
+          visibleCount++;
+          if (info.valueAst == null) allAst = false;
+          if (info.valueAst) {
+            MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs, referenceSymbols, callSiteBranch);
           }
         }
-        // Require *every* visible entry to be AST-form before taking the AST
-        // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
-        // forms through) falls back to legacy `referenceSymbolNames` inference
-        // instead of polluting the call site with TypeAny.
-        this.visibleHasAstValue = visibleCount > 0 && allAst;
-        return;
       }
-
-      this._analyzeForCodegen(defList, refs);
+      this.visibleHasAstValue = visibleCount > 0 && allAst;
     }
 
     private _analyzeForCodegen(defList: MacroDefineInfo[] | undefined, refs: string[]): void {
@@ -2433,15 +2466,14 @@ namespace ASTNodes {
       this.aliasesNonBuiltinIdent = count > 0 && allAliasNonBuiltinIdent;
     }
 
-    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
-     *  function-like parameter names (local to the macro, not call-site refs)
-     *  and duplicates. */
+    /** Collect replacement identifiers and their member-owner projection paths at the call site. */
     private static _collectIdentifierRefs(
       node: TreeNode,
       params: string[],
       out: string[],
       references?: MacroReference[],
-      callSiteBranch: BranchSignature = EMPTY_BRANCH
+      callSiteBranch: BranchSignature = EMPTY_BRANCH,
+      path = ""
     ): void {
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
@@ -2451,8 +2483,15 @@ namespace ASTNodes {
             if (out.indexOf(name) === -1) out.push(name);
             if (references) {
               const branch = [...callSiteBranch, ...node._branch];
-              if (!references.some((reference) => reference.name === name && sameBranch(reference.branch, branch))) {
-                references.push({ name, branch });
+              const replacementMemberOwnerPath = MacroCallSymbol._memberOwnerPath(node, path);
+              const existing = references.find(
+                (reference) =>
+                  reference.name === name &&
+                  sameBranch(reference.branch, branch) &&
+                  reference.replacementMemberOwnerPath === replacementMemberOwnerPath
+              );
+              if (!existing) {
+                references.push({ name, branch, replacementMemberOwnerPath });
               }
             }
           }
@@ -2463,8 +2502,27 @@ namespace ASTNodes {
       if (!children) return;
       for (let i = 0, n = children.length; i < n; i++) {
         const c = children[i];
-        if (c instanceof TreeNode) MacroCallSymbol._collectIdentifierRefs(c, params, out, references, callSiteBranch);
+        if (c instanceof TreeNode) {
+          MacroCallSymbol._collectIdentifierRefs(c, params, out, references, callSiteBranch, `${path}/${i}`);
+        }
       }
+    }
+
+    private static _memberOwnerPath(node: VariableIdentifier, path: string): string | undefined {
+      let current = node.parent;
+      while (current) {
+        if (
+          current instanceof PostfixExpression &&
+          current.children.length === 3 &&
+          current.children[2] instanceof BaseToken &&
+          ParserUtils.unwrapBareIdentifier(current.children[0] as TreeNode, { allowParens: true }) === node
+        ) {
+          return path;
+        }
+        if (current instanceof MacroDefine) return undefined;
+        current = current.parent;
+      }
+      return undefined;
     }
   }
 

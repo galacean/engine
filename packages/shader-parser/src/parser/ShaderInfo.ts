@@ -1,13 +1,14 @@
+import type { BranchSignature } from "../common/BaseToken";
 import { SymbolInfo, SymbolTable, type FnSymbol, type VarSymbol } from "../parser/symbolTable";
 import { ASTNode } from "./AST";
 
 /**
- * A value reference and the boundary between its primary and runtime-fallback owners.
+ * Immutable candidates retained for one reference lookup.
  * @internal
  */
-export interface RuntimeFallbackReference {
+export interface ReferenceResolutionSnapshot {
   /**
-   * Reference whose retained symbols contain conditional runtime owners.
+   * Call-site reference resolved by this lookup.
    */
   readonly reference: ASTNode.VariableIdentifier;
   /**
@@ -18,6 +19,14 @@ export interface RuntimeFallbackReference {
    * Index of the first outer owner used only when nearer conditional declarations are absent.
    */
   readonly fallbackStart: number;
+  /**
+   * Effective branch of this lookup, including an expression-macro replacement branch.
+   */
+  readonly callSiteBranch: BranchSignature;
+  /**
+   * Structural path of a member owner inside an expression-macro replacement.
+   */
+  readonly replacementMemberOwnerPath?: string;
 }
 
 export class ShaderData {
@@ -31,10 +40,16 @@ export class ShaderData {
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];
 
   /**
-   * Value references that retained conditional outer-scope runtime owners.
+   * Direct member-owner references discovered while their postfix expressions are reduced.
    * @internal
    */
-  runtimeFallbackReferences: RuntimeFallbackReference[] = [];
+  directMemberOwnerReferences: ASTNode.VariableIdentifier[] = [];
+
+  /**
+   * Sparse lookup snapshots required when AST-local symbol state cannot represent every owner candidate.
+   * @internal
+   */
+  referenceResolutionSnapshots: ReferenceResolutionSnapshot[] = [];
 
   getOuterGlobalMacroDeclarations(): ASTNode.GlobalDeclaration[] {
     return this.globalMacroDeclarations.filter((node) => node.parent instanceof ASTNode.GLShaderProgram);

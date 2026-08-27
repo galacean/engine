@@ -93,7 +93,7 @@ function generateShaderProgram(
     Logger.error("Varying vertex entries must return a struct variable or same-type function result.");
     return undefined;
   }
-  if (coreInfo.unlowerableStructMemberOwnerLocations.length) {
+  if (coreInfo.structMemberOwnerIssues.length) {
     Logger.error("A struct member reference cannot mix flattened stage IO and ordinary runtime owners.");
     return undefined;
   }
