@@ -24,29 +24,28 @@ import {
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
-    return new AssetPromise((resolve, reject) => {
-      resourceManager
-        // @ts-ignore
-        ._request(item.url, {
-          ...item,
-          type: "json"
-        })
-        .then((materialSchema: IMaterialSchema) => {
-          const engine = resourceManager.engine;
-          const { shaderRef, shader: shaderName } = materialSchema;
-          const shader = Shader.find(shaderName);
-          if (shader) {
-            resolve(this._getMaterialByShader(materialSchema, shader, engine));
-          } else if (shaderRef) {
-            resolve(
-              resourceManager
-                // @ts-ignore
-                .getResourceByRef<Shader>(<RefItem>shaderRef)
-                .then((shader) => this._getMaterialByShader(materialSchema, shader, engine))
-            );
-          }
-        })
-        .catch(reject);
+    // @ts-ignore
+    return resourceManager._request(item.url, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
+      const engine = resourceManager.engine;
+      const { shaderRef, shader: shaderName } = materialSchema;
+      const shader = Shader.find(shaderName);
+      if (shader) {
+        return this._getMaterialByShader(materialSchema, shader, engine);
+      }
+      if (!shaderRef) {
+        throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
+      }
+      return (
+        resourceManager
+          // @ts-ignore
+          .getResourceByRef<Shader>(<RefItem>shaderRef)
+          .then((shader) => {
+            if (!(shader instanceof Shader)) {
+              throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
+            }
+            return this._getMaterialByShader(materialSchema, shader, engine);
+          })
+      );
     });
   }
 
@@ -100,6 +99,8 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Integer:
           materialShaderData.setInt(key, Number(value));
           break;
+        default:
+          throw new Error(`MaterialLoader: unsupported shader data type "${type}".`);
       }
     }
 
