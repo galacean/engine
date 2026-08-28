@@ -26,6 +26,12 @@ class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     // @ts-ignore
     return resourceManager._request(item.url, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
+      for (const key in materialSchema.shaderData) {
+        if (!Object.values(MaterialLoaderType).includes(materialSchema.shaderData[key].type)) {
+          throw new Error(`MaterialLoader: unsupported shader data type "${materialSchema.shaderData[key].type}".`);
+        }
+      }
+
       const engine = resourceManager.engine;
       const { shaderRef, shader: shaderName } = materialSchema;
       const shader = Shader.find(shaderName);
@@ -51,22 +57,6 @@ class MaterialLoader extends Loader<Material> {
 
   private _getMaterialByShader(materialSchema: IMaterialSchema, shader: Shader, engine: Engine): Promise<Material> {
     const { name, shaderData, macros } = materialSchema;
-
-    for (let key in shaderData) {
-      switch (shaderData[key].type) {
-        case MaterialLoaderType.Vector2:
-        case MaterialLoaderType.Vector3:
-        case MaterialLoaderType.Vector4:
-        case MaterialLoaderType.Color:
-        case MaterialLoaderType.Float:
-        case MaterialLoaderType.Texture:
-        case MaterialLoaderType.Boolean:
-        case MaterialLoaderType.Integer:
-          break;
-        default:
-          throw new Error(`MaterialLoader: unsupported shader data type "${shaderData[key].type}".`);
-      }
-    }
 
     const material = new Material(engine, shader);
     material.name = name;

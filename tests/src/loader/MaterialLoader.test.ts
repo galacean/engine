@@ -79,4 +79,37 @@ describe("MaterialLoader", () => {
     ).rejects.toBeDefined();
     expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
   });
+
+  it("rejects unsupported shader data before loading a shaderRef", async () => {
+    const shaderName = `MaterialLoaderUnsupportedRef-${Math.random()}`;
+    const shaderPath = `MaterialLoaderTest/${shaderName}`;
+    engine.resourceManager.registerVirtualResources([
+      {
+        virtualPath: shaderPath,
+        path: createBlobURL({ name: shaderName, platformTarget: 0, subShaders: [] }, "shader"),
+        type: AssetType.Shader
+      }
+    ]);
+    expect(Shader.find(shaderName)).toBeUndefined();
+    expect(engine.resourceManager.getFromCache(shaderPath)).toBeNull();
+
+    await expect(
+      engine.resourceManager.load({
+        url: createBlobURL(
+          {
+            name: "unsupported-shader-ref",
+            shader: shaderName,
+            shaderRef: { url: shaderPath },
+            shaderData: { value: { type: "Matrix", value: [] } },
+            macros: []
+          },
+          "mat"
+        ),
+        type: AssetType.Material
+      })
+    ).rejects.toBeDefined();
+
+    expect(Shader.find(shaderName)).toBeUndefined();
+    expect(engine.resourceManager.getFromCache(shaderPath)).toBeNull();
+  });
 });
