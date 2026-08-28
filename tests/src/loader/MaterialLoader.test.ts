@@ -9,6 +9,18 @@ function createBlobURL(data: unknown, extension: string): string {
   return URL.createObjectURL(new Blob([JSON.stringify(data)], { type: "application/json" })) + `#.${extension}`;
 }
 
+function registerShaderResource(shaderName: string): string {
+  const shaderPath = `MaterialLoaderTest/${shaderName}`;
+  engine.resourceManager.registerVirtualResources([
+    {
+      virtualPath: shaderPath,
+      path: createBlobURL({ name: shaderName, platformTarget: 0, subShaders: [] }, "shader"),
+      type: AssetType.Shader
+    }
+  ]);
+  return shaderPath;
+}
+
 beforeAll(async () => {
   engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   materialShaderName = `MaterialLoaderTestShader-${Math.random()}`;
@@ -34,6 +46,44 @@ describe("ShaderLoader", () => {
 });
 
 describe("MaterialLoader", () => {
+  it("loads a material with a registered shader", async () => {
+    const material = await engine.resourceManager.load<Material>({
+      url: createBlobURL(
+        {
+          name: "registered-shader",
+          shader: materialShaderName,
+          shaderData: { value: { type: "Float", value: 1 } },
+          macros: []
+        },
+        "mat"
+      ),
+      type: AssetType.Material
+    });
+
+    expect(material.shader).toBe(Shader.find(materialShaderName));
+    expect(material.shaderData.getFloat("value")).toBe(1);
+  });
+
+  it("loads a material from a valid shader reference", async () => {
+    const shaderName = `MaterialLoaderRef-${Math.random()}`;
+    const shaderPath = registerShaderResource(shaderName);
+    const material = await engine.resourceManager.load<Material>({
+      url: createBlobURL(
+        {
+          name: "shader-ref",
+          shader: shaderName,
+          shaderRef: { url: shaderPath },
+          shaderData: {},
+          macros: []
+        },
+        "mat"
+      ),
+      type: AssetType.Material
+    });
+
+    expect(material.shader).toBe(Shader.find(shaderName));
+  });
+
   it("rejects a material without a resolvable shader", async () => {
     await expect(
       engine.resourceManager.load({
@@ -81,14 +131,7 @@ describe("MaterialLoader", () => {
 
   it("rejects unsupported shader data before loading a shaderRef", async () => {
     const shaderName = `MaterialLoaderUnsupportedRef-${Math.random()}`;
-    const shaderPath = `MaterialLoaderTest/${shaderName}`;
-    engine.resourceManager.registerVirtualResources([
-      {
-        virtualPath: shaderPath,
-        path: createBlobURL({ name: shaderName, platformTarget: 0, subShaders: [] }, "shader"),
-        type: AssetType.Shader
-      }
-    ]);
+    const shaderPath = registerShaderResource(shaderName);
     expect(Shader.find(shaderName)).toBeUndefined();
     expect(engine.resourceManager.getFromCache(shaderPath)).toBeNull();
 
