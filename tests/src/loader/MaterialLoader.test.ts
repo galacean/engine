@@ -1,6 +1,5 @@
-import { AssetType, Material, Shader } from "@galacean/engine";
+import { AssetType, Material, Shader, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
