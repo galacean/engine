@@ -1,4 +1,4 @@
-import { AssetType, Shader } from "@galacean/engine";
+import { AssetType, Material, Shader } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -62,13 +62,14 @@ describe("MaterialLoader", () => {
   });
 
   it.each(["Matrix", "TextureArray"])("rejects unsupported %s shader data", async (type) => {
+    const materialCount = engine.resourceManager.findResourcesByType(Material).length;
     await expect(
       engine.resourceManager.load({
         url: createBlobURL(
           {
             name: "unsupported-shader-data",
             shader: materialShaderName,
-            shaderData: { value: { type, value: [] } },
+            shaderData: { supported: { type: "Float", value: 1 }, value: { type, value: [] } },
             macros: []
           },
           "mat"
@@ -76,5 +77,6 @@ describe("MaterialLoader", () => {
         type: AssetType.Material
       })
     ).rejects.toBeDefined();
+    expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
   });
 });
