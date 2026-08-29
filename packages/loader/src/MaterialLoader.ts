@@ -54,85 +54,81 @@ class MaterialLoader extends Loader<Material> {
     });
   }
 
-  private async _getMaterialByShader(
-    materialSchema: IMaterialSchema,
-    shader: Shader,
-    engine: Engine
-  ): Promise<Material> {
+  private _getMaterialByShader(materialSchema: IMaterialSchema, shader: Shader, engine: Engine): Promise<Material> {
     const { name, shaderData, macros } = materialSchema;
 
     const material = new Material(engine, shader);
-    try {
-      material.name = name;
+    material.name = name;
 
-      const texturePromises = new Array<AssetPromise<void>>();
-      const materialShaderData = material.shaderData;
-      for (const key in shaderData) {
-        const { type, value } = shaderData[key];
+    const texturePromises = new Array<AssetPromise<void>>();
+    const materialShaderData = material.shaderData;
+    for (const key in shaderData) {
+      const { type, value } = shaderData[key];
 
-        switch (type) {
-          case MaterialLoaderType.Vector2:
-            materialShaderData.setVector2(key, new Vector2((<IVector2>value).x, (<IVector2>value).y));
-            break;
-          case MaterialLoaderType.Vector3:
-            materialShaderData.setVector3(
-              key,
-              new Vector3((<IVector3>value).x, (<IVector3>value).y, (<IVector3>value).z)
-            );
-            break;
-          case MaterialLoaderType.Vector4:
-            materialShaderData.setVector4(
-              key,
-              new Vector4((<IVector4>value).x, (<IVector4>value).y, (<IVector4>value).z, (<IVector4>value).w)
-            );
-            break;
-          case MaterialLoaderType.Color:
-            materialShaderData.setColor(
-              key,
-              new Color((<IColor>value).r, (<IColor>value).g, (<IColor>value).b, (<IColor>value).a)
-            );
-            break;
-          case MaterialLoaderType.Float:
-            materialShaderData.setFloat(key, <number>value);
-            break;
-          case MaterialLoaderType.Texture:
-            texturePromises.push(
-              // @ts-expect-error getResourceByRef is @internal
-              engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
-                if (!(texture instanceof Texture)) {
-                  throw new Error(
-                    `MaterialLoader: texture reference "${(<RefItem>value).url}" did not resolve to a Texture.`
-                  );
-                }
-                materialShaderData.setTexture(key, texture);
-              })
-            );
-            break;
-          case MaterialLoaderType.Boolean:
-            materialShaderData.setInt(key, value ? 1 : 0);
-            break;
-          case MaterialLoaderType.Integer:
-            materialShaderData.setInt(key, Number(value));
-            break;
-          default:
-            throw new Error(`MaterialLoader: unsupported shader data type "${type}".`);
-        }
+      switch (type) {
+        case MaterialLoaderType.Vector2:
+          materialShaderData.setVector2(key, new Vector2((<IVector2>value).x, (<IVector2>value).y));
+          break;
+        case MaterialLoaderType.Vector3:
+          materialShaderData.setVector3(
+            key,
+            new Vector3((<IVector3>value).x, (<IVector3>value).y, (<IVector3>value).z)
+          );
+          break;
+        case MaterialLoaderType.Vector4:
+          materialShaderData.setVector4(
+            key,
+            new Vector4((<IVector4>value).x, (<IVector4>value).y, (<IVector4>value).z, (<IVector4>value).w)
+          );
+          break;
+        case MaterialLoaderType.Color:
+          materialShaderData.setColor(
+            key,
+            new Color((<IColor>value).r, (<IColor>value).g, (<IColor>value).b, (<IColor>value).a)
+          );
+          break;
+        case MaterialLoaderType.Float:
+          materialShaderData.setFloat(key, <number>value);
+          break;
+        case MaterialLoaderType.Texture:
+          texturePromises.push(
+            // @ts-expect-error getResourceByRef is @internal
+            engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
+              if (!(texture instanceof Texture)) {
+                throw new Error(
+                  `MaterialLoader: texture reference "${(<RefItem>value).url}" did not resolve to a Texture.`
+                );
+              }
+              materialShaderData.setTexture(key, texture);
+            })
+          );
+          break;
+        case MaterialLoaderType.Boolean:
+          materialShaderData.setInt(key, value ? 1 : 0);
+          break;
+        case MaterialLoaderType.Integer:
+          materialShaderData.setInt(key, Number(value));
+          break;
+        default:
+          throw new Error(`MaterialLoader: unsupported shader data type "${type}".`);
       }
-
-      for (let i = 0, length = macros.length; i < length; i++) {
-        const { name, value } = macros[i];
-        if (value == undefined) {
-          materialShaderData.enableMacro(name);
-        } else {
-          materialShaderData.enableMacro(name, value);
-        }
-      }
-
-      await Promise.all(texturePromises);
-      return material;
-    } catch (error) {
-      material.destroy();
-      throw error;
     }
+
+    for (let i = 0, length = macros.length; i < length; i++) {
+      const { name, value } = macros[i];
+      if (value == undefined) {
+        materialShaderData.enableMacro(name);
+      } else {
+        materialShaderData.enableMacro(name, value);
+      }
+    }
+
+    return Promise.all(texturePromises).then(
+      () => material,
+      (error) => {
+        material.destroy();
+        throw error;
+      }
+    );
   }
 }
