@@ -7,7 +7,7 @@ import {
   Material,
   ResourceManager,
   Shader,
-  Texture2D,
+  Texture,
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
@@ -60,7 +60,7 @@ class MaterialLoader extends Loader<Material> {
     const material = new Material(engine, shader);
     material.name = name;
 
-    const texturePromises = new Array<Promise<Texture2D>>();
+    const texturePromises = new Array<AssetPromise<void>>();
     const materialShaderData = material.shaderData;
     for (const key in shaderData) {
       const { type, value } = shaderData[key];
@@ -93,7 +93,12 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Texture:
           texturePromises.push(
             // @ts-expect-error getResourceByRef is @internal
-            engine.resourceManager.getResourceByRef<Texture2D>(<RefItem>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
+              if (!(texture instanceof Texture)) {
+                throw new Error(
+                  `MaterialLoader: texture reference "${(<RefItem>value).url}" did not resolve to a Texture.`
+                );
+              }
               materialShaderData.setTexture(key, texture);
             })
           );

@@ -99,6 +99,23 @@ describe("MaterialLoader", () => {
     ).rejects.toBeDefined();
   });
 
+  it("rejects a texture reference that resolves to another resource type", async () => {
+    const textPath = "MaterialLoaderTest/not-a-texture";
+    const textureProperty = `MaterialLoaderTexture-${Math.random()}`;
+    engine.resourceManager.registerVirtualResources([
+      { virtualPath: textPath, path: createBlobURL("not a texture", "txt"), type: AssetType.Text }
+    ]);
+
+    await expect(
+      loadMaterial({
+        name: "wrong-texture-ref",
+        shader: materialShaderName,
+        shaderData: { [textureProperty]: { type: "Texture", value: { url: textPath } } },
+        macros: []
+      })
+    ).rejects.toBeDefined();
+  });
+
   it.each(["Matrix", "TextureArray"])("rejects unsupported %s shader data", async (type) => {
     const materialCount = engine.resourceManager.findResourcesByType(Material).length;
     await expect(
