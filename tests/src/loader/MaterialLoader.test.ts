@@ -106,6 +106,7 @@ describe("MaterialLoader", () => {
       { virtualPath: textPath, path: createBlobURL("not a texture", "txt"), type: AssetType.Text }
     ]);
 
+    const materialCount = engine.resourceManager.findResourcesByType(Material).length;
     await expect(
       loadMaterial({
         name: "wrong-texture-ref",
@@ -114,6 +115,7 @@ describe("MaterialLoader", () => {
         macros: []
       })
     ).rejects.toBeDefined();
+    expect(engine.resourceManager.findResourcesByType(Material)).toHaveLength(materialCount);
   });
 
   it.each(["Matrix", "TextureArray"])("rejects unsupported %s shader data", async (type) => {
