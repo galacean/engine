@@ -16,6 +16,7 @@ import {
   OverlapHitResult
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
+import type { IPhysicsScene } from "@galacean/engine-design";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
@@ -433,6 +434,18 @@ describe("Physics Test", () => {
       expect(results.map((result) => result.shape)).to.have.members([nearShape, farShape]);
       expect(results.map((result) => result.entity)).to.have.members([nearEntity, farEntity]);
       expect(results.every((result) => result.distance > 0)).to.eq(true);
+
+      const nativeScene = (physicsScene as any)._nativePhysicsScene as IPhysicsScene;
+      expect(() => (nativeScene.raycastAll as any)(ray, Number.MAX_VALUE, () => true)).to.throw();
+
+      const nativeHitIds: number[] = [];
+      nativeScene.raycastAll(
+        ray,
+        Number.MAX_VALUE,
+        () => true,
+        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
+      );
+      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
 
       const limitedResults = physicsScene.raycastAll(ray, 5);
       expect(limitedResults).to.have.length(1);

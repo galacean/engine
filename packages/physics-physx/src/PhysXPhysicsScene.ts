@@ -282,7 +282,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     ray: Ray,
     distance: number,
     onRaycast: (obj: number) => boolean,
-    hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): void {
     distance = Math.min(distance, 3.4e38);
 
@@ -303,7 +303,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     }
 
     try {
-      if (hit && hits) {
+      if (hits) {
         for (let i = 0, n = hits.size(); i < n; i++) {
           const pxHit = hits.get(i);
           try {
@@ -311,7 +311,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
             const pxNormal = pxHit.normal;
             PhysXPhysicsScene._tempPosition.set(pxPosition.x, pxPosition.y, pxPosition.z);
             PhysXPhysicsScene._tempNormal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-            hit(
+            onHit(
               pxHit.getShape().getUUID(),
               pxHit.distance,
               PhysXPhysicsScene._tempPosition,
