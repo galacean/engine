@@ -35,6 +35,18 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _forceMaxConstant = new Vector3();
   @ignoreClone
+  private _forceMinGradientX = new Float32Array(8);
+  @ignoreClone
+  private _forceMinGradientY = new Float32Array(8);
+  @ignoreClone
+  private _forceMinGradientZ = new Float32Array(8);
+  @ignoreClone
+  private _forceMaxGradientX = new Float32Array(8);
+  @ignoreClone
+  private _forceMaxGradientY = new Float32Array(8);
+  @ignoreClone
+  private _forceMaxGradientZ = new Float32Array(8);
+  @ignoreClone
   private _forceMacro: ShaderMacro;
   @ignoreClone
   private _randomModeMacro: ShaderMacro;
@@ -123,25 +135,36 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
       const forceY = this._forceY;
       const forceZ = this._forceZ;
 
-      const isRandomCurveMode =
-        forceX.mode === ParticleCurveMode.TwoCurves &&
-        forceY.mode === ParticleCurveMode.TwoCurves &&
-        forceZ.mode === ParticleCurveMode.TwoCurves;
+      const isCurveMode = forceX._isCurveMode() || forceY._isCurveMode() || forceZ._isCurveMode();
+      const isRandomMode = forceX._isRandomMode() || forceY._isRandomMode() || forceZ._isRandomMode();
 
-      if (
-        isRandomCurveMode ||
-        (forceX.mode === ParticleCurveMode.Curve &&
-          forceY.mode === ParticleCurveMode.Curve &&
-          forceZ.mode === ParticleCurveMode.Curve)
-      ) {
-        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientXProperty, forceX.curveMax._getTypeArray());
-        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientYProperty, forceY.curveMax._getTypeArray());
-        shaderData.setFloatArray(ForceOverLifetimeModule._maxGradientZProperty, forceZ.curveMax._getTypeArray());
+      if (isCurveMode) {
+        shaderData.setFloatArray(
+          ForceOverLifetimeModule._maxGradientXProperty,
+          this._getCurveData(forceX, this._forceMaxGradientX, false)
+        );
+        shaderData.setFloatArray(
+          ForceOverLifetimeModule._maxGradientYProperty,
+          this._getCurveData(forceY, this._forceMaxGradientY, false)
+        );
+        shaderData.setFloatArray(
+          ForceOverLifetimeModule._maxGradientZProperty,
+          this._getCurveData(forceZ, this._forceMaxGradientZ, false)
+        );
         forceModeMacro = ForceOverLifetimeModule._curveModeMacro;
-        if (isRandomCurveMode) {
-          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientXProperty, forceX.curveMin._getTypeArray());
-          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientYProperty, forceY.curveMin._getTypeArray());
-          shaderData.setFloatArray(ForceOverLifetimeModule._minGradientZProperty, forceZ.curveMin._getTypeArray());
+        if (isRandomMode) {
+          shaderData.setFloatArray(
+            ForceOverLifetimeModule._minGradientXProperty,
+            this._getCurveData(forceX, this._forceMinGradientX, true)
+          );
+          shaderData.setFloatArray(
+            ForceOverLifetimeModule._minGradientYProperty,
+            this._getCurveData(forceY, this._forceMinGradientY, true)
+          );
+          shaderData.setFloatArray(
+            ForceOverLifetimeModule._minGradientZProperty,
+            this._getCurveData(forceZ, this._forceMinGradientZ, true)
+          );
           isRandomModeMacro = ForceOverLifetimeModule._isRandomMacro;
         }
       } else {
@@ -149,13 +172,13 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
         constantMax.set(forceX.constantMax, forceY.constantMax, forceZ.constantMax);
         shaderData.setVector3(ForceOverLifetimeModule._maxConstantProperty, constantMax);
         forceModeMacro = ForceOverLifetimeModule._constantModeMacro;
-        if (
-          forceX.mode === ParticleCurveMode.TwoConstants &&
-          forceY.mode === ParticleCurveMode.TwoConstants &&
-          forceZ.mode === ParticleCurveMode.TwoConstants
-        ) {
+        if (isRandomMode) {
           const constantMin = this._forceMinConstant;
-          constantMin.set(forceX.constantMin, forceY.constantMin, forceZ.constantMin);
+          constantMin.set(
+            forceX.mode === ParticleCurveMode.TwoConstants ? forceX.constantMin : forceX.constantMax,
+            forceY.mode === ParticleCurveMode.TwoConstants ? forceY.constantMin : forceY.constantMax,
+            forceZ.mode === ParticleCurveMode.TwoConstants ? forceZ.constantMin : forceZ.constantMax
+          );
           shaderData.setVector3(ForceOverLifetimeModule._minConstantProperty, constantMin);
           isRandomModeMacro = ForceOverLifetimeModule._isRandomMacro;
         }
@@ -178,16 +201,27 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _isRandomMode(): boolean {
-    const modeX = this.forceX.mode;
-    const modeY = this.forceY.mode;
-    const modeZ = this.forceZ.mode;
-    return (
-      (modeX === ParticleCurveMode.TwoCurves &&
-        modeY === ParticleCurveMode.TwoCurves &&
-        modeZ === ParticleCurveMode.TwoCurves) ||
-      (modeX === ParticleCurveMode.TwoConstants &&
-        modeY === ParticleCurveMode.TwoConstants &&
-        modeZ === ParticleCurveMode.TwoConstants)
-    );
+    return this.forceX._isRandomMode() || this.forceY._isRandomMode() || this.forceZ._isRandomMode();
+  }
+
+  private _getCurveData(curve: ParticleCompositeCurve, out: Float32Array, useMin: boolean): Float32Array {
+    switch (curve.mode) {
+      case ParticleCurveMode.TwoCurves:
+        return (useMin ? curve.curveMin : curve.curveMax)._getTypeArray();
+      case ParticleCurveMode.Curve:
+        return curve.curveMax._getTypeArray();
+      default: {
+        const value = useMin && curve.mode === ParticleCurveMode.TwoConstants ? curve.constantMin : curve.constantMax;
+        out[0] = 0;
+        out[1] = value;
+        out[2] = 1 / 3;
+        out[3] = value;
+        out[4] = 2 / 3;
+        out[5] = value;
+        out[6] = 1;
+        out[7] = value;
+        return out;
+      }
+    }
   }
 }
