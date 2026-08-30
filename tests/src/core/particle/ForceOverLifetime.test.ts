@@ -12,7 +12,7 @@ import {
   ShaderProperty,
   WebGLEngine
 } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 const FOL_CONSTANT_MODE_MACRO = ShaderMacro.getByName("RENDERER_FOL_CONSTANT_MODE");
 const FOL_CURVE_MODE_MACRO = ShaderMacro.getByName("RENDERER_FOL_CURVE_MODE");
@@ -28,12 +28,13 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
   engine._time._lastSystemTime = 0;
   let times = 0;
-  performance.now = function () {
-    times++;
-    return times * deltaTime;
-  };
-  for (let i = 0; i < frames; i++) {
-    engine.update();
+  const now = vi.spyOn(performance, "now").mockImplementation(() => ++times * deltaTime);
+  try {
+    for (let i = 0; i < frames; i++) {
+      engine.update();
+    }
+  } finally {
+    now.mockRestore();
   }
 }
 
