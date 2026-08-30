@@ -54,10 +54,31 @@ describe("ForceOverLifetime", () => {
     expect([minConstant.x, minConstant.y, minConstant.z]).to.deep.eq([-1, 2, -3]);
     expect([maxConstant.x, maxConstant.y, maxConstant.z]).to.deep.eq([1, 2, -3]);
 
+    forceOverLifetime.forceX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, -1), new CurveKey(1, 1)));
+    forceOverLifetime.forceY = new ParticleCompositeCurve(-2, 3);
+    renderer.generator._updateShaderData(renderer.shaderData);
+
+    expect(macros.isEnable(FOL_CONSTANT_MODE_MACRO)).to.eq(false);
+    expect(macros.isEnable(FOL_CURVE_MODE_MACRO)).to.eq(true);
+    expect(macros.isEnable(FOL_RANDOM_MODE_MACRO)).to.eq(true);
+    const curveMin = renderer.shaderData.getFloatArray("renderer_FOLMinGradientX");
+    const curveMax = renderer.shaderData.getFloatArray("renderer_FOLMaxGradientX");
+    expect(Array.from(curveMin)).to.deep.eq(Array.from(curveMax));
+    const twoConstantsMin = renderer.shaderData.getFloatArray("renderer_FOLMinGradientY");
+    const twoConstantsMax = renderer.shaderData.getFloatArray("renderer_FOLMaxGradientY");
+    expect([twoConstantsMin[1], twoConstantsMin[3], twoConstantsMin[5], twoConstantsMin[7]]).to.deep.eq([
+      -2, -2, -2, -2
+    ]);
+    expect([twoConstantsMax[1], twoConstantsMax[3], twoConstantsMax[5], twoConstantsMax[7]]).to.deep.eq([3, 3, 3, 3]);
+    const constantMin = renderer.shaderData.getFloatArray("renderer_FOLMinGradientZ");
+    const constantMax = renderer.shaderData.getFloatArray("renderer_FOLMaxGradientZ");
+    expect(Array.from(constantMin)).to.deep.eq(Array.from(constantMax));
+
     forceOverLifetime.forceX = new ParticleCompositeCurve(
       new ParticleCurve(new CurveKey(0, -1), new CurveKey(1, -1)),
       new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1))
     );
+    forceOverLifetime.forceY = new ParticleCompositeCurve(2);
     renderer.generator._updateShaderData(renderer.shaderData);
 
     expect(macros.isEnable(FOL_CONSTANT_MODE_MACRO)).to.eq(false);
