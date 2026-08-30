@@ -136,7 +136,7 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
       const forceZ = this._forceZ;
 
       const isCurveMode = forceX._isCurveMode() || forceY._isCurveMode() || forceZ._isCurveMode();
-      const isRandomMode = forceX._isRandomMode() || forceY._isRandomMode() || forceZ._isRandomMode();
+      const isRandomMode = this._isRandomMode();
 
       if (isCurveMode) {
         shaderData.setFloatArray(

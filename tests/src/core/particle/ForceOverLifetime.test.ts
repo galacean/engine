@@ -1,4 +1,5 @@
 import {
+  Burst,
   Camera,
   CurveKey,
   Engine,
@@ -6,6 +7,7 @@ import {
   ParticleCurve,
   ParticleMaterial,
   ParticleRenderer,
+  ParticleStopMode,
   ShaderMacro,
   ShaderProperty,
   WebGLEngine
@@ -17,12 +19,37 @@ const FOL_CURVE_MODE_MACRO = ShaderMacro.getByName("RENDERER_FOL_CURVE_MODE");
 const FOL_RANDOM_MODE_MACRO = ShaderMacro.getByName("RENDERER_FOL_IS_RANDOM_TWO");
 const FOL_MIN_CONST = ShaderProperty.getByName("renderer_FOLMinConst");
 const FOL_MAX_CONST = ShaderProperty.getByName("renderer_FOLMaxConst");
+// ParticleBufferUtils.instanceVertexFloatStride
+const FLOAT_STRIDE = 42;
+
+function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
+  //@ts-ignore
+  engine._vSyncCount = Infinity;
+  //@ts-ignore
+  engine._time._lastSystemTime = 0;
+  let times = 0;
+  performance.now = function () {
+    times++;
+    return times * deltaTime;
+  };
+  for (let i = 0; i < frames; i++) {
+    engine.update();
+  }
+}
 
 function createParticleRenderer(engine: Engine): ParticleRenderer {
   const scene = engine.sceneManager.activeScene;
   const entity = scene.getRootEntity().createChild("FOL_MixedAxis");
   const renderer = entity.addComponent(ParticleRenderer);
   renderer.setMaterial(new ParticleMaterial(engine));
+
+  const generator = renderer.generator;
+  generator.useAutoRandomSeed = false;
+  generator.main.duration = 5;
+  generator.main.isLoop = false;
+  generator.main.maxParticles = 1000;
+  generator.main.startLifetime.constant = 10;
+  generator.emission.rateOverTime.constant = 0;
   return renderer;
 }
 
@@ -33,6 +60,7 @@ describe("ForceOverLifetime", () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const root = engine.sceneManager.activeScene.createRootEntity("root");
     root.createChild("Camera").addComponent(Camera);
+    engine.run();
   });
 
   it("keeps constant axes fixed when another axis is random", () => {
@@ -90,6 +118,31 @@ describe("ForceOverLifetime", () => {
     expect(renderer.shaderData.getFloatArray("renderer_FOLMaxGradientY")[1]).to.eq(2);
     expect(renderer.shaderData.getFloatArray("renderer_FOLMinGradientZ")[1]).to.eq(-3);
     expect(renderer.shaderData.getFloatArray("renderer_FOLMaxGradientZ")[1]).to.eq(-3);
+
+    renderer.entity.destroy();
+  });
+
+  it("writes random factors for particles when only one force axis is random", () => {
+    const renderer = createParticleRenderer(engine);
+    const generator = renderer.generator;
+    const { forceOverLifetime } = generator;
+    forceOverLifetime.enabled = true;
+    forceOverLifetime.forceX = new ParticleCompositeCurve(-1, 1);
+    forceOverLifetime.forceY.constant = 2;
+    forceOverLifetime.forceZ.constant = -3;
+
+    generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    updateEngine(engine, 3);
+
+    expect(generator._getAliveParticleCount()).to.eq(2);
+    const vertices = (generator as any)._instanceVertices as Float32Array;
+    const first = Array.from(vertices.slice(38, 41));
+    const second = Array.from(vertices.slice(FLOAT_STRIDE + 38, FLOAT_STRIDE + 41));
+    expect(first.every((value) => value > 0 && value < 1)).to.eq(true);
+    expect(second.every((value) => value > 0 && value < 1)).to.eq(true);
+    expect(first).to.not.deep.eq(second);
 
     renderer.entity.destroy();
   });
