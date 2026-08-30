@@ -408,6 +408,51 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("raycastAll", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("raycast_all_root");
+      const nearEntity = root.createChild("near");
+      nearEntity.transform.position = new Vector3(0, 0, 0);
+      const nearCollider = nearEntity.addComponent(StaticCollider);
+      const nearShape = new BoxColliderShape();
+      nearShape.size = new Vector3(1, 1, 1);
+      nearCollider.addShape(nearShape);
+
+      const farEntity = root.createChild("far");
+      farEntity.transform.position = new Vector3(5, 0, 0);
+      const farCollider = farEntity.addComponent(StaticCollider);
+      farCollider.collisionLayer = Layer.Layer1;
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(1, 1, 1);
+      farCollider.addShape(farShape);
+
+      const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
+      const results = physicsScene.raycastAll(ray);
+      expect(results).to.have.length(2);
+      expect(results.map((result) => result.shape)).to.have.members([nearShape, farShape]);
+      expect(results.map((result) => result.entity)).to.have.members([nearEntity, farEntity]);
+      expect(results.every((result) => result.distance > 0)).to.eq(true);
+
+      const limitedResults = physicsScene.raycastAll(ray, 5);
+      expect(limitedResults).to.have.length(1);
+      expect(limitedResults[0].shape).to.eq(nearShape);
+      expect(limitedResults[0].entity).to.eq(nearEntity);
+
+      const filteredResults = physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Layer1);
+      expect(filteredResults).to.have.length(1);
+      expect(filteredResults[0].shape).to.eq(farShape);
+      expect(filteredResults[0].entity).to.eq(farEntity);
+      expect(physicsScene.raycastAll(ray, 0)).to.have.length(0);
+
+      farShape.isSceneQuery = false;
+      const queryFilteredResults = physicsScene.raycastAll(ray);
+      expect(queryFilteredResults).to.have.length(1);
+      expect(queryFilteredResults[0].shape).to.eq(nearShape);
+
+      root.destroy();
+    });
+
     it("raycast skips initial overlap when ray origin is inside a collider", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;

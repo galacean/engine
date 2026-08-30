@@ -32,6 +32,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxSweepHit: any;
   private _pxFilterData: any;
   private _pxRaycastSweepFilterData: any;
+  private _pxRaycastAllFilterData: any;
 
   private _pxScene: any;
   private _physXSimulationCallbackInstance: any;
@@ -68,6 +69,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxRaycastSweepFilterData = new physX.PxQueryFilterData();
     this._pxRaycastSweepFilterData.flags = new physX.PxQueryFlags(
       QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
+    );
+    this._pxRaycastAllFilterData = new physX.PxQueryFilterData();
+    this._pxRaycastAllFilterData.flags = new physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER | QueryFlag.NO_BLOCK
     );
 
     const triggerCallback = {
@@ -271,6 +276,54 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.raycastAll }
+   */
+  raycastAll(
+    ray: Ray,
+    distance: number,
+    onRaycast: (obj: number) => boolean,
+    hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): void {
+    distance = Math.min(distance, 3.4e38);
+
+    const prevOnQuery = this._currentOnQuery;
+    this._currentOnQuery = onRaycast;
+    let hits: any;
+    try {
+      hits = this._pxScene.raycastMultiple(
+        ray.origin,
+        ray.direction,
+        distance,
+        256,
+        this._pxRaycastAllFilterData,
+        this._pxQueryCallback
+      );
+    } finally {
+      this._currentOnQuery = prevOnQuery;
+    }
+
+    try {
+      if (hit && hits) {
+        for (let i = 0, n = hits.size(); i < n; i++) {
+          const pxHit = hits.get(i);
+          const pxPosition = pxHit.position;
+          const pxNormal = pxHit.normal;
+          PhysXPhysicsScene._tempPosition.set(pxPosition.x, pxPosition.y, pxPosition.z);
+          PhysXPhysicsScene._tempNormal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+          hit(
+            pxHit.getShape().getUUID(),
+            pxHit.distance,
+            PhysXPhysicsScene._tempPosition,
+            PhysXPhysicsScene._tempNormal
+          );
+        }
+      }
+    } finally {
+      hits?.delete();
+    }
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.boxCast }
    */
   boxCast(
@@ -425,6 +478,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxFilterData.delete();
     this._pxRaycastSweepFilterData.flags.delete();
     this._pxRaycastSweepFilterData.delete();
+    this._pxRaycastAllFilterData.flags.delete();
+    this._pxRaycastAllFilterData.delete();
     this._pxQueryCallback.delete();
     // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();

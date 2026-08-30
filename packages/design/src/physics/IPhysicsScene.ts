@@ -71,6 +71,16 @@ export interface IPhysicsScene {
   ): boolean;
 
   /**
+   * Casts a ray through the scene and reports every hit.
+   */
+  raycastAll(
+    ray: Ray,
+    distance: number,
+    onRaycast: (obj: number) => boolean,
+    onHit?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
+  ): void;
+
+  /**
    * Casts a box through the scene and returns true if there is any hit.
    */
   boxCast(
