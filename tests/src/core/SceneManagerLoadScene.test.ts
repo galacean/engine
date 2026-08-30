@@ -27,14 +27,22 @@ describe("SceneManager.loadScene", () => {
     engine.destroy();
   });
 
-  it("reloads the same URL into a fresh usable runtime scene", async () => {
+  it("loads overlapping same-URL requests into independent scenes", async () => {
+    const resolves: ((value: SceneFile) => void)[] = [];
     const request = vi
       .spyOn(engine.resourceManager as any, "_request")
-      .mockReturnValue(AssetPromise.resolve(sceneFile) as any);
+      .mockImplementation(
+        () => new AssetPromise((resolve) => resolves.push(resolve as (value: SceneFile) => void)) as any
+      );
 
     try {
-      const first = await engine.sceneManager.loadScene("main.scene");
-      const second = await engine.sceneManager.loadScene("main.scene");
+      const firstPromise = engine.sceneManager.loadScene("main.scene");
+      const secondPromise = engine.sceneManager.loadScene("main.scene");
+
+      resolves[0](sceneFile);
+      const first = await firstPromise;
+      resolves[1](sceneFile);
+      const second = await secondPromise;
 
       expect(first).not.toBe(second);
       expect(first.destroyed).toBe(true);
@@ -42,6 +50,34 @@ describe("SceneManager.loadScene", () => {
       expect(second.rootEntities).toHaveLength(1);
       expect(second.rootEntities[0].name).toBe("root");
       expect(engine.sceneManager.activeScene).toBe(second);
+    } finally {
+      request.mockRestore();
+    }
+  });
+
+  it("keeps overlapping same-URL requests independent when the second finishes first", async () => {
+    const resolves: ((value: SceneFile) => void)[] = [];
+    const request = vi
+      .spyOn(engine.resourceManager as any, "_request")
+      .mockImplementation(
+        () => new AssetPromise((resolve) => resolves.push(resolve as (value: SceneFile) => void)) as any
+      );
+
+    try {
+      const firstPromise = engine.sceneManager.loadScene("main.scene");
+      const secondPromise = engine.sceneManager.loadScene("main.scene");
+
+      resolves[1](sceneFile);
+      const second = await secondPromise;
+      resolves[0](sceneFile);
+      const first = await firstPromise;
+
+      expect(first).not.toBe(second);
+      expect(second.destroyed).toBe(true);
+      expect(first.destroyed).toBe(false);
+      expect(first.rootEntities).toHaveLength(1);
+      expect(first.rootEntities[0].name).toBe("root");
+      expect(engine.sceneManager.activeScene).toBe(first);
     } finally {
       request.mockRestore();
     }
