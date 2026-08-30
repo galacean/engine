@@ -453,6 +453,41 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("raycastAll returns every hit beyond the native touch chunk", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("raycast_all_many_root");
+      const expectedShapes = new Set<ColliderShape>();
+      const expectedEntities = new Set<Entity>();
+      const hitCount = 257;
+
+      for (let i = 0; i < hitCount; i++) {
+        const entity = root.createChild(`hit-${i}`);
+        entity.transform.position = new Vector3(i * 2, 0, 0);
+        const collider = entity.addComponent(StaticCollider);
+        const shape = new BoxColliderShape();
+        shape.size = new Vector3(1, 1, 1);
+        collider.addShape(shape);
+        expectedEntities.add(entity);
+        expectedShapes.add(shape);
+      }
+
+      const results = physicsScene.raycastAll(new Ray(new Vector3(-1, 0, 0), new Vector3(1, 0, 0)));
+      const resultShapes = new Set(results.map((result) => result.shape));
+      const resultEntities = new Set(results.map((result) => result.entity));
+      expect(results).to.have.length(hitCount);
+      expect(resultShapes.size).to.eq(hitCount);
+      expect(resultEntities.size).to.eq(hitCount);
+      for (const shape of expectedShapes) {
+        expect(resultShapes.has(shape)).to.eq(true);
+      }
+      for (const entity of expectedEntities) {
+        expect(resultEntities.has(entity)).to.eq(true);
+      }
+
+      root.destroy();
+    });
+
     it("raycast skips initial overlap when ray origin is inside a collider", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;

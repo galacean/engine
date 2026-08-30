@@ -306,16 +306,20 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       if (hit && hits) {
         for (let i = 0, n = hits.size(); i < n; i++) {
           const pxHit = hits.get(i);
-          const pxPosition = pxHit.position;
-          const pxNormal = pxHit.normal;
-          PhysXPhysicsScene._tempPosition.set(pxPosition.x, pxPosition.y, pxPosition.z);
-          PhysXPhysicsScene._tempNormal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-          hit(
-            pxHit.getShape().getUUID(),
-            pxHit.distance,
-            PhysXPhysicsScene._tempPosition,
-            PhysXPhysicsScene._tempNormal
-          );
+          try {
+            const pxPosition = pxHit.position;
+            const pxNormal = pxHit.normal;
+            PhysXPhysicsScene._tempPosition.set(pxPosition.x, pxPosition.y, pxPosition.z);
+            PhysXPhysicsScene._tempNormal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+            hit(
+              pxHit.getShape().getUUID(),
+              pxHit.distance,
+              PhysXPhysicsScene._tempPosition,
+              PhysXPhysicsScene._tempNormal
+            );
+          } finally {
+            pxHit.delete();
+          }
         }
       }
     } finally {
@@ -579,15 +583,22 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const result = PhysXPhysicsScene._tempShapeIDs;
     result.length = 0;
-    if (hits) {
-      // PhysX overlapMultiple returns a collection with size() method
-      for (let i = 0, n = hits.size(); i < n; i++) {
-        result.push(hits.get(i).getShape().getUUID());
+    try {
+      if (hits) {
+        // PhysX overlapMultiple returns a collection with size() method
+        for (let i = 0, n = hits.size(); i < n; i++) {
+          const hit = hits.get(i);
+          try {
+            result.push(hit.getShape().getUUID());
+          } finally {
+            hit.delete();
+          }
+        }
       }
+      return result;
+    } finally {
+      hits?.delete();
     }
-
-    hits?.delete();
-    return result;
   }
 
   private _simulate(elapsedTime: number): void {
