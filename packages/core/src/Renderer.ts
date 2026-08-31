@@ -1,7 +1,7 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
-import { Component } from "./Component";
+import { Component, componentOnDisableInScene, componentOnEnableInScene } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -290,7 +290,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -301,7 +301,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);

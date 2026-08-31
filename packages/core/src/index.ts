@@ -10,6 +10,14 @@ export { SceneManager } from "./SceneManager";
 
 export { Entity } from "./Entity";
 export { Component } from "./Component";
+/** @internal */
+export {
+  componentOnAwake,
+  componentOnDisable,
+  componentOnDisableInScene,
+  componentOnEnable,
+  componentOnEnableInScene
+} from "./Component";
 export { Script } from "./Script";
 export { Signal } from "./Signal";
 export { Renderer, RendererUpdateFlags } from "./Renderer";

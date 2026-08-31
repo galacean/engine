@@ -1,7 +1,7 @@
 import { DataObject } from "../../base/DataObject";
 import { IJoint } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
-import { Component } from "../../Component";
+import { Component, componentOnDisableInScene, componentOnEnableInScene } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
@@ -195,7 +195,7 @@ export abstract class Joint extends Component {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     this._createJoint();
     this._syncNative();
     this._updateRotation();
@@ -204,7 +204,7 @@ export abstract class Joint extends Component {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     this._nativeJoint.destroy();
     this._nativeJoint = null;
   }

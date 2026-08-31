@@ -1,4 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
+import { componentOnDisableInScene, componentOnEnableInScene } from "../Component";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -96,14 +97,14 @@ export class SpotLight extends Light {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     this.scene._lightManager._attachSpotLight(this);
   }
 
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     this.scene._lightManager._detachSpotLight(this);
   }
 }

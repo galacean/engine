@@ -4,19 +4,34 @@ import { vi, describe, expect, it } from "vitest";
 
 describe("Script", () => {
   describe("onEnable/onDisable/onAwake", () => {
-    it("does not dispatch internal activation to a user _setActive method", async () => {
+    it("does not dispatch internal lifecycle to same-named user methods", async () => {
       class TestScript extends Script {
         onAwake() {}
 
         onEnable() {}
+
+        onDisable() {}
+
+        onUpdate() {}
       }
 
-      const userSetActive = vi.fn((entity: Entity | null, active: boolean) => {
-        if (entity) entity.isActive = active;
-      });
-      Object.defineProperty(TestScript.prototype, "_setActive", { value: userSetActive });
+      const userMethods = {
+        _setActive: vi.fn((entity: Entity | null, active: boolean) => {
+          if (entity) entity.isActive = active;
+        }),
+        _onAwake: vi.fn(),
+        _onEnable: vi.fn(),
+        _onDisable: vi.fn(),
+        _onEnableInScene: vi.fn(),
+        _onDisableInScene: vi.fn()
+      };
+      for (const [name, value] of Object.entries(userMethods)) {
+        Object.defineProperty(TestScript.prototype, name, { value });
+      }
       TestScript.prototype.onAwake = vi.fn(TestScript.prototype.onAwake);
       TestScript.prototype.onEnable = vi.fn(TestScript.prototype.onEnable);
+      TestScript.prototype.onDisable = vi.fn(TestScript.prototype.onDisable);
+      TestScript.prototype.onUpdate = vi.fn(TestScript.prototype.onUpdate);
 
       const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
@@ -24,10 +39,17 @@ describe("Script", () => {
       const script = entity.addComponent(TestScript);
 
       rootEntity.addChild(entity);
+      engine.update();
+      script.enabled = false;
+      engine.update();
 
-      expect(userSetActive).not.toHaveBeenCalled();
+      for (const method of Object.values(userMethods)) {
+        expect(method).not.toHaveBeenCalled();
+      }
       expect(script.onAwake).toHaveBeenCalledOnce();
       expect(script.onEnable).toHaveBeenCalledOnce();
+      expect(script.onDisable).toHaveBeenCalledOnce();
+      expect(script.onUpdate).toHaveBeenCalledOnce();
     });
 
     it("Add script to Entity", async () => {

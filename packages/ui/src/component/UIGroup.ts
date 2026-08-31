@@ -1,4 +1,6 @@
 import { Component, DisorderedArray, Entity, EntityModifyFlags, ignoreClone } from "@galacean/engine";
+// @ts-expect-error Internal lifecycle symbols are intentionally absent from public declarations.
+import { componentOnDisableInScene, componentOnEnableInScene } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
@@ -127,16 +129,18 @@ export class UIGroup extends Component implements IGroupAble {
     this._groupListener = this._groupListener.bind(this);
   }
 
+  /** @internal */
   // @ts-ignore
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
     // @ts-ignore
     this.entity._dispatchModify(EntityUIModifyFlags.GroupEnableInScene);
   }
 
+  /** @internal */
   // @ts-ignore
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
     const disorderedElements = this._disorderedElements;
