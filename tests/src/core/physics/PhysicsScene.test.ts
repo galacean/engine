@@ -447,6 +447,32 @@ describe("Physics Test", () => {
       );
       expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
 
+      expect(() => {
+        nativeScene.raycastAll(
+          ray,
+          Number.MAX_VALUE,
+          () => true,
+          () => {
+            throw new Error("intentional all-hit callback failure");
+          }
+        );
+      }).to.throw("intentional all-hit callback failure");
+      nativeHitIds.length = 0;
+      nativeScene.raycastAll(
+        ray,
+        Number.MAX_VALUE,
+        () => true,
+        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
+      );
+      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
+
+      expect(() => {
+        nativeScene.overlapBoxAll(new Vector3(0, 0, 0), new Quaternion(), new Vector3(10, 10, 10), () => {
+          throw new Error("intentional overlap callback failure");
+        });
+      }).to.throw("intentional overlap callback failure");
+      expect(physicsScene.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(10, 10, 10))).to.have.length(2);
+
       const limitedResults = physicsScene.raycastAll(ray, 5);
       expect(limitedResults).to.have.length(1);
       expect(limitedResults[0].shape).to.eq(nearShape);
@@ -1274,6 +1300,40 @@ describe("Physics Test", () => {
       expect(shapesCustom).to.be.eq(customArray);
       expect(shapesCustom).to.have.length(2);
       expect(shapesCustom).to.include.members([boxShape, boxShape2]);
+
+      root.destroy();
+    });
+
+    it("overlapAll preserves every shape beyond the native touch chunk", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("overlap_all_many_root");
+      const collider = root.addComponent(StaticCollider);
+      const expectedShapes = new Set<ColliderShape>();
+      const hitCount = 257;
+
+      for (let i = 0; i < hitCount; i++) {
+        const shape = new BoxColliderShape();
+        shape.size = new Vector3(1, 1, 1);
+        collider.addShape(shape);
+        expectedShapes.add(shape);
+      }
+
+      const center = new Vector3(0, 0, 0);
+      const orientation = new Quaternion();
+      const results = [
+        physicsScene.overlapBoxAll(center, new Vector3(1, 1, 1), orientation),
+        physicsScene.overlapSphereAll(center, 2),
+        physicsScene.overlapCapsuleAll(center, 2, 4, orientation)
+      ];
+
+      for (const shapes of results) {
+        expect(shapes).to.have.length(hitCount);
+        expect(new Set(shapes).size).to.eq(hitCount);
+        for (const shape of expectedShapes) {
+          expect(shapes).to.include(shape);
+        }
+      }
 
       root.destroy();
     });
