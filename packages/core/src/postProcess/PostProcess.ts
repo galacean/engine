@@ -1,5 +1,5 @@
 import { Logger } from "../base";
-import { Component, componentOnDisableInScene, componentOnEnableInScene } from "../Component";
+import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
 
@@ -112,13 +112,17 @@ export class PostProcess extends Component {
     }
   }
 
-  /** @internal */
-  override [componentOnEnableInScene]() {
+  /**
+   * @inheritdoc
+   */
+  override _onEnableInScene() {
     this.scene.postProcessManager._addPostProcess(this);
   }
 
-  /** @internal */
-  override [componentOnDisableInScene]() {
+  /**
+   * @inheritdoc
+   */
+  override _onDisableInScene() {
     this.scene.postProcessManager._removePostProcess(this);
   }
 

@@ -16,9 +16,7 @@ import {
   Script,
   StateMachineScript,
   Transform,
-  WrapMode,
-  componentOnDisable,
-  componentOnEnable
+  WrapMode
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
@@ -211,8 +209,10 @@ describe("Animator test", function () {
   it("animation enabled", () => {
     // Test animator play.
     animator.play("Survey");
-    const onDisableSpy = vi.spyOn(animator, componentOnDisable);
-    const onEnableSpy = vi.spyOn(animator, componentOnEnable);
+    // @ts-ignore
+    const onDisableSpy = vi.spyOn(animator, "_onDisable");
+    // @ts-ignore
+    const onEnableSpy = vi.spyOn(animator, "_onEnable");
     const onUpdateSpy = vi.spyOn(animator, "update");
 
     animator.enabled = false;

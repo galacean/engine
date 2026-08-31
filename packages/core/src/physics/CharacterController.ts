@@ -1,6 +1,5 @@
 import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { componentOnDisableInScene, componentOnEnableInScene } from "../Component";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
@@ -143,14 +142,14 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override [componentOnEnableInScene]() {
+  override _onEnableInScene() {
     this.scene.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
-  override [componentOnDisableInScene]() {
+  override _onDisableInScene() {
     this.scene.physics._removeCharacterController(this);
   }
 

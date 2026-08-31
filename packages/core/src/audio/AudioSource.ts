@@ -1,5 +1,5 @@
 import { ignoreClone } from "../clone/CloneDecorators";
-import { Component, componentOnDisable, componentOnEnable } from "../Component";
+import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
 import { AudioManager } from "./AudioManager";
@@ -218,14 +218,14 @@ export class AudioSource extends Component {
   /**
    * @internal
    */
-  override [componentOnEnable](): void {
+  override _onEnable(): void {
     this.playOnEnabled && this.play();
   }
 
   /**
    * @internal
    */
-  override [componentOnDisable](): void {
+  override _onDisable(): void {
     this.pause();
   }
 
