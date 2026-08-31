@@ -1,5 +1,4 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { componentOnDisable, componentOnEnable } from "../Component";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
@@ -147,7 +146,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override [componentOnEnable](): void {
+  override _onEnable(): void {
     const generator = this.generator;
     generator._setTransformFeedback();
     if (generator.main.playOnEnabled) {
@@ -158,7 +157,7 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override [componentOnDisable](): void {
+  override _onDisable(): void {
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
   }
 

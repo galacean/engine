@@ -1,6 +1,4 @@
 import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
-// @ts-expect-error Internal lifecycle symbols are intentionally absent from public declarations.
-import { componentOnDisableInScene, componentOnEnableInScene } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -178,21 +176,19 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._group;
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnEnableInScene](): void {
+  override _onEnableInScene(): void {
     // @ts-ignore
-    super[componentOnEnableInScene]();
+    super._onEnableInScene();
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     // @ts-ignore
-    super[componentOnDisableInScene]();
+    super._onDisableInScene();
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
     this._isPointerInside = this._isPointerDragging = false;

@@ -17,8 +17,6 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-// @ts-expect-error Internal lifecycle symbols are intentionally absent from public declarations.
-import { componentOnDisable, componentOnDisableInScene, componentOnEnableInScene } from "@galacean/engine";
 import type { ICloneHook } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIBatchSorter } from "./UIBatchSorter";
@@ -373,9 +371,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnEnableInScene](): void {
+  override _onEnableInScene(): void {
     const entity = this.entity;
     // @ts-ignore
     entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene, this);
@@ -384,16 +381,14 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     Utils.setRootCanvas(this, rootCanvas);
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnDisable](): void {
+  override _onDisable(): void {
     this._renderElements.length = 0;
     this._batchedRenderElements.length = 0;
   }

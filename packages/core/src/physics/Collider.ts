@@ -2,7 +2,7 @@ import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
-import { Component, componentOnDisableInScene, componentOnEnableInScene } from "../Component";
+import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
@@ -131,14 +131,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /**
    * @internal
    */
-  override [componentOnEnableInScene](): void {
+  override _onEnableInScene(): void {
     this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     this.scene.physics._removeCollider(this);
   }
 

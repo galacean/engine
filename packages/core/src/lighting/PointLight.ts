@@ -1,5 +1,4 @@
 import { Vector3 } from "@galacean/engine-math";
-import { componentOnDisableInScene, componentOnEnableInScene } from "../Component";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -60,14 +59,14 @@ export class PointLight extends Light {
   /**
    * @internal
    */
-  override [componentOnEnableInScene](): void {
+  override _onEnableInScene(): void {
     this.scene._lightManager._attachPointLight(this);
   }
 
   /**
    * @internal
    */
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     this.scene._lightManager._detachPointLight(this);
   }
 }

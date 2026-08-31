@@ -1,5 +1,4 @@
 import { BoundingBox } from "@galacean/engine-math";
-import { componentOnDisableInScene, componentOnEnableInScene } from "../../Component";
 import { Entity } from "../../Entity";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
@@ -210,16 +209,16 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override [componentOnEnableInScene](): void {
-    super[componentOnEnableInScene]();
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
     this.scene._maskManager.addSpriteMask(this);
   }
 
   /**
    * @internal
    */
-  override [componentOnDisableInScene](): void {
-    super[componentOnDisableInScene]();
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
     this.scene._maskManager.removeSpriteMask(this);
   }
 

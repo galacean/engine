@@ -1,6 +1,5 @@
 import { IHingeJoint } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
-import { componentOnDisableInScene } from "../../Component";
 import { Engine } from "../../Engine";
 import { Collider } from "../Collider";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
@@ -148,11 +147,11 @@ export class HingeJoint extends Joint {
   /**
    * @internal
    */
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     const nativeJoint = <IHingeJoint>this._nativeJoint;
     this._angle = nativeJoint.getAngle();
     this._velocity = nativeJoint.getVelocity();
-    super[componentOnDisableInScene]();
+    super._onDisableInScene();
   }
 
   protected _createJoint(): void {

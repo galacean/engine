@@ -16,8 +16,6 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-// @ts-expect-error Internal lifecycle symbols are intentionally absent from public declarations.
-import { componentOnDisableInScene, componentOnEnableInScene } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -144,9 +142,8 @@ export class UIRenderer extends Renderer implements IGraphics {
     );
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnEnableInScene](): void {
+  override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
@@ -154,9 +151,8 @@ export class UIRenderer extends Renderer implements IGraphics {
     Utils.setGroupDirty(this);
   }
 
-  /** @internal */
   // @ts-ignore
-  override [componentOnDisableInScene](): void {
+  override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
