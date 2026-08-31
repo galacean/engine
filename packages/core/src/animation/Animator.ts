@@ -1,6 +1,6 @@
 import { MathUtil } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { Component } from "../Component";
+import { Component, componentOnDisableInScene, componentOnEnable, componentOnEnableInScene } from "../Component";
 import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
@@ -295,7 +295,7 @@ export class Animator extends Component implements ICloneHook<Animator> {
   /**
    * @internal
    */
-  override _onEnable(): void {
+  override [componentOnEnable](): void {
     this._reset();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
@@ -303,13 +303,13 @@ export class Animator extends Component implements ICloneHook<Animator> {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     this.scene._componentsManager.addOnUpdateAnimations(this);
   }
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     this.scene._componentsManager.removeOnUpdateAnimations(this);
   }
 

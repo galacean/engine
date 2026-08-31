@@ -1,5 +1,12 @@
 import { Camera } from "./Camera";
-import { Component } from "./Component";
+import {
+  Component,
+  componentOnAwake,
+  componentOnDisable,
+  componentOnDisableInScene,
+  componentOnEnable,
+  componentOnEnableInScene
+} from "./Component";
 import { ignoreClone } from "./clone/CloneDecorators";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
@@ -185,28 +192,28 @@ export class Script extends Component {
   /**
    * @internal
    */
-  override _onAwake(): void {
+  override [componentOnAwake](): void {
     this.onAwake();
   }
 
   /**
    * @internal
    */
-  override _onEnable(): void {
+  override [componentOnEnable](): void {
     this.onEnable();
   }
 
   /**
    * @internal
    */
-  override _onDisable(): void {
+  override [componentOnDisable](): void {
     this.onDisable();
   }
 
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     const { _componentsManager: componentsManager } = this.scene;
     const { prototype } = Script;
     if (!this._started) {
@@ -237,7 +244,7 @@ export class Script extends Component {
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
 

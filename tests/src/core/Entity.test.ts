@@ -1,5 +1,15 @@
 import { Quaternion } from "@galacean/engine";
-import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import {
+  DynamicCollider,
+  Entity,
+  EntityModifyFlags,
+  Scene,
+  Script,
+  componentOnDisable,
+  componentOnDisableInScene,
+  componentOnEnable,
+  componentOnEnableInScene
+} from "@galacean/engine-core";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -462,19 +472,19 @@ describe("Entity", async () => {
 
       child.addComponent(
         class extends Script {
-          _onEnable(): void {
+          [componentOnEnable](): void {
             ++enableCount;
           }
 
-          _onDisable(): void {
+          [componentOnDisable](): void {
             ++disableCount;
           }
 
-          _onEnableInScene(): void {
+          [componentOnEnableInScene](): void {
             ++enableInSceneCount;
           }
 
-          _onDisableInScene(): void {
+          [componentOnDisableInScene](): void {
             ++disableInSceneCount;
           }
         }

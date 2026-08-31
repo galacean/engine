@@ -1,6 +1,6 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { Component } from "./Component";
+import { Component, componentOnDisableInScene, componentOnEnableInScene } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
@@ -716,18 +716,14 @@ export class Camera extends Component {
     this._replacementFailureStrategy = null;
   }
 
-  /**
-   * @inheritdoc
-   */
-  override _onEnableInScene(): void {
+  /** @internal */
+  override [componentOnEnableInScene](): void {
     this.scene._componentsManager.addCamera(this);
     this._dispatchModify(CameraModifyFlags.EnableInScene);
   }
 
-  /**
-   * @inheritdoc
-   */
-  override _onDisableInScene(): void {
+  /** @internal */
+  override [componentOnDisableInScene](): void {
     this.scene._componentsManager.removeCamera(this);
     this._dispatchModify(CameraModifyFlags.DisableInScene);
   }

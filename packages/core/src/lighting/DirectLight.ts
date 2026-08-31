@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { componentOnDisableInScene, componentOnEnableInScene } from "../Component";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -70,14 +71,14 @@ export class DirectLight extends Light {
   /**
    * @internal
    */
-  override _onEnableInScene(): void {
+  override [componentOnEnableInScene](): void {
     this.scene._lightManager._attachDirectLight(this);
   }
 
   /**
    * @internal
    */
-  override _onDisableInScene(): void {
+  override [componentOnDisableInScene](): void {
     this.scene._lightManager._detachDirectLight(this);
   }
 }
