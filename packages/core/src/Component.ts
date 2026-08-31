@@ -5,6 +5,9 @@ import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
 
+/** @internal */
+export const componentSetActive = Symbol("Component.setActive");
+
 /**
  * The base class of the components.
  */
@@ -110,7 +113,7 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
-  _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
+  [componentSetActive](value: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const entity = this._entity;
 
     // Process active in scene, precautions are the same as below

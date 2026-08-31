@@ -1,6 +1,6 @@
 import { Matrix } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { Component } from "./Component";
+import { Component, componentSetActive } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
@@ -256,7 +256,7 @@ export class Entity extends EngineObject {
 
     // @todo: temporary solution
     if (component instanceof Transform) this._setTransform(component);
-    component._setActive(true, ActiveChangeFlag.All);
+    component[componentSetActive](true, ActiveChangeFlag.All);
     return component;
   }
 
@@ -695,7 +695,7 @@ export class Entity extends EngineObject {
       const component = activeChangedComponents[i];
       // Skip components whose scene was already cleared by an earlier callback's removeChild
       if (!isActive && !component._entity._scene) continue;
-      component._setActive(isActive, activeChangeFlag);
+      component[componentSetActive](isActive, activeChangeFlag);
     }
     this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
