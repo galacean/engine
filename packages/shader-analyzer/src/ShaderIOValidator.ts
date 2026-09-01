@@ -97,7 +97,9 @@ export class ShaderIOValidator {
         DiagnosticType.AmbiguousMacroBranchResolution,
         issue.kind === "runtime-expanded-io-owner"
           ? "This macro member owner resolves to stage IO only after runtime substitution and cannot be lowered safely."
-          : "This member reference may resolve to stage IO or an ordinary variable across runtime macro configurations.",
+          : issue.kind === "incompatible-io-member"
+            ? "This member is not available on every stage IO owner selected by the macro configuration."
+            : "This member reference may resolve to stage IO or an ordinary variable across runtime macro configurations.",
         issue.location,
         source
       );

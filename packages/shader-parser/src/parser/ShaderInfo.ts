@@ -24,6 +24,10 @@ export interface ReferenceResolutionSnapshot {
    */
   readonly callSiteBranch: BranchSignature;
   /**
+   * Whether this lookup identifies the enclosing macro expression's value.
+   */
+  readonly isValueIdentity?: boolean;
+  /**
    * Definition-owned AST identity of a member owner inside a macro replacement.
    */
   readonly replacementMemberOwner?: ASTNode.VariableIdentifier;

@@ -120,35 +120,96 @@ export abstract class TreeNode {
 namespace ASTNodes {
   interface MacroReferenceBase {
     branch: BranchSignature;
+    isValueIdentity?: boolean;
     replacementMemberOwner?: VariableIdentifier;
     requiresRuntimeOwnerExpansion?: boolean;
   }
 
   type MacroReference = MacroReferenceBase &
-    ({ name: string; formalParameterIndex?: never } | { name?: never; formalParameterIndex: number });
+    (
+      | { name: string; formalParameterIndex?: never; unresolved?: never }
+      | { name?: never; formalParameterIndex: number; unresolved?: never }
+      | { name?: never; formalParameterIndex?: never; unresolved: true }
+    );
 
   function mergeBranchSignatures(left: BranchSignature, right: BranchSignature): BranchSignature {
     if (!left.length) return right;
     if (!right.length) return left;
     const merged = left.slice();
     for (const constraint of right) {
-      // Equal predicates from distinct lexical macro generations remain separate facts.
+      // Equal predicates from distinct lexical macro generations remain separate facts
       if (merged.indexOf(constraint) === -1) merged.push(constraint);
     }
     return merged;
   }
 
   function appendMacroReference(references: MacroReference[], candidate: MacroReference): void {
-    const duplicate = references.some(
+    const duplicate = references.find(
       (reference) =>
         reference.name === candidate.name &&
         reference.formalParameterIndex === candidate.formalParameterIndex &&
+        reference.unresolved === candidate.unresolved &&
         reference.branch.length === candidate.branch.length &&
         reference.branch.every((constraint, index) => constraint === candidate.branch[index]) &&
         reference.replacementMemberOwner === candidate.replacementMemberOwner &&
         reference.requiresRuntimeOwnerExpansion === candidate.requiresRuntimeOwnerExpansion
     );
-    if (!duplicate) references.push(candidate);
+    if (duplicate) {
+      if (candidate.isValueIdentity) duplicate.isValueIdentity = true;
+    } else {
+      references.push(candidate);
+    }
+  }
+
+  function appendSubstitutedValueIdentityReferences(
+    node: TreeNode,
+    template: MacroReference,
+    references: MacroReference[],
+    names: string[]
+  ): void {
+    const identity = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
+    if (!identity) return;
+    const child = identity.children[0];
+    if (child instanceof BaseToken) {
+      appendMacroReference(references, {
+        name: child.lexeme,
+        branch: mergeBranchSignatures(template.branch, identity._branch),
+        isValueIdentity: true
+      });
+      if (names.indexOf(child.lexeme) === -1) names.push(child.lexeme);
+      return;
+    }
+    if (!(child instanceof MacroCallSymbol || child instanceof MacroCallFunction)) return;
+
+    let appendedIdentity = false;
+    for (const actualReference of child.referenceSymbols) {
+      if (!actualReference.isValueIdentity) continue;
+      if (actualReference.unresolved) {
+        appendMacroReference(references, {
+          unresolved: true,
+          branch: mergeBranchSignatures(template.branch, actualReference.branch),
+          isValueIdentity: true
+        });
+        appendedIdentity = true;
+        continue;
+      }
+      if (actualReference.name === undefined) continue;
+      appendMacroReference(references, {
+        name: actualReference.name,
+        branch: mergeBranchSignatures(template.branch, actualReference.branch),
+        isValueIdentity: true
+      });
+      if (names.indexOf(actualReference.name) === -1) names.push(actualReference.name);
+      appendedIdentity = true;
+    }
+    if (!appendedIdentity && !child.visibleHasAstValue && child.macroName) {
+      appendMacroReference(references, {
+        name: child.macroName,
+        branch: mergeBranchSignatures(template.branch, identity._branch),
+        isValueIdentity: true
+      });
+      if (names.indexOf(child.macroName) === -1) names.push(child.macroName);
+    }
   }
 
   function appendSubstitutedOwnerReferences(
@@ -157,6 +218,10 @@ namespace ASTNodes {
     references: MacroReference[],
     names: string[]
   ): void {
+    if (template.isValueIdentity) {
+      appendSubstitutedValueIdentityReferences(node, template, references, names);
+      return;
+    }
     if (node instanceof VariableIdentifier) {
       const child = node.children[0];
       if (child instanceof BaseToken) {
@@ -170,6 +235,15 @@ namespace ASTNodes {
       } else if (child instanceof MacroCallSymbol || child instanceof MacroCallFunction) {
         const actualReferences = child.referenceSymbols;
         for (const actualReference of actualReferences) {
+          if (actualReference.unresolved) {
+            appendMacroReference(references, {
+              unresolved: true,
+              branch: mergeBranchSignatures(template.branch, actualReference.branch),
+              replacementMemberOwner: template.replacementMemberOwner,
+              requiresRuntimeOwnerExpansion: true
+            });
+            continue;
+          }
           if (actualReference.name === undefined) continue;
           appendMacroReference(references, {
             name: actualReference.name,
@@ -1839,6 +1913,7 @@ namespace ASTNodes {
     referenceGlobalSymbolNames: string[] = [];
 
     private _symbols: Array<VarSymbol | FnSymbol> = [];
+    private _valueSymbols?: Array<VarSymbol | FnSymbol>;
 
     /**
      * Returns the symbols retained when this reference was resolved.
@@ -1852,16 +1927,15 @@ namespace ASTNodes {
     /**
      * Returns symbols that represent this expression's value identity.
      *
-     * AST-backed macro calls retain their replacement dependencies in `resolvedSymbols()`, but the
-     * macro result is not the referenced root variable itself (`#define POS v.position`). Backends
-     * must therefore avoid treating `POS.field` as `v.field`.
-     * @returns Direct value symbols, or an empty list for AST-backed macro results.
+     * AST-backed macros contribute a value symbol only when their replacement is mechanically a
+     * bare identifier, including formal-argument substitution and nested identity macros.
+     * @returns Exact symbols that own this expression's value.
      * @internal
      */
     resolvedValueSymbols(): readonly (VarSymbol | FnSymbol)[] {
       const child = this.children[0];
-      if ((child instanceof MacroCallSymbol || child instanceof MacroCallFunction) && child.hasAstValue) {
-        return EMPTY_VALUE_SYMBOLS;
+      if (child instanceof MacroCallSymbol || child instanceof MacroCallFunction) {
+        return this._valueSymbols ?? EMPTY_VALUE_SYMBOLS;
       }
       return this._symbols;
     }
@@ -1873,6 +1947,7 @@ namespace ASTNodes {
       this.arraySize = undefined;
       this.referenceGlobalSymbolNames.length = 0;
       this._symbols.length = 0;
+      if (this._valueSymbols) this._valueSymbols.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1887,17 +1962,29 @@ namespace ASTNodes {
         const needFindNames: string[] = [];
 
         for (let i = 0; i < references.length; i++) {
-          const { name, branch, replacementMemberOwner, requiresRuntimeOwnerExpansion } = references[i];
+          const { name, branch, isValueIdentity, replacementMemberOwner, requiresRuntimeOwnerExpansion, unresolved } =
+            references[i];
+          if (unresolved) {
+            this._registerUnresolvedReferenceResolution(
+              sa,
+              branch,
+              replacementMemberOwner,
+              requiresRuntimeOwnerExpansion,
+              isValueIdentity
+            );
+            continue;
+          }
           if (name === undefined) continue;
           needFindNames.push(name);
 
           if (sa.macroDefineList[name]) {
-            if (replacementMemberOwner) {
-              this._registerUnresolvedOwnerResolution(
+            if (replacementMemberOwner || isValueIdentity) {
+              this._registerUnresolvedReferenceResolution(
                 sa,
                 branch,
                 replacementMemberOwner,
-                requiresRuntimeOwnerExpansion
+                requiresRuntimeOwnerExpansion,
+                isValueIdentity
               );
             }
             continue;
@@ -1924,10 +2011,12 @@ namespace ASTNodes {
             branch,
             this,
             false,
-            !(child instanceof BaseToken) && (replacementMemberOwner !== undefined || child.aliasesNonBuiltinIdent),
+            !(child instanceof BaseToken) && (replacementMemberOwner !== undefined || isValueIdentity === true),
             replacementMemberOwner,
-            requiresRuntimeOwnerExpansion
+            requiresRuntimeOwnerExpansion,
+            isValueIdentity
           );
+          if (isValueIdentity) this._appendValueSymbols(symbols);
           // Expression-style macros have their own value AST; its real type isn't
           // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
           // is a `Varyings` struct but the macro call site's type should be the
@@ -1999,11 +2088,28 @@ namespace ASTNodes {
         ? child.referenceSymbols
         : child.referenceSymbolNames.map((name) => ({ name, branch: this._branch }));
       for (let i = 0; i < references.length; i++) {
-        const { name, branch, replacementMemberOwner, requiresRuntimeOwnerExpansion } = references[i];
+        const { name, branch, isValueIdentity, replacementMemberOwner, requiresRuntimeOwnerExpansion, unresolved } =
+          references[i];
+        if (unresolved) {
+          this._registerUnresolvedReferenceResolution(
+            sa,
+            branch,
+            replacementMemberOwner,
+            requiresRuntimeOwnerExpansion,
+            isValueIdentity
+          );
+          continue;
+        }
         if (name === undefined) continue;
         if (sa.macroDefineList[name]) {
-          if (replacementMemberOwner) {
-            this._registerUnresolvedOwnerResolution(sa, branch, replacementMemberOwner, requiresRuntimeOwnerExpansion);
+          if (replacementMemberOwner || isValueIdentity) {
+            this._registerUnresolvedReferenceResolution(
+              sa,
+              branch,
+              replacementMemberOwner,
+              requiresRuntimeOwnerExpansion,
+              isValueIdentity
+            );
           }
           continue;
         }
@@ -2019,9 +2125,10 @@ namespace ASTNodes {
           name,
           !child.hasAstValue,
           branch,
-          replacementMemberOwner !== undefined || child.aliasesNonBuiltinIdent,
+          replacementMemberOwner !== undefined || isValueIdentity === true,
           replacementMemberOwner,
-          requiresRuntimeOwnerExpansion
+          requiresRuntimeOwnerExpansion,
+          isValueIdentity
         );
       }
 
@@ -2050,7 +2157,8 @@ namespace ASTNodes {
       callSiteBranch: BranchSignature,
       captureResolution = false,
       replacementMemberOwner?: VariableIdentifier,
-      requiresRuntimeOwnerExpansion?: boolean
+      requiresRuntimeOwnerExpansion?: boolean,
+      isValueIdentity?: boolean
     ): void {
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
@@ -2058,12 +2166,13 @@ namespace ASTNodes {
       const runtimeFallbacks = sa.runtimeFallbackScratch;
       sa.symbolTableStack.lookupAllWithRuntimeFallbacks(lookupSymbol, true, symbols, runtimeFallbacks, callSiteBranch);
       if (!symbols.length) {
-        if (captureResolution && replacementMemberOwner) {
-          this._registerUnresolvedOwnerResolution(
+        if (captureResolution && (replacementMemberOwner || isValueIdentity)) {
+          this._registerUnresolvedReferenceResolution(
             sa,
             callSiteBranch,
             replacementMemberOwner,
-            requiresRuntimeOwnerExpansion
+            requiresRuntimeOwnerExpansion,
+            isValueIdentity
           );
         }
         return;
@@ -2076,9 +2185,11 @@ namespace ASTNodes {
         callSiteBranch,
         captureResolution,
         replacementMemberOwner,
-        requiresRuntimeOwnerExpansion
+        requiresRuntimeOwnerExpansion,
+        isValueIdentity
       );
       this._markCodegenReference(name, symbols);
+      if (isValueIdentity) this._appendValueSymbols(symbols);
       if (!inferType) return;
 
       const first = symbols[0].dataType;
@@ -2098,7 +2209,8 @@ namespace ASTNodes {
       callSiteBranch: BranchSignature,
       captureResolution: boolean,
       replacementMemberOwner?: VariableIdentifier,
-      requiresRuntimeOwnerExpansion?: boolean
+      requiresRuntimeOwnerExpansion?: boolean,
+      isValueIdentity?: boolean
     ): void {
       const fallbackStart = symbols.length;
       for (let i = 0, n = runtimeFallbacks.length; i < n; i++) {
@@ -2112,8 +2224,17 @@ namespace ASTNodes {
         callSiteBranch,
         captureResolution,
         replacementMemberOwner,
-        requiresRuntimeOwnerExpansion
+        requiresRuntimeOwnerExpansion,
+        isValueIdentity
       );
+    }
+
+    private _appendValueSymbols(symbols: readonly (VarSymbol | FnSymbol)[]): void {
+      if (!symbols.length) return;
+      const valueSymbols = this._valueSymbols ?? (this._valueSymbols = []);
+      for (const symbol of symbols) {
+        if (valueSymbols.indexOf(symbol) === -1) valueSymbols.push(symbol);
+      }
     }
 
     private _markCodegenReference(name: string, symbols: readonly SymbolInfo[]): void {
@@ -2185,7 +2306,8 @@ namespace ASTNodes {
       retainPartialBranchCandidates = false,
       captureResolution = false,
       replacementMemberOwner?: VariableIdentifier,
-      requiresRuntimeOwnerExpansion?: boolean
+      requiresRuntimeOwnerExpansion?: boolean,
+      isValueIdentity?: boolean
     ): boolean {
       const lookupSymbol = sa.lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
@@ -2218,7 +2340,8 @@ namespace ASTNodes {
         callsiteBranch,
         captureResolution,
         replacementMemberOwner,
-        requiresRuntimeOwnerExpansion
+        requiresRuntimeOwnerExpansion,
+        isValueIdentity
       );
 
       if (!symbols.length) {
@@ -2274,11 +2397,13 @@ namespace ASTNodes {
       callSiteBranch: BranchSignature,
       captureResolution: boolean,
       replacementMemberOwner?: VariableIdentifier,
-      requiresRuntimeOwnerExpansion?: boolean
+      requiresRuntimeOwnerExpansion?: boolean,
+      isValueIdentity?: boolean
     ): void {
-      const capturesUnresolvedOwner = captureResolution && replacementMemberOwner !== undefined;
+      const capturesEmptyResolution =
+        captureResolution && (replacementMemberOwner !== undefined || isValueIdentity === true);
       if (
-        (!this._symbols.length && !capturesUnresolvedOwner) ||
+        (!this._symbols.length && !capturesEmptyResolution) ||
         (!captureResolution && fallbackStart >= this._symbols.length)
       ) {
         return;
@@ -2289,15 +2414,17 @@ namespace ASTNodes {
         fallbackStart,
         callSiteBranch,
         replacementMemberOwner,
-        requiresRuntimeOwnerExpansion
+        requiresRuntimeOwnerExpansion,
+        isValueIdentity
       });
     }
 
-    private _registerUnresolvedOwnerResolution(
+    private _registerUnresolvedReferenceResolution(
       sa: SemanticAnalyzer,
       callSiteBranch: BranchSignature,
-      replacementMemberOwner: VariableIdentifier,
-      requiresRuntimeOwnerExpansion?: boolean
+      replacementMemberOwner?: VariableIdentifier,
+      requiresRuntimeOwnerExpansion?: boolean,
+      isValueIdentity?: boolean
     ): void {
       sa.shaderData.referenceResolutionSnapshots.push({
         reference: this,
@@ -2305,7 +2432,8 @@ namespace ASTNodes {
         fallbackStart: 0,
         callSiteBranch,
         replacementMemberOwner,
-        requiresRuntimeOwnerExpansion
+        requiresRuntimeOwnerExpansion,
+        isValueIdentity
       });
     }
 
@@ -2565,9 +2693,23 @@ namespace ASTNodes {
           const info = defList[i];
           if (!sa.canBranchesOverlap(info.branch, callSiteBranch)) continue;
           visibleCount++;
-          if (info.valueAst == null) allAst = false;
-          if (info.valueAst) {
-            MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs, referenceSymbols, callSiteBranch);
+          if (info.valueAst == null) {
+            allAst = false;
+            appendMacroReference(referenceSymbols, {
+              unresolved: true,
+              branch: mergeBranchSignatures(callSiteBranch, info.branch),
+              isValueIdentity: true
+            });
+          } else {
+            MacroCallSymbol._collectIdentifierRefs(
+              info.valueAst,
+              info.params,
+              refs,
+              referenceSymbols,
+              callSiteBranch,
+              undefined,
+              ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: true })
+            );
           }
         }
       }
@@ -2606,20 +2748,30 @@ namespace ASTNodes {
       out: string[],
       references?: MacroReference[],
       callSiteBranch: BranchSignature = EMPTY_BRANCH,
-      projectedMemberOwner?: VariableIdentifier
+      projectedMemberOwner?: VariableIdentifier,
+      valueIdentity?: VariableIdentifier
     ): void {
       if (node instanceof PostfixExpression && node.children.length === 3 && node.children[2] instanceof BaseToken) {
         const base = node.children[0];
         if (base instanceof TreeNode) {
           const directOwner = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
           if (directOwner) {
-            MacroCallSymbol._collectIdentifierRefs(base, params, out, references, callSiteBranch, directOwner);
+            MacroCallSymbol._collectIdentifierRefs(
+              base,
+              params,
+              out,
+              references,
+              callSiteBranch,
+              directOwner,
+              valueIdentity
+            );
             return;
           }
         }
       }
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
+        const isValueIdentity = valueIdentity === node;
         const replacementMemberOwner = projectedMemberOwner === node ? node : undefined;
         const branch = mergeBranchSignatures(callSiteBranch, node._branch);
         if (child instanceof BaseToken) {
@@ -2628,20 +2780,34 @@ namespace ASTNodes {
           if (formalParameterIndex === -1) {
             if (out.indexOf(name) === -1) out.push(name);
             if (references) {
-              appendMacroReference(references, { name, branch, replacementMemberOwner });
+              appendMacroReference(references, { name, branch, isValueIdentity, replacementMemberOwner });
             }
-          } else if (references && replacementMemberOwner) {
+          } else if (references && (replacementMemberOwner || isValueIdentity)) {
             appendMacroReference(references, {
               formalParameterIndex,
               branch,
+              isValueIdentity,
               replacementMemberOwner,
-              requiresRuntimeOwnerExpansion: true
+              requiresRuntimeOwnerExpansion: replacementMemberOwner ? true : undefined
             });
           }
         } else if (child instanceof MacroCallSymbol || child instanceof MacroCallFunction) {
           const nestedReferences = child.referenceSymbols;
           for (const nestedReference of nestedReferences) {
-            let { name, formalParameterIndex } = nestedReference;
+            if (nestedReference.unresolved) {
+              if (references && (replacementMemberOwner || isValueIdentity)) {
+                appendMacroReference(references, {
+                  unresolved: true,
+                  branch: mergeBranchSignatures(branch, nestedReference.branch),
+                  isValueIdentity,
+                  replacementMemberOwner,
+                  requiresRuntimeOwnerExpansion: replacementMemberOwner ? true : undefined
+                });
+              }
+              continue;
+            }
+            let name: string | undefined = nestedReference.name;
+            let formalParameterIndex: number | undefined = nestedReference.formalParameterIndex;
             if (name !== undefined) {
               const outerFormalIndex = params.indexOf(name);
               if (outerFormalIndex === -1) {
@@ -2654,12 +2820,14 @@ namespace ASTNodes {
             if (!references) continue;
             const nestedBranch = mergeBranchSignatures(branch, nestedReference.branch);
             const nestedOwner = replacementMemberOwner ?? nestedReference.replacementMemberOwner;
+            const nestedIsValueIdentity = isValueIdentity && nestedReference.isValueIdentity;
             const requiresRuntimeExpansion =
               replacementMemberOwner !== undefined || nestedReference.requiresRuntimeOwnerExpansion;
             if (name !== undefined) {
               appendMacroReference(references, {
                 name,
                 branch: nestedBranch,
+                isValueIdentity: nestedIsValueIdentity,
                 replacementMemberOwner: nestedOwner,
                 requiresRuntimeOwnerExpansion: requiresRuntimeExpansion
               });
@@ -2667,15 +2835,23 @@ namespace ASTNodes {
               appendMacroReference(references, {
                 formalParameterIndex,
                 branch: nestedBranch,
+                isValueIdentity: nestedIsValueIdentity,
                 replacementMemberOwner: nestedOwner,
                 requiresRuntimeOwnerExpansion: requiresRuntimeExpansion
               });
             }
           }
-          if (!nestedReferences.length && replacementMemberOwner && child.macroName && references) {
+          const hasNestedValueIdentity = nestedReferences.some((reference) => reference.isValueIdentity);
+          if (
+            references &&
+            child.macroName &&
+            ((!nestedReferences.length && replacementMemberOwner) ||
+              (isValueIdentity && !hasNestedValueIdentity && !child.visibleHasAstValue))
+          ) {
             appendMacroReference(references, {
               name: child.macroName,
               branch,
+              isValueIdentity,
               replacementMemberOwner,
               requiresRuntimeOwnerExpansion: true
             });
@@ -2689,7 +2865,15 @@ namespace ASTNodes {
       for (let i = 0, n = children.length; i < n; i++) {
         const c = children[i];
         if (c instanceof TreeNode) {
-          MacroCallSymbol._collectIdentifierRefs(c, params, out, references, callSiteBranch, projectedMemberOwner);
+          MacroCallSymbol._collectIdentifierRefs(
+            c,
+            params,
+            out,
+            references,
+            callSiteBranch,
+            projectedMemberOwner,
+            valueIdentity
+          );
         }
       }
     }

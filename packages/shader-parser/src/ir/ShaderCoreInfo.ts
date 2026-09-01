@@ -60,7 +60,7 @@ export interface ShaderStructMemberOwnerIssue {
   /** Call-site range of the unsafe member projection. */
   readonly location: ShaderRange;
   /** Backend-neutral reason the member projection is unsafe. */
-  readonly kind: "mixed-owner-roles" | "runtime-expanded-io-owner" | "unresolved-owner";
+  readonly kind: "mixed-owner-roles" | "runtime-expanded-io-owner" | "unresolved-owner" | "incompatible-io-member";
   /** Whether branch analysis proves the conflict or cannot decide it. */
   readonly certainty: "definite" | "unknown";
 }
@@ -209,7 +209,10 @@ function collectStructMemberOwnerIssues(
     const child = reference.children[0];
     const referenceSnapshots = snapshotsByReference
       .get(reference)
-      ?.filter((snapshot) => snapshot.replacementMemberOwner === undefined);
+      ?.filter(
+        (snapshot) =>
+          snapshot.replacementMemberOwner === undefined && (child instanceof BaseToken || snapshot.isValueIdentity)
+      );
     let resolutions: readonly OwnerResolution[] | undefined;
     if (child instanceof BaseToken) {
       const symbols = reference.resolvedValueSymbols();
@@ -222,14 +225,24 @@ function collectStructMemberOwnerIssues(
               callSiteBranch: reference._branch
             }
           ];
-    } else if (
-      (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) &&
-      child.hasAstValue &&
-      child.aliasesNonBuiltinIdent
-    ) {
+    } else if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) {
       resolutions = referenceSnapshots;
     }
     if (resolutions?.length) {
+      const hasUnresolvedMacroOwner =
+        !(child instanceof BaseToken) && resolutions.some((resolution) => resolution.symbols.length === 0);
+      if (hasUnresolvedMacroOwner) {
+        recordOwnerIssue(issues, reference, "unresolved-owner", "unknown");
+      }
+      const member = child instanceof BaseToken || hasUnresolvedMacroOwner ? undefined : findDirectMember(reference);
+      if (member) {
+        recordOwnerIssue(
+          issues,
+          reference,
+          "incompatible-io-member",
+          classifyIOMemberAvailability(reference, member, resolutions, variableRoles, getBranchCoverage)
+        );
+      }
       recordOwnerIssue(
         issues,
         reference,
@@ -239,7 +252,7 @@ function collectStructMemberOwnerIssues(
     }
   }
 
-  // Definition-owned AST identity keeps path-equal replacements in independent macro arms separate.
+  // Definition-owned AST identity keeps path-equal replacements in independent macro arms separate
   const replacementOwnerGroups = new Map<
     ASTNode.VariableIdentifier,
     Map<ASTNode.VariableIdentifier, ReferenceResolutionSnapshot[]>
@@ -288,6 +301,72 @@ function isReferenceReachable(
     current = current.parent;
   }
   return false;
+}
+
+function findDirectMember(reference: ASTNode.VariableIdentifier): BaseToken | undefined {
+  let current = reference.parent;
+  while (current) {
+    if (current instanceof ASTNode.PostfixExpression && current.children.length === 3) {
+      const base = current.children[0];
+      const member = current.children[2];
+      if (
+        base instanceof TreeNode &&
+        member instanceof BaseToken &&
+        ParserUtils.unwrapBareIdentifier(base, { allowParens: true }) === reference
+      ) {
+        return member;
+      }
+    }
+    current = current.parent;
+  }
+  return undefined;
+}
+
+function classifyIOMemberAvailability(
+  reference: ASTNode.VariableIdentifier,
+  member: BaseToken,
+  resolutions: readonly OwnerResolution[],
+  variableRoles: ReadonlyMap<VarSymbol, ShaderStructRole>,
+  getBranchCoverage: BranchCoverageResolver
+): "definite" | "unknown" | undefined {
+  const ownerBranches: BranchSignature[] = [];
+  const memberBranches: BranchSignature[] = [];
+  for (const resolution of resolutions) {
+    const primarySymbols = resolution.symbols.slice(0, resolution.fallbackStart);
+    const primaryCoverage = getBranchCoverage(
+      primarySymbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+      resolution.callSiteBranch
+    );
+    const retainedSymbols = primaryCoverage === "covered" ? primarySymbols : resolution.symbols;
+    for (const symbol of retainedSymbols) {
+      if (!(symbol instanceof VarSymbol) || !variableRoles.has(symbol)) continue;
+      const ownerBranch = mergeBranchSignatures(resolution.callSiteBranch, symbol.branchSignature ?? EMPTY_BRANCH);
+      ownerBranches.push(ownerBranch);
+      for (const struct of symbol.dataType?.structDeclarations ?? []) {
+        for (const prop of struct.propList) {
+          if (prop.ident.lexeme !== member.lexeme) continue;
+          memberBranches.push(mergeBranchSignatures(ownerBranch, struct._branch, prop.ident.branch));
+        }
+      }
+    }
+  }
+  if (!ownerBranches.length) return undefined;
+  const memberCoverage = getBranchCoverage(memberBranches, reference._branch);
+  if (memberCoverage === "covered") return undefined;
+  if (memberCoverage === "uncovered") return "definite";
+  return getBranchCoverage(ownerBranches, reference._branch) === "covered" && !memberBranches.length
+    ? "definite"
+    : "unknown";
+}
+
+function mergeBranchSignatures(...branches: readonly BranchSignature[]): BranchSignature {
+  const merged: BranchSignature[number][] = [];
+  for (const branch of branches) {
+    for (const constraint of branch) {
+      if (merged.indexOf(constraint) === -1) merged.push(constraint);
+    }
+  }
+  return merged;
 }
 
 function classifyOwnerResolutions(
