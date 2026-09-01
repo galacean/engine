@@ -9,7 +9,9 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+
+const particleInstanceFloatStride = 46;
 
 function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -93,9 +95,11 @@ describe("EmissionModule rateOverDistance", () => {
     expect(generator._getAliveParticleCount()).to.eq(0);
 
     // Move 2 units → 10 * 2 = 20 particles.
+    const emit = vi.spyOn(generator, "_emit");
     entity.transform.setPosition(2, 0, 0);
     tick(engine, elapsed);
     expect(generator._getAliveParticleCount()).to.eq(20);
+    expect(emit.mock.calls.every(([, , position]) => position === undefined)).to.be.true;
 
     entity.destroy();
   });
@@ -188,11 +192,10 @@ describe("EmissionModule rateOverDistance", () => {
     // Particles are written sequentially starting at firstActiveElement=0.
     //@ts-ignore - test reaches into instance buffer to verify spatial distribution
     const verts = (generator as any)._instanceVertices as Float32Array;
-    // Per-instance stride = 168 bytes / 4 = 42 floats; world position lives at offset 27.
-    const stride = 42;
+    // World position lives at float offset 27 in each particle instance.
     const xs: number[] = [];
     for (let i = 0; i < 4; i++) {
-      xs.push(verts[i * stride + 27]);
+      xs.push(verts[i * particleInstanceFloatStride + 27]);
     }
     xs.sort((a, b) => a - b);
     // Expect roughly [1, 2, 3, 4] — accept loose tolerance for float ops.
@@ -222,12 +225,11 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to read per-particle emit time
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 42;
     // a_DirectionTime is at byte 16 → float 4; the .w slot (emit time) is float 4+3=7.
     const timeFloatOffset = 7;
     const times: number[] = [];
     for (let i = 0; i < 4; i++) {
-      times.push(verts[i * stride + timeFloatOffset]);
+      times.push(verts[i * particleInstanceFloatStride + timeFloatOffset]);
     }
     times.sort((a, b) => a - b);
 
@@ -244,27 +246,28 @@ describe("EmissionModule rateOverDistance", () => {
     entity.destroy();
   });
 
-  it("clamps count and discards accumulator on teleport-sized moves", () => {
+  it("bounds per-frame work and settles the distance budget on teleport-sized moves", () => {
     const { entity, renderer } = buildEmitter(engine, "teleport-clamp");
     const generator = renderer.generator;
     generator.main.maxParticles = 50;
-    // Rate 10/unit × 10000 unit jump would otherwise demand 100,000 emissions
-    // in one frame — millions of `_addNewParticle` calls hitting the buffer-full
-    // early return.
+    // Rate 10/unit × 10000-unit jump demands 100,000 logical emissions
+    // Distance emission work must stay bounded by the target particle capacity
     generator.emission.rateOverDistance.constant = 10;
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     generator.play();
     tick(engine, elapsed); // baseline sync at (0,0,0)
 
+    const emit = vi.spyOn(generator, "_emit");
     entity.transform.setPosition(10000, 0, 0); // teleport
     tick(engine, elapsed);
 
-    // Alive count must not exceed the configured cap.
+    // Alive count must not exceed the configured cap
     expect(generator._getAliveParticleCount()).to.be.lessThanOrEqual(50);
+    // One failed emit may be used to discover that the target capacity is exhausted
+    expect(emit.mock.calls.length).to.be.lessThanOrEqual(generator.main.maxParticles + 1);
 
-    // Next frame without movement: accumulator should have been reset to 0
-    // (residue dropped), so no further emission.
+    // The consumed distance must not turn into deferred work on the next frame
     const aliveAfterTeleport = generator._getAliveParticleCount();
     tick(engine, elapsed);
     expect(generator._getAliveParticleCount()).to.eq(aliveAfterTeleport);
@@ -411,9 +414,8 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to verify positions stay in [lastPos, currentPos]
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 42;
     for (let i = 0; i < 7; i++) {
-      const x = verts[i * stride + 27];
+      const x = verts[i * particleInstanceFloatStride + 27];
       // Without the in-loop clamp this would be e.g. -1.0, -1.2, ... (extrapolated
       // far behind lastPos.x = 1.5). With the clamp every particle lives within
       // the legitimate frame window [lastPos.x, currentPos.x] = [1.5, 1.55].

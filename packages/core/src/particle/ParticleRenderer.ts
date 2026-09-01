@@ -1,18 +1,18 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
+import type { Entity } from "../Entity";
+import type { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneDecorators";
-import { ModelMesh } from "../mesh/ModelMesh";
+import type { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { ParticleBoundsUpdateFlags } from "./ParticleBounds";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import type { ParticleSystemManager } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -21,13 +21,11 @@ export class ParticleRenderer extends Renderer {
   private static readonly _billboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
   private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
   private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
-  private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
   private static readonly _meshModeMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
   private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
   private static readonly _speedScale = ShaderProperty.getByName("renderer_StretchedBillboardSpeedScale");
-  private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
   readonly generator: ParticleGenerator;
@@ -40,10 +38,13 @@ export class ParticleRenderer extends Renderer {
 
   /** @internal */
   @ignoreClone
-  _generatorBounds = new BoundingBox();
+  _particleSystemManager: ParticleSystemManager | null = null;
   /** @internal */
   @ignoreClone
-  _transformedBounds = new BoundingBox();
+  _particleUpdateIndegree = 0;
+  /** @internal */
+  @ignoreClone
+  _subEmitterDependencyFrame = -1;
   @ignoreClone
   private _mesh: ModelMesh;
 
@@ -51,7 +52,7 @@ export class ParticleRenderer extends Renderer {
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   @ignoreClone
   private _currentRenderModeMacro: ShaderMacro;
-  private _supportInstancedArrays: boolean;
+  private readonly _supportInstancedArrays: boolean;
 
   /**
    * Specifies how particles are rendered.
@@ -78,8 +79,6 @@ export class ParticleRenderer extends Renderer {
           break;
         case ParticleRenderMode.VerticalBillboard:
           throw "Not implemented";
-          renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
-          break;
         case ParticleRenderMode.Mesh:
           renderModeMacro = ParticleRenderer._meshModeMacro;
           break;
@@ -87,8 +86,12 @@ export class ParticleRenderer extends Renderer {
 
       if (this._currentRenderModeMacro !== renderModeMacro) {
         const { shaderData } = this;
-        this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
-        renderModeMacro && shaderData.enableMacro(renderModeMacro);
+        if (this._currentRenderModeMacro) {
+          shaderData.disableMacro(this._currentRenderModeMacro);
+        }
+        if (renderModeMacro) {
+          shaderData.enableMacro(renderModeMacro);
+        }
         this._currentRenderModeMacro = renderModeMacro;
       }
 
@@ -112,7 +115,9 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      if (lastMesh) {
+        this._addResourceReferCount(lastMesh, -1);
+      }
 
       if (value) {
         if (value.subMeshes.length !== 1) {
@@ -120,9 +125,9 @@ export class ParticleRenderer extends Renderer {
         }
 
         this._addResourceReferCount(value, 1);
-        if (this.renderMode === ParticleRenderMode.Mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+      }
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -158,7 +163,26 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onDisable(): void {
+    this.generator.inheritVelocity._resyncEmitterVelocity();
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    if (this._supportInstancedArrays) {
+      this.scene._componentsManager._particleSystemManager.add(this);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    this._particleSystemManager?.remove(this);
+    super._onDisableInScene();
   }
 
   /**
@@ -179,50 +203,17 @@ export class ParticleRenderer extends Renderer {
     //@todo: Don't need to update transform shader data, temp solution
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    const { generator } = this;
 
-    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
-    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
-    // Must generate bounds even when there is no particle but in play state
-    if (!generator.isAlive) {
-      const worldPosition = this.entity.transform.worldPosition;
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-      return;
-    }
-    if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      generator._updateBoundsSimulationLocal(worldBounds);
-    } else {
-      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-        generator._generateTransformedBounds();
-        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
-      }
-      generator._updateBoundsSimulationWorld(worldBounds);
-    }
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    this.generator._bounds.update(worldBounds);
   }
 
   protected override _update(context: RenderContext): void {
-    const generator = this.generator;
-    generator._update(this.engine.time.deltaTime);
-
-    // No particles to render
-    if (generator._firstActiveElement === generator._firstFreeElement) {
-      return;
-    }
-
+    super._update(context);
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
-    shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
-
-    this.generator._updateShaderData(shaderData);
-
-    // Run Transform Feedback simulation after shader data is up to date
-    if (generator._useTransformFeedback) {
-      generator._updateFeedback(shaderData, this.engine.time.deltaTime * generator.main.simulationSpeed);
-    }
   }
 
   protected override _render(context: RenderContext): void {
@@ -235,7 +226,7 @@ export class ParticleRenderer extends Renderer {
     }
     // Transform Feedback: render all slots (instance buffer not compacted, dead particles discarded in shader)
     // Non-Transform Feedback: render only alive particles (instance buffer compacted)
-    generator._primitive.instanceCount = generator._useTransformFeedback
+    generator._primitive.instanceCount = generator._feedbackSimulator
       ? generator._firstActiveElement <= generator._firstFreeElement
         ? generator._firstFreeElement
         : generator._currentParticleCount
@@ -260,8 +251,8 @@ export class ParticleRenderer extends Renderer {
 
   protected override _onDestroy(): void {
     const mesh = this._mesh;
-    if (mesh) {
-      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    if (mesh && !mesh.destroyed) {
+      this._addResourceReferCount(mesh, -1);
     }
     super._onDestroy();
     this.generator._destroy();
@@ -279,14 +270,14 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  _isContainDirtyFlag(type: number): boolean {
+  _hasDirtyFlag(type: number): boolean {
     return (this._dirtyUpdateFlag & type) != 0;
   }
 
   /**
    * @internal
    */
-  _setDirtyFlagFalse(type: number): void {
+  _clearDirtyFlag(type: number): void {
     this._dirtyUpdateFlag &= ~type;
   }
 
@@ -303,24 +294,16 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+      ParticleBoundsUpdateFlags.GeneratorVolume |
+      ParticleBoundsUpdateFlags.TransformVolume |
+      RendererUpdateFlags.WorldVolume;
   }
 
   /**
    * @internal
    */
   @ignoreClone
-  override _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+  override _onTransformChanged(): void {
+    this._dirtyUpdateFlag |= ParticleBoundsUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
-}
-
-/**
- * @internal
- */
-export enum ParticleUpdateFlags {
-  /** On World Transform Changed */
-  TransformVolume = 0x2,
-  /** On Generator Bounds Related Params Changed */
-  GeneratorVolume = 0x4
 }
