@@ -14,7 +14,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _isPlaying = false;
   @ignoreClone
-  private _pendingPlay = false;
+  private _pendingPlay: Promise<void> | null = null;
 
   private _clip: AudioClip;
   @ignoreClone
@@ -159,16 +159,22 @@ export class AudioSource extends Component {
     if (AudioManager.isAudioContextRunning()) {
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
-      this._pendingPlay = true;
-      AudioManager.resume().then(
+      // Join the Manager-owned resume attempt so document capture and playback share the same request
+      const resumePromise = AudioManager.resume();
+      this._pendingPlay = resumePromise;
+      const resumeAttemptId = AudioManager._resumeAttemptId;
+      const resumeAttemptCanBeSuperseded = !AudioManager._resumeAttemptFromUserGesture;
+      resumePromise.then(
         () => {
-          // Check if cancelled by stop()/pause()
-          if (!this._pendingPlay) {
+          // Source-local guard: stop(), pause(), or a newer request may revoke this callback's ownership
+          if (this._pendingPlay !== resumePromise) {
             return;
           }
-          this._pendingPlay = false;
+          this._pendingPlay = null;
+          // Manager-global guard: discard playback tied to a pre-gesture attempt superseded by a gesture
+          if (resumeAttemptCanBeSuperseded && resumeAttemptId !== AudioManager._resumeAttemptId) {
+            return;
+          }
           // Check if still valid to play after async resume (page may have been hidden meanwhile)
           if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
             return;
@@ -176,7 +182,13 @@ export class AudioSource extends Component {
           this._startPlayback();
         },
         (e) => {
-          this._pendingPlay = false;
+          if (this._pendingPlay !== resumePromise) {
+            return;
+          }
+          this._pendingPlay = null;
+          if (resumeAttemptCanBeSuperseded && resumeAttemptId !== AudioManager._resumeAttemptId) {
+            return;
+          }
           console.warn("Failed to resume AudioContext:", e);
         }
       );
@@ -187,7 +199,7 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
-    this._pendingPlay = false;
+    this._pendingPlay = null;
 
     if (this._isPlaying) {
       this._clearSourceNode();
@@ -204,7 +216,7 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
-    this._pendingPlay = false;
+    this._pendingPlay = null;
 
     if (this._isPlaying) {
       this._clearSourceNode();
