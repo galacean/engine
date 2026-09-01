@@ -16,6 +16,7 @@ import {
   OverlapHitResult
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
+import type { IPhysicsScene } from "@galacean/engine-design";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
@@ -404,6 +405,124 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
+
+      root.destroy();
+    });
+
+    it("raycastAll", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("raycast_all_root");
+      const nearEntity = root.createChild("near");
+      nearEntity.transform.position = new Vector3(0, 0, 0);
+      const nearCollider = nearEntity.addComponent(StaticCollider);
+      const nearShape = new BoxColliderShape();
+      nearShape.size = new Vector3(1, 1, 1);
+      nearCollider.addShape(nearShape);
+
+      const farEntity = root.createChild("far");
+      farEntity.transform.position = new Vector3(5, 0, 0);
+      const farCollider = farEntity.addComponent(StaticCollider);
+      farCollider.collisionLayer = Layer.Layer1;
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(1, 1, 1);
+      farCollider.addShape(farShape);
+
+      const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
+      const results = physicsScene.raycastAll(ray);
+      expect(results).to.have.length(2);
+      expect(results.map((result) => result.shape)).to.have.members([nearShape, farShape]);
+      expect(results.map((result) => result.entity)).to.have.members([nearEntity, farEntity]);
+      expect(results.every((result) => result.distance > 0)).to.eq(true);
+
+      const nativeScene = (physicsScene as any)._nativePhysicsScene as IPhysicsScene;
+      expect(() => (nativeScene.raycastAll as any)(ray, Number.MAX_VALUE, () => true)).to.throw();
+
+      const nativeHitIds: number[] = [];
+      nativeScene.raycastAll(
+        ray,
+        Number.MAX_VALUE,
+        () => true,
+        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
+      );
+      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
+
+      expect(() => {
+        nativeScene.raycastAll(
+          ray,
+          Number.MAX_VALUE,
+          () => true,
+          () => {
+            throw new Error("intentional all-hit callback failure");
+          }
+        );
+      }).to.throw("intentional all-hit callback failure");
+      nativeHitIds.length = 0;
+      nativeScene.raycastAll(
+        ray,
+        Number.MAX_VALUE,
+        () => true,
+        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
+      );
+      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
+
+      expect(() => {
+        nativeScene.overlapBoxAll(new Vector3(0, 0, 0), new Quaternion(), new Vector3(10, 10, 10), () => {
+          throw new Error("intentional overlap callback failure");
+        });
+      }).to.throw("intentional overlap callback failure");
+      expect(physicsScene.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(10, 10, 10))).to.have.length(2);
+
+      const limitedResults = physicsScene.raycastAll(ray, 5);
+      expect(limitedResults).to.have.length(1);
+      expect(limitedResults[0].shape).to.eq(nearShape);
+      expect(limitedResults[0].entity).to.eq(nearEntity);
+
+      const filteredResults = physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Layer1);
+      expect(filteredResults).to.have.length(1);
+      expect(filteredResults[0].shape).to.eq(farShape);
+      expect(filteredResults[0].entity).to.eq(farEntity);
+      expect(physicsScene.raycastAll(ray, 0)).to.have.length(0);
+
+      farShape.isSceneQuery = false;
+      const queryFilteredResults = physicsScene.raycastAll(ray);
+      expect(queryFilteredResults).to.have.length(1);
+      expect(queryFilteredResults[0].shape).to.eq(nearShape);
+
+      root.destroy();
+    });
+
+    it("raycastAll returns every hit beyond the native touch chunk", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("raycast_all_many_root");
+      const expectedShapes = new Set<ColliderShape>();
+      const expectedEntities = new Set<Entity>();
+      const hitCount = 257;
+
+      for (let i = 0; i < hitCount; i++) {
+        const entity = root.createChild(`hit-${i}`);
+        entity.transform.position = new Vector3(i * 2, 0, 0);
+        const collider = entity.addComponent(StaticCollider);
+        const shape = new BoxColliderShape();
+        shape.size = new Vector3(1, 1, 1);
+        collider.addShape(shape);
+        expectedEntities.add(entity);
+        expectedShapes.add(shape);
+      }
+
+      const results = physicsScene.raycastAll(new Ray(new Vector3(-1, 0, 0), new Vector3(1, 0, 0)));
+      const resultShapes = new Set(results.map((result) => result.shape));
+      const resultEntities = new Set(results.map((result) => result.entity));
+      expect(results).to.have.length(hitCount);
+      expect(resultShapes.size).to.eq(hitCount);
+      expect(resultEntities.size).to.eq(hitCount);
+      for (const shape of expectedShapes) {
+        expect(resultShapes.has(shape)).to.eq(true);
+      }
+      for (const entity of expectedEntities) {
+        expect(resultEntities.has(entity)).to.eq(true);
+      }
 
       root.destroy();
     });
@@ -1181,6 +1300,40 @@ describe("Physics Test", () => {
       expect(shapesCustom).to.be.eq(customArray);
       expect(shapesCustom).to.have.length(2);
       expect(shapesCustom).to.include.members([boxShape, boxShape2]);
+
+      root.destroy();
+    });
+
+    it("overlapAll preserves every shape beyond the native touch chunk", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("overlap_all_many_root");
+      const collider = root.addComponent(StaticCollider);
+      const expectedShapes = new Set<ColliderShape>();
+      const hitCount = 257;
+
+      for (let i = 0; i < hitCount; i++) {
+        const shape = new BoxColliderShape();
+        shape.size = new Vector3(1, 1, 1);
+        collider.addShape(shape);
+        expectedShapes.add(shape);
+      }
+
+      const center = new Vector3(0, 0, 0);
+      const orientation = new Quaternion();
+      const results = [
+        physicsScene.overlapBoxAll(center, new Vector3(1, 1, 1), orientation),
+        physicsScene.overlapSphereAll(center, 2),
+        physicsScene.overlapCapsuleAll(center, 2, 4, orientation)
+      ];
+
+      for (const shapes of results) {
+        expect(shapes).to.have.length(hitCount);
+        expect(new Set(shapes).size).to.eq(hitCount);
+        for (const shape of expectedShapes) {
+          expect(shapes).to.include(shape);
+        }
+      }
 
       root.destroy();
     });
