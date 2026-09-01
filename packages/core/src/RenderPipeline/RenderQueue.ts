@@ -62,6 +62,13 @@ export class RenderQueue {
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
+    const realtimeSphericalHarmonicsBuffer = scene.ambientLight._realtimeSphericalHarmonicsBuffer;
+    if (realtimeSphericalHarmonicsBuffer) {
+      rhi.bindUniformBufferBase(
+        ConstantBufferBindingPoint.RealtimeIBLSphericalHarmonics,
+        realtimeSphericalHarmonicsBuffer._platformBuffer
+      );
+    }
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
     const needMaskType = maskType !== RenderQueueMaskType.No;

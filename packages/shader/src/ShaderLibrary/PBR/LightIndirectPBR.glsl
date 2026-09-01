@@ -40,7 +40,11 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 diffuseColor){
     #ifdef SCENE_USE_SH
-        vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
+        #ifdef SCENE_USE_REALTIME_SH
+            vec3 irradiance = getRealtimeLightProbeIrradiance(surfaceData.normal);
+        #else
+            vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, surfaceData.normal);
+        #endif
         irradiance *= scene_EnvMapLight.diffuseIntensity;
     #else
        vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;

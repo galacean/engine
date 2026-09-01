@@ -10,6 +10,9 @@ import Blit_BlitScreen from "./Blit/BlitScreen.shader";
 import Effect_Particle from "./Effect/Particle.shader";
 import Effect_ParticleFeedback from "./Effect/ParticleFeedback.shader";
 import Effect_Trail from "./Effect/Trail.shader";
+import Lighting_RealtimeIBLAccumulate from "./Lighting/RealtimeIBLAccumulate.shader";
+import Lighting_RealtimeIBLProjectSH from "./Lighting/RealtimeIBLProjectSH.shader";
+import Lighting_RealtimeIBLResolve from "./Lighting/RealtimeIBLResolve.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
 import PBR from "./PBR.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
@@ -40,6 +43,9 @@ export const shaders: IShaderSource[] = [
   { source: Effect_Particle, path: "Shaders/Effect/Particle.shader" },
   { source: Effect_ParticleFeedback, path: "Shaders/Effect/ParticleFeedback.shader" },
   { source: Effect_Trail, path: "Shaders/Effect/Trail.shader" },
+  { source: Lighting_RealtimeIBLAccumulate, path: "Shaders/Lighting/RealtimeIBLAccumulate.shader" },
+  { source: Lighting_RealtimeIBLProjectSH, path: "Shaders/Lighting/RealtimeIBLProjectSH.shader" },
+  { source: Lighting_RealtimeIBLResolve, path: "Shaders/Lighting/RealtimeIBLResolve.shader" },
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },

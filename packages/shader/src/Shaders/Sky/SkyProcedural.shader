@@ -260,7 +260,7 @@ Shader "Sky/SkyProcedural" {
 
         col = mix(varyings.v_SkyColor, varyings.v_GroundColor, clamp(y, 0.0, 1.0));
 
-        #if defined(MATERIAL_SUN_HIGH_QUALITY) || defined(MATERIAL_SUN_SIMPLE)
+        #if (defined(MATERIAL_SUN_HIGH_QUALITY) || defined(MATERIAL_SUN_SIMPLE)) && (!defined(SCENE_ENVIRONMENT_CAPTURE) || defined(SCENE_ENVIRONMENT_CAPTURE_INCLUDE_SUN))
           if (y < 0.0)
             col += varyings.v_SunColor * calcSunAttenuation(-scene_SunlightDirection, -ray);
         #endif
