@@ -55,7 +55,6 @@ export class GLTFParserContext {
     public resourceManager: ResourceManager,
     public params: GLTFParams
   ) {
-    // @ts-expect-error -- internal method is omitted from public declarations
     this._remoteAssetBaseURL = resourceManager._getRemoteUrl(glTFResource.url);
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }

@@ -241,7 +241,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(item.url);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
@@ -249,7 +248,6 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         type: "arraybuffer"
       };
       resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>

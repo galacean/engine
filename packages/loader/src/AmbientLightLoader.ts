@@ -70,13 +70,11 @@ class AmbientLightLoader extends Loader<AmbientLight> {
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AmbientLight> {
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(item.url);
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;
       resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);

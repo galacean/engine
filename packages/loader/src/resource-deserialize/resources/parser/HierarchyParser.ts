@@ -271,19 +271,16 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       return Promise.reject(error);
     }
 
-    return (
-      engine.resourceManager
-        // @ts-ignore
-        .getResourceByRef<Entity>(refItem)
-        .then((prefabResource: PrefabResource | GLTFResource) => {
-          const entity =
-            prefabResource instanceof PrefabResource
-              ? prefabResource.instantiate()
-              : prefabResource.instantiateSceneRoot();
-          this._onEntityCreated(entity);
-          return entity;
-        })
-    );
+    return engine.resourceManager
+      .getResourceByRef<PrefabResource | GLTFResource>(refItem)
+      .then<Entity>((prefabResource) => {
+        const entity =
+          prefabResource instanceof PrefabResource
+            ? prefabResource.instantiate()
+            : prefabResource.instantiateSceneRoot();
+        this._onEntityCreated(entity);
+        return entity;
+      });
   }
 
   // ---------------------------------------------------------------------------

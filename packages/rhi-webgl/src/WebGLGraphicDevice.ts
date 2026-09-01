@@ -13,8 +13,8 @@ import {
   IPlatformTransformFeedback,
   IPlatformTransformFeedbackPrimitive,
   Logger,
-  Mesh,
   Platform,
+  Primitive,
   RenderTarget,
   SubMesh,
   SystemInfo,
@@ -245,7 +245,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._initGLState(gl);
   }
 
-  createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
+  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
   }
 
@@ -552,10 +552,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
-    // @ts-ignore
-    const glTexture = grabTexture._platformTexture;
+    const glTexture = grabTexture._platformTexture as GLTexture;
 
-    glTexture._bind();
+    this.bindTexture(glTexture);
 
     gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }

@@ -18,12 +18,10 @@ class MeshLoader extends Loader<ModelMesh> {
       ...item,
       type: "arraybuffer"
     };
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(item.url);
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
-        ._requestByRemoteUrl(remoteUrl, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((data) => {
           return decode<ModelMesh>(data, resourceManager.engine);
         })
@@ -50,8 +48,7 @@ class MeshContentRestorer extends ContentRestorer<ModelMesh> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
-        ._requestByRemoteUrl<any>(this.remoteUrl, this.requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((data) => {
           return decode<ModelMesh>(data, engine, resource);
         })

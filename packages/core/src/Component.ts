@@ -107,6 +107,9 @@ export class Component extends EngineObject {
    */
   _onDisableInScene(): void {}
 
+  /**
+   * @internal
+   */
   _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const entity = this._entity;
 

@@ -23,12 +23,10 @@ import { HDRDecoder } from "./HDRDecoder";
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
     const url = item.url;
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) => {

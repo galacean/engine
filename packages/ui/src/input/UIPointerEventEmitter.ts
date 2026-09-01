@@ -33,22 +33,21 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
-    const hitResult = this._hitResult;
+    const hitResult = this._hitResult as UIHitResult;
     const { position } = pointer;
     const { x, y } = position;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      // @ts-ignore
       const componentsManager = scene._componentsManager;
       // Overlay Canvas
-      let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
+      let canvasElements = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
       // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
         if (canvasElements.get(j)._raycast(ray, hitResult)) {
-          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+          this._updateRaycast(hitResult.component, pointer);
           return;
         }
       }
@@ -72,7 +71,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         const isOrthographic = camera.isOrthographic;
         const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
         // Sort by rendering order
-        canvasElements = componentsManager._canvases;
+        canvasElements = componentsManager._canvases as DisorderedArray<UICanvas>;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
         }
@@ -86,7 +85,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           const canvas = canvasElements.get(k);
           if (!canvas._canDispatchEvent(camera)) continue;
           if (canvas._raycast(ray, hitResult, farClipPlane)) {
-            this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+            this._updateRaycast(hitResult.component, pointer);
             return;
           }
         }

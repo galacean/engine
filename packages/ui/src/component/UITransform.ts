@@ -239,7 +239,7 @@ export class UITransform extends Transform {
   /**
    * @internal
    */
-  _parentChange(): void {
+  override _parentChange(): void {
     this._isParentDirty = true;
     this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
