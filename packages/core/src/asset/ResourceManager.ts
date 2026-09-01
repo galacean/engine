@@ -39,7 +39,7 @@ export class ResourceManager {
   /** Base url for loading assets. */
   baseUrl: string | null = null;
 
-  private _loadingPromises: Record<string, AssetPromise<any>> = {};
+  private _loadingPromises: Record<string, AssetPromise<any>[]> = {};
 
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
@@ -152,14 +152,14 @@ export class ResourceManager {
 
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
-      Utils.objectValues(this._loadingPromises).forEach((promise) => {
-        promise.cancel();
+      Utils.objectValues(this._loadingPromises).forEach((promises) => {
+        promises.forEach((promise) => promise.cancel());
       });
     } else if (typeof url === "string") {
-      this._loadingPromises[this._getLoadingKey(url)]?.cancel();
+      this._loadingPromises[this._getLoadingKey(url)]?.forEach((promise) => promise.cancel());
     } else {
       for (let i = 0, n = url.length; i < n; i++) {
-        this._loadingPromises[this._getLoadingKey(url[i])]?.cancel();
+        this._loadingPromises[this._getLoadingKey(url[i])]?.forEach((promise) => promise.cancel());
       }
     }
   }
@@ -348,8 +348,14 @@ export class ResourceManager {
     const remoteAssetBaseURL = this._getRemoteUrl(assetBaseURL);
     item.url = assetBaseURL;
 
+    // Check loader
+    const loader = <Loader<T>>ResourceManager._loaders[item.type];
+    if (!loader) {
+      throw `loader not found: ${item.type}`;
+    }
+
     // Check cache
-    const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
+    const cacheObject = loader.useCache && this._assetUrlPool[remoteAssetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
         resolve(this._getResolveResource(cacheObject, paths) as T);
@@ -360,7 +366,7 @@ export class ResourceManager {
 
     // Check is loading
     const loadingPromises = this._loadingPromises;
-    const loadingPromise = loadingPromises[remoteAssetURL];
+    const loadingPromise = loader.useCache && loadingPromises[remoteAssetURL]?.[0];
     if (loadingPromise) {
       return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
         loadingPromise
@@ -374,19 +380,13 @@ export class ResourceManager {
       });
     }
 
-    // Check loader
-    const loader = <Loader<T>>ResourceManager._loaders[item.type];
-    if (!loader) {
-      throw `loader not found: ${item.type}`;
-    }
-
     const subpackageName = virtualResourceEntry?.subpackageName;
 
     // Check sub asset
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
-        loadingPromises[remoteAssetBaseURL] ||
+        (loader.useCache && loadingPromises[remoteAssetBaseURL]?.[0]) ||
         this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
 
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
@@ -408,18 +408,18 @@ export class ResourceManager {
   private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
-    loadingPromises[remoteAssetBaseURL] = promise;
+    (loadingPromises[remoteAssetBaseURL] ||= []).push(promise);
 
     promise.then(
       (resource: T) => {
         if (loader.useCache) {
           this._addAsset(remoteAssetBaseURL, resource as EngineObject);
         }
-        delete loadingPromises[remoteAssetBaseURL];
+        this._removeLoadingPromise(loadingPromises, remoteAssetBaseURL, promise);
         this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       },
       () => {
-        delete loadingPromises[remoteAssetBaseURL];
+        this._removeLoadingPromise(loadingPromises, remoteAssetBaseURL, promise);
         this._releaseSubAssetPromiseCallback(remoteAssetBaseURL);
       }
     );
@@ -461,16 +461,31 @@ export class ResourceManager {
       }, reject);
     });
 
-    loadingPromises[remoteAssetURL] = promise;
+    (loadingPromises[remoteAssetURL] ||= []).push(promise);
 
     promise.then(
       () => {
-        delete loadingPromises[remoteAssetURL];
+        this._removeLoadingPromise(loadingPromises, remoteAssetURL, promise);
       },
-      () => delete loadingPromises[remoteAssetURL]
+      () => this._removeLoadingPromise(loadingPromises, remoteAssetURL, promise)
     );
 
     return promise;
+  }
+
+  private _removeLoadingPromise(
+    loadingPromises: Record<string, AssetPromise<any>[]>,
+    url: string,
+    promise: AssetPromise<any>
+  ): void {
+    const promises = loadingPromises[url];
+    const index = promises?.indexOf(promise) ?? -1;
+    if (index !== -1) {
+      promises.splice(index, 1);
+      if (promises.length === 0) {
+        delete loadingPromises[url];
+      }
+    }
   }
 
   private _gc(forceDestroy: boolean): void {
