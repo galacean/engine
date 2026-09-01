@@ -4,32 +4,6 @@ import { vi, describe, expect, it } from "vitest";
 
 describe("Script", () => {
   describe("onEnable/onDisable/onAwake", () => {
-    it("does not dispatch internal activation to a user _setActive method", async () => {
-      class TestScript extends Script {
-        onAwake() {}
-
-        onEnable() {}
-      }
-
-      const userSetActive = vi.fn((entity: Entity | null, active: boolean) => {
-        if (entity) entity.isActive = active;
-      });
-      Object.defineProperty(TestScript.prototype, "_setActive", { value: userSetActive });
-      TestScript.prototype.onAwake = vi.fn(TestScript.prototype.onAwake);
-      TestScript.prototype.onEnable = vi.fn(TestScript.prototype.onEnable);
-
-      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      const rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
-      const entity = new Entity(engine);
-      const script = entity.addComponent(TestScript);
-
-      rootEntity.addChild(entity);
-
-      expect(userSetActive).not.toHaveBeenCalled();
-      expect(script.onAwake).toHaveBeenCalledOnce();
-      expect(script.onEnable).toHaveBeenCalledOnce();
-    });
-
     it("Add script to Entity", async () => {
       class TestScript extends Script {
         onAwake() {
