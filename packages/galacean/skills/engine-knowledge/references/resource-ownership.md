@@ -2,6 +2,10 @@
 
 Use this reference when deciding whether an object should be shared, cloned, garbage-collected, or explicitly destroyed.
 
+## Runtime resource loading
+
+- `resourceManager.load()` resolves a browser URL or an exact `virtualPath` already registered with `ResourceManager`; it never reads a host filesystem path.
+
 ## Reference-counted resources
 
 - Engine resources derived from `ReferResource` participate in reference counting. Assigning them to owning Engine objects changes their retained lifetime through those owners.
