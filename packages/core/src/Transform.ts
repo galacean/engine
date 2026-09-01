@@ -345,6 +345,14 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._scale._onValueChanged = this._onScaleChanged;
   }
 
+  override destroy(): void {
+    const entity = this._entity;
+    if (entity.transform === this && !entity.destroyed) {
+      throw "Transform cannot be destroyed directly; replace it by adding another Transform-compatible component";
+    }
+    super.destroy();
+  }
+
   /**
    * Set local position by X, Y, Z value.
    * @param x - X coordinate
