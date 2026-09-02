@@ -213,8 +213,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (this._sortOrder !== value) {
       this._sortOrder = value;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
-        // @ts-ignore
-        (this.scene._componentsManager._overlayCanvasesSortingFlag = true);
+        (this.scene._componentsManager._overlayCanvasesSortingDirty = true);
     }
   }
 
