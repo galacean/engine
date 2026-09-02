@@ -581,11 +581,7 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T extends LoadableResource>(ref: {
-    url: string;
-    key?: string;
-    isClone?: boolean;
-  }): AssetPromise<T | null> {
+  getResourceByRef<T extends LoadableResource>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
     const { url, key, isClone } = ref;
     if (!url) {
       Logger.warn("ResourceManager.getResourceByRef: url is empty.");

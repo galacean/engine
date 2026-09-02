@@ -22,7 +22,7 @@ function loadRef<T extends EngineObject>(
   index: number,
   resourceManager: ResourceManager,
   label: string
-): Promise<T | null> {
+): Promise<T> {
   const ref = resolveRefItem(refs, index, "SceneLoader", label);
   return resourceManager.getResourceByRef<T>(ref);
 }
