@@ -21,8 +21,8 @@ export class PhysicsMaterial {
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,
-      this._bounceCombine,
-      this._frictionCombine
+      this._frictionCombine,
+      this._bounceCombine
     );
   }
 

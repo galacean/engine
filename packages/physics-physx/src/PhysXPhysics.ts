@@ -54,23 +54,43 @@ export class PhysXPhysics implements IPhysics {
   private _initializePromise: Promise<void>;
   private _defaultErrorCallback: any;
   private _allocator: any;
-  private _tolerancesScale: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
+  private readonly _tolerancesScaleLength: number;
+  private readonly _tolerancesScaleSpeed: number;
 
   /**
    * Create a PhysXPhysics instance.
    * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the runtime URLs
+   * @param options - PhysX options.
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
+  constructor(runtimeMode?: PhysXRuntimeMode, options?: PhysXPhysicsOptions);
+  constructor(options?: PhysXPhysicsOptions);
+  constructor(
+    runtimeModeOrOptions: PhysXRuntimeMode | PhysXPhysicsOptions = PhysXRuntimeMode.Auto,
+    options?: PhysXPhysicsOptions
+  ) {
+    const isOptionsObject = typeof runtimeModeOrOptions === "object";
+    const runtimeMode = isOptionsObject ? PhysXRuntimeMode.Auto : (runtimeModeOrOptions ?? PhysXRuntimeMode.Auto);
+    const resolvedOptions = isOptionsObject ? runtimeModeOrOptions : options;
+    const tolerancesScale = resolvedOptions?.tolerancesScale;
+    if (tolerancesScale !== undefined && (tolerancesScale === null || typeof tolerancesScale !== "object")) {
+      throw new Error("PhysXPhysics tolerancesScale must be an object.");
+    }
+    const length = tolerancesScale?.length === undefined ? 1 : tolerancesScale.length;
+    const speed = tolerancesScale?.speed === undefined ? 10 : tolerancesScale.speed;
+    this._assertPositiveFinite(length, "tolerancesScale.length");
+    this._assertPositiveFinite(speed, "tolerancesScale.speed");
+
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
-      runtimeUrls?.wasmSIMDModeUrl ??
+      resolvedOptions?.wasmSIMDModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.simd.js";
     this._wasmModeUrl =
-      runtimeUrls?.wasmModeUrl ??
+      resolvedOptions?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.js";
+    this._tolerancesScaleLength = length;
+    this._tolerancesScaleSpeed = speed;
   }
 
   /**
@@ -138,7 +158,6 @@ export class PhysXPhysics implements IPhysics {
     this._pxFoundation.release();
     this._defaultErrorCallback.delete();
     this._allocator.delete();
-    this._tolerancesScale.delete();
   }
 
   /**
@@ -154,6 +173,20 @@ export class PhysXPhysics implements IPhysics {
   createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
     const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getDefaultContactOffset }
+   */
+  getDefaultContactOffset(): number {
+    return 0.02 * this._tolerancesScaleLength;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getDefaultSleepThreshold }
+   */
+  getDefaultSleepThreshold(): number {
+    return 5e-5 * this._tolerancesScaleSpeed * this._tolerancesScaleSpeed;
   }
 
   /**
@@ -232,9 +265,19 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    worldScale: Vector3
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
+    const shape = new PhysXMeshColliderShape(
+      this,
+      uniqueID,
+      positions,
+      indices,
+      isConvex,
+      material,
+      cookingFlags,
+      worldScale
+    );
     return shape._pxShape ? shape : null;
   }
 
@@ -279,14 +322,18 @@ export class PhysXPhysics implements IPhysics {
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
     const tolerancesScale = new physX.PxTolerancesScale();
+    tolerancesScale.length = this._tolerancesScaleLength;
+    tolerancesScale.speed = this._tolerancesScaleSpeed;
     const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
+    // PxPhysics and PxCookingParams copy the scale.
+    tolerancesScale.delete();
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
-    cookingParams.meshWeldTolerance = 0.001;
+    cookingParams.meshWeldTolerance = 0.001 * this._tolerancesScaleLength;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
     if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
       physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
@@ -300,7 +347,12 @@ export class PhysXPhysics implements IPhysics {
     this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
-    this._tolerancesScale = tolerancesScale;
+  }
+
+  private _assertPositiveFinite(value: number, name: string): void {
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`PhysXPhysics ${name} must be a positive finite number.`);
+    }
   }
 }
 
@@ -310,9 +362,18 @@ enum InitializeState {
   Initialized
 }
 
-interface PhysXRuntimeUrls {
-  /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
+export interface PhysXTolerancesScale {
+  /** Approximate object length in the simulation unit. Must be positive and finite. PhysX default is 1. */
+  length?: number;
+  /** Typical object speed in the simulation unit. Must be positive and finite. PhysX default is 10. */
+  speed?: number;
+}
+
+export interface PhysXPhysicsOptions {
+  /** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
-  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  /** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
   wasmSIMDModeUrl?: string;
+  /** PhysX world unit scale, copied before PxPhysics, PxSceneDesc and PxCookingParams are created. */
+  tolerancesScale?: PhysXTolerancesScale;
 }

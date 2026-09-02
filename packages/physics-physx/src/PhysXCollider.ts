@@ -1,4 +1,4 @@
-import { ICollider } from "@galacean/engine-design";
+import { IRigidCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
@@ -7,7 +7,7 @@ import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 /**
  * Abstract class of physical collider.
  */
-export abstract class PhysXCollider implements ICollider {
+export abstract class PhysXCollider implements IRigidCollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
@@ -45,6 +45,17 @@ export abstract class PhysXCollider implements ICollider {
     const shapes = this._shapes;
     shapes.splice(shapes.indexOf(shape), 1);
     this._scene?._removeColliderShape(shape._id);
+  }
+
+  /**
+   * {@inheritDoc IRigidCollider.replaceShape }
+   */
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): void {
+    if (!this._pxActor.attachShape(newShape._pxShape)) {
+      throw new Error("PhysXCollider: failed to attach shape to the native actor.");
+    }
+    this._shapes[this._shapes.indexOf(previousShape)] = newShape;
+    this._pxActor.detachShape(previousShape._pxShape, true);
   }
 
   /**
