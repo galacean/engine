@@ -37,7 +37,6 @@ export class PrefabResource extends ReferResource {
     // ReferResource requires the engine to be passed as a parameter, which prevents cross-engine reuse.
     // A refactor of ReferResource will be needed in the future.
     if (resource instanceof ReferResource) {
-      // @ts-ignore
       resource._associationSuperResource(this);
     }
   }
@@ -47,7 +46,6 @@ export class PrefabResource extends ReferResource {
     this._root?.destroy();
     this._dependenceAssets.forEach((asset) => {
       if (asset instanceof ReferResource) {
-        // @ts-ignore
         asset._disassociationSuperResource(this);
       }
     });

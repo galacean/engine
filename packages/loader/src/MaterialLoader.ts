@@ -43,7 +43,6 @@ class MaterialLoader extends Loader<Material> {
       if (!shaderRef) {
         throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
       }
-      // @ts-expect-error getResourceByRef is @internal
       return resourceManager.getResourceByRef<Shader>(<RefItem>shaderRef).then((shader) => {
         if (!(shader instanceof Shader)) {
           throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);

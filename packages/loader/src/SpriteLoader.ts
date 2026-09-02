@@ -13,46 +13,33 @@ import {
 @resourceLoader(AssetType.Sprite, ["sprite"])
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    return (
-      resourceManager
-        // @ts-ignore
-        ._request<any>(item.url, {
-          ...item,
-          type: "json"
-        })
-        .then((data) => {
-          return data.belongToAtlas
-            ? this._loadFromAtlas(resourceManager, data)
-            : this._loadFromTexture(resourceManager, data);
-        })
-    );
+    return resourceManager
+      ._request<any>(item.url, {
+        ...item,
+        type: "json"
+      })
+      .then((data) => {
+        return data.belongToAtlas
+          ? this._loadFromAtlas(resourceManager, data)
+          : this._loadFromTexture(resourceManager, data);
+      });
   }
 
   private _loadFromAtlas(resourceManager: ResourceManager, data: any): AssetPromise<Sprite> {
-    return (
-      resourceManager
-        // @ts-ignore
-        .getResourceByRef<SpriteAtlas>(data.belongToAtlas)
-        .then((atlas: SpriteAtlas) => {
-          return atlas.getSprite(data.fullPath) || this._loadFromTexture(resourceManager, data);
-        })
-    );
+    return resourceManager.getResourceByRef<SpriteAtlas>(data.belongToAtlas).then((atlas: SpriteAtlas) => {
+      return atlas.getSprite(data.fullPath) || this._loadFromTexture(resourceManager, data);
+    });
   }
 
   private _loadFromTexture(resourceManager: ResourceManager, data: any): AssetPromise<Sprite> {
     if (data.texture) {
-      return (
-        resourceManager
-          // @ts-ignore
-          .getResourceByRef<Texture2D>(data.texture)
-          .then((texture: Texture2D) => {
-            const sprite = new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
-            const { width, height } = data;
-            width === undefined || (sprite.width = width);
-            height === undefined || (sprite.height = height);
-            return sprite;
-          })
-      );
+      return resourceManager.getResourceByRef<Texture2D>(data.texture).then((texture: Texture2D) => {
+        const sprite = new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
+        const { width, height } = data;
+        width === undefined || (sprite.width = width);
+        height === undefined || (sprite.height = height);
+        return sprite;
+      });
     } else {
       return new AssetPromise((resolve) => {
         const sprite = new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border);

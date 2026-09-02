@@ -109,7 +109,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
-          // @ts-ignore
           (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
@@ -120,7 +119,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (depthTexture) {
       const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
-        // @ts-ignore
         const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -201,7 +199,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const gl = this._gl;
     const isWebGL2: boolean = this._isWebGL2;
 
-    /** @ts-ignore */
     const { _depth, colorTextureCount, width, height } = this._target;
     const drawBuffers = new Array(colorTextureCount);
 
@@ -219,7 +216,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.FRAMEBUFFER,
           attachment,
           gl.TEXTURE_2D,
-          /** @ts-ignore */
           (colorTexture._platformTexture as GLTexture)._glTexture,
           0
         );
@@ -258,7 +254,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
 
-    /** @ts-ignore */
     const { _depth, colorTextureCount } = this._target;
 
     this._blitDrawBuffers = new Array(colorTextureCount);
@@ -269,9 +264,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     for (let i = 0; i < colorTextureCount; i++) {
       this._blitDrawBuffers[i] = gl.NONE;
 
-      const internalFormat =
-        /** @ts-ignore */
-        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
+      const internalFormat = (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail
+        .internalFormat;
 
       this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
@@ -281,8 +275,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (_depth !== null) {
       const { internalFormat, attachment } =
         _depth instanceof Texture
-          ? /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._formatDetail
+          ? (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
       this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);

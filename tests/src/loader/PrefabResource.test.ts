@@ -192,6 +192,20 @@ describe("Prefab instance overrides", () => {
     );
   });
 
+  it("should identify a missing prefab instance resource", async () => {
+    const prefabData = {
+      version: "2.0",
+      refs: [{ url: "missing-instance.prefab" }],
+      entities: [{ name: "outerRoot", children: [1] }, { instance: { asset: 0 } }],
+      components: [],
+      root: 0
+    } as any;
+
+    await expect(PrefabParser.parse(engine, "missing-ref.prefab", prefabData)).rejects.toThrow(
+      'HierarchyParser: prefab instance resource "missing-instance.prefab" could not be resolved'
+    );
+  });
+
   it("should apply entityProps overrides to nested prefab entities", async () => {
     // Nested prefab: root → child
     const nestedPrefabData: PrefabFile = {

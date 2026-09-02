@@ -279,7 +279,6 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(

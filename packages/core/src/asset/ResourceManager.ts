@@ -2,10 +2,13 @@ import { IClone } from "@galacean/engine-design";
 import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
+import type { IReferable } from "./IReferable";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
 import { request, RequestConfig } from "./request";
+
+type LoadableResource = EngineObject | IReferable;
 
 /**
  * ResourceManager
@@ -65,28 +68,28 @@ export class ResourceManager {
    * @param assetItem - AssetItem
    * @returns AssetPromise
    */
-  load<T extends EngineObject>(assetItem: LoadItem): AssetPromise<T>;
+  load<T extends LoadableResource>(assetItem: LoadItem): AssetPromise<T>;
 
   /**
    * Load the asset collection asynchronously by loading the information collection.
    * @param assetItems - Asset collection
    * @returns AssetPromise
    */
-  load<T extends EngineObject[]>(assetItems: LoadItem[]): AssetPromise<T>;
+  load<T extends LoadableResource[]>(assetItems: LoadItem[]): AssetPromise<T>;
 
   /**
    * Load asset collection asynchronously through urls.
    * @param paths - Path collections
    * @returns Asset Promise
    */
-  load<T extends EngineObject[]>(paths: string[]): AssetPromise<T>;
+  load<T extends LoadableResource[]>(paths: string[]): AssetPromise<T>;
 
   /**
    * Load asset asynchronously through the path.
    * @param path - Path
    * @returns Asset promise
    */
-  load<T extends EngineObject>(path: string): AssetPromise<T>;
+  load<T extends LoadableResource>(path: string): AssetPromise<T>;
 
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
     // single item
@@ -578,7 +581,11 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T extends EngineObject>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
+  getResourceByRef<T extends LoadableResource>(ref: {
+    url: string;
+    key?: string;
+    isClone?: boolean;
+  }): AssetPromise<T | null> {
     const { url, key, isClone } = ref;
     if (!url) {
       Logger.warn("ResourceManager.getResourceByRef: url is empty.");

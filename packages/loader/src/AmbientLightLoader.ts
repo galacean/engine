@@ -121,7 +121,6 @@ class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
       const resource = this.resource;
       const engine = resource.engine;
       engine.resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((buffer) => {
           const header = FileHeader.decode(buffer);

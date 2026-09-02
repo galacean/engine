@@ -34,7 +34,6 @@ export class GLTFSceneParser extends GLTFParser {
     let sceneRoot: Entity;
 
     sceneRoot = new Entity(engine, "GLTF_ROOT");
-    // @ts-ignore
     sceneRoot._markAsTemplate(glTFResource);
     for (let i = 0; i < sceneNodes.length; i++) {
       sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
@@ -144,7 +143,6 @@ export class GLTFSceneParser extends GLTFParser {
       AssetPromise.all(materialPromises)
     ])
       .then(([meshes, skin, materials]) => {
-        // @ts-ignore
         const basicResources = context.glTFResource.engine._basicResources;
         for (let i = 0; i < rendererCount; i++) {
           const material = materials[i] || basicResources._getBlinnPhongMaterial();

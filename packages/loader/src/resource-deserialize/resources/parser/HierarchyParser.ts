@@ -274,6 +274,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return engine.resourceManager
       .getResourceByRef<PrefabResource | GLTFResource>(refItem)
       .then<Entity>((prefabResource) => {
+        if (!prefabResource) {
+          throw new Error(`HierarchyParser: prefab instance resource "${refItem.url}" could not be resolved`);
+        }
         const entity =
           prefabResource instanceof PrefabResource
             ? prefabResource.instantiate()

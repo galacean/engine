@@ -378,7 +378,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       blendState: { targetBlendState },
       depthState,
       stencilState
-      // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
     if (clearFlags & CameraClearFlags.Color && clearColor) {
@@ -439,10 +438,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   ) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
-      /** @ts-ignore */
       renderTarget._isContentLost = false;
 
-      /** @ts-ignore */
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
       platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
 
@@ -495,7 +492,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
 
     if (needBlitDepth || needBlitStencil) {
-      // @ts-ignore
       const depthFormat = destRT._depthFormat;
 
       if (needBlitDepth) {

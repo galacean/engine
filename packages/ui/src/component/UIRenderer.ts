@@ -107,23 +107,19 @@ export class UIRenderer extends Renderer implements IGraphics {
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
-  // @ts-ignore
   override _canBatch(preElement, curElement): boolean {
     return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
-  // @ts-ignore
   override _batch(preElement, curElement): void {
     VertexMergeBatcher.batch(preElement, curElement);
   }
 
-  // @ts-ignore
   override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
-  // @ts-ignore
   override _prepareRender(context): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
@@ -135,25 +131,19 @@ export class UIRenderer extends Renderer implements IGraphics {
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
-      // @ts-ignore
       this.shaderData._macroCollection,
-      //@ts-ignore
       this._globalShaderMacro
     );
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
-    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
-    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
@@ -228,7 +218,6 @@ export class UIRenderer extends Renderer implements IGraphics {
    * @internal
    */
   _getChunkManager() {
-    // @ts-ignore
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 

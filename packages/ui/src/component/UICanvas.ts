@@ -371,7 +371,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
     const entity = this.entity;
     // @ts-ignore
@@ -381,13 +380,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     Utils.setRootCanvas(this, rootCanvas);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
   }
 
-  // @ts-ignore
   override _onDisable(): void {
     this._renderElements.length = 0;
     this._batchedRenderElements.length = 0;
@@ -510,7 +507,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   private _walk(entity: Entity, renderers: UIRenderer[], depth = 0, group: UIGroup = null): number {
-    // @ts-ignore
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
     let groupAbleCount = 0;
@@ -552,15 +548,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (preCamera !== camera) {
       this._cameraObserver = camera;
       if (preCamera) {
-        // @ts-ignore
         preCamera.entity._updateFlagManager.removeListener(this._onCameraTransformListener);
-        // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
-        // @ts-ignore
         camera.entity._updateFlagManager.addListener(this._onCameraTransformListener);
-        // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
     }
@@ -597,12 +589,10 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   private _addCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeListener);
   }
 
   private _removeCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
@@ -680,7 +670,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
-      // @ts-ignore
       const componentsManager = this.scene._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:
