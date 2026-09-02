@@ -26,7 +26,6 @@ const materialLoaderTypes = new Set(Object.values(MaterialLoaderType));
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
-    // @ts-expect-error _request is @internal
     return resourceManager._request(item.url, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
       const { shaderData, shaderRef, shader: shaderName } = materialSchema;
       for (const key in shaderData) {
@@ -44,7 +43,6 @@ class MaterialLoader extends Loader<Material> {
       if (!shaderRef) {
         throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
       }
-      // @ts-expect-error getResourceByRef is @internal
       return resourceManager.getResourceByRef<Shader>(<RefItem>shaderRef).then((shader) => {
         if (!(shader instanceof Shader)) {
           throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
@@ -92,7 +90,6 @@ class MaterialLoader extends Loader<Material> {
           break;
         case MaterialLoaderType.Texture:
           texturePromises.push(
-            // @ts-expect-error getResourceByRef is @internal
             engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
               if (!(texture instanceof Texture)) {
                 throw new Error(

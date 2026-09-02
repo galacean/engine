@@ -30,7 +30,6 @@ export function getMeshoptDecoder() {
     29, 73, 115
   ]);
 
-  // @ts-ignore
   const wasm = SystemInfo._detectSIMDSupported() ? wasm_simd : wasm_base;
 
   let instance;

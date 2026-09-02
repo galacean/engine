@@ -3,6 +3,7 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
+  EngineObject,
   Loader,
   LoadItem,
   Logger,
@@ -16,9 +17,13 @@ import type { RefItem } from "./schema/CommonSchema";
 import { SpecularMode, type SceneFile } from "./schema/SceneSchema";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
-function loadRef<T>(refs: RefItem[], index: number, resourceManager: ResourceManager, label: string): Promise<T> {
+function loadRef<T extends EngineObject>(
+  refs: RefItem[],
+  index: number,
+  resourceManager: ResourceManager,
+  label: string
+): Promise<T> {
   const ref = resolveRefItem(refs, index, "SceneLoader", label);
-  // @ts-ignore
   return resourceManager.getResourceByRef<T>(ref);
 }
 
@@ -173,7 +178,6 @@ class SceneLoader extends Loader<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject, setTaskCompleteProgress) => {
       resourceManager
-        // @ts-ignore
         ._request<SceneFile>(item.url, { ...item, type: "json" })
         .then((data: SceneFile) => {
           const scene = new Scene(engine, data.scene.name ?? "");

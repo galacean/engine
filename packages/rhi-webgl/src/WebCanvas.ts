@@ -84,7 +84,7 @@ export class WebCanvas extends Canvas {
   /**
    * @internal
    */
-  _pumpPendingResolution(): void {
+  override _pumpPendingResolution(): void {
     if (!this._resolutionDirty) return;
 
     const webCanvas = this._webCanvas;

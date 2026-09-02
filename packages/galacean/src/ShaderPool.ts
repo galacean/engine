@@ -79,7 +79,6 @@ export class ShaderPool {
     ];
 
     for (const source of sources) {
-      // @ts-ignore — `_createFromPrecompiled` is `Shader` @internal.
       Shader._createFromPrecompiled(source);
     }
 
@@ -87,7 +86,6 @@ export class ShaderPool {
     // The pass itself is later looked up via `Shader.find` inside
     // `ParticleTransformFeedbackSimulator`, so no caching needed here.
     const feedbackPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes[0];
-    // @ts-ignore — `_feedbackVaryings` is `ShaderPass` @internal.
     feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
   }
 }

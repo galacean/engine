@@ -176,18 +176,14 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._group;
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
-    // @ts-ignore
     super._onEnableInScene();
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
-    // @ts-ignore
     super._onDisableInScene();
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);

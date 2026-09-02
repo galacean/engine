@@ -114,7 +114,6 @@ export class ReflectionParser {
       } catch (error) {
         return Promise.reject(error);
       }
-      // @ts-ignore
       return context.resourceManager.getResourceByRef(refItem).then((resource) => {
         if (resource && context.type === ParserType.Prefab) {
           // @ts-ignore

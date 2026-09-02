@@ -28,7 +28,6 @@ export class Utils {
   static searchRootCanvasInParents(element: IElement): UICanvas {
     let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
     while (entity) {
-      // @ts-ignore
       const components = entity._components;
       for (let i = 0, n = components.length; i < n; i++) {
         const component = components[i];
@@ -72,7 +71,6 @@ export class Utils {
     let entity = element instanceof UIGroup ? element.entity.parent : element.entity;
     const rootCanvasParent = rootCanvas.entity.parent;
     while (entity && entity !== rootCanvasParent) {
-      // @ts-ignore
       const components = entity._components;
       for (let i = 0, n = components.length; i < n; i++) {
         const component = components[i];
@@ -130,10 +128,8 @@ export class Utils {
     while (entity && entity !== root) {
       const preEntity = listeningEntities[count];
       if (preEntity !== entity) {
-        // @ts-ignore
         preEntity?._unRegisterModifyListener(listener);
         listeningEntities[count] = entity;
-        // @ts-ignore
         entity._registerModifyListener(listener);
       }
       entity = entity.parent;
@@ -144,7 +140,6 @@ export class Utils {
 
   private static _unRegisterListener(listener: (flag: number, param?: any) => void, listeningEntities: Entity[]): void {
     for (let i = 0, n = listeningEntities.length; i < n; i++) {
-      // @ts-ignore
       listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = 0;

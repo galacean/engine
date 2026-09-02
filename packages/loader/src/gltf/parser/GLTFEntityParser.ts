@@ -10,7 +10,6 @@ export class GLTFEntityParser extends GLTFParser {
     const engine = glTFResource.engine;
     const { matrix, translation, rotation, scale, extensions } = entityInfo;
     const entity = new Entity(engine, entityInfo.name || `_GLTF_ENTITY_${index}`);
-    // @ts-ignore
     entity._markAsTemplate(glTFResource);
 
     const { transform } = entity;

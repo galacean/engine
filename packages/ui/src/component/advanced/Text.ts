@@ -230,10 +230,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    // @ts-ignore
     this.font = engine._textDefaultFont;
     this.raycastEnabled = false;
-    // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
 
@@ -341,7 +339,6 @@ export class Text extends UIRenderer implements ITextRenderer {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
       renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       renderElement.subShader = subShader;
@@ -353,7 +350,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _resetSubFont(): void {
     const font = this._font;
-    // @ts-ignore
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
@@ -424,7 +420,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
-    // @ts-ignore
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
@@ -450,7 +445,6 @@ export class Text extends UIRenderer implements ITextRenderer {
           characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
@@ -638,7 +632,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _freeTextChunks(): void {
     const textChunks = this._textChunks;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const manager = this._getChunkManager();
     for (let i = 0, n = textChunks.length; i < n; ++i) {

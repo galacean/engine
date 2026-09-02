@@ -13,8 +13,8 @@ import {
   IPlatformTransformFeedback,
   IPlatformTransformFeedbackPrimitive,
   Logger,
-  Mesh,
   Platform,
+  Primitive,
   RenderTarget,
   SubMesh,
   SystemInfo,
@@ -245,7 +245,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._initGLState(gl);
   }
 
-  createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
+  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
   }
 
@@ -378,7 +378,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       blendState: { targetBlendState },
       depthState,
       stencilState
-      // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
     if (clearFlags & CameraClearFlags.Color && clearColor) {
@@ -439,10 +438,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   ) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
-      /** @ts-ignore */
       renderTarget._isContentLost = false;
 
-      /** @ts-ignore */
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
       platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
 
@@ -495,7 +492,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
 
     if (needBlitDepth || needBlitStencil) {
-      // @ts-ignore
       const depthFormat = destRT._depthFormat;
 
       if (needBlitDepth) {
@@ -552,10 +548,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
-    // @ts-ignore
-    const glTexture = grabTexture._platformTexture;
+    const glTexture = grabTexture._platformTexture as GLTexture;
 
-    glTexture._bind();
+    this.bindTexture(glTexture);
 
     gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
