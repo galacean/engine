@@ -34,13 +34,16 @@ class ShaderLoader extends Loader<Shader> {
     // @ts-expect-error _request is @internal
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       const source = code.trimStart();
-      if (source.startsWith("{")) {
-        // @ts-expect-error _createFromPrecompiled is @internal
-        return Shader._createFromPrecompiled(JSON.parse(source));
-      }
+      const shader = source.startsWith("{")
+        ? // @ts-expect-error _createFromPrecompiled is @internal
+          Shader._createFromPrecompiled(JSON.parse(source))
+        : // @ts-expect-error _createFromSource is @internal loader metadata plumbing
+          Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
 
-      // @ts-expect-error _createFromSource is @internal loader metadata plumbing
-      return Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
+      if (!shader) {
+        throw new Error(`ShaderLoader: failed to create shader "${url}".`);
+      }
+      return shader;
     });
   }
 }

@@ -7,7 +7,7 @@ import {
   Material,
   ResourceManager,
   Shader,
-  Texture2D,
+  Texture,
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
@@ -21,32 +21,36 @@ import {
   type IVector4
 } from "./schema";
 
+const materialLoaderTypes = new Set(Object.values(MaterialLoaderType));
+
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
-    return new AssetPromise((resolve, reject) => {
-      resourceManager
-        // @ts-ignore
-        ._request(item.url, {
-          ...item,
-          type: "json"
-        })
-        .then((materialSchema: IMaterialSchema) => {
-          const engine = resourceManager.engine;
-          const { shaderRef, shader: shaderName } = materialSchema;
-          const shader = Shader.find(shaderName);
-          if (shader) {
-            resolve(this._getMaterialByShader(materialSchema, shader, engine));
-          } else if (shaderRef) {
-            resolve(
-              resourceManager
-                // @ts-ignore
-                .getResourceByRef<Shader>(<RefItem>shaderRef)
-                .then((shader) => this._getMaterialByShader(materialSchema, shader, engine))
-            );
-          }
-        })
-        .catch(reject);
+    // @ts-expect-error _request is @internal
+    return resourceManager._request(item.url, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
+      const { shaderData, shaderRef, shader: shaderName } = materialSchema;
+      for (const key in shaderData) {
+        const type = shaderData[key].type;
+        if (!materialLoaderTypes.has(type)) {
+          throw new Error(`MaterialLoader: unsupported shader data type "${type}".`);
+        }
+      }
+
+      const engine = resourceManager.engine;
+      const shader = Shader.find(shaderName);
+      if (shader) {
+        return this._getMaterialByShader(materialSchema, shader, engine);
+      }
+      if (!shaderRef) {
+        throw new Error(`MaterialLoader: shader "${shaderName}" not found.`);
+      }
+      // @ts-expect-error getResourceByRef is @internal
+      return resourceManager.getResourceByRef<Shader>(<RefItem>shaderRef).then((shader) => {
+        if (!(shader instanceof Shader)) {
+          throw new Error(`MaterialLoader: shader reference "${shaderRef.url}" did not resolve to a Shader.`);
+        }
+        return this._getMaterialByShader(materialSchema, shader, engine);
+      });
     });
   }
 
@@ -56,9 +60,9 @@ class MaterialLoader extends Loader<Material> {
     const material = new Material(engine, shader);
     material.name = name;
 
-    const texturePromises = new Array<Promise<Texture2D>>();
+    const texturePromises = new Array<AssetPromise<void>>();
     const materialShaderData = material.shaderData;
-    for (let key in shaderData) {
+    for (const key in shaderData) {
       const { type, value } = shaderData[key];
 
       switch (type) {
@@ -88,8 +92,13 @@ class MaterialLoader extends Loader<Material> {
           break;
         case MaterialLoaderType.Texture:
           texturePromises.push(
-            // @ts-ignore
-            engine.resourceManager.getResourceByRef<Texture2D>(<RefItem>value).then((texture) => {
+            // @ts-expect-error getResourceByRef is @internal
+            engine.resourceManager.getResourceByRef<Texture>(<RefItem>value).then((texture) => {
+              if (!(texture instanceof Texture)) {
+                throw new Error(
+                  `MaterialLoader: texture reference "${(<RefItem>value).url}" did not resolve to a Texture.`
+                );
+              }
               materialShaderData.setTexture(key, texture);
             })
           );
@@ -100,6 +109,8 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Integer:
           materialShaderData.setInt(key, Number(value));
           break;
+        default:
+          throw new Error(`MaterialLoader: unsupported shader data type "${type}".`);
       }
     }
 
@@ -112,8 +123,12 @@ class MaterialLoader extends Loader<Material> {
       }
     }
 
-    return Promise.all(texturePromises).then(() => {
-      return material;
-    });
+    return Promise.all(texturePromises).then(
+      () => material,
+      (error) => {
+        material.destroy();
+        throw error;
+      }
+    );
   }
 }

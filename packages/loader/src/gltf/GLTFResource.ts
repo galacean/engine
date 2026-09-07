@@ -54,9 +54,9 @@ export class GLTFResource extends ReferResource {
   }
 
   /**
-   * Instantiate scene root entity.
-   * @param sceneIndex - Scene index
-   * @returns Root entity
+   * Instantiate a glTF scene root Entity.
+   * @param sceneIndex - The scene index
+   * @returns A detached scene-root instance that must be added to a parent Entity or Scene to update and render
    */
   instantiateSceneRoot(sceneIndex?: number): Entity {
     const sceneRoot = sceneIndex === undefined ? this._defaultSceneRoot : this._sceneRoots[sceneIndex];
