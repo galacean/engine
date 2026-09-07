@@ -28,6 +28,7 @@ export function createRuntimeShaderTargetParser(objectPool?: ParserObjectPool): 
  * @param sourceFile - Canonical root source path used for relative includes and error attribution.
  * @param objectPool - Compiler-owned pool used only while synchronously consuming this pass.
  * @param runtimeParser - Compiler-owned parser whose source is replaced for each pass.
+ * @param sourceScopeStarts - ShaderLab inheritance boundaries supplied by the source parser.
  * @returns Request-owned parser output suitable for GLES generation.
  * @internal
  */
@@ -37,9 +38,12 @@ export function parseRuntimeShaderPass(
   cache: ChunkOutputCache,
   sourceFile?: string,
   objectPool?: ParserObjectPool,
-  runtimeParser?: ShaderTargetParser
+  runtimeParser?: ShaderTargetParser,
+  sourceScopeStarts?: readonly number[]
 ): ParsedShaderPassData {
   objectPool?.reset();
+  // One nonempty inheritance layer needs no scope table: all its declarations share a scope.
+  if (!sourceScopeStarts?.some((offset) => offset > 0)) sourceScopeStarts = undefined;
   const normalizedSourceFile = normalizeShaderSourceFile(sourceFile);
   const preprocessResult = Preprocessor.parseWithErrors(
     source,
@@ -47,7 +51,8 @@ export function parseRuntimeShaderPass(
     includeMap,
     cache,
     normalizedSourceFile,
-    false
+    false,
+    sourceScopeStarts
   );
   const expandedSource = preprocessResult.content;
   if (preprocessResult.errors.length) {
@@ -62,13 +67,13 @@ export function parseRuntimeShaderPass(
     });
   }
   const macroDefineList: MacroDefineList = {};
-  const lexer = new Lexer(expandedSource, macroDefineList, objectPool);
+  const lexer = new Lexer(expandedSource, macroDefineList, objectPool, preprocessResult.conditionalArmTruth);
   const parser = runtimeParser ?? createRuntimeShaderTargetParser(objectPool);
   parser.setSource(expandedSource);
-  parser.setSourceMap(EMPTY_SOURCE_MAP);
+  parser.setSourceScopes(preprocessResult.sourceScopes);
   const program = parser.parse(lexer.tokenize(), macroDefineList);
-  const errors = freezeErrors(preprocessResult.errors, lexer.expressionErrors, parser.errors);
-  const blockingErrors = freezeErrors(preprocessResult.errors, lexer.expressionErrors, parser.blockingErrors);
+  const errors = freezeErrors(parser.errors);
+  const blockingErrors = freezeErrors(parser.blockingErrors);
 
   return Object.freeze({
     ir: program ? Object.freeze(new ShaderClueIR(program, expandedSource, EMPTY_SOURCE_MAP)) : null,

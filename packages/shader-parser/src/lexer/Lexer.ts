@@ -1,4 +1,4 @@
-import { ETokenType, type ShaderPosition } from "../common";
+import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -9,14 +9,17 @@ import {
   parsePreprocessorExpression,
   type PreprocessorExpressionParseResult
 } from "@galacean/engine-design";
-import { GSError, GSErrorName } from "../GSError";
+import { getLexicalDeclarationCoexistence } from "../common/BranchIdentity";
+
+interface CodegenConditionalFrame {
+  readonly arms: BranchConstraint[];
+  definitelyMatched: boolean;
+}
 
 /**
  * The Lexer of Shader Compiler
  */
 export class Lexer extends BaseLexer {
-  /** Preprocessor-expression failures found during the normal token scan. @internal */
-  readonly expressionErrors: GSError[] = [];
   /** Complete expression trees retained for the instruction encoder. @internal */
   readonly preprocessorExpressions = new Map<string, PreprocessorExpressionParseResult>();
   private static _lexemeTable = <Record<string, Keyword>>{
@@ -127,7 +130,7 @@ export class Lexer extends BaseLexer {
   private _currentMacroParamsLexeme: string | undefined = undefined;
   private _currentMacroValueStart = -1;
 
-  // Active `#ifdef`/`#ifndef`/`#else` stack. Updated by `tokenize` between
+  // Active conditional-chain stack. Updated by `tokenize` between
   // emitting tokens; read by `_registerMacroDefine` (when it registers a
   // legacy entry mid-scan) and stamped onto every emitted token's `branch`
   // field so AST nodes know which branch they're inside.
@@ -138,7 +141,10 @@ export class Lexer extends BaseLexer {
   // the next ID token (the flag name) to actually push onto the stack.
   protected _pendingBranchPushDefined: boolean | null = null;
   private _pendingCodegenConditional: "push" | "advance" | null = null;
-  private _codegenDefinitelyMatched: boolean[] = [];
+  private _codegenConditionalFrames: CodegenConditionalFrame[] = [];
+  private _codegenGuardVersions: Record<string, number> = Object.create(null);
+  private _pendingCodegenGuardUndef = false;
+  private _pendingCodegenArmTruth: boolean | undefined;
 
   *tokenize() {
     yield* this._tokenizeForCodegen();
@@ -152,29 +158,39 @@ export class Lexer extends BaseLexer {
         const parsedCondition = this._parseCodegenConstantCondition(tok.lexeme);
         if (this._pendingCodegenConditional === "push") {
           const conditionalGroup = ++this._conditionalGroup;
-          this._branchStack.push({
-            name: `__if_${conditionalGroup}`,
-            defined: true,
+          const guard = this._codegenGuardIdentity(tok.lexeme);
+          const arm: BranchConstraint = {
+            name: guard?.name ?? `__if_${conditionalGroup}`,
+            defined: guard?.defined ?? true,
+            guardVersion: guard?.guardVersion,
+            unconditionalArm: this._pendingCodegenArmTruth,
             conditionalGroup,
             conditionalArm: 0,
             condition: parsedCondition
+          };
+          this._branchStack.push(arm);
+          this._codegenConditionalFrames.push({
+            arms: [arm],
+            definitelyMatched: parsedCondition?.kind === "constant" && parsedCondition.value
           });
-          this._codegenDefinitelyMatched.push(parsedCondition?.kind === "constant" && parsedCondition.value);
         } else {
           const index = this._branchStack.length - 1;
           const previous = this._branchStack[index];
           if (previous) {
-            const definitelyMatched = this._codegenDefinitelyMatched[index];
+            const frame = this._codegenConditionalFrames[index];
+            const definitelyMatched = frame.definitelyMatched;
             const condition = definitelyMatched ? { kind: "constant" as const, value: false } : parsedCondition;
             this._branchStack[index] = {
               name: previous.name,
               defined: true,
               conditionalGroup: previous.conditionalGroup,
               conditionalArm: (previous.conditionalArm ?? 0) + 1,
+              unconditionalArm: this._pendingCodegenArmTruth,
               condition
             };
+            frame.arms.push(this._branchStack[index]);
             if (!definitelyMatched && parsedCondition?.kind === "constant" && parsedCondition.value) {
-              this._codegenDefinitelyMatched[index] = true;
+              frame.definitelyMatched = true;
             }
           }
         }
@@ -183,53 +199,78 @@ export class Lexer extends BaseLexer {
       const isMacroName = tok.type === ETokenType.ID || tok.type === Keyword.MACRO_CALL;
       if (this._pendingBranchPushDefined !== null && isMacroName) {
         const conditionalGroup = ++this._conditionalGroup;
-        this._branchStack.push({
+        const arm: BranchConstraint = {
           name: tok.lexeme,
           defined: this._pendingBranchPushDefined,
+          guardVersion: this._codegenGuardVersions[tok.lexeme] ?? 0,
+          unconditionalArm: this._pendingCodegenArmTruth,
           conditionalGroup,
           conditionalArm: 0
-        });
-        this._codegenDefinitelyMatched.push(false);
+        };
+        this._branchStack.push(arm);
+        this._codegenConditionalFrames.push({ arms: [arm], definitelyMatched: false });
         this._pendingBranchPushDefined = null;
+      }
+      if (this._pendingCodegenGuardUndef && isMacroName) {
+        this._recordCodegenGuardMutation(tok.lexeme);
+        this._pendingCodegenGuardUndef = false;
       }
 
       if (this._branchStack.length > 0) tok.branch = this._captureBranchSignature();
 
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
+          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingBranchPushDefined = true;
           break;
         case Keyword.MACRO_IFNDEF:
+          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
+          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingCodegenConditional = "push";
           break;
         case Keyword.MACRO_ELIF:
+          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingCodegenConditional = "advance";
+          break;
+        case Keyword.MACRO_UNDEF:
+          this._pendingCodegenGuardUndef = true;
           break;
         case Keyword.MACRO_ELSE: {
           const index = this._branchStack.length - 1;
           const previous = this._branchStack[index];
           if (previous) {
-            const condition = this._codegenDefinitelyMatched[index]
-              ? { kind: "constant" as const, value: false }
-              : undefined;
+            const frame = this._codegenConditionalFrames[index];
+            const condition = frame.definitelyMatched ? { kind: "constant" as const, value: false } : undefined;
             this._branchStack[index] = {
               name: previous.name,
-              defined: tok.type === Keyword.MACRO_ELSE ? !previous.defined : true,
+              defined: !previous.defined,
+              guardVersion: frame.arms.length === 1 ? previous.guardVersion : undefined,
+              unconditionalArm: this._conditionalArmTruth?.get(tok.location.start.index),
               conditionalGroup: previous.conditionalGroup,
               conditionalArm: (previous.conditionalArm ?? 0) + 1,
               condition
             };
-            this._codegenDefinitelyMatched[index] = true;
+            frame.arms.push(this._branchStack[index]);
+            frame.definitelyMatched = true;
           }
           break;
         }
-        case Keyword.MACRO_ENDIF:
+        case Keyword.MACRO_ENDIF: {
           this._branchStack.pop();
-          this._codegenDefinitelyMatched.pop();
+          const frame = this._codegenConditionalFrames.pop();
+          if (frame?.definitelyMatched) {
+            const reachableArms = frame.arms.map((arm) => arm.condition?.kind !== "constant" || arm.condition.value);
+            for (const arm of frame.arms) {
+              arm.conditionalComplete = true;
+              arm.conditionalArmCount = frame.arms.length;
+              arm.conditionalReachableArms = reachableArms;
+            }
+          }
           break;
+        }
       }
 
       yield tok;
@@ -241,6 +282,30 @@ export class Lexer extends BaseLexer {
     const parsed = this.preprocessorExpressions.get(expression.trim());
     const value = parsed?.ok ? evaluateContextFreePreprocessorCondition(parsed.condition) : undefined;
     return value === undefined ? undefined : { kind: "constant", value: value !== 0 };
+  }
+
+  private _codegenGuardIdentity(
+    expression: string
+  ): Pick<BranchConstraint, "name" | "defined" | "guardVersion"> | undefined {
+    const parsed = this.preprocessorExpressions.get(expression.trim());
+    if (!parsed?.ok) return;
+    let condition = parsed.condition;
+    let negated = false;
+    while (condition.t === "not") {
+      negated = !negated;
+      condition = condition.c;
+    }
+    if (condition.t !== "def" && condition.t !== "ndef") return;
+    return {
+      name: condition.m,
+      defined: (condition.t === "def") !== negated,
+      guardVersion: this._codegenGuardVersions[condition.m] ?? 0
+    };
+  }
+
+  private _recordCodegenGuardMutation(name: string): void {
+    if (!Lexer._isCodegenBranchReachable(this._branchStack)) return;
+    this._codegenGuardVersions[name] = (this._codegenGuardVersions[name] ?? 0) + 1;
   }
 
   private static _isCodegenBranchReachable(branch: BranchSignature): boolean {
@@ -263,13 +328,14 @@ export class Lexer extends BaseLexer {
 
   /** @internal */
   protected _branchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
-    return Lexer._canCodegenBranchesOverlap(left, right);
+    return getLexicalDeclarationCoexistence(left, right) !== "exclusive";
   }
 
   constructor(
     source: string,
     public macroDefineList: MacroDefineList,
-    objectPool?: ParserObjectPool
+    objectPool?: ParserObjectPool,
+    protected readonly _conditionalArmTruth?: ReadonlyMap<number, boolean>
   ) {
     super(source, objectPool);
   }
@@ -566,6 +632,10 @@ export class Lexer extends BaseLexer {
     const start = this.getShaderPosition();
     const buffer: string[] = [];
     while (this.getCurChar() !== '"') {
+      if (this.isEnd()) {
+        const quote = this._createPosition(start.index - 1, start.line, start.column - 1);
+        this.throwError(this._createRange(quote, start), "Unterminated string literal.");
+      }
       buffer.push(this.getCurChar());
       this.advance(1);
     }
@@ -611,6 +681,7 @@ export class Lexer extends BaseLexer {
     const buffer: string[] = [this.getCurChar()];
     const start = this.getShaderPosition();
     this.advance(1);
+    this.skipSpace(false);
     while (BaseLexer.isAlpha(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this.advance(1);
@@ -682,15 +753,13 @@ export class Lexer extends BaseLexer {
    *    lists are token sequences, not GLSL expressions; fragments such as
    *    `#define ADD +` or `#define OPEN (` are valid and must be preserved.
    *
-   * Returns `null` if the directive is malformed before the name. `cursor` is
-   * the position past the last non-newline char (caller advances from there).
+   * Returns `null` if the directive is malformed before the name.
    */
   private _peekMacroDefine(): {
     name: string;
     paramsLexeme: string | undefined;
     valueStart: number;
     valueEnd: number;
-    cursor: number;
     isExpression: boolean;
   } | null {
     const src = this._source;
@@ -713,7 +782,7 @@ export class Lexer extends BaseLexer {
         const c = src.charCodeAt(i);
         if (c === 10 || c === 13) {
           // Unbalanced before newline — treat as malformed function-like.
-          return { name, paramsLexeme: undefined, valueStart: i, valueEnd: i, cursor: i, isExpression: false };
+          return { name, paramsLexeme: undefined, valueStart: i, valueEnd: i, isExpression: false };
         }
         if (c === 40) depth++;
         else if (c === 41 /* ')' */) depth--;
@@ -755,7 +824,7 @@ export class Lexer extends BaseLexer {
       if (parenDepth === 0 && bracketDepth === 0) topLevelLast = i;
       i++;
     }
-    const result = { name, paramsLexeme, valueStart, valueEnd: i, cursor: i, isExpression: false };
+    const result = { name, paramsLexeme, valueStart, valueEnd: i, isExpression: false };
     // Empty and declaration-oriented replacement lists stay opaque.
     if (firstStart === -1) return result;
     if (
@@ -769,7 +838,7 @@ export class Lexer extends BaseLexer {
     // `.` (GLSL ES §4.1.4 leading-dot float literal like `.5`), `-`/`+`/`!`/`~`
     // (unary). Legal expression ends: alnum (identifier / literal), `)` (group
     // close), `]` (array-index close). Everything else at the head or
-    // top-level tail is an authoring error.
+    // top-level tail stays in the opaque replacement-list path
     const head = src.charCodeAt(firstStart);
     const tail = topLevelLast >= 0 ? src.charCodeAt(topLevelLast) : 0;
     const headIllegal =
@@ -816,7 +885,7 @@ export class Lexer extends BaseLexer {
    * `#define` directive": spaces, tabs, `\` + newline line-continuation, block
    * comments, line comments. A real `\n` (without preceding `\`) is *not*
    * consumed — it terminates the directive — so callers can detect
-   * end-of-directive after this returns. Shared by `_defineHasValue` (peek
+   * end-of-directive after this returns. Shared by `_peekMacroDefine` (peek
    * path) and `_skipInlineSpaceAndComments` (consuming path) so both honor
    * the same lexical view.
    */
@@ -935,6 +1004,7 @@ export class Lexer extends BaseLexer {
     valueStart: number,
     valueEnd: number
   ): void {
+    this._recordCodegenGuardMutation(name);
     const params = paramsLexeme
       ? paramsLexeme
           .slice(1, -1) // strip enclosing `(` `)`
@@ -1040,44 +1110,9 @@ export class Lexer extends BaseLexer {
     const result = parsePreprocessorExpression(word);
     const emittedWord = word.replace(/[\r\n]/g, " ");
     this.preprocessorExpressions.set(emittedWord.trim(), result);
-    if ("error" in result && (result.error.certain || !result.hasExpandableIdentifier)) {
-      const errorStart = this._positionInExpression(start, word, result.error.start);
-      const errorEnd = this._positionInExpression(start, word, result.error.end);
-      this.expressionErrors.push(
-        new GSError(
-          GSErrorName.PreprocessorError,
-          result.error.message,
-          this._createRange(errorStart, errorEnd),
-          source
-        )
-      );
-    } else if (result.ok && result.evaluationError) {
-      this.expressionErrors.push(
-        new GSError(
-          GSErrorName.PreprocessorError,
-          result.evaluationError,
-          this._createRange(start, this.getShaderPosition()),
-          source
-        )
-      );
-    }
     const token = this._createToken();
     token.set(Keyword.MACRO_CONDITIONAL_EXPRESSION, emittedWord, start);
     return token;
-  }
-
-  private _positionInExpression(start: ShaderPosition, expression: string, offset: number): ShaderPosition {
-    let line = start.line;
-    let column = start.column;
-    for (let index = 0; index < offset; index++) {
-      if (expression.charCodeAt(index) === 10) {
-        line++;
-        column = 0;
-      } else {
-        column++;
-      }
-    }
-    return this._createPosition(start.index + offset, line, column);
   }
 
   private _scanWord(): BaseToken {
@@ -1135,24 +1170,11 @@ export class Lexer extends BaseLexer {
   private static _sameCodegenBranch(left: BranchSignature, right: BranchSignature): boolean {
     if (left.length !== right.length) return false;
     for (let i = 0; i < left.length; i++) {
-      if (left[i].name !== right[i].name || left[i].defined !== right[i].defined) return false;
-    }
-    return true;
-  }
-
-  private static _canCodegenBranchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
-    for (let i = 0; i < left.length; i++) {
-      const leftConstraint = left[i];
-      for (let j = 0; j < right.length; j++) {
-        const rightConstraint = right[j];
-        if (
-          (leftConstraint.conditionalGroup !== undefined &&
-            leftConstraint.conditionalGroup === rightConstraint.conditionalGroup &&
-            leftConstraint.conditionalArm !== rightConstraint.conditionalArm) ||
-          (leftConstraint.name === rightConstraint.name && leftConstraint.defined !== rightConstraint.defined)
-        ) {
-          return false;
-        }
+      if (
+        left[i].conditionalGroup !== right[i].conditionalGroup ||
+        left[i].conditionalArm !== right[i].conditionalArm
+      ) {
+        return false;
       }
     }
     return true;

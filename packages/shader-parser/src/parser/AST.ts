@@ -999,9 +999,7 @@ namespace ASTNodes {
         ),
         this.protoType.ident.location
       );
-      // Preserve the legacy keep-first behavior for unconditional duplicates. Branch declarations
-      // must all be inserted even when they conflict: codegen needs every macro arm to reproduce
-      // the source, while `insert` independently reports whether two declarations can coexist.
+      // Keep same-scope duplicates available for diagnostics; inherited overrides enter the symbol table
       const existing = this.protoType.ident.branch.length === 0 ? sa.symbolTableStack.lookup(sm) : undefined;
       const unconditionalDuplicate = existing && existing.sourceScope === sm.sourceScope;
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);

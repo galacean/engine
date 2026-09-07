@@ -91,6 +91,26 @@ void frag(Varyings input) { gl_FragColor = input.color; }
     expect(ir.program.shaderData).to.equal(ir.shaderData);
   });
 
+  it("retains output facts that a different backend can lower despite GLES restrictions", () => {
+    const parsed = parseShaderPass(
+      `
+struct Output { layout(location = 0) ivec4 value; };
+void vert() { gl_Position = vec4(0.0); }
+Output frag() { Output result; result.value = ivec4(1); return result; }
+`,
+      {},
+      new Map()
+    );
+    expect(parsed.errors).toEqual([]);
+    const coreInfo = ShaderCoreInfo.create(parsed.ir!, "vert", "frag");
+    expect(coreInfo.io.mrtList).toHaveLength(1);
+    const snapshot = inspectNeutralIR(parsed.ir!, coreInfo);
+    expect(GLESBackend.generate(parsed.ir!, coreInfo, ShaderLanguage.GLSLES300)).toBeUndefined();
+    expect(inspectNeutralIR(parsed.ir!, coreInfo)).toEqual(snapshot);
+    expect(coreInfo).not.toHaveProperty("mrtOutputIssues");
+    expect(coreInfo).not.toHaveProperty("invalidMrtReturnLocations");
+  });
+
   it("keeps a parsed pass valid after later parses and backend generations", () => {
     const sourceA = `
 void vertA() { gl_Position = vec4(1.0); }

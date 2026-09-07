@@ -1,5 +1,6 @@
 import {
   GSError,
+  GLESShaderInfo,
   GSErrorName,
   Keyword,
   ShaderCompilerUtils,
@@ -38,6 +39,7 @@ export class ShaderIOValidator {
   ): GSError[] {
     const { ir, coreInfo } = analysis;
     const source = ir.source;
+    const glesInfo = new GLESShaderInfo(ir, coreInfo);
     const errors: GSError[] = [];
 
     if (coreInfo.vertexEntry.name && !coreInfo.vertexEntry.functions.length) {
@@ -71,8 +73,8 @@ export class ShaderIOValidator {
     this._validateFragment(analysis, errors);
     this._validateRoleConflicts(analysis, errors);
     this._validateStructMembers(analysis, errors);
-    this._validateMrtOutputs(analysis, errors);
-    for (const location of coreInfo.invalidMrtReturnLocations) {
+    this._validateMrtOutputs(analysis, glesInfo, errors);
+    for (const location of glesInfo.invalidMrtReturnLocations) {
       this._error(
         errors,
         DiagnosticType.InvalidMrtOutput,
@@ -81,7 +83,7 @@ export class ShaderIOValidator {
         source
       );
     }
-    for (const location of coreInfo.invalidVaryingReturnLocations) {
+    for (const location of glesInfo.invalidVaryingReturnLocations) {
       this._error(
         errors,
         DiagnosticType.InvalidEntryReturnType,
@@ -90,7 +92,7 @@ export class ShaderIOValidator {
         source
       );
     }
-    for (const issue of coreInfo.structMemberOwnerIssues) {
+    for (const issue of glesInfo.structMemberOwnerIssues) {
       if (issue.certainty !== "definite") continue;
       this._error(
         errors,
@@ -263,8 +265,8 @@ export class ShaderIOValidator {
     inspect(io.mrtStructs, ShaderStructRole.Mrt);
   }
 
-  private static _validateMrtOutputs(analysis: ShaderAnalysisInfo, errors: GSError[]): void {
-    for (const issue of analysis.coreInfo.mrtOutputIssues) {
+  private static _validateMrtOutputs(analysis: ShaderAnalysisInfo, glesInfo: GLESShaderInfo, errors: GSError[]): void {
+    for (const issue of glesInfo.mrtOutputIssues) {
       const prop = issue.prop;
       let message: string;
       switch (issue.kind) {

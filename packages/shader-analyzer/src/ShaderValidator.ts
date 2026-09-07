@@ -1,6 +1,8 @@
 import {
   ASTNode,
   BaseToken,
+  canBranchesOverlap,
+  type BranchSignature,
   ESymbolType,
   ETokenType,
   GSError,
@@ -73,7 +75,7 @@ export class ShaderValidator {
    * Start indices of `gl_FragData` reference locations that appear as the base of a
    * `PostfixExpression[base [ index ]]` — the legal `gl_FragData[i]` shape. Collected by
    * `_checkPostfix` during the walk, then used by `_reportBareGlFragData` to strike these off the
-   * `shaderData.glFragDataReferences` list; the residue is bare use.
+   * `ShaderAnalysisInfo.glFragDataReferences` list; the residue is bare use.
    */
   private _indexedGlFragDataStarts = new Set<number>();
   /** Function definition → derivative call sites inside its body. Post-walk pass reports the ones
@@ -293,7 +295,7 @@ export class ShaderValidator {
     let bad = false;
     switch (opToken.type) {
       case ETokenType.BANG:
-        bad = !TypeSystem.isBoolType(t);
+        bad = t !== Keyword.BOOL;
         break;
       case ETokenType.TILDE:
         bad = !TypeSystem.isIntegerType(t);
@@ -347,8 +349,7 @@ export class ShaderValidator {
   }
 
   /**
-   * `<<` `>>` `&` `|` `^` — all take integer scalar-or-vector operands per §5.9. Same
-   * direct-operand contract as `_checkModuloOperandsInteger`.
+   * `<<` `>>` `&` `|` `^` all take integer scalar-or-vector operands per §5.9.
    */
   private _checkIntegerBinaryOperands(
     node:
@@ -484,11 +485,10 @@ export class ShaderValidator {
       const index = children[2];
       // `gl_FragData[i]` — record the base's location so `_reportBareGlFragData` treats this
       // occurrence as legal rather than reporting it as a bare use.
-      const isFragmentOutputArray =
-        ParserUtils.unwrapBareIdentifier(base, { allowParens: true })?.builtinSemantic ===
-        ShaderBuiltinSemantic.FragmentOutputArray;
+      const baseIdentifier = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+      const isFragmentOutputArray = baseIdentifier?.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray;
       if (isFragmentOutputArray) {
-        this._indexedGlFragDataStarts.add(base.location.start.index);
+        this._indexedGlFragDataStarts.add(baseIdentifier.location.start.index);
       }
       // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
       // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
@@ -502,7 +502,7 @@ export class ShaderValidator {
       if (!(index instanceof ASTNode.ExpressionAstNode)) return;
       // The index must be an integer; a constant integer index past a known vector's size is out of bounds.
       const indexType = index.type;
-      if (indexType !== TypeAny && !TypeSystem.isIntegerType(indexType)) {
+      if (indexType !== TypeAny && indexType !== Keyword.INT && indexType !== Keyword.UINT) {
         const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
         this._push(m, index.location, DiagnosticType.NonIntegerIndex);
         return;
@@ -553,129 +553,62 @@ export class ShaderValidator {
     }
   }
 
-  /**
-   * Function-level MissingReturn: a non-void function whose body does not guarantee a return on
-   * every control-flow path. A simple per-path CFG: a block guarantees return if its last executed
-   * statement is either a `return value;` or an `if/else` where both arms guarantee. Loops / macros
-   * / switch are conservatively treated as "may not return" — a `for {…return…}` doesn't count
-   * because the loop might not execute. The void-with-value case is reported per-jump in
-   * `_checkJump`.
-   */
+  /** Diagnose only a proven fallthrough; unresolved macro conditions remain inconclusive. */
   private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
     if (returnType.type === Keyword.VOID) return;
-    if (!ShaderValidator._blockGuaranteesReturn(node.statements)) {
+    const paths: BranchSignature[] = [];
+    const complete = ShaderValidator._collectReturnPaths(node.statements, paths);
+    if (complete && (!paths.length || getBranchCoverage(paths, node.protoType.ident.branch) === "uncovered")) {
       this._push(`No return statement found.`, returnType.location, DiagnosticType.MissingReturn);
     }
   }
 
-  /** True if `node` (a block-like or statement wrapper) definitely returns on every path. */
-  private static _blockGuaranteesReturn(node: TreeNode | undefined): boolean {
-    if (!node) return false;
-    // A JumpStatement whose keyword is RETURN — `return value;` (children.length === 3) or
-    // `return;` (children.length === 2). Only valid in void, but still terminates the path.
+  /**
+   * Collects macro configurations that terminate a block, including returns before unreachable
+   * statements. A runtime if/else terminates only where both arms return; a loop may not execute.
+   * The bounded intersection prevents nested conditional code from causing exponential analysis.
+   */
+  private static _collectReturnPaths(node: TreeNode, paths: BranchSignature[]): boolean {
+    if (!isBranchReachable(node._branch)) return true;
     if (node instanceof ASTNode.JumpStatement) {
-      const kw = node.children[0];
-      return kw instanceof BaseToken && kw.type === Keyword.RETURN;
+      const keyword = node.children[0];
+      if (keyword instanceof BaseToken && keyword.type === Keyword.RETURN) paths.push(node._branch);
+      return true;
     }
-    // If/else — both arms must guarantee. `if` alone (no else) doesn't guarantee: the else path
-    // falls through.
     if (node instanceof ASTNode.SelectionStatement) {
-      // Grammar: IF '(' expression ')' statement (ELSE statement)?
-      const children = node.children;
-      if (children.length !== 7) return false;
-      return (
-        ShaderValidator._blockGuaranteesReturn(children[4] as TreeNode) &&
-        ShaderValidator._blockGuaranteesReturn(children[6] as TreeNode)
-      );
-    }
-    // `#ifdef … #else … #endif` inside a function body. Analyzer must model the same visibility
-    // that codegen does — if every reachable branch (including `#else`) terminates in a return,
-    // the whole `#if` block is a return-guarantee. Without an `#else`, the runtime-preprocessor
-    // may see zero arms match, so we conservatively say no.
-    if (node instanceof ASTNode.MacroIfStatement) {
-      return ShaderValidator._macroIfGuaranteesReturn(node);
-    }
-    // A block/statement wrapper: walk to the last real statement of a block and recurse.
-    const last = ShaderValidator._lastStatementOf(node);
-    if (last && last !== node) return ShaderValidator._blockGuaranteesReturn(last);
-    return false;
-  }
-
-  /**
-   * `macro_if_statement → macro_push_context statement_list macro_branch`. A `macro_branch` is
-   * either `[macro_pop_context]` (bare `#endif`, no `#else`, so at runtime the untaken side
-   * falls through), `[macro_else_expression, statement_list, macro_pop_context]`, or
-   * `[macro_elif_expression, statement_list, macro_branch]`. For the whole `#if` to guarantee a
-   * return, the leading arm's `statement_list` must return AND the tail must terminate on all
-   * remaining arms — the recursion also rejects the bare-endif case.
-   */
-  private static _macroIfGuaranteesReturn(node: ASTNode.MacroIfStatement): boolean {
-    const c = node.children;
-    if (c.length !== 3) return false;
-    const leadStatements = c[1] as TreeNode;
-    const tailBranch = c[2] as ASTNode.MacroBranch;
-    if (!ShaderValidator._blockGuaranteesReturn(leadStatements)) return false;
-    return ShaderValidator._macroBranchGuaranteesReturn(tailBranch);
-  }
-
-  private static _macroBranchGuaranteesReturn(node: ASTNode.MacroBranch): boolean {
-    const c = node.children;
-    // Bare `#endif` — no `#else`, runtime side may fall through. Reject.
-    if (c.length === 1) return false;
-    if (c.length === 3) {
-      // `#else <stmts> #endif` — one final arm, must return.
-      if (c[0] instanceof ASTNode.MacroElseExpression) {
-        return ShaderValidator._blockGuaranteesReturn(c[1] as TreeNode);
+      if (node.children.length !== 7) return true;
+      const left: BranchSignature[] = [];
+      const right: BranchSignature[] = [];
+      const leftComplete = ShaderValidator._collectReturnPaths(node.children[4] as TreeNode, left);
+      const rightComplete = ShaderValidator._collectReturnPaths(node.children[6] as TreeNode, right);
+      if (!leftComplete || !rightComplete || left.length * right.length > 256) return false;
+      for (const leftPath of left) {
+        for (const rightPath of right) {
+          if (canBranchesOverlap(leftPath, rightPath)) {
+            paths.push([...leftPath, ...rightPath.filter((constraint) => !leftPath.includes(constraint))]);
+          }
+        }
       }
-      // `#elif <stmts> <next-branch>` — this arm returns AND the tail terminates on all remaining.
-      if (c[0] instanceof ASTNode.MacroElifExpression) {
-        return (
-          ShaderValidator._blockGuaranteesReturn(c[1] as TreeNode) &&
-          ShaderValidator._macroBranchGuaranteesReturn(c[2] as ASTNode.MacroBranch)
-        );
-      }
+      return true;
     }
-    return false;
-  }
-
-  /**
-   * Descend through the block/statement wrappers used by the grammar (Statement, SimpleStatement,
-   * CompoundStatement, CompoundStatementNoScope, StatementList) to the last real statement of a
-   * block. Returns `undefined` for empty blocks; returns the input for a non-block leaf.
-   */
-  private static _lastStatementOf(node: TreeNode): TreeNode | undefined {
     if (
       node instanceof ASTNode.Statement ||
       node instanceof ASTNode.SimpleStatement ||
       node instanceof ASTNode.CompoundStatement ||
-      node instanceof ASTNode.CompoundStatementNoScope
+      node instanceof ASTNode.CompoundStatementNoScope ||
+      node instanceof ASTNode.StatementList ||
+      node instanceof ASTNode.MacroIfStatement ||
+      node instanceof ASTNode.MacroBranch
     ) {
-      const children = node.children;
-      // `{}` — empty block.
-      if (children.length === 2) return undefined;
-      // Walk into the non-brace children (a Statement / StatementList) and take the last real leaf.
-      for (const child of children) {
-        if (child instanceof TreeNode) {
-          const inner = ShaderValidator._lastStatementOf(child);
-          if (inner) return inner;
-        }
+      let complete = true;
+      for (const child of node.children) {
+        if (child instanceof TreeNode && !ShaderValidator._collectReturnPaths(child, paths)) complete = false;
+        if (paths.length > 256) return false;
       }
-      return undefined;
+      return complete;
     }
-    if (node instanceof ASTNode.StatementList) {
-      // Left-recursive: the last child is always the newest Statement.
-      const children = node.children;
-      for (let i = children.length - 1; i >= 0; i--) {
-        const c = children[i];
-        if (c instanceof TreeNode) {
-          const inner = ShaderValidator._lastStatementOf(c);
-          if (inner) return inner;
-        }
-      }
-      return undefined;
-    }
-    return node;
+    return true;
   }
 
   /**

@@ -143,7 +143,8 @@ export class Shader implements IReferable {
           passSource.vertexEntry,
           passSource.fragmentEntry,
           platformTarget,
-          sourceFile
+          sourceFile,
+          passSource.contentScopeStarts
         );
 
         if (!shaderPassSource) {

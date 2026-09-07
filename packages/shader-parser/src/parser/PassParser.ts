@@ -32,7 +32,8 @@ export function parseShaderPass(
     includeMap,
     cache,
     shaderSourceBaseURL(normalizedSourceFile),
-    (expandedSource, macroDefineList) => new AnalyzerLexer(expandedSource, macroDefineList),
+    (expandedSource, macroDefineList, objectPool, conditionalArmTruth) =>
+      new AnalyzerLexer(expandedSource, macroDefineList, objectPool, conditionalArmTruth),
     (expandedSource) =>
       ShaderTargetParser.create(
         branchAnalysis,

@@ -5,8 +5,15 @@ import { normalizeShaderIncludeKey } from "@galacean/engine-design";
 import { GSError, GSErrorName } from "./GSError";
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
-import type { ShaderSourceMapSegment } from "./ir";
+import type { ShaderSourceMapSegment, ShaderSourceScope } from "./ir";
 import { PreprocessorMacroState, type CachedPreprocessorMacroState } from "./preprocessor/PreprocessorMacroState";
+
+/** Logical seam and cumulative physical characters removed by line splicing. */
+interface SourceSplice {
+  offset: number;
+  length: number;
+  removed: number;
+}
 
 const SHADER_ROOT_PATH = "shaders://root/";
 const ABSOLUTE_URL_PATTERN = /^[A-Za-z][A-Za-z\d+.-]*:/;
@@ -20,11 +27,19 @@ export interface PreprocessResult {
   errors: GSError[];
   /** Mapping from expanded offsets back to the source chunks that produced them. */
   sourceMap: ShaderSourceMapSegment[];
+  /** Compact semantic inheritance ranges, independent of diagnostic source mapping. */
+  sourceScopes: ShaderSourceScope[];
+  /** Known conditional-arm truth, keyed by the generated offset of its directive's `#`. */
+  conditionalArmTruth: ReadonlyMap<number, boolean>;
 }
 
 export type ChunkOutputCache = Map<string, PreprocessResult>;
 
 const cachedMacroStates = new WeakMap<PreprocessResult, CachedPreprocessorMacroState>();
+const expandedSegmentCounts = new WeakMap<PreprocessResult, number>();
+const MAX_INCLUDE_DEPTH = 128;
+const MAX_EXPANDED_SOURCE_LENGTH = 8 * 1024 * 1024;
+const MAX_EXPANDED_SOURCE_SEGMENTS = 65536;
 
 export interface MacroDefineInfo {
   isFunction: boolean;
@@ -50,7 +65,7 @@ export interface MacroDefineList {
 export class Preprocessor {
   private static readonly _includePathReg = /^[ \t]*"([^"\r\n]+)"[ \t]*(?:(?:\/\/.*)|(?:\/\*.*\*\/[ \t]*))?$/;
   private static readonly _directiveReg =
-    /^[ \t]*#(include|define|undef|if|ifdef|ifndef|elif|else|endif)\b([^\r\n]*)/gm;
+    /^[ \t]*#[ \t]*(include|define|undef|if|ifdef|ifndef|elif|else|endif)\b([^\r\n]*)/gm;
 
   static parse(
     source: string,
@@ -94,18 +109,23 @@ export class Preprocessor {
     trackSourceMap = true,
     sourceScopeStarts?: readonly number[]
   ): PreprocessResult {
-    return this._expand(
-      source,
-      basePathForIncludeKey,
-      includeMap,
-      chunkOutputCache,
-      new Set(),
-      sourceFile,
-      trackSourceMap,
-      new PreprocessorMacroState(),
-      sourceScopeStarts,
-      0
-    );
+    try {
+      return this._expand(
+        source,
+        basePathForIncludeKey,
+        includeMap,
+        chunkOutputCache,
+        new Set(),
+        sourceFile,
+        trackSourceMap,
+        new PreprocessorMacroState(),
+        sourceScopeStarts,
+        0
+      );
+    } catch (error) {
+      if (!(error instanceof GSError) || error.name !== GSErrorName.PreprocessorError) throw error;
+      return { content: "", errors: [error], sourceMap: [], sourceScopes: [], conditionalArmTruth: new Map() };
+    }
   }
 
   private static _expand(
@@ -120,14 +140,64 @@ export class Preprocessor {
     sourceScopeStarts: readonly number[] | undefined,
     inheritedSourceScope: number
   ): PreprocessResult {
+    // Line splicing precedes tokenization and comment recognition. Retain physical offsets so
+    // editor diagnostics still refer to the original document and included chunks.
+    const splices: SourceSplice[] = [];
+    let removed = 0;
+    const logicalSource = source.replace(/\\(?:\r\n|\n|\r)/g, (text, offset: number) => {
+      splices.push({ offset: offset - removed, length: text.length, removed: removed + text.length });
+      removed += text.length;
+      return "";
+    });
+    if (splices.length) {
+      const logicalScopeStarts = sourceScopeStarts?.map((start) => {
+        let removedBefore = 0;
+        for (const splice of splices) {
+          removedBefore += Math.min(splice.length, Math.max(0, start - splice.offset - removedBefore));
+        }
+        return start - removedBefore;
+      });
+      sourceScopeStarts = logicalScopeStarts;
+    }
+    const originalSource = source;
+    source = logicalSource;
     const errors: GSError[] = [];
     const sourceMap: ShaderSourceMapSegment[] = [];
+    const sourceScopes: ShaderSourceScope[] = [];
+    const conditionalArmTruth = new Map<number, boolean>();
     const parts: string[] = [];
     let sourceOffset = 0;
     let generatedOffset = 0;
+    let segmentCount = 0;
     let match: RegExpExecArray | null;
     const directiveSource = this._maskDirectiveTrivia(source);
     const directiveReg = new RegExp(this._directiveReg.source, this._directiveReg.flags);
+
+    const failExpansion = (offset: number, message: string): never => {
+      throw this._createPreprocessorError(originalSource, this._physicalOffset(offset, splices), message, sourceFile);
+    };
+    const reserveExpansion = (length: number, segments: number, offset: number): void => {
+      if (generatedOffset + length > MAX_EXPANDED_SOURCE_LENGTH) {
+        failExpansion(offset, `Expanded shader source exceeds ${MAX_EXPANDED_SOURCE_LENGTH} characters.`);
+      }
+      if (segmentCount + segments > MAX_EXPANDED_SOURCE_SEGMENTS) {
+        failExpansion(offset, `Shader include expansion exceeds ${MAX_EXPANDED_SOURCE_SEGMENTS} source segments.`);
+      }
+      segmentCount += segments;
+    };
+    // Physical source-map splitting has the same budget even when runtime mapping is disabled.
+    reserveExpansion(0, splices.length, 0);
+
+    let currentScope: { generatedStart: number; generatedEnd: number; sourceScope: number } | undefined;
+    const appendScope = (length: number, sourceScope: number): void => {
+      if (!sourceScopeStarts?.length || !length) return;
+      if (currentScope?.sourceScope === sourceScope) {
+        currentScope.generatedEnd = generatedOffset + length;
+      } else {
+        currentScope = { generatedStart: generatedOffset, generatedEnd: generatedOffset + length, sourceScope };
+        sourceScopes.push(currentScope);
+      }
+    };
 
     const appendSource = (start: number, end: number, keep: boolean): void => {
       while (start < end) {
@@ -135,7 +205,10 @@ export class Preprocessor {
         const segmentEnd = nextBoundary ?? end;
         const originalText = source.slice(start, segmentEnd);
         const text = keep ? originalText : this._maskText(originalText);
+        const sourceScope = this._sourceScopeAt(start, sourceScopeStarts, inheritedSourceScope);
+        reserveExpansion(text.length, 1, start);
         parts.push(text);
+        appendScope(text.length, sourceScope);
         if (trackSourceMap) {
           sourceMap.push({
             generatedStart: generatedOffset,
@@ -143,7 +216,7 @@ export class Preprocessor {
             sourceStart: start,
             source,
             sourceFile,
-            sourceScope: this._sourceScopeAt(start, sourceScopeStarts, inheritedSourceScope)
+            sourceScope
           });
         }
         generatedOffset += text.length;
@@ -157,6 +230,10 @@ export class Preprocessor {
       const directiveBody = match[2] ?? "";
       if (directive !== "include") {
         const result = macroState.processDirective(directive, this._stripLineComment(directiveBody));
+        if (result.keep && result.armValue !== undefined) {
+          const hashOffset = directiveSource.indexOf("#", match.index) - match.index;
+          conditionalArmTruth.set(generatedOffset + hashOffset, result.armValue);
+        }
         if (result.error) {
           const leadingWhitespace = directiveBody.length - directiveBody.trimStart().length;
           const expressionLength = directiveBody.trim().length;
@@ -216,9 +293,13 @@ export class Preprocessor {
         continue;
       }
 
+      if (activeIncludePaths.size >= MAX_INCLUDE_DEPTH) {
+        failExpansion(match.index, `Shader include nesting exceeds ${MAX_INCLUDE_DEPTH} levels.`);
+      }
+
       const inputMacroState = macroState.captureSnapshot();
       const includeSourceScope = this._sourceScopeAt(match.index, sourceScopeStarts, inheritedSourceScope);
-      const cacheKey = `${path}\0${macroState.cacheKey()}`;
+      const cacheKey = `${trackSourceMap ? 1 : 0}\0${path}\0${macroState.cacheKey()}`;
       let expanded = chunkOutputCache.get(cacheKey);
       const cachedState = expanded && cachedMacroStates.get(expanded);
       if (!expanded || !cachedState) {
@@ -241,7 +322,12 @@ export class Preprocessor {
       } else {
         macroState.applyCachedState(cachedState);
       }
+      reserveExpansion(expanded.content.length, expandedSegmentCounts.get(expanded) ?? 1, match.index);
+      for (const [offset, value] of expanded.conditionalArmTruth) {
+        conditionalArmTruth.set(generatedOffset + offset, value);
+      }
       parts.push(expanded.content);
+      appendScope(expanded.content.length, includeSourceScope);
       if (trackSourceMap) {
         for (const segment of expanded.sourceMap) {
           sourceMap.push({
@@ -259,7 +345,71 @@ export class Preprocessor {
       sourceOffset = directiveReg.lastIndex;
     }
     appendSource(sourceOffset, source.length, macroState.reachable);
-    return { content: parts.join(""), errors, sourceMap };
+    const result = { content: parts.join(""), errors, sourceMap, sourceScopes, conditionalArmTruth };
+    if (splices.length) this._restoreSplicedSource(result, source, originalSource, sourceFile, splices);
+    expandedSegmentCounts.set(result, segmentCount);
+    return result;
+  }
+
+  /** Restores physical provenance after preprocessing the logically spliced source. */
+  private static _restoreSplicedSource(
+    result: PreprocessResult,
+    source: string,
+    originalSource: string,
+    sourceFile: string | undefined,
+    splices: readonly SourceSplice[]
+  ): PreprocessResult {
+    const mappedSegments: ShaderSourceMapSegment[] = [];
+    let spliceIndex = 0;
+    for (const segment of result.sourceMap) {
+      if (segment.source !== source || segment.sourceFile !== sourceFile) {
+        mappedSegments.push(segment);
+        continue;
+      }
+      let start = segment.sourceStart;
+      const end = start + segment.generatedEnd - segment.generatedStart;
+      const append = (partEnd: number): void => {
+        if (partEnd <= start) return;
+        mappedSegments.push({
+          ...segment,
+          generatedStart: segment.generatedStart + start - segment.sourceStart,
+          generatedEnd: segment.generatedStart + partEnd - segment.sourceStart,
+          sourceStart: this._physicalOffset(start, splices),
+          source: originalSource
+        });
+        start = partEnd;
+      };
+      while (spliceIndex < splices.length && splices[spliceIndex].offset <= start) spliceIndex++;
+      while (spliceIndex < splices.length && splices[spliceIndex].offset < end) append(splices[spliceIndex++].offset);
+      append(end);
+    }
+    result.sourceMap = mappedSegments;
+    result.errors = result.errors.map((error) => {
+      if (error.source !== source || error.file !== sourceFile) return error;
+      const location = error.location;
+      const start = "start" in location ? location.start.index : location.index;
+      const end = "end" in location ? location.end.index : start;
+      return this._createPreprocessorError(
+        originalSource,
+        this._physicalOffset(start, splices),
+        error.message,
+        sourceFile,
+        this._physicalOffset(end, splices, end > start)
+      );
+    });
+    return result;
+  }
+
+  private static _physicalOffset(offset: number, splices: readonly SourceSplice[], isEnd = false): number {
+    let low = 0;
+    let high = splices.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      const seam = splices[middle].offset;
+      if (seam < offset || (!isEnd && seam === offset)) low = middle + 1;
+      else high = middle;
+    }
+    return offset + (low ? splices[low - 1].removed : 0);
   }
 
   private static _sourceScopeAt(
@@ -285,9 +435,10 @@ export class Preprocessor {
   }
 
   private static _maskDirectiveTrivia(source: string): string {
-    return source
-      .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\r\n]/g, " "))
-      .replace(/\\(?:\r\n|\n|\r)/g, (continuation) => " ".repeat(continuation.length));
+    // Consume complete line comments and quoted include names before looking for block comments.
+    return source.replace(/\/\/[^\r\n]*|"[^"\r\n]*"|\/\*[\s\S]*?\*\//g, (trivia) =>
+      trivia.startsWith("/*") ? trivia.replace(/[^\r\n]/g, " ") : trivia
+    );
   }
 
   private static _stripLineComment(source: string): string {

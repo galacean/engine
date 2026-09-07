@@ -41,7 +41,7 @@ export class ShaderInstructionEncoder {
       }
 
       const lineEnd = ShaderInstructionEncoder._findLogicalLineEnd(glsl, directiveStart, length);
-      const line = glsl.substring(directiveStart, lineEnd).replace(/\\(?:\r\n|\n|\r)/g, " ");
+      const line = glsl.substring(directiveStart, lineEnd).replace(/\\(?:\r\n|\n|\r)/g, "");
       pos = lineEnd < length ? lineEnd + 1 : length;
 
       const match = ShaderInstructionEncoder._DIRECTIVE_RE.exec(line);

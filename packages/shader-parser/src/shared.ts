@@ -1,1 +1,1 @@
-export type { ParsedShaderPass } from "./parser/ParsedShaderPassHandle";
+export type { ParsedShaderPass } from "./ParsedShaderPass";

@@ -57,6 +57,7 @@ export class ShaderCompiler {
    * @param fragmentEntry - Fragment entry function name.
    * @param backend - Target GLES language version.
    * @param sourceFile - Optional logical source location used for relative includes and attribution.
+   * @param sourceScopeStarts - Inherited ShaderLab content boundaries from source parsing.
    * @returns Generated stage program, or `undefined` after a blocking parser or backend error.
    * @internal
    */
@@ -65,7 +66,8 @@ export class ShaderCompiler {
     vertexEntry: string,
     fragmentEntry: string,
     backend: ShaderLanguage,
-    sourceFile?: string
+    sourceFile?: string,
+    sourceScopeStarts?: readonly number[]
   ): IShaderProgramSource | undefined {
     const parsed = parseRuntimeShaderPass(
       source,
@@ -73,7 +75,8 @@ export class ShaderCompiler {
       this._chunkOutputCache,
       sourceFile,
       this._parserObjectPool,
-      this._runtimeParser
+      this._runtimeParser,
+      sourceScopeStarts
     );
     return generateParsedShaderPassData(parsed, vertexEntry, fragmentEntry, backend);
   }

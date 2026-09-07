@@ -699,7 +699,7 @@ FragmentShader = frag;
     }
   });
 
-  it("reuses analyzer ownership proof across independent guards separated by undef", () => {
+  it("keeps local ownership across source-defined guards separated by undef", () => {
     const source = `Shader "runtime-struct-mutation" { SubShader "s" { Pass "p" {
 struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
@@ -733,12 +733,13 @@ FragmentShader = frag;
       const live = compile(compiler, source, platformTarget);
       const offline = new ShaderPrecompiler().precompile(source, platformTarget).subShaders[0].passes[0];
       expect(generated, `analyzer handoff platform=${platformTarget}`).to.not.be.undefined;
-      expect(live, `lean runtime compiler platform=${platformTarget}`).to.be.undefined;
+      expect(live, `lean runtime compiler platform=${platformTarget}`).to.not.be.undefined;
       expect(offline.isUsePass).to.be.false;
       if (offline.isUsePass) throw new Error("Expected a compiled shader pass.");
 
       for (const [pipeline, program] of [
         ["analyzer handoff", generated!],
+        ["runtime compiler", live!],
         ["offline precompiler", offline]
       ] as const) {
         const vertex = ShaderMacroProcessor.evaluate(program.vertexShaderInstructions!, new Map());
@@ -759,7 +760,7 @@ FragmentShader = frag;
     }
   });
 
-  it("keeps unresolved merged macro ownership silent in analysis and blocking in codegen", () => {
+  it("resolves merged macro ownership when every arm defines the local shadow", () => {
     const source = `Shader "runtime-merged-macro-state" { SubShader "s" { Pass "p" {
 struct Varyings { vec2 uv; };
 struct LocalVaryings { vec2 uv; };
@@ -793,9 +794,33 @@ FragmentShader = frag;
 
     for (const target of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
       const compiler = new ShaderCompiler();
-      expect(compiler.generate(analysis.passes[0], target)).to.equal(undefined);
-      expect(compile(compiler, source, target)).to.equal(undefined);
-      expect(() => new ShaderPrecompiler().precompile(source, target)).to.throw(/precompile failed/);
+      const offline = new ShaderPrecompiler().precompile(source, target).subShaders[0].passes[0];
+      if (offline.isUsePass) throw new Error("Expected a compiled pass");
+      for (const [pipeline, program] of [
+        ["analyzer handoff", compiler.generate(analysis.passes[0], target)],
+        ["runtime compiler", compile(compiler, source, target)],
+        ["offline precompiler", offline]
+      ] as const) {
+        expect(program, pipeline).to.not.equal(undefined);
+        for (const config of [false, true]) {
+          const macros = new Map(config ? [["CONFIG", "1"]] : []);
+          const vertex = ShaderMacroProcessor.evaluate(program!.vertexShaderInstructions!, new Map(macros));
+          const fragment = ShaderMacroProcessor.evaluate(program!.fragmentShaderInstructions!, new Map(macros));
+          const label = `${pipeline} target=${target} CONFIG=${config}`;
+          expect(fragment, label).to.match(/LocalVaryings\s+v\s*;/);
+          expect(fragment, label).to.match(/v\s*\.\s*uv\s*=\s*vec2\s*\(\s*0\.25\s*\)/);
+          expect(fragment, label).to.match(/vec4\s*\(\s*v\s*\.\s*uv\s*,\s*0\.0\s*,\s*1\.0\s*\)/);
+          expect(fragment, label).not.to.match(/vec4\s*\(\s*uv\s*,/);
+
+          const compiled = compileInWebGL(vertex, fragment, target);
+          if (compiled !== "no-webgl") {
+            expect(
+              compiled.ok,
+              `${label} vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog} program=${compiled.programLog}`
+            ).to.be.true;
+          }
+        }
+      }
     }
   });
 

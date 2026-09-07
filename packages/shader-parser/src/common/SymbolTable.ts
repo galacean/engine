@@ -1,7 +1,7 @@
 import { EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
 import type { BranchSemantics } from "./BranchSemantics";
-import { getLexicalDeclarationCoexistence } from "./BranchIdentity";
+import { getLexicalDeclarationCoexistence, isInheritanceBranchVisibleFrom } from "./BranchIdentity";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -25,20 +25,24 @@ export class SymbolTable<T extends IBaseSymbol> {
     symbol.branchSignature = branchSignature;
 
     const entry = this._table.get(symbol.ident) ?? [];
-    if (!branchSemantics) {
-      return this._insertWithoutBranchAnalysis(entry, symbol);
+    const sourceScope = symbol.sourceScope ?? 0;
+    if (sourceScope > 0) {
+      for (let i = entry.length - 1; i >= 0; i--) {
+        const existing = entry[i];
+        if (
+          existing.equal(symbol) &&
+          (existing.sourceScope ?? 0) < sourceScope &&
+          (branchSemantics
+            ? branchSemantics.isBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
+            : isInheritanceBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH))
+        ) {
+          entry.splice(i, 1);
+        }
+      }
     }
 
-    const sourceScope = symbol.sourceScope ?? 0;
-    for (let i = entry.length - 1; i >= 0; i--) {
-      const existing = entry[i];
-      if (
-        existing.equal(symbol) &&
-        (existing.sourceScope ?? 0) < sourceScope &&
-        branchSemantics.isBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
-      ) {
-        entry.splice(i, 1);
-      }
+    if (!branchSemantics) {
+      return this._insertWithoutBranchAnalysis(entry, symbol);
     }
 
     let conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none" = "none";

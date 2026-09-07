@@ -2,22 +2,29 @@ import type { ASTNode } from "../parser/AST";
 import type { ShaderData } from "../parser/ShaderInfo";
 
 /**
- * Maps a range in the preprocessed shader pass back to its source chunk.
+ * Identifies the ShaderLab inheritance layer of an expanded source range.
  * @internal
  */
-export interface ShaderSourceMapSegment {
+export interface ShaderSourceScope {
   /** Start offset in the preprocessed pass. */
   readonly generatedStart: number;
   /** Exclusive end offset in the preprocessed pass. */
   readonly generatedEnd: number;
+  /** ShaderLab inheritance layer that contributed this source. */
+  readonly sourceScope?: number;
+}
+
+/**
+ * Maps an expanded shader range back to its original source chunk.
+ * @internal
+ */
+export interface ShaderSourceMapSegment extends ShaderSourceScope {
   /** Start offset in the original source chunk. */
   readonly sourceStart: number;
   /** Original source chunk. */
   readonly source: string;
   /** Canonical source path represented by this segment. */
   readonly sourceFile?: string;
-  /** ShaderLab inheritance layer that contributed this source. */
-  readonly sourceScope?: number;
 }
 
 /**

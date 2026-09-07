@@ -1,6 +1,6 @@
 # @galacean/engine-shader-analyzer
 
-Standalone ShaderLab and ESSL diagnostics for authoring tools. The analyzer does not create an Engine instance and does not participate in runtime shader code generation.
+Standalone ShaderLab and ESSL diagnostics for authoring tools. The analyzer runs in Node.js and editors without a browser or Engine instance. Its public TypeScript declarations require no DOM library. It does not participate in runtime shader code generation.
 
 ## JavaScript API
 
@@ -16,8 +16,7 @@ const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
 const hasErrors = diagnostics.some(({ severity }) => severity === DiagnosticSeverity.Error);
 ```
 
-When diagnostics and code generation are both needed, pass the parser-owned handles from the same result directly to
-the compiler. No ShaderLab pass is parsed a second time:
+When diagnostics and code generation are both needed, pass the parser-owned handles from the same result directly to the compiler. No ShaderLab pass is parsed a second time:
 
 ```ts
 import { ShaderLanguage } from "@galacean/engine-core";
@@ -42,7 +41,11 @@ const { diagnostics } = ShaderAnalyzer.analyze(shaderSource, {
 
 The analyzer expands the complete root once. Diagnostics are then mapped back to the owning Shader or ShaderChunk; include fragments are never analyzed in isolation.
 
+The parser retains neutral typed IR and stage-interface facts. GLES output types and struct-flattening constraints are checked separately by a shared GLES policy used by diagnostics and code generation. Future backends can consume the same IR with their own lowering rules; WGSL generation is not implemented.
+
 Diagnostic lines and columns are one-based for display. Offsets are zero-based so editors can map ranges directly onto their text models.
+
+Include expansion is limited to 128 nested includes, 8,388,608 expanded characters, and 65,536 source segments per pass. Exceeding a limit produces a source-attributed `PreprocessorError`; partial output is discarded. The same limits apply to runtime and offline compilation.
 
 ## CLI
 

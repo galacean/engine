@@ -33,8 +33,7 @@ engine.run()
 
 Authoring diagnostics are provided separately by `@galacean/engine-shader-analyzer`; the runtime compiler does not include analyzer diagnostics.
 
-`Shader.create()` never needs a filesystem path. Include paths are resolved against logical keys registered through
-`ShaderFactory.registerInclude()`:
+`Shader.create()` never needs a filesystem path. Include paths are resolved against logical keys registered through `ShaderFactory.registerInclude()`:
 
 | Registered key | Current logical shader | `#include` | Result |
 | --- | --- | --- | --- |
@@ -43,8 +42,7 @@ Authoring diagnostics are provided separately by `@galacean/engine-shader-analyz
 | `Assets/Shaders/Math.glsl` | `Assets/Shaders/PBR.shader` | `"./Math.glsl"` | `Assets/Shaders/Math.glsl` |
 | `Assets/Shared/Math.glsl` | `Assets/Shaders/PBR.shader` | `"../Shared/Math.glsl"` | `Assets/Shared/Math.glsl` |
 
-The asset loader supplies the current logical shader location internally. Moving a shader folder remains valid when
-the shader asset and its registered include keys move together. Disk paths do not define the logical root.
+The asset loader supplies the current logical shader location internally. Moving a shader folder remains valid when the shader asset and its registered include keys move together. Disk paths do not define the logical root.
 
 ## Offline precompile
 
@@ -54,9 +52,9 @@ Compile a directory tree to `.shaderc` artifacts:
 shader-compiler-precompile Assets/Shaders build/shaders --clean --emit-index
 ```
 
-The input directory is the logical registry root. A shader at `PBR/Root.shader` resolves `./Common.glsl` to
-`PBR/Common.glsl`; `/Shared/Math.glsl` and `Shared/Math.glsl` both resolve to `Shared/Math.glsl` below the input root.
-Compilation failures exit non-zero and prevent Rollup builds using the plugin from succeeding.
+The input directory is the logical registry root. A shader at `PBR/Root.shader` resolves `./Common.glsl` to `PBR/Common.glsl`; `/Shared/Math.glsl` and `Shared/Math.glsl` both resolve to `Shared/Math.glsl` below the input root. Compilation failures exit non-zero and prevent Rollup builds using the plugin from succeeding.
+
+Inherited helper calls use forward declarations while overriding function bodies keep their original macro context. GLES can move ordinary struct signature dependencies ahead of those declarations. If this requires moving a type with conditional fields, macro-dependent array bounds, or across macro/precision changes, code generation reports `UnsupportedForwardDeclaration` with source context and rejects the pass. This is a GLES backend limitation; authoring analysis can still accept the source, and future backends can provide their own declaration ordering.
 
 ## CFG Grammar conflict detection
 

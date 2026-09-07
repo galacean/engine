@@ -83,20 +83,6 @@ function generateShaderProgram(
     Logger.error("A shader IO struct cannot serve multiple stage-interface roles.");
     return undefined;
   }
-  if (coreInfo.mrtOutputIssues.length || coreInfo.invalidMrtReturnLocations.length) {
-    Logger.error(
-      "MRT outputs require unique non-negative locations, vec4 members, and returns through an assigned struct variable."
-    );
-    return undefined;
-  }
-  if (coreInfo.invalidVaryingReturnLocations.length) {
-    Logger.error("Varying vertex entries must return a struct variable or same-type function result.");
-    return undefined;
-  }
-  if (coreInfo.structMemberOwnerIssues.length) {
-    Logger.error("A struct member reference cannot be lowered safely across runtime macro expansion.");
-    return undefined;
-  }
   const result = GLESBackend.generate(ir, coreInfo, backend);
   if (result) {
     result.vertexShaderInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);

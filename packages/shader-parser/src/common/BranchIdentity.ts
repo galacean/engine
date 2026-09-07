@@ -1,4 +1,10 @@
-import type { BranchCondition, BranchSignature, DeclarationCoexistence } from "./BaseToken";
+import type {
+  BranchCondition,
+  BranchConstraint,
+  BranchCoverage,
+  BranchSignature,
+  DeclarationCoexistence
+} from "./BaseToken";
 
 /**
  * Whether two signatures express the same macro conditions. Lexical group/arm identity is
@@ -26,15 +32,16 @@ export function sameBranch(a: BranchSignature, b: BranchSignature): boolean {
 }
 
 /**
- * Determines whether lexical conditional-chain identity alone proves a declaration active at a reference.
+ * Determines whether enclosing arms and known preprocessor truth prove a declaration active at a reference.
  * @param declaration - Branch signature at the declaration.
  * @param reference - Branch signature at the reference.
- * @returns Whether every declaration arm lexically encloses the reference.
+ * @returns Whether every declaration arm is certain or lexically encloses the reference.
  * @internal
  */
 export function isLexicalBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
   for (let i = 0; i < declaration.length; i++) {
     const declarationConstraint = declaration[i];
+    if (declarationConstraint.unconditionalArm === true) continue;
     const group = declarationConstraint.conditionalGroup;
     if (group === undefined) return false;
 
@@ -47,6 +54,82 @@ export function isLexicalBranchVisibleFrom(declaration: BranchSignature, referen
       break;
     }
     if (!matched) return false;
+  }
+  return true;
+}
+
+/**
+ * Determines whether an inherited declaration is fully replaced under the later declaration's guards.
+ * Simple guards from independent chains match only while their macro mutation versions agree.
+ * @param declaration - Guards on the narrower ShaderLab declaration.
+ * @param reference - Guards on the inherited declaration it may replace.
+ * @returns Whether the narrower declaration is present whenever the inherited declaration is present.
+ * @internal
+ */
+export function isInheritanceBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
+  return declaration.every(
+    (constraint) =>
+      constraint.unconditionalArm === true ||
+      reference.some(
+        (candidate) =>
+          (constraint.conditionalGroup !== undefined &&
+            constraint.conditionalGroup === candidate.conditionalGroup &&
+            constraint.conditionalArm === candidate.conditionalArm) ||
+          (constraint.guardVersion !== undefined &&
+            constraint.guardVersion === candidate.guardVersion &&
+            constraint.name === candidate.name &&
+            constraint.defined === candidate.defined)
+      )
+  );
+}
+
+/**
+ * Proves coverage using enclosing arms, known arm truth, and complete lexical conditional chains.
+ * Macro names and expressions do not establish relationships between independent groups.
+ * @param candidates - Branches containing matching declarations or members.
+ * @param reference - Branch containing their use.
+ * @returns Proven lexical coverage, or unknown when the available facts cannot establish it.
+ * @internal
+ */
+export function getLexicalBranchCoverage(
+  candidates: readonly BranchSignature[],
+  reference: BranchSignature
+): BranchCoverage {
+  return coverLexicalArms(candidates, reference, { remaining: 256 }) ? "covered" : "unknown";
+}
+
+function coverLexicalArms(
+  candidates: readonly BranchSignature[],
+  reference: BranchSignature,
+  budget: { remaining: number }
+): boolean {
+  if (candidates.some((candidate) => isLexicalBranchVisibleFrom(candidate, reference))) return true;
+  // Independent complete groups can form a product; exhaustion must not invent coverage
+  if (--budget.remaining < 0) return false;
+  const compatible = candidates.filter(
+    (candidate) => getLexicalDeclarationCoexistence(candidate, reference) !== "exclusive"
+  );
+  let completeArm: BranchConstraint | undefined;
+  for (const candidate of compatible) {
+    completeArm = candidate.find(
+      (arm) => arm.conditionalComplete && arm.conditionalGroup !== undefined && arm.conditionalArmCount
+    );
+    if (completeArm) break;
+  }
+  if (!completeArm) return false;
+
+  const group = completeArm.conditionalGroup;
+  const referenceArm = reference.find((arm) => arm.conditionalGroup === group)?.conditionalArm;
+  const remainingReference = reference.filter((arm) => arm.conditionalGroup !== group);
+  for (let arm = 0; arm < completeArm.conditionalArmCount!; arm++) {
+    if (referenceArm !== undefined && arm !== referenceArm) continue;
+    if (completeArm.conditionalReachableArms?.[arm] === false) continue;
+    const armCandidates = compatible
+      .filter((candidate) =>
+        candidate.every((constraint) => constraint.conditionalGroup !== group || constraint.conditionalArm === arm)
+      )
+      .map((candidate) => candidate.filter((constraint) => constraint.conditionalGroup !== group));
+    if (!coverLexicalArms(armCandidates, remainingReference, budget)) return false;
   }
   return true;
 }

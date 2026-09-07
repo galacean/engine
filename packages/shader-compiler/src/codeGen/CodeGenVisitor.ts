@@ -63,7 +63,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       if (prop instanceof BaseToken) {
         // Direct variables use parser symbol identity so lexical shadowing cannot inherit an IO role
         // from a same-named declaration. Macro-expanded identifiers can lack a resolved symbol, so
-        // only that zero-symbol path falls back to the expression's unambiguous struct type.
+        // only that zero-symbol path consults the current stage's unambiguous name-to-role map.
         let role: ShaderStructRole | undefined;
         const directRoot = ParserUtils.unwrapBareIdentifier(postExpr, { allowParens: true });
         if (directRoot) {
@@ -100,19 +100,32 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     for (const name of node.referenceGlobalSymbolNames) {
       this.context.referenceGlobal(name, ESymbolType.Any);
     }
+    for (const symbol of node.resolvedSymbols()) {
+      if (symbol instanceof FnSymbol) this.referenceFunction(symbol, node.location.start.index);
+    }
 
     return node.getLexeme(this);
+  }
+
+  protected referenceFunction(symbol: FnSymbol, referenceIndex: number): void {
+    void referenceIndex;
+    this.context.referenceGlobal(symbol.ident, ESymbolType.FN);
   }
 
   visitFunctionCall(node: ASTNode.FunctionCall): string {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol instanceof FnSymbol) {
-      this.context.referenceGlobal(call.fnSymbol.ident, ESymbolType.FN);
+      for (const symbol of call.fnSymbols?.length ? call.fnSymbols : [call.fnSymbol]) {
+        this.referenceFunction(symbol, node.location.start.index);
+      }
 
       const paramList = call.children[2];
       if (paramList instanceof ASTNode.FunctionCallParameterList) {
         const astNodes = paramList.paramNodes;
-        const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
+        const finalSymbol = this.context._referencedGlobals[call.fnSymbol.ident].find(
+          (candidate) => candidate instanceof FnSymbol && candidate.equal(call.fnSymbol)
+        ) as FnSymbol | undefined;
+        const paramInfoList = (finalSymbol ?? call.fnSymbol).astNode.protoType.parameterList;
 
         const context = this.context;
         const params = astNodes.filter((_, i) => {

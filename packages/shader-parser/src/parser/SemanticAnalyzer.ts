@@ -1,5 +1,6 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
 import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
+import { getLexicalDeclarationCoexistence } from "../common/BranchIdentity";
 import type { BranchSemantics } from "../common/BranchSemantics";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
@@ -11,7 +12,7 @@ import { NodeChild } from "./types";
 
 import { MacroDefineList } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import type { ShaderSourceMapSegment } from "../ir";
+import type { ShaderSourceScope } from "../ir";
 
 export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
@@ -52,7 +53,7 @@ export default class SemanticAnalyzer {
   } = { localVariables: [], calledFunctions: [] };
   private _shaderData = new ShaderData();
   private _translationRules: readonly (TranslationRule | undefined)[] = [];
-  private _sourceMap: readonly ShaderSourceMapSegment[] = [];
+  private _sourceScopes: readonly ShaderSourceScope[] = [];
 
   private _macroDefineList: MacroDefineList;
 
@@ -119,12 +120,12 @@ export default class SemanticAnalyzer {
   }
 
   /**
-   * Replaces the generated-source provenance for the next semantic-analysis request.
-   * @param sourceMap - Ordered source segments carrying ShaderLab inheritance scopes.
+   * Replaces the inheritance ranges for the next semantic-analysis request.
+   * @param sourceScopes - Ordered expanded source ranges carrying ShaderLab inheritance scopes.
    * @internal
    */
-  setSourceMap(sourceMap: readonly ShaderSourceMapSegment[]): void {
-    this._sourceMap = sourceMap;
+  setSourceScopes(sourceScopes: readonly ShaderSourceScope[]): void {
+    this._sourceScopes = sourceScopes;
   }
 
   /**
@@ -136,7 +137,7 @@ export default class SemanticAnalyzer {
    */
   assignSourceScope<T extends SymbolInfo>(symbol: T, location: ShaderRange): T {
     const offset = location.start.index;
-    const segments = this._sourceMap;
+    const segments = this._sourceScopes;
     let low = 0;
     let high = segments.length - 1;
     while (low <= high) {
@@ -250,7 +251,10 @@ export default class SemanticAnalyzer {
 
   /** @internal */
   canBranchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
-    return this.branchSemantics?.canBranchesOverlap(left, right) ?? true;
+    return (
+      this.branchSemantics?.canBranchesOverlap(left, right) ??
+      getLexicalDeclarationCoexistence(left, right) !== "exclusive"
+    );
   }
 
   /** @internal */

@@ -1,19 +1,10 @@
 import type { ShaderCoreInfo } from "../ir/ShaderCoreInfo";
 import type { ParsedShaderPassData } from "./ParsedShaderPass";
+import type { ParsedShaderPass } from "../ParsedShaderPass";
+
+export type { ParsedShaderPass } from "../ParsedShaderPass";
 
 const parsedShaderPassPayloads = new WeakMap<ParsedShaderPass, ParsedShaderPassPayload>();
-
-declare const parsedShaderPassBrand: unique symbol;
-
-/**
- * Opaque, immutable handle for one parsed ShaderLab pass.
- *
- * `ShaderAnalyzer.analyze()` creates these handles and `ShaderCompiler.generate()` consumes them, allowing diagnostics
- * and backend generation to share the same parse without exposing parser AST or IR internals.
- */
-export interface ParsedShaderPass {
-  readonly [parsedShaderPassBrand]: never;
-}
 
 /** @internal */
 export interface ParsedShaderPassPayload {

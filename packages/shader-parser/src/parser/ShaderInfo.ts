@@ -40,9 +40,6 @@ export interface ReferenceResolutionSnapshot {
 export class ShaderData {
   symbolTable: SymbolTable<SymbolInfo>;
 
-  vertexMain: ASTNode.FunctionDefinition;
-  fragmentMain: ASTNode.FunctionDefinition;
-
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];

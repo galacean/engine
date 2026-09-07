@@ -133,7 +133,6 @@ function shaderPositionAt(source: string, offset: number): ShaderPosition {
  * @internal
  */
 export interface ShaderPassLexer {
-  readonly expressionErrors: readonly GSError[];
   readonly preprocessorExpressions: ReadonlyMap<string, PreprocessorExpressionParseResult>;
   tokenize(): Generator<BaseToken, BaseToken>;
 }
@@ -161,7 +160,8 @@ export function parseShaderPassWith(
   createLexer: (
     expandedSource: string,
     macroDefineList: MacroDefineList,
-    objectPool?: ParserObjectPool
+    objectPool?: ParserObjectPool,
+    conditionalArmTruth?: ReadonlyMap<number, boolean>
   ) => ShaderPassLexer,
   createParser: (expandedSource: string, objectPool?: ParserObjectPool) => ShaderTargetParser,
   sourceFile?: string,
@@ -174,7 +174,8 @@ export function parseShaderPassWith(
   const {
     content: expandedSource,
     errors: preprocessErrors,
-    sourceMap
+    sourceMap,
+    conditionalArmTruth
   } = Preprocessor.parseWithErrors(
     source,
     basePathForIncludeKey,
@@ -197,33 +198,22 @@ export function parseShaderPassWith(
       blockingErrors: errors
     });
   }
-  const lexer = createLexer(expandedSource, macroDefineList, objectPool);
+  const lexer = createLexer(expandedSource, macroDefineList, objectPool, conditionalArmTruth);
   const tokens = lexer.tokenize();
   const parser = createParser(expandedSource, objectPool);
-  parser.setSourceMap(frozenSourceMap);
+  parser.setSourceScopes(frozenSourceMap);
   const program = parser.parse(tokens, macroDefineList);
   const mappedParserErrors = parser.errors.map((error) =>
     mapExpandedShaderError(error, expandedSource, frozenSourceMap)
   );
-  const mappedExpressionErrors = lexer.expressionErrors.map((error) =>
-    mapExpandedShaderError(error, expandedSource, frozenSourceMap)
-  );
-  const errors =
-    preprocessErrors.length || mappedExpressionErrors.length || mappedParserErrors.length
-      ? Object.freeze([...preprocessErrors, ...mappedExpressionErrors, ...mappedParserErrors])
-      : EMPTY_ERRORS;
+  const errors = mappedParserErrors.length ? Object.freeze(mappedParserErrors) : EMPTY_ERRORS;
   const parserBlockingErrors = parser.semanticErrorsBlockCodegen ? parser.errors : parser.blockingErrors;
-  let blockingErrors = EMPTY_ERRORS;
-  if (preprocessErrors.length || mappedExpressionErrors.length || parserBlockingErrors.length) {
-    if (parser.errors.length === parserBlockingErrors.length) {
-      blockingErrors = errors;
-    } else {
-      const mappedParserBlockingErrors = parserBlockingErrors.map((error) =>
-        mapExpandedShaderError(error, expandedSource, frozenSourceMap)
-      );
-      blockingErrors = Object.freeze([...preprocessErrors, ...mappedExpressionErrors, ...mappedParserBlockingErrors]);
-    }
-  }
+  const blockingErrors =
+    parser.errors.length === parserBlockingErrors.length
+      ? errors
+      : Object.freeze(
+          parserBlockingErrors.map((error) => mapExpandedShaderError(error, expandedSource, frozenSourceMap))
+        );
   const ir = program ? Object.freeze(new ShaderClueIR(program, expandedSource, frozenSourceMap)) : null;
   if (ir) {
     const semanticIssues = ParserSemanticValidation.collect(ir.program);

@@ -44,6 +44,7 @@ export class AnalyzerLexer extends Lexer {
   private _macroVersions: Record<string, number> = Object.create(null);
   private _pendingGuardUndef = false;
   private _pendingOpaqueConditional: "push" | "advance" | null = null;
+  private _pendingArmTruth: boolean | undefined;
 
   override *tokenize() {
     while (!this.isEnd()) {
@@ -57,21 +58,24 @@ export class AnalyzerLexer extends Lexer {
       if (this._pendingBranchPushDefined !== null && isMacroName) {
         const conditionalGroup = ++this._conditionalGroup;
         const guardUndefBranches = this._guardUndefBranches[tok.lexeme] ?? (this._guardUndefBranches[tok.lexeme] = []);
-        this._openConditional({
-          name: tok.lexeme,
-          defined: this._pendingBranchPushDefined,
-          conditionalGroup,
-          conditionalArm: 0,
-          condition: {
-            kind: "defined",
+        this._openConditional(
+          {
             name: tok.lexeme,
             defined: this._pendingBranchPushDefined,
-            version: this._macroVersion(tok.lexeme)
+            conditionalGroup,
+            conditionalArm: 0,
+            condition: {
+              kind: "defined",
+              name: tok.lexeme,
+              defined: this._pendingBranchPushDefined,
+              version: this._macroVersion(tok.lexeme)
+            },
+            guardUndefBranches: this._pendingBranchPushDefined ? undefined : guardUndefBranches,
+            guardUndefStart: this._pendingBranchPushDefined ? undefined : guardUndefBranches.length,
+            selfGuarding: false
           },
-          guardUndefBranches: this._pendingBranchPushDefined ? undefined : guardUndefBranches,
-          guardUndefStart: this._pendingBranchPushDefined ? undefined : guardUndefBranches.length,
-          selfGuarding: false
-        });
+          this._pendingArmTruth
+        );
         this._pendingBranchPushDefined = null;
       }
       if (this._pendingGuardUndef && isMacroName) {
@@ -81,8 +85,8 @@ export class AnalyzerLexer extends Lexer {
       }
       if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
         const condition = this._parseSimpleCondition(tok.lexeme);
-        if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition);
-        else this._advanceOpaqueConditionalArm(condition);
+        if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition, this._pendingArmTruth);
+        else this._advanceOpaqueConditionalArm(condition, this._pendingArmTruth);
         this._pendingOpaqueConditional = null;
       }
 
@@ -97,19 +101,23 @@ export class AnalyzerLexer extends Lexer {
       // expression still consumes exactly one stack slot for its matching `#endif`.
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
+          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingBranchPushDefined = true;
           break;
         case Keyword.MACRO_IFNDEF:
+          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
+          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingOpaqueConditional = "push";
           break;
         case Keyword.MACRO_ELIF:
+          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
           this._pendingOpaqueConditional = "advance";
           break;
         case Keyword.MACRO_ELSE: {
-          this._advanceElseArm();
+          this._advanceElseArm(this._conditionalArmTruth?.get(tok.location.start.index));
           break;
         }
         case Keyword.MACRO_UNDEF:
@@ -125,18 +133,21 @@ export class AnalyzerLexer extends Lexer {
     return this._createEOFToken();
   }
 
-  private _pushOpaqueConditional(condition?: BranchCondition): void {
+  private _pushOpaqueConditional(condition?: BranchCondition, armTruth?: boolean): void {
     const conditionalGroup = ++this._conditionalGroup;
-    this._openConditional({
-      name: `__if_${conditionalGroup}_0`,
-      defined: true,
-      conditionalGroup,
-      conditionalArm: 0,
-      condition
-    });
+    this._openConditional(
+      {
+        name: `__if_${conditionalGroup}_0`,
+        defined: true,
+        conditionalGroup,
+        conditionalArm: 0,
+        condition
+      },
+      armTruth
+    );
   }
 
-  private _advanceOpaqueConditionalArm(condition?: BranchCondition): void {
+  private _advanceOpaqueConditionalArm(condition?: BranchCondition, armTruth?: boolean): void {
     const frame = this._conditionalFrames[this._conditionalFrames.length - 1];
     const index = this._branchStack.length - 1;
     const top = this._branchStack[index];
@@ -144,11 +155,14 @@ export class AnalyzerLexer extends Lexer {
     this._finishCurrentArm(frame);
     this._macroStates = AnalyzerLexer._cloneMacroStates(frame.entryState);
     const conditionalArm = (top.conditionalArm ?? 0) + 1;
-    const precedingConditions = frame.priorConditions.slice();
+    const precedingConditions = armTruth === undefined ? frame.priorConditions.slice() : undefined;
     const resolved = this._resolveCondition(condition);
-    const armCondition: BranchCondition | undefined = frame.definitelyMatched
-      ? { kind: "constant", value: false }
-      : resolved;
+    const armCondition: BranchCondition | undefined =
+      armTruth !== undefined
+        ? { kind: "constant", value: armTruth }
+        : frame.definitelyMatched
+          ? { kind: "constant", value: false }
+          : resolved;
     if (armCondition?.kind === "constant" && armCondition.value) frame.definitelyMatched = true;
     const nextConstraint: BranchConstraint = {
       name: `__if_${top.conditionalGroup}_${conditionalArm}`,
@@ -160,11 +174,18 @@ export class AnalyzerLexer extends Lexer {
     };
     this._branchStack[index] = nextConstraint;
     frame.constraints.push(nextConstraint);
-    if (resolved) frame.priorConditions.push(AnalyzerLexer._negateSimpleCondition(resolved)!);
-    this._assumeCondition(armCondition);
+    // These facts describe the complete arm, including its preceding alternatives.
+    // A dead arm cannot reduce the remaining configurations; a certain arm exhausts them.
+    if (armTruth === true) {
+      frame.priorConditions.length = 0;
+      frame.priorConditions.push({ kind: "constant", value: false });
+    } else if (armTruth !== false && resolved) {
+      frame.priorConditions.push(AnalyzerLexer._negateSimpleCondition(resolved)!);
+    }
+    this._assumeCondition(armTruth === undefined ? armCondition : resolved);
   }
 
-  private _advanceElseArm(): void {
+  private _advanceElseArm(armTruth?: boolean): void {
     const frame = this._conditionalFrames[this._conditionalFrames.length - 1];
     const index = this._branchStack.length - 1;
     const top = this._branchStack[index];
@@ -172,10 +193,13 @@ export class AnalyzerLexer extends Lexer {
     this._finishCurrentArm(frame);
     this._macroStates = AnalyzerLexer._cloneMacroStates(frame.entryState);
     const conditionalArm = (top.conditionalArm ?? 0) + 1;
-    const precedingConditions = frame.priorConditions.slice();
-    const condition: BranchCondition | undefined = frame.definitelyMatched
-      ? { kind: "constant", value: false }
-      : undefined;
+    const precedingConditions = armTruth === undefined ? frame.priorConditions.slice() : undefined;
+    const condition: BranchCondition | undefined =
+      armTruth !== undefined
+        ? { kind: "constant", value: armTruth }
+        : frame.definitelyMatched
+          ? { kind: "constant", value: false }
+          : undefined;
     for (let i = 0, n = frame.constraints.length; i < n; i++) frame.constraints[i].conditionalComplete = true;
     const nextConstraint: BranchConstraint = {
       name: `__if_${top.conditionalGroup}_${conditionalArm}`,
@@ -192,16 +216,18 @@ export class AnalyzerLexer extends Lexer {
     frame.definitelyMatched = true;
   }
 
-  private _openConditional(constraint: BranchConstraint): void {
+  private _openConditional(constraint: BranchConstraint, armTruth?: boolean): void {
     const resolved = this._resolveCondition(constraint.condition);
-    const activeConstraint: BranchConstraint = { ...constraint, condition: resolved };
+    const condition: BranchCondition | undefined =
+      armTruth === undefined ? resolved : { kind: "constant", value: armTruth };
+    const activeConstraint: BranchConstraint = { ...constraint, condition };
     const frame: ConditionalFrame = {
       entryState: AnalyzerLexer._cloneMacroStates(this._macroStates),
       armStates: [],
       constraints: [activeConstraint],
-      priorConditions: resolved ? [AnalyzerLexer._negateSimpleCondition(resolved)!] : [],
+      priorConditions: condition ? [AnalyzerLexer._negateSimpleCondition(condition)!] : [],
       hasElse: false,
-      definitelyMatched: resolved?.kind === "constant" && resolved.value,
+      definitelyMatched: condition?.kind === "constant" && condition.value,
       mutatedNames: new Set(),
       guardName: constraint.guardUndefBranches ? constraint.name : undefined,
       guardDefined: constraint.guardUndefBranches ? constraint.defined : undefined,

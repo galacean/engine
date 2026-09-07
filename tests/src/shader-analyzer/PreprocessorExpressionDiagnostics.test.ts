@@ -60,6 +60,15 @@ describe("preprocessor expression diagnostics", () => {
     ).to.be.empty;
   });
 
+  it("keeps the original invalid token range when a source-defined operator is resolved", () => {
+    const source = shader("123 defined(A)").replace("#if 123", "#define A 1\n      #if 123");
+    const diagnostic = ShaderAnalyzer.analyze(source).diagnostics.find(
+      (candidate) => candidate.code === "PreprocessorError"
+    );
+    expect(diagnostic).to.be.ok;
+    expect(source.slice(diagnostic!.range.start.offset, diagnostic!.range.end.offset)).to.equal("defined");
+  });
+
   it("does not reject a function-like macro invocation before expansion", () => {
     const source = shader("IS_SET(A)").replace(
       "#if IS_SET(A)",

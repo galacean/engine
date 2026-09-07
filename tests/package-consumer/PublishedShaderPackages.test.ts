@@ -128,6 +128,81 @@ new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
     expect(typecheck.status, typecheck.stderr || typecheck.stdout).toBe(0);
   });
 
+  it("typechecks an analyzer-only consumer without DOM libraries or skipLibCheck", () => {
+    const sourceFile = join(consumerDirectory, "node-analyzer.ts");
+    writeFileSync(
+      sourceFile,
+      `import { ShaderAnalyzer, type ParsedShaderPass } from "@galacean/engine-shader-analyzer";
+const result = ShaderAnalyzer.analyze(${JSON.stringify(shaderSource(undefined, "1.0"))});
+const pass: ParsedShaderPass = result.passes[0];
+void pass;
+`
+    );
+    const typecheck = spawnSync(
+      join(repositoryRoot, "node_modules", ".bin", "tsc"),
+      [
+        "--noEmit",
+        "--strict",
+        "--lib",
+        "ES2022",
+        "--target",
+        "ES2022",
+        "--module",
+        "Node16",
+        "--moduleResolution",
+        "Node16",
+        sourceFile
+      ],
+      { cwd: consumerDirectory, encoding: "utf8" }
+    );
+    expect(typecheck.status, typecheck.stderr || typecheck.stdout).toBe(0);
+  });
+
+  it.each(["root", "include"])("terminates diagnostics for an unterminated string in %s source", (kind) => {
+    const valid = shaderSource(undefined, "1.0");
+    const invalid = kind === "root" ? valid.replace("vec4(1.0)", '"unterminated') : shaderSource("bad.glsl", "1.0");
+    const probe = spawnSync(
+      process.execPath,
+      [
+        "--eval",
+        `
+      const { ShaderAnalyzer } = require("@galacean/engine-shader-analyzer");
+      const result = ShaderAnalyzer.analyze(${JSON.stringify(invalid)}, {
+        sourceFile: "root.shader", includeMap: { "bad.glsl": 'float value = "unterminated;' }
+      });
+      process.stdout.write(JSON.stringify(result.diagnostics));
+    `
+      ],
+      { cwd: consumerDirectory, encoding: "utf8", timeout: 10_000 }
+    );
+    expect(probe.error).toBeUndefined();
+    expect(probe.status, probe.stderr).toBe(0);
+    const diagnostics = JSON.parse(probe.stdout);
+    expect(diagnostics).toContainEqual(
+      expect.objectContaining({
+        message: "Unterminated string literal.",
+        sourceFile: kind === "root" ? "root.shader" : "bad.glsl"
+      })
+    );
+    const error = diagnostics.find((diagnostic) => diagnostic.message === "Unterminated string literal.");
+    expect(error.relatedSource.slice(error.range.start.offset, error.range.end.offset)).toBe('"');
+  });
+
+  it.each(["Fx#1", "Fx?1", "Fx%1"])("resolves relative includes beneath disk path %s", (folder) => {
+    const root = join(consumerDirectory, "Encoded Paths");
+    const directory = join(root, folder);
+    mkdirSync(directory, { recursive: true });
+    writeFileSync(join(directory, "value.glsl"), "float includedValue() { return 1.0; }");
+    const sourceFile = join(directory, "Root.shader");
+    writeFileSync(sourceFile, shaderSource("./value.glsl", "includedValue()"));
+    const result = spawnSync(installedBinary(), ["--json", "--include-root", root, sourceFile], {
+      cwd: consumerDirectory,
+      encoding: "utf8"
+    });
+    expect(result.status, result.stderr || result.stdout).toBe(0);
+    expect(JSON.parse(result.stdout).diagnostics).toEqual([]);
+  });
+
   it("publishes the offline precompiler without adding it to the runtime entry", () => {
     for (const mode of ["require", "import"] as const) {
       const imports =

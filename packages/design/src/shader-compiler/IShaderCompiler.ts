@@ -29,6 +29,7 @@ export interface IShaderCompiler {
    * @param fragmentEntry - Fragment entry function name.
    * @param backend - Backend-specific shader target.
    * @param sourceFile - Canonical root source location used to resolve relative `#include` directives.
+   * @param sourceScopeStarts - Inherited ShaderLab content boundaries from source parsing.
    * @returns Generated stage program, or `undefined` after a blocking parser or backend error.
    */
   _parseShaderPass(
@@ -36,6 +37,7 @@ export interface IShaderCompiler {
     vertexEntry: string,
     fragmentEntry: string,
     backend: any,
-    sourceFile?: string
+    sourceFile?: string,
+    sourceScopeStarts?: readonly number[]
   ): IShaderProgramSource | undefined;
 }

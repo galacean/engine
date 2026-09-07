@@ -21,6 +21,8 @@ type MacroStateMap = Record<string, MacroState>;
 interface ConditionalFrame {
   readonly parentReachable: boolean;
   remainderReachable: boolean;
+  /** Truth of reaching the next arm relative to the parent, before its condition. */
+  remainderValue: boolean | undefined;
   hasElse: boolean;
   readonly entryState: MacroStateMap;
   remainderState: MacroStateMap;
@@ -57,6 +59,8 @@ export interface CachedPreprocessorMacroState {
 export interface PreprocessorDirectiveResult {
   /** Whether the directive remains reachable in at least one macro configuration. */
   readonly keep: boolean;
+  /** Truth of the entire conditional arm relative to its enclosing parent. */
+  readonly armValue?: boolean;
   /** Deterministic expression failure, when present. */
   readonly error?: string;
   /** Start offset of the failure relative to the trimmed directive expression. */
@@ -94,6 +98,7 @@ export class PreprocessorMacroState {
         const condition = this.reachable ? this._evaluate(body) : { value: undefined };
         return {
           keep: this._openConditional(condition),
+          armValue: condition.value,
           error: condition.error,
           errorStart: condition.errorStart,
           errorEnd: condition.errorEnd
@@ -101,16 +106,16 @@ export class PreprocessorMacroState {
       }
       case "ifdef": {
         const condition = this._definedCondition(body, true);
-        return { keep: this._openConditional(condition), error: condition.error };
+        return { keep: this._openConditional(condition), armValue: condition.value, error: condition.error };
       }
       case "ifndef": {
         const condition = this._definedCondition(body, false);
-        return { keep: this._openConditional(condition), error: condition.error };
+        return { keep: this._openConditional(condition), armValue: condition.value, error: condition.error };
       }
       case "elif":
         return this._advanceConditional(body);
       case "else":
-        return { keep: this._advanceElse() };
+        return this._advanceElse();
       case "endif":
         return { keep: this._closeConditional() };
       case "define": {
@@ -176,6 +181,7 @@ export class PreprocessorMacroState {
     this._frames.push({
       parentReachable,
       remainderReachable: parentReachable && condition.value !== true,
+      remainderValue: condition.value === undefined ? undefined : !condition.value,
       hasElse: false,
       entryState,
       remainderState,
@@ -202,6 +208,11 @@ export class PreprocessorMacroState {
       return { keep: false };
     }
     const condition = this._evaluate(body);
+    const armValue = PreprocessorMacroState._and(frame.remainderValue, condition.value);
+    frame.remainderValue = PreprocessorMacroState._and(
+      frame.remainderValue,
+      condition.value === undefined ? undefined : !condition.value
+    );
     frame.remainderState = PreprocessorMacroState._cloneStates(this._states);
     if (condition.value === undefined) {
       this._applyAssumption(this._states, condition.trueAssumption);
@@ -211,22 +222,25 @@ export class PreprocessorMacroState {
     if (condition.value === true) frame.remainderReachable = false;
     return {
       keep: true,
+      armValue,
       error: condition.error,
       errorStart: condition.errorStart,
       errorEnd: condition.errorEnd
     };
   }
 
-  private _advanceElse(): boolean {
+  private _advanceElse(): PreprocessorDirectiveResult {
     const frame = this._frames[this._frames.length - 1];
-    if (!frame) return this.reachable;
+    if (!frame) return { keep: this.reachable };
     this._finishCurrentArm(frame);
     this._states = PreprocessorMacroState._cloneStates(frame.remainderState);
     const keep = !frame.hasElse && frame.remainderReachable;
+    const armValue = frame.hasElse ? false : frame.remainderValue;
     this.reachable = keep;
     frame.remainderReachable = false;
+    frame.remainderValue = false;
     frame.hasElse = true;
-    return keep;
+    return { keep, armValue };
   }
 
   private _closeConditional(): boolean {
@@ -315,14 +329,6 @@ export class PreprocessorMacroState {
   private _evaluate(expression: string): ConditionResult {
     const trimmedExpression = expression.trim();
     const unexpanded = parsePreprocessorExpression(trimmedExpression);
-    if ("error" in unexpanded && unexpanded.error.certain) {
-      return {
-        value: undefined,
-        error: unexpanded.error.message,
-        errorStart: unexpanded.error.start,
-        errorEnd: unexpanded.error.end
-      };
-    }
 
     const withDefinedValues = resolvePreprocessorDefinedOperators(
       trimmedExpression,
@@ -340,6 +346,14 @@ export class PreprocessorMacroState {
     const expandedExpression = expansion.expression;
     const parsed = parsePreprocessorExpression(expandedExpression);
     if ("error" in parsed) {
+      if ("error" in unexpanded && unexpanded.error.certain) {
+        return {
+          value: undefined,
+          error: unexpanded.error.message,
+          errorStart: unexpanded.error.start,
+          errorEnd: unexpanded.error.end
+        };
+      }
       const error =
         parsed.error.certain || !parsed.hasExpandableIdentifier
           ? expandedExpression === withDefinedValues
@@ -436,6 +450,10 @@ export class PreprocessorMacroState {
 
   private static _sameState(left: MacroState, right: MacroState): boolean {
     return left.defined === right.defined && left.replacementKey === right.replacementKey;
+  }
+
+  private static _and(left: boolean | undefined, right: boolean | undefined): boolean | undefined {
+    return left === false || right === false ? false : left === true && right === true ? true : undefined;
   }
 
   private static _conditionAssumptions(

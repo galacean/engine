@@ -39,3 +39,5 @@ export * from "./ParserUtils";
 export * from "./GSError";
 export * from "./formatDiagnostic";
 export * from "./ShaderCompilerUtils";
+
+export * from "./backends/GLESShaderInfo";

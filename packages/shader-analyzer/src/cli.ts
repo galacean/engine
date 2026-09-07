@@ -162,5 +162,5 @@ function sourceFilePath(file: string, includeRoot: string): string {
 }
 
 function toIncludeKey(path: string): string {
-  return sep === "/" ? path : path.split(sep).join("/");
+  return path.split(sep).map(encodeURIComponent).join("/");
 }

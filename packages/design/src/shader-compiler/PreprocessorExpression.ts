@@ -34,7 +34,7 @@ export interface InvalidPreprocessorExpression {
   readonly ok: false;
   /** Structured parse failure. */
   readonly error: PreprocessorExpressionParseError;
-  /** Whether a preceding identifier may expand into missing syntax. */
+  /** Whether an identifier may expand into missing syntax. */
   readonly hasExpandableIdentifier: boolean;
 }
 
@@ -93,7 +93,7 @@ export interface PartiallyKnownPreprocessorExpressionResult {
 }
 
 /**
- * One object-like or function-like macro used by preprocessor-expression expansion.
+ * One object-like or function-like shader macro.
  */
 export interface PreprocessorExpressionMacro {
   /** Replacement-list source before parameter substitution. */
@@ -112,7 +112,15 @@ export interface PreprocessorExpressionExpansionResult {
   readonly error?: string;
 }
 
-type TokenKind = "identifier" | "number" | "operator" | "end" | "invalid";
+/** Result of shader source macro expansion. */
+export interface ShaderMacroExpansionResult {
+  /** Expanded source with preprocessing token boundaries and comments preserved. */
+  readonly source: string;
+  /** Deterministic expansion failure. */
+  readonly error?: string;
+}
+
+type TokenKind = "identifier" | "number" | "operator" | "end" | "invalid" | "trivia";
 
 interface Token {
   kind: TokenKind;
@@ -143,6 +151,7 @@ const binaryPrecedence: Readonly<Record<string, number>> = {
 };
 const MAX_EXPRESSION_NESTING = 256;
 const MAX_MACRO_EXPANSION_DEPTH = 256;
+const MAX_MACRO_EXPANSION_TOKENS = 65536;
 
 /**
  * Parses the complete integer-expression grammar used by `#if` and `#elif`.
@@ -205,111 +214,311 @@ export function expandPreprocessorExpressionMacros(
   expression: string,
   resolveMacro: (name: string) => PreprocessorExpressionMacro | undefined
 ): PreprocessorExpressionExpansionResult {
-  return expandExpressionTokens(expression, resolveMacro, new Set(), 0);
+  const expanded = expandMacroTokens(tokenize(expression).slice(0, -1), resolveMacro, tokenize, true, 0, {
+    remaining: MAX_MACRO_EXPANSION_TOKENS
+  });
+  return typeof expanded === "string"
+    ? { expression: "", error: expanded }
+    : { expression: expanded.map((token) => token.text).join(" ") };
 }
 
-function expandExpressionTokens(
-  expression: string,
+/**
+ * Expands shader macros using the same argument prescan and rescan rules as conditional expressions.
+ * @param source - Shader text without macro definition or conditional directives.
+ * @param resolveMacro - Resolves the macro state active at this source location.
+ * @returns Expanded shader source, or a deterministic expansion-limit error.
+ */
+export function expandShaderMacros(
+  source: string,
+  resolveMacro: (name: string) => PreprocessorExpressionMacro | undefined
+): ShaderMacroExpansionResult {
+  const expanded = expandMacroTokens(
+    tokenizeShader(source).slice(0, -1),
+    resolveMacro,
+    tokenizeShaderReplacement,
+    false,
+    0,
+    { remaining: MAX_MACRO_EXPANSION_TOKENS }
+  );
+  return typeof expanded === "string" ? { source: "", error: expanded } : { source: serializeShaderTokens(expanded) };
+}
+
+interface ExpansionToken extends Token {
+  readonly disabledMacros?: ReadonlySet<string>;
+  readonly expansionDepth?: number;
+}
+
+function expandMacroTokens(
+  input: readonly ExpansionToken[],
   resolveMacro: (name: string) => PreprocessorExpressionMacro | undefined,
-  expanding: Set<string>,
-  depth: number
-): PreprocessorExpressionExpansionResult {
-  if (depth > MAX_MACRO_EXPANSION_DEPTH) {
-    return {
-      expression: "",
-      error: `Preprocessor macro expansion exceeds ${MAX_MACRO_EXPANSION_DEPTH} nested replacements.`
-    };
-  }
-
-  const tokens = tokenize(expression);
-  const parts: string[] = [];
-  for (let index = 0; index < tokens.length - 1; index++) {
+  tokenizeReplacement: (source: string) => Token[],
+  protectDefined: boolean,
+  depth: number,
+  budget: { remaining: number }
+): ExpansionToken[] | string {
+  const tokens = input.slice();
+  const output: ExpansionToken[] = [];
+  let index = 0;
+  while (index < tokens.length) {
     const token = tokens[index];
-    if (token.kind !== "identifier" || expanding.has(token.text)) {
-      parts.push(token.text);
+    if (protectDefined && token.text === "defined") {
+      output.push(token);
+      index++;
+      const count = tokens[index]?.text === "(" ? 3 : 1;
+      for (let i = 0; i < count && index < tokens.length; i++) output.push(tokens[index++]);
+      continue;
+    }
+    const macro =
+      token.kind === "identifier" && !token.disabledMacros?.has(token.text) ? resolveMacro(token.text) : undefined;
+    let openParen = index + 1;
+    if (macro?.parameters) {
+      while (tokens[openParen]?.kind === "trivia") openParen++;
+    }
+    if (!macro || (macro.parameters && tokens[openParen]?.text !== "(")) {
+      output.push(token);
+      index++;
       continue;
     }
 
-    if (token.text === "defined") {
-      parts.push(token.text);
-      const next = tokens[index + 1];
-      if (next?.text === "(") {
-        parts.push(next.text);
-        if (tokens[index + 2]) parts.push(tokens[index + 2].text);
-        if (tokens[index + 3]?.text === ")") parts.push(")");
-        index += tokens[index + 3]?.text === ")" ? 3 : 2;
-      } else if (next) {
-        parts.push(next.text);
-        index++;
-      }
-      continue;
+    const expansionDepth = Math.max(depth, token.expansionDepth ?? 0) + 1;
+    if (expansionDepth > MAX_MACRO_EXPANSION_DEPTH) {
+      return `Preprocessor macro expansion exceeds ${MAX_MACRO_EXPANSION_DEPTH} nested replacements.`;
     }
-
-    const macro = resolveMacro(token.text);
-    if (!macro) {
-      parts.push(token.text);
-      continue;
-    }
-
-    let body = macro.body;
     let invocationEnd = index;
+    let args: readonly ExpansionToken[][] = [];
+    const disabledMacros = new Set(token.disabledMacros);
     if (macro.parameters) {
-      if (tokens[index + 1]?.text !== "(") {
-        parts.push(token.text);
+      const invocation = parseMacroInvocation(tokens, openParen);
+      if (!invocation) {
+        output.push(token);
+        index++;
         continue;
       }
-      const invocation = parseMacroInvocation(tokens, index + 1);
-      if (!invocation || invocation.arguments.length !== macro.parameters.length) {
-        parts.push(token.text);
+      args = invocation.arguments;
+      if (macro.parameters.length === 0 && args.length === 1 && args[0].every((token) => token.kind === "trivia")) {
+        args = [];
+      }
+      if (args.length !== macro.parameters.length) {
+        output.push(token);
+        index++;
         continue;
       }
-      body = substituteMacroParameters(body, macro.parameters, invocation.arguments);
       invocationEnd = invocation.end;
+      // A function invocation inherits only exclusions present at both invocation boundaries
+      const closingExclusions = tokens[invocationEnd].disabledMacros;
+      for (const name of disabledMacros) {
+        if (!closingExclusions?.has(name)) disabledMacros.delete(name);
+      }
     }
+    disabledMacros.add(token.text);
 
-    expanding.add(token.text);
-    const expanded = expandExpressionTokens(body, resolveMacro, expanding, depth + 1);
-    expanding.delete(token.text);
-    if (expanded.error) return expanded;
-    if (expanded.expression) parts.push(expanded.expression);
-    index = invocationEnd;
+    const replacement: ExpansionToken[] = [];
+    const expandedArguments = new Map<number, ExpansionToken[]>();
+    for (const bodyToken of tokenizeReplacement(macro.body).slice(0, -1)) {
+      const parameter = bodyToken.kind === "identifier" ? (macro.parameters?.indexOf(bodyToken.text) ?? -1) : -1;
+      let substituted: readonly ExpansionToken[] = [bodyToken];
+      if (parameter >= 0) {
+        let argument = expandedArguments.get(parameter);
+        if (!argument) {
+          // Arguments expand before this invocation disables its own name, including ID(ID(1))
+          const expanded = expandMacroTokens(
+            args[parameter],
+            resolveMacro,
+            tokenizeReplacement,
+            protectDefined,
+            expansionDepth,
+            budget
+          );
+          if (typeof expanded === "string") return expanded;
+          expandedArguments.set(parameter, (argument = expanded));
+        }
+        substituted = argument;
+      }
+      for (const part of substituted) {
+        if (--budget.remaining < 0)
+          return `Preprocessor macro expansion exceeds ${MAX_MACRO_EXPANSION_TOKENS} replacement tokens.`;
+        // Only macro names and invocation closing boundaries carry exclusions into later rescans.
+        if (part.kind !== "identifier" && part.text !== ")") {
+          replacement.push(part);
+          continue;
+        }
+        let exclusions = disabledMacros;
+        if (part.disabledMacros?.size) {
+          exclusions = new Set(disabledMacros);
+          part.disabledMacros.forEach((name) => exclusions.add(name));
+        }
+        replacement.push({
+          ...part,
+          disabledMacros: exclusions,
+          expansionDepth: Math.max(expansionDepth, part.expansionDepth ?? 0)
+        });
+      }
+    }
+    // Rescan in place so an object alias can form a call with the following original tokens
+    tokens.splice(index, invocationEnd - index + 1, ...replacement);
   }
-  return { expression: parts.join(" ") };
+  return output;
+}
+
+const shaderMultiOperators = new Set([
+  "<<=",
+  ">>=",
+  "++",
+  "--",
+  "<<",
+  ">>",
+  "<=",
+  ">=",
+  "==",
+  "!=",
+  "&&",
+  "||",
+  "^^",
+  "+=",
+  "-=",
+  "*=",
+  "/=",
+  "%=",
+  "&=",
+  "^=",
+  "|=",
+  "##"
+]);
+
+// Shader replacement lists use preprocessing numbers, not the integer-only #if grammar.
+function tokenizeShader(source: string, removeComments = false): Token[] {
+  const tokens: Token[] = [];
+  let index = 0;
+  while (index < source.length) {
+    const start = index;
+    const char = source.charCodeAt(index++);
+    let kind: TokenKind;
+    let comment = false;
+    if (isWhitespace(char)) {
+      kind = "trivia";
+      while (isWhitespace(source.charCodeAt(index))) index++;
+    } else if (char === 47 && source[index] === "/") {
+      kind = "trivia";
+      comment = true;
+      while (index < source.length && source[index] !== "\n" && source[index] !== "\r") index++;
+    } else if (char === 47 && source[index] === "*") {
+      kind = "trivia";
+      comment = true;
+      const close = source.indexOf("*/", index + 1);
+      index = close < 0 ? source.length : close + 2;
+    } else if (char === 34 || char === 39) {
+      kind = "invalid";
+      while (index < source.length) {
+        const next = source.charCodeAt(index++);
+        if (next === 92) index = Math.min(index + 1, source.length);
+        else if (next === char) break;
+      }
+    } else if (isIdentifierStart(char)) {
+      kind = "identifier";
+      while (isIdentifierPart(source.charCodeAt(index))) index++;
+    } else if ((char >= 48 && char <= 57) || (char === 46 && /[0-9]/.test(source[index] ?? ""))) {
+      kind = "number";
+      while (index < source.length) {
+        const next = source.charCodeAt(index);
+        if (isIdentifierPart(next) || next === 46) index++;
+        else if ((next === 43 || next === 45) && /[eEpP]/.test(source[index - 1])) index++;
+        else break;
+      }
+    } else {
+      kind = "operator";
+      if (char === 60 || char === 62) {
+        if (shaderMultiOperators.has(source.slice(start, start + 3))) index = start + 3;
+        else if (shaderMultiOperators.has(source.slice(start, start + 2))) index = start + 2;
+      } else if ("+-*/%&|^!=#".includes(source[start]) && shaderMultiOperators.has(source.slice(start, start + 2))) {
+        index = start + 2;
+      }
+    }
+    const text = source.slice(start, index);
+    tokens.push({
+      kind,
+      text: removeComments && comment ? text.replace(/[^\r\n]/g, "") || " " : text,
+      start,
+      end: index
+    });
+  }
+  tokens.push({ kind: "end", text: "", start: index, end: index });
+  return tokens;
+}
+
+function tokenizeShaderReplacement(source: string): Token[] {
+  // A comment in a replacement list is whitespace; a trailing // must not swallow the caller's suffix.
+  return tokenizeShader(source, true);
+}
+
+function serializeShaderTokens(tokens: readonly ExpansionToken[]): string {
+  const parts: string[] = [];
+  let previous: ExpansionToken | undefined;
+  for (const token of tokens) {
+    if (previous && previous.kind !== "trivia" && token.kind !== "trivia") {
+      const word = previous.kind === "identifier" || previous.kind === "number";
+      const nextWord = token.kind === "identifier" || token.kind === "number";
+      const joined = previous.kind === "operator" && token.kind === "operator" ? previous.text + token.text : "";
+      // Replacement must not join two preprocessing tokens into a new number, operator or comment.
+      if (
+        (word && nextWord) ||
+        (previous.kind === "number" &&
+          (token.text === "." || (/[eEpP]$/.test(previous.text) && /^[+-]/.test(token.text)))) ||
+        (previous.text === "." && token.kind === "number") ||
+        (joined && previous.text.length < 2 && shaderMultiOperators.has(joined.slice(0, 2))) ||
+        (joined && previous.text.length < 3 && shaderMultiOperators.has(joined.slice(0, 3))) ||
+        joined.startsWith("//") ||
+        joined.startsWith("/*")
+      )
+        parts.push(" ");
+    }
+    parts.push(token.text);
+    previous = token;
+  }
+  return parts.join("");
 }
 
 function parseMacroInvocation(
-  tokens: readonly Token[],
+  tokens: readonly ExpansionToken[],
   openParen: number
-): { readonly arguments: readonly string[]; readonly end: number } | undefined {
-  const args: string[][] = [[]];
+): { readonly arguments: ExpansionToken[][]; readonly end: number } | undefined {
+  const args: ExpansionToken[][] = [[]];
   let depth = 1;
-  for (let index = openParen + 1; index < tokens.length - 1; index++) {
+  for (let index = openParen + 1; index < tokens.length; index++) {
     const token = tokens[index];
     if (token.text === "(") {
       depth++;
-      args[args.length - 1].push(token.text);
+      args[args.length - 1].push(token);
     } else if (token.text === ")") {
       if (--depth === 0) {
-        const normalized = args.length === 1 && args[0].length === 0 ? [] : args.map((arg) => arg.join(" "));
-        return { arguments: normalized, end: index };
+        for (const argument of args) trimMacroArgument(argument);
+        return { arguments: args, end: index };
       }
-      args[args.length - 1].push(token.text);
+      args[args.length - 1].push(token);
     } else if (token.text === "," && depth === 1) {
       args.push([]);
     } else {
-      args[args.length - 1].push(token.text);
+      args[args.length - 1].push(token);
     }
   }
 }
 
-function substituteMacroParameters(body: string, parameters: readonly string[], arguments_: readonly string[]): string {
-  const replacements = new Map<string, string>();
-  for (let index = 0; index < parameters.length; index++) replacements.set(parameters[index], arguments_[index]);
-  const parts: string[] = [];
-  for (const token of tokenize(body).slice(0, -1)) {
-    parts.push(token.kind === "identifier" ? (replacements.get(token.text) ?? token.text) : token.text);
+function trimMacroArgument(tokens: ExpansionToken[]): void {
+  // Call-site padding is not part of the replacement. Keep comments and line breaks intact.
+  for (const trailing of [false, true]) {
+    while (tokens.length) {
+      const index = trailing ? tokens.length - 1 : 0;
+      const token = tokens[index];
+      if (token.kind !== "trivia") break;
+      const text = token.text.replace(trailing ? /[ \t\v\f]+$/ : /^[ \t\v\f]+/, "");
+      if (text === token.text) break;
+      if (text) {
+        tokens[index] = { ...token, text };
+        break;
+      }
+      if (trailing) tokens.pop();
+      else tokens.shift();
+    }
   }
-  return parts.join(" ");
 }
 
 /**
@@ -473,7 +682,10 @@ class ExpressionParser {
         this._sawExpandableIdentifier ||= unexpectedExpandableIdentifier;
         const unsupportedConditionalOperator = token.text === "?" || token.text === ":";
         const certain =
-          unsupportedConditionalOperator || (!this._rightEdgeExpandable && !unexpectedExpandableIdentifier);
+          unsupportedConditionalOperator ||
+          (!this._rightEdgeExpandable &&
+            !unexpectedExpandableIdentifier &&
+            !(token.text === ")" && this._sawExpandableIdentifier));
         this._fail(`Unexpected token '${token.text}' in preprocessor expression.`, token, certain);
       }
     }
@@ -481,6 +693,16 @@ class ExpressionParser {
   }
 
   private _invalidResult(): InvalidPreprocessorExpression | undefined {
+    if (this._failure) {
+      // A macro supplying a closing delimiter may be the token where parsing stopped.
+      for (let i = this._index; i < this._tokens.length; i++) {
+        const token = this._tokens[i];
+        if (token.kind === "identifier" && token.text !== "defined") {
+          this._sawExpandableIdentifier = true;
+          break;
+        }
+      }
+    }
     return this._failure
       ? {
           ok: false,
