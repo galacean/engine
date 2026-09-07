@@ -25,6 +25,10 @@ Fixed physics frequency is independent of rendered-frame frequency. A rendered f
 
 `onBeginRender` and `onEndRender` are per-camera callbacks sent to Scripts on that Camera's Entity. A Script on an Entity with multiple active Cameras can therefore receive them multiple times during one rendered frame.
 
+## Pointer input within a frame
+
+`Pointer.phase` is the current phase, not a record of every transition processed during the frame. A short press and release may both occur before `onUpdate`, leaving the phase at `Up`. It also reports `Stationary` when a pointer produced no event in that frame, and `Leave` is set by a leave or cancel event. `InputManager.isPointerDown()` and `isPointerUp()` preserve the respective frame events and can both be true; these queries are not mutually exclusive, and each result stays true for the whole frame it belongs to. They aggregate pointers and do not identify which pointer produced an event. Pointer Script callbacks receive individual dispatched events.
+
 ## Ownership guidance
 
 - Initialize state that exists for the Script's whole lifetime in `onAwake` or `onStart`, based on whether hierarchy activation must already have happened.
