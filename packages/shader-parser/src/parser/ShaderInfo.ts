@@ -1,6 +1,7 @@
 import type { BranchSignature } from "../common/BaseToken";
 import { SymbolInfo, SymbolTable, type FnSymbol, type VarSymbol } from "../parser/symbolTable";
 import { ASTNode } from "./AST";
+import type { ShaderDeclarationOwnershipInfo } from "../ir/ShaderDeclarationOwnership";
 
 /**
  * Immutable candidates retained for one reference lookup.
@@ -39,6 +40,9 @@ export interface ReferenceResolutionSnapshot {
 
 export class ShaderData {
   symbolTable: SymbolTable<SymbolInfo>;
+
+  /** Ownership facts populated after all pass declarations have been parsed. @internal */
+  declarationOwnership: ShaderDeclarationOwnershipInfo;
 
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 

@@ -14,6 +14,20 @@ interface FuncMacro {
   body: string;
 }
 
+interface DeclarationGroup {
+  sourceScope: number;
+}
+
+interface ActiveDeclaration {
+  group: DeclarationGroup;
+  sourceScope: number;
+}
+
+interface OwnedChunk {
+  instruction: ShaderInstruction;
+  error?: unknown;
+}
+
 /**
  * @internal
  */
@@ -21,6 +35,12 @@ export class ShaderMacroProcessor {
   private static _valueMacros = new Map<string, string>();
   private static _funcMacros = new Map<string, FuncMacro>();
   private static _shaderChunks: string[] = [];
+  private static readonly _declarationGroups = new Map<number, DeclarationGroup>();
+  private static readonly _activeDeclarations = new Map<number, ActiveDeclaration>();
+  private static readonly _ownedChunks = new Map<number, OwnedChunk>();
+  private static readonly _references = new Map<number, number[]>();
+  private static readonly _reachableDeclarations = new Set<number>();
+  private static readonly _pendingDeclarations: number[] = [];
   private static _out: string[] = [];
   private static _macroFirstChars = new Set<number>();
   private static _macroFirstCharsDirty = true;
@@ -38,6 +58,7 @@ export class ShaderMacroProcessor {
    * Evaluate a flat instruction array with active macros.
    * Macros are expanded immediately when text chunks are collected,
    * using the current macro state at that point (conforming to GLSL/C99 §6.10 standard).
+   * Declaration ownership filters buffered text after execution; it never skips macro directives.
    * @param instructions - Pre-parsed instruction array
    * @param macros - Active runtime macros
    * @returns Pure GLSL string with all conditionals resolved and macros expanded
@@ -46,10 +67,22 @@ export class ShaderMacroProcessor {
     const valueMacros = ShaderMacroProcessor._valueMacros;
     const funcMacros = ShaderMacroProcessor._funcMacros;
     const shaderChunks = ShaderMacroProcessor._shaderChunks;
+    const declarationGroups = ShaderMacroProcessor._declarationGroups;
+    const activeDeclarations = ShaderMacroProcessor._activeDeclarations;
+    const ownedChunks = ShaderMacroProcessor._ownedChunks;
+    const references = ShaderMacroProcessor._references;
+    const reachableDeclarations = ShaderMacroProcessor._reachableDeclarations;
+    const pendingDeclarations = ShaderMacroProcessor._pendingDeclarations;
 
     valueMacros.clear();
     funcMacros.clear();
     shaderChunks.length = 0;
+    declarationGroups.clear();
+    activeDeclarations.clear();
+    ownedChunks.clear();
+    references.clear();
+    reachableDeclarations.clear();
+    pendingDeclarations.length = 0;
 
     for (const [name, value] of macros) {
       valueMacros.set(name, value);
@@ -67,6 +100,42 @@ export class ShaderMacroProcessor {
           shaderChunks.push(ShaderMacroProcessor._expandChunk(<string>instruction[1], valueMacros, funcMacros));
           index++;
           break;
+        case ShaderPreprocessorDirective.Declaration: {
+          const ownerId = <number>instruction[1];
+          const groupId = <number>instruction[2];
+          const sourceScope = <number>instruction[3];
+          let group = declarationGroups.get(groupId);
+          if (!group) {
+            group = { sourceScope };
+            declarationGroups.set(groupId, group);
+          } else if (sourceScope > group.sourceScope) {
+            group.sourceScope = sourceScope;
+          }
+          activeDeclarations.set(ownerId, { group, sourceScope });
+          index++;
+          break;
+        }
+        case ShaderPreprocessorDirective.OwnedText: {
+          const chunk: OwnedChunk = { instruction };
+          ownedChunks.set(shaderChunks.length, chunk);
+          try {
+            shaderChunks.push(ShaderMacroProcessor._expandChunk(<string>instruction[1], valueMacros, funcMacros));
+          } catch (error) {
+            // Ownership may be activated later; discarded bodies must not surface their expansion errors
+            chunk.error = error;
+            shaderChunks.push("");
+          }
+          index++;
+          break;
+        }
+        case ShaderPreprocessorDirective.Reference: {
+          const from = <number>instruction[1];
+          let dependencies = references.get(from);
+          if (!dependencies) references.set(from, (dependencies = []));
+          dependencies.push(<number>instruction[2]);
+          index++;
+          break;
+        }
         case ShaderPreprocessorDirective.IfDef: {
           const name = <string>instruction[1];
           index = valueMacros.has(name) || funcMacros.has(name) ? index + 1 : <number>instruction[2];
@@ -124,6 +193,49 @@ export class ShaderMacroProcessor {
       }
     }
 
+    if (ownedChunks.size) {
+      const hasReferences = references.size > 0;
+      if (hasReferences) {
+        // Traverse only selected declarations, so discarded callers cannot retain their dependencies.
+        // Each reached owner is queued once, bounding cycles and diamonds by the encoded graph size.
+        pendingDeclarations.push(0);
+        while (pendingDeclarations.length) {
+          const dependencies = references.get(pendingDeclarations.pop()!);
+          if (!dependencies) continue;
+          for (const ownerId of dependencies) {
+            if (reachableDeclarations.has(ownerId)) continue;
+            const active = activeDeclarations.get(ownerId);
+            if (!active || active.sourceScope !== active.group.sourceScope) continue;
+            reachableDeclarations.add(ownerId);
+            pendingDeclarations.push(ownerId);
+          }
+        }
+      }
+      let count = 0;
+      for (let i = 0; i < shaderChunks.length; i++) {
+        const owned = ownedChunks.get(i);
+        if (owned) {
+          const instruction = owned.instruction;
+          let selected = false;
+          for (let j = 2; j < instruction.length; j++) {
+            const ownerId = <number>instruction[j];
+            const active = activeDeclarations.get(ownerId);
+            if (
+              active &&
+              active.sourceScope === active.group.sourceScope &&
+              (!hasReferences || reachableDeclarations.has(ownerId))
+            ) {
+              selected = true;
+              break;
+            }
+          }
+          if (!selected) continue;
+          if ("error" in owned) throw owned.error;
+        }
+        shaderChunks[count++] = shaderChunks[i];
+      }
+      shaderChunks.length = count;
+    }
     return ShaderMacroProcessor._concatChunks(shaderChunks);
   }
 

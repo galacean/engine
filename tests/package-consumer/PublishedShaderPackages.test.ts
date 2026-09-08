@@ -267,6 +267,35 @@ void pass;
     }
   });
 
+  it("preserves deferred ownership and legacy shaderc variants in installed CJS and ESM roundtrips", () => {
+    const body = readFileSync(
+      join(repositoryRoot, "tests/package-consumer/fixtures/DeferredOwnershipRoundTrip.js"),
+      "utf8"
+    );
+    for (const mode of ["require", "import"] as const) {
+      const load = (specifier: string) =>
+        mode === "require" ? `require(${JSON.stringify(specifier)})` : `await import(${JSON.stringify(specifier)})`;
+      const probe = runNode(
+        `
+        const { strict: assert } = ${load("node:assert")};
+        const { readFileSync, writeFileSync } = ${load("node:fs")};
+        const { ShaderLanguage, ShaderPass, ShaderData } = ${load("@galacean/engine-core")};
+        const { ShaderAnalyzer } = ${load("@galacean/engine-shader-analyzer")};
+        const { ShaderCompiler } = ${load("@galacean/engine-shader-compiler")};
+        const { ShaderPrecompiler } = ${load("@galacean/engine-shader-compiler/offline")};
+        ${body}
+      `,
+        mode === "import"
+      );
+      expect(probe.status, probe.stderr || probe.stdout).toBe(0);
+      const marker = "OWNERSHIP_ROUNDTRIP_RESULT:";
+      expect(probe.stdout).toContain(marker);
+      const results = JSON.parse(probe.stdout.slice(probe.stdout.lastIndexOf(marker) + marker.length));
+      expect(results).toHaveLength(24);
+      expect(results.some((result: { bodies: number }) => result.bodies === 1)).toBe(true);
+    }
+  });
+
   it("runs help, include, stdin, diagnostic, and usage contracts through the installed bin", () => {
     const binary = installedBinary();
     const help = spawnSync(binary, ["--help"], { cwd: consumerDirectory, encoding: "utf8" });

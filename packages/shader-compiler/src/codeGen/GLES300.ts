@@ -8,36 +8,40 @@ import { TreeNode } from "@galacean/engine-shader-parser/internal";
 import { StructProp } from "@galacean/engine-shader-parser/internal";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
+import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
+import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 
 const V3_GL_FragColor = "GS_glFragColor";
 const V3_GL_FragData = "GS_glFragData";
 
 export class GLES300Visitor extends GLESVisitor {
-  private _otherCodeArray: ICodeSegment[] = [];
-  private _fragColorVariableRegistered = false;
+  private readonly _outputDeclarations = new Map<
+    string,
+    { text: string; owners: Map<number, DeferredDeclarationOwnership>; unconditional: boolean }
+  >();
   private _fragDataArrayRequired = false;
-  private _fragDataArrayRegistered = false;
   private readonly _fragDataIndices = new Map<ASTNode.PostfixExpression, number>();
-  private readonly _fragDataVariables = new Map<number, string>();
   private readonly _scannedFragmentFunctions = new Set<ShaderEntryPointInfo["functions"][number]>();
 
   override reset(): void {
     super.reset();
 
-    this._otherCodeArray.length = 0;
-    this._fragColorVariableRegistered = false;
+    this._outputDeclarations.clear();
     this._fragDataArrayRequired = false;
-    this._fragDataArrayRegistered = false;
     this._fragDataIndices.clear();
-    this._fragDataVariables.clear();
     this._scannedFragmentFunctions.clear();
   }
 
   override getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
     super.getOtherGlobal(data, out);
 
-    for (let i = 0, n = this._otherCodeArray.length; i < n; i++) {
-      out.push(this._otherCodeArray[i]);
+    for (const output of this._outputDeclarations.values()) {
+      out.push({
+        text: output.unconditional
+          ? output.text
+          : ShaderInstructionEncoder.sharedDeclaration(output.text, Array.from(output.owners.values())),
+        index: 0
+      });
     }
   }
 
@@ -124,13 +128,16 @@ export class GLES300Visitor extends GLESVisitor {
     return super.visitJumpStatement(node);
   }
 
-  private _registerFragColorVariable() {
-    if (this._fragColorVariableRegistered) return;
-    this._otherCodeArray.push({
-      text: `out vec4 ${V3_GL_FragColor};`,
-      index: 0
-    });
-    this._fragColorVariableRegistered = true;
+  private _registerFragColorVariable(): void {
+    this._registerOutput(V3_GL_FragColor, `out vec4 ${V3_GL_FragColor};`);
+  }
+
+  private _registerOutput(name: string, text: string): void {
+    let output = this._outputDeclarations.get(name);
+    if (!output) this._outputDeclarations.set(name, (output = { text, owners: new Map(), unconditional: false }));
+    const owner = this.currentDeclarationOwner;
+    if (owner) output.owners.set(owner.id, owner);
+    else output.unconditional = true;
   }
 
   protected override prepareFragment(
@@ -178,23 +185,12 @@ export class GLES300Visitor extends GLESVisitor {
   }
 
   private _registerFragDataArray(): void {
-    if (this._fragDataArrayRegistered) return;
-    this._otherCodeArray.push({
-      text: `layout(location = 0) out vec4 ${V3_GL_FragData}[gl_MaxDrawBuffers];`,
-      index: 0
-    });
-    this._fragDataArrayRegistered = true;
+    this._registerOutput(V3_GL_FragData, `layout(location = 0) out vec4 ${V3_GL_FragData}[gl_MaxDrawBuffers];`);
   }
 
   private _registerFragDataVariable(index: number): string {
-    const existing = this._fragDataVariables.get(index);
-    if (existing) return existing;
     const name = `${V3_GL_FragData}${index}`;
-    this._fragDataVariables.set(index, name);
-    this._otherCodeArray.push({
-      text: `layout(location = ${index}) out vec4 ${name};`,
-      index: 0
-    });
+    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`);
     return name;
   }
 }

@@ -91,18 +91,21 @@ export class SymbolTable<T extends IBaseSymbol> {
    * Classifies remaining inherited conflicts after all narrower declarations have been inserted.
    * @param symbol - Narrower declaration whose deferred diagnostic is being resolved.
    * @param branchSemantics - Analyzer-owned coexistence classification.
+   * @param isDeferred - Whether a particular cross-scope pair is resolved during variant selection.
    * @returns The conflict remaining after collective inheritance coverage has been applied.
    * @internal
    */
   getInheritedConflict(
     symbol: T,
-    branchSemantics: BranchSemantics
+    branchSemantics: BranchSemantics,
+    isDeferred?: (earlier: T, later: T) => boolean
   ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
     const entry = this._table.get(symbol.ident);
     if (!entry?.includes(symbol)) return "none";
     let conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none" = "none";
     for (const existing of entry) {
       if ((existing.sourceScope ?? 0) >= (symbol.sourceScope ?? 0) || !existing.equal(symbol)) continue;
+      if (isDeferred?.(existing, symbol)) continue;
       const coexistence = branchSemantics.getDeclarationCoexistence(
         existing.branchSignature ?? EMPTY_BRANCH,
         symbol.branchSignature ?? EMPTY_BRANCH

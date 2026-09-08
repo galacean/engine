@@ -5,6 +5,11 @@ import { ASTNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, SymbolInfo, SymbolTable, VarSymbol } from "../parser/symbolTable";
 import type { StructProp } from "../parser/types";
 import type { ShaderClueIR } from "./ShaderClueIR";
+import {
+  isDeferredDeclarationPair,
+  type DeferredDeclarationOwnership,
+  type ShaderDeclarationOwnershipInfo
+} from "./ShaderDeclarationOwnership";
 
 /** Role a struct type plays in backend stage IO. @internal */
 export enum ShaderStructRole {
@@ -68,6 +73,10 @@ export class ShaderCoreInfo {
   readonly roleConflicts: readonly ShaderStructRoleConflict[];
   /** Global preprocessor declarations that backends may reproduce. */
   readonly outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[];
+  /** Surviving declarations whose inheritance ownership must be selected for the concrete macro variant. */
+  readonly deferredDeclarationOwnership: ReadonlyMap<SymbolInfo, DeferredDeclarationOwnership>;
+  /** Deferred candidates whose unresolved signatures or known inheritance conflicts prevent safe selection. */
+  readonly unsupportedDeferredDeclarations: readonly SymbolInfo[];
 
   /**
    * Derives backend-required facts from a neutral shader IR.
@@ -96,19 +105,24 @@ export class ShaderCoreInfo {
     readonly getBranchCoverage: BranchCoverageResolver
   ) {
     const symbolTable = ir.shaderData.symbolTable;
+    const ownership = ir.shaderData.declarationOwnership;
+    this.deferredDeclarationOwnership = ownership.declarations;
+    this.unsupportedDeferredDeclarations = ownership.unsupported;
     const vertexFunctions = findFunctions(symbolTable, vertexEntry);
     const fragmentFunctions = findFunctions(symbolTable, fragmentEntry);
     this.vertexEntry = createEntryPointInfo(
       EShaderStage.VERTEX,
       vertexEntry,
       vertexFunctions,
-      getDeclarationCoexistence
+      getDeclarationCoexistence,
+      ownership
     );
     this.fragmentEntry = createEntryPointInfo(
       EShaderStage.FRAGMENT,
       fragmentEntry,
       fragmentFunctions,
-      getDeclarationCoexistence
+      getDeclarationCoexistence,
+      ownership
     );
 
     const mutableIO = createIOInfo();
@@ -167,11 +181,13 @@ function createEntryPointInfo(
   stage: EShaderStage,
   name: string,
   functions: readonly FnSymbol[],
-  getDeclarationCoexistence: DeclarationCoexistenceResolver
+  getDeclarationCoexistence: DeclarationCoexistenceResolver,
+  ownership: ShaderDeclarationOwnershipInfo
 ): ShaderEntryPointInfo {
   let hasDefiniteAmbiguity = false;
   for (let i = 0, n = functions.length; i < n && !hasDefiniteAmbiguity; i++) {
     for (let j = i + 1; j < n; j++) {
+      if (isDeferredDeclarationPair(ownership, functions[i], functions[j])) continue;
       if (getDeclarationCoexistence(functions[i].branchSignature, functions[j].branchSignature) === "coexist") {
         hasDefiniteAmbiguity = true;
         break;

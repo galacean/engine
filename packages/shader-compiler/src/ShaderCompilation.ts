@@ -87,6 +87,8 @@ function generateShaderProgram(
   if (result) {
     result.vertexShaderInstructions = ShaderInstructionEncoder.parse(result.vertex, preprocessorExpressions);
     result.fragmentShaderInstructions = ShaderInstructionEncoder.parse(result.fragment, preprocessorExpressions);
+    result.vertex = ShaderInstructionEncoder.source(result.vertex);
+    result.fragment = ShaderInstructionEncoder.source(result.fragment);
   }
   return result;
 }

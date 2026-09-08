@@ -21,7 +21,7 @@ const EXHAUSTED = Symbol("condition diagram budget");
  * Proves union coverage using shared numeric decision nodes instead of enumerating macro assignments.
  * @param declarations - Alternative declaration guards, each expressed as a conjunction.
  * @param reference - Guard of the inherited declaration.
- * @returns Whether coverage is proven, or undefined when the bounded diagram cannot establish it.
+ * @returns True for coverage, false for a definite uncovered configuration, or undefined for invalid or exhausted proofs.
  * @internal
  */
 export function provePreprocessorConditionCoverage(
@@ -35,7 +35,7 @@ export function provePreprocessorConditionCoverage(
     for (const declaration of declarations) {
       target = diagram.apply("or", target, diagram.predicates(declaration));
     }
-    return diagram.apply("or", diagram.apply("not", source), target) === diagram.constant(1);
+    return diagram.coverage(diagram.apply("or", diagram.apply("not", source), target));
   } catch (error) {
     if (error !== EXHAUSTED) throw error;
     return undefined;
@@ -46,10 +46,33 @@ class ConditionDiagram {
   private readonly _nodes: Node[] = [];
   private readonly _constants = new Map<number | undefined, number>();
   private readonly _variables = new Map<string, number>();
+  private readonly _opaqueVariables = new Set<number>();
   private readonly _branches = new Map<string, number>();
   private readonly _operations = new Map<string, number>();
   private readonly _expressions = new Map<SourcePreprocessorCondition, Map<Condition, number>>();
   private _remaining = MAX_DIAGRAM_WORK;
+
+  coverage(root: number): boolean | undefined {
+    const pending = [{ id: root, opaque: false }];
+    const visited = [new Set<number>(), new Set<number>()];
+    let unknown = false;
+    while (pending.length) {
+      const { id, opaque } = pending.pop()!;
+      const seen = visited[Number(opaque)];
+      if (seen.has(id)) continue;
+      seen.add(id);
+      this._spend();
+      const node = this._nodes[id];
+      if (node.variable !== Infinity) {
+        const uncertain = opaque || this._opaqueVariables.has(node.variable);
+        pending.push({ id: node.low, opaque: uncertain }, { id: node.high, opaque: uncertain });
+      } else if (node.value === 0) {
+        if (!opaque) return false;
+        unknown = true;
+      } else if (node.value === undefined) unknown = true;
+    }
+    return unknown ? undefined : true;
+  }
 
   constant(value?: number): number {
     let id = this._constants.get(value);
@@ -68,7 +91,7 @@ class ConditionDiagram {
     for (const { condition, negated } of predicates) {
       const expression =
         condition.kind === "opaque"
-          ? this._variable(`opaque:${condition.identity}`)
+          ? this._variable(`opaque:${condition.identity}`, true)
           : this._expression(condition.expression, condition);
       value = this.apply("and", value, this.apply(negated ? "not" : "truth", expression));
     }
@@ -177,9 +200,10 @@ class ConditionDiagram {
     return operands[0];
   }
 
-  private _variable(identity: string): number {
+  private _variable(identity: string, opaque = false): number {
     let variable = this._variables.get(identity);
     if (variable === undefined) this._variables.set(identity, (variable = this._variables.size));
+    if (opaque) this._opaqueVariables.add(variable);
     return this._branch(variable, this.constant(0), this.constant(1));
   }
 

@@ -1,6 +1,7 @@
 import type { Condition, PreprocessorExpressionParseResult, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
 import { parsePreprocessorExpression, toPreprocessorCondition } from "@galacean/engine-shader-parser/internal";
+import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 
@@ -10,6 +11,52 @@ export type { ShaderInstruction } from "@galacean/engine-design";
 export class ShaderInstructionEncoder {
   private static _DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
   private static _FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
+
+  /**
+   * Marks compiler-owned text without placing parser objects in the instruction stream.
+   * @param text - Declaration or derived declaration text.
+   * @param owner - Neutral declaration identity, if runtime selection is required.
+   * @param activate - Whether this is the declaration's original source position.
+   * @returns Intermediate source consumed by the instruction encoder.
+   * @internal
+   */
+  static declaration(text: string, owner?: DeferredDeclarationOwnership, activate = true): string {
+    if (!owner) return text;
+    const activation = activate ? `\0D${owner.id},${owner.group},${owner.sourceScope}\0\n` : "";
+    return text ? `${activation}\0T${owner.id}\0\n${text}\n\0E\0\n` : activation;
+  }
+
+  /**
+   * Marks derived text shared by any selected, reachable declaration without activating an owner.
+   * @param text - Shared derived declaration text.
+   * @param owners - Declarations that require the text; an empty list never retains it.
+   * @returns Intermediate source consumed by the instruction encoder.
+   * @internal
+   */
+  static sharedDeclaration(text: string, owners: readonly DeferredDeclarationOwnership[]): string {
+    return text ? `\0T${owners.map((owner) => owner.id).join(",")}\0\n${text}\n\0E\0\n` : "";
+  }
+
+  /**
+   * Records a declaration dependency for variant-time reachability after ownership selection.
+   * @param from - Referencing declaration identity, or zero for a stage root.
+   * @param to - Referenced declaration identity.
+   * @returns Intermediate source consumed by the instruction encoder.
+   * @internal
+   */
+  static reference(from: number, to: number): string {
+    return `\0R${from},${to}\0\n`;
+  }
+
+  /**
+   * Removes private emission markers from the public source view after instruction encoding.
+   * @param source - Encoded intermediate stage source.
+   * @returns GLSL source without compiler metadata.
+   * @internal
+   */
+  static source(source: string): string {
+    return source.indexOf("\0") < 0 ? source : source.replace(/\0[^\0]*\0\n?/g, "");
+  }
 
   /**
    * Encodes generated GLSL directives into runtime-selectable instructions.
@@ -26,33 +73,44 @@ export class ShaderInstructionEncoder {
     const instructions: ShaderInstruction[] = [];
     const length = glsl.length;
     let pos = 0;
+    let owners: number[] | undefined;
     const backfillStack: number[][] = [];
 
     while (pos < length) {
       const directiveStart = ShaderInstructionEncoder._findDirectiveStart(glsl, pos, length);
 
       if (directiveStart === -1) {
-        ShaderInstructionEncoder._pushText(instructions, glsl, pos, length);
+        ShaderInstructionEncoder._pushText(instructions, glsl, pos, length, owners);
         break;
       }
 
       if (directiveStart > pos) {
-        ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart);
+        ShaderInstructionEncoder._pushText(instructions, glsl, pos, directiveStart, owners);
       }
 
       const lineEnd = ShaderInstructionEncoder._findLogicalLineEnd(glsl, directiveStart, length);
       const line = glsl.substring(directiveStart, lineEnd).replace(/\\(?:\r\n|\n|\r)/g, "");
       pos = lineEnd < length ? lineEnd + 1 : length;
 
+      if (line.charCodeAt(0) === 0) {
+        const kind = line.charAt(1);
+        if (kind === "D") {
+          const fields = line.slice(2, -1).split(",").map(Number);
+          instructions.push([ShaderPreprocessorDirective.Declaration, fields[0], fields[1], fields[2]]);
+        } else if (kind === "R") {
+          const fields = line.slice(2, -1).split(",").map(Number);
+          instructions.push([ShaderPreprocessorDirective.Reference, fields[0], fields[1]]);
+        } else {
+          const ids = line.slice(2, -1);
+          owners = kind === "T" ? (ids ? ids.split(",").map(Number) : []) : undefined;
+        }
+        continue;
+      }
+
       const match = ShaderInstructionEncoder._DIRECTIVE_RE.exec(line);
       if (!match) {
-        const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
         const text = lineEnd < length ? line + "\n" : line;
-        if (last && last[0] === ShaderPreprocessorDirective.Text) {
-          (last as [number, string])[1] += text;
-        } else {
-          instructions.push([ShaderPreprocessorDirective.Text, text]);
-        }
+        ShaderInstructionEncoder._pushText(instructions, text, 0, text.length, owners);
         continue;
       }
 
@@ -195,7 +253,7 @@ export class ShaderInstructionEncoder {
           break;
         }
       }
-      if (j < length && source.charCodeAt(j) === 35 /* '#' */) return i;
+      if (j < length && (source.charCodeAt(j) === 35 /* '#' */ || source.charCodeAt(j) === 0)) return i;
 
       const nl = source.indexOf("\n", i);
       if (nl === -1) break;
@@ -224,13 +282,29 @@ export class ShaderInstructionEncoder {
     return index;
   }
 
-  private static _pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {
+  private static _pushText(
+    instructions: ShaderInstruction[],
+    source: string,
+    from: number,
+    to: number,
+    owners?: readonly number[]
+  ): void {
     if (from >= to) return;
     const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
-    if (last && last[0] === ShaderPreprocessorDirective.Text) {
+    const directive = owners === undefined ? ShaderPreprocessorDirective.Text : ShaderPreprocessorDirective.OwnedText;
+    if (
+      last &&
+      last[0] === directive &&
+      (owners === undefined ||
+        (last.length === owners.length + 2 && owners.every((owner, index) => last[index + 2] === owner)))
+    ) {
       (last as [number, string])[1] += source.substring(from, to);
     } else {
-      instructions.push([ShaderPreprocessorDirective.Text, source.substring(from, to)]);
+      instructions.push(
+        owners === undefined
+          ? [directive, source.substring(from, to)]
+          : [directive, source.substring(from, to), ...owners]
+      );
     }
   }
 

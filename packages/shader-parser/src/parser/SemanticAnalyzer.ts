@@ -13,6 +13,7 @@ import { NodeChild } from "./types";
 import { MacroDefineList } from "../Preprocessor";
 import type { ParserObjectPool } from "../ParserObjectPool";
 import type { ShaderSourceScope } from "../ir";
+import { createShaderDeclarationOwnership, isDeferredDeclarationPair } from "../ir/ShaderDeclarationOwnership";
 
 export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
@@ -200,9 +201,14 @@ export default class SemanticAnalyzer {
 
   /** Resolves inherited diagnostics after every declaration in the pass is available. @internal */
   finalizeInheritance(): void {
+    const ownership = (this._shaderData.declarationOwnership = createShaderDeclarationOwnership(
+      this.symbolTableStack.scope
+    ));
     if (!this.branchSemantics || !this.semanticDiagnostics) return;
     for (const { symbol, location } of this._inheritedDeclarations) {
-      const conflict = this.symbolTableStack.scope.getInheritedConflict(symbol, this.branchSemantics);
+      const conflict = this.symbolTableStack.scope.getInheritedConflict(symbol, this.branchSemantics, (left, right) =>
+        isDeferredDeclarationPair(ownership, left, right)
+      );
       const error = this.semanticDiagnostics.redefinition(location, symbol.ident, conflict, symbol.branchSignature);
       if (error) this.errors.push(error);
     }

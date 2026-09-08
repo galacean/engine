@@ -85,7 +85,7 @@ export class ShaderCompiler {
    * Generates backend source from a pass returned by `ShaderAnalyzer.analyze()` without parsing it again.
    * @param pass - Opaque parsed-pass handle from the analyzer result.
    * @param backend - Target GLES language version.
-   * @returns Generated stage source, or `undefined` when parsing or entry validation failed.
+   * @returns Variant-selectable instructions and unselected text for inspection, or `undefined` on validation failure.
    * @throws TypeError when `pass` was not created by the compatible shader-parser package instance.
    */
   generate(pass: ParsedShaderPass, backend: ShaderLanguage): IShaderProgramSource | undefined {

@@ -76,10 +76,24 @@ export function canInheritanceBranchesCover(
   declarations: readonly BranchSignature[],
   reference: BranchSignature
 ): boolean {
+  return proveInheritanceBranchesCover(declarations, reference) === true;
+}
+
+/**
+ * Classifies inheritance coverage without confusing a failed proof with a counterexample.
+ * @param declarations - Alternative guards from narrower ShaderLab scopes.
+ * @param reference - Guard of the inherited declaration.
+ * @returns True for coverage, false for a definite uncovered configuration, or undefined for unknown coverage.
+ * @internal
+ */
+export function proveInheritanceBranchesCover(
+  declarations: readonly BranchSignature[],
+  reference: BranchSignature
+): boolean | undefined {
   let facts = getPredicates(reference);
   const alternatives = declarations.map(getPredicates);
   if (alternatives.includes(true) || facts === false) return true;
-  if (facts === undefined) return false;
+  if (facts === undefined) return undefined;
   let required = alternatives.filter(
     (predicates): predicates is readonly PreprocessorConditionTerm[] | boolean => predicates !== undefined
   );
@@ -103,7 +117,9 @@ export function canInheritanceBranchesCover(
   facts = normalize(facts);
   const rangeCache = new WeakMap<Condition, IntegerRange | undefined>();
   if (required.some((alternative) => proveCanonicalCoverage(alternative, facts!, rangeCache))) return true;
-  return provePreprocessorConditionCoverage(required, facts) === true;
+  const proof = provePreprocessorConditionCoverage(required, facts);
+  // An unrepresented alternative may cover the witness found for the represented subset.
+  return proof === false && alternatives.includes(undefined) ? undefined : proof;
 }
 
 function getPredicates(branch: BranchSignature): readonly PreprocessorConditionTerm[] | boolean | undefined {

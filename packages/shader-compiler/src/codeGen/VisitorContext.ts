@@ -33,6 +33,10 @@ export class VisitorContext {
   private readonly _structVariableRoles = new Map<VarSymbol, ShaderStructRole>();
 
   _passSymbolTable?: SymbolTable<SymbolInfo>;
+  /** Receives every global use, including uses of declarations already discovered. */
+  onReferenceGlobal?: (symbols: readonly SymbolInfo[]) => void;
+  /** Receives interface uses so generated fields retain their declaration dependencies. */
+  onReferenceStructProps?: (props: readonly StructProp[]) => void;
   readonly codeCache = new Map<TreeNode, string>();
   private readonly fragmentReturnModes = new Map<ASTNode.JumpStatement, FragmentReturnMode>();
   private readonly terminalInterfaceReturns = new Set<ASTNode.JumpStatement>();
@@ -207,21 +211,21 @@ export class VisitorContext {
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
-    if (this._referencedGlobals[ident]) return;
-
-    this._referencedGlobals[ident] = [];
-    this._referencedGlobalKeys.push(ident);
-
-    const lookupSymbol = this._lookupSymbol;
-    lookupSymbol.set(ident, type);
-    this._passSymbolTable!.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    if (!this._referencedGlobals[ident]) {
+      this._referencedGlobals[ident] = [];
+      this._referencedGlobalKeys.push(ident);
+      const lookupSymbol = this._lookupSymbol;
+      lookupSymbol.set(ident, type);
+      this._passSymbolTable!.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    }
+    this.onReferenceGlobal?.(this._referencedGlobals[ident]);
   }
 
   // Track which IO props are actually referenced (drives in/out emission). A missing member is no
   // longer flagged here — that's the parser's struct-field check (UndeclaredStructMember).
   private _referenceProp(name: string, list: StructProp[], refList: Record<string, StructProp[]>): void {
-    if (refList[name]) return;
-    refList[name] = list.filter((item) => item.ident.lexeme === name);
+    if (!refList[name]) refList[name] = list.filter((item) => item.ident.lexeme === name);
+    this.onReferenceStructProps?.(refList[name]);
   }
 }
 
