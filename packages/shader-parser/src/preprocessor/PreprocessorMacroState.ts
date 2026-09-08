@@ -154,7 +154,10 @@ export class PreprocessorMacroState {
 
   /** @internal */
   captureSnapshot(): PreprocessorMacroSnapshot {
-    return { states: PreprocessorMacroState._cloneStates(this._states), versions: { ...this._versions } };
+    return {
+      states: PreprocessorMacroState._cloneStates(this._states),
+      versions: Object.assign(Object.create(null), this._versions)
+    };
   }
 
   /** @internal */
@@ -175,7 +178,7 @@ export class PreprocessorMacroState {
       for (const frame of this._frames) frame.mutatedNames.add(name);
     }
     this._states = PreprocessorMacroState._cloneStates(cached.snapshot.states);
-    this._versions = { ...cached.snapshot.versions };
+    this._versions = Object.assign(Object.create(null), cached.snapshot.versions);
     this._versionKey = undefined;
   }
 
@@ -187,8 +190,8 @@ export class PreprocessorMacroState {
       const name = names[i];
       const state = this._states[name];
       const defined = state.defined === undefined ? "?" : state.defined ? "1" : "0";
-      const replacement = state.replacementKey ?? "";
-      key += `${name.length}:${name}${defined}${state.functionParams ? "f" : "v"}${replacement.length}:${replacement}`;
+      const replacement = state.replacementKey;
+      key += `${name.length}:${name}${defined}${state.functionParams ? "f" : "v"}${replacement?.length ?? "?"}:${replacement ?? ""}`;
     }
     return `${key}\0${this._macroVersionKey()}`;
   }

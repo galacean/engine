@@ -618,4 +618,60 @@ describe("semantic condition implication in ShaderLab inheritance", () => {
       expectDriverAcceptance(program, 0.25);
     }
   });
+
+  it.each([9, 17, 64, 256])("replaces equivalent Boolean products and conjunctions across %i flags", (count) => {
+    const names = Array.from({ length: count }, (_, index) => `A${index}`);
+    const terms = names.map((name) => `defined(${name})`);
+    const factors = count === 9 ? terms : terms.slice().reverse().concat("1");
+    const product = `(${factors.join(" * ")}) != 0`;
+    const conjunction = terms.join(" && ");
+    const rows: Macros[] = [
+      {},
+      { A0: "0" },
+      Object.fromEntries(names.slice(0, count - 1).map((name) => [name, "0"])),
+      Object.fromEntries(names.map((name) => [name, "0"]))
+    ];
+    for (const [outer, inner] of [
+      [product, conjunction],
+      [conjunction, product]
+    ]) {
+      expectSumReplacement(shaderSource("helper", expressionGuard(outer), expressionGuard(inner)), rows, [
+        false,
+        false,
+        false,
+        true
+      ]);
+    }
+  });
+
+  it.each([9, 17, 64, 256])(
+    "cancels repeated XOR operands across %i flags without changing inherited ownership",
+    (count) => {
+      const names = Array.from({ length: count }, (_, index) => `A${index}`);
+      const terms = names.map((name) => `defined(${name})`);
+      const parity = `(${terms.join(" ^ ")}) != 0`;
+      const repeated =
+        count === 9
+          ? terms.concat(terms[0], terms[0])
+          : terms.slice().reverse().concat(terms[3], terms[12], terms[3], terms[12], "0");
+      const rewritten = `(${repeated.join(" ^ ")}) != 0`;
+      const rows: Macros[] = [
+        {},
+        { A0: "0" },
+        { A0: "0", A1: "0" },
+        Object.fromEntries(names.map((name) => [name, "0"]))
+      ];
+      for (const [outer, inner] of [
+        [parity, rewritten],
+        [rewritten, parity]
+      ]) {
+        expectSumReplacement(shaderSource("helper", expressionGuard(outer), expressionGuard(inner)), rows, [
+          false,
+          true,
+          false,
+          count % 2 === 1
+        ]);
+      }
+    }
+  );
 });

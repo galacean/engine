@@ -426,6 +426,65 @@ void vert()`
     );
   });
 
+  it.each(["GLSLES100", "GLSLES300"])("compiles nested inherited conditions within a 256 MiB heap on %s", (target) => {
+    let guard = "defined(F0)";
+    for (let index = 1; index <= 240; index++) guard = `(${guard} + defined(F${index}) == 1)`;
+    const source = `Shader "bounded-memory" {
+#if ${guard}
+vec4 color() { return vec4(0.25); }
+#endif
+SubShader "s" { Pass "p" {
+#if ${guard}
+vec4 color() { return vec4(0.5); }
+#endif
+void vert() { gl_Position = vec4(0.0); }
+void frag() {
+  gl_FragColor = vec4(1.0);
+#if ${guard}
+  gl_FragColor = color();
+#endif
+}
+VertexShader = vert; FragmentShader = frag;
+} } }`;
+    const probe = spawnSync(
+      process.execPath,
+      [
+        "--max-old-space-size=256",
+        "--eval",
+        `const { ShaderLanguage } = require("@galacean/engine-core");
+         const { ShaderCompiler } = require("@galacean/engine-shader-compiler");
+         const compiler = new ShaderCompiler();
+         const pass = compiler._parseShaderSource(${JSON.stringify(source)}).subShaders[0].passes[0];
+         const program = compiler._parseShaderPass(
+           pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage[${JSON.stringify(target)}],
+           undefined, pass.contentScopeStarts
+         );
+         if (!program) throw new Error("Expected a generated shader program.");
+         process.stdout.write("BOUNDED_MEMORY_RESULT:" + JSON.stringify({
+           vertexInstructions: program.vertexShaderInstructions.length,
+           fragmentInstructions: program.fragmentShaderInstructions.length,
+           fragment: program.fragment
+         }));`
+      ],
+      { cwd: consumerDirectory, encoding: "utf8", timeout: 30_000, maxBuffer: 1024 * 1024 }
+    );
+    expect(probe.error, probe.error?.message).toBeUndefined();
+    expect(probe.signal, probe.stderr).toBeNull();
+    expect(probe.status, probe.stderr || probe.stdout).toBe(0);
+    const marker = probe.stdout.lastIndexOf("BOUNDED_MEMORY_RESULT:");
+    expect(marker).toBeGreaterThanOrEqual(0);
+    const program = JSON.parse(probe.stdout.slice(marker + "BOUNDED_MEMORY_RESULT:".length)) as {
+      vertexInstructions: number;
+      fragmentInstructions: number;
+      fragment: string;
+    };
+    expect(program.vertexInstructions).toBeGreaterThan(0);
+    expect(program.fragmentInstructions).toBeGreaterThan(0);
+    expect(program.fragment.match(/\bvec4\s+color\s*\(/g)).toHaveLength(1);
+    expect(program.fragment).toMatch(/0\.5\b/);
+    expect(program.fragment).not.toMatch(/0\.25\b/);
+  });
+
   it("does not retain request-owned parser state across analyzer-only or shared codegen calls", () => {
     const probe = spawnSync(
       process.execPath,

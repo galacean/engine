@@ -54,6 +54,7 @@ export default class SemanticAnalyzer {
   private _shaderData = new ShaderData();
   private _translationRules: readonly (TranslationRule | undefined)[] = [];
   private _sourceScopes: readonly ShaderSourceScope[] = [];
+  private readonly _inheritedDeclarations: { symbol: SymbolInfo; location: ShaderRange }[] = [];
 
   private _macroDefineList: MacroDefineList;
 
@@ -95,6 +96,7 @@ export default class SemanticAnalyzer {
     this.errors.length = 0;
     this.inMacroDefinition = false;
     this._ambiguousReported.clear();
+    this._inheritedDeclarations.length = 0;
     this.curFunctionInfo.header = undefined;
     this.curFunctionInfo.localVariables.length = 0;
     this.curFunctionInfo.calledFunctions.length = 0;
@@ -180,12 +182,31 @@ export default class SemanticAnalyzer {
   /**
    * Reports a declaration conflict only when branch coexistence is proven.
    * @param loc - Conflicting declaration range.
-   * @param name - Declared symbol name.
+   * @param symbol - Declaration whose remaining inherited conflicts are checked after its scope is complete.
    * @param conflict - Proven or unresolved coexistence state.
-   * @param branch - Macro branch containing the later declaration.
    */
-  reportRedefinition(loc: ShaderRange, name: string, conflict: RedefinitionConflict, branch: BranchSignature): void {
-    this._report(this.semanticDiagnostics?.redefinition(loc, name, conflict, branch));
+  reportRedefinition(loc: ShaderRange, symbol: SymbolInfo, conflict: RedefinitionConflict): void {
+    this._report(this.semanticDiagnostics?.redefinition(loc, symbol.ident, conflict, symbol.branchSignature));
+    if (
+      this.semanticDiagnostics &&
+      symbol.sourceScope > 0 &&
+      this.symbolTableStack.stack.length === 1 &&
+      !this.inMacroDefinition &&
+      this._isCurrentBranchReachable()
+    ) {
+      this._inheritedDeclarations.push({ symbol, location: loc });
+    }
+  }
+
+  /** Resolves inherited diagnostics after every declaration in the pass is available. @internal */
+  finalizeInheritance(): void {
+    if (!this.branchSemantics || !this.semanticDiagnostics) return;
+    for (const { symbol, location } of this._inheritedDeclarations) {
+      const conflict = this.symbolTableStack.scope.getInheritedConflict(symbol, this.branchSemantics);
+      const error = this.semanticDiagnostics.redefinition(location, symbol.ident, conflict, symbol.branchSignature);
+      if (error) this.errors.push(error);
+    }
+    this._inheritedDeclarations.length = 0;
   }
 
   /**

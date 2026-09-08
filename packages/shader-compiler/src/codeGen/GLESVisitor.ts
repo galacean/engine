@@ -7,11 +7,21 @@ import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
 import { NodeChild } from "@galacean/engine-shader-parser/internal";
 import { ShaderData } from "@galacean/engine-shader-parser/internal";
 import { ESymbolType } from "@galacean/engine-shader-parser/internal";
-import { FnSymbol } from "@galacean/engine-shader-parser/internal";
+import {
+  FnSymbol,
+  VarSymbol,
+  canInheritanceBranchesCover,
+  getLexicalDeclarationCoexistence
+} from "@galacean/engine-shader-parser/internal";
 import { GSError, GSErrorName, mapExpandedShaderError } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
-import type { ShaderClueIR, ShaderCoreInfo, ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
+import type {
+  BranchSignature,
+  ShaderClueIR,
+  ShaderCoreInfo,
+  ShaderEntryPointInfo
+} from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import type { ShaderBackend } from "../ShaderBackend";
@@ -24,6 +34,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   private readonly _forwardFunctionDeclarations = new Map<ASTNode.FunctionDefinition, string>();
   private readonly _forwardStructIndices = new Map<ASTNode.StructSpecifier, number>();
   private readonly _structCodeSegments = new Map<ASTNode.StructSpecifier, ICodeSegment>();
+  private readonly _forwardVariableIndices = new Map<ASTNode.VariableDeclaration, number>();
+  private readonly _variableCodeSegments = new Map<ASTNode.VariableDeclaration, ICodeSegment>();
   private _sourceIR?: ShaderClueIR;
   private _outerMacroDeclarations: readonly ASTNode.GlobalDeclaration[] = [];
 
@@ -36,6 +48,8 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._forwardFunctionDeclarations.clear();
     this._forwardStructIndices.clear();
     this._structCodeSegments.clear();
+    this._forwardVariableIndices.clear();
+    this._variableCodeSegments.clear();
   }
 
   /**
@@ -252,37 +266,51 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           };
           out.push(segment);
           if (sm.astNode instanceof ASTNode.StructSpecifier) this._structCodeSegments.set(sm.astNode, segment);
+          if (sm.astNode instanceof ASTNode.VariableDeclaration) this._variableCodeSegments.set(sm.astNode, segment);
         }
       }
     }
-    for (const [type, index] of this._forwardStructIndices) {
-      const previous = this._structCodeSegments.get(type);
-      if (previous) out.splice(out.indexOf(previous), 1);
-      out.push({ text: type.codeGen(this), index });
-    }
+    this._getForwardDeclarations(out);
     for (const [definition, text] of this._forwardFunctionDeclarations) {
       if (!definition.isInMacroBranch) out.push({ text, index: definition.location.start.index });
     }
   }
 
-  protected override referenceFunction(symbol: FnSymbol, referenceIndex: number): void {
-    super.referenceFunction(symbol, referenceIndex);
+  protected override referenceFunction(symbol: FnSymbol, referenceIndex: number, branch: BranchSignature): void {
+    super.referenceFunction(symbol, referenceIndex, branch);
     const definition = symbol.astNode;
     const declarations = this._forwardFunctionDeclarations;
-    if (symbol.ident === this.context.stageEntry || declarations.has(definition)) return;
-    const candidates = this.context._referencedGlobals[symbol.ident];
+    if (symbol.ident === this.context.stageEntry) return;
+    const candidates = this.context._referencedGlobals[symbol.ident].filter(
+      (candidate): candidate is FnSymbol => candidate instanceof FnSymbol && candidate.equal(symbol)
+    );
     if (candidates.some((candidate) => candidate.astNode === definition)) return;
-    const replacement = candidates.find(
-      (candidate) =>
-        candidate instanceof FnSymbol &&
-        candidate.equal(symbol) &&
-        candidate.astNode.location.start.index > referenceIndex
-    ) as FnSymbol | undefined;
+    const compatible = candidates.filter((candidate) => this._canBranchesOverlap(candidate.branchSignature, branch));
+    const preceding = compatible.filter((candidate) => candidate.astNode.location.start.index < referenceIndex);
+    if (
+      canInheritanceBranchesCover(
+        preceding.map((candidate) => candidate.branchSignature),
+        branch
+      )
+    )
+      return;
+    const replacement = compatible.find((candidate) => candidate.astNode.location.start.index > referenceIndex);
     if (replacement) {
       // An inherited helper can call a declaration whose overriding body occurs later. Keep the
       // original declaration's macro/type context and emit only the final backend signature there.
       const prototype = replacement.astNode.protoType;
       const anchor = definition.location.start.index;
+      const text = `${prototype.codeGen(this)};`;
+      const signature = this._getForwardSignature(prototype);
+      for (const candidate of candidates) {
+        if (
+          this._canBranchesOverlap(candidate.branchSignature, symbol.branchSignature) &&
+          this._getForwardSignature(candidate.astNode.protoType) !== signature
+        ) {
+          this._unsupportedForwardDeclaration(candidate.astNode.protoType);
+        }
+      }
+      if (declarations.has(definition)) return;
       if (
         !this._isContextIndependent(prototype) ||
         this._hasDeclarationContextBarrier(anchor, prototype.location.start.index, false)
@@ -304,8 +332,169 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         }
         this._prepareForwardTypes(parameter.typeInfo?.structDeclarations ?? [], anchor, typeAnchor);
       }
-      declarations.set(definition, `${replacement.astNode.protoType.codeGen(this)};`);
+      declarations.set(definition, text);
     }
+  }
+
+  private _getForwardSignature(prototype: ASTNode.FunctionProtoType): string {
+    const parameters: string[] = [];
+    for (const parameter of prototype.parameterList ?? []) {
+      const declaration = parameter.astNode;
+      if (
+        declaration instanceof ASTNode.ParameterDeclaration &&
+        declaration.symbol &&
+        this.context.getStructVarRole([declaration.symbol])
+      )
+        continue;
+      const tokens: string[] = [];
+      const visit = (node: NodeChild) => {
+        if (node instanceof BaseToken) {
+          if (node !== parameter.ident && node.type !== Keyword.IN) tokens.push(node.lexeme);
+        } else {
+          node.children.forEach(visit);
+        }
+      };
+      visit(declaration);
+      const text = tokens.join(" ");
+      if (text !== "void") parameters.push(text);
+    }
+    return `${prototype.returnType.codeGen(this)}(${parameters.join(",")})`;
+  }
+
+  private _canBranchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
+    return (
+      getLexicalDeclarationCoexistence(left, right) !== "exclusive" &&
+      !canInheritanceBranchesCover([], [...left, ...right])
+    );
+  }
+
+  override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
+    const code = super.visitVariableIdentifier(node);
+    for (const symbol of node.resolvedSymbols()) {
+      if (!(symbol instanceof VarSymbol) || !symbol.isUniform) continue;
+      const candidates = this.context._referencedGlobals[symbol.ident];
+      if (!candidates || candidates.includes(symbol)) continue;
+      const preceding = candidates.filter(
+        (candidate) => candidate.astNode.location.start.index < node.location.start.index
+      );
+      if (
+        canInheritanceBranchesCover(
+          preceding.map((candidate) => candidate.branchSignature),
+          node._branch
+        )
+      )
+        continue;
+      const oldMacro = this._outerMacroDeclarations.find(
+        (macro) =>
+          macro.location.start.index <= symbol.astNode.location.start.index &&
+          macro.location.end.index >= symbol.astNode.location.end.index
+      );
+      const anchor = oldMacro?.location.start.index ?? symbol.astNode.location.start.index;
+      for (const candidate of candidates) {
+        if (candidate.astNode.location.start.index <= node.location.start.index) continue;
+        const declaration = candidate.astNode;
+        if (
+          !(candidate instanceof VarSymbol) ||
+          !candidate.isUniform ||
+          !(declaration instanceof ASTNode.VariableDeclaration)
+        ) {
+          this._unsupportedForwardDeclaration(declaration);
+        }
+        const macro = this._outerMacroDeclarations.find(
+          (item) =>
+            item.location.start.index <= declaration.location.start.index &&
+            item.location.end.index >= declaration.location.end.index
+        );
+        if (
+          !this._isContextIndependent(declaration) ||
+          this._hasDeclarationContextBarrier(anchor, macro?.location.end.index ?? declaration.location.end.index, true)
+        ) {
+          this._unsupportedForwardDeclaration(declaration);
+        }
+        this._prepareForwardTypes(candidate.dataType.structDeclarations, anchor);
+        this._forwardVariableIndices.set(
+          declaration,
+          Math.min(this._forwardVariableIndices.get(declaration) ?? Infinity, anchor)
+        );
+      }
+    }
+    return code;
+  }
+
+  private _getForwardDeclarations(out: ICodeSegment[]): void {
+    type Declaration = ASTNode.StructSpecifier | ASTNode.VariableDeclaration;
+    const guarded = new Map<ASTNode.GlobalDeclaration, { index: number; declarations: Declaration[] }>();
+    const declarations: [Declaration, number][] = Array.from(this._forwardStructIndices);
+    for (const entry of this._forwardVariableIndices) declarations.push(entry);
+    const code = (declaration: Declaration) =>
+      declaration.codeGen(this) + (declaration instanceof ASTNode.VariableDeclaration ? ";" : "");
+    for (const [declaration, index] of declarations) {
+      const macro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= declaration.location.start.index &&
+          item.location.end.index >= declaration.location.end.index
+      );
+      if (!macro) {
+        const previous =
+          declaration instanceof ASTNode.StructSpecifier
+            ? this._structCodeSegments.get(declaration)
+            : this._variableCodeSegments.get(declaration);
+        if (previous) out.splice(out.indexOf(previous), 1);
+        out.push({ text: code(declaration), index });
+      } else {
+        let group = guarded.get(macro);
+        if (!group) guarded.set(macro, (group = { index, declarations: [] }));
+        group.index = Math.min(group.index, index);
+        group.declarations.push(declaration);
+      }
+    }
+    for (const [macro, group] of guarded) {
+      const segments: ICodeSegment[] = macro.macroExpressions.map((item) => ({
+        text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
+        index: item.location.start.index
+      }));
+      for (const declaration of group.declarations) {
+        segments.push({ text: code(declaration), index: declaration.location.start.index });
+      }
+      out.push({
+        text: segments
+          .sort((a, b) => a.index - b.index)
+          .map((item) => item.text)
+          .join("\n"),
+        index: group.index
+      });
+    }
+  }
+
+  override visitTypeSpecifier(node: ASTNode.TypeSpecifier): string {
+    if (!node.structDeclarations.length) return super.visitTypeSpecifier(node);
+    for (const type of node.structDeclarations) {
+      if (!type.ident || this.context.getStructRole([type])) continue;
+      // A function-local struct can shadow a global name without participating in inheritance.
+      let parent = type.parent;
+      while (
+        parent &&
+        !(parent instanceof ASTNode.GlobalDeclaration) &&
+        !(parent instanceof ASTNode.FunctionDefinition)
+      ) {
+        parent = parent.parent;
+      }
+      if (parent instanceof ASTNode.FunctionDefinition) continue;
+      this.context.referenceGlobal(type.ident.lexeme, ESymbolType.STRUCT);
+      const final = this.context._referencedGlobals[type.ident.lexeme];
+      if (final.some((symbol) => symbol.astNode === type)) continue;
+      const oldMacro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= type.location.start.index && item.location.end.index >= type.location.end.index
+      );
+      this._prepareForwardTypes(
+        final
+          .map((symbol) => symbol.astNode)
+          .filter((item): item is ASTNode.StructSpecifier => item instanceof ASTNode.StructSpecifier),
+        oldMacro?.location.start.index ?? type.location.start.index
+      );
+    }
+    return super.visitTypeSpecifier(node);
   }
 
   private _prepareForwardTypes(types: readonly ASTNode.StructSpecifier[], anchor: number, hoistAnchor = anchor): void {
@@ -314,16 +503,27 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       if ((this._forwardStructIndices.get(type) ?? Infinity) <= anchor) continue;
       if (type.ident) {
         this.context.referenceGlobal(type.ident.lexeme, ESymbolType.STRUCT);
-        if (!this.context._referencedGlobals[type.ident.lexeme].some((symbol) => symbol.astNode === type)) {
-          this._unsupportedForwardDeclaration(type);
+        const final = this.context._referencedGlobals[type.ident.lexeme];
+        if (!final.some((symbol) => symbol.astNode === type)) {
+          this._prepareForwardTypes(
+            final
+              .map((symbol) => symbol.astNode)
+              .filter((item): item is ASTNode.StructSpecifier => item instanceof ASTNode.StructSpecifier),
+            anchor,
+            hoistAnchor
+          );
+          continue;
         }
       }
       const needsHoist = type.location.start.index > anchor;
+      const macro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= type.location.start.index && item.location.end.index >= type.location.end.index
+      );
       if (
         needsHoist &&
-        (type.isInMacroBranch ||
-          !this._isContextIndependent(type) ||
-          this._hasDeclarationContextBarrier(hoistAnchor, type.location.start.index, true))
+        (!this._isContextIndependent(type) ||
+          this._hasDeclarationContextBarrier(hoistAnchor, macro?.location.end.index ?? type.location.end.index, true))
       ) {
         this._unsupportedForwardDeclaration(type);
       }
@@ -373,7 +573,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     throw mapExpandedShaderError(
       new GSError(
         GSErrorName.CompilationError,
-        "An inherited function requires a forward declaration whose types depend on a later macro or precision context.",
+        "Inherited declarations require incompatible forward signatures or depend on a later macro or precision context.",
         node.location,
         ir.source,
         undefined,
@@ -465,6 +665,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           });
         }
       } else if (child instanceof ASTNode.StructSpecifier) {
+        if (this._forwardStructIndices.has(child)) continue;
         const context = this.context;
         const stage = context.stage;
         if (
@@ -484,7 +685,10 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         const variableDeclarations = child.variableDeclarations;
         for (let i = 0; i < variableDeclarations.length; i++) {
           const variableDeclaration = variableDeclarations[i];
-          if (this.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
+          if (
+            this.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1 &&
+            !this._forwardVariableIndices.has(variableDeclaration)
+          ) {
             out.push({
               text: `${this.getCachedCode(variableDeclaration) ?? ""};`,
               index: variableDeclaration.location.start.index

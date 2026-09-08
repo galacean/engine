@@ -2,7 +2,7 @@ import { EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
 import type { BranchSemantics } from "./BranchSemantics";
 import { getLexicalDeclarationCoexistence } from "./BranchIdentity";
-import { isInheritanceBranchVisibleFrom } from "../preprocessor/PreprocessorCondition";
+import { canInheritanceBranchesCover } from "../preprocessor/PreprocessorCondition";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -30,11 +30,15 @@ export class SymbolTable<T extends IBaseSymbol> {
     if (sourceScope > 0) {
       for (let i = entry.length - 1; i >= 0; i--) {
         const existing = entry[i];
-        if (
-          existing.equal(symbol) &&
-          (existing.sourceScope ?? 0) < sourceScope &&
-          isInheritanceBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
-        ) {
+        const inheritedScope = existing.sourceScope ?? 0;
+        if (!existing.equal(symbol) || inheritedScope >= sourceScope) continue;
+        const alternatives = [branchSignature];
+        for (const candidate of entry) {
+          if ((candidate.sourceScope ?? 0) > inheritedScope && candidate.equal(symbol)) {
+            alternatives.push(candidate.branchSignature ?? EMPTY_BRANCH);
+          }
+        }
+        if (canInheritanceBranchesCover(alternatives, existing.branchSignature ?? EMPTY_BRANCH)) {
           entry.splice(i, 1);
         }
       }
@@ -48,6 +52,8 @@ export class SymbolTable<T extends IBaseSymbol> {
     for (let i = 0, n = entry.length; i < n; i++) {
       const existing = entry[i];
       if (!existing.equal(symbol)) continue;
+      // Later descendants can complete the collective coverage of an inherited declaration.
+      if ((existing.sourceScope ?? 0) < sourceScope) continue;
 
       const existingBranch = existing.branchSignature ?? EMPTY_BRANCH;
       if (existingBranch.length === 0 && branchSignature.length === 0) {
@@ -67,13 +73,44 @@ export class SymbolTable<T extends IBaseSymbol> {
 
   private _insertWithoutBranchAnalysis(entry: T[], symbol: T): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
     for (let i = 0, n = entry.length; i < n; i++) {
-      if (entry[i].isInMacroBranch || !entry[i].equal(symbol)) continue;
+      if (
+        entry[i].isInMacroBranch ||
+        (entry[i].sourceScope ?? 0) !== (symbol.sourceScope ?? 0) ||
+        !entry[i].equal(symbol)
+      )
+        continue;
       entry[i] = symbol;
       return "coexist";
     }
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
     return "none";
+  }
+
+  /**
+   * Classifies remaining inherited conflicts after all narrower declarations have been inserted.
+   * @param symbol - Narrower declaration whose deferred diagnostic is being resolved.
+   * @param branchSemantics - Analyzer-owned coexistence classification.
+   * @returns The conflict remaining after collective inheritance coverage has been applied.
+   * @internal
+   */
+  getInheritedConflict(
+    symbol: T,
+    branchSemantics: BranchSemantics
+  ): Exclude<DeclarationCoexistence, "exclusive"> | "none" {
+    const entry = this._table.get(symbol.ident);
+    if (!entry?.includes(symbol)) return "none";
+    let conflict: Exclude<DeclarationCoexistence, "exclusive"> | "none" = "none";
+    for (const existing of entry) {
+      if ((existing.sourceScope ?? 0) >= (symbol.sourceScope ?? 0) || !existing.equal(symbol)) continue;
+      const coexistence = branchSemantics.getDeclarationCoexistence(
+        existing.branchSignature ?? EMPTY_BRANCH,
+        symbol.branchSignature ?? EMPTY_BRANCH
+      );
+      if (coexistence === "coexist") return "coexist";
+      if (coexistence === "unknown") conflict = "unknown";
+    }
+    return conflict;
   }
 
   /**

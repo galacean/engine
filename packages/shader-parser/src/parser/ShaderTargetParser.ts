@@ -181,6 +181,7 @@ export class ShaderTargetParser {
           nextToken = tokens.next();
         } else if (actionInfo?.action === EAction.Accept) {
           semanticAnalyzer.acceptRule?.(semanticAnalyzer);
+          semanticAnalyzer.finalizeInheritance();
           const program = semanticAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
           return program;
         } else if (actionInfo?.action === EAction.Reduce) {

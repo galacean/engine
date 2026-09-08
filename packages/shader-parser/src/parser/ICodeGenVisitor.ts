@@ -19,6 +19,12 @@ export interface ICodeGenVisitor {
   visitFunctionHeader(node: ASTNode.FunctionHeader): string;
   visitJumpStatement(node: ASTNode.JumpStatement): string;
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string;
+  /**
+   * Emits a type occurrence using the backend's declaration rules.
+   * @param node - Type occurrence with its captured declarations.
+   * @returns Generated type source.
+   */
+  visitTypeSpecifier(node: ASTNode.TypeSpecifier): string;
   visitStructSpecifier(node: ASTNode.StructSpecifier): string;
   visitFunctionDefinition(node: ASTNode.FunctionDefinition): string;
 }

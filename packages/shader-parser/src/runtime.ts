@@ -6,6 +6,8 @@ export * from "./common/PreprocessorCondition";
 export * from "./common/SymbolTable";
 export * from "./common/SymbolTableStack";
 export * from "./common/IBaseSymbol";
+export { getLexicalDeclarationCoexistence } from "./common/BranchIdentity";
+export { canInheritanceBranchesCover } from "./preprocessor/PreprocessorCondition";
 export * from "./common/enums/ShaderStage";
 
 export * from "./lexer";

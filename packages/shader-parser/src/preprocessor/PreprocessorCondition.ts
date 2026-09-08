@@ -1,14 +1,7 @@
-import {
-  evaluateContextFreePreprocessorCondition,
-  evaluatePartiallyKnownPreprocessorConditionResult,
-  type Condition,
-  type PartiallyKnownPreprocessorExpressionContext
-} from "@galacean/engine-design";
+import { evaluateContextFreePreprocessorCondition, type Condition } from "@galacean/engine-design";
 import type { BranchSignature } from "../common/BaseToken";
 import { getPreprocessorConditionRange, normalizePreprocessorCondition } from "./PreprocessorConditionNormalization";
-
-// Limit exhaustive proof cost on user-authored formulas; exhaustion must retain the declaration
-const MAX_PROOF_STATES = 512;
+import { provePreprocessorConditionCoverage } from "./PreprocessorConditionDiagram";
 
 /**
  * A source condition whose parsed meaning or complete opaque identity is fixed at its directive.
@@ -73,17 +66,23 @@ export function capturePreprocessorCondition(
 }
 
 /**
- * Proves that a narrower ShaderLab declaration is present whenever an inherited declaration is present.
- * @param declaration - Guards of the narrower declaration that may replace the inherited one.
- * @param reference - Guards of the inherited declaration.
- * @returns True only when source-owned predicates prove complete coverage within the work bound.
+ * Proves that a set of narrower declarations collectively covers an inherited declaration.
+ * @param declarations - Alternative guards from narrower ShaderLab scopes.
+ * @param reference - Guard of the inherited declaration.
+ * @returns Whether the inherited declaration can be removed in every macro configuration.
  * @internal
  */
-export function isInheritanceBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
-  let required = getPredicates(declaration);
+export function canInheritanceBranchesCover(
+  declarations: readonly BranchSignature[],
+  reference: BranchSignature
+): boolean {
   let facts = getPredicates(reference);
-  if (required === true || facts === false) return true;
-  if (required === undefined || facts === undefined) return false;
+  const alternatives = declarations.map(getPredicates);
+  if (alternatives.includes(true) || facts === false) return true;
+  if (facts === undefined) return false;
+  let required = alternatives.filter(
+    (predicates): predicates is readonly PreprocessorConditionTerm[] | boolean => predicates !== undefined
+  );
   // Normalize only when declarations compete for ownership, rather than every preprocessor directive
   const normalized = new Map<SourcePreprocessorCondition, SourcePreprocessorCondition>();
   function normalize(predicates: readonly PreprocessorConditionTerm[] | boolean) {
@@ -100,46 +99,11 @@ export function isInheritanceBranchVisibleFrom(declaration: BranchSignature, ref
       return { condition: canonical, negated };
     });
   }
-  required = normalize(required);
+  required = required.map(normalize);
   facts = normalize(facts);
   const rangeCache = new WeakMap<Condition, IntegerRange | undefined>();
-  if (proveCanonicalCoverage(required, facts, rangeCache)) return true;
-
-  const assignments = new Map<string, boolean>();
-  const variables = new Set<string>();
-  for (const predicates of [facts, required]) {
-    if (typeof predicates === "boolean") continue;
-    for (const { condition } of predicates) {
-      if (condition.kind === "opaque") variables.add(opaqueKey(condition.identity));
-      else for (const name in condition.versions) variables.add(definedKey(name, condition.versions[name]));
-    }
-  }
-  if (typeof facts !== "boolean") {
-    for (const term of facts) {
-      if (!assumeCondition(term.condition, !term.negated, assignments)) return true;
-    }
-  }
-  const unassigned = Array.from(variables).filter((name) => !assignments.has(name));
-  let remaining = MAX_PROOF_STATES;
-  function prove(index: number): boolean {
-    if (--remaining < 0) return false;
-    const source = evaluatePredicates(facts!, assignments, rangeCache);
-    if (source === false) return true;
-    const target = evaluatePredicates(required!, assignments, rangeCache);
-    if (target === true) return true;
-    if ((source === true && target === false) || index === unassigned.length) return false;
-    const name = unassigned[index];
-    assignments.set(name, false);
-    if (!prove(index + 1)) {
-      assignments.delete(name);
-      return false;
-    }
-    assignments.set(name, true);
-    const covered = prove(index + 1);
-    assignments.delete(name);
-    return covered;
-  }
-  return prove(0);
+  if (required.some((alternative) => proveCanonicalCoverage(alternative, facts!, rangeCache))) return true;
+  return provePreprocessorConditionCoverage(required, facts) === true;
 }
 
 function getPredicates(branch: BranchSignature): readonly PreprocessorConditionTerm[] | boolean | undefined {
@@ -153,68 +117,6 @@ function getPredicates(branch: BranchSignature): readonly PreprocessorConditionT
   return predicates.length ? predicates : true;
 }
 
-function evaluatePredicates(
-  predicates: readonly PreprocessorConditionTerm[] | boolean,
-  assignments: ReadonlyMap<string, boolean>,
-  rangeCache: WeakMap<Condition, IntegerRange | undefined>
-): boolean | undefined {
-  if (typeof predicates === "boolean") return predicates;
-  let unknown = false;
-  for (const { condition, negated } of predicates) {
-    let value: boolean | undefined;
-    if (condition.kind === "opaque") value = assignments.get(opaqueKey(condition.identity));
-    else {
-      // Partial truth may hide an earlier error, such as (1 / unknown) && false
-      if (
-        !getPreprocessorConditionRange(condition.expression, rangeCache) &&
-        Object.keys(condition.versions).some((name) => !assignments.has(definedKey(name, condition.versions[name])))
-      ) {
-        unknown = true;
-        continue;
-      }
-      const context: PartiallyKnownPreprocessorExpressionContext = {
-        resolveIdentifier: () => ({}),
-        isDefined: (name) => assignments.get(definedKey(name, condition.versions[name]))
-      };
-      const result = evaluatePartiallyKnownPreprocessorConditionResult(condition.expression, context);
-      if (result.error) return;
-      value = result.value === undefined ? undefined : result.value !== 0;
-    }
-    if (value === undefined) unknown = true;
-    else if (value === negated) return false;
-  }
-  return unknown ? undefined : true;
-}
-
-function assumeCondition(
-  condition: SourcePreprocessorCondition,
-  value: boolean,
-  assignments: Map<string, boolean>
-): boolean {
-  function assign(name: string, value: boolean): boolean {
-    if (assignments.has(name)) return assignments.get(name) === value;
-    assignments.set(name, value);
-    return true;
-  }
-  if (condition.kind === "opaque") return assign(opaqueKey(condition.identity), value);
-  const versions = condition.versions;
-  function visit(expression: Condition, value: boolean): boolean {
-    switch (expression.t) {
-      case "def":
-      case "ndef":
-        return assign(definedKey(expression.m, versions[expression.m]), expression.t === "def" ? value : !value);
-      case "not":
-        return visit(expression.c, !value);
-      case "and":
-      case "or":
-        if (value === (expression.t === "and")) return visit(expression.l, value) && visit(expression.r, value);
-        break;
-    }
-    return true;
-  }
-  return visit(condition.expression, value);
-}
-
 type IntegerRange = readonly [number, number];
 
 function proveCanonicalCoverage(
@@ -222,13 +124,21 @@ function proveCanonicalCoverage(
   facts: readonly PreprocessorConditionTerm[] | boolean,
   rangeCache: WeakMap<Condition, IntegerRange | undefined>
 ): boolean {
-  const known = new Set<string>();
-  const ranges = new Map<string, IntegerRange>();
-  const keys = new Map<SourcePreprocessorCondition, Map<Condition, string>>();
+  const known = new Set<number>();
+  const ranges = new Map<number, IntegerRange>();
+  const keys = new Map<SourcePreprocessorCondition, Map<Condition, number>>();
+  const identities = new Map<string, number>();
   const rangeOf = (expression: Condition) => getPreprocessorConditionRange(expression, rangeCache);
   let impossible = facts === false;
 
-  function key(expression: Condition, owner: SourcePreprocessorCondition): string {
+  // Share structural IDs across owners without embedding complete child expressions in every parent key
+  function intern(signature: string): number {
+    let identity = identities.get(signature);
+    if (identity === undefined) identities.set(signature, (identity = identities.size + 1));
+    return identity;
+  }
+
+  function key(expression: Condition, owner: SourcePreprocessorCondition): number {
     let cache = keys.get(owner);
     if (!cache) keys.set(owner, (cache = new Map()));
     let result = cache.get(expression);
@@ -237,7 +147,8 @@ function proveCanonicalCoverage(
         expression,
         owner.kind === "expression" ? owner.versions : {},
         (child) => key(child, owner),
-        rangeOf
+        rangeOf,
+        intern
       );
       cache.set(expression, result);
     }
@@ -273,7 +184,7 @@ function proveCanonicalCoverage(
     record: boolean
   ): boolean {
     if (owner.kind === "opaque") {
-      const identity = `${negated ? "-" : "+"}${opaqueKey(owner.identity)}`;
+      const identity = (negated ? -1 : 1) * intern(opaqueKey(owner.identity));
       if (record) known.add(identity);
       return known.has(identity);
     }
@@ -284,7 +195,7 @@ function proveCanonicalCoverage(
       if (record && !value) impossible = true;
       return value;
     }
-    const identity = `${negated ? "-" : "+"}${key(expression, owner)}`;
+    const identity = (negated ? -1 : 1) * key(expression, owner);
     if (record) known.add(identity);
     else if (known.has(identity)) return true;
 
@@ -328,19 +239,20 @@ function proveCanonicalCoverage(
 function canonicalExpressionKey(
   expression: Condition,
   versions: Readonly<Record<string, number>>,
-  key: (condition: Condition) => string,
-  rangeOf: (condition: Condition) => IntegerRange | undefined
-): string {
+  key: (condition: Condition) => number,
+  rangeOf: (condition: Condition) => IntegerRange | undefined,
+  intern: (signature: string) => number
+): number {
   const range = rangeOf(expression);
-  if (range && range[0] === range[1]) return `num:${range[0]}`;
+  if (range && range[0] === range[1]) return intern(`num:${range[0]}`);
   switch (expression.t) {
     case "def":
     case "ndef":
-      return `${expression.t}:${definedKey(expression.m, versions[expression.m])}`;
+      return intern(`${expression.t}:${definedKey(expression.m, versions[expression.m])}`);
     case "not":
-      return `not(${key(expression.c)})`;
+      return intern(`not(${key(expression.c)})`);
     case "unary":
-      return `${expression.op}(${key(expression.c)})`;
+      return intern(`${expression.op}(${key(expression.c)})`);
     case "and":
     case "or":
     case "binary": {
@@ -348,7 +260,7 @@ function canonicalExpressionKey(
       const numeric = ["+", "*", "&", "|", "^"].includes(operator);
       // These numeric operations are associative modulo 32 bits; Boolean reordering also needs total operands
       if (numeric || ((operator === "and" || operator === "or") && range)) {
-        const terms: string[] = [];
+        const terms: number[] = [];
         let constant: number | undefined;
         const collect = (node: Condition) => {
           if (
@@ -375,15 +287,15 @@ function canonicalExpressionKey(
         collect(expression);
         const identity = operator === "*" ? 1 : operator === "&" ? -1 : 0;
         if (numeric && constant !== undefined && (constant !== identity || !terms.length)) {
-          terms.push(`num:${constant}`);
+          terms.push(intern(`num:${constant}`));
         }
-        terms.sort();
-        return terms.length === 1 ? terms[0] : `${operator}(${terms.join(",")})`;
+        terms.sort((left, right) => left - right);
+        return terms.length === 1 ? terms[0] : intern(`${operator}(${terms.join(",")})`);
       }
-      return `${operator}(${key(expression.l)},${key(expression.r)})`;
+      return intern(`${operator}(${key(expression.l)},${key(expression.r)})`);
     }
     default:
-      return JSON.stringify(expression);
+      return intern(JSON.stringify(expression));
   }
 }
 

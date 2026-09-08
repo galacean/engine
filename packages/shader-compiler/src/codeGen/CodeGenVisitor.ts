@@ -5,7 +5,7 @@ import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser/internal";
 import { NodeChild, StructProp } from "@galacean/engine-shader-parser/internal";
 import { ParserUtils } from "@galacean/engine-shader-parser/internal";
 import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
-import type { ICodeGenVisitor } from "@galacean/engine-shader-parser/internal";
+import type { BranchSignature, ICodeGenVisitor } from "@galacean/engine-shader-parser/internal";
 import { VisitorContext } from "./VisitorContext";
 import { ReturnableObjectPool } from "@galacean/engine-core";
 import { Keyword } from "@galacean/engine-shader-parser/internal";
@@ -101,14 +101,15 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       this.context.referenceGlobal(name, ESymbolType.Any);
     }
     for (const symbol of node.resolvedSymbols()) {
-      if (symbol instanceof FnSymbol) this.referenceFunction(symbol, node.location.start.index);
+      if (symbol instanceof FnSymbol) this.referenceFunction(symbol, node.location.start.index, node._branch);
     }
 
     return node.getLexeme(this);
   }
 
-  protected referenceFunction(symbol: FnSymbol, referenceIndex: number): void {
+  protected referenceFunction(symbol: FnSymbol, referenceIndex: number, branch: BranchSignature): void {
     void referenceIndex;
+    void branch;
     this.context.referenceGlobal(symbol.ident, ESymbolType.FN);
   }
 
@@ -116,7 +117,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const call = node.children[0] as ASTNode.FunctionCallGeneric;
     if (call.fnSymbol instanceof FnSymbol) {
       for (const symbol of call.fnSymbols?.length ? call.fnSymbols : [call.fnSymbol]) {
-        this.referenceFunction(symbol, node.location.start.index);
+        this.referenceFunction(symbol, node.location.start.index, node._branch);
       }
 
       const paramList = call.children[2];
@@ -327,6 +328,10 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
+    return this.defaultCodeGen(node.children);
+  }
+
+  visitTypeSpecifier(node: ASTNode.TypeSpecifier): string {
     return this.defaultCodeGen(node.children);
   }
 

@@ -468,7 +468,7 @@ namespace ASTNodes {
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
       const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-      sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
+      sa.reportRedefinition(id.location, sm, insertResult);
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -566,6 +566,9 @@ namespace ASTNodes {
           ? structs.map((symbol) => (symbol as StructSymbol).astNode)
           : EMPTY_STRUCT_DECLARATIONS;
       }
+    }
+    override codeGen(visitor: ICodeGenVisitor): string {
+      return visitor.cache(this, visitor.visitTypeSpecifier(this));
     }
   }
 
@@ -734,7 +737,7 @@ namespace ASTNodes {
         };
         sa.recordFunctionVariable(sm);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
+        sa.reportRedefinition(id.location, sm, insertResult);
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
         const typeInfo = new SymbolType(
@@ -758,7 +761,7 @@ namespace ASTNodes {
         };
         sa.recordFunctionVariable(sm);
         const insertResult = sa.symbolTableStack.insert(sm, id.branch);
-        sa.reportRedefinition(id.location, id.lexeme, insertResult, id.branch);
+        sa.reportRedefinition(id.location, sm, insertResult);
       }
     }
   }
@@ -1003,12 +1006,7 @@ namespace ASTNodes {
       const existing = this.protoType.ident.branch.length === 0 ? sa.symbolTableStack.lookup(sm) : undefined;
       const unconditionalDuplicate = existing && existing.sourceScope === sm.sourceScope;
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
-      sa.reportRedefinition(
-        this.protoType.ident.location,
-        this.protoType.ident.lexeme,
-        conflict,
-        this.protoType.ident.branch
-      );
+      sa.reportRedefinition(this.protoType.ident.location, sm, conflict);
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       sa.curFunctionInfo.header = undefined;
@@ -1578,11 +1576,9 @@ namespace ASTNodes {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        const insertResult = sa.symbolTableStack.insert(
-          sa.assignSourceScope(new StructSymbol(this.ident.lexeme, this), this.ident.location),
-          this.ident.branch
-        );
-        sa.reportRedefinition(this.ident.location, this.ident.lexeme, insertResult, this.ident.branch);
+        const symbol = sa.assignSourceScope(new StructSymbol(this.ident.lexeme, this), this.ident.location);
+        const insertResult = sa.symbolTableStack.insert(symbol, this.ident.branch);
+        sa.reportRedefinition(this.ident.location, symbol, insertResult);
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1846,7 +1842,7 @@ namespace ASTNodes {
       };
 
       const insertResult = sa.symbolTableStack.insert(sm, ident.branch);
-      sa.reportRedefinition(ident.location, ident.lexeme, insertResult, ident.branch);
+      sa.reportRedefinition(ident.location, sm, insertResult);
 
       if (children.length === 4) {
         this.isStatic = true;

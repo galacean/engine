@@ -14,7 +14,6 @@ import {
   ShaderCompilerUtils,
   ShaderBuiltinSemantic,
   ShaderRange,
-  StructSymbol,
   SymbolInfo,
   TreeNode,
   TypeAny,
@@ -66,9 +65,7 @@ export class ShaderValidator {
     return v._errors;
   }
 
-  /** Scratch symbol and output reused while resolving custom type references. */
   private readonly _typeLookup = new SymbolInfo("", ESymbolType.STRUCT);
-  private readonly _typeStructScratch: SymbolInfo[] = [];
 
   private _errors: GSError[] = [];
   /**
@@ -203,22 +200,12 @@ export class ShaderValidator {
     const typeName = (node.children[0] as ASTNode.TypeSpecifierNonArray).children[0];
     if (!(typeName instanceof BaseToken)) return;
 
-    const lookup = this._typeLookup;
-    lookup.set(typeName.lexeme, ESymbolType.STRUCT);
-    const symbolTable = this._shaderData.symbolTable;
-    const structs = symbolTable.getSymbols(lookup, true, this._typeStructScratch);
-    const referenceIndex = typeName.location.start.index;
-    let priorStructCount = 0;
-    for (let i = 0, n = structs.length; i < n; i++) {
-      const struct = structs[i] as StructSymbol;
-      if (struct.astNode.ident && struct.astNode.ident.location.start.index < referenceIndex) {
-        structs[priorStructCount++] = struct;
-      }
-    }
-    structs.length = priorStructCount;
-
+    // Later inherited overrides can remove a declaration from the final table without changing its earlier visibility.
+    const structs = node.structDeclarations;
     if (!structs.length) {
-      if (symbolTable.hasSymbol(lookup)) {
+      const lookup = this._typeLookup;
+      lookup.set(typeName.lexeme, ESymbolType.STRUCT);
+      if (this._shaderData.symbolTable.hasSymbol(lookup)) {
         this._push(
           `Type '${typeName.lexeme}' is declared only after this reference or in an unavailable macro branch.`,
           typeName.location,
@@ -229,7 +216,7 @@ export class ShaderValidator {
     }
 
     const coverage = getBranchCoverage(
-      structs.map((struct) => struct.branchSignature ?? []),
+      structs.map((struct) => struct._branch),
       node._branch
     );
     if (coverage === "uncovered") {

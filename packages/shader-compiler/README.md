@@ -56,6 +56,8 @@ The input directory is the logical registry root. A shader at `PBR/Root.shader` 
 
 Inherited helper calls use forward declarations while overriding function bodies keep their original macro context. GLES can move ordinary struct signature dependencies ahead of those declarations. If this requires moving a type with conditional fields, macro-dependent array bounds, or across macro/precision changes, code generation reports `UnsupportedForwardDeclaration` with source context and rejects the pass. This is a GLES backend limitation; authoring analysis can still accept the source, and future backends can provide their own declaration ordering.
 
+GLES also moves replacement uniforms, struct declarations, and their enclosing conditions ahead of inherited references when their macro and precision context remains unchanged. Mutually exclusive functions that need different signatures at a shared forward-declaration site, and declarations that cross a macro or precision change, report `UnsupportedForwardDeclaration`.
+
 ## CFG Grammar conflict detection
 
 The Galacean shader syntax is defined using Context-Free Grammar (CFG) and is documented within the `\*.y` file. When modifications to the shader syntax are required, it is recommended to make changes to the existing CFG syntax file, and employ [Bison](https://www.gnu.org/software/bison/manual/bison.html) to detect any potential grammar conflicts.
