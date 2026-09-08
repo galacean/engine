@@ -43,7 +43,9 @@ export function tryParsePreprocessorCondition(
   const result = parsedExpression;
   if (!result.ok || result.evaluationError) return undefined;
   const constantValue = evaluateContextFreePreprocessorCondition(result.condition);
-  if (constantValue !== undefined) return { t: "bool", v: constantValue !== 0 };
+  if (constantValue !== undefined) {
+    return result.hasExpandableIdentifier ? undefined : { t: "bool", v: constantValue !== 0 };
+  }
   return toPreprocessorCondition(result.condition);
 }
 

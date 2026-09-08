@@ -15,7 +15,10 @@ import {
   type DeclarationCoexistenceResolver
 } from "../ir/ShaderCoreInfo";
 
-/** A definite MRT member contract violation shared by analyzer and compiler. @internal */
+/**
+ * A definite MRT member contract violation shared by analyzer and compiler.
+ * @internal
+ */
 export interface ShaderMrtOutputIssue {
   /** Offending MRT member. */
   readonly prop: StructProp;

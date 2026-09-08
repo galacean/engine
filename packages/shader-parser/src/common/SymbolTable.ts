@@ -32,9 +32,7 @@ export class SymbolTable<T extends IBaseSymbol> {
         if (
           existing.equal(symbol) &&
           (existing.sourceScope ?? 0) < sourceScope &&
-          (branchSemantics
-            ? branchSemantics.isBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
-            : isInheritanceBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH))
+          isInheritanceBranchVisibleFrom(branchSignature, existing.branchSignature ?? EMPTY_BRANCH)
         ) {
           entry.splice(i, 1);
         }

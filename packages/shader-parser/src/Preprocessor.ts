@@ -1,3 +1,4 @@
+import type { PreprocessorConditionalArm } from "./preprocessor/PreprocessorMacroState";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";
@@ -29,8 +30,8 @@ export interface PreprocessResult {
   sourceMap: ShaderSourceMapSegment[];
   /** Compact semantic inheritance ranges, independent of diagnostic source mapping. */
   sourceScopes: ShaderSourceScope[];
-  /** Known conditional-arm truth, keyed by the generated offset of its directive's `#`. */
-  conditionalArmTruth: ReadonlyMap<number, boolean>;
+  /** Source-owned arm facts, keyed by the generated offset of its directive's `#`. */
+  conditionalArms: ReadonlyMap<number, PreprocessorConditionalArm>;
 }
 
 export type ChunkOutputCache = Map<string, PreprocessResult>;
@@ -124,7 +125,7 @@ export class Preprocessor {
       );
     } catch (error) {
       if (!(error instanceof GSError) || error.name !== GSErrorName.PreprocessorError) throw error;
-      return { content: "", errors: [error], sourceMap: [], sourceScopes: [], conditionalArmTruth: new Map() };
+      return { content: "", errors: [error], sourceMap: [], sourceScopes: [], conditionalArms: new Map() };
     }
   }
 
@@ -164,7 +165,7 @@ export class Preprocessor {
     const errors: GSError[] = [];
     const sourceMap: ShaderSourceMapSegment[] = [];
     const sourceScopes: ShaderSourceScope[] = [];
-    const conditionalArmTruth = new Map<number, boolean>();
+    const conditionalArms = new Map<number, PreprocessorConditionalArm>();
     const parts: string[] = [];
     let sourceOffset = 0;
     let generatedOffset = 0;
@@ -230,9 +231,9 @@ export class Preprocessor {
       const directiveBody = match[2] ?? "";
       if (directive !== "include") {
         const result = macroState.processDirective(directive, this._stripLineComment(directiveBody));
-        if (result.keep && result.armValue !== undefined) {
+        if (result.keep && result.arm) {
           const hashOffset = directiveSource.indexOf("#", match.index) - match.index;
-          conditionalArmTruth.set(generatedOffset + hashOffset, result.armValue);
+          conditionalArms.set(generatedOffset + hashOffset, result.arm);
         }
         if (result.error) {
           const leadingWhitespace = directiveBody.length - directiveBody.trimStart().length;
@@ -323,8 +324,8 @@ export class Preprocessor {
         macroState.applyCachedState(cachedState);
       }
       reserveExpansion(expanded.content.length, expandedSegmentCounts.get(expanded) ?? 1, match.index);
-      for (const [offset, value] of expanded.conditionalArmTruth) {
-        conditionalArmTruth.set(generatedOffset + offset, value);
+      for (const [offset, value] of expanded.conditionalArms) {
+        conditionalArms.set(generatedOffset + offset, value);
       }
       parts.push(expanded.content);
       appendScope(expanded.content.length, includeSourceScope);
@@ -345,7 +346,7 @@ export class Preprocessor {
       sourceOffset = directiveReg.lastIndex;
     }
     appendSource(sourceOffset, source.length, macroState.reachable);
-    const result = { content: parts.join(""), errors, sourceMap, sourceScopes, conditionalArmTruth };
+    const result = { content: parts.join(""), errors, sourceMap, sourceScopes, conditionalArms };
     if (splices.length) this._restoreSplicedSource(result, source, originalSource, sourceFile, splices);
     expandedSegmentCounts.set(result, segmentCount);
     return result;

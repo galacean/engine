@@ -1,3 +1,4 @@
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
 import type { BaseToken } from "../common/BaseToken";
 import type { PreprocessorExpressionParseResult } from "@galacean/engine-design";
 import { ShaderPosition } from "../common/ShaderPosition";
@@ -161,7 +162,7 @@ export function parseShaderPassWith(
     expandedSource: string,
     macroDefineList: MacroDefineList,
     objectPool?: ParserObjectPool,
-    conditionalArmTruth?: ReadonlyMap<number, boolean>
+    conditionalArms?: ReadonlyMap<number, PreprocessorConditionalArm>
   ) => ShaderPassLexer,
   createParser: (expandedSource: string, objectPool?: ParserObjectPool) => ShaderTargetParser,
   sourceFile?: string,
@@ -175,7 +176,7 @@ export function parseShaderPassWith(
     content: expandedSource,
     errors: preprocessErrors,
     sourceMap,
-    conditionalArmTruth
+    conditionalArms
   } = Preprocessor.parseWithErrors(
     source,
     basePathForIncludeKey,
@@ -198,7 +199,7 @@ export function parseShaderPassWith(
       blockingErrors: errors
     });
   }
-  const lexer = createLexer(expandedSource, macroDefineList, objectPool, conditionalArmTruth);
+  const lexer = createLexer(expandedSource, macroDefineList, objectPool, conditionalArms);
   const tokens = lexer.tokenize();
   const parser = createParser(expandedSource, objectPool);
   parser.setSourceScopes(frozenSourceMap);

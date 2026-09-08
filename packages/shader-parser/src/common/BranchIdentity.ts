@@ -41,7 +41,7 @@ export function sameBranch(a: BranchSignature, b: BranchSignature): boolean {
 export function isLexicalBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
   for (let i = 0; i < declaration.length; i++) {
     const declarationConstraint = declaration[i];
-    if (declarationConstraint.unconditionalArm === true) continue;
+    if (declarationConstraint.sourceArm?.value === true) continue;
     const group = declarationConstraint.conditionalGroup;
     if (group === undefined) return false;
 
@@ -60,27 +60,22 @@ export function isLexicalBranchVisibleFrom(declaration: BranchSignature, referen
 
 /**
  * Determines whether an inherited declaration is fully replaced under the later declaration's guards.
- * Simple guards from independent chains match only while their macro mutation versions agree.
+ * Both parser policies consume the same preprocessor identities, including macro mutations.
  * @param declaration - Guards on the narrower ShaderLab declaration.
  * @param reference - Guards on the inherited declaration it may replace.
  * @returns Whether the narrower declaration is present whenever the inherited declaration is present.
  * @internal
  */
 export function isInheritanceBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
-  return declaration.every(
-    (constraint) =>
-      constraint.unconditionalArm === true ||
-      reference.some(
-        (candidate) =>
-          (constraint.conditionalGroup !== undefined &&
-            constraint.conditionalGroup === candidate.conditionalGroup &&
-            constraint.conditionalArm === candidate.conditionalArm) ||
-          (constraint.guardVersion !== undefined &&
-            constraint.guardVersion === candidate.guardVersion &&
-            constraint.name === candidate.name &&
-            constraint.defined === candidate.defined)
-      )
-  );
+  for (const constraint of declaration) {
+    const arm = constraint.sourceArm;
+    if (arm?.value === true) continue;
+    if (!arm?.conditions || arm.value === false) return false;
+    for (const condition of arm.conditions) {
+      if (!reference.some((candidate) => candidate.sourceArm?.conditions?.includes(condition))) return false;
+    }
+  }
+  return true;
 }
 
 /**

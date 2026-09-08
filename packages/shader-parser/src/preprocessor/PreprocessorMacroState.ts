@@ -10,7 +10,6 @@ import {
 
 interface MacroState {
   readonly defined: boolean | undefined;
-  readonly replacement?: Condition;
   readonly replacementKey?: string;
   readonly functionParams?: readonly string[];
   readonly functionBody?: string;
@@ -23,6 +22,7 @@ interface ConditionalFrame {
   remainderReachable: boolean;
   /** Truth of reaching the next arm relative to the parent, before its condition. */
   remainderValue: boolean | undefined;
+  remainderConditions: readonly string[] | undefined;
   hasElse: boolean;
   readonly entryState: MacroStateMap;
   remainderState: MacroStateMap;
@@ -32,6 +32,7 @@ interface ConditionalFrame {
 
 interface ConditionResult {
   readonly value: boolean | undefined;
+  readonly identity?: string;
   readonly error?: string;
   readonly errorStart?: number;
   readonly errorEnd?: number;
@@ -47,6 +48,7 @@ interface MacroAssumption {
 /** @internal */
 export interface PreprocessorMacroSnapshot {
   readonly states: MacroStateMap;
+  readonly versions: Readonly<Record<string, number>>;
 }
 
 /** @internal */
@@ -59,14 +61,25 @@ export interface CachedPreprocessorMacroState {
 export interface PreprocessorDirectiveResult {
   /** Whether the directive remains reachable in at least one macro configuration. */
   readonly keep: boolean;
-  /** Truth of the entire conditional arm relative to its enclosing parent. */
-  readonly armValue?: boolean;
+  /** Truth and stable identities of the entire arm relative to its enclosing parent. */
+  readonly arm?: PreprocessorConditionalArm;
   /** Deterministic expression failure, when present. */
   readonly error?: string;
   /** Start offset of the failure relative to the trimmed directive expression. */
   readonly errorStart?: number;
   /** Exclusive end offset of the failure relative to the trimmed directive expression. */
   readonly errorEnd?: number;
+}
+
+/**
+ * Source-preprocessor facts for an entire conditional arm, including preceding alternatives.
+ * @internal
+ */
+export interface PreprocessorConditionalArm {
+  /** Truth relative to the enclosing parent, when all macro configurations agree. */
+  readonly value?: boolean;
+  /** Conjunctive, signed condition identities; absent when identity cannot be established safely. */
+  readonly conditions?: readonly string[];
 }
 
 /**
@@ -78,9 +91,13 @@ export interface PreprocessorDirectiveResult {
  */
 export class PreprocessorMacroState {
   private _states: MacroStateMap = Object.create(null);
+  private _versions: Record<string, number> = Object.create(null);
+  private _versionKey: string | undefined;
   private readonly _frames: ConditionalFrame[] = [];
   private readonly _expressionContext: PartiallyKnownPreprocessorExpressionContext = {
-    resolveIdentifier: (name) => this._resolveIdentifier(name, new Set()),
+    // Ordinary identifiers must finish textual expansion before value evaluation. A source macro
+    // can introduce a defined(...) operator whose source-known state still needs this resolver.
+    resolveIdentifier: () => ({}),
     isDefined: (name) => this._state(name).defined
   };
 
@@ -98,7 +115,7 @@ export class PreprocessorMacroState {
         const condition = this.reachable ? this._evaluate(body) : { value: undefined };
         return {
           keep: this._openConditional(condition),
-          armValue: condition.value,
+          arm: this._arm(condition.value, [], condition),
           error: condition.error,
           errorStart: condition.errorStart,
           errorEnd: condition.errorEnd
@@ -106,11 +123,19 @@ export class PreprocessorMacroState {
       }
       case "ifdef": {
         const condition = this._definedCondition(body, true);
-        return { keep: this._openConditional(condition), armValue: condition.value, error: condition.error };
+        return {
+          keep: this._openConditional(condition),
+          arm: this._arm(condition.value, [], condition),
+          error: condition.error
+        };
       }
       case "ifndef": {
         const condition = this._definedCondition(body, false);
-        return { keep: this._openConditional(condition), armValue: condition.value, error: condition.error };
+        return {
+          keep: this._openConditional(condition),
+          arm: this._arm(condition.value, [], condition),
+          error: condition.error
+        };
       }
       case "elif":
         return this._advanceConditional(body);
@@ -135,7 +160,7 @@ export class PreprocessorMacroState {
 
   /** @internal */
   captureSnapshot(): PreprocessorMacroSnapshot {
-    return { states: PreprocessorMacroState._cloneStates(this._states) };
+    return { states: PreprocessorMacroState._cloneStates(this._states), versions: { ...this._versions } };
   }
 
   /** @internal */
@@ -143,7 +168,7 @@ export class PreprocessorMacroState {
     const names = new Set([...Object.keys(before.states), ...Object.keys(this._states)]);
     const mutatedNames: string[] = [];
     for (const name of names) {
-      if (!PreprocessorMacroState._sameState(this._stateFrom(before.states, name), this._state(name))) {
+      if ((before.versions[name] ?? 0) !== (this._versions[name] ?? 0)) {
         mutatedNames.push(name);
       }
     }
@@ -152,8 +177,12 @@ export class PreprocessorMacroState {
 
   /** @internal */
   applyCachedState(cached: CachedPreprocessorMacroState): void {
-    for (let i = 0, n = cached.mutatedNames.length; i < n; i++) this._markMutation(cached.mutatedNames[i]);
+    for (const name of cached.mutatedNames) {
+      for (const frame of this._frames) frame.mutatedNames.add(name);
+    }
     this._states = PreprocessorMacroState._cloneStates(cached.snapshot.states);
+    this._versions = { ...cached.snapshot.versions };
+    this._versionKey = undefined;
   }
 
   /** @internal */
@@ -165,9 +194,9 @@ export class PreprocessorMacroState {
       const state = this._states[name];
       const defined = state.defined === undefined ? "?" : state.defined ? "1" : "0";
       const replacement = state.replacementKey ?? "";
-      key += `${name.length}:${name}${defined}${replacement.length}:${replacement}`;
+      key += `${name.length}:${name}${defined}${state.functionParams ? "f" : "v"}${replacement.length}:${replacement}`;
     }
-    return key;
+    return `${key}\0${this._macroVersionKey()}`;
   }
 
   private _openConditional(condition: ConditionResult): boolean {
@@ -182,6 +211,7 @@ export class PreprocessorMacroState {
       parentReachable,
       remainderReachable: parentReachable && condition.value !== true,
       remainderValue: condition.value === undefined ? undefined : !condition.value,
+      remainderConditions: this._appendCondition([], condition, true),
       hasElse: false,
       entryState,
       remainderState,
@@ -209,6 +239,8 @@ export class PreprocessorMacroState {
     }
     const condition = this._evaluate(body);
     const armValue = PreprocessorMacroState._and(frame.remainderValue, condition.value);
+    const arm = this._arm(armValue, frame.remainderConditions, condition);
+    frame.remainderConditions = this._appendCondition(frame.remainderConditions, condition, true);
     frame.remainderValue = PreprocessorMacroState._and(
       frame.remainderValue,
       condition.value === undefined ? undefined : !condition.value
@@ -222,7 +254,7 @@ export class PreprocessorMacroState {
     if (condition.value === true) frame.remainderReachable = false;
     return {
       keep: true,
-      armValue,
+      arm,
       error: condition.error,
       errorStart: condition.errorStart,
       errorEnd: condition.errorEnd
@@ -240,7 +272,7 @@ export class PreprocessorMacroState {
     frame.remainderReachable = false;
     frame.remainderValue = false;
     frame.hasElse = true;
-    return { keep, armValue };
+    return { keep, arm: { value: armValue, conditions: frame.remainderConditions } };
   }
 
   private _closeConditional(): boolean {
@@ -307,12 +339,7 @@ export class PreprocessorMacroState {
       return;
     }
 
-    const parsed = replacementKey ? parsePreprocessorExpression(replacementKey) : undefined;
-    this._states[name] = {
-      defined: true,
-      replacement: parsed?.ok ? parsed.condition : undefined,
-      replacementKey
-    };
+    this._states[name] = { defined: true, replacementKey };
   }
 
   private _undef(body: string): void {
@@ -323,6 +350,8 @@ export class PreprocessorMacroState {
   }
 
   private _markMutation(name: string): void {
+    this._versions[name] = (this._versions[name] ?? 0) + 1;
+    this._versionKey = undefined;
     for (let i = 0, n = this._frames.length; i < n; i++) this._frames[i].mutatedNames.add(name);
   }
 
@@ -334,7 +363,9 @@ export class PreprocessorMacroState {
       trimmedExpression,
       (name) => this._state(name).defined
     );
-    const expansion = expandPreprocessorExpressionMacros(withDefinedValues, (name) => this._macro(name));
+    const expansion = expandPreprocessorExpressionMacros(withDefinedValues, (name) =>
+      this._state(name).defined === false ? { body: "0" } : this._macro(name)
+    );
     if (expansion.error) {
       return {
         value: undefined,
@@ -362,10 +393,16 @@ export class PreprocessorMacroState {
           : undefined;
       return { value: undefined, error, errorStart: 0, errorEnd: trimmedExpression.length };
     }
-    const evaluated = evaluatePartiallyKnownPreprocessorConditionResult(parsed.condition, this._expressionContext);
+    // External replacements may contain operators or delimiters, so their expansion can change
+    // this tree's precedence and even short-circuit an apparent evaluation error.
+    const evaluated = parsed.hasExpandableIdentifier
+      ? { value: undefined, error: undefined }
+      : evaluatePartiallyKnownPreprocessorConditionResult(parsed.condition, this._expressionContext);
     const assumptions = PreprocessorMacroState._conditionAssumptions(parsed.condition);
     return {
       value: evaluated.value === undefined ? undefined : evaluated.value !== 0,
+      identity:
+        evaluated.value === undefined ? this._conditionIdentity(parsed.condition, expandedExpression) : undefined,
       error: evaluated.error,
       errorStart: evaluated.error ? 0 : undefined,
       errorEnd: evaluated.error ? trimmedExpression.length : undefined,
@@ -380,50 +417,58 @@ export class PreprocessorMacroState {
     const defined = this._state(name).defined;
     return {
       value: defined === undefined ? undefined : defined === whenDefined,
+      identity: `${whenDefined ? "+" : "-"}defined:${name}:${this._versions[name] ?? 0}`,
       trueAssumption: { name, defined: whenDefined },
       falseAssumption: { name, defined: !whenDefined }
     };
+  }
+
+  private _arm(
+    value: boolean | undefined,
+    preceding: readonly string[] | undefined,
+    condition: ConditionResult
+  ): PreprocessorConditionalArm {
+    return { value, conditions: value === true ? [] : this._appendCondition(preceding, condition) };
+  }
+
+  private _appendCondition(
+    preceding: readonly string[] | undefined,
+    condition: ConditionResult,
+    negate = false
+  ): readonly string[] | undefined {
+    if (!preceding) return;
+    if (condition.value !== undefined) return condition.value !== negate ? preceding : undefined;
+    const identity = condition.identity;
+    if (!identity) return;
+    return [...preceding, negate ? `${identity[0] === "+" ? "-" : "+"}${identity.slice(1)}` : identity];
+  }
+
+  private _conditionIdentity(condition: Condition, expression: string): string {
+    let negated = false;
+    while (condition.t === "not") {
+      negated = !negated;
+      condition = condition.c;
+    }
+    if (condition.t === "def" || condition.t === "ndef") {
+      return `${(condition.t === "def") !== negated ? "+" : "-"}defined:${condition.m}:${this._versions[condition.m] ?? 0}`;
+    }
+    // An external macro can expand to another source macro or to operator tokens. Preserve token
+    // grouping and every source mutation, including dependencies hidden in that replacement text.
+    return `+${JSON.stringify([expression, this._macroVersionKey()])}`;
+  }
+
+  private _macroVersionKey(): string {
+    return (this._versionKey ??= JSON.stringify(
+      Object.keys(this._versions)
+        .sort()
+        .map((name) => [name, this._versions[name]])
+    ));
   }
 
   private _applyAssumption(states: MacroStateMap, assumption: MacroAssumption | undefined): void {
     if (!assumption) return;
     const current = this._stateFrom(states, assumption.name);
     states[assumption.name] = assumption.defined ? { ...current, defined: true } : { defined: false };
-  }
-
-  private _resolveIdentifier(
-    name: string,
-    resolving: Set<string>
-  ): { readonly value?: number; readonly error?: string } {
-    const state = this._state(name);
-    if (state.defined === false) return { value: 0 };
-    if (state.defined !== true || state.functionParams || !state.replacementKey || resolving.has(name)) return {};
-    resolving.add(name);
-    const expansion = expandPreprocessorExpressionMacros(state.replacementKey, (macroName) => this._macro(macroName));
-    if (expansion.error) {
-      resolving.delete(name);
-      return { error: expansion.error };
-    }
-    const expandedReplacement = expansion.expression;
-    let replacement = state.replacement;
-    if (expandedReplacement !== state.replacementKey || !replacement) {
-      const parsed = parsePreprocessorExpression(expandedReplacement);
-      if ("error" in parsed) {
-        resolving.delete(name);
-        return parsed.error.certain
-          ? { error: `Invalid preprocessor expression after expanding '${name}': ${parsed.error.message}` }
-          : {};
-      }
-      replacement = parsed.condition;
-    }
-    const result = evaluatePartiallyKnownPreprocessorConditionResult(replacement, {
-      resolveIdentifier: (nestedName) => this._resolveIdentifier(nestedName, resolving),
-      isDefined: (nestedName) => this._state(nestedName).defined
-    });
-    resolving.delete(name);
-    return result.error
-      ? { error: `Invalid preprocessor expression after expanding '${name}': ${result.error}` }
-      : result;
   }
 
   private _macro(name: string): PreprocessorExpressionMacro | undefined {
@@ -449,7 +494,11 @@ export class PreprocessorMacroState {
   }
 
   private static _sameState(left: MacroState, right: MacroState): boolean {
-    return left.defined === right.defined && left.replacementKey === right.replacementKey;
+    return (
+      left.defined === right.defined &&
+      left.replacementKey === right.replacementKey &&
+      !!left.functionParams === !!right.functionParams
+    );
   }
 
   private static _and(left: boolean | undefined, right: boolean | undefined): boolean | undefined {

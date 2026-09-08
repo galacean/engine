@@ -3,14 +3,7 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
-import {
-  ESymbolType,
-  Lexer,
-  Preprocessor,
-  ShaderSourceParser,
-  SymbolInfo,
-  SymbolTable
-} from "@galacean/engine-shader-parser/internal";
+import { Lexer, Preprocessor, ShaderSourceParser } from "@galacean/engine-shader-parser/internal";
 import { AnalyzerLexer, isBranchVisibleFrom } from "@galacean/engine-shader-parser/internal/analyzer";
 import { describe, expect, it } from "vitest";
 
@@ -244,13 +237,13 @@ first;
 later;
 #endif`;
     const result = Preprocessor.parseWithErrors(source, "", {}, new Map());
-    const tokens = Array.from(new Lexer(result.content, {}, undefined, result.conditionalArmTruth).tokenize());
+    const tokens = Array.from(new Lexer(result.content, {}, undefined, result.conditionalArms).tokenize());
     expect(result.errors).toEqual([]);
     const nested = tokens.find((token) => token.lexeme === "nested")!.branch;
-    expect(nested.map((arm) => arm.unconditionalArm)).toEqual([undefined, true]);
-    expect(tokens.find((token) => token.lexeme === "later")!.branch[0].unconditionalArm).toBeUndefined();
+    expect(nested.map((arm) => arm.sourceArm?.value)).toEqual([undefined, true]);
+    expect(tokens.find((token) => token.lexeme === "later")!.branch[0].sourceArm?.value).toBeUndefined();
     const analyzerTokens = Array.from(
-      new AnalyzerLexer(result.content, {}, undefined, result.conditionalArmTruth).tokenize()
+      new AnalyzerLexer(result.content, {}, undefined, result.conditionalArms).tokenize()
     );
     const analyzedNested = analyzerTokens.find((token) => token.lexeme === "nested")!.branch;
     expect(isBranchVisibleFrom(analyzedNested, [])).toBe(false);
@@ -265,12 +258,12 @@ later;
     for (const trackSourceMap of [false, true, false, true]) {
       const result = Preprocessor.parseWithErrors(source, "", includeMap, cache, undefined, trackSourceMap);
       expect(result.errors).toEqual([]);
-      const tokens = Array.from(new Lexer(result.content, {}, undefined, result.conditionalArmTruth).tokenize());
+      const tokens = Array.from(new Lexer(result.content, {}, undefined, result.conditionalArms).tokenize());
       const inside = tokens.filter((token) => token.lexeme === "inside");
       expect(inside).toHaveLength(2);
-      expect(inside.map((token) => token.branch[0].unconditionalArm)).toEqual([true, true]);
+      expect(inside.map((token) => token.branch[0].sourceArm?.value)).toEqual([true, true]);
       const analyzerTokens = Array.from(
-        new AnalyzerLexer(result.content, {}, undefined, result.conditionalArmTruth).tokenize()
+        new AnalyzerLexer(result.content, {}, undefined, result.conditionalArms).tokenize()
       );
       expect(
         analyzerTokens
@@ -278,30 +271,6 @@ later;
           .map((token) => isBranchVisibleFrom(token.branch, []))
       ).toEqual([true, true]);
     }
-  });
-
-  it.each(["#undef OUTER", "#define OUTER 1", "#define OUTER", "#define OUTER(x) x"])(
-    "does not merge inherited guards across %s",
-    (mutation) => {
-      const tokens = Array.from(
-        new Lexer(`#ifdef OUTER\nearlier;\n#endif\n${mutation}\n#ifdef OUTER\nlater;\n#endif`, {}).tokenize()
-      );
-      const earlierBranch = tokens.find((token) => token.lexeme === "earlier")!.branch;
-      const laterBranch = tokens.find((token) => token.lexeme === "later")!.branch;
-      expect(laterBranch[0].guardVersion).toBeGreaterThan(earlierBranch[0].guardVersion!);
-      const table = new SymbolTable<SymbolInfo>();
-      const earlier = new SymbolInfo("value", ESymbolType.VAR);
-      const later = new SymbolInfo("value", ESymbolType.VAR);
-      later.sourceScope = 1;
-      table.insert(earlier, true, earlierBranch);
-      table.insert(later, true, laterBranch);
-      expect(table.getSymbols(later, true, [])).toEqual([later, earlier]);
-    }
-  );
-
-  it("does not interpret an else after elif as a simple inverse guard", () => {
-    const tokens = Array.from(new Lexer("#ifdef OUTER\n#elif defined(INNER)\n#else\nlast;\n#endif", {}).tokenize());
-    expect(tokens.find((token) => token.lexeme === "last")!.branch[0].guardVersion).toBeUndefined();
   });
 
   it("retains both same-scope sibling declarations", () => {

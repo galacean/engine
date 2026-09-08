@@ -1,3 +1,4 @@
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, BranchCondition, BranchConstraint, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
@@ -142,9 +143,7 @@ export class Lexer extends BaseLexer {
   protected _pendingBranchPushDefined: boolean | null = null;
   private _pendingCodegenConditional: "push" | "advance" | null = null;
   private _codegenConditionalFrames: CodegenConditionalFrame[] = [];
-  private _codegenGuardVersions: Record<string, number> = Object.create(null);
-  private _pendingCodegenGuardUndef = false;
-  private _pendingCodegenArmTruth: boolean | undefined;
+  private _pendingCodegenArm: PreprocessorConditionalArm | undefined;
 
   *tokenize() {
     yield* this._tokenizeForCodegen();
@@ -158,12 +157,10 @@ export class Lexer extends BaseLexer {
         const parsedCondition = this._parseCodegenConstantCondition(tok.lexeme);
         if (this._pendingCodegenConditional === "push") {
           const conditionalGroup = ++this._conditionalGroup;
-          const guard = this._codegenGuardIdentity(tok.lexeme);
           const arm: BranchConstraint = {
-            name: guard?.name ?? `__if_${conditionalGroup}`,
-            defined: guard?.defined ?? true,
-            guardVersion: guard?.guardVersion,
-            unconditionalArm: this._pendingCodegenArmTruth,
+            name: `__if_${conditionalGroup}`,
+            defined: true,
+            sourceArm: this._pendingCodegenArm,
             conditionalGroup,
             conditionalArm: 0,
             condition: parsedCondition
@@ -185,7 +182,7 @@ export class Lexer extends BaseLexer {
               defined: true,
               conditionalGroup: previous.conditionalGroup,
               conditionalArm: (previous.conditionalArm ?? 0) + 1,
-              unconditionalArm: this._pendingCodegenArmTruth,
+              sourceArm: this._pendingCodegenArm,
               condition
             };
             frame.arms.push(this._branchStack[index]);
@@ -202,8 +199,7 @@ export class Lexer extends BaseLexer {
         const arm: BranchConstraint = {
           name: tok.lexeme,
           defined: this._pendingBranchPushDefined,
-          guardVersion: this._codegenGuardVersions[tok.lexeme] ?? 0,
-          unconditionalArm: this._pendingCodegenArmTruth,
+          sourceArm: this._pendingCodegenArm,
           conditionalGroup,
           conditionalArm: 0
         };
@@ -211,32 +207,25 @@ export class Lexer extends BaseLexer {
         this._codegenConditionalFrames.push({ arms: [arm], definitelyMatched: false });
         this._pendingBranchPushDefined = null;
       }
-      if (this._pendingCodegenGuardUndef && isMacroName) {
-        this._recordCodegenGuardMutation(tok.lexeme);
-        this._pendingCodegenGuardUndef = false;
-      }
 
       if (this._branchStack.length > 0) tok.branch = this._captureBranchSignature();
 
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
-          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingCodegenArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingBranchPushDefined = true;
           break;
         case Keyword.MACRO_IFNDEF:
-          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingCodegenArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
-          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingCodegenArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingCodegenConditional = "push";
           break;
         case Keyword.MACRO_ELIF:
-          this._pendingCodegenArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingCodegenArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingCodegenConditional = "advance";
-          break;
-        case Keyword.MACRO_UNDEF:
-          this._pendingCodegenGuardUndef = true;
           break;
         case Keyword.MACRO_ELSE: {
           const index = this._branchStack.length - 1;
@@ -247,8 +236,7 @@ export class Lexer extends BaseLexer {
             this._branchStack[index] = {
               name: previous.name,
               defined: !previous.defined,
-              guardVersion: frame.arms.length === 1 ? previous.guardVersion : undefined,
-              unconditionalArm: this._conditionalArmTruth?.get(tok.location.start.index),
+              sourceArm: this._conditionalArms?.get(tok.location.start.index),
               conditionalGroup: previous.conditionalGroup,
               conditionalArm: (previous.conditionalArm ?? 0) + 1,
               condition
@@ -280,32 +268,11 @@ export class Lexer extends BaseLexer {
 
   private _parseCodegenConstantCondition(expression: string): BranchCondition | undefined {
     const parsed = this.preprocessorExpressions.get(expression.trim());
-    const value = parsed?.ok ? evaluateContextFreePreprocessorCondition(parsed.condition) : undefined;
+    const value =
+      parsed?.ok && !parsed.hasExpandableIdentifier
+        ? evaluateContextFreePreprocessorCondition(parsed.condition)
+        : undefined;
     return value === undefined ? undefined : { kind: "constant", value: value !== 0 };
-  }
-
-  private _codegenGuardIdentity(
-    expression: string
-  ): Pick<BranchConstraint, "name" | "defined" | "guardVersion"> | undefined {
-    const parsed = this.preprocessorExpressions.get(expression.trim());
-    if (!parsed?.ok) return;
-    let condition = parsed.condition;
-    let negated = false;
-    while (condition.t === "not") {
-      negated = !negated;
-      condition = condition.c;
-    }
-    if (condition.t !== "def" && condition.t !== "ndef") return;
-    return {
-      name: condition.m,
-      defined: (condition.t === "def") !== negated,
-      guardVersion: this._codegenGuardVersions[condition.m] ?? 0
-    };
-  }
-
-  private _recordCodegenGuardMutation(name: string): void {
-    if (!Lexer._isCodegenBranchReachable(this._branchStack)) return;
-    this._codegenGuardVersions[name] = (this._codegenGuardVersions[name] ?? 0) + 1;
   }
 
   private static _isCodegenBranchReachable(branch: BranchSignature): boolean {
@@ -335,7 +302,7 @@ export class Lexer extends BaseLexer {
     source: string,
     public macroDefineList: MacroDefineList,
     objectPool?: ParserObjectPool,
-    protected readonly _conditionalArmTruth?: ReadonlyMap<number, boolean>
+    protected readonly _conditionalArms?: ReadonlyMap<number, PreprocessorConditionalArm>
   ) {
     super(source, objectPool);
   }
@@ -1004,7 +971,6 @@ export class Lexer extends BaseLexer {
     valueStart: number,
     valueEnd: number
   ): void {
-    this._recordCodegenGuardMutation(name);
     const params = paramsLexeme
       ? paramsLexeme
           .slice(1, -1) // strip enclosing `(` `)`

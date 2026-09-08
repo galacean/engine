@@ -112,7 +112,9 @@ export interface PreprocessorExpressionExpansionResult {
   readonly error?: string;
 }
 
-/** Result of shader source macro expansion. */
+/**
+ * Result of shader source macro expansion, including a deterministic failure when expansion stops.
+ */
 export interface ShaderMacroExpansionResult {
   /** Expanded source with preprocessing token boundaries and comments preserved. */
   readonly source: string;
@@ -664,7 +666,9 @@ class ExpressionParser {
     const condition = this._parseRoot();
     const invalid = this._invalidResult();
     if (invalid) return invalid;
-    const evaluated = evaluateStaticallyKnownPreprocessorCondition(condition!);
+    const evaluated = this._sawExpandableIdentifier
+      ? undefined
+      : evaluateStaticallyKnownPreprocessorCondition(condition!);
     return {
       ok: true,
       condition: condition!,

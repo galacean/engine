@@ -1,3 +1,4 @@
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
 import { ETokenType } from "../common";
 import { tryParsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import { type BranchCondition, type BranchConstraint, type BranchSignature, sameBranch } from "../common/BaseToken";
@@ -44,7 +45,7 @@ export class AnalyzerLexer extends Lexer {
   private _macroVersions: Record<string, number> = Object.create(null);
   private _pendingGuardUndef = false;
   private _pendingOpaqueConditional: "push" | "advance" | null = null;
-  private _pendingArmTruth: boolean | undefined;
+  private _pendingArm: PreprocessorConditionalArm | undefined;
 
   override *tokenize() {
     while (!this.isEnd()) {
@@ -74,7 +75,7 @@ export class AnalyzerLexer extends Lexer {
             guardUndefStart: this._pendingBranchPushDefined ? undefined : guardUndefBranches.length,
             selfGuarding: false
           },
-          this._pendingArmTruth
+          this._pendingArm
         );
         this._pendingBranchPushDefined = null;
       }
@@ -85,8 +86,8 @@ export class AnalyzerLexer extends Lexer {
       }
       if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
         const condition = this._parseSimpleCondition(tok.lexeme);
-        if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition, this._pendingArmTruth);
-        else this._advanceOpaqueConditionalArm(condition, this._pendingArmTruth);
+        if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition, this._pendingArm);
+        else this._advanceOpaqueConditionalArm(condition, this._pendingArm);
         this._pendingOpaqueConditional = null;
       }
 
@@ -101,23 +102,23 @@ export class AnalyzerLexer extends Lexer {
       // expression still consumes exactly one stack slot for its matching `#endif`.
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
-          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingBranchPushDefined = true;
           break;
         case Keyword.MACRO_IFNDEF:
-          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
-          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingOpaqueConditional = "push";
           break;
         case Keyword.MACRO_ELIF:
-          this._pendingArmTruth = this._conditionalArmTruth?.get(tok.location.start.index);
+          this._pendingArm = this._conditionalArms?.get(tok.location.start.index);
           this._pendingOpaqueConditional = "advance";
           break;
         case Keyword.MACRO_ELSE: {
-          this._advanceElseArm(this._conditionalArmTruth?.get(tok.location.start.index));
+          this._advanceElseArm(this._conditionalArms?.get(tok.location.start.index));
           break;
         }
         case Keyword.MACRO_UNDEF:
@@ -133,7 +134,7 @@ export class AnalyzerLexer extends Lexer {
     return this._createEOFToken();
   }
 
-  private _pushOpaqueConditional(condition?: BranchCondition, armTruth?: boolean): void {
+  private _pushOpaqueConditional(condition?: BranchCondition, sourceArm?: PreprocessorConditionalArm): void {
     const conditionalGroup = ++this._conditionalGroup;
     this._openConditional(
       {
@@ -143,11 +144,12 @@ export class AnalyzerLexer extends Lexer {
         conditionalArm: 0,
         condition
       },
-      armTruth
+      sourceArm
     );
   }
 
-  private _advanceOpaqueConditionalArm(condition?: BranchCondition, armTruth?: boolean): void {
+  private _advanceOpaqueConditionalArm(condition?: BranchCondition, sourceArm?: PreprocessorConditionalArm): void {
+    const armTruth = sourceArm?.value;
     const frame = this._conditionalFrames[this._conditionalFrames.length - 1];
     const index = this._branchStack.length - 1;
     const top = this._branchStack[index];
@@ -170,6 +172,7 @@ export class AnalyzerLexer extends Lexer {
       conditionalGroup: top.conditionalGroup,
       conditionalArm,
       condition: armCondition,
+      sourceArm,
       precedingConditions
     };
     this._branchStack[index] = nextConstraint;
@@ -185,7 +188,8 @@ export class AnalyzerLexer extends Lexer {
     this._assumeCondition(armTruth === undefined ? armCondition : resolved);
   }
 
-  private _advanceElseArm(armTruth?: boolean): void {
+  private _advanceElseArm(sourceArm?: PreprocessorConditionalArm): void {
+    const armTruth = sourceArm?.value;
     const frame = this._conditionalFrames[this._conditionalFrames.length - 1];
     const index = this._branchStack.length - 1;
     const top = this._branchStack[index];
@@ -207,6 +211,7 @@ export class AnalyzerLexer extends Lexer {
       conditionalGroup: top.conditionalGroup,
       conditionalArm,
       condition,
+      sourceArm,
       precedingConditions,
       conditionalComplete: true
     };
@@ -216,11 +221,12 @@ export class AnalyzerLexer extends Lexer {
     frame.definitelyMatched = true;
   }
 
-  private _openConditional(constraint: BranchConstraint, armTruth?: boolean): void {
+  private _openConditional(constraint: BranchConstraint, sourceArm?: PreprocessorConditionalArm): void {
+    const armTruth = sourceArm?.value;
     const resolved = this._resolveCondition(constraint.condition);
     const condition: BranchCondition | undefined =
       armTruth === undefined ? resolved : { kind: "constant", value: armTruth };
-    const activeConstraint: BranchConstraint = { ...constraint, condition };
+    const activeConstraint: BranchConstraint = { ...constraint, condition, sourceArm };
     const frame: ConditionalFrame = {
       entryState: AnalyzerLexer._cloneMacroStates(this._macroStates),
       armStates: [],

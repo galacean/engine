@@ -67,8 +67,8 @@ float deadValue = ;
     expect(ShaderAnalyzer.analyze(source).diagnostics).toEqual([]);
   });
 
-  it("proves short-circuit and conditional expressions without assuming external macro values", () => {
-    for (const expression of ["0 && FEATURE_ENABLED", "FEATURE_ENABLED && 0"]) {
+  it("proves short-circuit expressions whose macro operands cannot expand into operators", () => {
+    for (const expression of ["0 && defined(FEATURE_ENABLED)", "defined(FEATURE_ENABLED) && 0"]) {
       const analysis = ShaderAnalyzer.analyze(
         shader(`#if ${expression}
 float deadValue = ;
@@ -77,7 +77,7 @@ float deadValue = ;
       expect(analysis.diagnostics, expression).toEqual([]);
     }
 
-    for (const expression of ["1 || FEATURE_ENABLED", "FEATURE_ENABLED || 1"]) {
+    for (const expression of ["1 || defined(FEATURE_ENABLED)", "defined(FEATURE_ENABLED) || 1"]) {
       const analysis = ShaderAnalyzer.analyze(
         shader(`#if ${expression}
 float activeValue;
@@ -89,10 +89,11 @@ float deadValue = ;
     }
   });
 
-  it("prunes comparisons outside the signed 32-bit macro domain", () => {
+  it("prunes comparisons outside the signed 32-bit domain after resolving source macros", () => {
     for (const expression of ["MODE > 2147483647", "MODE < -2147483648", "MODE < 0x80000000u"]) {
       const analysis = ShaderAnalyzer.analyze(
-        shader(`#if ${expression}
+        shader(`#define MODE 1
+#if ${expression}
 #include "missing.glsl"
 float deadValue = ;
 #endif`)
@@ -104,7 +105,7 @@ float deadValue = ;
   it("prunes a multiline condition that is statically false", () => {
     const analysis = ShaderAnalyzer.analyze(
       shader(`#if 0 && \\
-FEATURE_ENABLED
+defined(FEATURE_ENABLED)
 #include "missing.glsl"
 float deadValue = ;
 #endif`)
@@ -148,6 +149,17 @@ float deadValue = ;
     );
 
     expect(analysis.diagnostics).toEqual([]);
+  });
+
+  it("resolves source-known defined operators introduced by macro expansion", () => {
+    const result = Preprocessor.parseWithErrors(
+      '#undef FLAG\n#define CHECK defined(FLAG)\n#if CHECK\n#include "missing.glsl"\n#endif',
+      "",
+      {},
+      new Map()
+    );
+    expect(result.errors).toEqual([]);
+    expect(result.content).not.toContain("missing.glsl");
   });
 
   it("carries source macro state into and back out of included chunks", () => {
@@ -316,6 +328,37 @@ float withoutB;
     expect(result.content.match(/float withoutB;/g)).toHaveLength(1);
     expect(result.content.match(/float withB;/g)).toHaveLength(2);
   });
+
+  it("keeps function and object macro states distinct when reusing an include cache", () => {
+    const includeMap = { "shared.glsl": "// shared\n" };
+    const cache = new Map();
+    const first = '#define F(x)\n#define x 0\n#include "shared.glsl"\n';
+    const second = `#define F (x)
+#define x 0
+#include "shared.glsl"
+#if F
+#include "missing.glsl"
+#endif`;
+    expect(Preprocessor.parseWithErrors(first, "", includeMap, cache).errors).toEqual([]);
+    const warm = Preprocessor.parseWithErrors(second, "", includeMap, cache);
+    const cold = Preprocessor.parseWithErrors(second, "", includeMap, new Map());
+    expect(warm.errors).toEqual([]);
+    expect(warm.content).toEqual(cold.content);
+  });
+
+  it.each(["MODE > 2147483647", "MODE < -2147483648", "MODE && 0"])(
+    "retains source whose external replacements can change operator grouping: %s",
+    (expression) => {
+      const result = Preprocessor.parseWithErrors(
+        `#if ${expression}\nfloat potentiallyActive;\n#endif`,
+        "",
+        {},
+        new Map()
+      );
+      expect(result.errors).toEqual([]);
+      expect(result.content).toContain("float potentiallyActive;");
+    }
+  );
 
   it("does not prune an include when a conditional macro mutation leaves a reachable configuration", () => {
     const diagnostics = ShaderAnalyzer.analyze(

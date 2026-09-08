@@ -407,18 +407,7 @@ describe("preprocessor condition conformance", () => {
     ).to.throw("Division by zero in active preprocessor expression");
   });
 
-  it.each([
-    "1 / 0",
-    "1 % 0",
-    "1 << -1",
-    "1 << 32",
-    "1 >> -1",
-    "1 >> 32",
-    "EXTERNAL / 0",
-    "EXTERNAL % 0",
-    "EXTERNAL << 32",
-    "EXTERNAL >> -1"
-  ])(
+  it.each(["1 / 0", "1 % 0", "1 << -1", "1 << 32", "1 >> -1", "1 >> 32"])(
     "blocks a definite evaluation failure before variant selection: %s",
     (expression) => {
       const native = evaluateNativeCondition(expression, []);
@@ -441,6 +430,18 @@ describe("preprocessor condition conformance", () => {
         )
       ).to.be.undefined;
       expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).to.throw();
+    }
+  );
+
+  it.each(["EXTERNAL / 0", "EXTERNAL % 0", "EXTERNAL << 32", "EXTERNAL >> -1"])(
+    "checks apparent arithmetic failures after external replacement: %s",
+    (expression) => {
+      const instructions = ShaderInstructionEncoder.parse(`#if ${expression}\nBODY\n#endif\n`);
+      expect(ShaderMacroProcessor.evaluate(instructions, new Map([["EXTERNAL", "1 || 1"]]))).to.contain("BODY");
+      expect(() => ShaderMacroProcessor.evaluate(instructions, new Map([["EXTERNAL", "1"]]))).to.throw();
+      const source = shader(expression);
+      expect(ShaderAnalyzer.analyze(source).diagnostics).to.be.empty;
+      expect(() => new ShaderPrecompiler().precompile(source, ShaderLanguage.GLSLES100)).not.to.throw();
     }
   );
 

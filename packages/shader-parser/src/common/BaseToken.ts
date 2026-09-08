@@ -1,6 +1,7 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import type { ParserObjectPool } from "../ParserObjectPool";
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
 
 /**
  * One condition in a branch signature: `defined: true` for `#ifdef X` (the
@@ -10,10 +11,8 @@ import type { ParserObjectPool } from "../ParserObjectPool";
 export interface BranchConstraint {
   name: string;
   defined: boolean;
-  /** Mutation event version for a simple runtime defined/undefined guard. */
-  guardVersion?: number;
-  /** Preprocessor-proven truth of this whole arm relative to its enclosing parent. */
-  unconditionalArm?: boolean;
+  /** Shared source-preprocessor authority for truth and inherited declaration replacement. */
+  sourceArm?: PreprocessorConditionalArm;
   /** Lexical conditional-chain identity. All `#if/#elif/#else` arms in one chain share it. */
   conditionalGroup?: number;
   /** Lexical arm within `conditionalGroup`; different arms cannot execute together. */

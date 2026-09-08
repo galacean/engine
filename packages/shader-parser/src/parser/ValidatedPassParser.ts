@@ -51,8 +51,8 @@ export function parseValidatedShaderPass(
     includeMap,
     cache,
     shaderSourceBaseURL(normalizedSourceFile),
-    (expandedSource, macroDefineList, parserObjectPool, conditionalArmTruth) =>
-      new AnalyzerLexer(expandedSource, macroDefineList, parserObjectPool, conditionalArmTruth),
+    (expandedSource, macroDefineList, parserObjectPool, conditionalArms) =>
+      new AnalyzerLexer(expandedSource, macroDefineList, parserObjectPool, conditionalArms),
     (expandedSource) => {
       parser.setSource(expandedSource);
       return parser;

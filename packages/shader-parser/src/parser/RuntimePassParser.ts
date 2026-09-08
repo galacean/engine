@@ -67,7 +67,7 @@ export function parseRuntimeShaderPass(
     });
   }
   const macroDefineList: MacroDefineList = {};
-  const lexer = new Lexer(expandedSource, macroDefineList, objectPool, preprocessResult.conditionalArmTruth);
+  const lexer = new Lexer(expandedSource, macroDefineList, objectPool, preprocessResult.conditionalArms);
   const parser = runtimeParser ?? createRuntimeShaderTargetParser(objectPool);
   parser.setSource(expandedSource);
   parser.setSourceScopes(preprocessResult.sourceScopes);
