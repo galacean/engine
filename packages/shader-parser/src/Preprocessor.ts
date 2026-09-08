@@ -1,4 +1,4 @@
-import type { PreprocessorConditionalArm } from "./preprocessor/PreprocessorMacroState";
+import type { PreprocessorConditionalArm } from "./preprocessor/PreprocessorCondition";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";

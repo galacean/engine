@@ -1,4 +1,4 @@
-import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorCondition";
 import type { BaseToken } from "../common/BaseToken";
 import type { PreprocessorExpressionParseResult } from "@galacean/engine-design";
 import { ShaderPosition } from "../common/ShaderPosition";

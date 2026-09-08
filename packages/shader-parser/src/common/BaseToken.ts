@@ -1,7 +1,7 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import type { ParserObjectPool } from "../ParserObjectPool";
-import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorCondition";
 
 /**
  * One condition in a branch signature: `defined: true` for `#ifdef X` (the

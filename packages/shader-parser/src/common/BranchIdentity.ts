@@ -59,26 +59,6 @@ export function isLexicalBranchVisibleFrom(declaration: BranchSignature, referen
 }
 
 /**
- * Determines whether an inherited declaration is fully replaced under the later declaration's guards.
- * Both parser policies consume the same preprocessor identities, including macro mutations.
- * @param declaration - Guards on the narrower ShaderLab declaration.
- * @param reference - Guards on the inherited declaration it may replace.
- * @returns Whether the narrower declaration is present whenever the inherited declaration is present.
- * @internal
- */
-export function isInheritanceBranchVisibleFrom(declaration: BranchSignature, reference: BranchSignature): boolean {
-  for (const constraint of declaration) {
-    const arm = constraint.sourceArm;
-    if (arm?.value === true) continue;
-    if (!arm?.conditions || arm.value === false) return false;
-    for (const condition of arm.conditions) {
-      if (!reference.some((candidate) => candidate.sourceArm?.conditions?.includes(condition))) return false;
-    }
-  }
-  return true;
-}
-
-/**
  * Proves coverage using enclosing arms, known arm truth, and complete lexical conditional chains.
  * Macro names and expressions do not establish relationships between independent groups.
  * @param candidates - Branches containing matching declarations or members.

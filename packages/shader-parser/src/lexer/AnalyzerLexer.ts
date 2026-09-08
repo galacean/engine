@@ -1,4 +1,4 @@
-import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorMacroState";
+import type { PreprocessorConditionalArm } from "../preprocessor/PreprocessorCondition";
 import { ETokenType } from "../common";
 import { tryParsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import { type BranchCondition, type BranchConstraint, type BranchSignature, sameBranch } from "../common/BaseToken";

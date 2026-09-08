@@ -1,7 +1,8 @@
 import { EMPTY_BRANCH } from "./BaseToken";
 import type { BranchSignature, DeclarationCoexistence } from "./BaseToken";
 import type { BranchSemantics } from "./BranchSemantics";
-import { getLexicalDeclarationCoexistence, isInheritanceBranchVisibleFrom } from "./BranchIdentity";
+import { getLexicalDeclarationCoexistence } from "./BranchIdentity";
+import { isInheritanceBranchVisibleFrom } from "../preprocessor/PreprocessorCondition";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
