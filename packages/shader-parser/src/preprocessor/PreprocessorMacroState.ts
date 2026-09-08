@@ -13,6 +13,7 @@ import {
   type PreprocessorConditionTerm,
   type SourcePreprocessorCondition
 } from "./PreprocessorCondition";
+import { getPreprocessorConditionRange } from "./PreprocessorConditionNormalization";
 
 interface MacroState {
   readonly defined: boolean | undefined;
@@ -90,10 +91,8 @@ export class PreprocessorMacroState {
   private _versionKey: string | undefined;
   private readonly _frames: ConditionalFrame[] = [];
   private readonly _expressionContext: PartiallyKnownPreprocessorExpressionContext = {
-    // Ordinary identifiers must finish textual expansion before value evaluation. A source macro
-    // can introduce a defined(...) operator whose source-known state still needs this resolver
     resolveIdentifier: () => ({}),
-    isDefined: (name) => this._state(name).defined
+    isDefined: () => undefined
   };
 
   reachable = true;
@@ -369,7 +368,10 @@ export class PreprocessorMacroState {
         errorEnd: trimmedExpression.length
       };
     }
-    const expandedExpression = expansion.expression;
+    const expandedExpression = resolvePreprocessorDefinedOperators(
+      expansion.expression,
+      (name) => this._state(name).defined
+    );
     const parsed = parsePreprocessorExpression(expandedExpression);
     if ("error" in parsed) {
       if ("error" in unexpanded && unexpanded.error.certain) {
@@ -393,11 +395,14 @@ export class PreprocessorMacroState {
     const evaluated = parsed.hasExpandableIdentifier
       ? { value: undefined, error: undefined }
       : evaluatePartiallyKnownPreprocessorConditionResult(parsed.condition, this._expressionContext);
+    // A partial truth value cannot establish arm coverage while another configuration can fail evaluation
+    const value =
+      evaluated.value !== undefined && !getPreprocessorConditionRange(parsed.condition) ? undefined : evaluated.value;
     const assumptions = PreprocessorMacroState._conditionAssumptions(parsed.condition);
     return {
-      value: evaluated.value === undefined ? undefined : evaluated.value !== 0,
+      value: value === undefined ? undefined : value !== 0,
       condition:
-        evaluated.value !== undefined
+        value !== undefined
           ? undefined
           : parsed.hasExpandableIdentifier
             ? { kind: "opaque", identity: JSON.stringify([expandedExpression, this._macroVersionKey()]) }

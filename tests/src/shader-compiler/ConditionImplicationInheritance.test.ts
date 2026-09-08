@@ -181,6 +181,27 @@ function expectReplacement(source: string, kind: DeclarationKind, rows: Macros[]
   }
 }
 
+function expectSumReplacement(source: string, rows: Macros[], truth?: readonly boolean[]): void {
+  if (truth) expect(truth).toHaveLength(rows.length);
+  const checkedPrograms = new Set<string>();
+  let checkedVariants = 0;
+  for (const program of programs(source, rows)) {
+    const active = truth ? truth[rows.indexOf(program.macros)] : Object.keys(program.macros).length !== 0;
+    const label = `${program.path}, target ${program.target}, macros ${JSON.stringify(program.macros)}`;
+    expect(program.vertex.match(/void\s+main\s*\(/g), label).toHaveLength(1);
+    expect(program.fragment.match(/vec4\s+selectedColor\s*\(/g) ?? [], label).toHaveLength(active ? 1 : 0);
+    expect(program.vertex + program.fragment, label).not.toContain("0.25");
+    expect(program.fragment, label).toContain(active ? "0.5" : "0.75");
+    const key = JSON.stringify([program.path, program.target, program.vertex, program.fragment]);
+    if (!checkedPrograms.has(key)) {
+      expectDriverAcceptance(program, active ? 0.5 : 0.75);
+      checkedPrograms.add(key);
+    }
+    checkedVariants++;
+  }
+  expect(checkedVariants).toBe(rows.length * 6);
+}
+
 describe("semantic condition implication in ShaderLab inheritance", () => {
   it.each([
     "defined(M) && 1",
@@ -424,5 +445,177 @@ describe("semantic condition implication in ShaderLab inheritance", () => {
       [{}, { A0: "0" }, Object.fromEntries(names.map((name) => [name, "0"]))],
       [false, true, true]
     );
+  });
+
+  it.each([8, 9, 17])("proves both equivalent guards for a sum of %i defined flags", (count) => {
+    const names = Array.from({ length: count }, (_, index) => `A${index}`);
+    const sum = names.map((name) => `defined(${name})`).join(" + ");
+    const rows: Macros[] =
+      count === 9
+        ? Array.from({ length: 512 }, (_, assignment) =>
+            Object.fromEntries(names.filter((_, index) => (assignment & (1 << index)) !== 0).map((name) => [name, "0"]))
+          )
+        : [
+            ...Array.from({ length: count + 1 }, (_, active) =>
+              Object.fromEntries(names.slice(0, active).map((name) => [name, "0"]))
+            ),
+            { [names[count - 1]]: "0" }
+          ];
+    for (const [outer, inner] of [
+      [`(${sum}) != 0`, `(${sum}) > 0`],
+      [`(${sum}) > 0`, `(${sum}) != 0`]
+    ]) {
+      expectSumReplacement(shaderSource("helper", expressionGuard(outer), expressionGuard(inner)), rows);
+    }
+  });
+
+  it("normalizes reordered and regrouped defined sums with zero terms", () => {
+    const names = Array.from({ length: 9 }, (_, index) => `A${index}`);
+    const terms = names.map((name) => `defined(${name})`);
+    const reversed = terms.slice().reverse();
+    const regrouped = `0 + ((${reversed.slice(0, 3).join(" + ")}) + (0 + ${reversed.slice(3, 6).join(" + ")})) + (${reversed.slice(6).join(" + ")} + 0)`;
+    const rows: Macros[] = [
+      {},
+      { A0: "0" },
+      { A8: "0" },
+      { A0: "0", A2: "0", A4: "0", A6: "0", A8: "0" },
+      Object.fromEntries(names.map((name) => [name, "0"]))
+    ];
+    for (const [outer, inner] of [
+      [`(${terms.join(" + ")}) != 0`, `(${regrouped}) > 0`],
+      [`(${regrouped}) > 0`, `(${terms.join(" + ")}) != 0`]
+    ]) {
+      expectSumReplacement(shaderSource("helper", expressionGuard(outer), expressionGuard(inner)), rows);
+    }
+  });
+
+  it("allows a positive defined count to cover an inherited all-defined condition", () => {
+    const names = Array.from({ length: 9 }, (_, index) => `A${index}`);
+    const sum = names.map((name) => `defined(${name})`).join(" + ");
+    expectSumReplacement(shaderSource("helper", expressionGuard(`(${sum}) == 9`), expressionGuard(`(${sum}) > 0`)), [
+      {},
+      { A0: "0" },
+      Object.fromEntries(names.slice(0, 8).map((name) => [name, "0"])),
+      Object.fromEntries(names.map((name) => [name, "0"]))
+    ]);
+  });
+
+  it("preserves inherited exclusive variants when all-defined does not cover a positive count", () => {
+    const sum = Array.from({ length: 9 }, (_, index) => `defined(A${index})`).join(" + ");
+    const source = shaderSource("helper", expressionGuard(`(${sum}) > 0`), expressionGuard(`(${sum}) == 9`), {
+      unconditionalCall: true
+    });
+    for (const program of programs(source, [{ A0: "0" }, { A0: "0", A8: "0" }], true)) {
+      expect(program.fragment.match(/vec4\s+selectedColor\s*\(/g)).toHaveLength(1);
+      expect(program.fragment).toContain("0.25");
+      expectDriverAcceptance(program, 0.25);
+    }
+  });
+
+  it.each([
+    { outer: "!= 0", inner: "> 0", expected: 0.25 },
+    { outer: "> 0", inner: "!= 0", expected: 0.5 }
+  ])("preserves signed overflow when comparing a weighted sum $outer with $inner", ({ outer, inner, expected }) => {
+    const sum = "0x40000000 * defined(A) + 0x40000000 * defined(B)";
+    const source = shaderSource("helper", expressionGuard(`(${sum}) ${outer}`), expressionGuard(`(${sum}) ${inner}`), {
+      unconditionalCall: true
+    });
+    for (const program of programs(source, [{ A: "0", B: "0" }], true)) {
+      expect(program.fragment.match(/vec4\s+selectedColor\s*\(/g)).toHaveLength(1);
+      expect(program.fragment).toContain(String(expected));
+      expectDriverAcceptance(program, expected);
+    }
+  });
+
+  it.each([
+    { name: "nonzero and disjunction", left: "!= 0", right: "or", truth: [false, true, true, true, true, true] },
+    {
+      name: "full count and conjunction",
+      left: "== 32",
+      right: "and",
+      truth: [false, false, false, false, false, true]
+    },
+    {
+      name: "exact count and closed bounds",
+      left: "== 16",
+      right: "bounds",
+      truth: [false, false, false, true, false, false]
+    },
+    { name: "adjacent integer bounds", left: "> 15", right: ">= 16", truth: [false, false, false, true, true, true] },
+    {
+      name: "reordered and regrouped XOR with zero terms",
+      left: "xor",
+      right: "xor",
+      truth: [false, true, true, false, true, false]
+    },
+    {
+      name: "folded constant factors around reordered sums",
+      left: "scaled",
+      right: "scaled",
+      truth: [false, true, true, true, true, true]
+    }
+  ])("proves equivalent 32-flag formulas for $name", ({ left, right, truth }) => {
+    const names = Array.from({ length: 32 }, (_, index) => `A${index}`);
+    const terms = names.map((name) => `defined(${name})`);
+    const sum = `(${terms.join(" + ")})`;
+    const original =
+      left === "xor" ? `(${terms.join(" ^ ")}) != 0` : left === "scaled" ? `(${sum} * 2 * 4) != 0` : `${sum} ${left}`;
+    const reversed = terms.slice().reverse();
+    let equivalent: string;
+    switch (right) {
+      case "or":
+        equivalent = terms.join(" || ");
+        break;
+      case "and":
+        equivalent = terms.join(" && ");
+        break;
+      case "bounds":
+        equivalent = `${sum} >= 16 && ${sum} <= 16`;
+        break;
+      case "xor":
+        equivalent = `((0 ^ (${reversed.slice(0, 16).join(" ^ ")})) ^ (${reversed.slice(16).join(" ^ ")} ^ 0)) != 0`;
+        break;
+      case "scaled":
+        equivalent = `(8 * (${reversed.join(" + ")})) > 0`;
+        break;
+      default:
+        equivalent = `${sum} ${right}`;
+    }
+    const rows = [0, 1, 15, 16, 17, 32].map((active) =>
+      Object.fromEntries(names.slice(0, active).map((name) => [name, "0"]))
+    );
+    for (const [outer, inner] of [
+      [original, equivalent],
+      [equivalent, original]
+    ]) {
+      expectSumReplacement(shaderSource("helper", expressionGuard(outer), expressionGuard(inner)), rows, truth);
+    }
+  });
+
+  it("allows a lower threshold to cover an inherited higher threshold across 32 flags", () => {
+    const names = Array.from({ length: 32 }, (_, index) => `A${index}`);
+    const sum = names.map((name) => `defined(${name})`).join(" + ");
+    const rows = [0, 1, 15, 16, 17, 32].map((active) =>
+      Object.fromEntries(names.slice(0, active).map((name) => [name, "0"]))
+    );
+    expectSumReplacement(
+      shaderSource("helper", expressionGuard(`(${sum}) >= 17`), expressionGuard(`(${sum}) >= 16`)),
+      rows,
+      [false, false, false, true, true, true]
+    );
+  });
+
+  it("retains the inherited 16-flag variant when a higher threshold cannot cover it", () => {
+    const names = Array.from({ length: 32 }, (_, index) => `A${index}`);
+    const sum = names.map((name) => `defined(${name})`).join(" + ");
+    const source = shaderSource("helper", expressionGuard(`(${sum}) >= 16`), expressionGuard(`(${sum}) >= 17`), {
+      unconditionalCall: true
+    });
+    const sixteenDefined = Object.fromEntries(names.slice(0, 16).map((name) => [name, "0"]));
+    for (const program of programs(source, [sixteenDefined], true)) {
+      expect(program.fragment.match(/vec4\s+selectedColor\s*\(/g)).toHaveLength(1);
+      expect(program.fragment).toContain("0.25");
+      expectDriverAcceptance(program, 0.25);
+    }
   });
 });
