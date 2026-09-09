@@ -76,13 +76,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
         }
-        canvasElements.sort((a, b) => a.sortOrder - b.sortOrder || a._sortDistance - b._sortDistance);
+        canvasElements.sort((a, b) => a.sortOrder - b.sortOrder || b._sortDistance - a._sortDistance);
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._canvasIndex = k;
         }
         const farClipPlane = camera.farClipPlane;
-        // Post-rendering first detection
-        for (let k = 0, n = canvasElements.length; k < n; k++) {
+        // Post-rendering first detection (iterate in reverse: last-rendered = topmost)
+        for (let k = canvasElements.length - 1; k >= 0; k--) {
           const canvas = canvasElements.get(k);
           if (!canvas._canDispatchEvent(camera)) continue;
           if (canvas._raycast(ray, hitResult, farClipPlane)) {
