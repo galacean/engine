@@ -40,7 +40,8 @@ export class GLES300Visitor extends GLESVisitor {
         text: output.unconditional
           ? output.text
           : ShaderInstructionEncoder.sharedDeclaration(output.text, Array.from(output.owners.values())),
-        index: 0
+        // A source macro block can start at zero and contain the first output use.
+        index: -1
       });
     }
   }

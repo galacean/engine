@@ -79,7 +79,7 @@ value.xx = vec2(1.0);`,
     expect(result.diagnostics.some((issue) => issue.code === "InvalidAssignmentTarget")).toBe(false);
   });
 
-  it("leaves divergent input/output parameter modes unresolved", () => {
+  it("reports the reachable output obligation when the other branch is input-only", () => {
     const result = ShaderAnalyzer.analyze(
       shader(
         "vec2 v = vec2(0.0); modify(v.xx);",
@@ -92,7 +92,7 @@ void modify(in vec2 target) { }
 `
       )
     );
-    expect(result.diagnostics.some((issue) => issue.code === "InvalidAssignmentTarget")).toBe(false);
+    expect(result.diagnostics.filter((issue) => issue.code === "InvalidAssignmentTarget")).toHaveLength(1);
   });
 });
 

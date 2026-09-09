@@ -1,7 +1,7 @@
 import { expandShaderMacros, type PreprocessorExpressionMacro } from "@galacean/engine-design";
 import { BaseToken, type BranchSignature } from "../common/BaseToken";
 import { canBranchesOverlap, getBranchCoverage } from "../common/BranchAnalysis";
-import { ETokenType } from "../common";
+import { ETokenType, Keyword } from "../common";
 import { Lexer } from "../lexer/Lexer";
 import type { MacroDefineList } from "../Preprocessor";
 import { ParserUtils } from "../ParserUtils";
@@ -25,6 +25,7 @@ interface MacroHistory {
 // Only AnalyzerLexer records events. The shared runtime AST invokes the optional diagnostic hook.
 const histories = new WeakMap<MacroDefineList, MacroHistory>();
 const MAX_EXPANSION_ALTERNATIVES = 64;
+const WRITE_OPERATORS = new Set(["=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|=", "++", "--"]);
 
 /**
  * Retains source-ordered macro mutations separately from the codegen definition catalog.
@@ -136,16 +137,43 @@ export function captureMacroExpansion(
         continue;
       }
       const tokens = Array.from(new Lexer(expanded.source, Object.create(null)).tokenize());
+      const bracketEnds = new Map<number, number>();
+      const brackets: number[] = [];
+      for (let i = 0; i < tokens.length; i++) {
+        if (tokens[i].lexeme === "[") brackets.push(i);
+        else if (tokens[i].lexeme === "]" && brackets.length) bracketEnds.set(brackets.pop()!, i + 1);
+      }
       const references: MacroExpansionSyntax["references"][number][] = [];
       const used = new Set<TreeNode>();
       const keywords: number[] = [];
+      const writtenTargets: (string | TreeNode)[] = [];
+      const projectedWrites = new Set<number>();
+      let valueTarget: string | TreeNode | undefined;
       let hasUnknownEffects = false;
       const lookup = new SymbolInfo("", ESymbolType.FN);
       for (let i = 0; i < tokens.length; i++) {
         const token = tokens[i];
         if (tokens[i - 1]?.lexeme === ".") continue;
         const argument = markers.get(token.lexeme);
+        const suffix = targetSuffix(tokens, i, bracketEnds);
         let name = token.lexeme;
+        if (token.type === ETokenType.ID && tokens[i + 1]?.lexeme !== "(") {
+          lookup.set(name, ESymbolType.VAR);
+          const variable = analyzer.symbolTableStack.lookup(lookup, true, state.branch);
+          const builtin = variable ? undefined : BuiltinVariable.getVar(name);
+          const target = argument ?? builtin?.semantic ?? name;
+          if (suffix.start === 0 && suffix.end === tokens.length) valueTarget = target;
+          const after = tokens[suffix.end]?.lexeme;
+          const before = tokens[suffix.start - 1]?.lexeme;
+          if (WRITE_OPERATORS.has(after)) {
+            writtenTargets.push(target);
+            projectedWrites.add(suffix.end);
+          }
+          if (before === "++" || before === "--") {
+            writtenTargets.push(target);
+            projectedWrites.add(suffix.start - 1);
+          }
+        }
         if (argument && tokens[i + 1]?.lexeme === "(") {
           const identifier = ParserUtils.unwrapBareIdentifier(argument, { allowParens: true });
           const child = identifier?.children[0];
@@ -158,6 +186,21 @@ export function captureMacroExpansion(
           if (BuiltinFunction.isExist(name) || functions.length) {
             references.push({ name, call: true, functions: functions.length === 1 ? functions : [] });
             if (functions.length > 1) hasUnknownEffects = true;
+            if (
+              functions.some((fn) =>
+                fn.astNode.protoType.parameterList?.some((parameter) => {
+                  const declaration = parameter.astNode;
+                  return (
+                    declaration instanceof ASTNode.ParameterDeclaration &&
+                    (ParserUtils.hasQualifier(declaration, Keyword.OUT) ||
+                      ParserUtils.hasQualifier(declaration, Keyword.INOUT))
+                  );
+                })
+              )
+            ) {
+              // The lexical call projection does not bind output parameters to actual targets.
+              hasUnknownEffects = true;
+            }
           } else {
             lookup.set(name, ESymbolType.STRUCT);
             if (!analyzer.symbolTableStack.lookup(lookup, true, state.branch)) {
@@ -173,18 +216,53 @@ export function captureMacroExpansion(
             }
           }
         } else if (argument) {
-          used.add(argument);
+          const identifier = suffix.indexed
+            ? ParserUtils.unwrapBareIdentifier(argument, { allowParens: true })
+            : undefined;
+          const child = identifier?.children[0];
+          if (identifier?.builtinSemantic !== undefined && child instanceof BaseToken) {
+            references.push({
+              name: child.lexeme,
+              call: false,
+              functions: [],
+              builtinSemantic: identifier.builtinSemantic,
+              indexed: true
+            });
+          } else {
+            used.add(argument);
+          }
         } else if (token.type === ETokenType.ID) {
-          references.push({ name, call: false, functions: [] });
           lookup.set(name, ESymbolType.VAR);
-          if (!BuiltinVariable.getVar(name) && !analyzer.symbolTableStack.lookup(lookup, true, state.branch)) {
+          const variable = analyzer.symbolTableStack.lookup(lookup, true, state.branch);
+          const builtin = variable ? undefined : BuiltinVariable.getVar(name);
+          references.push({
+            name,
+            call: false,
+            functions: [],
+            builtinSemantic: builtin?.semantic,
+            indexed: suffix.indexed
+          });
+          if (!builtin && !variable) {
             hasUnknownEffects = true;
           }
         } else {
           keywords.push(token.type);
         }
       }
-      result.push({ branch: state.branch, arguments: Array.from(used), references, keywords, hasUnknownEffects });
+      // The token projection only proves simple assignment targets. An unrecognized mutation
+      // cannot be treated as evidence that a shader output is definitely unwritten.
+      if (tokens.some((token, index) => WRITE_OPERATORS.has(token.lexeme) && !projectedWrites.has(index))) {
+        hasUnknownEffects = true;
+      }
+      result.push({
+        branch: state.branch,
+        arguments: Array.from(used),
+        references,
+        keywords,
+        writtenTargets,
+        valueTarget,
+        hasUnknownEffects
+      });
     } catch (error) {
       if (error !== fork) throw error;
     }
@@ -197,4 +275,32 @@ export function captureMacroExpansion(
 
 function combine(left: BranchSignature, right: BranchSignature): BranchSignature {
   return left.concat(right.filter((constraint) => !left.includes(constraint)));
+}
+
+// Recognize only an identifier's postfix target suffix. This is a lexical projection, not a
+// second expression parser; unsupported shapes leave their write operator unresolved above.
+function targetSuffix(
+  tokens: readonly BaseToken[],
+  index: number,
+  bracketEnds: ReadonlyMap<number, number>
+): { start: number; end: number; indexed: boolean } {
+  let start = index;
+  let end = index + 1;
+  let indexed = false;
+  while (end < tokens.length) {
+    if (tokens[end].lexeme === "." && tokens[end + 1]?.type === ETokenType.ID) {
+      end += 2;
+    } else if (tokens[end].lexeme === "[") {
+      const next = bracketEnds.get(end);
+      if (next === undefined) break;
+      indexed = true;
+      end = next;
+    } else if (tokens[end].lexeme === ")" && tokens[start - 1]?.lexeme === "(") {
+      start--;
+      end++;
+    } else {
+      break;
+    }
+  }
+  return { start, end, indexed };
 }

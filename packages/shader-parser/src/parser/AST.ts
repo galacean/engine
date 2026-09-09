@@ -800,7 +800,10 @@ namespace ASTNodes {
      * @internal
      */
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      if (this.children[0] instanceof FunctionProtoType) sa.popScope();
+      if (this.children[0] instanceof FunctionProtoType) {
+        sa.popScope();
+        sa.endFunction();
+      }
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -832,9 +835,6 @@ namespace ASTNodes {
     paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      // A local prototype retains the enclosing function's identity and captured references.
-      if (!sa.curFunctionInfo.header) sa.beginFunction(this);
-
       const children = this.children;
       const header = children[0] as FunctionHeader;
       const parameterList = children[1] as FunctionParameterList | undefined;
@@ -842,6 +842,7 @@ namespace ASTNodes {
       this.returnType = header.returnType;
       this.parameterInfoList = parameterList?.parameterInfoList;
       this.paramSig = parameterList?.paramSig;
+      sa.beginFunction(this);
     }
   }
 
@@ -1003,13 +1004,9 @@ namespace ASTNodes {
       this.statements = children[1] as CompoundStatementNoScope;
 
       sa.popScope();
+      const capture = sa.endFunction();
       const sm = sa.assignSourceScope(
-        new FnSymbol(
-          this.protoType.ident.lexeme,
-          this,
-          sa.curFunctionInfo.localVariables,
-          sa.curFunctionInfo.calledFunctions
-        ),
+        new FnSymbol(this.protoType.ident.lexeme, this, capture.localVariables, capture.calledFunctions),
         this.protoType.ident.location
       );
       // Keep same-scope duplicates available for diagnostics; inherited overrides enter the symbol table
@@ -1018,8 +1015,6 @@ namespace ASTNodes {
       const conflict = unconditionalDuplicate ? "coexist" : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
       sa.reportRedefinition(this.protoType.ident.location, sm, conflict);
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
-
-      sa.curFunctionInfo.header = undefined;
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -1074,7 +1069,7 @@ namespace ASTNodes {
           // isn't inserted until after its body, so the lookup below would otherwise mis-report it as
           // Undefined / NoMatchingOverload. The validator reports RecursiveFunction; the exact-signature
           // match avoids short-circuiting a call to a *different* overload of the same name.
-          const header = sa.curFunctionInfo.header;
+          const header = sa.currentFunctionHeader;
           if (header?.ident?.lexeme === fnIdent) {
             const hSig = header.paramSig ?? [];
             const cSig = paramSig ?? [];
@@ -1964,6 +1959,24 @@ namespace ASTNodes {
         const references: readonly MacroReference[] =
           child instanceof BaseToken ? [{ name: child.lexeme, branch: this._branch }] : child.referenceSymbols;
         const needFindNames: string[] = [];
+        let builtinAliasType: GalaceanDataType | undefined;
+        if (!(child instanceof BaseToken)) {
+          // Referencing a builtin inside a replacement does not make the entire replacement
+          // that builtin's value: indexing, swizzles and arithmetic can change its type.
+          for (const reference of references) {
+            const builtin = reference.name === undefined ? undefined : BuiltinVariable.getVar(reference.name);
+            if (
+              !reference.isValueIdentity ||
+              reference.unresolved ||
+              !builtin ||
+              (builtinAliasType !== undefined && builtinAliasType !== builtin.type)
+            ) {
+              builtinAliasType = undefined;
+              break;
+            }
+            builtinAliasType = builtin.type;
+          }
+        }
 
         for (let i = 0; i < references.length; i++) {
           const { name, branch, isValueIdentity, replacementMemberOwner, requiresRuntimeOwnerExpansion, unresolved } =
@@ -2001,7 +2014,7 @@ namespace ASTNodes {
 
           const builtinVar = BuiltinVariable.getVar(name);
           if (builtinVar) {
-            this.typeInfo = builtinVar.type;
+            this.typeInfo = child instanceof BaseToken ? builtinVar.type : (builtinAliasType ?? TypeAny);
             if (child instanceof BaseToken) this.builtinSemantic = builtinVar.semantic;
             continue;
           }
@@ -2651,7 +2664,10 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
-    /** Analyzer-requested syntax projection; absent from ordinary runtime parsing. @internal */
+    /**
+     * Analyzer-requested syntax projection; absent from ordinary runtime parsing.
+     * @internal
+     */
     expandedSyntax?: readonly MacroExpansionSyntax[];
     referenceSymbolNames: string[] = [];
     referenceSymbols: MacroReference[] = [];
@@ -2889,7 +2905,10 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
-    /** Analyzer-requested syntax projection; absent from ordinary runtime parsing. @internal */
+    /**
+     * Analyzer-requested syntax projection; absent from ordinary runtime parsing.
+     * @internal
+     */
     expandedSyntax?: readonly MacroExpansionSyntax[];
     referenceSymbolNames: string[] = [];
     referenceSymbols: MacroReference[] = [];

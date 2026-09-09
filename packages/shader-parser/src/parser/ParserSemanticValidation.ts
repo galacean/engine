@@ -1,6 +1,6 @@
 import { ETokenType, ShaderRange, TypeAny } from "../common";
-import { isBranchReachable } from "../common/BranchAnalysis";
-import { BaseToken as Token } from "../common/BaseToken";
+import { getBranchReachability, isBranchReachable } from "../common/BranchAnalysis";
+import { BaseToken as Token, type BranchSignature } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { ASTNode, TreeNode } from "./AST";
@@ -18,6 +18,8 @@ export interface ParserSemanticIssue {
   readonly message: string;
   /** Source range that should be highlighted for the failure. */
   readonly location: ShaderRange;
+  /** Configuration proving a conditional failure; absent for unconditional semantic rules. */
+  readonly branch?: BranchSignature;
 }
 
 /**
@@ -34,7 +36,8 @@ export class ParserSemanticValidation {
   static collect(root: TreeNode): ParserSemanticIssue[] {
     const issues: ParserSemanticIssue[] = [];
     const visit = (node: TreeNode): void => {
-      if (!isBranchReachable(node._branch) || node._inMacroDefinition) return;
+      // Container flags inherit their first token; a leading define does not enclose later declarations.
+      if (!isBranchReachable(node._branch) || node instanceof ASTNode.MacroDefine) return;
       if (node instanceof ASTNode.AssignmentExpression) {
         const targetIssue = this.assignmentTargetIssue(node);
         const typeIssue = this.assignmentTypeIssue(node);
@@ -184,35 +187,38 @@ export class ParserSemanticValidation {
   }
 
   /**
-   * Validates modifiable arguments required by every resolved user-function candidate.
+   * Validates output arguments separately for each provably reachable function declaration.
    * @param node - Function call with captured overload candidates.
-   * @returns Proven invalid output argument targets; unresolved parameter modes remain unchecked.
+   * @returns Invalid targets with their candidate's effective branch; unknown bindings remain unchecked.
    * @internal
    */
   static outputArgumentIssues(node: ASTNode.FunctionCallGeneric): ParserSemanticIssue[] {
     const argumentsNode = node.children[2];
-    if (!(argumentsNode instanceof ASTNode.FunctionCallParameterList) || node.type === TypeAny) return [];
+    if (!(argumentsNode instanceof ASTNode.FunctionCallParameterList)) return [];
     const candidates = node.fnSymbols ?? (node.fnSymbol instanceof FnSymbol ? [node.fnSymbol] : []);
     if (!candidates.length) return [];
     const issues: ParserSemanticIssue[] = [];
-    for (let index = 0; index < argumentsNode.paramNodes.length; index++) {
-      const argument = argumentsNode.paramNodes[index];
-      if (!(argument instanceof TreeNode)) continue;
-      const outputRequired = candidates.every((candidate) => {
+    for (const candidate of candidates) {
+      const branch = node._branch.concat(candidate.branchSignature);
+      if (getBranchReachability(branch) !== "reachable") continue;
+      for (let index = 0; index < argumentsNode.paramNodes.length; index++) {
+        const argument = argumentsNode.paramNodes[index];
+        if (!(argument instanceof TreeNode)) continue;
         const parameter = candidate.astNode.protoType.parameterList?.[index]?.astNode;
-        return (
-          parameter instanceof ASTNode.ParameterDeclaration &&
-          (ParserUtils.hasQualifier(parameter, Keyword.OUT) || ParserUtils.hasQualifier(parameter, Keyword.INOUT))
-        );
-      });
-      if (!outputRequired) continue;
-      const reason = this.nonAssignableReason(argument);
-      if (reason) {
-        issues.push({
-          code: "InvalidAssignmentTarget",
-          message: `Cannot pass ${reason} to an out or inout parameter — the argument must be a modifiable l-value.`,
-          location: argument.location
-        });
+        if (
+          !(parameter instanceof ASTNode.ParameterDeclaration) ||
+          !(ParserUtils.hasQualifier(parameter, Keyword.OUT) || ParserUtils.hasQualifier(parameter, Keyword.INOUT))
+        )
+          continue;
+        const reason = this.nonAssignableReason(argument);
+        if (reason) {
+          issues.push({
+            code: "InvalidAssignmentTarget",
+            message: `Cannot pass ${reason} to an out or inout parameter — the argument must be a modifiable l-value.`,
+            location: argument.location,
+            branch
+          });
+        }
       }
     }
     return issues;

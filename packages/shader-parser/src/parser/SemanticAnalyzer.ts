@@ -18,6 +18,12 @@ import { createShaderDeclarationOwnership, isDeferredDeclarationPair } from "../
 export type TranslationRule<T = unknown> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
 type RedefinitionConflict = Exclude<DeclarationCoexistence, "exclusive"> | "none";
 
+interface FunctionCapture {
+  readonly header: ASTNode.FunctionDeclarator;
+  readonly localVariables: VarSymbol[];
+  readonly calledFunctions: FnSymbol[];
+}
+
 /**
  * @internal
  * The semantic analyzer of `ShaderCompiler` compiler.
@@ -47,11 +53,7 @@ export default class SemanticAnalyzer {
   semanticStack: TreeNode[] = [];
   acceptRule?: TranslationRule = undefined;
   symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
-  curFunctionInfo: {
-    header?: ASTNode.FunctionDeclarator;
-    readonly localVariables: VarSymbol[];
-    readonly calledFunctions: FnSymbol[];
-  } = { localVariables: [], calledFunctions: [] };
+  private readonly _functionCaptures: FunctionCapture[] = [];
   private _shaderData = new ShaderData();
   private _translationRules: readonly (TranslationRule | undefined)[] = [];
   private _sourceScopes: readonly ShaderSourceScope[] = [];
@@ -71,6 +73,14 @@ export default class SemanticAnalyzer {
 
   get macroDefineList(): MacroDefineList {
     return this._macroDefineList;
+  }
+
+  /**
+   * Function identity whose body is currently being parsed, if a declarator is active.
+   * @internal
+   */
+  get currentFunctionHeader(): ASTNode.FunctionDeclarator | undefined {
+    return this._functionCaptures[this._functionCaptures.length - 1]?.header;
   }
 
   constructor(
@@ -98,9 +108,7 @@ export default class SemanticAnalyzer {
     this.inMacroDefinition = false;
     this._ambiguousReported.clear();
     this._inheritedDeclarations.length = 0;
-    this.curFunctionInfo.header = undefined;
-    this.curFunctionInfo.localVariables.length = 0;
-    this.curFunctionInfo.calledFunctions.length = 0;
+    this._functionCaptures.length = 0;
     this.runtimeLookupScratch.length = 0;
     this.runtimeFallbackScratch.length = 0;
   }
@@ -163,21 +171,40 @@ export default class SemanticAnalyzer {
     return this._translationRules[pid];
   }
 
-  /** @internal */
+  /**
+   * Opens a declarator's capture without overwriting an enclosing function's facts.
+   * @param header - Declarator that owns references until its prototype or definition ends.
+   * @internal
+   */
   beginFunction(header: ASTNode.FunctionDeclarator): void {
-    this.curFunctionInfo.header = header;
-    this.curFunctionInfo.localVariables.length = 0;
-    this.curFunctionInfo.calledFunctions.length = 0;
+    this._functionCaptures.push({ header, localVariables: [], calledFunctions: [] });
   }
 
-  /** @internal */
+  /**
+   * Closes the active declarator and restores the enclosing function's capture.
+   * @returns Facts owned by the completed prototype or definition.
+   * @internal
+   */
+  endFunction(): FunctionCapture {
+    return this._functionCaptures.pop()!;
+  }
+
+  /**
+   * Records a local variable in the active function capture.
+   * @param variable - Variable declared in the current body.
+   * @internal
+   */
   recordFunctionVariable(variable: VarSymbol): void {
-    if (this.curFunctionInfo.header) this.curFunctionInfo.localVariables.push(variable);
+    this._functionCaptures[this._functionCaptures.length - 1]?.localVariables.push(variable);
   }
 
-  /** @internal */
+  /**
+   * Records a resolved call in the active function capture.
+   * @param fn - Exact function declaration selected by parser lookup.
+   * @internal
+   */
   recordFunctionCall(fn: FnSymbol): void {
-    if (this.curFunctionInfo.header) this.curFunctionInfo.calledFunctions.push(fn);
+    this._functionCaptures[this._functionCaptures.length - 1]?.calledFunctions.push(fn);
   }
 
   /**

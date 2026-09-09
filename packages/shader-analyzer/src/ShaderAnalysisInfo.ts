@@ -36,6 +36,8 @@ export class ShaderAnalysisInfo {
   private readonly _callFacts = new Map<ASTNode.FunctionDefinition, ConditionalCall[]>();
   private readonly _writes = new Map<ASTNode.FunctionDefinition, ConditionalWrite[]>();
   private readonly _unknownEffects = new Map<ASTNode.FunctionDefinition, BranchSignature[]>();
+  private readonly _indexedMacroReferences = new Set<number>();
+  private readonly _indexedMacroArguments = new Map<TreeNode, BranchSignature[]>();
   private readonly _functionsByName = new Map<string, ASTNode.FunctionDefinition[]>();
   private readonly _reachablePathsByEntry = new Map<
     ShaderEntryPointInfo,
@@ -244,25 +246,60 @@ export class ShaderAnalysisInfo {
     walkEffectiveShaderSyntax(
       node,
       (node, branch, location) => {
+        if (node instanceof ASTNode.PostfixExpression && node.children.length === 4) {
+          const base = node.children[0];
+          if (base instanceof TreeNode) {
+            const target = assignmentTargetBase(base);
+            if (target instanceof ASTNode.MacroCallSymbol || target instanceof ASTNode.MacroCallFunction) {
+              this._indexedMacroReferences.add(target.location.start.index);
+            }
+          }
+        }
         if (node instanceof ASTNode.FunctionCallGeneric) this._recordCall(functionNode, node, branch);
         if (node instanceof ASTNode.VariableIdentifier) {
           if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
             this._glFragColorReferences.push({ functionNode, location, branch });
           } else if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
-            this.glFragDataReferences.push(location);
+            if (
+              !(this._indexedMacroArguments.get(node) ?? []).some((indexedBranch) => sameBranch(indexedBranch, branch))
+            ) {
+              this.glFragDataReferences.push(location);
+            }
             this._glFragDataConditionalReferences.push({ functionNode, location, branch });
           }
         }
         if (node instanceof ASTNode.AssignmentExpression && node.children.length === 3) {
           const lhs = node.children[0];
           if (lhs instanceof TreeNode) {
-            const target = leftmostIdentifierTarget(lhs);
-            if (target !== undefined) this._recordWrite(functionNode, target, branch);
+            this._recordAssignmentTarget(functionNode, lhs, branch);
           }
         }
       },
-      (syntax, branch) => {
+      (syntax, branch, location) => {
+        const indexedAlias = this._indexedMacroReferences.has(location.start.index);
+        if (indexedAlias && syntax.valueTarget instanceof TreeNode) {
+          const argument = assignmentTargetBase(syntax.valueTarget);
+          if (argument instanceof ASTNode.VariableIdentifier) {
+            const branches = this._indexedMacroArguments.get(argument) ?? [];
+            branches.push(branch);
+            this._indexedMacroArguments.set(argument, branches);
+          }
+        }
+        for (const target of syntax.writtenTargets ?? []) {
+          this._recordAssignmentTarget(functionNode, target, branch);
+        }
         for (const reference of syntax.references) {
+          if (reference.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
+            this._glFragColorReferences.push({ functionNode, location, branch });
+          } else if (reference.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
+            if (
+              !reference.indexed &&
+              !(indexedAlias && syntax.valueTarget === ShaderBuiltinSemantic.FragmentOutputArray)
+            ) {
+              this.glFragDataReferences.push(location);
+            }
+            this._glFragDataConditionalReferences.push({ functionNode, location, branch });
+          }
           for (const candidate of reference.functions) {
             const facts = this._callFacts.get(functionNode) ?? [];
             facts.push({ callee: candidate.astNode, branch });
@@ -387,10 +424,33 @@ export class ShaderAnalysisInfo {
       }
       const argument = argumentList.paramNodes[i];
       if (!(argument instanceof TreeNode)) continue;
-      const target = leftmostIdentifierTarget(argument);
-      if (target === undefined) continue;
       const branch = combineBranches(callBranch, callee.branchSignature ?? EMPTY_BRANCH);
-      if (branch) this._recordWrite(caller, target, branch);
+      if (branch) this._recordAssignmentTarget(caller, argument, branch);
+    }
+  }
+
+  private _recordAssignmentTarget(
+    functionNode: ASTNode.FunctionDefinition,
+    target: string | TreeNode,
+    branch: BranchSignature
+  ): void {
+    if (typeof target === "string") {
+      this._recordWrite(functionNode, target, branch);
+      return;
+    }
+    const current = assignmentTargetBase(target);
+    if (current instanceof ASTNode.MacroCallSymbol || current instanceof ASTNode.MacroCallFunction) {
+      for (const syntax of current.expandedSyntax ?? []) {
+        if (syntax.valueTarget === undefined) continue;
+        const targetBranch = combineBranches(branch, syntax.branch);
+        if (targetBranch) this._recordAssignmentTarget(functionNode, syntax.valueTarget, targetBranch);
+      }
+      return;
+    }
+    if (current instanceof ASTNode.VariableIdentifier) {
+      const child = current.children[0];
+      const name = current.builtinSemantic ?? (child instanceof BaseToken ? child.lexeme : undefined);
+      if (name !== undefined) this._recordWrite(functionNode, name, branch);
     }
   }
 
@@ -548,26 +608,26 @@ function combineBranches(left: BranchSignature, right: BranchSignature): BranchS
   return combined;
 }
 
-function leftmostIdentifierTarget(node: TreeNode): string | ShaderBuiltinSemantic | undefined {
+function assignmentTargetBase(node: TreeNode): TreeNode {
   let current = node;
   while (true) {
-    if (current instanceof ASTNode.VariableIdentifier) {
-      if (current.builtinSemantic !== undefined) return current.builtinSemantic;
+    if (
+      current instanceof ASTNode.PostfixExpression ||
+      current instanceof ASTNode.VariableIdentifier ||
+      (current instanceof ASTNode.ExpressionAstNode && current.children.length === 1)
+    ) {
       const child = current.children[0];
-      return child instanceof BaseToken ? child.lexeme : undefined;
+      if (child instanceof TreeNode) {
+        current = child;
+        continue;
+      }
+    } else if (current instanceof ASTNode.PrimaryExpression && current.children.length === 3) {
+      const child = current.children[1];
+      if (child instanceof TreeNode) {
+        current = child;
+        continue;
+      }
     }
-    if (current instanceof ASTNode.PostfixExpression && current.children.length) {
-      const base = current.children[0];
-      if (!(base instanceof TreeNode)) return undefined;
-      current = base;
-      continue;
-    }
-    if (current instanceof ASTNode.ExpressionAstNode && current.children.length === 1) {
-      const child = current.children[0];
-      if (!(child instanceof TreeNode)) return undefined;
-      current = child;
-      continue;
-    }
-    return undefined;
+    return current;
   }
 }

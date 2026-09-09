@@ -5,6 +5,7 @@ import { ASTNode } from "../parser/AST";
 import { ESymbolType, FnSymbol, SymbolInfo, SymbolTable, VarSymbol } from "../parser/symbolTable";
 import type { StructProp } from "../parser/types";
 import type { ShaderClueIR } from "./ShaderClueIR";
+import { findUnsupportedStructOwnership } from "./ShaderStructOwnership";
 import {
   isDeferredDeclarationPair,
   type DeferredDeclarationOwnership,
@@ -107,7 +108,6 @@ export class ShaderCoreInfo {
     const symbolTable = ir.shaderData.symbolTable;
     const ownership = ir.shaderData.declarationOwnership;
     this.deferredDeclarationOwnership = ownership.declarations;
-    this.unsupportedDeferredDeclarations = ownership.unsupported;
     const vertexFunctions = findFunctions(symbolTable, vertexEntry);
     const fragmentFunctions = findFunctions(symbolTable, fragmentEntry);
     this.vertexEntry = createEntryPointInfo(
@@ -128,7 +128,19 @@ export class ShaderCoreInfo {
     const mutableIO = createIOInfo();
     collectEntryIO(vertexFunctions, fragmentFunctions, mutableIO);
     this.roleConflicts = removeRoleConflicts(mutableIO);
-    deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO);
+    const roles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
+    registerStructRoles(roles, mutableIO.attributeStructs, ShaderStructRole.Attribute);
+    registerStructRoles(roles, mutableIO.varyingStructs, ShaderStructRole.Varying);
+    registerStructRoles(roles, mutableIO.mrtStructs, ShaderStructRole.Mrt);
+    this.unsupportedDeferredDeclarations = ownership.unsupported.concat(
+      findUnsupportedStructOwnership(
+        ownership,
+        vertexFunctions.concat(fragmentFunctions),
+        roles,
+        ir.shaderData.referenceResolutionSnapshots
+      )
+    );
+    deriveStructVariableRoles(symbolTable, vertexFunctions, fragmentFunctions, mutableIO, roles);
     this.io = mutableIO;
     this.outerGlobalMacroDeclarations = ir.shaderData.getOuterGlobalMacroDeclarations();
   }
@@ -303,13 +315,9 @@ function deriveStructVariableRoles(
   symbolTable: SymbolTable<SymbolInfo>,
   vertexFunctions: readonly FnSymbol[],
   fragmentFunctions: readonly FnSymbol[],
-  io: MutableShaderIOInfo
+  io: MutableShaderIOInfo,
+  structRoles: ReadonlyMap<ASTNode.StructSpecifier, ShaderStructRole>
 ): void {
-  const structRoles = new Map<ASTNode.StructSpecifier, ShaderStructRole>();
-  registerStructRoles(structRoles, io.attributeStructs, ShaderStructRole.Attribute);
-  registerStructRoles(structRoles, io.varyingStructs, ShaderStructRole.Varying);
-  registerStructRoles(structRoles, io.mrtStructs, ShaderStructRole.Mrt);
-
   const functionFacts = new Map<FnSymbol, FunctionRoleFacts>();
   symbolTable.forEach((symbol) => {
     if (symbol instanceof FnSymbol) {
