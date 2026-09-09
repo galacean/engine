@@ -9,7 +9,7 @@ import {
   Script,
   Transform
 } from "@galacean/engine-core";
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -217,14 +217,23 @@ describe("Transform test", function () {
     expect(transforms).to.deep.equal([replacement]);
   });
 
-  it("rejects Transform replacement before construction when a dependency prevents it", () => {
+  it("checks Transform replacement dependencies after construction", () => {
+    let constructed = false;
+    class ReplacementTransform extends Transform {
+      constructor(entity: Entity) {
+        super(entity);
+        constructed = true;
+      }
+    }
+
     const dependentEntity = new Entity(engine, "dependent-transform", SubClassOfTransform);
     const previous = dependentEntity.transform;
     dependentEntity.addComponent(RequiresSubClassOfTransform);
 
-    expect(() => dependentEntity.addComponent(ThrowingReplacementTransform)).to.throw(
+    expect(() => dependentEntity.addComponent(ReplacementTransform)).to.throw(
       "Should remove RequiresSubClassOfTransform before remove SubClassOfTransform"
     );
+    expect(constructed).to.equal(true);
     const transforms: Transform[] = [];
     dependentEntity.getComponents(Transform, transforms);
     expect(dependentEntity.transform).to.equal(previous);
@@ -244,18 +253,88 @@ describe("Transform test", function () {
     expect(previous.destroyed).to.equal(false);
   });
 
-  it("rejects dependencies declared by Transform-compatible components", () => {
-    expect(() => new Entity(engine, "invalid-transform", InvalidDependentTransform)).to.throw(
-      "Transform-compatible component InvalidDependentTransform cannot declare component dependencies"
-    );
+  it.each([CheckOnlyDependentTransform, AutoAddDependentTransform, InheritedDependentTransform])(
+    "rejects dependencies declared by Transform-compatible components: %s",
+    (type) => {
+      const message = `Transform-compatible component ${type.name} cannot declare component dependencies`;
+      expect(() => new Entity(engine, "invalid-transform", type)).to.throw(message);
 
-    const entity = new Entity(engine, "invalid-replacement");
+      const entity = new Entity(engine, "invalid-replacement");
+      const previous = entity.transform;
+      expect(() => entity.addComponent(type)).to.throw(message);
+      expect(entity.transform).to.equal(previous);
+      expect(entity._components).to.deep.equal([previous]);
+      expect(() => entity.destroy()).not.to.throw();
+      expect(previous.destroyed).to.equal(true);
+    }
+  );
+
+  it("installs AutoAdd dependencies before component construction and destroys the complete entity", () => {
+    @dependentComponents(SubClassOfTransform, DependentMode.AutoAdd)
+    class TransformReader extends Script {
+      constructor(entity: Entity) {
+        super(entity);
+        expect(entity.transform).to.be.instanceOf(SubClassOfTransform);
+        expect(entity.getComponent(SubClassOfTransform)).to.equal(entity.transform);
+      }
+    }
+
+    const entity = new Entity(engine, "auto-transform-dependency");
+    const reader = entity.addComponent(TransformReader);
+    const transform = entity.transform;
+    expect(entity._components).to.deep.equal([transform, reader]);
+    expect(() => entity.destroy()).not.to.throw();
+    expect(reader.destroyed).to.equal(true);
+    expect(transform.destroyed).to.equal(true);
+    expect(entity._components).to.have.lengthOf(0);
+  });
+
+  it.each([false, true])(
+    "allows component additions from a compatible Transform constructor (initial: %s)",
+    (initial) => {
+      class AddingTransform extends Transform {
+        constructor(entity: Entity) {
+          super(entity);
+          entity.addComponent(CloneTailComponent);
+        }
+      }
+
+      const entity = new Entity(engine, "constructor-component", ...(initial ? [AddingTransform] : []));
+      const replacement = initial ? entity.transform : entity.addComponent(AddingTransform);
+      expect(entity.transform).to.equal(replacement);
+      expect(entity._components[0].instanceId).to.equal(replacement.instanceId);
+      expect(entity.getComponent(CloneTailComponent)).not.to.equal(null);
+      expect(() => entity.destroy()).not.to.throw();
+    }
+  );
+
+  it("updates cached child world transforms after replacing the parent Transform", () => {
+    const entity = scene.createRootEntity("replacement-child-cache");
+    entity.transform.setPosition(1, 2, 3);
+    const child = entity.createChild();
+    child.transform.setPosition(4, 5, 6);
+    expect(child.transform.worldPosition).to.deep.include({ x: 5, y: 7, z: 9 });
+    expect(Array.from(child.transform.worldMatrix.elements.slice(12, 15))).to.deep.equal([5, 7, 9]);
+
     const previous = entity.transform;
-    expect(() => entity.addComponent(InvalidDependentTransform)).to.throw(
-      "Transform-compatible component InvalidDependentTransform cannot declare component dependencies"
-    );
-    expect(entity.transform).to.equal(previous);
-    expect(entity._components).to.deep.equal([previous]);
+    const replacement = entity.addComponent(SubClassOfTransform);
+    replacement.setPosition(10, 20, 30);
+
+    expect(child.transform.worldPosition).to.deep.include({ x: 14, y: 25, z: 36 });
+    expect(Array.from(child.transform.worldMatrix.elements.slice(12, 15))).to.deep.equal([14, 25, 36]);
+    expect(previous.destroyed).to.equal(true);
+    entity.destroy();
+  });
+
+  it("preserves quaternion-authored rotation while replacing Transform", () => {
+    const entity = new Entity(engine, "quaternion-transform");
+    const expected = new Quaternion();
+    Quaternion.rotationEuler(Math.PI / 2 - 1e-7, 0.4, -0.2, expected);
+    entity.transform.rotationQuaternion = expected;
+
+    entity.addComponent(SubClassOfTransform);
+
+    expect(Math.abs(Quaternion.dot(entity.transform.rotationQuaternion, expected))).to.be.approximately(1, 1e-6);
   });
 
   it("does not allow the current Transform to be destroyed directly", () => {
@@ -270,7 +349,23 @@ describe("Transform test", function () {
     expect(entity._components).to.deep.equal([transform]);
   });
 
-  it("clears the clone constructor buffer when component construction fails", () => {
+  it("keeps component lists and references correct across nested clones", () => {
+    const nestedSource = new Entity(engine, "nested-source");
+    const source = new Entity(engine, "outer-source");
+    const nestedComponent = source.addComponent(NestedCloneComponent);
+    const tailComponent = source.addComponent(CloneTailComponent);
+    nestedComponent.reference = tailComponent;
+
+    NestedCloneComponent.source = nestedSource;
+    const clone = source.clone();
+
+    expect(NestedCloneComponent.result._components).to.deep.equal([NestedCloneComponent.result.transform]);
+    const clonedTail = clone.getComponent(CloneTailComponent);
+    expect(clonedTail).not.to.equal(tailComponent);
+    expect(clone.getComponent(NestedCloneComponent).reference).to.equal(clonedTail);
+  });
+
+  it("does not leak component constructors after a failed clone", () => {
     const source = new Entity(engine, "failed-clone");
     source.addComponent(ThrowingCloneComponent);
 
@@ -358,7 +453,12 @@ class SubClassOfTransform extends Transform {
 class RequiresSubClassOfTransform extends Script {}
 
 @dependentComponents(MeshRenderer, DependentMode.CheckOnly)
-class InvalidDependentTransform extends Transform {}
+class CheckOnlyDependentTransform extends Transform {}
+
+@dependentComponents(MeshRenderer, DependentMode.AutoAdd)
+class AutoAddDependentTransform extends Transform {}
+
+class InheritedDependentTransform extends AutoAddDependentTransform {}
 
 class ThrowingReplacementTransform extends Transform {
   constructor(entity: Entity) {
@@ -366,6 +466,24 @@ class ThrowingReplacementTransform extends Transform {
     throw "transform construction failed";
   }
 }
+
+class NestedCloneComponent extends Script {
+  static source: Entity;
+  static result: Entity;
+
+  reference: CloneTailComponent;
+
+  constructor(entity: Entity) {
+    super(entity);
+    if (NestedCloneComponent.source) {
+      const source = NestedCloneComponent.source;
+      NestedCloneComponent.source = null;
+      NestedCloneComponent.result = source.clone();
+    }
+  }
+}
+
+class CloneTailComponent extends Script {}
 
 class ThrowingCloneComponent extends Script {
   static throwOnConstruction = false;

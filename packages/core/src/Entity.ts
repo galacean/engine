@@ -257,10 +257,10 @@ export class Entity extends EngineObject {
       }
     }
 
-    // Install the final Transform before the remaining components.
     Entity._checkTransformDependencies(transformType);
     const transform = <Transform>new transformType(this);
-    this._components.push(transform);
+    // Constructors may add components, but Transform always owns slot zero
+    this._components.unshift(transform);
     this._transform = transform;
     transform._setActive(true, ActiveChangeFlag.All);
 
@@ -280,20 +280,14 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    const isTransform = Entity._isTransformType(type);
-    if (isTransform) {
+    if (Entity._isTransformType(type)) {
       Entity._checkTransformDependencies(type);
-      ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
-    } else {
-      ComponentsDependencies._addCheck(this, type);
+      return this._replaceTransform(new type(this, ...args) as Transform) as InstanceType<T>;
     }
 
+    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
-    if (isTransform) {
-      this._replaceTransform(<Transform>component);
-    } else {
-      this._components.push(component);
-    }
+    this._components.push(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -484,15 +478,12 @@ export class Entity extends EngineObject {
   private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
+    componentConstructors.length = components.length;
     for (let i = 0, n = components.length; i < n; i++) {
       componentConstructors[i] = components[i].constructor as ComponentConstructor;
     }
-    let cloneEntity: Entity;
-    try {
-      cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
-    } finally {
-      componentConstructors.length = 0;
-    }
+    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
+    componentConstructors.length = 0;
     cloneMap.set(this, cloneEntity);
     const targetComponents = cloneEntity._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -801,20 +792,27 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _replaceTransform(replacement: Transform): void {
+  private _replaceTransform(replacement: Transform): Transform {
     const previous = this._transform;
-    replacement.position.copyFrom(previous.position);
-    replacement.rotation.copyFrom(previous.rotation);
-    replacement.scale.copyFrom(previous.scale);
+    ComponentsDependencies._removeCheck(
+      this,
+      previous.constructor as ComponentConstructor,
+      replacement.constructor as ComponentConstructor
+    );
 
+    replacement.position.copyFrom(previous.position);
+    replacement.rotationQuaternion.copyFrom(previous.rotationQuaternion);
+    replacement.scale.copyFrom(previous.scale);
     this._components[0] = replacement;
     this._transform = replacement;
-    previous.destroy();
 
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
-      children[i].transform?._parentChange();
+      children[i].transform._parentChange();
     }
+    replacement._setActive(true, ActiveChangeFlag.All);
+    previous.destroy();
+    return replacement;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
