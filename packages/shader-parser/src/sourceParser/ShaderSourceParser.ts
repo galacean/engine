@@ -353,7 +353,7 @@ class ShaderSourceParserSession {
       // Unknown properties are skipped, so the diagnostic must make the missing write explicit.
       this._createCompileError(
         `Invalid render state property ${propertyLexeme} — property will not be applied.`,
-        undefined,
+        propertyToken.location,
         "InvalidRenderStateProperty"
       );
       lexer.scanToCharacter(";");

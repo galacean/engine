@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { DiagnosticType } from "@galacean/engine-shader-analyzer";
 
 const guiState = vi.hoisted(() => ({
   options: [] as string[],
@@ -173,12 +174,17 @@ describe("shader playground", () => {
       expect(output!.textContent).not.to.contain("NonConstArraySize");
     }
 
-    for (const label of guiState.options.filter(
-      (option) => !option.startsWith("宏") && !option.startsWith("Include / ") && option.includes(" / ")
-    )) {
+    const diagnosticTypes: readonly string[] = Object.values(DiagnosticType);
+    for (const label of guiState.options) {
       const diagnosticType = label.slice(label.lastIndexOf(" / ") + 3);
       guiState.onChange!(label);
-      expect(output!.textContent, label).to.contain(diagnosticType);
+      if (diagnosticTypes.includes(diagnosticType)) {
+        expect(
+          Array.from(output!.querySelectorAll(".diag"), (element) => element.textContent).join("\n"),
+          label
+        ).to.contain(diagnosticType);
+      }
+      expect(output!.querySelector('[role="status"]')!.textContent, label).to.equal("符合样例预期");
     }
 
     for (const [label, sourceFile] of [

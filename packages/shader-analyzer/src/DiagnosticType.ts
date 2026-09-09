@@ -41,6 +41,7 @@ export enum DiagnosticType {
   NonConstructibleReturnType = "NonConstructibleReturnType",
   MisplacedControlFlow = "MisplacedControlFlow",
   DerivativeInVertexShader = "DerivativeInVertexShader",
+  InvalidBuiltinStage = "InvalidBuiltinStage",
 
   InvalidIOStruct = "InvalidIOStruct",
   InvalidEntryReturnType = "InvalidEntryReturnType",

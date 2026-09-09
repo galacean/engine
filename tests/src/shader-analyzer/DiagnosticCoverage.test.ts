@@ -283,6 +283,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
+    code: "InvalidBuiltinStage",
+    source: pass(`
+      void vert() { gl_Position = gl_FragCoord; }
+      void frag() { gl_FragColor = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
     code: "InvalidVoidVariable",
     source: pass(`
       void vert() { gl_Position = vec4(0.0); }

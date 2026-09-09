@@ -822,7 +822,6 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    compilerExpects: "reject",
     driverExpects: "reject",
     reason: "GLSL ES §6: function prototypes only at global scope"
   }

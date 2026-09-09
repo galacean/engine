@@ -115,9 +115,16 @@ export class ParserUtils {
    * Validate a `.field` access on a vector as a GLSL swizzle. Returns an error message when the
    * access is an invalid swizzle on a known vector type, or `null` when it is valid or the base
    * is not a known vector (struct member / scalar / unresolved — left for other checks).
+   * @param baseType - Resolved receiver type.
+   * @param swizzle - Selected component names.
+   * @param size - Proven component count when a nested swizzle has no resolved expression type.
+   * @returns A reason for invalid selection, or `null` for valid or unresolved receivers.
    */
-  static swizzleError(baseType: GalaceanDataType | undefined, swizzle: string): string | null {
-    const size = TypeSystem.vectorComponentCount(baseType);
+  static swizzleError(
+    baseType: GalaceanDataType | undefined,
+    swizzle: string,
+    size = TypeSystem.vectorComponentCount(baseType)
+  ): string | null {
     if (size === 0) return null;
     if (swizzle.length < 1 || swizzle.length > 4) {
       return `Invalid swizzle ".${swizzle}": a vector swizzle selects 1-4 components.`;

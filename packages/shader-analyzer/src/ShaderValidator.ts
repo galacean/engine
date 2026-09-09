@@ -1,9 +1,11 @@
 import {
   ASTNode,
   BaseToken,
+  BuiltinVariable,
   canBranchesOverlap,
   type BranchSignature,
   ESymbolType,
+  EShaderStage,
   ETokenType,
   GSError,
   GSErrorName,
@@ -22,24 +24,25 @@ import {
 } from "@galacean/engine-shader-parser/internal/analyzer";
 import { getBranchCoverage } from "@galacean/engine-shader-parser/internal/analyzer";
 import { DiagnosticType } from "./DiagnosticType";
-import type { ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
+import { walkEffectiveShaderSyntax, type ShaderAnalysisInfo } from "./ShaderAnalysisInfo";
 
 /**
  * Walk-local context threaded down the recursion: the enclosing function (for the declared return
- * type and the recursion self-call check), the current loop nesting depth (for break/continue), and
- * the pipeline stage of the enclosing entry function (for derivative-in-vertex-shader). These can't
+ * type and the recursion self-call check) and the current loop nesting depth (for break/continue). These can't
  * be read off a node post-parse — the parser carried them as transient SA state — so the walk
  * reconstructs them as it descends.
  */
 interface WalkContext {
   currentFunction: ASTNode.FunctionDefinition | null;
   loopDepth: number;
-  /**
-   * Pipeline stage of the enclosing entry function, or `null` when outside an entry (top-level
-   * declarations, helper functions). Set in the FunctionDefinition branch by matching the function
-   * name against the pass's vertex / fragment entry names.
-   */
-  currentStage: "vertex" | "fragment" | null;
+}
+
+interface StageRestrictedSite {
+  description: string;
+  scope: EShaderStage;
+  type: DiagnosticType;
+  location: ShaderRange;
+  branch: BranchSignature;
 }
 
 /** Fragment-only derivative builtins (GLSL ES 3.00 §8.9) — illegal in the vertex stage. */
@@ -58,9 +61,10 @@ export class ShaderValidator {
    */
   static validate(analysis: ShaderAnalysisInfo): GSError[] {
     const v = new ShaderValidator(analysis);
-    v._walk(analysis.ir.program, { currentFunction: null, loopDepth: 0, currentStage: null });
+    v._walk(analysis.ir.program, { currentFunction: null, loopDepth: 0 });
+    v._collectStageRestrictions();
     v._reportMutualRecursion();
-    v._reportDerivativeReachableFromVertex();
+    v._reportStageRestrictions();
     v._reportBareGlFragData();
     return v._errors;
   }
@@ -75,22 +79,14 @@ export class ShaderValidator {
    * `ShaderAnalysisInfo.glFragDataReferences` list; the residue is bare use.
    */
   private _indexedGlFragDataStarts = new Set<number>();
-  /** Function definition → derivative call sites inside its body. Post-walk pass reports the ones
-   *  reachable from the vertex entry via the call graph. */
-  private _derivativeSites = new Map<
-    ASTNode.FunctionDefinition,
-    { name: string; location: ShaderRange; branch: ASTNode.FunctionCallGeneric["_branch"] }[]
-  >();
+  /** Sites are attributed to exact function identities, then checked against each entry's macro paths. */
+  private readonly _stageRestrictedSites = new Map<ASTNode.FunctionDefinition, StageRestrictedSite[]>();
 
   private readonly _source: string;
-  private readonly _vertexEntry: string;
-  private readonly _fragmentEntry: string;
   private readonly _shaderData: ASTNode.GLShaderProgram["shaderData"];
 
   private constructor(private readonly _analysis: ShaderAnalysisInfo) {
     this._source = _analysis.ir.source;
-    this._vertexEntry = _analysis.coreInfo.vertexEntry.name;
-    this._fragmentEntry = _analysis.coreInfo.fragmentEntry.name;
     this._shaderData = _analysis.ir.shaderData;
   }
 
@@ -103,27 +99,17 @@ export class ShaderValidator {
     let childCtx = ctx;
     if (node instanceof ASTNode.FunctionDefinition) {
       this._checkFunctionReturn(node);
-      // Enter the entry function's stage for its subtree so derivative-in-vertex-shader can fire.
-      // A helper called by both entries stays `null` — only calls inside the vertex entry itself flag.
-      const name = node.protoType.ident.lexeme;
-      const stage: WalkContext["currentStage"] =
-        name === this._vertexEntry && this._vertexEntry
-          ? "vertex"
-          : name === this._fragmentEntry && this._fragmentEntry
-            ? "fragment"
-            : null;
-      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth, currentStage: stage };
+      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
     } else if (node instanceof ASTNode.IterationStatement) {
       childCtx = {
         currentFunction: ctx.currentFunction,
-        loopDepth: ctx.loopDepth + 1,
-        currentStage: ctx.currentStage
+        loopDepth: ctx.loopDepth + 1
       };
     } else if (node instanceof ASTNode.JumpStatement) {
       this._checkJump(node, ctx);
     } else if (node instanceof ASTNode.FunctionCallGeneric) {
       this._checkRecursiveCall(node, ctx);
-      this._checkDerivativeCall(node, ctx);
+      this._checkDerivativeCall(node);
     } else if (node instanceof ASTNode.UnaryExpression) {
       this._checkUnaryOperand(node);
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
@@ -602,7 +588,7 @@ export class ShaderValidator {
    * Jump-statement checks needing walk-local context: `InvalidReturnType` fires per-jump — a value
    * return in a `void` function, or a `return value;` whose value isn't assignable to the declared
    * non-void return type. A `break`/`continue` at loop depth 0 (outside any loop) is
-   * `MisplacedControlFlow`.
+   * `MisplacedControlFlow`. A discard site is checked against stage reachability after the walk.
    */
   private _checkJump(node: ASTNode.JumpStatement, ctx: WalkContext): void {
     const children = node.children;
@@ -704,27 +690,99 @@ export class ShaderValidator {
   }
 
   /**
-   * Post-walk pass: transitively reach from the vertex entry via the call graph, and report any
-   * derivative call site inside a reachable helper. Helpers called only from the fragment entry
-   * are silent; helpers on both paths get flagged (the vertex path evaluates them illegally).
+   * Resolves stage restrictions through the shared branch-aware call graph, including entry bodies.
+   * Uncalled helpers and incompatible macro paths do not establish a stage violation.
    */
-  private _reportDerivativeReachableFromVertex(): void {
-    const vertexEntry = this._analysis.coreInfo.vertexEntry;
-    if (!vertexEntry.name) return;
-    const reachable = new Set(this._analysis.reachableFunctions(vertexEntry));
-    // Vertex entry itself is handled inline in `_checkDerivativeCall`; skip it here.
-    for (const entry of vertexEntry.functions) reachable.delete(entry.astNode);
-    for (const fn of reachable) {
-      const sites = this._derivativeSites.get(fn);
-      if (!sites) continue;
-      for (const s of sites) {
-        if (!this._analysis.isFunctionBranchReachable(vertexEntry, fn, s.branch)) continue;
-        this._push(
-          `Derivative function '${s.name}' is reached from the vertex entry via '${fn.protoType.ident.lexeme}' — derivatives are fragment-only.`,
-          s.location,
-          DiagnosticType.DerivativeInVertexShader
-        );
+  private _reportStageRestrictions(): void {
+    if (!this._stageRestrictedSites.size) return;
+    const { vertexEntry, fragmentEntry } = this._analysis.coreInfo;
+    for (const entry of [vertexEntry, fragmentEntry]) {
+      const reported = new Set<string>();
+      const stage = entry.stage === EShaderStage.VERTEX ? "vertex" : "fragment";
+      for (const fn of this._analysis.reachableFunctions(entry)) {
+        for (const site of this._stageRestrictedSites.get(fn) ?? []) {
+          if (site.scope === entry.stage || !this._analysis.isFunctionBranchReachable(entry, fn, site.branch)) continue;
+          const key = `${site.type}:${site.location.start.index}:${site.location.end.index}:${site.description}`;
+          if (reported.has(key)) continue;
+          reported.add(key);
+          const allowed = site.scope === EShaderStage.VERTEX ? "vertex" : "fragment";
+          this._push(
+            `${site.description} is only allowed in the ${allowed} shader, but is reachable from the ${stage} entry via '${fn.protoType.ident.lexeme}'.`,
+            site.location,
+            site.type
+          );
+        }
       }
+    }
+  }
+
+  private _recordStageRestriction(ctx: WalkContext, site: StageRestrictedSite): void {
+    if (!ctx.currentFunction) return;
+    let sites = this._stageRestrictedSites.get(ctx.currentFunction);
+    if (!sites) this._stageRestrictedSites.set(ctx.currentFunction, (sites = []));
+    sites.push(site);
+  }
+
+  private _collectStageRestrictions(): void {
+    for (const fn of this._analysis.functions()) {
+      const ctx: WalkContext = { currentFunction: fn, loopDepth: 0 };
+      const record = (name: string, call: boolean, branch: BranchSignature, location: ShaderRange) => {
+        if (call) {
+          if (DERIVATIVE_BUILTINS.has(name))
+            this._recordStageRestriction(ctx, {
+              description: `Derivative function '${name}'`,
+              scope: EShaderStage.FRAGMENT,
+              type: DiagnosticType.DerivativeInVertexShader,
+              location,
+              branch
+            });
+          return;
+        }
+        const builtin = BuiltinVariable.getVar(name);
+        if (!builtin || builtin.scope === EShaderStage.ALL) return;
+        this._recordStageRestriction(ctx, {
+          description: `Builtin variable '${name}'`,
+          scope: builtin.scope,
+          type: DiagnosticType.InvalidBuiltinStage,
+          location,
+          branch
+        });
+      };
+      const discard = (branch: BranchSignature, location: ShaderRange) =>
+        this._recordStageRestriction(ctx, {
+          description: "'discard'",
+          scope: EShaderStage.FRAGMENT,
+          type: DiagnosticType.MisplacedControlFlow,
+          location,
+          branch
+        });
+      walkEffectiveShaderSyntax(
+        fn.statements,
+        (node, branch, location) => {
+          if (
+            node instanceof ASTNode.JumpStatement &&
+            ASTNode._unwrapToken(node.children[0]).type === Keyword.DISCARD
+          ) {
+            discard(branch, location);
+          } else if (node instanceof ASTNode.FunctionCallGeneric) {
+            const identifier = node.children[0] as ASTNode.FunctionIdentifier;
+            if (!identifier.isBuiltin) record(identifier.lexeme, true, branch, location);
+          } else if (node instanceof ASTNode.VariableIdentifier) {
+            const child = node.children[0];
+            if (
+              child instanceof BaseToken &&
+              !node.resolvedSymbols().length &&
+              node.typeInfo === BuiltinVariable.getVar(child.lexeme)?.type
+            ) {
+              record(child.lexeme, false, branch, location);
+            }
+          }
+        },
+        (syntax, branch, location) => {
+          if (syntax.keywords.includes(Keyword.DISCARD)) discard(branch, location);
+          for (const reference of syntax.references) record(reference.name, reference.call, branch, location);
+        }
+      );
     }
   }
 
@@ -734,29 +792,11 @@ export class ShaderValidator {
    * Only user-callable functions reach here (isBuiltin=false, since the identifier is a string name,
    * not a type keyword); constructors like `vec3(...)` never match a derivative name.
    */
-  private _checkDerivativeCall(node: ASTNode.FunctionCallGeneric, ctx: WalkContext): void {
+  private _checkDerivativeCall(node: ASTNode.FunctionCallGeneric): void {
     const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
     if (functionIdentifier.isBuiltin) return;
     const name = functionIdentifier.lexeme;
     if (!DERIVATIVE_BUILTINS.has(name)) return;
-
-    if (ctx.currentStage === "vertex") {
-      this._push(
-        `Derivative function '${name}' is not allowed in the vertex shader (fragment-only).`,
-        node.location,
-        DiagnosticType.DerivativeInVertexShader
-      );
-    } else if (ctx.currentFunction) {
-      // Record for the post-walk reachability pass: a helper that calls dFdx is illegal when the
-      // vertex entry transitively reaches it, even if the helper itself is `currentStage === null`.
-      const enclosing = ctx.currentFunction;
-      let sites = this._derivativeSites.get(enclosing);
-      if (!sites) {
-        sites = [];
-        this._derivativeSites.set(enclosing, sites);
-      }
-      sites.push({ name, location: node.location, branch: node._branch });
-    }
 
     // Spec: derivative builtins take `genType` (float/vec2/vec3/vec4); anything else is a type error.
     if (node.children.length === 4 && node.children[2] instanceof ASTNode.FunctionCallParameterList) {

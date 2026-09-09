@@ -2,8 +2,9 @@ import { ETokenType, ShaderRange, TypeAny } from "../common";
 import { isBranchReachable } from "../common/BranchAnalysis";
 import { BaseToken as Token } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
+import { ParserUtils } from "../ParserUtils";
 import { ASTNode, TreeNode } from "./AST";
-import { VarSymbol } from "./symbolTable";
+import { FnSymbol, VarSymbol } from "./symbolTable";
 import { TypeSystem } from "./TypeSystem";
 
 /**
@@ -54,6 +55,7 @@ export class ParserSemanticValidation {
       } else if (node instanceof ASTNode.FunctionCallGeneric) {
         const issue = this.constructorIssue(node);
         if (issue) issues.push(issue);
+        issues.push(...this.outputArgumentIssues(node));
       } else if (node instanceof ASTNode.FunctionDeclarator) {
         const issue = this.functionReturnTypeIssue(node);
         if (issue) issues.push(issue);
@@ -100,6 +102,16 @@ export class ParserSemanticValidation {
     }
     if (node instanceof ASTNode.PostfixExpression) {
       const base = node.children[0];
+      const field = node.children[2];
+      if (node.children.length === 3 && base instanceof ASTNode.ExpressionAstNode && field instanceof Token) {
+        const size = this._vectorComponentCount(base);
+        if (size) {
+          if (ParserUtils.swizzleError(base.type, field.lexeme, size)) return `an invalid swizzle '.${field.lexeme}'`;
+          if (new Set(field.lexeme).size !== field.lexeme.length) {
+            return `a swizzle with repeated components '.${field.lexeme}'`;
+          }
+        }
+      }
       return base instanceof TreeNode
         ? ParserSemanticValidation.nonAssignableReason(base)
         : "an unassignable postfix expression";
@@ -146,6 +158,64 @@ export class ParserSemanticValidation {
       if (child instanceof TreeNode) return ParserSemanticValidation.nonAssignableReason(child);
     }
     return;
+  }
+
+  private static _vectorComponentCount(node: ASTNode.ExpressionAstNode): number {
+    const size = TypeSystem.vectorComponentCount(node.type);
+    if (size) return size;
+    if (node instanceof ASTNode.PostfixExpression && node.children.length === 3) {
+      const base = node.children[0];
+      const field = node.children[2];
+      if (base instanceof ASTNode.ExpressionAstNode && field instanceof Token) {
+        const baseSize = this._vectorComponentCount(base);
+        if (baseSize && !ParserUtils.swizzleError(base.type, field.lexeme, baseSize)) {
+          return field.lexeme.length > 1 ? field.lexeme.length : 0;
+        }
+      }
+    }
+    const child = node.children[node instanceof ASTNode.PrimaryExpression && node.children.length === 3 ? 1 : 0];
+    if (
+      (node.children.length === 1 || node instanceof ASTNode.PrimaryExpression) &&
+      child instanceof ASTNode.ExpressionAstNode
+    ) {
+      return this._vectorComponentCount(child);
+    }
+    return 0;
+  }
+
+  /**
+   * Validates modifiable arguments required by every resolved user-function candidate.
+   * @param node - Function call with captured overload candidates.
+   * @returns Proven invalid output argument targets; unresolved parameter modes remain unchecked.
+   * @internal
+   */
+  static outputArgumentIssues(node: ASTNode.FunctionCallGeneric): ParserSemanticIssue[] {
+    const argumentsNode = node.children[2];
+    if (!(argumentsNode instanceof ASTNode.FunctionCallParameterList) || node.type === TypeAny) return [];
+    const candidates = node.fnSymbols ?? (node.fnSymbol instanceof FnSymbol ? [node.fnSymbol] : []);
+    if (!candidates.length) return [];
+    const issues: ParserSemanticIssue[] = [];
+    for (let index = 0; index < argumentsNode.paramNodes.length; index++) {
+      const argument = argumentsNode.paramNodes[index];
+      if (!(argument instanceof TreeNode)) continue;
+      const outputRequired = candidates.every((candidate) => {
+        const parameter = candidate.astNode.protoType.parameterList?.[index]?.astNode;
+        return (
+          parameter instanceof ASTNode.ParameterDeclaration &&
+          (ParserUtils.hasQualifier(parameter, Keyword.OUT) || ParserUtils.hasQualifier(parameter, Keyword.INOUT))
+        );
+      });
+      if (!outputRequired) continue;
+      const reason = this.nonAssignableReason(argument);
+      if (reason) {
+        issues.push({
+          code: "InvalidAssignmentTarget",
+          message: `Cannot pass ${reason} to an out or inout parameter — the argument must be a modifiable l-value.`,
+          location: argument.location
+        });
+      }
+    }
+    return issues;
   }
 
   /**

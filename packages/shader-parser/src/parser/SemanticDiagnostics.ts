@@ -1,5 +1,8 @@
 import type { GalaceanDataType, ShaderRange } from "../common";
 import type { BranchCoverage, BranchSignature, DeclarationCoexistence } from "../common/BaseToken";
+import type { ASTNode } from "./AST";
+import type SemanticAnalyzer from "./SemanticAnalyzer";
+import type { MacroExpansionSyntax } from "./types";
 
 /**
  * Analyzer-only ambiguity categories emitted while semantic facts are projected.
@@ -12,6 +15,17 @@ export type SemanticAmbiguityKind = "const-qualification" | "struct-member-prese
  * @internal
  */
 export interface SemanticDiagnostics {
+  /**
+   * Captures neutral effective macro syntax without coupling the runtime parser to analysis.
+   * @param node - Macro invocation to expand.
+   * @param analyzer - Binding state at the invocation.
+   * @returns Proven syntax alternatives, including any unresolved execution effects.
+   * @internal
+   */
+  macroExpansion?(
+    node: ASTNode.MacroCallSymbol | ASTNode.MacroCallFunction,
+    analyzer: SemanticAnalyzer
+  ): readonly MacroExpansionSyntax[];
   /**
    * Replaces the expanded source attached to subsequent diagnostics.
    * @param source - Expanded shader-pass source for the current parser request.

@@ -4,6 +4,9 @@ import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { TypeSystem } from "./TypeSystem";
 import type { SemanticAmbiguityKind, SemanticDiagnostics } from "./SemanticDiagnostics";
+import { captureMacroExpansion } from "./MacroExpansionFacts";
+import type { ASTNode } from "./AST";
+import type SemanticAnalyzer from "./SemanticAnalyzer";
 
 class ParserSemanticDiagnostics implements SemanticDiagnostics {
   constructor(
@@ -13,6 +16,10 @@ class ParserSemanticDiagnostics implements SemanticDiagnostics {
 
   setSource(source: string): void {
     this._source = source;
+  }
+
+  macroExpansion(node: ASTNode.MacroCallSymbol | ASTNode.MacroCallFunction, analyzer: SemanticAnalyzer) {
+    return captureMacroExpansion(node, analyzer, this._source);
   }
 
   redefinition(

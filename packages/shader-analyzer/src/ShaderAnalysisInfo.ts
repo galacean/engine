@@ -1,6 +1,7 @@
 import {
   ASTNode,
   BaseToken,
+  BuiltinFunction,
   canBranchesOverlap,
   EMPTY_BRANCH,
   FnSymbol,
@@ -19,6 +20,7 @@ import {
   type ShaderEntryPointInfo,
   type ShaderRange
 } from "@galacean/engine-shader-parser/internal/analyzer";
+import type { MacroExpansionSyntax } from "@galacean/engine-shader-parser/internal/analyzer";
 
 /**
  * Analyzer-only graph and reachability information derived from neutral shader IR.
@@ -33,6 +35,7 @@ export class ShaderAnalysisInfo {
 
   private readonly _callFacts = new Map<ASTNode.FunctionDefinition, ConditionalCall[]>();
   private readonly _writes = new Map<ASTNode.FunctionDefinition, ConditionalWrite[]>();
+  private readonly _unknownEffects = new Map<ASTNode.FunctionDefinition, BranchSignature[]>();
   private readonly _functionsByName = new Map<string, ASTNode.FunctionDefinition[]>();
   private readonly _reachablePathsByEntry = new Map<
     ShaderEntryPointInfo,
@@ -98,13 +101,17 @@ export class ShaderAnalysisInfo {
     let result: BranchCoverage = "covered";
     for (const entryFunction of entry.functions) {
       const writePaths: BranchSignature[] = [];
-      const budget = { remaining: MAX_CALL_PATH_STATES, exhausted: false };
+      const budget = { remaining: MAX_CALL_PATH_STATES, exhausted: false, unknownEffects: false };
       this._collectWritePaths(entryFunction.astNode, EMPTY_BRANCH, target, new Set(), writePaths, budget);
       if (budget.exhausted) return "unknown";
-      if (!writePaths.length) return "uncovered";
+      if (!writePaths.length) {
+        if (!budget.unknownEffects) return "uncovered";
+        result = "unknown";
+        continue;
+      }
       const coverage = getBranchCoverage(writePaths, entryFunction.branchSignature ?? EMPTY_BRANCH);
-      if (coverage === "uncovered") return coverage;
-      if (coverage === "unknown") result = coverage;
+      if (coverage === "uncovered" && !budget.unknownEffects) return coverage;
+      if (coverage !== "covered") result = "unknown";
     }
     return result;
   }
@@ -234,35 +241,56 @@ export class ShaderAnalysisInfo {
   }
 
   private _walkFunction(functionNode: ASTNode.FunctionDefinition, node: TreeNode): void {
-    if (!isBranchReachable(node._branch) || node instanceof ASTNode.MacroDefine) return;
-    if (node instanceof ASTNode.FunctionCallGeneric) this._recordCall(functionNode, node);
-    if (node instanceof ASTNode.VariableIdentifier) {
-      if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
-        this._glFragColorReferences.push({ functionNode, location: node.location, branch: node._branch });
-      } else if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
-        this.glFragDataReferences.push(node.location);
-        this._glFragDataConditionalReferences.push({ functionNode, location: node.location, branch: node._branch });
+    walkEffectiveShaderSyntax(
+      node,
+      (node, branch, location) => {
+        if (node instanceof ASTNode.FunctionCallGeneric) this._recordCall(functionNode, node, branch);
+        if (node instanceof ASTNode.VariableIdentifier) {
+          if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
+            this._glFragColorReferences.push({ functionNode, location, branch });
+          } else if (node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
+            this.glFragDataReferences.push(location);
+            this._glFragDataConditionalReferences.push({ functionNode, location, branch });
+          }
+        }
+        if (node instanceof ASTNode.AssignmentExpression && node.children.length === 3) {
+          const lhs = node.children[0];
+          if (lhs instanceof TreeNode) {
+            const target = leftmostIdentifierTarget(lhs);
+            if (target !== undefined) this._recordWrite(functionNode, target, branch);
+          }
+        }
+      },
+      (syntax, branch) => {
+        for (const reference of syntax.references) {
+          for (const candidate of reference.functions) {
+            const facts = this._callFacts.get(functionNode) ?? [];
+            facts.push({ callee: candidate.astNode, branch });
+            this._callFacts.set(functionNode, facts);
+          }
+        }
+      },
+      EMPTY_BRANCH,
+      undefined,
+      (branch) => {
+        const effects = this._unknownEffects.get(functionNode) ?? [];
+        effects.push(branch);
+        this._unknownEffects.set(functionNode, effects);
       }
-    }
-    if (node instanceof ASTNode.AssignmentExpression && node.children.length === 3) {
-      const lhs = node.children[0];
-      if (lhs instanceof TreeNode) {
-        const target = leftmostIdentifierTarget(lhs);
-        if (target !== undefined) this._recordWrite(functionNode, target, node._branch);
-      }
-    }
-    for (const child of node.children) {
-      if (child instanceof TreeNode) this._walkFunction(functionNode, child);
-    }
+    );
   }
 
-  private _recordCall(caller: ASTNode.FunctionDefinition, call: ASTNode.FunctionCallGeneric): void {
+  private _recordCall(
+    caller: ASTNode.FunctionDefinition,
+    call: ASTNode.FunctionCallGeneric,
+    branch = call._branch
+  ): void {
     const candidates = call.fnSymbols ?? (call.fnSymbol instanceof FnSymbol ? [call.fnSymbol] : []);
     if (!candidates.length) return;
     const facts = this._callFacts.get(caller) ?? [];
     for (const candidate of candidates) {
-      facts.push({ callee: candidate.astNode, branch: call._branch });
-      this._recordOutputParameterWrites(caller, call, candidate);
+      facts.push({ callee: candidate.astNode, branch });
+      this._recordOutputParameterWrites(caller, call, candidate, branch);
     }
     this._callFacts.set(caller, facts);
   }
@@ -345,7 +373,8 @@ export class ShaderAnalysisInfo {
   private _recordOutputParameterWrites(
     caller: ASTNode.FunctionDefinition,
     call: ASTNode.FunctionCallGeneric,
-    callee: FnSymbol
+    callee: FnSymbol,
+    callBranch: BranchSignature
   ): void {
     const argumentList = call.children[2];
     if (!(argumentList instanceof ASTNode.FunctionCallParameterList)) return;
@@ -360,7 +389,7 @@ export class ShaderAnalysisInfo {
       if (!(argument instanceof TreeNode)) continue;
       const target = leftmostIdentifierTarget(argument);
       if (target === undefined) continue;
-      const branch = combineBranches(call._branch, callee.branchSignature ?? EMPTY_BRANCH);
+      const branch = combineBranches(callBranch, callee.branchSignature ?? EMPTY_BRANCH);
       if (branch) this._recordWrite(caller, target, branch);
     }
   }
@@ -381,7 +410,7 @@ export class ShaderAnalysisInfo {
     target: string | ShaderBuiltinSemantic,
     activeFunctions: Set<ASTNode.FunctionDefinition>,
     out: BranchSignature[],
-    budget: { remaining: number; exhausted: boolean }
+    budget: { remaining: number; exhausted: boolean; unknownEffects: boolean }
   ): void {
     if (budget.remaining-- <= 0) {
       budget.exhausted = true;
@@ -391,6 +420,10 @@ export class ShaderAnalysisInfo {
     const reachableBranch = combineBranches(incomingBranch, functionBranch);
     if (!reachableBranch || activeFunctions.has(functionNode)) return;
     activeFunctions.add(functionNode);
+
+    for (const effectBranch of this._unknownEffects.get(functionNode) ?? []) {
+      if (combineBranches(reachableBranch, effectBranch)) budget.unknownEffects = true;
+    }
 
     for (const write of this._writes.get(functionNode) ?? []) {
       if (write.target !== target) continue;
@@ -402,6 +435,60 @@ export class ShaderAnalysisInfo {
       if (callBranch) this._collectWritePaths(call.callee, callBranch, target, activeFunctions, out, budget);
     }
     activeFunctions.delete(functionNode);
+  }
+}
+
+/**
+ * Visits effective source syntax while leaving unresolved macro arguments unproven.
+ * @param node - Source syntax to inspect.
+ * @param visit - Receives ordinary syntax and its effective branch and location.
+ * @param visitMacro - Receives proven macro expansion facts at the invocation location.
+ * @param incoming - Additional constraints from a containing macro expansion.
+ * @param mappedLocation - Invocation location for syntax projected from a macro argument.
+ * @param visitUnknown - Receives branches where macro execution effects cannot be proven.
+ * @internal
+ */
+export function walkEffectiveShaderSyntax(
+  node: TreeNode,
+  visit: (node: TreeNode, branch: BranchSignature, location: ShaderRange) => void,
+  visitMacro: (syntax: MacroExpansionSyntax, branch: BranchSignature, location: ShaderRange) => void,
+  incoming: BranchSignature = EMPTY_BRANCH,
+  mappedLocation?: ShaderRange,
+  visitUnknown?: (branch: BranchSignature) => void
+): void {
+  const branch = combineBranches(incoming, node._branch);
+  if (!branch || !isBranchReachable(branch) || node instanceof ASTNode.MacroDefine) return;
+  const location = mappedLocation ?? node.location;
+  if (node instanceof ASTNode.MacroCallSymbol || node instanceof ASTNode.MacroCallFunction) {
+    if (!node.expandedSyntax?.length) visitUnknown?.(branch);
+    for (const syntax of node.expandedSyntax ?? []) {
+      const expandedBranch = combineBranches(branch, syntax.branch);
+      if (!expandedBranch) continue;
+      visitMacro(syntax, expandedBranch, location);
+      if (syntax.hasUnknownEffects) visitUnknown?.(expandedBranch);
+      for (const argument of syntax.arguments) {
+        walkEffectiveShaderSyntax(argument, visit, visitMacro, expandedBranch, location, visitUnknown);
+      }
+    }
+    return;
+  }
+  visit(node, branch, location);
+  if (node instanceof ASTNode.FunctionCallGeneric) {
+    const identifier = node.children[0] as ASTNode.FunctionIdentifier;
+    if (
+      !identifier.isBuiltin &&
+      !BuiltinFunction.isExist(identifier.lexeme) &&
+      !(node.fnSymbols?.length || node.fnSymbol instanceof FnSymbol)
+    ) {
+      visitUnknown?.(branch);
+      return;
+    }
+  }
+  for (const child of node.children) {
+    // Container branches describe their first token, not every following sibling statement.
+    if (child instanceof TreeNode) {
+      walkEffectiveShaderSyntax(child, visit, visitMacro, incoming, mappedLocation, visitUnknown);
+    }
   }
 }
 

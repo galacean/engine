@@ -6,6 +6,8 @@ import { canBranchesOverlap, isBranchReachable, isConditionalChainExhaustive } f
 import { Keyword } from "../common/enums/Keyword";
 import { evaluateContextFreePreprocessorExpression } from "@galacean/engine-design";
 import { Lexer } from "./Lexer";
+import { recordMacroSyntaxEvent } from "../parser/MacroExpansionFacts";
+import { ParserUtils } from "../ParserUtils";
 
 interface MacroState {
   defined: boolean | undefined;
@@ -80,6 +82,12 @@ export class AnalyzerLexer extends Lexer {
         this._pendingBranchPushDefined = null;
       }
       if (this._pendingGuardUndef && isMacroName) {
+        recordMacroSyntaxEvent(
+          this.macroDefineList,
+          tok.lexeme,
+          tok.location.start.index,
+          this._captureBranchSignature()
+        );
         this._recordGuardUndef(tok.lexeme);
         this._applyMacroUndef(tok.lexeme);
         this._pendingGuardUndef = false;
@@ -719,6 +727,14 @@ export class AnalyzerLexer extends Lexer {
       if (frame?.guardName === name) frame.selfGuarding = true;
     }
     super._registerMacroDefine(name, paramsLexeme, valueStart, valueEnd);
+    recordMacroSyntaxEvent(
+      this.macroDefineList,
+      name,
+      valueStart,
+      this._captureBranchSignature(),
+      this._source.slice(valueStart, valueEnd),
+      paramsLexeme === undefined ? undefined : ParserUtils.parseMacroParamList(paramsLexeme)
+    );
     this._applyMacroDefine(name, paramsLexeme, valueStart, valueEnd);
   }
 

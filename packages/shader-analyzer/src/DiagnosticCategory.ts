@@ -54,6 +54,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.DerivativeInVertexShader]: DiagnosticCategory.ControlFlow,
 
   [DiagnosticType.InvalidIOStruct]: DiagnosticCategory.PipelineIO,
+  [DiagnosticType.InvalidBuiltinStage]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.StructRoleConflict]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.DuplicateEntryAssignment]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.MissingEntry]: DiagnosticCategory.PipelineIO,

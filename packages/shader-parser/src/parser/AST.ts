@@ -11,7 +11,7 @@ import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
 import { ShaderBuiltinSemantic } from "../ir/ShaderBuiltinSemantic";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
-import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
+import { IParamInfo, NodeChild, StructProp, SymbolType, type MacroExpansionSyntax } from "./types";
 
 /** Texture-sampling builtins whose first argument is a sampler — used to flag a non-sampler arg0. */
 const TEXTURE_SAMPLING_BUILTINS = new Set([
@@ -794,6 +794,15 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
+    /**
+     * Ends a prototype's parameter scope while retaining an enclosing function's captured facts.
+     * @param sa - Parser session owning the declaration scope.
+     * @internal
+     */
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      if (this.children[0] instanceof FunctionProtoType) sa.popScope();
+    }
+
     override codeGen(visitor: ICodeGenVisitor): string {
       return visitor.cache(this, visitor.visitDeclaration(this));
     }
@@ -823,7 +832,8 @@ namespace ASTNodes {
     paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.beginFunction(this);
+      // A local prototype retains the enclosing function's identity and captured references.
+      if (!sa.curFunctionInfo.header) sa.beginFunction(this);
 
       const children = this.children;
       const header = children[0] as FunctionHeader;
@@ -2641,6 +2651,8 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_symbol)
   export class MacroCallSymbol extends TreeNode {
+    /** Analyzer-requested syntax projection; absent from ordinary runtime parsing. @internal */
+    expandedSyntax?: readonly MacroExpansionSyntax[];
     referenceSymbolNames: string[] = [];
     referenceSymbols: MacroReference[] = [];
     macroName: string;
@@ -2659,6 +2671,7 @@ namespace ASTNodes {
     aliasesNonBuiltinIdent: boolean = false;
 
     override init(): void {
+      this.expandedSyntax = undefined;
       this.referenceSymbolNames.length = 0;
       this.referenceSymbols.length = 0;
       this.hasAstValue = false;
@@ -2708,6 +2721,7 @@ namespace ASTNodes {
         }
       }
       this.visibleHasAstValue = visibleCount > 0 && allAst;
+      if (sa.diagnosticsEnabled) this.expandedSyntax = sa.semanticDiagnostics?.macroExpansion?.(this, sa);
     }
 
     private _analyzeForCodegen(defList: MacroDefineInfo[] | undefined, refs: string[]): void {
@@ -2875,6 +2889,8 @@ namespace ASTNodes {
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
+    /** Analyzer-requested syntax projection; absent from ordinary runtime parsing. @internal */
+    expandedSyntax?: readonly MacroExpansionSyntax[];
     referenceSymbolNames: string[] = [];
     referenceSymbols: MacroReference[] = [];
     macroName: string = "";
@@ -2884,6 +2900,7 @@ namespace ASTNodes {
     aliasesNonBuiltinIdent: boolean = false;
 
     override init(): void {
+      this.expandedSyntax = undefined;
       this.referenceSymbolNames.length = 0;
       this.referenceSymbols.length = 0;
       this.macroName = "";
@@ -2916,6 +2933,7 @@ namespace ASTNodes {
       this.visibleHasAstValue = child.visibleHasAstValue;
       this.isFunctionLikeMacro = child.isFunctionLikeMacro;
       this.aliasesNonBuiltinIdent = child.aliasesNonBuiltinIdent;
+      if (sa.diagnosticsEnabled) this.expandedSyntax = sa.semanticDiagnostics?.macroExpansion?.(this, sa);
     }
 
     override codeGen(visitor: ICodeGenVisitor) {
