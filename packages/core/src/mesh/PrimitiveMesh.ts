@@ -114,6 +114,7 @@ export class PrimitiveMesh {
 
   /**
    * Create a plane mesh.
+   * U increases along local +X (width), and V along local +Z (height).
    * @param engine - Engine
    * @param width - Plane width
    * @param height - Plane height

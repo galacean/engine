@@ -21,7 +21,7 @@ This Skill does not define how a host creates, serializes, builds, or publishes 
 - For handedness, forward direction, transform composition, Euler order, and screen or viewport spaces, read [coordinates-and-space.md](references/coordinates-and-space.md).
 - For Script activation and frame ordering, read [lifecycle-and-frame-order.md](references/lifecycle-and-frame-order.md).
 - For collider ownership, motion, fixed steps, and callbacks, read [physics-setup.md](references/physics-setup.md).
-- For built-in mesh dimensions, orientation, and Plane UV basis, read [primitive-geometry.md](references/primitive-geometry.md).
+- For built-in mesh dimensions and orientation, read [primitive-geometry.md](references/primitive-geometry.md).
 - For cloning, reference counts, garbage collection, and shared resources, read [resource-ownership.md](references/resource-ownership.md).
 - For material sharing, color-space intent, multi-camera composition, SpriteMask targets, and final output, read [rendering-and-color.md](references/rendering-and-color.md).
 - For physics-backed picking, shadows, skyboxes, per-renderer normal maps, draw-ready custom meshes, or local post-process volumes, read [runtime-recipes.md](references/runtime-recipes.md).

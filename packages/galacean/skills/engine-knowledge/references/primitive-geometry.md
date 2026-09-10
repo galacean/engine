@@ -15,12 +15,6 @@ The table describes meshes created with omitted size arguments and an entity sca
 | Capsule            | radius 0.5, cylindrical height 2, total height 3 | centered on Y                |
 | Torus              | major radius 0.5, tube radius 0.1                | lies in XY around the Z axis |
 
-## Plane UV basis
-
-`PrimitiveMesh.createPlane` maps U along local `+X` (`width`) and V along local `+Z` (`height`).
-
-Texture upload or asset-import settings determine image-row flips independently of this mesh UV basis.
-
 ## Placement consequences
 
 - A centered primitive rests on a horizontal surface when its center is raised by its scaled half-height.
