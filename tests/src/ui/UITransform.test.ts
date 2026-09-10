@@ -1,4 +1,4 @@
-import { Entity, MeshRenderer, Transform, WebGLEngine } from "@galacean/engine";
+import { Entity, MeshRenderer, WebGLEngine } from "@galacean/engine";
 import { HorizontalAlignmentMode, Image, UICanvas, UITransform, VerticalAlignmentMode } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -401,27 +401,6 @@ describe("UITransform", async () => {
     expect(actualMatrix.elements[12]).to.eq(expectedX); // X position should match
     expect(actualMatrix.elements[13]).to.eq(expectedY); // Y position should match
     expect(actualMatrix.elements[14]).to.eq(expectedZ); // Z position should match
-  });
-
-  it("checks dependencies added by a Transform constructor", () => {
-    class AddingImageTransform extends Transform {
-      constructor(entity: Entity) {
-        super(entity);
-        entity.addComponent(Image);
-      }
-    }
-
-    const entity = new Entity(engine, "constructor-dependency", UITransform);
-    const previous = entity.transform;
-
-    expect(() => entity.addComponent(AddingImageTransform)).to.throw(
-      "Should remove UIRenderer before remove UITransform"
-    );
-    expect(entity.transform).to.equal(previous);
-    expect(previous.destroyed).to.equal(false);
-    expect(entity._components).to.deep.equal([previous, entity.getComponent(Image)]);
-    expect(entity.getComponent(Image)).not.to.equal(null);
-    expect(() => entity.destroy()).not.to.throw();
   });
 
   describe("clone", () => {

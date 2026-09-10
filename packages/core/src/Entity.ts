@@ -280,14 +280,20 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    if (Entity._isTransformType(type)) {
+    const isTransform = Entity._isTransformType(type);
+    if (isTransform) {
       Entity._checkTransformDependencies(type);
-      return this._replaceTransform(new type(this, ...args) as Transform) as InstanceType<T>;
+      ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
+    } else {
+      ComponentsDependencies._addCheck(this, type);
     }
 
-    ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
-    this._components.push(component);
+    if (isTransform) {
+      this._replaceTransform(<Transform>component);
+    } else {
+      this._components.push(component);
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -792,17 +798,9 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _replaceTransform(replacement: Transform): Transform {
+  private _replaceTransform(replacement: Transform): void {
     const previous = this._transform;
-    ComponentsDependencies._removeCheck(
-      this,
-      previous.constructor as ComponentConstructor,
-      replacement.constructor as ComponentConstructor
-    );
-
-    replacement.position.copyFrom(previous.position);
-    replacement.rotationQuaternion.copyFrom(previous.rotationQuaternion);
-    replacement.scale.copyFrom(previous.scale);
+    replacement._copyLocalPoseFrom(previous);
     this._components[0] = replacement;
     this._transform = replacement;
 
@@ -810,9 +808,7 @@ export class Entity extends EngineObject {
     for (let i = 0, n = children.length; i < n; i++) {
       children[i].transform._parentChange();
     }
-    replacement._setActive(true, ActiveChangeFlag.All);
     previous.destroy();
-    return replacement;
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------

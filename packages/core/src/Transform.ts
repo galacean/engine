@@ -7,6 +7,7 @@ import type { ICloneHook } from "./clone/ICloneHook";
 
 /**
  * Used to implement transformation related functions.
+ * @remarks A `Transform` subclass must not declare component dependencies.
  */
 export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
@@ -587,27 +588,46 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
+   * @internal
+   */
+  _copyLocalPoseFrom(source: Transform): void {
+    const { _position: position, _rotation: rotation, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
+
+    //@ts-ignore
+    position._onValueChanged = null;
+    //@ts-ignore
+    rotation._onValueChanged = null;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    scale._onValueChanged = null;
+
+    position.copyFrom(source._position);
+    scale.copyFrom(source._scale);
+    rotation.copyFrom(source._rotation);
+    rotationQuaternion.copyFrom(source._rotationQuaternion);
+
+    //@ts-ignore
+    position._onValueChanged = this._onPositionChanged;
+    //@ts-ignore
+    rotation._onValueChanged = this._onRotationChanged;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    //@ts-ignore
+    scale._onValueChanged = this._onScaleChanged;
+
+    this._localUniformScaling = source._localUniformScaling;
+
+    const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
+    this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+  }
+
+  /**
    * @inheritdoc
    */
   _onClone(target: Transform): void {
-    const { _position: position, _rotation: rotation, _scale: scale } = target;
-
-    // @ts-ignore
-    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
-
-    position.copyFrom(this.position);
-    rotation.copyFrom(this.rotation);
-    scale.copyFrom(this.scale);
-
-    // @ts-ignore
-    position._onValueChanged = target._onPositionChanged;
-    // @ts-ignore
-    rotation._onValueChanged = target._onRotationChanged;
-    // @ts-ignore
-    scale._onValueChanged = target._onScaleChanged;
-
-    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected
-    target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
+    target._copyLocalPoseFrom(this);
   }
 
   protected _onLocalMatrixChanging(): void {

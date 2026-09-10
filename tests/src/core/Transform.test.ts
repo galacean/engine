@@ -217,7 +217,7 @@ describe("Transform test", function () {
     expect(transforms).to.deep.equal([replacement]);
   });
 
-  it("checks Transform replacement dependencies after construction", () => {
+  it("rejects Transform replacement before construction when a dependency prevents it", () => {
     let constructed = false;
     class ReplacementTransform extends Transform {
       constructor(entity: Entity) {
@@ -233,7 +233,8 @@ describe("Transform test", function () {
     expect(() => dependentEntity.addComponent(ReplacementTransform)).to.throw(
       "Should remove RequiresSubClassOfTransform before remove SubClassOfTransform"
     );
-    expect(constructed).to.equal(true);
+    // Validation runs before construction, so no replacement is ever allocated.
+    expect(constructed).to.equal(false);
     const transforms: Transform[] = [];
     dependentEntity.getComponents(Transform, transforms);
     expect(dependentEntity.transform).to.equal(previous);
@@ -335,6 +336,32 @@ describe("Transform test", function () {
     entity.addComponent(SubClassOfTransform);
 
     expect(Math.abs(Quaternion.dot(entity.transform.rotationQuaternion, expected))).to.be.approximately(1, 1e-6);
+  });
+
+  it("preserves a non-canonical euler rotation across replacement", () => {
+    const entity = new Entity(engine, "non-canonical-euler");
+    entity.transform.setRotation(0, 190, 0);
+
+    entity.addComponent(SubClassOfTransform);
+
+    // The euler representation is authoritative, so it must survive verbatim instead of
+    // being re-derived from the equivalent quaternion (which would yield -170).
+    expect(entity.transform.rotation.x).to.be.approximately(0, 1e-9);
+    expect(entity.transform.rotation.y).to.be.approximately(190, 1e-9);
+    expect(entity.transform.rotation.z).to.be.approximately(0, 1e-9);
+  });
+
+  it("preserves euler rotation at gimbal lock across replacement", () => {
+    const entity = new Entity(engine, "gimbal-lock-euler");
+    entity.transform.setRotation(90, 0, 30);
+
+    entity.addComponent(SubClassOfTransform);
+
+    // At pitch 90 the quaternion loses the roll/yaw split, so a quaternion round trip would
+    // renormalize this pose to (90, -30, 0).
+    expect(entity.transform.rotation.x).to.be.approximately(90, 1e-9);
+    expect(entity.transform.rotation.y).to.be.approximately(0, 1e-9);
+    expect(entity.transform.rotation.z).to.be.approximately(30, 1e-9);
   });
 
   it("does not allow the current Transform to be destroyed directly", () => {
