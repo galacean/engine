@@ -2,6 +2,7 @@ import {
   VertexMergeBatcher,
   Color,
   DependentMode,
+  Engine,
   Entity,
   EntityModifyFlags,
   Matrix,
@@ -217,7 +218,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getChunkManager() {
+  _getChunkManager(): Engine["_batcherManager"]["primitiveChunkManagerUI"] {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 

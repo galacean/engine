@@ -545,7 +545,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
 
-    // @ts-ignore
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
     const glTexture = grabTexture._platformTexture as GLTexture;
