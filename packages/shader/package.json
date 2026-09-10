@@ -34,7 +34,7 @@
   "umd": {
     "name": "Galacean.ShaderFragment"
   },
-  "devDependencies": {
+  "dependencies": {
     "@galacean/engine-design": "workspace:*"
   },
   "files": [

@@ -13,6 +13,7 @@ import "../../packages/xr";
 import "../../packages/xr-webxr";
 
 import { Script } from "../../packages/core";
+import { Rect } from "../../packages/math";
 import { UIGroup } from "../../packages/ui";
 
 class UserScript extends Script {
@@ -25,4 +26,9 @@ class UserScript extends Script {
 // @ts-expect-error UI-owned internal state must also reject private shadowing.
 class UserPanel extends UIGroup {
   private _indexInGroup = 0;
+}
+
+class UserRect extends Rect {
+  // @ts-expect-error Math-owned runtime state must remain visible to consumers.
+  private _x = "bad";
 }

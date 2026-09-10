@@ -22,7 +22,7 @@
     "b:compiler": "pnpm -F @galacean/engine-shader-compiler run build",
     "precompile": "npm run b:compiler && pnpm -F @galacean/engine-shader precompile",
     "b:types": "pnpm -r --filter=./packages/* run b:types && pnpm test:types",
-    "test:types": "tsc -p tests/declarations/tsconfig.json",
+    "test:types": "tsc -p tests/declarations/tsconfig.json && node tests/declarations/check-isolated-package.mjs",
     "b:module": "npm run precompile && cross-env BUILD_TYPE=MODULE NODE_ENV=release rollup -c",
     "b:umd": "npm run precompile && cross-env BUILD_TYPE=UMD NODE_ENV=release rollup -c",
     "b:bundled": "npm run precompile && cross-env BUILD_TYPE=BUNDLED NODE_ENV=release rollup -c",
