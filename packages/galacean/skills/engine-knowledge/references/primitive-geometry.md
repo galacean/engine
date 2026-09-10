@@ -15,10 +15,20 @@ The table describes meshes created with omitted size arguments and an entity sca
 | Capsule            | radius 0.5, cylindrical height 2, total height 3 | centered on Y                |
 | Torus              | major radius 0.5, tube radius 0.1                | lies in XY around the Z axis |
 
+## Plane local basis and UVs
+
+`PrimitiveMesh.createPlane` emits positions in local XZ, normals along local `+Y`, and UVs over the same basis:
+
+- `width` spans local `-X` to `+X`; U increases toward local `+X`.
+- `height` spans local `-Z` to `+Z`; V increases toward local `+Z`.
+
+These directions describe the mesh data itself. Texture upload or asset-import settings remain responsible for any image-row flip; do not infer those settings from the Plane geometry.
+
 ## Placement consequences
 
 - A centered primitive rests on a horizontal surface when its center is raised by its scaled half-height.
 - A default Plane is already horizontal; rotating it as if it were an XY plane changes the intended ground orientation.
+- Derive orientation-sensitive Plane placement from the local normal and UV basis above. Do not create disposable runtime entities merely to rediscover these built-in mesh conventions.
 - Capsule `height` describes the cylindrical section between hemisphere centers. Total vertical extent also includes both hemispherical radii.
 - Non-uniform entity scale changes the rendered bounds after mesh construction. Do not assume one scalar radius still describes the world-space result.
 
