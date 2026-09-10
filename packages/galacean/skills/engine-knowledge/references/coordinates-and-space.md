@@ -11,11 +11,8 @@ Use this reference when handedness, direction, or coordinate conversion changes 
 
 ## Transform rotation composition
 
-- Transform Euler properties and `setRotation(x, y, z)` use degrees. `Quaternion.rotationEuler(x, y, z)` uses radians.
-- Euler conversion composes the local quaternion as `Qy * Qx * Qz`, where the terms rotate around local Y, X, and Z respectively. With the Engine's quaternion-vector convention, the rightmost rotation acts first.
-- A child's world rotation is `QparentWorld * Qlocal`. Nested single-axis Transform nodes therefore provide an explicit alternative when a multi-axis orientation is easier to reason about as ordered steps.
-
-Use these contracts to derive orientation-sensitive placement. Do not create disposable runtime entities merely to probe Euler order or parent-child rotation that the Engine already defines.
+- Local Euler rotation composes as `Qy * Qx * Qz`; when applied to a vector, the rightmost axis rotation acts first.
+- A child's world rotation is `QparentWorld * Qlocal`.
 
 ## Screen and viewport spaces
 
