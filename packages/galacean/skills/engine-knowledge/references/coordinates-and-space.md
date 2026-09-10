@@ -9,10 +9,12 @@ Use this reference when handedness, direction, or coordinate conversion changes 
 - Local space is relative to an Entity's parent. World space is the shared comparison space; convert values before comparing or combining positions and directions from different parents.
 - Positive rotation follows the Engine's right-handed convention. Do not copy signs from a left-handed `+Z`-forward engine without converting them.
 
-## Transform rotation composition
+## Transform composition conventions
 
-- Local Euler rotation composes as `Qy * Qx * Qz`; when applied to a vector, the rightmost axis rotation acts first.
-- A child's world rotation is `QparentWorld * Qlocal`.
+- Matrices use column vectors: `v' = M * v`.
+- Hierarchy composition is `world = parentWorld * local` for transform matrices and rotation quaternions.
+- Transform applies local rotation increments by post-multiplication (`Qlocal * deltaLocal`) and world rotation increments by pre-multiplication (`deltaWorld * Qworld`).
+- Euler rotation uses intrinsic Y-X-Z order (`Qy * Qx * Qz`).
 
 ## Screen and viewport spaces
 
