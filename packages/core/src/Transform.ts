@@ -594,13 +594,9 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const { _position: position, _rotation: rotation, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
 
     //@ts-ignore
-    position._onValueChanged = null;
-    //@ts-ignore
-    rotation._onValueChanged = null;
+    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
     //@ts-ignore
     rotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    scale._onValueChanged = null;
 
     position.copyFrom(source._position);
     scale.copyFrom(source._scale);
@@ -621,6 +617,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
     this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   /**

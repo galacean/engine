@@ -338,6 +338,49 @@ describe("Transform test", function () {
     expect(Math.abs(Quaternion.dot(entity.transform.rotationQuaternion, expected))).to.be.approximately(1, 1e-6);
   });
 
+  it.each(["replacement", "clone"])("refreshes constructor-read world caches after %s", (operation) => {
+    class ReadingTransform extends Transform {
+      constructor(entity: Entity) {
+        super(entity);
+        void this.worldPosition;
+        void this.worldRotation;
+        void this.worldRotationQuaternion;
+        void this.lossyWorldScale;
+        void this.worldMatrix;
+      }
+    }
+
+    const source = new Entity(engine, "cached-pose", ReadingTransform);
+    source.transform.setPosition(10, 20, 30);
+    source.transform.setRotation(0, 190, 0);
+    source.transform.setScale(2, 3, 4);
+    const expectedRotation = source.transform.worldRotation.clone();
+    const expectedQuaternion = source.transform.worldRotationQuaternion.clone();
+    const expectedMatrix = source.transform.worldMatrix.clone();
+
+    const target = operation === "replacement" ? source.addComponent(ReadingTransform) : source.clone().transform;
+    expect(target.rotation).to.deep.include({ x: 0, y: 190, z: 0 });
+    expect(target.worldPosition).to.deep.include({ x: 10, y: 20, z: 30 });
+    expect(Vector3.equals(target.worldRotation, expectedRotation)).to.equal(true);
+    expect(Quaternion.equals(target.worldRotationQuaternion, expectedQuaternion)).to.equal(true);
+    expect(target.lossyWorldScale).to.deep.include({ x: 2, y: 3, z: 4 });
+    expect(Array.from(target.worldMatrix.elements)).to.deep.equal(Array.from(expectedMatrix.elements));
+
+    target.setPosition(40, 50, 60);
+    expect(target.worldPosition).to.deep.include({ x: 40, y: 50, z: 60 });
+    target.setScale(5, 6, 7);
+    expect(target.lossyWorldScale).to.deep.include({ x: 5, y: 6, z: 7 });
+    target.setRotation(0, 0, 0);
+    expect(target.worldRotationQuaternion).to.deep.include({ x: 0, y: 0, z: 0, w: 1 });
+    target.rotationQuaternion.set(0, 0.6, 0, 0.8);
+    expect(target.worldRotationQuaternion).to.deep.include({ x: 0, y: 0.6, z: 0, w: 0.8 });
+
+    if (operation === "clone") {
+      target.entity.destroy();
+    }
+    source.destroy();
+  });
+
   it("preserves a non-canonical euler rotation across replacement", () => {
     const entity = new Entity(engine, "non-canonical-euler");
     entity.transform.setRotation(0, 190, 0);
