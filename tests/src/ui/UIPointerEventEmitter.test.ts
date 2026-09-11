@@ -97,8 +97,9 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     canvas.renderMode = CanvasRenderMode.WorldSpace;
     canvas.camera = camera;
     canvas.sortOrder = sortOrder;
-    // The pose has to be applied after the canvas exists: adding it auto-adds `UITransform`, which
-    // replaces the entity's plain `Transform` and drops any pose set before that.
+    // Apply the pose after the canvas exists: adding it auto-adds `UITransform`, which replaces the
+    // entity's plain `Transform`. Setting the pose afterwards keeps this case independent of whether
+    // that replacement carries the previous pose over.
     entity.transform.position = new Vector3(0, 0, z);
     return canvas;
   }
