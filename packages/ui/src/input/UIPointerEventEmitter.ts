@@ -7,7 +7,7 @@ import {
   PointerEventData,
   PointerEventEmitter,
   Ray,
-  Renderer,
+  RenderElement,
   Scene,
   registerPointerEventEmitter
 } from "@galacean/engine";
@@ -19,7 +19,7 @@ import { UIHitResult } from "./UIHitResult";
  * Structural view of the `@internal` render queue fields consumed by the hit test.
  */
 interface RenderedQueue {
-  batchedElements: ReadonlyArray<{ component: Renderer }>;
+  batchedElements: ReadonlyArray<RenderElement>;
 }
 
 /**
