@@ -3,7 +3,7 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
-import { Collider } from "./Collider";
+import { RigidCollider } from "./RigidCollider";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import { MeshColliderShape } from "./shape/MeshColliderShape";
@@ -11,7 +11,7 @@ import { MeshColliderShape } from "./shape/MeshColliderShape";
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
-export class DynamicCollider extends Collider {
+export class DynamicCollider extends RigidCollider {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
 
@@ -33,7 +33,7 @@ export class DynamicCollider extends Collider {
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  private _sleepThreshold = 5e-3;
+  private _sleepThreshold: number | undefined;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
 
@@ -221,9 +221,11 @@ export class DynamicCollider extends Collider {
 
   /**
    * The mass-normalized energy threshold, below which objects start going to sleep.
+   * @remarks The default is determined by the physics backend. PhysX uses
+   * `5e-5 * tolerancesScale.speed * tolerancesScale.speed`.
    */
   get sleepThreshold(): number {
-    return this._sleepThreshold;
+    return this._sleepThreshold ?? Engine._nativePhysics?.getDefaultSleepThreshold?.() ?? 5e-3;
   }
 
   set sleepThreshold(value: number) {
@@ -498,7 +500,9 @@ export class DynamicCollider extends Collider {
     }
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
-    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    if (this._sleepThreshold !== undefined) {
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    }
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
     (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
     (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);

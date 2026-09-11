@@ -5,6 +5,7 @@ export type { IPhysics } from "./IPhysics";
 export type { IPhysicsMaterial } from "./IPhysicsMaterial";
 export type { IPhysicsScene } from "./IPhysicsScene";
 export type { IPhysicsManager } from "./IPhysicsManager";
+export type { IRigidCollider } from "./IRigidCollider";
 export type { IStaticCollider } from "./IStaticCollider";
 export type { ICollision } from "./ICollision";
 export type { IContactEvent, ITriggerEvent, IPhysicsEvents } from "./IPhysicsEvents";

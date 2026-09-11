@@ -11,7 +11,7 @@ import {
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
-import { describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 describe("PhysicsMaterial", () => {
   let rootEntity: Entity;
@@ -77,6 +77,24 @@ describe("PhysicsMaterial", () => {
     engine.sceneManager.activeScene.physics._update(2);
     expect(boxEntity.transform.position.y).greaterThan(0);
     expect(formatValue(boxEntity2.transform.position.y)).eq(0);
+  });
+
+  it("cloned collider shape shares material and releases its constructor material", () => {
+    const sourceEntity = addBox(new Vector3(1, 1, 1), StaticCollider, new Vector3());
+    const sourceMaterial = sourceEntity.getComponent(StaticCollider).shapes[0].material;
+    const destroySpy = vi.spyOn(PhysicsMaterial.prototype, "destroy");
+    const cloneEntity = sourceEntity.clone();
+    try {
+      const cloneMaterial = cloneEntity.getComponent(StaticCollider).shapes[0].material;
+      expect(cloneMaterial).toBe(sourceMaterial);
+      expect(destroySpy).toHaveBeenCalledTimes(1);
+      expect(destroySpy.mock.instances[0]).not.toBe(sourceMaterial);
+    } finally {
+      destroySpy.mockRestore();
+      cloneEntity.destroy();
+      sourceEntity.destroy();
+      sourceMaterial.destroy();
+    }
   });
 
   it("bounceCombine Average", () => {

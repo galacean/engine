@@ -31,7 +31,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
   /** @internal */
-  _contractOffset: number = 0.02;
+  _contactOffset: number = 0.02;
 
   /** @internal */
   _worldScale: Vector3 = new Vector3(1, 1, 1);
@@ -56,6 +56,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
+    this._contactOffset = physXPhysics.getDefaultContactOffset();
   }
 
   /**
@@ -106,8 +107,11 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contractOffset = offset;
     const controllers = this._controllers;
+    if (controllers.length && (!Number.isFinite(offset) || offset <= 0)) {
+      throw new Error("CharacterController contactOffset must be a positive finite number.");
+    }
+    this._contactOffset = offset;
     if (controllers.length) {
       for (let i = 0, n = controllers.length; i < n; i++) {
         controllers.get(i)._pxController?.setContactOffset(offset);
