@@ -1,265 +1,259 @@
 import type { IShaderInfo } from "@galacean/engine-design";
-import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { Keyword } from "../common/enums/Keyword";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { NodeChild } from "../parser/types";
-import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
+import type { IPoolElement } from "@galacean/engine-core";
+import { BaseToken } from "@galacean/engine-shader-parser/internal";
+import { EShaderStage } from "@galacean/engine-shader-parser/internal";
+import { Keyword } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser/internal";
+import { NodeChild } from "@galacean/engine-shader-parser/internal";
+import { ShaderData } from "@galacean/engine-shader-parser/internal";
+import { ESymbolType } from "@galacean/engine-shader-parser/internal";
+import {
+  FnSymbol,
+  VarSymbol,
+  canInheritanceBranchesCover,
+  getLexicalDeclarationCoexistence
+} from "@galacean/engine-shader-parser/internal";
+import { GSError, GSErrorName, mapExpandedShaderError } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
+import type {
+  BranchSignature,
+  ShaderClueIR,
+  ShaderCoreInfo,
+  ShaderEntryPointInfo,
+  DeferredDeclarationOwnership
+} from "@galacean/engine-shader-parser/internal";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
-import { StructRole, VisitorContext } from "./VisitorContext";
+import type { ShaderBackend } from "../ShaderBackend";
+import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
 
 /**
  * @internal
  */
-export abstract class GLESVisitor extends CodeGenVisitor {
+export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBackend, IPoolElement {
   private _globalCodeArray: ICodeSegment[] = [];
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _serializedGlobalKey = new Set();
+  private readonly _forwardFunctionDeclarations = new Map<ASTNode.FunctionDefinition, string>();
+  private readonly _forwardStructIndices = new Map<ASTNode.StructSpecifier, number>();
+  private readonly _structCodeSegments = new Map<ASTNode.StructSpecifier, ICodeSegment>();
+  private readonly _forwardVariableIndices = new Map<ASTNode.VariableDeclaration, number>();
+  private readonly _variableCodeSegments = new Map<ASTNode.VariableDeclaration, ICodeSegment>();
+  private readonly _declarationOwners = new Map<TreeNode, DeferredDeclarationOwnership>();
+  private readonly _deferredPrototypes = new Map<ASTNode.FunctionDefinition, ICodeSegment>();
+  private readonly _declarationReferences = new Map<number, Set<number>>();
+  private _currentDeclaration?: TreeNode;
+  private _sourceIR?: ShaderClueIR;
+  private _outerMacroDeclarations: readonly ASTNode.GlobalDeclaration[] = [];
 
+  /**
+   * Clears pass-local output retained by the pooled visitor.
+   */
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
+    this._forwardFunctionDeclarations.clear();
+    this._forwardStructIndices.clear();
+    this._structCodeSegments.clear();
+    this._forwardVariableIndices.clear();
+    this._variableCodeSegments.clear();
+    this._deferredPrototypes.clear();
+    this._declarationReferences.clear();
+    this._currentDeclaration = undefined;
   }
 
+  /**
+   * Releases references retained by an idle visitor when its pool is collected.
+   * @internal
+   */
+  dispose(): void {
+    this.context.reset();
+    this.reset();
+  }
+
+  /**
+   * Emits target-specific declarations that precede generated global code.
+   * @param data - Parser-owned shader facts.
+   * @param out - Destination code segments.
+   */
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
     for (const precision of data.globalPrecisions) {
       out.push({ text: precision.codeGen(this), index: precision.location.start.index });
     }
   }
 
-  visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    // #if _VERBOSE
-    this.errors.length = 0;
-    // #endif
-    VisitorContext.reset();
+  /**
+   * Generates vertex and fragment source from neutral parser facts.
+   * @param ir - Request-owned neutral shader IR.
+   * @param coreInfo - Entry and stage-interface facts derived from the same IR.
+   * @returns Generated vertex and fragment source.
+   */
+  generate(ir: ShaderClueIR, coreInfo: ShaderCoreInfo): IShaderInfo {
+    this.context.reset();
     this.reset();
 
+    const node = ir.program;
     const shaderData = node.shaderData;
-    const context = VisitorContext.context;
+    const context = this.context;
     context._passSymbolTable = shaderData.symbolTable;
 
-    const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
-
-    // `_structVarMap` must span both stages so global `#define` references rewrite consistently across vertex/fragment outputs.
-    this._collectAllStructVars(vertexEntry, fragmentEntry);
-
-    return {
-      vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
-      fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
-    };
-  }
-
-  /** Populate `_structVarMap` for varying/attribute/mrt-typed variables across both stages before codegen. */
-  private _collectAllStructVars(vertexEntry: string, fragmentEntry: string): void {
-    const context = VisitorContext.context;
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = context._passSymbolTable;
-
-    // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
-    const structRoles: Record<string, StructRole> = Object.create(null);
-
-    const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
-      lookupSymbol.set(entry, ESymbolType.FN);
-      const fns = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-      for (const fn of fns) {
-        const proto = fn.astNode.protoType;
-        const param0 = proto.parameterList?.[0];
-        if (param0 && typeof param0.typeInfo?.type === "string") {
-          structRoles[param0.typeInfo.typeLexeme] = paramRole;
-        }
-        if (typeof proto.returnType.type === "string") {
-          structRoles[<string>proto.returnType.type] = returnRole;
-        }
-      }
-      return fns;
-    };
-
-    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
-      addEntryRoles(fragmentEntry, "varying", "mrt")
-    );
-
-    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
-      if (!typeLexeme) return;
-      const role = structRoles[typeLexeme];
-      if (role) context.registerStructVar(varName, role);
-    };
-
-    const walkLocals = (node: TreeNode): void => {
-      for (const child of node.children) {
-        if (child instanceof ASTNode.InitDeclaratorList) {
-          const typeLexeme = child.typeInfo?.typeLexeme;
-          if (typeLexeme && structRoles[typeLexeme]) {
-            this._extractLocalVarNames(child, context, structRoles[typeLexeme]);
-          }
-        } else if (child instanceof TreeNode) {
-          walkLocals(child);
-        }
-      }
-    };
-
-    for (const fn of entryFns) {
-      const proto = fn.astNode.protoType;
-      if (proto.parameterList) {
-        for (const param of proto.parameterList) {
-          if (param.ident && typeof param.typeInfo?.type === "string") {
-            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
-          }
-        }
-      }
-      walkLocals(fn.astNode.statements);
-    }
-
-    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
-    symbolTable.forEach((sym) => {
-      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
+    const outerGlobalMacroDeclarations = coreInfo.outerGlobalMacroDeclarations;
+    const { io } = coreInfo;
+    context.attributeStructs.push(...io.attributeStructs);
+    context.attributeList.push(...io.attributeList);
+    context.varyingStructs.push(...io.varyingStructs);
+    context.varyingList.push(...io.varyingList);
+    context.mrtStructs.push(...io.mrtStructs);
+    context.mrtList.push(...io.mrtList);
+    context.registerStructTypes(ShaderStructRole.Attribute, io.attributeStructs);
+    context.registerStructTypes(ShaderStructRole.Varying, io.varyingStructs);
+    context.registerStructTypes(ShaderStructRole.Mrt, io.mrtStructs);
+    io.structVariableRoles.forEach((role, variable) => context.registerStructVar(variable, role));
+    io.vertexStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.VERTEX);
     });
+    io.fragmentStructVariableRoles.forEach((role, variable) => {
+      context.registerStructVar(variable, role, EShaderStage.FRAGMENT);
+    });
+
+    this._sourceIR = ir;
+    this._outerMacroDeclarations = outerGlobalMacroDeclarations;
+    try {
+      coreInfo.deferredDeclarationOwnership.forEach((owner, symbol) =>
+        this._declarationOwners.set(symbol.astNode, owner)
+      );
+      if (this._declarationOwners.size) {
+        let nextId = 0;
+        let nextGroup = 0;
+        this._declarationOwners.forEach((owner) => {
+          nextId = Math.max(nextId, owner.id);
+          nextGroup = Math.max(nextGroup, owner.group);
+        });
+        // Reachability follows the selected declaration, including dependencies without an override.
+        shaderData.symbolTable.forEach((symbol) => {
+          if (symbol.astNode && !this._declarationOwners.has(symbol.astNode)) {
+            this._declarationOwners.set(symbol.astNode, {
+              id: ++nextId,
+              group: ++nextGroup,
+              sourceScope: symbol.sourceScope
+            });
+          }
+        });
+        context.onReferenceGlobal = (symbols) => {
+          const from = this.currentDeclarationOwner?.id ?? 0;
+          for (const symbol of symbols) this._referenceDeclaration(from, symbol.astNode);
+        };
+        const propDeclarations = new Map();
+        for (const struct of [...io.attributeStructs, ...io.varyingStructs, ...io.mrtStructs]) {
+          for (const prop of struct.propList) propDeclarations.set(prop, struct);
+        }
+        context.onReferenceStructProps = (props) => {
+          const from = this.currentDeclarationOwner?.id ?? 0;
+          for (const prop of props) this._referenceDeclaration(from, propDeclarations.get(prop));
+        };
+      }
+      if (coreInfo.unsupportedDeferredDeclarations.length) {
+        throw mapExpandedShaderError(
+          new GSError(
+            GSErrorName.CompilationError,
+            "Deferred inheritance requires exact signatures and cannot resolve a known partial-coverage conflict.",
+            coreInfo.unsupportedDeferredDeclarations[0].astNode.location,
+            ir.source,
+            undefined,
+            "UnsupportedDeferredDeclaration"
+          ),
+          ir.source,
+          ir.sourceMap
+        );
+      }
+      return {
+        vertex: this._vertexMain(coreInfo.vertexEntry, shaderData, outerGlobalMacroDeclarations),
+        fragment: this._fragmentMain(coreInfo.fragmentEntry, shaderData, outerGlobalMacroDeclarations)
+      };
+    } finally {
+      this._sourceIR = undefined;
+      this._outerMacroDeclarations = [];
+      this._declarationOwners.clear();
+      context.onReferenceGlobal = undefined;
+      context.onReferenceStructProps = undefined;
+    }
   }
 
   private _vertexMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
-    outerGlobalMacroDeclarations: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroDeclarations: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.VERTEX;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = data.symbolTable;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols.length) throw `no entry function found: ${entry}`;
-
-    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
-    fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const returnType = fnNode.protoType.returnType;
-
-      if (typeof returnType.type === "string") {
-        lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-        const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!varyingSymbols.length) {
-          this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
-        } else {
-          for (let i = 0; i < varyingSymbols.length; i++) {
-            const varyingSymbol = varyingSymbols[i];
-            const astNode = varyingSymbol.astNode;
-            varyingStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              varyingList.push(prop);
-            }
-          }
-        }
-      } else if (returnType.type !== Keyword.VOID) {
-        this._reportError(returnType.location, "vertex main entry can only return struct or void.");
-      }
-
-      const paramList = fnNode.protoType.parameterList;
-      const attributeParam = paramList?.[0];
-      if (attributeParam) {
-        const attributeType = attributeParam.typeInfo.type;
-        if (typeof attributeType === "string") {
-          lookupSymbol.set(attributeType, ESymbolType.STRUCT);
-          const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-          if (!attributeSymbols.length) {
-            this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
-          } else {
-            for (let i = 0; i < attributeSymbols.length; i++) {
-              const attributeSymbol = attributeSymbols[i];
-              const astNode = attributeSymbol.astNode;
-              attributeStructs.push(astNode);
-              for (const prop of astNode.propList) {
-                attributeList.push(prop);
-              }
-            }
-          }
-        }
-      }
-    });
+    // Attribute/varying structs were collected in ShaderCoreInfo
 
     // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
+    this._emitDeclarationReferences(globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
       .map((item) => item.text)
       .join("\n");
 
-    VisitorContext.context.reset(false);
+    context.reset(false);
     this.reset();
 
     return globalCode;
   }
 
   private _fragmentMain(
-    entry: string,
+    entryInfo: ShaderEntryPointInfo,
     data: ShaderData,
-    outerGlobalMacroStatements: ASTNode.GlobalDeclaration[]
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
   ): string {
-    const context = VisitorContext.context;
+    const context = this.context;
     context.stage = EShaderStage.FRAGMENT;
-    context.stageEntry = entry;
+    context.stageEntry = entryInfo.name;
+    this.prepareFragment(entryInfo, outerGlobalMacroStatements);
 
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const { symbolTable } = data;
-    lookupSymbol.set(entry, ESymbolType.FN);
-    const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
-
-    // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
-    fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
-      if (returnStatement) {
-        returnStatement.isFragReturnStatement = true;
-      }
-
-      const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
-      if (typeof returnDataType === "string") {
-        lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-        const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!mrtSymbols.length) {
-          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
-        } else {
-          for (let i = 0; i < mrtSymbols.length; i++) {
-            const mrtSymbol = mrtSymbols[i];
-            const astNode = mrtSymbol.astNode;
-            context.mrtStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              context.mrtList.push(prop);
-            }
-          }
-        }
-      } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
-        this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
+    // Every value-return must preserve early-exit control flow after entry return values are
+    // lowered into fragment outputs.
+    entryInfo.functions.forEach((fnSymbol) => {
+      const returnType = fnSymbol.astNode.protoType.returnType;
+      const mode =
+        returnType.type === Keyword.VEC4
+          ? "color"
+          : returnType.typeSpecifier.structDeclarations.some((struct) =>
+                context.hasStructRole(struct, ShaderStructRole.Mrt)
+              )
+            ? "mrt"
+            : undefined;
+      if (mode) {
+        const statements = fnSymbol.astNode.statements;
+        this._registerFragmentReturns(statements, mode, ParserUtils.lastStatement(statements));
       }
     });
 
-    // `_structVarMap` is already populated in `visitShaderProgram` with both stages'
-    // variables; just pre-walk macro refs so struct codegen sees the references.
+    // Struct-variable identities are already populated from ShaderCoreInfo; just pre-walk macro
+    // refs so struct codegen sees the references.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;
-    VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
+    context.referenceGlobal(entryInfo.name, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getCustomStruct(context.mrtStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
     this.getOtherGlobal(data, globalCodeArray);
+    this._emitDeclarationReferences(globalCodeArray);
 
     const globalCode = globalCodeArray
       .sort((a, b) => a.index - b.index)
@@ -272,23 +266,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return globalCode;
   }
 
-  private _extractLocalVarNames(node: ASTNode.InitDeclaratorList, context: VisitorContext, role: StructRole): void {
-    const children = node.children;
-    if (children.length === 1) {
-      const singleDecl = children[0] as ASTNode.SingleDeclaration;
-      const identChildren = singleDecl.children;
-      if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
-        context.registerStructVar(identChildren[1].lexeme, role);
-      }
-    } else if (children.length >= 3) {
-      const initDeclList = children[0];
-      if (initDeclList instanceof ASTNode.InitDeclaratorList) {
-        this._extractLocalVarNames(initDeclList, context, role);
-      }
-      if (children[2] instanceof BaseToken) {
-        context.registerStructVar((children[2] as BaseToken).lexeme, role);
-      }
-    }
+  protected prepareFragment(
+    entryInfo: ShaderEntryPointInfo,
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
+  ): void {
+    void entryInfo;
+    void outerGlobalMacroStatements;
   }
 
   /**
@@ -297,7 +280,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
    * struct codegen emits the declaration lists (`attribute …`, `varying …`, `MRT …`),
    * otherwise properties used only from macros would be missing from the output.
    */
-  private _preRegisterGlobalMacroRefs(macros: ASTNode.GlobalDeclaration[]): void {
+  private _preRegisterGlobalMacroRefs(macros: readonly ASTNode.GlobalDeclaration[]): void {
     for (const macro of macros) {
       this._walkMacroDefineTokens(macro.children);
     }
@@ -311,39 +294,421 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         // — the real emit happens later in `_getGlobalMacroDeclarations`.
         if (child.valueExpression) child.valueExpression.codeGen(this);
       } else if (child instanceof TreeNode) {
+        const previous = this._currentDeclaration;
+        if (child instanceof ASTNode.FunctionDefinition) this._currentDeclaration = child;
         this._walkMacroDefineTokens(child.children);
+        this._currentDeclaration = previous;
       }
     }
   }
 
+  private _registerFragmentReturns(node: TreeNode, mode: "color" | "mrt", terminal?: TreeNode): void {
+    if (node instanceof ASTNode.JumpStatement && node.children.length === 3) {
+      this.context.registerFragmentReturn(node, mode);
+      if (node === terminal) this.context.registerTerminalInterfaceReturn(node);
+      return;
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._registerFragmentReturns(child, mode, terminal);
+    }
+  }
+
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
-    const { _referencedGlobals } = context;
-    const lastLength = Object.keys(_referencedGlobals).length;
-    if (lastLength === 0) return;
-
-    for (const ident in _referencedGlobals) {
-      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
-      GLESVisitor._serializedGlobalKey.add(ident);
-
-      const symbols = _referencedGlobals[ident];
+    const context = this.context;
+    const { _referencedGlobals, _referencedGlobalKeys } = context;
+    for (let keyIndex = 0; keyIndex < _referencedGlobalKeys.length; keyIndex++) {
+      const symbols = _referencedGlobals[_referencedGlobalKeys[keyIndex]];
       for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
+        this._currentDeclaration = sm.astNode;
         const codeGenResult = sm.astNode.codeGen(this);
+        this._currentDeclaration = undefined;
         if (!codeGenResult) continue;
         const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
         if (!sm.isInMacroBranch) {
-          out.push({
-            text,
+          const segment = {
+            text: this._declaration(text, sm.astNode),
             index: sm.astNode.location.start.index
-          });
+          };
+          out.push(segment);
+          if (sm.astNode instanceof ASTNode.StructSpecifier) this._structCodeSegments.set(sm.astNode, segment);
+          if (sm.astNode instanceof ASTNode.VariableDeclaration) this._variableCodeSegments.set(sm.astNode, segment);
         }
       }
     }
-
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
-      this._getGlobalSymbol(out);
+    this._getForwardDeclarations(out);
+    for (const segment of this._deferredPrototypes.values()) out.push(segment);
+    for (const [definition, text] of this._forwardFunctionDeclarations) {
+      if (!definition.isInMacroBranch) out.push({ text, index: definition.location.start.index });
     }
+  }
+
+  protected override referenceFunction(symbol: FnSymbol, referenceIndex: number, branch: BranchSignature): void {
+    super.referenceFunction(symbol, referenceIndex, branch);
+    const definition = symbol.astNode;
+    const declarations = this._forwardFunctionDeclarations;
+    if (symbol.ident === this.context.stageEntry) return;
+    const candidates = this.context._referencedGlobals[symbol.ident].filter(
+      (candidate): candidate is FnSymbol => candidate instanceof FnSymbol && candidate.equal(symbol)
+    );
+    const owner = this._declarationOwners.get(definition);
+    if (owner) {
+      for (const candidate of candidates) {
+        const replacement = candidate.astNode;
+        const nextOwner = this._declarationOwners.get(replacement);
+        if (
+          !nextOwner ||
+          nextOwner.group !== owner.group ||
+          nextOwner.sourceScope <= owner.sourceScope ||
+          replacement.location.start.index <= referenceIndex
+        )
+          continue;
+        const prototype = replacement.protoType;
+        const anchor = definition.location.start.index;
+        const previous = this._deferredPrototypes.get(replacement);
+        if (previous && previous.index <= anchor) continue;
+        if (
+          !this._isContextIndependent(prototype) ||
+          this._hasDeclarationContextBarrier(anchor, prototype.location.start.index, false)
+        ) {
+          this._unsupportedForwardDeclaration(prototype);
+        }
+        const outer = this._outerMacroDeclarations.find(
+          (macro) => macro.location.start.index <= anchor && macro.location.end.index >= definition.location.end.index
+        );
+        const typeAnchor = outer?.location.start.index ?? anchor;
+        this._prepareForwardTypes(prototype.returnType.typeSpecifier.structDeclarations, anchor, typeAnchor);
+        for (const parameter of prototype.parameterList ?? []) {
+          this._prepareForwardTypes(parameter.typeInfo?.structDeclarations ?? [], anchor, typeAnchor);
+        }
+        // Selection is determined at the later definition, so the prototype must not replay its guard here.
+        this._deferredPrototypes.set(replacement, {
+          text: this._declaration(`${prototype.codeGen(this)};`, replacement, false),
+          index: typeAnchor
+        });
+      }
+      return;
+    }
+    if (candidates.some((candidate) => candidate.astNode === definition)) return;
+    const compatible = candidates.filter((candidate) => this._canBranchesOverlap(candidate.branchSignature, branch));
+    const preceding = compatible.filter((candidate) => candidate.astNode.location.start.index < referenceIndex);
+    if (
+      canInheritanceBranchesCover(
+        preceding.map((candidate) => candidate.branchSignature),
+        branch
+      )
+    )
+      return;
+    const replacement = compatible.find((candidate) => candidate.astNode.location.start.index > referenceIndex);
+    if (replacement) {
+      // An inherited helper can call a declaration whose overriding body occurs later. Keep the
+      // original declaration's macro/type context and emit only the final backend signature there.
+      const prototype = replacement.astNode.protoType;
+      const anchor = definition.location.start.index;
+      const text = `${prototype.codeGen(this)};`;
+      const signature = this._getForwardSignature(prototype);
+      for (const candidate of candidates) {
+        if (
+          this._canBranchesOverlap(candidate.branchSignature, symbol.branchSignature) &&
+          this._getForwardSignature(candidate.astNode.protoType) !== signature
+        ) {
+          this._unsupportedForwardDeclaration(candidate.astNode.protoType);
+        }
+      }
+      if (declarations.has(definition)) return;
+      if (
+        !this._isContextIndependent(prototype) ||
+        this._hasDeclarationContextBarrier(anchor, prototype.location.start.index, false)
+      ) {
+        this._unsupportedForwardDeclaration(prototype);
+      }
+      const outerMacro = this._outerMacroDeclarations.find(
+        (macro) => macro.location.start.index <= anchor && macro.location.end.index >= definition.location.end.index
+      );
+      const typeAnchor = outerMacro?.location.start.index ?? anchor;
+      this._prepareForwardTypes(prototype.returnType.typeSpecifier.structDeclarations, anchor, typeAnchor);
+      for (const parameter of prototype.parameterList ?? []) {
+        if (
+          parameter.astNode instanceof ASTNode.ParameterDeclaration &&
+          parameter.astNode.symbol &&
+          this.context.getStructVarRole([parameter.astNode.symbol])
+        ) {
+          continue;
+        }
+        this._prepareForwardTypes(parameter.typeInfo?.structDeclarations ?? [], anchor, typeAnchor);
+      }
+      declarations.set(definition, text);
+    }
+  }
+
+  private _getForwardSignature(prototype: ASTNode.FunctionProtoType): string {
+    const parameters: string[] = [];
+    for (const parameter of prototype.parameterList ?? []) {
+      const declaration = parameter.astNode;
+      if (
+        declaration instanceof ASTNode.ParameterDeclaration &&
+        declaration.symbol &&
+        this.context.getStructVarRole([declaration.symbol])
+      )
+        continue;
+      const tokens: string[] = [];
+      const visit = (node: NodeChild) => {
+        if (node instanceof BaseToken) {
+          if (node !== parameter.ident && node.type !== Keyword.IN) tokens.push(node.lexeme);
+        } else {
+          node.children.forEach(visit);
+        }
+      };
+      visit(declaration);
+      const text = tokens.join(" ");
+      if (text !== "void") parameters.push(text);
+    }
+    return `${prototype.returnType.codeGen(this)}(${parameters.join(",")})`;
+  }
+
+  private _canBranchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
+    return (
+      getLexicalDeclarationCoexistence(left, right) !== "exclusive" &&
+      !canInheritanceBranchesCover([], [...left, ...right])
+    );
+  }
+
+  override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
+    const code = super.visitVariableIdentifier(node);
+    for (const symbol of node.resolvedSymbols()) {
+      if (!(symbol instanceof VarSymbol) || !symbol.isUniform) continue;
+      const candidates = this.context._referencedGlobals[symbol.ident];
+      const owner = this._declarationOwners.get(symbol.astNode);
+      if (!candidates || (!owner && candidates.includes(symbol))) continue;
+      const preceding = candidates.filter(
+        (candidate) => candidate.astNode.location.start.index < node.location.start.index
+      );
+      if (
+        !owner &&
+        canInheritanceBranchesCover(
+          preceding.map((candidate) => candidate.branchSignature),
+          node._branch
+        )
+      )
+        continue;
+      const oldMacro = this._outerMacroDeclarations.find(
+        (macro) =>
+          macro.location.start.index <= symbol.astNode.location.start.index &&
+          macro.location.end.index >= symbol.astNode.location.end.index
+      );
+      const anchor = oldMacro?.location.start.index ?? symbol.astNode.location.start.index;
+      for (const candidate of candidates) {
+        if (candidate.astNode.location.start.index <= node.location.start.index) continue;
+        if (owner) {
+          const nextOwner = this._declarationOwners.get(candidate.astNode);
+          if (!nextOwner || nextOwner.group !== owner.group || nextOwner.sourceScope <= owner.sourceScope) continue;
+        }
+        const declaration = candidate.astNode;
+        if (
+          !(candidate instanceof VarSymbol) ||
+          !candidate.isUniform ||
+          !(declaration instanceof ASTNode.VariableDeclaration)
+        ) {
+          this._unsupportedForwardDeclaration(declaration);
+        }
+        const macro = this._outerMacroDeclarations.find(
+          (item) =>
+            item.location.start.index <= declaration.location.start.index &&
+            item.location.end.index >= declaration.location.end.index
+        );
+        if (
+          !this._isContextIndependent(declaration) ||
+          this._hasDeclarationContextBarrier(anchor, macro?.location.end.index ?? declaration.location.end.index, true)
+        ) {
+          this._unsupportedForwardDeclaration(declaration);
+        }
+        this._prepareForwardTypes(candidate.dataType.structDeclarations, anchor);
+        this._forwardVariableIndices.set(
+          declaration,
+          Math.min(this._forwardVariableIndices.get(declaration) ?? Infinity, anchor)
+        );
+      }
+    }
+    return code;
+  }
+
+  private _getForwardDeclarations(out: ICodeSegment[]): void {
+    type Declaration = ASTNode.StructSpecifier | ASTNode.VariableDeclaration;
+    const guarded = new Map<ASTNode.GlobalDeclaration, { index: number; declarations: Declaration[] }>();
+    const declarations: [Declaration, number][] = Array.from(this._forwardStructIndices);
+    for (const entry of this._forwardVariableIndices) declarations.push(entry);
+    const code = (declaration: Declaration) =>
+      this._declaration(
+        declaration.codeGen(this) + (declaration instanceof ASTNode.VariableDeclaration ? ";" : ""),
+        declaration,
+        false
+      );
+    for (const [declaration, index] of declarations) {
+      const owner = this._declarationOwners.get(declaration);
+      const macro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= declaration.location.start.index &&
+          item.location.end.index >= declaration.location.end.index
+      );
+      if (!macro) {
+        const previous =
+          declaration instanceof ASTNode.StructSpecifier
+            ? this._structCodeSegments.get(declaration)
+            : this._variableCodeSegments.get(declaration);
+        if (previous) {
+          if (owner) previous.text = this._declaration("", declaration);
+          else out.splice(out.indexOf(previous), 1);
+        }
+        out.push({ text: code(declaration), index });
+      } else if (owner) {
+        out.push({ text: code(declaration), index });
+      } else {
+        let group = guarded.get(macro);
+        if (!group) guarded.set(macro, (group = { index, declarations: [] }));
+        group.index = Math.min(group.index, index);
+        group.declarations.push(declaration);
+      }
+    }
+    for (const [macro, group] of guarded) {
+      const segments: ICodeSegment[] = macro.macroExpressions.map((item) => ({
+        text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
+        index: item.location.start.index
+      }));
+      for (const declaration of group.declarations) {
+        segments.push({ text: code(declaration), index: declaration.location.start.index });
+      }
+      out.push({
+        text: segments
+          .sort((a, b) => a.index - b.index)
+          .map((item) => item.text)
+          .join("\n"),
+        index: group.index
+      });
+    }
+  }
+
+  override visitTypeSpecifier(node: ASTNode.TypeSpecifier): string {
+    if (!node.structDeclarations.length) return super.visitTypeSpecifier(node);
+    for (const type of node.structDeclarations) {
+      if (!type.ident || this.context.getStructRole([type])) continue;
+      // A function-local struct can shadow a global name without participating in inheritance.
+      let parent = type.parent;
+      while (
+        parent &&
+        !(parent instanceof ASTNode.GlobalDeclaration) &&
+        !(parent instanceof ASTNode.FunctionDefinition)
+      ) {
+        parent = parent.parent;
+      }
+      if (parent instanceof ASTNode.FunctionDefinition) continue;
+      this.context.referenceGlobal(type.ident.lexeme, ESymbolType.STRUCT);
+      const final = this.context._referencedGlobals[type.ident.lexeme];
+      const owner = this._declarationOwners.get(type);
+      if (!owner && final.some((symbol) => symbol.astNode === type)) continue;
+      const oldMacro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= type.location.start.index && item.location.end.index >= type.location.end.index
+      );
+      this._prepareForwardTypes(
+        final
+          .filter((symbol) => {
+            if (!owner) return true;
+            const nextOwner = this._declarationOwners.get(symbol.astNode);
+            return nextOwner?.group === owner.group && nextOwner.sourceScope > owner.sourceScope;
+          })
+          .map((symbol) => symbol.astNode)
+          .filter((item): item is ASTNode.StructSpecifier => item instanceof ASTNode.StructSpecifier),
+        oldMacro?.location.start.index ?? type.location.start.index
+      );
+    }
+    return super.visitTypeSpecifier(node);
+  }
+
+  private _prepareForwardTypes(types: readonly ASTNode.StructSpecifier[], anchor: number, hoistAnchor = anchor): void {
+    if (this.context.getStructRole(types)) return;
+    for (const type of types) {
+      if ((this._forwardStructIndices.get(type) ?? Infinity) <= anchor) continue;
+      if (type.ident) {
+        this.context.referenceGlobal(type.ident.lexeme, ESymbolType.STRUCT);
+        const final = this.context._referencedGlobals[type.ident.lexeme];
+        if (!final.some((symbol) => symbol.astNode === type)) {
+          this._prepareForwardTypes(
+            final
+              .map((symbol) => symbol.astNode)
+              .filter((item): item is ASTNode.StructSpecifier => item instanceof ASTNode.StructSpecifier),
+            anchor,
+            hoistAnchor
+          );
+          continue;
+        }
+      }
+      const needsHoist = type.location.start.index > anchor;
+      const macro = this._outerMacroDeclarations.find(
+        (item) =>
+          item.location.start.index <= type.location.start.index && item.location.end.index >= type.location.end.index
+      );
+      if (
+        needsHoist &&
+        (!this._isContextIndependent(type) ||
+          this._hasDeclarationContextBarrier(hoistAnchor, macro?.location.end.index ?? type.location.end.index, true))
+      ) {
+        this._unsupportedForwardDeclaration(type);
+      }
+      const dependencyAnchor = needsHoist ? hoistAnchor : type.location.start.index;
+      for (const property of type.propList) {
+        this._prepareForwardTypes(property.typeInfo.structDeclarations, dependencyAnchor);
+      }
+      if (needsHoist) this._forwardStructIndices.set(type, hoistAnchor);
+    }
+  }
+
+  private _isContextIndependent(node: TreeNode): boolean {
+    if (
+      node instanceof ASTNode.VariableIdentifier ||
+      node instanceof ASTNode.MacroCallSymbol ||
+      node instanceof ASTNode.MacroCallFunction
+    )
+      return false;
+    if (node instanceof ASTNode.TypeSpecifier && node.isCustom && !node.structDeclarations.length) return false;
+    return node.children.every((child) =>
+      child instanceof TreeNode
+        ? this._isContextIndependent(child)
+        : child.type < Keyword.MACRO_IF || child.type > Keyword.MACRO_DEFINE_PARAMS
+    );
+  }
+
+  private _hasDeclarationContextBarrier(start: number, end: number, includeMacros: boolean): boolean {
+    const visit = (node: TreeNode, inFunction = false): boolean => {
+      if (node.location.end.index <= start || node.location.start.index >= end) return false;
+      if (node instanceof ASTNode.PrecisionSpecifier && !inFunction) return true;
+      if (includeMacros && node instanceof ASTNode.MacroDefine) return true;
+      inFunction ||= node instanceof ASTNode.FunctionDefinition;
+      return node.children.some((child) =>
+        child instanceof TreeNode
+          ? visit(child, inFunction)
+          : includeMacros &&
+            child.location.start.index > start &&
+            child.location.start.index < end &&
+            (child.type === Keyword.MACRO_UNDEF || child.type === Keyword.MACRO_DEFINE_EXPRESSION)
+      );
+    };
+    return visit(this._sourceIR!.program);
+  }
+
+  private _unsupportedForwardDeclaration(node: TreeNode): never {
+    const ir = this._sourceIR!;
+    throw mapExpandedShaderError(
+      new GSError(
+        GSErrorName.CompilationError,
+        "Inherited declarations require incompatible forward signatures or depend on a later macro or precision context.",
+        node.location,
+        ir.source,
+        undefined,
+        "UnsupportedForwardDeclaration"
+      ),
+      ir.source,
+      ir.sourceMap
+    );
   }
 
   private _getCustomStruct(structNodes: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
@@ -351,18 +716,20 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const text = node.codeGen(this);
 
       if (!node.isInMacroBranch) {
-        out.push({ text, index: node.location.start.index });
+        out.push({ text: this._declaration(text, node), index: node.location.start.index });
       }
     }
   }
 
-  private _getGlobalMacroDeclarations(macros: ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
+  private _getGlobalMacroDeclarations(macros: readonly ASTNode.GlobalDeclaration[], out: ICodeSegment[]): void {
+    const context = this.context;
     const referencedGlobals = context._referencedGlobals;
+    const referencedGlobalKeys = context._referencedGlobalKeys;
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (const symbols of Object.values(referencedGlobals)) {
+    for (let keyIndex = 0; keyIndex < referencedGlobalKeys.length; keyIndex++) {
+      const symbols = referencedGlobals[referencedGlobalKeys[keyIndex]];
       for (const symbol of symbols) {
         if (symbol.isInMacroBranch) {
           referencedGlobalMacroASTs.push(symbol.astNode);
@@ -375,7 +742,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const child = macro.children[0];
 
       if (child instanceof ASTNode.GlobalMacroIfStatement) {
-        let result: ICodeSegment[] = [];
+        const result: ICodeSegment[] = [];
         result.push(
           ...macro.macroExpressions.map((item) => ({
             text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
@@ -414,23 +781,34 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           index: child.location.start.index
         });
       } else if (child instanceof ASTNode.FunctionDefinition) {
-        if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1) {
+        const text =
+          this.context._referencedGlobalMacroASTs.indexOf(child) !== -1
+            ? this.getCachedCode(child)
+            : this._forwardFunctionDeclarations.get(child);
+        if (text !== undefined) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol`
+            text: this._declaration(text, child),
             index: child.location.start.index
           });
         }
       } else if (child instanceof ASTNode.StructSpecifier) {
-        const context = VisitorContext.context;
+        if (this._forwardStructIndices.has(child)) {
+          const text = this._declaration("", child);
+          if (text) out.push({ text, index: child.location.start.index });
+          continue;
+        }
+        const context = this.context;
         const stage = context.stage;
         if (
-          VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
+          context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
           (stage === EShaderStage.VERTEX
-            ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
-            : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
+            ? context.hasStructRole(child, ShaderStructRole.Attribute) ||
+              context.hasStructRole(child, ShaderStructRole.Varying)
+            : context.hasStructRole(child, ShaderStructRole.Varying) ||
+              context.hasStructRole(child, ShaderStructRole.Mrt))
         ) {
           out.push({
-            text: child.getCache(), // code has generated in `_getGlobalSymbol` or `_getCustomStruct`
+            text: this._declaration(this.getCachedCode(child) ?? "", child),
             index: child.location.start.index
           });
         }
@@ -438,9 +816,14 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         const variableDeclarations = child.variableDeclarations;
         for (let i = 0; i < variableDeclarations.length; i++) {
           const variableDeclaration = variableDeclarations[i];
-          if (VisitorContext.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
+          if (this.context._referencedGlobalMacroASTs.indexOf(variableDeclaration) !== -1) {
             out.push({
-              text: variableDeclaration.getCache() + ";", // code has generated in `_getGlobalSymbol`
+              text: this._declaration(
+                this._forwardVariableIndices.has(variableDeclaration)
+                  ? ""
+                  : `${this.getCachedCode(variableDeclaration) ?? ""};`,
+                variableDeclaration
+              ),
               index: variableDeclaration.location.start.index
             });
           }
@@ -451,5 +834,28 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         this._visitGlobalMacroIfStatement(child, out);
       }
     }
+  }
+
+  /** Ownership of the declaration currently generating dependencies. @internal */
+  protected get currentDeclarationOwner(): DeferredDeclarationOwnership | undefined {
+    return this._currentDeclaration && this._declarationOwners.get(this._currentDeclaration);
+  }
+
+  private _referenceDeclaration(from: number, node: TreeNode): void {
+    const owner = this._declarationOwners.get(node);
+    if (!owner) return;
+    let targets = this._declarationReferences.get(from);
+    if (!targets) this._declarationReferences.set(from, (targets = new Set()));
+    targets.add(owner.id);
+  }
+
+  private _emitDeclarationReferences(out: ICodeSegment[]): void {
+    for (const [from, targets] of this._declarationReferences) {
+      for (const to of targets) out.push({ text: ShaderInstructionEncoder.reference(from, to), index: -1 });
+    }
+  }
+
+  private _declaration(text: string, node: TreeNode, activate = true): string {
+    return ShaderInstructionEncoder.declaration(text, this._declarationOwners.get(node), activate);
   }
 }

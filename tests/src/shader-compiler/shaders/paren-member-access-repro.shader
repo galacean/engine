@@ -6,7 +6,7 @@ Shader "paren-member-access-repro" {
       //      left-side run starts with alpha — wrongly excludes `(v).v_uv`,
       //      `v . v_uv`, `((v)).v_uv` etc.
       //   2. `AssignmentExpression.semanticAnalyze` was wrapped in
-      //      `// #if _VERBOSE`, so type propagation was stripped in release
+      //      a legacy compile-time guard, so type propagation was stripped in release
       //      builds and outer `(expr).field` codegen saw `TypeAny`,
       //      skipping varying flatten.
       // Fix routes by "anything except `digit.digit`" + restores

@@ -54,6 +54,9 @@ jobs:
       - name: Install
         run: pnpm install
       - run: npm run build
+      - name: Test packed shader packages
+        if: matrix.os == 'ubuntu-latest'
+        run: pnpm run test:package-consumer
 
   codecov:
     runs-on: macos-latest
@@ -107,7 +110,7 @@ jobs:
       - name: Get installed Playwright version
         id: playwright-version
         run: echo "PLAYWRIGHT_VERSION=$(node -e "console.log(require('./package.json').devDependencies['@playwright/test'])")" >> $GITHUB_ENV
-      
+
       - name: Cache Playwright browsers
         uses: actions/cache@v3
         id: playwright-cache
@@ -115,7 +118,7 @@ jobs:
           path: |
             ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ env.PLAYWRIGHT_VERSION }}
-      
+
       - name: Install Playwright Browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         timeout-minutes: 15
@@ -190,4 +193,3 @@ jobs:
           path: playwright-report/
           retention-days: 7
           if-no-files-found: ignore
-    

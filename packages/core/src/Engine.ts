@@ -640,8 +640,6 @@ export class Engine extends EventDispatcher {
       // shader-compiler defaults to an empty map and stays free of any direct
       // ShaderFactory dependency, so the binding has to be wired here at the
       // runtime boundary.
-      // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
-      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
       Shader._shaderCompiler = shaderCompiler;
     }

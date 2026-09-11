@@ -1,10 +1,8 @@
 Shader "define-mixed-form-repro" {
   SubShader "Default" {
     Pass "0" {
-      // Issue #2980 nit: same `#define` name with different forms across
-      // `#ifdef` branches is legal GLSL (preprocessor is text replacement;
-      // each active branch produces a self-consistent program). The shader
-      // compiler must not pollute the call site with TypeAny — it should fall back
+      // Different replacement forms in exclusive branches are legal because
+      // each active branch produces a self-consistent program. Type inference falls back
       // to legacy `referenceSymbolNames`-based inference whichever branch
       // is active.
       #ifdef USE_AST_FORM

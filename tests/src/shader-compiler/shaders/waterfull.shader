@@ -255,7 +255,7 @@ Shader "Waterfull-test" {
             vec2 uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
             vec4 pixel = texture2D( _WaterNormalSmall, uv1 );
             smallNormalData = pixel.xyz * 2.0 - 1.0;
-            #ifdef _WATERQULIATY_MID
+            #if defined(_WATERQULIATY_MID) && !defined(_WATERQULIATY_HIGH)
             uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
             vec2 uv2 = ( offset * vec2( -0.1, -0.1 ) ) + uv + 0.4;
             vec4 pixel1 = texture2D( _WaterNormalSmall, uv1 );
@@ -265,7 +265,7 @@ Shader "Waterfull-test" {
             smallNormalData = BlendNormal( smallNormalData1, smallNormalData2 );
             #endif
             #ifdef _WATERQULIATY_HIGH
-            vec2 uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
+            uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
             vec2 uv2 = ( offset * vec2( -0.1, -0.1 ) ) + uv + 0.4;
             vec2 uv3 = ( offset * vec2( -0.1, 0.1 ) + ( uv + vec2( 0.85, 0.15 ) ) );
             vec2 uv4 = ( offset * vec2( 0.1, -0.1 ) + ( uv + vec2( 0.65, 0.75 ) ) );
@@ -291,7 +291,7 @@ Shader "Waterfull-test" {
             vec2 uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
             vec4 pixel1 = texture2D( _WaterNormalLarge, uv1 );
             largeNormalData = pixel1.xyz * 2.0 - 1.0;
-            #ifdef _WATERQULIATY_MID
+            #if defined(_WATERQULIATY_MID) && !defined(_WATERQULIATY_HIGH)
             uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
             vec2 uv2 = ( offset * vec2( -0.1, -0.1 ) ) + uv + 0.4;
             pixel1 = texture2D( _WaterNormalLarge, uv1 );
@@ -302,7 +302,7 @@ Shader "Waterfull-test" {
             #endif
             #ifdef _WATERQULIATY_HIGH
             uv1 = ( offset * vec2( 0.1, 0.1 ) ) + uv;
-            uv2 = ( offset * vec2( -0.1, -0.1 ) ) + uv + 0.4;
+            vec2 uv2 = ( offset * vec2( -0.1, -0.1 ) ) + uv + 0.4;
             vec2 uv3 = ( offset * vec2( -0.1, 0.1 ) + ( uv + vec2( 0.85, 0.15 ) ) );
             vec2 uv4 = ( offset * vec2( 0.1, -0.1 ) + ( uv + vec2( 0.65, 0.75 ) ) );
             pixel1 = texture2D( _WaterNormalLarge, uv1 );

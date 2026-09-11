@@ -30,8 +30,6 @@ const precisionStr = `
 export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
-  /** @internal */
-  static _shaderRootPath = "shaders://root/";
 
   /** @internal */
   _platformTarget: ShaderLanguage;

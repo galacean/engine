@@ -1,10 +1,7 @@
 Shader "define-line-continuation-repro" {
   SubShader "Default" {
     Pass "0" {
-      // Issue #2980 example 2:
-      // `\`-line-continuation in `#define`. Pre-fix the regex `.*?` didn't
-      // span lines, so the value was truncated and `referenceName` extraction
-      // failed. Fix: continuations are squashed before regex runs.
+      // A continued replacement list retains references from every physical line.
       #define LONG_VAL  v.v_uv \
                       + v.v_uv
 

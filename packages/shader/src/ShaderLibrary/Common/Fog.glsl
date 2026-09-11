@@ -18,6 +18,8 @@
             // exp(-(z * density)^2) = exp2(-(z * density)^2/ln(2)) = exp2(-(z * density/sprt(ln(2)))^2)
             float factor = fogDepth * scene_FogParams.w;
             float fogIntensity = clamp(exp2(-factor * factor), 0.0, 1.0);
+        #else
+            float fogIntensity = 1.0;
         #endif
 
         color.rgb = mix(scene_FogColor.rgb, color.rgb, fogIntensity);
