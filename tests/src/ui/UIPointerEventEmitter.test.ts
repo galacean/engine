@@ -561,7 +561,13 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     // @ts-ignore
     const previousQueueType = uiDefaultPass._renderState.renderQueueType;
     // @ts-ignore
+    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
+    // @ts-ignore
     uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    // The depth write is what makes the opaque pass occlude: `2D/UIDefault` disables it, so enable it
+    // here to keep the setup consistent with the visibility this case asserts
+    // @ts-ignore
+    uiDefaultPass._renderState.depthState.writeEnabled = true;
     try {
       // Both canvases cover the clicked point, and the nearer one holds the depth writing image
       const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
@@ -583,6 +589,8 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     } finally {
       // @ts-ignore
       uiDefaultPass._renderState.renderQueueType = previousQueueType;
+      // @ts-ignore
+      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
     }
   });
 
@@ -619,5 +627,96 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(firstScript.downCount).toBe(1);
     expect(firstScript.clickCount).toBe(1);
     expect(removedScript.downCount).toBe(0);
+  });
+
+  it("18. Transparent content hidden by depth keeps the nearer transparent content", () => {
+    const root = createRoot("test18_root");
+    const camera = createCamera(root);
+
+    // @ts-ignore the render state is @internal
+    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
+    // @ts-ignore
+    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
+    // @ts-ignore
+    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
+    // @ts-ignore
+    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    // @ts-ignore
+    uiDefaultPass._renderState.depthState.writeEnabled = true;
+    try {
+      // A depth writing image in the middle distance is the depth everything else is tested against
+      const barrierCanvas = createScreenSpaceCanvas(root, "BarrierCanvas", camera, 0, 5);
+      const barrierScript = createVisibleImage(barrierCanvas.entity, "BarrierImage");
+
+      // The near text is painted first because of its sort order, the far one last
+      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 3);
+      const nearScript = createVisibleText(nearCanvas.entity, "NearText");
+      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 10, 10);
+      const farScript = createVisibleText(farCanvas.entity, "FarText");
+
+      engine.update();
+      expect(getPaintOrder(camera)).toEqual(["NearText", "FarText"]);
+
+      simulateClickAtCenter();
+
+      // The far text is painted last but its depth is rejected, so the near text is what is on screen
+      expect(nearScript.downCount).toBe(1);
+      expect(nearScript.clickCount).toBe(1);
+      expect(farScript.downCount).toBe(0);
+      expect(barrierScript.downCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      uiDefaultPass._renderState.renderQueueType = previousQueueType;
+      // @ts-ignore
+      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
+    }
+  });
+
+  it("19. The depth barrier is the nearest opaque hit, not the first in the queue", () => {
+    const root = createRoot("test19_root");
+    const camera = createCamera(root);
+
+    // @ts-ignore the render state is @internal
+    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
+    // @ts-ignore
+    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
+    // @ts-ignore
+    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
+    // @ts-ignore
+    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    // @ts-ignore
+    uiDefaultPass._renderState.depthState.writeEnabled = true;
+    try {
+      // The opaque queue follows `priority` (= canvas sortOrder for UI) and not distance, so it holds the
+      // near image first while the scan of the barrier reads that queue backwards and meets the far one
+      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+      const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
+      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 1, 20);
+      const farScript = createVisibleImage(farCanvas.entity, "FarImage");
+
+      // A transparent text between both depths, painted last
+      const middleCanvas = createScreenSpaceCanvas(root, "MiddleCanvas", camera, 0, 10);
+      const middleScript = createVisibleText(middleCanvas.entity, "MiddleText");
+
+      engine.update();
+      // @ts-ignore the opaque queue holds the farther image first, the transparent queue the text
+      const cullingResults = camera._renderPipeline._cullingResults;
+      const opaqueNames = cullingResults.opaqueQueue.batchedElements.map((element) => element.component.entity.name);
+      expect(opaqueNames).toEqual(["NearImage", "FarImage"]);
+      expect(getPaintOrder(camera)).toEqual(["MiddleText"]);
+
+      simulateClickAtCenter();
+
+      // The depth the opaque pass leaves is the near image (5), so the text at 10 is not painted at all
+      expect(nearScript.downCount).toBe(1);
+      expect(nearScript.clickCount).toBe(1);
+      expect(middleScript.downCount).toBe(0);
+      expect(farScript.downCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      uiDefaultPass._renderState.renderQueueType = previousQueueType;
+      // @ts-ignore
+      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
+    }
   });
 });
