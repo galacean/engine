@@ -473,4 +473,34 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(script.downCount).toBe(1);
     expect(script.clickCount).toBe(1);
   });
+
+  it("14. Elements merged into one batch stay hittable in painted order", () => {
+    const root = createRoot("test14_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // Both images share one sprite, so the canvas merges them into a single batch leader: the leader has
+    // to be expanded back into its members for the element painted later to stay hittable.
+    const sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const createImage = (name: string): ClickRecordScript => {
+      const entity = canvas.entity.createChild(name);
+      const image = entity.addComponent(Image);
+      image.sprite = sprite;
+      (<UITransform>entity.transform).size.set(300, 300);
+      return entity.addComponent(ClickRecordScript);
+    };
+    const firstScript = createImage("FirstImage");
+    const secondScript = createImage("SecondImage");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FirstImage"]);
+    // @ts-ignore the two elements above merged into that single leader
+    expect(canvas._batchedRenderElements.length).toBe(1);
+
+    simulateClickAtCenter();
+
+    expect(secondScript.downCount).toBe(1);
+    expect(secondScript.clickCount).toBe(1);
+    expect(firstScript.downCount).toBe(0);
+  });
 });
