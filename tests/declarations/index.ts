@@ -14,6 +14,7 @@ import "../../packages/xr-webxr";
 
 import { Script } from "../../packages/core";
 import { Rect } from "../../packages/math";
+import { PhysXPhysics } from "../../packages/physics-physx";
 import { UIGroup } from "../../packages/ui";
 
 class UserScript extends Script {
@@ -31,4 +32,9 @@ class UserPanel extends UIGroup {
 class UserRect extends Rect {
   // @ts-expect-error Math-owned runtime state must remain visible to consumers.
   private _x = "bad";
+}
+
+// @ts-expect-error Physics-owned runtime state must remain visible to consumers.
+class UserPhysics extends PhysXPhysics {
+  private _physX = "bad";
 }

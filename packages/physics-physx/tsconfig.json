@@ -12,7 +12,7 @@
         "sourceMap": true,
         "incremental": false,
         "skipLibCheck": true,
-        "stripInternal": true
+        "stripInternal": false
     },
     "include": ["src/**/*"]
 }
