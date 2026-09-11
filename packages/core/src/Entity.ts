@@ -22,6 +22,17 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
+
+  private static _isTransformType(type: ComponentConstructor): boolean {
+    return type === Transform || type.prototype instanceof Transform;
+  }
+
+  private static _checkTransformDependencies(type: ComponentConstructor): void {
+    if (ComponentsDependencies._hasDependencies(type)) {
+      throw `Transform-compatible component ${type.name} cannot declare component dependencies`;
+    }
+  }
+
   /**
    * @internal
    */
@@ -236,10 +247,29 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name ?? "Entity";
-    for (let i = 0, n = components.length; i < n; i++) {
-      this.addComponent(components[i]);
+    let transformType: ComponentConstructor = Transform;
+    const n = components.length;
+    for (let i = n - 1; i >= 0; i--) {
+      const componentType = components[i];
+      if (Entity._isTransformType(componentType)) {
+        transformType = componentType;
+        break;
+      }
     }
-    !this._transform && this.addComponent(Transform);
+
+    Entity._checkTransformDependencies(transformType);
+    const transform = <Transform>new transformType(this);
+    // Constructors may add components, but Transform always owns slot zero
+    this._components.unshift(transform);
+    this._transform = transform;
+    transform._setActive(true, ActiveChangeFlag.All);
+
+    for (let i = 0; i < n; i++) {
+      const componentType = components[i];
+      if (!Entity._isTransformType(componentType)) {
+        this.addComponent(componentType);
+      }
+    }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
@@ -250,12 +280,20 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    ComponentsDependencies._addCheck(this, type);
-    const component = new type(this, ...args) as InstanceType<T>;
-    this._components.push(component);
+    const isTransform = Entity._isTransformType(type);
+    if (isTransform) {
+      Entity._checkTransformDependencies(type);
+      ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
+    } else {
+      ComponentsDependencies._addCheck(this, type);
+    }
 
-    // @todo: temporary solution
-    if (component instanceof Transform) this._setTransform(component);
+    const component = new type(this, ...args) as InstanceType<T>;
+    if (isTransform) {
+      this._replaceTransform(<Transform>component);
+    } else {
+      this._components.push(component);
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -446,6 +484,7 @@ export class Entity extends EngineObject {
   private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
+    componentConstructors.length = components.length;
     for (let i = 0, n = components.length; i < n; i++) {
       componentConstructors[i] = components[i].constructor as ComponentConstructor;
     }
@@ -522,9 +561,13 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
-    components.splice(components.indexOf(component), 1);
+    const index = components.indexOf(component);
+    // A replaced Transform is detached from the component slot immediately but
+    // can still reach here later because object destruction may be deferred
+    if (index < 0) return;
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
+    components.splice(index, 1);
   }
 
   /**
@@ -755,13 +798,17 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransform(value: Transform): void {
-    this._transform?.destroy();
-    this._transform = value;
+  private _replaceTransform(replacement: Transform): void {
+    const previous = this._transform;
+    replacement._copyLocalPoseFrom(previous);
+    this._components[0] = replacement;
+    this._transform = replacement;
+
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
-      children[i].transform?._parentChange();
+      children[i].transform._parentChange();
     }
+    previous.destroy();
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
