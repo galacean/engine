@@ -163,8 +163,14 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       }
       while (cursor > 0) {
         const element = renderedElements[cursor - 1];
-        // @ts-ignore `_isBatched` is @internal: a leader we were not handed belongs to an earlier run
-        if (element !== leader && element._isBatched) break;
+        // @ts-ignore `_isBatched` is @internal: another leader means another run comes first
+        if (element !== leader && element._isBatched) {
+          // Elements of one canvas can land in different queues (the queue of a material overrides the
+          // canvas element order), so the flat order may not describe this queue: test the canvas as a
+          // whole instead of dropping the content that has not been reached yet
+          cursor = -1;
+          break;
+        }
         cursor--;
         const component = element.component;
         if (
@@ -179,6 +185,11 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           return true;
         }
         if (element === leader) break;
+      }
+      if (cursor < 0) {
+        cursors.set(canvasId, -1);
+        if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+        continue;
       }
       cursors.set(canvasId, cursor);
     }

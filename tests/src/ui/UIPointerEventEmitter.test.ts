@@ -1,7 +1,7 @@
 import { Camera, Entity, Layer, PointerEventData, Script, Sprite, Texture2D } from "@galacean/engine-core";
 import { Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
-import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
+import { RenderQueueType, Shader, WebGLEngine } from "@galacean/engine";
+import { CanvasRenderMode, Image, Text, UICanvas, UITransform } from "@galacean/engine-ui";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 class ClickRecordScript extends Script {
@@ -85,6 +85,16 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     image.sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
     image.raycastEnabled = raycastEnabled;
     (<UITransform>entity.transform).size.set(size, size);
+    return entity.addComponent(ClickRecordScript);
+  }
+
+  /** Text renders from the transparent `2D/Text` shader, which the image helper above does not. */
+  function createVisibleText(parent: Entity, name: string): ClickRecordScript {
+    const entity = parent.createChild(name);
+    const text = entity.addComponent(Text);
+    text.text = name;
+    text.raycastEnabled = true;
+    (<UITransform>entity.transform).size.set(300, 300);
     return entity.addComponent(ClickRecordScript);
   }
 
@@ -502,5 +512,41 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(secondScript.downCount).toBe(1);
     expect(secondScript.clickCount).toBe(1);
     expect(firstScript.downCount).toBe(0);
+  });
+
+  it("15. A canvas whose elements land in different queues stays hittable", () => {
+    const root = createRoot("test15_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // Move the shared UI shader into the opaque queue, so this canvas holds one transparent element
+    // (Text) and one opaque element (Image) and the queue order overrides the canvas element order
+    // @ts-ignore the render state is @internal
+    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
+    // @ts-ignore
+    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
+    // @ts-ignore
+    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    try {
+      // The text is created first, so it is the earlier canvas element while being painted last, and it
+      // is the only one covering the clicked point: the image only touches its rectangle
+      const textScript = createVisibleText(canvas.entity, "Text");
+      const imageScript = createVisibleImage(canvas.entity, "Image");
+      imageScript.entity.transform.position.set(250, 250, 0);
+
+      engine.update();
+      expect(getPaintOrder(camera)).toEqual(["Text"]);
+      // @ts-ignore the image lands in the opaque queue, which proves the mixed queue setup
+      expect(camera._renderPipeline._cullingResults.opaqueQueue.batchedElements.length).toBe(1);
+
+      simulateClickAtCenter();
+
+      expect(textScript.downCount).toBe(1);
+      expect(textScript.clickCount).toBe(1);
+      expect(imageScript.downCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      uiDefaultPass._renderState.renderQueueType = previousQueueType;
+    }
   });
 });
