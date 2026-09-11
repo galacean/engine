@@ -38,6 +38,10 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _enteredPath: Entity[] = [];
   private _pressedPath: Entity[] = [];
   private _draggedPath: Entity[] = [];
+  /** Nearest hit of the depth writing passes, the depth the transparent pass is tested against. */
+  private _barrierHitResult = new UIHitResult();
+  /** Staging result of a single candidate, so a rejected hit cannot overwrite the accepted one. */
+  private _scratchHitResult = new UIHitResult();
 
   _init(): void {
     this._hitResult = new UIHitResult();
@@ -100,11 +104,15 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
    * The hit test consumes the draw order rather than deriving it again: `Engine.update()` runs the
    * pointer raycast before it renders, and the queues are only reset — and their pooled elements only
    * reused — while rendering, so the queues still hold the pass the pointer is aiming at, which is the
-   * frame currently on screen. Each queue's `batchedElements` is in draw order and the queues are drawn
-   * opaque -> alphaTest -> transparent, so walking them backwards visits what is visible from the top
-   * down. Elements of one canvas can be interleaved with another canvas' elements, so the walk stays at
-   * element level: each batch leader is expanded back through the canvas' own prepared element list,
-   * which is the per renderer draw order the canvas sorted and batched from.
+   * frame currently on screen. Elements of one canvas can be interleaved with another canvas' elements,
+   * so the walk stays at element level: each batch leader is expanded back through the canvas' own
+   * prepared element list, which is the per renderer draw order the canvas sorted and batched from.
+   *
+   * Draw order alone is not visibility: `opaque` and `alphaTest` are painted first so that depth
+   * writing content rejects whatever is farther, which is what the `Less` depth test of the UI shaders
+   * then enforces. The nearest hit of those two passes is therefore the depth barrier the transparent
+   * pass is tested against, and transparent content behind it must not answer even though it is painted
+   * last.
    */
   private _raycastRenderedContent(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
     // @ts-ignore
@@ -112,25 +120,70 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     if (!cullingResults) return false;
 
     const cursors = UIPointerEventEmitter._elementCursors;
-    const farClipPlane = camera.farClipPlane;
-    const cullingMask = camera.cullingMask;
+    const barrier = this._barrierHitResult;
     cursors.clear();
-    return (
-      this._raycastQueue(cullingResults.transparentQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask) ||
-      this._raycastQueue(cullingResults.alphaTestQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask) ||
-      this._raycastQueue(cullingResults.opaqueQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask)
+
+    const hasOpaqueBarrier = this._raycastQueue(
+      cullingResults.opaqueQueue,
+      camera,
+      cursors,
+      ray,
+      barrier,
+      true,
+      Number.MAX_VALUE
     );
+    const hasBarrier =
+      this._raycastQueue(
+        cullingResults.alphaTestQueue,
+        camera,
+        cursors,
+        ray,
+        barrier,
+        true,
+        hasOpaqueBarrier ? barrier.distance : Number.MAX_VALUE
+      ) || hasOpaqueBarrier;
+
+    // Transparent content is painted last, so the first hit that passes the depth test is the visible one
+    if (
+      this._raycastQueue(
+        cullingResults.transparentQueue,
+        camera,
+        cursors,
+        ray,
+        hitResult,
+        false,
+        hasBarrier ? barrier.distance : Number.MAX_VALUE
+      )
+    ) {
+      return true;
+    }
+    if (hasBarrier) {
+      this._copyHitResult(barrier, hitResult);
+      return true;
+    }
+    return false;
   }
 
+  /**
+   * Read one queue in painted order and raycast its elements.
+   *
+   * @param nearestOnly - keep the nearest accepted hit and scan the whole queue, instead of accepting the
+   * first one that passes and returning
+   * @param maxDistance - hits at or beyond this depth are rejected, which mirrors the `Less` depth test
+   */
   private _raycastQueue(
     queue: RenderedQueue,
     camera: Camera,
     cursors: Map<number, number>,
     ray: Ray,
     hitResult: UIHitResult,
-    farClipPlane: number,
-    cullingMask: number
+    nearestOnly: boolean,
+    maxDistance: number
   ): boolean {
+    const farClipPlane = camera.farClipPlane;
+    const cullingMask = camera.cullingMask;
+    const scratch = this._scratchHitResult;
+    let found = false;
     const leaders = queue.batchedElements;
     for (let i = leaders.length - 1; i >= 0; i--) {
       const leader = leaders[i];
@@ -153,12 +206,18 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           // These queue elements were not prepared from the list at hand: test the canvas as a whole,
           // which keeps the canvas order taken from the queue and the previous within-canvas order
           cursors.set(canvasId, -1);
-          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+          if (canvas._raycast(ray, scratch, farClipPlane, cullingMask) && scratch.distance < maxDistance) {
+            if (this._acceptHit(hitResult, nearestOnly, found)) return true;
+            found = true;
+          }
           continue;
         }
         cursor = renderedElements.length;
       } else if (cursor < 0) {
-        if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+        if (canvas._raycast(ray, scratch, farClipPlane, cullingMask) && scratch.distance < maxDistance) {
+          if (this._acceptHit(hitResult, nearestOnly, found)) return true;
+          found = true;
+        }
         continue;
       }
       while (cursor > 0) {
@@ -180,20 +239,50 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           !component.destroyed &&
           component.entity.isActiveInHierarchy &&
           (cullingMask & component.entity.layer) !== 0 &&
-          component._raycast(ray, hitResult, farClipPlane)
+          component._raycast(ray, scratch, farClipPlane) &&
+          scratch.distance < maxDistance
         ) {
-          return true;
+          if (this._acceptHit(hitResult, nearestOnly, found)) return true;
+          found = true;
         }
         if (element === leader) break;
       }
       if (cursor < 0) {
         cursors.set(canvasId, -1);
-        if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+        if (canvas._raycast(ray, scratch, farClipPlane, cullingMask) && scratch.distance < maxDistance) {
+          if (this._acceptHit(hitResult, nearestOnly, found)) return true;
+          found = true;
+        }
         continue;
       }
       cursors.set(canvasId, cursor);
     }
-    return false;
+    return found;
+  }
+
+  /**
+   * Apply the scan mode to a hit just written into the scratch result.
+   *
+   * @returns true when the caller has to stop scanning, which happens when the first accepted hit was
+   * taken rather than the nearest one
+   */
+  private _acceptHit(hitResult: UIHitResult, nearestOnly: boolean, found: boolean): boolean {
+    if (nearestOnly) {
+      if (!found || this._scratchHitResult.distance < hitResult.distance) {
+        this._copyHitResult(this._scratchHitResult, hitResult);
+      }
+      return false;
+    }
+    this._copyHitResult(this._scratchHitResult, hitResult);
+    return true;
+  }
+
+  private _copyHitResult(source: UIHitResult, target: UIHitResult): void {
+    target.entity = source.entity;
+    target.distance = source.distance;
+    target.point.copyFrom(source.point);
+    target.normal.copyFrom(source.normal);
+    target.component = source.component;
   }
 
   override processDrag(pointer: Pointer): void {

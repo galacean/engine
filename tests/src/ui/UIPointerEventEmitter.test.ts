@@ -549,4 +549,40 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
       uiDefaultPass._renderState.renderQueueType = previousQueueType;
     }
   });
+
+  it("16. Transparent content behind depth writing content does not answer", () => {
+    const root = createRoot("test16_root");
+    const camera = createCamera(root);
+
+    // The shared UI shader moves to the opaque queue, so the near image writes depth while the far text
+    // stays transparent: the text is not painted at all where the image covers it
+    // @ts-ignore the render state is @internal
+    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
+    // @ts-ignore
+    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
+    // @ts-ignore
+    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    try {
+      // Both canvases cover the clicked point, and the nearer one holds the depth writing image
+      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+      const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
+      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 0, 20);
+      const farScript = createVisibleText(farCanvas.entity, "FarText");
+
+      engine.update();
+      expect(getPaintOrder(camera)).toEqual(["FarText"]);
+      // @ts-ignore the image is painted from the opaque queue, which is the pass that writes depth
+      expect(camera._renderPipeline._cullingResults.opaqueQueue.batchedElements.length).toBe(1);
+
+      simulateClickAtCenter();
+
+      // The transparent text is painted last but sits behind the depth of the opaque image
+      expect(nearScript.downCount).toBe(1);
+      expect(nearScript.clickCount).toBe(1);
+      expect(farScript.downCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      uiDefaultPass._renderState.renderQueueType = previousQueueType;
+    }
+  });
 });
