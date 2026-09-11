@@ -16,6 +16,12 @@ import { VertexAttribute } from "./enums/VertexAttribute";
 
 /**
  * Mesh containing common vertex elements of the model.
+ * Vertex/index data and draw ranges are independent: a mesh renders nothing until
+ * `addSubMesh(start, count)` declares a draw range, and the MeshRenderer only draws a
+ * sub-mesh that has a material in the matching slot. `uploadData()` uploads buffers; it
+ * does not create sub-meshes or calculate `bounds`, so set `bounds` yourself or the
+ * renderer cannot cull correctly. See the `engine-knowledge` Skill recipe
+ * `Draw-ready custom mesh` for the full chain.
  */
 export class ModelMesh extends Mesh {
   private static _tempVec0 = new Vector3();

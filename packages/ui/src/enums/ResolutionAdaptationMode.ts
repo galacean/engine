@@ -9,8 +9,14 @@ export enum ResolutionAdaptationMode {
   HeightAdaptation,
   /** Adapt based on both width and height.(`referenceResolution`) */
   BothAdaptation,
-  /** Adapt to the side with a larger ratio. */
+  /**
+   * Uniformly scale by min(visibleWidth / referenceWidth, visibleHeight / referenceHeight).
+   * The full reference rectangle fits inside the visible area; the UICanvas rectangle expands on the other axis.
+   */
   ExpandAdaptation,
-  /** Adapt to the side with smaller ratio. */
+  /**
+   * Uniformly scale by max(visibleWidth / referenceWidth, visibleHeight / referenceHeight).
+   * The reference rectangle covers the visible area; any overflow lies off-screen.
+   */
   ShrinkAdaptation
 }

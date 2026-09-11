@@ -19,7 +19,7 @@ This Skill does not define how a host creates, serializes, builds, or publishes 
 ## References
 
 - For handedness, forward direction, transform composition, Euler order, and screen or viewport spaces, read [coordinates-and-space.md](references/coordinates-and-space.md).
-- For Script activation and frame ordering, read [lifecycle-and-frame-order.md](references/lifecycle-and-frame-order.md).
+- For Script activation, frame ordering, and pointer input within a frame, read [lifecycle-and-frame-order.md](references/lifecycle-and-frame-order.md).
 - For collider ownership, motion, fixed steps, and callbacks, read [physics-setup.md](references/physics-setup.md).
 - For built-in mesh dimensions and orientation, read [primitive-geometry.md](references/primitive-geometry.md).
 - For cloning, reference counts, garbage collection, and shared resources, read [resource-ownership.md](references/resource-ownership.md).
