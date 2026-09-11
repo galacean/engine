@@ -7,6 +7,7 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  Layer,
   Logger,
   MathUtil,
   Matrix,
@@ -252,11 +253,20 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   /**
    * @internal
+   * @param cullingMask - Layers accepted by the camera being hit-tested, mirroring the renderer
+   * filter applied in `_prepareRender`
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(
+    ray: Ray,
+    out: UIHitResult,
+    distance: number = Number.MAX_SAFE_INTEGER,
+    cullingMask: Layer = Layer.Everything
+  ): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
+      // Hit eligibility must not be wider than draw eligibility
+      if (!(cullingMask & element.entity.layer)) continue;
       if (element.raycastEnabled && element._raycast(ray, out, distance)) {
         return true;
       }
@@ -290,6 +300,10 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const realMode = this._realRenderMode;
     if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
+    }
+    // A canvas the camera culls is not drawn, so it must not receive that camera's events either
+    if (!(camera.cullingMask & this.entity.layer)) {
+      return false;
     }
     const assignedCamera = this._camera;
     // @ts-ignore

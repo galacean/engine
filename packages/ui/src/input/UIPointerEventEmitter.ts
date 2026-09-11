@@ -76,16 +76,22 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
         }
-        canvasElements.sort((a, b) => a.sortOrder - b.sortOrder || b._sortDistance - a._sortDistance);
+        // Hit order is the exact reverse of the render order: `RenderQueue.compareForTransparent`
+        // paints by ascending `sortOrder` then descending distance, so the scan must visit the
+        // highest `sortOrder` and the nearest canvas first. Keys that compare equal keep the shared
+        // array order, which `BasicRenderPipeline._prepareRender` submits in reverse, so the canvas
+        // painted last is scanned first as well. Note: the transparent queue resolves ties beyond
+        // its insertion-sort window with an unstable sort, which no comparator here can mirror.
+        canvasElements.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._canvasIndex = k;
         }
         const farClipPlane = camera.farClipPlane;
-        // Post-rendering first detection (iterate in reverse: last-rendered = topmost)
-        for (let k = canvasElements.length - 1; k >= 0; k--) {
+        // Post-rendering first detection
+        for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canDispatchEvent(camera)) continue;
-          if (canvas._raycast(ray, hitResult, farClipPlane)) {
+          if (canvas._raycast(ray, hitResult, farClipPlane, camera.cullingMask)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;
           }

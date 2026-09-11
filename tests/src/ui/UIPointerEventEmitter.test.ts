@@ -1,8 +1,8 @@
-import { Camera, PointerEventData, Script } from "@galacean/engine-core";
+import { Camera, Entity, Layer, PointerEventData, Script, Sprite, Texture2D } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
 
 class ClickRecordScript extends Script {
   downCount = 0;
@@ -50,7 +50,60 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
   const pointerManager = inputManager._pointerManager;
   const target = pointerManager._target;
 
-  function simulateClickAtCenter() {
+  // Destroyed in `afterEach` so that a failing assertion cannot leak canvases into the next case:
+  // `_canvases` is shared state and the tie-break below depends on its content.
+  const roots: Entity[] = [];
+
+  function createRoot(name: string): Entity {
+    const root = scene.createRootEntity(name);
+    roots.push(root);
+    return root;
+  }
+
+  function createCamera(root: Entity): Camera {
+    const cameraEntity = root.createChild("Camera");
+    cameraEntity.transform.position = new Vector3(0, 0, 10);
+    const camera = cameraEntity.addComponent(Camera);
+    camera.isOrthographic = true;
+    return camera;
+  }
+
+  /**
+   * A sprite texture is mandatory: `Image._render()` returns early without one and then never reaches
+   * the render queue this suite compares the hit test against.
+   */
+  function createVisibleImage(parent: Entity, name: string, layer?: Layer): ClickRecordScript {
+    const entity = parent.createChild(name);
+    layer !== undefined && (entity.layer = layer);
+    const image = entity.addComponent(Image);
+    image.sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    (<UITransform>entity.transform).size.set(300, 300);
+    return entity.addComponent(ClickRecordScript);
+  }
+
+  function createScreenSpaceCanvas(parent: Entity, name: string, camera: Camera, sortOrder: number, distance: number) {
+    const entity = parent.createChild(name);
+    const canvas = entity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    canvas.camera = camera;
+    canvas.distance = distance;
+    canvas.sortOrder = sortOrder;
+    return canvas;
+  }
+
+  function createWorldSpaceCanvas(parent: Entity, name: string, camera: Camera, sortOrder: number, z: number) {
+    const entity = parent.createChild(name);
+    const canvas = entity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.WorldSpace;
+    canvas.camera = camera;
+    canvas.sortOrder = sortOrder;
+    // The pose has to be applied after the canvas exists: adding it auto-adds `UITransform`, which
+    // replaces the entity's plain `Transform` and drops any pose set before that.
+    entity.transform.position = new Vector3(0, 0, z);
+    return canvas;
+  }
+
+  function simulateClickAtCenter(): void {
     const { left, top, width, height } = target.getBoundingClientRect();
     const cx = left + width / 2;
     const cy = top + height / 2;
@@ -60,230 +113,208 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     engine.update();
   }
 
+  /**
+   * Paint order of the camera's transparent queue: the last entry is drawn last and is therefore the
+   * visually topmost canvas. Reading the queue keeps draw order and hit order comparable without
+   * re-deriving the render sort on the test side.
+   */
+  function getPaintOrder(camera: Camera): string[] {
+    // @ts-ignore
+    const transparentQueue = camera._renderPipeline._cullingResults.transparentQueue;
+    return transparentQueue.batchedElements.map((element) => element.component.entity.name);
+  }
+
+  afterEach(() => {
+    for (let i = 0; i < roots.length; i++) {
+      roots[i].destroy();
+    }
+    roots.length = 0;
+    engine.update();
+  });
+
   afterAll(() => {
     engine.destroy();
     canvasDOM.remove();
   });
 
   it("1. Single canvas raycast hits element", () => {
-    const root = scene.createRootEntity("test1_root");
-    const cameraEntity = root.createChild("Camera");
-    cameraEntity.transform.position = new Vector3(0, 0, 10);
-    const camera = cameraEntity.addComponent(Camera);
-    camera.isOrthographic = true;
-
-    const canvasEntity = root.createChild("Canvas");
-    const uiCanvas = canvasEntity.addComponent(UICanvas);
-    uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    uiCanvas.renderCamera = camera;
-    uiCanvas.distance = 10;
-    uiCanvas.sortOrder = 0;
-
-    const imageEntity = canvasEntity.createChild("Image");
-    imageEntity.addComponent(Image);
-    (<UITransform>imageEntity.transform).size.set(300, 300);
-    const script = imageEntity.addComponent(ClickRecordScript);
+    const root = createRoot("test1_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const script = createVisibleImage(canvas.entity, "Image");
 
     engine.update();
+    expect(getPaintOrder(camera)).toEqual(["Image"]);
+
     simulateClickAtCenter();
 
     expect(script.downCount).toBe(1);
     expect(script.clickCount).toBe(1);
-
-    root.destroy();
-    engine.update();
   });
 
-  it("2. High and low sortOrder overlap: higher sortOrder takes precedence", () => {
-    const root = scene.createRootEntity("test2_root");
-    const cameraEntity = root.createChild("Camera");
-    cameraEntity.transform.position = new Vector3(0, 0, 10);
-    const camera = cameraEntity.addComponent(Camera);
-    camera.isOrthographic = true;
+  it("2. Higher sortOrder is painted last and hit first", () => {
+    const root = createRoot("test2_root");
+    const camera = createCamera(root);
 
-    // Bottom canvas: sortOrder = 0
-    const bottomCanvasEntity = root.createChild("BottomCanvas");
-    const bottomCanvas = bottomCanvasEntity.addComponent(UICanvas);
-    bottomCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    bottomCanvas.renderCamera = camera;
-    bottomCanvas.distance = 10;
-    bottomCanvas.sortOrder = 0;
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
 
-    const bottomImage = bottomCanvasEntity.createChild("BottomImage");
-    bottomImage.addComponent(Image);
-    (<UITransform>bottomImage.transform).size.set(300, 300);
-    const bottomScript = bottomImage.addComponent(ClickRecordScript);
-
-    // Top canvas: sortOrder = 10
-    const topCanvasEntity = root.createChild("TopCanvas");
-    const topCanvas = topCanvasEntity.addComponent(UICanvas);
-    topCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    topCanvas.renderCamera = camera;
-    topCanvas.distance = 10;
-    topCanvas.sortOrder = 10;
-
-    const topImage = topCanvasEntity.createChild("TopImage");
-    topImage.addComponent(Image);
-    (<UITransform>topImage.transform).size.set(300, 300);
-    const topScript = topImage.addComponent(ClickRecordScript);
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 10);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
 
     engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage", "TopImage"]);
+
     simulateClickAtCenter();
 
-    // Top canvas (sortOrder=10) MUST receive the click; bottom must NOT
     expect(topScript.downCount).toBe(1);
     expect(topScript.clickCount).toBe(1);
     expect(bottomScript.downCount).toBe(0);
     expect(bottomScript.clickCount).toBe(0);
-
-    root.destroy();
-    engine.update();
   });
 
-  it("3. Same sortOrder different distance: closer canvas takes precedence", () => {
-    const root = scene.createRootEntity("test3_root");
-    const cameraEntity = root.createChild("Camera");
-    cameraEntity.transform.position = new Vector3(0, 0, 10);
-    const camera = cameraEntity.addComponent(Camera);
-    camera.isOrthographic = true;
+  it("3. Same sortOrder: the nearer WorldSpace canvas is painted last and hit first", () => {
+    const root = createRoot("test3_root");
+    const camera = createCamera(root);
 
-    // Far canvas: WorldSpace at z = 0, sortOrder = 0
-    const farCanvasEntity = root.createChild("FarCanvas");
-    farCanvasEntity.transform.position = new Vector3(0, 0, 0);
-    const farCanvas = farCanvasEntity.addComponent(UICanvas);
-    farCanvas.renderMode = CanvasRenderMode.WorldSpace;
-    farCanvas.renderCamera = camera;
-    farCanvas.sortOrder = 0;
+    // Far canvas at z = 0, near canvas at z = 5 (the camera sits at z = 10)
+    const farCanvas = createWorldSpaceCanvas(root, "FarCanvas", camera, 0, 0);
+    const farScript = createVisibleImage(farCanvas.entity, "FarImage");
 
-    const farImage = farCanvasEntity.createChild("FarImage");
-    farImage.addComponent(Image);
-    (<UITransform>farImage.transform).size.set(300, 300);
-    const farScript = farImage.addComponent(ClickRecordScript);
-
-    // Near canvas: WorldSpace at z = 5 (closer to camera at z=10), sortOrder = 0
-    const nearCanvasEntity = root.createChild("NearCanvas");
-    nearCanvasEntity.transform.position = new Vector3(0, 0, 5);
-    const nearCanvas = nearCanvasEntity.addComponent(UICanvas);
-    nearCanvas.renderMode = CanvasRenderMode.WorldSpace;
-    nearCanvas.renderCamera = camera;
-    nearCanvas.sortOrder = 0;
-
-    const nearImage = nearCanvasEntity.createChild("NearImage");
-    nearImage.addComponent(Image);
-    (<UITransform>nearImage.transform).size.set(300, 300);
-    const nearScript = nearImage.addComponent(ClickRecordScript);
+    const nearCanvas = createWorldSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+    const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
 
     engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FarImage", "NearImage"]);
+
     simulateClickAtCenter();
 
-    // Near canvas (closer to camera) MUST receive the click; far must NOT
     expect(nearScript.downCount).toBe(1);
     expect(nearScript.clickCount).toBe(1);
     expect(farScript.downCount).toBe(0);
     expect(farScript.clickCount).toBe(0);
-
-    root.destroy();
-    engine.update();
   });
 
-  it("4. Same sortOrder same distance: later-created (top-painted) canvas takes precedence", () => {
-    const root = scene.createRootEntity("test4_root");
-    const cameraEntity = root.createChild("Camera");
-    cameraEntity.transform.position = new Vector3(0, 0, 10);
-    const camera = cameraEntity.addComponent(Camera);
-    camera.isOrthographic = true;
+  it("4. Same sortOrder and same distance: the click follows the canvas painted last", () => {
+    const root = createRoot("test4_root");
+    const camera = createCamera(root);
 
-    // Canvas 1: created first
-    const canvasEntity1 = root.createChild("Canvas1");
-    const canvas1 = canvasEntity1.addComponent(UICanvas);
-    canvas1.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    canvas1.renderCamera = camera;
-    canvas1.distance = 10;
-    canvas1.sortOrder = 0;
+    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
+    const firstScript = createVisibleImage(firstCanvas.entity, "FirstImage");
 
-    const image1 = canvasEntity1.createChild("Image1");
-    image1.addComponent(Image);
-    (<UITransform>image1.transform).size.set(300, 300);
-    const script1 = image1.addComponent(ClickRecordScript);
-
-    // Canvas 2: created second
-    const canvasEntity2 = root.createChild("Canvas2");
-    const canvas2 = canvasEntity2.addComponent(UICanvas);
-    canvas2.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    canvas2.renderCamera = camera;
-    canvas2.distance = 10;
-    canvas2.sortOrder = 0;
-
-    const image2 = canvasEntity2.createChild("Image2");
-    image2.addComponent(Image);
-    (<UITransform>image2.transform).size.set(300, 300);
-    const script2 = image2.addComponent(ClickRecordScript);
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
+    const secondScript = createVisibleImage(secondCanvas.entity, "SecondImage");
 
     engine.update();
+
+    // Both canvases are fully tied on every render sort key, so only the submission order decides
+    // which of them is drawn last: the shared canvas array is submitted back to front, which leaves
+    // the canvas created first on top. The hit test has to agree with that order instead of assuming
+    // that the canvas created later ends up on top.
+    const paintOrder = getPaintOrder(camera);
+    expect(paintOrder).toEqual(["SecondImage", "FirstImage"]);
+    const topMostName = paintOrder[paintOrder.length - 1];
+
     simulateClickAtCenter();
 
-    // Canvas 2 (later added/rendered) takes precedence
-    expect(script2.downCount).toBe(1);
-    expect(script2.clickCount).toBe(1);
-    expect(script1.downCount).toBe(0);
-    expect(script1.clickCount).toBe(0);
-
-    root.destroy();
-    engine.update();
+    const hitScript = topMostName === "FirstImage" ? firstScript : secondScript;
+    const coveredScript = hitScript === firstScript ? secondScript : firstScript;
+    expect(hitScript.downCount).toBe(1);
+    expect(hitScript.clickCount).toBe(1);
+    expect(coveredScript.downCount).toBe(0);
+    expect(coveredScript.clickCount).toBe(0);
   });
 
-  it("5. Close top layer recovers bottom layer interaction", () => {
-    const root = scene.createRootEntity("test5_root");
-    const cameraEntity = root.createChild("Camera");
-    cameraEntity.transform.position = new Vector3(0, 0, 10);
-    const camera = cameraEntity.addComponent(Camera);
-    camera.isOrthographic = true;
+  it("5. Same sortOrder: the nearer ScreenSpaceCamera canvas is painted last and hit first", () => {
+    const root = createRoot("test5_root");
+    const camera = createCamera(root);
 
-    // Bottom canvas
-    const bottomCanvasEntity = root.createChild("BottomCanvas");
-    const bottomCanvas = bottomCanvasEntity.addComponent(UICanvas);
-    bottomCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    bottomCanvas.renderCamera = camera;
-    bottomCanvas.distance = 10;
-    bottomCanvas.sortOrder = 0;
+    const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 0, 20);
+    const farScript = createVisibleImage(farCanvas.entity, "FarImage");
 
-    const bottomImage = bottomCanvasEntity.createChild("BottomImage");
-    bottomImage.addComponent(Image);
-    (<UITransform>bottomImage.transform).size.set(300, 300);
-    const bottomScript = bottomImage.addComponent(ClickRecordScript);
+    const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+    const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
 
-    // Top canvas (e.g. Popup)
-    const topCanvasEntity = root.createChild("TopCanvas");
-    const topCanvas = topCanvasEntity.addComponent(UICanvas);
-    topCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
-    topCanvas.renderCamera = camera;
-    topCanvas.distance = 10;
-    topCanvas.sortOrder = 10;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FarImage", "NearImage"]);
 
-    const topImage = topCanvasEntity.createChild("TopImage");
-    topImage.addComponent(Image);
-    (<UITransform>topImage.transform).size.set(300, 300);
-    const topScript = topImage.addComponent(ClickRecordScript);
+    simulateClickAtCenter();
 
-    // Step 1: Click when top canvas is active
+    expect(nearScript.downCount).toBe(1);
+    expect(nearScript.clickCount).toBe(1);
+    expect(farScript.downCount).toBe(0);
+    expect(farScript.clickCount).toBe(0);
+  });
+
+  it("6. Disabling the upper canvas restores the lower canvas", () => {
+    const root = createRoot("test6_root");
+    const camera = createCamera(root);
+
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
+
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 10);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
+
     engine.update();
     simulateClickAtCenter();
     expect(topScript.downCount).toBe(1);
     expect(bottomScript.downCount).toBe(0);
 
-    // Step 2: Disable / close top canvas
     topScript.reset();
     bottomScript.reset();
-    topCanvasEntity.isActive = false;
+    topCanvas.entity.isActive = false;
     engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage"]);
 
-    // Step 3: Click again -> now bottom canvas MUST receive the click!
     simulateClickAtCenter();
     expect(topScript.downCount).toBe(0);
     expect(bottomScript.downCount).toBe(1);
     expect(bottomScript.clickCount).toBe(1);
+  });
 
-    root.destroy();
+  it("7. A canvas culled by camera.cullingMask is neither painted nor hit", () => {
+    const root = createRoot("test7_root");
+    const camera = createCamera(root);
+
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
+
+    // Higher sortOrder, but its layer is excluded from the camera: it must not swallow the click
+    const culledCanvas = createScreenSpaceCanvas(root, "CulledCanvas", camera, 10, 10);
+    culledCanvas.entity.layer = Layer.Layer1;
+    const culledScript = createVisibleImage(culledCanvas.entity, "CulledImage");
+
+    camera.cullingMask = Layer.Layer0;
     engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage"]);
+
+    simulateClickAtCenter();
+
+    expect(culledScript.downCount).toBe(0);
+    expect(culledScript.clickCount).toBe(0);
+    expect(bottomScript.downCount).toBe(1);
+    expect(bottomScript.clickCount).toBe(1);
+  });
+
+  it("8. A renderer culled by camera.cullingMask is neither painted nor hit", () => {
+    const root = createRoot("test8_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // The visible image is created first so that the culled one is scanned first by the raycast
+    const visibleScript = createVisibleImage(canvas.entity, "VisibleImage");
+    const culledScript = createVisibleImage(canvas.entity, "CulledImage", Layer.Layer1);
+
+    camera.cullingMask = Layer.Layer0;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["VisibleImage"]);
+
+    simulateClickAtCenter();
+
+    expect(culledScript.downCount).toBe(0);
+    expect(culledScript.clickCount).toBe(0);
+    expect(visibleScript.downCount).toBe(1);
+    expect(visibleScript.clickCount).toBe(1);
   });
 });
