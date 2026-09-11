@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
+import { ParticleSystemManager } from "./particle/ParticleSystemManager";
 import { Script } from "./Script";
 import { Animator } from "./animation";
 import { IUICanvas } from "./ui/IUICanvas";
@@ -10,6 +11,8 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * The manager of the components.
  */
 export class ComponentsManager {
+  /** @internal */
+  readonly _particleSystemManager = new ParticleSystemManager();
   /** @internal */
   _cameraNeedSorting = false;
   /** @internal */

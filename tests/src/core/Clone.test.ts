@@ -2115,7 +2115,8 @@ describe("Clone remap", async () => {
         "VelocityOverLifetimeModule",
         "SizeOverLifetimeModule",
         "LimitVelocityOverLifetimeModule",
-        "NoiseModule"
+        "NoiseModule",
+        "InheritVelocityModule"
       ]);
       const failures: string[] = [];
       const packages: [string, Record<string, any>][] = [

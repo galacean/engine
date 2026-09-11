@@ -1,6 +1,18 @@
 #ifndef PARTICLE_COMMON_INCLUDED
 #define PARTICLE_COMMON_INCLUDED
 
+#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+    // Sub-emitter particles encode the random value as -random - 1 to reserve negative values as their marker
+    bool isSubEmitterSpawnedParticle(Attributes attributes) {
+        return attributes.a_InheritVelocity.w < 0.0;
+    }
+
+    vec3 reconstructParentWorldPositionAtEmission(Attributes attributes) {
+        return attributes.a_ParentSampleWorldPosition -
+            attributes.a_ParentTrajectoryVelocity * attributes.a_InheritVelocity.z;
+    }
+#endif
+
 vec3 rotationByQuaternions(in vec3 v, in vec4 q) {
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
@@ -8,6 +20,40 @@ vec3 rotationByQuaternions(in vec3 v, in vec4 q) {
 vec4 quaternionConjugate(in vec4 q) {
     return vec4(-q.xyz, q.w);
 }
+
+#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+    void applyParentTrajectoryToStartVelocity(
+        Attributes attributes,
+        vec4 invSimulationWorldRotation,
+        inout vec3 startVelocity
+    ) {
+        bool inheritDirection = attributes.a_InheritVelocity.y < 0.0;
+        #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+            if (!inheritDirection) {
+                return;
+            }
+        #else
+            float inheritFactor = attributes.a_InheritVelocity.x;
+            if (!inheritDirection && inheritFactor == 0.0) {
+                return;
+            }
+        #endif
+
+        vec3 parentLocalVelocity = rotationByQuaternions(
+            attributes.a_ParentTrajectoryVelocity,
+            invSimulationWorldRotation
+        );
+        if (inheritDirection) {
+            float parentSpeed = length(parentLocalVelocity);
+            startVelocity = parentSpeed > EPSILON
+                ? parentLocalVelocity * (attributes.a_StartSpeed / parentSpeed)
+                : vec3(0.0, 0.0, -attributes.a_StartSpeed);
+        }
+        #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+            startVelocity += parentLocalVelocity * inheritFactor;
+        #endif
+    }
+#endif
 
 vec3 rotationByEuler(in vec3 vector, in vec3 rot) {
     float halfRoll = rot.z * 0.5;
@@ -57,26 +103,25 @@ float evaluateParticleCurve(in vec2 keys[4], in float normalizedAge) {
     return value;
 }
 
-float evaluateParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, out float currentValue){
+float evaluateParticleCurveCumulative(in vec2 keys[4], in float normalizedAge, out float currentValue) {
     float cumulativeValue = 0.0;
-    for (int i = 1; i < 4; i++){
-	    vec2 key = keys[i];
-	    float time = key.x;
-	    vec2 lastKey = keys[i - 1];
-	    float lastValue = lastKey.y;
+    for (int i = 1; i < 4; i++) {
+        vec2 key = keys[i];
+        float time = key.x;
+        vec2 lastKey = keys[i - 1];
+        float lastValue = lastKey.y;
 
-	    if (time >= normalizedAge){
-		    float lastTime = lastKey.x;
+        if (time >= normalizedAge) {
+            float lastTime = lastKey.x;
             float offsetTime = normalizedAge - lastTime;
-		    float age = offsetTime / (time - lastTime);
+            float age = offsetTime / (time - lastTime);
             currentValue = mix(lastValue, key.y, age);
-		    cumulativeValue += (lastValue + currentValue) * 0.5 * offsetTime;
-		    break;
-		}
-	    else{
-		    cumulativeValue += (lastValue + key.y) * 0.5 * (time - lastKey.x);
-		}
-	}
+            cumulativeValue += (lastValue + currentValue) * 0.5 * offsetTime;
+            break;
+        } else {
+            cumulativeValue += (lastValue + key.y) * 0.5 * (time - lastKey.x);
+        }
+    }
     return cumulativeValue;
 }
 

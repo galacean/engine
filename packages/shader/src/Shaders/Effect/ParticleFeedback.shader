@@ -16,10 +16,18 @@ Shader "Effect/ParticleFeedback" {
       vec3 renderer_WorldPosition;
       vec4 renderer_WorldRotation;
       int renderer_SimulationSpace;
+      int renderer_FirstNewParticle;
+      int renderer_FirstFreeParticle;
+      #ifdef RENDERER_TRAJECTORY_FEEDBACK
+          int renderer_ResetTrajectory;
+      #endif
 
       struct Attributes {
           vec3 a_FeedbackPosition;
           vec3 a_FeedbackVelocity;
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              vec3 a_FeedbackWorldPosition;
+          #endif
           vec4 a_ShapePositionStartLifeTime;
           vec4 a_DirectionTime;
           vec3 a_StartSize;
@@ -36,19 +44,40 @@ Shader "Effect/ParticleFeedback" {
           #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE) || defined(RENDERER_LVL_MODULE_ENABLED)
               vec4 a_Random2;
           #endif
+
+          #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
+              vec4 a_InheritVelocity;
+          #endif
+
+          #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+              vec3 a_ParentSampleWorldPosition;
+              vec3 a_ParentTrajectoryVelocity;
+          #endif
+
       };
 
       struct Varyings {
           vec3 v_FeedbackPosition;
           vec3 v_FeedbackVelocity;
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              vec3 v_FeedbackWorldPosition;
+              vec3 v_FeedbackTrajectoryVelocity;
+          #endif
       };
 
       // Module includes (after Attributes/Varyings)
       #include "ShaderLibrary/Particle/ParticleCommon.glsl"
+      #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
       #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
+
+      vec3 getParticleWorldPosition(vec3 position) {
+          return renderer_SimulationSpace == 0
+              ? rotationByQuaternions(position, renderer_WorldRotation) + renderer_WorldPosition
+              : position;
+      }
 
       // Get FOL instantaneous acceleration at normalizedAge
       vec3 getFOLAcceleration(Attributes attributes, float normalizedAge) {
@@ -79,30 +108,49 @@ Shader "Effect/ParticleFeedback" {
           return acc;
       }
 
-      Varyings main(Attributes attr) {
-          Varyings v;
-
-          float age = renderer_CurrentTime - attr.a_DirectionTime.w;
-          float lifetime = attr.a_ShapePositionStartLifeTime.w;
-          float normalizedAge = age / lifetime;
-          float dt = min(renderer_DeltaTime, age);
-
-          if (normalizedAge >= 1.0 || normalizedAge < 0.0) {
-              v.v_FeedbackPosition = attr.a_FeedbackPosition;
-              v.v_FeedbackVelocity = attr.a_FeedbackVelocity;
-              gl_Position = vec4(0.0);
-              return v;
-          }
-
-          vec4 worldRotation;
-          if (renderer_SimulationSpace == 0) {
-              worldRotation = renderer_WorldRotation;
-          } else {
-              worldRotation = attr.a_SimulationWorldRotation;
-          }
+      void simulateParticleStep(
+          Attributes attr,
+          float previousAge,
+          float simulationAge,
+          float lifetime,
+          inout vec3 position,
+          inout vec3 localVelocity
+      ) {
+          float dt = simulationAge - previousAge;
+          float normalizedAge = simulationAge / lifetime;
+          float previousNormalizedAge = previousAge / lifetime;
+          vec4 worldRotation = renderer_SimulationSpace == 0
+              ? renderer_WorldRotation
+              : attr.a_SimulationWorldRotation;
           vec4 invWorldRotation = quaternionConjugate(worldRotation);
+          vec3 inheritedVelocityWorld = vec3(0.0);
+          vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
 
-          vec3 localVelocity = attr.a_FeedbackVelocity;
+          #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+              if (isSubEmitterSpawnedParticle(attr)) {
+                  simulationWorldPosition = reconstructParentWorldPositionAtEmission(attr);
+              }
+          #endif
+
+          #ifdef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
+              vec3 inheritedPositionOffsetWorld =
+                  computeInitialInheritVelocityPositionOffset(
+                      attr,
+                      normalizedAge,
+                      inheritedVelocityWorld
+                  );
+              vec3 previousInheritedPositionOffsetWorld =
+                  computeInitialInheritVelocityPositionOffset(
+                      attr,
+                      previousNormalizedAge,
+                      inheritedVelocityWorld
+                  );
+              // Use the interval average so linear integration reproduces the exact Initial displacement
+              inheritedVelocityWorld =
+                  (inheritedPositionOffsetWorld - previousInheritedPositionOffsetWorld) / dt;
+          #elif defined(_INHERIT_VELOCITY_MODULE_ENABLED)
+              inheritedVelocityWorld = evaluateInheritVelocity(attr, normalizedAge);
+          #endif
 
           // Step 1: VOL + FOL + Gravity
           vec3 gravityDelta = renderer_Gravity * attr.a_Random0.x * dt;
@@ -135,107 +183,91 @@ Shader "Effect/ParticleFeedback" {
           // Step 2 & 3: Dampen + Drag. LimitVelocityOverLifetime applies to base and linear VOL velocity;
           // orbital/radial motion is applied below as positional orbit integration.
           #ifdef RENDERER_LVL_MODULE_ENABLED
-              vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
-              vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
-
-              float limitRand = attr.a_Random2.w;
-              float dampen = renderer_LVLDampen;
-              float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
-
+              vec3 velocityOffset;
+              vec3 totalVelocity;
               if (renderer_LVLSpace == 0) {
-                  vec3 totalLocal = localVelocity + volAsLocal;
-                  vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = dampenedTotal - volAsLocal;
+                  velocityOffset =
+                      volLocal + rotationByQuaternions(volWorld + inheritedVelocityWorld, invWorldRotation);
+                  totalVelocity = localVelocity + velocityOffset;
               } else {
-                  vec3 totalWorld = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
-                  vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = rotationByQuaternions(dampenedTotal - volAsWorld, invWorldRotation);
+                  velocityOffset =
+                      rotationByQuaternions(volLocal, worldRotation) + volWorld + inheritedVelocityWorld;
+                  totalVelocity = rotationByQuaternions(localVelocity, worldRotation) + velocityOffset;
               }
 
-              {
-                  float dragCoeff = evaluateLVLDrag(normalizedAge, attr.a_Random2.w);
-                  if (dragCoeff > 0.0) {
-                      vec3 totalVel;
-                      if (renderer_LVLSpace == 0) {
-                          totalVel = localVelocity + volAsLocal;
-                      } else {
-                          totalVel = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
-                      }
-                      float velMagSqr = dot(totalVel, totalVel);
-                      float velMag = sqrt(velMagSqr);
+              float moduleRand = attr.a_Random2.w;
+              float effectiveDampen = 1.0 - pow(1.0 - renderer_LVLDampen, dt * 30.0);
+              totalVelocity =
+                  applyLVLSpeedLimitTF(totalVelocity, normalizedAge, moduleRand, effectiveDampen);
 
-                      float drag = dragCoeff;
+              float drag = evaluateLVLDrag(normalizedAge, moduleRand);
+              if (drag > 0.0) {
+                  float speedSqr = dot(totalVelocity, totalVelocity);
+                  float speed = sqrt(speedSqr);
 
-                      #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
-                          float maxDim = max(attr.a_StartSize.x, max(attr.a_StartSize.y, attr.a_StartSize.z));
-                          float radius = maxDim * 0.5;
-                          drag *= 3.14159265 * radius * radius;
-                      #endif
+                  #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
+                      float maxDimension = max(attr.a_StartSize.x, max(attr.a_StartSize.y, attr.a_StartSize.z));
+                      float radius = maxDimension * 0.5;
+                      drag *= 3.14159265 * radius * radius;
+                  #endif
 
-                      #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
-                          drag *= velMagSqr;
-                      #endif
+                  #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
+                      drag *= speedSqr;
+                  #endif
 
-                      if (velMag > 0.0) {
-                          float newVelMag = max(0.0, velMag - drag * dt);
-                          vec3 draggedTotal = totalVel * (newVelMag / velMag);
-                          if (renderer_LVLSpace == 0) {
-                              localVelocity = draggedTotal - volAsLocal;
-                          } else {
-                              localVelocity = rotationByQuaternions(draggedTotal - volAsWorld, invWorldRotation);
-                          }
-                      }
+                  if (speed > 0.0) {
+                      totalVelocity *= max(0.0, speed - drag * dt) / speed;
                   }
+              }
+
+              if (renderer_LVLSpace == 0) {
+                  localVelocity = totalVelocity - velocityOffset;
+              } else {
+                  localVelocity = rotationByQuaternions(totalVelocity - velocityOffset, invWorldRotation);
               }
           #endif
 
           // Step 4: Integrate position
-          vec3 baseVelocity;
+          vec3 totalLinearVelocity;
           if (renderer_SimulationSpace == 0) {
-            baseVelocity = localVelocity;
+              totalLinearVelocity = localVelocity;
           } else {
-            baseVelocity = rotationByQuaternions(localVelocity, worldRotation);
+              totalLinearVelocity = rotationByQuaternions(localVelocity, worldRotation);
           }
           #ifdef RENDERER_NOISE_MODULE_ENABLED
               vec3 noiseBasePos;
               if (renderer_SimulationSpace == 0) {
-                  noiseBasePos = attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * age;
+                  noiseBasePos = attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge;
               } else {
                   noiseBasePos = rotationByQuaternions(
-                      attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * age,
-                      worldRotation) + attr.a_SimulationWorldPosition;
+                      attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge,
+                      worldRotation) + simulationWorldPosition;
               }
-              baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
+              totalLinearVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
+
+          if (renderer_SimulationSpace == 0) {
+              totalLinearVelocity += volLocal;
+              totalLinearVelocity += rotationByQuaternions(volWorld, invWorldRotation);
+              totalLinearVelocity += rotationByQuaternions(inheritedVelocityWorld, invWorldRotation);
+          } else {
+              totalLinearVelocity += rotationByQuaternions(volLocal, worldRotation);
+              totalLinearVelocity += volWorld;
+              totalLinearVelocity += inheritedVelocityWorld;
+          }
 
           #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
-          vec3 linearVelocity = vec3(0.0);
-          #ifdef _VOL_LINEAR_MODULE_ENABLED
-              if (renderer_SimulationSpace == 0) {
-                  linearVelocity = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
-              } else {
-                  linearVelocity = rotationByQuaternions(volLocal, worldRotation) + volWorld;
-              }
-          #endif
-
-          vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
-          vec3 startVelocityInSimulationSpace;
-          if (renderer_SimulationSpace == 0) {
-              startVelocityInSimulationSpace = startVelocity;
-          } else {
-              startVelocityInSimulationSpace = rotationByQuaternions(startVelocity, worldRotation);
-          }
-          vec3 orbitVelocity = startVelocityInSimulationSpace + linearVelocity;
-          vec3 externalVelocity = baseVelocity - startVelocityInSimulationSpace;
-          vec3 position = attr.a_FeedbackPosition + orbitVelocity * dt;
-
           {
               vec3 rel;
               if (renderer_SimulationSpace == 0) {
                   rel = position - renderer_VOLOffset;
               } else {
-                  rel = rotationByQuaternions(position - attr.a_SimulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
+                  rel = rotationByQuaternions(position - simulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
               }
+
+              #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+                  rel = rotationByEuler(rel, evaluateVOLOrbital(attr, normalizedAge) * dt);
+              #endif
 
               #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
                   float relLen = length(rel);
@@ -244,29 +276,100 @@ Shader "Effect/ParticleFeedback" {
                   }
               #endif
 
-              #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
-                  rel = rotationByEuler(rel, evaluateVOLOrbital(attr, normalizedAge) * dt);
-              #endif
-
               if (renderer_SimulationSpace == 0) {
                   position = renderer_VOLOffset + rel;
               } else {
-                  position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
+                  position = simulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
               }
           }
-          position += externalVelocity * dt;
-          #else
-          vec3 totalVelocity;
-          if (renderer_SimulationSpace == 0) {
-            totalVelocity = baseVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
-          } else {
-            totalVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
-          }
-          vec3 position = attr.a_FeedbackPosition + totalVelocity * dt;
           #endif
+          position += totalLinearVelocity * dt;
+      }
+
+      Varyings main(Attributes attr) {
+          Varyings v;
+
+          vec3 position = attr.a_FeedbackPosition;
+          vec3 localVelocity = attr.a_FeedbackVelocity;
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              vec3 previousWorldPosition = attr.a_FeedbackWorldPosition;
+          #endif
+
+          bool isNewParticle = renderer_FirstNewParticle != renderer_FirstFreeParticle &&
+              (renderer_FirstNewParticle < renderer_FirstFreeParticle
+                  ? gl_VertexID >= renderer_FirstNewParticle && gl_VertexID < renderer_FirstFreeParticle
+                  : gl_VertexID >= renderer_FirstNewParticle || gl_VertexID < renderer_FirstFreeParticle);
+          if (isNewParticle) {
+              position = attr.a_ShapePositionStartLifeTime.xyz;
+              localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+              #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+                  if (isSubEmitterSpawnedParticle(attr)) {
+                      vec3 parentWorldPosition = reconstructParentWorldPositionAtEmission(attr);
+                      vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
+                      if (renderer_SimulationSpace == 0) {
+                          position += rotationByQuaternions(
+                              parentWorldPosition - attr.a_SimulationWorldPosition,
+                              invSimulationWorldRotation
+                          );
+                      } else {
+                          position =
+                              rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                              parentWorldPosition;
+                      }
+                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, localVelocity);
+                  } else if (renderer_SimulationSpace != 0) {
+                      position =
+                          rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                          attr.a_SimulationWorldPosition;
+                  }
+              #else
+                  if (renderer_SimulationSpace != 0) {
+                      position =
+                          rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
+                          attr.a_SimulationWorldPosition;
+                  }
+              #endif
+          }
+
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              if (isNewParticle || renderer_ResetTrajectory != 0) {
+                  previousWorldPosition = getParticleWorldPosition(position);
+              }
+          #endif
+
+          float lifetime = attr.a_ShapePositionStartLifeTime.w;
+          float age = renderer_CurrentTime - attr.a_DirectionTime.w;
+          float simulationAge = min(age, lifetime);
+          // Existing particles consume this frame's delta; new particles simulate from their emission time
+          float previousAge = isNewParticle ? 0.0 : max(age - renderer_DeltaTime, 0.0);
+          float simulationDuration = max(simulationAge - previousAge, 0.0);
+          if (simulationDuration <= 0.0) {
+              v.v_FeedbackPosition = position;
+              v.v_FeedbackVelocity = localVelocity;
+              #ifdef RENDERER_TRAJECTORY_FEEDBACK
+                  v.v_FeedbackWorldPosition = previousWorldPosition;
+                  v.v_FeedbackTrajectoryVelocity = vec3(0.0);
+              #endif
+              gl_Position = vec4(0.0);
+              return v;
+          }
+
+          simulateParticleStep(
+              attr,
+              previousAge,
+              simulationAge,
+              lifetime,
+              position,
+              localVelocity
+          );
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
+          #ifdef RENDERER_TRAJECTORY_FEEDBACK
+              vec3 worldPosition = getParticleWorldPosition(position);
+              v.v_FeedbackWorldPosition = worldPosition;
+              v.v_FeedbackTrajectoryVelocity = (worldPosition - previousWorldPosition) / simulationDuration;
+          #endif
           gl_Position = vec4(0.0);
           return v;
       }
@@ -275,5 +378,35 @@ Shader "Effect/ParticleFeedback" {
           discard;
       }
     }
+
+    Pass "SubEmitterTrajectoryGather" {
+      Tags { pipelineStage = "TransformFeedback" }
+
+      VertexShader = gatherTrajectory;
+      FragmentShader = gatherTrajectoryFrag;
+
+      struct Attributes {
+          vec3 a_FeedbackWorldPosition;
+          vec3 a_FeedbackTrajectoryVelocity;
+      };
+
+      struct Varyings {
+          vec3 v_ParentSampleWorldPosition;
+          vec3 v_ParentTrajectoryVelocity;
+      };
+
+      Varyings gatherTrajectory(Attributes attr) {
+          Varyings v;
+          v.v_ParentSampleWorldPosition = attr.a_FeedbackWorldPosition;
+          v.v_ParentTrajectoryVelocity = attr.a_FeedbackTrajectoryVelocity;
+          gl_Position = vec4(0.0);
+          return v;
+      }
+
+      void gatherTrajectoryFrag(Varyings v) {
+          discard;
+      }
+    }
+
   }
 }
