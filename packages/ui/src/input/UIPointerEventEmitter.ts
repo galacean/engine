@@ -6,6 +6,7 @@ import {
   Pointer,
   PointerEventData,
   PointerEventEmitter,
+  Ray,
   Renderer,
   Scene,
   registerPointerEventEmitter
@@ -31,8 +32,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _path: Entity[] = [];
   private static _tempArray0: Entity[] = [];
   private static _tempArray1: Entity[] = [];
-  private static _renderedCanvases: UICanvas[] = [];
-  private static _visitedCanvases: Set<number> = new Set();
+  /** Per canvas read cursor into its own painted element list, reused by every query. */
+  private static _elementCursors: Map<number, number> = new Map();
 
   private _enteredPath: Entity[] = [];
   private _pressedPath: Entity[] = [];
@@ -80,16 +81,9 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         camera.screenPointToRay(pointer.position, ray);
 
         // The hit order is the one the camera actually painted, so it is consumed instead of derived
-        const renderedCanvases = this._collectRenderedCanvases(camera);
-        const farClipPlane = camera.farClipPlane;
-        const cullingMask = camera.cullingMask;
-        for (let k = 0, n = renderedCanvases.length; k < n; k++) {
-          const canvas = renderedCanvases[k];
-          if (!canvas._canDispatchEvent(camera)) continue;
-          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) {
-            this._updateRaycast((<UIHitResult>hitResult).component, pointer);
-            return;
-          }
+        if (this._raycastRenderedContent(camera, ray, hitResult)) {
+          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+          return;
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
           this._updateRaycast(null);
@@ -101,43 +95,94 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   /**
-   * Collect the canvases of the pass this camera completed last, topmost painted first.
+   * Hit-test the content of the pass this camera completed last, topmost painted first.
    *
    * The hit test consumes the draw order rather than deriving it again: `Engine.update()` runs the
    * pointer raycast before it renders, and the queues are only reset — and their pooled elements only
    * reused — while rendering, so the queues still hold the pass the pointer is aiming at, which is the
-   * frame currently on screen. Each queue's `batchedElements` is in draw order and the queues are
-   * drawn opaque -> alphaTest -> transparent, so walking them backwards visits what is visible from the
-   * top down. A canvas keeps the position of the topmost element it owns, which also covers tied
-   * canvases whose elements interleave.
+   * frame currently on screen. Each queue's `batchedElements` is in draw order and the queues are drawn
+   * opaque -> alphaTest -> transparent, so walking them backwards visits what is visible from the top
+   * down. Elements of one canvas can be interleaved with another canvas' elements, so the walk stays at
+   * element level: each batch leader is expanded back through the canvas' own prepared element list,
+   * which is the per renderer draw order the canvas sorted and batched from.
    */
-  private _collectRenderedCanvases(camera: Camera): UICanvas[] {
-    const canvases = UIPointerEventEmitter._renderedCanvases;
-    const visited = UIPointerEventEmitter._visitedCanvases;
-    canvases.length = 0;
-    visited.clear();
+  private _raycastRenderedContent(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
     // @ts-ignore
     const cullingResults = camera._renderPipeline?._cullingResults;
-    if (cullingResults) {
-      this._collectCanvasesFromQueue(cullingResults.transparentQueue, canvases, visited);
-      this._collectCanvasesFromQueue(cullingResults.alphaTestQueue, canvases, visited);
-      this._collectCanvasesFromQueue(cullingResults.opaqueQueue, canvases, visited);
-    }
-    return canvases;
+    if (!cullingResults) return false;
+
+    const cursors = UIPointerEventEmitter._elementCursors;
+    const farClipPlane = camera.farClipPlane;
+    const cullingMask = camera.cullingMask;
+    cursors.clear();
+    return (
+      this._raycastQueue(cullingResults.transparentQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask) ||
+      this._raycastQueue(cullingResults.alphaTestQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask) ||
+      this._raycastQueue(cullingResults.opaqueQueue, camera, cursors, ray, hitResult, farClipPlane, cullingMask)
+    );
   }
 
-  private _collectCanvasesFromQueue(queue: RenderedQueue, canvases: UICanvas[], visited: Set<number>): void {
-    const elements = queue.batchedElements;
-    for (let i = elements.length - 1; i >= 0; i--) {
-      const component = elements[i].component;
-      if (!(component instanceof UIRenderer) || component.destroyed) continue;
-      // Only content painted last frame is a candidate, so stale entries must not survive
-      const canvas = component._getRootCanvas();
-      if (!canvas || canvas.destroyed || !canvas.entity.isActiveInHierarchy) continue;
-      if (visited.has(canvas.instanceId)) continue;
-      visited.add(canvas.instanceId);
-      canvases.push(canvas);
+  private _raycastQueue(
+    queue: RenderedQueue,
+    camera: Camera,
+    cursors: Map<number, number>,
+    ray: Ray,
+    hitResult: UIHitResult,
+    farClipPlane: number,
+    cullingMask: number
+  ): boolean {
+    const leaders = queue.batchedElements;
+    for (let i = leaders.length - 1; i >= 0; i--) {
+      const leader = leaders[i];
+      const leaderComponent = leader.component;
+      if (!(leaderComponent instanceof UIRenderer) || leaderComponent.destroyed) continue;
+      const canvas = leaderComponent._getRootCanvas();
+      if (!canvas || canvas.destroyed || !canvas.entity.isActiveInHierarchy || !canvas._canDispatchEvent(camera)) {
+        continue;
+      }
+
+      // A canvas hands its batch leaders to the queue in its own element order, so reading its prepared
+      // elements backwards with a cursor consumes one leader run per queue entry without any lookup.
+      // That list belongs to the pass which prepared it last, and a canvas shared by several cameras is
+      // prepared once per camera, so the leader is verified once per canvas before trusting the order.
+      const renderedElements = canvas._renderElements;
+      const canvasId = canvas.instanceId;
+      let cursor = cursors.get(canvasId);
+      if (cursor === undefined) {
+        if (renderedElements.indexOf(leader) < 0) {
+          // These queue elements were not prepared from the list at hand: test the canvas as a whole,
+          // which keeps the canvas order taken from the queue and the previous within-canvas order
+          cursors.set(canvasId, -1);
+          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+          continue;
+        }
+        cursor = renderedElements.length;
+      } else if (cursor < 0) {
+        if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) return true;
+        continue;
+      }
+      while (cursor > 0) {
+        const element = renderedElements[cursor - 1];
+        // @ts-ignore `_isBatched` is @internal: a leader we were not handed belongs to an earlier run
+        if (element !== leader && element._isBatched) break;
+        cursor--;
+        const component = element.component;
+        if (
+          component instanceof UIRenderer &&
+          component.enabled &&
+          component.raycastEnabled &&
+          !component.destroyed &&
+          component.entity.isActiveInHierarchy &&
+          (cullingMask & component.entity.layer) !== 0 &&
+          component._raycast(ray, hitResult, farClipPlane)
+        ) {
+          return true;
+        }
+        if (element === leader) break;
+      }
+      cursors.set(canvasId, cursor);
     }
+    return false;
   }
 
   override processDrag(pointer: Pointer): void {

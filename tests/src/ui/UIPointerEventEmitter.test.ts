@@ -1,5 +1,5 @@
 import { Camera, Entity, Layer, PointerEventData, Script, Sprite, Texture2D } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
@@ -418,5 +418,59 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
 
     expect(topScript.downCount).toBe(1);
     expect(getCanvasRegistryOrder()).toEqual(registryOrder);
+  });
+
+  it("12. Interleaved elements of tied canvases keep the painted order", () => {
+    const root = createRoot("test12_root");
+    const camera = createCamera(root);
+
+    // CanvasB registers first and CanvasA second, so the queue paints A0, B0 and A1. The click point is
+    // covered by A0 and B0 only, so B0 - painted after A0 - has to answer, even though the topmost
+    // element belongs to CanvasA.
+    const secondCanvas = createScreenSpaceCanvas(root, "CanvasB", camera, 0, 10);
+    const b0Script = createVisibleImage(secondCanvas.entity, "B0");
+
+    const firstCanvas = createScreenSpaceCanvas(root, "CanvasA", camera, 0, 10);
+    const a0Script = createVisibleImage(firstCanvas.entity, "A0");
+    const a1Script = createVisibleImage(firstCanvas.entity, "A1");
+    a1Script.entity.transform.position.set(250, 250, 0);
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["A0", "B0", "A1"]);
+
+    simulateClickAtCenter();
+
+    expect(b0Script.downCount).toBe(1);
+    expect(b0Script.clickCount).toBe(1);
+    expect(a0Script.downCount).toBe(0);
+    expect(a1Script.downCount).toBe(0);
+  });
+
+  it("13. A canvas prepared last by another camera stays hit-testable", () => {
+    const root = createRoot("test13_root");
+    const firstCamera = createCamera(root);
+
+    // Rendered after the first camera while covering only a corner, so the pointer is dispatched to the
+    // first camera even though the shared canvas was prepared from the second camera' element list
+    const secondCameraEntity = root.createChild("SecondCamera");
+    secondCameraEntity.transform.position = new Vector3(0, 0, 10);
+    const secondCamera = secondCameraEntity.addComponent(Camera);
+    secondCamera.isOrthographic = true;
+    secondCamera.viewport = new Vector4(0, 0, 0.4, 0.4);
+
+    const canvasEntity = root.createChild("Canvas");
+    const canvas = canvasEntity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.WorldSpace;
+    canvas.camera = firstCamera;
+    canvas.sortOrder = 0;
+    // Applied after the canvas exists: `UITransform` replaces the plain `Transform` on creation
+    canvasEntity.transform.position = new Vector3(0, 0, 5);
+    const script = createVisibleImage(canvasEntity, "Image");
+
+    engine.update();
+    simulateClickAtCenter();
+
+    expect(script.downCount).toBe(1);
+    expect(script.clickCount).toBe(1);
   });
 });
