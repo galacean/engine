@@ -585,4 +585,39 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
       uiDefaultPass._renderState.renderQueueType = previousQueueType;
     }
   });
+
+  it("17. The hit test reads only the elements of the last painted pass", () => {
+    const root = createRoot("test17_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const firstScript = createVisibleImage(canvas.entity, "FirstImage");
+    const removedScript = createVisibleImage(canvas.entity, "RemovedImage");
+    const otherScript = createVisibleImage(canvas.entity, "OtherImage");
+
+    engine.update();
+    expect(getPaintOrder(camera).length).toBe(3);
+
+    // Two elements disappear, so the following pass paints a single one
+    removedScript.entity.destroy();
+    otherScript.entity.destroy();
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FirstImage"]);
+
+    // Read the queue from inside the pointer callback, which runs right after the raycast consumed it
+    const observed = { count: -1 };
+    class CountProbeScript extends Script {
+      onPointerDown(eventData: PointerEventData): void {
+        // @ts-ignore the very queue the hit test just read
+        observed.count = camera._renderPipeline._cullingResults.transparentQueue.batchedElements.length;
+      }
+    }
+    firstScript.entity.addComponent(CountProbeScript);
+
+    simulateClickAtCenter();
+
+    expect(observed.count).toBe(1);
+    expect(firstScript.downCount).toBe(1);
+    expect(firstScript.clickCount).toBe(1);
+    expect(removedScript.downCount).toBe(0);
+  });
 });

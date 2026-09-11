@@ -104,9 +104,14 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
    * The hit test consumes the draw order rather than deriving it again: `Engine.update()` runs the
    * pointer raycast before it renders, and the queues are only reset — and their pooled elements only
    * reused — while rendering, so the queues still hold the pass the pointer is aiming at, which is the
-   * frame currently on screen. Elements of one canvas can be interleaved with another canvas' elements,
-   * so the walk stays at element level: each batch leader is expanded back through the canvas' own
-   * prepared element list, which is the per renderer draw order the canvas sorted and batched from.
+   * frame currently on screen. Both containers are rebuilt for every pass (`CullingResults.reset` empties
+   * the queues and `UICanvas._prepareRender` refills `_renderElements` before the pass paints), so the
+   * counts and contents read here are that pass rather than an accumulation of earlier ones. A camera
+   * that did not render keeps its previous pass, which `processRaycast` skips through its viewport test.
+   * Elements of one canvas can be interleaved with another canvas' elements, so the walk stays at element
+   * level: each batch leader is expanded back through `canvas._renderElements`, which is the per renderer
+   * draw order the canvas sorted and batched from. The invariants relied upon here are stated next to the
+   * code that owns them, `BasicRenderPipeline.render` and `ClearableObjectPool.clear`.
    *
    * Draw order alone is not visibility: `opaque` and `alphaTest` are painted first so that depth
    * writing content rejects whatever is farther, which is what the `Less` depth test of the UI shaders

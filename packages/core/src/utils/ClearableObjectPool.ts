@@ -28,6 +28,9 @@ export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
 
   /**
    * Clear used object count to 0, not destroy any object, just change index.
+   *
+   * The contents stay readable on purpose: a completed pass leaves its `RenderElement`s in the queues of
+   * `CullingResults`, and the UI pointer hit test reads them before the next frame renders and reuses them.
    */
   clear(): void {
     this._usedElementCount = 0;
