@@ -1,16 +1,25 @@
 import {
+  Camera,
   CameraClearFlags,
   DisorderedArray,
   Entity,
   Pointer,
   PointerEventData,
   PointerEventEmitter,
+  Renderer,
   Scene,
   registerPointerEventEmitter
 } from "@galacean/engine";
 import { UICanvas } from "..";
 import { UIRenderer } from "../component/UIRenderer";
 import { UIHitResult } from "./UIHitResult";
+
+/**
+ * Structural view of the `@internal` render queue fields consumed by the hit test.
+ */
+interface RenderedQueue {
+  batchedElements: ReadonlyArray<{ component: Renderer }>;
+}
 
 /**
  * @internal
@@ -22,6 +31,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _path: Entity[] = [];
   private static _tempArray0: Entity[] = [];
   private static _tempArray1: Entity[] = [];
+  private static _renderedCanvases: UICanvas[] = [];
+  private static _visitedCanvases: Set<number> = new Set();
 
   private _enteredPath: Entity[] = [];
   private _pressedPath: Entity[] = [];
@@ -42,12 +53,12 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       // @ts-ignore
       const componentsManager = scene._componentsManager;
       // Overlay Canvas
-      let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
+      const overlayCanvases: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
       // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
-      for (let j = canvasElements.length - 1; j >= 0; j--) {
-        if (canvasElements.get(j)._raycast(ray, hitResult)) {
+      for (let j = overlayCanvases.length - 1; j >= 0; j--) {
+        if (overlayCanvases.get(j)._raycast(ray, hitResult)) {
           this._updateRaycast((<UIHitResult>hitResult).component, pointer);
           return;
         }
@@ -68,30 +79,14 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        // Other canvases
-        const isOrthographic = camera.isOrthographic;
-        const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
-        // Sort by rendering order
-        canvasElements = componentsManager._canvases;
-        for (let k = 0, n = canvasElements.length; k < n; k++) {
-          canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
-        }
-        // Hit order is the exact reverse of the render order: `RenderQueue.compareForTransparent`
-        // paints by ascending `sortOrder` then descending distance, so the scan must visit the
-        // highest `sortOrder` and the nearest canvas first. Keys that compare equal keep the shared
-        // array order, which `BasicRenderPipeline._prepareRender` submits in reverse, so the canvas
-        // painted last is scanned first as well. Note: the transparent queue resolves ties beyond
-        // its insertion-sort window with an unstable sort, which no comparator here can mirror.
-        canvasElements.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
-        for (let k = 0, n = canvasElements.length; k < n; k++) {
-          canvasElements.get(k)._canvasIndex = k;
-        }
+        // The hit order is the one the camera actually painted, so it is consumed instead of derived
+        const renderedCanvases = this._collectRenderedCanvases(camera);
         const farClipPlane = camera.farClipPlane;
-        // Post-rendering first detection
-        for (let k = 0, n = canvasElements.length; k < n; k++) {
-          const canvas = canvasElements.get(k);
+        const cullingMask = camera.cullingMask;
+        for (let k = 0, n = renderedCanvases.length; k < n; k++) {
+          const canvas = renderedCanvases[k];
           if (!canvas._canDispatchEvent(camera)) continue;
-          if (canvas._raycast(ray, hitResult, farClipPlane, camera.cullingMask)) {
+          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) {
             this._updateRaycast((<UIHitResult>hitResult).component, pointer);
             return;
           }
@@ -102,6 +97,46 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
       }
       this._updateRaycast(null);
+    }
+  }
+
+  /**
+   * Collect the canvases of the pass this camera completed last, topmost painted first.
+   *
+   * The hit test consumes the draw order rather than deriving it again: `Engine.update()` runs the
+   * pointer raycast before it renders, and the queues are only reset — and their pooled elements only
+   * reused — while rendering, so the queues still hold the pass the pointer is aiming at, which is the
+   * frame currently on screen. Each queue's `batchedElements` is in draw order and the queues are
+   * drawn opaque -> alphaTest -> transparent, so walking them backwards visits what is visible from the
+   * top down. A canvas keeps the position of the topmost element it owns, which also covers tied
+   * canvases whose elements interleave.
+   */
+  private _collectRenderedCanvases(camera: Camera): UICanvas[] {
+    const canvases = UIPointerEventEmitter._renderedCanvases;
+    const visited = UIPointerEventEmitter._visitedCanvases;
+    canvases.length = 0;
+    visited.clear();
+    // @ts-ignore
+    const cullingResults = camera._renderPipeline?._cullingResults;
+    if (cullingResults) {
+      this._collectCanvasesFromQueue(cullingResults.transparentQueue, canvases, visited);
+      this._collectCanvasesFromQueue(cullingResults.alphaTestQueue, canvases, visited);
+      this._collectCanvasesFromQueue(cullingResults.opaqueQueue, canvases, visited);
+    }
+    return canvases;
+  }
+
+  private _collectCanvasesFromQueue(queue: RenderedQueue, canvases: UICanvas[], visited: Set<number>): void {
+    const elements = queue.batchedElements;
+    for (let i = elements.length - 1; i >= 0; i--) {
+      const component = elements[i].component;
+      if (!(component instanceof UIRenderer) || component.destroyed) continue;
+      // Only content painted last frame is a candidate, so stale entries must not survive
+      const canvas = component._getRootCanvas();
+      if (!canvas || canvas.destroyed || !canvas.entity.isActiveInHierarchy) continue;
+      if (visited.has(canvas.instanceId)) continue;
+      visited.add(canvas.instanceId);
+      canvases.push(canvas);
     }
   }
 

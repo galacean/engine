@@ -72,12 +72,19 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
    * A sprite texture is mandatory: `Image._render()` returns early without one and then never reaches
    * the render queue this suite compares the hit test against.
    */
-  function createVisibleImage(parent: Entity, name: string, layer?: Layer): ClickRecordScript {
+  function createVisibleImage(
+    parent: Entity,
+    name: string,
+    layer?: Layer,
+    raycastEnabled = true,
+    size = 300
+  ): ClickRecordScript {
     const entity = parent.createChild(name);
     layer !== undefined && (entity.layer = layer);
     const image = entity.addComponent(Image);
     image.sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
-    (<UITransform>entity.transform).size.set(300, 300);
+    image.raycastEnabled = raycastEnabled;
+    (<UITransform>entity.transform).size.set(size, size);
     return entity.addComponent(ClickRecordScript);
   }
 
@@ -123,6 +130,17 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     // @ts-ignore
     const transparentQueue = camera._renderPipeline._cullingResults.transparentQueue;
     return transparentQueue.batchedElements.map((element) => element.component.entity.name);
+  }
+
+  /** Registration order of the canvases the renderer consumes, which the hit test must not touch. */
+  function getCanvasRegistryOrder(): string[] {
+    // @ts-ignore
+    const canvases = scene._componentsManager._canvases;
+    const names: string[] = [];
+    for (let i = 0; i < canvases.length; i++) {
+      names.push(canvases.get(i).entity.name);
+    }
+    return names;
   }
 
   afterEach(() => {
@@ -317,5 +335,88 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(culledScript.clickCount).toBe(0);
     expect(visibleScript.downCount).toBe(1);
     expect(visibleScript.clickCount).toBe(1);
+  });
+
+  it("9. Tied canvases keep the painted order when the queue is deeper than the sort window", () => {
+    const root = createRoot("test9_root");
+    const camera = createCamera(root);
+
+    // A lower canvas whose separate elements push the queue past the insertion-sort window of
+    // `Utils._quickSort`, so the order of the tied pair below no longer follows the submission order
+    const fillerCanvas = createScreenSpaceCanvas(root, "FillerCanvas", camera, -10, 10);
+    for (let i = 0; i < 12; i++) {
+      createVisibleImage(fillerCanvas.entity, `Filler${i}`, undefined, false, 20);
+    }
+
+    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
+    const firstScript = createVisibleImage(firstCanvas.entity, "FirstImage");
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
+    const secondScript = createVisibleImage(secondCanvas.entity, "SecondImage");
+
+    engine.update();
+
+    const paintOrder = getPaintOrder(camera);
+    expect(paintOrder.length).toBe(14);
+    const topMostName = paintOrder[paintOrder.length - 1];
+
+    simulateClickAtCenter();
+
+    const hitScript = topMostName === "FirstImage" ? firstScript : secondScript;
+    const coveredScript = hitScript === firstScript ? secondScript : firstScript;
+    expect(hitScript.downCount).toBe(1);
+    expect(hitScript.clickCount).toBe(1);
+    expect(coveredScript.downCount).toBe(0);
+    expect(coveredScript.clickCount).toBe(0);
+  });
+
+  it("10. Interleaved tied canvases answer with the canvas that owns the topmost element", () => {
+    const root = createRoot("test10_root");
+    const camera = createCamera(root);
+
+    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
+    const firstScripts = [0, 1, 2].map((i) => createVisibleImage(firstCanvas.entity, `First${i}`));
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
+    const secondScripts = [0, 1, 2].map((i) => createVisibleImage(secondCanvas.entity, `Second${i}`));
+
+    engine.update();
+
+    // Fully tied canvases have their elements painted interleaved, so the painted content - not the
+    // canvas registration order - decides which canvas is on top
+    const paintOrder = getPaintOrder(camera);
+    expect(paintOrder.length).toBe(6);
+    const isFirstCanvasOnTop = paintOrder[paintOrder.length - 1].startsWith("First");
+    const topMostScripts = isFirstCanvasOnTop ? firstScripts : secondScripts;
+    const coveredScripts = isFirstCanvasOnTop ? secondScripts : firstScripts;
+
+    simulateClickAtCenter();
+
+    // Inside the topmost canvas the element painted last answers, and the covered canvas stays silent
+    const topMostScript = topMostScripts[topMostScripts.length - 1];
+    expect(topMostScript.downCount).toBe(1);
+    expect(topMostScript.clickCount).toBe(1);
+    expect(topMostScripts.slice(0, -1).every((script) => script.downCount === 0)).toBe(true);
+    expect(coveredScripts.every((script) => script.downCount === 0)).toBe(true);
+  });
+
+  it("11. Raycasting leaves the canvas registry the renderer consumes untouched", () => {
+    const root = createRoot("test11_root");
+    const camera = createCamera(root);
+
+    // Registered low-to-high while the hit order has to run the other way
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 20);
+    createVisibleImage(bottomCanvas.entity, "BottomImage");
+    const middleCanvas = createScreenSpaceCanvas(root, "MiddleCanvas", camera, 5, 10);
+    createVisibleImage(middleCanvas.entity, "MiddleImage");
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 5);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
+
+    const registryOrder = getCanvasRegistryOrder();
+    expect(registryOrder).toEqual(["BottomCanvas", "MiddleCanvas", "TopCanvas"]);
+
+    engine.update();
+    simulateClickAtCenter();
+
+    expect(topScript.downCount).toBe(1);
+    expect(getCanvasRegistryOrder()).toEqual(registryOrder);
   });
 });
