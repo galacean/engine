@@ -8,19 +8,13 @@ import {
   PointerEventEmitter,
   Ray,
   RenderElement,
+  RenderQueue,
   Scene,
   registerPointerEventEmitter
 } from "@galacean/engine";
 import { UICanvas } from "..";
 import { UIRenderer } from "../component/UIRenderer";
 import { UIHitResult } from "./UIHitResult";
-
-/**
- * Structural view of the `@internal` render queue fields consumed by the hit test.
- */
-interface RenderedQueue {
-  batchedElements: ReadonlyArray<RenderElement>;
-}
 
 /**
  * State of the scan in progress, reused so the helpers below stay free of long parameter lists.
@@ -74,22 +68,21 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
-    const hitResult = this._hitResult;
+    const hitResult = this._hitResult as UIHitResult;
     const { position } = pointer;
     const { x, y } = position;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      // @ts-ignore
       const componentsManager = scene._componentsManager;
       // Overlay Canvas
-      const overlayCanvases: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
+      const overlayCanvases = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
       // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = overlayCanvases.length - 1; j >= 0; j--) {
         if (overlayCanvases.get(j)._raycast(ray, hitResult)) {
-          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+          this._updateRaycast(hitResult.component, pointer);
           return;
         }
       }
@@ -111,7 +104,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
         // The hit order is the one the camera actually painted, so it is consumed instead of derived
         if (this._raycastRenderedContent(camera, ray, hitResult)) {
-          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+          this._updateRaycast(hitResult.component, pointer);
           return;
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
@@ -145,7 +138,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
    * last.
    */
   private _raycastRenderedContent(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
-    // @ts-ignore
     const cullingResults = camera._renderPipeline?._cullingResults;
     if (!cullingResults) return false;
 
@@ -192,7 +184,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
    * @param maxDistance - hits at or beyond this depth are rejected, which mirrors the `Less` depth test
    * @returns true when `out` holds a hit to use
    */
-  private _raycastQueue(queue: RenderedQueue, out: UIHitResult, nearestOnly: boolean, maxDistance: number): boolean {
+  private _raycastQueue(queue: RenderQueue, out: UIHitResult, nearestOnly: boolean, maxDistance: number): boolean {
     const scan = this._scan;
     scan.hitResult = out;
     scan.nearestOnly = nearestOnly;
@@ -261,8 +253,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
     while (cursor > 0) {
       const element = renderedElements[cursor - 1];
-      // @ts-ignore `_isBatched` is @internal: another leader means the elements of this canvas are not
-      // ordered by this queue, so the flat order must not be trusted any further
+      // Another leader means the elements of this canvas are not ordered by this queue, so the flat
+      // order must not be trusted any further
       if (element !== leader && element._isBatched) {
         return this._raycastWholeCanvas(canvas);
       }

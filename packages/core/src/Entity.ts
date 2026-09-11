@@ -417,8 +417,8 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone this entity include children and components.
-   * @returns Cloned entity
+   * Clone this Entity, including children and components.
+   * @returns A detached clone that must be added to a parent Entity or Scene to update and render
    */
   clone(): Entity {
     const cloneMap = new Map<object, object>();

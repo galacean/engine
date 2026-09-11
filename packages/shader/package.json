@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader",
-  "version": "2.0.0-alpha.41",
+  "version": "2.0.0-alpha.45",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -34,7 +34,7 @@
   "umd": {
     "name": "Galacean.ShaderFragment"
   },
-  "devDependencies": {
+  "dependencies": {
     "@galacean/engine-design": "workspace:*"
   },
   "files": [

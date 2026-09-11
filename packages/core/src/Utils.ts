@@ -44,7 +44,7 @@ export class Utils {
    * @returns Whether the url is absolute url.
    */
   static isAbsoluteUrl(url: string): boolean {
-    return /^([a-z][a-z\d\+\-\.]*:)?\/\//i.test(url);
+    return /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(url);
   }
 
   /**
@@ -74,18 +74,16 @@ export class Utils {
       return relativeUrl;
     }
 
-    if (Utils.isBase64Url(relativeUrl)) {
-      return relativeUrl;
-    }
-
     if (Utils.isAbsoluteUrl(baseUrl)) {
       return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    const head = "file://";
-    const encodedBaseUrl = head + this._encodePathComponents(baseUrl);
+    // Use an empty file URL host to preserve path casing
+    const hasLeadingSlash = baseUrl.startsWith("/") || relativeUrl.startsWith("/");
+    const encodedBaseUrl = "file:///" + this._encodePathComponents(baseUrl.replace(/^\/+/, ""));
     const encodedRelativeUrl = this._encodePathComponents(relativeUrl);
-    return decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
+    const resolvedPath = decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).pathname);
+    return hasLeadingSlash ? resolvedPath : resolvedPath.slice(1);
   }
 
   /**
@@ -134,7 +132,7 @@ export class Utils {
    * @param path - The path of the property to get.
    * @returns Returns the resolved value.
    */
-  static _reflectGet(target: Object, path: string) {
+  static _reflectGet(target: object, path: string) {
     const pathArr = this._stringToPath(path);
 
     let object = target;

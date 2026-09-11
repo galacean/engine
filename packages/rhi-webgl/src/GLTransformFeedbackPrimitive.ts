@@ -80,11 +80,9 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
-    // @ts-ignore: Access internal _platformBuffer across packages
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
     this._bindElements(gl, attribs, feedbackElements, feedbackBinding.stride);
 
-    // @ts-ignore: Access internal _platformBuffer across packages
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>inputBinding.buffer._platformBuffer)._glBuffer);
     this._bindElements(gl, attribs, inputElements, inputBinding.stride);
 

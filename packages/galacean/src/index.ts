@@ -11,7 +11,7 @@ export * from "@galacean/engine-loader";
 export * from "@galacean/engine-math";
 export * from "@galacean/engine-rhi-webgl";
 
-for (let key in CoreObjects) {
+for (const key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);
 }
 
@@ -26,7 +26,6 @@ for (let key in CoreObjects) {
 // shader bundle dependency), which in turn lets the offline shader
 // compiler import core's enums without dragging the full runtime closure.
 Polyfill.registerPolyfill();
-// @ts-ignore — `_initialize` is `SystemInfo` @internal.
 SystemInfo._initialize();
 ShaderPool.init();
 ShaderPool.registerShaders();

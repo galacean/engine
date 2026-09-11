@@ -29,8 +29,7 @@ export class Collision {
    */
   getContacts(outContacts: ContactPoint[]): number {
     const nativeCollision = this._nativeCollision;
-    const smallerShapeId = Math.min(nativeCollision.shape0Id, nativeCollision.shape1Id);
-    const factor = this.shape.id === smallerShapeId ? 1 : -1;
+    const factor = this.shape.id === nativeCollision.shape1Id ? 1 : -1;
     const nativeContactPoints = nativeCollision.getContacts();
     const length = nativeContactPoints.size();
     for (let i = 0; i < length; i++) {

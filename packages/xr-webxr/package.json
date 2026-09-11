@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-xr-webxr",
-  "version": "2.0.0-alpha.41",
+  "version": "2.0.0-alpha.45",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -30,6 +30,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@types/webxr": "^0.5.24",
     "@galacean/engine-xr": "workspace:*"
   },
   "devDependencies": {

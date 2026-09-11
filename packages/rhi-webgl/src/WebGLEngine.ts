@@ -17,7 +17,6 @@ export class WebGLEngine extends Engine {
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     webCanvas.setAutoResolution();
-    // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
     return promise.then(() => {
       engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
@@ -29,7 +28,6 @@ export class WebGLEngine extends Engine {
    * The web canvas the engine renders to.
    */
   override get canvas(): WebCanvas {
-    // @ts-ignore
     return this._canvas as WebCanvas;
   }
 }

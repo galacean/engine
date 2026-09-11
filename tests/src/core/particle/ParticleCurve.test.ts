@@ -16,6 +16,15 @@ describe("ParticleCurve tests", () => {
     expect(gradient.evaluate(undefined, 1.0)).to.equal(0.2);
   });
 
+  it("Constructor with zero as the max constant", () => {
+    const gradient = new ParticleCompositeCurve(5, 0);
+    expect(gradient.mode).to.equal(ParticleCurveMode.TwoConstants);
+    expect(gradient.constantMin).to.equal(5);
+    expect(gradient.constantMax).to.equal(0);
+    expect(gradient.evaluate(undefined, 0)).to.equal(5);
+    expect(gradient.evaluate(undefined, 1)).to.equal(0);
+  });
+
   it("Constructor with curve params", () => {
     const gradient0 = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0.333)));
     expect(gradient0.mode).to.equal(ParticleCurveMode.Curve);

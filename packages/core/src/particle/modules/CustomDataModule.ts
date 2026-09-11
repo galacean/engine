@@ -182,6 +182,25 @@ export class CustomDataModule extends ParticleGeneratorModule {
   }
 
   /**
+   * Remove all custom data streams.
+   */
+  clear(): void {
+    const shaderData = this._generator._renderer.shaderData;
+    const curveStreams = this._curveStreams;
+    for (let i = 0, n = curveStreams.length; i < n; i++) {
+      this._zeroCurveUniforms(shaderData, curveStreams[i]);
+    }
+    const gradientStreams = this._gradientStreams;
+    for (let i = 0, n = gradientStreams.length; i < n; i++) {
+      this._zeroGradientUniforms(shaderData, gradientStreams[i]);
+    }
+    this._curves.clear();
+    this._gradients.clear();
+    curveStreams.length = 0;
+    gradientStreams.length = 0;
+  }
+
+  /**
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {

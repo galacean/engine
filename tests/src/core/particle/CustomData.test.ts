@@ -163,6 +163,31 @@ describe("CustomDataModule", function () {
     expect(customData.gradients.size).to.eq(0);
   });
 
+  it("clear removes every stream", function () {
+    const customData = particleRenderer.generator.customData;
+    const shaderData = particleRenderer.shaderData;
+    customData.enabled = true;
+    customData.addCurve("ClearCurveA", new ParticleCompositeCurve(1));
+    customData.addCurve("ClearCurveB", new ParticleCompositeCurve(2));
+    customData.addGradient("ClearGradientA", new ParticleCompositeGradient(new Color(1, 0, 0, 1)));
+    customData.addGradient("ClearGradientB", new ParticleCompositeGradient(new Color(0, 1, 0, 1)));
+    //@ts-ignore - drive the upload directly
+    customData._updateShaderData(shaderData);
+
+    customData.clear();
+
+    expect(customData.curves.size).to.eq(0);
+    expect(customData.gradients.size).to.eq(0);
+    //@ts-ignore - removed streams must not upload again
+    customData._updateShaderData(shaderData);
+    expect(shaderData.getFloat("renderer_ClearCurveAMaxConst")).to.eq(0);
+    expect(shaderData.getFloat("renderer_ClearCurveBMaxConst")).to.eq(0);
+    expect(shaderData.getColor("renderer_ClearGradientAMaxConst")).to.deep.eq(new Color(0, 0, 0, 0));
+    expect(shaderData.getColor("renderer_ClearGradientBMaxConst")).to.deep.eq(new Color(0, 0, 0, 0));
+
+    customData.clear();
+  });
+
   it("removeCurve / removeGradient zero out shaderData uniforms", function () {
     const customData = particleRenderer.generator.customData;
     const shaderData = particleRenderer.shaderData;

@@ -157,36 +157,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
-   */
-  setCollisionDetectionMode(value: number): void {
-    const physX = this._physXPhysics._physX;
-
-    switch (value) {
-      case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
-        break;
-      case CollisionDetectionMode.ContinuousDynamic:
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
-        break;
-      case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
-        break;
-      case CollisionDetectionMode.Discrete:
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
-        break;
-    }
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setUseGravity }
    */
   setUseGravity(value: boolean): void {
@@ -194,13 +164,26 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setIsKinematic }
+   * {@inheritDoc IDynamicCollider.setMotionState }
    */
-  setIsKinematic(value: boolean): void {
-    if (value) {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, true);
-    } else {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, false);
+  setMotionState(isKinematic: boolean, collisionDetectionMode: number): void {
+    const { PxRigidBodyFlag } = this._physXPhysics._physX;
+    // PhysX 4.1 does not support sweep-based CCD on kinematic bodies
+    const useSpeculativeCCD =
+      collisionDetectionMode === CollisionDetectionMode.ContinuousSpeculative ||
+      (isKinematic && collisionDetectionMode !== CollisionDetectionMode.Discrete);
+
+    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD, false);
+    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
+    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
+    this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eKINEMATIC, isKinematic);
+    if (useSpeculativeCCD) {
+      this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+    } else if (collisionDetectionMode !== CollisionDetectionMode.Discrete) {
+      this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD, true);
+      if (collisionDetectionMode === CollisionDetectionMode.ContinuousDynamic) {
+        this._pxActor.setRigidBodyFlag(PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+      }
     }
   }
 

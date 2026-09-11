@@ -113,10 +113,10 @@ export class PrimitiveMesh {
   }
 
   /**
-   * Create a plane mesh.
+   * Create a plane mesh with U mapped along local +X and V along local +Z.
    * @param engine - Engine
-   * @param width - Plane width
-   * @param height - Plane height
+   * @param width - Plane width along the local X axis
+   * @param height - Plane height along the local Z axis
    * @param horizontalSegments - Plane horizontal segments
    * @param verticalSegments - Plane vertical segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation

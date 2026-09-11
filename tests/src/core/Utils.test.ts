@@ -5,6 +5,17 @@ describe("Utils test", function () {
   it("is absolute", () => {
     expect(Utils.isAbsoluteUrl("/test.png")).to.false;
     expect(Utils.isAbsoluteUrl("https://www.galacean.com/test.png")).to.true;
+
+    const absoluteUrls = [
+      "blob:https://www.galacean.com/font",
+      "data:font/woff2;base64,AAAA",
+      "file:///Assets/Fonts/Hero.woff",
+      "galacean-asset:Hero.woff"
+    ];
+    for (const url of absoluteUrls) {
+      expect(Utils.isAbsoluteUrl(url)).to.true;
+      expect(Utils.resolveAbsoluteUrl("Assets/Fonts/Hero.font", url)).to.equal(url);
+    }
   });
 
   it("resolve base url", () => {
@@ -28,20 +39,22 @@ describe("Utils test", function () {
       "https://www.galacean.com/texture.png"
     );
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal(
-      "/path/to/file.html"
-    );
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "file.html")).to.equal("/path/to/file.html");
 
-    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal(
-      "/path/file.html"
-    );
+    expect(Utils.resolveAbsoluteUrl("/path/to/dir", "../file.html")).to.equal("/path/file.html");
 
-    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal(
-      "/a/空 格"
-    );
+    expect(Utils.resolveAbsoluteUrl("/a/b", "./空 格")).to.equal("/a/空 格");
 
     expect(Utils.resolveAbsoluteUrl("/a c%/中%20文/test1/test2", "../空 格/测%试.json")).to.equal(
       "/a c%/中%20文/空 格/测%试.json"
+    );
+
+    expect(Utils.resolveAbsoluteUrl("SpriteAtlas/Art/UI/auto-atlas.atlas", "./auto-atlas_image_0.tex")).to.equal(
+      "SpriteAtlas/Art/UI/auto-atlas_image_0.tex"
+    );
+
+    expect(Utils.resolveAbsoluteUrl("SpriteAtlas/Art/UI/auto-atlas.atlas", "/Shared/page.tex")).to.equal(
+      "/Shared/page.tex"
     );
 
     const base64Url = "data:application/octet-stream;base64,AAAAAImICD2JiIg9zczMPYmICD6rqio";
