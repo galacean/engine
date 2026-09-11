@@ -16,46 +16,41 @@ import {
 class RenderTargetLoader extends Loader<RenderTarget> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<RenderTarget> {
     const { engine } = resourceManager;
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteAssetBaseURL = resourceManager._getRemoteUrl(item.url);
-    return (
-      resourceManager
-        // @ts-ignore
-        ._requestByRemoteUrl<IRenderTargetData>(remoteAssetBaseURL, {
-          ...item,
-          type: "json"
-        })
-        .then((data: IRenderTargetData) => {
-          const { width, height, colorFormats, depthFormat, antiAliasing, autoGenerateMipmaps } = data;
+    return resourceManager
+      ._requestByRemoteUrl<IRenderTargetData>(remoteAssetBaseURL, {
+        ...item,
+        type: "json"
+      })
+      .then((data: IRenderTargetData) => {
+        const { width, height, colorFormats, depthFormat, antiAliasing, autoGenerateMipmaps } = data;
 
-          const colorTextureProps = data.colorTextures;
-          const colorTextures = colorFormats.map((format, i) => {
-            const props = colorTextureProps?.[i];
-            const mipmap = props?.mipmap ?? true;
-            const isSRGB = props?.isSRGBColorSpace ?? format === TextureFormat.R8G8B8A8;
-            const texture = new Texture2D(engine, width, height, format, mipmap, isSRGB);
-            if (props) {
-              if (props.filterMode != null) texture.filterMode = props.filterMode;
-              if (props.wrapModeU != null) texture.wrapModeU = props.wrapModeU;
-              if (props.wrapModeV != null) texture.wrapModeV = props.wrapModeV;
-              if (props.anisoLevel != null) texture.anisoLevel = props.anisoLevel;
-            }
-            return texture;
-          });
-
-          const depth = depthFormat === -1 ? null : depthFormat;
-          const rt = new RenderTarget(engine, width, height, colorTextures, depth, antiAliasing);
-          if (autoGenerateMipmaps != null) rt.autoGenerateMipmaps = autoGenerateMipmaps;
-
-          // Notify pending sub-asset requests for colorTextures
-          for (let i = 0, n = colorTextures.length; i < n; i++) {
-            // @ts-ignore
-            resourceManager._onSubAssetSuccess(remoteAssetBaseURL, `colorTextures[${i}]`, colorTextures[i]);
+        const colorTextureProps = data.colorTextures;
+        const colorTextures = colorFormats.map((format, i) => {
+          const props = colorTextureProps?.[i];
+          const mipmap = props?.mipmap ?? true;
+          const isSRGB = props?.isSRGBColorSpace ?? format === TextureFormat.R8G8B8A8;
+          const texture = new Texture2D(engine, width, height, format, mipmap, isSRGB);
+          if (props) {
+            if (props.filterMode != null) texture.filterMode = props.filterMode;
+            if (props.wrapModeU != null) texture.wrapModeU = props.wrapModeU;
+            if (props.wrapModeV != null) texture.wrapModeV = props.wrapModeV;
+            if (props.anisoLevel != null) texture.anisoLevel = props.anisoLevel;
           }
+          return texture;
+        });
 
-          return rt;
-        })
-    );
+        const depth = depthFormat === -1 ? null : depthFormat;
+        const rt = new RenderTarget(engine, width, height, colorTextures, depth, antiAliasing);
+        if (autoGenerateMipmaps != null) rt.autoGenerateMipmaps = autoGenerateMipmaps;
+
+        // Notify pending sub-asset requests for colorTextures
+        for (let i = 0, n = colorTextures.length; i < n; i++) {
+          resourceManager._onSubAssetSuccess(remoteAssetBaseURL, `colorTextures[${i}]`, colorTextures[i]);
+        }
+
+        return rt;
+      });
   }
 }
 

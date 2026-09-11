@@ -239,7 +239,7 @@ export class UITransform extends Transform {
   /**
    * @internal
    */
-  _parentChange(): void {
+  override _parentChange(): void {
     this._isParentDirty = true;
     this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
@@ -366,7 +366,6 @@ export class UITransform extends Transform {
     }
     this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();
-    // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
@@ -374,7 +373,6 @@ export class UITransform extends Transform {
   private _onPivotChanged(): void {
     this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();
-    // @ts-ignore
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Pivot);
   }
 
@@ -418,7 +416,6 @@ export class UITransform extends Transform {
         (children[i].transform as UITransform)?._updateWorldFlagWithParentRectChange?.(flags, selfChange);
       }
     }
-    // @ts-ignore
     selfChange && this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 }

@@ -14,7 +14,6 @@ import { parseSingleKTX } from "./compressed-texture";
 @resourceLoader(AssetType.KTX, ["ktx"])
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(item.url);
     const requestConfig = <RequestConfig>{
       ...item,
@@ -22,7 +21,6 @@ export class KTXLoader extends Loader<Texture2D> {
     };
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((bin) => {
           const parsedData = parseSingleKTX(bin);
@@ -58,7 +56,6 @@ class KTXContentRestorer extends ContentRestorer<Texture2D> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((bin) => {
           const mipmaps = parseSingleKTX(bin).mipmaps;

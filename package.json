@@ -49,7 +49,7 @@
     "@swc/helpers": "^0.5.1",
     "@types/dom-webcodecs": "^0.1.13",
     "@types/node": "^18.7.16",
-    "@types/webxr": "latest",
+    "@types/webxr": "^0.5.24",
     "@vitest/coverage-v8": "3.2.6",
     "bumpp": "^9.5.2",
     "cross-env": "^5.2.0",

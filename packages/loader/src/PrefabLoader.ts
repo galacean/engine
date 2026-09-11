@@ -10,7 +10,6 @@ export class PrefabLoader extends Loader<PrefabResource> {
 
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
         ._request<PrefabFile>(item.url, {
           ...item,
           type: "json"

@@ -30,6 +30,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@types/webxr": "^0.5.24",
     "@galacean/engine-xr": "workspace:*"
   },
   "devDependencies": {

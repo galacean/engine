@@ -140,7 +140,6 @@ export class UIBatchSorter {
       }
     }
 
-    // @ts-ignore — Utils._quickSort is @internal
     Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
     for (let i = 0; i < count; i++) elements[i] = entries[i].element;
   }

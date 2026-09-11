@@ -23,12 +23,10 @@ import { HDRDecoder } from "./HDRDecoder";
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
     const url = item.url;
-    // @ts-expect-error -- internal method is omitted from public declarations
     const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       resourceManager
-        // @ts-ignore
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) => {
@@ -125,32 +123,29 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
   }
 
   override restoreContent(): AssetPromise<Texture> {
-    return (
-      this.resource.engine.resourceManager
-        // @ts-ignore
-        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
-        .then((buffer) => {
-          if (FileHeader.checkMagic(buffer)) {
-            return decode<Texture>(buffer, this.resource.engine, this.resource);
-          }
+    return this.resource.engine.resourceManager
+      ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
+      .then((buffer) => {
+        if (FileHeader.checkMagic(buffer)) {
+          return decode<Texture>(buffer, this.resource.engine, this.resource);
+        }
 
-          const bufferView = new Uint8Array(buffer);
-          const texture = this.resource as Texture2D;
+        const bufferView = new Uint8Array(buffer);
+        const texture = this.resource as Texture2D;
 
-          if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
-            const { pixels } = HDRDecoder.decode(bufferView);
-            texture.setPixelBuffer(pixels);
-            texture.mipmapCount > 1 && texture.generateMipmaps();
-            return texture;
-          }
+        if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
+          const { pixels } = HDRDecoder.decode(bufferView);
+          texture.setPixelBuffer(pixels);
+          texture.mipmapCount > 1 && texture.generateMipmaps();
+          return texture;
+        }
 
-          return decodeImage(buffer, this.url).then((img) => {
-            texture.setImageSource(img);
-            texture.mipmapCount > 1 && texture.generateMipmaps();
-            return texture;
-          });
-        })
-    );
+        return decodeImage(buffer, this.url).then((img) => {
+          texture.setImageSource(img);
+          texture.mipmapCount > 1 && texture.generateMipmaps();
+          return texture;
+        });
+      });
   }
 }
 
