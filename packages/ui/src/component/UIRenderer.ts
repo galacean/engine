@@ -2,7 +2,6 @@ import {
   VertexMergeBatcher,
   Color,
   DependentMode,
-  Engine,
   Entity,
   EntityModifyFlags,
   Matrix,
@@ -17,6 +16,7 @@ import {
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import type { PrimitiveChunkManager } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -218,7 +218,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getChunkManager(): Engine["_batcherManager"]["primitiveChunkManagerUI"] {
+  _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 

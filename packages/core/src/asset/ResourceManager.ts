@@ -1,14 +1,14 @@
 import { IClone } from "@galacean/engine-design";
 import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
+import type { Shader } from "../shader/Shader";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
-import type { IReferable } from "./IReferable";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
 import { request, RequestConfig } from "./request";
 
-type LoadableResource = EngineObject | IReferable;
+type LoadableResource = EngineObject | Shader;
 
 /**
  * ResourceManager
