@@ -253,8 +253,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   /**
    * @internal
-   * @param cullingMask - Layers accepted by the camera being hit-tested, mirroring the renderer
-   * filter applied in `_prepareRender`
+   * @param cullingMask - The hit-tested camera's `cullingMask`, that is the layers it renders. Mirrors the
+   * renderer filter applied in `_prepareRender`, so hit eligibility is not wider than draw eligibility
    */
   _raycast(
     ray: Ray,
@@ -265,9 +265,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      // Hit eligibility must not be wider than draw eligibility
-      if (!(cullingMask & element.entity.layer)) continue;
-      if (element.raycastEnabled && element._raycast(ray, out, distance)) {
+      if (
+        (cullingMask & element.entity.layer) !== 0 &&
+        element.raycastEnabled &&
+        element._raycast(ray, out, distance)
+      ) {
         return true;
       }
     }
