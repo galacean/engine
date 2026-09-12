@@ -66,20 +66,25 @@ export class SimpleSpriteAssembler {
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
+    // sprite._uvs 16 个网格点 (column-major, index=column*4+row)，4 corner: [0]=LB / [3]=LT / [12]=RB / [15]=RT
+    // atlasRotated 由 sprite._updateUVs 内部处理，此处直接用结果，无需关心朝向
     const spriteUVs = renderer.sprite._getUVs();
-    const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
     const offset = subChunk.vertexArea.start + 3;
-    vertices[offset] = left;
-    vertices[offset + 1] = bottom;
-    vertices[offset + 9] = right;
-    vertices[offset + 10] = bottom;
-    vertices[offset + 18] = left;
-    vertices[offset + 19] = top;
-    vertices[offset + 27] = right;
-    vertices[offset + 28] = top;
+    const uvLB = spriteUVs[0];
+    const uvLT = spriteUVs[3];
+    const uvRB = spriteUVs[12];
+    const uvRT = spriteUVs[15];
+    // SimpleAssembler 的 vertex 顺序：0=LB, 1=RB, 2=LT, 3=RT (按 _rectangleTriangles 的拓扑)
+    vertices[offset] = uvLB.x;
+    vertices[offset + 1] = uvLB.y;
+    vertices[offset + 9] = uvRB.x;
+    vertices[offset + 10] = uvRB.y;
+    vertices[offset + 18] = uvLT.x;
+    vertices[offset + 19] = uvLT.y;
+    vertices[offset + 27] = uvRT.x;
+    vertices[offset + 28] = uvRT.y;
   }
 
   static updateColor(renderer: ISpriteRenderer, alpha: number): void {
