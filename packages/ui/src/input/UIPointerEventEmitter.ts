@@ -70,13 +70,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
         // Sort a scratch list, not the registry consumed by rendering.
         const candidates = this._raycastCanvases;
-        candidates.length = 0;
         const canvases = componentsManager._canvases;
+        const { isOrthographic, farClipPlane, cullingMask } = camera;
         const { worldPosition, worldForward } = camera.entity.transform;
         for (let k = 0, n = canvases.length; k < n; k++) {
           const canvas = canvases.get(k) as UICanvas;
           if (canvas._canDispatchEvent(camera)) {
-            canvas._updateSortDistance(camera.isOrthographic, worldPosition, worldForward);
+            canvas._updateSortDistance(isOrthographic, worldPosition, worldForward);
             candidates.push(canvas);
           }
         }
@@ -84,7 +84,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         // guaranteed visual hit order. Within each canvas, use reverse hierarchy order.
         candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
         for (let k = 0, n = candidates.length; k < n; k++) {
-          if (candidates[k]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) {
+          if (candidates[k]._raycast(ray, hitResult, farClipPlane, cullingMask)) {
             candidates.length = 0;
             this._updateRaycast(hitResult.component, pointer);
             return;

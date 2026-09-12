@@ -252,8 +252,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   /**
    * @internal
-   * @param cullingMask - The hit-tested camera's `cullingMask`, that is the layers it renders. Mirrors the
-   * renderer filter applied in `_prepareRender`, so hit eligibility is not wider than draw eligibility
    */
   _raycast(
     ray: Ray,
@@ -302,7 +300,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
     }
-    // A canvas the camera culls is not drawn, so it must not receive that camera's events either
     if (!(camera.cullingMask & this.entity.layer)) {
       return false;
     }
