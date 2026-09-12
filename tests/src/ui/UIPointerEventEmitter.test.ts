@@ -404,26 +404,22 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
 
     const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
     const firstScripts = [0, 1, 2].map((i) => createVisibleImage(firstCanvas.entity, `First${i}`));
-    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 1, 10);
     const secondScripts = [0, 1, 2].map((i) => createVisibleImage(secondCanvas.entity, `Second${i}`));
 
     engine.update();
 
-    // Distinct priorities keep the expected top canvas unambiguous.
     const paintOrder = getPaintOrder(camera);
     expect(paintOrder.length).toBe(6);
-    const isFirstCanvasOnTop = paintOrder[paintOrder.length - 1].startsWith("First");
-    const topMostScripts = isFirstCanvasOnTop ? firstScripts : secondScripts;
-    const coveredScripts = isFirstCanvasOnTop ? secondScripts : firstScripts;
+    expect(paintOrder[paintOrder.length - 1]).toBe("Second2");
 
     simulateClickAtCenter();
 
-    // Inside the topmost canvas the element painted last answers, and the covered canvas stays silent
-    const topMostScript = topMostScripts[topMostScripts.length - 1];
+    const topMostScript = secondScripts[2];
     expect(topMostScript.downCount).toBe(1);
     expect(topMostScript.clickCount).toBe(1);
-    expect(topMostScripts.slice(0, -1).every((script) => script.downCount === 0)).toBe(true);
-    expect(coveredScripts.every((script) => script.downCount === 0)).toBe(true);
+    expect(secondScripts.slice(0, -1).every((script) => script.downCount === 0 && script.clickCount === 0)).toBe(true);
+    expect(firstScripts.every((script) => script.downCount === 0 && script.clickCount === 0)).toBe(true);
   });
 
   it("11. Raycasting leaves the canvas registry the renderer consumes untouched", () => {
