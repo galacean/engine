@@ -70,6 +70,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
         // Sort a scratch list, not the registry consumed by rendering.
         const candidates = this._raycastCanvases;
+        candidates.length = 0;
         const canvases = componentsManager._canvases;
         const { worldPosition, worldForward } = camera.entity.transform;
         for (let k = 0, n = canvases.length; k < n; k++) {
@@ -82,21 +83,14 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         // Higher priority first, then nearer distance; fully tied canvases have no
         // guaranteed visual hit order. Within each canvas, use reverse hierarchy order.
         candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
-        let hit = false;
-        try {
-          for (let k = 0, n = candidates.length; k < n; k++) {
-            if (candidates[k]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) {
-              hit = true;
-              break;
-            }
+        for (let k = 0, n = candidates.length; k < n; k++) {
+          if (candidates[k]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) {
+            candidates.length = 0;
+            this._updateRaycast(hitResult.component, pointer);
+            return;
           }
-        } finally {
-          candidates.length = 0;
         }
-        if (hit) {
-          this._updateRaycast(hitResult.component, pointer);
-          return;
-        }
+        candidates.length = 0;
         if (camera.clearFlags & CameraClearFlags.Color) {
           this._updateRaycast(null);
           return;
