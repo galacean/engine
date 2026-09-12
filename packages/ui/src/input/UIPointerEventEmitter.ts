@@ -1,12 +1,10 @@
 import {
-  Camera,
   CameraClearFlags,
   DisorderedArray,
   Entity,
   Pointer,
   PointerEventData,
   PointerEventEmitter,
-  Ray,
   Scene,
   registerPointerEventEmitter
 } from "@galacean/engine";
@@ -70,7 +68,32 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        if (this._raycastCanvasesForCamera(camera, ray, hitResult)) {
+        // Sort a scratch list, not the registry consumed by rendering.
+        const candidates = this._raycastCanvases;
+        const canvases = componentsManager._canvases;
+        const { worldPosition, worldForward } = camera.entity.transform;
+        for (let k = 0, n = canvases.length; k < n; k++) {
+          const canvas = canvases.get(k) as UICanvas;
+          if (canvas._canDispatchEvent(camera)) {
+            canvas._updateSortDistance(camera.isOrthographic, worldPosition, worldForward);
+            candidates.push(canvas);
+          }
+        }
+        // Higher priority first, then nearer distance; fully tied canvases have no
+        // guaranteed visual hit order. Within each canvas, use reverse hierarchy order.
+        candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
+        let hit = false;
+        try {
+          for (let k = 0, n = candidates.length; k < n; k++) {
+            if (candidates[k]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) {
+              hit = true;
+              break;
+            }
+          }
+        } finally {
+          candidates.length = 0;
+        }
+        if (hit) {
           this._updateRaycast(hitResult.component, pointer);
           return;
         }
@@ -80,35 +103,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
       }
       this._updateRaycast(null);
-    }
-  }
-
-  /**
-   * Canvas priority wins first, then the camera's canvas sorting distance.
-   * Within a canvas, _raycast walks the logical hierarchy back to front.
-   * Fully tied overlapping canvases have no guaranteed visual hit order; applications
-   * should give them distinct sortOrder values. GPU batches and material depth are not consulted.
-   */
-  private _raycastCanvasesForCamera(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
-    const candidates = this._raycastCanvases;
-    const canvases = camera.scene._componentsManager._canvases;
-    const { worldPosition, worldForward } = camera.entity.transform;
-    for (let i = 0, n = canvases.length; i < n; i++) {
-      const canvas = canvases.get(i) as UICanvas;
-      if (canvas._canDispatchEvent(camera)) {
-        canvas._updateSortDistance(camera.isOrthographic, worldPosition, worldForward);
-        candidates.push(canvas);
-      }
-    }
-    // Sort a scratch list, never the registry consumed by rendering.
-    candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
-    try {
-      for (let i = 0, n = candidates.length; i < n; i++) {
-        if (candidates[i]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) return true;
-      }
-      return false;
-    } finally {
-      candidates.length = 0;
     }
   }
 
