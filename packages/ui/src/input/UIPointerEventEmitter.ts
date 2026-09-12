@@ -7,27 +7,12 @@ import {
   PointerEventData,
   PointerEventEmitter,
   Ray,
-  RenderElement,
-  RenderQueue,
   Scene,
   registerPointerEventEmitter
 } from "@galacean/engine";
 import { UICanvas } from "..";
 import { UIRenderer } from "../component/UIRenderer";
 import { UIHitResult } from "./UIHitResult";
-
-/**
- * State of the scan in progress, reused so the helpers below stay free of long parameter lists.
- */
-interface RaycastScan {
-  camera: Camera;
-  cursors: Map<number, number>;
-  ray: Ray;
-  hitResult: UIHitResult;
-  nearestOnly: boolean;
-  maxDistance: number;
-  accepted: boolean;
-}
 
 /**
  * @internal
@@ -39,28 +24,11 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private static _path: Entity[] = [];
   private static _tempArray0: Entity[] = [];
   private static _tempArray1: Entity[] = [];
-  /** Per canvas read cursor into its own painted element list, reused by every query. */
-  private static _elementCursors: Map<number, number> = new Map();
-  /** Cursor value marking a canvas that is tested as a whole instead of expanded. */
-  private static _WHOLE_CANVAS = -1;
 
   private _enteredPath: Entity[] = [];
   private _pressedPath: Entity[] = [];
   private _draggedPath: Entity[] = [];
-  /** Nearest hit of the depth writing passes, the depth the transparent pass is tested against. */
-  private _barrierHitResult = new UIHitResult();
-  /** Staging result of a single candidate, so a rejected hit cannot overwrite the accepted one. */
-  private _scratchHitResult = new UIHitResult();
-  /** Valid only while `_raycastRenderedContent` runs; the scan is synchronous and not reentrant. */
-  private _scan: RaycastScan = {
-    camera: null,
-    cursors: null,
-    ray: null,
-    hitResult: null,
-    nearestOnly: false,
-    maxDistance: 0,
-    accepted: false
-  };
+  private _raycastCanvases: UICanvas[] = [];
 
   _init(): void {
     this._hitResult = new UIHitResult();
@@ -102,8 +70,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        // The hit order is the one the camera actually painted, so it is consumed instead of derived
-        if (this._raycastRenderedContent(camera, ray, hitResult)) {
+        if (this._raycastCanvasesForCamera(camera, ray, hitResult)) {
           this._updateRaycast(hitResult.component, pointer);
           return;
         }
@@ -117,222 +84,32 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   }
 
   /**
-   * Hit-test the content of the pass this camera completed last, topmost painted first.
-   *
-   * The hit test consumes the draw order rather than deriving it again: `Engine.update()` runs the
-   * pointer raycast before it renders, and the queues are only reset — and their pooled elements only
-   * reused — while rendering, so the queues still hold the pass the pointer is aiming at, which is the
-   * frame currently on screen. Both containers are rebuilt for every pass (`CullingResults.reset` empties
-   * the queues and `UICanvas._prepareRender` refills `_renderElements` before the pass paints), so the
-   * counts and contents read here are that pass rather than an accumulation of earlier ones. A camera
-   * that did not render keeps its previous pass, which `processRaycast` skips through its viewport test.
-   * Elements of one canvas can be interleaved with another canvas' elements, so the walk stays at element
-   * level: each batch leader is expanded back through `canvas._renderElements`, which is the per renderer
-   * draw order the canvas sorted and batched from. The invariants relied upon here are stated next to the
-   * code that owns them, `BasicRenderPipeline.render` and `ClearableObjectPool.clear`.
-   *
-   * Draw order alone is not visibility: `opaque` and `alphaTest` are painted first so that depth
-   * writing content rejects whatever is farther, which is what the `Less` depth test of the UI shaders
-   * then enforces. The nearest hit of those two passes is therefore the depth barrier the transparent
-   * pass is tested against, and transparent content behind it must not answer even though it is painted
-   * last.
+   * Canvas priority wins first, then the camera's canvas sorting distance.
+   * Within a canvas, _raycast walks the logical hierarchy back to front.
+   * Fully tied overlapping canvases have no guaranteed visual hit order; applications
+   * should give them distinct sortOrder values. GPU batches and material depth are not consulted.
    */
-  private _raycastRenderedContent(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
-    const cullingResults = camera._renderPipeline?._cullingResults;
-    if (!cullingResults) return false;
-
-    const scan = this._scan;
-    scan.camera = camera;
-    scan.ray = ray;
-    scan.cursors = UIPointerEventEmitter._elementCursors;
-    scan.cursors.clear();
-    const barrier = this._barrierHitResult;
-
-    const hasOpaqueBarrier = this._raycastQueue(cullingResults.opaqueQueue, barrier, true, Number.MAX_VALUE);
-    const hasBarrier =
-      this._raycastQueue(
-        cullingResults.alphaTestQueue,
-        barrier,
-        true,
-        hasOpaqueBarrier ? barrier.distance : Number.MAX_VALUE
-      ) || hasOpaqueBarrier;
-
-    // Transparent content is painted last, so the first hit that passes the depth test is the visible one
-    if (
-      this._raycastQueue(
-        cullingResults.transparentQueue,
-        hitResult,
-        false,
-        hasBarrier ? barrier.distance : Number.MAX_VALUE
-      )
-    ) {
-      return true;
-    }
-    if (hasBarrier) {
-      this._copyHitResult(barrier, hitResult);
-      return true;
-    }
-    return false;
-  }
-
-  /**
-   * Read one queue in painted order and raycast the elements of its batch leaders.
-   *
-   * @param out - receives the accepted hit
-   * @param nearestOnly - keep the nearest accepted hit and read the whole queue, instead of accepting the
-   * first one that passes and stopping there
-   * @param maxDistance - hits at or beyond this depth are rejected, which mirrors the `Less` depth test
-   * @returns true when `out` holds a hit to use
-   */
-  private _raycastQueue(queue: RenderQueue, out: UIHitResult, nearestOnly: boolean, maxDistance: number): boolean {
-    const scan = this._scan;
-    scan.hitResult = out;
-    scan.nearestOnly = nearestOnly;
-    scan.maxDistance = maxDistance;
-    scan.accepted = false;
-
-    const leaders = queue.batchedElements;
-    for (let i = leaders.length - 1; i >= 0; i--) {
-      const leader = leaders[i];
-      const canvas = this._resolveRenderedCanvas(leader);
-      if (canvas && this._readCanvasElements(leader, canvas)) {
-        return true;
+  private _raycastCanvasesForCamera(camera: Camera, ray: Ray, hitResult: UIHitResult): boolean {
+    const candidates = this._raycastCanvases;
+    const canvases = camera.scene._componentsManager._canvases;
+    const { worldPosition, worldForward } = camera.entity.transform;
+    for (let i = 0, n = canvases.length; i < n; i++) {
+      const canvas = canvases.get(i) as UICanvas;
+      if (canvas._canDispatchEvent(camera)) {
+        canvas._updateSortDistance(camera.isOrthographic, worldPosition, worldForward);
+        candidates.push(canvas);
       }
     }
-    return scan.accepted;
-  }
-
-  /**
-   * Resolve the canvas a queue entry belongs to.
-   *
-   * The queue is one pass old, so the entry can have been destroyed, deactivated or reassigned to another
-   * camera since it was written: only a canvas this camera still draws is a candidate.
-   */
-  private _resolveRenderedCanvas(leader: RenderElement): UICanvas {
-    const leaderComponent = leader.component;
-    if (!(leaderComponent instanceof UIRenderer) || leaderComponent.destroyed) return null;
-    const canvas = leaderComponent._getRootCanvas();
-    if (
-      !canvas ||
-      canvas.destroyed ||
-      !canvas.entity.isActiveInHierarchy ||
-      !canvas._canDispatchEvent(this._scan.camera)
-    ) {
-      return null;
-    }
-    return canvas;
-  }
-
-  /**
-   * Read the elements of one queue entry.
-   *
-   * A canvas hands its batch leaders to the queue in its own element order, so its prepared element list is
-   * read backwards with a per canvas cursor: one leader run per queue entry, without any lookup. That list
-   * belongs to the pass which prepared it last while a canvas shared by several cameras is prepared once
-   * per camera, so the leader is verified before trusting the order. Whenever the flat order cannot
-   * describe this queue, the canvas is tested as a whole instead: coarse order, but no content is dropped.
-   *
-   * @returns true when the scan has to stop, because the first accepted hit was taken
-   */
-  private _readCanvasElements(leader: RenderElement, canvas: UICanvas): boolean {
-    const scan = this._scan;
-    const cursors = scan.cursors;
-    const renderedElements = canvas._renderElements;
-    const canvasId = canvas.instanceId;
-    let cursor = cursors.get(canvasId);
-
-    if (cursor === undefined) {
-      // The prepared list has to be the one of this queue, otherwise another camera replaced it
-      if (renderedElements.indexOf(leader) < 0) {
-        return this._raycastWholeCanvas(canvas);
+    // Sort a scratch list, never the registry consumed by rendering.
+    candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
+    try {
+      for (let i = 0, n = candidates.length; i < n; i++) {
+        if (candidates[i]._raycast(ray, hitResult, camera.farClipPlane, camera.cullingMask)) return true;
       }
-      cursor = renderedElements.length;
-    } else if (cursor === UIPointerEventEmitter._WHOLE_CANVAS) {
-      return this._raycastWholeCanvas(canvas);
-    }
-
-    while (cursor > 0) {
-      const element = renderedElements[cursor - 1];
-      // Another leader means the elements of this canvas are not ordered by this queue, so the flat
-      // order must not be trusted any further
-      if (element !== leader && element._isBatched) {
-        return this._raycastWholeCanvas(canvas);
-      }
-      cursor--;
-      const component = element.component;
-      if (
-        component instanceof UIRenderer &&
-        this._isLiveRenderer(component) &&
-        component._raycast(scan.ray, this._scratchHitResult, scan.camera.farClipPlane) &&
-        this._scratchHitResult.distance < scan.maxDistance
-      ) {
-        if (this._acceptHit()) return true;
-      }
-      if (element === leader) break;
-    }
-    cursors.set(canvasId, cursor);
-    return false;
-  }
-
-  /**
-   * Raycast a canvas as a whole, for entries whose prepared element list cannot describe the queue.
-   *
-   * @returns true when the scan has to stop, because the first accepted hit was taken
-   */
-  private _raycastWholeCanvas(canvas: UICanvas): boolean {
-    const scan = this._scan;
-    const { camera, ray } = scan;
-    scan.cursors.set(canvas.instanceId, UIPointerEventEmitter._WHOLE_CANVAS);
-    const scratch = this._scratchHitResult;
-    if (canvas._raycast(ray, scratch, camera.farClipPlane, camera.cullingMask) && scratch.distance < scan.maxDistance) {
-      return this._acceptHit();
-    }
-    return false;
-  }
-
-  /**
-   * Whether a renderer of the prepared list is still a candidate.
-   *
-   * The list is one pass old: the renderer can be destroyed, disabled or deactivated since, and it must not
-   * be hit outside the layers this camera draws.
-   */
-  private _isLiveRenderer(component: UIRenderer): boolean {
-    const camera = this._scan.camera;
-    return (
-      component.enabled &&
-      component.raycastEnabled &&
-      !component.destroyed &&
-      component.entity.isActiveInHierarchy &&
-      (camera.cullingMask & component.entity.layer) !== 0
-    );
-  }
-
-  /**
-   * Apply the scan mode to a hit just written into the scratch result.
-   *
-   * @returns true when the scan has to stop, which happens when the first accepted hit was taken rather
-   * than the nearest one
-   */
-  private _acceptHit(): boolean {
-    const scan = this._scan;
-    if (scan.nearestOnly) {
-      if (!scan.accepted || this._scratchHitResult.distance < scan.hitResult.distance) {
-        this._copyHitResult(this._scratchHitResult, scan.hitResult);
-      }
-      scan.accepted = true;
       return false;
+    } finally {
+      candidates.length = 0;
     }
-    this._copyHitResult(this._scratchHitResult, scan.hitResult);
-    scan.accepted = true;
-    return true;
-  }
-
-  private _copyHitResult(source: UIHitResult, target: UIHitResult): void {
-    target.entity = source.entity;
-    target.distance = source.distance;
-    target.point.copyFrom(source.point);
-    target.normal.copyFrom(source.normal);
-    target.component = source.component;
   }
 
   override processDrag(pointer: Pointer): void {

@@ -51,7 +51,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
   const target = pointerManager._target;
 
   // Destroyed in `afterEach` so that a failing assertion cannot leak canvases into the next case:
-  // `_canvases` is shared state and the tie-break below depends on its content.
+  // `_canvases` is shared state.
   const roots: Entity[] = [];
 
   function createRoot(name: string): Entity {
@@ -166,6 +166,45 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     canvasDOM.remove();
   });
 
+  it("Explicit canvas priority survives a later camera with different culling", () => {
+    const root = createRoot("cameraSources");
+    const camera = createCamera(root);
+    camera.enableFrustumCulling = false;
+    const second = createCamera(root);
+    second.viewport = new Vector4(0, 0, 0.4, 0.4);
+    second.cullingMask = Layer.Layer0;
+    second.enableFrustumCulling = false;
+    const b = createWorldSpaceCanvas(root, "B", camera, 1, 5);
+    const b0 = createVisibleImage(b.entity, "B0");
+    const a = createWorldSpaceCanvas(root, "A", camera, 0, 5);
+    const a0 = createVisibleImage(a.entity, "A0");
+    const a1 = createVisibleImage(a.entity, "A1", Layer.Layer1);
+    a1.entity.transform.position.set(250, 250, 0);
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["A0", "A1", "B0"]);
+    expect(getPaintOrder(second)).toEqual(["A0", "B0"]);
+    simulateClickAtCenter();
+    expect(b0.downCount).toBe(1);
+    expect(b0.clickCount).toBe(1);
+    expect(a0.downCount).toBe(0);
+    expect(a1.downCount).toBe(0);
+  });
+
+  it("A destroyed batch leader does not hide its surviving members before the next render", () => {
+    const root = createRoot("survivingMember");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const first = createVisibleImage(canvas.entity, "First");
+    const second = createVisibleImage(canvas.entity, "Second");
+    second.entity.getComponent(Image).sprite = first.entity.getComponent(Image).sprite;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["First"]);
+    first.entity.destroy();
+    simulateClickAtCenter();
+    expect(second.downCount).toBe(1);
+    expect(second.clickCount).toBe(1);
+  });
+
   it("1. Single canvas raycast hits element", () => {
     const root = createRoot("test1_root");
     const camera = createCamera(root);
@@ -224,34 +263,15 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(farScript.clickCount).toBe(0);
   });
 
-  it("4. Same sortOrder and same distance: the click follows the canvas painted last", () => {
-    const root = createRoot("test4_root");
+  it("4. Fully tied canvases dispatch to only one target without promising paint-order agreement", () => {
+    const root = createRoot("tied");
     const camera = createCamera(root);
-
-    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
-    const firstScript = createVisibleImage(firstCanvas.entity, "FirstImage");
-
-    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
-    const secondScript = createVisibleImage(secondCanvas.entity, "SecondImage");
-
+    const first = createVisibleImage(createScreenSpaceCanvas(root, "First", camera, 0, 10).entity, "FirstImage");
+    const second = createVisibleImage(createScreenSpaceCanvas(root, "Second", camera, 0, 10).entity, "SecondImage");
     engine.update();
-
-    // Both canvases are fully tied on every render sort key, so only the submission order decides
-    // which of them is drawn last: the shared canvas array is submitted back to front, which leaves
-    // the canvas created first on top. The hit test has to agree with that order instead of assuming
-    // that the canvas created later ends up on top.
-    const paintOrder = getPaintOrder(camera);
-    expect(paintOrder).toEqual(["SecondImage", "FirstImage"]);
-    const topMostName = paintOrder[paintOrder.length - 1];
-
     simulateClickAtCenter();
-
-    const hitScript = topMostName === "FirstImage" ? firstScript : secondScript;
-    const coveredScript = hitScript === firstScript ? secondScript : firstScript;
-    expect(hitScript.downCount).toBe(1);
-    expect(hitScript.clickCount).toBe(1);
-    expect(coveredScript.downCount).toBe(0);
-    expect(coveredScript.clickCount).toBe(0);
+    expect(first.downCount + second.downCount).toBe(1);
+    expect(first.clickCount + second.clickCount).toBe(1);
   });
 
   it("5. Same sortOrder: the nearer ScreenSpaceCamera canvas is painted last and hit first", () => {
@@ -347,12 +367,11 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(visibleScript.clickCount).toBe(1);
   });
 
-  it("9. Tied canvases keep the painted order when the queue is deeper than the sort window", () => {
+  it("9. Explicit priority works beyond the render queue sort window", () => {
     const root = createRoot("test9_root");
     const camera = createCamera(root);
 
-    // A lower canvas whose separate elements push the queue past the insertion-sort window of
-    // `Utils._quickSort`, so the order of the tied pair below no longer follows the submission order
+    // Exercise a queue larger than the insertion-sort window with unambiguous canvas priorities.
     const fillerCanvas = createScreenSpaceCanvas(root, "FillerCanvas", camera, -10, 10);
     for (let i = 0; i < 12; i++) {
       createVisibleImage(fillerCanvas.entity, `Filler${i}`, undefined, false, 20);
@@ -360,7 +379,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
 
     const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
     const firstScript = createVisibleImage(firstCanvas.entity, "FirstImage");
-    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 0, 10);
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 1, 10);
     const secondScript = createVisibleImage(secondCanvas.entity, "SecondImage");
 
     engine.update();
@@ -379,7 +398,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(coveredScript.clickCount).toBe(0);
   });
 
-  it("10. Interleaved tied canvases answer with the canvas that owns the topmost element", () => {
+  it("10. The highest-priority canvas answers from its last overlapping sibling", () => {
     const root = createRoot("test10_root");
     const camera = createCamera(root);
 
@@ -390,8 +409,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
 
     engine.update();
 
-    // Fully tied canvases have their elements painted interleaved, so the painted content - not the
-    // canvas registration order - decides which canvas is on top
+    // Distinct priorities keep the expected top canvas unambiguous.
     const paintOrder = getPaintOrder(camera);
     expect(paintOrder.length).toBe(6);
     const isFirstCanvasOnTop = paintOrder[paintOrder.length - 1].startsWith("First");
@@ -430,14 +448,12 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(getCanvasRegistryOrder()).toEqual(registryOrder);
   });
 
-  it("12. Interleaved elements of tied canvases keep the painted order", () => {
+  it("12. Explicit canvas priority wins over an off-center sibling", () => {
     const root = createRoot("test12_root");
     const camera = createCamera(root);
 
-    // CanvasB registers first and CanvasA second, so the queue paints A0, B0 and A1. The click point is
-    // covered by A0 and B0 only, so B0 - painted after A0 - has to answer, even though the topmost
-    // element belongs to CanvasA.
-    const secondCanvas = createScreenSpaceCanvas(root, "CanvasB", camera, 0, 10);
+    // B has higher priority even though A registers later and contains more renderers.
+    const secondCanvas = createScreenSpaceCanvas(root, "CanvasB", camera, 1, 10);
     const b0Script = createVisibleImage(secondCanvas.entity, "B0");
 
     const firstCanvas = createScreenSpaceCanvas(root, "CanvasA", camera, 0, 10);
@@ -446,7 +462,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     a1Script.entity.transform.position.set(250, 250, 0);
 
     engine.update();
-    expect(getPaintOrder(camera)).toEqual(["A0", "B0", "A1"]);
+    expect(getPaintOrder(camera)).toEqual(["A0", "A1", "B0"]);
 
     simulateClickAtCenter();
 
@@ -489,8 +505,7 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     const camera = createCamera(root);
     const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
 
-    // Both images share one sprite, so the canvas merges them into a single batch leader: the leader has
-    // to be expanded back into its members for the element painted later to stay hittable.
+    // Both images share one batch; hit testing still consumes the logical hierarchy directly.
     const sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
     const createImage = (name: string): ClickRecordScript => {
       const entity = canvas.entity.createChild(name);
@@ -550,173 +565,65 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     }
   });
 
-  it("16. Transparent content behind depth writing content does not answer", () => {
-    const root = createRoot("test16_root");
+  it("16. Canvas priority takes precedence over distance", () => {
+    const root = createRoot("priorityBeforeDistance");
     const camera = createCamera(root);
-
-    // The shared UI shader moves to the opaque queue, so the near image writes depth while the far text
-    // stays transparent: the text is not painted at all where the image covers it
-    // @ts-ignore the render state is @internal
-    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
-    // @ts-ignore
-    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
-    // @ts-ignore
-    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
-    // @ts-ignore
-    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
-    // The depth write is what makes the opaque pass occlude: `2D/UIDefault` disables it, so enable it
-    // here to keep the setup consistent with the visibility this case asserts
-    // @ts-ignore
-    uiDefaultPass._renderState.depthState.writeEnabled = true;
-    try {
-      // Both canvases cover the clicked point, and the nearer one holds the depth writing image
-      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
-      const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
-      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 0, 20);
-      const farScript = createVisibleText(farCanvas.entity, "FarText");
-
-      engine.update();
-      expect(getPaintOrder(camera)).toEqual(["FarText"]);
-      // @ts-ignore the image is painted from the opaque queue, which is the pass that writes depth
-      expect(camera._renderPipeline._cullingResults.opaqueQueue.batchedElements.length).toBe(1);
-
-      simulateClickAtCenter();
-
-      // The transparent text is painted last but sits behind the depth of the opaque image
-      expect(nearScript.downCount).toBe(1);
-      expect(nearScript.clickCount).toBe(1);
-      expect(farScript.downCount).toBe(0);
-    } finally {
-      // @ts-ignore
-      uiDefaultPass._renderState.renderQueueType = previousQueueType;
-      // @ts-ignore
-      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
-    }
+    const near = createVisibleImage(createScreenSpaceCanvas(root, "Near", camera, 0, 5).entity, "NearImage");
+    const far = createVisibleImage(createScreenSpaceCanvas(root, "Far", camera, 1, 20).entity, "FarImage");
+    engine.update();
+    simulateClickAtCenter();
+    expect(far.clickCount).toBe(1);
+    expect(near.downCount).toBe(0);
   });
 
-  it("17. The hit test reads only the elements of the last painted pass", () => {
-    const root = createRoot("test17_root");
+  it("17. Destroyed renderers are excluded before the next render", () => {
+    const root = createRoot("removedRenderers");
     const camera = createCamera(root);
     const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
-    const firstScript = createVisibleImage(canvas.entity, "FirstImage");
-    const removedScript = createVisibleImage(canvas.entity, "RemovedImage");
-    const otherScript = createVisibleImage(canvas.entity, "OtherImage");
-
+    const first = createVisibleImage(canvas.entity, "First");
+    const removed = createVisibleImage(canvas.entity, "Removed");
     engine.update();
-    expect(getPaintOrder(camera).length).toBe(3);
-
-    // Two elements disappear, so the following pass paints a single one
-    removedScript.entity.destroy();
-    otherScript.entity.destroy();
-    engine.update();
-    expect(getPaintOrder(camera)).toEqual(["FirstImage"]);
-
-    // Read the queue from inside the pointer callback, which runs right after the raycast consumed it
-    const observed = { count: -1 };
-    class CountProbeScript extends Script {
-      onPointerDown(eventData: PointerEventData): void {
-        // @ts-ignore the very queue the hit test just read
-        observed.count = camera._renderPipeline._cullingResults.transparentQueue.batchedElements.length;
-      }
-    }
-    firstScript.entity.addComponent(CountProbeScript);
-
+    removed.entity.destroy();
     simulateClickAtCenter();
-
-    expect(observed.count).toBe(1);
-    expect(firstScript.downCount).toBe(1);
-    expect(firstScript.clickCount).toBe(1);
-    expect(removedScript.downCount).toBe(0);
+    expect(first.clickCount).toBe(1);
+    expect(removed.downCount).toBe(0);
   });
 
-  it("18. Transparent content hidden by depth keeps the nearer transparent content", () => {
-    const root = createRoot("test18_root");
+  it("18. A higher-priority canvas that misses falls through to the lower canvas", () => {
+    const root = createRoot("miss");
     const camera = createCamera(root);
-
-    // @ts-ignore the render state is @internal
-    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
-    // @ts-ignore
-    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
-    // @ts-ignore
-    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
-    // @ts-ignore
-    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
-    // @ts-ignore
-    uiDefaultPass._renderState.depthState.writeEnabled = true;
-    try {
-      // A depth writing image in the middle distance is the depth everything else is tested against
-      const barrierCanvas = createScreenSpaceCanvas(root, "BarrierCanvas", camera, 0, 5);
-      const barrierScript = createVisibleImage(barrierCanvas.entity, "BarrierImage");
-
-      // The near text is painted first because of its sort order, the far one last
-      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 3);
-      const nearScript = createVisibleText(nearCanvas.entity, "NearText");
-      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 10, 10);
-      const farScript = createVisibleText(farCanvas.entity, "FarText");
-
-      engine.update();
-      expect(getPaintOrder(camera)).toEqual(["NearText", "FarText"]);
-
-      simulateClickAtCenter();
-
-      // The far text is painted last but its depth is rejected, so the near text is what is on screen
-      expect(nearScript.downCount).toBe(1);
-      expect(nearScript.clickCount).toBe(1);
-      expect(farScript.downCount).toBe(0);
-      expect(barrierScript.downCount).toBe(0);
-    } finally {
-      // @ts-ignore
-      uiDefaultPass._renderState.renderQueueType = previousQueueType;
-      // @ts-ignore
-      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
-    }
+    const lower = createVisibleImage(createScreenSpaceCanvas(root, "Lower", camera, 0, 10).entity, "LowerImage");
+    const higher = createVisibleImage(createScreenSpaceCanvas(root, "Higher", camera, 1, 10).entity, "HigherImage");
+    higher.entity.transform.position.set(400, 400, 0);
+    engine.update();
+    simulateClickAtCenter();
+    expect(lower.clickCount).toBe(1);
+    expect(higher.downCount).toBe(0);
   });
 
-  it("19. The depth barrier is the nearest opaque hit, not the first in the queue", () => {
-    const root = createRoot("test19_root");
+  it("Sibling reordering is honored before the next render", () => {
+    const root = createRoot("changedHierarchy");
     const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const first = createVisibleImage(canvas.entity, "First");
+    const second = createVisibleImage(canvas.entity, "Second");
+    engine.update();
+    first.entity.siblingIndex = 1;
+    simulateClickAtCenter();
+    expect(first.clickCount).toBe(1);
+    expect(second.downCount).toBe(0);
+  });
 
-    // @ts-ignore the render state is @internal
-    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
-    // @ts-ignore
-    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
-    // @ts-ignore
-    const previousDepthWrite = uiDefaultPass._renderState.depthState.writeEnabled;
-    // @ts-ignore
-    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
-    // @ts-ignore
-    uiDefaultPass._renderState.depthState.writeEnabled = true;
-    try {
-      // The opaque queue follows `priority` (= canvas sortOrder for UI) and not distance, so it holds the
-      // near image first while the scan of the barrier reads that queue backwards and meets the far one
-      const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
-      const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
-      const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 1, 20);
-      const farScript = createVisibleImage(farCanvas.entity, "FarImage");
-
-      // A transparent text between both depths, painted last
-      const middleCanvas = createScreenSpaceCanvas(root, "MiddleCanvas", camera, 0, 10);
-      const middleScript = createVisibleText(middleCanvas.entity, "MiddleText");
-
-      engine.update();
-      // @ts-ignore the opaque queue holds the farther image first, the transparent queue the text
-      const cullingResults = camera._renderPipeline._cullingResults;
-      const opaqueNames = cullingResults.opaqueQueue.batchedElements.map((element) => element.component.entity.name);
-      expect(opaqueNames).toEqual(["NearImage", "FarImage"]);
-      expect(getPaintOrder(camera)).toEqual(["MiddleText"]);
-
-      simulateClickAtCenter();
-
-      // The depth the opaque pass leaves is the near image (5), so the text at 10 is not painted at all
-      expect(nearScript.downCount).toBe(1);
-      expect(nearScript.clickCount).toBe(1);
-      expect(middleScript.downCount).toBe(0);
-      expect(farScript.downCount).toBe(0);
-    } finally {
-      // @ts-ignore
-      uiDefaultPass._renderState.renderQueueType = previousQueueType;
-      // @ts-ignore
-      uiDefaultPass._renderState.depthState.writeEnabled = previousDepthWrite;
-    }
+  it("19. A priority change is honored before the next render", () => {
+    const root = createRoot("changedPriority");
+    const camera = createCamera(root);
+    const firstCanvas = createScreenSpaceCanvas(root, "First", camera, 0, 10);
+    const first = createVisibleImage(firstCanvas.entity, "FirstImage");
+    const second = createVisibleImage(createScreenSpaceCanvas(root, "Second", camera, 1, 10).entity, "SecondImage");
+    engine.update();
+    firstCanvas.sortOrder = 2;
+    simulateClickAtCenter();
+    expect(first.clickCount).toBe(1);
+    expect(second.downCount).toBe(0);
   });
 });

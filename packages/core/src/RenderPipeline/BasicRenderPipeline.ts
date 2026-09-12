@@ -130,11 +130,6 @@ export class BasicRenderPipeline {
       this._cascadedShadowCasterPass.onRender(context);
     }
 
-    // The queues and the canvas element lists are rebuilt for every pass, and the UI pointer hit test
-    // (`UIPointerEventEmitter`) consumes both as the painted order: `Engine.update()` fires pointer scripts
-    // before it renders, so a query reads the pass a camera completed last. Clearing the queues here,
-    // reordering the passes or skipping the canvas preparation would silently change which UI element
-    // answers a click.
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
