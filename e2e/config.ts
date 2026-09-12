@@ -577,6 +577,15 @@ export const E2E_CONFIG = {
       diffPercentage: 0.044
     }
   },
+  Sprite: {
+    filled: {
+      category: "Sprite",
+      caseFileName: "sprite-filled",
+      threshold: 0.1,
+      diffPercentage: 0.3
+    }
+  },
+
   UI: {
     batchOrder: {
       category: "UI",
