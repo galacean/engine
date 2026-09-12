@@ -7,6 +7,7 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  Layer,
   Logger,
   MathUtil,
   Matrix,
@@ -203,7 +204,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
-   * The rendering order priority of the UI canvas in `ScreenSpaceOverlay` mode.
+   * The rendering priority of the canvas.
    */
   get sortOrder(): number {
     return this._sortOrder;
@@ -252,11 +253,20 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(
+    ray: Ray,
+    out: UIHitResult,
+    distance: number = Number.MAX_SAFE_INTEGER,
+    cullingMask: Layer = Layer.Everything
+  ): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      if (element.raycastEnabled && element._raycast(ray, out, distance)) {
+      if (
+        (cullingMask & element.entity.layer) !== 0 &&
+        element.raycastEnabled &&
+        element._raycast(ray, out, distance)
+      ) {
         return true;
       }
     }
@@ -290,6 +300,9 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
     }
+    if (!(camera.cullingMask & this.entity.layer)) {
+      return false;
+    }
     const assignedCamera = this._camera;
     // @ts-ignore
     return !assignedCamera || !assignedCamera._phasedActiveInScene || assignedCamera === camera;
@@ -310,11 +323,9 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      // Filter by camera culling mask
       if (!(cullingMask & renderer.entity.layer)) {
         continue;
       }
-      // Filter by camera frustum
       if (enableFrustumCulling) {
         switch (mode) {
           case CanvasRenderMode.ScreenSpaceOverlay:

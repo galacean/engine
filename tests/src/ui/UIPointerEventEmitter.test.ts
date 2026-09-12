@@ -1,0 +1,625 @@
+import { Camera, Entity, Layer, PointerEventData, Script, Sprite, Texture2D } from "@galacean/engine-core";
+import { Vector3, Vector4 } from "@galacean/engine-math";
+import { RenderQueueType, Shader, WebGLEngine } from "@galacean/engine";
+import { CanvasRenderMode, Image, Text, UICanvas, UITransform } from "@galacean/engine-ui";
+import { afterAll, afterEach, describe, expect, it } from "vitest";
+
+class ClickRecordScript extends Script {
+  downCount = 0;
+  clickCount = 0;
+
+  onPointerDown(eventData: PointerEventData): void {
+    this.downCount++;
+  }
+
+  onPointerClick(eventData: PointerEventData): void {
+    this.clickCount++;
+  }
+
+  reset(): void {
+    this.downCount = 0;
+    this.clickCount = 0;
+  }
+}
+
+function generatePointerEvent(
+  type: string,
+  pointerId: number,
+  clientX: number,
+  clientY: number,
+  button: number = 0,
+  buttons: number = 1
+) {
+  return new PointerEvent(type, { pointerId, clientX, clientY, button, buttons });
+}
+
+describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
+  const body = document.getElementsByTagName("body")[0];
+  const canvasDOM = document.createElement("canvas");
+  canvasDOM.style.width = "300px";
+  canvasDOM.style.height = "300px";
+  body.appendChild(canvasDOM);
+
+  const engine = await WebGLEngine.create({ canvas: canvasDOM });
+  const webCanvas = engine.canvas;
+  webCanvas.setResolution(300, 300);
+  const scene = engine.sceneManager.scenes[0];
+  const inputManager = engine.inputManager;
+
+  // @ts-ignore
+  const pointerManager = inputManager._pointerManager;
+  const target = pointerManager._target;
+
+  // Destroyed in `afterEach` so that a failing assertion cannot leak canvases into the next case:
+  // `_canvases` is shared state.
+  const roots: Entity[] = [];
+
+  function createRoot(name: string): Entity {
+    const root = scene.createRootEntity(name);
+    roots.push(root);
+    return root;
+  }
+
+  function createCamera(root: Entity): Camera {
+    const cameraEntity = root.createChild("Camera");
+    cameraEntity.transform.position = new Vector3(0, 0, 10);
+    const camera = cameraEntity.addComponent(Camera);
+    camera.isOrthographic = true;
+    return camera;
+  }
+
+  /**
+   * A sprite texture is mandatory: `Image._render()` returns early without one and then never reaches
+   * the render queue this suite compares the hit test against.
+   */
+  function createVisibleImage(
+    parent: Entity,
+    name: string,
+    layer?: Layer,
+    raycastEnabled = true,
+    size = 300
+  ): ClickRecordScript {
+    const entity = parent.createChild(name);
+    layer !== undefined && (entity.layer = layer);
+    const image = entity.addComponent(Image);
+    image.sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    image.raycastEnabled = raycastEnabled;
+    (<UITransform>entity.transform).size.set(size, size);
+    return entity.addComponent(ClickRecordScript);
+  }
+
+  /** Text renders from the transparent `2D/Text` shader, which the image helper above does not. */
+  function createVisibleText(parent: Entity, name: string): ClickRecordScript {
+    const entity = parent.createChild(name);
+    const text = entity.addComponent(Text);
+    text.text = name;
+    text.raycastEnabled = true;
+    (<UITransform>entity.transform).size.set(300, 300);
+    return entity.addComponent(ClickRecordScript);
+  }
+
+  function createScreenSpaceCanvas(parent: Entity, name: string, camera: Camera, sortOrder: number, distance: number) {
+    const entity = parent.createChild(name);
+    const canvas = entity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    canvas.camera = camera;
+    canvas.distance = distance;
+    canvas.sortOrder = sortOrder;
+    return canvas;
+  }
+
+  function createWorldSpaceCanvas(parent: Entity, name: string, camera: Camera, sortOrder: number, z: number) {
+    const entity = parent.createChild(name);
+    const canvas = entity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.WorldSpace;
+    canvas.camera = camera;
+    canvas.sortOrder = sortOrder;
+    // Apply the pose after the canvas exists: adding it auto-adds `UITransform`, which replaces the
+    // entity's plain `Transform`. Setting the pose afterwards keeps this case independent of whether
+    // that replacement carries the previous pose over.
+    entity.transform.position = new Vector3(0, 0, z);
+    return canvas;
+  }
+
+  function simulateClickAtCenter(): void {
+    const { left, top, width, height } = target.getBoundingClientRect();
+    const cx = left + width / 2;
+    const cy = top + height / 2;
+    target.dispatchEvent(generatePointerEvent("pointerdown", 1, cx, cy, 0, 1));
+    engine.update();
+    target.dispatchEvent(generatePointerEvent("pointerup", 1, cx, cy, 0, 0));
+    engine.update();
+  }
+
+  /**
+   * Paint order of the camera's transparent queue: the last entry is drawn last and is therefore the
+   * visually topmost canvas. Reading the queue keeps draw order and hit order comparable without
+   * re-deriving the render sort on the test side.
+   */
+  function getPaintOrder(camera: Camera): string[] {
+    // @ts-ignore
+    const transparentQueue = camera._renderPipeline._cullingResults.transparentQueue;
+    return transparentQueue.batchedElements.map((element) => element.component.entity.name);
+  }
+
+  /** Registration order of the canvases the renderer consumes, which the hit test must not touch. */
+  function getCanvasRegistryOrder(): string[] {
+    // @ts-ignore
+    const canvases = scene._componentsManager._canvases;
+    const names: string[] = [];
+    for (let i = 0; i < canvases.length; i++) {
+      names.push(canvases.get(i).entity.name);
+    }
+    return names;
+  }
+
+  afterEach(() => {
+    for (let i = 0; i < roots.length; i++) {
+      roots[i].destroy();
+    }
+    roots.length = 0;
+    engine.update();
+  });
+
+  afterAll(() => {
+    engine.destroy();
+    canvasDOM.remove();
+  });
+
+  it("Explicit canvas priority survives a later camera with different culling", () => {
+    const root = createRoot("cameraSources");
+    const camera = createCamera(root);
+    camera.enableFrustumCulling = false;
+    const second = createCamera(root);
+    second.viewport = new Vector4(0, 0, 0.4, 0.4);
+    second.cullingMask = Layer.Layer0;
+    second.enableFrustumCulling = false;
+    const b = createWorldSpaceCanvas(root, "B", camera, 1, 5);
+    const b0 = createVisibleImage(b.entity, "B0");
+    const a = createWorldSpaceCanvas(root, "A", camera, 0, 5);
+    const a0 = createVisibleImage(a.entity, "A0");
+    const a1 = createVisibleImage(a.entity, "A1", Layer.Layer1);
+    a1.entity.transform.position.set(250, 250, 0);
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["A0", "A1", "B0"]);
+    expect(getPaintOrder(second)).toEqual(["A0", "B0"]);
+    simulateClickAtCenter();
+    expect(b0.downCount).toBe(1);
+    expect(b0.clickCount).toBe(1);
+    expect(a0.downCount).toBe(0);
+    expect(a1.downCount).toBe(0);
+  });
+
+  it("A destroyed batch leader does not hide its surviving members before the next render", () => {
+    const root = createRoot("survivingMember");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const first = createVisibleImage(canvas.entity, "First");
+    const second = createVisibleImage(canvas.entity, "Second");
+    second.entity.getComponent(Image).sprite = first.entity.getComponent(Image).sprite;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["First"]);
+    first.entity.destroy();
+    simulateClickAtCenter();
+    expect(second.downCount).toBe(1);
+    expect(second.clickCount).toBe(1);
+  });
+
+  it("1. Single canvas raycast hits element", () => {
+    const root = createRoot("test1_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const script = createVisibleImage(canvas.entity, "Image");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["Image"]);
+
+    simulateClickAtCenter();
+
+    expect(script.downCount).toBe(1);
+    expect(script.clickCount).toBe(1);
+  });
+
+  it("2. Higher sortOrder is painted last and hit first", () => {
+    const root = createRoot("test2_root");
+    const camera = createCamera(root);
+
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
+
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 10);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage", "TopImage"]);
+
+    simulateClickAtCenter();
+
+    expect(topScript.downCount).toBe(1);
+    expect(topScript.clickCount).toBe(1);
+    expect(bottomScript.downCount).toBe(0);
+    expect(bottomScript.clickCount).toBe(0);
+  });
+
+  it("3. Same sortOrder: the nearer WorldSpace canvas is painted last and hit first", () => {
+    const root = createRoot("test3_root");
+    const camera = createCamera(root);
+
+    // Far canvas at z = 0, near canvas at z = 5 (the camera sits at z = 10)
+    const farCanvas = createWorldSpaceCanvas(root, "FarCanvas", camera, 0, 0);
+    const farScript = createVisibleImage(farCanvas.entity, "FarImage");
+
+    const nearCanvas = createWorldSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+    const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FarImage", "NearImage"]);
+
+    simulateClickAtCenter();
+
+    expect(nearScript.downCount).toBe(1);
+    expect(nearScript.clickCount).toBe(1);
+    expect(farScript.downCount).toBe(0);
+    expect(farScript.clickCount).toBe(0);
+  });
+
+  it("4. Fully tied canvases dispatch to only one target without promising paint-order agreement", () => {
+    const root = createRoot("tied");
+    const camera = createCamera(root);
+    const first = createVisibleImage(createScreenSpaceCanvas(root, "First", camera, 0, 10).entity, "FirstImage");
+    const second = createVisibleImage(createScreenSpaceCanvas(root, "Second", camera, 0, 10).entity, "SecondImage");
+    engine.update();
+    simulateClickAtCenter();
+    expect(first.downCount + second.downCount).toBe(1);
+    expect(first.clickCount + second.clickCount).toBe(1);
+  });
+
+  it("5. Same sortOrder: the nearer ScreenSpaceCamera canvas is painted last and hit first", () => {
+    const root = createRoot("test5_root");
+    const camera = createCamera(root);
+
+    const farCanvas = createScreenSpaceCanvas(root, "FarCanvas", camera, 0, 20);
+    const farScript = createVisibleImage(farCanvas.entity, "FarImage");
+
+    const nearCanvas = createScreenSpaceCanvas(root, "NearCanvas", camera, 0, 5);
+    const nearScript = createVisibleImage(nearCanvas.entity, "NearImage");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FarImage", "NearImage"]);
+
+    simulateClickAtCenter();
+
+    expect(nearScript.downCount).toBe(1);
+    expect(nearScript.clickCount).toBe(1);
+    expect(farScript.downCount).toBe(0);
+    expect(farScript.clickCount).toBe(0);
+  });
+
+  it("6. Disabling the upper canvas restores the lower canvas", () => {
+    const root = createRoot("test6_root");
+    const camera = createCamera(root);
+
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
+
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 10);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
+
+    engine.update();
+    simulateClickAtCenter();
+    expect(topScript.downCount).toBe(1);
+    expect(bottomScript.downCount).toBe(0);
+
+    topScript.reset();
+    bottomScript.reset();
+    topCanvas.entity.isActive = false;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage"]);
+
+    simulateClickAtCenter();
+    expect(topScript.downCount).toBe(0);
+    expect(bottomScript.downCount).toBe(1);
+    expect(bottomScript.clickCount).toBe(1);
+  });
+
+  it("7. A canvas culled by camera.cullingMask is neither painted nor hit", () => {
+    const root = createRoot("test7_root");
+    const camera = createCamera(root);
+
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 10);
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
+
+    // Higher sortOrder, but its layer is excluded from the camera: it must not swallow the click
+    const culledCanvas = createScreenSpaceCanvas(root, "CulledCanvas", camera, 10, 10);
+    culledCanvas.entity.layer = Layer.Layer1;
+    const culledScript = createVisibleImage(culledCanvas.entity, "CulledImage");
+
+    camera.cullingMask = Layer.Layer0;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["BottomImage"]);
+
+    simulateClickAtCenter();
+
+    expect(culledScript.downCount).toBe(0);
+    expect(culledScript.clickCount).toBe(0);
+    expect(bottomScript.downCount).toBe(1);
+    expect(bottomScript.clickCount).toBe(1);
+  });
+
+  it("8. A renderer culled by camera.cullingMask is neither painted nor hit", () => {
+    const root = createRoot("test8_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // The visible image is created first so that the culled one is scanned first by the raycast
+    const visibleScript = createVisibleImage(canvas.entity, "VisibleImage");
+    const culledScript = createVisibleImage(canvas.entity, "CulledImage", Layer.Layer1);
+
+    camera.cullingMask = Layer.Layer0;
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["VisibleImage"]);
+
+    simulateClickAtCenter();
+
+    expect(culledScript.downCount).toBe(0);
+    expect(culledScript.clickCount).toBe(0);
+    expect(visibleScript.downCount).toBe(1);
+    expect(visibleScript.clickCount).toBe(1);
+  });
+
+  it("9. Explicit priority works beyond the render queue sort window", () => {
+    const root = createRoot("test9_root");
+    const camera = createCamera(root);
+
+    // Exercise a queue larger than the insertion-sort window with unambiguous canvas priorities.
+    const fillerCanvas = createScreenSpaceCanvas(root, "FillerCanvas", camera, -10, 10);
+    for (let i = 0; i < 12; i++) {
+      createVisibleImage(fillerCanvas.entity, `Filler${i}`, undefined, false, 20);
+    }
+
+    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
+    const firstScript = createVisibleImage(firstCanvas.entity, "FirstImage");
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 1, 10);
+    const secondScript = createVisibleImage(secondCanvas.entity, "SecondImage");
+
+    engine.update();
+
+    const paintOrder = getPaintOrder(camera);
+    expect(paintOrder.length).toBe(14);
+    const topMostName = paintOrder[paintOrder.length - 1];
+
+    simulateClickAtCenter();
+
+    const hitScript = topMostName === "FirstImage" ? firstScript : secondScript;
+    const coveredScript = hitScript === firstScript ? secondScript : firstScript;
+    expect(hitScript.downCount).toBe(1);
+    expect(hitScript.clickCount).toBe(1);
+    expect(coveredScript.downCount).toBe(0);
+    expect(coveredScript.clickCount).toBe(0);
+  });
+
+  it("10. The highest-priority canvas answers from its last overlapping sibling", () => {
+    const root = createRoot("test10_root");
+    const camera = createCamera(root);
+
+    const firstCanvas = createScreenSpaceCanvas(root, "FirstCanvas", camera, 0, 10);
+    const firstScripts = [0, 1, 2].map((i) => createVisibleImage(firstCanvas.entity, `First${i}`));
+    const secondCanvas = createScreenSpaceCanvas(root, "SecondCanvas", camera, 1, 10);
+    const secondScripts = [0, 1, 2].map((i) => createVisibleImage(secondCanvas.entity, `Second${i}`));
+
+    engine.update();
+
+    const paintOrder = getPaintOrder(camera);
+    expect(paintOrder.length).toBe(6);
+    expect(paintOrder[paintOrder.length - 1]).toBe("Second2");
+
+    simulateClickAtCenter();
+
+    const topMostScript = secondScripts[2];
+    expect(topMostScript.downCount).toBe(1);
+    expect(topMostScript.clickCount).toBe(1);
+    expect(secondScripts.slice(0, -1).every((script) => script.downCount === 0 && script.clickCount === 0)).toBe(true);
+    expect(firstScripts.every((script) => script.downCount === 0 && script.clickCount === 0)).toBe(true);
+  });
+
+  it("11. Raycasting leaves the canvas registry the renderer consumes untouched", () => {
+    const root = createRoot("test11_root");
+    const camera = createCamera(root);
+
+    // Registered low-to-high while the hit order has to run the other way
+    const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 20);
+    createVisibleImage(bottomCanvas.entity, "BottomImage");
+    const middleCanvas = createScreenSpaceCanvas(root, "MiddleCanvas", camera, 5, 10);
+    createVisibleImage(middleCanvas.entity, "MiddleImage");
+    const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 5);
+    const topScript = createVisibleImage(topCanvas.entity, "TopImage");
+
+    const registryOrder = getCanvasRegistryOrder();
+    expect(registryOrder).toEqual(["BottomCanvas", "MiddleCanvas", "TopCanvas"]);
+
+    engine.update();
+    simulateClickAtCenter();
+
+    expect(topScript.downCount).toBe(1);
+    expect(getCanvasRegistryOrder()).toEqual(registryOrder);
+  });
+
+  it("12. Explicit canvas priority wins over an off-center sibling", () => {
+    const root = createRoot("test12_root");
+    const camera = createCamera(root);
+
+    // B has higher priority even though A registers later and contains more renderers.
+    const secondCanvas = createScreenSpaceCanvas(root, "CanvasB", camera, 1, 10);
+    const b0Script = createVisibleImage(secondCanvas.entity, "B0");
+
+    const firstCanvas = createScreenSpaceCanvas(root, "CanvasA", camera, 0, 10);
+    const a0Script = createVisibleImage(firstCanvas.entity, "A0");
+    const a1Script = createVisibleImage(firstCanvas.entity, "A1");
+    a1Script.entity.transform.position.set(250, 250, 0);
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["A0", "A1", "B0"]);
+
+    simulateClickAtCenter();
+
+    expect(b0Script.downCount).toBe(1);
+    expect(b0Script.clickCount).toBe(1);
+    expect(a0Script.downCount).toBe(0);
+    expect(a1Script.downCount).toBe(0);
+  });
+
+  it("13. A canvas prepared last by another camera stays hit-testable", () => {
+    const root = createRoot("test13_root");
+    const firstCamera = createCamera(root);
+
+    // Rendered after the first camera while covering only a corner, so the pointer is dispatched to the
+    // first camera even though the shared canvas was prepared from the second camera' element list
+    const secondCameraEntity = root.createChild("SecondCamera");
+    secondCameraEntity.transform.position = new Vector3(0, 0, 10);
+    const secondCamera = secondCameraEntity.addComponent(Camera);
+    secondCamera.isOrthographic = true;
+    secondCamera.viewport = new Vector4(0, 0, 0.4, 0.4);
+
+    const canvasEntity = root.createChild("Canvas");
+    const canvas = canvasEntity.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.WorldSpace;
+    canvas.camera = firstCamera;
+    canvas.sortOrder = 0;
+    // Applied after the canvas exists: `UITransform` replaces the plain `Transform` on creation
+    canvasEntity.transform.position = new Vector3(0, 0, 5);
+    const script = createVisibleImage(canvasEntity, "Image");
+
+    engine.update();
+    simulateClickAtCenter();
+
+    expect(script.downCount).toBe(1);
+    expect(script.clickCount).toBe(1);
+  });
+
+  it("14. Elements merged into one batch stay hittable in painted order", () => {
+    const root = createRoot("test14_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // Both images share one batch; hit testing still consumes the logical hierarchy directly.
+    const sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const createImage = (name: string): ClickRecordScript => {
+      const entity = canvas.entity.createChild(name);
+      const image = entity.addComponent(Image);
+      image.sprite = sprite;
+      (<UITransform>entity.transform).size.set(300, 300);
+      return entity.addComponent(ClickRecordScript);
+    };
+    const firstScript = createImage("FirstImage");
+    const secondScript = createImage("SecondImage");
+
+    engine.update();
+    expect(getPaintOrder(camera)).toEqual(["FirstImage"]);
+    // @ts-ignore the two elements above merged into that single leader
+    expect(canvas._batchedRenderElements.length).toBe(1);
+
+    simulateClickAtCenter();
+
+    expect(secondScript.downCount).toBe(1);
+    expect(secondScript.clickCount).toBe(1);
+    expect(firstScript.downCount).toBe(0);
+  });
+
+  it("15. A canvas whose elements land in different queues stays hittable", () => {
+    const root = createRoot("test15_root");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+
+    // Move the shared UI shader into the opaque queue, so this canvas holds one transparent element
+    // (Text) and one opaque element (Image) and the queue order overrides the canvas element order
+    // @ts-ignore the render state is @internal
+    const uiDefaultPass = Shader.find("2D/UIDefault").subShaders[0].passes[0];
+    // @ts-ignore
+    const previousQueueType = uiDefaultPass._renderState.renderQueueType;
+    // @ts-ignore
+    uiDefaultPass._renderState.renderQueueType = RenderQueueType.Opaque;
+    try {
+      // The text is created first, so it is the earlier canvas element while being painted last, and it
+      // is the only one covering the clicked point: the image only touches its rectangle
+      const textScript = createVisibleText(canvas.entity, "Text");
+      const imageScript = createVisibleImage(canvas.entity, "Image");
+      imageScript.entity.transform.position.set(250, 250, 0);
+
+      engine.update();
+      expect(getPaintOrder(camera)).toEqual(["Text"]);
+      // @ts-ignore the image lands in the opaque queue, which proves the mixed queue setup
+      expect(camera._renderPipeline._cullingResults.opaqueQueue.batchedElements.length).toBe(1);
+
+      simulateClickAtCenter();
+
+      expect(textScript.downCount).toBe(1);
+      expect(textScript.clickCount).toBe(1);
+      expect(imageScript.downCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      uiDefaultPass._renderState.renderQueueType = previousQueueType;
+    }
+  });
+
+  it("16. Canvas priority takes precedence over distance", () => {
+    const root = createRoot("priorityBeforeDistance");
+    const camera = createCamera(root);
+    const near = createVisibleImage(createScreenSpaceCanvas(root, "Near", camera, 0, 5).entity, "NearImage");
+    const far = createVisibleImage(createScreenSpaceCanvas(root, "Far", camera, 1, 20).entity, "FarImage");
+    engine.update();
+    simulateClickAtCenter();
+    expect(far.clickCount).toBe(1);
+    expect(near.downCount).toBe(0);
+  });
+
+  it("17. Destroyed renderers are excluded before the next render", () => {
+    const root = createRoot("removedRenderers");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const first = createVisibleImage(canvas.entity, "First");
+    const removed = createVisibleImage(canvas.entity, "Removed");
+    engine.update();
+    removed.entity.destroy();
+    simulateClickAtCenter();
+    expect(first.clickCount).toBe(1);
+    expect(removed.downCount).toBe(0);
+  });
+
+  it("18. A higher-priority canvas that misses falls through to the lower canvas", () => {
+    const root = createRoot("miss");
+    const camera = createCamera(root);
+    const lower = createVisibleImage(createScreenSpaceCanvas(root, "Lower", camera, 0, 10).entity, "LowerImage");
+    const higher = createVisibleImage(createScreenSpaceCanvas(root, "Higher", camera, 1, 10).entity, "HigherImage");
+    higher.entity.transform.position.set(400, 400, 0);
+    engine.update();
+    simulateClickAtCenter();
+    expect(lower.clickCount).toBe(1);
+    expect(higher.downCount).toBe(0);
+  });
+
+  it("Sibling reordering is honored before the next render", () => {
+    const root = createRoot("changedHierarchy");
+    const camera = createCamera(root);
+    const canvas = createScreenSpaceCanvas(root, "Canvas", camera, 0, 10);
+    const first = createVisibleImage(canvas.entity, "First");
+    const second = createVisibleImage(canvas.entity, "Second");
+    engine.update();
+    first.entity.siblingIndex = 1;
+    simulateClickAtCenter();
+    expect(first.clickCount).toBe(1);
+    expect(second.downCount).toBe(0);
+  });
+
+  it("19. A priority change is honored before the next render", () => {
+    const root = createRoot("changedPriority");
+    const camera = createCamera(root);
+    const firstCanvas = createScreenSpaceCanvas(root, "First", camera, 0, 10);
+    const first = createVisibleImage(firstCanvas.entity, "FirstImage");
+    const second = createVisibleImage(createScreenSpaceCanvas(root, "Second", camera, 1, 10).entity, "SecondImage");
+    engine.update();
+    firstCanvas.sortOrder = 2;
+    simulateClickAtCenter();
+    expect(first.clickCount).toBe(1);
+    expect(second.downCount).toBe(0);
+  });
+});
