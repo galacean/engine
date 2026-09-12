@@ -204,7 +204,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
-   * The rendering order priority of the UI canvas in `ScreenSpaceOverlay` mode.
+   * The rendering priority of the canvas.
    */
   get sortOrder(): number {
     return this._sortOrder;
@@ -323,11 +323,9 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      // Filter by camera culling mask
       if (!(cullingMask & renderer.entity.layer)) {
         continue;
       }
-      // Filter by camera frustum
       if (enableFrustumCulling) {
         switch (mode) {
           case CanvasRenderMode.ScreenSpaceOverlay:

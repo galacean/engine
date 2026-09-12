@@ -41,9 +41,8 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
-      // Overlay Canvas
       const overlayCanvases = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
-      // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
+      // Convert screen coordinates to overlay coordinates.
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = overlayCanvases.length - 1; j >= 0; j--) {
@@ -68,7 +67,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        // Sort a scratch list, not the registry consumed by rendering.
+        // Preserve the canvas registry order.
         const candidates = this._raycastCanvases;
         const canvases = componentsManager._canvases;
         const { isOrthographic, farClipPlane, cullingMask } = camera;
@@ -80,8 +79,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
             candidates.push(canvas);
           }
         }
-        // Higher priority first, then nearer distance; fully tied canvases have no
-        // guaranteed visual hit order. Within each canvas, use reverse hierarchy order.
+        // Fully tied canvases may differ in hit and draw order.
         candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
         for (let k = 0, n = candidates.length; k < n; k++) {
           if (candidates[k]._raycast(ray, hitResult, farClipPlane, cullingMask)) {
