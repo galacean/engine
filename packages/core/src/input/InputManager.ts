@@ -184,6 +184,13 @@ export class InputManager {
   /**
    * @internal
    */
+  _gc(): void {
+    this._initialized && this._pointerManager._gc();
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     if (this._initialized) {
       this._wheelManager._destroy();
