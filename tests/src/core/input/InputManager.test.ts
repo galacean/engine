@@ -198,6 +198,12 @@ describe("InputManager", async () => {
     target.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
     target.dispatchEvent(generateKeyboardEvent("keyup", "MetaRight"));
     expect(inputManager.isKeyHeldDown(Keys.KeyA)).to.eq(false);
+
+    // The events above are queued but never consumed by an `update` in this case. Reset the keyboard
+    // state so the pending `KeyA` keydown does not leak into later cases (it otherwise stays held down
+    // on non-mac platforms, where the meta-key cleanup in KeyboardManager does not run).
+    target.dispatchEvent(new Event("blur"));
+    engine.update();
   });
 
   it("wheel", () => {
