@@ -1,6 +1,11 @@
 # Resource Ownership
 
-Use this reference when deciding whether an object should be shared, cloned, garbage-collected, or explicitly destroyed.
+Use this reference when resolving a runtime resource load, or deciding whether an object should be shared, cloned, garbage-collected, or explicitly destroyed.
+
+## Runtime resource loading
+
+- `resourceManager.load()` resolves an exact `virtualPath` registered through `ResourceManager.registerVirtualResources()` to its backing URL. Every other input is fetched as a URL, with a relative one resolved against `resourceManager.baseUrl` when it is set.
+- Loading never reads a host filesystem path, so a disk or project path becomes an ordinary HTTP request instead of a local file read.
 
 ## Reference-counted resources
 
