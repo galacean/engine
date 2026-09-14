@@ -18,6 +18,10 @@ import { UIHitResult } from "./UIHitResult";
  */
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
+  private static _compareRaycastOrder(a: UICanvas, b: UICanvas): number {
+    return b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance;
+  }
+
   private static _MAX_PATH_DEPTH = 2048;
   private static _tempSet: Set<number> = new Set();
   private static _path: Entity[] = [];
@@ -27,7 +31,6 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _enteredPath: Entity[] = [];
   private _pressedPath: Entity[] = [];
   private _draggedPath: Entity[] = [];
-  private _raycastCanvases: UICanvas[] = [];
 
   _init(): void {
     this._hitResult = new UIHitResult();
@@ -42,12 +45,12 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
       const componentsManager = scene._componentsManager;
-      const overlayCanvases = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
+      let canvasElements = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
       // Convert screen coordinates to overlay coordinates.
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
-      for (let j = overlayCanvases.length - 1; j >= 0; j--) {
-        if (overlayCanvases.get(j)._raycast(ray, hitResult, Number.MAX_SAFE_INTEGER, Layer.Everything)) {
+      for (let j = canvasElements.length - 1; j >= 0; j--) {
+        if (canvasElements.get(j)._raycast(ray, hitResult, Number.MAX_SAFE_INTEGER, Layer.Everything)) {
           this._updateRaycast(hitResult.component, pointer);
           return;
         }
@@ -68,28 +71,26 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        // Preserve the canvas registry order.
-        const candidates = this._raycastCanvases;
-        const canvases = componentsManager._canvases;
+        canvasElements = componentsManager._canvases as DisorderedArray<UICanvas>;
         const { isOrthographic, farClipPlane, cullingMask } = camera;
         const { worldPosition, worldForward } = camera.entity.transform;
-        for (let k = 0, n = canvases.length; k < n; k++) {
-          const canvas = canvases.get(k) as UICanvas;
-          if (canvas._canDispatchEvent(camera)) {
-            canvas._updateSortDistance(isOrthographic, worldPosition, worldForward);
-            candidates.push(canvas);
-          }
+        for (let k = 0, n = canvasElements.length; k < n; k++) {
+          canvasElements.get(k)._updateSortDistance(isOrthographic, worldPosition, worldForward);
+        }
+        canvasElements.sort(UIPointerEventEmitter._compareRaycastOrder);
+        // Update registry indices after sorting.
+        for (let k = 0, n = canvasElements.length; k < n; k++) {
+          canvasElements.get(k)._canvasIndex = k;
         }
         // Fully tied canvases may differ in hit and draw order.
-        candidates.sort((a, b) => b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance);
-        for (let k = 0, n = candidates.length; k < n; k++) {
-          if (candidates[k]._raycast(ray, hitResult, farClipPlane, cullingMask)) {
-            candidates.length = 0;
+        for (let k = 0, n = canvasElements.length; k < n; k++) {
+          const canvas = canvasElements.get(k);
+          if (!canvas._canDispatchEvent(camera)) continue;
+          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) {
             this._updateRaycast(hitResult.component, pointer);
             return;
           }
         }
-        candidates.length = 0;
         if (camera.clearFlags & CameraClearFlags.Color) {
           this._updateRaycast(null);
           return;

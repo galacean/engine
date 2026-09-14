@@ -142,15 +142,19 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     return transparentQueue.batchedElements.map((element) => element.component.entity.name);
   }
 
-  /** Registration order of the canvases the renderer consumes, which the hit test must not touch. */
-  function getCanvasRegistryOrder(): string[] {
+  function expectCanvasRegistry(expected: UICanvas[]): void {
     // @ts-ignore
     const canvases = scene._componentsManager._canvases;
-    const names: string[] = [];
+    expect(canvases.length).toBe(expected.length);
+    const actual: UICanvas[] = [];
     for (let i = 0; i < canvases.length; i++) {
-      names.push(canvases.get(i).entity.name);
+      const canvas = canvases.get(i) as UICanvas;
+      expect(canvas._canvasIndex).toBe(i);
+      actual.push(canvas);
     }
-    return names;
+    for (const canvas of expected) {
+      expect(actual.filter((entry) => entry === canvas).length).toBe(1);
+    }
   }
 
   afterEach(() => {
@@ -422,26 +426,45 @@ describe("UIPointerEventEmitter Multi-Canvas Raycast", async () => {
     expect(firstScripts.every((script) => script.downCount === 0 && script.clickCount === 0)).toBe(true);
   });
 
-  it("11. Raycasting leaves the canvas registry the renderer consumes untouched", () => {
+  it("11. Raycast sorting preserves canvas indices and lifecycle operations", () => {
     const root = createRoot("test11_root");
     const camera = createCamera(root);
 
     // Registered low-to-high while the hit order has to run the other way
     const bottomCanvas = createScreenSpaceCanvas(root, "BottomCanvas", camera, 0, 20);
-    createVisibleImage(bottomCanvas.entity, "BottomImage");
+    const bottomScript = createVisibleImage(bottomCanvas.entity, "BottomImage");
     const middleCanvas = createScreenSpaceCanvas(root, "MiddleCanvas", camera, 5, 10);
-    createVisibleImage(middleCanvas.entity, "MiddleImage");
+    const middleScript = createVisibleImage(middleCanvas.entity, "MiddleImage");
     const topCanvas = createScreenSpaceCanvas(root, "TopCanvas", camera, 10, 5);
     const topScript = createVisibleImage(topCanvas.entity, "TopImage");
 
-    const registryOrder = getCanvasRegistryOrder();
-    expect(registryOrder).toEqual(["BottomCanvas", "MiddleCanvas", "TopCanvas"]);
+    expectCanvasRegistry([bottomCanvas, middleCanvas, topCanvas]);
 
     engine.update();
     simulateClickAtCenter();
 
     expect(topScript.downCount).toBe(1);
-    expect(getCanvasRegistryOrder()).toEqual(registryOrder);
+    expect(topScript.clickCount).toBe(1);
+    expect(middleScript.downCount).toBe(0);
+    expect(bottomScript.downCount).toBe(0);
+    expectCanvasRegistry([bottomCanvas, middleCanvas, topCanvas]);
+
+    topCanvas.enabled = false;
+    expectCanvasRegistry([bottomCanvas, middleCanvas]);
+    expect(topCanvas._canvasIndex).toBe(-1);
+
+    topCanvas.enabled = true;
+    expectCanvasRegistry([bottomCanvas, middleCanvas, topCanvas]);
+    simulateClickAtCenter();
+    expect(topScript.clickCount).toBe(2);
+    expectCanvasRegistry([bottomCanvas, middleCanvas, topCanvas]);
+
+    topCanvas.entity.destroy();
+    expectCanvasRegistry([bottomCanvas, middleCanvas]);
+    simulateClickAtCenter();
+    expect(middleScript.clickCount).toBe(1);
+    expect(bottomScript.downCount).toBe(0);
+    expectCanvasRegistry([bottomCanvas, middleCanvas]);
   });
 
   it("12. Explicit canvas priority wins over an off-center sibling", () => {
