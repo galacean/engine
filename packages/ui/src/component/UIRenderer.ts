@@ -225,7 +225,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
     const plane = UIRenderer._tempPlane;
     const transform = <UITransform>this._transformEntity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
