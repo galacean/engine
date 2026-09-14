@@ -4,7 +4,8 @@ Use this reference when resolving a runtime resource load, or deciding whether a
 
 ## Runtime resource loading
 
-- `resourceManager.load()` resolves an exact `virtualPath` registered through `ResourceManager.registerVirtualResources()` to its backing URL. Every other input is fetched as a URL, with a relative one resolved against `resourceManager.baseUrl` when it is set.
+- `resourceManager.load()` resolves an exact `virtualPath` registered through `ResourceManager.registerVirtualResources()` to its backing URL. Every other input is treated as a URL, with a relative one resolved against `resourceManager.baseUrl` when it is set.
+- ResourceManager keys its cache and in-flight loads by that resolved URL, so a repeat load reuses the cached resource or the pending load instead of requesting again; only a load that misses both reaches the Loader.
 - Loading never reads a host filesystem path, so a disk or project path becomes an ordinary HTTP request instead of a local file read.
 
 ## Reference-counted resources
