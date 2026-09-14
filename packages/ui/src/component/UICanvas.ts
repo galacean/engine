@@ -253,12 +253,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  _raycast(
-    ray: Ray,
-    out: UIHitResult,
-    distance: number = Number.MAX_SAFE_INTEGER,
-    cullingMask: Layer = Layer.Everything
-  ): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number, cullingMask: Layer): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];

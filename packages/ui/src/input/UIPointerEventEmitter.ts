@@ -2,6 +2,7 @@ import {
   CameraClearFlags,
   DisorderedArray,
   Entity,
+  Layer,
   Pointer,
   PointerEventData,
   PointerEventEmitter,
@@ -46,7 +47,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = overlayCanvases.length - 1; j >= 0; j--) {
-        if (overlayCanvases.get(j)._raycast(ray, hitResult)) {
+        if (overlayCanvases.get(j)._raycast(ray, hitResult, Number.MAX_SAFE_INTEGER, Layer.Everything)) {
           this._updateRaycast(hitResult.component, pointer);
           return;
         }
