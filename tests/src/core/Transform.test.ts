@@ -1,5 +1,15 @@
-import { deepClone, Entity, ICloneHook, Scene, Script, Transform } from "@galacean/engine-core";
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import {
+  deepClone,
+  dependentComponents,
+  DependentMode,
+  Entity,
+  ICloneHook,
+  MeshRenderer,
+  Scene,
+  Script,
+  Transform
+} from "@galacean/engine-core";
+import { Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -112,16 +122,333 @@ describe("Transform test", function () {
 
     // Add component
     const preTransform0 = entity0.transform;
+    const meshRenderer = entity0.addComponent(MeshRenderer);
+    const transformIndex = entity0._components.indexOf(preTransform0);
     entity0.addComponent(SubClassOfTransform);
     expect(preTransform0.destroyed).to.equal(true);
     expect(entity0.transform instanceof Transform).to.equal(true);
     expect(entity0.transform instanceof SubClassOfTransform).to.equal(true);
+    expect(entity0._components[transformIndex]).to.equal(entity0.transform);
+    expect(entity0._components.indexOf(meshRenderer)).to.equal(1);
+    expect(entity0.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(entity0.transform.rotation.x).to.be.approximately(0, 1e-6);
+    expect(entity0.transform.rotation.y).to.be.approximately(45, 1e-6);
+    expect(entity0.transform.rotation.z).to.be.approximately(0, 1e-6);
+    expect(entity0.transform.scale).to.deep.include({ x: 1, y: 2, z: 3 });
 
     const preTransform1 = entity1.transform;
+    const meshRenderer1 = entity1.addComponent(MeshRenderer);
+    const transformIndex1 = entity1._components.indexOf(preTransform1);
     entity1.addComponent(Transform);
     expect(preTransform1.destroyed).to.equal(true);
     expect(entity1.transform instanceof Transform).to.equal(true);
     expect(entity1.transform instanceof SubClassOfTransform).to.equal(false);
+    expect(entity1._components[transformIndex1]).to.equal(entity1.transform);
+    expect(entity1._components.indexOf(meshRenderer1)).to.equal(1);
+    expect(entity1.transform.position).to.deep.include({ x: 4, y: 5, z: 6 });
+    expect(entity1.transform.rotation.x).to.be.approximately(0, 1e-6);
+    expect(entity1.transform.rotation.y).to.be.approximately(90, 1e-6);
+    expect(entity1.transform.rotation.z).to.be.approximately(0, 1e-6);
+    expect(entity1.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
+  });
+
+  it("installs the final Transform before constructor components", () => {
+    const entityWithRenderer = new Entity(engine, "entity-with-renderer", MeshRenderer);
+    expect(entityWithRenderer._components[0]).to.equal(entityWithRenderer.transform);
+    expect(entityWithRenderer.getComponent(MeshRenderer)).not.to.equal(null);
+
+    const entityWithLateTransform = new Entity(
+      engine,
+      "entity-with-late-transform",
+      MeshRenderer,
+      Transform,
+      SubClassOfTransform
+    );
+    const transforms: Transform[] = [];
+    entityWithLateTransform.getComponents(Transform, transforms);
+    expect(transforms).to.deep.equal([entityWithLateTransform.transform]);
+    expect(entityWithLateTransform.transform).to.be.instanceOf(SubClassOfTransform);
+    expect(entityWithLateTransform._components[0]).to.equal(entityWithLateTransform.transform);
+    expect(entityWithLateTransform._components[1]).to.be.instanceOf(MeshRenderer);
+
+    const clone = entityWithLateTransform.clone();
+    expect(clone.transform).to.be.instanceOf(SubClassOfTransform);
+    expect(clone._components[0]).to.equal(clone.transform);
+    expect(clone._components.map((component) => component.constructor)).to.deep.equal(
+      entityWithLateTransform._components.map((component) => component.constructor)
+    );
+  });
+
+  it("clones components that depend on the final Transform subtype", () => {
+    const source = new Entity(engine, "dependent-transform-clone", SubClassOfTransform);
+    source.addComponent(RequiresSubClassOfTransform);
+
+    const clone = source.clone();
+    expect(clone.transform).to.be.instanceOf(SubClassOfTransform);
+    expect(clone._components[0]).to.equal(clone.transform);
+    expect(clone.getComponent(RequiresSubClassOfTransform)).not.to.equal(null);
+    expect(clone._components.map((component) => component.constructor)).to.deep.equal(
+      source._components.map((component) => component.constructor)
+    );
+  });
+
+  it("keeps a single Transform while destruction is deferred", () => {
+    const deferredEntity = new Entity(engine, "deferred-transform");
+    const previous = deferredEntity.transform;
+    let replacement: SubClassOfTransform;
+
+    engine._frameInProcess = true;
+    try {
+      replacement = deferredEntity.addComponent(SubClassOfTransform);
+      const transforms: Transform[] = [];
+      deferredEntity.getComponents(Transform, transforms);
+      expect(previous.pendingDestroy).to.equal(true);
+      expect(transforms).to.deep.equal([replacement]);
+      expect(deferredEntity._components[0]).to.equal(replacement);
+    } finally {
+      engine._frameInProcess = false;
+      previous.destroy();
+    }
+
+    const transforms: Transform[] = [];
+    deferredEntity.getComponents(Transform, transforms);
+    expect(previous.destroyed).to.equal(true);
+    expect(deferredEntity.transform).to.equal(replacement);
+    expect(transforms).to.deep.equal([replacement]);
+  });
+
+  it("rejects Transform replacement before construction when a dependency prevents it", () => {
+    let constructed = false;
+    class ReplacementTransform extends Transform {
+      constructor(entity: Entity) {
+        super(entity);
+        constructed = true;
+      }
+    }
+
+    const dependentEntity = new Entity(engine, "dependent-transform", SubClassOfTransform);
+    const previous = dependentEntity.transform;
+    dependentEntity.addComponent(RequiresSubClassOfTransform);
+
+    expect(() => dependentEntity.addComponent(ReplacementTransform)).to.throw(
+      "Should remove RequiresSubClassOfTransform before remove SubClassOfTransform"
+    );
+    // Validation runs before construction, so no replacement is ever allocated.
+    expect(constructed).to.equal(false);
+    const transforms: Transform[] = [];
+    dependentEntity.getComponents(Transform, transforms);
+    expect(dependentEntity.transform).to.equal(previous);
+    expect(transforms).to.deep.equal([previous]);
+    expect(dependentEntity._components[0]).to.equal(previous);
+  });
+
+  it("keeps the previous Transform when replacement construction fails", () => {
+    const entity = new Entity(engine, "failed-transform-replacement");
+    const previous = entity.transform;
+    previous.position.set(1, 2, 3);
+
+    expect(() => entity.addComponent(ThrowingReplacementTransform)).to.throw("transform construction failed");
+    expect(entity.transform).to.equal(previous);
+    expect(entity._components).to.deep.equal([previous]);
+    expect(previous.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(previous.destroyed).to.equal(false);
+  });
+
+  it.each([CheckOnlyDependentTransform, AutoAddDependentTransform, InheritedDependentTransform])(
+    "rejects dependencies declared by Transform-compatible components: %s",
+    (type) => {
+      const message = `Transform-compatible component ${type.name} cannot declare component dependencies`;
+      expect(() => new Entity(engine, "invalid-transform", type)).to.throw(message);
+
+      const entity = new Entity(engine, "invalid-replacement");
+      const previous = entity.transform;
+      expect(() => entity.addComponent(type)).to.throw(message);
+      expect(entity.transform).to.equal(previous);
+      expect(entity._components).to.deep.equal([previous]);
+      expect(() => entity.destroy()).not.to.throw();
+      expect(previous.destroyed).to.equal(true);
+    }
+  );
+
+  it("installs AutoAdd dependencies before component construction and destroys the complete entity", () => {
+    @dependentComponents(SubClassOfTransform, DependentMode.AutoAdd)
+    class TransformReader extends Script {
+      constructor(entity: Entity) {
+        super(entity);
+        expect(entity.transform).to.be.instanceOf(SubClassOfTransform);
+        expect(entity.getComponent(SubClassOfTransform)).to.equal(entity.transform);
+      }
+    }
+
+    const entity = new Entity(engine, "auto-transform-dependency");
+    const reader = entity.addComponent(TransformReader);
+    const transform = entity.transform;
+    expect(entity._components).to.deep.equal([transform, reader]);
+    expect(() => entity.destroy()).not.to.throw();
+    expect(reader.destroyed).to.equal(true);
+    expect(transform.destroyed).to.equal(true);
+    expect(entity._components).to.have.lengthOf(0);
+  });
+
+  it.each([false, true])(
+    "allows component additions from a compatible Transform constructor (initial: %s)",
+    (initial) => {
+      class AddingTransform extends Transform {
+        constructor(entity: Entity) {
+          super(entity);
+          entity.addComponent(CloneTailComponent);
+        }
+      }
+
+      const entity = new Entity(engine, "constructor-component", ...(initial ? [AddingTransform] : []));
+      const replacement = initial ? entity.transform : entity.addComponent(AddingTransform);
+      expect(entity.transform).to.equal(replacement);
+      expect(entity._components[0].instanceId).to.equal(replacement.instanceId);
+      expect(entity.getComponent(CloneTailComponent)).not.to.equal(null);
+      expect(() => entity.destroy()).not.to.throw();
+    }
+  );
+
+  it("updates cached child world transforms after replacing the parent Transform", () => {
+    const entity = scene.createRootEntity("replacement-child-cache");
+    entity.transform.setPosition(1, 2, 3);
+    const child = entity.createChild();
+    child.transform.setPosition(4, 5, 6);
+    expect(child.transform.worldPosition).to.deep.include({ x: 5, y: 7, z: 9 });
+    expect(Array.from(child.transform.worldMatrix.elements.slice(12, 15))).to.deep.equal([5, 7, 9]);
+
+    const previous = entity.transform;
+    const replacement = entity.addComponent(SubClassOfTransform);
+    replacement.setPosition(10, 20, 30);
+
+    expect(child.transform.worldPosition).to.deep.include({ x: 14, y: 25, z: 36 });
+    expect(Array.from(child.transform.worldMatrix.elements.slice(12, 15))).to.deep.equal([14, 25, 36]);
+    expect(previous.destroyed).to.equal(true);
+    entity.destroy();
+  });
+
+  it("preserves quaternion-authored rotation while replacing Transform", () => {
+    const entity = new Entity(engine, "quaternion-transform");
+    const expected = new Quaternion();
+    Quaternion.rotationEuler(Math.PI / 2 - 1e-7, 0.4, -0.2, expected);
+    entity.transform.rotationQuaternion = expected;
+
+    entity.addComponent(SubClassOfTransform);
+
+    expect(Math.abs(Quaternion.dot(entity.transform.rotationQuaternion, expected))).to.be.approximately(1, 1e-6);
+  });
+
+  it.each(["replacement", "clone"])("refreshes constructor-read world caches after %s", (operation) => {
+    class ReadingTransform extends Transform {
+      constructor(entity: Entity) {
+        super(entity);
+        void this.worldPosition;
+        void this.worldRotation;
+        void this.worldRotationQuaternion;
+        void this.lossyWorldScale;
+        void this.worldMatrix;
+      }
+    }
+
+    const source = new Entity(engine, "cached-pose", ReadingTransform);
+    source.transform.setPosition(10, 20, 30);
+    source.transform.setRotation(0, 190, 0);
+    source.transform.setScale(2, 3, 4);
+    const expectedRotation = source.transform.worldRotation.clone();
+    const expectedQuaternion = source.transform.worldRotationQuaternion.clone();
+    const expectedMatrix = source.transform.worldMatrix.clone();
+
+    const target = operation === "replacement" ? source.addComponent(ReadingTransform) : source.clone().transform;
+    expect(target.rotation).to.deep.include({ x: 0, y: 190, z: 0 });
+    expect(target.worldPosition).to.deep.include({ x: 10, y: 20, z: 30 });
+    expect(Vector3.equals(target.worldRotation, expectedRotation)).to.equal(true);
+    expect(Quaternion.equals(target.worldRotationQuaternion, expectedQuaternion)).to.equal(true);
+    expect(target.lossyWorldScale).to.deep.include({ x: 2, y: 3, z: 4 });
+    expect(Array.from(target.worldMatrix.elements)).to.deep.equal(Array.from(expectedMatrix.elements));
+
+    target.setPosition(40, 50, 60);
+    expect(target.worldPosition).to.deep.include({ x: 40, y: 50, z: 60 });
+    target.setScale(5, 6, 7);
+    expect(target.lossyWorldScale).to.deep.include({ x: 5, y: 6, z: 7 });
+    target.setRotation(0, 0, 0);
+    expect(target.worldRotationQuaternion).to.deep.include({ x: 0, y: 0, z: 0, w: 1 });
+    target.rotationQuaternion.set(0, 0.6, 0, 0.8);
+    expect(target.worldRotationQuaternion).to.deep.include({ x: 0, y: 0.6, z: 0, w: 0.8 });
+
+    if (operation === "clone") {
+      target.entity.destroy();
+    }
+    source.destroy();
+  });
+
+  it("preserves a non-canonical euler rotation across replacement", () => {
+    const entity = new Entity(engine, "non-canonical-euler");
+    entity.transform.setRotation(0, 190, 0);
+
+    entity.addComponent(SubClassOfTransform);
+
+    // The euler representation is authoritative, so it must survive verbatim instead of
+    // being re-derived from the equivalent quaternion (which would yield -170).
+    expect(entity.transform.rotation.x).to.be.approximately(0, 1e-9);
+    expect(entity.transform.rotation.y).to.be.approximately(190, 1e-9);
+    expect(entity.transform.rotation.z).to.be.approximately(0, 1e-9);
+  });
+
+  it("preserves euler rotation at gimbal lock across replacement", () => {
+    const entity = new Entity(engine, "gimbal-lock-euler");
+    entity.transform.setRotation(90, 0, 30);
+
+    entity.addComponent(SubClassOfTransform);
+
+    // At pitch 90 the quaternion loses the roll/yaw split, so a quaternion round trip would
+    // renormalize this pose to (90, -30, 0).
+    expect(entity.transform.rotation.x).to.be.approximately(90, 1e-9);
+    expect(entity.transform.rotation.y).to.be.approximately(0, 1e-9);
+    expect(entity.transform.rotation.z).to.be.approximately(30, 1e-9);
+  });
+
+  it("does not allow the current Transform to be destroyed directly", () => {
+    const entity = new Entity(engine, "destroy-transform");
+    const transform = entity.transform;
+
+    expect(() => transform.destroy()).to.throw(
+      "Transform cannot be destroyed directly; replace it by adding another Transform-compatible component"
+    );
+    expect(transform.destroyed).to.equal(false);
+    expect(entity.transform).to.equal(transform);
+    expect(entity._components).to.deep.equal([transform]);
+  });
+
+  it("keeps component lists and references correct across nested clones", () => {
+    const nestedSource = new Entity(engine, "nested-source");
+    const source = new Entity(engine, "outer-source");
+    const nestedComponent = source.addComponent(NestedCloneComponent);
+    const tailComponent = source.addComponent(CloneTailComponent);
+    nestedComponent.reference = tailComponent;
+
+    NestedCloneComponent.source = nestedSource;
+    const clone = source.clone();
+
+    expect(NestedCloneComponent.result._components).to.deep.equal([NestedCloneComponent.result.transform]);
+    const clonedTail = clone.getComponent(CloneTailComponent);
+    expect(clonedTail).not.to.equal(tailComponent);
+    expect(clone.getComponent(NestedCloneComponent).reference).to.equal(clonedTail);
+  });
+
+  it("does not leak component constructors after a failed clone", () => {
+    const source = new Entity(engine, "failed-clone");
+    source.addComponent(ThrowingCloneComponent);
+
+    ThrowingCloneComponent.throwOnConstruction = true;
+    try {
+      expect(() => source.clone()).to.throw("clone construction failed");
+    } finally {
+      ThrowingCloneComponent.throwOnConstruction = false;
+    }
+
+    const unrelated = new Entity(engine, "unrelated-clone");
+    const clone = unrelated.clone();
+    expect(clone._components).to.deep.equal([clone.transform]);
   });
 
   it("clone with worldMatrix listener should not produce stale parent cache after reparent", () => {
@@ -190,4 +517,51 @@ describe("Transform test", function () {
 class SubClassOfTransform extends Transform {
   @deepClone
   size: Vector2 = new Vector2();
+}
+
+@dependentComponents(SubClassOfTransform, DependentMode.CheckOnly)
+class RequiresSubClassOfTransform extends Script {}
+
+@dependentComponents(MeshRenderer, DependentMode.CheckOnly)
+class CheckOnlyDependentTransform extends Transform {}
+
+@dependentComponents(MeshRenderer, DependentMode.AutoAdd)
+class AutoAddDependentTransform extends Transform {}
+
+class InheritedDependentTransform extends AutoAddDependentTransform {}
+
+class ThrowingReplacementTransform extends Transform {
+  constructor(entity: Entity) {
+    super(entity);
+    throw "transform construction failed";
+  }
+}
+
+class NestedCloneComponent extends Script {
+  static source: Entity;
+  static result: Entity;
+
+  reference: CloneTailComponent;
+
+  constructor(entity: Entity) {
+    super(entity);
+    if (NestedCloneComponent.source) {
+      const source = NestedCloneComponent.source;
+      NestedCloneComponent.source = null;
+      NestedCloneComponent.result = source.clone();
+    }
+  }
+}
+
+class CloneTailComponent extends Script {}
+
+class ThrowingCloneComponent extends Script {
+  static throwOnConstruction = false;
+
+  constructor(entity: Entity) {
+    super(entity);
+    if (ThrowingCloneComponent.throwOnConstruction) {
+      throw "clone construction failed";
+    }
+  }
 }

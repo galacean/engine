@@ -86,6 +86,8 @@ export async function screenshotWithThreshold(page: Page, options: ScreenshotOpt
     );
   }
 
-  console.log(`✅ [${testId}] Test passed (${Date.now() - startTime}ms total)`);
+  console.log(
+    `✅ [${testId}] Test passed (difference: ${"diffPercentage" in result ? result.diffPercentage : 0}%, ${Date.now() - startTime}ms total)`
+  );
   return result;
 }
