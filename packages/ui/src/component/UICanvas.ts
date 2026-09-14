@@ -291,8 +291,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    * @internal
    */
   _canDispatchEvent(camera: Camera): boolean {
-    const realMode = this._realRenderMode;
-    if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
     }
     if (!(camera.cullingMask & this.entity.layer)) {
