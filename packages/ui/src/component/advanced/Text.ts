@@ -82,11 +82,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The font rasterization size in pixels.
-   * @remarks
-   * At the root canvas's default referenceResolutionPerUnit of 100, font pixels map to local UI
-   * layout units. The canvas and entity transforms then scale the rendered text; do not divide
-   * fontSize by referenceResolutionPerUnit when authoring screen-space UI.
+   * Font rasterization size in pixels.
+   * @remarks One font pixel equals one local layout unit when referenceResolutionPerUnit is 100.
    */
   get fontSize(): number {
     return this._fontSize;
