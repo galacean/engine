@@ -95,7 +95,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
-   * The conversion ratio between reference resolution and unit for UI elements in this canvas.
+   * The number of canvas-local layout units per world unit of sprite and text geometry. Defaults to 100.
+   * @remarks
+   * Scales text glyphs and the sprite dimensions used by sliced or tiled Images.
+   * It does not divide UITransform positions or sizes. In screen-space modes, author layout in
+   * reference-resolution units; {@link referenceResolution} and {@link resolutionAdaptationMode} handle screen scaling.
    */
   get referenceResolutionPerUnit(): number {
     return this._referenceResolutionPerUnit;
@@ -112,6 +116,10 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   /**
    * The reference resolution of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
+   * @remarks
+   * Defines the design coordinate space for UI layout. For a 720 by 1280 reference resolution,
+   * a child with local width 200 uses UITransform.size.x = 200, before any child or ancestor scaling.
+   * The root canvas transform is sized and scaled automatically to the target screen or camera view.
    */
   get referenceResolution(): Vector2 {
     return this._referenceResolution;

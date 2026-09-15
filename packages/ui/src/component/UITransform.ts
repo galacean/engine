@@ -22,7 +22,11 @@ export class UITransform extends Transform {
   private _verticalAlignment = VerticalAlignmentMode.None;
 
   /**
-   * Width and height of UI element.
+   * Width and height of the UI element in local layout units, before transform scaling.
+   * @remarks
+   * Screen-space canvas layout uses reference-resolution units, not Sprite world units.
+   * For an Image at its sprite's native size, multiply Sprite.width and Sprite.height by the root
+   * canvas's referenceResolutionPerUnit. Do not divide an existing UI layout size by that ratio.
    */
   get size(): Vector2 {
     return this._size;
