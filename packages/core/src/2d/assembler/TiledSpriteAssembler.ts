@@ -188,7 +188,12 @@ export class TiledSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
+    // 16 UV column-major: [0]=LB(left,bottom), [5]=border-LB(bLeft,bBottom), [10]=border-RT(bRight,bTop), [15]=RT(right,top)
+    const allUVs = sprite._getUVs();
+    const spriteUV0 = allUVs[0];
+    const spriteUV1 = allUVs[5];
+    const spriteUV2 = allUVs[10];
+    const spriteUV3 = allUVs[15];
     const expectWidth = sprite.width * referenceResolutionPerUnit;
     const expectHeight = sprite.height * referenceResolutionPerUnit;
     const fixedL = expectWidth * border.x;
