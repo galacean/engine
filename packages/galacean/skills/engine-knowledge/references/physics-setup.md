@@ -10,6 +10,24 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 - A kinematic dynamic body is application-owned. Use its supported path-motion operation when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
 - After simulation, the native pose of an active non-kinematic body is written back to its Transform.
 
+## Scene gravity
+
+- Gravity belongs to each Scene's `PhysicsScene` and is exposed as `scene.physics.gravity`. It is not an `Engine.physicsManager` setting.
+- When the host has configured a physics provider, a project Script can set a Scene's gravity once before its first physics step:
+
+```ts
+import { Script, Vector3 } from "@galacean/engine";
+
+export default class SceneGravity extends Script {
+  onAwake(): void {
+    this.entity.scene.physics.gravity = new Vector3(0, -10, 0);
+  }
+}
+```
+
+- `onStart` is also valid when the Script only needs to run before its first frame-level update. Do not rewrite an unchanged gravity every frame.
+- Physics-provider creation and initialization belong to the host's Engine bootstrap. A project Script that only sets gravity must not import or initialize a provider itself.
+
 ## Fixed-step order
 
 Within a physics step, active Scripts receive `onPhysicsUpdate`, pending Transform poses are synchronized to native colliders, the provider simulates, dynamic poses are read back, and collision or trigger events are dispatched.
