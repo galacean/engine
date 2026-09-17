@@ -3,9 +3,6 @@ name: Release Editor Kit
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: 'CDN alias for this branch ecosystem packages (e.g. engine-2.0)'
-        required: true
       use_npm:
         description: 'Use npm packages instead of building from source'
         type: boolean
@@ -55,12 +52,12 @@ jobs:
             BUILD_OFFICIAL_ARG="--build-official"
           fi
           
-          ./scripts/build-editor-preload.js --version=${{ github.event.inputs.version }} $USE_NPM_ARG $BUILD_OFFICIAL_ARG
+          ./scripts/build-editor-preload.js $USE_NPM_ARG $BUILD_OFFICIAL_ARG
 
       - name: Verify ecosystem bundle in Chromium
         run: |
           pnpm exec playwright install --with-deps chromium
-          node scripts/test-editor-preload.js
+          node scripts/test-editor-preload.js "$(node -p 'require("./package.json").version')" ${{ inputs.build_official && '--build-official' || '' }}
 
       - name: Release packages and Sync to CDN
         uses: galacean/publish@main

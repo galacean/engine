@@ -7,8 +7,6 @@ const config = require("./editor-preload-config");
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const versionArg = args.find((arg) => arg.startsWith("--version="));
-const ecosystemVersion = versionArg ? versionArg.split("=")[1] : "1.0.0";
 const useNpmArg = args.includes("--use-npm");
 const skipBuildArg = args.includes("--skip-build");
 const buildOfficialArg = args.includes("--build-official");
@@ -16,6 +14,8 @@ const buildOfficialArg = args.includes("--build-official");
 // Get engine version from package.json
 const enginePackageJson = require(path.join(process.cwd(), "package.json"));
 const engineVersion = enginePackageJson.version;
+// The host selects ecosystem bundles by Engine major.minor, not a package version.
+const ecosystemVersion = `engine-${engineVersion.split(".").slice(0, 2).join(".")}`;
 
 console.log(`Engine version: ${engineVersion}`);
 console.log(`Ecosystem version: ${ecosystemVersion}`);
