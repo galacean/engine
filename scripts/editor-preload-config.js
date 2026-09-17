@@ -41,13 +41,11 @@ module.exports = {
       packages: [
         {
           name: "@galacean/engine-toolkit",
-          version: "2.0.0-alpha.2",
           packagePath: "packages/galacean-engine-toolkit",
           browserPath: "dist/umd/browser.js"
         },
         {
           name: "@galacean/engine-toolkit-xr",
-          version: "2.0.0-alpha.2",
           packagePath: "packages/xr",
           browserPath: "dist/umd/browser.js"
         }
@@ -55,7 +53,6 @@ module.exports = {
     },
     {
       name: "@galacean/engine-spine",
-      version: "4.2.8",
       repo: "https://github.com/galacean/engine-spine.git",
       branch: "4.2",
       packagePath: ".",

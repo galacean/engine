@@ -88,14 +88,20 @@ if (useNpmArg) {
   const tempPackageJson = {
     name: "temp-install",
     private: true,
-    dependencies: Object.fromEntries(packages.map(({ name, version }) => [name, version]))
+    dependencies: Object.fromEntries(packages.map(({ name }) => [name, ecosystemVersion]))
   };
 
   fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
-  // Install packages
+  // Resolve moved dist-tags even when temp-install already has a lockfile.
   try {
-    execSync("npm install --legacy-peer-deps", { stdio: "inherit", cwd: tempDir });
+    execSync(
+      `npm install --no-save --legacy-peer-deps ${packages.map(({ name }) => `${name}@${ecosystemVersion}`).join(" ")}`,
+      {
+        stdio: "inherit",
+        cwd: tempDir
+      }
+    );
   } catch (error) {
     console.error("Failed to install second-party packages:", error);
     process.exit(1);
