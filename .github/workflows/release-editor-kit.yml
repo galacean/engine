@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to use for editor-preload-ecosystem package'
+        description: 'CDN alias for this branch ecosystem packages (e.g. engine-2.0)'
         required: true
       use_npm:
         description: 'Use npm packages instead of building from source'
@@ -56,6 +56,11 @@ jobs:
           fi
           
           ./scripts/build-editor-preload.js --version=${{ github.event.inputs.version }} $USE_NPM_ARG $BUILD_OFFICIAL_ARG
+
+      - name: Verify ecosystem bundle in Chromium
+        run: |
+          pnpm exec playwright install --with-deps chromium
+          node scripts/test-editor-preload.js
 
       - name: Release packages and Sync to CDN
         uses: galacean/publish@main

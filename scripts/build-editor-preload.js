@@ -53,7 +53,7 @@ fs.writeFileSync(path.join(outputEcosystemDir, "package.json"), JSON.stringify(e
 fs.writeFileSync(outputEcosystemFile, `// @galacean/editor-preload-ecosystem ${ecosystemVersion}\n`);
 
 // Build first-party packages if needed
-if (!skipBuildArg) {
+if (!skipBuildArg && (!useNpmArg || buildOfficialArg)) {
   console.log("Building first-party packages...");
   try {
     execSync("pnpm b:all", { stdio: "inherit", cwd: rootDir });
@@ -95,10 +95,10 @@ if (useNpmArg) {
   config.secondParty.forEach((pkg) => {
     if (pkg.isMonorepo && pkg.packages) {
       pkg.packages.forEach((subPkg) => {
-        tempPackageJson.dependencies[subPkg.name] = ecosystemVersion;
+        tempPackageJson.dependencies[subPkg.name] = subPkg.version;
       });
     } else {
-      tempPackageJson.dependencies[pkg.name] = ecosystemVersion;
+      tempPackageJson.dependencies[pkg.name] = pkg.version;
     }
   });
 
@@ -119,24 +119,16 @@ if (useNpmArg) {
       pkg.packages.forEach((subPkg) => {
         const browserFile = path.join(tempDir, "node_modules", subPkg.name, subPkg.browserPath);
 
-        if (fs.existsSync(browserFile)) {
-          const content = fs.readFileSync(browserFile);
-          fs.appendFileSync(outputEcosystemFile, content);
-          console.log(`Added ${subPkg.name} to ecosystem package (${browserFile})`);
-        } else {
-          console.warn(`Warning: ${browserFile} not found for ${subPkg.name}`);
-        }
+        const content = fs.readFileSync(browserFile);
+        fs.appendFileSync(outputEcosystemFile, content);
+        console.log(`Added ${subPkg.name} to ecosystem package (${browserFile})`);
       });
     } else {
       const browserFile = path.join(tempDir, "node_modules", pkg.name, pkg.browserPath);
 
-      if (fs.existsSync(browserFile)) {
-        const content = fs.readFileSync(browserFile);
-        fs.appendFileSync(outputEcosystemFile, content);
-        console.log(`Added ${pkg.name} to ecosystem package (${browserFile})`);
-      } else {
-        console.warn(`Warning: ${browserFile} not found for ${pkg.name}`);
-      }
+      const content = fs.readFileSync(browserFile);
+      fs.appendFileSync(outputEcosystemFile, content);
+      console.log(`Added ${pkg.name} to ecosystem package (${browserFile})`);
     }
   });
 } else {
