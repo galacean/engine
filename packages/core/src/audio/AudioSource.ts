@@ -148,7 +148,7 @@ export class AudioSource extends Component {
    * Play the clip.
    */
   play(): void {
-    if (!this._clip?._getAudioSource() || this._isPlaying || this._pendingPlay) {
+    if (!this._clip?._getAudioSource() || this._isPlaying) {
       return;
     }
     // Hidden page: don't start (would leak a sound) and don't pend (would replay out of sync) -> drop
@@ -157,10 +157,14 @@ export class AudioSource extends Component {
     }
 
     if (AudioManager.isAudioContextRunning()) {
+      this._pendingPlay = null;
       this._startPlayback();
     } else {
       // Join the Manager-owned resume attempt so document capture and playback share the same request
       const resumePromise = AudioManager.resume();
+      if (this._pendingPlay === resumePromise) {
+        return;
+      }
       this._pendingPlay = resumePromise;
       const resumeAttemptId = AudioManager._resumeAttemptId;
       const resumeAttemptCanBeSuperseded = !AudioManager._resumeAttemptFromUserGesture;

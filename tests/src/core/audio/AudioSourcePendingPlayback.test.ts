@@ -257,13 +257,38 @@ describe("AudioSource playback lifecycle", () => {
     audioSource.play();
     expect((AudioManager as any)._playingCount).to.equal(count);
     expect(resumeSpy).not.toHaveBeenCalled();
+  });
 
-    // (c) pending play -> noop
-    audioSource.stop();
-    context.state = "suspended";
-    (audioSource as any)._pendingPlay = Promise.resolve();
+  it.each([false, true])("coalesces repeated play calls on the same resume (user activation: %s)", async (active) => {
+    mockUserActivation(active);
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    let resolveResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveResume = resolve;
+      })
+    ];
+    const resumeSpy = vi.spyOn(context, "resume");
+    const createNodeSpy = vi.spyOn(context, "createBufferSource");
+
     audioSource.play();
-    expect(audioSource.isPlaying).to.be.false;
+    const resumePromise = (audioSource as any)._pendingPlay as Promise<void>;
+    const thenSpy = vi.spyOn(resumePromise, "then");
+    audioSource.play();
+    audioSource.play();
+
+    expect((audioSource as any)._pendingPlay).toBe(resumePromise);
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(thenSpy).not.toHaveBeenCalled();
+    expect(createNodeSpy).not.toHaveBeenCalled();
+
+    resolveResume!();
+    await resumePromise;
+    await flushAsync();
+    expect(audioSource.isPlaying).to.be.true;
+    expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._playingCount).to.equal(1);
   });
 
   // KEY divergence: hidden play is dropped, never suspends
@@ -409,6 +434,82 @@ describe("AudioSource playback lifecycle", () => {
     canvas.remove();
 
     expect((AudioManager as any)._resumePromise).to.be.null;
+  });
+
+  it.each(["window", "canvas"])("accepts a new play on the same source in a %s gesture handler", async (target) => {
+    const audioSource = createAudioSource();
+    const staleSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    let resolveColdStartResume: () => void;
+    let resolveGestureResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveColdStartResume = resolve;
+      }),
+      new Promise<void>((resolve) => {
+        resolveGestureResume = resolve;
+      })
+    ];
+    const resumeSpy = vi.spyOn(context, "resume");
+    const createNodeSpy = vi.spyOn(context, "createBufferSource");
+
+    audioSource.play();
+    staleSource.play();
+    const coldStartResumePromise = (AudioManager as any)._resumePromise;
+    const canvas = document.createElement("canvas");
+    document.body.appendChild(canvas);
+    // Window capture precedes the Manager listener; canvas capture follows it
+    (target === "window" ? window : canvas).addEventListener("touchend", () => audioSource.play(), {
+      capture: true,
+      passive: true,
+      once: true
+    });
+    mockUserActivation(true);
+    canvas.dispatchEvent(new Event("touchend", { bubbles: true }));
+    canvas.remove();
+    const gestureResumePromise = (AudioManager as any)._resumePromise;
+
+    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect(gestureResumePromise).not.toBe(coldStartResumePromise);
+    // Both native resumes settle after unlocking; the old one need not stay pending forever
+    resolveColdStartResume!();
+    resolveGestureResume!();
+    await Promise.all([coldStartResumePromise, gestureResumePromise]);
+    await flushAsync();
+
+    expect(context.state).to.equal("running");
+    expect(audioSource.isPlaying).to.be.true;
+    expect((audioSource as any)._pendingPlay).to.be.null;
+    expect(staleSource.isPlaying).to.be.false;
+    expect((staleSource as any)._pendingPlay).to.be.null;
+    expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._playingCount).to.equal(1);
+  });
+
+  it("starts a new play immediately after unlock before the pending callback settles", async () => {
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    let resolveResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        resolveResume = resolve;
+      })
+    ];
+    const createNodeSpy = vi.spyOn(context, "createBufferSource");
+
+    audioSource.play();
+    const resumePromise = (audioSource as any)._pendingPlay;
+    // Context state can become running before the pending Promise callback executes
+    context.state = "running";
+    audioSource.play();
+    expect(audioSource.isPlaying).to.be.true;
+    expect((audioSource as any)._pendingPlay).to.be.null;
+
+    resolveResume!();
+    await resumePromise;
+    await flushAsync();
+    expect(createNodeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._playingCount).to.equal(1);
   });
 
   it("keeps a restarted play pending when the superseded resume settles", async () => {
