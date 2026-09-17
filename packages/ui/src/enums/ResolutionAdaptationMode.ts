@@ -1,6 +1,6 @@
 /**
- * Resolution adaptation mode.
- * @remarks Only effective in screen space. Scale ratios are available size / `referenceResolution` per axis.
+ * Resolution adaptation in screen space.
+ * Scale ratios are available size / `referenceResolution` per axis.
  * Available size comes from the canvas in Overlay mode or the camera's standard projection at `distance`
  * in Camera mode; a custom `Camera.projectionMatrix` is not reflected.
  */

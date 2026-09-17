@@ -116,7 +116,7 @@ export class InputManager {
 
   /**
    * Whether any pointer was pressed during this frame.
-   * @remarks The result is valid for the whole frame and can be true alongside `isPointerUp()`.
+   * The result is valid for the whole frame and can be true alongside `isPointerUp()`.
    * @param pointerButton - The button to query; omit to include all buttons
    * @returns Whether a matching event occurred this frame
    */
@@ -134,7 +134,7 @@ export class InputManager {
 
   /**
    * Whether any pointer was released during this frame.
-   * @remarks The result is valid for the whole frame and can be true alongside `isPointerDown()`.
+   * The result is valid for the whole frame and can be true alongside `isPointerDown()`.
    * @param pointerButton - The button to query; omit to include all buttons
    * @returns Whether a matching event occurred this frame
    */

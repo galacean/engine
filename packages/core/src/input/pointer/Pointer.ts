@@ -17,7 +17,7 @@ export class Pointer {
   readonly id: number;
   /**
    * The current pointer phase. Earlier transitions in the same frame are not retained.
-   * @remarks Use `InputManager.isPointerDown()` / `isPointerUp()` for frame events across all pointers.
+   * Use `InputManager.isPointerDown()` / `isPointerUp()` for frame events across all pointers.
    */
   phase: PointerPhase = PointerPhase.Leave;
   /** The button that triggers the pointer event. */

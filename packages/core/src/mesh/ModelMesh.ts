@@ -16,7 +16,7 @@ import { VertexAttribute } from "./enums/VertexAttribute";
 
 /**
  * Mesh containing common vertex elements of the model.
- * @remarks Call `addSubMesh()` to define draw ranges and assign a MeshRenderer material for each sub-mesh slot.
+ * Call `addSubMesh()` to define draw ranges and assign a MeshRenderer material for each sub-mesh slot.
  * `uploadData()` uploads buffers only; set `bounds` separately for correct culling.
  */
 export class ModelMesh extends Mesh {
