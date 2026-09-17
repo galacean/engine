@@ -95,8 +95,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
-   * Layout units per world unit of sprite and text geometry.
-   * One font pixel maps to `referenceResolutionPerUnit / 100` layout units.
+   * Local UI units per world unit of sprite and text geometry.
+   * One font pixel maps to `referenceResolutionPerUnit / 100` local UI units, before canvas scaling.
    */
   get referenceResolutionPerUnit(): number {
     return this._referenceResolutionPerUnit;
@@ -112,7 +112,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
-   * Design resolution in pixels for screen-space canvases.
+   * Design resolution in pixels for {@link CanvasRenderMode.ScreenSpaceCamera} and {@link CanvasRenderMode.ScreenSpaceOverlay}.
+   * The root canvas adapts it to the camera viewport or engine canvas using {@link UICanvas.resolutionAdaptationMode}.
    */
   get referenceResolution(): Vector2 {
     return this._referenceResolution;
