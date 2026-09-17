@@ -22,8 +22,7 @@ export class UITransform extends Transform {
   private _verticalAlignment = VerticalAlignmentMode.None;
 
   /**
-   * Width and height in local layout units, before transform scaling.
-   * @remarks Screen-space layout uses the root canvas's reference-resolution units.
+   * Width and height in local layout units (reference-resolution pixels in screen space), before transform scaling.
    */
   get size(): Vector2 {
     return this._size;

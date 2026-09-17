@@ -83,7 +83,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   /**
    * Font rasterization size in pixels.
-   * @remarks One font pixel equals one local layout unit when referenceResolutionPerUnit is 100.
    */
   get fontSize(): number {
     return this._fontSize;
