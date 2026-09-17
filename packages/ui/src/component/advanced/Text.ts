@@ -82,7 +82,9 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The font size of the Text.
+   * Font size in pixels, used for glyph rasterization.
+   * Glyph pixel dimensions are converted to local UI units using the root canvas's
+   * {@link UICanvas.referenceResolutionPerUnit}.
    */
   get fontSize(): number {
     return this._fontSize;
