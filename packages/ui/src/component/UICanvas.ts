@@ -95,7 +95,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
-   * Local UI units per world unit of sprite and text geometry.
+   * Local UI units per world unit of sprite geometry.
    * One font pixel maps to `referenceResolutionPerUnit / 100` local UI units, before canvas scaling.
    */
   get referenceResolutionPerUnit(): number {
