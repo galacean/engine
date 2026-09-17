@@ -64,5 +64,6 @@ jobs:
           name: editor-preload-packages
           path: |
             editor-preload-ecosystem/dist/browser.js
+            editor-preload-ecosystem/dist/versions.json
             ${{ github.event.inputs.build_official == 'true' && 'editor-preload-official/dist/browser.js' || '' }}
           retention-days: 7

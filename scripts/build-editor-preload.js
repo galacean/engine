@@ -4,6 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
 const config = require("./editor-preload-config");
+const { getEcosystemAlias, readResolvedPackages, verifyEcosystemPackages } = require("./editor-preload-compat");
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -15,7 +16,7 @@ const buildOfficialArg = args.includes("--build-official");
 const enginePackageJson = require(path.join(process.cwd(), "package.json"));
 const engineVersion = enginePackageJson.version;
 // The host selects ecosystem bundles by Engine major.minor, not a package version.
-const ecosystemVersion = `engine-${engineVersion.split(".").slice(0, 2).join(".")}`;
+const ecosystemVersion = getEcosystemAlias(engineVersion);
 
 console.log(`Engine version: ${engineVersion}`);
 console.log(`Ecosystem version: ${ecosystemVersion}`);
@@ -107,6 +108,24 @@ if (useNpmArg) {
     process.exit(1);
   }
 
+  // The alias is also the npm dist-tag, and a dist-tag that stops being moved is silent: verify
+  // that what it resolved to still declares itself compatible with this engine before publishing.
+  const resolvedPackages = readResolvedPackages(path.join(tempDir, "node_modules"), packages);
+  const { compatible, problems } = verifyEcosystemPackages(resolvedPackages, engineVersion);
+
+  if (!compatible) {
+    console.error(
+      `Incompatible ecosystem packages for ${ecosystemVersion}:\n` + problems.map((p) => `  ${p}`).join("\n")
+    );
+    process.exit(1);
+  }
+
+  const manifest = { engineVersion, engineAlias: ecosystemVersion, packages: resolvedPackages };
+  fs.writeFileSync(path.join(outputEcosystemDistDir, "versions.json"), JSON.stringify(manifest, null, 2));
+  console.log(
+    `Resolved ecosystem packages: ${resolvedPackages.map(({ name, version }) => `${name}@${version}`).join(", ")}`
+  );
+
   // Concatenate second-party packages
   console.log("Concatenating second-party packages for ecosystem preload...");
   packages.forEach((pkg) => {
@@ -117,6 +136,10 @@ if (useNpmArg) {
 } else {
   // Build from source
   console.log("Building second-party packages from source...");
+
+  // Source builds carry no resolved npm versions; drop a manifest left by an earlier npm build so
+  // it cannot be published as if it described this bundle.
+  fs.rmSync(path.join(outputEcosystemDistDir, "versions.json"), { force: true });
 
   config.secondParty.forEach((pkg) => {
     const repoDir = path.join(rootDir, path.basename(pkg.repo, ".git"));
