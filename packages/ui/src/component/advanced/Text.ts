@@ -82,7 +82,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * Font rasterization size in pixels.
+   * Font rasterization size in pixels, converted to layout units using the root canvas's
+   * {@link UICanvas.referenceResolutionPerUnit}.
    */
   get fontSize(): number {
     return this._fontSize;
