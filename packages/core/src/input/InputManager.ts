@@ -115,13 +115,10 @@ export class InputManager {
   }
 
   /**
-   * Whether the pointer starts to be pressed down during the current frame, if there is no parameter, return whether any pointer starts to be pressed down during the current frame.
-   * This and isPointerUp can both be true when a press and release occur in the same frame.
-   * @remarks The result stays true for the whole frame that contains the press, and resets on the next frame.
-   * This query aggregates all pointers and cannot tell which pointer produced the event.
-   * Individual dispatched events reach the pointer callbacks instead.
-   * @param pointerButton - The pointerButton on a pointer device
-   * @returns Whether the pointer starts to be pressed down during the current frame
+   * Whether any pointer was pressed during this frame.
+   * @remarks The result is valid for the whole frame and can be true alongside `isPointerUp()`.
+   * @param pointerButton - The button to query; omit to include all buttons
+   * @returns Whether a matching event occurred this frame
    */
   isPointerDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
@@ -136,13 +133,10 @@ export class InputManager {
   }
 
   /**
-   * Whether the pointer is released during the current frame, if there is no parameter, return whether any pointer released during the current frame.
-   * This and isPointerDown can both be true when a press and release occur in the same frame.
-   * @remarks The result stays true for the whole frame that contains the release, and resets on the next frame.
-   * This query aggregates all pointers and cannot tell which pointer produced the event.
-   * Individual dispatched events reach the pointer callbacks instead.
-   * @param pointerButton - The pointerButtons on a mouse device
-   * @returns Whether the pointer is released during the current frame
+   * Whether any pointer was released during this frame.
+   * @remarks The result is valid for the whole frame and can be true alongside `isPointerDown()`.
+   * @param pointerButton - The button to query; omit to include all buttons
+   * @returns Whether a matching event occurred this frame
    */
   isPointerUp(pointerButton?: PointerButton): boolean {
     if (this._initialized) {

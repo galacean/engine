@@ -16,9 +16,8 @@ export class Pointer {
    */
   readonly id: number;
   /**
-   * The current pointer phase, not a history of transitions during the frame.
-   * A press and release can occur in one frame. Use `InputManager.isPointerDown` and
-   * `InputManager.isPointerUp` for frame-event queries; both can be true.
+   * The current pointer phase. Earlier transitions in the same frame are not retained.
+   * @remarks Use `InputManager.isPointerDown()` / `isPointerUp()` for frame events across all pointers.
    */
   phase: PointerPhase = PointerPhase.Leave;
   /** The button that triggers the pointer event. */
