@@ -13,18 +13,15 @@ async function main() {
     const page = await browser.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
-    for (const url of [
-      `${cdn}/@galacean/engine/${engineVersion}/browser.min.js`,
-      ...(buildOfficial ? [] : [`${cdn}/@galacean/editor-preload-official/${engineVersion}/browser.js`])
+    for (const script of [
+      { url: `${cdn}/@galacean/engine/${engineVersion}/browser.min.js` },
+      buildOfficial
+        ? { path: path.resolve(__dirname, "../editor-preload-official/dist/browser.js") }
+        : { url: `${cdn}/@galacean/editor-preload-official/${engineVersion}/browser.js` },
+      { path: path.resolve(__dirname, "../editor-preload-ecosystem/dist/browser.js") }
     ]) {
-      const response = await fetch(url);
-      assert.ok(response.ok, `${url}: HTTP ${response.status}`);
-      await page.addScriptTag({ content: await response.text() });
+      await page.addScriptTag(script);
     }
-    if (buildOfficial) {
-      await page.addScriptTag({ path: path.resolve(__dirname, "../editor-preload-official/dist/browser.js") });
-    }
-    await page.addScriptTag({ path: path.resolve(__dirname, "../editor-preload-ecosystem/dist/browser.js") });
     assert.deepEqual(errors, []);
     assert.deepEqual(
       await page.evaluate(() => [

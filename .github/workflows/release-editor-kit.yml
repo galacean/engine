@@ -35,24 +35,11 @@ jobs:
           registry-url: https://registry.npmjs.org/
           cache: pnpm
 
-      - name: Make scripts executable
-        run: |
-          chmod +x ./scripts/build-editor-preload.js
-          chmod +x ./scripts/build-official-preload.js
-
       - name: Build editor-preload packages
-        run: |
-          USE_NPM_ARG=""
-          if [ "${{ github.event.inputs.use_npm }}" == "true" ]; then
-            USE_NPM_ARG="--use-npm"
-          fi
-          
-          BUILD_OFFICIAL_ARG=""
-          if [ "${{ github.event.inputs.build_official }}" == "true" ]; then
-            BUILD_OFFICIAL_ARG="--build-official"
-          fi
-          
-          ./scripts/build-editor-preload.js $USE_NPM_ARG $BUILD_OFFICIAL_ARG
+        run: >-
+          node scripts/build-editor-preload.js
+          ${{ inputs.use_npm && '--use-npm' || '' }}
+          ${{ inputs.build_official && '--build-official' || '' }}
 
       - name: Verify ecosystem bundle in Chromium
         run: |

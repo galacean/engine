@@ -84,23 +84,12 @@ if (useNpmArg) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  // Create package.json for temp install
+  const packages = config.secondParty.flatMap((pkg) => pkg.packages || [pkg]);
   const tempPackageJson = {
     name: "temp-install",
     private: true,
-    dependencies: {}
+    dependencies: Object.fromEntries(packages.map(({ name, version }) => [name, version]))
   };
-
-  // Collect all package names from second-party configs
-  config.secondParty.forEach((pkg) => {
-    if (pkg.isMonorepo && pkg.packages) {
-      pkg.packages.forEach((subPkg) => {
-        tempPackageJson.dependencies[subPkg.name] = subPkg.version;
-      });
-    } else {
-      tempPackageJson.dependencies[pkg.name] = pkg.version;
-    }
-  });
 
   fs.writeFileSync(path.join(tempDir, "package.json"), JSON.stringify(tempPackageJson, null, 2));
 
@@ -114,22 +103,10 @@ if (useNpmArg) {
 
   // Concatenate second-party packages
   console.log("Concatenating second-party packages for ecosystem preload...");
-  config.secondParty.forEach((pkg) => {
-    if (pkg.isMonorepo && pkg.packages) {
-      pkg.packages.forEach((subPkg) => {
-        const browserFile = path.join(tempDir, "node_modules", subPkg.name, subPkg.browserPath);
-
-        const content = fs.readFileSync(browserFile);
-        fs.appendFileSync(outputEcosystemFile, content);
-        console.log(`Added ${subPkg.name} to ecosystem package (${browserFile})`);
-      });
-    } else {
-      const browserFile = path.join(tempDir, "node_modules", pkg.name, pkg.browserPath);
-
-      const content = fs.readFileSync(browserFile);
-      fs.appendFileSync(outputEcosystemFile, content);
-      console.log(`Added ${pkg.name} to ecosystem package (${browserFile})`);
-    }
+  packages.forEach((pkg) => {
+    const browserFile = path.join(tempDir, "node_modules", pkg.name, pkg.browserPath);
+    fs.appendFileSync(outputEcosystemFile, fs.readFileSync(browserFile));
+    console.log(`Added ${pkg.name} to ecosystem package (${browserFile})`);
   });
 } else {
   // Build from source
