@@ -115,10 +115,9 @@ export class InputManager {
   }
 
   /**
-   * Whether any pointer was pressed during this frame.
-   * The result is valid for the whole frame and can be true alongside `isPointerUp()`.
+   * Whether any pointer was pressed this frame.
    * @param pointerButton - The button to query; omit to include all buttons
-   * @returns Whether a matching event occurred this frame
+   * @returns True for the whole frame if a matching press occurred; `isPointerUp()` may also be true
    */
   isPointerDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
@@ -133,10 +132,9 @@ export class InputManager {
   }
 
   /**
-   * Whether any pointer was released during this frame.
-   * The result is valid for the whole frame and can be true alongside `isPointerDown()`.
+   * Whether any pointer was released this frame.
    * @param pointerButton - The button to query; omit to include all buttons
-   * @returns Whether a matching event occurred this frame
+   * @returns True for the whole frame if a matching release occurred; `isPointerDown()` may also be true
    */
   isPointerUp(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
