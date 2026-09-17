@@ -15,7 +15,7 @@ export class Pointer {
    * @remarks Start from 0.
    */
   readonly id: number;
-  /** The current phase of this pointer, not its transition history within the frame. */
+  /** The current phase of this pointer. */
   phase: PointerPhase = PointerPhase.Leave;
   /** The button that triggers the pointer event. */
   button: PointerButton;

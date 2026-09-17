@@ -16,7 +16,7 @@ import { VertexAttribute } from "./enums/VertexAttribute";
 
 /**
  * Mesh containing common vertex elements of the model.
- * Call `addSubMesh()` to define draw ranges and assign a MeshRenderer material for each sub-mesh slot.
+ * Define draw ranges with `addSubMesh()` and assign a material to each corresponding MeshRenderer slot.
  */
 export class ModelMesh extends Mesh {
   private static _tempVec0 = new Vector3();
@@ -610,7 +610,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * Upload mesh data to the GPU, generating vertex elements and buffer bindings as needed.
-   * Does not create sub-meshes or calculate `bounds`; set bounds explicitly for culling.
+   * Bounds must be set separately for culling.
    *
    * @param releaseData - Whether to release the data cache, release data can reduce memory usage.
    */
