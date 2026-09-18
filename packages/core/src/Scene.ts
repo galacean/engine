@@ -31,7 +31,7 @@ export class Scene extends EngineObject {
   /** Scene name. */
   name: string;
 
-  /** Physics. */
+  /** Physics simulation and queries for this scene, including its gravity. */
   readonly physics: PhysicsScene = new PhysicsScene(this);
 
   /** If cast shadows. */

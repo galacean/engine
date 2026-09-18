@@ -12,21 +12,20 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 
 ## Scene gravity
 
-- Gravity belongs to each Scene's `PhysicsScene` and is exposed as `scene.physics.gravity`. It is not an `Engine.physicsManager` setting.
-- When the host has configured a physics provider, a project Script can set a Scene's gravity once before its first physics step:
+- Configure the physics provider when creating the Engine. In a hosted project, the host owns this bootstrap; a Script that changes gravity uses the existing provider.
+- Set initial gravity in a startup Script's `onAwake` or `onStart`. Pending `onStart` callbacks run before that frame's physics steps; see [lifecycle-and-frame-order.md](lifecycle-and-frame-order.md).
 
 ```ts
-import { Script, Vector3 } from "@galacean/engine";
+import { Script } from "@galacean/engine";
 
 export default class SceneGravity extends Script {
   onAwake(): void {
-    this.entity.scene.physics.gravity = new Vector3(0, -10, 0);
+    this.scene.physics.gravity.set(0, -10, 0);
   }
 }
 ```
 
-- `onStart` is also valid when the Script only needs to run before its first frame-level update. Do not rewrite an unchanged gravity every frame.
-- Physics-provider creation and initialization belong to the host's Engine bootstrap. A project Script that only sets gravity must not import or initialize a provider itself.
+- Gravity persists until changed; do not rewrite an unchanged value every frame. Resolve its exact type and property contract from the installed declarations.
 
 ## Fixed-step order
 

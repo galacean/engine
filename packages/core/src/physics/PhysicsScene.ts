@@ -33,7 +33,9 @@ export class PhysicsScene {
   private _contactEventConsumerCount = 0;
 
   /**
-   * The gravity of physics scene.
+   * Gravity acceleration in world space for this scene, in meters per second squared.
+   * @remarks Defaults to (0, -9.81, 0). Modify the returned vector or assign a new value to update gravity.
+   * A physics provider must be configured when creating the Engine.
    */
   get gravity(): Vector3 {
     return this._gravity;
