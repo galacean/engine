@@ -4,28 +4,11 @@ Use this reference when choosing who owns motion, when synchronization occurs, o
 
 ## Simulation ownership
 
-- Physics is opt-in through Engine configuration. Without a provider, physics components and physics-backed picking do not have a simulation owner.
+- Physics is opt-in through Engine configuration. In hosted projects, the host configures and initializes the provider; project Scripts use it. Without a provider, physics components and physics-backed picking do not have a simulation owner.
 - A non-kinematic dynamic body is simulation-owned. Drive continuous motion through velocity, forces, and torque rather than competing transform writes.
 - A direct Transform change is synchronized to the native collider at a physics step as a teleport. It is not swept through the path between the old and new pose.
 - A kinematic dynamic body is application-owned. Use its supported path-motion operation when interactions along the movement path matter; a direct Transform assignment still has teleport semantics.
 - After simulation, the native pose of an active non-kinematic body is written back to its Transform.
-
-## Scene gravity
-
-- Configure the physics provider when creating the Engine. In a hosted project, the host owns this bootstrap; a Script that changes gravity uses the existing provider.
-- Set initial gravity in a startup Script's `onAwake` or `onStart`. Pending `onStart` callbacks run before that frame's physics steps; see [lifecycle-and-frame-order.md](lifecycle-and-frame-order.md).
-
-```ts
-import { Script } from "@galacean/engine";
-
-export default class SceneGravity extends Script {
-  onAwake(): void {
-    this.scene.physics.gravity.set(0, -10, 0);
-  }
-}
-```
-
-- Gravity persists until changed; do not rewrite an unchanged value every frame.
 
 ## Fixed-step order
 
