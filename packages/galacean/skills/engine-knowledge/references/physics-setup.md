@@ -25,7 +25,7 @@ export default class SceneGravity extends Script {
 }
 ```
 
-- Gravity persists until changed; do not rewrite an unchanged value every frame. Resolve its exact type and property contract from the installed declarations.
+- Gravity persists until changed; do not rewrite an unchanged value every frame.
 
 ## Fixed-step order
 
