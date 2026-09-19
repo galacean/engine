@@ -7,7 +7,6 @@ export class AudioManager {
 
   private static _context: AudioContext;
   private static _gainNode: GainNode;
-  private static _resumePromise: Promise<void> = null;
   private static _needsUserGestureResume = false;
   private static _suspendedByCaller = false;
   private static _recovering = false;
@@ -34,14 +33,13 @@ export class AudioManager {
    */
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
-    return (AudioManager._resumePromise ??= AudioManager.getContext()
+    // A blocked resume may remain pending until a later user gesture. Every explicit
+    // attempt must reach the browser in that gesture; reusing its promise loses activation.
+    return AudioManager.getContext()
       .resume()
       .then(() => {
         AudioManager._needsUserGestureResume = false;
-      })
-      .finally(() => {
-        AudioManager._resumePromise = null;
-      }));
+      });
   }
 
   /**
@@ -117,8 +115,6 @@ export class AudioManager {
       if (document.hidden || AudioManager._suspendedByCaller) {
         return;
       }
-      // Go through AudioManager.resume() so _resumePromise coalesces any gesture-resume racing us during
-      // the slow iOS interrupted->running transition; a bare context.resume() here wouldn't dedupe
       AudioManager.resume().catch(() => {});
     }, 100);
   }

@@ -101,7 +101,6 @@ function resetAudioManagerState(): void {
 
   (AudioManager as any)._context = null;
   (AudioManager as any)._gainNode = null;
-  (AudioManager as any)._resumePromise = null;
   (AudioManager as any)._needsUserGestureResume = false;
   (AudioManager as any)._suspendedByCaller = false;
   (AudioManager as any)._recovering = false;
@@ -378,7 +377,7 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
-  it("coalesces overlapping resume() calls and re-issues a later resume", async () => {
+  it("retries native resume while an earlier autoplay attempt remains pending", async () => {
     createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
     context.state = "suspended";
@@ -393,13 +392,15 @@ describe("AudioSource playback lifecycle", () => {
 
     AudioManager.resume().catch(() => {});
     AudioManager.resume().catch(() => {});
-    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    await flushAsync();
+    expect(context.state).to.equal("running");
 
     resolveFirst!();
     await flushAsync();
 
     await AudioManager.resume();
-    expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect(resumeSpy).toHaveBeenCalledTimes(3);
   });
 
   it("does not auto-resume a caller-controlled suspend on a later gesture", async () => {
@@ -617,9 +618,7 @@ describe("AudioSource playback lifecycle", () => {
     expect(context.state).to.equal("running");
   });
 
-  // a storm of clicks AFTER the 100ms guard window but BEFORE the resume settles must coalesce via
-  // _resumePromise into the timer's resume (the timer goes through AudioManager.resume() now)
-  it("coalesces a click-storm during the slow iOS resume settle into a single context.resume()", async () => {
+  it("allows gesture retries while a foreground recovery resume remains pending", async () => {
     vi.useFakeTimers();
     const audioSource = createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
@@ -640,19 +639,18 @@ describe("AudioSource playback lifecycle", () => {
     document.dispatchEvent(new Event("visibilitychange"));
     const resumeSpy = vi.spyOn(context, "resume");
 
-    // 100ms timer fires -> timer calls AudioManager.resume() which sets _resumePromise
+    // The automatic recovery attempt has not settled yet.
     vi.advanceTimersByTime(100);
     await flushAsync();
     expect(resumeSpy).toHaveBeenCalledTimes(1);
     expect((AudioManager as any)._recovering).to.be.false;
-    expect((AudioManager as any)._resumePromise).to.not.be.null;
 
-    // storm of clicks while the resume is still pending -> _resumePromise coalesces them
+    // Each gesture must reach the browser while automatic recovery is pending.
     for (let i = 0; i < 10; i++) {
       document.dispatchEvent(new Event("click"));
     }
     await flushAsync();
-    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(resumeSpy).toHaveBeenCalledTimes(11);
 
     releaseResume!();
     await flushAsync();
