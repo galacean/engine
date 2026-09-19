@@ -1,4 +1,5 @@
 export { PhysXPhysics } from "./PhysXPhysics";
+export type { PhysXPhysicsOptions, PhysXTolerancesScale } from "./PhysXPhysics";
 export { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 
 //@ts-ignore
