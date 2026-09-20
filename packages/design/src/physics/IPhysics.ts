@@ -37,6 +37,16 @@ export interface IPhysics {
   createPhysicsScene(physicsManager: IPhysicsManager): IPhysicsScene;
 
   /**
+   * Get the default contact offset for collider shapes.
+   */
+  getDefaultContactOffset?(): number;
+
+  /**
+   * Get the default sleep threshold for dynamic colliders.
+   */
+  getDefaultSleepThreshold?(): number;
+
+  /**
    * Create dynamic collider.
    * @param position - The global position
    * @param rotation - The global rotation
@@ -116,6 +126,7 @@ export interface IPhysics {
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
    * @param cookingFlags - Cooking flags
+   * @param worldScale - World scale of the shape
    */
   createMeshColliderShape(
     uniqueID: number,
@@ -123,7 +134,8 @@ export interface IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: IPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    worldScale: Vector3
   ): IMeshColliderShape | null;
 
   /**

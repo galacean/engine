@@ -206,6 +206,36 @@ describe("MeshColliderShape PhysX", () => {
       defaultMaterial?.destroy();
     });
 
+    it("keeps the convex shape when non-convex mode is unsupported", () => {
+      const entity = root.createChild("unsupportedDynamicMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const convexMesh = createModelMesh(
+        engine,
+        [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+        [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+      );
+      meshShape.isConvex = true;
+      meshShape.mesh = convexMesh;
+      dynamicCollider.addShape(meshShape);
+      const nativeShape = (meshShape as any)._nativeShape;
+
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      try {
+        meshShape.isConvex = false;
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
+        expect(meshShape.isConvex).toBe(true);
+        expect((meshShape as any)._nativeShape).toBe(nativeShape);
+        expect((dynamicCollider as any)._nativeCollider._shapes).toEqual([nativeShape]);
+      } finally {
+        consoleErrorSpy.mockRestore();
+        entity.destroy();
+        meshMaterial?.destroy();
+      }
+    });
+
     it("should allow convex mesh on dynamic collider", async () => {
       // Create ground
       const groundEntity = root.createChild("ground2");
@@ -398,7 +428,7 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("Mesh Data Update", () => {
-    it("should update mesh data", () => {
+    it("should replace mesh data with one native shape", () => {
       const entity = root.createChild("updateMesh");
       const staticCollider = entity.addComponent(StaticCollider);
 
@@ -409,15 +439,122 @@ describe("MeshColliderShape PhysX", () => {
       const mesh1 = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh1;
       staticCollider.addShape(meshShape);
+      const firstNativeShape = (meshShape as any)._nativeShape;
 
       // Update mesh
       const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
 
       expect(staticCollider.shapes.length).toBe(1);
+      expect((meshShape as any)._nativeShape).not.toBe(firstNativeShape);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
       defaultMaterial?.destroy();
+    });
+
+    it("keeps the existing native mesh when runtime mesh recooking fails", () => {
+      const groundEntity = root.createChild("transactionalMeshUpdateGround");
+      const staticCollider = groundEntity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const groundMesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
+      meshShape.mesh = groundMesh;
+      staticCollider.addShape(meshShape);
+
+      const nativeShape = (meshShape as any)._nativeShape;
+      const destroySpy = vi.spyOn(nativeShape, "destroy");
+      const cooking = nativeShape._physXPhysics._pxCooking;
+      const originalCreateTriMesh = cooking.createTriMesh;
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+
+      try {
+        cooking.createTriMesh = () => null;
+        const replacementMesh = createModelMesh(engine, [-2, 0, -2, 2, 0, -2, -2, 0, 2, 2, 0, 2], [0, 2, 1, 1, 2, 3]);
+        meshShape.mesh = replacementMesh;
+
+        expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Failed to create triangle mesh"));
+        expect(meshShape.mesh).toBe(groundMesh);
+        expect((meshShape as any)._nativeShape).toBe(nativeShape);
+        expect((staticCollider as any)._nativeCollider._shapes).toEqual([nativeShape]);
+        expect(destroySpy).not.toHaveBeenCalled();
+      } finally {
+        cooking.createTriMesh = originalCreateTriMesh;
+        consoleErrorSpy.mockRestore();
+        destroySpy.mockRestore();
+        groundEntity.destroy();
+        meshMaterial?.destroy();
+      }
+    });
+
+    it("keeps the attached mesh and active trigger when replacement attachment fails", () => {
+      const entity = root.createChild("failedMeshReplacementAttachment");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      meshShape.isConvex = true;
+      meshShape.isTrigger = true;
+      const oldMesh = createModelMesh(
+        engine,
+        [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1]
+      );
+      meshShape.mesh = oldMesh;
+      staticCollider.addShape(meshShape);
+
+      const sphereEntity = root.createChild("replacementTriggerOverlap");
+      const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
+      dynamicCollider.isKinematic = true;
+      const sphereShape = new SphereColliderShape();
+      const sphereMaterial = sphereShape.material;
+      sphereShape.radius = 0.25;
+      dynamicCollider.addShape(sphereShape);
+      const triggerScript = sphereEntity.addComponent(CollisionScript);
+      physicsScene._update(1 / 60);
+      expect(triggerScript.onTriggerEnter).toHaveBeenCalledTimes(1);
+
+      const oldNativeShape = (meshShape as any)._nativeShape;
+      const nativeCollider = (staticCollider as any)._nativeCollider;
+      const oldDestroySpy = vi.spyOn(oldNativeShape, "destroy");
+      const actorAttachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValueOnce(false);
+      const actorDetachSpy = vi.spyOn(nativeCollider._pxActor, "detachShape");
+      const originalReplaceShape = nativeCollider.replaceShape.bind(nativeCollider);
+      let candidateNativeShape: any;
+      let candidateDestroySpy: any;
+      const replaceShapeSpy = vi.spyOn(nativeCollider, "replaceShape").mockImplementation((previousShape, newShape) => {
+        candidateNativeShape = newShape;
+        candidateDestroySpy = vi.spyOn(newShape, "destroy");
+        originalReplaceShape(previousShape, newShape);
+      });
+
+      try {
+        const replacementMesh = createModelMesh(engine, [0, 2, 0, -2, -2, -2, 2, -2, -2, 0, -2, 2]);
+
+        expect(() => (meshShape.mesh = replacementMesh)).toThrow();
+        expect(meshShape.mesh).toBe(oldMesh);
+        expect((meshShape as any)._nativeShape).toBe(oldNativeShape);
+        expect(nativeCollider._shapes).toEqual([oldNativeShape]);
+        expect(actorAttachSpy).toHaveBeenCalledTimes(1);
+        expect(actorAttachSpy).toHaveBeenCalledWith(candidateNativeShape._pxShape);
+        expect(actorDetachSpy).not.toHaveBeenCalled();
+        expect(oldDestroySpy).not.toHaveBeenCalled();
+        expect(candidateNativeShape).toBeDefined();
+        expect(candidateDestroySpy).toHaveBeenCalledTimes(1);
+
+        physicsScene._update(1 / 60);
+        expect(triggerScript.onTriggerEnter).toHaveBeenCalledTimes(1);
+        expect(triggerScript.onTriggerExit).not.toHaveBeenCalled();
+        expect(triggerScript.onTriggerStay).toHaveBeenCalled();
+      } finally {
+        replaceShapeSpy.mockRestore();
+        actorAttachSpy.mockRestore();
+        actorDetachSpy.mockRestore();
+        oldDestroySpy.mockRestore();
+        candidateDestroySpy?.mockRestore();
+        entity.destroy();
+        sphereEntity.destroy();
+        meshMaterial?.destroy();
+        sphereMaterial?.destroy();
+      }
     });
   });
 
@@ -558,7 +695,6 @@ describe("MeshColliderShape PhysX", () => {
         expect(collider.shapes).toHaveLength(0);
         expect(nativeCollider._shapes).toHaveLength(0);
         expect(shape.collider).toBeFalsy();
-        expect((shape as any)._isShapeAttached).toBe(false);
       } finally {
         attachSpy.mockRestore();
         entity.destroy();
@@ -659,7 +795,33 @@ describe("MeshColliderShape PhysX", () => {
       defaultMaterial?.destroy();
     });
 
-    it("should disable shape when switching to non-convex and mesh has no indices", () => {
+    it("should switch to non-convex using cached indices after mesh data is released", () => {
+      const entity = root.createChild("releasedConvexMeshData");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      const mesh = createModelMesh(
+        engine,
+        [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+        [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+      );
+      meshShape.isConvex = true;
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+      mesh.uploadData(true);
+      const nativeShape = (meshShape as any)._nativeShape;
+
+      meshShape.isConvex = false;
+
+      expect(meshShape.isConvex).toBe(false);
+      expect((meshShape as any)._nativeShape).not.toBe(nativeShape);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should keep the convex shape when switching requires missing indices", () => {
       const warnSpy = vi.spyOn(console, "warn");
 
       const entity = root.createChild("switchConvexNoIndices");
@@ -677,15 +839,16 @@ describe("MeshColliderShape PhysX", () => {
       meshShape.mesh = mesh;
       staticCollider.addShape(meshShape);
 
-      // @ts-ignore
-      expect(meshShape._nativeShape).not.toBeNull();
+      const nativeShape = (meshShape as any)._nativeShape;
+      expect(nativeShape).not.toBeNull();
 
       // Switch to non-convex - should fail because no indices
       meshShape.isConvex = false;
 
       expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Non-convex mesh requires indices"));
-      // @ts-ignore - shape should be destroyed (failure = disable)
-      expect(meshShape._nativeShape).toBeNull();
+      expect(meshShape.isConvex).toBe(true);
+      expect((meshShape as any)._nativeShape).toBe(nativeShape);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([nativeShape]);
 
       warnSpy.mockRestore();
       entity.destroy();
@@ -694,33 +857,8 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("Set Mesh Null", () => {
-    it("should destroy native shape when setting mesh to null", () => {
+    it("should detach the native shape and accept a new mesh after setting mesh to null", () => {
       const entity = root.createChild("nullMesh");
-      const staticCollider = entity.addComponent(StaticCollider);
-
-      const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
-
-      const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
-      meshShape.mesh = mesh;
-      staticCollider.addShape(meshShape);
-
-      // @ts-ignore
-      expect(meshShape._nativeShape).not.toBeNull();
-
-      // Set mesh to null - should disable shape
-      meshShape.mesh = null;
-
-      // @ts-ignore
-      expect(meshShape._nativeShape).toBeNull();
-      expect(meshShape.mesh).toBeNull();
-
-      entity.destroy();
-      defaultMaterial?.destroy();
-    });
-
-    it("should still work after setting mesh to null and then setting a new mesh", () => {
-      const entity = root.createChild("nullThenNewMesh");
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
@@ -733,16 +871,19 @@ describe("MeshColliderShape PhysX", () => {
       // @ts-ignore
       expect(meshShape._nativeShape).not.toBeNull();
 
-      // Disable
+      // Set mesh to null - should disable shape
       meshShape.mesh = null;
+
       // @ts-ignore
       expect(meshShape._nativeShape).toBeNull();
+      expect(meshShape.mesh).toBeNull();
+      expect((staticCollider as any)._nativeCollider._shapes).toHaveLength(0);
 
-      // Re-enable with new mesh
       const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
       // @ts-ignore
       expect(meshShape._nativeShape).not.toBeNull();
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
       defaultMaterial?.destroy();
@@ -750,7 +891,30 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("CookingFlags", () => {
-    it("should reuse existing native shape when changing cookingFlags", () => {
+    it("should switch to convex using cached data after mesh upload data is released", () => {
+      const entity = root.createChild("releasedMeshData");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      const mesh = createModelMesh(
+        engine,
+        [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+        [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+      );
+      meshShape.mesh = mesh;
+      staticCollider.addShape(meshShape);
+      mesh.uploadData(true);
+
+      meshShape.isConvex = true;
+
+      expect(meshShape.isConvex).toBe(true);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should replace the native shape when changing cookingFlags", () => {
       const entity = root.createChild("cookingFlags");
       const staticCollider = entity.addComponent(StaticCollider);
 
@@ -765,11 +929,11 @@ describe("MeshColliderShape PhysX", () => {
       const nativeShapeBefore = meshShape._nativeShape;
       expect(nativeShapeBefore).not.toBeNull();
 
-      // Change cooking flags - should reuse existing shape via setMeshData
       meshShape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
 
-      // @ts-ignore - same native shape instance (reused, not recreated)
-      expect(meshShape._nativeShape).toBe(nativeShapeBefore);
+      const nativeShapeAfter = (meshShape as any)._nativeShape;
+      expect(nativeShapeAfter).not.toBe(nativeShapeBefore);
+      expect((staticCollider as any)._nativeCollider._shapes).toEqual([nativeShapeAfter]);
 
       entity.destroy();
       defaultMaterial?.destroy();
@@ -847,6 +1011,43 @@ describe("MeshColliderShape PhysX", () => {
 
       entity.destroy();
       expect(meshA.refCount).toBe(0);
+    });
+
+    it("keeps a failed mesh clone empty without acquiring source ownership", () => {
+      const entity = root.createChild("failedMeshCloneSource");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new MeshColliderShape();
+      const material = shape.material;
+      const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
+      shape.mesh = mesh;
+      collider.addShape(shape);
+
+      const nativeShape = (shape as any)._nativeShape;
+      const cooking = nativeShape._physXPhysics._pxCooking;
+      const originalCreateTriMesh = cooking.createTriMesh;
+      const sourceRefCount = mesh.refCount;
+      const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      let clone: Entity | null = null;
+
+      try {
+        cooking.createTriMesh = () => null;
+        clone = entity.clone();
+        const clonedCollider = clone.getComponent(StaticCollider);
+        const clonedShape = clonedCollider.shapes[0] as MeshColliderShape;
+
+        expect(clonedShape.mesh).toBeNull();
+        expect((clonedShape as any)._nativeShape).toBeNull();
+        expect((clonedCollider as any)._nativeCollider._shapes).toHaveLength(0);
+        expect(mesh.refCount).toBe(sourceRefCount);
+        expect(shape.mesh).toBe(mesh);
+        expect((shape as any)._nativeShape).toBe(nativeShape);
+      } finally {
+        cooking.createTriMesh = originalCreateTriMesh;
+        consoleErrorSpy.mockRestore();
+        clone?.destroy();
+        entity.destroy();
+        material?.destroy();
+      }
     });
   });
 });
