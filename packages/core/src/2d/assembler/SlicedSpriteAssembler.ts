@@ -126,14 +126,15 @@ export class SlicedSpriteAssembler {
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
+    // 16 UV 网格 (column-major: index = i*4+j, i=column, j=row)，与 vertex 索引一一对应
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
     const spriteUVs = renderer.sprite._getUVs();
     for (let i = 0, o = subChunk.vertexArea.start + 3; i < 4; i++) {
-      const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++, o += 9) {
-        vertices[o] = rowU;
-        vertices[o + 1] = spriteUVs[j].y;
+        const uv = spriteUVs[i * 4 + j];
+        vertices[o] = uv.x;
+        vertices[o + 1] = uv.y;
       }
     }
   }
