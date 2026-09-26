@@ -1,11 +1,14 @@
 export type { ISpriteAssembler } from "./assembler/ISpriteAssembler";
 export type { ISpriteRenderer } from "./assembler/ISpriteRenderer";
+export { FilledSpriteAssembler } from "./assembler/FilledSpriteAssembler";
 export { SimpleSpriteAssembler } from "./assembler/SimpleSpriteAssembler";
 export { SlicedSpriteAssembler } from "./assembler/SlicedSpriteAssembler";
 export { TiledSpriteAssembler } from "./assembler/TiledSpriteAssembler";
 export { SpriteAtlas } from "./atlas/SpriteAtlas";
 export { FontStyle } from "./enums/FontStyle";
 export { SpriteDrawMode } from "./enums/SpriteDrawMode";
+export { SpriteFilledMode } from "./enums/SpriteFilledMode";
+export { SpriteFilledOrigin } from "./enums/SpriteFilledOrigin";
 export { SpriteMaskInteraction } from "./enums/SpriteMaskInteraction";
 export { SpriteModifyFlags } from "./enums/SpriteModifyFlags";
 export { SpriteTileMode } from "./enums/SpriteTileMode";
