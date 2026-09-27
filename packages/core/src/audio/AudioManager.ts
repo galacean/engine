@@ -4,14 +4,11 @@
 export class AudioManager {
   /** @internal */
   static _playingCount = 0;
-  /** @internal */
-  static _resumeAttemptId = 0;
-  /** @internal */
-  static _resumeAttemptFromUserGesture = false;
 
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _resumePromise: Promise<void> = null;
+  private static _resumeAttemptFromUserGesture = false;
   private static _interruptionRecoveryPending = false;
   private static _suspendedByCaller = false;
   private static _recovering = false;
@@ -21,8 +18,7 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is suspended
    */
   static suspend(): Promise<void> {
-    // No context means nothing is playing: suspending is a no-op and must NOT flag a caller-suspend
-    // (a ghost flag would later block foreground recovery), and don't create a cold context just to suspend
+    // A no-op suspend must not block later automatic recovery
     const context = AudioManager._context;
     if (!context) {
       return Promise.resolve();
@@ -33,7 +29,7 @@ export class AudioManager {
 
   /**
    * Resume the audio context.
-   * @remarks On iOS Safari, calling this within a user gesture (e.g., click/touch event handler) can pre-unlock audio and reduce playback delay.
+   * @remarks On iOS Safari, call within a user gesture to unlock audio.
    * @returns A promise that resolves when the audio context is resumed
    */
   static resume(): Promise<void> {
@@ -49,7 +45,7 @@ export class AudioManager {
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
       document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
-      // iOS Safari bfcache restore fires pageshow (persisted) but NOT visibilitychange, so recover here too
+      // Handle iOS bfcache restores that skip visibilitychange
       window.addEventListener("pageshow", AudioManager._onPageShow);
       // iOS Safari requires a user gesture to resume the AudioContext
       document.addEventListener("touchstart", AudioManager._onUserGesture, { passive: true, capture: true });
@@ -81,6 +77,7 @@ export class AudioManager {
 
   private static _requestResume(fromUserGesture: boolean): Promise<void> {
     const resumePromise = AudioManager._resumePromise;
+    // iOS needs a fresh native resume() when a gesture replaces a programmatic attempt
     return resumePromise && (!fromUserGesture || AudioManager._resumeAttemptFromUserGesture)
       ? resumePromise
       : AudioManager._startResume(fromUserGesture);
@@ -99,7 +96,6 @@ export class AudioManager {
           AudioManager._resumePromise = null;
         }
       });
-    AudioManager._resumeAttemptId++;
     AudioManager._resumeAttemptFromUserGesture = fromUserGesture;
     AudioManager._resumePromise = resumePromise;
     return resumePromise;
@@ -111,7 +107,7 @@ export class AudioManager {
       return userActivation.isActive;
     }
     event ??= window.event;
-    // Safari 16.3 and earlier expose the current listener event but not the User Activation API
+    // Safari <=16.3 has no User Activation API
     return (
       event?.isTrusted === true && (event.type === "touchstart" || event.type === "touchend" || event.type === "click")
     );
@@ -119,8 +115,7 @@ export class AudioManager {
 
   private static _onVisibilityChange(): void {
     if (document.hidden) {
-      // Desktop/Android don't auto-suspend a running WebAudio context when backgrounded (only iOS does),
-      // so suspend here to stop audio in the background; only if a context already exists (don't create one)
+      // Some platforms keep background audio running
       AudioManager._context?.suspend().catch(() => {});
     } else {
       AudioManager._recoverPlaybackContext();
@@ -128,10 +123,8 @@ export class AudioManager {
   }
 
   private static _recoverPlaybackContext(): void {
-    // Returning to foreground with a non-running context (and not a deliberate pause): iOS leaves it
-    // "interrupted", which cannot be resumed directly; suspend() first transitions it to "suspended",
-    // then resume() restarts the pipeline https://bugs.webkit.org/show_bug.cgi?id=263627
-    // _recovering guards re-entry: a bfcache restore fires both visibilitychange and pageshow
+    // Reset iOS interrupted contexts before resuming: https://bugs.webkit.org/show_bug.cgi?id=263627
+    // _recovering coalesces visibilitychange and bfcache pageshow
     if (
       AudioManager._recovering ||
       document.hidden ||
@@ -142,24 +135,20 @@ export class AudioManager {
       return;
     }
     AudioManager._recovering = true;
-    AudioManager._interruptionRecoveryPending = true; // Remains pending if the automatic resume fails or stalls
+    AudioManager._interruptionRecoveryPending = true; // Keep gesture recovery available if resume fails or stalls
     const context = AudioManager.getContext();
     context.suspend().catch(() => {});
-    // 100ms empirical delay (resume too soon after suspend is unreliable on iOS); _recovering is cleared
-    // on the timer rather than off a promise because iOS may never settle suspend/resume in interrupted
+    // 100ms empirical iOS cooldown; suspend() may never settle
     setTimeout(() => {
       AudioManager._recovering = false;
       if (document.hidden || AudioManager._suspendedByCaller) {
         return;
       }
-      // Track the timer attempt through AudioManager.resume(): programmatic callers coalesce with it,
-      // while a later trusted gesture can supersede it if WebKit leaves it pending
       AudioManager.resume().catch(() => {});
     }, 100);
   }
 
   private static _onPageShow(event: PageTransitionEvent): void {
-    // iOS Safari bfcache restore (persisted) needs recovery; a normal load has no suspended context
     if (event.persisted) {
       AudioManager._recoverPlaybackContext();
     }
@@ -170,7 +159,7 @@ export class AudioManager {
       return;
     }
 
-    // _recovering: don't bypass the 100ms delay (would resume on a still-interrupted context)
+    // Preserve the interruption-recovery cooldown
     if (AudioManager._recovering || AudioManager._suspendedByCaller) {
       return;
     }
@@ -180,7 +169,6 @@ export class AudioManager {
       return;
     }
 
-    // A real gesture may supersede a pending programmatic attempt, while repeated events coalesce
     const resumePromise = AudioManager._requestResume(true);
     resumePromise.catch((e) => {
       console.warn("Failed to resume AudioContext:", e);
