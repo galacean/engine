@@ -562,14 +562,12 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   _render(scenes: ReadonlyArray<Scene>): void {
-    // Update `Renderer` logic and shader data
+    // Update all scenes before rendering any camera
     const deltaTime = this.time.deltaTime;
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager._particleSystemManager.update(deltaTime);
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
-      scene._updateShaderData();
+      scene._updateRendering(deltaTime);
     }
 
     // Fire script `onBeginRender` and `onEndRender`

@@ -404,11 +404,11 @@ export class Shader implements IReferable {
    * Compile shader variant by macro name list.
    *
    * @remarks
-   * Usually a shader contains some macros,any combination of macros is called shader variant.
+   * Skips Transform Feedback passes, which require a runtime-provided output layout.
    *
    * @param engine - Engine to which the shader variant belongs
    * @param macros - Macro name list
-   * @returns Is the compiled shader variant valid
+   * @returns Whether the variant is valid; false if all passes are skipped.
    */
   compileVariant(engine: Engine, macros: string[]): boolean {
     const compileMacros = Shader._compileMacros;
