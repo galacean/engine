@@ -7,6 +7,7 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  Layer,
   Logger,
   MathUtil,
   Matrix,
@@ -94,7 +95,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
-   * The conversion ratio between reference resolution and unit for UI elements in this canvas.
+   * Local UI units per sprite world unit for sliced borders and tile sizing.
+   * One glyph pixel maps to `referenceResolutionPerUnit / 100` local UI units.
    */
   get referenceResolutionPerUnit(): number {
     return this._referenceResolutionPerUnit;
@@ -110,7 +112,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
-   * The reference resolution of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
+   * Design resolution in pixels for {@link CanvasRenderMode.ScreenSpaceCamera} and {@link CanvasRenderMode.ScreenSpaceOverlay}.
+   * The root canvas adapts it to the camera viewport or engine canvas using {@link UICanvas.resolutionAdaptationMode}.
    */
   get referenceResolution(): Vector2 {
     return this._referenceResolution;
@@ -203,7 +206,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
-   * The rendering order priority of the UI canvas in `ScreenSpaceOverlay` mode.
+   * The rendering priority of the canvas.
    */
   get sortOrder(): number {
     return this._sortOrder;
@@ -213,8 +216,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (this._sortOrder !== value) {
       this._sortOrder = value;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
-        // @ts-ignore
-        (this.scene._componentsManager._overlayCanvasesSortingFlag = true);
+        (this.scene._componentsManager._overlayCanvasesSortingDirty = true);
     }
   }
 
@@ -253,11 +255,15 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number, cullingMask: Layer): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      if (element.raycastEnabled && element._raycast(ray, out, distance)) {
+      if (
+        (cullingMask & element.entity.layer) !== 0 &&
+        element.raycastEnabled &&
+        element._raycast(ray, out, distance)
+      ) {
         return true;
       }
     }
@@ -287,9 +293,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
    * @internal
    */
   _canDispatchEvent(camera: Camera): boolean {
-    const realMode = this._realRenderMode;
-    if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
+    }
+    if (!(camera.cullingMask & this.entity.layer)) {
+      return false;
     }
     const assignedCamera = this._camera;
     // @ts-ignore
@@ -311,11 +319,9 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      // Filter by camera culling mask
       if (!(cullingMask & renderer.entity.layer)) {
         continue;
       }
-      // Filter by camera frustum
       if (enableFrustumCulling) {
         switch (mode) {
           case CanvasRenderMode.ScreenSpaceOverlay:
@@ -371,7 +377,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
     const entity = this.entity;
     // @ts-ignore
@@ -381,13 +386,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     Utils.setRootCanvas(this, rootCanvas);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
   }
 
-  // @ts-ignore
   override _onDisable(): void {
     this._renderElements.length = 0;
     this._batchedRenderElements.length = 0;
@@ -510,7 +513,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   private _walk(entity: Entity, renderers: UIRenderer[], depth = 0, group: UIGroup = null): number {
-    // @ts-ignore
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
     let groupAbleCount = 0;
@@ -552,15 +554,11 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (preCamera !== camera) {
       this._cameraObserver = camera;
       if (preCamera) {
-        // @ts-ignore
         preCamera.entity._updateFlagManager.removeListener(this._onCameraTransformListener);
-        // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
-        // @ts-ignore
         camera.entity._updateFlagManager.addListener(this._onCameraTransformListener);
-        // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
     }
@@ -597,12 +595,10 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   private _addCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeListener);
   }
 
   private _removeCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
@@ -680,7 +676,6 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
-      // @ts-ignore
       const componentsManager = this.scene._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:

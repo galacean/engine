@@ -19,7 +19,6 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
         ._request<any>(item.url, {
           ...item,
           type: "json"
@@ -61,7 +60,6 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 if (clipData) {
                   promises.push(
                     new Promise((resolve) => {
-                      //@ts-ignore
                       resourceManager.getResourceByRef(clipData).then((clip) => {
                         resolve({
                           layerIndex,
@@ -128,7 +126,6 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
     transition.exitTime = transitionData.exitTime;
     transition.solo = transitionData.solo;
     transition.mute = transitionData.mute;
-    // @ts-ignore
     transition._isExit = transitionData.isExit;
     transition.destinationState = destinationState;
     transitionData.conditions.forEach((conditionData) => {

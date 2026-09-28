@@ -52,13 +52,6 @@ module.exports = {
       ]
     },
     {
-      name: "@galacean/engine-lottie",
-      repo: "https://github.com/galacean/engine-lottie.git",
-      packagePath: ".",
-      browserPath: "dist/browser.js",
-      buildCommand: "pnpm build"
-    },
-    {
       name: "@galacean/engine-spine",
       repo: "https://github.com/galacean/engine-spine.git",
       branch: "4.2",

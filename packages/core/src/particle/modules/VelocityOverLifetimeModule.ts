@@ -247,7 +247,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._orbitalY = this._createOrbitalRadialCurve();
     this._orbitalZ = this._createOrbitalRadialCurve();
     this._radial = this._createOrbitalRadialCurve();
-    // @ts-expect-error Access internal Vector3 change callback
     this._centerOffset._onValueChanged = this._generator._renderer._onGeneratorParamsChanged;
   }
 

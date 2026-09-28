@@ -2,8 +2,6 @@ import type { IPlatformTransformFeedbackPrimitive, VertexBufferBinding, VertexEl
 import type { IPlatformShaderProgram } from "@galacean/engine-design";
 import type { GLBuffer } from "./GLBuffer";
 
-type GLBufferOwner = { _platformBuffer: GLBuffer };
-
 /**
  * @internal
  * WebGL2 implementation of Transform Feedback primitive.
@@ -101,7 +99,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, this._getGLBuffer(feedbackBinding));
+    gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
     for (let i = 0, n = feedbackElements.length; i < n; i++) {
       this._bindElement(attribs, feedbackElements[i], feedbackBinding.stride);
     }
@@ -111,7 +109,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
       const element = inputElements[i];
       const inputBinding = inputBindings[element.bindingIndex];
       if (inputBinding !== lastInputBinding) {
-        gl.bindBuffer(gl.ARRAY_BUFFER, this._getGLBuffer(inputBinding));
+        gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>inputBinding.buffer._platformBuffer)._glBuffer);
         lastInputBinding = inputBinding;
       }
       this._bindElement(attribs, element, inputBinding.stride);
@@ -119,10 +117,6 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     return vao;
-  }
-
-  private _getGLBuffer(binding: VertexBufferBinding): WebGLBuffer {
-    return (binding.buffer as unknown as GLBufferOwner)._platformBuffer._glBuffer;
   }
 
   private _bindElement(attribs: Record<string, number>, element: VertexElement, stride: number): void {

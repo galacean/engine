@@ -188,10 +188,8 @@ export class GLTFMaterialParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(material).then((material) => {
-      // @ts-ignore
       material ||= engine._basicResources._getBlinnPhongMaterial();
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
-      // @ts-ignore
       material._associationSuperResource(glTFResource);
       return material;
     });

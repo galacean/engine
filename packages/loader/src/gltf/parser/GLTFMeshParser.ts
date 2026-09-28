@@ -198,7 +198,7 @@ export class GLTFMeshParser extends GLTFParser {
     const glTF = context.glTF;
     const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
-    let promises = new Array<AssetPromise<void>>();
+    const promises = new Array<AssetPromise<void>>();
 
     const blendShapeCount = glTFTargets.length;
     const blendShapeCollection = new Array<BlendShapeData>(blendShapeCount);
@@ -263,19 +263,16 @@ export class GLTFMeshParser extends GLTFParser {
 
         if (mesh) {
           if (mesh instanceof ModelMesh) {
-            // @ts-ignore
             mesh._associationSuperResource(glTFResource);
             resolve(mesh);
           } else {
             mesh.then((mesh) => {
-              // @ts-ignore
               mesh._associationSuperResource(glTFResource);
               resolve(mesh);
             });
           }
         } else {
           const mesh = new ModelMesh(engine, meshInfo.name || i + "");
-          // @ts-ignore
           mesh._associationSuperResource(glTFResource);
 
           const meshRestoreInfo = new ModelMeshRestoreInfo();
