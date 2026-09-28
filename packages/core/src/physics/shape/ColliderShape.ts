@@ -27,7 +27,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
-  private _contactOffset: number | undefined;
+  private _contactOffset: number = 0.02;
 
   /**
    * @internal
@@ -52,10 +52,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Contact offset for this shape, the value must be greater than or equal to 0.
-   * @remarks The default is determined by the physics backend. PhysX uses `0.02 * tolerancesScale.length`.
+   * @defaultValue 0.02
    */
   get contactOffset(): number {
-    return this._contactOffset ?? Engine._nativePhysics?.getDefaultContactOffset?.() ?? 0.02;
+    return this._contactOffset;
   }
 
   set contactOffset(value: number) {
@@ -188,7 +188,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   protected _syncNative(): void {
     const nativeShape = this._nativeShape;
-    if (!nativeShape) return;
+    if (!nativeShape) {
+      return;
+    }
     this._syncNativeShape(nativeShape);
 
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
@@ -197,9 +199,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   protected _syncNativeShape(nativeShape: IColliderShape): void {
     nativeShape.setPosition(this._position);
     nativeShape.setRotation(this._rotation);
-    if (this._contactOffset !== undefined) {
-      nativeShape.setContactOffset(this._contactOffset);
-    }
+    nativeShape.setContactOffset(this._contactOffset);
     nativeShape.setIsTrigger(this._isTrigger);
     nativeShape.setMaterial(this._material._nativeMaterial);
   }

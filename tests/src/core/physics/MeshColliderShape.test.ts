@@ -9,7 +9,8 @@ import {
   StaticCollider,
   PhysicsMaterial,
   Script,
-  ModelMesh
+  ModelMesh,
+  Layer
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
@@ -428,6 +429,81 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("Mesh Data Update", () => {
+    it.each(["mesh", "cookingFlags", "isConvex", "clear and restore"])(
+      "preserves collision filtering after changing %s",
+      (property) => {
+        const entity = root.createChild("filteredMesh");
+        entity.transform.setPosition(100, 100, 0);
+        const collider = entity.addComponent(StaticCollider);
+        const shape = new MeshColliderShape();
+        const material = shape.material;
+        const vertices = [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
+        const indices = [
+          0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
+        ];
+        const mesh = createModelMesh(engine, vertices, indices);
+        const replacementMesh = createModelMesh(engine, vertices, indices);
+        shape.mesh = mesh;
+        collider.addShape(shape);
+        collider.collisionLayer = Layer.Layer5;
+        physicsScene.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, false);
+
+        class ContactScript extends Script {
+          collided = false;
+
+          onCollisionEnter(): void {
+            this.collided = true;
+          }
+        }
+
+        const detectsCollision = () => {
+          const probe = root.createChild("filteredMeshProbe");
+          probe.transform.setPosition(100, 101.25, 0);
+          const probeCollider = probe.addComponent(DynamicCollider);
+          probeCollider.useGravity = false;
+          const probeShape = new SphereColliderShape();
+          probeCollider.addShape(probeShape);
+          probeCollider.collisionLayer = Layer.Layer6;
+          const script = probe.addComponent(ContactScript);
+          physicsScene._update(1 / 60);
+          const collided = script.collided;
+          probe.destroy();
+          probeShape.material.destroy();
+          return collided;
+        };
+
+        try {
+          expect(detectsCollision()).toBe(false);
+          switch (property) {
+            case "mesh":
+              shape.mesh = replacementMesh;
+              break;
+            case "cookingFlags":
+              shape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+              break;
+            case "isConvex":
+              shape.isConvex = true;
+              break;
+            case "clear and restore":
+              shape.mesh = null;
+              shape.mesh = mesh;
+              break;
+          }
+          expect(collider.collisionLayer).toBe(Layer.Layer5);
+          expect(detectsCollision()).toBe(false);
+
+          collider.collisionLayer = Layer.Layer0;
+          expect(detectsCollision()).toBe(true);
+        } finally {
+          physicsScene.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, true);
+          entity.destroy();
+          material.destroy();
+          mesh.destroy();
+          replacementMesh.destroy();
+        }
+      }
+    );
+
     it("should replace mesh data with one native shape", () => {
       const entity = root.createChild("updateMesh");
       const staticCollider = entity.addComponent(StaticCollider);

@@ -10,7 +10,9 @@ export abstract class RigidCollider extends Collider {
   /** @internal */
   _replaceNativeShape(shape: ColliderShape, nativeShape: IColliderShape | null): void {
     const previousShape = shape._nativeShape;
-    if (previousShape === nativeShape) return;
+    if (previousShape === nativeShape) {
+      return;
+    }
 
     try {
       if (previousShape && nativeShape) {
@@ -26,6 +28,9 @@ export abstract class RigidCollider extends Collider {
     }
     shape._nativeShape = nativeShape;
     previousShape?.destroy();
+    if (nativeShape) {
+      this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
+    }
     this._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 }

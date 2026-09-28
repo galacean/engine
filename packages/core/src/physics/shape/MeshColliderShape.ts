@@ -45,7 +45,9 @@ export class MeshColliderShape extends ColliderShape {
 
       const { positions, indices } = this._meshData;
       const nativeShape = this._createNativeShape(positions, indices, this._isConvex, value);
-      if (!nativeShape) return;
+      if (!nativeShape) {
+        return;
+      }
 
       this._replaceNativeShape(nativeShape);
       this._cookingFlags = value;
@@ -73,11 +75,15 @@ export class MeshColliderShape extends ColliderShape {
       let meshData = this._meshData;
       if (!value && !meshData.indices) {
         meshData = this._getMeshData(mesh, false);
-        if (!meshData) return;
+        if (!meshData) {
+          return;
+        }
       }
 
       const nativeShape = this._createNativeShape(meshData.positions, meshData.indices, value, this._cookingFlags);
-      if (!nativeShape) return;
+      if (!nativeShape) {
+        return;
+      }
 
       this._replaceNativeShape(nativeShape);
       this._isConvex = value;
@@ -97,7 +103,9 @@ export class MeshColliderShape extends ColliderShape {
     if (this._mesh !== value) {
       if (value) {
         const meshData = this._getMeshData(value, this._isConvex);
-        if (!meshData) return;
+        if (!meshData) {
+          return;
+        }
 
         const nativeShape = this._createNativeShape(
           meshData.positions,
@@ -105,7 +113,9 @@ export class MeshColliderShape extends ColliderShape {
           this._isConvex,
           this._cookingFlags
         );
-        if (!nativeShape) return;
+        if (!nativeShape) {
+          return;
+        }
 
         this._replaceNativeShape(nativeShape);
         this._meshData = meshData;
@@ -141,6 +151,28 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh = null;
     }
     this._meshData = null;
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override _onClone(target: MeshColliderShape): void {
+    super._onClone(target);
+    const mesh = target._mesh;
+    if (mesh) {
+      const meshData = target._meshData;
+      const nativeShape =
+        meshData &&
+        target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags);
+      if (!nativeShape) {
+        target._mesh = null;
+        target._nativeShape = null;
+        target._meshData = null;
+        return;
+      }
+      target._nativeShape = nativeShape;
+      mesh._addReferCount(1);
+    }
   }
 
   private _getMeshData(mesh: ModelMesh, isConvex: boolean): MeshData | null {
@@ -186,7 +218,9 @@ export class MeshColliderShape extends ColliderShape {
       this._collider?.entity.transform.lossyWorldScale ?? MeshColliderShape._unitScale
     );
 
-    if (nativeShape) this._syncNativeShape(nativeShape);
+    if (nativeShape) {
+      this._syncNativeShape(nativeShape);
+    }
     return nativeShape;
   }
 
@@ -196,28 +230,6 @@ export class MeshColliderShape extends ColliderShape {
     } else {
       this._nativeShape?.destroy();
       this._nativeShape = nativeShape;
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  override _onClone(target: MeshColliderShape): void {
-    super._onClone(target);
-    const mesh = target._mesh;
-    if (mesh) {
-      const meshData = target._meshData;
-      const nativeShape =
-        meshData &&
-        target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags);
-      if (!nativeShape) {
-        target._mesh = null;
-        target._nativeShape = null;
-        target._meshData = null;
-        return;
-      }
-      target._nativeShape = nativeShape;
-      mesh._addReferCount(1);
     }
   }
 }

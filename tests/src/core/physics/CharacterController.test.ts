@@ -218,6 +218,51 @@ describe("CharacterController", function () {
     shape.material.destroy();
   });
 
+  it("preserves contactOffset when transferring a shape to a rigid collider", () => {
+    roleEntity.isActive = false;
+    const controllerEntity = rootEntity.createChild("offsetController");
+    controllerEntity.transform.setPosition(100, 100, 0);
+    const controller = controllerEntity.addComponent(CharacterController);
+    const shape = new BoxColliderShape();
+    controller.addShape(shape);
+    shape.contactOffset = 0.3;
+
+    const rigidEntity = rootEntity.createChild("offsetRigidCollider");
+    rigidEntity.transform.setPosition(100, 100, 0);
+    const rigidCollider = rigidEntity.addComponent(StaticCollider);
+    rigidCollider.addShape(shape);
+
+    const probe = rootEntity.createChild("offsetProbe");
+    probe.transform.setPosition(100, 101.2, 0);
+    const probeCollider = probe.addComponent(DynamicCollider);
+    probeCollider.useGravity = false;
+    const probeShape = new BoxColliderShape();
+    probeCollider.addShape(probeShape);
+
+    class ContactScript extends Script {
+      collided = false;
+
+      onCollisionEnter(): void {
+        this.collided = true;
+      }
+    }
+
+    const script = probe.addComponent(ContactScript);
+    try {
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      expect(controller.shapes).toHaveLength(0);
+      expect(shape.collider).toBe(rigidCollider);
+      expect(shape.contactOffset).toBe(0.3);
+      expect(script.collided).toBe(true);
+    } finally {
+      controllerEntity.destroy();
+      rigidEntity.destroy();
+      probe.destroy();
+      shape.material.destroy();
+      probeShape.material.destroy();
+    }
+  });
+
   it("keeps contactOffset when an attached shape rejects zero", () => {
     const shape = roleEntity.getComponent(CharacterController).shapes[0];
     shape.contactOffset = 0.3;

@@ -33,7 +33,7 @@ export class DynamicCollider extends RigidCollider {
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  private _sleepThreshold: number | undefined;
+  private _sleepThreshold = 5e-3;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
 
@@ -221,11 +221,9 @@ export class DynamicCollider extends RigidCollider {
 
   /**
    * The mass-normalized energy threshold, below which objects start going to sleep.
-   * @remarks The default is determined by the physics backend. PhysX uses
-   * `5e-5 * tolerancesScale.speed * tolerancesScale.speed`.
    */
   get sleepThreshold(): number {
-    return this._sleepThreshold ?? Engine._nativePhysics?.getDefaultSleepThreshold?.() ?? 5e-3;
+    return this._sleepThreshold;
   }
 
   set sleepThreshold(value: number) {
@@ -500,9 +498,7 @@ export class DynamicCollider extends RigidCollider {
     }
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
-    if (this._sleepThreshold !== undefined) {
-      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
-    }
+    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
     (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
     (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);

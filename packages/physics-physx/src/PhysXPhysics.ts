@@ -56,41 +56,20 @@ export class PhysXPhysics implements IPhysics {
   private _allocator: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
-  private readonly _tolerancesScaleLength: number;
-  private readonly _tolerancesScaleSpeed: number;
 
   /**
    * Create a PhysXPhysics instance.
    * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
-   * @param options - PhysX options.
+   * @param runtimeUrls - Manually specify the runtime URLs
    */
-  constructor(runtimeMode?: PhysXRuntimeMode, options?: PhysXPhysicsOptions);
-  constructor(options?: PhysXPhysicsOptions);
-  constructor(
-    runtimeModeOrOptions: PhysXRuntimeMode | PhysXPhysicsOptions = PhysXRuntimeMode.Auto,
-    options?: PhysXPhysicsOptions
-  ) {
-    const isOptionsObject = typeof runtimeModeOrOptions === "object";
-    const runtimeMode = isOptionsObject ? PhysXRuntimeMode.Auto : (runtimeModeOrOptions ?? PhysXRuntimeMode.Auto);
-    const resolvedOptions = isOptionsObject ? runtimeModeOrOptions : options;
-    const tolerancesScale = resolvedOptions?.tolerancesScale;
-    if (tolerancesScale !== undefined && (tolerancesScale === null || typeof tolerancesScale !== "object")) {
-      throw new Error("PhysXPhysics tolerancesScale must be an object.");
-    }
-    const length = tolerancesScale?.length === undefined ? 1 : tolerancesScale.length;
-    const speed = tolerancesScale?.speed === undefined ? 10 : tolerancesScale.speed;
-    this._assertPositiveFinite(length, "tolerancesScale.length");
-    this._assertPositiveFinite(speed, "tolerancesScale.speed");
-
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
-      resolvedOptions?.wasmSIMDModeUrl ??
+      runtimeUrls?.wasmSIMDModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.simd.js";
     this._wasmModeUrl =
-      resolvedOptions?.wasmModeUrl ??
+      runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.js";
-    this._tolerancesScaleLength = length;
-    this._tolerancesScaleSpeed = speed;
   }
 
   /**
@@ -173,20 +152,6 @@ export class PhysXPhysics implements IPhysics {
   createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
     const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
-  }
-
-  /**
-   * {@inheritDoc IPhysics.getDefaultContactOffset }
-   */
-  getDefaultContactOffset(): number {
-    return 0.02 * this._tolerancesScaleLength;
-  }
-
-  /**
-   * {@inheritDoc IPhysics.getDefaultSleepThreshold }
-   */
-  getDefaultSleepThreshold(): number {
-    return 5e-5 * this._tolerancesScaleSpeed * this._tolerancesScaleSpeed;
   }
 
   /**
@@ -322,18 +287,16 @@ export class PhysXPhysics implements IPhysics {
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
     const tolerancesScale = new physX.PxTolerancesScale();
-    tolerancesScale.length = this._tolerancesScaleLength;
-    tolerancesScale.speed = this._tolerancesScaleSpeed;
     const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
-    // PxPhysics and PxCookingParams copy the scale.
+    // PxPhysics and PxCookingParams copy the scale
     tolerancesScale.delete();
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
-    cookingParams.meshWeldTolerance = 0.001 * this._tolerancesScaleLength;
+    cookingParams.meshWeldTolerance = 0.001;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
     if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
       physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
@@ -348,12 +311,6 @@ export class PhysXPhysics implements IPhysics {
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
   }
-
-  private _assertPositiveFinite(value: number, name: string): void {
-    if (!Number.isFinite(value) || value <= 0) {
-      throw new Error(`PhysXPhysics ${name} must be a positive finite number.`);
-    }
-  }
 }
 
 enum InitializeState {
@@ -362,18 +319,9 @@ enum InitializeState {
   Initialized
 }
 
-export interface PhysXTolerancesScale {
-  /** Approximate object length in the simulation unit. Must be positive and finite. PhysX default is 1. */
-  length?: number;
-  /** Typical object speed in the simulation unit. Must be positive and finite. PhysX default is 10. */
-  speed?: number;
-}
-
-export interface PhysXPhysicsOptions {
+interface PhysXRuntimeUrls {
   /** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
   /** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
   wasmSIMDModeUrl?: string;
-  /** PhysX world unit scale, copied before PxPhysics, PxSceneDesc and PxCookingParams are created. */
-  tolerancesScale?: PhysXTolerancesScale;
 }

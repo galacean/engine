@@ -84,6 +84,21 @@ describe("ColliderShape PhysX", () => {
     expect(boxShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
   });
 
+  it("rejects non-finite contactOffset without changing the public value", () => {
+    const shape = new BoxColliderShape();
+    dynamicCollider.addShape(shape);
+    shape.contactOffset = 0.3;
+
+    for (const value of [NaN, Infinity, -Infinity]) {
+      expect(() => (shape.contactOffset = value)).toThrow();
+      expect(shape.contactOffset).toBe(0.3);
+    }
+
+    dynamicCollider.removeShape(shape);
+    shape._destroy();
+    shape.material.destroy();
+  });
+
   it("CapsuleColliderShape", () => {
     const capsuleShape = new CapsuleColliderShape();
     dynamicCollider.addShape(capsuleShape);
