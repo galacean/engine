@@ -1788,6 +1788,42 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it.each([1, 2])("shares target capacity after an unrelated renderer is removed: %i", (maxParticles) => {
+    const unrelated = createParticleRenderer(engine, "ReorderedCapacity_Unrelated");
+    const firstParent = createParticleRenderer(engine, "ReorderedCapacity_FirstParent");
+    const child = createParticleRenderer(engine, "ReorderedCapacity_Child");
+    const secondParent = createParticleRenderer(engine, "ReorderedCapacity_SecondParent");
+    firstParent.entity.transform.setPosition(-2, 0, 0);
+    secondParent.entity.transform.setPosition(2, 0, 0);
+    child.generator.main.maxParticles = maxParticles;
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+
+    for (const parent of [firstParent, secondParent]) {
+      parent.generator.main.simulationSpace = ParticleSimulationSpace.World;
+      parent.generator.main.startSpeed.constant = 0;
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play(false);
+    }
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    unrelated.enabled = false;
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(maxParticles);
+    const firstPositionX = readSubEmitterSpawnState(child)[0];
+    expect([-2, 2]).to.include(firstPositionX);
+    if (maxParticles === 2) {
+      expect(readSubEmitterSpawnState(child, 1)[0]).to.equal(-firstPositionX);
+    }
+
+    unrelated.entity.destroy();
+    firstParent.entity.destroy();
+    child.entity.destroy();
+    secondParent.entity.destroy();
+  });
+
   it("advances Birth timelines while the target capacity is zero", () => {
     const child = createParticleRenderer(engine, "ZeroCapacity_Child");
     const parent = createParticleRenderer(engine, "ZeroCapacity_Parent");
@@ -2520,6 +2556,44 @@ describe("SubEmitter", () => {
     rebuild.mockRestore();
     parent.entity.destroy();
     child.entity.destroy();
+  });
+
+  it("keeps systems scheduled after removing and re-enabling reordered renderers", () => {
+    const first = createParticleRenderer(engine, "ReorderedRemoval_First");
+    const middle = createParticleRenderer(engine, "ReorderedRemoval_Middle");
+    const last = createParticleRenderer(engine, "ReorderedRemoval_Last");
+    for (const renderer of [first, middle, last]) {
+      renderer.generator.emission.rateOverTime.constant = 10;
+      renderer.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      renderer.generator.play(false);
+    }
+
+    first.enabled = false;
+    last.enabled = false;
+    updateEngine(engine, 1);
+    expect(first.generator._getAliveParticleCount()).to.equal(0);
+    expect(middle.generator._getAliveParticleCount()).to.equal(1);
+    expect(last.generator._getAliveParticleCount()).to.equal(0);
+
+    last.enabled = true;
+    updateEngine(engine, 1);
+    expect(middle.generator._getAliveParticleCount()).to.equal(2);
+    expect(last.generator._getAliveParticleCount()).to.equal(1);
+
+    first.enabled = true;
+    middle.entity.destroy();
+    updateEngine(engine, 1);
+    expect(first.generator._getAliveParticleCount()).to.equal(1);
+    expect(last.generator._getAliveParticleCount()).to.equal(2);
+
+    first.enabled = false;
+    last.enabled = false;
+    updateEngine(engine, 1);
+    expect(first.generator._getAliveParticleCount()).to.equal(0);
+    expect(last.generator._getAliveParticleCount()).to.equal(0);
+
+    first.entity.destroy();
+    last.entity.destroy();
   });
 
   it("schedules a shared target once across multiple sub-emitter slots", () => {

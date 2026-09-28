@@ -1,3 +1,4 @@
+import { DisorderedArray } from "../utils/DisorderedArray";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleRenderer } from "./ParticleRenderer";
 
@@ -5,14 +6,16 @@ import type { ParticleRenderer } from "./ParticleRenderer";
  * @internal
  */
 export class ParticleSystemManager {
-  private readonly _renderers: ParticleRenderer[] = [];
+  private readonly _renderers = new DisorderedArray<ParticleRenderer>();
+  // Only parent-before-child order is guaranteed, not priority between independent systems
   private readonly _orderedRenderers: ParticleRenderer[] = [];
   private _topologyDirty = true;
 
   add(renderer: ParticleRenderer): void {
     renderer._particleSystemManager = this;
+    renderer._particleSystemIndex = this._renderers.length;
     renderer._subEmitterDependencyFrame = -1;
-    this._renderers.push(renderer);
+    this._renderers.add(renderer);
     // Treat a newly enabled system as visible until the first culling result
     const engine = renderer.engine;
     const frameCount = engine.time.frameCount;
@@ -21,9 +24,13 @@ export class ParticleSystemManager {
   }
 
   remove(renderer: ParticleRenderer): void {
-    this._renderers.splice(this._renderers.indexOf(renderer), 1);
+    const replaced = this._renderers.deleteByIndex(renderer._particleSystemIndex);
+    if (replaced) {
+      replaced._particleSystemIndex = renderer._particleSystemIndex;
+    }
     this._markTopologyDirty();
     renderer._particleSystemManager = null;
+    renderer._particleSystemIndex = -1;
     const commands = renderer.generator._incomingSubEmitterCommands;
     for (let i = 0, n = commands.length; i < n; i++) {
       commands[i].release();
@@ -81,17 +88,18 @@ export class ParticleSystemManager {
   }
 
   private _rebuildTopology(): void {
-    const renderers = this._renderers;
+    const renderers = this._renderers._elements;
+    const rendererCount = this._renderers.length;
     const ordered = this._orderedRenderers;
     ordered.length = 0;
 
-    for (let i = 0, n = renderers.length; i < n; i++) {
+    for (let i = 0; i < rendererCount; i++) {
       const renderer = renderers[i];
       renderer.generator._setTransformFeedback();
       renderer._particleUpdateIndegree = 0;
     }
 
-    for (let i = 0, n = renderers.length; i < n; i++) {
+    for (let i = 0; i < rendererCount; i++) {
       const source = renderers[i];
       const module = source.generator.subEmitters;
       if (!module.enabled) {
@@ -109,7 +117,7 @@ export class ParticleSystemManager {
       }
     }
 
-    for (let i = 0, n = renderers.length; i < n; i++) {
+    for (let i = 0; i < rendererCount; i++) {
       const renderer = renderers[i];
       if (renderer._particleUpdateIndegree === 0) {
         ordered.push(renderer);

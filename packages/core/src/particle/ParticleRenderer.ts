@@ -41,6 +41,9 @@ export class ParticleRenderer extends Renderer {
   _particleSystemManager: ParticleSystemManager | null = null;
   /** @internal */
   @ignoreClone
+  _particleSystemIndex = -1;
+  /** @internal */
+  @ignoreClone
   _particleUpdateIndegree = 0;
   /** @internal */
   @ignoreClone
