@@ -437,6 +437,52 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it.each([
+    { cycles: 1, isLoop: false, duration: 0.5, deltaTime: 100, counts: [0, 1, 1, 1, 1, 1] },
+    { cycles: 3, isLoop: false, duration: 0.5, deltaTime: 100, counts: [0, 1, 2, 3, 3, 3] },
+    { cycles: Infinity, isLoop: false, duration: 0.5, deltaTime: 100, counts: [0, 1, 2, 3, 4, 4] },
+    { cycles: 1, isLoop: true, duration: 0.5, deltaTime: 100, counts: [0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 3] },
+    { cycles: 3, isLoop: true, duration: 0.5, deltaTime: 100, counts: [0, 1, 2, 3, 3, 3, 4, 5, 6, 6, 6, 7] },
+    { cycles: Infinity, isLoop: true, duration: 0.5, deltaTime: 100, counts: [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 8, 9] },
+    { cycles: 1, isLoop: true, duration: 0.2, deltaTime: 100, counts: [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6] },
+    { cycles: Infinity, isLoop: true, duration: 0.3, deltaTime: 100, counts: [0, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8] },
+    { cycles: 1, isLoop: false, duration: 0.5, deltaTime: 99.99995, counts: [0, 1] },
+    { cycles: 3, isLoop: false, duration: 0.5, deltaTime: 100.00005, counts: [1, 2, 3, 3] }
+  ])(
+    "matches ordinary and Birth Burst boundaries (cycles=$cycles, loop=$isLoop, duration=$duration, dt=$deltaTime)",
+    ({ cycles, isLoop, duration, deltaTime, counts }) => {
+      const parent = createParticleRenderer(engine, "BurstBoundary_Parent");
+      const child = createParticleRenderer(engine, "BurstBoundary_Child");
+      const ordinary = createParticleRenderer(engine, "BurstBoundary_Ordinary");
+      parent.generator.main.startSpeed.constant = 0;
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      for (const renderer of [ordinary, child]) {
+        renderer.generator.main.duration = duration;
+        renderer.generator.main.isLoop = isLoop;
+        renderer.generator.main.startSpeed.constant = 0;
+        renderer.generator.emission.addBurst(new Burst(0.1, new ParticleCompositeCurve(1), cycles, 0.1));
+      }
+      parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      ordinary.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.emit(1);
+      ordinary.generator.play(false);
+
+      try {
+        for (let i = 0; i < counts.length; i++) {
+          updateEngine(engine, 1, deltaTime);
+          expect(ordinary.generator._getAliveParticleCount(), `ordinary frame ${i + 1}`).to.equal(counts[i]);
+          expect(child.generator._getAliveParticleCount(), `Birth frame ${i + 1}`).to.equal(counts[i]);
+        }
+      } finally {
+        parent.entity.destroy();
+        child.entity.destroy();
+        ordinary.entity.destroy();
+      }
+    }
+  );
+
   it("Birth runs the target Rate Over Time independently for every live parent", () => {
     const child = createParticleRenderer(engine, "SystemRate_Child");
     const parent = createParticleRenderer(engine, "SystemRate_Parent");

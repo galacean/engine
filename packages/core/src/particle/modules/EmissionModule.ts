@@ -294,75 +294,72 @@ export class EmissionModule extends ParticleGeneratorModule {
     const duration = main.duration;
     if (!main.isLoop) {
       if (lastPlayTime < duration) {
-        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration, state, command);
+        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), 0, state, command);
       }
       return;
     }
 
     let segmentStart = lastPlayTime;
-    let nextCycleTime = (Math.floor(segmentStart / duration) + 1) * duration;
+    let cycle = Math.floor(segmentStart / duration);
     while (segmentStart < playTime) {
+      const nextCycleTime = (cycle + 1) * duration;
       const segmentEnd = Math.min(nextCycleTime, playTime);
-      this._emitBySubBurst(segmentStart, segmentEnd, duration, state, command);
+      this._emitBySubBurst(segmentStart, segmentEnd, cycle * duration, state, command);
       if (segmentEnd < nextCycleTime) {
         break;
       }
       state.currentBurstIndex = 0;
       segmentStart = segmentEnd;
-      nextCycleTime += duration;
+      cycle++;
     }
   }
 
   private _emitBySubBurst(
     lastPlayTime: number,
     playTime: number,
-    duration: number,
+    cycleStart: number,
     state: EmissionState,
     command?: BirthSubEmitterCommand
   ): void {
     const { bursts } = this;
-    const baseTime = Math.floor(lastPlayTime / duration) * duration;
-    const startTime = lastPlayTime % duration;
-    const endTime = startTime + (playTime - lastPlayTime);
+    // Compare absolute event and window times in the simulation's Float32 domain, including after loop boundaries
+    const startTime = Math.fround(lastPlayTime);
+    const endTime = Math.fround(playTime);
 
     let pendingIndex = -1;
     let index = state.currentBurstIndex;
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
-      const burstTime = burst.time;
-      if (burstTime >= endTime) {
+      const burstTime = cycleStart + burst.time;
+      if (Math.fround(burstTime) >= endTime) {
         break;
       }
 
       const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
-        if (burstTime >= startTime) {
-          this._emitOrAddRequest(command, baseTime + burstTime, burst.count.evaluate(undefined, state.randomBurst()));
+        if (Math.fround(burstTime) >= startTime) {
+          this._emitOrAddRequest(command, burstTime, burst.count.evaluate(undefined, state.randomBurst()));
         }
       } else {
-        const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
-
-        // Absorb float drift: (startTime - burstTime) / repeatInterval may land at cycle + 1e-15
-        // when it should be exactly cycle, and ceil would then skip ahead to cycle + 1.
-        const tolerance = MathUtil.zeroTolerance;
-        const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval - tolerance) - 1;
-        const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval - tolerance));
-        const last = Math.min(maxCycles - 1, lastCycle);
-        for (let c = first; c <= last; c++) {
-          const effectiveTime = burstTime + c * repeatInterval;
-          if (effectiveTime >= duration) {
+        let cycle = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
+        // Include events rounded onto the window start even when the Double quotient places them before it
+        while (cycle > 0 && Math.fround(burstTime + (cycle - 1) * repeatInterval) >= startTime) {
+          cycle--;
+        }
+        for (; cycle < cycles; cycle++) {
+          const effectiveTime = burstTime + cycle * repeatInterval;
+          const eventTime = Math.fround(effectiveTime);
+          if (eventTime >= endTime) {
             break;
           }
-          this._emitOrAddRequest(
-            command,
-            baseTime + effectiveTime,
-            burst.count.evaluate(undefined, state.randomBurst())
-          );
+          if (eventTime >= startTime) {
+            this._emitOrAddRequest(command, effectiveTime, burst.count.evaluate(undefined, state.randomBurst()));
+          }
         }
 
         // `state.currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
         // burst can be the entry point — skipping past it would drop its remaining cycles
-        if (pendingIndex < 0 && lastCycle < maxCycles - 1) {
+        if (pendingIndex < 0 && cycle < cycles) {
           pendingIndex = index;
         }
       }
