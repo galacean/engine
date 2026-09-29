@@ -20,16 +20,10 @@ import {
  */
 export interface IPhysics {
   /**
-   * Shared default material, owned by the backend and available after initialization.
-   */
-  readonly defaultMaterial: IPhysicsMaterial;
-
-  /**
    * Initialize physics.
-   * @param defaultMaterial - Engine-defined properties for the backend's shared default material
    * @returns A promise that will resolve when the physics is initialized
    */
-  initialize(defaultMaterial: IPhysicsMaterialProperties): Promise<void>;
+  initialize(): Promise<void>;
 
   /**
    * Create physics manager.

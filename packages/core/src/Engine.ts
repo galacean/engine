@@ -26,7 +26,6 @@ import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { PhysicsMaterial } from "./physics/PhysicsMaterial";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
@@ -56,8 +55,8 @@ export class Engine extends EventDispatcher {
   static _pixelsPerUnit: number = 100;
   /** @internal */
   static _physicalObjectsMap: Record<number, ColliderShape> = {};
-  /** @internal */
-  static _nativePhysics: IPhysics;
+  /** @internal Engine used by argument-less physics constructors */
+  static _physicsEngine: Engine;
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
@@ -124,6 +123,7 @@ export class Engine extends EventDispatcher {
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
+  private _physics: IPhysics;
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
@@ -153,6 +153,11 @@ export class Engine extends EventDispatcher {
       this.update();
     }
   };
+
+  /** @internal */
+  static get _nativePhysics(): IPhysics {
+    return Engine._physicsEngine?._physics;
+  }
 
   /**
    * Settings of Engine.
@@ -510,6 +515,10 @@ export class Engine extends EventDispatcher {
 
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
+    this._basicResources._destroy();
+    if (Engine._physicsEngine === this) {
+      Engine._physicsEngine = null;
+    }
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
@@ -650,13 +659,15 @@ export class Engine extends EventDispatcher {
     const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
-        physics.initialize(PhysicsMaterial._defaultProperties).then(() => {
+        physics.initialize().then(() => {
           if (Engine._nativePhysics) {
             console.warn(
               "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
             );
           }
-          Engine._nativePhysics = physics;
+          this._physics = physics;
+          Engine._physicsEngine = this;
+          this._basicResources._initializePhysics();
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;

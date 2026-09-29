@@ -24,6 +24,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   protected _id: number;
   @assignmentClone
   protected _material: PhysicsMaterial | null = null;
+  @assignmentClone
+  private _defaultMaterial: PhysicsMaterial;
   @ignoreClone
   private _materialInstanced: boolean = false;
   private _isTrigger: boolean = false;
@@ -130,6 +132,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   protected constructor() {
     super();
+    this._defaultMaterial = Engine._physicsEngine._basicResources.physicsDefaultMaterial;
     this._id = ColliderShape._idGenerator++;
 
     this._setRotation = this._setRotation.bind(this);
@@ -198,8 +201,18 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     delete Engine._physicalObjectsMap[this._id];
   }
 
+  /** @internal */
+  _setDefaultMaterial(material: PhysicsMaterial): void {
+    if (this._defaultMaterial !== material) {
+      this._defaultMaterial = material;
+      if (!this._material) {
+        this._nativeShape?.setMaterial(material._nativeMaterial);
+      }
+    }
+  }
+
   protected _getNativeMaterial(): IPhysicsMaterial {
-    return this._material?._nativeMaterial ?? Engine._nativePhysics.defaultMaterial;
+    return (this._material ?? this._defaultMaterial)._nativeMaterial;
   }
 
   protected _syncNative(): void {

@@ -49,7 +49,6 @@ export class PhysXPhysics implements IPhysics {
   /** @internal PhysX cooking params */
   _pxCookingParams: any;
 
-  private _defaultMaterial: PhysXPhysicsMaterial;
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
@@ -57,13 +56,6 @@ export class PhysXPhysics implements IPhysics {
   private _allocator: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
-
-  /**
-   * {@inheritDoc IPhysics.defaultMaterial }
-   */
-  get defaultMaterial(): PhysXPhysicsMaterial {
-    return this._defaultMaterial;
-  }
 
   /**
    * Create a PhysXPhysics instance.
@@ -82,10 +74,9 @@ export class PhysXPhysics implements IPhysics {
 
   /**
    * Initialize PhysXPhysics.
-   * @param defaultMaterial - Engine-defined properties for the shared default material
    * @returns Promise object
    */
-  initialize(defaultMaterial: IPhysicsMaterialProperties): Promise<void> {
+  initialize(): Promise<void> {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
@@ -119,7 +110,7 @@ export class PhysXPhysics implements IPhysics {
           () =>
             (<any>window).PHYSX().then((PHYSX: any) => {
               this._runTimeMode = runtimeMode;
-              this._init(PHYSX, defaultMaterial);
+              this._init(PHYSX);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
               console.log("PhysX loaded.");
@@ -138,7 +129,6 @@ export class PhysXPhysics implements IPhysics {
    * Destroy PhysXPhysics.
    */
   destroy(): void {
-    this._defaultMaterial.destroy();
     this._pxCooking.release();
     this._pxCookingParams.delete();
     this._physX.PxCloseExtensions();
@@ -284,7 +274,7 @@ export class PhysXPhysics implements IPhysics {
     this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
   }
 
-  private _init(physX: any, defaultMaterial: IPhysicsMaterialProperties): void {
+  private _init(physX: any): void {
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
@@ -313,7 +303,6 @@ export class PhysXPhysics implements IPhysics {
     this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
-    this._defaultMaterial = this.createPhysicsMaterial(defaultMaterial);
   }
 }
 

@@ -11,6 +11,7 @@ import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { BaseMaterial, BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
+import { PhysicsMaterial } from "./physics/PhysicsMaterial";
 import { Shader } from "./shader/Shader";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
@@ -117,6 +118,8 @@ export class BasicResources {
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
 
+  physicsDefaultMaterial: PhysicsMaterial;
+
   readonly meshMagentaMaterial: Material;
   readonly particleMagentaMaterial: Material;
 
@@ -217,6 +220,16 @@ export class BasicResources {
         })
         .catch(reject);
     });
+  }
+
+  /** @internal */
+  _initializePhysics(): void {
+    this.physicsDefaultMaterial = new PhysicsMaterial();
+  }
+
+  /** @internal */
+  _destroy(): void {
+    this.physicsDefaultMaterial?.destroy();
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {
