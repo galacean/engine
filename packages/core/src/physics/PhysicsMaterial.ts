@@ -26,7 +26,7 @@ export class PhysicsMaterial {
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(this);
+    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(PhysicsMaterial._defaultProperties);
   }
 
   /**
