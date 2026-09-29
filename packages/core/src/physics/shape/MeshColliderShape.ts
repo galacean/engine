@@ -5,7 +5,6 @@ import { assignmentClone } from "../../clone/CloneDecorators";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
-import { RigidCollider } from "../RigidCollider";
 import { ColliderShape } from "./ColliderShape";
 
 type MeshData = {
@@ -25,9 +24,6 @@ export class MeshColliderShape extends ColliderShape {
   @assignmentClone
   private _meshData: MeshData | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
-
-  /** @internal */
-  declare _collider: RigidCollider;
 
   /**
    * Cooking flags for this mesh collider shape.

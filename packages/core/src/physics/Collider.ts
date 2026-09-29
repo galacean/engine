@@ -1,4 +1,4 @@
-import { ICollider, IStaticCollider } from "@galacean/engine-design";
+import { ICollider, IColliderShape, IRigidCollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -8,6 +8,7 @@ import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
 import { ColliderShape } from "./shape/ColliderShape";
+import type { MeshColliderShape } from "./shape/MeshColliderShape";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
@@ -157,6 +158,33 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
   }
 
+  /** @internal */
+  _replaceNativeShape(shape: MeshColliderShape, nativeShape: IColliderShape | null): void {
+    const previousShape = shape._nativeShape;
+    if (previousShape === nativeShape) {
+      return;
+    }
+
+    const nativeCollider = <IRigidCollider>this._nativeCollider;
+    if (nativeShape) {
+      const attached = previousShape
+        ? nativeCollider.replaceShape(previousShape, nativeShape)
+        : nativeCollider.addShape(nativeShape);
+      if (!attached) {
+        nativeShape.destroy();
+        throw new Error("Collider: failed to attach replacement shape to the native actor.");
+      }
+    } else if (previousShape) {
+      nativeCollider.removeShape(previousShape);
+    }
+    shape._nativeShape = nativeShape;
+    previousShape?.destroy();
+    if (nativeShape) {
+      this._setCollisionLayer();
+    }
+    this._handleShapesChanged(ColliderShapeChangeFlag.Property);
+  }
+
   protected _syncNative(): void {
     for (let i = 0, n = this.shapes.length; i < n; i++) {
       this._addNativeShape(this.shapes[i]);
@@ -182,7 +210,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
   protected _addNativeShape(shape: ColliderShape): void {
     if (shape._nativeShape) {
       shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      this._nativeCollider.addShape(shape._nativeShape);
+      if (!this._nativeCollider.addShape(shape._nativeShape)) {
+        throw new Error("Collider: failed to attach shape to the native actor.");
+      }
     }
     shape._collider = this;
   }

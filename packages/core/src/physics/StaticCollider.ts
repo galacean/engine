@@ -1,12 +1,12 @@
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
-import { RigidCollider } from "./RigidCollider";
+import { Collider } from "./Collider";
 
 /**
  * A static collider component that will not move.
  * @remarks Mostly used for object which always stays at the same place and never moves around.
  */
-export class StaticCollider extends RigidCollider {
+export class StaticCollider extends Collider {
   /**
    * @internal
    */

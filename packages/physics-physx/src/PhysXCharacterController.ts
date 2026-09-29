@@ -87,7 +87,7 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.addShape }
    */
-  addShape(shape: PhysXColliderShape): void {
+  addShape(shape: PhysXColliderShape): boolean {
     // Add shape should sync latest position and world scale to pxController
     this._updateShapePosition(shape._position, shape._worldScale);
     // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and won't create pxController
@@ -95,6 +95,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._shape = shape;
     shape._controllers.add(this);
     this._scene?._addColliderShape(shape._id);
+    return true;
   }
 
   /**

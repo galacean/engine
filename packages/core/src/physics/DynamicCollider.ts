@@ -3,7 +3,7 @@ import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
-import { RigidCollider } from "./RigidCollider";
+import { Collider } from "./Collider";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import { MeshColliderShape } from "./shape/MeshColliderShape";
@@ -11,7 +11,7 @@ import { MeshColliderShape } from "./shape/MeshColliderShape";
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
-export class DynamicCollider extends RigidCollider {
+export class DynamicCollider extends Collider {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
 

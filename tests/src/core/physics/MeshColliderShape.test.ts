@@ -558,14 +558,18 @@ describe("MeshColliderShape PhysX", () => {
       const replaceShapeSpy = vi.spyOn(nativeCollider, "replaceShape").mockImplementation((previousShape, newShape) => {
         candidateNativeShape = newShape;
         candidateDestroySpy = vi.spyOn(newShape, "destroy");
-        originalReplaceShape(previousShape, newShape);
+        return originalReplaceShape(previousShape, newShape);
       });
 
       try {
         const replacementMesh = createModelMesh(engine, [0, 2, 0, -2, -2, -2, 2, -2, -2, 0, -2, 2]);
 
-        expect(() => (meshShape.mesh = replacementMesh)).toThrow();
+        expect(() => (meshShape.mesh = replacementMesh)).toThrowError(
+          "Collider: failed to attach replacement shape to the native actor."
+        );
         expect(meshShape.mesh).toBe(oldMesh);
+        expect(oldMesh.refCount).toBe(1);
+        expect(replacementMesh.refCount).toBe(0);
         expect((meshShape as any)._nativeShape).toBe(oldNativeShape);
         expect(nativeCollider._shapes).toEqual([oldNativeShape]);
         expect(actorAttachSpy).toHaveBeenCalledTimes(1);
@@ -703,6 +707,90 @@ describe("MeshColliderShape PhysX", () => {
   });
 
   describe("Native Shape Attachment", () => {
+    it.each(["isConvex", "cookingFlags"] as const)(
+      "keeps %s unchanged when replacement attachment fails",
+      (property) => {
+        const entity = root.createChild("rejectedMeshConfiguration");
+        const collider = entity.addComponent(StaticCollider);
+        const shape = new MeshColliderShape();
+        const mesh = createModelMesh(
+          engine,
+          [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
+          [0, 1, 2, 0, 2, 3, 0, 3, 1, 1, 3, 2]
+        );
+        shape.mesh = mesh;
+        collider.addShape(shape);
+        const nativeCollider = (collider as any)._nativeCollider;
+        const nativeShape = (shape as any)._nativeShape;
+        const previousValue = shape[property];
+        const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValueOnce(false);
+        const update = () => {
+          if (property === "isConvex") {
+            shape.isConvex = true;
+          } else {
+            shape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+          }
+        };
+
+        try {
+          expect(update).toThrowError("Collider: failed to attach replacement shape to the native actor.");
+          expect(shape[property]).toBe(previousValue);
+          expect(shape.mesh).toBe(mesh);
+          expect(mesh.refCount).toBe(1);
+          expect((shape as any)._nativeShape).toBe(nativeShape);
+          expect(nativeCollider._shapes).toEqual([nativeShape]);
+
+          update();
+          expect(shape[property]).not.toBe(previousValue);
+          expect((shape as any)._nativeShape).not.toBe(nativeShape);
+        } finally {
+          attachSpy.mockRestore();
+          entity.destroy();
+          mesh.destroy();
+        }
+      }
+    );
+
+    it("releases a rejected first native mesh and allows retry on the same collider", () => {
+      const entity = root.createChild("rejectedFirstNativeMesh");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new MeshColliderShape();
+      collider.addShape(shape);
+      const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
+      const nativeCollider = (collider as any)._nativeCollider;
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValueOnce(false);
+      const originalAddShape = nativeCollider.addShape.bind(nativeCollider);
+      let candidateDestroySpy: any;
+      const addSpy = vi.spyOn(nativeCollider, "addShape").mockImplementationOnce((nativeShape) => {
+        candidateDestroySpy = vi.spyOn(nativeShape, "destroy");
+        return originalAddShape(nativeShape);
+      });
+
+      try {
+        expect(() => (shape.mesh = mesh)).toThrowError(
+          "Collider: failed to attach replacement shape to the native actor."
+        );
+        expect(candidateDestroySpy).toHaveBeenCalledTimes(1);
+        expect(shape.mesh).toBeNull();
+        expect((shape as any)._nativeShape).toBeUndefined();
+        expect(mesh.refCount).toBe(0);
+        expect(shape.collider).toBe(collider);
+        expect(collider.shapes).toEqual([shape]);
+        expect(nativeCollider._shapes).toHaveLength(0);
+
+        shape.mesh = mesh;
+        expect(shape.mesh).toBe(mesh);
+        expect(mesh.refCount).toBe(1);
+        expect(nativeCollider._shapes).toEqual([(shape as any)._nativeShape]);
+      } finally {
+        attachSpy.mockRestore();
+        addSpy.mockRestore();
+        candidateDestroySpy?.mockRestore();
+        entity.destroy();
+        mesh.destroy();
+      }
+    });
+
     it("should not record a shape when PhysX rejects the native attachment", () => {
       const entity = root.createChild("rejectedNativeShape");
       const collider = entity.addComponent(StaticCollider);
@@ -711,9 +799,7 @@ describe("MeshColliderShape PhysX", () => {
       const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
 
       try {
-        expect(() => collider.addShape(shape)).toThrowError(
-          "PhysXCollider: failed to attach shape to the native actor."
-        );
+        expect(() => collider.addShape(shape)).toThrowError("Collider: failed to attach shape to the native actor.");
         expect(collider.shapes).toHaveLength(0);
         expect(nativeCollider._shapes).toHaveLength(0);
         expect(shape.collider).toBeFalsy();

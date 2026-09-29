@@ -29,12 +29,13 @@ export abstract class PhysXCollider implements IRigidCollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape): void {
+  addShape(shape: PhysXColliderShape): boolean {
     if (!this._pxActor.attachShape(shape._pxShape)) {
-      throw new Error("PhysXCollider: failed to attach shape to the native actor.");
+      return false;
     }
     this._shapes.push(shape);
     this._scene?._addColliderShape(shape._id);
+    return true;
   }
 
   /**
@@ -50,12 +51,13 @@ export abstract class PhysXCollider implements IRigidCollider {
   /**
    * {@inheritDoc IRigidCollider.replaceShape }
    */
-  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): void {
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): boolean {
     if (!this._pxActor.attachShape(newShape._pxShape)) {
-      throw new Error("PhysXCollider: failed to attach shape to the native actor.");
+      return false;
     }
     this._shapes[this._shapes.indexOf(previousShape)] = newShape;
     this._pxActor.detachShape(previousShape._pxShape, true);
+    return true;
   }
 
   /**
