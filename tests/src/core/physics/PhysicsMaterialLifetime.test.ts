@@ -93,7 +93,7 @@ describe.each(runtimeModes)("PhysicsMaterial lifetime (%s)", (runtimeMode) => {
     }
   });
 
-  it("reuses the Core default when a later backend is initialized", async () => {
+  it("creates a new Core default after the previous backend is destroyed", async () => {
     const firstPhysics = createPhysics(runtimeMode);
     const first = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: firstPhysics });
     const material = getDefaultMaterial(first);
@@ -105,10 +105,12 @@ describe.each(runtimeModes)("PhysicsMaterial lifetime (%s)", (runtimeMode) => {
     let second: Engine;
     try {
       second = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: secondPhysics });
-      expect(getDefaultMaterial(second)).toBe(material);
-      expect(material._nativeMaterial).not.toBe(firstNative);
+      const secondMaterial = getDefaultMaterial(second);
+      expect(secondMaterial).not.toBe(material);
+      expect(secondMaterial._nativeMaterial).not.toBe(firstNative);
+      expect(material._nativeMaterial).toBe(firstNative);
       const shape = addBox(second);
-      expect((shape._nativeShape as any)._pxMaterial).toBe((material._nativeMaterial as any)._pxMaterial);
+      expect((shape._nativeShape as any)._pxMaterial).toBe((secondMaterial._nativeMaterial as any)._pxMaterial);
     } finally {
       second?.destroy();
       if (second) {

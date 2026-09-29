@@ -38,12 +38,7 @@ export class BasicResources {
    * @internal
    */
   static _initializePhysics(): void {
-    const material = BasicResources.physicsDefaultMaterial;
-    if (material) {
-      material._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(material);
-    } else {
-      BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
-    }
+    BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
   }
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {

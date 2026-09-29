@@ -7,9 +7,9 @@ import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Layer } from "../Layer";
 import { Transform } from "../Transform";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import type { MeshColliderShape } from "./shape/MeshColliderShape";
-import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
  * Base class for all colliders.
@@ -158,7 +158,9 @@ export class Collider extends Component implements ICloneHook<Collider> {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _replaceNativeShape(shape: MeshColliderShape, nativeShape: IColliderShape | null): void {
     const previousShape = shape._nativeShape;
     const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
