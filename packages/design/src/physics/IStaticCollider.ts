@@ -1,10 +1,20 @@
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { IRigidCollider } from "./IRigidCollider";
+import { ICollider } from "./ICollider";
+import { IColliderShape } from "./shape";
 
 /**
  * Interface of physics static collider.
  */
-export interface IStaticCollider extends IRigidCollider {
+export interface IStaticCollider extends ICollider {
+  /**
+   * Atomically replace an attached shape with the same logical identity.
+   * @param previousShape - The currently attached shape
+   * @param newShape - The replacement shape
+   * @returns Whether the replacement succeeded
+   * @remarks On failure, returns false and leaves the previous shape and its event state unchanged.
+   */
+  replaceShape(previousShape: IColliderShape, newShape: IColliderShape): boolean;
+
   /**
    * Set global transform of collider.
    * @param position - The global position

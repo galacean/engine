@@ -1,4 +1,4 @@
-import { IRigidCollider } from "@galacean/engine-design";
+import { ICollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
@@ -7,7 +7,7 @@ import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 /**
  * Abstract class of physical collider.
  */
-export abstract class PhysXCollider implements IRigidCollider {
+export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
@@ -49,7 +49,7 @@ export abstract class PhysXCollider implements IRigidCollider {
   }
 
   /**
-   * {@inheritDoc IRigidCollider.replaceShape }
+   * {@inheritDoc IStaticCollider.replaceShape }
    */
   replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape): boolean {
     if (!this._pxActor.attachShape(newShape._pxShape)) {

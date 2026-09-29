@@ -1,4 +1,4 @@
-import { ICollider, IColliderShape, IRigidCollider, IStaticCollider } from "@galacean/engine-design";
+import { ICollider, IColliderShape, IDynamicCollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneDecorators";
 import type { ICloneHook } from "../clone/ICloneHook";
@@ -165,7 +165,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
       return;
     }
 
-    const nativeCollider = <IRigidCollider>this._nativeCollider;
+    const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
     if (nativeShape) {
       const attached = previousShape
         ? nativeCollider.replaceShape(previousShape, nativeShape)
