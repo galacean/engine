@@ -35,7 +35,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * @internal
    * @beta
-   * Whether raycast can select it.
+   * Whether this shape participates in scene queries, including raycasts, shape casts, and overlap queries.
    */
   isSceneQuery: boolean = true;
 
