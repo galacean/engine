@@ -379,15 +379,16 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
 
   override _onEnableInScene(): void {
     const entity = this.entity;
+    // Claim root status before broadcasting so demote cascades can find this canvas
+    const rootCanvas = Utils.searchRootCanvasInParents(this);
+    this._setIsRootCanvas(!rootCanvas);
+    Utils.setRootCanvas(this, rootCanvas);
     // @ts-ignore
     entity._dispatchModify(EntityUIModifyFlags.CanvasEnableInScene, this);
-    const rootCanvas = Utils.searchRootCanvasInParents(this);
-    this._setIsRootCanvas(!rootCanvas, null);
-    Utils.setRootCanvas(this, rootCanvas);
   }
 
   override _onDisableInScene(): void {
-    this._setIsRootCanvas(false, null);
+    this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
   }
 
@@ -402,19 +403,15 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   @ignoreClone
   _rootCanvasListener(flag: number, param: any): void {
     if (this._isRootCanvas) {
-      if (flag === EntityModifyFlags.Parent) {
+      if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
         const rootCanvas = Utils.searchRootCanvasInParents(this);
-        this._setIsRootCanvas(!rootCanvas, null);
+        this._setIsRootCanvas(!rootCanvas);
         Utils.setRootCanvas(this, rootCanvas);
-      } else if (flag === EntityUIModifyFlags.CanvasEnableInScene) {
-        // The enabling canvas hasn't claimed root status yet, hand it down as the new root
-        this._setIsRootCanvas(false, <UICanvas>param);
-        Utils.setRootCanvas(this, <UICanvas>param);
       }
     } else {
       if (flag === EntityModifyFlags.Parent) {
         const rootCanvas = Utils.searchRootCanvasInParents(this);
-        this._setIsRootCanvas(!rootCanvas, null);
+        this._setIsRootCanvas(!rootCanvas);
         Utils.setRootCanvas(this, rootCanvas);
       }
     }
@@ -621,7 +618,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  private _setIsRootCanvas(isRootCanvas: boolean, newRootCanvas: UICanvas): void {
+  private _setIsRootCanvas(isRootCanvas: boolean): void {
     if (this._isRootCanvas !== isRootCanvas) {
       this._isRootCanvas = isRootCanvas;
       this._updateCameraObserver();
@@ -632,8 +629,8 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IElement) => {
           if (element instanceof UICanvas) {
-            const rootCanvas = Utils.searchRootCanvasInParents(element) ?? newRootCanvas;
-            element._setIsRootCanvas(!rootCanvas, newRootCanvas);
+            const rootCanvas = Utils.searchRootCanvasInParents(element);
+            element._setIsRootCanvas(!rootCanvas);
             Utils.setRootCanvas(element, rootCanvas);
           } else {
             // Reset the element's own canvas state for the new root's walk
