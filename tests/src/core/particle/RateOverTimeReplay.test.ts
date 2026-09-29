@@ -1,7 +1,9 @@
 import {
+  Burst,
   Camera,
   Engine,
   Entity,
+  ParticleCompositeCurve,
   ParticleMaterial,
   ParticleRenderer,
   ParticleStopMode
@@ -14,12 +16,11 @@ function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): 
   //@ts-ignore
   engine._vSyncCount = Infinity;
   //@ts-ignore
-  engine._time._lastSystemTime = 0;
-  performance.now = function () {
-    times.value += deltaMs;
-    return times.value;
-  };
+  engine._time._lastSystemTime = times.value / 1000;
+  const nextTime = times.value + deltaMs;
+  performance.now = () => nextTime;
   engine.update();
+  times.value = nextTime;
 }
 
 function buildEmitter(engine: Engine, name: string): { entity: Entity; renderer: ParticleRenderer } {
@@ -139,6 +140,71 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     tick(engine, elapsed);
     const delta = generator._getAliveParticleCount() - baseline;
     expect(delta, "enabled toggle must not unwind the disabled interval").to.be.lessThan(5);
+
+    entity.destroy();
+  });
+
+  it("emits Rate Over Time only after reaching its Float32 boundary", () => {
+    const { entity, renderer } = buildEmitter(engine, "rate-boundary-tolerance");
+    const generator = renderer.generator;
+    generator.emission.rateOverTime.constant = 1;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    for (let i = 0; i < 3; i++) {
+      tick(engine, elapsed, 300);
+    }
+    tick(engine, elapsed, 99.9995);
+    expect(generator._getAliveParticleCount()).to.equal(0);
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    for (let i = 0; i < 3; i++) {
+      tick(engine, elapsed, 300);
+    }
+    tick(engine, elapsed, 100);
+    expect(generator._getAliveParticleCount()).to.equal(1);
+
+    entity.destroy();
+  });
+
+  it("emits every exact constant-rate boundary across coarse frames", () => {
+    const { entity, renderer } = buildEmitter(engine, "rate-coarse-frame-boundary");
+    const generator = renderer.generator;
+    generator.main.duration = 100;
+    generator.emission.rateOverTime.constant = 10;
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+    for (let i = 0; i < 10; i++) {
+      tick(engine, elapsed, 300);
+    }
+
+    expect(generator._getAliveParticleCount()).to.equal(30);
+    entity.destroy();
+  });
+
+  it("emits looped bursts only after their cycle time is reached", () => {
+    const { entity, renderer } = buildEmitter(engine, "looped-burst-boundary");
+    const generator = renderer.generator;
+    generator.main.duration = 1;
+    generator.main.isLoop = true;
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(0);
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(1);
+
+    for (let i = 0; i < 9; i++) tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(1);
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.equal(2);
 
     entity.destroy();
   });

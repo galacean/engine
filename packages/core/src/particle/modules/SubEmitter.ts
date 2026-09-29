@@ -1,6 +1,6 @@
 import { DataObject } from "../../base/DataObject";
 import { ignoreClone } from "../../clone/CloneDecorators";
-import { ParticleRenderer } from "../ParticleRenderer";
+import type { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { SubEmittersModule } from "./SubEmittersModule";
@@ -13,13 +13,14 @@ export class SubEmitter extends DataObject {
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
-  /** Probability (0..1) the sub-emitter fires for any given event. */
+  /** Probability (0..1) that the sub-emitter runs for a parent particle. */
   emitProbability: number = 1;
 
-  /** Number of sub particles emitted per parent event. */
-  emitCount: number = 1;
+  /** Number of sub particles emitted when this slot is triggered at Death. */
+  deathEmitCount: number = 1;
 
   /** @internal */
+  @ignoreClone
   _module: SubEmittersModule = null;
 
   private _emitter: ParticleRenderer = null;
@@ -27,15 +28,19 @@ export class SubEmitter extends DataObject {
 
   /**
    * Target particle renderer the sub particles emit into.
+   * Both particle renderers must belong to the same scene.
    */
   get emitter(): ParticleRenderer {
     return this._emitter;
   }
 
   set emitter(value: ParticleRenderer) {
-    if (value === this._emitter) return;
+    if (value === this._emitter) {
+      return;
+    }
     this._module?._validateEmitter(value);
     this._emitter = value;
+    this._module?._onSlotChanged(this);
   }
 
   /**
@@ -46,8 +51,10 @@ export class SubEmitter extends DataObject {
   }
 
   set type(value: ParticleSubEmitterType) {
-    if (value === this._type) return;
+    if (value === this._type) {
+      return;
+    }
     this._type = value;
-    this._module?._generator._setTransformFeedback();
+    this._module?._onSlotChanged(this);
   }
 }

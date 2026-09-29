@@ -1,42 +1,60 @@
-import { IPlatformTransformFeedbackPrimitive, VertexElement, VertexBufferBinding } from "@galacean/engine-core";
-import { GLBuffer } from "./GLBuffer";
+import type { IPlatformTransformFeedbackPrimitive, VertexBufferBinding, VertexElement } from "@galacean/engine-core";
+import type { IPlatformShaderProgram } from "@galacean/engine-design";
+import type { GLBuffer } from "./GLBuffer";
 
 /**
  * @internal
  * WebGL2 implementation of Transform Feedback primitive.
- * Maintains two VAOs (one per read direction), auto-rebuilds when program changes.
+ * Maintains two VAOs (one per read direction), rebuilding when the program or input bindings change.
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
-  private _gl: WebGL2RenderingContext;
+  private readonly _gl: WebGL2RenderingContext;
   private _vaoA: WebGLVertexArrayObject;
   private _vaoB: WebGLVertexArrayObject;
   private _lastProgramId = -1;
+  private readonly _lastInputBindings: VertexBufferBinding[] = [];
 
   constructor(gl: WebGL2RenderingContext) {
     this._gl = gl;
   }
 
-  updateVertexLayout(
-    program: any,
-    readBinding: VertexBufferBinding,
-    writeBinding: VertexBufferBinding,
+  bind(
+    program: IPlatformShaderProgram,
+    bindingA: VertexBufferBinding,
+    bindingB: VertexBufferBinding,
     feedbackElements: VertexElement[],
-    inputBinding: VertexBufferBinding,
-    inputElements: VertexElement[]
+    inputBindings: VertexBufferBinding[],
+    inputElements: VertexElement[],
+    readIsA: boolean
   ): void {
-    if (program.id === this._lastProgramId) return;
+    let layoutChanged = program.id !== this._lastProgramId;
+    const lastInputBindings = this._lastInputBindings;
+    if (!layoutChanged) {
+      if (inputBindings.length !== lastInputBindings.length) {
+        layoutChanged = true;
+      } else {
+        for (let i = 0, n = inputBindings.length; i < n; i++) {
+          if (inputBindings[i] !== lastInputBindings[i]) {
+            layoutChanged = true;
+            break;
+          }
+        }
+      }
+    }
+    if (layoutChanged) {
+      this._deleteVAOs();
 
-    this._deleteVAOs();
+      const attribs = program.attributeLocation;
+      this._vaoA = this._createVAO(attribs, bindingA, feedbackElements, inputBindings, inputElements);
+      this._vaoB = this._createVAO(attribs, bindingB, feedbackElements, inputBindings, inputElements);
+      this._lastProgramId = program.id;
+      lastInputBindings.length = inputBindings.length;
+      for (let i = 0, n = inputBindings.length; i < n; i++) {
+        lastInputBindings[i] = inputBindings[i];
+      }
 
-    const attribs = program.attributeLocation;
-    this._vaoA = this._createVAO(attribs, readBinding, feedbackElements, inputBinding, inputElements);
-    this._vaoB = this._createVAO(attribs, writeBinding, feedbackElements, inputBinding, inputElements);
-    this._lastProgramId = program.id;
-
-    this._gl.bindVertexArray(null);
-  }
-
-  bind(readIsA: boolean): void {
+      this._gl.bindVertexArray(null);
+    }
     this._gl.bindVertexArray(readIsA ? this._vaoA : this._vaoB);
   }
 
@@ -67,13 +85,14 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
       this._vaoB = null;
     }
     this._lastProgramId = -1;
+    this._lastInputBindings.length = 0;
   }
 
   private _createVAO(
     attribs: Record<string, number>,
     feedbackBinding: VertexBufferBinding,
     feedbackElements: VertexElement[],
-    inputBinding: VertexBufferBinding,
+    inputBindings: VertexBufferBinding[],
     inputElements: VertexElement[]
   ): WebGLVertexArrayObject {
     const gl = this._gl;
@@ -81,28 +100,32 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     gl.bindVertexArray(vao);
 
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
-    this._bindElements(gl, attribs, feedbackElements, feedbackBinding.stride);
+    for (let i = 0, n = feedbackElements.length; i < n; i++) {
+      this._bindElement(attribs, feedbackElements[i], feedbackBinding.stride);
+    }
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>inputBinding.buffer._platformBuffer)._glBuffer);
-    this._bindElements(gl, attribs, inputElements, inputBinding.stride);
+    let lastInputBinding: VertexBufferBinding | undefined;
+    for (let i = 0, n = inputElements.length; i < n; i++) {
+      const element = inputElements[i];
+      const inputBinding = inputBindings[element.bindingIndex];
+      if (inputBinding !== lastInputBinding) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>inputBinding.buffer._platformBuffer)._glBuffer);
+        lastInputBinding = inputBinding;
+      }
+      this._bindElement(attribs, element, inputBinding.stride);
+    }
 
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     return vao;
   }
 
-  private _bindElements(
-    gl: WebGL2RenderingContext,
-    attribs: Record<string, number>,
-    elements: VertexElement[],
-    stride: number
-  ): void {
-    for (const element of elements) {
-      const loc = attribs[element.attribute];
-      if (loc !== undefined && loc !== -1) {
-        const info = element._formatMetaInfo;
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
-      }
+  private _bindElement(attribs: Record<string, number>, element: VertexElement, stride: number): void {
+    const gl = this._gl;
+    const loc = attribs[element.attribute];
+    if (loc !== undefined && loc !== -1) {
+      const info = element._formatMetaInfo;
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, info.size, info.type, info.normalized, stride, element.offset);
     }
   }
 }

@@ -1,5 +1,5 @@
 import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
-import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import type { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {

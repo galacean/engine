@@ -2,16 +2,19 @@ import {
   BoxShape,
   Camera,
   Engine,
+  Layer,
   ModelMesh,
   ParticleRenderer,
   ParticleRenderMode,
   ParticleSimulationSpace,
+  ParticleStopMode,
   PrimitiveMesh,
   Scene,
+  Script,
   ShaderMacro
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -67,6 +70,188 @@ describe("ParticleRenderer", () => {
     expect(renderer.velocityScale).to.eq(0);
   });
 
+  it("resets the gravity modifier random stream with the generator seed", () => {
+    const entity = scene.createRootEntity("GravityRandomSeed");
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    const gravityRand = generator.main._gravityModifierRand;
+
+    generator.randomSeed = 123;
+    const first = gravityRand.random();
+    generator.randomSeed = 123;
+    expect(gravityRand.random()).to.equal(first);
+
+    entity.destroy();
+  });
+
+  it("pauses simulation while culled and resumes without catch-up", () => {
+    const entity = scene.createRootEntity("CulledParticle");
+    entity.transform.setPosition(100000, 0, 0);
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    generator.useAutoRandomSeed = false;
+    generator.main.isLoop = true;
+    generator.main.startLifetime.constant = 10;
+    generator.emission.rateOverTime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    updateEngine(engine, 3);
+    const culledPlayTime = generator._playTime;
+    expect(culledPlayTime).to.be.closeTo(0.1, 1e-6);
+
+    updateEngine(engine, 3);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    entity.transform.setPosition(0, 0, 0);
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.be.closeTo(culledPlayTime + 0.1, 1e-6);
+
+    entity.destroy();
+  });
+
+  it("updates renderer data when a particle system is added during onUpdate", () => {
+    let particleRenderer: ParticleRenderer;
+    class ParticleCreator extends Script {
+      override onUpdate(): void {
+        const entity = this.entity.createChild("DynamicParticle");
+        entity.layer = Layer.Layer3;
+        particleRenderer = entity.addComponent(ParticleRenderer);
+        particleRenderer.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+        this.enabled = false;
+      }
+    }
+
+    const host = scene.createRootEntity("ParticleCreator");
+    host.addComponent(ParticleCreator);
+    updateEngine(engine, 1);
+
+    expect(particleRenderer!.shaderData.getVector4("renderer_Layer").x).to.equal(Layer.Layer3);
+    host.destroy();
+  });
+
+  it("updates generator and renderer shader data for active particles", () => {
+    const entity = scene.createRootEntity("FeedbackParticle");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator;
+    renderer.lengthScale = 3;
+    renderer.velocityScale = 4;
+    renderer.pivot.set(1, 2, 3);
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+
+    updateEngine(engine, 1);
+
+    const shaderData = renderer.shaderData;
+    expect(shaderData.getFloat("renderer_CurrentTime")).to.equal(generator._playTime);
+    expect(shaderData.getFloat("renderer_StretchedBillboardLengthScale")).to.equal(3);
+    expect(shaderData.getFloat("renderer_StretchedBillboardSpeedScale")).to.equal(4);
+    expect(shaderData.getVector3("renderer_PivotOffset")).to.deep.equal(renderer.pivot);
+    entity.destroy();
+  });
+
+  it("restores CPU-simulated particles after instance-buffer content loss", () => {
+    const entity = scene.createRootEntity("RestoredCpuParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const instanceBuffer = generator._instanceVertexBufferBinding.buffer;
+    instanceBuffer._isContentLost = true;
+    const setData = vi.spyOn(instanceBuffer, "setData");
+    updateEngine(engine, 1);
+
+    expect(generator._getAliveParticleCount()).to.equal(2);
+    expect(setData).toHaveBeenCalled();
+    expect(instanceBuffer.isContentLost).to.equal(false);
+
+    entity.destroy();
+  });
+
+  it("discards lost transform-feedback state once before accepting new emissions", () => {
+    const entity = scene.createRootEntity("RestoredFeedbackParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const lostBuffer = generator._instanceVertexBufferBinding.buffer;
+    lostBuffer._isContentLost = true;
+    generator.emit(1);
+    generator.emit(1);
+
+    expect(lostBuffer.destroyed).to.equal(true);
+    expect(generator._instanceVertexBufferBinding.buffer.isContentLost).to.equal(false);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    updateEngine(engine, 1);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    entity.destroy();
+  });
+
+  it("keeps sub-emitter commands queued for the restored target update", () => {
+    const entity = scene.createRootEntity("RestoredSubEmitterTarget");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+    updateEngine(engine, 1);
+
+    const command = {
+      isBirth: false,
+      frameTime: 1,
+      release: vi.fn()
+    };
+    generator._incomingSubEmitterCommands.push(command);
+    generator._instanceVertexBufferBinding.buffer._isContentLost = true;
+    const emitParticles = vi.spyOn(generator, "_emitParticles").mockReturnValue(0);
+    updateEngine(engine, 1);
+
+    expect(emitParticles).toHaveBeenCalledWith(
+      generator._playTime,
+      undefined,
+      generator.main.maxParticles,
+      undefined,
+      command,
+      1
+    );
+    expect(command.release).toHaveBeenCalledOnce();
+    expect(generator._incomingSubEmitterCommands).to.have.length(0);
+
+    entity.destroy();
+  });
+
+  it("keeps Local simulation rotations independent between particle systems", () => {
+    const firstEntity = scene.createRootEntity("FirstLocalParticle");
+    const secondEntity = scene.createRootEntity("SecondLocalParticle");
+    secondEntity.transform.setRotation(0, 90, 0);
+    const firstRenderer = firstEntity.addComponent(ParticleRenderer);
+    const secondRenderer = secondEntity.addComponent(ParticleRenderer);
+    firstRenderer.generator.emit(1);
+    secondRenderer.generator.emit(1);
+
+    updateEngine(engine, 1);
+
+    const firstRotation = firstRenderer.shaderData.getVector4("renderer_WorldRotation");
+    const secondRotation = secondRenderer.shaderData.getVector4("renderer_WorldRotation");
+    expect(firstRotation).to.not.equal(secondRotation);
+    expect(firstRotation.w).to.be.closeTo(1, 1e-6);
+    expect(secondRotation.y).to.be.closeTo(Math.SQRT1_2, 1e-6);
+    expect(secondRotation.w).to.be.closeTo(Math.SQRT1_2, 1e-6);
+
+    firstEntity.destroy();
+    secondEntity.destroy();
+  });
+
   it("ParticleRenderer renderMode", () => {
     const renderer = scene.createRootEntity("Renderer").addComponent(ParticleRenderer);
     renderer.renderMode = ParticleRenderMode.None;
@@ -82,6 +267,22 @@ describe("ParticleRenderer", () => {
     expect(() => {
       renderer.renderMode = ParticleRenderMode.VerticalBillboard;
     }).to.throw("Not implemented");
+  });
+
+  it("releases mesh geometry bindings when the mesh is removed", () => {
+    const entity = scene.createRootEntity("MeshBindingCleanup");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.be.greaterThan(0);
+
+    renderer.mesh = null;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.equal(0);
+    expect(renderer.generator._primitive.indexBufferBinding).to.equal(null);
+
+    entity.destroy();
+    mesh.destroy();
   });
 
   it("refCount", () => {
@@ -185,18 +386,22 @@ describe("ParticleRenderer", () => {
     entity.destroy();
   });
 
-  it("reorganize geometry buffers with mesh render mode but no mesh", () => {
+  it("attaches the latest particle buffer when a render mesh is assigned", () => {
     const entity = scene.createRootEntity("NoMeshReorganize");
     const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator as any;
     renderer.renderMode = ParticleRenderMode.Mesh;
 
-    // Toggling noise module triggers buffer reorganization, which must tolerate a null mesh
-    expect(() => {
-      renderer.generator.noise.enabled = true;
-      renderer.generator.noise.enabled = false;
-    }).not.to.throw();
+    generator.noise.enabled = true;
+    generator._resizeInstanceBuffer(256);
+    expect(generator._primitive.vertexBufferBindings).to.have.length(0);
+
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = mesh;
+    expect(generator._primitive.vertexBufferBindings).to.include(generator._instanceVertexBufferBinding);
 
     entity.destroy();
+    mesh.destroy();
   });
 
   it("clone a grown particle system keeps capacity consistent", () => {
