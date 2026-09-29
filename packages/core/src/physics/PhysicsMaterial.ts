@@ -3,7 +3,7 @@ import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
- * Material class to represent a set of surface properties.
+ * Surface friction, bounciness, and combine modes for collider shapes.
  */
 export class PhysicsMaterial {
   /** @internal */
@@ -100,8 +100,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Clone this material.
-   * @returns A new material with the same properties
+   * Create an independent material with the same properties.
    */
   clone(): PhysicsMaterial {
     const material = new PhysicsMaterial();
@@ -114,7 +113,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Destroy the material when it is no longer used by any shape.
+   * Release this material after all shapes have stopped using it.
    */
   destroy() {
     !this._destroyed && this._nativeMaterial.destroy();

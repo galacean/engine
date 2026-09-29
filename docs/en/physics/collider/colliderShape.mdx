@@ -28,15 +28,13 @@ Collision shapes ([ColliderShape](/apis/core/#ColliderShape)) define the physica
   Local rotation relative to the collider entity.
 
 ### Physics Material
-- [**material**](/apis/core/#ColliderShape-material)  
-  Gets or sets the current material reference without creating or cloning a material. Multiple shapes can share the same material; changing its properties affects every shape referencing it. When no material is assigned, or the property is set to `null`, the shape uses the engine-defined shared default material and `material` returns `null`.
 
-- [**getInstanceMaterial()**](/apis/core/#ColliderShape-getInstanceMaterial)
-  Following Renderer's instance-material convention, the first call clones the current material and assigns the instance to this shape. If no material is assigned, it creates an instance with default properties. Later calls return the same instance until a different material or `null` is assigned.
+- [**material**](/apis/core/#ColliderShape-material): Gets or assigns a material without creating or cloning one. Changes affect all shapes referencing it. Defaults to `null`, which selects the shared default material.
+- [**getInstanceMaterial()**](/apis/core/#ColliderShape-getInstanceMaterial): Clones the assigned material, or creates one with default properties, and assigns it to this shape on first use. Further calls reuse it until a different material or `null` is assigned.
 
-Cloned shapes share their material reference; call `getInstanceMaterial()` on the clone to make its material independent. To modify only one shape, use `shape.getInstanceMaterial().bounciness = 0.5`. Editing properties through `shape.material` modifies the shared material.
+Cloned shapes share their material reference; call `getInstanceMaterial()` on the clone to create an independent material.
 
-Materials created explicitly or obtained through `getInstanceMaterial()` must be released with `destroy()` when no shape uses them anymore. The backend manages the shared default material's lifetime.
+Release materials you create or instantiate with `destroy()` once no shapes use them. The shared default material needs no manual cleanup.
 
 | Property | Description | Default Value |
 | ---- | ---- | ------ |
@@ -99,38 +97,24 @@ staticCollider.clearShapes();
 ### Setting Physics Material
 
 ```typescript
-// Create and configure physics material
-const material = new PhysicsMaterial();
-material.staticFriction = 0.6;    // Static friction coefficient
-material.dynamicFriction = 0.4;   // Dynamic friction coefficient
-material.bounciness = 0.5;        // Restitution coefficient
+const sharedMaterial = new PhysicsMaterial();
+sharedMaterial.dynamicFriction = 0.4;
 
-// Set material combine modes
-material.frictionCombine = PhysicsMaterialCombineMode.Average;  // Friction combine mode
-material.bounceCombine = PhysicsMaterialCombineMode.Maximum;    // Bounce combine mode
+// Share one material between two shapes
+const box = new BoxColliderShape();
+const sphere = new SphereColliderShape();
+box.material = sharedMaterial;
+sphere.material = sharedMaterial;
 
-// Apply material to collision shape
-const shape = new BoxColliderShape();
-shape.material = material;
+// Create an instance to change only the box's bounce
+const instance = box.getInstanceMaterial();
+instance.bounciness = 0.8;
 
-// Set different materials for different shapes
-const iceShape = new BoxColliderShape();
-const iceMaterial = new PhysicsMaterial();
-iceMaterial.staticFriction = 0.1;
-iceMaterial.dynamicFriction = 0.05;
-iceMaterial.bounciness = 0;
-iceShape.material = iceMaterial;
-
-const bounceShape = new SphereColliderShape();
-const bounceMaterial = new PhysicsMaterial();
-bounceMaterial.bounciness = 0.8;
-bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
-bounceShape.material = bounceMaterial;
-
-// Destroy materials when no longer needed
-material.destroy();
-iceMaterial.destroy();
-bounceMaterial.destroy();
+// Restore defaults so neither material is in use before releasing them
+box.material = null;
+sphere.material = null;
+instance.destroy();
+sharedMaterial.destroy();
 ```
 
 ### Creating Compound Shapes

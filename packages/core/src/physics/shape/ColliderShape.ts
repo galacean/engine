@@ -72,10 +72,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
-   * The current physics material, or null to use the shared default material.
-   * @remarks Reading this property does not create or clone a material. Materials are shared by reference when cloning shapes.
-   * Use {@link getInstanceMaterial} to obtain an instance for this shape.
-   * Destroy the material when it is no longer used by any shape.
+   * The material used by this shape, or null to use the shared default material.
+   * @defaultValue null
+   * @remarks Reading this property does not create or clone a material. Changes affect all shapes sharing the material.
+   * Cloned shapes share their material reference. Use {@link getInstanceMaterial} to obtain an instance.
    */
   get material(): PhysicsMaterial | null {
     return this._material;
@@ -145,8 +145,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Get the instance material for this shape.
-   * @remarks The first call after assigning a material clones it and assigns the instance to this shape.
-   * If no material is assigned, creates one with the engine's default properties. Subsequent calls return the same instance.
+   * @remarks On first use, clones the assigned material or creates one with default properties, then assigns it to this shape.
+   * Further calls return the same instance until a different material or null is assigned.
    * @returns The instance material
    */
   getInstanceMaterial(): PhysicsMaterial {

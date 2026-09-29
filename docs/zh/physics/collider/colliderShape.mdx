@@ -28,15 +28,13 @@ label: Physics
   形状相对于碰撞器实体的局部旋转。
 
 ### 物理材质
-- [**material**](/apis/core/#ColliderShape-material)  
-  返回或设置当前材质引用，读取时不会创建或克隆材质。多个形状可以共享同一材质，对其属性的修改会影响所有引用它的形状。未指定材质或赋值为 `null` 时，形状使用引擎统一定义的共享默认材质，此时 `material` 返回 `null`。
 
-- [**getInstanceMaterial()**](/apis/core/#ColliderShape-getInstanceMaterial)
-  与 Renderer 的实例材质接口一致，首次调用会克隆当前材质并赋给该形状；未指定材质时，创建具有默认属性的实例。后续调用返回同一实例，直到重新赋予不同的材质或 `null`。
+- [**material**](/apis/core/#ColliderShape-material)：读取或指定材质，读取不会创建或克隆材质。修改材质会影响所有引用它的形状。未指定时为 `null`，使用共享默认材质。
+- [**getInstanceMaterial()**](/apis/core/#ColliderShape-getInstanceMaterial)：首次调用会克隆已指定的材质，或创建具有默认属性的材质，并赋给该形状。后续调用复用该实例，直到赋予不同的材质或 `null`。
 
-克隆形状时，材质按引用共享；在副本上调用 `getInstanceMaterial()` 可将其独立出来。仅修改某个形状时，使用 `shape.getInstanceMaterial().bounciness = 0.5`；直接修改 `shape.material` 的属性则会修改共享材质。
+克隆形状会共享材质引用；在副本上调用 `getInstanceMaterial()` 可创建独立材质。
 
-显式创建或通过 `getInstanceMaterial()` 取得的材质，需要在所有形状都不再使用后调用 `destroy()` 释放。后端共享默认材质由后端管理，无需手动释放。
+自行创建或实例化的材质，需在所有形状都不再使用后调用 `destroy()` 释放；共享默认材质无需手动释放。
 
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
@@ -102,38 +100,24 @@ staticCollider.clearShapes();
 ### 设置物理材质
 
 ```typescript
-// 创建物理材质并配置属性
-const material = new PhysicsMaterial();
-material.staticFriction = 0.6;    // 静摩擦系数
-material.dynamicFriction = 0.4;   // 动摩擦系数
-material.bounciness = 0.5;        // 弹性系数
+const sharedMaterial = new PhysicsMaterial();
+sharedMaterial.dynamicFriction = 0.4;
 
-// 设置材质的组合模式
-material.frictionCombine = PhysicsMaterialCombineMode.Average;  // 摩擦力组合方式
-material.bounceCombine = PhysicsMaterialCombineMode.Maximum;    // 弹性组合方式
+// 两个形状共享材质
+const box = new BoxColliderShape();
+const sphere = new SphereColliderShape();
+box.material = sharedMaterial;
+sphere.material = sharedMaterial;
 
-// 将材质应用到碰撞形状
-const shape = new BoxColliderShape();
-shape.material = material;
+// 为 box 创建实例，单独修改它的反弹效果
+const instance = box.getInstanceMaterial();
+instance.bounciness = 0.8;
 
-// 为不同的形状设置不同的材质
-const iceShape = new BoxColliderShape();
-const iceMaterial = new PhysicsMaterial();
-iceMaterial.staticFriction = 0.1;
-iceMaterial.dynamicFriction = 0.05;
-iceMaterial.bounciness = 0;
-iceShape.material = iceMaterial;
-
-const bounceShape = new SphereColliderShape();
-const bounceMaterial = new PhysicsMaterial();
-bounceMaterial.bounciness = 0.8;
-bounceMaterial.bounceCombine = PhysicsMaterialCombineMode.Maximum;
-bounceShape.material = bounceMaterial;
-
-// 不再使用时记得销毁材质
-material.destroy();
-iceMaterial.destroy();
-bounceMaterial.destroy();
+// 恢复默认材质后，这两个材质已无形状引用，可以释放
+box.material = null;
+sphere.material = null;
+instance.destroy();
+sharedMaterial.destroy();
 ```
 
 ### 创建复合形状
