@@ -144,8 +144,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Get the instance material for this shape.
-   * @remarks On first use, clones the assigned material or creates one with default properties, then assigns it to this shape.
-   * Further calls return the same instance until a different material or null is assigned.
+   * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
+   * Reuses the instance until a different material or null is assigned.
    * @returns The instance material
    */
   getInstanceMaterial(): PhysicsMaterial {
