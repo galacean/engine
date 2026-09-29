@@ -24,9 +24,14 @@ class OverrideCallScript extends Script {
   }
 }
 
+class ReferenceScript extends Script {
+  target: ReferenceScript = null;
+}
+
 Loader.registerClass("MeshRenderer", MeshRenderer);
 Loader.registerClass("DiceScript", DiceScript);
 Loader.registerClass("OverrideCallScript", OverrideCallScript);
+Loader.registerClass("ReferenceScript", ReferenceScript);
 
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
@@ -381,6 +386,61 @@ describe("Prefab instance overrides", () => {
     // @ts-ignore
     delete engine.resourceManager._objectPool["nested-ac.prefab"];
   });
+
+  it.each([false, true])(
+    "resolves forward and cyclic references to added components before removals (%s)",
+    async (removeOriginal) => {
+      const url = `nested-component-refs-${removeOriginal}.prefab`;
+      const nested = await PrefabParser.parse(engine, url, {
+        version: "2.0",
+        refs: [],
+        root: 0,
+        entities: [{ components: [0] }],
+        components: [{ type: "ReferenceScript" }]
+      });
+      // @ts-ignore
+      engine.resourceManager._objectPool[url] = nested;
+      const ref = (entity: number) => ({ $component: { entity: [entity], type: "ReferenceScript", index: 1 } });
+      const instance = (component: number) => ({
+        instance: {
+          asset: 0,
+          overrides: {
+            addedComponents: [{ target: [], component }],
+            ...(removeOriginal
+              ? { removedComponents: [{ path: [], selectors: [{ type: "ReferenceScript", index: 0 }] }] }
+              : {})
+          }
+        }
+      });
+      try {
+        const prefab = await PrefabParser.parse(engine, "component-refs.prefab", {
+          version: "2.0",
+          refs: [{ url }],
+          root: 0,
+          entities: [{ children: [1, 2], components: [0] }, instance(1), instance(2)],
+          components: [
+            { type: "ReferenceScript", props: { target: ref(2) } },
+            { type: "ReferenceScript", props: { target: ref(2) } },
+            { type: "ReferenceScript", props: { target: ref(1) } }
+          ]
+        });
+        const root = prefab.instantiate();
+        try {
+          const index = removeOriginal ? 0 : 1;
+          const first = root.children[0].getComponents(ReferenceScript, [])[index];
+          const second = root.children[1].getComponents(ReferenceScript, [])[index];
+          expect(root.getComponent(ReferenceScript).target).toBe(second);
+          expect(first.target).toBe(second);
+          expect(second.target).toBe(first);
+        } finally {
+          root.destroy();
+        }
+      } finally {
+        // @ts-ignore
+        delete engine.resourceManager._objectPool[url];
+      }
+    }
+  );
 
   it("should add entities via addedEntities", async () => {
     const nestedPrefabData: PrefabFile = {
