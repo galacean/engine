@@ -137,7 +137,6 @@ export class Utils {
     }
     // Shorter chain: unregister dropped tail entities, or they leak the listener
     for (let i = count, n = listeningEntities.length; i < n; i++) {
-      // @ts-ignore
       listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = count;
