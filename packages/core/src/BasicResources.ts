@@ -11,6 +11,7 @@ import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
 import { BaseMaterial, BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
+import { PhysicsMaterial } from "./physics/PhysicsMaterial";
 import { Shader } from "./shader/Shader";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
@@ -27,10 +28,18 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
+  static physicsDefaultMaterial: PhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
   private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
   private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
+
+  /**
+   * @internal
+   */
+  static _initializePhysics(): void {
+    BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
+  }
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;

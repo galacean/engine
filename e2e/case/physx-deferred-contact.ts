@@ -44,8 +44,8 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
     const shape = new BoxColliderShape();
     shape.size = new Vector3(2, 2, 2);
-    shape.material.dynamicFriction = 0;
-    shape.material.staticFriction = 0;
+    shape.getInstanceMaterial().dynamicFriction = 0;
+    shape.getInstanceMaterial().staticFriction = 0;
     const collider = entity.addComponent(DynamicCollider);
     collider.addShape(shape);
 

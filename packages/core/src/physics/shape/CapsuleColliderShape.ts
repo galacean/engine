@@ -59,7 +59,7 @@ export class CapsuleColliderShape extends ColliderShape {
       this._id,
       this._radius,
       this._height,
-      this._material._nativeMaterial
+      this._getNativeMaterial()
     );
   }
 

@@ -1,9 +1,10 @@
+import { BasicResources } from "../../BasicResources";
 import { DataObject } from "../../base/DataObject";
-import { IColliderShape } from "@galacean/engine-design";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
@@ -20,13 +21,12 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
-  /** @internal */
-  @ignoreClone
-  _isShapeAttached: boolean = false;
-
   @ignoreClone
   protected _id: number;
-  protected _material: PhysicsMaterial;
+  @assignmentClone
+  protected _material: PhysicsMaterial | null = null;
+  @ignoreClone
+  private _materialInstanced: boolean = false;
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
@@ -62,27 +62,30 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   set contactOffset(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("ColliderShape contactOffset must be finite.");
+    }
     value = Math.max(0, value);
     if (this._contactOffset !== value) {
-      this._contactOffset = value;
       this._nativeShape?.setContactOffset(value);
+      this._contactOffset = value;
     }
   }
 
   /**
-   * Physical material, material can't be null.
+   * The assigned material, or null to use the shared default material.
+   * @defaultValue null
+   * @remarks This property returns null for the shared default. Use {@link getInstanceMaterial} to obtain an instance.
    */
-  get material(): PhysicsMaterial {
+  get material(): PhysicsMaterial | null {
     return this._material;
   }
 
-  set material(value: PhysicsMaterial) {
-    if (!value) {
-      throw new Error("The physics material of the shape can't be null.");
-    }
+  set material(value: PhysicsMaterial | null) {
     if (this._material !== value) {
+      this._materialInstanced = false;
       this._material = value;
-      this._nativeShape?.setMaterial(value._nativeMaterial);
+      this._nativeShape?.setMaterial(this._getNativeMaterial());
     }
   }
 
@@ -128,7 +131,6 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   protected constructor() {
     super();
-    this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 
     this._setRotation = this._setRotation.bind(this);
@@ -139,6 +141,20 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     this._position._onValueChanged = this._setPosition;
 
     Engine._physicalObjectsMap[this._id] = this;
+  }
+
+  /**
+   * Get the instance material for this shape.
+   * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
+   * Reuses the instance until a different material or null is assigned.
+   * @returns The instance material
+   */
+  getInstanceMaterial(): PhysicsMaterial {
+    if (!this._materialInstanced) {
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial();
+      this._materialInstanced = true;
+    }
+    return this._material;
   }
 
   /**
@@ -183,15 +199,26 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     delete Engine._physicalObjectsMap[this._id];
   }
 
+  protected _getNativeMaterial(): IPhysicsMaterial {
+    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial._nativeMaterial;
+  }
+
   protected _syncNative(): void {
-    if (!this._nativeShape) return;
-    this._nativeShape.setPosition(this._position);
-    this._nativeShape.setRotation(this._rotation);
-    this._nativeShape.setContactOffset(this._contactOffset);
-    this._nativeShape.setIsTrigger(this._isTrigger);
-    this._nativeShape.setMaterial(this._material._nativeMaterial);
+    const nativeShape = this._nativeShape;
+    if (!nativeShape) {
+      return;
+    }
+    this._syncNativeShape(nativeShape);
 
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+  }
+
+  protected _syncNativeShape(nativeShape: IColliderShape): void {
+    nativeShape.setPosition(this._position);
+    nativeShape.setRotation(this._rotation);
+    nativeShape.setContactOffset(this._contactOffset);
+    nativeShape.setIsTrigger(this._isTrigger);
+    nativeShape.setMaterial(this._getNativeMaterial());
   }
 
   @ignoreClone
