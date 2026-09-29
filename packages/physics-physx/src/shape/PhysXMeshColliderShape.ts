@@ -1,5 +1,4 @@
 import { MeshColliderShapeCookingFlag, Vector3 } from "@galacean/engine";
-import { IMeshColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
@@ -7,7 +6,7 @@ import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
 /**
  * Mesh collider shape in PhysX.
  */
-export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
+export class PhysXMeshColliderShape extends PhysXColliderShape {
   private static readonly _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
   private _pxMesh: any = null;

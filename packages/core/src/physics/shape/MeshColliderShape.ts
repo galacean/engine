@@ -1,4 +1,4 @@
-import { IMeshColliderShape } from "@galacean/engine-design";
+import { IColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { assignmentClone } from "../../clone/CloneDecorators";
@@ -195,7 +195,7 @@ export class MeshColliderShape extends ColliderShape {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     cookingFlags: MeshColliderShapeCookingFlag
-  ): IMeshColliderShape | null {
+  ): IColliderShape | null {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
     if (!isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
       console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
@@ -218,7 +218,7 @@ export class MeshColliderShape extends ColliderShape {
     return nativeShape;
   }
 
-  private _replaceNativeShape(nativeShape: IMeshColliderShape | null): void {
+  private _replaceNativeShape(nativeShape: IColliderShape | null): void {
     if (this._collider) {
       this._collider._replaceNativeShape(this, nativeShape);
     } else {
