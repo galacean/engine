@@ -70,6 +70,29 @@ describe("UICanvas", async () => {
     expect(rootCanvas.distance).to.eq(50);
   });
 
+  it("Resort overlay canvases after sort order changes", () => {
+    const lowerEntity = scene.createRootEntity("lowerCanvas");
+    const lowerCanvas = lowerEntity.addComponent(UICanvas);
+    lowerCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    lowerCanvas.sortOrder = 1;
+
+    const upperEntity = scene.createRootEntity("upperCanvas");
+    const upperCanvas = upperEntity.addComponent(UICanvas);
+    upperCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    upperCanvas.sortOrder = 2;
+
+    const componentsManager = scene._componentsManager;
+    componentsManager.sortOverlayUICanvases();
+    expect(lowerCanvas._canvasIndex).to.be.lessThan(upperCanvas._canvasIndex);
+
+    lowerCanvas.sortOrder = 3;
+    componentsManager.sortOverlayUICanvases();
+    expect(lowerCanvas._canvasIndex).to.be.greaterThan(upperCanvas._canvasIndex);
+
+    lowerEntity.destroy();
+    upperEntity.destroy();
+  });
+
   // Is Root Canvas
   it("Is root canvas", () => {
     // @ts-ignore

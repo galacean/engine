@@ -5,7 +5,7 @@ import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -30,14 +30,12 @@ export class ParticleRenderer extends Renderer {
   private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
-  @deepClone
   readonly generator: ParticleGenerator;
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
   lengthScale = 2;
   /** The pivot of particle. */
-  @shallowClone
   pivot = new Vector3();
 
   /** @internal */
@@ -270,10 +268,10 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: ParticleRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: ParticleRenderer): void {
+    super._onClone(target);
     target.mesh = this._mesh;
     target.renderMode = this._renderMode;
   }

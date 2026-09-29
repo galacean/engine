@@ -1,5 +1,4 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone } from "../../../clone/CloneManager";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -10,7 +9,6 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class BoxShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Box;
 
-  @deepClone
   private _size = new Vector3(1, 1, 1);
 
   /**

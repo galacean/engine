@@ -56,6 +56,21 @@ describe("DynamicCollider", function () {
     return Math.round(value * 100000) / 100000;
   }
 
+  function getPhysXRigidBody(collider: DynamicCollider) {
+    const nativeCollider = collider._nativeCollider as any;
+    return {
+      actor: nativeCollider._pxActor,
+      flags: nativeCollider._physXPhysics._physX.PxRigidBodyFlag
+    };
+  }
+
+  function expectFlagDisabledBeforeEnabled(calls: unknown[][], disabledFlag: unknown, enabledFlag: unknown) {
+    const disableCallIndex = calls.findIndex(([flag, enabled]) => flag === disabledFlag && enabled === false);
+    const enableCallIndex = calls.findIndex(([flag, enabled]) => flag === enabledFlag && enabled === true);
+    expect(disableCallIndex).toBeGreaterThanOrEqual(0);
+    expect(enableCallIndex).toBeGreaterThan(disableCallIndex);
+  }
+
   beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
@@ -501,6 +516,69 @@ describe("DynamicCollider", function () {
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)
     ).toBeTruthy();
+  });
+
+  it("keeps CCD valid across kinematic transitions", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    const { actor, flags } = getPhysXRigidBody(boxCollider);
+    const setRigidBodyFlag = vi.spyOn(actor, "setRigidBodyFlag");
+    const hasFlag = (flag: unknown) => actor.getRigidBodyFlags(flag);
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
+
+    setRigidBodyFlag.mockClear();
+    boxCollider.isKinematic = true;
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eKINEMATIC);
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eENABLE_SPECULATIVE_CCD);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.ContinuousDynamic);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
+
+    setRigidBodyFlag.mockClear();
+    boxCollider.isKinematic = false;
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eKINEMATIC, flags.eENABLE_CCD);
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_SPECULATIVE_CCD, flags.eENABLE_CCD);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_CCD_FRICTION)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeFalsy();
+    setRigidBodyFlag.mockRestore();
+  });
+
+  it("uses speculative CCD behavior for non-discrete kinematic motion", function () {
+    const simulate = (kinematicMode: CollisionDetectionMode) => {
+      const moving = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-5, 0, 0));
+      const target = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
+      const movingCollider = moving.getComponent(DynamicCollider);
+      const targetCollider = target.getComponent(DynamicCollider);
+      movingCollider.isKinematic = true;
+      movingCollider.collisionDetectionMode = kinematicMode;
+      targetCollider.useGravity = false;
+      targetCollider.linearDamping = 0;
+      targetCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      movingCollider.move(new Vector3(5, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      const result = {
+        targetPosition: target.transform.position.x,
+        targetVelocity: targetCollider.linearVelocity.x
+      };
+      rootEntity.clearChildren();
+      return result;
+    };
+
+    const fallback = simulate(CollisionDetectionMode.Continuous);
+    const explicit = simulate(CollisionDetectionMode.ContinuousSpeculative);
+    expect(fallback.targetPosition).toBeGreaterThan(0);
+    expect(fallback.targetPosition).toBeCloseTo(explicit.targetPosition, 5);
+    expect(fallback.targetVelocity).toBeCloseTo(explicit.targetVelocity, 5);
   });
 
   it("sleep", function () {

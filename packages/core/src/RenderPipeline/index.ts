@@ -1,5 +1,7 @@
 export { BasicRenderPipeline, RenderQueueFlags } from "./BasicRenderPipeline";
 export { VertexMergeBatcher } from "./VertexMergeBatcher";
+/** @internal */
+export type { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 export { Blitter } from "./Blitter";
 export { RenderElement } from "./RenderElement";
 export { RenderQueue } from "./RenderQueue";

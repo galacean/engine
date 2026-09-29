@@ -17,7 +17,6 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -37,27 +36,17 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _textChunks = Array<TextChunk>();
   @ignoreClone
   private _subFont: SubFont = null;
-  @assignmentClone
   private _text: string = "";
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
-  @assignmentClone
   private _font: Font = null;
-  @assignmentClone
   private _fontSize: number = 24;
-  @assignmentClone
   private _fontStyle: FontStyle = FontStyle.None;
-  @assignmentClone
   private _lineSpacing: number = 0;
-  @assignmentClone
   private _characterSpacing: number = 0;
-  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
   private _enableWrapping: boolean = false;
-  @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
 
   /**
@@ -93,7 +82,9 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The font size of the Text.
+   * Font size in pixels, used for glyph rasterization.
+   * Glyph pixel dimensions are converted to local UI units using the root canvas's
+   * {@link UICanvas.referenceResolutionPerUnit}.
    */
   get fontSize(): number {
     return this._fontSize;
@@ -241,10 +232,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    // @ts-ignore
     this.font = engine._textDefaultFont;
     this.raycastEnabled = false;
-    // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
 
@@ -263,14 +252,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Text): void {
-    // @ts-ignore
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**
@@ -360,7 +341,6 @@ export class Text extends UIRenderer implements ITextRenderer {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
       renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       renderElement.subShader = subShader;
@@ -372,7 +352,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _resetSubFont(): void {
     const font = this._font;
-    // @ts-ignore
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
@@ -443,7 +422,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
-    // @ts-ignore
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
@@ -469,7 +447,6 @@ export class Text extends UIRenderer implements ITextRenderer {
           characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
@@ -657,7 +634,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _freeTextChunks(): void {
     const textChunks = this._textChunks;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const manager = this._getChunkManager();
     for (let i = 0, n = textChunks.length; i < n; ++i) {

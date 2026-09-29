@@ -1,13 +1,15 @@
 import { BoundingBox } from "./BoundingBox";
 import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";
+import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Plane } from "./Plane";
 import { Vector3 } from "./Vector3";
 
 /**
  * Represents a ray with an origin and a direction in 3D space.
  */
-export class Ray {
+export class Ray implements IClone<Ray>, ICopy<Ray, Ray> {
   /** The origin of the ray. */
   readonly origin: Vector3 = new Vector3();
   /** The normalized direction of the ray. */
@@ -59,5 +61,26 @@ export class Ray {
   getPoint(distance: number, out: Vector3): Vector3 {
     Vector3.scale(this.direction, distance, out);
     return out.add(this.origin);
+  }
+
+  /**
+   * Creates a clone of this ray.
+   * @returns A clone of this ray
+   */
+  clone(): Ray {
+    const out = new Ray();
+    out.copyFrom(this);
+    return out;
+  }
+
+  /**
+   * Copy this ray from the specified ray.
+   * @param source - The specified ray
+   * @returns This ray
+   */
+  copyFrom(source: Ray): Ray {
+    this.origin.copyFrom(source.origin);
+    this.direction.copyFrom(source.direction);
+    return this;
   }
 }

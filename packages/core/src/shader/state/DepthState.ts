@@ -1,3 +1,4 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
@@ -9,7 +10,7 @@ import { RenderState } from "./RenderState";
 /**
  * Depth state.
  */
-export class DepthState {
+export class DepthState extends DataObject {
   private static _getGLCompareFunction(rhi: IHardwareRenderer, compareFunction: CompareFunction): number {
     const gl = rhi.gl;
 

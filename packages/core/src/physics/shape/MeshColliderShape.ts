@@ -2,6 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
@@ -10,12 +11,14 @@ import { ColliderShape } from "./ColliderShape";
  * Collider shape based on mesh geometry, supporting both convex hull and triangle mesh modes.
  */
 export class MeshColliderShape extends ColliderShape {
+  @ignoreClone
   private _mesh: ModelMesh = null;
   private _isConvex = false;
+  @ignoreClone
   private _positions: Vector3[] = null;
+  @ignoreClone
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
-  private _isShapeAttached = false;
 
   /**
    * Cooking flags for this mesh collider shape.
@@ -99,6 +102,14 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   /**
+   * @inheritdoc
+   */
+  override _onClone(target: MeshColliderShape): void {
+    target.mesh = this._mesh;
+    super._onClone(target);
+  }
+
+  /**
    * @internal
    */
   override _destroy() {
@@ -117,9 +128,7 @@ export class MeshColliderShape extends ColliderShape {
 
   private _destroyNativeShape(): void {
     if (this._nativeShape) {
-      if (this._isShapeAttached) {
-        this._detachFromCollider();
-      }
+      this._collider?._setNativeShapeAttached(this, false);
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
@@ -153,31 +162,13 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   private _updateNativeShapeData(): void {
-    if (
-      (<IMeshColliderShape>this._nativeShape).setMeshData(
-        this._positions,
-        this._indices,
-        this._isConvex,
-        this._cookingFlags
-      )
-    ) {
-      // Re-add to collider if previously removed due to cooking failure
-      if (this._collider && !this._isShapeAttached) {
-        this._attachToCollider();
-      }
-    } else if (this._isShapeAttached) {
-      this._detachFromCollider();
-    }
-  }
-
-  private _detachFromCollider(): void {
-    this._collider._nativeCollider.removeShape(this._nativeShape);
-    this._isShapeAttached = false;
-  }
-
-  private _attachToCollider(): void {
-    this._collider._nativeCollider.addShape(this._nativeShape);
-    this._isShapeAttached = true;
+    const succeeded = (<IMeshColliderShape>this._nativeShape).setMeshData(
+      this._positions,
+      this._indices,
+      this._isConvex,
+      this._cookingFlags
+    );
+    this._collider?._setNativeShapeAttached(this, succeeded);
   }
 
   private _createNativeShape(): void {
@@ -205,10 +196,6 @@ export class MeshColliderShape extends ColliderShape {
     // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
 
-    // If already attached to a collider, add the newly created native shape to it
-    if (this._collider) {
-      nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-      this._attachToCollider();
-    }
+    this._collider?._setNativeShapeAttached(this, true);
   }
 }

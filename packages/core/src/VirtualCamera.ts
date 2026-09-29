@@ -1,10 +1,11 @@
+import { DataObject } from "./base/DataObject";
 import { Matrix, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 
 /**
  * @internal
  */
-export class VirtualCamera {
+export class VirtualCamera extends DataObject {
   isOrthographic: boolean = false;
   nearClipPlane: number = 0.1;
   farClipPlane: number = 100;

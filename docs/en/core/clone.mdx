@@ -8,24 +8,28 @@ label: Core
 Node cloning is a common runtime feature, and node cloning also includes cloning its bound components. For example, during the initialization phase, dynamically create a certain number of identical entities based on configuration, and then place them in different positions in the scene according to logical rules. Here, the details of script cloning will be explained in detail.
 
 ## Entity Cloning
+
 It's very simple, just call the entity's [clone()](/apis/design/#IClone-clone) method to complete the cloning of the entity and its attached components.
+
 ```typescript
 const cloneEntity = entity.clone();
 ```
 
 ## Script Cloning
-Scripts are essentially components, so when we call the entity's [clone()](/apis/design/#IClone-clone) function, the engine will not only clone the built-in components but also clone custom scripts. The cloning rules for built-in components have been customized by the official team, and similarly, we have also opened up the cloning capabilities and rules for scripts to developers. The default cloning method for script fields is shallow copy. For example, if we modify the field values of the script and then clone it, the cloned script will retain the modified values without any additional coding. Below is an example of custom script cloning:
+
+Scripts are essentially components, so when we call the entity's [clone()](/apis/design/#IClone-clone) function, the engine will not only clone the built-in components but also clone custom scripts. The cloning rules for built-in components have been customized by the official team, and similarly, we have also opened up the cloning capabilities and rules for scripts to developers. Script fields are cloned automatically, and how each field value is cloned is resolved by the value's type (see the default rules below). For example, if we modify the field values of the script and then clone it, the cloned script will retain the modified values without any additional coding. Below is an example of custom script cloning:
+
 ```typescript
 // define a custom script
-class CustomScript extends Script{
+class CustomScript extends Script {
   /** boolean type.*/
-  a:boolean = false;
-  
+  a: boolean = false;
+
   /** number type.*/
-  b:number = 1;
-  
+  b: number = 1;
+
   /** class type.*/
-  c:Vector3 = new Vector3(0,0,0);
+  c: Vector3 = new Vector3(0, 0, 0);
 }
 
 // Init entity and script
@@ -33,44 +37,99 @@ const entity = engine.createEntity();
 const script = entity.addComponent(CustomScript);
 script.a = true;
 script.b = 2;
-script.c.set(1,1,1);
+script.c.set(1, 1, 1);
 
 // Clone logic
 const cloneEntity = entity.clone();
 const cloneScript = cloneEntity.getComponent(CustomScript);
 console.log(cloneScript.a); // output is true.
 console.log(cloneScript.b); // output is 2.
-console.log(cloneScript.c); // output is (1,1,1).
+console.log(cloneScript.c); // output is (1,1,1), and it is an independent copy — Vector3 is a math value type and is deep cloned by default.
 ```
-### Clone Decorators
-In addition to the default cloning method, the engine also provides "clone decorators" to customize the cloning method for script fields. The engine has four built-in clone decorators:
 
-| Decorator Name | Decorator Description |
-| :--- | :--- |
-| [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning. |
-| [assignmentClone](/apis/core/#assignmentClone) | (Default value, equivalent to not adding any clone decorator) Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the reference address will be copied. |
-| [shallowClone](/apis/core/#shallowClone) | Shallow clone the field during cloning. After cloning, it will maintain its own independent reference and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied). |
-| [deepClone](/apis/core/#deepClone) | Deep clone the field during cloning. After cloning, it will maintain its own independent reference, and all its internal deep fields will remain completely independent. |
+### Default Cloning Rules
 
-We slightly modify the above example and add different "clone decorators" to the four fields in `CustomScript`. Since `shallowClone` and `deepClone` are more complex, we add additional print output to the fields `c` and `d` for further explanation.
+When a field has no clone decorator, the engine resolves how to clone its value by the value's type:
+
+| Value Type | Default Cloning Behavior |
+| :-- | :-- |
+| Primitive types (`number`, `string`, `boolean`, ...) | Copy the value. |
+| Assets (`Texture`, `Mesh`, `Material`, `Sprite`, `Font` and other `ReferResource` types) | Share the reference — the clone uses the same asset as the source. |
+| `Entity` / `Component` references | Automatically remapped to the corresponding clone within the cloned subtree; references pointing outside the subtree keep the original reference. |
+| Math value types (`Vector2`, `Vector3`, `Vector4`, `Quaternion`, `Matrix`, `Color`, ...) and other value-semantic data | Deep cloned — the clone gets a fully independent copy. |
+| Containers (`Array`, `Map`, `Set`, TypedArray, `DataView`, plain objects) | Deep cloned — a fresh container is created, and each member (for `Map`, keys included) is cloned again according to its own type semantics. |
+| Runtime containers (internal transient state such as `UpdateFlagManager`) | Ignored — the clone keeps its own constructor-built value. |
+| Function values | The clone keeps its own constructor-built function; if it has none, the source's function is shared. |
+| Other objects | Share the reference (assignment). |
+
+Deep-by-default behavior is explicit rather than inferred from method names. A custom data class can opt in by extending [DataObject](/apis/core/#DataObject), whose own enumerable string-keyed properties are cloned field by field. Engine math value types are registered internally and copied through their `copyFrom` implementations; merely adding a method named `copyFrom` does not opt a custom class in. A type cloned this way must support argument-less construction when no compatible preset exists: the engine creates it with `new Type()` before populating it, and throws if bare construction fails.
+
+So without any decorator, plain data objects and arrays get independent deep copies, assets remain shared, and entity references are automatically remapped:
+
 ```typescript
 // define a custom script
-class CustomScript extends Script{
+class CustomScript extends Script {
+  /** Entity reference.*/
+  target: Entity;
+
+  /** Plain data object.*/
+  config = { speed: 1, offsets: [0, 1, 2] };
+
+  /** Asset.*/
+  texture: Texture2D;
+}
+
+// Init entity and script
+const entity = engine.createEntity();
+const child = entity.createChild("child");
+const script = entity.addComponent(CustomScript);
+script.target = child;
+script.texture = new Texture2D(engine, 128, 128);
+
+// Clone logic
+const cloneEntity = entity.clone();
+const cloneScript = cloneEntity.getComponent(CustomScript);
+console.log(cloneScript.target === cloneEntity.findByName("child")); // output is true, entity references are remapped to the corresponding clone in the cloned subtree.
+console.log(cloneScript.config === script.config); // output is false, plain data objects are deep cloned into independent copies.
+console.log(cloneScript.texture === script.texture); // output is true, assets are shared between the source and the clone.
+```
+
+### Clone Decorators
+
+In addition to the default type-driven rules, the engine also provides "clone decorators" to customize the cloning method for script fields. Field decorators have the highest priority — they override the value type's default cloning behavior and apply wherever the clone walks fields: at the component's top level and inside any object that is itself deep cloned (no field walk happens inside a value that stays shared, so no decorator is consulted there). The engine has three built-in clone decorators:
+
+| Decorator Name | Decorator Description |
+| :-- | :-- |
+| [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning; the clone keeps its own constructor-built value. |
+| [assignmentClone](/apis/core/#assignmentClone) | Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the clone will share the reference with the source. |
+| [deepClone](/apis/core/#deepClone) | Deep clone supported values throughout the field's subtree. The deep intent carries into field-cloneable members, while assets stay shared, entity references remap, runtime state keeps the clone's own, and unregistered opaque members keep their default assignment behavior. If the decorated value itself cannot honor a deep clone — for example an `Entity` / `Component`, asset, function, runtime-state object, or opaque platform object — cloning throws. |
+
+<Callout type="negative">
+  `@shallowClone` has been removed. Its old semantics — copy the container itself but share its members — no longer
+  exist. Migrate by intent: use `@deepClone` if the field should be independent, or `@assignmentClone` if it should be
+  shared.
+</Callout>
+
+We slightly modify the above example and add different "clone decorators" to the four fields in `CustomScript`. Since arrays are already deep cloned by default, we use `assignmentClone` on field `c` to force sharing, and `deepClone` on field `d` to make the default behavior explicit, with additional print output for further explanation.
+
+```typescript
+// define a custom script
+class CustomScript extends Script {
   /** boolean type.*/
   @ignoreClone
-  a:boolean = false;
-  
+  a: boolean = false;
+
   /** number type.*/
   @assignmentClone
-  b:number = 1;
-  
+  b: number = 1;
+
   /** class type.*/
-  @shallowClone
-  c:Vector3[] = [new Vector3(0,0,0)];
-  
+  @assignmentClone
+  c: Vector3[] = [new Vector3(0, 0, 0)];
+
   /** class type.*/
   @deepClone
-  d:Vector3[] = [new Vector3(0,0,0)];
+  d: Vector3[] = [new Vector3(0, 0, 0)];
 }
 
 // Init entity and script
@@ -78,26 +137,32 @@ const entity = engine.createEntity();
 const script = entity.addComponent(CustomScript);
 script.a = true;
 script.b = 2;
-script.c[0].set(1,1,1);
-script.d[0].set(1,1,1);
+script.c[0].set(1, 1, 1);
+script.d[0].set(1, 1, 1);
 
 // Clone logic
 const cloneEntity = entity.clone();
 const cloneScript = cloneEntity.getComponent(CustomScript);
-console.log(cloneScript.a); // output is false,ignoreClone will ignore the value.
+console.log(cloneScript.a); // output is false,ignoreClone keeps the clone's own constructor-built value.
 console.log(cloneScript.b); // output is 2,assignmentClone is just assignment the origin value.
-console.log(cloneScript.c[0]); // output is Vector3(1,1,1),shallowClone clone the array shell,but use the same element.
+console.log(cloneScript.c[0]); // output is Vector3(1,1,1),assignmentClone shares the same array instance with the source.
 console.log(cloneScript.d[0]); // output is Vector3(1,1,1),deepClone clone the array shell and also clone the element.
 
-cloneScript.c[0].set(2,2,2); // change the field c[0] value to (2,2,2).
-cloneScript.d[0].set(2,2,2); // change the field d[0] value to (2,2,2).
+cloneScript.c[0].set(2, 2, 2); // change the field c[0] value to (2,2,2).
+cloneScript.d[0].set(2, 2, 2); // change the field d[0] value to (2,2,2).
 
-console.log(script.c[0]); // output is (2,2,2). bacause shallowClone let c[0] use the same reference with cloneScript's c[0].
-console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use the different reference with cloneScript's d[0].
+console.log(script.c[0]); // output is (2,2,2), because assignmentClone lets c use the same array reference as cloneScript.c.
+console.log(script.d[0]); // output is (1,1,1), because deepClone gives d[0] a different reference from cloneScript.d[0].
 ```
+
 - Note:
 
-  - `shallowClone` and `deepClone` are usually used for *Object*, *Array*, and *Class* types.
-  - `shallowClone` will maintain its own independent reference after cloning and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied).
-  - `deepClone` is a deep clone that will recursively clone the properties deeply. How the sub-properties of the properties are cloned depends on the decorators of the sub-properties.
-  - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
+  - Field decorators have the highest priority and also apply to the fields of nested objects, wherever the clone walks fields.
+  - `deepClone` propagates through containers and field-cloneable members. An ordinary class instance without a deep default is copied by its fields and must support argument-less construction. Assets stay shared, entity references are remapped, runtime state keeps the clone's own, unregistered opaque members stay shared, and nested field decorators still win.
+  - Field cloning has a deliberately narrow contract: only an object's own enumerable string-keyed properties carry structural clone semantics. Private fields, non-enumerable properties, Symbol keys, and prototype/accessor state are not reconstructed. The engine does not attempt to recognize every possible form of opaque runtime state.
+  - `deepClone` cannot directly clone engine-bound or opaque values: `@deepClone` on an `Entity` / `Component` reference, an asset, engine runtime state, a function, or an unregistered platform object throws because the explicit intent can't be honored. Remove the decorator to fall back to the default, or use the value's own clone API for a real copy.
+  - If the clone decorators do not meet the requirements, implement [ICloneHook.\_onClone()](/apis/core/#ICloneHook-_onClone) to append type-specific behavior after automatic field cloning.
+
+## Cloning and Asset Reference Counting
+
+When a component's top-level field shares a ref-counted asset (a `ReferResource` such as `Texture`, `Mesh`, or `Material`) during cloning, the engine automatically adds one reference for the clone, so destroying the source never pulls the asset out from under it. Built-in components release their references when destroyed. An asset referenced by custom script fields is kept alive by its clones — destroy the asset itself via its `destroy()` when it is no longer needed.

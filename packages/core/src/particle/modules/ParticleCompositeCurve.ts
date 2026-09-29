@@ -1,5 +1,6 @@
+import { DataObject } from "../../base/DataObject";
 import { Vector2 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -7,17 +8,14 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
 /**
  * Particle composite curve.
  */
-export class ParticleCompositeCurve {
+export class ParticleCompositeCurve extends DataObject {
   private static _minMaxRange = new Vector2();
 
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _mode = ParticleCurveMode.Constant;
   private _constantMin = 0;
   private _constantMax = 0;
-  @deepClone
   private _curveMin: ParticleCurve;
-  @deepClone
   private _curveMax: ParticleCurve;
   @ignoreClone
   private _updateDispatch: () => void;
@@ -142,9 +140,10 @@ export class ParticleCompositeCurve {
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
   constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+    super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
     if (typeof constantOrCurve === "number") {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.constantMin = constantOrCurve;
         this.constantMax = <number>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoConstants;
@@ -153,7 +152,7 @@ export class ParticleCompositeCurve {
         this.mode = ParticleCurveMode.Constant;
       }
     } else {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.curveMin = constantOrCurve;
         this.curveMax = <ParticleCurve>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoCurves;
@@ -279,6 +278,13 @@ export class ParticleCompositeCurve {
    */
   _isRandomMode(): boolean {
     return this._mode === ParticleCurveMode.TwoConstants || this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoCurves;
   }
 
   /**

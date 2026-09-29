@@ -1,4 +1,5 @@
 import { EngineObject } from "../base/EngineObject";
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { IReferable } from "./IReferable";
 
@@ -109,3 +110,5 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     }
   }
 }
+
+registerDefaultCloneMode(ReferResource, CloneMode.Assignment);

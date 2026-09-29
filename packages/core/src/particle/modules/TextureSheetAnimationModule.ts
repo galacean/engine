@@ -1,5 +1,5 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone, shallowClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -24,7 +24,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
 
   /** Frame over time curve of the texture sheet. */
-  @deepClone
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   /** Texture sheet animation type. */
   type = TextureSheetAnimationType.WholeSheet;
@@ -32,13 +31,11 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   cycleCount = 1;
 
   /** @internal */
-  @shallowClone
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
   /** @internal */
   @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
 
-  @deepClone
   private _tiling = new Vector2(1, 1);
   @ignoreClone
   private _frameCurveMacro: ShaderMacro;

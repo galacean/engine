@@ -30,6 +30,8 @@ export class PhysicsScene {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
 
+  private _contactEventConsumerCount = 0;
+
   /**
    * The gravity of physics scene.
    */
@@ -65,6 +67,7 @@ export class PhysicsScene {
     const engine = scene.engine;
     if (engine._physicsInitialized) {
       this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(engine._nativePhysicsManager);
+      this._nativePhysicsScene.setContactEventEnabled(false);
     }
   }
 
@@ -700,6 +703,18 @@ export class PhysicsScene {
     replaced && (replaced._index = controller._index);
     controller._index = -1;
     this._nativePhysicsScene.removeCharacterController(<ICharacterController>controller._nativeCollider);
+  }
+
+  /**
+   * @internal
+   */
+  _addContactEventConsumer(delta: 1 | -1): void {
+    const wasEnabled = this._contactEventConsumerCount > 0;
+    this._contactEventConsumerCount += delta;
+    const enabled = this._contactEventConsumerCount > 0;
+    if (wasEnabled !== enabled) {
+      this._nativePhysicsScene?.setContactEventEnabled(enabled);
+    }
   }
 
   /**

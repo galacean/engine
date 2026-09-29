@@ -2,12 +2,14 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { assignmentClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 
 /**
  * Used to implement transformation related functions.
+ * @remarks A `Transform` subclass must not declare component dependencies.
  */
-export class Transform extends Component {
+export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -26,7 +28,6 @@ export class Transform extends Component {
   private _rotationQuaternion: Quaternion = new Quaternion();
   @ignoreClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
-  @assignmentClone
   private _localUniformScaling: boolean = true;
   @ignoreClone
   private _worldPosition: Vector3 = new Vector3();
@@ -345,6 +346,14 @@ export class Transform extends Component {
     this._scale._onValueChanged = this._onScaleChanged;
   }
 
+  override destroy(): void {
+    const entity = this._entity;
+    if (entity.transform === this && !entity.destroyed) {
+      throw "Transform cannot be destroyed directly; replace it by adding another Transform-compatible component";
+    }
+    super.destroy();
+  }
+
   /**
    * Set local position by X, Y, Z value.
    * @param x - X coordinate
@@ -581,25 +590,41 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: Transform): void {
-    const { _position: position, _rotation: rotation, _scale: scale } = target;
+  _copyLocalPoseFrom(source: Transform): void {
+    const { _position: position, _rotation: rotation, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
 
-    // @ts-ignore
+    //@ts-ignore
     position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = null;
 
-    position.copyFrom(this.position);
-    rotation.copyFrom(this.rotation);
-    scale.copyFrom(this.scale);
+    position.copyFrom(source._position);
+    scale.copyFrom(source._scale);
+    rotation.copyFrom(source._rotation);
+    rotationQuaternion.copyFrom(source._rotationQuaternion);
 
-    // @ts-ignore
-    position._onValueChanged = target._onPositionChanged;
-    // @ts-ignore
-    rotation._onValueChanged = target._onRotationChanged;
-    // @ts-ignore
-    scale._onValueChanged = target._onScaleChanged;
+    //@ts-ignore
+    position._onValueChanged = this._onPositionChanged;
+    //@ts-ignore
+    rotation._onValueChanged = this._onRotationChanged;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    //@ts-ignore
+    scale._onValueChanged = this._onScaleChanged;
 
-    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected
-    target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
+    this._localUniformScaling = source._localUniformScaling;
+
+    const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
+    this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  _onClone(target: Transform): void {
+    target._copyLocalPoseFrom(this);
   }
 
   protected _onLocalMatrixChanging(): void {

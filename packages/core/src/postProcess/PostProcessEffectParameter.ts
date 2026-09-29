@@ -1,3 +1,4 @@
+import { DataObject } from "../base/DataObject";
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Texture } from "../texture";
 
@@ -6,7 +7,7 @@ import { Texture } from "../texture";
  * @remarks
  * The parameter will be mixed to a final value and be used in post process manager.
  */
-export abstract class PostProcessEffectParameter<T> {
+export abstract class PostProcessEffectParameter<T> extends DataObject {
   /**
    * Whether the parameter is enabled.
    */
@@ -27,6 +28,7 @@ export abstract class PostProcessEffectParameter<T> {
   }
 
   constructor(value: T, needLerp = false) {
+    super();
     this._needLerp = needLerp;
     this._value = value;
   }

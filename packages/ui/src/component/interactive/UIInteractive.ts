@@ -1,12 +1,4 @@
-import {
-  CloneUtils,
-  Entity,
-  EntityModifyFlags,
-  Script,
-  assignmentClone,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -48,9 +40,7 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
-  @deepClone
   protected _transitions: Transition[] = [];
-  @assignmentClone
   protected _interactive: boolean = true;
   @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
@@ -186,18 +176,14 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._group;
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
-    // @ts-ignore
     super._onEnableInScene();
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
-    // @ts-ignore
     super._onDisableInScene();
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);

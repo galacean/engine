@@ -1,5 +1,5 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -47,11 +47,8 @@ export class NoiseModule extends ParticleGeneratorModule {
   @ignoreClone
   private _strengthMinConst = new Vector3();
 
-  @deepClone
   private _strengthX: ParticleCompositeCurve;
-  @deepClone
   private _strengthY: ParticleCompositeCurve;
-  @deepClone
   private _strengthZ: ParticleCompositeCurve;
   private _scrollSpeed = 0;
   private _separateAxes = false;

@@ -1,31 +1,34 @@
+import { DataObject } from "../../base/DataObject";
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICloneHook<ColliderShape> {
   private static _idGenerator: number = 0;
 
   /** @internal */
+  @ignoreClone
   _collider: Collider;
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
+  /** @internal */
+  @ignoreClone
+  _isShapeAttached: boolean = false;
 
   @ignoreClone
   protected _id: number;
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
-  @deepClone
   private _rotation: Vector3 = new Vector3();
-  @deepClone
   private _position: Vector3 = new Vector3();
   private _contactOffset: number = 0.02;
 
@@ -124,6 +127,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected constructor() {
+    super();
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 
@@ -162,9 +166,9 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ColliderShape) {
+  _onClone(target: ColliderShape): void {
     target._syncNative();
   }
 

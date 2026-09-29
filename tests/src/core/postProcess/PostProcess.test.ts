@@ -173,6 +173,57 @@ describe("PostProcess", () => {
     expect(pp._effects.length).to.equal(0);
   });
 
+  it("Post Process clone", () => {
+    const pp = postEntity.addComponent(PostProcess);
+    const bloomEffect = pp.addEffect(BloomEffect);
+    const dirtTexture = new Texture2D(engine, 1, 1);
+
+    bloomEffect.intensity.value = 1.5;
+    bloomEffect.threshold.value = 0.9;
+    bloomEffect.tint.value = new Color(0.5, 0.25, 0.1, 1);
+    bloomEffect.highQualityFiltering.value = true;
+    bloomEffect.dirtTexture.value = dirtTexture;
+    bloomEffect.enabled = false;
+
+    const refCount = dirtTexture.refCount;
+
+    const cloneEntity = postEntity.clone();
+    const clonePP = cloneEntity.getComponent(PostProcess);
+    const cloneBloom = clonePP.getEffect(BloomEffect);
+
+    // Effects, effect and parameters are all fresh instances.
+    expect(clonePP).to.not.equal(pp);
+    // @ts-ignore
+    expect(clonePP._effects).to.not.equal(pp._effects);
+    // @ts-ignore
+    expect(clonePP._effects.length).to.equal(1);
+    expect(cloneBloom).to.instanceOf(BloomEffect);
+    expect(cloneBloom).to.not.equal(bloomEffect);
+    expect(cloneBloom.intensity).to.not.equal(bloomEffect.intensity);
+    expect(cloneBloom.tint).to.not.equal(bloomEffect.tint);
+
+    // Values are preserved.
+    expect(cloneBloom.intensity.value).to.equal(1.5);
+    expect(cloneBloom.threshold.value).to.equal(0.9);
+    expect(cloneBloom.highQualityFiltering.value).to.true;
+    expect(cloneBloom.enabled).to.false;
+    expect(cloneBloom.tint.value).to.include(new Color(0.5, 0.25, 0.1, 1));
+
+    // Values are independent: mutating the clone leaves the source untouched.
+    expect(cloneBloom.tint.value).to.not.equal(bloomEffect.tint.value);
+    cloneBloom.tint.value.r = 0.9;
+    expect(bloomEffect.tint.value.r).to.equal(0.5);
+    cloneBloom.intensity.value = 3;
+    expect(bloomEffect.intensity.value).to.equal(1.5);
+
+    // Texture parameter shares the same texture reference without touching its refCount.
+    expect(cloneBloom.dirtTexture).to.not.equal(bloomEffect.dirtTexture);
+    expect(cloneBloom.dirtTexture.value).to.equal(dirtTexture);
+    expect(dirtTexture.refCount).to.equal(refCount);
+
+    cloneEntity.destroy();
+  });
+
   it("Post Process", () => {
     const ppManager = scene.postProcessManager;
 

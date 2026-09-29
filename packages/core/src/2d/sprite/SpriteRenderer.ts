@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -35,12 +35,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
 
-  @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
   private _sprite: Sprite = null;
@@ -49,13 +46,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
   private _customWidth: number = undefined;
-  @assignmentClone
   private _customHeight: number = undefined;
-  @assignmentClone
   private _flipX: boolean = false;
-  @assignmentClone
   private _flipY: boolean = false;
 
   /**
@@ -284,10 +277,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteRenderer): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

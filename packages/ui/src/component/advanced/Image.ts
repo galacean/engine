@@ -12,7 +12,6 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -30,9 +29,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
 
   /**
@@ -108,13 +105,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (lastSprite !== value) {
       if (lastSprite) {
         this._addResourceReferCount(lastSprite, -1);
-        // @ts-ignore
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
-        // @ts-ignore
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(UIRenderer._textureProperty, value.texture);
       } else {
@@ -130,7 +125,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   constructor(entity: Entity) {
     super(entity);
     this.drawMode = SpriteDrawMode.Simple;
-    // @ts-ignore
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -150,11 +144,10 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Image): void {
-    // @ts-ignore
-    super._cloneTo(target);
+  override _onClone(target: Image): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }
@@ -196,7 +189,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      // @ts-ignore
       material = this._engine._getUIDefaultMaterial();
     }
 
@@ -257,7 +249,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const sprite = this._sprite;
     if (sprite) {
       this._addResourceReferCount(sprite, -1);
-      // @ts-ignore
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
       this._sprite = null;
     }

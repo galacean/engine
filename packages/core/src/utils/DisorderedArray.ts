@@ -1,3 +1,4 @@
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
 import { Utils } from "../Utils";
 
 /**
@@ -197,3 +198,5 @@ export class DisorderedArray<T> {
     this._blankCount = 0;
   }
 }
+
+registerDefaultCloneMode(DisorderedArray, CloneMode.Ignore);

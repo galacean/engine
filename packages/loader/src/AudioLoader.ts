@@ -25,14 +25,12 @@ class AudioLoader extends Loader<AudioClip> {
       };
 
       resourceManager
-        // @ts-ignore
         ._request<ArrayBuffer>(url, requestConfig)
         .then((arrayBuffer) => {
           const audioClip = new AudioClip(resourceManager.engine);
           AudioLoader._getDecodeContext()
             .decodeAudioData(arrayBuffer)
             .then((result: AudioBuffer) => {
-              // @ts-ignore
               audioClip._setAudioSource(result);
 
               if (url.indexOf("data:") !== 0) {

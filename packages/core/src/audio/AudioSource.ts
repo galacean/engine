@@ -1,4 +1,4 @@
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
@@ -16,7 +16,6 @@ export class AudioSource extends Component {
   @ignoreClone
   private _pendingPlay = false;
 
-  @assignmentClone
   private _clip: AudioClip;
   @ignoreClone
   private _gainNode: GainNode;
@@ -28,13 +27,9 @@ export class AudioSource extends Component {
   @ignoreClone
   private _playTime = -1;
 
-  @assignmentClone
   private _volume = 1;
-  @assignmentClone
   private _lastVolume = 1;
-  @assignmentClone
   private _playbackRate = 1;
-  @assignmentClone
   private _loop = false;
 
   /**
@@ -218,14 +213,6 @@ export class AudioSource extends Component {
       this._isPlaying = false;
       AudioManager._playingCount--;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: AudioSource): void {
-    target._clip?._addReferCount(1);
-    // _volume is field-cloned; its gain node is applied lazily on first play
   }
 
   /**

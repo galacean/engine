@@ -2,7 +2,7 @@ import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * Spot light.

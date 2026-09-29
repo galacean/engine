@@ -1,23 +1,24 @@
 {
   "name": "@galacean/engine",
-  "version": "2.0.0-alpha.39",
+  "version": "2.0.0-alpha.47",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
   "license": "MIT",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc && pnpm run validate:engine-knowledge",
+    "validate:engine-knowledge": "node scripts/validate-engine-knowledge.mjs"
   },
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.js",
   "unpkg": "dist/bundled.module.min.js",
   "jsdelivr": "dist/bundled.module.min.js",
   "files": [
     "dist/**/*",
-    "types/**/*"
+    "types/**/*",
+    "skills/**/*"
   ],
   "umd": {
     "name": "Galacean"

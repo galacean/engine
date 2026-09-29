@@ -9,7 +9,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
@@ -116,13 +116,11 @@ export class Camera extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
   _frustum: BoundingFrustum = new BoundingFrustum();
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
   _replacementShader: Shader = null;
@@ -148,25 +146,16 @@ export class Camera extends Component {
   private _msaaSamples: MSAASamples;
 
   private _renderTarget: RenderTarget = null;
-  @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   @ignoreClone
   private _depthBufferParams: Vector4 = new Vector4();
-  @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  @deepClone
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
-  @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
@@ -824,13 +813,6 @@ export class Camera extends Component {
    */
   _unRegisterModifyListener(onChange: (flag: CameraModifyFlags) => void): void {
     this._updateFlagManager?.removeListener(onChange);
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: Camera): void {
-    this._renderTarget?._addReferCount(1);
   }
 
   /**

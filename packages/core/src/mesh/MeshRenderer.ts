@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
@@ -76,10 +76,10 @@ export class MeshRenderer extends Renderer {
   }
 
   /**
-   * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: MeshRenderer): void {
+    super._onClone(target);
     target.mesh = this._mesh;
   }
 

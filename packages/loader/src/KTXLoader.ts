@@ -14,14 +14,14 @@ import { parseSingleKTX } from "./compressed-texture";
 @resourceLoader(AssetType.KTX, ["ktx"])
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
+    const remoteUrl = resourceManager._getRemoteUrl(item.url);
     const requestConfig = <RequestConfig>{
       ...item,
       type: "arraybuffer"
     };
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(item.url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .then((bin) => {
           const parsedData = parseSingleKTX(bin);
           const { width, height, mipmaps, engineFormat } = parsedData;
@@ -32,7 +32,7 @@ export class KTXLoader extends Loader<Texture2D> {
             const { width, height, data } = mipmaps[miplevel];
             texture.setPixelBuffer(data, miplevel, 0, 0, width, height);
           }
-          resourceManager.addContentRestorer(new KTXContentRestorer(texture, item.url, requestConfig));
+          resourceManager.addContentRestorer(new KTXContentRestorer(texture, remoteUrl, requestConfig));
           resolve(texture);
         })
         .catch((e) => {
@@ -45,7 +45,7 @@ export class KTXLoader extends Loader<Texture2D> {
 class KTXContentRestorer extends ContentRestorer<Texture2D> {
   constructor(
     resource: Texture2D,
-    public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig
   ) {
     super(resource);
@@ -56,8 +56,7 @@ class KTXContentRestorer extends ContentRestorer<Texture2D> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(this.url, this.requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, this.requestConfig)
         .then((bin) => {
           const mipmaps = parseSingleKTX(bin).mipmaps;
           for (let miplevel = 0; miplevel < mipmaps.length; miplevel++) {

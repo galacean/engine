@@ -132,9 +132,19 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
-      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
-
       const entity = entityInstances[i];
+      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
+        const additions = entityConfig.instance.overrides?.addedComponents;
+        for (let j = 0, m = additions?.length ?? 0; j < m; j++) {
+          const added = additions[j];
+          const target = HierarchyParser._resolveEntity(entity, added.target);
+          const config = allComponents[added.component];
+          const instance = HierarchyParser._addComponentFromConfig(target, config, refs);
+          pendingComponents.push({ instance, config });
+        }
+        continue;
+      }
+
       const componentIndices = entityConfig.components;
       if (!componentIndices) continue;
 
@@ -186,7 +196,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _applyOverrides(rootEntity: Entity, overrides: InstanceOverrides, promises: Promise<unknown>[]): void {
-    const refs = this.data.refs;
     const reflectionParser = this._reflectionParser;
 
     // entityProps — entity-level property overrides
@@ -204,18 +213,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
         const target = HierarchyParser._resolveComponent(entity, override.selector);
         promises.push(reflectionParser.parseMutationBlock(target, override));
-      }
-    }
-
-    // addedComponents — attach top-level components[index] to a prefab entity and parse props
-    if (overrides.addedComponents) {
-      const allComponents = this.data.components;
-      for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
-        const added = overrides.addedComponents[j];
-        const entity = HierarchyParser._resolveEntity(rootEntity, added.target);
-        const config = allComponents[added.component];
-        const component = HierarchyParser._addComponentFromConfig(entity, config, refs);
-        promises.push(reflectionParser.parseMutationBlock(component, config));
       }
     }
 
@@ -271,19 +268,16 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       return Promise.reject(error);
     }
 
-    return (
-      engine.resourceManager
-        // @ts-ignore
-        .getResourceByRef<Entity>(refItem)
-        .then((prefabResource: PrefabResource | GLTFResource) => {
-          const entity =
-            prefabResource instanceof PrefabResource
-              ? prefabResource.instantiate()
-              : prefabResource.instantiateSceneRoot();
-          this._onEntityCreated(entity);
-          return entity;
-        })
-    );
+    return engine.resourceManager
+      .getResourceByRef<PrefabResource | GLTFResource>(refItem)
+      .then<Entity>((prefabResource) => {
+        const entity =
+          prefabResource instanceof PrefabResource
+            ? prefabResource.instantiate()
+            : prefabResource.instantiateSceneRoot();
+        this._onEntityCreated(entity);
+        return entity;
+      });
   }
 
   // ---------------------------------------------------------------------------

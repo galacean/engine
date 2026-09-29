@@ -13,11 +13,10 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import type { PrimitiveChunkManager } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -42,7 +41,6 @@ export class UIRenderer extends Renderer implements IGraphics {
    * Custom boundary for raycast detection.
    * @remarks this is based on `this.entity.transform`.
    */
-  @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   /** @internal */
   _rootCanvas: UICanvas;
@@ -70,9 +68,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _subChunk;
 
-  @assignmentClone
   private _raycastEnabled: boolean = true;
-  @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
 
   /**
@@ -112,23 +108,19 @@ export class UIRenderer extends Renderer implements IGraphics {
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
-  // @ts-ignore
   override _canBatch(preElement, curElement): boolean {
     return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
-  // @ts-ignore
   override _batch(preElement, curElement): void {
     VertexMergeBatcher.batch(preElement, curElement);
   }
 
-  // @ts-ignore
   override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
-  // @ts-ignore
   override _prepareRender(context): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
@@ -140,25 +132,19 @@ export class UIRenderer extends Renderer implements IGraphics {
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
-      // @ts-ignore
       this.shaderData._macroCollection,
-      //@ts-ignore
       this._globalShaderMacro
     );
   }
 
-  // @ts-ignore
   override _onEnableInScene(): void {
-    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
   }
 
-  // @ts-ignore
   override _onDisableInScene(): void {
-    // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
@@ -232,15 +218,14 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getChunkManager() {
-    // @ts-ignore
+  _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
     const plane = UIRenderer._tempPlane;
     const transform = <UITransform>this._transformEntity.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);

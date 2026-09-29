@@ -8,7 +8,6 @@
     "experimentalDecorators": true,
     "declarationDir": "types",
     "emitDeclarationOnly": true,
-    "stripInternal": true,
     "noImplicitOverride": true,
     "skipLibCheck": true,
     "sourceMap": true,

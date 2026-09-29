@@ -21,7 +21,6 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
     const resourceManager = context.resourceManager;
     const refs = data.refs;
     for (let i = 0, n = refs.length; i < n; i++) {
-      // @ts-ignore
       context._addDependentAsset(resourceManager.getResourceByRef(refs[i]));
     }
   }

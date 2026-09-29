@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   AssetType,
   BlinnPhongMaterial,
   Entity,
@@ -27,7 +28,7 @@ import {
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, beforeAll, afterAll, expect, it } from "vitest";
+import { describe, beforeAll, afterAll, expect, it, vi } from "vitest";
 
 let engine: WebGLEngine;
 beforeAll(async function () {
@@ -39,6 +40,10 @@ beforeAll(async function () {
   @registerGLTFParser(GLTFParserType.Schema)
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
+      if (context.glTFResource.url === "Assets/Models/Hero.gltf") {
+        return new GLTFSchemaParser().parse(context);
+      }
+
       if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
         context.buffers = [new ArrayBuffer(128)];
         return Promise.resolve({
@@ -602,6 +607,51 @@ afterAll(() => {
 });
 
 describe("glTF Loader test", function () {
+  it("resolves external buffers in logical space before virtual mapping", async () => {
+    const resourceManager = engine.resourceManager;
+    const glTFVirtualPath = "Assets/Models/Hero.gltf";
+    const bufferVirtualPath = "Assets/Buffers/Hero.bin";
+    const glTFPhysicalPath = "blob:https://local.alipay.net/hero-gltf";
+    const bufferPhysicalPath = "blob:https://local.alipay.net/hero-buffer";
+    const buffer = new Float32Array([0, 0, 0, 1, 0, 0, 0, 1, 0]).buffer;
+    const glTF = {
+      asset: { version: "2.0" },
+      scene: 0,
+      scenes: [{ nodes: [0] }],
+      nodes: [{ mesh: 0 }],
+      meshes: [{ primitives: [{ attributes: { POSITION: 0 }, mode: 4 }] }],
+      accessors: [{ bufferView: 0, componentType: 5126, count: 3, type: "VEC3" }],
+      bufferViews: [{ buffer: 0, byteOffset: 0, byteLength: buffer.byteLength }],
+      buffers: [{ byteLength: buffer.byteLength, uri: "../Buffers/Hero.bin" }]
+    };
+    const glTFBuffer = new TextEncoder().encode(JSON.stringify(glTF)).buffer;
+    resourceManager.registerVirtualResources([
+      { virtualPath: glTFVirtualPath, path: glTFPhysicalPath, type: AssetType.GLTF },
+      { virtualPath: bufferVirtualPath, path: bufferPhysicalPath, type: AssetType.Buffer }
+    ]);
+    const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockImplementation((url) => {
+      if (url === glTFPhysicalPath) return AssetPromise.resolve(glTFBuffer) as any;
+      if (url === bufferPhysicalPath) return AssetPromise.resolve(buffer) as any;
+      return new AssetPromise((_resolve, reject) => reject(new Error(`Unexpected transport URL: ${url}`)));
+    });
+    let resource: GLTFResource;
+
+    try {
+      resource = await resourceManager.load(glTFVirtualPath);
+
+      expect(requestSpy.mock.calls.map(([url]) => url)).toEqual([glTFPhysicalPath, bufferPhysicalPath]);
+      const restorer = Object.values((resourceManager as any)._contentRestorerPool).find(
+        (candidate: any) => candidate.resource === resource
+      ) as any;
+      expect(restorer.bufferRequests[0].url).toBe(bufferPhysicalPath);
+    } finally {
+      resource?.destroy();
+      delete (resourceManager as any)._virtualPathResourceMap[glTFVirtualPath];
+      delete (resourceManager as any)._virtualPathResourceMap[bufferVirtualPath];
+      requestSpy.mockRestore();
+    }
+  });
+
   it("Pipeline Parser", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
