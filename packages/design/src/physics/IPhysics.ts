@@ -10,7 +10,7 @@ import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
-  IColliderShape,
+  IMeshColliderShape,
   IPlaneColliderShape,
   ISphereColliderShape
 } from "./shape";
@@ -122,7 +122,7 @@ export interface IPhysics {
     material: IPhysicsMaterial,
     cookingFlags: number,
     worldScale: Vector3
-  ): IColliderShape | null;
+  ): IMeshColliderShape | null;
 
   /**
    * Create fixed joint.

@@ -1,4 +1,5 @@
 import { MeshColliderShapeCookingFlag, Vector3 } from "@galacean/engine";
+import { IMeshColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
@@ -6,11 +7,11 @@ import { PhysXColliderShape, ShapeFlag } from "./PhysXColliderShape";
 /**
  * Mesh collider shape in PhysX.
  */
-export class PhysXMeshColliderShape extends PhysXColliderShape {
+export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshColliderShape {
   private static readonly _tightBoundsFlag = 1; // eTIGHT_BOUNDS = 1 (1<<0)
 
   private _pxMesh: any = null;
-  private _isConvex: boolean;
+  private readonly _isConvex: boolean;
 
   constructor(
     physXPhysics: PhysXPhysics,
@@ -26,17 +27,13 @@ export class PhysXMeshColliderShape extends PhysXColliderShape {
     this._isConvex = isConvex;
     this._worldScale.set(Math.abs(worldScale.x), Math.abs(worldScale.y), Math.abs(worldScale.z));
 
-    const pxMesh = this._cookMesh(positions, indices, isConvex, cookingFlags);
+    const pxMesh = this._cookMesh(positions, indices, cookingFlags);
     if (!pxMesh) {
       return;
     }
 
     const { _physX: physX, _pxPhysics: physics } = physXPhysics;
-    const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
-    const meshFlag = isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
-    const pxGeometry = isConvex
-      ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
-      : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+    const pxGeometry = this._createGeometry(pxMesh);
     const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
     const pxMaterial = material._pxMaterial;
     const pxShape = physics.createShape(pxGeometry, pxMaterial, true, shapeFlags);
@@ -58,11 +55,30 @@ export class PhysXMeshColliderShape extends PhysXColliderShape {
   }
 
   /**
+   * {@inheritDoc IMeshColliderShape.setMeshData }
+   */
+  setMeshData(
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    cookingFlags: number
+  ): boolean {
+    const pxMesh = this._cookMesh(positions, indices, cookingFlags);
+    if (!pxMesh) {
+      return false;
+    }
+
+    this._updateGeometry(pxMesh);
+    this._pxMesh.release();
+    this._pxMesh = pxMesh;
+    return true;
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
-    this._updateGeometry();
+    this._updateGeometry(this._pxMesh);
   }
 
   /**
@@ -76,7 +92,6 @@ export class PhysXMeshColliderShape extends PhysXColliderShape {
   private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    isConvex: boolean,
     cookingFlags: number
   ): any | null {
     const {
@@ -100,7 +115,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape {
     const verticesPtr = this._allocatePositions(positions);
     let pxMesh: any;
 
-    if (isConvex) {
+    if (this._isConvex) {
       pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
       physX._free(verticesPtr);
 
@@ -176,17 +191,20 @@ export class PhysXMeshColliderShape extends PhysXColliderShape {
     return ptr;
   }
 
-  private _updateGeometry(): void {
+  private _createGeometry(pxMesh: any): any {
     const physX = this._physXPhysics._physX;
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
     const meshFlag = this._isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
 
-    const newGeometry = this._isConvex
-      ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag)
-      : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+    return this._isConvex
+      ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
+      : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+  }
 
+  private _updateGeometry(pxMesh: any): void {
+    const newGeometry = this._createGeometry(pxMesh);
+    this._pxShape.setGeometry(newGeometry);
     this._pxGeometry.delete();
     this._pxGeometry = newGeometry;
-    this._pxShape.setGeometry(this._pxGeometry);
   }
 }

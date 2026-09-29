@@ -3,10 +3,10 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  IColliderShape,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
+  IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterialProperties,
@@ -235,7 +235,7 @@ export class PhysXPhysics implements IPhysics {
     material: PhysXPhysicsMaterial,
     cookingFlags: number,
     worldScale: Vector3
-  ): IColliderShape | null {
+  ): IMeshColliderShape | null {
     const shape = new PhysXMeshColliderShape(
       this,
       uniqueID,
