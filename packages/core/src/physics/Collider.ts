@@ -161,10 +161,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
   /** @internal */
   _replaceNativeShape(shape: MeshColliderShape, nativeShape: IColliderShape | null): void {
     const previousShape = shape._nativeShape;
-    if (previousShape === nativeShape) {
-      return;
-    }
-
     const nativeCollider = <IStaticCollider | IDynamicCollider>this._nativeCollider;
     if (nativeShape) {
       const attached = previousShape

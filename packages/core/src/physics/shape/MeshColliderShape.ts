@@ -156,10 +156,8 @@ export class MeshColliderShape extends ColliderShape {
     super._onClone(target);
     const mesh = target._mesh;
     if (mesh) {
-      const meshData = target._meshData;
-      const nativeShape =
-        meshData &&
-        target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags);
+      const { positions, indices } = target._meshData;
+      const nativeShape = target._createNativeShape(positions, indices, target._isConvex, target._cookingFlags);
       if (!nativeShape) {
         target._mesh = null;
         target._nativeShape = null;

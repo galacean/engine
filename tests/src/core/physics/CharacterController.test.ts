@@ -209,7 +209,7 @@ describe("CharacterController", function () {
     const shape = new BoxColliderShape();
     shape.contactOffset = 0;
 
-    expect(() => controller.addShape(shape)).toThrow();
+    expect(() => controller.addShape(shape)).toThrowError("CharacterController contactOffset must be positive.");
     expect(controller.shapes).toHaveLength(0);
     expect(shape.collider).toBeFalsy();
 
@@ -259,12 +259,19 @@ describe("CharacterController", function () {
     }
   });
 
-  it("keeps contactOffset when an attached shape rejects zero", () => {
-    const shape = roleEntity.getComponent(CharacterController).shapes[0];
+  it.each([true, false])("keeps contactOffset when invalid input is rejected (enabled=%s)", (enabled) => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.enabled = enabled;
+    const shape = controller.shapes[0];
     shape.contactOffset = 0.3;
 
-    expect(() => (shape.contactOffset = 0)).toThrow();
-    expect(shape.contactOffset).toBe(0.3);
+    for (const value of [0, NaN, Infinity, -Infinity]) {
+      const message = Number.isFinite(value)
+        ? "CharacterController contactOffset must be positive."
+        : "ColliderShape contactOffset must be finite.";
+      expect(() => (shape.contactOffset = value)).toThrowError(message);
+      expect(shape.contactOffset).toBe(0.3);
+    }
   });
 
   it("slopeLimit notPass", () => {

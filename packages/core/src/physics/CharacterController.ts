@@ -113,9 +113,8 @@ export class CharacterController extends Collider {
     if (!(shape instanceof BoxColliderShape || shape instanceof CapsuleColliderShape)) {
       throw new Error("CharacterController only supports BoxColliderShape or CapsuleColliderShape.");
     }
-    const contactOffset = shape.contactOffset;
-    if (!Number.isFinite(contactOffset) || contactOffset <= 0) {
-      throw new Error("CharacterController contactOffset must be a positive finite number.");
+    if (shape.contactOffset <= 0) {
+      throw new Error("CharacterController contactOffset must be positive.");
     }
     super.addShape(shape);
     this._updateFlag.flag = true;

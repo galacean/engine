@@ -70,7 +70,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
    * {@inheritDoc IColliderShape.destroy }
    */
   override destroy(): void {
-    this._pxMesh?.release();
+    this._pxMesh.release();
     super.destroy();
   }
 
@@ -110,12 +110,6 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
         return null;
       }
     } else {
-      if (!indices) {
-        physX._free(verticesPtr);
-        console.error("PhysXMeshColliderShape: Triangle mesh requires indices.");
-        return null;
-      }
-
       const isU32 = indices instanceof Uint32Array;
       const indicesPtr = this._allocateIndices(indices, isU32);
       pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices.length / 3, !isU32, physics);
@@ -184,7 +178,6 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   }
 
   private _updateGeometry(): void {
-    if (!this._pxMesh) return;
     const physX = this._physXPhysics._physX;
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
     const meshFlag = this._isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
