@@ -94,9 +94,12 @@ export class SceneManager {
     const scenePromise = this.engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
     scenePromise.then((scene: Scene) => {
       if (destroyOldScene) {
-        const scenes = this._scenes.getArray();
+        // Use loop array because `destroy` removes the scene from `_scenes` during iteration,
+        // and skip `scene` itself because concurrent loads of the same url resolve to the same instance
+        const scenes = this._scenes.getLoopArray();
         for (let i = 0, n = scenes.length; i < n; i++) {
-          scenes[i].destroy();
+          const oldScene = scenes[i];
+          oldScene !== scene && oldScene.destroy();
         }
       }
       this.addScene(scene);
