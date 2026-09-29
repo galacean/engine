@@ -48,9 +48,8 @@ export class PhysXPhysics implements IPhysics {
   _pxCooking: any;
   /** @internal PhysX cooking params */
   _pxCookingParams: any;
-  /** @internal Shared default material owned by this backend */
-  _defaultMaterial: PhysXPhysicsMaterial;
 
+  private _defaultMaterial: PhysXPhysicsMaterial;
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
@@ -58,6 +57,13 @@ export class PhysXPhysics implements IPhysics {
   private _allocator: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
+
+  /**
+   * {@inheritDoc IPhysics.defaultMaterial }
+   */
+  get defaultMaterial(): PhysXPhysicsMaterial {
+    return this._defaultMaterial;
+  }
 
   /**
    * Create a PhysXPhysics instance.
@@ -188,25 +194,21 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial | null): IBoxColliderShape {
+  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
     return new PhysXBoxColliderShape(this, uniqueID, size, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
-  createSphereColliderShape(
-    uniqueID: number,
-    radius: number,
-    material: PhysXPhysicsMaterial | null
-  ): ISphereColliderShape {
+  createSphereColliderShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereColliderShape {
     return new PhysXSphereColliderShape(this, uniqueID, radius, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
-  createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial | null): IPlaneColliderShape {
+  createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
     return new PhysXPlaneColliderShape(this, uniqueID, material);
   }
 
@@ -217,7 +219,7 @@ export class PhysXPhysics implements IPhysics {
     uniqueID: number,
     radius: number,
     height: number,
-    material: PhysXPhysicsMaterial | null
+    material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
   }
@@ -230,7 +232,7 @@ export class PhysXPhysics implements IPhysics {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial | null,
+    material: PhysXPhysicsMaterial,
     cookingFlags: number,
     worldScale: Vector3
   ): IMeshColliderShape | null {

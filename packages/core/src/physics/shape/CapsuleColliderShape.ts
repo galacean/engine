@@ -55,7 +55,12 @@ export class CapsuleColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = Engine._nativePhysics.createCapsuleColliderShape(this._id, this._radius, this._height, null);
+    this._nativeShape = Engine._nativePhysics.createCapsuleColliderShape(
+      this._id,
+      this._radius,
+      this._height,
+      this._getNativeMaterial()
+    );
   }
 
   protected override _syncNative(): void {

@@ -19,7 +19,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     uniqueID: number,
     radius: number,
     height: number,
-    material: PhysXPhysicsMaterial | null
+    material: PhysXPhysicsMaterial
   ) {
     super(physXPhysics);
 

@@ -19,7 +19,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial | null,
+    material: PhysXPhysicsMaterial,
     cookingFlags: number,
     worldScale: Vector3
   ) {
@@ -39,7 +39,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
       ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
       : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
     const shapeFlags = new physX.PxShapeFlags(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
-    const pxMaterial = (material ?? physXPhysics._defaultMaterial)._pxMaterial;
+    const pxMaterial = material._pxMaterial;
     const pxShape = physics.createShape(pxGeometry, pxMaterial, true, shapeFlags);
     shapeFlags.delete();
 

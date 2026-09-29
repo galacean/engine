@@ -1,5 +1,5 @@
 import { DataObject } from "../../base/DataObject";
-import { IColliderShape } from "@galacean/engine-design";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
@@ -85,7 +85,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     if (this._material !== value) {
       this._materialInstanced = false;
       this._material = value;
-      this._nativeShape?.setMaterial(value?._nativeMaterial ?? null);
+      this._nativeShape?.setMaterial(this._getNativeMaterial());
     }
   }
 
@@ -199,6 +199,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     delete Engine._physicalObjectsMap[this._id];
   }
 
+  protected _getNativeMaterial(): IPhysicsMaterial {
+    return this._material?._nativeMaterial ?? Engine._nativePhysics.defaultMaterial;
+  }
+
   protected _syncNative(): void {
     const nativeShape = this._nativeShape;
     if (!nativeShape) {
@@ -214,7 +218,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     nativeShape.setRotation(this._rotation);
     nativeShape.setContactOffset(this._contactOffset);
     nativeShape.setIsTrigger(this._isTrigger);
-    nativeShape.setMaterial(this._material?._nativeMaterial ?? null);
+    nativeShape.setMaterial(this._getNativeMaterial());
   }
 
   @ignoreClone

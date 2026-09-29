@@ -120,8 +120,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.setMaterial }
    */
-  setMaterial(value: PhysXPhysicsMaterial | null): void {
-    this._pxMaterial = (value ?? this._physXPhysics._defaultMaterial)._pxMaterial;
+  setMaterial(value: PhysXPhysicsMaterial): void {
+    this._pxMaterial = value._pxMaterial;
     this._pxShape.setMaterial(this._pxMaterial);
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
@@ -174,9 +174,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _initialize(material: PhysXPhysicsMaterial | null, id: number): void {
+  protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
-    this._pxMaterial = (material ?? this._physXPhysics._defaultMaterial)._pxMaterial;
+    this._pxMaterial = material._pxMaterial;
     const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
     this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, this._pxMaterial, true, shapeFlags);
     shapeFlags.delete();

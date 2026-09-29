@@ -12,7 +12,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   /** @internal */
   _halfSize: Vector3 = new Vector3();
 
-  constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial | null) {
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
     const halfSize = this._halfSize;
     halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);

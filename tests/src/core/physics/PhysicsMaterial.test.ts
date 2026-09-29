@@ -70,7 +70,7 @@ describe.each(runtimeModes)("PhysicsMaterial defaults (%s)", (runtimeMode) => {
       shape?._destroy();
       material?.destroy();
       engine?.destroy();
-      if (physics._defaultMaterial) physics.destroy();
+      if (physics.defaultMaterial) physics.destroy();
       createMaterial?.mockRestore();
       setFrictionCombine?.mockRestore();
       setBounceCombine?.mockRestore();
@@ -128,7 +128,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
   });
 
   afterAll(() => {
-    const release = vi.spyOn(physics._defaultMaterial._pxMaterial, "release");
+    const release = vi.spyOn(physics.defaultMaterial._pxMaterial, "release");
     try {
       engine.destroy();
       expect(release).not.toHaveBeenCalled();
@@ -139,8 +139,19 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
     }
   });
 
-  it("uses the backend default without allocating materials for new or cloned shapes", () => {
+  it("passes the shared default to the backend without allocating materials for new or cloned shapes", () => {
     const createMaterial = vi.spyOn(physics._pxPhysics, "createMaterial");
+    const factories = [
+      ["createBoxColliderShape", 2],
+      ["createSphereColliderShape", 2],
+      ["createCapsuleColliderShape", 3],
+      ["createPlaneColliderShape", 1],
+      ["createMeshColliderShape", 4]
+    ] as const;
+    const createShapes = factories.map(([method, materialIndex]) => ({
+      spy: vi.spyOn(physics, method),
+      materialIndex
+    }));
     const source = rootEntity.createChild("defaultMaterials");
     const collider = source.addComponent(StaticCollider);
     const mesh = new ModelMesh(engine);
@@ -163,10 +174,19 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
       clone = source.clone();
       for (const shape of [...shapes, ...clone.getComponent(StaticCollider).shapes]) {
         expect(shape.material).toBeNull();
-        expect((shape._nativeShape as any)._pxMaterial).toBe(physics._defaultMaterial._pxMaterial);
+        expect((shape._nativeShape as any)._pxMaterial).toBe(physics.defaultMaterial._pxMaterial);
+      }
+      for (const { spy, materialIndex } of createShapes) {
+        expect(spy).toHaveBeenCalled();
+        for (const args of spy.mock.calls) {
+          expect(args[materialIndex]).toBe(physics.defaultMaterial);
+        }
       }
       expect(createMaterial).not.toHaveBeenCalled();
     } finally {
+      for (const { spy } of createShapes) {
+        spy.mockRestore();
+      }
       createMaterial.mockRestore();
       clone?.destroy();
       source.destroy();
@@ -196,13 +216,13 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
         expect(other.material).toBeNull();
         if (shape._nativeShape) {
           expect((shape._nativeShape as any)._pxMaterial).toBe((material._nativeMaterial as any)._pxMaterial);
-          expect((other._nativeShape as any)._pxMaterial).toBe(physics._defaultMaterial._pxMaterial);
+          expect((other._nativeShape as any)._pxMaterial).toBe(physics.defaultMaterial._pxMaterial);
         }
         shape.material = null;
         expect(shape.material).toBeNull();
         expect(createMaterial).toHaveBeenCalledTimes(1);
         if (shape._nativeShape) {
-          expect((shape._nativeShape as any)._pxMaterial).toBe(physics._defaultMaterial._pxMaterial);
+          expect((shape._nativeShape as any)._pxMaterial).toBe(physics.defaultMaterial._pxMaterial);
         }
         const nextMaterial = shape.getInstanceMaterial();
         expect(nextMaterial).not.toBe(material);
@@ -304,7 +324,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
     let material: PhysicsMaterial;
     try {
       shape.isConvex = true;
-      expect((shape._nativeShape as any)._pxMaterial).toBe(physics._defaultMaterial._pxMaterial);
+      expect((shape._nativeShape as any)._pxMaterial).toBe(physics.defaultMaterial._pxMaterial);
       expect(createMaterial).not.toHaveBeenCalled();
       material = shape.getInstanceMaterial();
       material.bounciness = 0.8;
@@ -357,7 +377,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
       expect(createMaterial).toHaveBeenCalledTimes(1);
       await parser.parseProps(shape, { material: null });
       expect(shape.material).toBeNull();
-      expect((shape._nativeShape as any)._pxMaterial).toBe(physics._defaultMaterial._pxMaterial);
+      expect((shape._nativeShape as any)._pxMaterial).toBe(physics.defaultMaterial._pxMaterial);
       expect(createMaterial).toHaveBeenCalledTimes(1);
     } finally {
       createMaterial.mockRestore();

@@ -11,7 +11,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   private _radius: number;
   private _maxScale: number = 1;
 
-  constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial | null) {
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
     super(physXPhysics);
 
     this._radius = radius;
