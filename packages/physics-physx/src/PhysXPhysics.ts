@@ -9,7 +9,7 @@ import {
   IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
-  IPhysicsMaterial,
+  IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneColliderShape,
   ISphereColliderShape,
@@ -48,6 +48,8 @@ export class PhysXPhysics implements IPhysics {
   _pxCooking: any;
   /** @internal PhysX cooking params */
   _pxCookingParams: any;
+  /** @internal Shared default material owned by this backend */
+  _defaultMaterial: PhysXPhysicsMaterial;
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
@@ -74,10 +76,10 @@ export class PhysXPhysics implements IPhysics {
 
   /**
    * Initialize PhysXPhysics.
-   * @param runtimeMode - Runtime mode
+   * @param defaultMaterial - Engine-defined properties for the shared default material
    * @returns Promise object
    */
-  initialize(): Promise<void> {
+  initialize(defaultMaterial: IPhysicsMaterialProperties): Promise<void> {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
@@ -111,7 +113,7 @@ export class PhysXPhysics implements IPhysics {
           () =>
             (<any>window).PHYSX().then((PHYSX: any) => {
               this._runTimeMode = runtimeMode;
-              this._init(PHYSX);
+              this._init(PHYSX, defaultMaterial);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
               console.log("PhysX loaded.");
@@ -130,6 +132,7 @@ export class PhysXPhysics implements IPhysics {
    * Destroy PhysXPhysics.
    */
   destroy(): void {
+    this._defaultMaterial.destroy();
     this._pxCooking.release();
     this._pxCookingParams.delete();
     this._physX.PxCloseExtensions();
@@ -178,34 +181,32 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsMaterial }
    */
-  createPhysicsMaterial(
-    staticFriction: number,
-    dynamicFriction: number,
-    bounciness: number,
-    frictionCombine: number,
-    bounceCombine: number
-  ): IPhysicsMaterial {
-    return new PhysXPhysicsMaterial(this, staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
+  createPhysicsMaterial(properties: IPhysicsMaterialProperties): PhysXPhysicsMaterial {
+    return new PhysXPhysicsMaterial(this, properties);
   }
 
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
+  createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial | null): IBoxColliderShape {
     return new PhysXBoxColliderShape(this, uniqueID, size, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
-  createSphereColliderShape(uniqueID: number, radius: number, material: PhysXPhysicsMaterial): ISphereColliderShape {
+  createSphereColliderShape(
+    uniqueID: number,
+    radius: number,
+    material: PhysXPhysicsMaterial | null
+  ): ISphereColliderShape {
     return new PhysXSphereColliderShape(this, uniqueID, radius, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
-  createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
+  createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial | null): IPlaneColliderShape {
     return new PhysXPlaneColliderShape(this, uniqueID, material);
   }
 
@@ -216,7 +217,7 @@ export class PhysXPhysics implements IPhysics {
     uniqueID: number,
     radius: number,
     height: number,
-    material: PhysXPhysicsMaterial
+    material: PhysXPhysicsMaterial | null
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(this, uniqueID, radius, height, material);
   }
@@ -229,7 +230,7 @@ export class PhysXPhysics implements IPhysics {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial,
+    material: PhysXPhysicsMaterial | null,
     cookingFlags: number,
     worldScale: Vector3
   ): IMeshColliderShape | null {
@@ -281,7 +282,7 @@ export class PhysXPhysics implements IPhysics {
     this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
   }
 
-  private _init(physX: any): void {
+  private _init(physX: any, defaultMaterial: IPhysicsMaterialProperties): void {
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
@@ -310,6 +311,7 @@ export class PhysXPhysics implements IPhysics {
     this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
+    this._defaultMaterial = this.createPhysicsMaterial(defaultMaterial);
   }
 }
 

@@ -3,7 +3,7 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneDecorators";
+import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
@@ -22,8 +22,8 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   _nativeShape: IColliderShape;
   @ignoreClone
   protected _id: number;
-  @ignoreClone
-  protected _material: PhysicsMaterial;
+  @assignmentClone
+  protected _material: PhysicsMaterial = null;
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
@@ -71,8 +71,14 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /**
    * Physical material, material can't be null.
+   * @remarks Reading this property creates a material for this shape if none has been assigned.
+   * Explicitly assigned materials and materials already created before cloning are shared by reference.
+   * Destroy the material when it is no longer used by any shape.
    */
   get material(): PhysicsMaterial {
+    if (!this._material) {
+      this.material = new PhysicsMaterial();
+    }
     return this._material;
   }
 
@@ -128,7 +134,6 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   protected constructor() {
     super();
-    this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 
     this._setRotation = this._setRotation.bind(this);
@@ -169,10 +174,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {
-    const defaultMaterial = target._material;
-    target._material = this._material;
     target._syncNative();
-    defaultMaterial.destroy();
   }
 
   /**
@@ -201,7 +203,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     nativeShape.setRotation(this._rotation);
     nativeShape.setContactOffset(this._contactOffset);
     nativeShape.setIsTrigger(this._isTrigger);
-    nativeShape.setMaterial(this._material._nativeMaterial);
+    nativeShape.setMaterial(this._material?._nativeMaterial ?? null);
   }
 
   @ignoreClone

@@ -31,9 +31,9 @@ export interface IColliderShape {
 
   /**
    * Set physics material on shape.
-   * @param material - The physics material
+   * @param material - The physics material, or null to use the backend's shared default material
    */
-  setMaterial(material: IPhysicsMaterial): void;
+  setMaterial(material: IPhysicsMaterial | null): void;
 
   /**
    * Set trigger or not.

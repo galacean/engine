@@ -3,7 +3,7 @@ import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
-import { IPhysicsMaterial } from "./IPhysicsMaterial";
+import { IPhysicsMaterial, IPhysicsMaterialProperties } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
@@ -21,9 +21,10 @@ import {
 export interface IPhysics {
   /**
    * Initialize physics.
+   * @param defaultMaterial - Engine-defined properties for the backend's shared default material
    * @returns A promise that will resolve when the physics is initialized
    */
-  initialize(): Promise<void>;
+  initialize(defaultMaterial: IPhysicsMaterialProperties): Promise<void>;
 
   /**
    * Create physics manager.
@@ -57,55 +58,45 @@ export interface IPhysics {
 
   /**
    * Create physics material.
-   * @param staticFriction - Static friction
-   * @param dynamicFriction - Dynamic friction
-   * @param bounciness - Restitution
-   * @param frictionCombine - The mode to combine the friction of collider
-   * @param bounceCombine - The mode to combine the bounce of collider
+   * @param properties - Physics material properties
    */
-  createPhysicsMaterial(
-    staticFriction: number,
-    dynamicFriction: number,
-    bounciness: number,
-    frictionCombine: number,
-    bounceCombine: number
-  ): IPhysicsMaterial;
+  createPhysicsMaterial(properties: IPhysicsMaterialProperties): IPhysicsMaterial;
 
   /**
    * Create box collider shape.
    * @param uniqueID - Shape unique id
    * @param size - Size of the box
-   * @param material - The material of this shape
+   * @param material - The material of this shape, or null to use the backend's shared default material
    */
-  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
+  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial | null): IBoxColliderShape;
 
   /**
    * Create sphere collider shape.
    * @param uniqueID - Shape unique id
    * @param radius - Radius of the sphere
-   * @param material - The material of this shape
+   * @param material - The material of this shape, or null to use the backend's shared default material
    */
-  createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
+  createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial | null): ISphereColliderShape;
 
   /**
    * Create plane collider shape.
    * @param uniqueID - Shape unique id
-   * @param material - The material of this shape
+   * @param material - The material of this shape, or null to use the backend's shared default material
    */
-  createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
+  createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial | null): IPlaneColliderShape;
 
   /**
    * Create capsule collider shape.
    * @param uniqueID - Shape unique id
    * @param radius - Radius of capsule
    * @param height - Height of capsule
-   * @param material - The material of this shape
+   * @param material - The material of this shape, or null to use the backend's shared default material
    */
   createCapsuleColliderShape(
     uniqueID: number,
     radius: number,
     height: number,
-    material: IPhysicsMaterial
+    material: IPhysicsMaterial | null
   ): ICapsuleColliderShape;
 
   /**
@@ -114,7 +105,7 @@ export interface IPhysics {
    * @param positions - Vertex positions
    * @param indices - Index array (null for convex mesh)
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
-   * @param material - The material of this shape
+   * @param material - The material of this shape, or null to use the backend's shared default material
    * @param cookingFlags - Cooking flags
    * @param worldScale - World scale of the shape
    */
@@ -123,7 +114,7 @@ export interface IPhysics {
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: IPhysicsMaterial,
+    material: IPhysicsMaterial | null,
     cookingFlags: number,
     worldScale: Vector3
   ): IMeshColliderShape | null;

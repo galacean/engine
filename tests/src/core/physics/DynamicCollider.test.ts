@@ -10,13 +10,9 @@ import {
   PlaneColliderShape
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
-
-const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
-const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
-  .href;
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -74,10 +70,7 @@ describe("DynamicCollider", function () {
   beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
-      physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
-        wasmModeUrl: physXWasmModeUrl,
-        wasmSIMDModeUrl: physXWasmSIMDModeUrl
-      })
+      physics: createPhysics()
     });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");

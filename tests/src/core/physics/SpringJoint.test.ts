@@ -1,7 +1,7 @@
 import { Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine, SpringJoint } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("SpringJoint", function () {
@@ -22,7 +22,7 @@ describe("SpringJoint", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });

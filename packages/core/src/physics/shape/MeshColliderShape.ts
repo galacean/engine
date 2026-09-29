@@ -213,7 +213,7 @@ export class MeshColliderShape extends ColliderShape {
       positions,
       isConvex ? null : indices,
       isConvex,
-      this._material._nativeMaterial,
+      this._material?._nativeMaterial ?? null,
       cookingFlags,
       this._collider?.entity.transform.lossyWorldScale ?? MeshColliderShape._unitScale
     );

@@ -24,11 +24,7 @@ export class SphereColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = Engine._nativePhysics.createSphereColliderShape(
-      this._id,
-      this._radius,
-      this._material._nativeMaterial
-    );
+    this._nativeShape = Engine._nativePhysics.createSphereColliderShape(this._id, this._radius, null);
   }
 
   protected override _syncNative(): void {

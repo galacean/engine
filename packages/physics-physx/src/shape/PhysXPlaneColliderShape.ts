@@ -8,7 +8,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Plane collider shape in PhysX.
  */
 export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlaneColliderShape {
-  constructor(physXPhysics: PhysXPhysics, uniqueID: number, material: PhysXPhysicsMaterial) {
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, material: PhysXPhysicsMaterial | null) {
     super(physXPhysics);
     this._axis = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
     this._physXRotation.copyFrom(this._axis);

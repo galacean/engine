@@ -8,7 +8,7 @@ import { ColliderShape } from "./ColliderShape";
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();
-    this._nativeShape = Engine._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
+    this._nativeShape = Engine._nativePhysics.createPlaneColliderShape(this._id, null);
   }
 
   override getClosestPoint(point: Vector3, closestPoint: Vector3): number {

@@ -29,7 +29,11 @@ Collision shapes ([ColliderShape](/apis/core/#ColliderShape)) define the physica
 
 ### Physics Material
 - [**material**](/apis/core/#ColliderShape-material)  
-  Defines the physical material properties of the shape. Each collision shape needs a physical material to define its physical characteristics:
+  Defines the physical material properties of the shape. Shapes without an assigned material use engine-defined defaults. The first read of `shape.material` creates a separate material for that shape; later reads return the same instance. Assigning `shape.material = material` directly does not create an extra default material.
+
+Cloned shapes share materials that were assigned or created by reading `material` before cloning. If the property has not been read or assigned, the source and clone each create a separate material on their first read of `material`.
+
+Materials created explicitly or obtained through `material` must be released with `destroy()` when no shape uses them anymore.
 
 | Property | Description | Default Value |
 | ---- | ---- | ------ |

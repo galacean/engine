@@ -25,11 +25,7 @@ export class BoxColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = Engine._nativePhysics.createBoxColliderShape(
-      this._id,
-      this._size,
-      this._material._nativeMaterial
-    );
+    this._nativeShape = Engine._nativePhysics.createBoxColliderShape(this._id, this._size, null);
 
     //@ts-ignore
     this._size._onValueChanged = this._setSize.bind(this);

@@ -1,4 +1,4 @@
-import { IPhysicsMaterial } from "@galacean/engine-design";
+import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
@@ -6,24 +6,27 @@ import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
  * Material class to represent a set of surface properties.
  */
 export class PhysicsMaterial {
-  private _bounciness = 0;
-  private _dynamicFriction = 0.6;
-  private _staticFriction = 0.6;
-  private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
-  private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  /** @internal */
+  static readonly _defaultProperties: IPhysicsMaterialProperties = {
+    staticFriction: 0.6,
+    dynamicFriction: 0.6,
+    bounciness: 0,
+    frictionCombine: PhysicsMaterialCombineMode.Average,
+    bounceCombine: PhysicsMaterialCombineMode.Average
+  };
+
+  private _bounciness = PhysicsMaterial._defaultProperties.bounciness;
+  private _dynamicFriction = PhysicsMaterial._defaultProperties.dynamicFriction;
+  private _staticFriction = PhysicsMaterial._defaultProperties.staticFriction;
+  private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.bounceCombine;
+  private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterial._defaultProperties.frictionCombine;
   private _destroyed: boolean;
 
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(
-      this._staticFriction,
-      this._dynamicFriction,
-      this._bounciness,
-      this._frictionCombine,
-      this._bounceCombine
-    );
+    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(this);
   }
 
   /**

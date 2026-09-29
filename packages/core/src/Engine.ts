@@ -26,6 +26,7 @@ import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
+import { PhysicsMaterial } from "./physics/PhysicsMaterial";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
@@ -649,7 +650,7 @@ export class Engine extends EventDispatcher {
     const initializePromises = new Array<Promise<any>>();
     if (physics) {
       initializePromises.push(
-        physics.initialize().then(() => {
+        physics.initialize(PhysicsMaterial._defaultProperties).then(() => {
           if (Engine._nativePhysics) {
             console.warn(
               "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."

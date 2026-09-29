@@ -1,4 +1,15 @@
 /**
+ * Physics material properties supplied by the engine.
+ */
+export interface IPhysicsMaterialProperties {
+  readonly staticFriction: number;
+  readonly dynamicFriction: number;
+  readonly bounciness: number;
+  readonly frictionCombine: number;
+  readonly bounceCombine: number;
+}
+
+/**
  * Interface of physics material.
  */
 export interface IPhysicsMaterial {
