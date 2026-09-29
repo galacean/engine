@@ -42,8 +42,8 @@ describe("CharacterController", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -140,7 +140,6 @@ describe("CharacterController", function () {
     expect(shape.collider).toBeFalsy();
 
     shape._destroy();
-    shape.material.destroy();
   });
 
   it("shape position", () => {
@@ -215,7 +214,6 @@ describe("CharacterController", function () {
     expect(shape.collider).toBeFalsy();
 
     shape._destroy();
-    shape.material.destroy();
   });
 
   it("preserves contactOffset when transferring a shape to a rigid collider", () => {
@@ -258,8 +256,6 @@ describe("CharacterController", function () {
       controllerEntity.destroy();
       rigidEntity.destroy();
       probe.destroy();
-      shape.material.destroy();
-      probeShape.material.destroy();
     }
   });
 

@@ -100,7 +100,21 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Destroy the material when the material is no be used by any shape.
+   * Clone this material.
+   * @returns A new material with the same properties
+   */
+  clone(): PhysicsMaterial {
+    const material = new PhysicsMaterial();
+    material.staticFriction = this._staticFriction;
+    material.dynamicFriction = this._dynamicFriction;
+    material.bounciness = this._bounciness;
+    material.frictionCombine = this._frictionCombine;
+    material.bounceCombine = this._bounceCombine;
+    return material;
+  }
+
+  /**
+   * Destroy the material when it is no longer used by any shape.
    */
   destroy() {
     !this._destroyed && this._nativeMaterial.destroy();

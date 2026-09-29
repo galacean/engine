@@ -85,7 +85,6 @@ describe("MeshColliderShape PhysX", () => {
         [0, 1, 2, 3, 4, 5]
       );
       meshShape.mesh = mesh;
-      const defaultMaterial = meshShape.material;
       staticCollider.addShape(meshShape);
 
       expect(meshShape).toBeDefined();
@@ -93,7 +92,6 @@ describe("MeshColliderShape PhysX", () => {
 
       // Cleanup
       groundEntity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should detect collision between sphere and triangle mesh", async () => {
@@ -103,7 +101,6 @@ describe("MeshColliderShape PhysX", () => {
       const groundCollider = groundEntity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       // Ground plane at y=0, CCW winding -> normal +Y
       const mesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = mesh;
@@ -114,7 +111,6 @@ describe("MeshColliderShape PhysX", () => {
       sphereEntity.transform.setPosition(0, 2, 0);
       const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
       const sphereShape = new SphereColliderShape();
-      const sphereMaterial = sphereShape.material;
       sphereShape.radius = 0.5;
       dynamicCollider.addShape(sphereShape);
 
@@ -134,8 +130,6 @@ describe("MeshColliderShape PhysX", () => {
       // Cleanup
       groundEntity.destroy();
       sphereEntity.destroy();
-      meshMaterial?.destroy();
-      sphereMaterial?.destroy();
     });
 
     it("should support position and rotation offset", () => {
@@ -143,7 +137,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
 
@@ -157,7 +150,6 @@ describe("MeshColliderShape PhysX", () => {
       expect(meshShape.rotation).toEqual(expect.objectContaining({ x: 0, y: 45, z: 0 }));
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should support physics material", () => {
@@ -165,7 +157,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
 
@@ -181,7 +172,6 @@ describe("MeshColliderShape PhysX", () => {
       expect(meshShape.material.staticFriction).toBe(0.5);
 
       entity.destroy();
-      defaultMaterial?.destroy();
       material?.destroy();
     });
   });
@@ -193,7 +183,6 @@ describe("MeshColliderShape PhysX", () => {
 
       // Create a simple tetrahedron (convex shape)
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       meshShape.isConvex = true;
 
       const mesh = createModelMesh(engine, [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1]);
@@ -204,7 +193,6 @@ describe("MeshColliderShape PhysX", () => {
       expect(dynamicCollider.shapes.length).toBe(1);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("keeps the convex shape when non-convex mode is unsupported", () => {
@@ -212,7 +200,6 @@ describe("MeshColliderShape PhysX", () => {
       const dynamicCollider = entity.addComponent(DynamicCollider);
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       const convexMesh = createModelMesh(
         engine,
         [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
@@ -233,7 +220,6 @@ describe("MeshColliderShape PhysX", () => {
       } finally {
         consoleErrorSpy.mockRestore();
         entity.destroy();
-        meshMaterial?.destroy();
       }
     });
 
@@ -243,7 +229,6 @@ describe("MeshColliderShape PhysX", () => {
       groundEntity.transform.setPosition(0, -2, 0);
       const groundCollider = groundEntity.addComponent(StaticCollider);
       const groundShape = new BoxColliderShape();
-      const groundMaterial = groundShape.material;
       groundShape.size = new Vector3(20, 1, 20);
       groundCollider.addShape(groundShape);
 
@@ -253,7 +238,6 @@ describe("MeshColliderShape PhysX", () => {
       const dynamicCollider = convexEntity.addComponent(DynamicCollider);
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = true;
       const mesh = createModelMesh(engine, [0, 0.5, 0, -0.5, -0.5, -0.5, 0.5, -0.5, -0.5, 0, -0.5, 0.5]);
       meshShape.mesh = mesh;
@@ -274,8 +258,6 @@ describe("MeshColliderShape PhysX", () => {
 
       groundEntity.destroy();
       convexEntity.destroy();
-      groundMaterial?.destroy();
-      meshMaterial?.destroy();
     });
   });
 
@@ -287,7 +269,6 @@ describe("MeshColliderShape PhysX", () => {
       const triggerCollider = triggerEntity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = true;
       const mesh = createModelMesh(
         engine,
@@ -302,7 +283,6 @@ describe("MeshColliderShape PhysX", () => {
       sphereEntity.transform.setPosition(0, 5, 0);
       const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
       const sphereShape = new SphereColliderShape();
-      const sphereMaterial = sphereShape.material;
       sphereShape.radius = 0.3;
       dynamicCollider.addShape(sphereShape);
 
@@ -317,8 +297,6 @@ describe("MeshColliderShape PhysX", () => {
 
       triggerEntity.destroy();
       sphereEntity.destroy();
-      meshMaterial?.destroy();
-      sphereMaterial?.destroy();
     });
   });
 
@@ -331,7 +309,6 @@ describe("MeshColliderShape PhysX", () => {
       const groundCollider = groundEntity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       // Flip winding order to make normals face +Y (up)
       const mesh = createModelMesh(
         engine,
@@ -346,7 +323,6 @@ describe("MeshColliderShape PhysX", () => {
       sphereEntity.transform.setPosition(3, 2, 0); // At x=3, within scaled range
       const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
       const sphereShape = new SphereColliderShape();
-      const sphereMaterial = sphereShape.material;
       sphereShape.radius = 0.5;
       dynamicCollider.addShape(sphereShape);
 
@@ -360,8 +336,6 @@ describe("MeshColliderShape PhysX", () => {
 
       groundEntity.destroy();
       sphereEntity.destroy();
-      meshMaterial?.destroy();
-      sphereMaterial?.destroy();
     });
 
     it("should apply correct scale when adding shape to existing collider at runtime", async () => {
@@ -377,7 +351,6 @@ describe("MeshColliderShape PhysX", () => {
 
       // Add initial shape and run physics to clear _updateFlag
       const initialShape = new BoxColliderShape();
-      const initialMaterial = initialShape.material;
       initialShape.size = new Vector3(0.1, 0.1, 0.1); // Small box, won't interfere
       initialShape.position = new Vector3(100, 0, 100); // Far away
       groundCollider.addShape(initialShape);
@@ -390,7 +363,6 @@ describe("MeshColliderShape PhysX", () => {
       // Now add mesh shape at runtime - this is the critical test
       // If setWorldScale is not called in _addNativeShape, the mesh will have scale (1,1,1)
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       // Small ground plane: -2 to 2 in local space, but scaled by 2 -> -4 to 4 in world space
       const mesh = createModelMesh(
         engine,
@@ -407,7 +379,6 @@ describe("MeshColliderShape PhysX", () => {
       sphereEntity.transform.setPosition(3, 2, 0);
       const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
       const sphereShape = new SphereColliderShape();
-      const sphereMaterial = sphereShape.material;
       sphereShape.radius = 0.5;
       dynamicCollider.addShape(sphereShape);
 
@@ -422,9 +393,6 @@ describe("MeshColliderShape PhysX", () => {
 
       groundEntity.destroy();
       sphereEntity.destroy();
-      initialMaterial?.destroy();
-      meshMaterial?.destroy();
-      sphereMaterial?.destroy();
     });
   });
 
@@ -436,7 +404,6 @@ describe("MeshColliderShape PhysX", () => {
         entity.transform.setPosition(100, 100, 0);
         const collider = entity.addComponent(StaticCollider);
         const shape = new MeshColliderShape();
-        const material = shape.material;
         const vertices = [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1];
         const indices = [
           0, 3, 2, 0, 2, 1, 4, 5, 6, 4, 6, 7, 0, 1, 5, 0, 5, 4, 3, 7, 6, 3, 6, 2, 0, 4, 7, 0, 7, 3, 1, 2, 6, 1, 6, 5
@@ -468,7 +435,6 @@ describe("MeshColliderShape PhysX", () => {
           physicsScene._update(1 / 60);
           const collided = script.collided;
           probe.destroy();
-          probeShape.material.destroy();
           return collided;
         };
 
@@ -497,7 +463,6 @@ describe("MeshColliderShape PhysX", () => {
         } finally {
           physicsScene.setColliderLayerCollision(Layer.Layer5, Layer.Layer6, true);
           entity.destroy();
-          material.destroy();
           mesh.destroy();
           replacementMesh.destroy();
         }
@@ -509,7 +474,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
 
       // Initial mesh
       const mesh1 = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
@@ -526,14 +490,12 @@ describe("MeshColliderShape PhysX", () => {
       expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("keeps the existing native mesh when runtime mesh recooking fails", () => {
       const groundEntity = root.createChild("transactionalMeshUpdateGround");
       const staticCollider = groundEntity.addComponent(StaticCollider);
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       const groundMesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = groundMesh;
       staticCollider.addShape(meshShape);
@@ -559,7 +521,6 @@ describe("MeshColliderShape PhysX", () => {
         consoleErrorSpy.mockRestore();
         destroySpy.mockRestore();
         groundEntity.destroy();
-        meshMaterial?.destroy();
       }
     });
 
@@ -567,7 +528,6 @@ describe("MeshColliderShape PhysX", () => {
       const entity = root.createChild("failedMeshReplacementAttachment");
       const staticCollider = entity.addComponent(StaticCollider);
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = true;
       meshShape.isTrigger = true;
       const oldMesh = createModelMesh(
@@ -581,7 +541,6 @@ describe("MeshColliderShape PhysX", () => {
       const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
       dynamicCollider.isKinematic = true;
       const sphereShape = new SphereColliderShape();
-      const sphereMaterial = sphereShape.material;
       sphereShape.radius = 0.25;
       dynamicCollider.addShape(sphereShape);
       const triggerScript = sphereEntity.addComponent(CollisionScript);
@@ -628,8 +587,6 @@ describe("MeshColliderShape PhysX", () => {
         candidateDestroySpy?.mockRestore();
         entity.destroy();
         sphereEntity.destroy();
-        meshMaterial?.destroy();
-        sphereMaterial?.destroy();
       }
     });
   });
@@ -643,7 +600,6 @@ describe("MeshColliderShape PhysX", () => {
       dynamicCollider.isKinematic = false; // Ensure non-kinematic
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = false; // Triangle mesh
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
@@ -654,7 +610,6 @@ describe("MeshColliderShape PhysX", () => {
 
       errorSpy.mockRestore();
       entity.destroy();
-      meshMaterial?.destroy();
     });
 
     it("should log error when setting isKinematic to false with existing triangle mesh", () => {
@@ -665,7 +620,6 @@ describe("MeshColliderShape PhysX", () => {
       dynamicCollider.isKinematic = true; // Start as kinematic
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = false; // Triangle mesh
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
@@ -679,7 +633,6 @@ describe("MeshColliderShape PhysX", () => {
 
       errorSpy.mockRestore();
       entity.destroy();
-      meshMaterial?.destroy();
     });
 
     it("should NOT log error when adding triangle mesh to kinematic DynamicCollider", () => {
@@ -690,7 +643,6 @@ describe("MeshColliderShape PhysX", () => {
       dynamicCollider.isKinematic = true;
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = false; // Triangle mesh
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
@@ -701,7 +653,6 @@ describe("MeshColliderShape PhysX", () => {
 
       errorSpy.mockRestore();
       entity.destroy();
-      meshMaterial?.destroy();
     });
 
     it("should clone a kinematic triangle mesh that participates in raycasts", () => {
@@ -712,7 +663,6 @@ describe("MeshColliderShape PhysX", () => {
       dynamicCollider.automaticInertiaTensor = false;
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       const mesh = createModelMesh(engine, [-5, 0, -5, 5, 0, -5, -5, 0, 5, 5, 0, 5], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = mesh;
       dynamicCollider.addShape(meshShape);
@@ -729,7 +679,6 @@ describe("MeshColliderShape PhysX", () => {
       expect(hit.shape).toBe(clonedShape);
 
       clone.destroy();
-      meshMaterial?.destroy();
     });
 
     it("should NOT log error when adding convex mesh to non-kinematic DynamicCollider", () => {
@@ -740,7 +689,6 @@ describe("MeshColliderShape PhysX", () => {
       dynamicCollider.isKinematic = false;
 
       const meshShape = new MeshColliderShape();
-      const meshMaterial = meshShape.material;
       meshShape.isConvex = true; // Convex mesh - should work
       const mesh = createModelMesh(engine, [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1]);
       meshShape.mesh = mesh;
@@ -751,7 +699,6 @@ describe("MeshColliderShape PhysX", () => {
 
       errorSpy.mockRestore();
       entity.destroy();
-      meshMaterial?.destroy();
     });
   });
 
@@ -760,7 +707,6 @@ describe("MeshColliderShape PhysX", () => {
       const entity = root.createChild("rejectedNativeShape");
       const collider = entity.addComponent(StaticCollider);
       const shape = new BoxColliderShape();
-      const material = shape.material;
       const nativeCollider = (collider as any)._nativeCollider;
       const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
 
@@ -775,7 +721,6 @@ describe("MeshColliderShape PhysX", () => {
         attachSpy.mockRestore();
         entity.destroy();
         (shape as any)._destroy();
-        material?.destroy();
       }
     });
   });
@@ -788,7 +733,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
 
       // Create mesh with releaseData=true so accessible becomes false
       const mesh = new ModelMesh(engine);
@@ -806,7 +750,6 @@ describe("MeshColliderShape PhysX", () => {
 
       warnSpy.mockRestore();
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should warn when non-convex mesh has no indices", () => {
@@ -816,7 +759,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       meshShape.isConvex = false;
 
       // Create mesh without indices
@@ -833,7 +775,6 @@ describe("MeshColliderShape PhysX", () => {
 
       warnSpy.mockRestore();
       entity.destroy();
-      defaultMaterial?.destroy();
     });
   });
 
@@ -843,7 +784,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       meshShape.isConvex = true;
 
       const mesh = createModelMesh(
@@ -868,14 +808,12 @@ describe("MeshColliderShape PhysX", () => {
       expect(secondNativeShape).not.toBe(firstNativeShape);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should switch to non-convex using cached indices after mesh data is released", () => {
       const entity = root.createChild("releasedConvexMeshData");
       const staticCollider = entity.addComponent(StaticCollider);
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       const mesh = createModelMesh(
         engine,
         [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
@@ -894,7 +832,6 @@ describe("MeshColliderShape PhysX", () => {
       expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should keep the convex shape when switching requires missing indices", () => {
@@ -904,7 +841,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       meshShape.isConvex = true;
 
       // Create convex mesh (no indices needed for convex)
@@ -928,7 +864,6 @@ describe("MeshColliderShape PhysX", () => {
 
       warnSpy.mockRestore();
       entity.destroy();
-      defaultMaterial?.destroy();
     });
   });
 
@@ -938,7 +873,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
 
       const mesh1 = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh1;
@@ -962,7 +896,6 @@ describe("MeshColliderShape PhysX", () => {
       expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
   });
 
@@ -971,7 +904,6 @@ describe("MeshColliderShape PhysX", () => {
       const entity = root.createChild("releasedMeshData");
       const staticCollider = entity.addComponent(StaticCollider);
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
       const mesh = createModelMesh(
         engine,
         [0, 1, 0, -1, 0, -1, 1, 0, -1, 0, 0, 1],
@@ -987,7 +919,6 @@ describe("MeshColliderShape PhysX", () => {
       expect((staticCollider as any)._nativeCollider._shapes).toEqual([(meshShape as any)._nativeShape]);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should replace the native shape when changing cookingFlags", () => {
@@ -995,7 +926,6 @@ describe("MeshColliderShape PhysX", () => {
       const staticCollider = entity.addComponent(StaticCollider);
 
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
 
       const mesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
       meshShape.mesh = mesh;
@@ -1012,18 +942,14 @@ describe("MeshColliderShape PhysX", () => {
       expect((staticCollider as any)._nativeCollider._shapes).toEqual([nativeShapeAfter]);
 
       entity.destroy();
-      defaultMaterial?.destroy();
     });
 
     it("should not update when no mesh is set", () => {
       const meshShape = new MeshColliderShape();
-      const defaultMaterial = meshShape.material;
 
       // Change cookingFlags without mesh - should not throw
       meshShape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
       expect(meshShape.cookingFlags).toBe(MeshColliderShapeCookingFlag.Cleaning);
-
-      defaultMaterial?.destroy();
     });
   });
 
@@ -1093,7 +1019,6 @@ describe("MeshColliderShape PhysX", () => {
       const entity = root.createChild("failedMeshCloneSource");
       const collider = entity.addComponent(StaticCollider);
       const shape = new MeshColliderShape();
-      const material = shape.material;
       const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
       shape.mesh = mesh;
       collider.addShape(shape);
@@ -1122,7 +1047,6 @@ describe("MeshColliderShape PhysX", () => {
         consoleErrorSpy.mockRestore();
         clone?.destroy();
         entity.destroy();
-        material?.destroy();
       }
     });
   });

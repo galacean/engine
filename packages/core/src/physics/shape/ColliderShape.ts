@@ -23,7 +23,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   @ignoreClone
   protected _id: number;
   @assignmentClone
-  protected _material: PhysicsMaterial = null;
+  protected _material: PhysicsMaterial | null = null;
+  @ignoreClone
+  private _materialInstanced: boolean = false;
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
@@ -70,25 +72,20 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
-   * Physical material, material can't be null.
-   * @remarks Reading this property creates a material for this shape if none has been assigned.
-   * Explicitly assigned materials and materials already created before cloning are shared by reference.
+   * The current physics material, or null to use the shared default material.
+   * @remarks Reading this property does not create or clone a material. Materials are shared by reference when cloning shapes.
+   * Use {@link getInstanceMaterial} to obtain an instance for this shape.
    * Destroy the material when it is no longer used by any shape.
    */
-  get material(): PhysicsMaterial {
-    if (!this._material) {
-      this.material = new PhysicsMaterial();
-    }
+  get material(): PhysicsMaterial | null {
     return this._material;
   }
 
-  set material(value: PhysicsMaterial) {
-    if (!value) {
-      throw new Error("The physics material of the shape can't be null.");
-    }
+  set material(value: PhysicsMaterial | null) {
     if (this._material !== value) {
+      this._materialInstanced = false;
       this._material = value;
-      this._nativeShape?.setMaterial(value._nativeMaterial);
+      this._nativeShape?.setMaterial(value?._nativeMaterial ?? null);
     }
   }
 
@@ -144,6 +141,20 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     this._position._onValueChanged = this._setPosition;
 
     Engine._physicalObjectsMap[this._id] = this;
+  }
+
+  /**
+   * Get the instance material for this shape.
+   * @remarks The first call after assigning a material clones it and assigns the instance to this shape.
+   * If no material is assigned, creates one with the engine's default properties. Subsequent calls return the same instance.
+   * @returns The instance material
+   */
+  getInstanceMaterial(): PhysicsMaterial {
+    if (!this._materialInstanced) {
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial();
+      this._materialInstanced = true;
+    }
+    return this._material;
   }
 
   /**

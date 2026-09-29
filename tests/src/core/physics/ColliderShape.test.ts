@@ -96,7 +96,6 @@ describe("ColliderShape PhysX", () => {
 
     dynamicCollider.removeShape(shape);
     shape._destroy();
-    shape.material.destroy();
   });
 
   it("CapsuleColliderShape", () => {

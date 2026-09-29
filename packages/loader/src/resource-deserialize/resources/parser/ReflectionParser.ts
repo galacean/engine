@@ -20,7 +20,7 @@ export class ReflectionParser {
     const promises: Promise<any>[] = [];
     if (props) {
       for (const key in props) {
-        const promise = this._resolveValue(props[key], instance, key).then((v) => {
+        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
           instance[key] = v;
         });
         promises.push(promise);
@@ -95,7 +95,7 @@ export class ReflectionParser {
    * 9. { $signal }    → signal binding
    * 10. plain object  → recurse values (modify originValue in place if exists)
    */
-  private _resolveValue(value: unknown, instance?: any, key?: string): Promise<any> {
+  private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
     if (Array.isArray(value)) return Promise.all(value.map((v) => this._resolveValue(v)));
 
@@ -163,18 +163,17 @@ export class ReflectionParser {
 
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
-      return this._resolveSignal(instance?.[key], obj.$signal as SignalListener[]);
+      return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object
-    const originValue = instance?.[key];
     const target =
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
         ? originValue
         : ({} as Record<string, unknown>);
     const promises: Promise<any>[] = [];
     for (const key in obj) {
-      promises.push(this._resolveValue(obj[key], target, key).then((v) => (target[key] = v)));
+      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
     }
     return Promise.all(promises).then(() => target);
   }

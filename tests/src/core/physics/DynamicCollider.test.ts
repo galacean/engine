@@ -24,8 +24,8 @@ describe("DynamicCollider", function () {
     planeEntity.transform.setScale(20, 1, 20);
 
     const physicsPlane = new PlaneColliderShape();
-    physicsPlane.material.dynamicFriction = 0;
-    physicsPlane.material.staticFriction = 0;
+    physicsPlane.getInstanceMaterial().dynamicFriction = 0;
+    physicsPlane.getInstanceMaterial().staticFriction = 0;
     const planeCollider = planeEntity.addComponent(StaticCollider);
     planeCollider.addShape(physicsPlane);
     return planeEntity;
@@ -36,8 +36,8 @@ describe("DynamicCollider", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     if (type === DynamicCollider) {

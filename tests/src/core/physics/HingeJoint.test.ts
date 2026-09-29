@@ -23,8 +23,8 @@ describe("HingeJoint", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);

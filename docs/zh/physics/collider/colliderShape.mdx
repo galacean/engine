@@ -29,11 +29,14 @@ label: Physics
 
 ### 物理材质
 - [**material**](/apis/core/#ColliderShape-material)  
-  定义形状的物理材质属性。未指定材质时，形状使用引擎统一定义的默认属性。首次读取 `shape.material` 会为该形状创建独立材质，后续读取返回同一实例。直接赋值 `shape.material = material` 不会额外创建默认材质。
+  返回或设置当前材质引用，读取时不会创建或克隆材质。多个形状可以共享同一材质，对其属性的修改会影响所有引用它的形状。未指定材质或赋值为 `null` 时，形状使用引擎统一定义的共享默认材质，此时 `material` 返回 `null`。
 
-克隆形状时，已经赋值或通过读取 `material` 创建的材质按引用共享。若克隆前尚未读取或赋值，源形状和副本会在各自首次读取 `material` 时创建独立材质。
+- [**getInstanceMaterial()**](/apis/core/#ColliderShape-getInstanceMaterial)
+  与 Renderer 的实例材质接口一致，首次调用会克隆当前材质并赋给该形状；未指定材质时，创建具有默认属性的实例。后续调用返回同一实例，直到重新赋予不同的材质或 `null`。
 
-显式创建或通过 `material` 取得的材质，需要在所有形状都不再使用后调用 `destroy()` 释放。
+克隆形状时，材质按引用共享；在副本上调用 `getInstanceMaterial()` 可将其独立出来。仅修改某个形状时，使用 `shape.getInstanceMaterial().bounciness = 0.5`；直接修改 `shape.material` 的属性则会修改共享材质。
+
+显式创建或通过 `getInstanceMaterial()` 取得的材质，需要在所有形状都不再使用后调用 `destroy()` 释放。后端共享默认材质由后端管理，无需手动释放。
 
 | 属性 | 描述 | 默认值 |
 | ---- | ---- | ------ |
@@ -292,4 +295,3 @@ function createMixedPlatform(): Entity {
    - 合理设置局部偏移，避免碰撞形状过度重叠
    - 适当使用触发器代替实际的物理碰撞
    - 及时销毁不再使用的碰撞形状及物理材质
-
