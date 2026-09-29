@@ -1223,7 +1223,7 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
   });
 
   describe("mesh refCount (slot-ownership contract)", () => {
-    it("clone acquires via the setter, churn transfers, destroy releases", () => {
+    it("clone acquires ownership, reassignment transfers it, and destroy releases it", () => {
       const meshA = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
       const meshB = createModelMesh(engine, [-2, 0, -2, 2, 0, -2, 0, 0, 2], [0, 1, 2]);
       const entity = root.createChild("meshRefSlot");
@@ -1249,6 +1249,62 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
 
       entity.destroy();
       expect(meshA.refCount).toBe(0);
+    });
+
+    it.each(["mesh", "empty", "cooking failure"])("releases constructor presets when cloning (%s)", (mode) => {
+      const presets: { mesh: ModelMesh; nativeShape: any; destroy: ReturnType<typeof vi.spyOn> }[] = [];
+
+      class ShapeScript extends Script {
+        shape = new MeshColliderShape();
+
+        constructor(entity: Entity) {
+          super(entity);
+          const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
+          this.shape.mesh = mesh;
+          const nativeShape = this.shape._nativeShape;
+          presets.push({ mesh, nativeShape, destroy: vi.spyOn(nativeShape, "destroy") });
+        }
+      }
+
+      const entity = root.createChild("meshClonePreset");
+      const source = entity.addComponent(ShapeScript);
+      const sourceMesh = source.shape.mesh;
+      const physics = (source.shape._nativeShape as any)._physXPhysics;
+      const createShape = physics.createMeshColliderShape.bind(physics);
+      const createShapeSpy = vi.spyOn(physics, "createMeshColliderShape");
+      let clone: Entity;
+
+      try {
+        if (mode === "empty") {
+          source.shape.mesh = null;
+        } else {
+          sourceMesh.uploadData(true);
+        }
+        if (mode === "cooking failure") {
+          createShapeSpy.mockImplementationOnce(createShape).mockReturnValueOnce(null);
+        }
+
+        clone = entity.clone();
+        const clonedShape = clone.getComponent(ShapeScript).shape;
+        expect(clonedShape.mesh).toBe(mode === "mesh" ? sourceMesh : null);
+        expect(presets[1].mesh.refCount).toBe(0);
+        expect(presets[1].destroy).toHaveBeenCalledOnce();
+        expect(Boolean(clonedShape._nativeShape)).toBe(mode === "mesh");
+        expect(sourceMesh.refCount).toBe(mode === "mesh" ? 2 : mode === "empty" ? 0 : 1);
+      } finally {
+        clone?.getComponent(ShapeScript).shape._destroy();
+        source.shape._destroy();
+        for (const preset of presets) {
+          if (preset.destroy.mock.calls.length === 0) {
+            preset.nativeShape.destroy();
+          }
+          preset.destroy.mockRestore();
+        }
+        createShapeSpy.mockRestore();
+        clone?.destroy();
+        entity.destroy();
+      }
+      expect(sourceMesh.refCount).toBe(0);
     });
 
     it("keeps a failed mesh clone empty without acquiring source ownership", () => {

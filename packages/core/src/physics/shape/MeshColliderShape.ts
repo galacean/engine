@@ -1,7 +1,7 @@
 import { IMeshColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { assignmentClone } from "../../clone/CloneDecorators";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { DynamicCollider } from "../DynamicCollider";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
@@ -19,10 +19,10 @@ type MeshData = {
 export class MeshColliderShape extends ColliderShape {
   private static readonly _unitScale = new Vector3(1, 1, 1);
 
-  @assignmentClone
+  @ignoreClone
   private _mesh: ModelMesh = null;
   private _isConvex = false;
-  @assignmentClone
+  @ignoreClone
   private _meshData: MeshData | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
@@ -142,20 +142,15 @@ export class MeshColliderShape extends ColliderShape {
    * @inheritdoc
    */
   override _onClone(target: MeshColliderShape): void {
-    super._onClone(target);
-    const mesh = target._mesh;
-    if (mesh) {
-      const { positions, indices } = target._meshData;
-      const nativeShape = target._createNativeShape(positions, indices, target._isConvex, target._cookingFlags);
-      if (!nativeShape) {
-        target._mesh = null;
-        target._nativeShape = null;
-        target._meshData = null;
-        return;
-      }
-      target._nativeShape = nativeShape;
-      mesh._addReferCount(1);
-    }
+    const meshData = this._meshData;
+    const nativeShape = meshData
+      ? target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags)
+      : null;
+    target._replaceNativeShape(nativeShape);
+    target._mesh?._addReferCount(-1);
+    target._mesh = nativeShape ? this._mesh : null;
+    target._meshData = nativeShape ? meshData : null;
+    target._mesh?._addReferCount(1);
   }
 
   private _getMeshData(mesh: ModelMesh, isConvex: boolean): MeshData | null {
