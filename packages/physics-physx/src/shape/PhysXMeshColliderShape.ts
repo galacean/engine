@@ -185,8 +185,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const physX = this._physXPhysics._physX;
     // Uint8Array and Uint16Array both write as Uint16 (PhysX minimum index size)
     const TypedArrayCtor = isU32 ? Uint32Array : Uint16Array;
-    const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;
     const ptr = physX._malloc(indices.length * TypedArrayCtor.BYTES_PER_ELEMENT);
+    const heap = isU32 ? physX.HEAPU32 : physX.HEAPU16;
     new TypedArrayCtor(heap.buffer, ptr, indices.length).set(indices);
     return ptr;
   }

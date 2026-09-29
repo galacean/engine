@@ -573,6 +573,50 @@ describe.each(runtimeModes)("MeshColliderShape PhysX (%s)", (runtimeMode) => {
       mesh2.destroy();
     });
 
+    it.each([Uint16Array, Uint32Array])("updates mesh when index allocation grows WASM memory (%s)", (IndexArray) => {
+      const entity = root.createChild("meshHeapGrowth");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new MeshColliderShape();
+      const mesh = createCubeMesh(engine);
+      const replacementMesh = createCubeMesh(engine, 2);
+      replacementMesh.setIndices(new IndexArray(replacementMesh.getIndices()));
+      shape.mesh = mesh;
+      collider.addShape(shape);
+
+      const ray = new Ray(new Vector3(1.5, 3, 0), new Vector3(0, -1, 0));
+      const hit = new HitResult();
+      expect(physicsScene.raycast(ray, hit)).toBe(false);
+
+      const physX = (shape as any)._nativeShape._physXPhysics._physX;
+      const originalMalloc = physX._malloc;
+      let allocations = 0;
+      let previousBuffer: ArrayBuffer;
+      const mallocSpy = vi.spyOn(physX, "_malloc").mockImplementation((size: number) => {
+        if (++allocations === 2) {
+          // Force real memory growth during index allocation, after vertices are uploaded
+          previousBuffer = physX.HEAPF32.buffer;
+          const pressure = originalMalloc(previousBuffer.byteLength);
+          physX._free(pressure);
+        }
+        return originalMalloc(size);
+      });
+
+      try {
+        shape.mesh = replacementMesh;
+
+        expect(physX.HEAPF32.buffer).not.toBe(previousBuffer);
+        expect(previousBuffer.byteLength).toBe(0);
+        expect(shape.mesh).toBe(replacementMesh);
+        expect(physicsScene.raycast(ray, hit)).toBe(true);
+        expect(hit.shape).toBe(shape);
+      } finally {
+        mallocSpy.mockRestore();
+        entity.destroy();
+        mesh.destroy();
+        replacementMesh.destroy();
+      }
+    });
+
     it.each(["mesh", "cookingFlags"])(
       "keeps %s and the native mesh when recooking fails, then permits retry",
       (property) => {
