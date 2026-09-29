@@ -28,10 +28,23 @@ import { Color } from "@galacean/engine-math";
  * @internal
  */
 export class BasicResources {
+  static physicsDefaultMaterial: PhysicsMaterial;
   private static _maskReadInsideRenderStates: RenderStateElementMap = null;
   private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
   private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
   private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
+
+  /**
+   * @internal
+   */
+  static _initializePhysics(): void {
+    const material = BasicResources.physicsDefaultMaterial;
+    if (material) {
+      material._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(material);
+    } else {
+      BasicResources.physicsDefaultMaterial = new PhysicsMaterial();
+    }
+  }
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
@@ -117,8 +130,6 @@ export class BasicResources {
   readonly spriteDefaultMaterial: Material;
   readonly textDefaultMaterial: Material;
   readonly spriteMaskDefaultMaterial: Material;
-
-  physicsDefaultMaterial: PhysicsMaterial;
 
   readonly meshMagentaMaterial: Material;
   readonly particleMagentaMaterial: Material;
@@ -220,16 +231,6 @@ export class BasicResources {
         })
         .catch(reject);
     });
-  }
-
-  /** @internal */
-  _initializePhysics(): void {
-    this.physicsDefaultMaterial = new PhysicsMaterial();
-  }
-
-  /** @internal */
-  _destroy(): void {
-    this.physicsDefaultMaterial?.destroy();
   }
 
   private _createBlitMesh(engine: Engine, vertices: Float32Array): ModelMesh {

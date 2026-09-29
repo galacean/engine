@@ -211,7 +211,6 @@ export class Collider extends Component implements ICloneHook<Collider> {
       }
     }
     shape._collider = this;
-    shape._setDefaultMaterial(this.engine._basicResources.physicsDefaultMaterial);
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {

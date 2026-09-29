@@ -29,6 +29,10 @@ const runtimeModes = [PhysXRuntimeMode.WebAssembly, PhysXRuntimeMode.WebAssembly
 
 describe.each(runtimeModes)("PhysicsMaterial defaults (%s)", (runtimeMode) => {
   it("uses the engine's complete default policy for shared and instance materials", async () => {
+    const graphicsOnly = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const basicResources = (graphicsOnly as any)._basicResources.constructor;
+    const originalMaterial = basicResources.physicsDefaultMaterial;
+    basicResources.physicsDefaultMaterial = undefined;
     const originalDefaults = PhysicsMaterial._defaultProperties;
     const defaults = {
       staticFriction: 0.2,
@@ -56,7 +60,7 @@ describe.each(runtimeModes)("PhysicsMaterial defaults (%s)", (runtimeMode) => {
       await physics.initialize();
       expect(createMaterial).not.toHaveBeenCalled();
       engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-      expect((engine as any)._basicResources.physicsDefaultMaterial).toBeInstanceOf(PhysicsMaterial);
+      expect((engine as any)._basicResources.constructor.physicsDefaultMaterial).toBeInstanceOf(PhysicsMaterial);
       shape = new BoxColliderShape();
       expect(createMaterial).toHaveBeenCalledExactlyOnceWith(0.2, 0.4, 0.8);
       expect(setFrictionCombine).toHaveBeenCalledExactlyOnceWith(PhysicsMaterialCombineMode.Minimum);
@@ -79,6 +83,8 @@ describe.each(runtimeModes)("PhysicsMaterial defaults (%s)", (runtimeMode) => {
       setBounceCombine?.mockRestore();
       initialize.mockRestore();
       (PhysicsMaterial as any)._defaultProperties = originalDefaults;
+      basicResources.physicsDefaultMaterial = originalMaterial;
+      graphicsOnly.destroy();
     }
   });
 });
@@ -133,13 +139,13 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
   });
 
   afterAll(() => {
-    const defaultMaterial = (engine as any)._basicResources.physicsDefaultMaterial as PhysicsMaterial;
+    const defaultMaterial = (engine as any)._basicResources.constructor.physicsDefaultMaterial as PhysicsMaterial;
     const release = vi.spyOn((defaultMaterial._nativeMaterial as any)._pxMaterial, "release");
     try {
       engine.destroy();
-      expect(release).toHaveBeenCalledTimes(1);
+      expect(release).not.toHaveBeenCalled();
       physics.destroy();
-      expect(release).toHaveBeenCalledTimes(1);
+      expect(release).not.toHaveBeenCalled();
     } finally {
       release.mockRestore();
     }
@@ -181,13 +187,15 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
       for (const shape of [...shapes, ...clone.getComponent(StaticCollider).shapes]) {
         expect(shape.material).toBeNull();
         expect((shape._nativeShape as any)._pxMaterial).toBe(
-          (engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial._pxMaterial
+          (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial._pxMaterial
         );
       }
       for (const { spy, materialIndex } of createShapes) {
         expect(spy).toHaveBeenCalled();
         for (const args of spy.mock.calls) {
-          expect(args[materialIndex]).toBe((engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial);
+          expect(args[materialIndex]).toBe(
+            (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial
+          );
         }
       }
       expect(createMaterial).not.toHaveBeenCalled();
@@ -225,7 +233,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
         if (shape._nativeShape) {
           expect((shape._nativeShape as any)._pxMaterial).toBe((material._nativeMaterial as any)._pxMaterial);
           expect((other._nativeShape as any)._pxMaterial).toBe(
-            (engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial._pxMaterial
+            (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial._pxMaterial
           );
         }
         shape.material = null;
@@ -233,7 +241,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
         expect(createMaterial).toHaveBeenCalledTimes(1);
         if (shape._nativeShape) {
           expect((shape._nativeShape as any)._pxMaterial).toBe(
-            (engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial._pxMaterial
+            (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial._pxMaterial
           );
         }
         const nextMaterial = shape.getInstanceMaterial();
@@ -337,7 +345,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
     try {
       shape.isConvex = true;
       expect((shape._nativeShape as any)._pxMaterial).toBe(
-        (engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial._pxMaterial
+        (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial._pxMaterial
       );
       expect(createMaterial).not.toHaveBeenCalled();
       material = shape.getInstanceMaterial();
@@ -392,7 +400,7 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
       await parser.parseProps(shape, { material: null });
       expect(shape.material).toBeNull();
       expect((shape._nativeShape as any)._pxMaterial).toBe(
-        (engine as any)._basicResources.physicsDefaultMaterial._nativeMaterial._pxMaterial
+        (engine as any)._basicResources.constructor.physicsDefaultMaterial._nativeMaterial._pxMaterial
       );
       expect(createMaterial).toHaveBeenCalledTimes(1);
     } finally {

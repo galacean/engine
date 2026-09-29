@@ -8,7 +8,7 @@ import { createPhysics } from "./PhysicsTestUtils";
 const runtimeModes = [PhysXRuntimeMode.WebAssembly, PhysXRuntimeMode.WebAssemblySIMD];
 
 function getDefaultMaterial(engine: Engine): PhysicsMaterial {
-  return (engine as any)._basicResources.physicsDefaultMaterial;
+  return (engine as any)._basicResources.constructor.physicsDefaultMaterial;
 }
 
 function addBox(engine: Engine): BoxColliderShape {
@@ -18,158 +18,119 @@ function addBox(engine: Engine): BoxColliderShape {
 }
 
 describe.each(runtimeModes)("PhysicsMaterial lifetime (%s)", (runtimeMode) => {
-  it("releases the BasicResources default after shapes, without destroying assigned materials", async () => {
-    const physics = createPhysics(runtimeMode);
-    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-    const defaultMaterial = getDefaultMaterial(engine);
-    const destroyDefault = vi.spyOn(defaultMaterial, "destroy");
-    const releaseDefault = vi.spyOn((defaultMaterial._nativeMaterial as any)._pxMaterial, "release");
-    const shape = addBox(engine);
-    const destroyShape = vi.spyOn(shape._nativeShape, "destroy");
-    const assigned = new PhysicsMaterial();
-    const releaseAssigned = vi.spyOn((assigned._nativeMaterial as any)._pxMaterial, "release");
-    try {
-      shape.material = assigned;
-      engine.resourceManager.gc();
-      expect(destroyDefault).not.toHaveBeenCalled();
-      shape.material = null;
-      expect((shape._nativeShape as any)._pxMaterial).toBe((defaultMaterial._nativeMaterial as any)._pxMaterial);
-
-      engine.destroy();
-      engine.destroy();
-      expect(destroyDefault).toHaveBeenCalledTimes(1);
-      expect(releaseDefault).toHaveBeenCalledTimes(1);
-      expect(destroyShape.mock.invocationCallOrder[0]).toBeLessThan(releaseDefault.mock.invocationCallOrder[0]);
-      expect(releaseAssigned).not.toHaveBeenCalled();
-
-      assigned.destroy();
-      expect(releaseAssigned).toHaveBeenCalledTimes(1);
-    } finally {
-      engine.destroy();
-      assigned.destroy();
-      physics.destroy();
-      expect(releaseDefault).toHaveBeenCalledTimes(1);
-      vi.restoreAllMocks();
-    }
-  });
-
-  it("owns one default per engine even when engines share a backend", async () => {
+  it("shares one Core default across engines using the same backend", async () => {
     const physics = createPhysics(runtimeMode);
     const createMaterial = vi.spyOn(physics, "createPhysicsMaterial");
     const first = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-    const firstDefault = getDefaultMaterial(first);
-    const destroyFirst = vi.spyOn(firstDefault, "destroy");
+    const material = getDefaultMaterial(first);
+    const destroyMaterial = vi.spyOn(material, "destroy");
     const firstShape = addBox(first);
     let second: Engine;
-    let next: Engine;
+    let graphicsOnly: Engine;
     try {
       second = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-      const secondDefault = getDefaultMaterial(second);
-      const destroySecond = vi.spyOn(secondDefault, "destroy");
-      const secondShape = addBox(second);
-      expect(secondDefault).toBeInstanceOf(PhysicsMaterial);
-      expect(secondDefault).not.toBe(firstDefault);
-      expect((secondShape._nativeShape as any)._pxMaterial).toBe((secondDefault._nativeMaterial as any)._pxMaterial);
-
-      const clone = firstShape.collider.entity.clone();
-      first.sceneManager.activeScene.addRootEntity(clone);
+      expect(getDefaultMaterial(second)).toBe(material);
+      const receiving = second.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
+      receiving.addShape(firstShape);
+      const clone = receiving.entity.clone();
+      second.sceneManager.activeScene.addRootEntity(clone);
       const clonedShape = clone.getComponent(StaticCollider).shapes[0];
       expect(clonedShape.material).toBeNull();
-      expect((clonedShape._nativeShape as any)._pxMaterial).toBe((firstDefault._nativeMaterial as any)._pxMaterial);
-      expect(createMaterial).toHaveBeenCalledTimes(2);
+      expect((clonedShape._nativeShape as any)._pxMaterial).toBe((material._nativeMaterial as any)._pxMaterial);
 
+      graphicsOnly = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+      graphicsOnly.destroy();
       first.destroy();
-      expect(destroyFirst).toHaveBeenCalledTimes(1);
-      expect(destroySecond).not.toHaveBeenCalled();
+      second.resourceManager.gc();
+      expect(destroyMaterial).not.toHaveBeenCalled();
       expect(
         second.sceneManager.activeScene.physics.raycast(new Ray(new Vector3(0, 0, 3), new Vector3(0, 0, -1)), 10)
       ).toBe(true);
-      const newShape = addBox(second);
-      expect((newShape._nativeShape as any)._pxMaterial).toBe((secondDefault._nativeMaterial as any)._pxMaterial);
-
+      addBox(second);
+      expect(createMaterial).toHaveBeenCalledTimes(1);
       second.destroy();
-      expect(destroySecond).toHaveBeenCalledTimes(1);
-      expect((Engine as any)._physicsEngine).toBeNull();
-
-      next = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-      expect(getDefaultMaterial(next)).not.toBe(secondDefault);
-      expect(createMaterial).toHaveBeenCalledTimes(3);
-      addBox(next);
+      expect(destroyMaterial).not.toHaveBeenCalled();
     } finally {
+      graphicsOnly?.destroy();
       first.destroy();
       second?.destroy();
-      next?.destroy();
       physics.destroy();
       vi.restoreAllMocks();
     }
   });
 
-  it("uses the receiving engine's default when transferring a shape", async () => {
+  it("keeps a detached shape's default alive until backend teardown", async () => {
     const physics = createPhysics(runtimeMode);
     const first = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-    const defaultShape = addBox(first);
-    const assignedShape = addBox(first);
+    const material = getDefaultMaterial(first);
+    const releaseMaterial = vi.spyOn((material._nativeMaterial as any)._pxMaterial, "release");
+    const releasePhysics = vi.spyOn(physics._pxPhysics, "release");
+    const shape = new BoxColliderShape();
     const assigned = new PhysicsMaterial();
-    assignedShape.material = assigned;
     let second: Engine;
     try {
-      second = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
-      const receiving = second.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider);
-      receiving.addShape(defaultShape);
-      receiving.addShape(assignedShape);
-      const nativeDefault = (getDefaultMaterial(second)._nativeMaterial as any)._pxMaterial;
-      expect(defaultShape.material).toBeNull();
-      expect((defaultShape._nativeShape as any)._pxMaterial).toBe(nativeDefault);
-      expect((assignedShape._nativeShape as any)._pxMaterial).toBe((assigned._nativeMaterial as any)._pxMaterial);
-
+      shape.material = assigned;
       first.destroy();
-      assignedShape.material = null;
-      expect((assignedShape._nativeShape as any)._pxMaterial).toBe(nativeDefault);
+      expect(releaseMaterial).not.toHaveBeenCalled();
+      shape.material = null;
+      expect((shape._nativeShape as any)._pxMaterial).toBe((material._nativeMaterial as any)._pxMaterial);
+      second = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics });
+      expect(getDefaultMaterial(second)).toBe(material);
+      second.sceneManager.activeScene.createRootEntity().addComponent(StaticCollider).addShape(shape);
       expect(
         second.sceneManager.activeScene.physics.raycast(new Ray(new Vector3(0, 0, 3), new Vector3(0, 0, -1)), 10)
       ).toBe(true);
     } finally {
       first.destroy();
       second?.destroy();
+      shape._destroy();
       assigned.destroy();
       physics.destroy();
+      expect(releasePhysics).toHaveBeenCalledTimes(1);
+      // PxPhysics releases its remaining materials internally
+      expect(releaseMaterial).not.toHaveBeenCalled();
+      vi.restoreAllMocks();
     }
   });
 
-  it("restores a shape's original default after another physics backend is selected", async () => {
+  it("keeps one Core default while creating native handles for the selected backend", async () => {
     const firstPhysics = createPhysics(runtimeMode);
+    const createFirstMaterial = vi.spyOn(firstPhysics, "createPhysicsMaterial");
     const first = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: firstPhysics });
     const firstDefault = getDefaultMaterial(first);
+    const firstNative = firstDefault._nativeMaterial;
     const shape = addBox(first);
     const assigned = new PhysicsMaterial();
     shape.material = assigned;
     const secondPhysics = createPhysics(runtimeMode);
     let second: Engine;
-    let graphicsOnly: Engine;
+    let third: Engine;
     try {
       second = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: secondPhysics });
-      expect(getDefaultMaterial(second)).not.toBe(firstDefault);
+      const secondDefault = getDefaultMaterial(second);
+      expect(secondDefault).toBe(firstDefault);
+      expect(secondDefault._nativeMaterial).not.toBe(firstNative);
       shape.material = null;
-      expect((shape._nativeShape as any)._pxMaterial).toBe((firstDefault._nativeMaterial as any)._pxMaterial);
-
-      graphicsOnly = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-      expect(getDefaultMaterial(graphicsOnly)).toBeUndefined();
-      graphicsOnly.destroy();
-      first.destroy();
-      expect((Engine as any)._nativePhysics).toBe(secondPhysics);
+      expect((shape._nativeShape as any)._pxMaterial).toBe((firstNative as any)._pxMaterial);
       const secondShape = addBox(second);
-      expect((secondShape._nativeShape as any)._pxMaterial).toBe(
-        (getDefaultMaterial(second)._nativeMaterial as any)._pxMaterial
-      );
+      expect((secondShape._nativeShape as any)._pxMaterial).toBe((secondDefault._nativeMaterial as any)._pxMaterial);
+
+      third = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: firstPhysics });
+      expect(getDefaultMaterial(third)).toBe(firstDefault);
+      expect(createFirstMaterial).toHaveBeenCalledTimes(3);
+      expect(firstDefault._nativeMaterial).not.toBe(firstNative);
+      const thirdShape = addBox(third);
+      expect((thirdShape._nativeShape as any)._pxMaterial).toBe((firstDefault._nativeMaterial as any)._pxMaterial);
     } finally {
-      graphicsOnly?.destroy();
       first.destroy();
       second?.destroy();
+      third?.destroy();
       assigned.destroy();
       firstPhysics.destroy();
       if (second) {
         secondPhysics.destroy();
       }
+      vi.restoreAllMocks();
     }
   });
 });
