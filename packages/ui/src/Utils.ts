@@ -139,8 +139,7 @@ export class Utils {
       entity = entity.parent;
       count++;
     }
-    // A shorter chain drops tail entries — they must release the listener, or the bound
-    // element stays reachable from (and invocable by) entities it no longer tracks.
+    // Shorter chain: unregister dropped tail entities, or they leak the listener
     for (let i = count, n = listeningEntities.length; i < n; i++) {
       // @ts-ignore
       listeningEntities[i]._unRegisterModifyListener(listener);
