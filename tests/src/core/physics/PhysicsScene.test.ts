@@ -537,6 +537,42 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("non-unit direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const shortDir = new Vector3(0, 0, -0.1);
+      const longDir = new Vector3(0, 0, -10);
+      const outHitResult = new HitResult();
+
+      // distance is a length in world units, whatever the length of the direction.
+      expect(physicsScene.raycast(new Ray(origin, shortDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 4)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(origin, halfExtents, shortDir, 6)).to.eq(true);
+      expect(physicsScene.boxCast(origin, halfExtents, longDir, 4)).to.eq(false);
+      expect(physicsScene.sphereCast(origin, 0.1, shortDir, 6)).to.eq(true);
+      expect(physicsScene.sphereCast(origin, 0.1, longDir, 4)).to.eq(false);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, shortDir, 6)).to.eq(true);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, longDir, 4)).to.eq(false);
+
+      // The caller's vectors are left untouched.
+      expect(shortDir.z).to.eq(-0.1);
+      expect(longDir.z).to.eq(-10);
+
+      root.destroy();
+    });
+
     it("boxCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;

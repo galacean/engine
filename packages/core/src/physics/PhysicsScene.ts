@@ -17,6 +17,22 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
+  private static _tempRay = new Ray();
+  private static _tempDirection = new Vector3();
+
+  private static _normalizeDirection(direction: Vector3): Vector3 {
+    // The native backends take `distance` as a multiple of the direction length, so hand them a unit vector
+    const out = PhysicsScene._tempDirection;
+    out.copyFrom(direction);
+    return out.normalize();
+  }
+
+  private static _normalizeRay(ray: Ray): Ray {
+    const out = PhysicsScene._tempRay;
+    out.origin.copyFrom(ray.origin);
+    out.direction.copyFrom(ray.direction).normalize();
+    return out;
+  }
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -342,7 +358,7 @@ export class PhysicsScene {
     const preFilter = this._createPreFilter(layerMask);
 
     const result = this._nativePhysicsScene.raycast(
-      ray,
+      PhysicsScene._normalizeRay(ray),
       distance,
       preFilter,
       hitResult ? this._createHitCallback(hitResult) : undefined
@@ -463,7 +479,7 @@ export class PhysicsScene {
       center,
       orientation,
       halfExtents,
-      direction,
+      PhysicsScene._normalizeDirection(direction),
       distance,
       preFilter,
       hitResult ? this._createHitCallback(hitResult) : undefined
@@ -567,7 +583,7 @@ export class PhysicsScene {
     const result = this._nativePhysicsScene.sphereCast(
       center,
       radius,
-      direction,
+      PhysicsScene._normalizeDirection(direction),
       distance,
       preFilter,
       hitResult ? this._createHitCallback(hitResult) : undefined
@@ -696,7 +712,7 @@ export class PhysicsScene {
       radius,
       height,
       orientation,
-      direction,
+      PhysicsScene._normalizeDirection(direction),
       distance,
       preFilter,
       hitResult ? this._createHitCallback(hitResult) : undefined
