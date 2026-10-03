@@ -196,6 +196,39 @@ export class PhysicsScene {
   }
 
   /**
+   * Casts a ray through the Scene and returns all hits.
+   *
+   * The returned hit order is not guaranteed.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check. @defaultValue `Number.MAX_VALUE`
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting. @defaultValue `Layer.Everything`
+   * @param hitResults - Array to store raycast results. @defaultValue `[]`
+   * @returns The raycast results
+   */
+  raycastAll(
+    ray: Ray,
+    distance: number = Number.MAX_VALUE,
+    layerMask: Layer = Layer.Everything,
+    hitResults: HitResult[] = []
+  ): HitResult[] {
+    hitResults.length = 0;
+    if (distance <= 0) {
+      return hitResults;
+    }
+    this._nativePhysicsScene.raycastAll(
+      ray,
+      distance,
+      this._createPreFilter(layerMask),
+      (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
+        const hitResult = new HitResult();
+        this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+        hitResults.push(hitResult);
+      }
+    );
+    return hitResults;
+  }
+
+  /**
    * Casts a box through the Scene and returns true if there is any hit.
    * @param center - The center of the box
    * @param halfExtents - Half the size of the box in each dimension
@@ -858,12 +891,23 @@ export class PhysicsScene {
     outHitResult: HitResult
   ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
-      outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
-      outHitResult.distance = distance;
-      outHitResult.point.copyFrom(position);
-      outHitResult.normal.copyFrom(normal);
+      this._setHitResult(outHitResult, shapeUniqueID, distance, position, normal);
     };
+  }
+
+  private _setHitResult(
+    outHitResult: HitResult,
+    shapeUniqueID: number,
+    distance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void {
+    const shape = Engine._physicalObjectsMap[shapeUniqueID];
+    outHitResult.entity = shape.collider.entity;
+    outHitResult.shape = shape;
+    outHitResult.distance = distance;
+    outHitResult.point.copyFrom(position);
+    outHitResult.normal.copyFrom(normal);
   }
 
   private _clearHitResult(hitResult: HitResult): void {
