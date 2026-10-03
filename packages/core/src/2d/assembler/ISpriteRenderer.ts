@@ -5,6 +5,7 @@ import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 
 /**
+ * @internal
  * Interface for sprite renderer.
  */
 export interface ISpriteRenderer {
@@ -12,10 +13,6 @@ export interface ISpriteRenderer {
   color?: Color;
   tileMode?: SpriteTileMode;
   tiledAdaptiveThreshold?: number;
-  /** @internal */
   _subChunk: SubPrimitiveChunk;
-  /**
-   * @internal
-   */
   _getChunkManager(): PrimitiveChunkManager;
 }

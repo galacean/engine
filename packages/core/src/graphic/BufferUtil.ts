@@ -2,6 +2,9 @@ import { DataType } from "../base/Constant";
 import { IndexFormat } from "./enums/IndexFormat";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
 
+/**
+ * @internal
+ */
 export interface ElementInfo {
   size: number;
   type: DataType;
@@ -9,10 +12,10 @@ export interface ElementInfo {
   normalizedScaleFactor: number;
 }
 
+/**
+ * @internal
+ */
 export class BufferUtil {
-  /**
-   * @internal
-   */
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -24,9 +27,6 @@ export class BufferUtil {
     }
   }
 
-  /**
-   * @internal
-   */
   static _getGLIndexByteCount(indexFormat: IndexFormat): number {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -38,9 +38,6 @@ export class BufferUtil {
     }
   }
 
-  /**
-   * @internal
-   */
   static _getElementInfo(format: VertexElementFormat): ElementInfo {
     let size: number;
     let type: DataType;
