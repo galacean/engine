@@ -711,6 +711,7 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.garbageCollection();
     this._textRenderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
+    this.inputManager._gc();
     const scenes = this._sceneManager._scenes.getLoopArray();
     for (let i = 0, n = scenes.length; i < n; i++) {
       scenes[i]?.physics?._gc();
