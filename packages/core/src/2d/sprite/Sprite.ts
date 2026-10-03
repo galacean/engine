@@ -20,7 +20,16 @@ export class Sprite extends ReferResource {
   private _customHeight: number = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  // 16 UV 顶点构成 4×4 网格（含 9-slice 内边界）。column-major：index = i*4 + j，i=column(0=left..3=right)，j=row(0=bottom..3=top)。
+  // 与 SlicedAssembler/TiledAssembler 的 vertex 索引图一致：[0]=LB, [3]=LT, [12]=RB, [15]=RT。
+  // SimpleAssembler 取 [0]/[3]/[12]/[15] 4 个 corner；Sliced/Tiled 用全 16。
+  // prettier-ignore
+  private _uvs: Vector2[] = [
+    new Vector2(), new Vector2(), new Vector2(), new Vector2(),
+    new Vector2(), new Vector2(), new Vector2(), new Vector2(),
+    new Vector2(), new Vector2(), new Vector2(), new Vector2(),
+    new Vector2(), new Vector2(), new Vector2(), new Vector2(),
+  ];
   private _bounds: BoundingBox = new BoundingBox();
 
   private _texture: Texture2D = null;
@@ -287,16 +296,18 @@ export class Sprite extends ReferResource {
 
   private _calDefaultSize(): void {
     if (this._texture) {
-      const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
-      const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
+      const { _texture, _atlasRegion, _atlasRegionOffset, _region, _atlasRotated } = this;
+      const ppuReciprocal = 1.0 / Engine._pixelsPerUnit;
+      // 先算 atlas 中绝对像素（texture 不一定是方形，必须各自乘对应维度）
+      const atlasPxW = _texture.width * _atlasRegion.width;
+      const atlasPxH = _texture.height * _atlasRegion.height;
+      // atlas 顺时针 pack 90°：原图 W×H 在 atlas 中占 H×W 区域，仅交换 atlasPx 的 W/H
+      const originWidth = _atlasRotated ? atlasPxH : atlasPxW;
+      const originHeight = _atlasRotated ? atlasPxW : atlasPxH;
       this._automaticWidth =
-        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
-        _region.width *
-        pixelsPerUnitReciprocal;
+        (originWidth / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width * ppuReciprocal;
       this._automaticHeight =
-        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
-        _region.height *
-        pixelsPerUnitReciprocal;
+        (originHeight / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height * ppuReciprocal;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
@@ -332,34 +343,52 @@ export class Sprite extends ReferResource {
   }
 
   private _updateUVs(): void {
-    const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
-    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
-    const regionRight = 1 - regionX - regionW;
-    const regionBottom = 1 - regionY - regionH;
+    const { _uvs: uvs, _atlasRotated: atlasRotated, _border: border } = this;
+    const { x: regionLeft, y: regionTop, width: regionW, height: regionH } = this._region;
+    const regionRight = 1 - regionLeft - regionW;
+    const regionBottom = 1 - regionTop - regionH;
     const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
-    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = this._atlasRegionOffset;
     const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
     const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
-    // Coordinates of the four boundaries.
-    const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
-    const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
-    const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
-    const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
-    const { x: borderLeft, y: borderBottom, z: borderRight, w: borderTop } = this._border;
-    // Left-Bottom
-    uv[0].set(left, bottom);
-    // Border ( Left-Bottom )
-    uv[1].set(
-      (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
-      atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
-    );
-    // Border ( Right-Top )
-    uv[2].set(
-      atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
-      (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
-    );
-    // Right-Top
-    uv[3].set(right, top);
+    // 4 个外边界 + 4 个 9-slice 内边界
+    let left: number, top: number, right: number, bottom: number;
+    let bLeft: number, bTop: number, bRight: number, bBottom: number;
+    if (atlasRotated) {
+      // 原图 region/offset (left/top/right/bottom) 在 atlas 中映射为 (bottom/left/top/right)
+      left = Math.max(regionBottom - offsetLeft, 0) * realWidth + atlasRegionX;
+      top = Math.max(regionLeft - offsetTop, 0) * realHeight + atlasRegionY;
+      right = atlasRegionW + atlasRegionX - Math.max(regionTop - offsetRight, 0) * realWidth;
+      bottom = atlasRegionH + atlasRegionY - Math.max(regionRight - offsetBottom, 0) * realHeight;
+      bLeft = (regionBottom - offsetLeft + border.y * regionH) * realWidth + atlasRegionX;
+      bTop = (regionLeft - offsetTop + border.x * regionW) * realHeight + atlasRegionY;
+      bRight = atlasRegionW + atlasRegionX - (regionTop - offsetRight + border.w * regionH) * realWidth;
+      bBottom = atlasRegionH + atlasRegionY - (regionRight - offsetBottom + border.z * regionW) * realHeight;
+    } else {
+      left = Math.max(regionLeft - offsetLeft, 0) * realWidth + atlasRegionX;
+      top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
+      right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
+      bottom = atlasRegionH + atlasRegionY - Math.max(regionTop - offsetBottom, 0) * realHeight;
+      bLeft = (regionLeft - offsetLeft + border.x * regionW) * realWidth + atlasRegionX;
+      bTop = (regionBottom - offsetTop + border.w * regionH) * realHeight + atlasRegionY;
+      bRight = atlasRegionW + atlasRegionX - (regionRight - offsetRight + border.z * regionW) * realWidth;
+      bBottom = atlasRegionH + atlasRegionY - (regionTop - offsetBottom + border.y * regionH) * realHeight;
+    }
+
+    // 16 UV 网格填充（column-major：index=i*4+j，i=column[0=left..3=right]，j=row[0=bottom..3=top]）
+    // - 非 rotated：column 决定 atlas X (left/bLeft/bRight/right)，row 决定 atlas Y (bottom/bBottom/bTop/top)
+    // - rotated 90° 顺时针 packed：display column 对应 atlas Y 的反向（顶→底），display row 对应 atlas X
+    if (atlasRotated) {
+      uvs[0].set(left, top), uvs[1].set(bLeft, top), uvs[2].set(bRight, top), uvs[3].set(right, top);
+      uvs[4].set(left, bTop), uvs[5].set(bLeft, bTop), uvs[6].set(bRight, bTop), uvs[7].set(right, bTop);
+      uvs[8].set(left, bBottom), uvs[9].set(bLeft, bBottom), uvs[10].set(bRight, bBottom), uvs[11].set(right, bBottom);
+      uvs[12].set(left, bottom), uvs[13].set(bLeft, bottom), uvs[14].set(bRight, bottom), uvs[15].set(right, bottom);
+    } else {
+      uvs[0].set(left, bottom), uvs[1].set(left, bBottom), uvs[2].set(left, bTop), uvs[3].set(left, top);
+      uvs[4].set(bLeft, bottom), uvs[5].set(bLeft, bBottom), uvs[6].set(bLeft, bTop), uvs[7].set(bLeft, top);
+      uvs[8].set(bRight, bottom), uvs[9].set(bRight, bBottom), uvs[10].set(bRight, bTop), uvs[11].set(bRight, top);
+      uvs[12].set(right, bottom), uvs[13].set(right, bBottom), uvs[14].set(right, bTop), uvs[15].set(right, top);
+    }
     this._dirtyUpdateFlag &= ~SpriteUpdateFlags.uvs;
   }
 
