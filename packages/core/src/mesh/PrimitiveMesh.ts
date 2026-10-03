@@ -861,6 +861,9 @@ export class PrimitiveMesh {
     PrimitiveMesh._initialize(planeMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
+  /**
+   * @internal
+   */
   static _setCylinderData(
     cylinderMesh: ModelMesh,
     radiusTop: number = 0.5,
@@ -1270,6 +1273,9 @@ export class PrimitiveMesh {
     PrimitiveMesh._initialize(coneMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
+  /**
+   * @internal
+   */
   static _setCapsuleData(
     capsuleMesh: ModelMesh,
     radius: number,

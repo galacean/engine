@@ -246,6 +246,7 @@ export class UITransform extends Transform {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: UITransform): void {

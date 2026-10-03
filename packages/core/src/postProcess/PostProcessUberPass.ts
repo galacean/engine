@@ -81,6 +81,7 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy() {

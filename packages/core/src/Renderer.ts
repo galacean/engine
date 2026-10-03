@@ -46,10 +46,12 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+  /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
@@ -339,6 +341,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Renderer): void {

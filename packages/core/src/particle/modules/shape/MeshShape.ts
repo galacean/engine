@@ -171,6 +171,7 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: MeshShape): void {

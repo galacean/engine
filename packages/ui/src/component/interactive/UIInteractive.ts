@@ -176,6 +176,9 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._group;
   }
 
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     super._onEnableInScene();
     Utils.setRootCanvasDirty(this);
@@ -183,6 +186,9 @@ export class UIInteractive extends Script implements IGroupAble {
     this._updateState(true);
   }
 
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     super._onDisableInScene();
     Utils.cleanRootCanvas(this);

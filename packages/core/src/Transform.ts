@@ -621,6 +621,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Transform): void {

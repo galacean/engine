@@ -127,6 +127,9 @@ export class UIGroup extends Component implements IGroupAble {
     this._groupListener = this._groupListener.bind(this);
   }
 
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
@@ -134,6 +137,9 @@ export class UIGroup extends Component implements IGroupAble {
     this.entity._dispatchModify(EntityUIModifyFlags.GroupEnableInScene);
   }
 
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);

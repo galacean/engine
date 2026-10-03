@@ -646,6 +646,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: ShaderData): void {
