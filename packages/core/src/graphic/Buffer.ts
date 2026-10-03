@@ -247,6 +247,9 @@ export class Buffer extends GraphicsResource {
     this._readable = false;
   }
 
+  /**
+   * @internal
+   */
   override _rebuild(): void {
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
       this._type,

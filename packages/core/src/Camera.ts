@@ -717,6 +717,7 @@ export class Camera extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onEnableInScene(): void {
@@ -725,6 +726,7 @@ export class Camera extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDisableInScene(): void {

@@ -377,6 +377,9 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     const entity = this.entity;
     // @ts-ignore
@@ -386,11 +389,17 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     Utils.setRootCanvas(this, rootCanvas);
   }
 
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
   }
 
+  /**
+   * @internal
+   */
   override _onDisable(): void {
     this._renderElements.length = 0;
     this._batchedRenderElements.length = 0;
