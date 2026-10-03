@@ -132,6 +132,7 @@ export abstract class Transition<T extends TransitionValueType = TransitionValue
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Transition<T, K>): void {

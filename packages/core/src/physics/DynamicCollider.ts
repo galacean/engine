@@ -460,6 +460,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: DynamicCollider): void {

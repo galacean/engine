@@ -10,6 +10,9 @@ export interface ElementInfo {
 }
 
 export class BufferUtil {
+  /**
+   * @internal
+   */
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -21,6 +24,9 @@ export class BufferUtil {
     }
   }
 
+  /**
+   * @internal
+   */
   static _getGLIndexByteCount(indexFormat: IndexFormat): number {
     switch (indexFormat) {
       case IndexFormat.UInt8:

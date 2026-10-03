@@ -5,5 +5,8 @@ export interface ITextRenderer {
   text: string;
   overflowMode: OverflowMode;
   lineSpacing: number;
+  /**
+   * @internal
+   */
   _getSubFont(): SubFont;
 }

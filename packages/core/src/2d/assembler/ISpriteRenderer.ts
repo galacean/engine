@@ -12,6 +12,10 @@ export interface ISpriteRenderer {
   color?: Color;
   tileMode?: SpriteTileMode;
   tiledAdaptiveThreshold?: number;
+  /** @internal */
   _subChunk: SubPrimitiveChunk;
+  /**
+   * @internal
+   */
   _getChunkManager(): PrimitiveChunkManager;
 }

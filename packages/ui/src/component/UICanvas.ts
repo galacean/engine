@@ -429,6 +429,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: UICanvas): void {

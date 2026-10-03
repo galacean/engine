@@ -102,6 +102,7 @@ export class MeshColliderShape extends ColliderShape {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: MeshColliderShape): void {

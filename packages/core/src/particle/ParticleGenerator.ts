@@ -742,6 +742,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: ParticleGenerator): void {
