@@ -277,6 +277,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: SpriteRenderer): void {

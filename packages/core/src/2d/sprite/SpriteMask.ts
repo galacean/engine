@@ -185,6 +185,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: SpriteMask): void {

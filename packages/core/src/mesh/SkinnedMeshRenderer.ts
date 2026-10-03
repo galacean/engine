@@ -139,6 +139,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: SkinnedMeshRenderer): void {

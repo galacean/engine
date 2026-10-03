@@ -76,6 +76,7 @@ export class MeshRenderer extends Renderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: MeshRenderer): void {
