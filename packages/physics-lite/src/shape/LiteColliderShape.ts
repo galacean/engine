@@ -15,7 +15,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   protected static _tempPoint = new Vector3();
   protected static _tempVector4 = new Vector4();
 
-  private static _ray = new Ray();
+  protected static _ray = new Ray();
 
   /** @internal */
   _id: number;
@@ -115,7 +115,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   /**
    * @internal
    */
-  abstract _raycast(ray: Ray, hit: LiteHitResult): boolean;
+  abstract _raycast(origin: Vector3, direction: Vector3, hit: LiteHitResult): boolean;
 
   protected _updateHitResult(
     ray: Ray,
@@ -139,12 +139,12 @@ export abstract class LiteColliderShape implements IColliderShape {
     }
   }
 
-  protected _getLocalRay(ray: Ray): Ray {
+  protected _getLocalRay(origin: Vector3, direction: Vector3): Ray {
     const worldToLocal = this._getInvModelMatrix();
     const outRay = LiteColliderShape._ray;
 
-    Vector3.transformCoordinate(ray.origin, worldToLocal, outRay.origin);
-    Vector3.transformNormal(ray.direction, worldToLocal, outRay.direction);
+    Vector3.transformCoordinate(origin, worldToLocal, outRay.origin);
+    Vector3.transformNormal(direction, worldToLocal, outRay.direction);
     outRay.direction.normalize();
 
     return outRay;

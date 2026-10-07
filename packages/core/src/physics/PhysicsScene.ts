@@ -17,21 +17,11 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
-  private static _tempRay = new Ray();
   private static _tempDirection = new Vector3();
 
-  private static _normalizeDirection(direction: Vector3): Vector3 {
-    // The native backends take `distance` as a multiple of the direction length, so hand them a unit vector
+  private static _normalizeDirection(direction: Vector3): Vector3 | null {
     const out = PhysicsScene._tempDirection;
-    out.copyFrom(direction);
-    return out.normalize();
-  }
-
-  private static _normalizeRay(ray: Ray): Ray {
-    const out = PhysicsScene._tempRay;
-    out.origin.copyFrom(ray.origin);
-    out.direction.copyFrom(ray.direction).normalize();
-    return out;
+    return Vector3.normalize(direction, out) ? out : null;
   }
 
   private _scene: Scene;
@@ -355,14 +345,19 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.raycast(
-      PhysicsScene._normalizeRay(ray),
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -473,17 +468,21 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.boxCast(
-      center,
-      orientation,
-      halfExtents,
-      PhysicsScene._normalizeDirection(direction),
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.boxCast(
+        center,
+        orientation,
+        halfExtents,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -578,16 +577,20 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.sphereCast(
-      center,
-      radius,
-      PhysicsScene._normalizeDirection(direction),
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.sphereCast(
+        center,
+        radius,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -705,18 +708,22 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.capsuleCast(
-      center,
-      radius,
-      height,
-      orientation,
-      PhysicsScene._normalizeDirection(direction),
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.capsuleCast(
+        center,
+        radius,
+        height,
+        orientation,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);

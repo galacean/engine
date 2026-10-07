@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Quaternion, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { BoundingBox, Matrix, Quaternion, Vector3, Vector4 } from "@galacean/engine";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
@@ -104,8 +104,8 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: LiteHitResult): boolean {
-    const localRay = this._getLocalRay(ray);
+  _raycast(origin: Vector3, direction: Vector3, hit: LiteHitResult): boolean {
+    const localRay = this._getLocalRay(origin, direction);
     const sizeScale = this._sizeScale;
     const halfSize = this._halfSize;
     const boundingBox = LiteBoxColliderShape._tempBox;
@@ -113,7 +113,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     boundingBox.max.set(halfSize.x * sizeScale.x, halfSize.y * sizeScale.y, halfSize.z * sizeScale.z);
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
-      this._updateHitResult(localRay, rayDistance, hit, ray.origin);
+      this._updateHitResult(localRay, rayDistance, hit, origin);
       return true;
     } else {
       return false;

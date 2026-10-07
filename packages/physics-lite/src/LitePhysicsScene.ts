@@ -1,12 +1,4 @@
-import {
-  BoundingBox,
-  BoundingSphere,
-  CollisionUtil,
-  DisorderedArray,
-  Quaternion,
-  Ray,
-  Vector3
-} from "@galacean/engine";
+import { BoundingBox, BoundingSphere, CollisionUtil, DisorderedArray, Quaternion, Vector3 } from "@galacean/engine";
 import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
@@ -139,24 +131,25 @@ export class LitePhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
-    ray: Ray,
+    origin: Vector3,
+    direction: Vector3,
     distance: number,
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     if (!hit) {
       return (
-        this._raycast(ray, distance, onRaycast, this._staticColliders, hit) ||
-        this._raycast(ray, distance, onRaycast, this._dynamicColliders, hit)
+        this._raycast(origin, direction, distance, onRaycast, this._staticColliders, hit) ||
+        this._raycast(origin, direction, distance, onRaycast, this._dynamicColliders, hit)
       );
     } else {
-      const raycastStaticRes = this._raycast(ray, distance, onRaycast, this._staticColliders, hit);
+      const raycastStaticRes = this._raycast(origin, direction, distance, onRaycast, this._staticColliders, hit);
 
       if (raycastStaticRes) {
         distance = LitePhysicsScene._currentHit.distance;
       }
 
-      const raycastDynamicRes = this._raycast(ray, distance, onRaycast, this._dynamicColliders, hit);
+      const raycastDynamicRes = this._raycast(origin, direction, distance, onRaycast, this._dynamicColliders, hit);
       const isHit = raycastStaticRes || raycastDynamicRes;
       const hitResult = LitePhysicsScene._hitResult;
 
@@ -455,7 +448,8 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   private _raycast(
-    ray: Ray,
+    origin: Vector3,
+    direction: Vector3,
     distance: number,
     onRaycast: (obj: number) => boolean,
     colliders: LiteCollider[],
@@ -464,7 +458,7 @@ export class LitePhysicsScene implements IPhysicsScene {
     let isHit = false;
     const curHit = LitePhysicsScene._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
-      if (colliders[i]._raycast(ray, onRaycast, curHit) && curHit.distance < distance) {
+      if (colliders[i]._raycast(origin, direction, onRaycast, curHit) && curHit.distance < distance) {
         if (hit) {
           isHit = true;
           const hitResult = LitePhysicsScene._hitResult;

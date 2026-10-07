@@ -573,6 +573,40 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("degenerate direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const inside = new Vector3(0, 0, 0);
+      const zeroDir = new Vector3(0, 0, 0);
+      const tinyDir = new Vector3(0, 0, -1e-8);
+      const outHitResult = new HitResult();
+
+      // A unit direction still hits the front face and fills the hit result.
+      expect(physicsScene.raycast(new Ray(origin, new Vector3(0, 0, -1)), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.shape).to.not.eq(null);
+
+      // `Vector3.normalize` leaves directions no longer than `MathUtil.zeroTolerance` untouched, so
+      // those have no unit form: the queries report a miss and clear the caller's hit result instead
+      // of casting a scaled distance or letting the backends answer with an initial overlap hit.
+      expect(physicsScene.raycast(new Ray(inside, zeroDir), 6, outHitResult)).to.eq(false);
+      expect(outHitResult.shape).to.eq(null);
+      expect(physicsScene.raycast(new Ray(inside, tinyDir), 6)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(inside, halfExtents, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.sphereCast(inside, 0.1, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.capsuleCast(inside, 0.1, 0.5, tinyDir, 6)).to.eq(false);
+
+      root.destroy();
+    });
+
     it("boxCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
