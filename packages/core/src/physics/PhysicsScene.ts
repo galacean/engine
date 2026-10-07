@@ -17,6 +17,7 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
+  private static _tempDirection = new Vector3();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -180,14 +181,19 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.raycast(
-      ray,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -298,17 +304,21 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.boxCast(
-      center,
-      orientation,
-      halfExtents,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.boxCast(
+        center,
+        orientation,
+        halfExtents,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -403,16 +413,20 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.sphereCast(
-      center,
-      radius,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.sphereCast(
+        center,
+        radius,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -530,18 +544,22 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.capsuleCast(
-      center,
-      radius,
-      height,
-      orientation,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.capsuleCast(
+        center,
+        radius,
+        height,
+        orientation,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -838,6 +856,11 @@ export class PhysicsScene {
           break;
       }
     }
+  }
+
+  private static _normalizeDirection(direction: Vector3): Vector3 | null {
+    const out = PhysicsScene._tempDirection;
+    return Vector3.normalize(direction, out) ? out : null;
   }
 
   private _setGravity(): void {
