@@ -1,6 +1,6 @@
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { BoundingSphere, Ray, Vector3, Vector4 } from "@galacean/engine";
+import { BoundingSphere, Vector3, Vector4 } from "@galacean/engine";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
@@ -74,14 +74,18 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: LiteHitResult): boolean {
+  _raycast(origin: Vector3, direction: Vector3, hit: LiteHitResult): boolean {
     const boundingSphere = LiteSphereColliderShape._tempSphere;
     Vector3.transformCoordinate(this._transform.position, this._collider._transform.worldMatrix, boundingSphere.center);
     boundingSphere.radius = this.worldRadius;
 
+    const ray = LiteColliderShape._ray;
+    ray.origin.copyFrom(origin);
+    ray.direction.copyFrom(direction);
+
     const rayDistance = ray.intersectSphere(boundingSphere);
     if (rayDistance !== -1) {
-      this._updateHitResult(ray, rayDistance, hit, ray.origin, true);
+      this._updateHitResult(ray, rayDistance, hit, origin, true);
       return true;
     } else {
       return false;

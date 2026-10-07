@@ -1,4 +1,4 @@
-import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
+import { Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
 import { ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
@@ -188,7 +188,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
-    ray: Ray,
+    origin: Vector3,
+    direction: Vector3,
     distance: number,
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
@@ -208,8 +209,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
     const result = this._pxScene.raycastSingle(
-      ray.origin,
-      ray.direction,
+      origin,
+      direction,
       distance,
       pxHitResult,
       this._pxFilterData,
