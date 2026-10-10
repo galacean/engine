@@ -1,6 +1,19 @@
 {
   "name": "@galacean/engine",
   "version": "2.0.0-alpha.47",
+  "description": "Galacean is a web-first, mobile-first, high-performance real-time interactive engine with component-based design, supporting 2D/3D graphics, animation, physics, input and TypeScript scripting.",
+  "keywords": [
+    "galacean",
+    "game-engine",
+    "webgl",
+    "3d",
+    "2d",
+    "typescript",
+    "real-time",
+    "graphics",
+    "animation",
+    "physics"
+  ],
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
