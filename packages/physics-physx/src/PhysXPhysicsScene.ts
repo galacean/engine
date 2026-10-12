@@ -20,6 +20,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     rotation: new Quaternion()
   };
   private static _tempShapeIDs: number[] = [];
+  /**
+   * Native touch chunk size passed to the all-hit query bindings. The binding
+   * ignores this value and uses its own internal chunk size, so it is not a cap
+   * on the number of returned hits — every chunk is collected.
+   */
+  private static readonly _pxQueryChunkSize = 256;
 
   // Cached geometry objects for reuse
   private _boxGeometry: any = null;
@@ -296,7 +302,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         origin,
         direction,
         distance,
-        256,
+        PhysXPhysicsScene._pxQueryChunkSize,
         this._pxRaycastAllFilterData,
         this._pxQueryCallback
       );
@@ -575,10 +581,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): number[] {
     const prevOnQuery = this._currentOnQuery;
     this._currentOnQuery = onOverlap;
-    const maxHits = 256;
     let hits: any;
     try {
-      hits = (this._pxScene as any).overlapMultiple(geometry, pose, maxHits, this._pxFilterData, this._pxQueryCallback);
+      hits = (this._pxScene as any).overlapMultiple(
+        geometry,
+        pose,
+        PhysXPhysicsScene._pxQueryChunkSize,
+        this._pxFilterData,
+        this._pxQueryCallback
+      );
     } finally {
       this._currentOnQuery = prevOnQuery;
     }
@@ -708,6 +719,9 @@ class BufferedContactPoint {
   normal = new Vector3();
   impulse = new Vector3();
   separation = 0;
+
+  /** No-op: this is a plain JS object, not an Embind copy. */
+  delete(): void {}
 }
 
 /**
@@ -725,6 +739,9 @@ class BufferedContacts {
   get(index: number): BufferedContactPoint {
     return this.contacts[index];
   }
+
+  /** No-op: this is a plain JS object, not an Embind vector. */
+  delete(): void {}
 }
 
 class ContactEvent implements IContactEvent {

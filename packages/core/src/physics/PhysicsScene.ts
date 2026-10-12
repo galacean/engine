@@ -204,7 +204,10 @@ export class PhysicsScene {
   /**
    * Casts a ray through the Scene and returns all hits.
    *
-   * The returned hit order is not guaranteed.
+   * The returned hit order is not guaranteed, so `hitResults[0]` is not
+   * necessarily the nearest hit. Sort by `distance`, or use `raycast` when only
+   * the nearest hit is needed. Unlike `raycast`, a hit at distance 0 is reported
+   * when the ray origin is already inside a collider.
    * @param ray - The ray
    * @param distance - The max distance the ray should check. @defaultValue `Number.MAX_VALUE`
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting. @defaultValue `Layer.Everything`

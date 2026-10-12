@@ -18,6 +18,14 @@ export interface ICollision {
 interface VectorContactPairPoint {
   size(): number;
   get(index: number): IContactPoint;
+  /**
+   * Release the native vector.
+   * @internal
+   * @remarks Backends that hand out an Embind-owned vector must implement this;
+   * the JS GC cannot reclaim wasm heap memory. Backends returning plain JS
+   * objects implement it as a no-op.
+   */
+  delete(): void;
 }
 
 interface IContactPoint {
@@ -37,4 +45,11 @@ interface IContactPoint {
     z: number;
   };
   separation: number;
+  /**
+   * Release this native contact point copy.
+   * @internal
+   * @remarks Embind `get(index)` returns an owned copy allocated on the wasm
+   * heap; it must be released explicitly. No-op for plain JS implementations.
+   */
+  delete(): void;
 }
