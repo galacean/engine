@@ -280,7 +280,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.raycastAll }
    */
   raycastAll(
-    ray: Ray,
+    origin: Vector3,
+    direction: Vector3,
     distance: number,
     onRaycast: (obj: number) => boolean,
     onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
@@ -292,8 +293,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     let hits: any;
     try {
       hits = this._pxScene.raycastMultiple(
-        ray.origin,
-        ray.direction,
+        origin,
+        direction,
         distance,
         256,
         this._pxRaycastAllFilterData,

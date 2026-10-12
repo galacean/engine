@@ -436,11 +436,12 @@ describe("Physics Test", () => {
       expect(results.every((result) => result.distance > 0)).to.eq(true);
 
       const nativeScene = (physicsScene as any)._nativePhysicsScene as IPhysicsScene;
-      expect(() => (nativeScene.raycastAll as any)(ray, Number.MAX_VALUE, () => true)).to.throw();
+      expect(() => (nativeScene.raycastAll as any)(ray.origin, ray.direction, Number.MAX_VALUE, () => true)).to.throw();
 
       const nativeHitIds: number[] = [];
       nativeScene.raycastAll(
-        ray,
+        ray.origin,
+        ray.direction,
         Number.MAX_VALUE,
         () => true,
         (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
@@ -449,7 +450,8 @@ describe("Physics Test", () => {
 
       expect(() => {
         nativeScene.raycastAll(
-          ray,
+          ray.origin,
+          ray.direction,
           Number.MAX_VALUE,
           () => true,
           () => {
@@ -459,7 +461,8 @@ describe("Physics Test", () => {
       }).to.throw("intentional all-hit callback failure");
       nativeHitIds.length = 0;
       nativeScene.raycastAll(
-        ray,
+        ray.origin,
+        ray.direction,
         Number.MAX_VALUE,
         () => true,
         (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)

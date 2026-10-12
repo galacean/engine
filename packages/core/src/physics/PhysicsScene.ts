@@ -221,8 +221,15 @@ export class PhysicsScene {
     if (distance <= 0) {
       return hitResults;
     }
+
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
+    if (!normalizedDirection) {
+      return hitResults;
+    }
+
     this._nativePhysicsScene.raycastAll(
-      ray,
+      ray.origin,
+      normalizedDirection,
       distance,
       this._createPreFilter(layerMask),
       (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {

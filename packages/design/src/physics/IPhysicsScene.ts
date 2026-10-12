@@ -74,13 +74,15 @@ export interface IPhysicsScene {
 
   /**
    * Casts a ray through the scene and reports every hit.
-   * @param ray - The ray
+   * @param origin - The origin of the ray
+   * @param direction - The direction of the ray, which must be normalized
    * @param distance - The max distance the ray should check
    * @param onRaycast - The callback used to pre-filter shapes
    * @param onHit - The callback invoked for every hit
    */
   raycastAll(
-    ray: Ray,
+    origin: Vector3,
+    direction: Vector3,
     distance: number,
     onRaycast: (obj: number) => boolean,
     onHit: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
