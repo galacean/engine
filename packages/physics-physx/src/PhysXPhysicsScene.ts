@@ -631,18 +631,28 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     event.shape1Id = collision.shape1Id;
     event.state = state;
 
-    // Copy contact points from PhysX (the native data is only valid during fetchResults)
+    // Copy contact points from PhysX (the native data is only valid during fetchResults).
+    // Both the vector and each `get(i)` element are owned Embind copies allocated on the
+    // wasm heap, so they must be released explicitly; the JS GC cannot reclaim them.
     const nativeContacts = collision.getContacts();
     const count = nativeContacts.size();
     const bufferedContacts = event._bufferedContacts;
     bufferedContacts.contactCount = count;
-    for (let i = 0; i < count; i++) {
-      const src = nativeContacts.get(i);
-      const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
-      dst.position.copyFrom(src.position);
-      dst.normal.copyFrom(src.normal);
-      dst.impulse.copyFrom(src.impulse);
-      dst.separation = src.separation;
+    try {
+      for (let i = 0; i < count; i++) {
+        const src = nativeContacts.get(i);
+        try {
+          const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
+          dst.position.copyFrom(src.position);
+          dst.normal.copyFrom(src.normal);
+          dst.impulse.copyFrom(src.impulse);
+          dst.separation = src.separation;
+        } finally {
+          src.delete();
+        }
+      }
+    } finally {
+      nativeContacts.delete();
     }
   }
 }

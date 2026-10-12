@@ -12,8 +12,7 @@ import {
   Scene,
   Script,
   SphereColliderShape,
-  StaticCollider,
-  OverlapHitResult
+  StaticCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import type { IPhysicsScene } from "@galacean/engine-design";
