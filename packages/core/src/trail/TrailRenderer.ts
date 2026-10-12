@@ -20,8 +20,8 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
 
 /**
- * Trail Renderer Component.
- * Renders a trail behind a moving object.
+ * Renders a trail through world positions sampled during render updates.
+ * Trail length follows the motion recorded within each point's lifetime.
  */
 export class TrailRenderer extends Renderer {
   private static readonly VERTEX_STRIDE = 36; // 9 floats * 4 bytes
@@ -43,13 +43,13 @@ export class TrailRenderer extends Renderer {
   /** Whether the trail is being created as the object moves. */
   emitting = true;
 
-  /** The minimum distance the object must move before a new trail segment is added, in world units. */
+  /** Minimum world-space distance from the last recorded point before adding a sample. */
   minVertexDistance = 0.1;
 
-  /** The curve describing the trail width from start to end. */
+  /** Full width in world units over normalized trail distance: head (0) to tail (1). */
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
 
-  /** The gradient describing the trail color from start to end. */
+  /** Linear HDR color and opacity over normalized trail distance: head (0) to tail (1). */
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
@@ -106,7 +106,7 @@ export class TrailRenderer extends Renderer {
   private _lastPlayTimeUpdateFrameCount = -1;
 
   /**
-   * How long the trail takes to fade out, in seconds.
+   * Point lifetime in seconds.
    */
   get time(): number {
     return this._time;
