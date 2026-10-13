@@ -20,8 +20,13 @@ export type ParticleSubEmitterCommand = BirthSubEmitterCommand | DeathSubEmitter
 
 /**
  * Fires sub-emitters on parent particle lifecycle events (Birth / Death).
- * @remarks Requires WebGL2; the module stays inactive on WebGL1. Birth slots evaluate the target's Rate over Time
- * and Burst emission. Rate over Distance is not supported because parent trajectories remain GPU-resident.
+ * @remarks
+ * Requires WebGL2; the module stays inactive on WebGL1.
+ *
+ * Birth slots evaluate the target's Start Delay, Duration, Loop, Rate over Time and Burst settings against each
+ * parent particle's age in simulated seconds. The parent's `simulationSpeed` controls this emission timeline;
+ * the target's `simulationSpeed` controls the spawned particles' simulation.
+ * Rate over Distance is not supported for Birth because parent trajectories remain GPU-resident.
  */
 export class SubEmittersModule extends ParticleGeneratorModule implements ICloneHook<SubEmittersModule> {
   private static readonly _cycleVisited = new Set<ParticleGenerator>();
