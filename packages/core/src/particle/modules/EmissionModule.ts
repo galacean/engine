@@ -290,7 +290,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     state: EmissionState,
     command?: BirthSubEmitterCommand
   ): void {
-    // Use one simulation time domain for both cycle boundaries and their event windows
+    // Match event comparisons' Float32 precision to avoid skipping events at loop boundaries
     lastPlayTime = Math.fround(lastPlayTime);
     playTime = Math.fround(playTime);
     const main = this._generator.main;

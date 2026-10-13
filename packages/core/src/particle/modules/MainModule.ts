@@ -88,10 +88,10 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   private _generator: ParticleGenerator;
 
   /**
-   * The duration of the Particle Generator in seconds. Must be positive and finite.
+   * The emission cycle duration in seconds. Must be positive and finite.
    *
    * @throws
-   * Throw a RangeError if the value is not positive and finite.
+   * Throw a RangeError if the value is not positive and finite. The previous value is preserved.
    */
   get duration(): number {
     return this._duration;
