@@ -12,7 +12,8 @@ import {
   CharacterController,
   StaticCollider,
   PlaneColliderShape,
-  Loader
+  Loader,
+  Script
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXRuntimeMode } from "@galacean/engine-physics-physx";
@@ -516,6 +517,75 @@ describe.each(runtimeModes)("PhysicsMaterial (%s)", (runtimeMode) => {
         sourceEntity.destroy();
         sourceMaterial.destroy();
         cloneMaterial?.destroy();
+      }
+    }
+  );
+
+  it.each([
+    { type: "Box", Shape: BoxColliderShape, assigned: false },
+    { type: "Box", Shape: BoxColliderShape, assigned: true },
+    { type: "Mesh", Shape: MeshColliderShape, assigned: false },
+    { type: "Mesh", Shape: MeshColliderShape, assigned: true }
+  ])(
+    "creates independent material instances for constructor-created $type shapes (assigned: $assigned)",
+    ({ Shape, assigned }) => {
+      const presets: PhysicsMaterial[] = [];
+      class ShapeScript extends Script {
+        shape = new Shape();
+
+        constructor(entity: Entity) {
+          super(entity);
+          presets.push(this.shape.getInstanceMaterial());
+        }
+      }
+
+      const sourceEntity = rootEntity.createChild("constructorMaterialClone");
+      const sourceShape = sourceEntity.addComponent(ShapeScript).shape;
+      const sourceMaterial = assigned ? presets[0] : null;
+      sourceShape.material = sourceMaterial;
+      if (sourceMaterial) {
+        sourceMaterial.bounciness = 0.7;
+      }
+
+      let mesh: ModelMesh;
+      if (sourceShape instanceof MeshColliderShape) {
+        mesh = new ModelMesh(engine);
+        mesh.setPositions([new Vector3(-1, 0, -1), new Vector3(1, 0, -1), new Vector3(0, 0, 1)]);
+        mesh.setIndices(new Uint16Array([0, 2, 1]));
+        sourceShape.mesh = mesh;
+      }
+
+      const createMaterial = vi.spyOn(physics._pxPhysics, "createMaterial");
+      let cloneEntity: Entity;
+      let cloneMaterial: PhysicsMaterial;
+      try {
+        cloneEntity = sourceEntity.clone();
+        const cloneShape = cloneEntity.getComponent(ShapeScript).shape;
+        expect(cloneShape).not.toBe(sourceShape);
+        expect(cloneShape.material).toBe(sourceMaterial);
+        expect(createMaterial).toHaveBeenCalledTimes(1);
+
+        cloneMaterial = cloneShape.getInstanceMaterial();
+        expect(cloneMaterial).toBeInstanceOf(PhysicsMaterial);
+        expect(cloneMaterial).not.toBe(sourceMaterial);
+        expect(cloneMaterial.bounciness).toBe(assigned ? 0.7 : 0);
+        expect(cloneShape.getInstanceMaterial()).toBe(cloneMaterial);
+        expect(createMaterial).toHaveBeenCalledTimes(2);
+        expect((cloneShape._nativeShape as any)._pxMaterial).toBe((cloneMaterial._nativeMaterial as any)._pxMaterial);
+
+        cloneMaterial.bounciness = 0.2;
+        expect(sourceShape.material).toBe(sourceMaterial);
+        expect(sourceMaterial?.bounciness).toBe(assigned ? 0.7 : undefined);
+      } finally {
+        createMaterial.mockRestore();
+        cloneEntity?.getComponent(ShapeScript).shape._destroy();
+        sourceShape._destroy();
+        cloneEntity?.destroy();
+        sourceEntity.destroy();
+        for (const material of new Set([...presets, cloneMaterial])) {
+          material?.destroy();
+        }
+        mesh?.destroy();
       }
     }
   );

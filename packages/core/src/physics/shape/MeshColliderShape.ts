@@ -138,10 +138,7 @@ export class MeshColliderShape extends ColliderShape {
     this._meshData = null;
   }
 
-  /**
-   * @inheritdoc
-   */
-  override _onClone(target: MeshColliderShape): void {
+  protected override _cloneNativeShape(target: MeshColliderShape): void {
     const meshData = this._meshData;
     const nativeShape = meshData
       ? target._createNativeShape(meshData.positions, meshData.indices, target._isConvex, target._cookingFlags)

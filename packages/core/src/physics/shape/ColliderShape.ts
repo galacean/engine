@@ -185,7 +185,9 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {
-    target._syncNative();
+    // The clone shares its material until it requests an instance
+    target._materialInstanced = false;
+    this._cloneNativeShape(target);
   }
 
   /**
@@ -197,6 +199,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
       this._nativeShape = null;
     }
     delete Engine._physicalObjectsMap[this._id];
+  }
+
+  protected _cloneNativeShape(target: ColliderShape): void {
+    target._syncNative();
   }
 
   protected _getNativeMaterial(): IPhysicsMaterial {
