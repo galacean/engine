@@ -35,17 +35,7 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _forceMaxConstant = new Vector3();
   @ignoreClone
-  private _forceMinGradientX = new Float32Array(8);
-  @ignoreClone
-  private _forceMinGradientY = new Float32Array(8);
-  @ignoreClone
-  private _forceMinGradientZ = new Float32Array(8);
-  @ignoreClone
-  private _forceMaxGradientX = new Float32Array(8);
-  @ignoreClone
-  private _forceMaxGradientY = new Float32Array(8);
-  @ignoreClone
-  private _forceMaxGradientZ = new Float32Array(8);
+  private _forceGradientScratch = new Float32Array(6 * 8);
   @ignoreClone
   private _forceMacro: ShaderMacro;
   @ignoreClone
@@ -139,31 +129,32 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
       const isRandomMode = this._isRandomMode();
 
       if (isCurveMode) {
+        const scratch = this._forceGradientScratch;
         shaderData.setFloatArray(
           ForceOverLifetimeModule._maxGradientXProperty,
-          this._getCurveData(forceX, this._forceMaxGradientX, false)
+          this._getCurveData(forceX, scratch, 0, false)
         );
         shaderData.setFloatArray(
           ForceOverLifetimeModule._maxGradientYProperty,
-          this._getCurveData(forceY, this._forceMaxGradientY, false)
+          this._getCurveData(forceY, scratch, 8, false)
         );
         shaderData.setFloatArray(
           ForceOverLifetimeModule._maxGradientZProperty,
-          this._getCurveData(forceZ, this._forceMaxGradientZ, false)
+          this._getCurveData(forceZ, scratch, 16, false)
         );
         forceModeMacro = ForceOverLifetimeModule._curveModeMacro;
         if (isRandomMode) {
           shaderData.setFloatArray(
             ForceOverLifetimeModule._minGradientXProperty,
-            this._getCurveData(forceX, this._forceMinGradientX, true)
+            this._getCurveData(forceX, scratch, 24, true)
           );
           shaderData.setFloatArray(
             ForceOverLifetimeModule._minGradientYProperty,
-            this._getCurveData(forceY, this._forceMinGradientY, true)
+            this._getCurveData(forceY, scratch, 32, true)
           );
           shaderData.setFloatArray(
             ForceOverLifetimeModule._minGradientZProperty,
-            this._getCurveData(forceZ, this._forceMinGradientZ, true)
+            this._getCurveData(forceZ, scratch, 40, true)
           );
           isRandomModeMacro = ForceOverLifetimeModule._isRandomMacro;
         }
@@ -204,23 +195,32 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
     return this.forceX._isRandomMode() || this.forceY._isRandomMode() || this.forceZ._isRandomMode();
   }
 
-  private _getCurveData(curve: ParticleCompositeCurve, out: Float32Array, useMin: boolean): Float32Array {
+  private _getCurveData(
+    curve: ParticleCompositeCurve,
+    scratch: Float32Array,
+    offset: number,
+    useMin: boolean
+  ): Float32Array {
     switch (curve.mode) {
       case ParticleCurveMode.TwoCurves:
         return (useMin ? curve.curveMin : curve.curveMax)._getTypeArray();
       case ParticleCurveMode.Curve:
         return curve.curveMax._getTypeArray();
       default: {
+        // Encode a constant or two-constant axis as a flat 4-key curve so the shared
+        // curve shader path sees every axis in one representation. `scratch` is a
+        // single Float32Array; `offset` picks this axis' 8-float slice so the six
+        // views never alias each other.
         const value = useMin && curve.mode === ParticleCurveMode.TwoConstants ? curve.constantMin : curve.constantMax;
-        out[0] = 0;
-        out[1] = value;
-        out[2] = 1 / 3;
-        out[3] = value;
-        out[4] = 2 / 3;
-        out[5] = value;
-        out[6] = 1;
-        out[7] = value;
-        return out;
+        scratch[offset] = 0;
+        scratch[offset + 1] = value;
+        scratch[offset + 2] = 1 / 3;
+        scratch[offset + 3] = value;
+        scratch[offset + 4] = 2 / 3;
+        scratch[offset + 5] = value;
+        scratch[offset + 6] = 1;
+        scratch[offset + 7] = value;
+        return scratch.subarray(offset, offset + 8);
       }
     }
   }
