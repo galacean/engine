@@ -299,6 +299,7 @@ describe("Entity", async () => {
       expect(parent.findByName("parent")).eq(parent);
       expect(parent.findByName("child")).eq(child);
       expect(parent.findByName("child2")).eq(child2);
+      expect(parent.findByName("missing")).eq(null);
     });
 
     it("findByPath", () => {
@@ -318,6 +319,9 @@ describe("Entity", async () => {
 
       expect(parent.findByPath("/child")).eq(child);
       expect(parent.findByPath("child/grandson")).eq(grandson2);
+      expect(parent.findByPath("")).eq(parent);
+      expect(parent.findByPath("missing")).eq(null);
+      expect(parent.findByPath("child/missing")).eq(null);
     });
 
     it("clearChildren", () => {

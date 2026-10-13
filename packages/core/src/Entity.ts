@@ -36,7 +36,7 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity | null {
     const searchPath = paths[pathIndex];
     const isEndPath = pathIndex === paths.length - 1;
     const children = entity._children;
@@ -389,11 +389,11 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find entity by name.
+   * Find the first entity with the given name in this entity and its descendants.
    * @param name - The name of the entity to find
-   * @returns The entity that was found
+   * @returns The first matching entity, or null if none is found
    */
-  findByName(name: string): Entity {
+  findByName(name: string): Entity | null {
     if (name === this.name) {
       return this;
     }
@@ -408,11 +408,11 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find the entity by path.
-   * @param path - The path of the entity eg: /entity
-   * @returns The entity that was found
+   * Find a descendant by its path relative to this entity.
+   * @param path - The entity path, with names separated by "/"
+   * @returns The matching entity, this entity for an empty path, or null if none is found
    */
-  findByPath(path: string): Entity {
+  findByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
