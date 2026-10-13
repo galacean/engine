@@ -3,19 +3,61 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { expect, it } from "vitest";
 
-it("requires callers to handle missing entities in the published lookup types", () => {
+it("requires callers to handle missing entity and scene references in the published types", () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
-import { Entity } from "@galacean/engine";
+import { Component, DirectLight, Entity, Scene, SceneManager } from "@galacean/engine";
 declare const entity: Entity;
+declare const scene: Scene;
+declare const component: Component;
+declare const manager: SceneManager;
 const named: Entity | null = entity.findByName("missing");
 const pathed: Entity | null = entity.findByPath("child/missing");
+const child: Entity | undefined = entity.getChild(0);
+const root: Entity | undefined = scene.getRootEntity();
+const parent: Entity | null = entity.parent;
+const entityScene: Scene | null | undefined = entity.scene;
+const componentScene: Scene | null | undefined = component.scene;
+const activeScene: Scene | undefined = manager.activeScene;
+const sun: DirectLight | null | undefined = scene.sun;
 named?.name;
 pathed?.name;
+child?.name;
+root?.name;
+parent?.name;
+entityScene?.name;
+componentScene?.name;
+activeScene?.name;
+sun?.enabled;
+entity.parent = null;
+manager.activeScene = null;
+manager.activeScene = undefined;
 // @ts-expect-error A name lookup may return null.
 entity.findByName("missing").name;
 // @ts-expect-error A path lookup may return null.
 entity.findByPath("child/missing").name;
+// @ts-expect-error An indexed child may not exist.
+entity.getChild(0).name;
+// @ts-expect-error An empty scene has no root entity.
+scene.getRootEntity().name;
+// @ts-expect-error A null-only guard does not handle an undefined root.
+if (root !== null) root.name;
+// @ts-expect-error An entity may not have a parent.
+entity.parent.name;
+// @ts-expect-error An entity may not belong to a scene.
+entity.scene.name;
+// @ts-expect-error A component's entity may not belong to a scene.
+component.scene.name;
+// @ts-expect-error A null-only guard cannot narrow an unassigned scene.
+if (entityScene !== null) entityScene.name;
+// @ts-expect-error A null-only guard cannot narrow an unassigned component scene.
+if (componentScene !== null) componentScene.name;
+// @ts-expect-error An empty manager has no active scene.
+manager.activeScene.name;
+// @ts-expect-error The explicit sun may be unassigned or automatic.
+scene.sun.enabled;
+// @ts-expect-error A null-only guard cannot narrow an unassigned sun.
+if (sun !== null) sun.enabled;
 `;
   const options: ts.CompilerOptions = {
     strict: true,
@@ -31,7 +73,7 @@ entity.findByPath("child/missing").name;
   host.readFile = (path) => (resolve(path) === fileName ? source : originalReadFile(path));
   host.fileExists = (path) => resolve(path) === fileName || originalFileExists(path);
   const program = ts.createProgram([fileName], options, host);
-  const diagnostics = ts.getPreEmitDiagnostics(program).map((diagnostic) => ({
+  const diagnostics = ts.getPreEmitDiagnostics(program, program.getSourceFile(fileName)).map((diagnostic) => ({
     code: diagnostic.code,
     message: ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n")
   }));

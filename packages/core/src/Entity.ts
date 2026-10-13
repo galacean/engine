@@ -57,7 +57,7 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+  static _traverseSetOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
     entity._scene = scene;
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -120,7 +120,7 @@ export class Entity extends EngineObject {
   /** @internal */
   _children: Entity[] = [];
   /** @internal */
-  _scene: Scene;
+  _scene: Scene | null | undefined;
   /** @internal */
   _isRoot: boolean = false;
   /** @internal */
@@ -134,7 +134,7 @@ export class Entity extends EngineObject {
 
   private _transform: Transform;
   private _templateResource: ReferResource;
-  private _parent: Entity = null;
+  private _parent: Entity | null = null;
   private _activeChangedComponents: Component[];
   private _modifyFlagManager: UpdateFlagManager;
 
@@ -185,13 +185,13 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The parent entity.
+   * The parent entity, or null if this entity has no parent.
    */
-  get parent(): Entity {
+  get parent(): Entity | null {
     return this._parent;
   }
 
-  set parent(value: Entity) {
+  set parent(value: Entity | null) {
     this._setParent(value);
   }
 
@@ -211,9 +211,9 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The scene the entity belongs to.
+   * The owning scene, undefined before scene assignment or null after detachment.
    */
-  get scene(): Scene {
+  get scene(): Scene | null | undefined {
     return this._scene;
   }
 
@@ -380,11 +380,11 @@ export class Entity extends EngineObject {
 
   /**
    * @deprecated Please use `children` property instead.
-   * Find child entity by index.
-   * @param index - The index of the child entity
-   * @returns The entity that was found
+   * Get a child entity by index.
+   * @param index - The zero-based child index
+   * @returns The child at the index, or undefined if none exists
    */
-  getChild(index: number): Entity {
+  getChild(index: number): Entity | undefined {
     return this._children[index];
   }
 
@@ -656,7 +656,7 @@ export class Entity extends EngineObject {
     this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
-  private _setParent(parent: Entity, siblingIndex?: number): void {
+  private _setParent(parent: Entity | null, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
       if (this._isRoot) {

@@ -85,7 +85,7 @@ export class Scene extends EngineObject {
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
-  private _sun: DirectLight | null;
+  private _sun: DirectLight | null | undefined;
   private _enableTransparentShadow = false;
 
   /**
@@ -244,10 +244,10 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Sun light source.
+   * The explicit sun light, undefined until assigned.
    * @remarks If set this to null, scene will use the brightest directional light.
    */
-  get sun(): DirectLight | null {
+  get sun(): DirectLight | null | undefined {
     return this._sun;
   }
 
@@ -391,11 +391,11 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Get root entity from index.
-   * @param index - Index
-   * @returns Entity
+   * Get a root entity by index.
+   * @param index - The zero-based root entity index
+   * @returns The root entity at the index, or undefined if none exists
    */
-  getRootEntity(index: number = 0): Entity | null {
+  getRootEntity(index: number = 0): Entity | undefined {
     return this._rootEntities[index];
   }
 

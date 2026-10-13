@@ -71,9 +71,9 @@ export class Component extends EngineObject {
   }
 
   /**
-   * The scene which the component's entity belongs to.
+   * The owning entity's scene, undefined before scene assignment or null after detachment.
    */
-  get scene(): Scene {
+  get scene(): Scene | null | undefined {
     return this._entity.scene;
   }
 

@@ -264,20 +264,27 @@ describe("Entity", async () => {
 
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
+      expect(child.scene).eq(undefined);
+      expect(child.transform.scene).eq(undefined);
       child.parent = parent;
+      expect(child.transform.scene).eq(scene);
       parent.removeChild(child);
       expect(child.parent).eq(null);
       expect(child.scene).eq(null);
+      expect(child.transform.scene).eq(null);
     });
 
     it("getChild", () => {
       const parent = new Entity(engine, "parent");
 
       parent.parent = scene.getRootEntity();
+      expect(parent.getChild(0)).eq(undefined);
       const child = new Entity(engine, "child");
       child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).eq(child);
+      expect(parent.getChild(-1)).eq(undefined);
+      expect(parent.getChild(1)).eq(undefined);
     });
 
     it("getChild", () => {
