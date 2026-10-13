@@ -1,9 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
-import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
 import { DisorderedArray } from "../../utils/DisorderedArray";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerEventData } from "./PointerEventData";
 import { PointerEventEmitter } from "./emitter/PointerEventEmitter";
 
 /**
@@ -23,6 +21,8 @@ export class Pointer {
   pressedButtons: PointerButton;
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
+  /** The position of the pointer when it was last pressed down (in screen space pixel coordinates). */
+  pressedPosition: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
   /** @internal */
@@ -47,16 +47,6 @@ export class Pointer {
    */
   constructor(id: number) {
     this.id = id;
-  }
-
-  /**
-   * @internal
-   */
-  _addEmitters<T extends new (pool: ClearableObjectPool<PointerEventData>) => PointerEventEmitter>(
-    type: T,
-    pool: ClearableObjectPool<PointerEventData>
-  ) {
-    this._emitters.push(new type(pool));
   }
 
   /**
