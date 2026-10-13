@@ -166,6 +166,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: ColliderShape): void {

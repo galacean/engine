@@ -72,6 +72,9 @@ export class PostProcessEffectFloatParameter extends PostProcessEffectParameter<
     this.value = value;
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: number, factor: number) {
     if (this._needLerp) {
       this.value = MathUtil.lerp(this.value, to, factor);
@@ -120,6 +123,9 @@ export class PostProcessEffectColorParameter extends PostProcessEffectParameter<
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Color, factor: number) {
     if (this._needLerp) {
       Color.lerp(this.value, to, factor, this.value);
@@ -142,6 +148,9 @@ export class PostProcessEffectVector2Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector2, factor: number) {
     if (this._needLerp) {
       Vector2.lerp(this.value, to, factor, this.value);
@@ -164,6 +173,9 @@ export class PostProcessEffectVector3Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector3, factor: number) {
     if (this._needLerp) {
       Vector3.lerp(this.value, to, factor, this.value);
@@ -186,6 +198,9 @@ export class PostProcessEffectVector4Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector4, factor: number) {
     if (this._needLerp) {
       Vector4.lerp(this.value, to, factor, this.value);

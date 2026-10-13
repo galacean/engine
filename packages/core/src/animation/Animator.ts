@@ -345,6 +345,7 @@ export class Animator extends Component implements ICloneHook<Animator> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Animator): void {

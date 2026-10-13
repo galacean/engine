@@ -143,6 +143,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Collider): void {

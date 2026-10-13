@@ -15,6 +15,7 @@ export class WebCanvas extends Canvas {
       typeof ResizeObserverEntry !== "undefined" && "devicePixelContentBoxSize" in ResizeObserverEntry.prototype);
   }
 
+  /** @internal */
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _resizeObserver?: ResizeObserver;

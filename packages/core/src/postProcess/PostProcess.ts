@@ -113,6 +113,7 @@ export class PostProcess extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onEnableInScene() {
@@ -120,6 +121,7 @@ export class PostProcess extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDisableInScene() {
@@ -127,6 +129,7 @@ export class PostProcess extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy(): void {

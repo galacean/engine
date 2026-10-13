@@ -95,6 +95,9 @@ export class SystemInfo {
     return this._simdSupported;
   }
 
+  /**
+   * @internal
+   */
   static _checkWebpSupported(): AssetPromise<boolean> {
     if (!this._webpSupported) {
       this._webpSupported = new AssetPromise((resolve) => {

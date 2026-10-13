@@ -144,6 +144,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: Image): void {

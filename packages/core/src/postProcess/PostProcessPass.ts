@@ -72,6 +72,7 @@ export abstract class PostProcessPass extends EngineObject {
   abstract onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void;
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy() {

@@ -2,17 +2,25 @@ Shader "Effect/Trail" {
   Editor {
     Properties {
       Header("Base") {
+        /** Base RGB tint and alpha multiplier. */
         material_BaseColor("BaseColor", Color) = (1, 1, 1, 1);
+        /** RGBA texture multiplied by the base color. */
         material_BaseTexture("BaseTexture", Texture2D);
       }
       Header("Emissive") {
+        /** Emitted RGB color, added independently of scene lighting. */
         material_EmissiveColor("EmissiveColor", HDRColor) = (0, 0, 0, 1);
+        /** RGB texture multiplied by the emissive color. */
         material_EmissiveTexture("EmissiveTexture", Texture2D);
       }
       Header("Common") {
+        /** Enables alpha blending and disables depth writes. */
         isTransparent("Transparent", Boolean) = false;
+        /** Selects which sides of triangles are rendered. */
         renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
+        /** Alpha blending mode, used when isTransparent is true. */
         blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
+        /** Uses the alpha-test queue when positive and opaque; fragment alpha is not clipped. */
         material_AlphaCutoff("AlphaCutoff", Range(0, 1, 0.01)) = 0;
       }
     }

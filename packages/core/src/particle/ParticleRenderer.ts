@@ -262,6 +262,7 @@ export class ParticleRenderer extends Renderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: ParticleRenderer): void {

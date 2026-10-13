@@ -108,19 +108,31 @@ export class UIRenderer extends Renderer implements IGraphics {
     this._rootCanvasListener = this._rootCanvasListener.bind(this);
   }
 
+  /**
+   * @internal
+   */
   override _canBatch(preElement, curElement): boolean {
     return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
+  /**
+   * @internal
+   */
   override _batch(preElement, curElement): void {
     VertexMergeBatcher.batch(preElement, curElement);
   }
 
+  /**
+   * @internal
+   */
   override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
     this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
+  /**
+   * @internal
+   */
   override _prepareRender(context): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
@@ -137,6 +149,9 @@ export class UIRenderer extends Renderer implements IGraphics {
     );
   }
 
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
@@ -144,6 +159,9 @@ export class UIRenderer extends Renderer implements IGraphics {
     Utils.setGroupDirty(this);
   }
 
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);

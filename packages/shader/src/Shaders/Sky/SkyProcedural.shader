@@ -5,12 +5,19 @@ Shader "Sky/SkyProcedural" {
   Editor {
     Properties {
       Header("Base") {
+        /** Linear brightness multiplier for the sky and ground colors. */
         material_Exposure("Exposure", Range(0, 8, 0.1)) = 1;
+        /** Selects a sun-disk approximation, or hides the disk. */
         sunMode("SunMode", Enum(HighQuality:0, Simple:1, None:2)) = 0;
+        /** Dimensionless control for the apparent size of the sun disk. */
         material_SunSize("SunSize", Range(0, 1, 0.01)) = 0.04;
+        /** Controls sun-disk focus in HighQuality mode. */
         material_SunSizeConvergence("SunSizeConvergence", Range(0, 20, 0.1)) = 5;
+        /** Relative atmosphere density used for Rayleigh scattering. */
         material_AtmosphereThickness("AtmosphereThickness", Range(0, 5, 0.1)) = 1;
+        /** Atmospheric tint that controls the scattering wavelengths. */
         material_SkyTint("SkyTint", Color) = (0.214, 0.214, 0.214, 1);
+        /** Tint of the ground below the horizon. */
         material_GroundTint("GroundTint", Color) = (0.112, 0.1, 0.095, 1);
       }
     }
