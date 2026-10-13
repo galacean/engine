@@ -80,8 +80,8 @@ export class InstanceBuffer {
 
   destroy(): void {
     this.buffer?.destroy();
-    this._data = null;
-    this._floatView = null;
-    this._intView = null;
+    this._data = null!;
+    this._floatView = null!;
+    this._intView = null!;
   }
 }

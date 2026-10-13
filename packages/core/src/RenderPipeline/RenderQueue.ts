@@ -58,7 +58,8 @@ export class RenderQueue {
       return;
     }
 
-    const { engine, scene, instanceId: cameraId, shaderData: cameraData } = context.camera;
+    const { engine, instanceId: cameraId, shaderData: cameraData } = context.camera;
+    const scene = context.camera.scene!;
     const { instanceId: sceneId, shaderData: sceneData, _maskManager: maskManager } = scene;
     const renderCount = engine._renderCount;
     const rhi = engine._hardwareRenderer;
@@ -84,7 +85,7 @@ export class RenderQueue {
       // Resolve mask render states
       const maskInteraction = component._maskInteraction;
       const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
-      let customStates: RenderStateElementMap = null;
+      let customStates: RenderStateElementMap | null = null;
 
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);

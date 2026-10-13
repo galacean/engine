@@ -24,7 +24,7 @@ import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
-  private static _binomialLLCTranscoder: BinomialLLCTranscoder;
+  private static _binomialLLCTranscoder: BinomialLLCTranscoder | null;
   private static _priorityFormats = {
     [ColorModel.ETC1S]: [
       KTX2TargetFormat.ETC,
@@ -146,7 +146,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
     const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats, isSRGB) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -198,7 +198,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _getEngineTextureFormat(
     basisFormat: KTX2TargetFormat,
     transcodeResult: TranscodeResult
-  ): TextureFormat {
+  ): TextureFormat | undefined {
     const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
@@ -222,7 +222,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     }
   }
 
-  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
+  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> | void {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
       if (options.priorityFormats) {
@@ -241,7 +241,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
-    const remoteUrl = resourceManager._getRemoteUrl(item.url);
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
         ...item,

@@ -12,7 +12,7 @@ export class Utils {
     element._onRootCanvasModify?.(RootCanvasModifyFlags.All);
   }
 
-  static setRootCanvas(element: IElement, rootCanvas: UICanvas): void {
+  static setRootCanvas(element: IElement, rootCanvas: UICanvas | null): void {
     element._isRootCanvasDirty = false;
     this._registerRootCanvas(element, rootCanvas);
     const fromEntity = element instanceof UICanvas ? element.entity.parent : element.entity;
@@ -25,7 +25,7 @@ export class Utils {
     this._unRegisterListener(element._rootCanvasListener, element._rootCanvasListeningEntities);
   }
 
-  static searchRootCanvasInParents(element: IElement): UICanvas {
+  static searchRootCanvasInParents(element: IElement): UICanvas | null {
     let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
     while (entity) {
       const components = entity._components;
@@ -47,7 +47,7 @@ export class Utils {
     element._onGroupModify(GroupModifyFlags.All);
   }
 
-  static setGroup(element: IGroupAble, group: UIGroup): void {
+  static setGroup(element: IGroupAble, group: UIGroup | null): void {
     element._isGroupDirty = false;
     this._registerGroup(element, group);
     const rootCanvas = element._getRootCanvas();
@@ -65,7 +65,7 @@ export class Utils {
     this._unRegisterListener(element._groupListener, element._groupListeningEntities);
   }
 
-  static searchGroupInParents(element: IGroupAble): UIGroup {
+  static searchGroupInParents(element: IGroupAble): UIGroup | null {
     const rootCanvas = element._getRootCanvas();
     if (!rootCanvas) return null;
     let entity = element instanceof UIGroup ? element.entity.parent : element.entity;
@@ -83,7 +83,7 @@ export class Utils {
     return null;
   }
 
-  private static _registerRootCanvas(element: IElement, canvas: UICanvas): void {
+  private static _registerRootCanvas(element: IElement, canvas: UICanvas | null): void {
     const preCanvas = element._rootCanvas;
     if (preCanvas !== canvas) {
       if (preCanvas) {
@@ -100,7 +100,7 @@ export class Utils {
     }
   }
 
-  private static _registerGroup(element: IGroupAble, group: UIGroup): void {
+  private static _registerGroup(element: IGroupAble, group: UIGroup | null): void {
     const preGroup = element._group;
     if (preGroup !== group) {
       if (preGroup) {
@@ -119,8 +119,8 @@ export class Utils {
   }
 
   private static _registerListener(
-    entity: Entity,
-    root: Entity,
+    entity: Entity | null,
+    root: Entity | null,
     listener: (flag: number, param?: any) => void,
     listeningEntities: Entity[]
   ): void {

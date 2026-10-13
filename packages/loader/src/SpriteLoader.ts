@@ -14,7 +14,7 @@ import {
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
     return resourceManager
-      ._request<any>(item.url, {
+      ._request<any>(item.url!, {
         ...item,
         type: "json"
       })

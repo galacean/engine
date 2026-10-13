@@ -212,7 +212,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.single_declaration)
   export class SingleDeclaration extends TreeNode {
-    typeSpecifier: TypeSpecifier;
+    typeSpecifier: TypeSpecifier | undefined;
     arraySpecifier?: ArraySpecifier;
 
     override init(): void {
@@ -448,7 +448,7 @@ export namespace ASTNode {
       const childrenLength = children.length;
       if (childrenLength === 1) {
         const { typeSpecifier, arraySpecifier } = children[0] as SingleDeclaration;
-        this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+        this.typeInfo = new SymbolType(typeSpecifier!.type, typeSpecifier!.lexeme, arraySpecifier);
       } else {
         const initDeclList = children[0] as InitDeclaratorList;
         this.typeInfo = initDeclList.typeInfo;
@@ -511,14 +511,14 @@ export namespace ASTNode {
   export class FunctionProtoType extends TreeNode {
     ident: BaseToken;
     returnType: FullySpecifiedType;
-    parameterList: IParamInfo[];
+    parameterList: IParamInfo[] | undefined;
     paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const declarator = this.children[0] as FunctionDeclarator;
       this.ident = declarator.ident;
       this.returnType = declarator.returnType;
-      this.parameterList = declarator.parameterInfoList;
+      this.parameterList = declarator.parameterInfoList!;
       this.paramSig = declarator.paramSig;
     }
   }
@@ -538,7 +538,7 @@ export namespace ASTNode {
       const header = children[0] as FunctionHeader;
       const parameterList = children[1] as FunctionParameterList | undefined;
       this.ident = header.ident;
-      this.returnType = header.returnType;
+      this.returnType = header!.returnType;
       this.parameterInfoList = parameterList?.parameterInfoList;
       this.paramSig = parameterList?.paramSig;
     }
@@ -658,7 +658,7 @@ export namespace ASTNode {
       this.ident = children[1] as BaseToken;
       const typeSpecifier = children[0] as TypeSpecifier;
       const arraySpecifier = children[2] as ArraySpecifier;
-      this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
+      this.typeInfo = new SymbolType(typeSpecifier!.type, typeSpecifier!.lexeme, arraySpecifier);
     }
   }
 
@@ -708,13 +708,13 @@ export namespace ASTNode {
 
       const { curFunctionInfo } = sa;
       const { header, returnStatement } = curFunctionInfo;
-      if (header.returnType.type === Keyword.VOID) {
+      if (header!.returnType.type === Keyword.VOID) {
         if (returnStatement) {
-          sa.reportError(header.returnType.location, "Return in void function.");
+          sa.reportError(header!.returnType.location, "Return in void function.");
         }
       } else {
         if (!returnStatement) {
-          sa.reportError(header.returnType.location, `No return statement found.`);
+          sa.reportError(header!.returnType.location, `No return statement found.`);
         } else {
           this.returnStatement = returnStatement;
         }
@@ -801,12 +801,12 @@ export namespace ASTNode {
       const { children, paramSig, paramNodes } = this;
       if (children[0] instanceof AssignmentExpression) {
         const expr = children[0];
-        paramSig.push(expr.type);
+        paramSig.push(expr.type!);
         paramNodes.push(expr);
       } else if (children[2] instanceof AssignmentExpression) {
         const list = children[0] as FunctionCallParameterList;
         const decl = children[2] as AssignmentExpression;
-        paramSig.push(...list.paramSig, decl.type);
+        paramSig.push(...list.paramSig, decl.type!);
         paramNodes.push(...list.paramNodes, decl);
       } else if (children[0] instanceof FunctionCallParameterList && children[1] instanceof MacroCallArgBlock) {
         paramSig.push(...children[0].paramSig, TypeAny);
@@ -1377,7 +1377,7 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
     // @todo: typeInfo may be multiple types
-    typeInfo: GalaceanDataType;
+    typeInfo: GalaceanDataType | undefined;
     referenceGlobalSymbolNames: string[] = [];
 
     private _symbols: Array<VarSymbol | FnSymbol> = [];

@@ -21,7 +21,7 @@ export class GLES100Visitor extends GLESVisitor {
     return `varying ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
   }
 
-  override getMRTProp(): string {
+  override getMRTProp(): string | null {
     return null;
   }
 

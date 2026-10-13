@@ -132,7 +132,7 @@ export class GLTFUtils {
 
   static getAccessorBuffer(
     context: GLTFParserContext,
-    bufferViews: IBufferView[],
+    bufferViews: IBufferView[] | undefined,
     accessor: IAccessor
   ): AssetPromise<BufferInfo> {
     const componentType = accessor.componentType;
@@ -146,7 +146,7 @@ export class GLTFUtils {
 
     if (accessor.bufferView !== undefined) {
       const bufferViewIndex = accessor.bufferView;
-      const bufferView = bufferViews[bufferViewIndex];
+      const bufferView = bufferViews![bufferViewIndex];
       promise = context
         .get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView)
         .then((bufferViewData) => {
@@ -209,7 +209,7 @@ export class GLTFUtils {
     buffer: TypedArray,
     byteOffset: number,
     count: number,
-    normalized: boolean,
+    normalized: boolean | undefined,
     componentType: AccessorComponentType
   ): Vector3[] {
     const baseOffset = byteOffset / buffer.BYTES_PER_ELEMENT;
@@ -241,10 +241,10 @@ export class GLTFUtils {
     const TypedArray = GLTFUtils.getComponentType(accessor.componentType);
     const data = bufferInfo.data.slice();
 
-    const { count, indices, values } = accessor.sparse;
+    const { count, indices, values } = accessor.sparse!;
 
-    const indicesBufferView = bufferViews[indices.bufferView];
-    const valuesBufferView = bufferViews[values.bufferView];
+    const indicesBufferView = bufferViews![indices.bufferView];
+    const valuesBufferView = bufferViews![values.bufferView];
 
     return AssetPromise.all([
       context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView),
@@ -292,7 +292,7 @@ export class GLTFUtils {
       });
   }
 
-  static getIndexFormat(type: AccessorComponentType): IndexFormat {
+  static getIndexFormat(type: AccessorComponentType): IndexFormat | undefined {
     switch (type) {
       case AccessorComponentType.UNSIGNED_BYTE:
         return IndexFormat.UInt8;
@@ -303,7 +303,11 @@ export class GLTFUtils {
     }
   }
 
-  static getElementFormat(type: AccessorComponentType, size: number, normalized: boolean = false): VertexElementFormat {
+  static getElementFormat(
+    type: AccessorComponentType,
+    size: number,
+    normalized: boolean = false
+  ): VertexElementFormat | undefined {
     if (type == AccessorComponentType.FLOAT) {
       switch (size) {
         case 1:
@@ -392,7 +396,7 @@ export class GLTFUtils {
     glTF?: IGLTF;
     buffers?: ArrayBuffer[];
     originBuffer?: ArrayBuffer;
-  } {
+  } | null {
     const UINT32_LENGTH = 4;
     const GLB_HEADER_MAGIC = 0x46546c67; // 'glTF'
     const GLB_HEADER_LENGTH = 12;
@@ -474,12 +478,12 @@ export class GLTFUtils {
     const info = <ISamplerInfo>{};
 
     if (minFilter || magFilter) {
-      info.mipmap = minFilter >= TextureMinFilter.NEAREST_MIPMAP_NEAREST;
+      info.mipmap = minFilter !== undefined && minFilter >= TextureMinFilter.NEAREST_MIPMAP_NEAREST;
 
       if (magFilter === TextureMagFilter.NEAREST) {
         info.filterMode = TextureFilterMode.Point;
       } else {
-        if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+        if (minFilter !== undefined && minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
           info.filterMode = TextureFilterMode.Bilinear;
         } else {
           info.filterMode = TextureFilterMode.Trilinear;

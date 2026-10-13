@@ -187,7 +187,7 @@ mat3 _normalMatFromModel(mat3 m) {
         if (isMRT) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
-          shader = ShaderFactory._replaceMRTShader(shader, result);
+          shader = ShaderFactory._replaceMRTShader(shader, result!);
         } else {
           shader = "out vec4 glFragColor;\n" + shader;
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
@@ -369,7 +369,7 @@ mat3 _normalMatFromModel(mat3 m) {
 
     for (let i = 0; i < result.length; i++) {
       const res = result[i].match(/\bgl_FragData\[(.+?)\]/);
-      mrtIndexSet.add(res[1]);
+      mrtIndexSet.add(res![1]);
     }
 
     mrtIndexSet.forEach((index) => {

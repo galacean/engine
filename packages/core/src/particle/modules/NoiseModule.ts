@@ -41,13 +41,13 @@ export class NoiseModule extends ParticleGeneratorModule {
   static readonly _strengthMinCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveZ");
 
   @ignoreClone
-  private _enabledModuleMacro: ShaderMacro;
+  private _enabledModuleMacro: ShaderMacro | null;
   @ignoreClone
-  private _strengthCurveModeMacro: ShaderMacro;
+  private _strengthCurveModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _strengthIsRandomTwoModeMacro: ShaderMacro;
+  private _strengthIsRandomTwoModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _separateAxesModeMacro: ShaderMacro;
+  private _separateAxesModeMacro: ShaderMacro | null;
 
   /** @internal */
   @ignoreClone
@@ -233,10 +233,10 @@ export class NoiseModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enabledMacro = <ShaderMacro>null;
-    let strengthCurveMacro = <ShaderMacro>null;
-    let strengthIsRandomTwoMacro = <ShaderMacro>null;
-    let separateAxesMacro = <ShaderMacro>null;
+    let enabledMacro: ShaderMacro | null = null;
+    let strengthCurveMacro: ShaderMacro | null = null;
+    let strengthIsRandomTwoMacro: ShaderMacro | null = null;
+    let separateAxesMacro: ShaderMacro | null = null;
     if (this.enabled) {
       enabledMacro = NoiseModule._enabledMacro;
 

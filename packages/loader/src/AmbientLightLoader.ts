@@ -70,7 +70,7 @@ class AmbientLightLoader extends Loader<AmbientLight> {
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AmbientLight> {
-    const remoteUrl = resourceManager._getRemoteUrl(item.url);
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject) => {
       const requestConfig = { ...item, type: "arraybuffer" } as RequestConfig;
       const engine = resourceManager.engine;

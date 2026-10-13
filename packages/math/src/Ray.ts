@@ -20,7 +20,7 @@ export class Ray implements IClone<Ray>, ICopy<Ray, Ray> {
    * @param origin - The origin vector
    * @param direction - The direction vector
    */
-  constructor(origin: Vector3 = null, direction: Vector3 = null) {
+  constructor(origin: Vector3 | null = null, direction: Vector3 | null = null) {
     origin && this.origin.copyFrom(origin);
     direction && this.direction.copyFrom(direction);
   }

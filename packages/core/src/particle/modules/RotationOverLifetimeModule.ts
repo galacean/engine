@@ -56,19 +56,19 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _rotationMaxConstant = new Vector3();
   @ignoreClone
-  private _enableSeparateMacro: ShaderMacro;
+  private _enableSeparateMacro: ShaderMacro | null;
   @ignoreClone
-  private _modeMacro: ShaderMacro;
+  private _modeMacro: ShaderMacro | null;
   @ignoreClone
-  private _isRandomTwoMacro: ShaderMacro;
+  private _isRandomTwoMacro: ShaderMacro | null;
 
   /**
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enableSeparateMacro = <ShaderMacro>null;
-    let modeMacro = <ShaderMacro>null;
-    let isRandomTwoMacro = <ShaderMacro>null;
+    let enableSeparateMacro: ShaderMacro | null = null;
+    let modeMacro: ShaderMacro | null = null;
+    let isRandomTwoMacro: ShaderMacro | null = null;
     if (this.enabled) {
       const rotationX = this.rotationX;
       const rotationY = this.rotationY;

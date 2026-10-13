@@ -129,7 +129,7 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @param min - The minimum point of the box
    * @param max - The maximum point of the box
    */
-  constructor(min: Vector3 = null, max: Vector3 = null) {
+  constructor(min: Vector3 | null = null, max: Vector3 | null = null) {
     min && this.min.copyFrom(min);
     max && this.max.copyFrom(max);
   }

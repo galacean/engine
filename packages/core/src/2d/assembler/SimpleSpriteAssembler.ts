@@ -16,7 +16,7 @@ export class SimpleSpriteAssembler {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
-    const subChunk = manager.allocateSubChunk(4);
+    const subChunk = manager.allocateSubChunk(4)!;
     subChunk.indices = SimpleSpriteAssembler._rectangleTriangles;
     renderer._subChunk = subChunk;
   }
@@ -30,7 +30,7 @@ export class SimpleSpriteAssembler {
     flipX: boolean,
     flipY: boolean
   ): void {
-    const { sprite } = renderer;
+    const sprite = renderer.sprite!;
     const { x: pivotX, y: pivotY } = pivot;
     // Position to World
     const modelMatrix = SimpleSpriteAssembler._matrix;
@@ -53,7 +53,7 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions
     const spritePositions = sprite._getPositions();
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
@@ -67,10 +67,10 @@ export class SimpleSpriteAssembler {
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
-    const spriteUVs = renderer.sprite._getUVs();
+    const spriteUVs = renderer.sprite!._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
     const offset = subChunk.vertexArea.start + 3;
     vertices[offset] = left;
@@ -84,8 +84,8 @@ export class SimpleSpriteAssembler {
   }
 
   static updateColor(renderer: ISpriteRenderer, alpha: number): void {
-    const subChunk = renderer._subChunk;
-    const { r, g, b, a } = renderer.color;
+    const subChunk = renderer._subChunk!;
+    const { r, g, b, a } = renderer.color!;
     const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 4; ++i, o += 9) {

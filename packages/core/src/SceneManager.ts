@@ -52,20 +52,21 @@ export class SceneManager {
       scene = indexOrScene;
     }
 
-    if (scene.engine !== this.engine) {
+    const targetScene = scene!;
+    if (targetScene.engine !== this.engine) {
       throw "The scene is not belong to this engine.";
     }
 
-    if (scene._sceneManager) {
-      const currentIndex = scenes.indexOf(scene);
+    if (targetScene._sceneManager) {
+      const currentIndex = scenes.indexOf(targetScene);
       if (currentIndex !== index) {
         scenes.removeByIndex(currentIndex);
-        scenes.add(index, scene);
+        scenes.add(index, targetScene);
       }
     } else {
-      scene._sceneManager = this;
-      scenes.add(index, scene);
-      scene.isActive && scene._processActive(true);
+      targetScene._sceneManager = this;
+      scenes.add(index, targetScene);
+      targetScene.isActive && targetScene._processActive(true);
     }
   }
 

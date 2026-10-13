@@ -12,10 +12,10 @@ import { ColliderShape } from "./ColliderShape";
  */
 export class MeshColliderShape extends ColliderShape {
   @ignoreClone
-  private _mesh: ModelMesh = null;
+  private _mesh: ModelMesh | null = null;
   private _isConvex = false;
   @ignoreClone
-  private _positions: Vector3[] = null;
+  private _positions: Vector3[] | null = null;
   @ignoreClone
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
@@ -68,11 +68,11 @@ export class MeshColliderShape extends ColliderShape {
    * The mesh used for collision detection.
    * @remarks The mesh must have accessible data (not released after upload).
    */
-  get mesh(): ModelMesh {
+  get mesh(): ModelMesh | null {
     return this._mesh;
   }
 
-  set mesh(value: ModelMesh) {
+  set mesh(value: ModelMesh | null) {
     if (this._mesh !== value) {
       this._mesh?._addReferCount(-1);
       value?._addReferCount(1);
@@ -164,7 +164,7 @@ export class MeshColliderShape extends ColliderShape {
 
   private _updateNativeShapeData(): void {
     const succeeded = (<IMeshColliderShape>this._nativeShape).setMeshData(
-      this._positions,
+      this._positions!,
       this._indices,
       this._isConvex,
       this._cookingFlags
@@ -181,7 +181,7 @@ export class MeshColliderShape extends ColliderShape {
 
     const nativeShape = Engine._nativePhysics.createMeshColliderShape(
       this._id,
-      this._positions,
+      this._positions!,
       this._indices,
       this._isConvex,
       this._material._nativeMaterial,

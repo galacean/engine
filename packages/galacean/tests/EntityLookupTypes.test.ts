@@ -6,7 +6,7 @@ import { expect, it } from "vitest";
 it("requires callers to handle missing entity and scene references in the published types", () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
-import { Component, DirectLight, Entity, Scene, SceneManager } from "@galacean/engine";
+import { AnimationRefCurve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
 declare const entity: Entity;
 declare const scene: Scene;
 declare const component: Component;
@@ -20,6 +20,28 @@ const entityScene: Scene | null | undefined = entity.scene;
 const componentScene: Scene | null | undefined = component.scene;
 const activeScene: Scene | undefined = manager.activeScene;
 const sun: DirectLight | null | undefined = scene.sun;
+declare const mesh: ModelMesh;
+declare const volume: PostProcess;
+declare const state: AnimatorState;
+const positions = mesh.getPositions();
+positions?.length;
+const effect = volume.addEffect(BloomEffect);
+effect?.intensity.value;
+state.clip = null;
+state.clip = undefined;
+const key = new Keyframe<ReferResource | null>();
+key.value = null;
+new AnimationRefCurve().addKey(key);
+const shader = Shader.create("typed-shader", []);
+shader?.name;
+// @ts-expect-error Released CPU vertex data is null.
+mesh.getPositions().length;
+// @ts-expect-error Adding a duplicate effect returns undefined.
+volume.addEffect(BloomEffect).intensity.value;
+// @ts-expect-error A state can have no animation clip.
+state.clip.length;
+// @ts-expect-error Duplicate shader names return undefined.
+shader.name;
 named?.name;
 pathed?.name;
 child?.name;
