@@ -81,6 +81,7 @@ Shader "PBR" {
         renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
         blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
         material_AlphaCutoff( "AlphaCutoff", Range(0, 1, 0.01) ) = 0;
+        /** Scales UV0 by (x, y), then adds the (z, w) offset. */
         material_TilingOffset("TilingOffset", Vector4) = (1, 1, 0, 0);
       }
     }
