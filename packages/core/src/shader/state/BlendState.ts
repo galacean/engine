@@ -143,12 +143,16 @@ export class BlendState extends DataObject {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.blendState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState, customStates?: RenderStateElementMap): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: BlendState,
+    customStates?: RenderStateElementMap | null
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 

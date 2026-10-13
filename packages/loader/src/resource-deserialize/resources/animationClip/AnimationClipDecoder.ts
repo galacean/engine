@@ -232,7 +232,7 @@ export class AnimationClipDecoder {
             curve = new AnimationRefCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
-              const keyframe = new Keyframe<ReferResource>();
+              const keyframe = new Keyframe<ReferResource | null>();
               keyframe.time = bufferReader.nextFloat32();
               const str = bufferReader.nextStr();
               if (str) {
@@ -267,7 +267,7 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve);
+        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve!);
       }
       resolve(clip);
     });

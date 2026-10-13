@@ -78,7 +78,7 @@ export default class GrammarUtils {
   // #if _VERBOSE
   static printAction(actionInfo: ActionInfo) {
     const production = Production.pool.get(actionInfo.target!);
-    return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production)}>`;
+    return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production!)}>`;
   }
 
   static printProduction(production: Production) {

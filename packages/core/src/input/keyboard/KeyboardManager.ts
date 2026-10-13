@@ -11,7 +11,7 @@ import { IInput } from "../interface/IInput";
  */
 export class KeyboardManager implements IInput {
   /** @internal */
-  _curHeldDownKeyToIndexMap: number[] = [];
+  _curHeldDownKeyToIndexMap: (number | null)[] = [];
   /** @internal */
   _upKeyToFrameCountMap: number[] = [];
   /** @internal */
@@ -102,20 +102,20 @@ export class KeyboardManager implements IInput {
   _destroy(): void {
     this._removeEventListener();
     this._curHeldDownKeyToIndexMap.length = 0;
-    this._curHeldDownKeyToIndexMap = null;
+    this._curHeldDownKeyToIndexMap = null!;
     this._upKeyToFrameCountMap.length = 0;
-    this._upKeyToFrameCountMap = null;
+    this._upKeyToFrameCountMap = null!;
     this._downKeyToFrameCountMap.length = 0;
-    this._downKeyToFrameCountMap = null;
+    this._downKeyToFrameCountMap = null!;
     this._nativeEvents.length = 0;
-    this._nativeEvents = null;
+    this._nativeEvents = null!;
     this._curFrameHeldDownList.length = 0;
-    this._curFrameHeldDownList = null;
+    this._curFrameHeldDownList = null!;
     this._curFrameDownList.length = 0;
-    this._curFrameDownList = null;
+    this._curFrameDownList = null!;
     this._curFrameUpList.length = 0;
-    this._curFrameUpList = null;
-    this._engine = null;
+    this._curFrameUpList = null!;
+    this._engine = null!;
   }
 
   private _onBlur() {

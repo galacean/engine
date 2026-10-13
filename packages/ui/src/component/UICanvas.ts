@@ -47,7 +47,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   @ignoreClone
   _canvasIndex: number = -1;
   /** @internal */
-  _rootCanvas: UICanvas;
+  _rootCanvas: UICanvas | null;
   /** @internal */
   @ignoreClone
   _indexInRootCanvas: number = -1;
@@ -82,7 +82,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
   private _camera: Camera;
-  private _cameraObserver: Camera;
+  private _cameraObserver: Camera | null;
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
   private _sortOrder: number = 0;
   private _distance: number = 10;
@@ -216,7 +216,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     if (this._sortOrder !== value) {
       this._sortOrder = value;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
-        (this.scene._componentsManager._overlayCanvasesSortingDirty = true);
+        (this.scene!._componentsManager._overlayCanvasesSortingDirty = true);
     }
   }
 
@@ -278,7 +278,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
   /**
    * @internal
    */
-  _getRootCanvas(): UICanvas {
+  _getRootCanvas(): UICanvas | null {
     return this._rootCanvas;
   }
 
@@ -488,7 +488,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
       curHeight = canvas.height;
       curWidth = canvas.width;
     }
-    let expectX: number, expectY: number, expectZ: number;
+    let expectX!: number, expectY!: number, expectZ!: number;
     switch (this._resolutionAdaptationMode) {
       case ResolutionAdaptationMode.WidthAdaptation:
         expectX = expectY = expectZ = curWidth / width;
@@ -522,7 +522,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, renderers: UIRenderer[], depth = 0, group: UIGroup = null): number {
+  private _walk(entity: Entity, renderers: UIRenderer[], depth = 0, group: UIGroup | null = null): number {
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
     let groupAbleCount = 0;
@@ -686,7 +686,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
-      const componentsManager = this.scene._componentsManager;
+      const componentsManager = this.scene!._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:
           this._removeCanvasListener();
@@ -712,7 +712,7 @@ export class UICanvas extends Component implements IElement, ICloneHook<UICanvas
     }
   }
 
-  private _isSameOrChildEntity(cameraEntity: Entity): boolean {
+  private _isSameOrChildEntity(cameraEntity: Entity | null): boolean {
     const canvasEntity = this.entity;
     while (cameraEntity) {
       if (cameraEntity === canvasEntity) return true;

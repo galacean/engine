@@ -100,12 +100,12 @@ export class PostProcessEffectBoolParameter extends PostProcessEffectParameter<b
 /**
  * Represents a texture parameter of a post process effect.
  */
-export class PostProcessEffectTextureParameter extends PostProcessEffectParameter<Texture> {
+export class PostProcessEffectTextureParameter extends PostProcessEffectParameter<Texture | null> {
   /**
    * Create a new texture parameter.
    * @param value - The default texture of the parameter
    */
-  constructor(value: Texture) {
+  constructor(value: Texture | null) {
     super(value, false);
   }
 }

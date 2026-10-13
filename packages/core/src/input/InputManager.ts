@@ -187,11 +187,11 @@ export class InputManager {
   _destroy(): void {
     if (this._initialized) {
       this._wheelManager._destroy();
-      this._wheelManager = null;
+      this._wheelManager = null!;
       this._pointerManager._destroy();
-      this._pointerManager = null;
+      this._pointerManager = null!;
       this._keyboardManager._destroy();
-      this._keyboardManager = null;
+      this._keyboardManager = null!;
     }
   }
 }

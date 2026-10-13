@@ -34,9 +34,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
   private readonly _material: Material;
 
-  private _saoRenderTarget?: RenderTarget;
-  private _depthRenderTarget: RenderTarget;
-  private _blurRenderTarget: RenderTarget;
+  private _saoRenderTarget?: RenderTarget | null;
+  private _depthRenderTarget: RenderTarget | null;
+  private _blurRenderTarget: RenderTarget | null;
 
   private _aoSpiralSampleCount: number;
   private _blurStepPixels: number;
@@ -95,7 +95,8 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   override onRender(context: RenderContext): void {
     const { engine } = this;
     const { camera } = context;
-    const { viewport, scene, pixelViewport } = camera;
+    const { viewport, pixelViewport } = camera;
+    const scene = camera.scene!;
     const { ambientOcclusion } = scene;
     const { shaderData } = this._material;
     const { projectionMatrix } = context;
@@ -136,10 +137,11 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
-    const { _saoRenderTarget: saoTarget, _material: material } = this;
+    const { _material: material } = this;
+    const saoTarget = this._saoRenderTarget!;
 
     // Draw ambient occlusion texture
-    const sourceTexture = <Texture2D>this._depthRenderTarget.depthTexture;
+    const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
     Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, undefined, material, 0);
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
@@ -148,7 +150,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     Blitter.blitTexture(engine, saoTexture, this._blurRenderTarget, 0, undefined, material, 1, offsetX);
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
-    const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
+    const horizontalBlur = <Texture2D>this._blurRenderTarget!.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, undefined, material, 1, offsetY);
 

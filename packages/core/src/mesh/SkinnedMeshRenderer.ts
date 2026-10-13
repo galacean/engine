@@ -40,12 +40,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _jointTexture: Texture2D;
 
-  private _skin: Skin;
+  private _skin: Skin | null;
 
   /**
    * Skin of the SkinnedMeshRenderer.
    */
-  get skin(): Skin {
+  get skin(): Skin | null {
     return this._skin;
   }
 
@@ -130,12 +130,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _onDestroy(): void {
     super._onDestroy();
-    this._jointDataCreateCache = null;
+    this._jointDataCreateCache = null!;
     this._skin = null;
-    this._blendShapeWeights = null;
-    this._localBounds = null;
+    this._blendShapeWeights = null!;
+    this._localBounds = null!;
     this._jointTexture?.destroy();
-    this._jointTexture = null;
+    this._jointTexture = null!;
   }
 
   /**
@@ -154,7 +154,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   protected override _update(context: RenderContext): void {
     const { skin } = this;
-    if (skin?.bones.length > 0) {
+    if (skin && skin.bones.length > 0) {
       skin._updateSkinMatrices(this);
     }
 
@@ -220,7 +220,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const rootBone = this.skin?.rootBone;
     if (rootBone) {
-      BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+      BoundingBox.transform(this._localBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
     } else {
       super._updateBounds(worldBounds);
     }
@@ -272,7 +272,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private _applySkin(lastSkin: Skin, value: Skin): void {
+  private _applySkin(lastSkin: Skin | null, value: Skin | null): void {
     const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
     const lastRootBone = lastSkin?.rootBone ?? this.entity;
     lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
@@ -293,21 +293,21 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @deprecated use {@link SkinnedMeshRenderer.skin.rootBone} instead.
    */
   get rootBone(): Entity {
-    return this.skin.rootBone;
+    return this.skin!.rootBone;
   }
 
   set rootBone(value: Entity) {
-    this.skin.rootBone = value;
+    this.skin!.rootBone = value;
   }
 
   /**
    * @deprecated use {@link SkinnedMeshRenderer.skin.bones} instead.
    */
   get bones(): Readonly<Entity[]> {
-    return this.skin.bones;
+    return this.skin!.bones;
   }
 
   set bones(value: Readonly<Entity[]>) {
-    this.skin.bones = value;
+    this.skin!.bones = value;
   }
 }

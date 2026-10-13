@@ -34,8 +34,8 @@ export class ShaderCompiler {
     position.set(
       index,
       // #if _VERBOSE
-      line,
-      column
+      line!,
+      column!
       // #endif
     );
     return position;

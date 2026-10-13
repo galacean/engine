@@ -32,7 +32,7 @@ export class TextUtils {
   private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
   private static _fontSizeInfoCache: Record<string, FontSizeInfo> = {};
-  private static _textContext: TextContext = null;
+  private static _textContext: TextContext | null = null;
 
   /**
    * The instance function to get an object includes 2d context and canvas.
@@ -429,7 +429,7 @@ export class TextUtils {
     }
 
     if (isChar) {
-      let data = null;
+      let data: Uint8Array | null = null;
       if (size > 0) {
         // Extract alpha channel only for Alpha8 texture format.
         const alphaPixelCount = size * integerW;

@@ -43,7 +43,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
     generateTracked: () => IXRTrackedImage
   ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
-    const { _platformFrame: platformFrame } = frame;
+    const platformFrame = frame._platformFrame!;
     const { _tempArr: tempArr } = this;
     const idx = ++this._tempIdx;
     // @ts-ignore
@@ -59,8 +59,9 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
           tracked.referenceImage = requestTrackingImage.image;
         }
         if (trackingResult.trackingState === "tracked") {
-          this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult);
-          tracked.state = XRTrackingState.Tracking;
+          tracked.state = this._updateTrackedImage(platformFrame, platformReferenceSpace, tracked, trackingResult)
+            ? XRTrackingState.Tracking
+            : XRTrackingState.TrackingLost;
         } else {
           tracked.state = XRTrackingState.TrackingLost;
         }
@@ -83,7 +84,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
    * @internal
    */
   _assembleOptions(options: XRSessionInit): Promise<void> | void {
-    options.optionalFeatures.push("image-tracking");
+    options.optionalFeatures!.push("image-tracking");
     const { _images: images } = this;
     const promiseArr: Promise<ImageBitmap>[] = [];
     if (images) {
@@ -98,7 +99,7 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
       }
       return new Promise((resolve, reject) => {
         // @ts-ignore
-        const trackedImages = (options.trackedImages = []);
+        const trackedImages = (options.trackedImages = [] as { image: ImageBitmap; widthInMeters: number }[]);
         Promise.all(promiseArr).then((bitmaps: ImageBitmap[]) => {
           for (let i = 0, n = bitmaps.length; i < n; i++) {
             trackedImages.push({
@@ -138,11 +139,14 @@ export class WebXRImageTracking extends WebXRTrackableFeature<IXRTrackedImage, I
 
   private _updateTrackedImage(frame: XRFrame, space: XRSpace, trackedImage: IXRTrackedImage, trackingResult: any) {
     const { pose } = trackedImage;
-    const { transform } = frame.getPose(trackingResult.imageSpace, space);
-    pose.matrix.copyFromArray(transform.matrix);
+    const xrPose = frame.getPose(trackingResult.imageSpace, space);
+    if (!xrPose) return false;
+    const { transform } = xrPose;
+    pose.matrix!.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     trackedImage.measuredPhysicalWidth = trackingResult.measuredWidthInMeters;
+    return true;
   }
 }
 

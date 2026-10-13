@@ -12,7 +12,7 @@ import {
 class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<PhysicsMaterial> {
     return resourceManager
-      ._request<any>(item.url, {
+      ._request<any>(item.url!, {
         ...item,
         type: "json"
       })

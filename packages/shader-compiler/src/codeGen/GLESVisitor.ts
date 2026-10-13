@@ -160,12 +160,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const paramList = fnNode.protoType.parameterList;
       const attributeParam = paramList?.[0];
       if (attributeParam) {
-        const attributeType = attributeParam.typeInfo.type;
+        const attributeType = attributeParam.typeInfo!.type;
         if (typeof attributeType === "string") {
           lookupSymbol.set(attributeType, ESymbolType.STRUCT);
           const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
           if (!attributeSymbols.length) {
-            this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
+            this._reportError(attributeParam.astNode!.location, `invalid attribute struct: "${attributeType}".`);
           } else {
             for (let i = 0; i < attributeSymbols.length; i++) {
               const attributeSymbol = attributeSymbols[i];
@@ -329,13 +329,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const symbols = _referencedGlobals[ident];
       for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
-        const codeGenResult = sm.astNode.codeGen(this);
+        const codeGenResult = sm.astNode!.codeGen(this);
         if (!codeGenResult) continue;
         const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
         if (!sm.isInMacroBranch) {
           out.push({
             text,
-            index: sm.astNode.location.start.index
+            index: sm.astNode!.location.start.index
           });
         }
       }
@@ -365,7 +365,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     for (const symbols of Object.values(referencedGlobals)) {
       for (const symbol of symbols) {
         if (symbol.isInMacroBranch) {
-          referencedGlobalMacroASTs.push(symbol.astNode);
+          referencedGlobalMacroASTs.push(symbol.astNode!);
         }
       }
     }
@@ -375,7 +375,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const child = macro.children[0];
 
       if (child instanceof ASTNode.GlobalMacroIfStatement) {
-        let result: ICodeSegment[] = [];
+        const result: ICodeSegment[] = [];
         result.push(
           ...macro.macroExpressions.map((item) => ({
             text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),

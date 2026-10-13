@@ -56,8 +56,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
       const { baseFormat, dataType } = formatDetail;
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
-      gl.texSubImage2D(this._target, mipLevel, x, y, width, height, baseFormat, dataType, colorBuffer);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
+      gl.texSubImage2D(this._target, mipLevel, x, y, width, height, baseFormat!, dataType!, colorBuffer);
     }
   }
 
@@ -80,9 +80,9 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
 
     if (this._texture.usage === TextureUsage.Dynamic) {
-      gl.texImage2D(this._target, mipLevel, internalFormat, baseFormat, dataType, imageSource);
+      gl.texImage2D(this._target, mipLevel, internalFormat, baseFormat!, dataType!, imageSource);
     } else {
-      gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
+      gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat!, dataType!, imageSource);
     }
   }
 

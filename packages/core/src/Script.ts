@@ -207,7 +207,7 @@ export class Script extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
-    const { _componentsManager: componentsManager } = this.scene;
+    const { _componentsManager: componentsManager } = this.scene!;
     const { prototype } = Script;
     if (!this._started) {
       componentsManager.addOnStartScript(this);
@@ -224,13 +224,13 @@ export class Script extends Component {
 
     for (const pointerMethod of Object.values(PointerMethods)) {
       if (this[pointerMethod] === prototype[pointerMethod]) {
-        this[pointerMethod] = null;
+        this[pointerMethod] = null!;
       }
     }
 
     this._entity._addScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._addContactEventConsumer(1);
+      this.scene!.physics._addContactEventConsumer(1);
     }
   }
 
@@ -238,7 +238,7 @@ export class Script extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     const { prototype } = Script;
 
     if (!this._started) {
@@ -256,7 +256,7 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._addContactEventConsumer(-1);
+      this.scene!.physics._addContactEventConsumer(-1);
     }
   }
 

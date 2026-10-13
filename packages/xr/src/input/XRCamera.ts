@@ -15,5 +15,5 @@ export class XRCamera extends XRInput implements IXRCamera {
   projectionMatrix: Matrix = new Matrix();
 
   /** @internal */
-  _camera: Camera;
+  _camera: Camera | null;
 }
