@@ -1,14 +1,17 @@
-import { IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
+import { IHardwareRenderer, IXRInput, IXRRequestImage, IXRTrackedImage } from "@galacean/engine-design";
 import {
   XRAnchor as EngineXRAnchor,
   XRController,
+  XRFeatureType,
   XRPose,
   XRRequestTrackingState,
+  XRSessionMode,
   XRTrackedInputDevice,
   XRTrackingState
 } from "@galacean/engine-xr";
 import { describe, expect, it, vi } from "vitest";
 import { WebXRFrame } from "../../../packages/xr-webxr/src/WebXRFrame";
+import { WebXRDevice } from "../../../packages/xr-webxr/src/WebXRDevice";
 import { WebXRSession } from "../../../packages/xr-webxr/src/WebXRSession";
 import { WebXRAnchorTracking } from "../../../packages/xr-webxr/src/feature/WebXRAnchorTracking";
 import { WebXRImageTracking } from "../../../packages/xr-webxr/src/feature/WebXRImageTracking";
@@ -96,5 +99,33 @@ describe("WebXR tracking loss", () => {
 
     expect(tracked.state).toBe(XRTrackingState.TrackingLost);
     expect(tracked.pose.position).toMatchObject({ x: 1, y: 2, z: 3 });
+  });
+
+  it("rejects a missing WebGL context before trying to make it XR compatible", async () => {
+    const descriptor = Object.getOwnPropertyDescriptor(navigator, "xr");
+    const requestSession = vi.fn().mockResolvedValue({});
+    const makeXRCompatible = vi.fn();
+    Object.defineProperty(navigator, "xr", { configurable: true, value: { requestSession } });
+    try {
+      const rhi = { gl: { getContextAttributes: () => null, makeXRCompatible } } as unknown as IHardwareRenderer;
+      await expect(new WebXRDevice().requestSession(rhi, XRSessionMode.AR, [])).rejects.toThrow(
+        "GetContextAttributes Error!"
+      );
+      expect(requestSession).toHaveBeenCalledOnce();
+      expect(makeXRCompatible).not.toHaveBeenCalled();
+    } finally {
+      if (descriptor) {
+        Object.defineProperty(navigator, "xr", descriptor);
+      } else {
+        Reflect.deleteProperty(navigator, "xr");
+      }
+    }
+  });
+
+  it("returns false and no platform feature for an unknown feature type", () => {
+    const device = new WebXRDevice();
+    const type = -1 as XRFeatureType;
+    expect(device.isSupportedFeature(type)).toBe(false);
+    expect(device.createPlatformFeature(type)).toBeNull();
   });
 });
