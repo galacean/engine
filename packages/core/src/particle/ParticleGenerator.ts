@@ -1179,9 +1179,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     let emittedCount = 0;
 
     const requests = command.requests;
-    for (let i = 0, n = command.requestCount; i < n && available > 0; i++) {
-      const request = requests[i];
-      const emissionTime = request.time;
+    for (let i = command.requestStart * 2, n = i + command.requestCount * 2; i < n && available > 0; i += 2) {
+      const emissionTime = requests[i];
       const parentAge = emissionTime + command.startDelay;
       const parentNormalizedAge = command.lifetime > 0 ? MathUtil.clamp(parentAge / command.lifetime, 0, 1) : 1;
       const playTime = this._getFramePlayTime(
@@ -1191,7 +1190,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       );
       const emitted = this._emitParticles(
         playTime,
-        request.count,
+        requests[i + 1],
         available,
         undefined,
         command,
@@ -1336,6 +1335,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     framePlayTime: number,
     frameSimulationStart: number
   ): void {
+    this.subEmitters._beginBirthCommands();
     const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
     const instanceVertices = this._instanceVertices;
     let ringIndex = firstElement;

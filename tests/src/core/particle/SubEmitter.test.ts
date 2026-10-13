@@ -625,6 +625,97 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("reuses one Birth request buffer across staggered parent emission peaks", () => {
+    const parent = createParticleRenderer(engine, "BirthRequests_Parent");
+    const child = createParticleRenderer(engine, "BirthRequests_Child");
+    const subEmitters = parent.generator.subEmitters;
+    child.generator.main.duration = 10;
+    child.generator.main.maxParticles = 10000;
+    parent.generator.main.startSpeed.constant = 0;
+    subEmitters.enabled = true;
+    subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    let frameRequests = 0;
+    const consume = (child.generator as any)._consumeBirthSubEmitterCommand;
+    const consumeSpy = vi
+      .spyOn(child.generator as any, "_consumeBirthSubEmitterCommand")
+      .mockImplementation((command: any, ...args: any[]) => {
+        frameRequests += command.requestCount;
+        return consume.call(child.generator, command, ...args);
+      });
+    try {
+      for (let i = 0; i < 8; i++) {
+        parent.generator.emit(1);
+        updateEngine(engine, 1);
+      }
+      child.generator.emission.rateOverTime = new ParticleCompositeCurve(
+        new ParticleCurve(
+          new CurveKey(0.08, 10),
+          new CurveKey(0.08001, 2000),
+          new CurveKey(0.1, 2000),
+          new CurveKey(0.10001, 10)
+        )
+      );
+      let peakRequests = 0;
+      let totalRequests = 0;
+      for (let i = 0; i < 12; i++) {
+        frameRequests = 0;
+        updateEngine(engine, 1);
+        peakRequests = Math.max(peakRequests, frameRequests);
+        totalRequests += frameRequests;
+      }
+
+      const commands = (subEmitters as any)._birthCommandPool;
+      const buffers = new Set<number[]>(commands.map((command: any) => command.requests));
+      expect(commands.length).to.be.greaterThan(1);
+      expect(buffers.size).to.equal(1);
+      expect(buffers.values().next().value.length).to.equal(peakRequests * 2);
+      expect(child.generator._getAliveParticleCount()).to.equal(totalRequests);
+      expect(child.generator._incomingSubEmitterCommands).to.have.length(0);
+    } finally {
+      consumeSpy.mockRestore();
+      parent.entity.destroy();
+      child.entity.destroy();
+    }
+  });
+
+  it("sorts mixed Rate and Burst requests within each parent's range", () => {
+    const parent = createParticleRenderer(engine, "BirthRequestOrder_Parent");
+    const child = createParticleRenderer(engine, "BirthRequestOrder_Child");
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.main.startLifetime.constant = 2;
+    child.generator.main.startSize = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 21))
+    );
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    try {
+      parent.generator.emit(1);
+      updateEngine(engine, 2);
+      child.generator.emission.rateOverTime.constant = 10;
+      child.generator.emission.addBurst(new Burst(0.05, new ParticleCompositeCurve(1)));
+      child.generator.emission.addBurst(new Burst(0.25, new ParticleCompositeCurve(1)));
+      parent.generator.emit(1);
+      updateEngine(engine, 1);
+
+      expect(child.generator._getAliveParticleCount()).to.equal(4);
+      const generator = child.generator as any;
+      const stride = generator._instanceVertices.length / generator._currentParticleCount;
+      const expectedSizes = [3.5, 4, 1.5, 2];
+      for (let i = 0; i < expectedSizes.length; i++) {
+        const index = (generator._firstActiveElement + i) % generator._currentParticleCount;
+        expect(generator._instanceVertices[index * stride + 12]).to.be.closeTo(expectedSizes[i], 1e-5);
+      }
+    } finally {
+      parent.entity.destroy();
+      child.entity.destroy();
+    }
+  });
+
   it("keeps ordinary transform-feedback state at 24 bytes per particle", () => {
     const renderer = createParticleRenderer(engine, "FeedbackPayload");
     renderer.generator.noise.enabled = true;

@@ -2,19 +2,14 @@ import { MathUtil } from "@galacean/engine-math";
 import type { ParticleGenerator } from "../ParticleGenerator";
 import type { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 
-interface EmissionRequest {
-  time: number;
-  count: number;
-}
-
 /**
  * Stores one same-frame Birth emission command.
  * @internal
  */
 export class BirthSubEmitterCommand {
   readonly isBirth = true as const;
-  readonly requests: EmissionRequest[] = [];
 
+  requestStart = 0;
   requestCount = 0;
   ringIndex: number;
   inheritProperties: ParticleSubEmitterInheritProperty;
@@ -27,7 +22,8 @@ export class BirthSubEmitterCommand {
 
   constructor(
     readonly source: ParticleGenerator,
-    private readonly _pool: BirthSubEmitterCommand[]
+    private readonly _pool: BirthSubEmitterCommand[],
+    readonly requests: number[]
   ) {}
 
   reset(
@@ -50,22 +46,26 @@ export class BirthSubEmitterCommand {
   }
 
   addRequest(time: number, count: number): void {
-    const request = (this.requests[this.requestCount] ??= { time, count });
-    request.time = time;
-    request.count = count;
+    const offset = (this.requestStart + this.requestCount) * 2;
+    this.requests[offset] = time;
+    this.requests[offset + 1] = count;
     this.requestCount++;
   }
 
   sortRequests(): void {
     const requests = this.requests;
-    for (let i = 1, n = this.requestCount; i < n; i++) {
-      const request = requests[i];
+    const start = this.requestStart * 2;
+    for (let i = start + 2, n = start + this.requestCount * 2; i < n; i += 2) {
+      const time = requests[i];
+      const count = requests[i + 1];
       let insertIndex = i;
-      while (insertIndex > 0 && requests[insertIndex - 1].time > request.time) {
-        requests[insertIndex] = requests[insertIndex - 1];
-        insertIndex--;
+      while (insertIndex > start && requests[insertIndex - 2] > time) {
+        requests[insertIndex] = requests[insertIndex - 2];
+        requests[insertIndex + 1] = requests[insertIndex - 1];
+        insertIndex -= 2;
       }
-      requests[insertIndex] = request;
+      requests[insertIndex] = time;
+      requests[insertIndex + 1] = count;
     }
   }
 

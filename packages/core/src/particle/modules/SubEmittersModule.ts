@@ -45,6 +45,10 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   @ignoreClone
   private _birthCommandScratch: BirthSubEmitterCommand | null = null;
   @ignoreClone
+  private _birthRequests: number[] | null = null;
+  @ignoreClone
+  private _birthRequestCount = 0;
+  @ignoreClone
   private _birthStatesByParticle: Array<Array<BirthSubEmitterState | null | undefined> | undefined> = [];
   @ignoreClone
   private _particleSequence = 0;
@@ -172,6 +176,14 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
   /**
    * @internal
    */
+  _beginBirthCommands(): void {
+    // The scheduler consumes all commands before the next source update
+    this._birthRequestCount = 0;
+  }
+
+  /**
+   * @internal
+   */
   _prepareBirthCommandsForParticle(
     ringIndex: number,
     bornTime: number,
@@ -239,13 +251,15 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
       }
 
       const command = (this._birthCommandScratch ??=
-        commandPool.pop() ?? new BirthSubEmitterCommand(this._generator, commandPool));
+        commandPool.pop() ?? new BirthSubEmitterCommand(this._generator, commandPool, (this._birthRequests ??= [])));
+      command.requestStart = this._birthRequestCount;
       emission._prepareBirthTimedRequests(lastEmissionTime, emissionTime, state, command);
       if (command.requestCount === 0) {
         continue;
       }
 
       this._birthCommandScratch = null;
+      this._birthRequestCount += command.requestCount;
       command.reset(
         state.startDelay,
         subEmitter.inheritProperties,
