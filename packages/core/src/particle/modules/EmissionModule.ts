@@ -290,6 +290,9 @@ export class EmissionModule extends ParticleGeneratorModule {
     state: EmissionState,
     command?: BirthSubEmitterCommand
   ): void {
+    // Use one simulation time domain for both cycle boundaries and their event windows
+    lastPlayTime = Math.fround(lastPlayTime);
+    playTime = Math.fround(playTime);
     const main = this._generator.main;
     const duration = main.duration;
     if (!main.isLoop) {
@@ -308,7 +311,6 @@ export class EmissionModule extends ParticleGeneratorModule {
       if (segmentEnd < nextCycleTime) {
         break;
       }
-      state.currentBurstIndex = 0;
       segmentStart = segmentEnd;
       cycle++;
     }
@@ -326,9 +328,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     const startTime = Math.fround(lastPlayTime);
     const endTime = Math.fround(playTime);
 
-    let pendingIndex = -1;
-    let index = state.currentBurstIndex;
-    for (let n = bursts.length; index < n; index++) {
+    for (let index = 0, n = bursts.length; index < n; index++) {
       const burst = bursts[index];
       const burstTime = cycleStart + burst.time;
       if (Math.fround(burstTime) >= endTime) {
@@ -356,15 +356,8 @@ export class EmissionModule extends ParticleGeneratorModule {
             this._emitOrAddRequest(command, effectiveTime, burst.count.evaluate(undefined, state.randomBurst()));
           }
         }
-
-        // `state.currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
-        // burst can be the entry point — skipping past it would drop its remaining cycles
-        if (pendingIndex < 0 && cycle < cycles) {
-          pendingIndex = index;
-        }
       }
     }
-    state.currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
   }
 
   private _emitOrAddRequest(command: BirthSubEmitterCommand | undefined, time: number, count: number): void {

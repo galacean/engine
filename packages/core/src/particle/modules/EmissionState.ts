@@ -6,7 +6,6 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
  */
 export class EmissionState {
   frameRateTime = 0;
-  currentBurstIndex = 0;
 
   private _seed = 0;
   private _rateRand: Rand;
@@ -28,6 +27,5 @@ export class EmissionState {
 
   resyncTimeCursors(playTime: number): void {
     this.frameRateTime = playTime;
-    this.currentBurstIndex = 0;
   }
 }

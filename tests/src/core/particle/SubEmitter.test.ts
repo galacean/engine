@@ -396,7 +396,6 @@ describe("SubEmitter", () => {
     subEmitters._prepareBirthCommandsForParticle(0, 0, 1, 0, 0.1, 0);
     const firstState = statesByParticle[0][0];
     firstState.frameRateTime = 99;
-    firstState.currentBurstIndex = 99;
 
     subEmitters._retireParticle(0);
     expect(statesByParticle[0]).to.have.length(0);
@@ -409,7 +408,6 @@ describe("SubEmitter", () => {
     expect(reusedState).to.equal(firstState);
     expect(statePool).to.have.length(0);
     expect(reusedState.frameRateTime).to.be.closeTo(0.1, 1e-6);
-    expect(reusedState.currentBurstIndex).to.equal(0);
     expect(commands).to.have.length(0);
 
     parent.entity.destroy();
@@ -447,20 +445,32 @@ describe("SubEmitter", () => {
     { cycles: 1, isLoop: true, duration: 0.2, deltaTime: 100, counts: [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6] },
     { cycles: Infinity, isLoop: true, duration: 0.3, deltaTime: 100, counts: [0, 1, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8] },
     { cycles: 1, isLoop: false, duration: 0.5, deltaTime: 99.99995, counts: [0, 1] },
-    { cycles: 3, isLoop: false, duration: 0.5, deltaTime: 100.00005, counts: [1, 2, 3, 3] }
+    { cycles: 3, isLoop: false, duration: 0.5, deltaTime: 100.00005, counts: [1, 2, 3, 3] },
+    {
+      cycles: 1,
+      isLoop: true,
+      duration: 0.3,
+      deltaTime: 100,
+      simulationSpeed: 11,
+      counts: [4, 7, 11, 15, 18, 22, 26, 29, 33, 37]
+    }
   ])(
     "matches ordinary and Birth Burst boundaries (cycles=$cycles, loop=$isLoop, duration=$duration, dt=$deltaTime)",
-    ({ cycles, isLoop, duration, deltaTime, counts }) => {
+    ({ cycles, isLoop, duration, deltaTime, simulationSpeed = 1, counts }) => {
       const parent = createParticleRenderer(engine, "BurstBoundary_Parent");
       const child = createParticleRenderer(engine, "BurstBoundary_Child");
       const ordinary = createParticleRenderer(engine, "BurstBoundary_Ordinary");
       parent.generator.main.startSpeed.constant = 0;
+      parent.generator.main.startLifetime.constant = 100;
+      parent.generator.main.simulationSpeed = simulationSpeed;
       parent.generator.subEmitters.enabled = true;
       parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
       for (const renderer of [ordinary, child]) {
         renderer.generator.main.duration = duration;
         renderer.generator.main.isLoop = isLoop;
         renderer.generator.main.startSpeed.constant = 0;
+        renderer.generator.main.startLifetime.constant = 100;
+        renderer.generator.main.simulationSpeed = simulationSpeed;
         renderer.generator.emission.addBurst(new Burst(0.1, new ParticleCompositeCurve(1), cycles, 0.1));
       }
       parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -482,6 +492,41 @@ describe("SubEmitter", () => {
       }
     }
   );
+
+  it("evaluates remaining future Bursts after an earlier Burst is removed", () => {
+    const parent = createParticleRenderer(engine, "BurstRemoval_Parent");
+    const child = createParticleRenderer(engine, "BurstRemoval_Child");
+    const ordinary = createParticleRenderer(engine, "BurstRemoval_Ordinary");
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    for (const renderer of [ordinary, child]) {
+      renderer.generator.main.startSpeed.constant = 0;
+      renderer.generator.emission.addBurst(new Burst(0.1, new ParticleCompositeCurve(1)));
+      renderer.generator.emission.addBurst(new Burst(0.4, new ParticleCompositeCurve(1)));
+    }
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    ordinary.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.emit(1);
+    ordinary.generator.play(false);
+
+    try {
+      updateEngine(engine, 2);
+      expect(ordinary.generator._getAliveParticleCount()).to.equal(1);
+      expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+      ordinary.generator.emission.removeBurstByIndex(0);
+      child.generator.emission.removeBurstByIndex(0);
+      updateEngine(engine, 3);
+      expect(ordinary.generator._getAliveParticleCount()).to.equal(2);
+      expect(child.generator._getAliveParticleCount()).to.equal(2);
+    } finally {
+      parent.entity.destroy();
+      child.entity.destroy();
+      ordinary.entity.destroy();
+    }
+  });
 
   it("Birth runs the target Rate Over Time independently for every live parent", () => {
     const child = createParticleRenderer(engine, "SystemRate_Child");
