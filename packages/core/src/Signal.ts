@@ -127,6 +127,7 @@ export class Signal<T extends any[] = []> extends DataObject implements ICloneHo
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Signal<T>, cloneMap: ReadonlyMap<object, object>): void {

@@ -485,7 +485,6 @@ export class GLTexture implements IPlatformTexture {
   set filterMode(value: TextureFilterMode) {
     const gl = this._gl;
     const target = this._target;
-    /** @ts-ignore */
     const { _mipmap } = this._texture;
 
     this._bind();
@@ -581,7 +580,6 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    //@ts-ignore
     const mipmap = texture._mipmap;
 
     if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, this._isWebGL2)) {
@@ -608,8 +606,7 @@ export class GLTexture implements IPlatformTexture {
   protected _init(isCube: boolean): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
-    let { internalFormat, baseFormat, dataType } = this._formatDetail;
-    // @ts-ignore
+    const { internalFormat, baseFormat, dataType } = this._formatDetail;
     const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
@@ -719,13 +716,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = rhi.isWebGL2;
 
     // Validate mipmap
-    // @ts-ignore
     const mipmap = texture._mipmap;
     if (mipmap && !TextureUtils.supportMipmaps(width, height, isWebGL2)) {
       Logger.warn(
         "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
       );
-      /** @ts-ignore */
       texture._mipmap = false;
       /** @ts-ignore */
       texture._mipmapCount = texture._getMipmapCount();

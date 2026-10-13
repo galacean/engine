@@ -70,6 +70,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _batcherManager: BatcherManager;
 
+  /** @internal */
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _frameInProcess = false;

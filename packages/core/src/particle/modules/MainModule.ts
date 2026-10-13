@@ -75,6 +75,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   @ignoreClone
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
+  /** @internal */
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
@@ -319,6 +320,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: MainModule): void {

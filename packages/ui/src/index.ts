@@ -7,6 +7,9 @@ export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { VerticalAlignmentMode } from "./enums/VerticalAlignmentMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
+/**
+ * @internal
+ */
 export class EngineExtension {
   _uiDefaultMaterial: Material;
   _getUIDefaultMaterial(): Material {
@@ -21,6 +24,9 @@ export class EngineExtension {
   }
 }
 
+/**
+ * @internal
+ */
 export class EntityExtension {
   _uiHierarchyVersion = 0;
   _updateUIHierarchyVersion(version: number): void {
@@ -34,15 +40,15 @@ export class EntityExtension {
 
 declare module "@galacean/engine" {
   interface Engine {
-    // @internal
+    /** @internal */
     _uiDefaultMaterial: Material;
-    // @internal
+    /** @internal */
     _getUIDefaultMaterial(): Material;
   }
   interface Entity {
-    // @internal
+    /** @internal */
     _uiHierarchyVersion: number;
-    // @internal
+    /** @internal */
     _updateUIHierarchyVersion(version: number): void;
   }
 }

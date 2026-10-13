@@ -188,14 +188,17 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
    * Converts the vector into a unit vector.
    * @param a - The vector to normalize
    * @param out - The normalized vector
+   * @returns True if the vector has a unit form, otherwise false and `out` is left untouched
    */
-  static normalize(a: Vector3, out: Vector3): void {
+  static normalize(a: Vector3, out: Vector3): boolean {
     const { _x, _y, _z } = a;
-    let len = Math.sqrt(_x * _x + _y * _y + _z * _z);
-    if (len > MathUtil.zeroTolerance) {
-      len = 1 / len;
-      out.set(_x * len, _y * len, _z * len);
+    const len = Math.sqrt(_x * _x + _y * _y + _z * _z);
+    if (len > MathUtil.zeroTolerance && Number.isFinite(len)) {
+      const inv = 1 / len;
+      out.set(_x * inv, _y * inv, _z * inv);
+      return true;
     }
+    return false;
   }
 
   /**

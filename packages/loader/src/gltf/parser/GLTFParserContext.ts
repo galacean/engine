@@ -55,7 +55,6 @@ export class GLTFParserContext {
     public resourceManager: ResourceManager,
     public params: GLTFParams
   ) {
-    // @ts-expect-error -- internal method is omitted from public declarations
     this._remoteAssetBaseURL = resourceManager._getRemoteUrl(glTFResource.url);
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }
@@ -193,7 +192,6 @@ export class GLTFParserContext {
           if (type === GLTFParserType.Mesh) {
             for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
               const mesh = item[i] as ModelMesh;
-              // @ts-ignore
               this.resourceManager._onSubAssetSuccess<ModelMesh>(
                 remoteAssetBaseURL,
                 `${glTFResourceKey}[${index}][${i}]`,
@@ -201,7 +199,6 @@ export class GLTFParserContext {
               );
             }
           } else {
-            // @ts-ignore
             this.resourceManager._onSubAssetSuccess<T>(
               remoteAssetBaseURL,
               `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
@@ -209,7 +206,6 @@ export class GLTFParserContext {
             );
 
             if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
-              // @ts-ignore
               this.resourceManager._onSubAssetSuccess<Entity>(remoteAssetBaseURL, `defaultSceneRoot`, item as Entity);
             }
           }

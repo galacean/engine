@@ -12,7 +12,6 @@ import {
 class SourceFontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      // @ts-ignore
       const url = resourceManager._getRemoteUrl(item.url);
       this._registerFont(url, url)
         .then(() => {

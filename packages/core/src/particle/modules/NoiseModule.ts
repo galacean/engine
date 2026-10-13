@@ -12,19 +12,32 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Adds simplex noise-based turbulence displacement to particles.
  */
 export class NoiseModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_NOISE_MODULE_ENABLED");
+  /** @internal */
   static readonly _strengthCurveMacro = ShaderMacro.getByName("RENDERER_NOISE_STRENGTH_CURVE");
+  /** @internal */
   static readonly _strengthIsRandomTwoMacro = ShaderMacro.getByName("RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO");
+  /** @internal */
   static readonly _separateAxesMacro = ShaderMacro.getByName("RENDERER_NOISE_IS_SEPARATE");
 
+  /** @internal */
   static readonly _noiseProperty = ShaderProperty.getByName("renderer_NoiseParams");
+  /** @internal */
   static readonly _noiseOctaveProperty = ShaderProperty.getByName("renderer_NoiseOctaveParams");
+  /** @internal */
   static readonly _strengthMinConstProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinConst");
+  /** @internal */
   static readonly _strengthMaxCurveXProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveX");
+  /** @internal */
   static readonly _strengthMaxCurveYProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveY");
+  /** @internal */
   static readonly _strengthMaxCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveZ");
+  /** @internal */
   static readonly _strengthMinCurveXProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveX");
+  /** @internal */
   static readonly _strengthMinCurveYProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveY");
+  /** @internal */
   static readonly _strengthMinCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveZ");
 
   @ignoreClone

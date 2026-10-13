@@ -124,7 +124,6 @@ export class GLTFTextureParser extends GLTFParser {
 
     return AssetPromise.resolve(texture).then((texture) => {
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      // @ts-ignore
       texture._associationSuperResource(glTFResource);
       return texture;
     });

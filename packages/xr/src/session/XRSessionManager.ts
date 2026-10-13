@@ -56,7 +56,6 @@ export class XRSessionManager {
     private _xrManager: XRManagerExtended,
     private _engine: Engine
   ) {
-    // @ts-ignore
     this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);

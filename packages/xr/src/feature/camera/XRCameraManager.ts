@@ -47,19 +47,15 @@ export class XRCameraManager {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     if (preCamera !== camera) {
-      // @ts-ignore
       preCamera && (preCamera._cameraType = CameraType.Normal);
       switch (type) {
         case XRTrackedInputDevice.Camera:
-          // @ts-ignore
           camera._cameraType = CameraType.XRCenterCamera;
           break;
         case XRTrackedInputDevice.LeftCamera:
-          // @ts-ignore
           camera._cameraType = CameraType.XRLeftCamera;
           break;
         case XRTrackedInputDevice.RightCamera:
-          // @ts-ignore
           camera._cameraType = CameraType.XRRightCamera;
           break;
         default:
@@ -79,7 +75,6 @@ export class XRCameraManager {
   ): Camera {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
-    // @ts-ignore
     preCamera && (preCamera._cameraType = CameraType.Normal);
     xrCamera._camera = null;
     return preCamera;

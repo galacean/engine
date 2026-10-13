@@ -5,6 +5,7 @@ import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "../sprite";
 
 /**
+ * @internal
  * Interface for sprite renderer.
  */
 export interface ISpriteRenderer {

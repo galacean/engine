@@ -27,7 +27,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           chainPromises[i].cancel();
         }
       });
-      // @ts-ignore
       const configPromise = resourceManager._request<AtlasConfig>(item.url, {
         ...item,
         type: "json"
@@ -60,7 +59,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                     wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
                     wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
                     for (let i = 0; i < atlasItem.sprites.length; i++) {
-                      // @ts-ignore
                       spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i], texture));
                     }
                   })
@@ -68,7 +66,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               );
             } else {
               for (let i = 0; i < atlasItem.sprites.length; i++) {
-                // @ts-ignore
                 spriteAtlas._addSprite(this._makeSprite(engine, atlasItem.sprites[i]));
               }
             }

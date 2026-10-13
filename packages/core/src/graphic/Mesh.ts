@@ -165,6 +165,9 @@ export abstract class Mesh extends ReferResource {
     this._primitive.setVertexBufferBinding(index, binding);
   }
 
+  /**
+   * @internal
+   */
   override _addReferCount(value: number): void {
     super._addReferCount(value);
     this._primitive._addReferCount(value);
