@@ -4,6 +4,7 @@ import {
   Engine,
   Layer,
   ModelMesh,
+  ParticleMaterial,
   ParticleRenderer,
   ParticleRenderMode,
   ParticleSimulationSpace,
@@ -68,6 +69,53 @@ describe("ParticleRenderer", () => {
     expect(renderer.velocityScale).to.eq(-0.333333);
     renderer.velocityScale = 0;
     expect(renderer.velocityScale).to.eq(0);
+  });
+
+  it.each([0.01, 7.5, 100001])("preserves positive finite particle duration %s", (value) => {
+    const entity = scene.createRootEntity("DurationRange");
+    try {
+      const generator = entity.addComponent(ParticleRenderer).generator;
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      generator.main.duration = value;
+      expect(generator.main.duration).to.equal(value);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it.each([-1, 0, NaN, Infinity, -Infinity])("rejects invalid particle duration %s without changing it", (value) => {
+    const entity = scene.createRootEntity("InvalidDuration");
+    try {
+      const generator = entity.addComponent(ParticleRenderer).generator;
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      const main = generator.main;
+      main.duration = 7.5;
+      expect(() => (main.duration = value)).to.throw(RangeError);
+      expect(main.duration).to.equal(7.5);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("can play after a zero duration is rejected while stopped", () => {
+    const entity = scene.createRootEntity("DurationReplay");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.setMaterial(new ParticleMaterial(engine));
+    const generator = renderer.generator;
+    generator.main.startSpeed.constant = 0;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    try {
+      expect(() => (generator.main.duration = 0)).to.throw(RangeError);
+      updateEngine(engine, 1);
+      generator.main.duration = 5;
+      generator.play(false);
+      updateEngine(engine, 2);
+      expect(generator._getAliveParticleCount()).to.equal(2);
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("resets the gravity modifier random stream with the generator seed", () => {

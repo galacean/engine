@@ -23,8 +23,6 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   private static readonly _startRotation3D = ShaderProperty.getByName("renderer_ThreeDStartRotation");
   private static readonly _scaleMode = ShaderProperty.getByName("renderer_ScalingMode");
 
-  /** The duration of the Particle Generator in seconds. */
-  duration = 5.0;
   /** Specifies whether the Particle Generator loops. */
   isLoop = true;
 
@@ -77,6 +75,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
 
   @ignoreClone
   private readonly _worldRotationValue = new Vector4();
+  private _duration = 5;
   private _startLifetime: ParticleCompositeCurve;
   private _startSpeed: ParticleCompositeCurve;
   private _startSize3D = false;
@@ -87,6 +86,23 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   private _simulationSpace = ParticleSimulationSpace.Local;
   @ignoreClone
   private _generator: ParticleGenerator;
+
+  /**
+   * The duration of the Particle Generator in seconds. Must be positive and finite.
+   *
+   * @throws
+   * Throw a RangeError if the value is not positive and finite.
+   */
+  get duration(): number {
+    return this._duration;
+  }
+
+  set duration(value: number) {
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new RangeError("Particle duration must be positive and finite.");
+    }
+    this._duration = value;
+  }
 
   /**
    * The initial lifetime of particles when emitted.
