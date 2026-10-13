@@ -3,7 +3,8 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 import { expect, it } from "vitest";
 
-it("requires callers to handle missing entity and scene references in the published types", () => {
+// TypeScript program creation is slower under CI coverage.
+it("checks nullable public declarations", { timeout: 30_000 }, () => {
   const fileName = fileURLToPath(new URL("../../../tests/entity-lookup-types.ts", import.meta.url));
   const source = `
 import { AnimationRefCurve, AnimatorState, BloomEffect, Component, DirectLight, Entity, Keyframe, ModelMesh, PostProcess, ReferResource, Scene, SceneManager, Shader } from "@galacean/engine";
