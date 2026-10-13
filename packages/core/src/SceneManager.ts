@@ -128,11 +128,9 @@ export class SceneManager {
   }
 
   /**
-   * @deprecated
-   * Please use `scenes` instead.
-   *
    * Get the first scene, or undefined if no scene is registered.
    * @remarks Assigning null or undefined removes the first scene.
+   * @deprecated Please use `scenes` instead.
    */
   get activeScene(): Scene | undefined {
     return this._scenes.getArray()[0];

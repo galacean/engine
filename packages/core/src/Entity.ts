@@ -211,7 +211,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The owning scene, undefined before scene assignment or null after detachment.
+   * The owning scene, or null/undefined if this entity is not in a scene.
    */
   get scene(): Scene | null | undefined {
     return this._scene;
@@ -379,10 +379,10 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * @deprecated Please use `children` property instead.
    * Get a child entity by index.
    * @param index - The zero-based child index
    * @returns The child at the index, or undefined if none exists
+   * @deprecated Please use `children` property instead.
    */
   getChild(index: number): Entity | undefined {
     return this._children[index];

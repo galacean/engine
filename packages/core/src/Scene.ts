@@ -244,8 +244,7 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * The explicit sun light, undefined until assigned.
-   * @remarks If set this to null, scene will use the brightest directional light.
+   * The explicit sun light; null or undefined enables automatic selection.
    */
   get sun(): DirectLight | null | undefined {
     return this._sun;
