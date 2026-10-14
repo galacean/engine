@@ -1,4 +1,6 @@
 import {
+  MeshAttachment,
+  RegionAttachment,
   AnimationState,
   AnimationStateData,
   AtlasAttachmentLoader,
@@ -6,10 +8,13 @@ import {
   SkeletonBinary,
   SkeletonData,
   SkeletonJson,
-  TextureAtlas
+  Skin,
+  TextureAtlas,
+  TextureAtlasRegion
 } from "./spine-core";
-import type { Texture2D } from "@galacean/engine";
+import { Texture2D } from "@galacean/engine";
 import type { ISpineRenderTarget } from "@galacean/engine-spine";
+import type { ISpineRuntime, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
 import { SpineGenerator } from "./SpineGenerator";
 import { SpineTexture } from "./SpineTexture";
 
@@ -21,26 +26,32 @@ import { SpineTexture } from "./SpineTexture";
  * `TextureAtlas`), object-model construction, world-transform stepping (3.8 has no `Physics` argument),
  * and the attachment-reading mesh generator. Registered automatically when this package is imported.
  *
- * Deliberately does not `implements ISpineRuntime`: that interface types its methods against the
- * 4.2 npm package as the "canonical contract", but 4.2 and 3.8 have actually diverged enough
- * (4.2 added `TextureAtlas.setTextures`; 4.2 dropped `Skeleton`/`SkeletonData`'s `updateCacheReset`/
- * `findBoneIndex`/`findSlotIndex`/`findPathConstraintIndex`, all present in 3.8) that TS's structural
- * check fails even though every member `ISpineRuntime` actually calls lines up. Registered via a cast
- * in `index.ts` instead of fighting the type checker method-by-method.
  */
-export class Spine38Runtime {
+export class Spine38Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarget> {
+  readonly version = "3.8";
+
   private _generator = new SpineGenerator();
 
-  parseAtlasPageNames(atlasText: string): string[] {
-    // Unlike 4.2, spine 3.8's `TextureAtlas` constructor requires a synchronous texture loader and
-    // calls `setFilters`/`setWraps` on whatever it returns immediately during parsing, so a bare
-    // `null` loader would throw; hand back a no-op stub instead (its return type is `any`).
-    const pageNames: string[] = [];
-    new TextureAtlas(atlasText, (path) => {
-      pageNames.push(path);
-      return { setFilters() {}, setWraps() {} };
-    });
-    return pageNames;
+  getTextures(data: SkeletonData): Texture2D[] {
+    const textures = new Set<Texture2D>();
+    for (const skin of data.skins) {
+      for (const { attachment } of skin.getAttachments()) {
+        if (attachment instanceof RegionAttachment || attachment instanceof MeshAttachment) {
+          const region = attachment.region;
+          const image = region instanceof TextureAtlasRegion ? region.texture?.texture : null;
+          if (image instanceof Texture2D) textures.add(image);
+        }
+      }
+    }
+    return Array.from(textures);
+  }
+
+  getPhysics(skeleton: Skeleton): SpineCapability<ISpinePhysics> {
+    return { supported: false, reason: "Spine 3.8 does not support physics constraints." };
+  }
+
+  createSkin(name: string): Skin {
+    return new Skin(name);
   }
 
   createTextureAtlas(atlasText: string, textures: Texture2D[]): TextureAtlas {

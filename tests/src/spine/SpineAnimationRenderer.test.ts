@@ -61,6 +61,8 @@ describe("SpineAnimationRenderer", () => {
     const cacheKey = cached._cacheKey;
     expect(SpineAnimationRenderer._materialCacheMap.has(cacheKey)).to.be.true;
     expect(() => entity.destroy()).to.not.throw();
+    engine.resourceManager.gc();
+    expect(cached.destroyed).to.be.true;
     expect(SpineAnimationRenderer._materialCacheMap.has(cacheKey)).to.be.false;
   });
 

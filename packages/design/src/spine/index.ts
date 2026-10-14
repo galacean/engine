@@ -1,0 +1,24 @@
+/** Version-independent Spine contracts. Shared data and per-instance state have separate interfaces. */
+export type { ISpineColor } from "./ISpineColor";
+export type { ISpineBoneData } from "./ISpineBoneData";
+export type { ISpineBone } from "./ISpineBone";
+export type { ISpineSlotData } from "./ISpineSlotData";
+export type { ISpineAttachment } from "./ISpineAttachment";
+export type { ISpineSlot } from "./ISpineSlot";
+export type { ISpineSkinEntry } from "./ISpineSkinEntry";
+export type { ISpineSkin } from "./ISpineSkin";
+export type { ISpineAnimation } from "./ISpineAnimation";
+export type { ISpineConstraintData } from "./ISpineConstraintData";
+export type { ISpineConstraint } from "./ISpineConstraint";
+export type { ISpineSkeletonData } from "./ISpineSkeletonData";
+export type { ISpineSkeleton } from "./ISpineSkeleton";
+export type { ISpineAnimationStateData } from "./ISpineAnimationStateData";
+export type { ISpineEvent } from "./ISpineEvent";
+export type { ISpineAnimationStateListener } from "./ISpineAnimationStateListener";
+export type { ISpineTrackEntry } from "./ISpineTrackEntry";
+export type { ISpineAnimationState } from "./ISpineAnimationState";
+export type { SpineCapability } from "./SpineCapability";
+export type { ISpinePhysicsConstraint } from "./ISpinePhysicsConstraint";
+export type { ISpinePhysics } from "./ISpinePhysics";
+export type { ISpineTextureAtlas } from "./ISpineTextureAtlas";
+export type { ISpineRuntime } from "./ISpineRuntime";

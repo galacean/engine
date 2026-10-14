@@ -1,23 +1,10 @@
-import type { SkeletonData, TextureAtlas } from "@esotericsoftware/spine-core";
+import { SpineAtlas } from "./SpineAtlas";
 import { AssetPromise, AssetType, Engine, Texture2D } from "@galacean/engine";
-import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 
 /**
  * @internal
  */
 export class LoaderUtils {
-  static createSkeletonData(
-    skeletonRawData: string | ArrayBuffer,
-    textureAtlas: TextureAtlas,
-    skeletonDataScale: number
-  ): SkeletonData {
-    return getSpineRuntime().createSkeletonData(skeletonRawData, textureAtlas, skeletonDataScale);
-  }
-
-  static createTextureAtlas(atlasText: string, textures: Texture2D[]): TextureAtlas {
-    return getSpineRuntime().createTextureAtlas(atlasText, textures);
-  }
-
   static loadTexturesByPaths(
     imagePaths: string[],
     imageExtensions: string[],
@@ -45,11 +32,11 @@ export class LoaderUtils {
     });
     return Promise.all(texturePromises).catch((error) => {
       reject(error);
-      return [];
+      throw error;
     });
   }
 
-  static loadTextureAtlas(atlasPath: string, engine: Engine, reject: (reason?: any) => void): Promise<TextureAtlas> {
+  static loadTextureAtlas(atlasPath: string, engine: Engine, reject: (reason?: any) => void): Promise<SpineAtlas> {
     const baseUrl = LoaderUtils.getBaseUrl(atlasPath);
     const resourceManager = engine.resourceManager;
     let atlasText: string;
@@ -59,8 +46,7 @@ export class LoaderUtils {
         ._request(atlasPath, { type: "text" })
         .then((text: string) => {
           atlasText = text;
-          const runtime = getSpineRuntime();
-          const pageNames = runtime.parseAtlasPageNames(atlasText);
+          const pageNames = SpineAtlas.pageNames(atlasText);
           const loadTexturePromises = pageNames.map((name) => {
             const textureUrl = baseUrl + name;
             return resourceManager.load({
@@ -69,12 +55,12 @@ export class LoaderUtils {
             }) as unknown as Promise<Texture2D>;
           });
           return Promise.all(loadTexturePromises).then((textures) => {
-            return runtime.createTextureAtlas(atlasText, textures);
+            return new SpineAtlas(atlasText, textures);
           });
         })
         .catch((err) => {
           reject(new Error(`Spine Atlas: ${atlasPath} load error: ${err}`));
-          return null;
+          throw err;
         })
     );
   }

@@ -25,6 +25,15 @@ export class SpineMaterial extends Material {
    */
   _cacheKey: string;
 
+  /** @internal */
+  _onCacheDestroy: (() => void) | null = null;
+
+  protected override _onDestroy(): void {
+    this._onCacheDestroy?.();
+    this._onCacheDestroy = null;
+    super._onDestroy();
+  }
+
   private _blendMode: SpineBlendMode = SpineBlendMode.Normal;
 
   /**

@@ -304,16 +304,20 @@ importers:
         version: link:../design
 
   packages/spine:
+    dependencies:
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
     devDependencies:
-      '@esotericsoftware/spine-core':
-        specifier: ~4.2.66
-        version: 4.2.119
       '@galacean/engine':
         specifier: workspace:*
         version: link:../galacean
 
   packages/spine-core-3.8:
     dependencies:
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
       '@galacean/engine-spine':
         specifier: workspace:*
         version: link:../spine
@@ -324,13 +328,16 @@ importers:
 
   packages/spine-core-4.2:
     dependencies:
+      '@galacean/engine-design':
+        specifier: workspace:*
+        version: link:../design
+      '@esotericsoftware/spine-core':
+        specifier: ~4.2.66
+        version: 4.2.119
       '@galacean/engine-spine':
         specifier: workspace:*
         version: link:../spine
     devDependencies:
-      '@esotericsoftware/spine-core':
-        specifier: ~4.2.66
-        version: 4.2.119
       '@galacean/engine':
         specifier: workspace:*
         version: link:../galacean

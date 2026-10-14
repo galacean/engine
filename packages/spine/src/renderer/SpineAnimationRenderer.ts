@@ -1,4 +1,11 @@
-import type { AnimationState, Skeleton } from "@esotericsoftware/spine-core";
+import type { ISpineAnimationState, ISpineSkeleton } from "@galacean/engine-design";
+import { SpineSkeleton } from "../SpineSkeleton";
+import { SpineAnimationState } from "../SpineAnimationState";
+import { SpinePhysics } from "../SpinePhysics";
+import type { SpinePhysicsSupport } from "../SpinePhysics";
+import type { SpineSkeletonData } from "../SpineSkeletonData";
+import type { SpineAnimationStateData } from "../SpineAnimationStateData";
+import type { ISpineRuntime } from "../runtime/ISpineRuntime";
 import {
   assignmentClone,
   BoundingBox,
@@ -24,13 +31,11 @@ import { SpineResource } from "../loader/SpineResource";
 import { SpineMaterial } from "./SpineMaterial";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
 import { SpineVertexStride } from "../SpineConstant";
-import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
-import type { ISpineRenderTarget } from "../runtime/ISpineRenderTarget";
 
 /**
  * Spine animation renderer, capable of rendering spine animations and providing functions for animation and skeleton manipulation.
  */
-export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarget {
+export class SpineAnimationRenderer extends Renderer {
   private static _positionVertexElement = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
   private static _lightColorVertexElement = new VertexElement("LIGHT_COLOR", 12, VertexElementFormat.Vector4, 0);
   private static _uvVertexElement = new VertexElement("TEXCOORD_0", 28, VertexElementFormat.Vector2, 0);
@@ -115,25 +120,45 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   );
 
   @ignoreClone
-  private _skeleton: Skeleton;
+  private _skeleton: ISpineSkeleton;
   @ignoreClone
-  private _state: AnimationState;
+  private _state: ISpineAnimationState;
+  @ignoreClone
+  private _runtime: ISpineRuntime;
+  @ignoreClone
+  private _physics: SpinePhysicsSupport | null = null;
+  @ignoreClone
+  private _publicSkeleton: SpineSkeleton | null = null;
+  @ignoreClone
+  private _publicState: SpineAnimationState | null = null;
 
-  /**
-   * The Spine.AnimationState object of this SpineAnimationRenderer.
-   * Manage, blend, and transition between multiple simultaneous animations effectively.
-   */
-  get state(): AnimationState {
-    return this._state;
+  /** Physics support for the bound skeleton, or null before an asset is assigned. */
+  get physics(): SpinePhysicsSupport | null {
+    return this._physics;
+  }
+
+  /** @internal */
+  _setRuntime(runtime: ISpineRuntime): void {
+    this._runtime = runtime;
   }
 
   /**
-   * The Spine.Skeleton object of this SpineAnimationRenderer.
+   * The animation playback state of this renderer.
+   * Manage, blend, and transition between multiple simultaneous animations effectively.
+   */
+  get state(): SpineAnimationState {
+    if (!this._publicState) throw new Error("No Spine resource is bound to this renderer.");
+    return this._publicState;
+  }
+
+  /**
+   * The skeleton pose of this renderer.
    * Manipulate bone positions, rotations, scaling
    * and change spine attachment to customize character appearances dynamically during runtime.
    */
-  get skeleton(): Skeleton {
-    return this._skeleton;
+  get skeleton(): SpineSkeleton {
+    if (!this._publicSkeleton) throw new Error("No Spine resource is bound to this renderer.");
+    return this._publicSkeleton;
   }
 
   /**
@@ -164,9 +189,13 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   override update(delta: number): void {
     const { _state: state, _skeleton: skeleton } = this;
     if (!state || !skeleton) return;
-    const runtime = getSpineRuntime();
+    const runtime = this._runtime;
     runtime.updateState(skeleton, state, delta);
     runtime.buildPrimitive(skeleton, this);
+    // Release materials for draw segments that disappeared after a skin/attachment change.
+    if (this._materials.length > this._subPrimitives.length) {
+      this.setMaterials(this._materials.slice(0, this._subPrimitives.length));
+    }
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
@@ -210,15 +239,18 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   /**
    * @internal
    */
-  _setSkeleton(skeleton: Skeleton) {
+  _setSkeleton(skeleton: ISpineSkeleton, data: SpineSkeletonData) {
     this._skeleton = skeleton;
+    this._publicSkeleton = SpineSkeleton._create(skeleton, data);
+    this._physics = SpinePhysics._create(this._runtime.getPhysics(skeleton));
   }
 
   /**
    * @internal
    */
-  _setState(state: AnimationState) {
+  _setState(state: ISpineAnimationState, data: SpineAnimationStateData) {
     this._state = state;
+    this._publicState = SpineAnimationState._create(state, data);
   }
 
   /**
@@ -228,21 +260,25 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   override _cloneTo(target: SpineAnimationRenderer): void {
     // A renderer added manually and never bound to a resource has no skeleton/state to clone.
     if (!this._skeleton || !this._state) return;
-    const runtime = getSpineRuntime();
-    // Clones share the source's immutable SkeletonData and AnimationStateData (mix config),
+    const runtime = this._runtime;
+    // Clones share the source's SkeletonData and AnimationStateData (mix config),
     // so mix times configured on the resource propagate to every instance; only the
-    // per-instance Skeleton / AnimationState are fresh.
+    // per-instance ISpineSkeleton / ISpineAnimationState are fresh.
     const skeleton = runtime.createSkeleton(this._skeleton.data);
     const state = runtime.createAnimationState(this._state.data);
-    target._setSkeleton(skeleton);
-    target._setState(state);
+    target._setRuntime(runtime);
+    target._resource = this._resource;
+    // @ts-ignore
+    target._resource?._addReferCount(1);
+    target._setSkeleton(skeleton, this._publicSkeleton.data);
+    target._setState(state, this._publicState.data);
   }
 
   /**
    * @internal
    */
   override _onDestroy(): void {
-    this._clearMaterialCache();
+    this._publicState?._dispose();
     this._subPrimitives.length = 0;
     const primitive = this._primitive;
     if (primitive) {
@@ -255,9 +291,15 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     this._indexBuffer?.destroy();
     this._vertexBuffer = null;
     this._indexBuffer = null;
+    // @ts-ignore
+    this._resource?._addReferCount(-1);
     this._resource = null;
+    this._runtime = null;
+    this._physics = null;
     this._skeleton = null;
     this._state = null;
+    this._publicSkeleton = null;
+    this._publicState = null;
     super._onDestroy();
   }
 
@@ -313,9 +355,14 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     // differ only in tintBlack cannot share a material.
     const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}_${tintBlack ? 1 : 0}`;
     let cached = SpineAnimationRenderer._materialCacheMap.get(key);
-    if (!cached) {
+    if (!cached || cached.destroyed || cached.pendingDestroy) {
       cached = new SpineMaterial(engine);
-      cached.isGCIgnored = true;
+      // Renderer material references protect live entries. Unused variants participate in normal GC.
+      const material = cached;
+      cached._onCacheDestroy = () => {
+        const cache = SpineAnimationRenderer._materialCacheMap;
+        if (cache.get(key) === material) cache.delete(key);
+      };
       cached._cacheKey = key;
       SpineAnimationRenderer._materialCacheMap.set(key, cached);
     }
@@ -326,22 +373,8 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     return cached;
   }
 
-  private _clearMaterialCache(): void {
-    const materialCache = SpineAnimationRenderer._materialCacheMap;
-    const materials = this._materials;
-    for (let i = 0, len = materials.length; i < len; i += 1) {
-      const material = materials[i];
-      // `setMaterial` is public API, so entries may be user materials or null holes; a cached
-      // SpineMaterial is removed by the exact key it was registered under (recomputing the key
-      // from the renderer's current state would miss materials cached under older settings).
-      if (material instanceof SpineMaterial) {
-        materialCache.delete(material._cacheKey);
-      }
-    }
-  }
-
   private _applyDefaultConfig(): void {
-    const { skeleton, state } = this;
+    const { _publicSkeleton: skeleton, _publicState: state } = this;
     if (skeleton && state) {
       const { animationName, skinName, loop } = this.defaultConfig;
       if (skinName !== "default") {
@@ -369,19 +402,29 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    * @param value - The new `SpineResource` to be used for the current animation
    */
   set resource(value: SpineResource) {
-    if (!value) {
-      this._state = null;
-      this._skeleton = null;
-      this._resource = null;
-      return;
-    }
+    if (this._resource === value) return;
+    this._publicState?._dispose();
+    // @ts-ignore
+    this._resource?._addReferCount(-1);
     this._resource = value;
-    const { skeletonData, stateData } = value;
-    const runtime = getSpineRuntime();
-    const skeleton = runtime.createSkeleton(skeletonData);
-    const state = runtime.createAnimationState(stateData);
-    this._setSkeleton(skeleton);
-    this._setState(state);
+    this._state = null;
+    this._skeleton = null;
+    this._runtime = null;
+    this._physics = null;
+    this._publicSkeleton = null;
+    this._publicState = null;
+    this._clearSubPrimitives();
+    this.setMaterials([]);
+    this._localBounds.min.set(0, 0, 0);
+    this._localBounds.max.set(0, 0, 0);
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    if (!value) return;
+    // @ts-ignore
+    value._addReferCount(1);
+    const { skeletonData, stateData, _runtime: runtime } = value;
+    this._setRuntime(runtime);
+    this._setSkeleton(runtime.createSkeleton(skeletonData._native), skeletonData);
+    this._setState(runtime.createAnimationState(stateData._native), stateData);
     this._applyDefaultConfig();
   }
 }

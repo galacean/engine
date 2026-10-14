@@ -1,4 +1,6 @@
 import {
+  MeshAttachment,
+  RegionAttachment,
   AnimationState,
   AnimationStateData,
   AtlasAttachmentLoader,
@@ -7,10 +9,12 @@ import {
   SkeletonBinary,
   SkeletonData,
   SkeletonJson,
+  Skin,
   TextureAtlas
 } from "@esotericsoftware/spine-core";
-import type { Texture2D } from "@galacean/engine";
-import type { ISpineRenderTarget, ISpineRuntime } from "@galacean/engine-spine";
+import { Texture2D } from "@galacean/engine";
+import type { ISpineRenderTarget } from "@galacean/engine-spine";
+import type { ISpineRuntime, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
 import { SpineGenerator } from "./SpineGenerator";
 import { SpineTexture } from "./SpineTexture";
 
@@ -22,11 +26,34 @@ import { SpineTexture } from "./SpineTexture";
  * `TextureAtlas`), object-model construction, world-transform stepping (4.2's `Physics.update`), and
  * the attachment-reading mesh generator. Registered automatically when this package is imported.
  */
-export class Spine42Runtime implements ISpineRuntime {
+export class Spine42Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarget> {
+  readonly version = "4.2";
+
   private _generator = new SpineGenerator();
 
-  parseAtlasPageNames(atlasText: string): string[] {
-    return new TextureAtlas(atlasText).pages.map((page) => page.name);
+  getTextures(data: SkeletonData): Texture2D[] {
+    const textures = new Set<Texture2D>();
+    for (const skin of data.skins) {
+      for (const { attachment } of skin.getAttachments()) {
+        if (attachment instanceof RegionAttachment || attachment instanceof MeshAttachment) {
+          const image = attachment.region?.texture?.getImage();
+          if (image instanceof Texture2D) textures.add(image);
+          for (const region of attachment.sequence?.regions ?? []) {
+            const image = region?.texture?.getImage();
+            if (image instanceof Texture2D) textures.add(image);
+          }
+        }
+      }
+    }
+    return Array.from(textures);
+  }
+
+  getPhysics(skeleton: Skeleton): SpineCapability<ISpinePhysics> {
+    return { supported: true, value: skeleton };
+  }
+
+  createSkin(name: string): Skin {
+    return new Skin(name);
   }
 
   createTextureAtlas(atlasText: string, textures: Texture2D[]): TextureAtlas {

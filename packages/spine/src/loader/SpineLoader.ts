@@ -1,6 +1,7 @@
-import type { TextureAtlas } from "@esotericsoftware/spine-core";
+import type { SpineAtlas } from "./SpineAtlas";
+import { readSpineVersion } from "./SpineVersion";
+import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine";
-import { LoaderUtils } from "./LoaderUtils";
 import { SpineResource } from "./SpineResource";
 
 type SpineAssetPath = {
@@ -106,7 +107,7 @@ export class SpineLoader extends Loader<SpineResource> {
         ._request(skeletonPath, { type: "arraybuffer" })
         .then((skeletonRawData: ArrayBuffer) => {
           spineLoadContext.skeletonRawData = skeletonRawData;
-          const skeletonString = SpineLoader._decoder.decode(skeletonRawData);
+          const skeletonString = SpineLoader._decoder.decode(skeletonRawData).trimStart();
           if (skeletonString.startsWith("{")) {
             spineLoadContext.skeletonRawData = skeletonString;
           }
@@ -125,20 +126,22 @@ export class SpineLoader extends Loader<SpineResource> {
     const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
 
+    const runtime = getSpineRuntime(readSpineVersion(skeletonRawData));
     const atlasLoadPromise =
       extraPaths.length === 0
         ? (resourceManager.load({
             url: atlasPath,
             type: "SpineAtlas"
-          }) as unknown as Promise<TextureAtlas>)
+          }) as unknown as Promise<SpineAtlas>)
         : (resourceManager.load({
             urls: [atlasPath].concat(extraPaths),
             type: "SpineAtlas"
-          }) as unknown as Promise<TextureAtlas>);
+          }) as unknown as Promise<SpineAtlas>);
 
-    return atlasLoadPromise.then((textureAtlas) => {
-      const skeletonData = LoaderUtils.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
-      return new SpineResource(engine, skeletonData, skeletonPath);
+    return atlasLoadPromise.then((atlas) => {
+      const textureAtlas = runtime.createTextureAtlas(atlas.text, Array.from(atlas.textures));
+      const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
+      return SpineResource._create(engine, skeletonData, skeletonPath);
     });
   }
 }

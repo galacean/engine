@@ -76,7 +76,11 @@ function config({ location, pkgJson, verboseMode }) {
     })
   );
 
-  const external = Object.keys(dependencies);
+  // Native Spine types remain available to backend consumers. Bundle its JS with our ES5
+  // adapter so SpineTexture never extends an untranspiled ES class at runtime.
+  const external = Object.keys(dependencies).filter(
+    (name) => !(pkgJson.name === "@galacean/engine-spine-core-4.2" && name === "@esotericsoftware/spine-core")
+  );
   curPlugins.push(
     replace({
       preventAssignment: true,

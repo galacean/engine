@@ -29,10 +29,11 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-spine": "workspace:*"
+    "@galacean/engine-spine": "workspace:*",
+    "@esotericsoftware/spine-core": "~4.2.66",
+    "@galacean/engine-design": "workspace:*"
   },
   "devDependencies": {
-    "@esotericsoftware/spine-core": "~4.2.66",
     "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {

@@ -1,4 +1,4 @@
-import type { TextureAtlas } from "@esotericsoftware/spine-core";
+import { SpineAtlas } from "./SpineAtlas";
 import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine";
 import { LoaderUtils } from "./LoaderUtils";
 import { SpineLoader } from "./SpineLoader";
@@ -10,9 +10,9 @@ interface SpineAtlasAsset {
 }
 
 @resourceLoader("SpineAtlas", ["atlas"], false)
-export class SpineAtlasLoader extends Loader<TextureAtlas> {
+export class SpineAtlasLoader extends Loader<SpineAtlas> {
   private static _groupAssetsByExtension(url: string, assetPath: SpineAtlasAsset, resourceManager: ResourceManager) {
-    let ext = SpineLoader._getUrlExtension(url);
+    const ext = SpineLoader._getUrlExtension(url);
     if (!ext) return;
 
     if (ext === "atlas") {
@@ -20,6 +20,7 @@ export class SpineAtlasLoader extends Loader<TextureAtlas> {
     }
     if (["png", "jpg", "webp", "jpeg", "ktx", "ktx2"].includes(ext)) {
       assetPath.imagePaths.push(url);
+      assetPath.imageExtensions.push(ext);
     }
   }
 
@@ -30,15 +31,16 @@ export class SpineAtlasLoader extends Loader<TextureAtlas> {
       // @ts-ignore
       const atlasDependency = resourceManager?._virtualPathResourceMap?.[url]?.dependentAssetMap;
       if (atlasDependency) {
-        for (let key in atlasDependency) {
+        for (const key in atlasDependency) {
           const imageVirtualPath = atlasDependency[key];
           assetPath.imagePaths.push(imageVirtualPath);
+          assetPath.imageExtensions.push(SpineLoader._getUrlExtension(imageVirtualPath));
         }
       }
     }
   }
 
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureAtlas> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpineAtlas> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
       const spineAtlasAsset = {
@@ -86,7 +88,7 @@ export class SpineAtlasLoader extends Loader<TextureAtlas> {
             LoaderUtils.loadTexturesByPaths(imagePaths, imageExtensions, engine, reject)
           ])
             .then(([atlasText, textures]) => {
-              const textureAtlas = LoaderUtils.createTextureAtlas(atlasText, textures);
+              const textureAtlas = new SpineAtlas(atlasText, textures);
               resolve(textureAtlas);
             })
             .catch((err) => {

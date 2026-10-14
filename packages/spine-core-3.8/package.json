@@ -29,7 +29,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-spine": "workspace:*"
+    "@galacean/engine-spine": "workspace:*",
+    "@galacean/engine-design": "workspace:*"
   },
   "devDependencies": {
     "@galacean/engine": "workspace:*"

@@ -28,10 +28,12 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@esotericsoftware/spine-core": "~4.2.66",
     "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {
     "@galacean/engine": "workspace:*"
+  },
+  "dependencies": {
+    "@galacean/engine-design": "workspace:*"
   }
 }

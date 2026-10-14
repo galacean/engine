@@ -1,25 +1,25 @@
 import type { ISpineRuntime } from "./ISpineRuntime";
 
-let _runtime: ISpineRuntime | null = null;
+const runtimes = new Map<string, ISpineRuntime>();
 
-/**
- * Register the spine runtime backend. Called for its side effect when a spine core package
- * (e.g. `@galacean/engine-spine-core-4.2`) is imported. The last registration wins.
- */
+/** Register one backend per export major.minor. Registration never replaces an existing backend. */
 export function registerSpineRuntime(runtime: ISpineRuntime): void {
-  _runtime = runtime;
+  if (!/^\d+\.\d+$/.test(runtime.version)) {
+    throw new Error(`Invalid Spine runtime version: ${runtime.version}`);
+  }
+  const existing = runtimes.get(runtime.version);
+  if (existing && existing !== runtime) {
+    throw new Error(`Spine ${runtime.version} runtime is already registered.`);
+  }
+  runtimes.set(runtime.version, runtime);
 }
 
-/**
- * Get the registered spine runtime backend.
- * @throws If no core package has been imported.
- */
-export function getSpineRuntime(): ISpineRuntime {
-  if (!_runtime) {
-    throw new Error(
-      "@galacean/engine-spine: no spine runtime registered. Import a spine core package, " +
-        'e.g. `import "@galacean/engine-spine-core-4.2"`.'
-    );
+/** Resolve the backend from an asset's export version. No fallback to another runtime. */
+export function getSpineRuntime(version: string | null | undefined): ISpineRuntime {
+  const majorMinor = /^(\d+\.\d+)(?:\.|$)/.exec(version ?? "")?.[1];
+  const runtime = runtimes.get(majorMinor);
+  if (!runtime) {
+    throw new Error(`No Spine runtime registered for asset version "${version}". Include the matching Spine backend.`);
   }
-  return _runtime;
+  return runtime;
 }
