@@ -12,7 +12,17 @@ import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader
 import { ShaderCompiler as ShaderCompilerVerbose } from "@galacean/engine-shader-compiler/verbose";
 import { glslValidate } from "./ShaderValidate";
 
-import { Logger, WebGLEngine } from "@galacean/engine";
+import {
+  Camera,
+  Logger,
+  Material,
+  MeshRenderer,
+  ModelMesh,
+  Shader,
+  Vector3,
+  WebGLEngine,
+  WebGLMode
+} from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 
@@ -32,6 +42,122 @@ describe("ShaderCompiler", async () => {
     expect(shaderCompilerVerbose).not.be.null;
     expect(shaderCompilerRelease).not.be.null;
   });
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "compiles conditional fragment helper macros without vertex dependencies (%s)",
+    async (language) => {
+      const fixtureEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentHelperMacro${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            struct Attributes { vec4 POSITION; };
+            struct Varyings { vec2 uv; };
+            struct SurfaceData { vec3 color; };
+            vec3 shadeSurface(SurfaceData surface) { return surface.color; }
+            #ifdef MATERIAL_TEST_LIGHT
+              #define SURFACE_HOOK shadeSurface
+            #endif
+            Varyings vertexMain(Attributes attributes) {
+              Varyings output;
+              gl_Position = attributes.POSITION;
+              output.uv = attributes.POSITION.xy;
+              return output;
+            }
+            vec4 fragmentMain(Varyings input) {
+              #ifdef MATERIAL_TEST_LIGHT
+                SurfaceData surface;
+                surface.color = vec3(input.uv, 1.0);
+                return vec4(SURFACE_HOOK(surface), 1.0);
+              #else
+                return vec4(input.uv, 0.0, 1.0);
+              #endif
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+        expect(shader.compileVariant(fixtureEngine, ["MATERIAL_TEST_LIGHT"])).to.be.true;
+      } finally {
+        shader.destroy();
+        fixtureEngine.destroy();
+      }
+    }
+  );
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "preserves early fragment return colors (%s)",
+    async (language) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 32;
+      const fixtureEngine = await WebGLEngine.create({
+        canvas,
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2,
+          preserveDrawingBuffer: true
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentReturnColors${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            float material_UseRed;
+            mat4 renderer_MVPMat;
+            struct Attributes { vec4 POSITION; };
+            void vertexMain(Attributes attributes) { gl_Position = renderer_MVPMat * attributes.POSITION; }
+            vec4 fragmentMain() {
+              if (material_UseRed > 0.5) return vec4(1.0, 0.0, 0.0, 1.0);
+              return vec4(0.0, 1.0, 0.0, 1.0);
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        const root = fixtureEngine.sceneManager.activeScene.createRootEntity();
+        const camera = root.createChild().addComponent(Camera);
+        camera.entity.transform.setPosition(0, 0, 3);
+        const mesh = new ModelMesh(fixtureEngine);
+        mesh.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 1, 0)]);
+        mesh.setIndices(new Uint16Array([0, 1, 2]));
+        mesh.addSubMesh(0, 3);
+        mesh.bounds.min.set(-1, -1, 0);
+        mesh.bounds.max.set(1, 1, 0);
+        mesh.uploadData(false);
+        const renderer = root.createChild().addComponent(MeshRenderer);
+        renderer.mesh = mesh;
+        const material = new Material(fixtureEngine, shader);
+        renderer.setMaterial(material);
+        const gl = canvas.getContext(language === ShaderLanguage.GLSLES100 ? "webgl" : "webgl2") as
+          | WebGLRenderingContext
+          | WebGL2RenderingContext;
+        const pixel = new Uint8Array(4);
+        for (const [useRed, expected] of [
+          [0, [0, 255, 0, 255]],
+          [1, [255, 0, 0, 255]]
+        ] as const) {
+          material.shaderData.setFloat("material_UseRed", useRed);
+          fixtureEngine.update();
+          gl.readPixels(16, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+          expect(Array.from(pixel)).to.deep.equal(expected);
+        }
+      } finally {
+        fixtureEngine.destroy();
+        shader.destroy();
+      }
+    }
+  );
 
   it("PBR", async () => {
     const shader = shaderCompilerVerbose._parseShaderSource(PBRSource);

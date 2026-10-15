@@ -50,32 +50,14 @@ export abstract class CodeGenVisitor {
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {
     const children = node.children;
     const derivationLength = children.length;
-    const context = VisitorContext.context;
 
     if (derivationLength === 3) {
       const postExpr = children[0] as ASTNode.PostfixExpression;
       const prop = children[2];
 
       if (prop instanceof BaseToken) {
-        // Struct role priority: `_structVarMap` by bare root ident (covers forward-declared types like `Varyings o;`),
-        // then AST static type (normal path when `semanticAnalyze` resolved `postExpr.type`).
-        let role: StructRole | undefined;
-        const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
-        if (directRoot) role = context._structVarMap[directRoot];
-        if (!role) role = context.getStructRole(<string>postExpr.type);
-
-        if (role) {
-          const error =
-            role === "attribute"
-              ? context.referenceAttribute(prop)
-              : role === "varying"
-                ? context.referenceVarying(prop)
-                : context.referenceMRTProp(prop);
-          // #if _VERBOSE
-          if (error) this.errors.push(<GSError>error);
-          // #endif
-          return prop.lexeme;
-        }
+        const ioProp = this.referenceStructProp(node);
+        if (ioProp) return ioProp.lexeme;
 
         return `${postExpr.codeGen(this)}.${prop.lexeme}`;
       } else {
@@ -93,6 +75,32 @@ export abstract class CodeGenVisitor {
     }
 
     return this.defaultCodeGen(node.children);
+  }
+
+  protected referenceStructProp(node: ASTNode.PostfixExpression): BaseToken | undefined {
+    const children = node.children;
+    if (children.length !== 3 || !(children[2] instanceof BaseToken)) return;
+
+    const context = VisitorContext.context;
+    const postExpr = children[0] as ASTNode.PostfixExpression;
+    const prop = children[2] as BaseToken;
+    // Prefer registered IO variables, including forward-declared struct types.
+    let role: StructRole | undefined;
+    const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
+    if (directRoot) role = context._structVarMap[directRoot];
+    if (!role) role = context.getStructRole(<string>postExpr.type);
+    if (!role) return;
+
+    const error =
+      role === "attribute"
+        ? context.referenceAttribute(prop)
+        : role === "varying"
+          ? context.referenceVarying(prop)
+          : context.referenceMRTProp(prop);
+    // #if _VERBOSE
+    if (error) this.errors.push(<GSError>error);
+    // #endif
+    return prop;
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
