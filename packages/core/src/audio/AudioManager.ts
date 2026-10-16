@@ -7,7 +7,7 @@ export class AudioManager {
 
   private static _context: AudioContext;
   private static _gainNode: GainNode;
-  private static _resumePromise: Promise<void> = null;
+  private static _resumePromise: Promise<void> | null = null;
   private static _resumeAttemptFromUserGesture = false;
   private static _interruptionRecoveryPending = false;
   private static _suspendedByCaller = false;

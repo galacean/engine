@@ -22,7 +22,7 @@ export abstract class Joint extends Component {
   protected _colliderInfo = new JointColliderInfo();
   protected _connectedColliderInfo = new JointColliderInfo();
   @ignoreClone
-  protected _nativeJoint: IJoint;
+  protected _nativeJoint: IJoint | null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
@@ -30,7 +30,7 @@ export abstract class Joint extends Component {
   /**
    * The connected collider.
    */
-  get connectedCollider(): Collider {
+  get connectedCollider(): Collider | null {
     return this._connectedColliderInfo.collider;
   }
 
@@ -205,7 +205,7 @@ export abstract class Joint extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    this._nativeJoint.destroy();
+    this._nativeJoint!.destroy();
     this._nativeJoint = null;
   }
 
@@ -321,7 +321,7 @@ enum AnchorOwner {
  * @internal
  */
 class JointColliderInfo extends DataObject {
-  collider: Collider = null;
+  collider: Collider | null = null;
   anchor = new Vector3();
   actualAnchor = new Vector3();
   massScale: number = 1;

@@ -96,7 +96,7 @@ export class RenderTarget extends GraphicsResource {
     engine: Engine,
     width: number,
     height: number,
-    colorTexture: Texture,
+    colorTexture: Texture | null,
     depthFormat?: TextureFormat | null | RenderBufferDepthFormat,
     antiAliasing?: number
   );
@@ -116,7 +116,7 @@ export class RenderTarget extends GraphicsResource {
     width: number,
     height: number,
     colorTexture: Texture | null,
-    depthTexture: Texture,
+    depthTexture: Texture | null,
     antiAliasing?: number
   );
 
@@ -152,7 +152,7 @@ export class RenderTarget extends GraphicsResource {
     width: number,
     height: number,
     colorTextures: Texture[],
-    depthTexture: Texture,
+    depthTexture: Texture | null,
     antiAliasing?: number
   );
 

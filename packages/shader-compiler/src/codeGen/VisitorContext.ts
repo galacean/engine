@@ -74,15 +74,15 @@ export class VisitorContext {
     }
   }
 
-  isAttributeStruct(type: string) {
+  isAttributeStruct(type: string | undefined) {
     return this.attributeStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
-  isVaryingStruct(type: string) {
+  isVaryingStruct(type: string | undefined) {
     return this.varyingStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
-  isMRTStruct(type: string) {
+  isMRTStruct(type: string | undefined) {
     return this.mrtStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
@@ -139,7 +139,7 @@ export class VisitorContext {
       return ShaderCompilerUtils.createGSError(
         `referenced ${role} not found: ${name}`,
         GSErrorName.CompilationError,
-        ShaderCompiler._processingPassText,
+        ShaderCompiler._processingPassText!,
         location
       );
     }

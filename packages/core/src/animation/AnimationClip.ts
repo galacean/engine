@@ -46,7 +46,7 @@ export class AnimationClip extends EngineObject {
    * @param name - The AnimationClip's name
    */
   constructor(public readonly name: string) {
-    super(null);
+    super(null!);
   }
 
   /**
@@ -76,13 +76,13 @@ export class AnimationClip extends EngineObject {
     }
     const events = this._events;
     const count = events.length;
-    const eventTime = newEvent.time;
-    const maxEventTime = count ? events[count - 1].time : 0;
+    const eventTime = newEvent.time!;
+    const maxEventTime = count ? events[count - 1].time! : 0;
     if (eventTime >= maxEventTime) {
       events.push(newEvent);
     } else {
       let index = count;
-      while (--index >= 0 && eventTime < events[index].time);
+      while (--index >= 0 && eventTime < events[index].time!);
       events.splice(index + 1, 0, newEvent);
     }
 
@@ -192,7 +192,7 @@ export class AnimationClip extends EngineObject {
       }
     }
 
-    this._length = Math.max(this._length, curveBinding.curve.length);
+    this._length = Math.max(this._length, curveBinding.curve!.length);
     this._curveBindings.push(curveBinding);
   }
 
@@ -225,9 +225,9 @@ export class AnimationClip extends EngineObject {
           continue;
         }
         const curveOwner = curve._getTempCurveOwner(targetEntity, component);
-        if (curveOwner && curve.curve.keys.length) {
-          const value = curveOwner.evaluateValue(curve.curve, time, false);
-          curveOwner.applyValue(value, 1, false);
+        if (curveOwner && curve.curve!.keys.length) {
+          const value = curveOwner.evaluateValue(curve.curve!, time, false);
+          curveOwner.applyValue(value!, 1, false);
         }
       }
     }

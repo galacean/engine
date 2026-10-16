@@ -31,7 +31,7 @@ export class AnimationClipCurveBinding {
    */
   getProperty?: string;
   /** The animation curve. */
-  curve: AnimationCurve<KeyframeValueType>;
+  curve: AnimationCurve<KeyframeValueType> | undefined;
 
   private _tempCurveOwner = new WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>>();
 
@@ -39,7 +39,7 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
-    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const curveType = (<unknown>this.curve!.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const owner = new AnimationCurveOwner(entity, this.type, component, this.property, this.getProperty, curveType);
     curveType._initializeOwner(owner);
     owner.saveDefaultValue();
@@ -50,7 +50,7 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveLayerOwner {
-    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const curveType = (<unknown>this.curve!.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const layerOwner = new AnimationCurveLayerOwner();
     layerOwner.curveOwner = owner;
     curveType._initializeLayerOwner(layerOwner);

@@ -12,7 +12,7 @@ export class ShaderSourceFactory {
     return {
       name,
       subShaders: [],
-      pendingContents: [],
+      pendingContents: [] as IShaderPassSource["pendingContents"],
       renderStates: this.createRenderStates()
     };
   }
@@ -21,7 +21,7 @@ export class ShaderSourceFactory {
     return {
       name,
       passes: [],
-      pendingContents: [],
+      pendingContents: [] as IShaderPassSource["pendingContents"],
       tags: {},
       renderStates: this.createRenderStates()
     };
@@ -30,7 +30,7 @@ export class ShaderSourceFactory {
   static createShaderPassSource(name: string): IShaderPassSource {
     return {
       name,
-      pendingContents: [],
+      pendingContents: [] as IShaderPassSource["pendingContents"],
       tags: {},
       renderStates: this.createRenderStates()
     } as IShaderPassSource;
@@ -39,7 +39,7 @@ export class ShaderSourceFactory {
   static createUsePass(name: string): IShaderPassSource {
     return {
       name,
-      pendingContents: [],
+      pendingContents: [] as IShaderPassSource["pendingContents"],
       isUsePass: true,
       tags: {},
       renderStates: this.createRenderStates()

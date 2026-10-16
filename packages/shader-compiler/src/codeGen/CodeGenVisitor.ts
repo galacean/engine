@@ -27,13 +27,13 @@ export abstract class CodeGenVisitor {
 
   abstract getAttributeProp(prop: StructProp): string;
   abstract getVaryingProp(prop: StructProp): string;
-  abstract getMRTProp(prop: StructProp): string;
+  abstract getMRTProp(prop: StructProp): string | null;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
-    let ret = pool.get();
+    const ret = pool.get();
     ret.dispose();
     for (const child of children) {
       if (child instanceof BaseToken) {
@@ -96,7 +96,7 @@ export abstract class CodeGenVisitor {
   }
 
   visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    for (let name of node.referenceGlobalSymbolNames) {
+    for (const name of node.referenceGlobalSymbolNames) {
       VisitorContext.context.referenceGlobal(name, ESymbolType.Any);
     }
 
@@ -215,7 +215,7 @@ export abstract class CodeGenVisitor {
   }
 
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
-    const type = node.typeSpecifier.type;
+    const type = node.typeSpecifier!.type;
     if (typeof type === "string") {
       VisitorContext.context.referenceGlobal(type, ESymbolType.STRUCT);
     }
@@ -261,7 +261,7 @@ export abstract class CodeGenVisitor {
     let out = "";
     for (let i = 0, length = params.length; i < length; i++) {
       const item = params[i];
-      const astNode = item.astNode;
+      const astNode = item.astNode!;
       const code = astNode.codeGen(this);
       if (astNode instanceof ASTNode.MacroParamBlock || i === 0) {
         out += code;
@@ -327,7 +327,7 @@ export abstract class CodeGenVisitor {
     }
 
     if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
-      let result: ICodeSegment[] = [];
+      const result: ICodeSegment[] = [];
 
       result.push(
         ...node.macroExpressions.map((item) => ({
@@ -381,7 +381,7 @@ export abstract class CodeGenVisitor {
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
-    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText!));
     // #else
     console.error(message);
     // #endif

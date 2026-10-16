@@ -29,7 +29,7 @@ export abstract class UpdateFlag {
    */
   destroy(): void {
     this._removeFromManagers();
-    this._flagManagers = null;
+    this._flagManagers = null!;
   }
 
   private _removeFromManagers(): void {

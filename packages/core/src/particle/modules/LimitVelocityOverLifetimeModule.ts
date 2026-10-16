@@ -13,32 +13,58 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Limit velocity over lifetime module.
  */
 export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_LVL_MODULE_ENABLED");
+  /** @internal */
   static readonly _separateAxesMacro = ShaderMacro.getByName("RENDERER_LVL_SEPARATE_AXES");
+  /** @internal */
   static readonly _speedConstantModeMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_CONSTANT_MODE");
+  /** @internal */
   static readonly _speedCurveModeMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_CURVE_MODE");
+  /** @internal */
   static readonly _speedIsRandomMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_IS_RANDOM_TWO");
+  /** @internal */
   static readonly _dragCurveModeMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_CURVE_MODE");
+  /** @internal */
   static readonly _dragIsRandomMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_IS_RANDOM_TWO");
+  /** @internal */
   static readonly _multiplyDragBySizeMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_SIZE");
+  /** @internal */
   static readonly _multiplyDragByVelocityMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_VELOCITY");
 
+  /** @internal */
   static readonly _speedMaxConstProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxConst");
+  /** @internal */
   static readonly _speedMinConstProperty = ShaderProperty.getByName("renderer_LVLSpeedMinConst");
+  /** @internal */
   static readonly _speedMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxCurve");
+  /** @internal */
   static readonly _speedMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedMinCurve");
+  /** @internal */
   static readonly _speedMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxConstVector");
+  /** @internal */
   static readonly _speedMinConstVecProperty = ShaderProperty.getByName("renderer_LVLSpeedMinConstVector");
+  /** @internal */
   static readonly _speedXMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedXMaxCurve");
+  /** @internal */
   static readonly _speedXMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedXMinCurve");
+  /** @internal */
   static readonly _speedYMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedYMaxCurve");
+  /** @internal */
   static readonly _speedYMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedYMinCurve");
+  /** @internal */
   static readonly _speedZMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedZMaxCurve");
+  /** @internal */
   static readonly _speedZMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedZMinCurve");
+  /** @internal */
   static readonly _dampenProperty = ShaderProperty.getByName("renderer_LVLDampen");
+  /** @internal */
   static readonly _dragConstantProperty = ShaderProperty.getByName("renderer_LVLDragConstant");
+  /** @internal */
   static readonly _dragMaxCurveProperty = ShaderProperty.getByName("renderer_LVLDragMaxCurve");
+  /** @internal */
   static readonly _dragMinCurveProperty = ShaderProperty.getByName("renderer_LVLDragMinCurve");
+  /** @internal */
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_LVLSpace");
 
   /** @internal */
@@ -53,21 +79,21 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _dragConstantVec = new Vector2();
 
   @ignoreClone
-  private _enabledModuleMacro: ShaderMacro;
+  private _enabledModuleMacro: ShaderMacro | null;
   @ignoreClone
-  private _separateAxesCachedMacro: ShaderMacro;
+  private _separateAxesCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _speedModeMacro: ShaderMacro;
+  private _speedModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _speedRandomMacro: ShaderMacro;
+  private _speedRandomMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragCurveCachedMacro: ShaderMacro;
+  private _dragCurveCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragRandomCachedMacro: ShaderMacro;
+  private _dragRandomCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragSizeMacro: ShaderMacro;
+  private _dragSizeMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragVelocityMacro: ShaderMacro;
+  private _dragVelocityMacro: ShaderMacro | null;
 
   private _separateAxes = false;
   private _speedX: ParticleCompositeCurve;
@@ -276,14 +302,14 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enabledModuleMacro = <ShaderMacro>null;
-    let separateAxesMacro = <ShaderMacro>null;
-    let speedModeMacro = <ShaderMacro>null;
-    let speedRandomMacro = <ShaderMacro>null;
-    let dragCurveMacro = <ShaderMacro>null;
-    let dragRandomMacro = <ShaderMacro>null;
-    let dragSizeMacro = <ShaderMacro>null;
-    let dragVelocityMacro = <ShaderMacro>null;
+    let enabledModuleMacro: ShaderMacro | null = null;
+    let separateAxesMacro: ShaderMacro | null = null;
+    let speedModeMacro: ShaderMacro | null = null;
+    let speedRandomMacro: ShaderMacro | null = null;
+    let dragCurveMacro: ShaderMacro | null = null;
+    let dragRandomMacro: ShaderMacro | null = null;
+    let dragSizeMacro: ShaderMacro | null = null;
+    let dragVelocityMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       enabledModuleMacro = LimitVelocityOverLifetimeModule._enabledMacro;
@@ -337,10 +363,13 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._speedRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
   }
 
-  private _uploadScalarSpeed(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadScalarSpeed(shaderData: ShaderData): {
+    modeMacro: ShaderMacro | null;
+    randomMacro: ShaderMacro | null;
+  } {
     const speedX = this._speedX;
-    let modeMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let modeMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode = speedX.mode === ParticleCurveMode.TwoCurves;
     if (isRandomCurveMode || speedX.mode === ParticleCurveMode.Curve) {
@@ -365,12 +394,15 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     return { modeMacro, randomMacro };
   }
 
-  private _uploadSeparateAxisSpeeds(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadSeparateAxisSpeeds(shaderData: ShaderData): {
+    modeMacro: ShaderMacro | null;
+    randomMacro: ShaderMacro | null;
+  } {
     const speedX = this._speedX;
     const speedY = this._speedY;
     const speedZ = this._speedZ;
-    let modeMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let modeMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode =
       speedX.mode === ParticleCurveMode.TwoCurves &&
@@ -432,10 +464,10 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     return { modeMacro, randomMacro };
   }
 
-  private _uploadDrag(shaderData: ShaderData): { curveMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadDrag(shaderData: ShaderData): { curveMacro: ShaderMacro | null; randomMacro: ShaderMacro | null } {
     const drag = this._drag;
-    let curveMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let curveMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode = drag.mode === ParticleCurveMode.TwoCurves;
     if (isRandomCurveMode || drag.mode === ParticleCurveMode.Curve) {

@@ -16,7 +16,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _pendingPlay: Promise<void> | null = null;
 
-  private _clip: AudioClip;
+  private _clip: AudioClip | null;
   @ignoreClone
   private _gainNode: GainNode;
   @ignoreClone
@@ -35,11 +35,11 @@ export class AudioSource extends Component {
   /**
    * The audio clip to play.
    */
-  get clip(): AudioClip {
+  get clip(): AudioClip | null {
     return this._clip;
   }
 
-  set clip(value: AudioClip) {
+  set clip(value: AudioClip | null) {
     const lastClip = this._clip;
     if (lastClip !== value) {
       lastClip && lastClip._addReferCount(-1);
@@ -81,7 +81,7 @@ export class AudioSource extends Component {
   set playbackRate(value: number) {
     const elapsedTime = this._getElapsedTime();
     if (this._isPlaying) {
-      this._sourceNode.playbackRate.value = value;
+      this._sourceNode!.playbackRate.value = value;
     }
     this._playbackOffset += elapsedTime * this._playbackRate;
     this._playbackStartTime += elapsedTime;
@@ -118,7 +118,7 @@ export class AudioSource extends Component {
       this._loop = value;
 
       if (this._isPlaying) {
-        this._sourceNode.loop = this._loop;
+        this._sourceNode!.loop = this._loop;
       }
     }
   }
@@ -284,7 +284,7 @@ export class AudioSource extends Component {
   private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
-    const buffer = this._clip._getAudioSource();
+    const buffer = this._clip!._getAudioSource()!;
 
     sourceNode.buffer = buffer;
     sourceNode.playbackRate.value = this._playbackRate;
@@ -305,9 +305,9 @@ export class AudioSource extends Component {
   }
 
   private _clearSourceNode(): void {
-    this._sourceNode.stop();
-    this._sourceNode.disconnect();
-    this._sourceNode.onended = null;
+    this._sourceNode!.stop();
+    this._sourceNode!.disconnect();
+    this._sourceNode!.onended = null;
     this._sourceNode = null;
   }
 }

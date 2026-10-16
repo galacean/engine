@@ -6,7 +6,7 @@ import { WebXRSession } from "./WebXRSession";
 
 export class WebXRFrame implements IXRFrame {
   /** @internal */
-  _platformFrame: XRFrame;
+  _platformFrame: XRFrame | null;
   private _session: WebXRSession;
 
   updateInputs(inputs: IXRInput[]): void {
@@ -16,36 +16,40 @@ export class WebXRFrame implements IXRFrame {
   }
 
   private _updateController(inputs: IXRInput[]) {
-    const { _platformFrame: frame } = this;
+    const frame = this._platformFrame!;
     const { _platformSession: session, _platformReferenceSpace: referenceSpace } = this._session;
     const { inputSources } = session;
     for (let i = 0, n = inputSources.length; i < n; i++) {
       const inputSource = inputSources[i];
       const type = getInputSource(inputSource);
-      const input = <IXRController>inputs[type];
+      const input = <IXRController>inputs[type!];
       switch (inputSource.targetRayMode) {
         case "screen":
         case "tracked-pointer":
           const { gripSpace, targetRaySpace } = inputSource;
           if (gripSpace) {
-            const { transform, emulatedPosition } = frame.getPose(gripSpace, referenceSpace);
-            if (transform) {
+            const pose = frame.getPose(gripSpace, referenceSpace);
+            if (pose) {
+              const { transform } = pose;
               const { gripPose } = input;
-              gripPose.matrix.copyFromArray(transform.matrix);
+              gripPose.matrix!.copyFromArray(transform.matrix);
               gripPose.position.copyFrom(transform.position);
               gripPose.rotation.copyFrom(transform.orientation);
             }
-            input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
+            input.trackingState =
+              !pose || pose.emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           if (targetRaySpace) {
-            const { transform, emulatedPosition } = frame.getPose(targetRaySpace, referenceSpace);
-            if (transform) {
+            const pose = frame.getPose(targetRaySpace, referenceSpace);
+            if (pose) {
+              const { transform } = pose;
               const { targetRayPose } = input;
-              targetRayPose.matrix.copyFromArray(transform.matrix);
+              targetRayPose.matrix!.copyFromArray(transform.matrix);
               targetRayPose.position.copyFrom(transform.position);
               targetRayPose.rotation.copyFrom(transform.orientation);
-              input.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
             }
+            input.trackingState =
+              !pose || pose.emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
           }
           break;
         case "gaze":
@@ -57,7 +61,7 @@ export class WebXRFrame implements IXRFrame {
   }
 
   private _updateCamera(inputs: IXRInput[]) {
-    const { _platformFrame: frame } = this;
+    const frame = this._platformFrame!;
     const {
       _platformReferenceSpace: referenceSpace,
       _platformLayer: layer,
@@ -77,12 +81,12 @@ export class WebXRFrame implements IXRFrame {
         }
         const xrCamera = <IXRCamera>inputs[type];
         const { pose } = xrCamera;
-        pose.matrix.copyFromArray(transform.matrix);
+        pose.matrix!.copyFromArray(transform.matrix);
         pose.position.copyFrom(transform.position);
         pose.rotation.copyFrom(transform.orientation);
         xrCamera.projectionMatrix.copyFromArray(view.projectionMatrix);
         xrCamera.trackingState = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
-        const xrViewport = layer.getViewport(view);
+        const xrViewport = layer.getViewport(view)!;
         const width = xrViewport.width / framebufferWidth;
         const height = xrViewport.height / framebufferHeight;
         const x = xrViewport.x / framebufferWidth;
@@ -101,8 +105,8 @@ export class WebXRFrame implements IXRFrame {
         const { position, matrix } = cameraPose;
         Vector3.add(leftCameraPose.position, rightCameraPose.position, position);
         position.scale(0.5);
-        matrix.copyFrom(leftCameraPose.matrix);
-        const { elements } = matrix;
+        matrix!.copyFrom(leftCameraPose.matrix!);
+        const { elements } = matrix!;
         elements[12] = position.x;
         elements[13] = position.y;
         elements[14] = position.z;

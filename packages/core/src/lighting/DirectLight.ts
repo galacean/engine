@@ -71,14 +71,14 @@ export class DirectLight extends Light {
    * @internal
    */
   override _onEnableInScene(): void {
-    this.scene._lightManager._attachDirectLight(this);
+    this.scene!._lightManager._attachDirectLight(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene._lightManager._detachDirectLight(this);
+    this.scene!._lightManager._detachDirectLight(this);
   }
 }
 

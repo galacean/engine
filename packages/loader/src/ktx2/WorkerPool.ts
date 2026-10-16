@@ -88,9 +88,9 @@ export class WorkerPool<T = any, U = any> {
     // onerror of web worker can't catch error in promise
     const error = (msg.data as ErrorMessageData).error;
     if (error) {
-      this._workerItems[workerId].reject(error);
+      this._workerItems[workerId].reject!(error);
     } else {
-      this._workerItems[workerId].resolve(msg.data);
+      this._workerItems[workerId].resolve!(msg.data);
     }
     this._nextTask(workerId);
   }
@@ -114,8 +114,8 @@ interface ErrorMessageData {
 
 interface WorkerItem<U> {
   worker: Worker;
-  resolve: (item: U | PromiseLike<U>) => void;
-  reject: (reason?: any) => void;
+  resolve: ((item: U | PromiseLike<U>) => void) | null;
+  reject: ((reason?: any) => void) | null;
 }
 
 interface TaskItem<T, U> {

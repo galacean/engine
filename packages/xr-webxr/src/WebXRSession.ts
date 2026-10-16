@@ -7,7 +7,7 @@ export class WebXRSession implements IXRSession {
   requestAnimationFrame: (callback: FrameRequestCallback) => number;
   cancelAnimationFrame: (id: number) => void;
   /** @internal */
-  _onSessionExitCallBack: () => void;
+  _onSessionExitCallBack: (() => void) | null;
 
   /** @internal */
   _platformSession: XRSession;
@@ -18,7 +18,7 @@ export class WebXRSession implements IXRSession {
 
   private _frame: WebXRFrame;
   private _events: IXRInputEvent[] = [];
-  private _screenPointers: XRInputSource[] = [];
+  private _screenPointers: (XRInputSource | null)[] = [];
   private _inputEventTypeMap: Record<string, number> = {
     selectstart: XRInputEventType.SelectStart,
     select: XRInputEventType.Select,
@@ -49,11 +49,11 @@ export class WebXRSession implements IXRSession {
     return this._platformLayer.framebufferHeight;
   }
 
-  get frameRate(): number {
+  get frameRate(): number | undefined {
     return this._platformSession.frameRate;
   }
 
-  get supportedFrameRates(): Float32Array {
+  get supportedFrameRates(): Float32Array | undefined {
     return this._platformSession.supportedFrameRates;
   }
 
@@ -64,7 +64,7 @@ export class WebXRSession implements IXRSession {
     for (let i = 0; i < screenPointers.length; i++) {
       const inputSource = screenPointers[i];
       if (!inputSource) continue;
-      const { axes } = inputSource.gamepad;
+      const { axes } = inputSource.gamepad!;
       const event = {
         type: XRInputEventType.Select,
         targetRayMode: XRTargetRayMode.Screen,
@@ -98,7 +98,7 @@ export class WebXRSession implements IXRSession {
     this._onSessionExit = this._onSessionExit.bind(this);
   }
 
-  getFixedFoveation(): number {
+  getFixedFoveation(): number | undefined {
     return this._platformLayer.fixedFoveation;
   }
 
@@ -159,12 +159,12 @@ export class WebXRSession implements IXRSession {
     const { inputSource } = inputSourceEvent;
     const event: IXRInputEvent = {
       type: this._inputEventTypeMap[inputSourceEvent.type],
-      input: getInputSource(inputSource),
+      input: getInputSource(inputSource)!,
       targetRayMode: this._targetRayModeMap[inputSource.targetRayMode]
     };
     if (event.targetRayMode === XRTargetRayMode.Screen) {
       const { _screenPointers: screenPointers } = this;
-      const { axes } = inputSource.gamepad;
+      const { axes } = inputSource.gamepad!;
       event.x = axes[0];
       event.y = axes[1];
       switch (event.type) {

@@ -211,7 +211,7 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-transparent",
       threshold: 0,
-      diffPercentage: 0.0552
+      diffPercentage: 0.001
     }
   },
   Primitive: {
@@ -301,7 +301,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.13803
+      diffPercentage: 0.001
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
@@ -491,19 +491,19 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.072
+      diffPercentage: 0.001
     },
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.4829
+      diffPercentage: 0.001
     },
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0,
-      diffPercentage: 0.03
+      diffPercentage: 0.001
     }
   },
   GPUInstancing: {

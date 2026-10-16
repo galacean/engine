@@ -48,7 +48,7 @@ export class RasterState extends DataObject {
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
     frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, customStates);
   }
@@ -57,7 +57,7 @@ export class RasterState extends DataObject {
     rhi: IHardwareRenderer,
     lastState: RasterState,
     frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let { cullMode, depthBias, slopeScaledDepthBias } = this;

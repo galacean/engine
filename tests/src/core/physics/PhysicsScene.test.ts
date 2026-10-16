@@ -408,6 +408,76 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("non-unit direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const shortDir = new Vector3(0, 0, -0.1);
+      const longDir = new Vector3(0, 0, -10);
+      const outHitResult = new HitResult();
+
+      // distance is a length in world units, whatever the length of the direction.
+      expect(physicsScene.raycast(new Ray(origin, shortDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 4)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(origin, halfExtents, shortDir, 6)).to.eq(true);
+      expect(physicsScene.boxCast(origin, halfExtents, longDir, 4)).to.eq(false);
+      expect(physicsScene.sphereCast(origin, 0.1, shortDir, 6)).to.eq(true);
+      expect(physicsScene.sphereCast(origin, 0.1, longDir, 4)).to.eq(false);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, shortDir, 6)).to.eq(true);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, longDir, 4)).to.eq(false);
+
+      // The caller's vectors are left untouched.
+      expect(shortDir.z).to.eq(-0.1);
+      expect(longDir.z).to.eq(-10);
+
+      root.destroy();
+    });
+
+    it("degenerate direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const inside = new Vector3(0, 0, 0);
+      const zeroDir = new Vector3(0, 0, 0);
+      const tinyDir = new Vector3(0, 0, -1e-8);
+      const outHitResult = new HitResult();
+
+      // A unit direction still hits the front face and fills the hit result.
+      expect(physicsScene.raycast(new Ray(origin, new Vector3(0, 0, -1)), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.shape).to.not.eq(null);
+
+      // `Vector3.normalize` leaves directions no longer than `MathUtil.zeroTolerance` untouched, so
+      // those have no unit form: the queries report a miss and clear the caller's hit result instead
+      // of casting a scaled distance or letting the backends answer with an initial overlap hit.
+      expect(physicsScene.raycast(new Ray(inside, zeroDir), 6, outHitResult)).to.eq(false);
+      expect(outHitResult.shape).to.eq(null);
+      expect(physicsScene.raycast(new Ray(inside, tinyDir), 6)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(inside, halfExtents, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.sphereCast(inside, 0.1, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.capsuleCast(inside, 0.1, 0.5, tinyDir, 6)).to.eq(false);
+
+      root.destroy();
+    });
+
     it("raycast skips initial overlap when ray origin is inside a collider", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -560,13 +630,13 @@ describe("Physics Test", () => {
       const seenInInner: number[] = [];
 
       const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
-      nativeScene.raycast(outerRay, 100, (uuid: number) => {
+      nativeScene.raycast(outerRay.origin, outerRay.direction, 100, (uuid: number) => {
         seenInOuter.push(uuid);
         // Nested raycast inside the outer's filter callback. If the stack got
         // mixed up, the inner ray's preFilter would dispatch to the outer
         // recorder (or vice versa).
         const innerRay = new Ray(new Vector3(0, -5, 0), new Vector3(0, 1, 0));
-        nativeScene.raycast(innerRay, 100, (innerUuid: number) => {
+        nativeScene.raycast(innerRay.origin, innerRay.direction, 100, (innerUuid: number) => {
           seenInInner.push(innerUuid);
           return true;
         });
@@ -609,7 +679,8 @@ describe("Physics Test", () => {
         expect(distance).to.be.greaterThan(0);
       };
       const result = nativeScene.raycast(
-        outerRay,
+        outerRay.origin,
+        outerRay.direction,
         100,
         (uuid: number) => {
           outerCalls++;
@@ -654,7 +725,7 @@ describe("Physics Test", () => {
       const ray = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
 
       expect(() => {
-        nativeScene.raycast(ray, 100, () => {
+        nativeScene.raycast(ray.origin, ray.direction, 100, () => {
           throw new Error("intentional in test");
         });
       }).to.throw("intentional in test");
@@ -664,7 +735,8 @@ describe("Physics Test", () => {
       let secondCalled = false;
       let observedUuid = -1;
       const ok = nativeScene.raycast(
-        ray,
+        ray.origin,
+        ray.direction,
         100,
         (uuid: number) => {
           secondCalled = true;
