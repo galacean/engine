@@ -20,6 +20,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     rotation: new Quaternion()
   };
   private static _tempShapeIDs: number[] = [];
+  /**
+   * Native touch chunk size passed to the all-hit query bindings. The binding
+   * ignores this value and uses its own internal chunk size, so it is not a cap
+   * on the number of returned hits — every chunk is collected.
+   */
+  private static readonly _pxQueryChunkSize = 256;
 
   // Cached geometry objects for reuse
   private _boxGeometry: any = null;
@@ -32,6 +38,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxSweepHit: any;
   private _pxFilterData: any;
   private _pxRaycastSweepFilterData: any;
+  private _pxRaycastAllFilterData: any;
 
   private _pxScene: any;
   private _physXSimulationCallbackInstance: any;
@@ -68,6 +75,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxRaycastSweepFilterData = new physX.PxQueryFilterData();
     this._pxRaycastSweepFilterData.flags = new physX.PxQueryFlags(
       QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
+    );
+    this._pxRaycastAllFilterData = new physX.PxQueryFilterData();
+    this._pxRaycastAllFilterData.flags = new physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER | QueryFlag.NO_BLOCK
     );
 
     const triggerCallback = {
@@ -272,6 +283,59 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.raycastAll }
+   */
+  raycastAll(
+    origin: Vector3,
+    direction: Vector3,
+    distance: number,
+    onRaycast: (obj: number) => boolean,
+    onHit: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): void {
+    distance = Math.min(distance, 3.4e38);
+
+    const prevOnQuery = this._currentOnQuery;
+    this._currentOnQuery = onRaycast;
+    let hits: any;
+    try {
+      hits = this._pxScene.raycastMultiple(
+        origin,
+        direction,
+        distance,
+        PhysXPhysicsScene._pxQueryChunkSize,
+        this._pxRaycastAllFilterData,
+        this._pxQueryCallback
+      );
+    } finally {
+      this._currentOnQuery = prevOnQuery;
+    }
+
+    try {
+      if (hits) {
+        for (let i = 0, n = hits.size(); i < n; i++) {
+          const pxHit = hits.get(i);
+          try {
+            const pxPosition = pxHit.position;
+            const pxNormal = pxHit.normal;
+            PhysXPhysicsScene._tempPosition.set(pxPosition.x, pxPosition.y, pxPosition.z);
+            PhysXPhysicsScene._tempNormal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+            onHit(
+              pxHit.getShape().getUUID(),
+              pxHit.distance,
+              PhysXPhysicsScene._tempPosition,
+              PhysXPhysicsScene._tempNormal
+            );
+          } finally {
+            pxHit.delete();
+          }
+        }
+      }
+    } finally {
+      hits?.delete();
+    }
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.boxCast }
    */
   boxCast(
@@ -426,6 +490,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxFilterData.delete();
     this._pxRaycastSweepFilterData.flags.delete();
     this._pxRaycastSweepFilterData.delete();
+    this._pxRaycastAllFilterData.flags.delete();
+    this._pxRaycastAllFilterData.delete();
     this._pxQueryCallback.delete();
     // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();
@@ -515,25 +581,37 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   ): number[] {
     const prevOnQuery = this._currentOnQuery;
     this._currentOnQuery = onOverlap;
-    const maxHits = 256;
     let hits: any;
     try {
-      hits = (this._pxScene as any).overlapMultiple(geometry, pose, maxHits, this._pxFilterData, this._pxQueryCallback);
+      hits = (this._pxScene as any).overlapMultiple(
+        geometry,
+        pose,
+        PhysXPhysicsScene._pxQueryChunkSize,
+        this._pxFilterData,
+        this._pxQueryCallback
+      );
     } finally {
       this._currentOnQuery = prevOnQuery;
     }
 
     const result = PhysXPhysicsScene._tempShapeIDs;
     result.length = 0;
-    if (hits) {
-      // PhysX overlapMultiple returns a collection with size() method
-      for (let i = 0, n = hits.size(); i < n; i++) {
-        result.push(hits.get(i).getShape().getUUID());
+    try {
+      if (hits) {
+        // PhysX overlapMultiple returns a collection with size() method
+        for (let i = 0, n = hits.size(); i < n; i++) {
+          const hit = hits.get(i);
+          try {
+            result.push(hit.getShape().getUUID());
+          } finally {
+            hit.delete();
+          }
+        }
       }
+      return result;
+    } finally {
+      hits?.delete();
     }
-
-    hits?.delete();
-    return result;
   }
 
   private _simulate(elapsedTime: number): void {
@@ -564,18 +642,28 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     event.shape1Id = collision.shape1Id;
     event.state = state;
 
-    // Copy contact points from PhysX (the native data is only valid during fetchResults)
+    // Copy contact points from PhysX (the native data is only valid during fetchResults).
+    // Both the vector and each `get(i)` element are owned Embind copies allocated on the
+    // wasm heap, so they must be released explicitly; the JS GC cannot reclaim them.
     const nativeContacts = collision.getContacts();
     const count = nativeContacts.size();
     const bufferedContacts = event._bufferedContacts;
     bufferedContacts.contactCount = count;
-    for (let i = 0; i < count; i++) {
-      const src = nativeContacts.get(i);
-      const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
-      dst.position.copyFrom(src.position);
-      dst.normal.copyFrom(src.normal);
-      dst.impulse.copyFrom(src.impulse);
-      dst.separation = src.separation;
+    try {
+      for (let i = 0; i < count; i++) {
+        const src = nativeContacts.get(i);
+        try {
+          const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
+          dst.position.copyFrom(src.position);
+          dst.normal.copyFrom(src.normal);
+          dst.impulse.copyFrom(src.impulse);
+          dst.separation = src.separation;
+        } finally {
+          src.delete();
+        }
+      }
+    } finally {
+      nativeContacts.delete();
     }
   }
 }
@@ -631,6 +719,9 @@ class BufferedContactPoint {
   normal = new Vector3();
   impulse = new Vector3();
   separation = 0;
+
+  /** No-op: this is a plain JS object, not an Embind copy. */
+  delete(): void {}
 }
 
 /**
@@ -648,6 +739,9 @@ class BufferedContacts {
   get(index: number): BufferedContactPoint {
     return this.contacts[index];
   }
+
+  /** No-op: this is a plain JS object, not an Embind vector. */
+  delete(): void {}
 }
 
 class ContactEvent implements IContactEvent {
