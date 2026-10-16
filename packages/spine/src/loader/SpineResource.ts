@@ -74,7 +74,7 @@ export class SpineResource extends ReferResource {
     super._onDestroy();
     this._template?.destroy();
     this._template = null;
-    this._disassociationSuperResource();
+    this._disassociateTextures();
     this._skeletonData = null;
     this._stateData = null;
   }
@@ -102,7 +102,7 @@ export class SpineResource extends ReferResource {
     }
   }
 
-  private _disassociationSuperResource(): void {
+  private _disassociateTextures(): void {
     const textures = this._texturesInSpineAtlas;
     for (let i = 0, n = textures.length; i < n; i++) {
       // @ts-ignore

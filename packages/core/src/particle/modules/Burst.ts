@@ -1,12 +1,11 @@
-import { deepClone } from "../../clone/CloneManager";
+import { DataObject } from "../../base/DataObject";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
 /**
  * A burst is a particle emission event, where a number of particles are all emitted at the same time
  */
-export class Burst {
+export class Burst extends DataObject {
   public time: number;
-  @deepClone
   public count: ParticleCompositeCurve;
 
   private _cycles: number;
@@ -49,6 +48,7 @@ export class Burst {
    */
   constructor(time: number, count: ParticleCompositeCurve, cycles: number, repeatInterval: number);
   constructor(time: number, count: ParticleCompositeCurve, cycles?: number, repeatInterval?: number) {
+    super();
     this.time = time;
     this.count = count;
     this._cycles = Math.max(cycles ?? 1, 1);

@@ -1,4 +1,4 @@
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
@@ -16,8 +16,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _pendingPlay = false;
 
-  @assignmentClone
-  private _clip: AudioClip;
+  private _clip: AudioClip | null;
   @ignoreClone
   private _gainNode: GainNode;
   @ignoreClone
@@ -28,23 +27,19 @@ export class AudioSource extends Component {
   @ignoreClone
   private _playTime = -1;
 
-  @assignmentClone
   private _volume = 1;
-  @assignmentClone
   private _lastVolume = 1;
-  @assignmentClone
   private _playbackRate = 1;
-  @assignmentClone
   private _loop = false;
 
   /**
    * The audio clip to play.
    */
-  get clip(): AudioClip {
+  get clip(): AudioClip | null {
     return this._clip;
   }
 
-  set clip(value: AudioClip) {
+  set clip(value: AudioClip | null) {
     const lastClip = this._clip;
     if (lastClip !== value) {
       lastClip && lastClip._addReferCount(-1);
@@ -87,7 +82,7 @@ export class AudioSource extends Component {
   set playbackRate(value: number) {
     this._playbackRate = value;
     if (this._isPlaying) {
-      this._sourceNode.playbackRate.value = this._playbackRate;
+      this._sourceNode!.playbackRate.value = this._playbackRate;
     }
   }
 
@@ -121,7 +116,7 @@ export class AudioSource extends Component {
       this._loop = value;
 
       if (this._isPlaying) {
-        this._sourceNode.loop = this._loop;
+        this._sourceNode!.loop = this._loop;
       }
     }
   }
@@ -223,14 +218,6 @@ export class AudioSource extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: AudioSource): void {
-    target._clip?._addReferCount(1);
-    // _volume is field-cloned; its gain node is applied lazily on first play
-  }
-
-  /**
-   * @internal
-   */
   override _onEnable(): void {
     this.playOnEnabled && this.play();
   }
@@ -279,7 +266,7 @@ export class AudioSource extends Component {
   private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
-    const buffer = this._clip._getAudioSource();
+    const buffer = this._clip!._getAudioSource()!;
 
     sourceNode.buffer = buffer;
     sourceNode.playbackRate.value = this._playbackRate;
@@ -295,9 +282,9 @@ export class AudioSource extends Component {
   }
 
   private _clearSourceNode(): void {
-    this._sourceNode.stop();
-    this._sourceNode.disconnect();
-    this._sourceNode.onended = null;
+    this._sourceNode!.stop();
+    this._sourceNode!.disconnect();
+    this._sourceNode!.onended = null;
     this._sourceNode = null;
   }
 }

@@ -12,7 +12,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
   /** @internal */
   _height: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    *  The x coordinate of the rectangle.

@@ -1,4 +1,4 @@
-import { Camera, PointerEventData, Script, SpriteDrawMode } from "@galacean/engine-core";
+import { Camera, PointerEventData, Script, Sprite, SpriteDrawMode, Texture2D } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import {
@@ -6,6 +6,7 @@ import {
   ColorTransition,
   Image,
   ScaleTransition,
+  SpriteTransition,
   Text,
   UICanvas,
   UIGroup,
@@ -31,8 +32,7 @@ describe("Button", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 
@@ -250,5 +250,99 @@ describe("Button", async () => {
     expect(handler.callCount).toBe(0);
 
     testEntity.destroy();
+  });
+
+  it("cloned interactive gets independent deep-cloned transitions with remapped targets", () => {
+    const testEntity = canvasEntity.createChild("transitionClone");
+    const testImage = testEntity.addComponent(Image);
+    (<UITransform>testEntity.transform).size.set(100, 40);
+    const testButton = testEntity.addComponent(Button);
+
+    const transition = new ColorTransition();
+    transition.target = testImage;
+    transition.normal = new Color(1, 0, 0, 1);
+    transition.hover = new Color(0, 1, 0, 1);
+    testButton.addTransition(transition);
+
+    const cloneEntity = testEntity.clone();
+    canvasEntity.addChild(cloneEntity);
+    const cloneButton = cloneEntity.getComponent(Button);
+    const cloneImage = cloneEntity.getComponent(Image);
+
+    expect(cloneButton.transitions.length).to.eq(1);
+    const cloneTransition = cloneButton.transitions[0] as ColorTransition;
+    // Independent instance, wired to the clone's own components.
+    expect(cloneTransition).not.to.eq(transition);
+    expect(cloneTransition.target).to.eq(cloneImage);
+    // @ts-ignore
+    expect(cloneTransition._interactive).to.eq(cloneButton);
+    // State values deep cloned.
+    expect(cloneTransition.normal).not.to.eq(transition.normal);
+    expect(cloneTransition.normal.r).to.eq(1);
+    expect(cloneTransition.hover.g).to.eq(1);
+
+    // Destroying the clone must not strip the source button's transitions.
+    cloneEntity.destroy();
+    expect(testButton.transitions.length).to.eq(1);
+    expect(transition.target).to.eq(testImage);
+
+    testEntity.destroy();
+  });
+
+  it("cloned sprite transition keeps shared sprites' refCount balanced", () => {
+    const testEntity = canvasEntity.createChild("spriteTransitionClone");
+    const testImage = testEntity.addComponent(Image);
+    const testButton = testEntity.addComponent(Button);
+
+    const sprite = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const transition = new SpriteTransition();
+    transition.target = testImage;
+    transition.normal = sprite;
+    testButton.addTransition(transition);
+    const baseline = sprite.refCount;
+
+    const cloneEntity = testEntity.clone();
+    canvasEntity.addChild(cloneEntity);
+    // +1 by the cloned transition (acquired in _onClone), +1 by the cloned Image
+    // (transition._applyValue assigns the sprite through the Image.sprite setter on activation).
+    expect(sprite.refCount).to.eq(baseline + 2);
+
+    cloneEntity.destroy();
+    expect(sprite.refCount).to.eq(baseline);
+
+    testEntity.destroy();
+    expect(sprite.refCount).to.eq(baseline - 2);
+  });
+
+  it("cloned sprite transition setter churn transfers sprite counts", () => {
+    const testEntity = canvasEntity.createChild("spriteTransitionChurn");
+    const testImage = testEntity.addComponent(Image);
+    const testButton = testEntity.addComponent(Button);
+
+    const spriteA = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const spriteB = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const transition = new SpriteTransition();
+    transition.target = testImage;
+    transition.normal = spriteA;
+    testButton.addTransition(transition);
+    const baselineA = spriteA.refCount;
+
+    const cloneEntity = testEntity.clone();
+    canvasEntity.addChild(cloneEntity);
+    // +1 cloned transition (_onClone) + 1 cloned Image (applied through its sprite setter).
+    expect(spriteA.refCount).to.eq(baselineA + 2);
+
+    const cloneTransition = cloneEntity.getComponent(Button).transitions[0] as SpriteTransition;
+    cloneTransition.normal = spriteB;
+    // Churn releases A from the cloned transition AND from the cloned Image (re-applied), B gains both.
+    expect(spriteA.refCount).to.eq(baselineA);
+    expect(spriteB.refCount).to.eq(2);
+
+    cloneEntity.destroy();
+    expect(spriteB.refCount).to.eq(0);
+    expect(spriteA.refCount).to.eq(baselineA);
+
+    testEntity.destroy();
+    expect(spriteA.refCount).to.eq(baselineA - 2);
   });
 });

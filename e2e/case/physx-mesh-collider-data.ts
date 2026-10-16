@@ -219,7 +219,6 @@ class CollisionScript extends Script {
 }
 
 WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 

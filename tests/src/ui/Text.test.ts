@@ -21,8 +21,7 @@ describe("Text", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 
@@ -154,8 +153,7 @@ describe("Text - referenceResolutionPerUnit dirty propagation", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("regression-root");
 

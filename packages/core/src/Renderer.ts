@@ -7,7 +7,8 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -20,7 +21,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component {
+export class Renderer extends Component implements ICloneHook<Renderer> {
   private static _tempVector0 = new Vector3();
 
   /** @internal */
@@ -45,27 +46,26 @@ export class Renderer extends Component {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
-  @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
+  /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @ignoreClone
-  protected _materials: Material[] = [];
+  protected _materials: (Material | null)[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
-  protected _transformEntity: Entity;
+  protected _transformEntity: Entity | null;
 
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -75,9 +75,7 @@ export class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @assignmentClone
   private _priority: number = 0;
-  @assignmentClone
   private _receiveShadows: boolean = true;
 
   /**
@@ -220,16 +218,16 @@ export class Renderer extends Component {
    * Set the first material.
    * @param material - The first material
    */
-  setMaterial(material: Material): void;
+  setMaterial(material: Material | null): void;
 
   /**
    * Set material by index.
    * @param index - Material index
    * @param material - The material
    */
-  setMaterial(index: number, material: Material): void;
+  setMaterial(index: number, material: Material | null): void;
 
-  setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
+  setMaterial(indexOrMaterial: number | Material | null, material: Material | null = null): void {
     if (typeof indexOrMaterial === "number") {
       this._setMaterial(indexOrMaterial, material);
     } else {
@@ -242,12 +240,13 @@ export class Renderer extends Component {
    * @remarks Calling this function for the first time after the material is set will create an instance material to ensure that it is unique to the renderer.
    * @returns All instance materials
    */
-  getInstanceMaterials(): Readonly<Material[]> {
+  getInstanceMaterials(): Readonly<(Material | null)[]> {
     const materials = this._materials;
     const materialsInstance = this._materialsInstanced;
     for (let i = 0, n = materials.length; i < n; i++) {
-      if (!materialsInstance[i]) {
-        this._createInstanceMaterial(this._materials[i], i);
+      const material = materials[i];
+      if (material && !materialsInstance[i]) {
+        this._createInstanceMaterial(material, i);
       }
     }
     return materials;
@@ -257,7 +256,7 @@ export class Renderer extends Component {
    * Get all materials.
    * @returns All materials
    */
-  getMaterials(): Readonly<Material[]> {
+  getMaterials(): Readonly<(Material | null)[]> {
     return this._materials;
   }
 
@@ -265,7 +264,7 @@ export class Renderer extends Component {
    * Set all materials.
    * @param materials - All materials
    */
-  setMaterials(materials: Material[]): void {
+  setMaterials(materials: (Material | null)[]): void {
     const count = materials.length;
     const internalMaterials = this._materials;
     const materialsInstanced = this._materialsInstanced;
@@ -295,7 +294,7 @@ export class Renderer extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
@@ -306,7 +305,7 @@ export class Renderer extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
@@ -344,8 +343,9 @@ export class Renderer extends Component {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Renderer): void {
+  _onClone(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);
@@ -356,7 +356,7 @@ export class Renderer extends Component {
    * @internal
    */
   _isFrontFaceInvert(): boolean {
-    return this._transformEntity.transform._isFrontFaceInvert();
+    return this._transformEntity!.transform._isFrontFaceInvert();
   }
 
   /**
@@ -374,22 +374,22 @@ export class Renderer extends Component {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._globalShaderMacro = null;
-    this._bounds = null;
-    this._materials = null;
-    this._shaderData = null;
-    this._mvMatrix = null;
-    this._mvpMatrix = null;
-    this._normalMatrix = null;
-    this._materialsInstanced = null;
-    this._rendererLayer = null;
+    this._globalShaderMacro = null!;
+    this._bounds = null!;
+    this._materials = null!;
+    this._shaderData = null!;
+    this._mvMatrix = null!;
+    this._mvpMatrix = null!;
+    this._normalMatrix = null!;
+    this._materialsInstanced = null!;
+    this._rendererLayer = null!;
   }
 
   /**
    * @internal
    */
   _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
-    const worldMatrix = this._transformEntity.transform.worldMatrix;
+    const worldMatrix = this._transformEntity!.transform.worldMatrix;
     const { shaderData } = this;
     if (onlyMVP) {
       const mvpMatrix = this._mvpMatrix;
@@ -454,7 +454,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  protected _setTransformEntity(entity: Entity): void {
+  protected _setTransformEntity(entity: Entity | null): void {
     const preEntity = this._transformEntity;
     if (entity !== preEntity) {
       preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
@@ -479,7 +479,7 @@ export class Renderer extends Component {
     return insMaterial;
   }
 
-  private _setMaterial(index: number, material: Material): void {
+  private _setMaterial(index: number, material: Material | null): void {
     const materials = this._materials;
     if (index >= materials.length) {
       materials.length = index + 1;

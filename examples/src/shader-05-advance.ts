@@ -81,8 +81,6 @@ Shader "Tutorial/05-SkinnedUnlit" {
 Logger.enable();
 
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then(async (engine) => {
-  engine.canvas.resizeByClientSize();
-
   // 创建场景和相机
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

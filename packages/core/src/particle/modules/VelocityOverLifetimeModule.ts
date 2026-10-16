@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -14,39 +14,70 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Velocity over lifetime module.
  */
 export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _constantModeMacro = ShaderMacro.getByName("RENDERER_VOL_CONSTANT_MODE");
+  /** @internal */
   static readonly _curveModeMacro = ShaderMacro.getByName("RENDERER_VOL_CURVE_MODE");
+  /** @internal */
   static readonly _isRandomMacro = ShaderMacro.getByName("RENDERER_VOL_IS_RANDOM_TWO");
 
+  /** @internal */
   static readonly _minConstantProperty = ShaderProperty.getByName("renderer_VOLMinConst");
+  /** @internal */
   static readonly _maxConstantProperty = ShaderProperty.getByName("renderer_VOLMaxConst");
+  /** @internal */
   static readonly _minGradientXProperty = ShaderProperty.getByName("renderer_VOLMinGradientX");
+  /** @internal */
   static readonly _minGradientYProperty = ShaderProperty.getByName("renderer_VOLMinGradientY");
+  /** @internal */
   static readonly _minGradientZProperty = ShaderProperty.getByName("renderer_VOLMinGradientZ");
+  /** @internal */
   static readonly _maxGradientXProperty = ShaderProperty.getByName("renderer_VOLMaxGradientX");
+  /** @internal */
   static readonly _maxGradientYProperty = ShaderProperty.getByName("renderer_VOLMaxGradientY");
+  /** @internal */
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
+  /** @internal */
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
+  /** @internal */
   static readonly _orbitalConstantModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_CONSTANT_MODE");
+  /** @internal */
   static readonly _orbitalCurveModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_CURVE_MODE");
+  /** @internal */
   static readonly _orbitalRandomModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_IS_RANDOM_TWO");
+  /** @internal */
   static readonly _radialConstantModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_CONSTANT_MODE");
+  /** @internal */
   static readonly _radialCurveModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_CURVE_MODE");
+  /** @internal */
   static readonly _radialRandomModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
 
+  /** @internal */
   static readonly _orbitalMinConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinConst");
+  /** @internal */
   static readonly _orbitalMaxConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxConst");
+  /** @internal */
   static readonly _orbitalMinCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveX");
+  /** @internal */
   static readonly _orbitalMinCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveY");
+  /** @internal */
   static readonly _orbitalMinCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveZ");
+  /** @internal */
   static readonly _orbitalMaxCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveX");
+  /** @internal */
   static readonly _orbitalMaxCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveY");
+  /** @internal */
   static readonly _orbitalMaxCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveZ");
+  /** @internal */
   static readonly _radialMinConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMinConst");
+  /** @internal */
   static readonly _radialMaxConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMaxConst");
+  /** @internal */
   static readonly _radialMinCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMinCurve");
+  /** @internal */
   static readonly _radialMaxCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMaxCurve");
+  /** @internal */
   static readonly _offsetProperty = ShaderProperty.getByName("renderer_VOLOffset");
 
   /** @internal */
@@ -58,37 +89,29 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
-  private _velocityMacro: ShaderMacro;
+  private _velocityMacro: ShaderMacro | null;
   @ignoreClone
-  private _randomModeMacro: ShaderMacro;
+  private _randomModeMacro: ShaderMacro | null;
   @ignoreClone
   private _orbitalMinConstant = new Vector3();
   @ignoreClone
   private _orbitalConstant = new Vector3();
   @ignoreClone
-  private _orbitalMacro: ShaderMacro;
+  private _orbitalMacro: ShaderMacro | null;
   @ignoreClone
-  private _orbitalRandomModeMacro: ShaderMacro;
+  private _orbitalRandomModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _radialMacro: ShaderMacro;
+  private _radialMacro: ShaderMacro | null;
   @ignoreClone
-  private _radialRandomModeMacro: ShaderMacro;
+  private _radialRandomModeMacro: ShaderMacro | null;
 
-  @deepClone
   private _velocityX: ParticleCompositeCurve;
-  @deepClone
   private _velocityY: ParticleCompositeCurve;
-  @deepClone
   private _velocityZ: ParticleCompositeCurve;
-  @deepClone
   private _orbitalX: ParticleCompositeCurve;
-  @deepClone
   private _orbitalY: ParticleCompositeCurve;
-  @deepClone
   private _orbitalZ: ParticleCompositeCurve;
-  @deepClone
   private _radial: ParticleCompositeCurve;
-  @deepClone
   private _offset = new Vector3();
   private _space = ParticleSimulationSpace.Local;
 
@@ -263,12 +286,12 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let velocityMacro = <ShaderMacro>null;
-    let isRandomModeMacro = <ShaderMacro>null;
-    let orbitalMacro = <ShaderMacro>null;
-    let orbitalRandomModeMacro = <ShaderMacro>null;
-    let radialMacro = <ShaderMacro>null;
-    let radialRandomModeMacro = <ShaderMacro>null;
+    let velocityMacro: ShaderMacro | null = null;
+    let isRandomModeMacro: ShaderMacro | null = null;
+    let orbitalMacro: ShaderMacro | null = null;
+    let orbitalRandomModeMacro: ShaderMacro | null = null;
+    let radialMacro: ShaderMacro | null = null;
+    let radialRandomModeMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const velocityX = this.velocityX;

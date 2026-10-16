@@ -13,8 +13,8 @@ import {
   IPlatformTransformFeedback,
   IPlatformTransformFeedbackPrimitive,
   Logger,
-  Mesh,
   Platform,
+  Primitive,
   RenderTarget,
   SubMesh,
   SystemInfo,
@@ -92,9 +92,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   maxUniformBlockSize: number;
 
   /** @internal */
-  _readFrameBuffer: WebGLFramebuffer = null;
+  _readFrameBuffer: WebGLFramebuffer | null = null;
   /** @internal */
-  _mainFrameBuffer: WebGLFramebuffer = null;
+  _mainFrameBuffer: WebGLFramebuffer | null = null;
   /** @internal */
   _mainFrameWidth: number = 0;
   /** @internal */
@@ -115,11 +115,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _activeTextureID: number;
-  private _activeTextures: GLTexture[] = new Array(32);
+  private _activeTextures: (GLTexture | null)[] = new Array(32);
 
-  private _lastViewport: Vector4 = new Vector4(null, null, null, null);
-  private _lastScissor: Vector4 = new Vector4(null, null, null, null);
-  private _lastClearColor: Color = new Color(null, null, null, null);
+  private _lastViewport: Vector4 = new Vector4(null!, null!, null!, null!);
+  private _lastScissor: Vector4 = new Vector4(null!, null!, null!, null!);
+  private _lastClearColor: Color = new Color(null!, null!, null!, null!);
   private _scissorEnable: boolean = false;
 
   private _onDeviceLost: () => void;
@@ -213,10 +213,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._webCanvas = webCanvas;
 
     const webGLOptions = this._webGLOptions;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", webGLOptions);
-      if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+      if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
         gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
       }
       this._isWebGL2 = true;
@@ -230,7 +230,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
         gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
-        if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+        if (!gl && !(canvas as WebCanvas)._isOffscreenCanvas()) {
           gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
         }
         this._isWebGL2 = false;
@@ -245,7 +245,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._initGLState(gl);
   }
 
-  createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
+  createPlatformPrimitive(primitive: Primitive): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
   }
 
@@ -378,7 +378,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       blendState: { targetBlendState },
       depthState,
       stencilState
-      // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
     if (clearFlags & CameraClearFlags.Color && clearColor) {
@@ -431,7 +430,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   activeRenderTarget(
-    renderTarget: RenderTarget,
+    renderTarget: RenderTarget | null,
     viewport: Vector4,
     isFlipProjection: boolean,
     mipLevel?: number,
@@ -439,15 +438,13 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   ) {
     let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
-      /** @ts-ignore */
       renderTarget._isContentLost = false;
 
-      /** @ts-ignore */
       const platformRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
-      platformRenderTarget.activeRenderTarget(mipLevel, faceIndex);
+      platformRenderTarget.activeRenderTarget(mipLevel!, faceIndex);
 
-      bufferWidth = renderTarget.width >> mipLevel;
-      bufferHeight = renderTarget.height >> mipLevel;
+      bufferWidth = renderTarget.width >> mipLevel!;
+      bufferHeight = renderTarget.height >> mipLevel!;
     } else {
       const gl = this._gl;
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
@@ -464,7 +461,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   blitInternalRTByBlitFrameBuffer(
-    srcRT: RenderTarget,
+    srcRT: RenderTarget | null,
     destRT: RenderTarget,
     clearFlags: CameraClearFlags,
     viewport: Vector4
@@ -495,8 +492,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
 
     if (needBlitDepth || needBlitStencil) {
-      // @ts-ignore
-      const depthFormat = destRT._depthFormat;
+      const depthFormat = destRT._depthFormat!;
 
       if (needBlitDepth) {
         if (
@@ -533,7 +529,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
   }
 
-  copyRenderTargetToSubTexture(srcRT: RenderTarget, grabTexture: Texture2D, viewport: Vector4) {
+  copyRenderTargetToSubTexture(srcRT: RenderTarget | null, grabTexture: Texture2D, viewport: Vector4) {
     const gl = this._gl;
     const bufferWidth = this.getMainFrameBufferWidth();
     const bufferHeight = this.getMainFrameBufferHeight();
@@ -549,13 +545,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     // @ts-ignore
     const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
 
-    // @ts-ignore
     gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
 
-    // @ts-ignore
-    const glTexture = grabTexture._platformTexture;
+    const glTexture = grabTexture._platformTexture as GLTexture;
 
-    glTexture._bind();
+    this.bindTexture(glTexture);
 
     gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
@@ -619,9 +613,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       activeTextures[i] = null;
     }
 
-    this._lastViewport.set(null, null, null, null);
-    this._lastScissor.set(null, null, null, null);
-    this._lastClearColor.set(null, null, null, null);
+    this._lastViewport.set(null!, null!, null!, null!);
+    this._lastScissor.set(null!, null!, null!, null!);
+    this._lastClearColor.set(null!, null!, null!, null!);
     this._scissorEnable = false;
 
     this._initGLState(this._gl);

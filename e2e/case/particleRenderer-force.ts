@@ -31,7 +31,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const leftScene = engine.sceneManager.activeScene;
   const leftRootEntity = leftScene.createRootEntity();

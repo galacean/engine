@@ -17,7 +17,6 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -36,28 +35,18 @@ export class Text extends UIRenderer implements ITextRenderer {
   @ignoreClone
   private _textChunks = Array<TextChunk>();
   @ignoreClone
-  private _subFont: SubFont = null;
-  @assignmentClone
+  private _subFont: SubFont | null = null;
   private _text: string = "";
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
-  @assignmentClone
-  private _font: Font = null;
-  @assignmentClone
+  private _font: Font | null = null;
   private _fontSize: number = 24;
-  @assignmentClone
   private _fontStyle: FontStyle = FontStyle.None;
-  @assignmentClone
   private _lineSpacing: number = 0;
-  @assignmentClone
   private _characterSpacing: number = 0;
-  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
   private _enableWrapping: boolean = false;
-  @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
 
   /**
@@ -78,11 +67,11 @@ export class Text extends UIRenderer implements ITextRenderer {
   /**
    * The font of the Text.
    */
-  get font(): Font {
+  get font(): Font | null {
     return this._font;
   }
 
-  set font(value: Font) {
+  set font(value: Font | null) {
     const lastFont = this._font;
     if (lastFont !== value) {
       lastFont && this._addResourceReferCount(lastFont, -1);
@@ -93,7 +82,9 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The font size of the Text.
+   * Font size in pixels, used for glyph rasterization.
+   * Glyph pixel dimensions are converted to local UI units using the root canvas's
+   * {@link UICanvas.referenceResolutionPerUnit}.
    */
   get fontSize(): number {
     return this._fontSize;
@@ -241,10 +232,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    // @ts-ignore
     this.font = engine._textDefaultFont;
     this.raycastEnabled = false;
-    // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
   }
 
@@ -260,17 +249,9 @@ export class Text extends UIRenderer implements ITextRenderer {
     super._onDestroy();
 
     this._freeTextChunks();
-    this._textChunks = null;
+    this._textChunks = null!;
 
     this._subFont && (this._subFont = null);
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Text): void {
-    // @ts-ignore
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**
@@ -301,7 +282,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     if (!this._subFont) {
       this._resetSubFont();
     }
-    return this._subFont;
+    return this._subFont!;
   }
 
   /**
@@ -314,12 +295,12 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const transform = <UITransform>this._transformEntity.transform;
+    const transform = <UITransform>this._transformEntity!.transform;
     const { x: width, y: height } = transform.size;
     const { x: pivotX, y: pivotY } = transform.pivot;
     worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
     worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-    BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    BoundingBox.transform(worldBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
   }
 
   protected override _render(context): void {
@@ -332,7 +313,7 @@ export class Text extends UIRenderer implements ITextRenderer {
       this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
-    const canvas = this._getRootCanvas();
+    const canvas = this._getRootCanvas()!;
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
@@ -350,7 +331,7 @@ export class Text extends UIRenderer implements ITextRenderer {
 
     const engine = context.camera.engine;
     const textRenderElementPool = engine._textRenderElementPool;
-    const material = this.getMaterial();
+    const material = this.getMaterial()!;
     const renderElements = canvas._renderElements;
     const priority = canvas.sortOrder;
     const distanceForSort = canvas._sortDistance;
@@ -360,7 +341,6 @@ export class Text extends UIRenderer implements ITextRenderer {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
       renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       renderElement.subShader = subShader;
@@ -371,14 +351,13 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   private _resetSubFont(): void {
-    const font = this._font;
-    // @ts-ignore
+    const font = this._font!;
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
-    const e = this._transformEntity.transform.worldMatrix.elements;
+    const e = this._transformEntity!.transform.worldMatrix.elements;
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
@@ -443,12 +422,11 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   private _updateLocalData(): void {
-    // @ts-ignore
-    const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
+    const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas()!.referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
     const charFont = this._getSubFont();
-    const { size, pivot } = <UITransform>this._transformEntity.transform;
+    const { size, pivot } = <UITransform>this._transformEntity!.transform;
     let rendererWidth = size.x;
     let rendererHeight = size.y;
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
@@ -469,7 +447,6 @@ export class Text extends UIRenderer implements ITextRenderer {
           characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
     let renderElementCount = 0;
@@ -483,8 +460,8 @@ export class Text extends UIRenderer implements ITextRenderer {
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
-      const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
-      const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+      const topDiff = lineHeight * 0.5 - lineMaxSizes![0].ascent;
+      const bottomDiff = lineHeight * 0.5 - lineMaxSizes![linesLen - 1].descent - 1;
       switch (this.verticalAlignment) {
         case TextVerticalAlignment.Top:
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
@@ -524,12 +501,12 @@ export class Text extends UIRenderer implements ITextRenderer {
           }
           for (let j = 0, n = line.length; j < n; ++j) {
             const char = line[j];
-            const charInfo = charFont._getCharInfo(char);
+            const charInfo = charFont._getCharInfo(char)!;
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
               const charRenderInfo = (charRenderInfos[renderElementCount++] = charRenderInfoPool.get());
               const { localPositions } = charRenderInfo;
-              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
+              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index)!;
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
               const left = (startX + offsetWidth) * pixelsPerUnitReciprocal;
@@ -612,7 +589,7 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   private _isTextNoVisible(): boolean {
-    const size = (<UITransform>this._transformEntity.transform).size;
+    const size = (<UITransform>this._transformEntity!.transform).size;
     return (
       !this._font ||
       this._text === "" ||
@@ -628,9 +605,9 @@ export class Text extends UIRenderer implements ITextRenderer {
     const finalAlpha = a * this._getGlobalAlpha();
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
+    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4)!);
     const vertices = subChunk.chunk.vertices;
-    const indices = (subChunk.indices = []);
+    const indices = (subChunk.indices = [] as number[]);
     const charRenderInfos = textChunk.charRenderInfos;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
@@ -657,7 +634,6 @@ export class Text extends UIRenderer implements ITextRenderer {
 
   private _freeTextChunks(): void {
     const textChunks = this._textChunks;
-    // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const manager = this._getChunkManager();
     for (let i = 0, n = textChunks.length; i < n; ++i) {
@@ -677,7 +653,7 @@ export class Text extends UIRenderer implements ITextRenderer {
 
 class TextChunk {
   charRenderInfos = new Array<CharRenderInfo>();
-  texture: Texture2D;
+  texture: Texture2D | null;
   subChunk;
 }
 

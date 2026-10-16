@@ -9,6 +9,6 @@ export class FixedJoint extends Joint {
   protected _createJoint(): void {
     const colliderInfo = this._colliderInfo;
     colliderInfo.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = Engine._nativePhysics.createFixedJoint(colliderInfo.collider._nativeCollider);
+    this._nativeJoint = Engine._nativePhysics.createFixedJoint(colliderInfo.collider!._nativeCollider);
   }
 }

@@ -16,6 +16,15 @@ describe("ParticleCurve tests", () => {
     expect(gradient.evaluate(undefined, 1.0)).to.equal(0.2);
   });
 
+  it("Constructor with zero as the max constant", () => {
+    const gradient = new ParticleCompositeCurve(5, 0);
+    expect(gradient.mode).to.equal(ParticleCurveMode.TwoConstants);
+    expect(gradient.constantMin).to.equal(5);
+    expect(gradient.constantMax).to.equal(0);
+    expect(gradient.evaluate(undefined, 0)).to.equal(5);
+    expect(gradient.evaluate(undefined, 1)).to.equal(0);
+  });
+
   it("Constructor with curve params", () => {
     const gradient0 = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0.333)));
     expect(gradient0.mode).to.equal(ParticleCurveMode.Curve);
@@ -55,16 +64,19 @@ describe("ParticleCurve tests", () => {
     expect((zeroConstant as any)._isZero()).to.equal(true);
     expect((zeroConstant as any)._isCurveMode()).to.equal(false);
     expect((zeroConstant as any)._isRandomMode()).to.equal(false);
+    expect((zeroConstant as any)._isRandomCurveMode()).to.equal(false);
 
     const twoConstants = new ParticleCompositeCurve(-1, 1);
     expect((twoConstants as any)._isZero()).to.equal(false);
     expect((twoConstants as any)._isCurveMode()).to.equal(false);
     expect((twoConstants as any)._isRandomMode()).to.equal(true);
+    expect((twoConstants as any)._isRandomCurveMode()).to.equal(false);
 
     const zeroCurve = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0)));
     expect((zeroCurve as any)._isZero()).to.equal(true);
     expect((zeroCurve as any)._isCurveMode()).to.equal(true);
     expect((zeroCurve as any)._isRandomMode()).to.equal(false);
+    expect((zeroCurve as any)._isRandomCurveMode()).to.equal(false);
 
     const twoCurves = new ParticleCompositeCurve(
       new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0)),
@@ -73,6 +85,7 @@ describe("ParticleCurve tests", () => {
     expect((twoCurves as any)._isZero()).to.equal(false);
     expect((twoCurves as any)._isCurveMode()).to.equal(true);
     expect((twoCurves as any)._isRandomMode()).to.equal(true);
+    expect((twoCurves as any)._isRandomCurveMode()).to.equal(true);
   });
 
   it("Add and remove", () => {

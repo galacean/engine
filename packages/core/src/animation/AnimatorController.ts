@@ -55,15 +55,15 @@ export class AnimatorController extends ReferResource {
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
-    return this._addParameter(name, defaultValue, false);
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter | null {
+    return this._addParameter(name, defaultValue!, false);
   }
 
   /**
    * Add a trigger parameter to the controller.
    * @param name - The name of the parameter
    */
-  addTriggerParameter(name: string): AnimatorControllerParameter {
+  addTriggerParameter(name: string): AnimatorControllerParameter | null {
     return this._addParameter(name, false, true);
   }
 
@@ -169,7 +169,7 @@ export class AnimatorController extends ReferResource {
     name: string,
     defaultValue: AnimatorControllerParameterValue,
     isTrigger: boolean = false
-  ): AnimatorControllerParameter {
+  ): AnimatorControllerParameter | null {
     if (this._parametersMap[name]) {
       console.warn(`Parameter ${name} already exists.`);
       return null;

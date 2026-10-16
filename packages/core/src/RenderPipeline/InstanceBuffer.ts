@@ -39,6 +39,7 @@ export class InstanceBuffer {
       this._intView = new Int32Array(this._data);
       this.buffer?.destroy();
       this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
+      this.buffer.isGCIgnored = true;
     }
   }
 
@@ -79,8 +80,8 @@ export class InstanceBuffer {
 
   destroy(): void {
     this.buffer?.destroy();
-    this._data = null;
-    this._floatView = null;
-    this._intView = null;
+    this._data = null!;
+    this._floatView = null!;
+    this._intView = null!;
   }
 }

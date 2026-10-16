@@ -161,7 +161,7 @@ export class MeshDecoder {
         });
       }
       if (encodedMeshData.indices) {
-        let indices: Uint16Array | Uint32Array = null;
+        let indices: Uint16Array | Uint32Array | null = null;
         if (encodedMeshData.indices.type === 0) {
           indices = new Uint16Array(
             buffer,

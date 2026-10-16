@@ -65,6 +65,7 @@ export class HDRDecoder {
   }
 
   /**
+   * @internal
    * Convert RGBE pixel data to R16G16B16A16 half-float.
    */
   static _rgbeToHalfFloat(rgbe: Uint8Array, width: number, height: number): Uint16Array {
@@ -92,6 +93,7 @@ export class HDRDecoder {
   }
 
   /**
+   * @internal
    * Decode RLE-compressed RGBE scanlines into raw RGBE pixel data.
    */
   static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {

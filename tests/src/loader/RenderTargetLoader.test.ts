@@ -1,7 +1,7 @@
-import { AssetType, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { AssetPromise, AssetType, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 let engine: WebGLEngine;
 
@@ -19,6 +19,55 @@ function createRenderTargetBlob(data: Record<string, any>): string {
 }
 
 describe("RenderTargetLoader", () => {
+  it("keeps concurrent relative sub-assets bound to their request base URL", async () => {
+    const resourceManager = engine.resourceManager;
+    const logicalUrl = "render-targets/concurrent.renderTarget";
+    const baseUrlA = "https://a.example.com/";
+    const baseUrlB = "https://b.example.com/";
+    const remoteUrlA = `${baseUrlA}${logicalUrl}`;
+    const remoteUrlB = `${baseUrlB}${logicalUrl}`;
+    const requests = new Map<string, (data: unknown) => void>();
+    const requestSpy = vi.spyOn(resourceManager, "_requestByRemoteUrl").mockImplementation((url) => {
+      return new AssetPromise((resolve) => requests.set(url, resolve));
+    });
+    const data = {
+      width: 1,
+      height: 1,
+      colorFormats: [TextureFormat.R8G8B8A8],
+      depthFormat: -1,
+      antiAliasing: 1
+    };
+
+    try {
+      resourceManager.baseUrl = baseUrlA;
+      const textureA = resourceManager.load<Texture2D>({
+        url: `${logicalUrl}?q=colorTextures[0]`,
+        type: AssetType.RenderTarget
+      });
+      resourceManager.baseUrl = baseUrlB;
+      const textureB = resourceManager.load<Texture2D>({
+        url: `${logicalUrl}?q=colorTextures[0]`,
+        type: AssetType.RenderTarget
+      });
+      let textureBSettled = false;
+      textureB.then(() => (textureBSettled = true));
+
+      requests.get(remoteUrlA)!(data);
+      const loadedTextureA = await textureA;
+
+      expect(textureBSettled).toBe(false);
+
+      requests.get(remoteUrlB)!(data);
+      const loadedTextureB = await textureB;
+      expect(loadedTextureB).not.toBe(loadedTextureA);
+    } finally {
+      resourceManager.baseUrl = null;
+      requests.get(remoteUrlA)?.(data);
+      requests.get(remoteUrlB)?.(data);
+      requestSpy.mockRestore();
+    }
+  });
+
   it("load returns RenderTarget with correct properties", async () => {
     const url = createRenderTargetBlob({
       width: 256,

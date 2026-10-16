@@ -1,3 +1,4 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
@@ -9,7 +10,7 @@ import { RenderState } from "./RenderState";
 /**
  * Raster state.
  */
-export class RasterState {
+export class RasterState extends DataObject {
   /** Specifies whether or not front- and/or back-facing polygons can be culled. */
   cullMode: CullMode = CullMode.Back;
   /** The multiplier by which an implementation-specific value is multiplied with to create a constant depth offset. */
@@ -47,7 +48,7 @@ export class RasterState {
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
     frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, customStates);
   }
@@ -56,7 +57,7 @@ export class RasterState {
     rhi: IHardwareRenderer,
     lastState: RasterState,
     frontFaceInvert: boolean,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let { cullMode, depthBias, slopeScaledDepthBias } = this;

@@ -7,8 +7,7 @@ describe("Image", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 
@@ -68,5 +67,28 @@ describe("Image", async () => {
     expect(cloneImage.raycastPadding.y).to.eq(1);
     expect(cloneImage.raycastPadding.z).to.eq(1);
     expect(cloneImage.raycastPadding.w).to.eq(1);
+  });
+
+  it("sprite refCount: clone acquires, setter churn transfers, destroy releases", () => {
+    const entity = canvasEntity.createChild("imageRefSlot");
+    const spriteA = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const spriteB = new Sprite(engine, new Texture2D(engine, 1, 1));
+    entity.addComponent(Image).sprite = spriteA;
+    expect(spriteA.refCount).to.eq(1);
+
+    const clone = entity.clone();
+    canvasEntity.addChild(clone);
+    expect(spriteA.refCount).to.eq(2);
+
+    clone.getComponent(Image).sprite = spriteB;
+    expect(spriteA.refCount).to.eq(1);
+    expect(spriteB.refCount).to.eq(1);
+
+    clone.destroy();
+    expect(spriteB.refCount).to.eq(0);
+    expect(spriteA.refCount).to.eq(1);
+
+    entity.destroy();
+    expect(spriteA.refCount).to.eq(0);
   });
 });

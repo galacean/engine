@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -29,12 +29,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
-  @deepClone
   private _localBounds: BoundingBox = new BoundingBox();
 
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  @ignoreClone
   private _blendShapeWeights: Float32Array;
   @ignoreClone
   private _maxVertexUniformVectors: number;
@@ -42,13 +40,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _jointTexture: Texture2D;
 
-  @deepClone
-  private _skin: Skin;
+  private _skin: Skin | null;
 
   /**
    * Skin of the SkinnedMeshRenderer.
    */
-  get skin(): Skin {
+  get skin(): Skin | null {
     return this._skin;
   }
 
@@ -133,30 +130,31 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _onDestroy(): void {
     super._onDestroy();
-    this._jointDataCreateCache = null;
+    this._jointDataCreateCache = null!;
     this._skin = null;
-    this._blendShapeWeights = null;
-    this._localBounds = null;
+    this._blendShapeWeights = null!;
+    this._localBounds = null!;
     this._jointTexture?.destroy();
-    this._jointTexture = null;
+    this._jointTexture = null!;
   }
 
   /**
    * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SkinnedMeshRenderer): void {
-    super._cloneTo(target);
-
+  override _onClone(target: SkinnedMeshRenderer): void {
+    super._onClone(target);
+    if (this._jointTexture) {
+      target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
+    }
     if (this.skin) {
       target._applySkin(null, target.skin);
     }
-
-    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   protected override _update(context: RenderContext): void {
     const { skin } = this;
-    if (skin?.bones.length > 0) {
+    if (skin && skin.bones.length > 0) {
       skin._updateSkinMatrices(this);
     }
 
@@ -222,7 +220,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const rootBone = this.skin?.rootBone;
     if (rootBone) {
-      BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+      BoundingBox.transform(this._localBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
     } else {
       super._updateBounds(worldBounds);
     }
@@ -256,7 +254,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   @ignoreClone
-  private _onSkinUpdated(type: SkinUpdateFlag, value: Object): void {
+  private _onSkinUpdated(type: SkinUpdateFlag, value: number | Entity): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:
         const shaderData = this.shaderData;
@@ -274,7 +272,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private _applySkin(lastSkin: Skin, value: Skin): void {
+  private _applySkin(lastSkin: Skin | null, value: Skin | null): void {
     const lastSkinBoneCount = lastSkin?.bones?.length ?? 0;
     const lastRootBone = lastSkin?.rootBone ?? this.entity;
     lastSkin?._updatedManager.removeListener(this._onSkinUpdated);
@@ -295,21 +293,21 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @deprecated use {@link SkinnedMeshRenderer.skin.rootBone} instead.
    */
   get rootBone(): Entity {
-    return this.skin.rootBone;
+    return this.skin!.rootBone;
   }
 
   set rootBone(value: Entity) {
-    this.skin.rootBone = value;
+    this.skin!.rootBone = value;
   }
 
   /**
    * @deprecated use {@link SkinnedMeshRenderer.skin.bones} instead.
    */
   get bones(): Readonly<Entity[]> {
-    return this.skin.bones;
+    return this.skin!.bones;
   }
 
   set bones(value: Readonly<Entity[]>) {
-    this.skin.bones = value;
+    this.skin!.bones = value;
   }
 }

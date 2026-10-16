@@ -65,7 +65,6 @@ main();
 async function main() {
   // Create engine and get root entity.
   const engine = await WebGLEngine.create({ canvas: "canvas" });
-  engine.canvas.resizeByClientSize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 

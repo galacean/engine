@@ -1,8 +1,8 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { GLCapabilityType } from "../../base/Constant";
-import { deepClone } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";
@@ -15,7 +15,7 @@ import { RenderTargetBlendState } from "./RenderTargetBlendState";
 /**
  * Blend state.
  */
-export class BlendState {
+export class BlendState extends DataObject {
   private static _getGLBlendFactor(rhi: IHardwareRenderer, blendFactor: BlendFactor): number {
     const gl = rhi.gl;
 
@@ -73,10 +73,8 @@ export class BlendState {
   }
 
   /** The blend state of the render target. */
-  @deepClone
   readonly targetBlendState: RenderTargetBlendState = new RenderTargetBlendState();
   /** Constant blend color. */
-  @deepClone
   readonly blendColor: Color = new Color(0, 0, 0, 0);
   /** Whether to use (Alpha-to-Coverage) technology. */
   alphaToCoverage: boolean = false;
@@ -145,12 +143,16 @@ export class BlendState {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.blendState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState, customStates?: RenderStateElementMap): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: BlendState,
+    customStates?: RenderStateElementMap | null
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 

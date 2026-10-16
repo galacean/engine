@@ -112,8 +112,17 @@ describe("Vector3 test", () => {
     const a = new Vector3(3, 4, 0);
     const out = new Vector3();
 
-    Vector3.normalize(a, out);
+    // Returns true and writes the unit vector for a normal direction.
+    expect(Vector3.normalize(a, out)).to.eq(true);
     expect(Vector3.equals(out, new Vector3(0.6, 0.8, 0))).to.eq(true);
+
+    // Returns false and leaves `out` untouched when there is no unit form.
+    out.set(9, 9, 9);
+    expect(Vector3.normalize(new Vector3(0, 0, 0), out)).to.eq(false);
+    expect(Vector3.normalize(new Vector3(0, 0, 1e-8), out)).to.eq(false);
+    expect(Vector3.normalize(new Vector3(NaN, 0, 0), out)).to.eq(false);
+    expect(Vector3.normalize(new Vector3(1e200, 0, 0), out)).to.eq(false);
+    expect(Vector3.equals(out, new Vector3(9, 9, 9))).to.eq(true);
   });
 
   it("static scale", () => {

@@ -29,7 +29,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
@@ -67,7 +66,7 @@ WebGLEngine.create({
 });
 
 function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture2D, glTFModel: GLTFResource): Entity {
-    const meshRenderer = rootEntity.createChild("Mesh").addComponent(MeshRenderer);
+  const meshRenderer = rootEntity.createChild("Mesh").addComponent(MeshRenderer);
   meshRenderer.mesh = PrimitiveMesh.createCylinder(engine);
   const unlitMaterial = new UnlitMaterial(engine);
   unlitMaterial.baseTexture = glTFModel.textures[0];
@@ -75,8 +74,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   const particleEntity = new Entity(engine, "EmitMeshParticle");
   particleEntity.transform.rotation.set(30, -45, 30);
-  particleEntity.transform.scale.set(20,1,20);
-
+  particleEntity.transform.scale.set(20, 1, 20);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
@@ -84,7 +82,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   material.baseColor = new Color(1.0, 1.0, 1.0, 1.0);
   // material.blendMode = BlendMode.Additive;
   material.baseTexture = glTFModel.textures[0];
-  material.baseTexture.anisoLevel=12;
+  material.baseTexture.anisoLevel = 12;
   particleRenderer.setMaterial(material);
 
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
@@ -97,11 +95,11 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   // Main module
   const { startLifetime, startSpeed, startSize, startRotationZ } = main;
-  startSpeed.constant =1.0;
+  startSpeed.constant = 1.0;
   startSize.constant = 0.2;
 
   main.simulationSpace = ParticleSimulationSpace.World;
-  main.startRotationZ.constant=-90;
+  main.startRotationZ.constant = -90;
   // startLifetime.constantMin = 0.2;
   // startLifetime.constantMax = 0.8;
   // startLifetime.mode = ParticleCurveMode.TwoConstants;
@@ -115,7 +113,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   // startSize.mode = ParticleCurveMode.TwoConstants;
 
   const coneShape = new ConeShape();
-  coneShape.angle=0.01;
+  coneShape.angle = 0.01;
   emission.shape = coneShape;
 
   return particleEntity;

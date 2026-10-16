@@ -17,7 +17,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then(async (engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("Root");

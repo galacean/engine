@@ -35,7 +35,7 @@ export class Background {
   _material: Material;
 
   private _solidColor = new Color(0.05087608817155679, 0.05087608817155679, 0.05087608817155679, 1.0);
-  private _texture: Texture2D = null;
+  private _texture: Texture2D | null = null;
 
   /**
    * Background solid color.
@@ -56,11 +56,11 @@ export class Background {
    * Background texture.
    * @remarks When `mode` is `BackgroundMode.Texture`, the property will take effects.
    */
-  get texture(): Texture2D {
+  get texture(): Texture2D | null {
     return this._texture;
   }
 
-  set texture(value: Texture2D) {
+  set texture(value: Texture2D | null) {
     if (this._texture !== value) {
       value?._addReferCount(1);
       this._texture?._addReferCount(-1);
@@ -92,9 +92,9 @@ export class Background {
   destroy(): void {
     this.texture = null;
     this._mesh._addReferCount(-1);
-    this._mesh = null;
+    this._mesh = null!;
     this._material._addReferCount(-1);
-    this._material = null;
+    this._material = null!;
     this.sky.destroy();
   }
 
@@ -112,11 +112,11 @@ export class Background {
    */
   _resizeBackgroundTexture(): void {
     const { _texture: texture, _mesh: mesh } = this;
-    if (!this._texture) {
+    if (!texture) {
       return;
     }
     const { width, height } = this._engine.canvas;
-    const positions = mesh.getPositions();
+    const positions = mesh.getPositions()!;
 
     switch (this._textureFillMode) {
       case BackgroundTextureFillMode.Fill:
@@ -154,7 +154,7 @@ export class Background {
         restoreContent() {
           mesh.setPositions(mesh.getPositions());
           mesh.setUVs(mesh.getUVs());
-          mesh.setIndices(mesh.getIndices());
+          mesh.setIndices(mesh.getIndices()!);
           mesh.uploadData(false);
         }
       })()

@@ -57,7 +57,7 @@ export class PostProcessUberPass extends PostProcessPass {
    * @inheritdoc
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
-    const postProcessManager = camera.scene.postProcessManager;
+    const postProcessManager = camera.scene!.postProcessManager;
     const uberShaderData = this._uberMaterial.shaderData;
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
@@ -81,6 +81,7 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy() {

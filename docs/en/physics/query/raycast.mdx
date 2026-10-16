@@ -64,7 +64,6 @@ const engine = await WebGLEngine.create({
   canvas: "canvas",
   physics: new PhysXPhysics()
 });
-engine.canvas.resizeByClientSize();
 const scene = engine.scenes[0];
 
 // Create a ray from origin pointing downward

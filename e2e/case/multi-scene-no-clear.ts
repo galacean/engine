@@ -27,8 +27,6 @@ WebGLEngine.create({
     webGLMode: WebGLMode.WebGL2
   }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const firstCamera = initFirstScene(engine);
   const secondCamera = initSecondScene(engine);
 

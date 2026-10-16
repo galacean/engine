@@ -1,5 +1,5 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -12,29 +12,42 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Adds simplex noise-based turbulence displacement to particles.
  */
 export class NoiseModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_NOISE_MODULE_ENABLED");
+  /** @internal */
   static readonly _strengthCurveMacro = ShaderMacro.getByName("RENDERER_NOISE_STRENGTH_CURVE");
+  /** @internal */
   static readonly _strengthIsRandomTwoMacro = ShaderMacro.getByName("RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO");
+  /** @internal */
   static readonly _separateAxesMacro = ShaderMacro.getByName("RENDERER_NOISE_IS_SEPARATE");
 
+  /** @internal */
   static readonly _noiseProperty = ShaderProperty.getByName("renderer_NoiseParams");
+  /** @internal */
   static readonly _noiseOctaveProperty = ShaderProperty.getByName("renderer_NoiseOctaveParams");
+  /** @internal */
   static readonly _strengthMinConstProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinConst");
+  /** @internal */
   static readonly _strengthMaxCurveXProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveX");
+  /** @internal */
   static readonly _strengthMaxCurveYProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveY");
+  /** @internal */
   static readonly _strengthMaxCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMaxCurveZ");
+  /** @internal */
   static readonly _strengthMinCurveXProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveX");
+  /** @internal */
   static readonly _strengthMinCurveYProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveY");
+  /** @internal */
   static readonly _strengthMinCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveZ");
 
   @ignoreClone
-  private _enabledModuleMacro: ShaderMacro;
+  private _enabledModuleMacro: ShaderMacro | null;
   @ignoreClone
-  private _strengthCurveModeMacro: ShaderMacro;
+  private _strengthCurveModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _strengthIsRandomTwoModeMacro: ShaderMacro;
+  private _strengthIsRandomTwoModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _separateAxesModeMacro: ShaderMacro;
+  private _separateAxesModeMacro: ShaderMacro | null;
 
   /** @internal */
   @ignoreClone
@@ -47,11 +60,8 @@ export class NoiseModule extends ParticleGeneratorModule {
   @ignoreClone
   private _strengthMinConst = new Vector3();
 
-  @deepClone
   private _strengthX: ParticleCompositeCurve;
-  @deepClone
   private _strengthY: ParticleCompositeCurve;
-  @deepClone
   private _strengthZ: ParticleCompositeCurve;
   private _scrollSpeed = 0;
   private _separateAxes = false;
@@ -223,10 +233,10 @@ export class NoiseModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enabledMacro = <ShaderMacro>null;
-    let strengthCurveMacro = <ShaderMacro>null;
-    let strengthIsRandomTwoMacro = <ShaderMacro>null;
-    let separateAxesMacro = <ShaderMacro>null;
+    let enabledMacro: ShaderMacro | null = null;
+    let strengthCurveMacro: ShaderMacro | null = null;
+    let strengthIsRandomTwoMacro: ShaderMacro | null = null;
+    let separateAxesMacro: ShaderMacro | null = null;
     if (this.enabled) {
       enabledMacro = NoiseModule._enabledMacro;
 

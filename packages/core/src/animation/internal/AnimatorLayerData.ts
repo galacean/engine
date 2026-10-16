@@ -22,7 +22,7 @@ export class AnimatorLayerData {
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
-  crossFadeTransition: AnimatorStateTransition;
+  crossFadeTransition: AnimatorStateTransition | null;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
   getOrCreateInstance(state: AnimatorState): AnimatorStateInstance {

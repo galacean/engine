@@ -16,9 +16,13 @@ import {
   OverlapHitResult
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
+
+const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
+const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
+  .href;
 
 class CollisionTestScript extends Script {
   onCollisionEnter(other) {}
@@ -62,10 +66,22 @@ class CollisionTestScript extends Script {
   }
 }
 
+class CollisionConsumerScript extends Script {
+  onCollisionEnter(): void {}
+}
+
+class TriggerConsumerScript extends Script {
+  onTriggerEnter(): void {}
+}
+
 function updatePhysics(physics) {
   for (let i = 0; i < 5; ++i) {
     physics._update(8);
   }
+}
+
+function watchSetContactEventEnabled(physicsScene: PhysicsScene) {
+  return vi.spyOn((physicsScene as any)._nativePhysicsScene, "setContactEventEnabled");
 }
 
 function resetSpy() {
@@ -111,7 +127,10 @@ describe("Physics Test", () => {
       // Init engine with PhysXPhysics.
       enginePhysX = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
+          wasmModeUrl: physXWasmModeUrl,
+          wasmSIMDModeUrl: physXWasmSIMDModeUrl
+        })
       });
       physicsScene = enginePhysX.sceneManager.activeScene.physics;
 
@@ -140,6 +159,139 @@ describe("Physics Test", () => {
       const fixedTimeStep = 1 / 50;
       enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep = fixedTimeStep;
       expect(enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep).to.eq(fixedTimeStep);
+    });
+
+    it("enables native contact events for any active collision callback script", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-event-global");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      const script = root.createChild("script-only").addComponent(CollisionConsumerScript);
+
+      try {
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
+
+        script.enabled = false;
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(2);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(false);
+      } finally {
+        setContactEventEnabled.mockRestore();
+        root.destroy();
+      }
+    });
+
+    it("toggles native contact events only at active collision callback count boundaries", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-event-enabled");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      const script1 = root.createChild("script-1").addComponent(CollisionConsumerScript);
+
+      try {
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
+
+        const script2 = root.createChild("script-2").addComponent(CollisionConsumerScript);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+
+        script1.enabled = false;
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+
+        script2.enabled = false;
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(2);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(false);
+      } finally {
+        setContactEventEnabled.mockRestore();
+        root.destroy();
+      }
+    });
+
+    it("stops contact events at the native callback boundary", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-boundary");
+      const entity1 = root.createChild("dynamic-1");
+      const entity2 = root.createChild("dynamic-2");
+      const script = entity1.addComponent(CollisionConsumerScript);
+      const bufferContactEvent = vi.spyOn((physicsScene as any)._nativePhysicsScene, "_bufferContactEvent");
+      const gravity = physicsScene.gravity.clone();
+
+      try {
+        physicsScene.gravity = new Vector3(0, 0, 0);
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent).toHaveBeenCalled();
+
+        script.enabled = false;
+        const enabledCallCount = bufferContactEvent.mock.calls.length;
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent).toHaveBeenCalledTimes(enabledCallCount);
+
+        script.enabled = true;
+        setColliderProps(entity1, true, false, false);
+        setColliderProps(entity2, true, false, false);
+        updatePhysics(physicsScene);
+        expect(bufferContactEvent.mock.calls.length).toBeGreaterThan(enabledCallCount);
+      } finally {
+        physicsScene.gravity = gravity;
+        bufferContactEvent.mockRestore();
+        root.destroy();
+      }
+    });
+
+    it("does not toggle native contact events during fixed substeps", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const fixedTimeStep = physicsScene.fixedTimeStep;
+      const root = scene.createRootEntity("contact-event-substeps");
+      const entity = root.createChild("body");
+      const collider = entity.addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      entity.addComponent(CollisionConsumerScript);
+
+      try {
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+        expect(setContactEventEnabled).toHaveBeenLastCalledWith(true);
+
+        physicsScene.fixedTimeStep = 1 / 480;
+        physicsScene._update(1 / 60);
+        expect(setContactEventEnabled).toHaveBeenCalledTimes(1);
+      } finally {
+        physicsScene.fixedTimeStep = fixedTimeStep;
+        setContactEventEnabled.mockRestore();
+        root.destroy();
+      }
+    });
+
+    it("keeps native contact events disabled without blocking trigger callbacks", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-event-trigger-only");
+      const setContactEventEnabled = watchSetContactEventEnabled(physicsScene);
+      const triggerEntity = root.createChild("trigger");
+      const triggerCollider = triggerEntity.addComponent(DynamicCollider);
+      triggerCollider.isKinematic = true;
+      const triggerShape = new BoxColliderShape();
+      triggerShape.isTrigger = true;
+      triggerCollider.addShape(triggerShape);
+      root.createChild("static").addComponent(StaticCollider).addShape(new BoxColliderShape());
+      const script = triggerEntity.addComponent(TriggerConsumerScript);
+      const triggerEnter = vi.spyOn(script, "onTriggerEnter");
+
+      try {
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(setContactEventEnabled).not.toHaveBeenCalled();
+        expect(triggerEnter).toHaveBeenCalled();
+      } finally {
+        triggerEnter.mockRestore();
+        setContactEventEnabled.mockRestore();
+        root.destroy();
+      }
     });
 
     it("raycast", () => {
@@ -252,6 +404,76 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, outHitResult)).to.eq(false);
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
+
+      root.destroy();
+    });
+
+    it("non-unit direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const shortDir = new Vector3(0, 0, -0.1);
+      const longDir = new Vector3(0, 0, -10);
+      const outHitResult = new HitResult();
+
+      // distance is a length in world units, whatever the length of the direction.
+      expect(physicsScene.raycast(new Ray(origin, shortDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.distance).to.be.closeTo(4.5, 1e-4);
+      expect(physicsScene.raycast(new Ray(origin, longDir), 4)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(origin, halfExtents, shortDir, 6)).to.eq(true);
+      expect(physicsScene.boxCast(origin, halfExtents, longDir, 4)).to.eq(false);
+      expect(physicsScene.sphereCast(origin, 0.1, shortDir, 6)).to.eq(true);
+      expect(physicsScene.sphereCast(origin, 0.1, longDir, 4)).to.eq(false);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, shortDir, 6)).to.eq(true);
+      expect(physicsScene.capsuleCast(origin, 0.1, 0.5, longDir, 4)).to.eq(false);
+
+      // The caller's vectors are left untouched.
+      expect(shortDir.z).to.eq(-0.1);
+      expect(longDir.z).to.eq(-10);
+
+      root.destroy();
+    });
+
+    it("degenerate direction", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+      const collider = root.createChild("box").addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      updatePhysics(physicsScene);
+
+      // The box spans z in [-0.5, 0.5], so its front face is 4.5 away from z = 5.
+      const origin = new Vector3(0, 0, 5);
+      const inside = new Vector3(0, 0, 0);
+      const zeroDir = new Vector3(0, 0, 0);
+      const tinyDir = new Vector3(0, 0, -1e-8);
+      const outHitResult = new HitResult();
+
+      // A unit direction still hits the front face and fills the hit result.
+      expect(physicsScene.raycast(new Ray(origin, new Vector3(0, 0, -1)), 6, outHitResult)).to.eq(true);
+      expect(outHitResult.shape).to.not.eq(null);
+
+      // `Vector3.normalize` leaves directions no longer than `MathUtil.zeroTolerance` untouched, so
+      // those have no unit form: the queries report a miss and clear the caller's hit result instead
+      // of casting a scaled distance or letting the backends answer with an initial overlap hit.
+      expect(physicsScene.raycast(new Ray(inside, zeroDir), 6, outHitResult)).to.eq(false);
+      expect(outHitResult.shape).to.eq(null);
+      expect(physicsScene.raycast(new Ray(inside, tinyDir), 6)).to.eq(false);
+
+      const halfExtents = new Vector3(0.1, 0.1, 0.1);
+      expect(physicsScene.boxCast(inside, halfExtents, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.sphereCast(inside, 0.1, tinyDir, 6)).to.eq(false);
+      expect(physicsScene.capsuleCast(inside, 0.1, 0.5, tinyDir, 6)).to.eq(false);
 
       root.destroy();
     });
@@ -408,13 +630,13 @@ describe("Physics Test", () => {
       const seenInInner: number[] = [];
 
       const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
-      nativeScene.raycast(outerRay, 100, (uuid: number) => {
+      nativeScene.raycast(outerRay.origin, outerRay.direction, 100, (uuid: number) => {
         seenInOuter.push(uuid);
         // Nested raycast inside the outer's filter callback. If the stack got
         // mixed up, the inner ray's preFilter would dispatch to the outer
         // recorder (or vice versa).
         const innerRay = new Ray(new Vector3(0, -5, 0), new Vector3(0, 1, 0));
-        nativeScene.raycast(innerRay, 100, (innerUuid: number) => {
+        nativeScene.raycast(innerRay.origin, innerRay.direction, 100, (innerUuid: number) => {
           seenInInner.push(innerUuid);
           return true;
         });
@@ -457,7 +679,8 @@ describe("Physics Test", () => {
         expect(distance).to.be.greaterThan(0);
       };
       const result = nativeScene.raycast(
-        outerRay,
+        outerRay.origin,
+        outerRay.direction,
         100,
         (uuid: number) => {
           outerCalls++;
@@ -502,7 +725,7 @@ describe("Physics Test", () => {
       const ray = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
 
       expect(() => {
-        nativeScene.raycast(ray, 100, () => {
+        nativeScene.raycast(ray.origin, ray.direction, 100, () => {
           throw new Error("intentional in test");
         });
       }).to.throw("intentional in test");
@@ -512,7 +735,8 @@ describe("Physics Test", () => {
       let secondCalled = false;
       let observedUuid = -1;
       const ok = nativeScene.raycast(
-        ray,
+        ray.origin,
+        ray.direction,
         100,
         (uuid: number) => {
           secondCalled = true;

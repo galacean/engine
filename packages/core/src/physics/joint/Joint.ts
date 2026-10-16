@@ -1,10 +1,11 @@
+import { DataObject } from "../../base/DataObject";
 import { IJoint } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Collider } from "../Collider";
 import { DynamicCollider } from "../DynamicCollider";
 
@@ -18,12 +19,10 @@ export abstract class Joint extends Component {
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
-  @deepClone
   protected _colliderInfo = new JointColliderInfo();
-  @deepClone
   protected _connectedColliderInfo = new JointColliderInfo();
   @ignoreClone
-  protected _nativeJoint: IJoint;
+  protected _nativeJoint: IJoint | null;
   private _force = Infinity;
   private _torque = Infinity;
   private _automaticConnectedAnchor = true;
@@ -31,7 +30,7 @@ export abstract class Joint extends Component {
   /**
    * The connected collider.
    */
-  get connectedCollider(): Collider {
+  get connectedCollider(): Collider | null {
     return this._connectedColliderInfo.collider;
   }
 
@@ -206,7 +205,7 @@ export abstract class Joint extends Component {
    * @internal
    */
   override _onDisableInScene(): void {
-    this._nativeJoint.destroy();
+    this._nativeJoint!.destroy();
     this._nativeJoint = null;
   }
 
@@ -321,11 +320,9 @@ enum AnchorOwner {
 /**
  * @internal
  */
-class JointColliderInfo {
-  collider: Collider = null;
-  @deepClone
+class JointColliderInfo extends DataObject {
+  collider: Collider | null = null;
   anchor = new Vector3();
-  @deepClone
   actualAnchor = new Vector3();
   massScale: number = 1;
   inertiaScale: number = 1;

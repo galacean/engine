@@ -165,6 +165,62 @@ describe("Trail", async () => {
       expect(trailRenderer.destroyed).to.eq(true);
     });
 
+    it("clone", () => {
+      const rootEntity = scene.getRootEntity();
+      const trailEntity = rootEntity.createChild("trailCloneSrc");
+      const trailRenderer = trailEntity.addComponent(TrailRenderer);
+
+      trailRenderer.widthCurve = new ParticleCurve(new CurveKey(0, 0.5), new CurveKey(0.6, 2), new CurveKey(1, 0));
+      trailRenderer.colorGradient = new ParticleGradient(
+        [new GradientColorKey(0, new Color(1, 0, 0, 1)), new GradientColorKey(1, new Color(0, 0, 1, 1))],
+        [new GradientAlphaKey(0, 0.8), new GradientAlphaKey(1, 0.2)]
+      );
+      trailRenderer.textureScale = new Vector2(2.0, 0.5);
+
+      const cloneEntity = trailEntity.clone();
+      const cloneTrail = cloneEntity.getComponent(TrailRenderer);
+
+      // widthCurve is an independent deep copy with equal keys.
+      expect(cloneTrail.widthCurve).not.to.eq(trailRenderer.widthCurve);
+      expect(cloneTrail.widthCurve.keys.length).to.eq(3);
+      for (let i = 0; i < 3; i++) {
+        expect(cloneTrail.widthCurve.keys[i]).not.to.eq(trailRenderer.widthCurve.keys[i]);
+        expect(cloneTrail.widthCurve.keys[i].time).to.eq(trailRenderer.widthCurve.keys[i].time);
+        expect(cloneTrail.widthCurve.keys[i].value).to.eq(trailRenderer.widthCurve.keys[i].value);
+      }
+      cloneTrail.widthCurve.keys[0].value = 9;
+      expect(trailRenderer.widthCurve.keys[0].value).to.eq(0.5);
+
+      // colorGradient is an independent deep copy with equal color/alpha keys.
+      expect(cloneTrail.colorGradient).not.to.eq(trailRenderer.colorGradient);
+      expect(cloneTrail.colorGradient.colorKeys.length).to.eq(2);
+      expect(cloneTrail.colorGradient.alphaKeys.length).to.eq(2);
+      for (let i = 0; i < 2; i++) {
+        expect(cloneTrail.colorGradient.colorKeys[i]).not.to.eq(trailRenderer.colorGradient.colorKeys[i]);
+        expect(cloneTrail.colorGradient.colorKeys[i].color).not.to.eq(trailRenderer.colorGradient.colorKeys[i].color);
+        expect(
+          Color.equals(cloneTrail.colorGradient.colorKeys[i].color, trailRenderer.colorGradient.colorKeys[i].color)
+        ).to.eq(true);
+        expect(cloneTrail.colorGradient.colorKeys[i].time).to.eq(trailRenderer.colorGradient.colorKeys[i].time);
+        expect(cloneTrail.colorGradient.alphaKeys[i]).not.to.eq(trailRenderer.colorGradient.alphaKeys[i]);
+        expect(cloneTrail.colorGradient.alphaKeys[i].alpha).to.eq(trailRenderer.colorGradient.alphaKeys[i].alpha);
+        expect(cloneTrail.colorGradient.alphaKeys[i].time).to.eq(trailRenderer.colorGradient.alphaKeys[i].time);
+      }
+      cloneTrail.colorGradient.alphaKeys[0].alpha = 0.1;
+      expect(trailRenderer.colorGradient.alphaKeys[0].alpha).to.eq(0.8);
+
+      // textureScale is an independent copy with equal values.
+      expect(cloneTrail.textureScale).not.to.eq(trailRenderer.textureScale);
+      expect(cloneTrail.textureScale.x).to.eq(2.0);
+      expect(cloneTrail.textureScale.y).to.eq(0.5);
+      cloneTrail.textureScale.set(3.0, 3.0);
+      expect(trailRenderer.textureScale.x).to.eq(2.0);
+      expect(trailRenderer.textureScale.y).to.eq(0.5);
+
+      trailEntity.destroy();
+      cloneEntity.destroy();
+    });
+
     it("bounds", () => {
       const rootEntity = scene.getRootEntity();
       const trailEntity = rootEntity.createChild("trail");

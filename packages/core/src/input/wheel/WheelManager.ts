@@ -62,8 +62,8 @@ export class WheelManager implements IInput {
    */
   _destroy(): void {
     this._removeEventListener();
-    this._nativeEvents = null;
-    this._delta = null;
+    this._nativeEvents = null!;
+    this._delta = null!;
   }
 
   private _onWheelEvent(evt: WheelEvent): void {

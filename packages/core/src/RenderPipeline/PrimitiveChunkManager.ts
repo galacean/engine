@@ -13,10 +13,10 @@ export class PrimitiveChunkManager {
     public maxVertexCount = 4096
   ) {}
 
-  allocateSubChunk(vertexCount: number): SubPrimitiveChunk {
+  allocateSubChunk(vertexCount: number): SubPrimitiveChunk | null {
     const primitiveChunks = this.primitiveChunks;
     const length = primitiveChunks.length;
-    let subChunk: SubPrimitiveChunk = null;
+    let subChunk: SubPrimitiveChunk | null = null;
     for (let i = 0; i < length; ++i) {
       subChunk = primitiveChunks[i].allocateSubChunk(vertexCount);
       if (subChunk) {
@@ -46,7 +46,7 @@ export class PrimitiveChunkManager {
       primitiveChunks[i].destroy();
     }
     primitiveChunks.length = 0;
-    this.primitiveChunks = null;
-    this.engine = null;
+    this.primitiveChunks = null!;
+    this.engine = null!;
   }
 }

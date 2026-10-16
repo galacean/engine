@@ -1,9 +1,8 @@
-import { deepClone, PointerEventData, Signal } from "@galacean/engine";
+import { PointerEventData, Signal } from "@galacean/engine";
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
   /** Signal emitted when the button is clicked. */
-  @deepClone
   readonly onClick = new Signal<[PointerEventData]>();
 
   override onPointerClick(event: PointerEventData): void {

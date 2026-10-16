@@ -1,11 +1,10 @@
-import { deepClone } from "../../clone/CloneManager";
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * JointLimits is used to limit the joints angle.
  */
-export class JointLimits {
-  @deepClone
+export class JointLimits extends DataObject {
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 

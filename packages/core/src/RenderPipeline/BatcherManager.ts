@@ -34,26 +34,26 @@ export class BatcherManager {
   destroy() {
     if (this._primitiveChunkManager2D) {
       this._primitiveChunkManager2D.destroy();
-      this._primitiveChunkManager2D = null;
+      this._primitiveChunkManager2D = null!;
     }
     if (this._primitiveChunkManagerMask) {
       this._primitiveChunkManagerMask.destroy();
-      this._primitiveChunkManagerMask = null;
+      this._primitiveChunkManagerMask = null!;
     }
     if (this._primitiveChunkManagerUI) {
       this._primitiveChunkManagerUI.destroy();
-      this._primitiveChunkManagerUI = null;
+      this._primitiveChunkManagerUI = null!;
     }
     if (this._instanceBuffer) {
       this._instanceBuffer.destroy();
-      this._instanceBuffer = null;
+      this._instanceBuffer = null!;
     }
   }
 
   batch(input: RenderElement[], output: RenderElement[]): void {
-    let preElement: RenderElement;
-    let preRenderer: Renderer;
-    let preConstructor: Function;
+    let preElement: RenderElement | null | undefined;
+    let preRenderer!: Renderer;
+    let preConstructor!: Function;
     for (let i = 0, n = input.length; i < n; ++i) {
       const curElement = input[i];
 
@@ -68,8 +68,8 @@ export class BatcherManager {
 
       const renderer = curElement.component;
       const constructor = renderer.constructor;
-      if (preElement && preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
-        preRenderer._batch(preElement, curElement);
+      if (preElement && preConstructor === constructor && preRenderer!._canBatch(preElement, curElement)) {
+        preRenderer!._batch(preElement, curElement);
       } else {
         preElement && BatcherManager._flush(output, preElement);
         preElement = curElement;

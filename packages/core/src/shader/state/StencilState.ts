@@ -1,3 +1,4 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
@@ -10,7 +11,7 @@ import { RenderState } from "./RenderState";
 /**
  * Stencil state.
  */
-export class StencilState {
+export class StencilState extends DataObject {
   private static _getGLCompareFunction(rhi: IHardwareRenderer, compareFunction: CompareFunction): number {
     const gl = rhi.gl;
 
@@ -143,12 +144,16 @@ export class StencilState {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.stencilState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: StencilState, customStates?: RenderStateElementMap): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: StencilState,
+    customStates?: RenderStateElementMap | null
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let {
       enabled,

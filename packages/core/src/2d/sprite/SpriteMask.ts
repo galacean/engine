@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -24,7 +24,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
-  @assignmentClone
   influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
   @ignoreClone
@@ -38,22 +37,17 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   _maskIndex: number = -1;
 
   @ignoreClone
-  private _sprite: Sprite = null;
+  private _sprite: Sprite | null = null;
 
   @ignoreClone
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
-  private _customWidth: number = undefined;
-  @assignmentClone
-  private _customHeight: number = undefined;
-  @assignmentClone
+  private _customWidth: number | undefined = undefined;
+  private _customHeight: number | undefined = undefined;
   private _flipX: boolean = false;
-  @assignmentClone
   private _flipY: boolean = false;
 
-  @assignmentClone
   private _alphaCutoff: number = 0.5;
 
   /**
@@ -133,7 +127,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * The Sprite to render.
    */
-  get sprite(): Sprite {
+  get sprite(): Sprite | null {
     return this._sprite;
   }
 
@@ -192,9 +186,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteMask): void {
+    super._onClone(target);
     target.sprite = this._sprite;
   }
 
@@ -217,7 +212,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
    */
   override _onEnableInScene(): void {
     super._onEnableInScene();
-    this.scene._maskManager.addSpriteMask(this);
+    this.scene!._maskManager.addSpriteMask(this);
   }
 
   /**
@@ -225,7 +220,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
    */
   override _onDisableInScene(): void {
     super._onDisableInScene();
-    this.scene._maskManager.removeSpriteMask(this);
+    this.scene!._maskManager.removeSpriteMask(this);
   }
 
   /**
@@ -240,7 +235,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (sprite) {
       SimpleSpriteAssembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -248,7 +243,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
         this._flipY
       );
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }
@@ -277,7 +272,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -295,7 +290,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
     const renderElement = this._renderElement;
     const subChunk = this._subChunk;
-    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite!.texture!, subChunk);
     renderElement.priority = this.priority;
     renderElement.distanceForSort = this._distanceForSort;
     renderElement.subShader = material.shader.subShaders[0];
@@ -316,10 +311,10 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     this._sprite = null;
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
+      this._subChunk = null!;
     }
 
-    this._renderElement = null;
+    this._renderElement = null!;
   }
 
   private _calDefaultSize(): void {
@@ -337,7 +332,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
+        this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite!.texture);
         break;
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;

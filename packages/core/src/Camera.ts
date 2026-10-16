@@ -9,7 +9,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
@@ -116,20 +116,18 @@ export class Camera extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
   _frustum: BoundingFrustum = new BoundingFrustum();
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
-  _replacementShader: Shader = null;
+  _replacementShader: Shader | null = null;
   /** @internal */
-  _replacementSubShaderTag: ShaderTagKey = null;
+  _replacementSubShaderTag: ShaderTagKey | null | undefined = null;
   /** @internal */
-  _replacementFailureStrategy: ReplacementFailureStrategy = null;
+  _replacementFailureStrategy: ReplacementFailureStrategy | null = null;
   /** @internal */
   @ignoreClone
   _cameraIndex: number = -1;
@@ -147,26 +145,17 @@ export class Camera extends Component {
   private _enablePostProcess = false;
   private _msaaSamples: MSAASamples;
 
-  private _renderTarget: RenderTarget = null;
-  @ignoreClone
+  private _renderTarget: RenderTarget | null = null;
   private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   @ignoreClone
   private _depthBufferParams: Vector4 = new Vector4();
-  @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  @deepClone
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
-  @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
@@ -277,7 +266,7 @@ export class Camera extends Component {
   set priority(value: number) {
     if (this._priority !== value) {
       if (this._phasedActiveInScene) {
-        this.scene._componentsManager._cameraNeedSorting = true;
+        this.scene!._componentsManager._cameraNeedSorting = true;
       }
       this._priority = value;
     }
@@ -665,7 +654,7 @@ export class Camera extends Component {
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
-      this.scene.shaderData._macroCollection,
+      this.scene!.shaderData._macroCollection,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
@@ -674,13 +663,13 @@ export class Camera extends Component {
       mipLevel = 0;
       Logger.error("mipLevel only take effect in WebGL2.0");
     }
-    let ignoreClearFlags: CameraClearFlags;
+    let ignoreClearFlags: CameraClearFlags | undefined;
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
     engine._renderCount++;
-    context.camera = null;
+    context.camera = null!;
   }
 
   /**
@@ -728,18 +717,20 @@ export class Camera extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onEnableInScene(): void {
-    this.scene._componentsManager.addCamera(this);
+    this.scene!._componentsManager.addCamera(this);
     this._dispatchModify(CameraModifyFlags.EnableInScene);
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDisableInScene(): void {
-    this.scene._componentsManager.removeCamera(this);
+    this.scene!._componentsManager.removeCamera(this);
     this._dispatchModify(CameraModifyFlags.DisableInScene);
   }
 
@@ -749,7 +740,7 @@ export class Camera extends Component {
    */
   _isIndependentCanvasEnabled(): boolean {
     // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
+    if (this.enablePostProcess && this.scene!.postProcessManager._isValid()) {
       return true;
     }
 
@@ -764,7 +755,7 @@ export class Camera extends Component {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
         // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
-        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0).format;
+        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
       }
@@ -797,7 +788,7 @@ export class Camera extends Component {
    */
   _getTargetColorTextureFormat(): TextureFormat {
     const renderTarget = this._renderTarget;
-    return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
+    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8;
   }
 
   /**
@@ -828,13 +819,6 @@ export class Camera extends Component {
 
   /**
    * @internal
-   */
-  _cloneTo(target: Camera): void {
-    this._renderTarget?._addReferCount(1);
-  }
-
-  /**
-   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -848,17 +832,17 @@ export class Camera extends Component {
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
-    this._globalShaderMacro = null;
-    this._frustum = null;
-    this._renderPipeline = null;
-    this._virtualCamera = null;
-    this._shaderData = null;
-    this._frustumChangeFlag = null;
-    this._isViewMatrixDirty = null;
-    this._isInvViewProjDirty = null;
-    this._viewport = null;
-    this._inverseProjectionMatrix = null;
-    this._invViewProjMat = null;
+    this._globalShaderMacro = null!;
+    this._frustum = null!;
+    this._renderPipeline = null!;
+    this._virtualCamera = null!;
+    this._shaderData = null!;
+    this._frustumChangeFlag = null!;
+    this._isViewMatrixDirty = null!;
+    this._isInvViewProjDirty = null!;
+    this._viewport = null!;
+    this._inverseProjectionMatrix = null!;
+    this._invViewProjMat = null!;
   }
 
   private _updatePixelViewport(): void {

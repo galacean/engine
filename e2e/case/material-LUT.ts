@@ -43,7 +43,7 @@ const shaderSource = `Shader "LUT-test" {
 // Create engine
 WebGLEngine.create({ canvas: "canvas", shaderCompiler })
   .then((engine) => {
-    engine.canvas.resizeByClientSize(2);
+    engine.canvas.setAutoResolution(2);
 
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();

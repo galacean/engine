@@ -1,4 +1,6 @@
+import type { VirtualResource } from "@galacean/engine-core";
+
 export interface IProject {
   scene: string;
-  files: { virtualPath: string; path: string; type: string; id: string; params?: Record<string, any> }[];
+  files: (VirtualResource & { id: string })[];
 }

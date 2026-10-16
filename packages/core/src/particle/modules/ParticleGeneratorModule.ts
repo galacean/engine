@@ -1,4 +1,5 @@
-import { ignoreClone } from "../../clone/CloneManager";
+import { DataObject } from "../../base/DataObject";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -6,7 +7,7 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 /**
  * Particle generator module.
  */
-export abstract class ParticleGeneratorModule {
+export abstract class ParticleGeneratorModule extends DataObject {
   /** @internal */
   @ignoreClone
   _generator: ParticleGenerator;
@@ -28,10 +29,15 @@ export abstract class ParticleGeneratorModule {
    * @internal
    */
   constructor(generator: ParticleGenerator) {
+    super();
     this._generator = generator;
   }
 
-  protected _enableMacro(shaderData: ShaderData, lastEnableMacro: ShaderMacro, enableMacro: ShaderMacro): ShaderMacro {
+  protected _enableMacro(
+    shaderData: ShaderData,
+    lastEnableMacro: ShaderMacro | null,
+    enableMacro: ShaderMacro | null
+  ): ShaderMacro | null {
     if (lastEnableMacro !== enableMacro) {
       lastEnableMacro && shaderData.disableMacro(lastEnableMacro);
       enableMacro && shaderData.enableMacro(enableMacro);

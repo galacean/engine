@@ -24,7 +24,6 @@ async function main() {
 
   // Create engine
   const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() });
-  engine.canvas.resizeByClientSize();
 
   initShader();
 

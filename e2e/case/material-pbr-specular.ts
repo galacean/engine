@@ -21,8 +21,6 @@ Logger.enable();
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

@@ -1,4 +1,4 @@
-import { Component, DisorderedArray, Entity, EntityModifyFlags, assignmentClone, ignoreClone } from "@galacean/engine";
+import { Component, DisorderedArray, Entity, EntityModifyFlags, ignoreClone } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
@@ -11,11 +11,10 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
-  _group: UIGroup;
+  _group: UIGroup | null;
   /** @internal */
-  _rootCanvas: UICanvas;
+  _rootCanvas: UICanvas | null;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray<IGroupAble>();
 
   /** @internal */
@@ -25,11 +24,8 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _globalInteractive = true;
 
-  @assignmentClone
   private _alpha = 1;
-  @assignmentClone
   private _interactive = true;
-  @assignmentClone
   private _ignoreParentGroup = false;
 
   /** @internal */
@@ -131,7 +127,9 @@ export class UIGroup extends Component implements IGroupAble {
     this._groupListener = this._groupListener.bind(this);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
@@ -139,7 +137,9 @@ export class UIGroup extends Component implements IGroupAble {
     this.entity._dispatchModify(EntityUIModifyFlags.GroupEnableInScene);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
@@ -155,7 +155,7 @@ export class UIGroup extends Component implements IGroupAble {
   /**
    * @internal
    */
-  _getRootCanvas(): UICanvas {
+  _getRootCanvas(): UICanvas | null {
     this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
     return this._rootCanvas;
   }
@@ -163,7 +163,7 @@ export class UIGroup extends Component implements IGroupAble {
   /**
    * @internal
    */
-  _getGroup(): UIGroup {
+  _getGroup(): UIGroup | null {
     this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
     return this._group;
   }

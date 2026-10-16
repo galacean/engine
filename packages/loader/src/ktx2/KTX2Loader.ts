@@ -24,7 +24,7 @@ import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
-  private static _binomialLLCTranscoder: BinomialLLCTranscoder;
+  private static _binomialLLCTranscoder: BinomialLLCTranscoder | null;
   private static _priorityFormats = {
     [ColorModel.ETC1S]: [
       KTX2TargetFormat.ETC,
@@ -146,7 +146,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
     const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats, isSRGB) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
@@ -198,7 +198,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _getEngineTextureFormat(
     basisFormat: KTX2TargetFormat,
     transcodeResult: TranscodeResult
-  ): TextureFormat {
+  ): TextureFormat | undefined {
     const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
@@ -222,7 +222,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     }
   }
 
-  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
+  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> | void {
     if (configuration.ktx2Loader) {
       const options = configuration.ktx2Loader;
       if (options.priorityFormats) {
@@ -241,15 +241,14 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
       };
-      const url = item.url;
       resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
@@ -257,7 +256,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
               KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
             )
             .then((texture) => {
-              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, url, requestConfig));
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, remoteUrl, requestConfig));
               resolve(texture);
             })
         )
@@ -269,7 +268,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
   constructor(
     resource: Texture2D | TextureCube,
-    public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
@@ -280,8 +279,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(this.url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>

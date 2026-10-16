@@ -1,27 +1,23 @@
+import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { deepClone } from "../../clone/CloneManager";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
 
 /**
  * Particle composite gradient.
  */
-export class ParticleCompositeGradient {
+export class ParticleCompositeGradient extends DataObject {
   private static _tempColor = new Color();
 
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
-  @deepClone
   constantMin: Color = new Color();
   /* The max constant color used by the gradient if mode is set to `TwoConstants`. */
-  @deepClone
   constantMax: Color = new Color();
   /** The min gradient used by the gradient if mode is set to `Gradient`. */
-  @deepClone
   gradientMin: ParticleGradient = new ParticleGradient();
   /** The max gradient used by the gradient if mode is set to `Gradient`. */
-  @deepClone
   gradientMax: ParticleGradient = new ParticleGradient();
 
   /**
@@ -45,6 +41,11 @@ export class ParticleCompositeGradient {
   set gradient(value: ParticleGradient) {
     this.gradientMax = value;
   }
+
+  /**
+   * Create a particle gradient in constant mode with the default color.
+   */
+  constructor();
 
   /**
    * Create a particle gradient that generates a constant color.
@@ -72,7 +73,9 @@ export class ParticleCompositeGradient {
    */
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
-  constructor(constantOrGradient: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+  constructor(constantOrGradient?: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+    super();
+    if (!constantOrGradient) return;
     if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {
         this.constantMin.copyFrom(<Color>constantOrGradient);
@@ -101,22 +104,22 @@ export class ParticleCompositeGradient {
    * @param out - The result color
    */
 
-  evaluate(time: number, lerpFactor: number, out: Color): void {
+  evaluate(time: number | undefined, lerpFactor: number | undefined, out: Color): void {
     switch (this.mode) {
       case ParticleGradientMode.Constant:
         out.copyFrom(this.constant);
         break;
       case ParticleGradientMode.TwoConstants:
-        Color.lerp(this.constantMin, this.constantMax, lerpFactor, out);
+        Color.lerp(this.constantMin, this.constantMax, lerpFactor!, out);
         break;
       case ParticleGradientMode.Gradient:
-        this.gradientMax._evaluate(time, out);
+        this.gradientMax._evaluate(time!, out);
         break;
       case ParticleGradientMode.TwoGradients: {
         const tmp = ParticleCompositeGradient._tempColor;
-        this.gradientMin._evaluate(time, tmp);
-        this.gradientMax._evaluate(time, out);
-        Color.lerp(tmp, out, lerpFactor, out);
+        this.gradientMin._evaluate(time!, tmp);
+        this.gradientMax._evaluate(time!, out);
+        Color.lerp(tmp, out, lerpFactor!, out);
         break;
       }
       default:

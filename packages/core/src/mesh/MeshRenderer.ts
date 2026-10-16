@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
@@ -69,7 +69,7 @@ export class MeshRenderer extends Renderer {
     if (mesh) {
       mesh.destroyed || this._addResourceReferCount(mesh, -1);
       mesh._updateFlagManager.removeListener(this._onMeshChanged);
-      this._mesh = null;
+      this._mesh = null!;
     }
 
     super._onDestroy();
@@ -77,9 +77,10 @@ export class MeshRenderer extends Renderer {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: MeshRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: MeshRenderer): void {
+    super._onClone(target);
     target.mesh = this._mesh;
   }
 
@@ -105,9 +106,9 @@ export class MeshRenderer extends Renderer {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
-      BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+      BoundingBox.transform(localBounds, this._transformEntity!.transform.worldMatrix, worldBounds);
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }

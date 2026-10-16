@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -35,27 +35,20 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
 
-  @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
-  private _sprite: Sprite = null;
+  private _sprite: Sprite | null = null;
 
   @ignoreClone
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
-  private _customWidth: number = undefined;
-  @assignmentClone
-  private _customHeight: number = undefined;
-  @assignmentClone
+  private _customWidth: number | undefined = undefined;
+  private _customHeight: number | undefined = undefined;
   private _flipX: boolean = false;
-  @assignmentClone
   private _flipY: boolean = false;
 
   /**
@@ -122,7 +115,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * The Sprite to render.
    */
-  get sprite(): Sprite {
+  get sprite(): Sprite | null {
     return this._sprite;
   }
 
@@ -285,9 +278,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  override _cloneTo(target: SpriteRenderer): void {
-    super._cloneTo(target);
+  override _onClone(target: SpriteRenderer): void {
+    super._onClone(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }
@@ -318,7 +312,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (sprite) {
       this._assembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -326,7 +320,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this._flipY
       );
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }
@@ -351,7 +345,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -378,7 +372,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     const engine = camera.engine;
     const renderElement = engine._renderElementPool.get();
     const subChunk = this._subChunk;
-    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite!.texture!, subChunk);
     renderElement.priority = this.priority;
     renderElement.distanceForSort = this._distanceForSort;
     camera._renderPipeline.pushRenderElement(context, renderElement);
@@ -394,10 +388,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     super._onDestroy();
 
     this._sprite = null;
-    this._assembler = null;
+    this._assembler = null!;
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
+      this._subChunk = null!;
     }
   }
 
@@ -416,7 +410,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite!.texture);
         break;
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;

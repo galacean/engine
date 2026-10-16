@@ -25,8 +25,6 @@ async function main() {
     graphicDeviceOptions: { webGLMode: WebGLMode.Auto }
   });
 
-  engine.canvas.resizeByClientSize();
-
   // Create root entity
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

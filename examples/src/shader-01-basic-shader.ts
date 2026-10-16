@@ -113,8 +113,6 @@ function createTexture(engine: Engine): Promise<Texture2D> {
 
 // 主程序
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then(async (engine) => {
-  engine.canvas.resizeByClientSize();
-
   // 创建场景和相机
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

@@ -89,7 +89,7 @@ export class GLES300Visitor extends GLESVisitor {
     if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
       if (context.mrtStructs.length) {
         this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
-        return;
+        return "";
       }
       this._registerFragColorVariable();
       return V3_GL_FragColor;

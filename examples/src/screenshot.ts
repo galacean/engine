@@ -21,7 +21,6 @@ import {
 const gui = new dat.GUI();
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor.set(0, 0, 0, 0);
   const rootEntity = scene.createRootEntity();

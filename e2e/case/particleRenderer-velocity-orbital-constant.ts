@@ -25,8 +25,6 @@ WebGLEngine.create({
   canvas: "canvas",
   graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   scene.background.solidColor = new Color(0.01, 0.01, 0.012, 1);

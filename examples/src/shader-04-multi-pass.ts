@@ -142,8 +142,6 @@ function createSphere(engine: Engine, name: string, position: Vector3): Entity {
 // 主程序
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   // 创建场景和相机
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

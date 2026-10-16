@@ -2,15 +2,22 @@ Shader "Unlit" {
   Editor {
     Properties {
       Header("Base") {
+        /** Base RGB tint and alpha multiplier. */
         material_BaseColor("BaseColor", Color) = (1, 1, 1, 1);
+        /** RGBA texture multiplied by the base color. */
         material_BaseTexture("BaseTexture", Texture2D);
       }
 
       Header("Common") {
+        /** Enables alpha blending and disables depth writes. */
         isTransparent("Transparent", Boolean) = false;
+        /** Selects which sides of triangles are rendered. */
         renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
+        /** Alpha blending mode, used when isTransparent is true. */
         blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
+        /** Discards fragments below this alpha threshold; zero disables alpha testing. */
         material_AlphaCutoff("AlphaCutoff", Range(0, 1, 0.01)) = 0;
+        /** Scales UV0 by (x, y), then adds the (z, w) offset. */
         material_TilingOffset("TilingOffset", Vector4) = (1, 1, 0, 0);
       }
     }

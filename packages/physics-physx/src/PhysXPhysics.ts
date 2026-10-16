@@ -51,7 +51,7 @@ export class PhysXPhysics implements IPhysics {
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
-  private _initializePromise: Promise<void>;
+  private _initializePromise: Promise<void> | null;
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
@@ -67,10 +67,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1781696156399/suyi/physx.release.simd.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1781696156399/suyi/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.js";
   }
 
   /**
@@ -82,7 +82,7 @@ export class PhysXPhysics implements IPhysics {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
-      return this._initializePromise;
+      return this._initializePromise!;
     }
 
     this._initializeState = InitializeState.Initializing;

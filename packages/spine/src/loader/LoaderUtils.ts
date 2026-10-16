@@ -16,7 +16,7 @@ export class LoaderUtils {
     const virtualPathResourceMap = resourceManager._virtualPathResourceMap;
     const texturePromises: AssetPromise<Texture2D>[] = imagePaths.map((imagePath, index) => {
       const ext = imageExtensions[index];
-      let imageLoaderType = AssetType.Texture;
+      let imageLoaderType: string = AssetType.Texture;
       const virtualElement = virtualPathResourceMap[imagePath];
       if (virtualElement) {
         imageLoaderType = virtualElement.type;

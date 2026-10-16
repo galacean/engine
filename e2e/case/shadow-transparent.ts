@@ -26,7 +26,6 @@ WebGLEngine.create({
     webGLMode: WebGLMode.WebGL2
   }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   scene.shadowResolution = ShadowResolution.Medium;

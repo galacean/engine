@@ -28,7 +28,7 @@ export class AnimatorStateInstance {
   /**
    * The animation clip of the underlying state.
    */
-  get clip(): AnimationClip {
+  get clip(): AnimationClip | null | undefined {
     return this._state.clip;
   }
 

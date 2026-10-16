@@ -29,8 +29,6 @@ WebGLEngine.create({
     antialias: false
   }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   initFirstScene(engine);
   engine.run();
 });

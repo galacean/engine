@@ -26,11 +26,11 @@ export default class SemanticAnalyzer {
   static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
 
   semanticStack: TreeNode[] = [];
-  acceptRule?: TranslationRule = undefined;
+  acceptRule?: TranslationRule | undefined = undefined;
   symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
-    returnStatement?: ASTNode.JumpStatement;
+    returnStatement?: ASTNode.JumpStatement | null;
   } = {};
   private _shaderData = new ShaderData();
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
@@ -82,13 +82,13 @@ export default class SemanticAnalyzer {
 
   reportError(loc: ShaderRange, message: string): void {
     // #if _VERBOSE
-    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText!));
     // #else
     console.error(message);
     // #endif
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
+    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText!).toString());
   }
 }
