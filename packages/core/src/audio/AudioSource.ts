@@ -258,7 +258,7 @@ export class AudioSource extends Component {
   private _startPlayback(): void {
     const startTime = this.time;
     this._pendingPlay = null;
-    if (!this._loop && (startTime < 0 || startTime >= this._clip.duration)) {
+    if (!this._loop && (startTime < 0 || startTime >= this._clip!.duration)) {
       this.stop();
       return;
     }
