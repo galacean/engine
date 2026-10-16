@@ -29,10 +29,10 @@ import { Color } from "@galacean/engine-math";
  */
 export class BasicResources {
   static physicsDefaultMaterial: PhysicsMaterial;
-  private static _maskReadInsideRenderStates: RenderStateElementMap = null;
-  private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
-  private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
-  private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
+  private static _maskReadInsideRenderStates: RenderStateElementMap | null = null;
+  private static _maskReadOutsideRenderStates: RenderStateElementMap | null = null;
+  private static _maskWriteIncrementRenderStates: RenderStateElementMap | null = null;
+  private static _maskWriteDecrementRenderStates: RenderStateElementMap | null = null;
 
   /**
    * @internal
@@ -43,7 +43,7 @@ export class BasicResources {
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
-    let renderStates: RenderStateElementMap;
+    let renderStates: RenderStateElementMap | null;
     let compareFunction: CompareFunction;
 
     if (visibleInsideMask) {
@@ -73,7 +73,7 @@ export class BasicResources {
 
   static getMaskTypeRenderStates(maskType: RenderQueueMaskType): RenderStateElementMap {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
-    let renderStates: RenderStateElementMap;
+    let renderStates: RenderStateElementMap | null;
     let passOperation: StencilOperation;
 
     if (isIncrement) {
@@ -241,7 +241,7 @@ export class BasicResources {
           super(mesh);
         }
         restoreContent() {
-          buffer.setData(buffer.data);
+          buffer.setData(buffer.data!);
         }
       })()
     );

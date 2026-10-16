@@ -26,7 +26,7 @@ const materialLoaderTypes = new Set(Object.values(MaterialLoaderType));
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
-    return resourceManager._request(item.url, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
+    return resourceManager._request(item.url!, { ...item, type: "json" }).then((materialSchema: IMaterialSchema) => {
       const { shaderData, shaderRef, shader: shaderName } = materialSchema;
       for (const key in shaderData) {
         const type = shaderData[key].type;

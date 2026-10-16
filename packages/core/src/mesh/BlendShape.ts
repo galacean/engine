@@ -46,8 +46,8 @@ export class BlendShape {
   addFrame(
     weight: number,
     deltaPositions: Vector3[],
-    deltaNormals?: Vector3[],
-    deltaTangents?: Vector3[]
+    deltaNormals?: Vector3[] | null,
+    deltaTangents?: Vector3[] | null
   ): BlendShapeFrame;
 
   /**
@@ -59,11 +59,11 @@ export class BlendShape {
   addFrame(
     frameOrWeight: BlendShapeFrame | number,
     deltaPositions?: Vector3[],
-    deltaNormals?: Vector3[],
-    deltaTangents?: Vector3[]
+    deltaNormals?: Vector3[] | null,
+    deltaTangents?: Vector3[] | null
   ): void | BlendShapeFrame {
     if (typeof frameOrWeight === "number") {
-      const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);
+      const frame = new BlendShapeFrame(frameOrWeight, deltaPositions!, deltaNormals, deltaTangents);
       this._addFrame(frame);
       return frame;
     } else {
@@ -98,7 +98,7 @@ export class BlendShape {
   private _addFrame(frame: BlendShapeFrame): void {
     const frames = this._frames;
     const frameCount = frames.length;
-    if (frameCount > 0 && frame.deltaPositions.length !== frames[frameCount - 1].deltaPositions.length) {
+    if (frameCount > 0 && frame.deltaPositions!.length !== frames[frameCount - 1].deltaPositions!.length) {
       throw "Frame's deltaPositions length must same with before frame deltaPositions length.";
     }
     this._frames.push(frame);

@@ -20,7 +20,7 @@ export class MeshColliderShape extends ColliderShape {
   private static readonly _unitScale = new Vector3(1, 1, 1);
 
   @ignoreClone
-  private _mesh: ModelMesh = null;
+  private _mesh: ModelMesh | null = null;
   private _isConvex = false;
   @ignoreClone
   private _meshData: MeshData | null = null;
@@ -40,7 +40,7 @@ export class MeshColliderShape extends ColliderShape {
         return;
       }
 
-      if (!this._updateNativeShapeData(this._meshData, value)) {
+      if (!this._updateNativeShapeData(this._meshData!, value)) {
         return;
       }
       this._cookingFlags = value;
@@ -65,12 +65,13 @@ export class MeshColliderShape extends ColliderShape {
         return;
       }
 
-      let meshData = this._meshData;
+      let meshData = this._meshData!;
       if (!value && !meshData.indices) {
-        meshData = this._getMeshData(mesh, false);
-        if (!meshData) {
+        const meshDataFromMesh = this._getMeshData(mesh, false);
+        if (!meshDataFromMesh) {
           return;
         }
+        meshData = meshDataFromMesh;
       }
 
       const nativeShape = this._createNativeShape(meshData.positions, meshData.indices, value, this._cookingFlags);
@@ -88,11 +89,11 @@ export class MeshColliderShape extends ColliderShape {
    * The mesh used for collision detection.
    * @remarks The mesh must have accessible data (not released after upload).
    */
-  get mesh(): ModelMesh {
+  get mesh(): ModelMesh | null {
     return this._mesh;
   }
 
-  set mesh(value: ModelMesh) {
+  set mesh(value: ModelMesh | null) {
     if (this._mesh !== value) {
       if (value) {
         const meshData = this._getMeshData(value, this._isConvex);

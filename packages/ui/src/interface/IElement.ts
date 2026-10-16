@@ -4,12 +4,12 @@ import { RootCanvasModifyFlags } from "../component/UICanvas";
 
 export interface IElement {
   entity: Entity;
-  _rootCanvas: UICanvas;
+  _rootCanvas: UICanvas | null;
   _indexInRootCanvas: number;
   _rootCanvasListeningEntities: Entity[];
   _isRootCanvasDirty: boolean;
 
-  _getRootCanvas(): UICanvas;
+  _getRootCanvas(): UICanvas | null;
   _rootCanvasListener: (flag: number, param?: any) => void;
   _onRootCanvasModify?(flag: RootCanvasModifyFlags): void;
 }

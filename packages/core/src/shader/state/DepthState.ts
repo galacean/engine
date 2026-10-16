@@ -68,12 +68,16 @@ export class DepthState extends DataObject {
   _apply(
     hardwareRenderer: IHardwareRenderer,
     lastRenderState: RenderState,
-    customStates?: RenderStateElementMap
+    customStates?: RenderStateElementMap | null
   ): void {
     this._platformApply(hardwareRenderer, lastRenderState.depthState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: DepthState, customStates?: RenderStateElementMap): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: DepthState,
+    customStates?: RenderStateElementMap | null
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     let { enabled, compareFunction, writeEnabled } = this;
 

@@ -133,14 +133,14 @@ export class Collider extends Component implements ICloneHook<Collider> {
    * @internal
    */
   override _onEnableInScene(): void {
-    this.scene.physics._addCollider(this);
+    this.scene!.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene.physics._removeCollider(this);
+    this.scene!.physics._removeCollider(this);
   }
 
   /**

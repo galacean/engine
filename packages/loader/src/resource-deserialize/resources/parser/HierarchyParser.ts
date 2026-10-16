@@ -136,7 +136,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
         const additions = entityConfig.instance.overrides?.addedComponents;
         for (let j = 0, m = additions?.length ?? 0; j < m; j++) {
-          const added = additions[j];
+          const added = additions![j];
           const target = HierarchyParser._resolveEntity(entity, added.target);
           const config = allComponents[added.component];
           const instance = HierarchyParser._addComponentFromConfig(target, config, refs);
@@ -274,7 +274,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         const entity =
           prefabResource instanceof PrefabResource
             ? prefabResource.instantiate()
-            : prefabResource.instantiateSceneRoot();
+            : prefabResource!.instantiateSceneRoot();
         this._onEntityCreated(entity);
         return entity;
       });

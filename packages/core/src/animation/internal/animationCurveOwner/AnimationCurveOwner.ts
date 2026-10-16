@@ -37,8 +37,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   defaultValue: V;
   fixedPoseValue: V;
-  baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
-  crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+  baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
+  crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
   referenceTargetValue: V;
   cureType: IAnimationCurveCalculator<V>;
   updateMark: number = 0;
@@ -50,7 +50,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     type: ComponentConstructor,
     component: Component,
     property: string,
-    getProperty: string,
+    getProperty: string | undefined,
     cureType: IAnimationCurveCalculator<V>
   ) {
     this.target = target;
@@ -68,22 +68,22 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     }
   }
 
-  evaluateValue(curve: AnimationCurve<V>, time: number, additive: boolean): KeyframeValueType {
+  evaluateValue(curve: AnimationCurve<V>, time: number, additive: boolean): KeyframeValueType | undefined {
     return additive
       ? curve._evaluateAdditive(time, this.baseEvaluateData)
       : curve._evaluate(time, this.baseEvaluateData);
   }
 
   evaluateCrossFadeValue(
-    srcCurve: AnimationCurve<V>,
-    destCurve: AnimationCurve<V>,
+    srcCurve: AnimationCurve<V> | null | undefined,
+    destCurve: AnimationCurve<V> | null | undefined,
     srcTime: number,
     destTime: number,
     crossWeight: number,
     additive: boolean
   ): KeyframeValueType {
     if (!this.cureType._supportInterpolationMode) {
-      return this.evaluateValue(destCurve, destTime, false);
+      return this.evaluateValue(destCurve!, destTime, false)!;
     }
 
     const srcValue =
@@ -92,7 +92,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
           : srcCurve._evaluate(srcTime, this.baseEvaluateData)
         : additive
-          ? this.cureType._getZeroValue(this.baseEvaluateData.value)
+          ? this.cureType._getZeroValue!(this.baseEvaluateData.value)
           : this.defaultValue;
 
     const destValue =
@@ -101,24 +101,24 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-          ? this.cureType._getZeroValue(this.crossEvaluateData.value)
+          ? this.cureType._getZeroValue!(this.crossEvaluateData.value)
           : this.defaultValue;
 
-    return this._lerpValue(srcValue, destValue, crossWeight);
+    return this._lerpValue(srcValue!, destValue!, crossWeight);
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve<V>,
+    destCurve: AnimationCurve<V> | null | undefined,
     destTime: number,
     crossWeight: number,
     additive: boolean
   ): KeyframeValueType {
     if (!this.cureType._supportInterpolationMode) {
-      return this.evaluateValue(destCurve, destTime, false);
+      return this.evaluateValue(destCurve!, destTime, false)!;
     }
 
     const srcValue = additive
-      ? this.cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
+      ? this.cureType._subtractValue!(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
       : this.fixedPoseValue;
     const destValue =
       destCurve && destCurve.keys.length
@@ -126,10 +126,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-          ? this.cureType._getZeroValue(this.crossEvaluateData.value)
+          ? this.cureType._getZeroValue!(this.crossEvaluateData.value)
           : this.defaultValue;
 
-    return this._lerpValue(srcValue, destValue, crossWeight);
+    return this._lerpValue(srcValue!, destValue!, crossWeight);
   }
 
   revertDefaultValue(): void {
@@ -168,10 +168,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       const assembler = this._assembler;
 
       if (cureType._isCopyMode) {
-        cureType._additiveValue(value, weight, this.referenceTargetValue);
+        cureType._additiveValue!(value, weight, this.referenceTargetValue);
       } else {
         const originValue = assembler.getTargetValue();
-        const additiveValue = cureType._additiveValue(value, weight, originValue);
+        const additiveValue = cureType._additiveValue!(value, weight, originValue);
         assembler.setTargetValue(additiveValue);
       }
     } else {
@@ -184,10 +184,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       } else {
         if (cureType._isCopyMode) {
           const targetValue = this.referenceTargetValue;
-          cureType._lerpValue(targetValue, value, weight, targetValue);
+          cureType._lerpValue!(targetValue, value, weight, targetValue);
         } else {
           const originValue = this._assembler.getTargetValue();
-          const lerpValue = cureType._lerpValue(originValue, value, weight);
+          const lerpValue = cureType._lerpValue!(originValue, value, weight);
           this._assembler.setTargetValue(lerpValue);
         }
       }
@@ -196,9 +196,9 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   private _lerpValue(srcValue: V, destValue: V, crossWeight: number): KeyframeValueType {
     if (this.cureType._isCopyMode) {
-      return this.cureType._lerpValue(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
+      return this.cureType._lerpValue!(srcValue, destValue, crossWeight, this.baseEvaluateData.value);
     } else {
-      this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
+      this.baseEvaluateData.value = this.cureType._lerpValue!(srcValue, destValue, crossWeight);
       return this.baseEvaluateData.value;
     }
   }

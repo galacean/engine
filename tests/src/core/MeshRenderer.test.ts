@@ -70,6 +70,22 @@ describe("MeshRenderer", async function () {
     expect(mr.enableVertexColor).to.be.equal(false);
   });
 
+  it("keeps empty material slots when creating instance materials", () => {
+    const renderer = rootEntity.createChild().addComponent(MeshRenderer);
+    const material = new BlinnPhongMaterial(engine);
+    renderer.setMaterials([null, material]);
+
+    const instances = renderer.getInstanceMaterials();
+    expect(instances[0]).toBeNull();
+    expect(instances[1]).not.toBe(material);
+    expect(renderer.getInstanceMaterials()[1]).toBe(instances[1]);
+    expect(material.refCount).toBe(0);
+
+    renderer.setMaterial(1, null);
+    expect(renderer.getMaterial(1)).toBeNull();
+    renderer.entity.destroy();
+  });
+
   it("bounds", () => {
     const mr = cubeEntity.getComponent(MeshRenderer);
     expect(mr.bounds.min).to.deep.include({ x: 0, y: 0, z: 0 });

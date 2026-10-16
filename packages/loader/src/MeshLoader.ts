@@ -18,7 +18,7 @@ class MeshLoader extends Loader<ModelMesh> {
       ...item,
       type: "arraybuffer"
     };
-    const remoteUrl = resourceManager._getRemoteUrl(item.url);
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject) => {
       resourceManager
         ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)

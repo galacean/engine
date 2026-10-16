@@ -54,7 +54,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
-    xhr.timeout = config.timeout;
+    xhr.timeout = config.timeout!;
     config.method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore

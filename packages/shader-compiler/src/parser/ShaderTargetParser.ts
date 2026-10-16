@@ -122,7 +122,7 @@ export class ShaderTargetParser {
         const error = ShaderCompilerUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,
-          ShaderCompiler._processingPassText,
+          ShaderCompiler._processingPassText!,
           token.location
         );
         // #if _VERBOSE

@@ -9,9 +9,9 @@ import { XRSessionState } from "../../session/XRSessionState";
  */
 export class XRCameraManager {
   /**
-   * The fixed foveation of the camera.
+   * Fixed foveation, or `undefined` if unsupported by the active session.
    */
-  get fixedFoveation(): number {
+  get fixedFoveation(): number | undefined {
     const { _platformSession: platformSession } = this._xrManager.sessionManager;
     if (platformSession) {
       return platformSession.getFixedFoveation();
@@ -72,7 +72,7 @@ export class XRCameraManager {
    */
   detachCamera(
     type: XRTrackedInputDevice.Camera | XRTrackedInputDevice.LeftCamera | XRTrackedInputDevice.RightCamera
-  ): Camera {
+  ): Camera | null {
     const xrCamera = this._xrManager.inputManager.getTrackedDevice<XRCamera>(type);
     const preCamera = xrCamera._camera;
     preCamera && (preCamera._cameraType = CameraType.Normal);

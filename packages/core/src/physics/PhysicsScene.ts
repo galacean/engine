@@ -161,7 +161,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
 
     let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
@@ -277,7 +277,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -393,7 +393,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
@@ -518,7 +518,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -873,7 +873,7 @@ export class PhysicsScene {
       if (!shape) {
         return false;
       }
-      return shape.collider.collisionLayer & mask && shape.isSceneQuery;
+      return (shape.collider!.collisionLayer & mask) !== 0 && shape.isSceneQuery;
     };
   }
 
@@ -881,7 +881,7 @@ export class PhysicsScene {
     outHitResult: HitResult
   ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
+      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider!.entity;
       outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
       outHitResult.distance = distance;
       outHitResult.point.copyFrom(position);

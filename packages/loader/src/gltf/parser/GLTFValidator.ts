@@ -4,7 +4,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Validator)
 export class GLTFValidator extends GLTFParser {
-  parse(context: GLTFParserContext): AssetPromise<void> {
+  parse(context: GLTFParserContext): AssetPromise<null> {
     const {
       asset: { version },
       extensionsUsed,

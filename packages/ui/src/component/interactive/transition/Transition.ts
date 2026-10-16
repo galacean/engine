@@ -11,7 +11,7 @@ export abstract class Transition<T extends TransitionValueType = TransitionValue
   implements ICloneHook<Transition<T, K>>
 {
   /** @internal */
-  _interactive: UIInteractive;
+  _interactive: UIInteractive | null;
 
   protected _target: K;
   protected _normal: T;
@@ -126,9 +126,9 @@ export abstract class Transition<T extends TransitionValueType = TransitionValue
   destroy(): void {
     this._interactive?.removeTransition(this);
     this._addStateValuesReferCount(-1);
-    this._normal = this._pressed = this._hover = this._disabled = null;
-    this._initialValue = this._currentValue = this._finalValue = null;
-    this._target = null;
+    this._normal = this._pressed = this._hover = this._disabled = null!;
+    this._initialValue = this._currentValue = this._finalValue = null!;
+    this._target = null!;
   }
 
   /**
@@ -207,4 +207,4 @@ export abstract class Transition<T extends TransitionValueType = TransitionValue
   }
 }
 
-export type TransitionValueType = number | Sprite | Color;
+export type TransitionValueType = number | Sprite | Color | null;

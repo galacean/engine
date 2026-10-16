@@ -18,14 +18,14 @@ export class BufferMesh extends Mesh {
   /**
    * Vertex buffer binding collection.
    */
-  get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+  get vertexBufferBindings(): Readonly<(VertexBufferBinding | null)[]> {
     return this._primitive.vertexBufferBindings;
   }
 
   /**
    * Index buffer binding.
    */
-  get indexBufferBinding(): IndexBufferBinding {
+  get indexBufferBinding(): IndexBufferBinding | null {
     return this._primitive.indexBufferBinding;
   }
 
@@ -106,7 +106,7 @@ export class BufferMesh extends Mesh {
     let binding = <IndexBufferBinding>bufferOrBinding;
     if (binding) {
       const isBinding = binding.buffer !== undefined;
-      isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format));
+      isBinding || (binding = new IndexBufferBinding(<Buffer>bufferOrBinding, format!));
     }
     this._setIndexBufferBinding(binding);
   }

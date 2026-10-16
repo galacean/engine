@@ -8,7 +8,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 export class GLTFSkinParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): AssetPromise<Skin> {
     const glTF = context.glTF;
-    const skinInfo = glTF.skins[index];
+    const skinInfo = glTF.skins![index];
     const { inverseBindMatrices, skeleton, joints, name = `SKIN_${index}` } = skinInfo;
     const jointCount = joints.length;
 
@@ -18,7 +18,7 @@ export class GLTFSkinParser extends GLTFParser {
     const bones = new Array<Entity>(jointCount);
 
     // parse IBM
-    const accessor = glTF.accessors[inverseBindMatrices];
+    const accessor = glTF.accessors![inverseBindMatrices!];
     const skinPromise = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
       const entities = context.get<Entity>(GLTFParserType.Entity);
       const buffer = bufferInfo.data;
@@ -64,7 +64,7 @@ export class GLTFSkinParser extends GLTFParser {
     const paths = <Record<number, Entity[]>>{};
     for (const index of joints) {
       const path = new Array<Entity>();
-      let entity = entities[index];
+      let entity: Entity | null = entities[index];
       while (entity) {
         path.unshift(entity);
         entity = entity.parent;

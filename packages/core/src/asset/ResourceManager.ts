@@ -106,7 +106,7 @@ export class ResourceManager {
    * @param url - Resource URL
    * @returns Resource object
    */
-  getFromCache<T>(url: string): T {
+  getFromCache<T>(url: string): T | null {
     return (this._assetUrlPool[this._getRemoteUrl(url)] as T) ?? null;
   }
 
@@ -216,7 +216,7 @@ export class ResourceManager {
     const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {});
     const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
-      subPromiseCallback.resolve(value);
+      subPromiseCallback.resolve!(value);
     } else {
       subAssetPromiseCallbacks[assetSubPath] = {
         resolvedValue: value
@@ -319,16 +319,16 @@ export class ResourceManager {
   _destroy(): void {
     this.cancelNotLoaded();
     this._gc(true);
-    this._assetPool = null;
-    this._assetUrlPool = null;
-    this._referResourcePool = null;
-    this._graphicResourcePool = null;
-    this._contentRestorerPool = null;
-    this._loadingPromises = null;
+    this._assetPool = null!;
+    this._assetUrlPool = null!;
+    this._referResourcePool = null!;
+    this._graphicResourcePool = null!;
+    this._contentRestorerPool = null!;
+    this._loadingPromises = null!;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
-    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url!);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -378,7 +378,7 @@ export class ResourceManager {
     }
 
     // Check loader
-    const loader = <Loader<T>>ResourceManager._loaders[item.type];
+    const loader = <Loader<T>>ResourceManager._loaders[item.type!];
     if (!loader) {
       throw `loader not found: ${item.type}`;
     }
@@ -403,7 +403,7 @@ export class ResourceManager {
     loader: Loader<T>,
     item: LoadItem,
     remoteAssetBaseURL: string,
-    subpackageName: string
+    subpackageName: string | undefined
   ): AssetPromise<T> {
     return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
@@ -519,9 +519,9 @@ export class ResourceManager {
     return remoteAssetURL;
   }
 
-  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string | undefined } {
     const [baseUrl, searchStr] = path.split("?");
-    let queryPath = undefined;
+    let queryPath: string | undefined;
     let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
@@ -539,7 +539,7 @@ export class ResourceManager {
   }
 
   private _parseQueryPath(string): string[] {
-    const result = [];
+    const result: string[] = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
     }

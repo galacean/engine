@@ -9,10 +9,10 @@ import { Sprite } from "../sprite";
  * Interface for sprite renderer.
  */
 export interface ISpriteRenderer {
-  sprite: Sprite;
+  sprite: Sprite | null;
   color?: Color;
   tileMode?: SpriteTileMode;
   tiledAdaptiveThreshold?: number;
-  _subChunk: SubPrimitiveChunk;
+  _subChunk: SubPrimitiveChunk | null;
   _getChunkManager(): PrimitiveChunkManager;
 }

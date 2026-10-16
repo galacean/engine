@@ -50,7 +50,7 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   @ignoreClone
-  private _currentRenderModeMacro: ShaderMacro;
+  private _currentRenderModeMacro: ShaderMacro | null;
   private _supportInstancedArrays: boolean;
 
   /**
@@ -65,7 +65,7 @@ export class ParticleRenderer extends Renderer {
       const lastRenderMode = this._renderMode;
       this._renderMode = value;
 
-      let renderModeMacro = <ShaderMacro>null;
+      let renderModeMacro: ShaderMacro | null = null;
       switch (value) {
         case ParticleRenderMode.Billboard:
           renderModeMacro = ParticleRenderer._billboardModeMacro;

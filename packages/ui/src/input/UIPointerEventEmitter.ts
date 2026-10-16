@@ -129,7 +129,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       if (pressedPath.length > 0) {
         const common = UIPointerEventEmitter._tempArray0;
         if (this._findCommonInPath(enteredPath, pressedPath, common)) {
-          const eventData = this._createEventData(pointer);
+          const eventData = this._createEventData(pointer!);
           for (let i = 0, n = common.length; i < n; i++) {
             this._fireClick(common[i], eventData);
           }
@@ -171,13 +171,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     this._enteredPath.length = this._pressedPath.length = this._draggedPath.length = 0;
   }
 
-  private _updateRaycast(element: UIRenderer, pointer: Pointer = null): void {
+  private _updateRaycast(element: UIRenderer | null, pointer: Pointer | null = null): void {
     const enteredPath = this._enteredPath;
     const curPath = this._composedPath(element, UIPointerEventEmitter._path);
     const add = UIPointerEventEmitter._tempArray0;
     const del = UIPointerEventEmitter._tempArray1;
     if (this._findDiffInPath(enteredPath, curPath, add, del)) {
-      const eventData = this._createEventData(pointer);
+      const eventData = this._createEventData(pointer!);
       for (let i = 0, n = add.length; i < n; i++) {
         this._fireEnter(add[i], eventData);
       }
@@ -194,16 +194,16 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     curPath.length = 0;
   }
 
-  private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {
+  private _composedPath(element: UIRenderer | null, path: Entity[]): Entity[] {
     if (!element) {
       path.length = 0;
       return path;
     }
     let entity = (path[0] = element.entity);
     let i = 1;
-    const rootEntity = element._getRootCanvas().entity;
+    const rootEntity = element._getRootCanvas()!.entity;
     for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
-      entity = path[i] = entity.parent;
+      entity = path[i] = entity.parent!;
     }
     path.length = i;
     return path;
@@ -257,7 +257,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
     const length = path.length;
     if (length <= 0) return;
-    const eventData = this._createEventData(pointer);
+    const eventData = this._createEventData(pointer!);
     for (let i = 0; i < length; i++) {
       fireEvent(path[i], eventData);
     }

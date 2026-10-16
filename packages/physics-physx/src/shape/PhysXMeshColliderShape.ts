@@ -125,8 +125,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
       }
     } else {
       const isU32 = indices instanceof Uint32Array;
-      const indicesPtr = this._allocateIndices(indices, isU32);
-      pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices.length / 3, !isU32, physics);
+      const indicesPtr = this._allocateIndices(indices!, isU32);
+      pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices!.length / 3, !isU32, physics);
       physX._free(verticesPtr);
       physX._free(indicesPtr);
 

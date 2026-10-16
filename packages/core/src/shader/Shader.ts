@@ -45,36 +45,36 @@ export class Shader implements IReferable {
    * ```
    *
    * @param shaderSource - Shader code
-   * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES300
+   * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES100
    * @param path - Shader location path, used to resolve relative `#include` paths in ShaderLab source
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    *
    * @throws
    * Throw string exception if the shader compiler has not been enabled properly.
    */
-  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader | undefined;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param shaderPasses - Shader passes
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    */
-  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+  static create(name: string, shaderPasses: ShaderPass[]): Shader | undefined;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param subShaders - Sub shaders
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    */
-  static create(name: string, subShaders: SubShader[]): Shader;
+  static create(name: string, subShaders: SubShader[]): Shader | undefined;
 
   static create(
     nameOrShaderSource: string,
     shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[],
     path?: string
-  ): Shader {
+  ): Shader | undefined {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
 
@@ -102,7 +102,7 @@ export class Shader implements IReferable {
             return Shader._resolveUsePass(passSource.name);
           }
 
-          const shaderPassSource = Shader._shaderCompiler._parseShaderPass(
+          const shaderPassSource = Shader._shaderCompiler!._parseShaderPass(
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
@@ -116,8 +116,8 @@ export class Shader implements IReferable {
 
           const shaderPass = new ShaderPass(
             passSource.name,
-            shaderPassSource.vertexShaderInstructions,
-            shaderPassSource.fragmentShaderInstructions,
+            shaderPassSource.vertexShaderInstructions!,
+            shaderPassSource.fragmentShaderInstructions!,
             shaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
             passSource.tags
           );
@@ -171,7 +171,7 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
-  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader | undefined {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[data.name]) {
       console.error(`Shader named "${data.name}" already exists.`);
@@ -186,8 +186,8 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passData.name,
-          passData.vertexShaderInstructions,
-          passData.fragmentShaderInstructions,
+          passData.vertexShaderInstructions!,
+          passData.fragmentShaderInstructions!,
           data.platformTarget as ShaderLanguage,
           passData.tags
         );
