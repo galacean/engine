@@ -531,7 +531,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
         if (uvBufferBinding) {
           const index = this._addVertexBufferBindingsFilterDuplicate(uvBufferBinding, vertexBufferBindings);
-          primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement!.offset, uvElement!.format, index));
+          primitive.addVertexElement(
+            new VertexElement(VertexAttribute.UV, uvElement!.offset, uvElement!.format, index)
+          );
         }
 
         primitive.setIndexBufferBinding(mesh._primitive.indexBufferBinding);
