@@ -1,11 +1,15 @@
-import type { Texture2D } from "@galacean/engine";
+import { EngineObject } from "@galacean/engine";
+import type { Engine, Texture2D } from "@galacean/engine";
 
 /** Version-neutral atlas source. The skeleton asset selects the backend that interprets it. */
-export class SpineAtlas {
+export class SpineAtlas extends EngineObject {
   constructor(
+    engine: Engine,
     readonly text: string,
     readonly textures: readonly Texture2D[]
-  ) {}
+  ) {
+    super(engine);
+  }
 
   /** Atlas pages begin a block; regions and their properties remain in the same block. */
   static pageNames(text: string): string[] {

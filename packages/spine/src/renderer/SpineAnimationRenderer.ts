@@ -20,6 +20,7 @@ import {
   Material,
   Primitive,
   Renderer,
+  RendererUpdateFlags,
   SubPrimitive,
   Texture2D,
   Vector3,
@@ -178,7 +179,6 @@ export class SpineAnimationRenderer extends Renderer {
   /**
    * @internal
    */
-  // @ts-ignore
   override _onEnable(): void {
     this._applyDefaultConfig();
   }
@@ -202,14 +202,12 @@ export class SpineAnimationRenderer extends Renderer {
   /**
    * @internal
    */
-  // @ts-ignore
   override _render(context: any): void {
     const { _primitive, _subPrimitives, _materials: materials } = this;
     if (!_subPrimitives) return;
-    // Engine 2.0 render-element model: one RenderElement per sub-primitive (no sub-element pool).
-    const engine = this.engine as any;
+    const engine = this.engine;
     const priority = this.priority;
-    const distanceForSort = (this as any)._distanceForSort;
+    const distanceForSort = this._distanceForSort;
     const renderElementPool = engine._renderElementPool;
     const renderPipeline = context.camera._renderPipeline;
     for (let i = 0, n = _subPrimitives.length; i < n; i++) {
@@ -231,7 +229,6 @@ export class SpineAnimationRenderer extends Renderer {
   /**
    * @internal
    */
-  // @ts-ignore
   override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, worldBounds);
   }
@@ -268,7 +265,6 @@ export class SpineAnimationRenderer extends Renderer {
     const state = runtime.createAnimationState(this._state.data);
     target._setRuntime(runtime);
     target._resource = this._resource;
-    // @ts-ignore
     target._resource?._addReferCount(1);
     target._setSkeleton(skeleton, this._publicSkeleton.data);
     target._setState(state, this._publicState.data);
@@ -291,7 +287,6 @@ export class SpineAnimationRenderer extends Renderer {
     this._indexBuffer?.destroy();
     this._vertexBuffer = null;
     this._indexBuffer = null;
-    // @ts-ignore
     this._resource?._addReferCount(-1);
     this._resource = null;
     this._runtime = null;
@@ -404,7 +399,6 @@ export class SpineAnimationRenderer extends Renderer {
   set resource(value: SpineResource) {
     if (this._resource === value) return;
     this._publicState?._dispose();
-    // @ts-ignore
     this._resource?._addReferCount(-1);
     this._resource = value;
     this._state = null;
@@ -419,7 +413,6 @@ export class SpineAnimationRenderer extends Renderer {
     this._localBounds.max.set(0, 0, 0);
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     if (!value) return;
-    // @ts-ignore
     value._addReferCount(1);
     const { skeletonData, stateData, _runtime: runtime } = value;
     this._setRuntime(runtime);
@@ -427,14 +420,6 @@ export class SpineAnimationRenderer extends Renderer {
     this._setState(runtime.createAnimationState(stateData._native), stateData);
     this._applyDefaultConfig();
   }
-}
-
-/**
- * @internal
- */
-export enum RendererUpdateFlags {
-  /** Include world position and world bounds. */
-  WorldVolume = 0x1
 }
 
 /**

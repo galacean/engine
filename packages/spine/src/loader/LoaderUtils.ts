@@ -12,7 +12,6 @@ export class LoaderUtils {
     reject: (reason?: any) => void
   ): Promise<Texture2D[]> {
     const resourceManager = engine.resourceManager;
-    // @ts-ignore
     const virtualPathResourceMap = resourceManager._virtualPathResourceMap;
     const texturePromises: AssetPromise<Texture2D>[] = imagePaths.map((imagePath, index) => {
       const ext = imageExtensions[index];
@@ -40,29 +39,27 @@ export class LoaderUtils {
     const baseUrl = LoaderUtils.getBaseUrl(atlasPath);
     const resourceManager = engine.resourceManager;
     let atlasText: string;
-    return (
-      resourceManager
-        // @ts-ignore
-        ._request(atlasPath, { type: "text" })
-        .then((text: string) => {
-          atlasText = text;
-          const pageNames = SpineAtlas.pageNames(atlasText);
-          const loadTexturePromises = pageNames.map((name) => {
-            const textureUrl = baseUrl + name;
-            return resourceManager.load({
-              url: textureUrl,
-              type: AssetType.Texture
-            }) as unknown as Promise<Texture2D>;
+    return resourceManager
+
+      ._request(atlasPath, { type: "text" })
+      .then((text: string) => {
+        atlasText = text;
+        const pageNames = SpineAtlas.pageNames(atlasText);
+        const loadTexturePromises = pageNames.map((name) => {
+          const textureUrl = baseUrl + name;
+          return resourceManager.load<Texture2D>({
+            url: textureUrl,
+            type: AssetType.Texture
           });
-          return Promise.all(loadTexturePromises).then((textures) => {
-            return new SpineAtlas(atlasText, textures);
-          });
-        })
-        .catch((err) => {
-          reject(new Error(`Spine Atlas: ${atlasPath} load error: ${err}`));
-          throw err;
-        })
-    );
+        });
+        return Promise.all(loadTexturePromises).then((textures) => {
+          return new SpineAtlas(engine, atlasText, textures);
+        });
+      })
+      .catch((err) => {
+        reject(new Error(`Spine Atlas: ${atlasPath} load error: ${err}`));
+        throw err;
+      });
   }
 
   static getBaseUrl(url: string): string {

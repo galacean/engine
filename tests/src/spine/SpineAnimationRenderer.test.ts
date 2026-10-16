@@ -30,7 +30,7 @@ describe("SpineAnimationRenderer", () => {
     const renderer = new Entity(engine).addComponent(SpineAnimationRenderer);
     const texture = new Texture2D(engine, 4, 4);
     const normal = renderer._getMaterial(texture, SpineBlendMode.Normal);
-    // Same texture + blendMode must hit the cache (regression guard for the Map[key] bug).
+    // Renderers using the same texture and blend mode share the cached material.
     expect(renderer._getMaterial(texture, SpineBlendMode.Normal)).to.equal(normal);
     // Different blendMode must produce a different material.
     expect(renderer._getMaterial(texture, SpineBlendMode.Additive)).to.not.equal(normal);

@@ -89,7 +89,6 @@ export class SpineResource extends ReferResource {
     spineAnimationRenderer._setRuntime(runtime);
     spineAnimationRenderer._setSkeleton(skeleton, this._skeletonData);
     spineAnimationRenderer._setState(state, this._stateData);
-    // @ts-ignore
     spineEntity._markAsTemplate(this);
     this._template = spineEntity;
   }
@@ -97,7 +96,6 @@ export class SpineResource extends ReferResource {
   private _associationTextureInSkeletonData(skeletonData: ISpineSkeletonData): void {
     const textures = (this._texturesInSpineAtlas = this._runtime.getTextures(skeletonData));
     for (const texture of textures) {
-      // @ts-ignore
       texture._associationSuperResource(this);
     }
   }
@@ -105,7 +103,6 @@ export class SpineResource extends ReferResource {
   private _disassociateTextures(): void {
     const textures = this._texturesInSpineAtlas;
     for (let i = 0, n = textures.length; i < n; i++) {
-      // @ts-ignore
       textures[i]._disassociationSuperResource(this);
     }
     textures.length = 0;

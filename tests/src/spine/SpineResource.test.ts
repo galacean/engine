@@ -1,5 +1,6 @@
 import { Camera, Color, Entity, WebGLEngine } from "@galacean/engine";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { SpineAtlas } from "../../../packages/spine/src/loader/SpineAtlas";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
 import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
@@ -55,6 +56,29 @@ describe("Spine resource ownership", () => {
     for (let i = 0; i < pixels.length; i += 4) if (pixels[i] + pixels[i + 1] + pixels[i + 2] > 30) count++;
     expect(gl.getError()).to.equal(0);
     return count;
+  }
+
+  for (const explicitTextures of [false, true]) {
+    it(`loads an atlas asset with ${explicitTextures ? "explicit" : "atlas-relative"} textures`, async () => {
+      const atlasUrl = new URL("./fixtures/3.8.atlas", import.meta.url).href;
+      const atlas = await engine.resourceManager.load<SpineAtlas>(
+        explicitTextures
+          ? {
+              urls: [
+                atlasUrl,
+                ...["page.png", "alt.png"].map((name) => new URL(`./fixtures/${name}`, import.meta.url).href)
+              ],
+              type: "SpineAtlas"
+            }
+          : { url: atlasUrl, type: "SpineAtlas" }
+      );
+      expect(atlas.engine).to.equal(engine);
+      expect(SpineAtlas.pageNames(atlas.text)).to.deep.equal(["page.png", "alt.png"]);
+      expect(atlas.textures).to.have.length(2);
+      expect(atlas.textures.every((texture) => texture.engine === engine && !texture.destroyed)).to.be.true;
+      atlas.destroy();
+      expect(atlas.destroyed).to.be.true;
+    });
   }
 
   for (const first of ["3.8", "4.2"] as const) {

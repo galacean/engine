@@ -11,7 +11,7 @@ interface SpineAtlasAsset {
 
 @resourceLoader("SpineAtlas", ["atlas"], false)
 export class SpineAtlasLoader extends Loader<SpineAtlas> {
-  private static _groupAssetsByExtension(url: string, assetPath: SpineAtlasAsset, resourceManager: ResourceManager) {
+  private static _groupAssetsByExtension(url: string, assetPath: SpineAtlasAsset) {
     const ext = SpineLoader._getUrlExtension(url);
     if (!ext) return;
 
@@ -28,7 +28,6 @@ export class SpineAtlasLoader extends Loader<SpineAtlas> {
     const ext = SpineLoader._getUrlExtension(url);
     if (ext === "atlas") {
       assetPath.atlasPath = url;
-      // @ts-ignore
       const atlasDependency = resourceManager?._virtualPathResourceMap?.[url]?.dependentAssetMap;
       if (atlasDependency) {
         for (const key in atlasDependency) {
@@ -55,7 +54,7 @@ export class SpineAtlasLoader extends Loader<SpineAtlas> {
         const urls = item.urls;
         for (let i = 0, len = urls.length; i < len; i += 1) {
           const url = urls[i];
-          SpineAtlasLoader._groupAssetsByExtension(url, spineAtlasAsset, resourceManager);
+          SpineAtlasLoader._groupAssetsByExtension(url, spineAtlasAsset);
         }
       }
 
@@ -78,31 +77,13 @@ export class SpineAtlasLoader extends Loader<SpineAtlas> {
             reject(err);
           });
       } else {
-        const { atlasPath, imagePaths, imageExtensions } = spineAtlasAsset;
-        if (imagePaths.length > 0) {
-          Promise.all([
-            // @ts-ignore
-            resourceManager._request(atlasPath, {
-              type: "text"
-            }) as Promise<string>,
-            LoaderUtils.loadTexturesByPaths(imagePaths, imageExtensions, engine, reject)
-          ])
-            .then(([atlasText, textures]) => {
-              const textureAtlas = new SpineAtlas(atlasText, textures);
-              resolve(textureAtlas);
-            })
-            .catch((err) => {
-              reject(err);
-            });
-        } else {
-          LoaderUtils.loadTextureAtlas(atlasPath, engine, reject)
-            .then((textureAtlas) => {
-              resolve(textureAtlas);
-            })
-            .catch((err) => {
-              reject(err);
-            });
-        }
+        const { imageExtensions } = spineAtlasAsset;
+        Promise.all([
+          resourceManager._request<string>(atlasPath, { type: "text" }),
+          LoaderUtils.loadTexturesByPaths(imagePaths, imageExtensions, engine, reject)
+        ])
+          .then(([atlasText, textures]) => resolve(new SpineAtlas(engine, atlasText, textures)))
+          .catch(reject);
       }
     });
   }

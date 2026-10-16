@@ -8,23 +8,14 @@ type SpineAssetPath = {
   atlasPath: string;
   skeletonPath: string;
   extraPaths: string[];
-  fileExtensions?: string | string[];
 };
 
 type SpineLoadContext = {
-  fileName: string;
   spineAssetPath: SpineAssetPath;
   skeletonRawData: string | ArrayBuffer;
 };
 
-export type SpineLoaderParams = {
-  fileExtensions?: string | string[];
-};
-
-// Registering "json" makes this loader the default for bare `.json` urls (extension mappings are
-// last-registration-wins, overriding the core JSONLoader) — matches the historical engine-spine
-// behavior. Pass an explicit `type` (e.g. AssetType.JSON) to load plain JSON once this package
-// is imported.
+// Specify AssetType.JSON when loading plain JSON after registering this loader.
 @resourceLoader("Spine", ["json", "bin", "skel"])
 export class SpineLoader extends Loader<SpineResource> {
   private static _decoder = new TextDecoder("utf-8");
@@ -46,8 +37,6 @@ export class SpineLoader extends Loader<SpineResource> {
     const ext = SpineLoader._getUrlExtension(url);
     if (!ext) return;
     assetPath.skeletonPath = url;
-
-    // @ts-ignore
     const skeletonDependency = resourceManager?._virtualPathResourceMap?.[url]?.dependentAssetMap;
     if (skeletonDependency) {
       assetPath.atlasPath = skeletonDependency.atlas;
@@ -73,7 +62,6 @@ export class SpineLoader extends Loader<SpineResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpineResource> {
     return new AssetPromise((resolve, reject) => {
       const spineLoadContext: SpineLoadContext = {
-        fileName: "",
         skeletonRawData: "",
         spineAssetPath: {
           atlasPath: null,
@@ -103,7 +91,6 @@ export class SpineLoader extends Loader<SpineResource> {
       }
 
       resourceManager
-        // @ts-ignore
         ._request(skeletonPath, { type: "arraybuffer" })
         .then((skeletonRawData: ArrayBuffer) => {
           spineLoadContext.skeletonRawData = skeletonRawData;
@@ -121,7 +108,7 @@ export class SpineLoader extends Loader<SpineResource> {
   private _loadAndCreateSpineResource(
     spineLoadContext: SpineLoadContext,
     resourceManager: ResourceManager
-  ): Promise<SpineResource> {
+  ): AssetPromise<SpineResource> {
     const { engine } = resourceManager;
     const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
@@ -129,14 +116,14 @@ export class SpineLoader extends Loader<SpineResource> {
     const runtime = getSpineRuntime(readSpineVersion(skeletonRawData));
     const atlasLoadPromise =
       extraPaths.length === 0
-        ? (resourceManager.load({
+        ? resourceManager.load<SpineAtlas>({
             url: atlasPath,
             type: "SpineAtlas"
-          }) as unknown as Promise<SpineAtlas>)
-        : (resourceManager.load({
+          })
+        : resourceManager.load<SpineAtlas>({
             urls: [atlasPath].concat(extraPaths),
             type: "SpineAtlas"
-          }) as unknown as Promise<SpineAtlas>);
+          });
 
     return atlasLoadPromise.then((atlas) => {
       const textureAtlas = runtime.createTextureAtlas(atlas.text, Array.from(atlas.textures));
