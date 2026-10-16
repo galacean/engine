@@ -39,7 +39,7 @@ export class AnimatorStatePlayData {
     this.offsetFrameTime = offsetFrameTime;
     this.playedTime = 0;
     this.playState = AnimatorStatePlayState.UnStarted;
-    this.clipTime = state.clipStartTime * state.clip.length;
+    this.clipTime = state.clipStartTime * state.clip!.length;
     this.currentEventIndex = 0;
     this.isForward = true;
     this._changedOrientation = false;
@@ -61,7 +61,7 @@ export class AnimatorStatePlayData {
     this.playedTime += deltaTime;
     const instance = this.instance;
     const state = instance._state;
-    const clipLength = state.clip.length;
+    const clipLength = state.clip!.length;
     const clipStartTime = state.clipStartTime;
     let time = this.playedTime + this.offsetFrameTime;
     const duration = (state.clipEndTime - clipStartTime) * clipLength;
@@ -88,7 +88,7 @@ export class AnimatorStatePlayData {
     const state = this.instance._state;
     // Reverse playback at clipTime=0 would step into negatives; jump to clipEnd.
     if (this.clipTime === 0) {
-      this.clipTime = state.clipEndTime * state.clip.length;
+      this.clipTime = state.clipEndTime * state.clip!.length;
     }
   }
 }

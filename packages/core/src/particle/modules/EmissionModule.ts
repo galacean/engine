@@ -23,13 +23,14 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**  The rate at which the emitter spawns new particles over distance. */
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
+  /** @internal */
   _shape: BaseShape;
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
 
   @ignoreClone
-  private _shapeMacro: ShaderMacro;
+  private _shapeMacro: ShaderMacro | null;
   /** @internal */
   @ignoreClone
   _rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);

@@ -15,8 +15,7 @@ class ProjectLoader extends Loader<void> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject, onTaskCompeteProgress) => {
       resourceManager
-        // @ts-ignore
-        ._request<IProject>(item.url, { ...item, type: "json" })
+        ._request<IProject>(item.url!, { ...item, type: "json" })
         .then((data) => {
           engine.resourceManager.registerVirtualResources(data.files);
           return resourceManager

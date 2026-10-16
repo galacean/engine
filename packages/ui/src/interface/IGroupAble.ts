@@ -3,7 +3,7 @@ import { GroupModifyFlags, UIGroup } from "../component/UIGroup";
 import { IElement } from "./IElement";
 
 export interface IGroupAble extends IElement {
-  _group: UIGroup;
+  _group: UIGroup | null;
   _indexInGroup: number;
   _groupListeningEntities: Entity[];
   _isGroupDirty: boolean;
@@ -11,7 +11,7 @@ export interface IGroupAble extends IElement {
   _globalAlpha?: number;
   _globalInteractive?: boolean;
 
-  _getGroup(): UIGroup;
+  _getGroup(): UIGroup | null;
   _onGroupModify(flag: GroupModifyFlags, isPass?: boolean): void;
   _groupListener(flag: number): void;
 }

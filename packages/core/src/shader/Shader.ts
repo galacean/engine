@@ -46,33 +46,33 @@ export class Shader implements IReferable {
    *
    * @param shaderSource - Shader code
    * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES100
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    *
    * @throws
    * Throw string exception if the shader compiler has not been enabled properly.
    */
-  static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader | undefined;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param shaderPasses - Shader passes
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    */
-  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+  static create(name: string, shaderPasses: ShaderPass[]): Shader | undefined;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param subShaders - Sub shaders
-   * @returns Shader
+   * @returns The shader, or `undefined` if its name already exists.
    */
-  static create(name: string, subShaders: SubShader[]): Shader;
+  static create(name: string, subShaders: SubShader[]): Shader | undefined;
 
   static create(
     nameOrShaderSource: string,
     shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[]
-  ): Shader {
+  ): Shader | undefined {
     if (
       shaderPassesOrSubShadersOrPlatformTarget == undefined ||
       typeof shaderPassesOrSubShadersOrPlatformTarget === "number"
@@ -111,7 +111,7 @@ export class Shader implements IReferable {
    * @param shaderSource - Complete ShaderLab source.
    * @param platformTarget - Shader backend target.
    * @param sourceFile - Canonical source location supplied by an asset loader or authoring tool.
-   * @returns Compiled shader.
+   * @returns The compiled shader, or `undefined` if its name already exists.
    * @throws When the shader compiler is unavailable or a pass cannot be compiled.
    * @internal
    */
@@ -119,7 +119,7 @@ export class Shader implements IReferable {
     shaderSource: string,
     platformTarget: ShaderLanguage = ShaderLanguage.GLSLES100,
     sourceFile?: string
-  ): Shader {
+  ): Shader | undefined {
     const shaderCompiler = Shader._shaderCompiler;
     if (!shaderCompiler) {
       throw "ShaderCompiler has not been set up yet.";
@@ -153,8 +153,8 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passSource.name,
-          shaderPassSource.vertexShaderInstructions,
-          shaderPassSource.fragmentShaderInstructions,
+          shaderPassSource.vertexShaderInstructions!,
+          shaderPassSource.fragmentShaderInstructions!,
           platformTarget,
           passSource.tags
         );
@@ -188,7 +188,7 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
-  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader | undefined {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[data.name]) {
       console.error(`Shader named "${data.name}" already exists.`);
@@ -203,8 +203,8 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passData.name,
-          passData.vertexShaderInstructions,
-          passData.fragmentShaderInstructions,
+          passData.vertexShaderInstructions!,
+          passData.fragmentShaderInstructions!,
           data.platformTarget as ShaderLanguage,
           passData.tags
         );

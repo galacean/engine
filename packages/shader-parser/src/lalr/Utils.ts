@@ -105,7 +105,7 @@ export default class GrammarUtils {
 
   static printAction(actionInfo: ActionInfo) {
     const production = Production.pool.get(actionInfo.target!);
-    return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production)}>`;
+    return `<Action: ${EAction[actionInfo.action]} -> ${this.printProduction(production!)}>`;
   }
 
   static printProduction(production: Production) {

@@ -119,7 +119,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
     this._outerMacroDeclarations = outerGlobalMacroDeclarations;
     try {
       coreInfo.deferredDeclarationOwnership.forEach((owner, symbol) =>
-        this._declarationOwners.set(symbol.astNode, owner)
+        this._declarationOwners.set(symbol.astNode!, owner)
       );
       if (this._declarationOwners.size) {
         let nextId = 0;
@@ -140,7 +140,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         });
         context.onReferenceGlobal = (symbols) => {
           const from = this.currentDeclarationOwner?.id ?? 0;
-          for (const symbol of symbols) this._referenceDeclaration(from, symbol.astNode);
+          for (const symbol of symbols) this._referenceDeclaration(from, symbol.astNode!);
         };
         const propDeclarations = new Map();
         for (const struct of [...io.attributeStructs, ...io.varyingStructs, ...io.mrtStructs]) {
@@ -156,7 +156,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
           new GSError(
             GSErrorName.CompilationError,
             "Deferred inheritance requires exact signatures and cannot resolve a known partial-coverage conflict.",
-            coreInfo.unsupportedDeferredDeclarations[0].astNode.location,
+            coreInfo.unsupportedDeferredDeclarations[0].astNode!.location,
             ir.source,
             undefined,
             "UnsupportedDeferredDeclaration"
@@ -321,14 +321,14 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
         this._currentDeclaration = sm.astNode;
-        const codeGenResult = sm.astNode.codeGen(this);
+        const codeGenResult = sm.astNode!.codeGen(this);
         this._currentDeclaration = undefined;
         if (!codeGenResult) continue;
         const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
         if (!sm.isInMacroBranch) {
           const segment = {
-            text: this._declaration(text, sm.astNode),
-            index: sm.astNode.location.start.index
+            text: this._declaration(text, sm.astNode!),
+            index: sm.astNode!.location.start.index
           };
           out.push(segment);
           if (sm.astNode instanceof ASTNode.StructSpecifier) this._structCodeSegments.set(sm.astNode, segment);
@@ -444,7 +444,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
   private _getForwardSignature(prototype: ASTNode.FunctionProtoType): string {
     const parameters: string[] = [];
     for (const parameter of prototype.parameterList ?? []) {
-      const declaration = parameter.astNode;
+      const declaration = parameter.astNode!;
       if (
         declaration instanceof ASTNode.ParameterDeclaration &&
         declaration.symbol &&
@@ -481,7 +481,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       const owner = this._declarationOwners.get(symbol.astNode);
       if (!candidates || (!owner && candidates.includes(symbol))) continue;
       const preceding = candidates.filter(
-        (candidate) => candidate.astNode.location.start.index < node.location.start.index
+        (candidate) => candidate.astNode!.location.start.index < node.location.start.index
       );
       if (
         !owner &&
@@ -498,12 +498,12 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       );
       const anchor = oldMacro?.location.start.index ?? symbol.astNode.location.start.index;
       for (const candidate of candidates) {
-        if (candidate.astNode.location.start.index <= node.location.start.index) continue;
+        if (candidate.astNode!.location.start.index <= node.location.start.index) continue;
         if (owner) {
-          const nextOwner = this._declarationOwners.get(candidate.astNode);
+          const nextOwner = this._declarationOwners.get(candidate.astNode!);
           if (!nextOwner || nextOwner.group !== owner.group || nextOwner.sourceScope <= owner.sourceScope) continue;
         }
-        const declaration = candidate.astNode;
+        const declaration = candidate.astNode!;
         if (
           !(candidate instanceof VarSymbol) ||
           !candidate.isUniform ||
@@ -522,7 +522,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         ) {
           this._unsupportedForwardDeclaration(declaration);
         }
-        this._prepareForwardTypes(candidate.dataType.structDeclarations, anchor);
+        this._prepareForwardTypes(candidate.dataType!.structDeclarations, anchor);
         this._forwardVariableIndices.set(
           declaration,
           Math.min(this._forwardVariableIndices.get(declaration) ?? Infinity, anchor)
@@ -613,7 +613,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
         final
           .filter((symbol) => {
             if (!owner) return true;
-            const nextOwner = this._declarationOwners.get(symbol.astNode);
+            const nextOwner = this._declarationOwners.get(symbol.astNode!);
             return nextOwner?.group === owner.group && nextOwner.sourceScope > owner.sourceScope;
           })
           .map((symbol) => symbol.astNode)
@@ -732,7 +732,7 @@ export abstract class GLESVisitor extends CodeGenVisitor implements ShaderBacken
       const symbols = referencedGlobals[referencedGlobalKeys[keyIndex]];
       for (const symbol of symbols) {
         if (symbol.isInMacroBranch) {
-          referencedGlobalMacroASTs.push(symbol.astNode);
+          referencedGlobalMacroASTs.push(symbol.astNode!);
         }
       }
     }

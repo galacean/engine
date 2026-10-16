@@ -22,7 +22,7 @@ export class AnimatorStateTransition {
   isFixedDuration = false;
 
   /** @internal */
-  _collection: AnimatorStateTransitionCollection;
+  _collection: AnimatorStateTransitionCollection | null;
   /** @internal */
   _isExit = false;
 
@@ -118,6 +118,6 @@ export class AnimatorStateTransition {
    * @internal
    */
   _getFixedDuration(): number {
-    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
+    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration()!;
   }
 }

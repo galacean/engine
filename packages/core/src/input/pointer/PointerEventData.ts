@@ -15,6 +15,6 @@ export class PointerEventData implements IPoolElement {
    * @internal
    */
   dispose() {
-    this.pointer = null;
+    this.pointer = null!;
   }
 }

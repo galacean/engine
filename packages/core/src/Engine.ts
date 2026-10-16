@@ -70,6 +70,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _batcherManager: BatcherManager;
 
+  /** @internal */
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _frameInProcess = false;
@@ -98,7 +99,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _basicResources: BasicResources;
   /** @internal */
-  _textDefaultFont: Font;
+  _textDefaultFont: Font | null;
   /** @internal */
   _renderContext: RenderContext = new RenderContext();
 
@@ -252,7 +253,7 @@ export class Engine extends EventDispatcher {
     this._canvas = canvas;
 
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = true;
+    this._textDefaultFont!.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
@@ -644,7 +645,7 @@ export class Engine extends EventDispatcher {
       Shader._shaderCompiler = shaderCompiler;
     }
 
-    const initializePromises = new Array<Promise<any>>();
+    const initializePromises: (Promise<unknown> | void)[] = [];
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {

@@ -85,9 +85,9 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     out: Vector4
   ): Vector4 {
     const p0 = frame.value;
-    const tan0 = frame.outTangent;
+    const tan0 = frame.outTangent!;
     const p1 = nextFrame.value;
-    const tan1 = nextFrame.inTangent;
+    const tan1 = nextFrame.inTangent!;
 
     const t2 = t * t;
     const t3 = t2 * t;

@@ -31,14 +31,11 @@ function sourceFileForShader(url: string, baseUrl: string | null): string {
 class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const url = item.url!;
-    // @ts-expect-error _request is @internal
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code) => {
       const source = code.trimStart();
       const shader = source.startsWith("{")
-        ? // @ts-expect-error _createFromPrecompiled is @internal
-          Shader._createFromPrecompiled(JSON.parse(source))
-        : // @ts-expect-error _createFromSource is @internal loader metadata plumbing
-          Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
+        ? Shader._createFromPrecompiled(JSON.parse(source))
+        : Shader._createFromSource(code, undefined, sourceFileForShader(url, resourceManager.baseUrl));
 
       if (!shader) {
         throw new Error(`ShaderLoader: failed to create shader "${url}".`);

@@ -406,16 +406,16 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
    * @param propertyName - Shader property name
    * @param value - Texture
    */
-  setTexture(propertyName: string, value: Texture): void;
+  setTexture(propertyName: string, value: Texture | null): void;
 
   /**
    * Set texture by shader property.
    * @param property - Shader property, use `ShaderProperty.getByName` to get
    * @param value - Texture
    */
-  setTexture(property: ShaderProperty, value: Texture): void;
+  setTexture(property: ShaderProperty, value: Texture | null): void;
 
-  setTexture(property: string | ShaderProperty, value: Texture): void {
+  setTexture(property: string | ShaderProperty, value: Texture | null): void {
     const refCount = this._refCount;
     if (refCount > 0) {
       const lastValue = this.getPropertyValue<Texture>(property);
@@ -646,6 +646,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: ShaderData): void {
@@ -772,6 +773,7 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
 }
 
 export type ShaderPropertyValueType =
+  | null
   | number
   | Vector2
   | Vector3

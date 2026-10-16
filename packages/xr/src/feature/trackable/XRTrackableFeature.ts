@@ -26,7 +26,7 @@ export abstract class XRTrackableFeature<
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
 
   override _onUpdate(): void {
-    const { _platformSession: platformSession } = this._xrManager.sessionManager;
+    const platformSession = this._xrManager.sessionManager._platformSession!;
     const { frame: platformFrame } = platformSession;
     const {
       _platformFeature: platformFeature,

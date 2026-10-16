@@ -62,7 +62,7 @@ export class SpriteAtlas extends ReferResource {
    * @internal
    */
   _addSprite(sprite: Sprite): void {
-    this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
+    this._spriteNamesToIndex[String(sprite.name)] = this._sprites.push(sprite) - 1;
     sprite._atlas = this;
     sprite.isGCIgnored = true;
   }
@@ -77,7 +77,7 @@ export class SpriteAtlas extends ReferResource {
       sprites[i].destroy();
     }
     sprites.length = 0;
-    this._sprites = null;
-    this._spriteNamesToIndex = null;
+    this._sprites = null!;
+    this._spriteNamesToIndex = null!;
   }
 }

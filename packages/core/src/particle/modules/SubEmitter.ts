@@ -20,15 +20,15 @@ export class SubEmitter extends DataObject {
   emitCount: number = 1;
 
   /** @internal */
-  _module: SubEmittersModule = null;
+  _module: SubEmittersModule | null = null;
 
-  private _emitter: ParticleRenderer = null;
+  private _emitter: ParticleRenderer | null = null;
   private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
 
   /**
    * Target particle renderer the sub particles emit into.
    */
-  get emitter(): ParticleRenderer {
+  get emitter(): ParticleRenderer | null {
     return this._emitter;
   }
 

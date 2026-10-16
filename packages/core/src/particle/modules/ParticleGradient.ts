@@ -35,7 +35,7 @@ export class ParticleGradient extends DataObject {
    * @param colorKeys - The color keys of the gradient
    * @param alphaKeys - The alpha keys of the gradient
    */
-  constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
+  constructor(colorKeys: GradientColorKey[] | null = null, alphaKeys: GradientAlphaKey[] | null = null) {
     super();
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
@@ -97,7 +97,7 @@ export class ParticleGradient extends DataObject {
       throw new Error("Gradient can only have 4 alpha keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha!) : timeOrKey;
     key._onValueChanged = this._setAlphaTypeArrayDirty.bind(this);
     this._addKey(alphaKeys, key);
     this._alphaTypeArrayDirty = true;
@@ -288,7 +288,7 @@ export class ParticleGradient extends DataObject {
  */
 export class GradientColorKey extends DataObject {
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   private _time: number;
   private _color: Color = new Color();
@@ -323,7 +323,7 @@ export class GradientColorKey extends DataObject {
    * @param time - The time of the gradient colorKey
    * @param color - The alpha component of the gradient colorKey
    */
-  constructor(time: number, color: Color) {
+  constructor(time: number, color: Color | undefined) {
     super();
     this._time = time;
     color && this._color.copyFrom(color);
@@ -337,7 +337,7 @@ export class GradientColorKey extends DataObject {
  */
 export class GradientAlphaKey extends DataObject {
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   private _time: number;
   private _alpha: number;

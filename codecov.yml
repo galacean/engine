@@ -1,3 +1,6 @@
 ignore:
   - "e2e/**"
   - "packages/galacean/scripts/**"
+  # Release tooling: Node scripts that drive npm/CDN publication and are exercised by the release
+  # workflow, not by the vitest projects, so they only ever add uncovered lines.
+  - "scripts/**"

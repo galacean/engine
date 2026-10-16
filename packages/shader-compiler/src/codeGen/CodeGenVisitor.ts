@@ -19,7 +19,7 @@ import { ICodeSegment } from "./types";
 export abstract class CodeGenVisitor implements ICodeGenVisitor {
   abstract getAttributeProp(prop: StructProp): string;
   abstract getVaryingProp(prop: StructProp): string;
-  abstract getMRTProp(prop: StructProp): string;
+  abstract getMRTProp(prop: StructProp): string | null;
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
   protected readonly context = new VisitorContext();
@@ -124,7 +124,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       if (paramList instanceof ASTNode.FunctionCallParameterList) {
         const astNodes = paramList.paramNodes;
         const finalSymbol = this.context._referencedGlobals[call.fnSymbol.ident].find(
-          (candidate) => candidate instanceof FnSymbol && candidate.equal(call.fnSymbol)
+          (candidate) => candidate instanceof FnSymbol && candidate.equal(call.fnSymbol!)
         ) as FnSymbol | undefined;
         const paramInfoList = (finalSymbol ?? call.fnSymbol).astNode.protoType.parameterList;
 
@@ -230,7 +230,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
-    const type = node.typeSpecifier.type;
+    const type = node.typeSpecifier!.type;
     if (typeof type === "string") {
       this.context.referenceGlobal(type, ESymbolType.STRUCT);
     }
@@ -280,7 +280,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     let out = "";
     for (let i = 0, length = params.length; i < length; i++) {
       const item = params[i];
-      const astNode = item.astNode;
+      const astNode = item.astNode!;
       const code = astNode.codeGen(this);
       if (astNode instanceof ASTNode.MacroParamBlock || i === 0) {
         out += code;

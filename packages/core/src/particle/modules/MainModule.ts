@@ -75,6 +75,7 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
   @ignoreClone
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
+  /** @internal */
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
@@ -312,13 +313,14 @@ export class MainModule extends DataObject implements ICloneHook<MainModule> {
         break;
     }
 
-    shaderData.setVector3(MainModule._gravity, renderer.scene.physics.gravity);
+    shaderData.setVector3(MainModule._gravity, renderer.scene!.physics.gravity);
     shaderData.setInt(MainModule._simulationSpace, this.simulationSpace);
     shaderData.setFloat(MainModule._startRotation3D, +this.startRotation3D);
     shaderData.setInt(MainModule._scaleMode, this.scalingMode);
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: MainModule): void {

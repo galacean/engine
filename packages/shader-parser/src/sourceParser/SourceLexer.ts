@@ -123,7 +123,7 @@ export default class SourceLexer extends BaseLexer {
     return new Color(r, g, b, a);
   }
 
-  override scanToken(): BaseToken {
+  override scanToken(): BaseToken | undefined {
     while (true) {
       this.skipCommentsAndSpace();
 

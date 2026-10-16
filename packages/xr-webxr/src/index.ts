@@ -1,3 +1,5 @@
+/// <reference types="webxr" preserve="true" />
+
 import "./feature/WebXRAnchorTracking";
 import "./feature/WebXRImageTracking";
 import "./feature/WebXRPlaneTracking";

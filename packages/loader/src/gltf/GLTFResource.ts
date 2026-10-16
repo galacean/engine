@@ -67,19 +67,18 @@ export class GLTFResource extends ReferResource {
     super._onDestroy();
 
     const { textures, materials, meshes } = this;
-    textures && this._disassociationSuperResource(textures);
-    materials && this._disassociationSuperResource(materials);
+    textures && this._disassociateResources(textures);
+    materials && this._disassociateResources(materials);
     if (meshes) {
       for (let i = 0, n = meshes.length; i < n; i++) {
         const meshArr = meshes[i];
-        meshArr && this._disassociationSuperResource(meshArr);
+        meshArr && this._disassociateResources(meshArr);
       }
     }
   }
 
-  private _disassociationSuperResource(resources: ReferResource[]): void {
+  private _disassociateResources(resources: ReferResource[]): void {
     for (let i = 0, n = resources.length; i < n; i++) {
-      // @ts-ignore
       resources[i]?._disassociationSuperResource(this);
     }
   }

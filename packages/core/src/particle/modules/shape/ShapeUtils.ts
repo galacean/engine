@@ -49,7 +49,7 @@ export class ShapeUtils {
     out.z = out.z * range;
   }
 
-  static _randomPointInsideHalfUnitBox(out: Vector3, rand: Rand = null): void {
+  static _randomPointInsideHalfUnitBox(out: Vector3, rand: Rand): void {
     out.x = rand.random() - 0.5;
     out.y = rand.random() - 0.5;
     out.z = rand.random() - 0.5;
