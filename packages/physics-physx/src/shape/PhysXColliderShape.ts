@@ -23,7 +23,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: new Vector3(),
-    rotation: null
+    rotation: null as Quaternion | null
   };
 
   protected static _tempVector4 = new Vector4();
@@ -49,7 +49,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
-  protected _axis: Quaternion = null;
+  protected _axis: Quaternion | null = null;
   protected _physXRotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;

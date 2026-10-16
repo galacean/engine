@@ -70,7 +70,7 @@ export class Scene extends EngineObject {
   /** @internal */
   _isActiveInEngine: boolean = false;
   /** @internal */
-  _sceneManager: SceneManager;
+  _sceneManager: SceneManager | null;
   /** @internal */
   _rootEntities: Entity[] = [];
 
@@ -85,7 +85,7 @@ export class Scene extends EngineObject {
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
   private _isActive: boolean = true;
-  private _sun: DirectLight | null;
+  private _sun: DirectLight | null | undefined;
   private _enableTransparentShadow = false;
 
   /**
@@ -244,10 +244,9 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Sun light source.
-   * @remarks If set this to null, scene will use the brightest directional light.
+   * The explicit sun light; null or undefined enables automatic selection.
    */
-  get sun(): DirectLight | null {
+  get sun(): DirectLight | null | undefined {
     return this._sun;
   }
 
@@ -322,7 +321,7 @@ export class Scene extends EngineObject {
   addRootEntity(index: number, entity: Entity): void;
 
   addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
-    let index: number;
+    let index: number | undefined;
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
     } else {
@@ -330,48 +329,49 @@ export class Scene extends EngineObject {
       entity = indexOrChild;
     }
 
-    const isRoot = entity._isRoot;
-    // Let entity become root
+    const rootEntity = entity!;
+    const isRoot = rootEntity._isRoot;
+    // Let rootEntity become root
     if (!isRoot) {
-      entity._isRoot = true;
-      entity._removeFromParent();
-      entity._setParentChange();
+      rootEntity._isRoot = true;
+      rootEntity._removeFromParent();
+      rootEntity._setParentChange();
     }
 
     // Add or remove from scene's rootEntities
-    const oldScene = entity._scene;
+    const oldScene = rootEntity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        Entity._removeFromChildren(oldScene._rootEntities, entity);
+        Entity._removeFromChildren(oldScene._rootEntities, rootEntity);
       }
-      Entity._addToChildren(this._rootEntities, entity, index);
+      Entity._addToChildren(this._rootEntities, rootEntity, index);
     } else if (!isRoot) {
-      Entity._addToChildren(this._rootEntities, entity, index);
+      Entity._addToChildren(this._rootEntities, rootEntity, index);
     }
 
-    // Process entity active/inActive
+    // Process rootEntity active/inActive
     let inActiveChangeFlag = ActiveChangeFlag.None;
-    if (entity._isActiveInHierarchy) {
+    if (rootEntity._isActiveInHierarchy) {
       this._isActiveInEngine || (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
 
     // Cross scene should inActive first and then active
-    entity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+    rootEntity._isActiveInScene && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
 
-    inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+    inActiveChangeFlag && rootEntity._processInActive(inActiveChangeFlag);
 
     if (oldScene !== this) {
-      Entity._traverseSetOwnerScene(entity, this);
+      Entity._traverseSetOwnerScene(rootEntity, this);
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (entity._isActive) {
+    if (rootEntity._isActive) {
       if (this._isActiveInEngine) {
-        !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+        !rootEntity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
       }
-      (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
+      (!rootEntity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
-    activeChangeFlag && entity._processActive(activeChangeFlag);
+    activeChangeFlag && rootEntity._processActive(activeChangeFlag);
   }
 
   /**
@@ -391,11 +391,11 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Get root entity from index.
-   * @param index - Index
-   * @returns Entity
+   * Get a root entity by index.
+   * @param index - The zero-based root entity index
+   * @returns The root entity at the index, or undefined if none exists
    */
-  getRootEntity(index: number = 0): Entity | null {
+  getRootEntity(index: number = 0): Entity | undefined {
     return this._rootEntities[index];
   }
 
@@ -428,7 +428,7 @@ export class Scene extends EngineObject {
 
     const searchRootName = splits.shift();
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      let findEntity = this.getRootEntity(i);
+      let findEntity: Entity | null = this.getRootEntity(i)!;
       if (findEntity.name !== searchRootName) {
         continue;
       }
@@ -532,7 +532,7 @@ export class Scene extends EngineObject {
   }
 
   private _getSunlight(): DirectLight | null {
-    let sunlight = null;
+    let sunlight: DirectLight | null = null;
 
     if (this._sun) {
       sunlight = this._sun.enabled ? this._sun : null;

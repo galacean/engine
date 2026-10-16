@@ -59,15 +59,15 @@ export class RenderElement implements IPoolElement {
   }
 
   dispose(): void {
-    this.component = null;
-    this.material = null;
-    this.primitive = null;
-    this.subPrimitive = null;
-    this.subShader = null;
-    this.shaderData && (this.shaderData = null);
-    this.instancedRenderers = null;
+    this.component = null!;
+    this.material = null!;
+    this.primitive = null!;
+    this.subPrimitive = null!;
+    this.subShader = null!;
+    this.shaderData && (this.shaderData = null!);
+    this.instancedRenderers = null!;
 
-    this.texture && (this.texture = null);
-    this.subChunk && (this.subChunk = null);
+    this.texture && (this.texture = null!);
+    this.subChunk && (this.subChunk = null!);
   }
 }

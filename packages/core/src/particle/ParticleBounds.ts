@@ -297,7 +297,7 @@ export class ParticleBounds {
       return;
     }
 
-    const records = this._emissionRecords;
+    const records = this._emissionRecords!;
     let recordCount = this._emissionRecordCount;
     let retired = false;
     let nextExpiry = Infinity;
@@ -472,7 +472,7 @@ export class ParticleBounds {
     this._lastEmissionFrame = frameCount;
     this._nextEmissionExpiry = Math.min(this._nextEmissionExpiry, expiry);
 
-    if (recordCount > 0) {
+    if (recordCount > 0 && records) {
       const previousOffset = (recordCount - 1) * ParticleBounds._recordStride;
       let sameRecord = true;
       for (let i = 0; i < ParticleBounds._recordStride; i++) {
@@ -539,7 +539,7 @@ export class ParticleBounds {
   }
 
   private _preserveInitialCurveFactor(factor: number): void {
-    const records = this._emissionRecords;
+    const records = this._emissionRecords!;
     for (let index = 0; index < this._emissionRecordCount; index++) {
       const offset = index * ParticleBounds._recordStride;
       if (
@@ -557,7 +557,7 @@ export class ParticleBounds {
   }
 
   private _mergeLocalEmissionBounds(bounds: BoundingBox): number {
-    const records = this._emissionRecords;
+    const records = this._emissionRecords!;
     const { min, max } = bounds;
     let maxLifetime = 0;
     for (let index = 0; index < this._emissionRecordCount; index++) {
@@ -659,7 +659,7 @@ export class ParticleBounds {
     useOrbitalBounds: boolean,
     currentInheritedVelocity: Vector3
   ): number {
-    const records = this._emissionRecords;
+    const records = this._emissionRecords!;
     const { min, max } = bounds;
     const extent = ParticleBounds._tempVector34;
     let maxLifetime = 0;
@@ -687,7 +687,7 @@ export class ParticleBounds {
     currentInheritedVelocity: Vector3,
     out: Vector3
   ): void {
-    const records = this._emissionRecords;
+    const records = this._emissionRecords!;
     const currentAxisReach = this._currentInheritedAxisReach;
     const currentX = Math.max(
       (currentAxisReach?.x ?? 0) - records[offset + ParticleBounds._recordCurrentAxisReachOffset],
@@ -891,7 +891,7 @@ export class ParticleBounds {
     const coefficient = 0.5 * maxLifetime * maxLifetime;
     const minGravityEffect = modifierMinMax.x * coefficient;
     const maxGravityEffect = modifierMinMax.y * coefficient;
-    const { x, y, z } = this._generator._renderer.scene.physics.gravity;
+    const { x, y, z } = this._generator._renderer.scene!.physics.gravity;
 
     const gravityBoundsExtents = ParticleBounds._tempVector33;
     gravityBoundsExtents.set(
@@ -907,7 +907,7 @@ export class ParticleBounds {
     const modifierMinMax = ParticleBounds._tempVector20;
 
     this._getExtremeValueFromZero(this._generator.main.gravityModifier, modifierMinMax);
-    const { x, y, z } = this._generator._renderer.scene.physics.gravity;
+    const { x, y, z } = this._generator._renderer.scene!.physics.gravity;
     const coefficient = 0.5 * maxLifetime * maxLifetime;
     const minGravityEffect = modifierMinMax.x * coefficient;
     const maxGravityEffect = modifierMinMax.y * coefficient;

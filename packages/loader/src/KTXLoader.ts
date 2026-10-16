@@ -14,7 +14,7 @@ import { parseSingleKTX } from "./compressed-texture";
 @resourceLoader(AssetType.KTX, ["ktx"])
 export class KTXLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
-    const remoteUrl = resourceManager._getRemoteUrl(item.url);
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     const requestConfig = <RequestConfig>{
       ...item,
       type: "arraybuffer"

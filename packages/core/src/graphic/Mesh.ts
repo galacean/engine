@@ -14,7 +14,7 @@ import { Primitive } from "./Primitive";
  */
 export abstract class Mesh extends ReferResource {
   /** Name. */
-  name: string;
+  name: string | undefined;
 
   /** @internal */
   _primitive: Primitive;
@@ -161,7 +161,7 @@ export abstract class Mesh extends ReferResource {
   /**
    * @internal
    */
-  _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+  _setVertexBufferBinding(index: number, binding: VertexBufferBinding | null): void {
     this._primitive.setVertexBufferBinding(index, binding);
   }
 

@@ -54,7 +54,7 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   @ignoreClone
-  private _currentRenderModeMacro: ShaderMacro;
+  private _currentRenderModeMacro: ShaderMacro | null;
   private readonly _supportInstancedArrays: boolean;
 
   /**
@@ -69,7 +69,7 @@ export class ParticleRenderer extends Renderer {
       const lastRenderMode = this._renderMode;
       this._renderMode = value;
 
-      let renderModeMacro = <ShaderMacro>null;
+      let renderModeMacro: ShaderMacro | null = null;
       switch (value) {
         case ParticleRenderMode.Billboard:
           renderModeMacro = ParticleRenderer._billboardModeMacro;
@@ -176,7 +176,7 @@ export class ParticleRenderer extends Renderer {
   override _onEnableInScene(): void {
     super._onEnableInScene();
     if (this._supportInstancedArrays) {
-      this.scene._componentsManager._particleSystemManager.add(this);
+      this.scene!._componentsManager._particleSystemManager.add(this);
     }
   }
 

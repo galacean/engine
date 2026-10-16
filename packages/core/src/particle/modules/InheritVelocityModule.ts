@@ -37,11 +37,11 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
   @ignoreClone
   private _hasPreviousWorldPosition = false;
   @ignoreClone
-  private _applicationMacro: ShaderMacro;
+  private _applicationMacro: ShaderMacro | null;
   @ignoreClone
-  private _curveMacro: ShaderMacro;
+  private _curveMacro: ShaderMacro | null;
   @ignoreClone
-  private _randomMacro: ShaderMacro;
+  private _randomMacro: ShaderMacro | null;
 
   /**
    * @inheritdoc
@@ -192,9 +192,9 @@ export class InheritVelocityModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData, hasSubEmitterParticles: boolean): void {
-    let applicationMacro: ShaderMacro = null;
-    let curveMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let applicationMacro: ShaderMacro | null = null;
+    let curveMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const usesCurrentVelocity = this._needTransformFeedback();
     if (usesCurrentVelocity || this._usesInitialCurve(hasSubEmitterParticles)) {

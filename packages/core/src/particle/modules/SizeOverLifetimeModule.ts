@@ -44,11 +44,11 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   private _sizeZ: ParticleCompositeCurve;
 
   @ignoreClone
-  private _enableSeparateMacro: ShaderMacro;
+  private _enableSeparateMacro: ShaderMacro | null;
   @ignoreClone
-  private _isCurveMacro: ShaderMacro;
+  private _isCurveMacro: ShaderMacro | null;
   @ignoreClone
-  private _isRandomTwoMacro: ShaderMacro;
+  private _isRandomTwoMacro: ShaderMacro | null;
 
   /**
    * Specifies whether the Size is separate on each axis.
@@ -132,9 +132,9 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enableSeparateMacro = <ShaderMacro>null;
-    let isCurveMacro = <ShaderMacro>null;
-    let isRandomTwoMacro = <ShaderMacro>null;
+    let enableSeparateMacro: ShaderMacro | null = null;
+    let isCurveMacro: ShaderMacro | null = null;
+    let isRandomTwoMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const sizeX = this.sizeX;

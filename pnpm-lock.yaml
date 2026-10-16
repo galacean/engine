@@ -351,6 +351,9 @@ importers:
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui
+      '@galacean/engine-xr':
+        specifier: workspace:*
+        version: link:../packages/xr
     devDependencies:
       '@vitest/browser':
         specifier: 3.2.6

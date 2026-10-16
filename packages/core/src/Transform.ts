@@ -44,16 +44,16 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _worldForward: Vector3 = null;
+  private _worldForward: Vector3 | null = null;
   @ignoreClone
-  private _worldRight: Vector3 = null;
+  private _worldRight: Vector3 | null = null;
   @ignoreClone
-  private _worldUp: Vector3 = null;
+  private _worldUp: Vector3 | null = null;
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
   @ignoreClone
-  private _parentTransformCache: Transform = null;
+  private _parentTransformCache: Transform | null = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
 
@@ -481,7 +481,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   ): void {
     if (typeof translationOrX === "number") {
       const translate = Transform._tempVec30;
-      translate.set(translationOrX, <number>relativeToLocalOrY, z);
+      translate.set(translationOrX, <number>relativeToLocalOrY, z!);
       this._translate(translate, relativeToLocal);
     } else {
       this._translate(translationOrX, <boolean>relativeToLocalOrY);
@@ -511,7 +511,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     relativeToLocal?: boolean
   ): void {
     if (typeof rotationOrX === "number") {
-      this._rotateXYZ(rotationOrX, <number>relativeToLocalOrY, z, relativeToLocal);
+      this._rotateXYZ(rotationOrX, <number>relativeToLocalOrY, z!, relativeToLocal);
     } else {
       this._rotateXYZ(rotationOrX.x, rotationOrX.y, rotationOrX.z, <boolean>relativeToLocalOrY);
     }
@@ -662,7 +662,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
-    let parentCache: Transform = null;
+    let parentCache: Transform | null = null;
     let parent = this._entity.parent;
     while (parent) {
       const transform = parent.transform;

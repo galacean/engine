@@ -127,6 +127,22 @@ describe("Asset Promise test", function () {
     });
   });
 
+  it("allows either progress callback to be omitted when replaying progress", async () => {
+    const assetPromise = new AssetPromise<number>((resolve, reject, complete, detail) => {
+      complete(1, 2);
+      detail("asset", 1, 2);
+      resolve(1);
+    });
+
+    expect(() => assetPromise.onProgress()).not.to.throw();
+    expect(() => assetPromise.onProgress(() => {})).not.to.throw();
+    expect(await assetPromise).to.eq(1);
+
+    const details: [string, number, number][] = [];
+    assetPromise.onProgress(undefined, (url, loaded, total) => details.push([url, loaded, total]));
+    expect(details).to.deep.eq([["asset", 1, 2]]);
+  });
+
   it("promise all basic", async () => {
     const promises = [];
     for (let i = 0; i < 10; i++) {

@@ -56,7 +56,7 @@ export class EventDispatcher {
 
       // cloning list to avoid structure breaking
       const { _dispatchingListenersPool: pool } = EventDispatcher;
-      const dispatchingListeners = pool.length > 0 ? pool.pop() : [];
+      const dispatchingListeners = pool.length > 0 ? pool.pop()! : [];
       dispatchingListeners.length = count;
       for (let i = 0; i < count; i++) {
         dispatchingListeners[i] = listeners[i];

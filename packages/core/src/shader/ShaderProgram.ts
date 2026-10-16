@@ -64,7 +64,7 @@ export class ShaderProgram {
   private _isValid: boolean;
   private _engine: Engine;
   private _gl: WebGLRenderingContext;
-  private _glProgram: WebGLProgram;
+  private _glProgram: WebGLProgram | null;
   private _activeTextureUint: number = 0;
 
   /**
@@ -194,7 +194,7 @@ export class ShaderProgram {
     }
   }
 
-  private _groupingUniform(uniform: ShaderUniform, group: ShaderDataGroup, isTexture: boolean): void {
+  private _groupingUniform(uniform: ShaderUniform, group: ShaderDataGroup | null, isTexture: boolean): void {
     switch (group) {
       case ShaderDataGroup.Scene:
         if (isTexture) {
@@ -329,7 +329,7 @@ export class ShaderProgram {
    */
   private _recordLocation(): void {
     const gl = this._gl;
-    const program = this._glProgram;
+    const program = this._glProgram!;
     const uniformInfos = this._getUniformInfos();
     const attributeInfos = this._getAttributeInfos();
     const basicResources = this._engine._basicResources;
@@ -516,7 +516,7 @@ export class ShaderProgram {
       const bindingMap = ShaderFactory.uniformBlockBindingMap;
       const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
       for (let i = 0; i < blockCount; i++) {
-        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
+        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i)!)._uniqueId;
         this.uniformBlockIds[i] = id;
         const bindingPoint = bindingMap[id];
         if (bindingPoint !== undefined) {
@@ -528,13 +528,13 @@ export class ShaderProgram {
 
   private _getUniformInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
-    const program = this._glProgram;
+    const program = this._glProgram!;
     // uniformCount is `null` when context lost.
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS) ?? 0;
 
     const uniformInfos = new Array<WebGLActiveInfo>(uniformCount);
     for (let i = 0; i < uniformCount; ++i) {
-      const info = gl.getActiveUniform(program, i);
+      const info = gl.getActiveUniform(program, i)!;
       uniformInfos[i] = info;
     }
 
@@ -543,13 +543,13 @@ export class ShaderProgram {
 
   private _getAttributeInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
-    const program = this._glProgram;
+    const program = this._glProgram!;
     const attributeInfos = new Array<WebGLActiveInfo>();
 
     // attributeCount is `null` when context lost.
     const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES) ?? 0;
     for (let i = 0; i < attributeCount; ++i) {
-      const info = gl.getActiveAttrib(program, i);
+      const info = gl.getActiveAttrib(program, i)!;
       attributeInfos[i] = info;
     }
 

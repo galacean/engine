@@ -16,10 +16,10 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
 
   /** @internal */
   @ignoreClone
-  _collider: Collider;
+  _collider: Collider | null;
   /** @internal */
   @ignoreClone
-  _nativeShape: IColliderShape;
+  _nativeShape: IColliderShape | null;
   /** @internal */
   @ignoreClone
   _isShapeAttached: boolean = false;
@@ -42,7 +42,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * Collider owner of this shape.
    */
-  get collider(): Collider {
+  get collider(): Collider | null {
     return this._collider;
   }
 
@@ -148,13 +148,13 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @returns The distance between the point and the shape
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    const collider = this._collider;
+    const collider = this._collider!;
     if (collider.enabled === false || collider.entity._isActiveInHierarchy === false) {
       console.warn("The collider is not active in scene.");
       return -1;
     }
 
-    const res = this._nativeShape.pointDistance(point);
+    const res = this._nativeShape!.pointDistance(point);
     const distance = res.w;
     if (distance > 0) {
       outClosestPoint.set(res.x, res.y, res.z);

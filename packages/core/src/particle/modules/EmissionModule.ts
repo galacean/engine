@@ -33,7 +33,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
 
   @ignoreClone
-  private _shapeMacro: ShaderMacro;
+  private _shapeMacro: ShaderMacro | null;
   @ignoreClone
   private readonly _emissionState = new EmissionState();
   @ignoreClone

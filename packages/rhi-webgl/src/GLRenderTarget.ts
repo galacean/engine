@@ -17,15 +17,15 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
   private _isWebGL2: boolean;
   private _target: RenderTarget;
-  private _frameBuffer: WebGLFramebuffer;
+  private _frameBuffer: WebGLFramebuffer | null;
   private _MSAAFrameBuffer: WebGLFramebuffer | null;
   private _depthRenderBuffer: WebGLRenderbuffer | null;
-  private _MSAAColorRenderBuffers: WebGLRenderbuffer[] = [];
+  private _MSAAColorRenderBuffers: (WebGLRenderbuffer | null)[] = [];
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
   private _curMipLevel: number = 0;
-  private _curFaceIndex: TextureCubeFace = undefined;
+  private _curFaceIndex: TextureCubeFace | undefined = undefined;
 
   /**
    * Create render target in WebGL platform.
@@ -54,7 +54,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (!isDepthTexture && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
+    if (!isDepthTexture && _depth !== null && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
@@ -108,7 +108,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
           (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
@@ -122,8 +122,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
-          platformTexture._formatDetail.attachment,
-          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+          platformTexture._formatDetail.attachment!,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex! : gl.TEXTURE_2D,
           platformTexture._glTexture,
           mipLevel
         );
@@ -161,13 +161,13 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     for (let textureIndex = 0; textureIndex < colorTextureCount; textureIndex++) {
       const attachment = gl.COLOR_ATTACHMENT0 + textureIndex;
 
-      this._blitDrawBuffers[textureIndex] = attachment;
+      this._blitDrawBuffers![textureIndex] = attachment;
 
       gl.readBuffer(attachment);
-      gl.drawBuffers(this._blitDrawBuffers);
+      gl.drawBuffers(this._blitDrawBuffers!);
       gl.blitFramebuffer(0, 0, width, height, 0, 0, width, height, mask, gl.NEAREST);
 
-      this._blitDrawBuffers[textureIndex] = gl.NONE;
+      this._blitDrawBuffers![textureIndex] = gl.NONE;
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -188,7 +188,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       gl.deleteRenderbuffer(this._MSAAColorRenderBuffers[i]);
     }
 
-    this._frameBuffer = null;
+    this._frameBuffer = null!;
     this._depthRenderBuffer = null;
     this._MSAAFrameBuffer = null;
     this._MSAAColorRenderBuffers.length = 0;
@@ -206,7 +206,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** color render buffer */
     for (let i = 0; i < colorTextureCount; i++) {
-      const colorTexture = this._target.getColorTexture(i);
+      const colorTexture = this._target.getColorTexture(i)!;
       const attachment = gl.COLOR_ATTACHMENT0 + i;
 
       drawBuffers[i] = attachment;
@@ -234,7 +234,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           const platformTexture = _depth._platformTexture as GLTexture;
           gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
-            platformTexture._formatDetail.attachment,
+            platformTexture._formatDetail.attachment!,
             gl.TEXTURE_2D,
             platformTexture._glTexture,
             0
@@ -242,7 +242,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         }
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-        this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
+        this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
       }
     }
 
@@ -264,7 +264,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     for (let i = 0; i < colorTextureCount; i++) {
       this._blitDrawBuffers[i] = gl.NONE;
 
-      const internalFormat = (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail
+      const internalFormat = (this._target.getColorTexture(i)!._platformTexture as GLTexture)._formatDetail
         .internalFormat;
 
       this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
@@ -278,7 +278,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           ? (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
-      this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
+      this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment!);
     }
 
     this._checkFrameBuffer();
@@ -286,7 +286,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
   }
 
-  private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer {
+  private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer | null {
     const gl = this._gl;
     const { width, height, antiAliasing } = this._target;
     const renderBuffer = gl.createRenderbuffer();

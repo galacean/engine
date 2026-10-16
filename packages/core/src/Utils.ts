@@ -233,7 +233,7 @@ export class Utils {
   }
 
   private static _stringToPath(string): string[] {
-    const result = [];
+    const result: string[] = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
     }

@@ -16,7 +16,7 @@ import {
 class RenderTargetLoader extends Loader<RenderTarget> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<RenderTarget> {
     const { engine } = resourceManager;
-    const remoteAssetBaseURL = resourceManager._getRemoteUrl(item.url);
+    const remoteAssetBaseURL = resourceManager._getRemoteUrl(item.url!);
     return resourceManager
       ._requestByRemoteUrl<IRenderTargetData>(remoteAssetBaseURL, {
         ...item,

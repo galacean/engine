@@ -436,7 +436,7 @@ export class SubEmittersModule extends ParticleGeneratorModule implements IClone
     }
   }
 
-  private _validateEmitterScene(emitter: ParticleRenderer): void {
+  private _validateEmitterScene(emitter: ParticleRenderer | null): void {
     if (!emitter || emitter.destroyed) {
       return;
     }

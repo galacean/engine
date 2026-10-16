@@ -18,7 +18,7 @@ class AudioLoader extends Loader<AudioClip> {
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {
     return new AssetPromise((resolve, reject) => {
-      const { url } = item;
+      const url = item.url!;
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"

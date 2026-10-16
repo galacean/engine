@@ -60,7 +60,7 @@ export class SystemInfo {
         SystemInfo.platform = Platform.Mac;
       }
 
-      let v: RegExpMatchArray;
+      let v: RegExpMatchArray | null;
       switch (SystemInfo.platform) {
         case Platform.IPhone:
           this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPhone OS");

@@ -322,7 +322,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
   /** @internal */
   _z: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    * The x component of the vector.

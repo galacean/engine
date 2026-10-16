@@ -388,7 +388,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
             firstEmittedElement += this._currentParticleCount;
           }
           this._subEmitterSpawnState!.enqueueParentTrajectory(
-            command.source._feedbackSimulator.readBinding,
+            command.source._feedbackSimulator!.readBinding,
             command.ringIndex,
             firstEmittedElement,
             emittedCount
@@ -515,14 +515,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         if (positionBufferBinding) {
           const index = this._addVertexBufferBindingsFilterDuplicate(positionBufferBinding, vertexBufferBindings);
           primitive.addVertexElement(
-            new VertexElement(VertexAttribute.Position, positionElement.offset, positionElement.format, index)
+            new VertexElement(VertexAttribute.Position, positionElement!.offset, positionElement!.format, index)
           );
         }
 
         if (colorBufferBinding) {
           const index = this._addVertexBufferBindingsFilterDuplicate(colorBufferBinding, vertexBufferBindings);
           primitive.addVertexElement(
-            new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index)
+            new VertexElement(VertexAttribute.Color, colorElement!.offset, colorElement!.format, index)
           );
           renderer.shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
         } else {
@@ -531,11 +531,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
         if (uvBufferBinding) {
           const index = this._addVertexBufferBindingsFilterDuplicate(uvBufferBinding, vertexBufferBindings);
-          primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
+          primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement!.offset, uvElement!.format, index));
         }
 
         primitive.setIndexBufferBinding(mesh._primitive.indexBufferBinding);
-        const { subMesh } = mesh;
+        const subMesh = mesh.subMesh!;
         const { _subPrimitive: subPrimitive } = this;
         subPrimitive.start = subMesh.start;
         subPrimitive.topology = subMesh.topology;
@@ -728,7 +728,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     firstNewElement: number,
     resetTrajectory: boolean | undefined
   ): void {
-    this._feedbackSimulator.update(
+    this._feedbackSimulator!.update(
       shaderData,
       this._currentParticleCount,
       firstFeedbackElement,
@@ -743,7 +743,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     // Feedback is always the final render binding when render geometry exists
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     if (vertexBufferBindings.length > 0) {
-      vertexBufferBindings[vertexBufferBindings.length - 1] = this._feedbackSimulator.readBinding;
+      vertexBufferBindings[vertexBufferBindings.length - 1] = this._feedbackSimulator!.readBinding;
     }
   }
 
@@ -858,7 +858,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
     if (runtimeMappings) {
       if (useFeedback) {
-        this._feedbackSimulator.resize(newParticleCount, runtimeMappings);
+        this._feedbackSimulator!.resize(newParticleCount, runtimeMappings);
       }
       if (subEmitterSpawnState) {
         subEmitterSpawnState.resize(newParticleCount, runtimeMappings);
@@ -870,14 +870,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._primitive.setVertexBufferBinding(instanceBindingIndex, vertexBufferBinding);
     }
     if (subEmitterBindingIndex >= 0) {
-      this._primitive.setVertexBufferBinding(subEmitterBindingIndex, subEmitterSpawnState.renderBinding);
+      this._primitive.setVertexBufferBinding(subEmitterBindingIndex, subEmitterSpawnState!.renderBinding);
     }
 
     this._instanceVertices = instanceVertices;
     this._instanceVertexBufferBinding = vertexBufferBinding;
     this._currentParticleCount = newParticleCount;
     if (useFeedback && vertexBufferBindings.length > 0) {
-      this._primitive.setVertexBufferBinding(vertexBufferBindings.length - 1, this._feedbackSimulator.readBinding);
+      this._primitive.setVertexBufferBinding(vertexBufferBindings.length - 1, this._feedbackSimulator!.readBinding);
     }
   }
 
@@ -938,7 +938,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const main = this.main;
 
-    let pos: Vector3, rot: Quaternion;
+    let pos!: Vector3, rot!: Quaternion;
     if (main.simulationSpace === ParticleSimulationSpace.World || isSubEmitterSpawned) {
       pos = isSubEmitterSpawned ? emitterWorldPosition : (emitWorldPositionOverride ?? emitterWorldPosition);
       rot = emitterWorldRotation;
@@ -1237,10 +1237,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     const inheritProperties = subEmitterCommand?.inheritProperties ?? ParticleSubEmitterInheritProperty.None;
     if ((inheritProperties & ParticleGenerator._particleValueInheritanceMask) !== 0) {
-      const source = subEmitterCommand.source;
+      const source = subEmitterCommand!.source;
       source._evaluateOverLifetime(
         source._instanceVertices,
-        subEmitterCommand.ringIndex * ParticleBufferUtils.instanceVertexFloatStride,
+        subEmitterCommand!.ringIndex * ParticleBufferUtils.instanceVertexFloatStride,
         normalizedEmitAge,
         ParticleGenerator._eventColor,
         ParticleGenerator._eventSize,

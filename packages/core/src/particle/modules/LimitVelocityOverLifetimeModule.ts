@@ -79,21 +79,21 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _dragConstantVec = new Vector2();
 
   @ignoreClone
-  private _enabledModuleMacro: ShaderMacro;
+  private _enabledModuleMacro: ShaderMacro | null;
   @ignoreClone
-  private _separateAxesCachedMacro: ShaderMacro;
+  private _separateAxesCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _speedModeMacro: ShaderMacro;
+  private _speedModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _speedRandomMacro: ShaderMacro;
+  private _speedRandomMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragCurveCachedMacro: ShaderMacro;
+  private _dragCurveCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragRandomCachedMacro: ShaderMacro;
+  private _dragRandomCachedMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragSizeMacro: ShaderMacro;
+  private _dragSizeMacro: ShaderMacro | null;
   @ignoreClone
-  private _dragVelocityMacro: ShaderMacro;
+  private _dragVelocityMacro: ShaderMacro | null;
 
   private _separateAxes = false;
   private _speedX: ParticleCompositeCurve;
@@ -302,14 +302,14 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enabledModuleMacro = <ShaderMacro>null;
-    let separateAxesMacro = <ShaderMacro>null;
-    let speedModeMacro = <ShaderMacro>null;
-    let speedRandomMacro = <ShaderMacro>null;
-    let dragCurveMacro = <ShaderMacro>null;
-    let dragRandomMacro = <ShaderMacro>null;
-    let dragSizeMacro = <ShaderMacro>null;
-    let dragVelocityMacro = <ShaderMacro>null;
+    let enabledModuleMacro: ShaderMacro | null = null;
+    let separateAxesMacro: ShaderMacro | null = null;
+    let speedModeMacro: ShaderMacro | null = null;
+    let speedRandomMacro: ShaderMacro | null = null;
+    let dragCurveMacro: ShaderMacro | null = null;
+    let dragRandomMacro: ShaderMacro | null = null;
+    let dragSizeMacro: ShaderMacro | null = null;
+    let dragVelocityMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       enabledModuleMacro = LimitVelocityOverLifetimeModule._enabledMacro;
@@ -363,10 +363,13 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._speedRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
   }
 
-  private _uploadScalarSpeed(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadScalarSpeed(shaderData: ShaderData): {
+    modeMacro: ShaderMacro | null;
+    randomMacro: ShaderMacro | null;
+  } {
     const speedX = this._speedX;
-    let modeMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let modeMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode = speedX.mode === ParticleCurveMode.TwoCurves;
     if (isRandomCurveMode || speedX.mode === ParticleCurveMode.Curve) {
@@ -391,12 +394,15 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     return { modeMacro, randomMacro };
   }
 
-  private _uploadSeparateAxisSpeeds(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadSeparateAxisSpeeds(shaderData: ShaderData): {
+    modeMacro: ShaderMacro | null;
+    randomMacro: ShaderMacro | null;
+  } {
     const speedX = this._speedX;
     const speedY = this._speedY;
     const speedZ = this._speedZ;
-    let modeMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let modeMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode =
       speedX.mode === ParticleCurveMode.TwoCurves &&
@@ -458,10 +464,10 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     return { modeMacro, randomMacro };
   }
 
-  private _uploadDrag(shaderData: ShaderData): { curveMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadDrag(shaderData: ShaderData): { curveMacro: ShaderMacro | null; randomMacro: ShaderMacro | null } {
     const drag = this._drag;
-    let curveMacro: ShaderMacro = null;
-    let randomMacro: ShaderMacro = null;
+    let curveMacro: ShaderMacro | null = null;
+    let randomMacro: ShaderMacro | null = null;
 
     const isRandomCurveMode = drag.mode === ParticleCurveMode.TwoCurves;
     if (isRandomCurveMode || drag.mode === ParticleCurveMode.Curve) {

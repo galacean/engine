@@ -36,7 +36,7 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity | null {
     const searchPath = paths[pathIndex];
     const isEndPath = pathIndex === paths.length - 1;
     const children = entity._children;
@@ -51,13 +51,13 @@ export class Entity extends EngineObject {
     // Search failed if first path, or upward search
     return pathIndex === 0
       ? null
-      : Entity._findChildByName(entity.parent, entity.siblingIndex + 1, paths, pathIndex - 1);
+      : Entity._findChildByName(entity.parent!, entity.siblingIndex + 1, paths, pathIndex - 1);
   }
 
   /**
    * @internal
    */
-  static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+  static _traverseSetOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
     entity._scene = scene;
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -120,7 +120,7 @@ export class Entity extends EngineObject {
   /** @internal */
   _children: Entity[] = [];
   /** @internal */
-  _scene: Scene;
+  _scene: Scene | null | undefined;
   /** @internal */
   _isRoot: boolean = false;
   /** @internal */
@@ -134,8 +134,8 @@ export class Entity extends EngineObject {
 
   private _transform: Transform;
   private _templateResource: ReferResource;
-  private _parent: Entity = null;
-  private _activeChangedComponents: Component[];
+  private _parent: Entity | null = null;
+  private _activeChangedComponents: Component[] | null | undefined;
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -159,7 +159,7 @@ export class Entity extends EngineObject {
         const parent = this._parent;
 
         let activeChangeFlag = ActiveChangeFlag.None;
-        if (this._isRoot && this._scene._isActiveInEngine) {
+        if (this._isRoot && this._scene!._isActiveInEngine) {
           activeChangeFlag |= ActiveChangeFlag.All;
         } else {
           parent?._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -185,13 +185,13 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The parent entity.
+   * The parent entity, or null if this entity has no parent.
    */
-  get parent(): Entity {
+  get parent(): Entity | null {
     return this._parent;
   }
 
-  set parent(value: Entity) {
+  set parent(value: Entity | null) {
     this._setParent(value);
   }
 
@@ -211,9 +211,9 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The scene the entity belongs to.
+   * The owning scene, or null/undefined if this entity is not in a scene.
    */
-  get scene(): Scene {
+  get scene(): Scene | null | undefined {
     return this._scene;
   }
 
@@ -230,9 +230,9 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._setSiblingIndex(this._scene._rootEntities, value);
+      this._setSiblingIndex(this._scene!._rootEntities, value);
     } else {
-      const parent = this._parent;
+      const parent = this._parent!;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
     }
@@ -359,14 +359,14 @@ export class Entity extends EngineObject {
   addChild(index: number, child: Entity): void;
 
   addChild(indexOrChild: number | Entity, child?: Entity): void {
-    let index: number;
+    let index: number | undefined;
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
     } else {
       index = undefined;
       child = indexOrChild;
     }
-    child._setParent(this, index);
+    child!._setParent(this, index);
   }
 
   /**
@@ -379,21 +379,21 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * Get a child entity by index.
+   * @param index - The zero-based child index
+   * @returns The child at the index, or undefined if none exists
    * @deprecated Please use `children` property instead.
-   * Find child entity by index.
-   * @param index - The index of the child entity
-   * @returns The entity that was found
    */
-  getChild(index: number): Entity {
+  getChild(index: number): Entity | undefined {
     return this._children[index];
   }
 
   /**
-   * Find entity by name.
+   * Find the first entity with the given name in this entity and its descendants.
    * @param name - The name of the entity to find
-   * @returns The entity that was found
+   * @returns The first matching entity, or null if none is found
    */
-  findByName(name: string): Entity {
+  findByName(name: string): Entity | null {
     if (name === this.name) {
       return this;
     }
@@ -408,11 +408,11 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find the entity by path.
-   * @param path - The path of the entity eg: /entity
-   * @returns The entity that was found
+   * Find a descendant by its path relative to this entity.
+   * @param path - The entity path, with names separated by "/"
+   * @returns The matching entity, this entity for an empty path, or null if none is found
    */
-  findByPath(path: string): Entity {
+  findByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
@@ -534,7 +534,7 @@ export class Entity extends EngineObject {
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);
-      this._templateResource = null;
+      this._templateResource = null!;
     }
 
     const components = this._components;
@@ -549,7 +549,7 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._scene.removeRootEntity(this);
+      this._scene!.removeRootEntity(this);
     } else {
       this._setParent(null);
     }
@@ -608,8 +608,8 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
     this._setActiveComponents(true, activeChangeFlag);
   }
 
@@ -620,8 +620,8 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setInActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+    this._setInActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
     this._setActiveComponents(false, activeChangeFlag);
   }
 
@@ -651,16 +651,16 @@ export class Entity extends EngineObject {
     this._modifyFlagManager?.dispatch(flag, param);
   }
 
-  private _addToChildrenList(index: number, child: Entity): void {
+  private _addToChildrenList(index: number | undefined, child: Entity): void {
     Entity._addToChildren(this._children, child, index);
     this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
-  private _setParent(parent: Entity, siblingIndex?: number): void {
+  private _setParent(parent: Entity | null, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
       if (this._isRoot) {
-        Entity._removeFromChildren(this._scene._rootEntities, this);
+        Entity._removeFromChildren(this._scene!._rootEntities, this);
         this._isRoot = false;
       } else {
         this._removeFromParent();
@@ -733,14 +733,14 @@ export class Entity extends EngineObject {
   }
 
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
-    const activeChangedComponents = this._activeChangedComponents;
+    const activeChangedComponents = this._activeChangedComponents!;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
       const component = activeChangedComponents[i];
       // Skip components whose scene was already cleared by an earlier callback's removeChild
       if (!isActive && !component._entity._scene) continue;
       component._setActive(isActive, activeChangeFlag);
     }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._scene!._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 

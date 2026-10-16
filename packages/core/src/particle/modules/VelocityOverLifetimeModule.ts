@@ -89,21 +89,21 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _velocityMaxConstant = new Vector3();
   @ignoreClone
-  private _velocityMacro: ShaderMacro;
+  private _velocityMacro: ShaderMacro | null;
   @ignoreClone
-  private _randomModeMacro: ShaderMacro;
+  private _randomModeMacro: ShaderMacro | null;
   @ignoreClone
   private _orbitalMinConstant = new Vector3();
   @ignoreClone
   private _orbitalMaxConstant = new Vector3();
   @ignoreClone
-  private _orbitalMacro: ShaderMacro;
+  private _orbitalMacro: ShaderMacro | null;
   @ignoreClone
-  private _orbitalRandomModeMacro: ShaderMacro;
+  private _orbitalRandomModeMacro: ShaderMacro | null;
   @ignoreClone
-  private _radialMacro: ShaderMacro;
+  private _radialMacro: ShaderMacro | null;
   @ignoreClone
-  private _radialRandomModeMacro: ShaderMacro;
+  private _radialRandomModeMacro: ShaderMacro | null;
 
   private _velocityX: ParticleCompositeCurve;
   private _velocityY: ParticleCompositeCurve;
@@ -285,12 +285,12 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let velocityMacro = <ShaderMacro>null;
-    let isRandomModeMacro = <ShaderMacro>null;
-    let orbitalMacro = <ShaderMacro>null;
-    let orbitalRandomModeMacro = <ShaderMacro>null;
-    let radialMacro = <ShaderMacro>null;
-    let radialRandomModeMacro = <ShaderMacro>null;
+    let velocityMacro: ShaderMacro | null = null;
+    let isRandomModeMacro: ShaderMacro | null = null;
+    let orbitalMacro: ShaderMacro | null = null;
+    let orbitalRandomModeMacro: ShaderMacro | null = null;
+    let radialMacro: ShaderMacro | null = null;
+    let radialRandomModeMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const velocityX = this.velocityX;

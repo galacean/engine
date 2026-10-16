@@ -13,7 +13,7 @@ const base64Regex = /^data:(.+?);base64,/;
 @resourceLoader(AssetType.Buffer, ["bin"])
 class BufferLoader extends Loader<BufferAsset> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<BufferAsset> {
-    const { url } = item;
+    const url = item.url!;
     const base64Match = base64Regex.exec(url);
     const bufferPromise = base64Match
       ? Promise.resolve(Uint8Array.from(atob(url.slice(13 + base64Match[1].length)), (c) => c.charCodeAt(0)).buffer)

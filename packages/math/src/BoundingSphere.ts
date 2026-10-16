@@ -66,7 +66,7 @@ export class BoundingSphere implements IClone<BoundingSphere>, ICopy<BoundingSph
    * @param center - The center point of the sphere
    * @param radius - The radius of the sphere
    */
-  constructor(center: Vector3 = null, radius: number = 0) {
+  constructor(center: Vector3 | null = null, radius: number = 0) {
     center && this.center.copyFrom(center);
     this.radius = radius;
   }
