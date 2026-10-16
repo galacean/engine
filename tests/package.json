@@ -25,6 +25,8 @@
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
+    "@galacean/engine-spine": "workspace:*",
+    "@galacean/engine-spine-core-4.2": "workspace:*",
     "@galacean/engine-xr": "workspace:*"
   },
   "devDependencies": {
