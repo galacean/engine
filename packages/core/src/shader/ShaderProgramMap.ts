@@ -62,13 +62,13 @@ export class ShaderProgramMap {
 
   private _recursiveForEach(hierarchy: number, cacheMap: Tree): void {
     if (hierarchy === this._cacheHierarchyDepth - 1) {
-      for (let k in cacheMap) {
+      for (const k in cacheMap) {
         (<ShaderProgram>cacheMap[k]).destroy();
       }
       return;
     }
     ++hierarchy;
-    for (let k in cacheMap) {
+    for (const k in cacheMap) {
       this._recursiveForEach(hierarchy, <Tree>cacheMap[k]);
     }
   }
@@ -80,7 +80,7 @@ export class ShaderProgramMap {
     increaseHierarchy: number
   ): void {
     if (hierarchy == currentHierarchy - 1) {
-      for (let k in cacheMap) {
+      for (const k in cacheMap) {
         const value = <ShaderProgram>cacheMap[k];
         let subCacheMap = cacheMap;
         for (let i = 0; i < increaseHierarchy; i++) {
@@ -90,7 +90,7 @@ export class ShaderProgramMap {
       }
     } else {
       hierarchy++;
-      for (let k in cacheMap) {
+      for (const k in cacheMap) {
         this._resizeCacheMapHierarchy(<Tree>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }

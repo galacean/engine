@@ -437,6 +437,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.0
     },
+    inheritVelocityStretched: {
+      category: "Particle",
+      caseFileName: "particleRenderer-inherit-velocity-stretched",
+      threshold: 0,
+      diffPercentage: 0
+    },
     particleHorizontalBillboard: {
       category: "Particle",
       caseFileName: "particleRenderer-horizontal-billboard",
