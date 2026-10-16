@@ -11,7 +11,7 @@ varying vec2 v_uv;
 #define VARYING_UV v_uv
 
 
-#define FRAG_UV v_uv
+#define FRAG_UV v.v_uv
 
 void main() { 
 gl_Position = renderer_MVPMat * ATTR_POS ;

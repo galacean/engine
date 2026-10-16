@@ -13,7 +13,7 @@ Shader "macro-member-access-builtin-arg-test" {
       vec3 u_lightDir;
       vec3 u_cameraPos;
 
-      // Cocos-style FSInput macros: member access used as builtin function args
+      // Member-access macros used as builtin function arguments.
       #define FSInput_worldNormal v.v_normal.xyz
       #define FSInput_faceSideSign v.v_normal.w
       #define FSInput_worldPos v.v_worldPos

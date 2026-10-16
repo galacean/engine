@@ -25,6 +25,10 @@ highp sampler2D renderer_BlitTexture; // Camera_DepthTexture
     #define SAMPLE_COUNT 16.0
     #define SPIRAL_TURNS 7.0
     const vec2 angleIncCosSin = vec2(-0.966846, 0.255311);
+#else
+    #define SAMPLE_COUNT 7.0
+    #define SPIRAL_TURNS 3.0
+    const vec2 angleIncCosSin = vec2(-0.971148, 0.238227);
 #endif
 
 float material_invRadiusSquared; // Inverse of the squared radius

@@ -1,13 +1,12 @@
+import { Logger } from "@galacean/engine-core";
+
 export { ShaderCompiler } from "./ShaderCompiler";
 
-export * from "./GSError";
+export { GSError, GSErrorName } from "@galacean/engine-shader-parser/internal";
 
-//@ts-ignore
+/**
+ * Version of the shader compiler package, replaced with the package version during builds.
+ */
 export const version = `__buildVersion`;
 
-let mode = "Release";
-// #if _VERBOSE
-mode = "Verbose";
-// #endif
-
-console.log(`Galacean Engine Shader Compiler Version: ${version} | Mode: ${mode}`);
+Logger.info(`Galacean Engine Shader Compiler Version: ${version}`);
