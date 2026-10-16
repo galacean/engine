@@ -38,7 +38,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
 
   private _tiling = new Vector2(1, 1);
   @ignoreClone
-  private _frameCurveMacro: ShaderMacro;
+  private _frameCurveMacro: ShaderMacro | null;
 
   /**
    * Tiling of the texture sheet.
@@ -61,7 +61,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let frameMacro = <ShaderMacro>null;
+    let frameMacro: ShaderMacro | null = null;
     if (this.enabled) {
       const mode = this.frameOverTime.mode;
       if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {

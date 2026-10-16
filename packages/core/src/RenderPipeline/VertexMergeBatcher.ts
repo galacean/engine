@@ -15,7 +15,7 @@ export class VertexMergeBatcher {
 
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
-      preElement.subChunk.chunk === curElement.subChunk.chunk &&
+      preElement.subChunk!.chunk === curElement.subChunk!.chunk &&
       preElement.texture === curElement.texture &&
       preElement.material === curElement.material &&
       maskInteraction === renderer.maskInteraction &&
@@ -25,7 +25,7 @@ export class VertexMergeBatcher {
   }
 
   static canBatchSpriteMask(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (preElement.subChunk.chunk !== curElement.subChunk.chunk) {
+    if (preElement.subChunk!.chunk !== curElement.subChunk!.chunk) {
       return false;
     }
 
@@ -40,12 +40,12 @@ export class VertexMergeBatcher {
   }
 
   static batch(preElement: RenderElement | null, curElement: RenderElement): void {
-    const subChunk = curElement.subChunk;
+    const subChunk = curElement.subChunk!;
     const { chunk, indices: localIndices } = subChunk;
 
     const length = localIndices.length;
     if (preElement) {
-      preElement.subChunk.subMesh.count += length;
+      preElement.subChunk!.subMesh.count += length;
     } else {
       // First write this frame — init subMesh range
       subChunk.subMesh.start = chunk.updateIndexLength;

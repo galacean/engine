@@ -8,8 +8,8 @@ import { GLBuffer } from "./GLBuffer";
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
   private _gl: WebGL2RenderingContext;
-  private _vaoA: WebGLVertexArrayObject;
-  private _vaoB: WebGLVertexArrayObject;
+  private _vaoA: WebGLVertexArrayObject | null;
+  private _vaoB: WebGLVertexArrayObject | null;
   private _lastProgramId = -1;
 
   constructor(gl: WebGL2RenderingContext) {
@@ -75,7 +75,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     feedbackElements: VertexElement[],
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
-  ): WebGLVertexArrayObject {
+  ): WebGLVertexArrayObject | null {
     const gl = this._gl;
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);

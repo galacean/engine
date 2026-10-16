@@ -52,7 +52,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   // calls save the previous value on the call stack via a local in each
   // query method, recreating C++-style RAII without an explicit stack array.
   private _pxQueryCallback: any;
-  private _currentOnQuery: (obj: number) => boolean = null;
+  private _currentOnQuery: ((obj: number) => boolean) | null = null;
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
@@ -100,11 +100,11 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         let event: TriggerEvent;
         if (index1 < index2) {
           const subMap = this._physXManager._eventMap[index1];
-          event = subMap[index2];
+          event = subMap[index2]!;
           subMap[index2] = undefined;
         } else {
           const subMap = this._physXManager._eventMap[index2];
-          event = subMap[index1];
+          event = subMap[index1]!;
           subMap[index1] = undefined;
         }
         event.state = PhysicsEventState.Exit;
@@ -123,7 +123,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._pxQueryCallback = physX.PxQueryFilterCallback.implement({
       preFilter: (_filterData: any, index: number, _actor: any) =>
-        this._currentOnQuery(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
+        this._currentOnQuery!(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
       // distance <= 0 means initial overlap — drop the hit so subsequent hits can be considered.
       // Only invoked when the query's filter data includes POST_FILTER (raycast/sweep, not overlap).
       postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
@@ -623,9 +623,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    let event: TriggerEvent;
+    let event: TriggerEvent | undefined;
     if (this._triggerEventPool.length) {
-      event = this._triggerEventPool.pop();
+      event = this._triggerEventPool.pop()!;
       event.index1 = index1;
       event.index2 = index2;
     } else {

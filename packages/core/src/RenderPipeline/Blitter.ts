@@ -39,7 +39,7 @@ export class Blitter {
     destination: RenderTarget | null,
     mipLevel: number = 0,
     viewport: Vector4 = PipelineUtils.defaultViewport,
-    material: Material = null,
+    material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4
   ): void {
@@ -78,7 +78,7 @@ export class Blitter {
 
     program.bind();
     program.groupingOtherUniformBlock();
-    program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
+    program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);

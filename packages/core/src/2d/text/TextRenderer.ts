@@ -36,7 +36,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @ignoreClone
   private _textChunks = Array<TextChunk>();
   /** @internal */
-  _subFont: SubFont = null;
+  _subFont: SubFont | null = null;
   /** @internal */
   @ignoreClone
   _dirtyFlag = DirtyFlag.Font;
@@ -46,7 +46,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   private _height = 0;
   @ignoreClone
   private _localBounds = new BoundingBox();
-  private _font: Font = null;
+  private _font: Font | null = null;
   private _fontSize = 24;
   private _fontStyle = FontStyle.None;
   private _lineSpacing = 0;
@@ -115,7 +115,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * The font of the Text.
    */
-  get font(): Font {
+  get font(): Font | null {
     return this._font;
   }
 
@@ -293,7 +293,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._addResourceReferCount(this._font, 1);
+    this._addResourceReferCount(this._font!, 1);
     this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
@@ -311,7 +311,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     super._onDestroy();
 
     this._freeTextChunks();
-    this._textChunks = null;
+    this._textChunks = null!;
 
     this._subFont && (this._subFont = null);
   }
@@ -344,7 +344,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (!this._subFont) {
       this._resetSubFont();
     }
-    return this._subFont;
+    return this._subFont!;
   }
 
   /**
@@ -408,7 +408,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const camera = context.camera;
     const engine = camera.engine;
     const textRenderElementPool = engine._textRenderElementPool;
-    const material = this.getMaterial();
+    const material = this.getMaterial()!;
     const priority = this.priority;
     const distanceForSort = this._distanceForSort;
     const renderPipeline = camera._renderPipeline;
@@ -426,7 +426,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   private _resetSubFont(): void {
-    const font = this._font;
+    const font = this._font!;
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
@@ -534,8 +534,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
-      const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
-      const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+      const topDiff = lineHeight * 0.5 - lineMaxSizes![0].ascent;
+      const bottomDiff = lineHeight * 0.5 - lineMaxSizes![linesLen - 1].descent - 1;
       switch (this.verticalAlignment) {
         case TextVerticalAlignment.Top:
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
@@ -575,12 +575,12 @@ export class TextRenderer extends Renderer implements ITextRenderer {
           }
           for (let j = 0, n = line.length; j < n; ++j) {
             const char = line[j];
-            const charInfo = charFont._getCharInfo(char);
+            const charInfo = charFont._getCharInfo(char)!;
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
               const charRenderInfo = (charRenderInfos[renderElementCount++] = charRenderInfoPool.get());
               const { localPositions } = charRenderInfo;
-              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
+              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index)!;
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
               const left = startX * pixelsPerUnitReciprocal;
@@ -669,13 +669,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     );
   }
 
-  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk {
+  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk | null {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
+    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4)!);
     const vertices = subChunk.chunk.vertices;
-    const indices = (subChunk.indices = []);
+    const indices: number[] = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
@@ -712,8 +712,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       }
       charRenderInfos.length = 0;
       manager.freeSubChunk(textChunk.subChunk);
-      textChunk.subChunk = null;
-      textChunk.texture = null;
+      textChunk.subChunk = null!;
+      textChunk.texture = null!;
     }
     textChunks.length = 0;
   }

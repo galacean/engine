@@ -5,7 +5,7 @@ export class ShaderSourceSymbol implements IBaseSymbol {
 
   constructor(
     public ident: string,
-    public type: number,
+    public type: number | null,
     public value?: any
   ) {}
 

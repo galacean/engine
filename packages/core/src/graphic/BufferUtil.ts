@@ -39,10 +39,10 @@ export class BufferUtil {
   }
 
   static _getElementInfo(format: VertexElementFormat): ElementInfo {
-    let size: number;
-    let type: DataType;
+    let size!: number;
+    let type!: DataType;
     let normalized: boolean = false;
-    let normalizedScaleFactor: number;
+    let normalizedScaleFactor!: number;
 
     switch (format) {
       case VertexElementFormat.Float:

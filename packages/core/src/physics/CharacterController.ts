@@ -125,7 +125,7 @@ export class CharacterController extends Collider {
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
-        shapes[i]._nativeShape.setWorldScale(worldScale);
+        shapes[i]._nativeShape!.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
@@ -143,14 +143,14 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onEnableInScene() {
-    this.scene.physics._addCharacterController(this);
+    this.scene!.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene() {
-    this.scene.physics._removeCharacterController(this);
+    this.scene!.physics._removeCharacterController(this);
   }
 
   protected override _syncNative(): void {

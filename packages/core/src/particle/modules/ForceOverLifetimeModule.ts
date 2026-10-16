@@ -35,9 +35,9 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _forceMaxConstant = new Vector3();
   @ignoreClone
-  private _forceMacro: ShaderMacro;
+  private _forceMacro: ShaderMacro | null;
   @ignoreClone
-  private _randomModeMacro: ShaderMacro;
+  private _randomModeMacro: ShaderMacro | null;
 
   private _forceX: ParticleCompositeCurve;
   private _forceY: ParticleCompositeCurve;
@@ -115,8 +115,8 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let forceModeMacro = <ShaderMacro>null;
-    let isRandomModeMacro = <ShaderMacro>null;
+    let forceModeMacro: ShaderMacro | null = null;
+    let isRandomModeMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const forceX = this._forceX;

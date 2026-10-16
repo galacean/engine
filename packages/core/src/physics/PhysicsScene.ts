@@ -161,7 +161,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
 
     let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
@@ -320,7 +320,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -436,7 +436,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
@@ -561,7 +561,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -916,7 +916,7 @@ export class PhysicsScene {
       if (!shape) {
         return false;
       }
-      return shape.collider.collisionLayer & mask && shape.isSceneQuery;
+      return (shape.collider!.collisionLayer & mask) !== 0 && shape.isSceneQuery;
     };
   }
 
@@ -936,7 +936,7 @@ export class PhysicsScene {
     normal: Vector3
   ): void {
     const shape = Engine._physicalObjectsMap[shapeUniqueID];
-    outHitResult.entity = shape.collider.entity;
+    outHitResult.entity = shape.collider!.entity;
     outHitResult.shape = shape;
     outHitResult.distance = distance;
     outHitResult.point.copyFrom(position);

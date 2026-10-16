@@ -22,7 +22,7 @@ import { HDRDecoder } from "./HDRDecoder";
 @resourceLoader(AssetType.Texture, ["tex", "png", "jpg", "webp", "jpeg", "hdr"])
 class TextureLoader extends Loader<Texture> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture> {
-    const url = item.url;
+    const url = item.url!;
     const remoteUrl = resourceManager._getRemoteUrl(url);
     const requestConfig = <RequestConfig>{ ...item, type: "arraybuffer" };
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
@@ -105,7 +105,7 @@ class TextureLoader extends Loader<Texture> {
     texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
     texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
-    const url = item.url;
+    const url = item.url!;
     if (url.indexOf("data:") !== 0) {
       texture.name = url.substring(url.lastIndexOf("/") + 1);
     }

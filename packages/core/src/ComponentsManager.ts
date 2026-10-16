@@ -271,7 +271,7 @@ export class ComponentsManager {
   }
 
   getActiveChangedTempList(): Component[] {
-    return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
+    return this._componentsContainerPool.length ? this._componentsContainerPool.pop()! : [];
   }
 
   putActiveChangedTempList(componentContainer: Component[]): void {

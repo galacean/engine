@@ -12,7 +12,7 @@ import {
 class SourceFontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      const url = resourceManager._getRemoteUrl(item.url);
+      const url = resourceManager._getRemoteUrl(item.url!);
       this._registerFont(url, url)
         .then(() => {
           const font = new Font(resourceManager.engine, url);

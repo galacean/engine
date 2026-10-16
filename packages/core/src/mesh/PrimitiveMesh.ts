@@ -51,7 +51,7 @@ export class PrimitiveMesh {
     const sphereMesh = new ModelMesh(engine);
     PrimitiveMesh._setSphereData(sphereMesh, radius, segments, noLongerAccessible, false);
 
-    const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = sphereMesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, vertexBuffer, noLongerAccessible))
     );
@@ -76,7 +76,7 @@ export class PrimitiveMesh {
     const sphereMesh = new ModelMesh(engine);
     PrimitiveMesh._setSubdivisionSurfaceSphereData(sphereMesh, radius, step, noLongerAccessible, false);
 
-    const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = sphereMesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         sphereMesh,
@@ -105,7 +105,7 @@ export class PrimitiveMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setCuboidData(mesh, width, height, depth, noLongerAccessible, false);
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(mesh, new CuboidRestoreInfo(width, height, depth, vertexBuffer, noLongerAccessible))
     );
@@ -133,7 +133,7 @@ export class PrimitiveMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setPlaneData(mesh, width, height, horizontalSegments, verticalSegments, noLongerAccessible, false);
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
@@ -175,7 +175,7 @@ export class PrimitiveMesh {
       false
     );
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
@@ -225,7 +225,7 @@ export class PrimitiveMesh {
       false
     );
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
@@ -256,7 +256,7 @@ export class PrimitiveMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setConeData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
@@ -287,7 +287,7 @@ export class PrimitiveMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setCapsuleData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
 
-    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
+    const vertexBuffer = mesh.vertexBufferBindings[0]!.buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
@@ -446,9 +446,9 @@ export class PrimitiveMesh {
       const thetaDelta = v * thetaRange;
       const sinTheta = Math.sin(thetaDelta);
 
-      let posX = -radius * Math.cos(alphaDelta) * sinTheta;
-      let posY = radius * Math.cos(thetaDelta);
-      let posZ = radius * Math.sin(alphaDelta) * sinTheta;
+      const posX = -radius * Math.cos(alphaDelta) * sinTheta;
+      const posY = radius * Math.cos(thetaDelta);
+      const posZ = radius * Math.sin(alphaDelta) * sinTheta;
 
       let offset = i * vertexFloatCount;
       // Position
@@ -547,7 +547,7 @@ export class PrimitiveMesh {
 
             edges.set(edgeIdxKey, edge);
           }
-          const edge = edges.get(edgeIdxKey);
+          const edge = edges.get(edgeIdxKey)!;
 
           face.adjacentEdges[k] = edge;
 
@@ -576,7 +576,7 @@ export class PrimitiveMesh {
         // Get the face point index
         const ic = prePointCount + j;
 
-        let id: number, ib: number, temp: number;
+        let id!: number, ib!: number, temp!: number;
 
         //  ia -- id -- ia
         //  |     |     |
@@ -917,9 +917,9 @@ export class PrimitiveMesh {
       const cosTheta = Math.cos(theta);
       const radius = radiusBottom - y * radiusSlope;
 
-      let posX = radius * sinTheta;
-      let posY = y * unitHeight - halfHeight;
-      let posZ = radius * cosTheta;
+      const posX = radius * sinTheta;
+      const posY = y * unitHeight - halfHeight;
+      const posZ = radius * cosTheta;
 
       let offset = i * vertexFloatCount;
       // Position
@@ -1185,9 +1185,9 @@ export class PrimitiveMesh {
       const cosTheta = Math.cos(theta);
       const curRadius = radius - v * radius;
 
-      let posX = curRadius * sinTheta;
-      let posY = y * unitHeight - halfHeight;
-      let posZ = curRadius * cosTheta;
+      const posX = curRadius * sinTheta;
+      const posY = y * unitHeight - halfHeight;
+      const posZ = curRadius * cosTheta;
 
       let offset = i * vertexFloatCount;
       // Position
@@ -1237,8 +1237,8 @@ export class PrimitiveMesh {
     offset = (torsoVertexCount + 1) * vertexFloatCount;
     const diameterBottomReciprocal = 1.0 / (radius * 2);
     for (let i = 0; i < radialSegments; ++i) {
-      let curPosX = vertices[i * vertexFloatCount];
-      let curPosZ = vertices[i * vertexFloatCount + 2];
+      const curPosX = vertices[i * vertexFloatCount];
+      const curPosZ = vertices[i * vertexFloatCount + 2];
 
       // Bottom position
       vertices[offset++] = curPosX;
@@ -1406,7 +1406,7 @@ export class PrimitiveMesh {
     restoreVertexBuffer?: Buffer
   ) {
     if (isRestoreMode) {
-      restoreVertexBuffer.setData(vertices);
+      restoreVertexBuffer!.setData(vertices);
       mesh.setIndices(indices);
       mesh.uploadData(noLongerAccessible);
     } else {
@@ -1430,7 +1430,7 @@ export class PrimitiveMesh {
   }
 
   private static _generateIndices(engine: Engine, vertexCount: number, indexCount: number): Uint16Array | Uint32Array {
-    let indices: Uint16Array | Uint32Array = null;
+    let indices: Uint16Array | Uint32Array | null = null;
     if (vertexCount > 65535) {
       if (engine._hardwareRenderer.canIUse(GLCapabilityType.elementIndexUint)) {
         indices = new Uint32Array(indexCount);
@@ -1513,7 +1513,7 @@ export class PrimitiveMesh {
 
 interface IEdge {
   edgePoint: Vector3;
-  edgePointIndex: number;
+  edgePointIndex: number | undefined;
 }
 
 interface IFace {

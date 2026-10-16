@@ -52,20 +52,21 @@ export class SceneManager {
       scene = indexOrScene;
     }
 
-    if (scene.engine !== this.engine) {
+    const targetScene = scene!;
+    if (targetScene.engine !== this.engine) {
       throw "The scene is not belong to this engine.";
     }
 
-    if (scene._sceneManager) {
-      const currentIndex = scenes.indexOf(scene);
+    if (targetScene._sceneManager) {
+      const currentIndex = scenes.indexOf(targetScene);
       if (currentIndex !== index) {
         scenes.removeByIndex(currentIndex);
-        scenes.add(index, scene);
+        scenes.add(index, targetScene);
       }
     } else {
-      scene._sceneManager = this;
-      scenes.add(index, scene);
-      scene.isActive && scene._processActive(true);
+      targetScene._sceneManager = this;
+      scenes.add(index, targetScene);
+      targetScene.isActive && targetScene._processActive(true);
     }
   }
 
@@ -128,16 +129,15 @@ export class SceneManager {
   }
 
   /**
-   * @deprecated
-   * Please use `scenes` instead.
-   *
-   * Get the first scene.
+   * Get the first scene, or undefined if no scene is registered.
+   * @remarks Assigning null or undefined removes the first scene.
+   * @deprecated Please use `scenes` instead.
    */
-  get activeScene(): Scene {
+  get activeScene(): Scene | undefined {
     return this._scenes.getArray()[0];
   }
 
-  set activeScene(scene: Scene) {
+  set activeScene(scene: Scene | null | undefined) {
     const firstScene = this.scenes[0];
     if (firstScene) {
       this.removeScene(firstScene);

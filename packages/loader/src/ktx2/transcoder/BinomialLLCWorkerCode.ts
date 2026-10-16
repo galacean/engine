@@ -176,7 +176,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     const mipmaps = new Array(levelCount);
     for (let mip = 0; mip < levelCount; mip++) {
       const layerMips: Uint8Array[] | Uint16Array[] = new Array(layerCount);
-      let mipWidth: number, mipHeight: number;
+      let mipWidth!: number, mipHeight!: number;
 
       for (let layer = 0; layer < layerCount; layer++) {
         const levelInfo = ktx2File.getImageLevelInfo(mip, layer, face);

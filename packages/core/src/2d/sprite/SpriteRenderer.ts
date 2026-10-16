@@ -40,14 +40,14 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
 
   private _color: Color = new Color(1, 1, 1, 1);
   @ignoreClone
-  private _sprite: Sprite = null;
+  private _sprite: Sprite | null = null;
 
   @ignoreClone
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  private _customWidth: number = undefined;
-  private _customHeight: number = undefined;
+  private _customWidth: number | undefined = undefined;
+  private _customHeight: number | undefined = undefined;
   private _flipX: boolean = false;
   private _flipY: boolean = false;
 
@@ -115,7 +115,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * The Sprite to render.
    */
-  get sprite(): Sprite {
+  get sprite(): Sprite | null {
     return this._sprite;
   }
 
@@ -312,7 +312,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (sprite) {
       this._assembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -320,7 +320,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this._flipY
       );
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }
@@ -345,7 +345,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
         this,
-        this._transformEntity.transform.worldMatrix,
+        this._transformEntity!.transform.worldMatrix,
         this.width,
         this.height,
         sprite.pivot,
@@ -372,7 +372,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     const engine = camera.engine;
     const renderElement = engine._renderElementPool.get();
     const subChunk = this._subChunk;
-    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite!.texture!, subChunk);
     renderElement.priority = this.priority;
     renderElement.distanceForSort = this._distanceForSort;
     camera._renderPipeline.pushRenderElement(context, renderElement);
@@ -388,10 +388,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     super._onDestroy();
 
     this._sprite = null;
-    this._assembler = null;
+    this._assembler = null!;
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
+      this._subChunk = null!;
     }
   }
 
@@ -410,7 +410,7 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite!.texture);
         break;
       case SpriteModifyFlags.size:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;

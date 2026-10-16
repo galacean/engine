@@ -14,7 +14,7 @@ class PrimitiveMeshLoader extends Loader<ModelMesh> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
     const { engine } = resourceManager;
     return resourceManager
-      ._request<IPrimitiveMesh>(item.url, {
+      ._request<IPrimitiveMesh>(item.url!, {
         ...item,
         type: "json"
       })

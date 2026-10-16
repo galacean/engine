@@ -20,7 +20,7 @@ export class Buffer extends GraphicsResource {
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
   private _readable: boolean;
-  private _data: Uint8Array;
+  private _data: Uint8Array | null;
 
   /**
    * Buffer binding flag.
@@ -57,7 +57,7 @@ export class Buffer extends GraphicsResource {
    * Buffer must be readable.
    * If the data you get is modified, must call `setData()` to update buffer to GPU.
    */
-  get data(): Uint8Array {
+  get data(): Uint8Array | null {
     if (this._readable) {
       return this._data;
     } else {
@@ -173,7 +173,7 @@ export class Buffer extends GraphicsResource {
     data: ArrayBuffer | ArrayBufferView,
     bufferByteOffset: number,
     dataOffset: number,
-    dataLength: number,
+    dataLength: number | undefined,
     options: SetDataOptions
   ): void;
 
@@ -189,13 +189,13 @@ export class Buffer extends GraphicsResource {
     if (this._readable) {
       const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
 
-      if (this._data.buffer !== arrayBuffer) {
+      if (this._data!.buffer !== arrayBuffer) {
         const byteSize = (<TypedArray>data).BYTES_PER_ELEMENT || 1; // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
         const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
         const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
         const byteOffset = isArrayBufferView ? (<ArrayBufferView>data).byteOffset + dataOffset * byteSize : dataOffset;
         const srcData = new Uint8Array(arrayBuffer, byteOffset, dataByteLength);
-        this._data.set(srcData, bufferByteOffset);
+        this._data!.set(srcData, bufferByteOffset);
       }
     }
     this._isContentLost = false;

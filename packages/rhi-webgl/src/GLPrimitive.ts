@@ -20,7 +20,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   private readonly _canUseInstancedArrays: boolean;
 
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
-  private _vaoMap: Map<number, WebGLVertexArrayObject> = new Map();
+  private _vaoMap: Map<number, WebGLVertexArrayObject | null> = new Map();
   private readonly _isSupportVAO: boolean;
 
   constructor(rhi: WebGLGraphicDevice, primitive: Primitive) {
@@ -45,7 +45,7 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (!this._vaoMap.has(shaderProgram.id)) {
         this._registerVAO(shaderProgram);
       }
-      const vao = this._vaoMap.get(shaderProgram.id);
+      const vao = this._vaoMap.get(shaderProgram.id)!;
       gl.bindVertexArray(vao);
     } else {
       this._bindBufferAndAttrib(shaderProgram);
@@ -57,11 +57,11 @@ export class GLPrimitive implements IPlatformPrimitive {
     if (!instanceCount) {
       if (indexBufferBinding) {
         if (useVao) {
-          gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
+          gl.drawElements(topology, count, _glIndexType!, start * _glIndexByteCount);
         } else {
           const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-          gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
+          gl.drawElements(topology, count, _glIndexType!, start * _glIndexByteCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
@@ -71,11 +71,11 @@ export class GLPrimitive implements IPlatformPrimitive {
       if (this._canUseInstancedArrays) {
         if (indexBufferBinding) {
           if (useVao) {
-            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
           } else {
             const { _glBuffer } = <GLBuffer>indexBufferBinding.buffer._platformBuffer;
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
-            gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, instanceCount);
+            gl.drawElementsInstanced(topology, count, _glIndexType!, start * _glIndexByteCount, instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
         } else {
@@ -110,8 +110,8 @@ export class GLPrimitive implements IPlatformPrimitive {
     const attributeLocation = shaderProgram.attributeLocation;
     const attributes = primitive._vertexElementMap;
 
-    let vbo: WebGLBuffer;
-    let lastBoundVbo: WebGLBuffer;
+    let vbo: WebGLBuffer | null;
+    let lastBoundVbo: WebGLBuffer | null | undefined;
 
     for (const name in attributeLocation) {
       const loc = attributeLocation[name];
@@ -119,7 +119,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
       const element = attributes[name];
       if (element) {
-        const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
+        const { buffer, stride } = vertexBufferBindings[element.bindingIndex]!;
         vbo = (<GLBuffer>buffer._platformBuffer)._glBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {

@@ -13,9 +13,9 @@ export class SubPrimitiveChunk implements IPoolElement {
   indices: number[];
 
   dispose?(): void {
-    this.chunk = null;
-    this.vertexArea = null;
-    this.subMesh = null;
-    this.indices = null;
+    this.chunk = null!;
+    this.vertexArea = null!;
+    this.subMesh = null!;
+    this.indices = null!;
   }
 }

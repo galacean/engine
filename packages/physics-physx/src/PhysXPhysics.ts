@@ -51,7 +51,7 @@ export class PhysXPhysics implements IPhysics {
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
-  private _initializePromise: Promise<void>;
+  private _initializePromise: Promise<void> | null;
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
@@ -82,7 +82,7 @@ export class PhysXPhysics implements IPhysics {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
-      return this._initializePromise;
+      return this._initializePromise!;
     }
 
     this._initializeState = InitializeState.Initializing;

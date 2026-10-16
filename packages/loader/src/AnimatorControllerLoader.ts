@@ -6,6 +6,7 @@ import {
   LoadItem,
   ResourceManager,
   AnimatorController,
+  AnimationClip,
   AnimatorControllerLayer,
   AnimatorStateTransition,
   AnimatorState,
@@ -19,14 +20,14 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        ._request<any>(item.url, {
+        ._request<any>(item.url!, {
           ...item,
           type: "json"
         })
         .then((data) => {
           const animatorController = new AnimatorController(resourceManager.engine);
           const { layers, parameters } = data;
-          const promises = [];
+          const promises: Promise<{ layerIndex: number; stateIndex: number; clip: AnimationClip | null }>[] = [];
           layers.forEach((layerData, layerIndex: number) => {
             const { name, blendingMode, weight, stateMachine: stateMachineData } = layerData;
             const layer = new AnimatorControllerLayer(name);
@@ -56,11 +57,11 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 scripts.forEach((script) => {
                   state.addStateMachineScript(Loader.getClass(script));
                 });
-                statesMap[id] = state;
+                statesMap[id!] = state;
                 if (clipData) {
                   promises.push(
                     new Promise((resolve) => {
-                      resourceManager.getResourceByRef(clipData).then((clip) => {
+                      resourceManager.getResourceByRef<AnimationClip>(clipData).then((clip) => {
                         resolve({
                           layerIndex,
                           stateIndex,
@@ -73,14 +74,14 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
               });
               transitions.forEach((transitionData: ITransitionData) => {
                 const transition = this._createTransition(transitionData, statesMap[transitionData.destinationStateId]);
-                transitionsMap[transitionData.id] = transition;
+                transitionsMap[transitionData.id!] = transition;
               });
 
               states.forEach((stateData: IStateData) => {
                 const { id, transitions } = stateData;
                 transitions.forEach((transitionId) => {
                   const transition = transitionsMap[transitionId];
-                  transition && statesMap[id].addTransition(transition);
+                  transition && statesMap[id!].addTransition(transition);
                 });
               });
 

@@ -74,7 +74,7 @@ export class GLCapability {
 
   get isFragmentHighPrecision(): boolean {
     const gl = this._rhi.gl;
-    return gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).precision !== 0;
+    return gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT)!.precision !== 0;
   }
 
   get rhi() {
@@ -93,7 +93,7 @@ export class GLCapability {
    * Check device capabilities.
    */
   canIUse(capabilityType: GLCapabilityType): boolean {
-    return this.capabilityList.get(capabilityType);
+    return this.capabilityList.get(capabilityType)!;
   }
 
   /**
@@ -237,9 +237,9 @@ export class GLCapability {
   private _compatibleInterface(capabilityType: GLCapabilityType, flatItem: { [glKey: string]: extensionKey }) {
     const rhi = this.rhi;
     const gl = rhi.gl;
-    let ext = null;
+    const ext = rhi.requireExtension(capabilityType);
 
-    if ((ext = rhi.requireExtension(capabilityType))) {
+    if (ext) {
       for (const glKey in flatItem) {
         const extensionKey = flatItem[glKey];
         const extensionVal = ext[extensionKey];

@@ -2,9 +2,13 @@ Shader "Sky/Skybox" {
   Editor {
     Properties {
       Header("Base") {
+        /** RGB tint multiplied with the cubemap. */
         material_TintColor("TintColor", Color) = (1, 1, 1, 1);
+        /** Linear brightness multiplier for the cubemap. */
         material_Exposure("Exposure", Range(0, 8, 0.1)) = 1;
+        /** Rotation of the skybox around the Y axis, in degrees. */
         material_Rotation("Rotation", Range(0, 360, 1)) = 0;
+        /** Cubemap sampled as the skybox background. */
         material_CubeTexture("CubeTexture", TextureCube);
       }
     }

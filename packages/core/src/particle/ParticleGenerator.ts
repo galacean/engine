@@ -130,7 +130,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   @ignoreClone
   private _feedbackBindingIndex = -1;
   @ignoreClone
-  private _feedbackReadback: Float32Array = null;
+  private _feedbackReadback: Float32Array | null = null;
 
   @ignoreClone
   private _isPlaying = false;
@@ -144,7 +144,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   private _instanceVertices: Float32Array;
   private _randomSeed = 0;
   @ignoreClone
-  private _transformedBoundsArray: Float32Array;
+  private _transformedBoundsArray: Float32Array | null;
   @ignoreClone
   private _transformedBoundsCount = 0;
   @ignoreClone
@@ -442,14 +442,14 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       if (positionBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(positionBufferBinding, vertexBufferBindings);
         primitive.addVertexElement(
-          new VertexElement(VertexAttribute.Position, positionElement.offset, positionElement.format, index)
+          new VertexElement(VertexAttribute.Position, positionElement!.offset, positionElement!.format, index)
         );
       }
 
       if (colorBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(colorBufferBinding, vertexBufferBindings);
         primitive.addVertexElement(
-          new VertexElement(VertexAttribute.Color, colorElement.offset, colorElement.format, index)
+          new VertexElement(VertexAttribute.Color, colorElement!.offset, colorElement!.format, index)
         );
         renderer.shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
       } else {
@@ -458,11 +458,11 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
       if (uvBufferBinding) {
         const index = this._addVertexBufferBindingsFilterDuplicate(uvBufferBinding, vertexBufferBindings);
-        primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement.offset, uvElement.format, index));
+        primitive.addVertexElement(new VertexElement(VertexAttribute.UV, uvElement!.offset, uvElement!.format, index));
       }
 
       primitive.setIndexBufferBinding(mesh._primitive.indexBufferBinding);
-      const { subMesh } = mesh;
+      const subMesh = mesh.subMesh!;
       const { _subPrimitive: subPrimitive } = this;
       subPrimitive.start = subMesh.start;
       subPrimitive.topology = subMesh.topology;
@@ -525,7 +525,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     this._instanceVertexBufferBinding?.buffer.destroy();
 
     const stride = ParticleBufferUtils.instanceVertexStride;
-    const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount : this.main._maxParticleBuffer;
+    const newParticleCount = isIncrease ? this._currentParticleCount + increaseCount! : this.main._maxParticleBuffer;
     const newByteLength = stride * newParticleCount;
     const engine = this._renderer.engine;
     const vertexInstanceBuffer = new Buffer(
@@ -560,7 +560,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
         // Copy tail segment shifted by increaseCount
         const nextFreeElement = firstFreeElement + 1;
         const tailCount = this._currentParticleCount - nextFreeElement;
-        const tailDstElement = nextFreeElement + increaseCount;
+        const tailDstElement = nextFreeElement + increaseCount!;
         instanceVertices.set(
           new Float32Array(lastInstanceVertices.buffer, nextFreeElement * floatStride * 4),
           tailDstElement * floatStride
@@ -575,9 +575,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
           );
         }
 
-        this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
-        this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
-        firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
+        this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount!);
+        this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount!);
+        firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount!);
       } else {
         let migrateCount: number, bufferOffset: number;
         if (firstRetiredElement <= firstFreeElement) {
@@ -790,7 +790,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
    * @internal
    */
   _updateBoundsSimulationWorld(bounds: BoundingBox): void {
-    const boundsArray = this._transformedBoundsArray;
+    const boundsArray = this._transformedBoundsArray!;
     const firstActiveElement = this._firstActiveTransformedBoundingBox;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
 
@@ -862,7 +862,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       this._calculateTransformedBounds(maxLifetime, generatorBounds, transformedBounds);
 
       const boundsOffset = firstFreeElement * boundsFloatStride;
-      const boundsArray = this._transformedBoundsArray;
+      const boundsArray = this._transformedBoundsArray!;
       transformedBounds.min.copyToArray(boundsArray, boundsOffset);
       transformedBounds.max.copyToArray(boundsArray, boundsOffset + 3);
 
@@ -876,7 +876,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       if (previousFreeElement < 0) {
         previousFreeElement = this._transformedBoundsCount;
       }
-      this._transformedBoundsArray[previousFreeElement * ParticleBufferUtils.boundsFloatStride + boundsTimeOffset] =
+      this._transformedBoundsArray![previousFreeElement * ParticleBufferUtils.boundsFloatStride + boundsTimeOffset] =
         this._playTime;
     }
   }
@@ -887,9 +887,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     transform: Transform,
     playTime: number,
     emitWorldPositionOverride?: Vector3,
-    inheritColor?: Color,
-    inheritSize?: Vector3,
-    inheritRotation?: Vector3
+    inheritColor?: Color | null,
+    inheritSize?: Vector3 | null,
+    inheritRotation?: Vector3 | null
   ): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
@@ -920,7 +920,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       nextFreeElement = firstFreeElement + 1;
     }
 
-    let pos: Vector3, rot: Quaternion;
+    let pos!: Vector3, rot!: Quaternion;
     if (main.simulationSpace === ParticleSimulationSpace.World) {
       pos = emitWorldPositionOverride ?? transform.worldPosition;
       rot = transform.worldRotationQuaternion;
@@ -1138,10 +1138,10 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
   _emitFromSubEmitter(
     count: number,
     worldPosition: Vector3,
-    inheritColor: Color,
-    inheritSize: Vector3,
-    inheritRotation: Vector3,
-    worldDirection?: Vector3
+    inheritColor: Color | null,
+    inheritSize: Vector3 | null,
+    inheritRotation: Vector3 | null,
+    worldDirection?: Vector3 | null
   ): void {
     if (count <= 0) return;
 
@@ -1292,7 +1292,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const worldRotation = transform.worldRotationQuaternion;
     const ringIndex = particleOffset / ParticleBufferUtils.instanceVertexFloatStride;
-    const feedbackData = this._feedbackReadback;
+    const feedbackData = this._feedbackReadback!;
     const feedbackOffset = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
     const local = this._eventPos;
     local.set(feedbackData[feedbackOffset], feedbackData[feedbackOffset + 1], feedbackData[feedbackOffset + 2]);
@@ -1490,7 +1490,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const floatStride = ParticleBufferUtils.boundsFloatStride;
     const increaseCount = ParticleGenerator._transformedBoundsIncreaseCount;
 
-    this._transformedBoundsCount += increaseCount;
+    this._transformedBoundsCount += increaseCount!;
     const lastBoundsArray = this._transformedBoundsArray;
     const boundsArray = new Float32Array(this._transformedBoundsCount * floatStride);
 
@@ -1499,12 +1499,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       boundsArray.set(new Float32Array(lastBoundsArray.buffer, 0, firstFreeElement * floatStride));
 
       const nextFreeElement = firstFreeElement + 1;
-      const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
+      const freeEndOffset = (nextFreeElement + increaseCount!) * floatStride;
       boundsArray.set(new Float32Array(lastBoundsArray.buffer, nextFreeElement * floatStride * 4), freeEndOffset);
 
       const firstActiveElement = this._firstActiveTransformedBoundingBox;
       if (firstActiveElement > firstFreeElement) {
-        this._firstActiveTransformedBoundingBox += increaseCount;
+        this._firstActiveTransformedBoundingBox += increaseCount!;
       }
     }
 
@@ -1513,7 +1513,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _retireTransformedBounds(): void {
     const { boundsFloatStride, boundsTimeOffset, boundsMaxLifetimeOffset } = ParticleBufferUtils;
-    const boundsArray = this._transformedBoundsArray;
+    const boundsArray = this._transformedBoundsArray!;
     const firstFreeElement = this._firstFreeTransformedBoundingBox;
     const count = this._transformedBoundsCount;
 
@@ -1604,7 +1604,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
   private _mergeTransformedBounds(index: number, bounds: BoundingBox): void {
     const { min, max } = bounds;
-    const boundsArray = this._transformedBoundsArray;
+    const boundsArray = this._transformedBoundsArray!;
 
     const offset = index * ParticleBufferUtils.boundsFloatStride;
 
@@ -1783,7 +1783,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const coefficient = 0.5 * maxLifetime * maxLifetime;
     const minGravityEffect = modifierMinMax.x * coefficient;
     const maxGravityEffect = modifierMinMax.y * coefficient;
-    const { x, y, z } = this._renderer.scene.physics.gravity;
+    const { x, y, z } = this._renderer.scene!.physics.gravity;
 
     const gravityBoundsExtents = ParticleGenerator._tempVector33;
     gravityBoundsExtents.set(
@@ -1817,7 +1817,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     // Gravity modifier impact
     this._getExtremeValueFromZero(this.main.gravityModifier, modifierMinMax);
-    const { x, y, z } = this._renderer.scene.physics.gravity;
+    const { x, y, z } = this._renderer.scene!.physics.gravity;
 
     const coefficient = 0.5 * maxLifetime * maxLifetime;
 
