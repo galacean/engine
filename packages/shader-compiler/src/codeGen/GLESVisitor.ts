@@ -15,12 +15,16 @@ import { StructRole, VisitorContext } from "./VisitorContext";
  */
 export abstract class GLESVisitor extends CodeGenVisitor {
   private _globalCodeArray: ICodeSegment[] = [];
+  private _emittedHelperStructs = new Set<ASTNode.StructSpecifier>();
+  private _emittedHelperStructNames = new Set<string>();
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
 
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
+    this._emittedHelperStructs.clear();
+    this._emittedHelperStructNames.clear();
     GLESVisitor._serializedGlobalKey.clear();
   }
 
@@ -187,6 +191,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
+    this._emitReferencedHelperStructs(globalCodeArray);
     this._getCustomStruct(context.attributeStructs, globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroDeclarations, globalCodeArray);
@@ -221,9 +226,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
-      if (returnStatement) {
+      for (const returnStatement of fnNode.returnStatements) {
         returnStatement.isFragReturnStatement = true;
       }
 
@@ -256,6 +259,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
     this._getGlobalSymbol(globalCodeArray);
+    this._emitReferencedHelperStructs(globalCodeArray);
     this._getCustomStruct(context.varyingStructs, globalCodeArray);
     this._getCustomStruct(context.mrtStructs, globalCodeArray);
     this._getGlobalMacroDeclarations(outerGlobalMacroStatements, globalCodeArray);
@@ -306,13 +310,19 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _walkMacroDefineTokens(children: NodeChild[]): void {
     for (const child of children) {
       if (child instanceof ASTNode.MacroDefine) {
-        // Codegen the value once so the enclosed `visitPostfixExpression` calls
-        // register their struct-prop references. The returned string is discarded
-        // — the real emit happens later in `_getGlobalMacroDeclarations`.
-        if (child.valueExpression) child.valueExpression.codeGen(this);
+        // IO declarations need macro members before emission. Ordinary globals
+        // belong to reachable stage code, not every macro replacement list.
+        if (child.valueExpression) this._collectMacroStructProps(child.valueExpression);
       } else if (child instanceof TreeNode) {
         this._walkMacroDefineTokens(child.children);
       }
+    }
+  }
+
+  private _collectMacroStructProps(node: TreeNode): void {
+    if (node instanceof ASTNode.PostfixExpression) this.referenceStructProp(node);
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._collectMacroStructProps(child);
     }
   }
 
@@ -349,9 +359,76 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _getCustomStruct(structNodes: ASTNode.StructSpecifier[], out: ICodeSegment[]): void {
     for (const node of structNodes) {
       const text = node.codeGen(this);
+      this._emittedHelperStructs.add(node);
 
       if (!node.isInMacroBranch) {
         out.push({ text, index: node.location.start.index });
+      }
+    }
+  }
+
+  /**
+   * Emit non-IO struct declarations (e.g. `SurfaceData`, `BSDFData`) that appear in the
+   * signatures of functions emitted for this stage. Pass-scope helpers can be pulled
+   * into a stage whose entry never references their parameter types, so the
+   * IO-struct-only emission inside `_visitGlobalMacroIfStatement` would otherwise drop
+   * these declarations and produce invalid GLSL for that stage.
+   */
+  private _emitReferencedHelperStructs(out: ICodeSegment[]): void {
+    const context = VisitorContext.context;
+    const symbolTable = context._passSymbolTable;
+    if (!symbolTable) return;
+
+    const pending: string[] = [];
+    const collectSignatureTypes = (fn: ASTNode.FunctionDefinition): void => {
+      const proto = fn.protoType;
+      if (typeof proto.returnType.type === "string") {
+        pending.push(proto.returnType.type);
+      }
+      for (const param of proto.parameterList ?? []) {
+        if (typeof param.typeInfo?.type === "string") {
+          pending.push(param.typeInfo.typeLexeme);
+        }
+      }
+    };
+
+    for (const symbols of Object.values(context._referencedGlobals)) {
+      for (const sm of symbols) {
+        if (sm.type === ESymbolType.FN && sm.astNode instanceof ASTNode.FunctionDefinition) {
+          collectSignatureTypes(sm.astNode);
+        }
+      }
+    }
+    for (const node of context._referencedGlobalMacroASTs) {
+      if (node instanceof ASTNode.FunctionDefinition) {
+        collectSignatureTypes(node);
+      }
+    }
+
+    const lookup = GLESVisitor._lookupSymbol;
+    const emitted = this._emittedHelperStructs;
+    const emittedNames = this._emittedHelperStructNames;
+    // Emit helper structs at the top of the stage output: GLSL requires a type to be
+    // declared before use, and helper functions pulled into this stage may appear
+    // textually before the struct's original declaration site.
+    while (pending.length) {
+      const typeLexeme = pending.pop()!;
+      if (emittedNames.has(typeLexeme)) continue;
+      lookup.set(typeLexeme, ESymbolType.STRUCT);
+      const symbols = <StructSymbol[]>symbolTable.getSymbols(lookup, true, []);
+      for (const sm of symbols) {
+        const node = sm.astNode;
+        if (!(node instanceof ASTNode.StructSpecifier) || emitted.has(node)) continue;
+        emitted.add(node);
+        emittedNames.add(typeLexeme);
+        out.push({ text: node.codeGen(this), index: -1 });
+        // A helper struct may itself reference another non-IO struct in a field type.
+        for (const prop of node.propList) {
+          if (typeof prop.typeInfo?.type === "string") {
+            pending.push(prop.typeInfo.typeLexeme);
+          }
+        }
+        break;
       }
     }
   }
@@ -424,10 +501,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         const context = VisitorContext.context;
         const stage = context.stage;
         if (
-          VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
-          (stage === EShaderStage.VERTEX
-            ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
-            : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme))
+          !this._emittedHelperStructs.has(child) &&
+          !this._emittedHelperStructNames.has(child.ident?.lexeme ?? "") &&
+          (VisitorContext.context._referencedGlobalMacroASTs.indexOf(child) !== -1 ||
+            (stage === EShaderStage.VERTEX
+              ? context.isAttributeStruct(child.ident?.lexeme) || context.isVaryingStruct(child.ident?.lexeme)
+              : context.isVaryingStruct(child.ident?.lexeme) || context.isMRTStruct(child.ident?.lexeme)))
         ) {
           out.push({
             text: child.getCache(), // code has generated in `_getGlobalSymbol` or `_getCustomStruct`
