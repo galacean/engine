@@ -511,9 +511,12 @@ describe("Physics Test", () => {
       expect(nestedHitIds).to.have.members([nearShape.id, farShape.id]);
 
       const previousHits = results.slice();
-      expect(physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Everything, results)).to.eq(results);
-      expect(results[0]).to.eq(previousHits[0]);
-      expect(results[1]).to.eq(previousHits[1]);
+      const previousDistances = previousHits.map((hit) => hit.distance);
+      const shiftedRay = new Ray(new Vector3(-4, 0, 0), ray.direction);
+      expect(physicsScene.raycastAll(shiftedRay, Number.MAX_VALUE, Layer.Everything, results)).to.eq(results);
+      expect(results.some((hit) => previousHits.includes(hit))).to.eq(false);
+      expect(previousHits.map((hit) => hit.distance)).to.deep.equal(previousDistances);
+      expect(results.map((hit) => hit.distance)).to.have.members(previousDistances.map((distance) => distance + 1));
       expect(physicsScene.raycastAll(ray, 0, Layer.Everything, results)).to.have.length(0);
 
       const limitedResults = physicsScene.raycastAll(ray, 5);

@@ -205,7 +205,7 @@ export class PhysicsScene {
    * @param ray - The world-space ray; its direction is normalized for the query
    * @param distance - The maximum query distance; non-positive values return no hits
    * @param layerMask - The collision layers to include
-   * @param hitResults - The output array; existing HitResult objects are reused and its length is set to the hit count
+   * @param hitResults - The output array; its contents are replaced with new HitResult objects for this query
    * @returns The same `hitResults` array
    *
    * @remarks Hits at distance 0 are ignored. A direction that cannot be normalized produces no hits.
@@ -216,29 +216,27 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     hitResults: HitResult[] = []
   ): HitResult[] {
+    hitResults.length = 0;
     if (distance <= 0) {
-      hitResults.length = 0;
       return hitResults;
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (!normalizedDirection) {
-      hitResults.length = 0;
       return hitResults;
     }
 
-    let hitCount = 0;
     this._nativePhysicsScene.raycastAll(
       ray.origin,
       normalizedDirection,
       distance,
       layerMask,
       (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-        const hitResult = (hitResults[hitCount++] ||= new HitResult());
+        const hitResult = new HitResult();
         this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+        hitResults.push(hitResult);
       }
     );
-    hitResults.length = hitCount;
     return hitResults;
   }
 

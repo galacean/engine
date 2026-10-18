@@ -37,6 +37,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
    * @internal
    * @beta
    * Whether this shape participates in scene queries, including raycasts, shape casts, and overlap queries.
+   * This does not affect collision response.
    */
   get isSceneQuery(): boolean {
     return this._isSceneQuery;

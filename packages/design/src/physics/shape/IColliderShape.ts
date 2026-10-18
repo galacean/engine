@@ -42,7 +42,7 @@ export interface IColliderShape {
   setIsTrigger(value: boolean): void;
 
   /**
-   * Enables this shape for raycasts, shape casts, and overlap queries.
+   * Enables this shape for raycasts, shape casts, and overlap queries without changing collision response.
    * @param value - Whether the shape participates in scene queries
    */
   setIsSceneQuery(value: boolean): void;

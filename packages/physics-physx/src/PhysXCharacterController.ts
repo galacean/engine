@@ -4,7 +4,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { ColliderShapeUpAxis, PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
-import { PhysXColliderShape, ShapeFlag } from "./shape/PhysXColliderShape";
+import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * Base class for character controllers.
@@ -163,7 +163,7 @@ export class PhysXCharacterController implements ICharacterController {
 
     this._pxController.setUUID(shape._id);
     this._physXPhysics._physX.setGroup(this._pxController.getActor(), this._collisionLayer);
-    this._pxController.setSceneQueryEnabled((shape._shapeFlags & ShapeFlag.SCENE_QUERY_SHAPE) !== 0);
+    this._pxController.setSceneQueryEnabled(shape._pxShape.isSceneQueryEnabled());
 
     this._updateNativePosition();
   }
