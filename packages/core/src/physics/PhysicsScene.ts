@@ -18,6 +18,7 @@ export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
+  private static readonly _raycastHitPools = new WeakMap<HitResult[], { hits: HitResult[]; count: number }>();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -201,43 +202,98 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a ray through the Scene and returns all hits in unspecified order.
+   * Casts a ray and writes all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
+   *
+   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
+   */
+  raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and writes all hits in unspecified order.
    * @param ray - The world-space ray; its direction is normalized for the query
    * @param distance - The maximum query distance; non-positive values return no hits
-   * @param layerMask - The collision layers to include
-   * @param hitResults - The output array; its contents are replaced with new HitResult objects for this query
-   * @returns The same `hitResults` array
+   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
    *
-   * @remarks Hits at distance 0 are ignored. A direction that cannot be normalized produces no hits.
+   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
    */
+  raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and optionally writes all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param distance - The maximum query distance; defaults to Number.MAX_VALUE
+   * @param layerMask - The collision layers to include; defaults to Layer.Everything
+   * @param outHitResults - The optional output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
+   *
+   * @remarks Hits at distance 0 are ignored. Non-positive distances or directions that cannot be normalized produce
+   * no hits and clear the output array. Reusing the output array overwrites its result objects; copy values that must
+   * be retained. Omitting the output array performs only a hit test.
+   */
+  raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
+
   raycastAll(
     ray: Ray,
-    distance: number = Number.MAX_VALUE,
-    layerMask: Layer = Layer.Everything,
-    hitResults: HitResult[] = []
-  ): HitResult[] {
-    hitResults.length = 0;
-    if (distance <= 0) {
-      return hitResults;
+    distanceOrResults?: number | HitResult[],
+    layerMaskOrResults?: Layer | HitResult[],
+    outHitResults?: HitResult[]
+  ): boolean {
+    let distance = Number.MAX_VALUE;
+    let layerMask = Layer.Everything;
+    let hitResults: HitResult[] | undefined;
+    if (typeof distanceOrResults === "number") {
+      distance = distanceOrResults;
+    } else if (distanceOrResults != undefined) {
+      hitResults = distanceOrResults;
+    }
+    if (typeof layerMaskOrResults === "number") {
+      layerMask = layerMaskOrResults;
+    } else if (layerMaskOrResults != undefined) {
+      hitResults = layerMaskOrResults;
+    }
+    if (outHitResults) {
+      hitResults = outHitResults;
+    }
+    if (!hitResults) {
+      return this.raycast(ray, distance, layerMask);
     }
 
+    // Keep spare hit objects when the visible output array shrinks
+    let pool = PhysicsScene._raycastHitPools.get(hitResults);
+    if (!pool) {
+      pool = { hits: [], count: 0 };
+      PhysicsScene._raycastHitPools.set(hitResults, pool);
+    }
+
+    let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
-    if (!normalizedDirection) {
-      return hitResults;
+    if (distance > 0 && normalizedDirection) {
+      this._nativePhysicsScene.raycastAll(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
+          const hitResult = (hitResults[hitCount] ||= pool.hits[hitCount] || new HitResult());
+          pool.hits[hitCount++] = hitResult;
+          this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+        }
+      );
     }
-
-    this._nativePhysicsScene.raycastAll(
-      ray.origin,
-      normalizedDirection,
-      distance,
-      layerMask,
-      (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-        const hitResult = new HitResult();
-        this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
-        hitResults.push(hitResult);
+    for (let i = hitCount, n = Math.max(pool.count, hitResults.length); i < n; i++) {
+      const hitResult = hitResults[i] || pool.hits[i];
+      if (hitResult) {
+        pool.hits[i] = hitResult;
+        this._clearHitResult(hitResult);
       }
-    );
-    return hitResults;
+    }
+    pool.count = hitCount;
+    hitResults.length = hitCount;
+    return hitCount > 0;
   }
 
   /**

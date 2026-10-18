@@ -491,7 +491,11 @@ describe("Physics Test", () => {
       farCollider.addShape(farShape);
 
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
-      const results = physicsScene.raycastAll(ray);
+      const results = [new HitResult(), new HitResult()];
+      const initialHits = results.slice();
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(initialHits[0]);
+      expect(results[1]).to.eq(initialHits[1]);
       expect(results).to.have.length(2);
       expect(results.map((result) => result.shape)).to.have.members([nearShape, farShape]);
       expect(results.map((result) => result.entity)).to.have.members([nearEntity, farEntity]);
@@ -513,29 +517,101 @@ describe("Physics Test", () => {
       const previousHits = results.slice();
       const previousDistances = previousHits.map((hit) => hit.distance);
       const shiftedRay = new Ray(new Vector3(-4, 0, 0), ray.direction);
-      expect(physicsScene.raycastAll(shiftedRay, Number.MAX_VALUE, Layer.Everything, results)).to.eq(results);
-      expect(results.some((hit) => previousHits.includes(hit))).to.eq(false);
+      const separateResults: HitResult[] = [];
+      expect(physicsScene.raycastAll(shiftedRay, separateResults)).to.eq(true);
       expect(previousHits.map((hit) => hit.distance)).to.deep.equal(previousDistances);
+      expect(separateResults.some((hit) => previousHits.includes(hit))).to.eq(false);
+      expect(physicsScene.raycastAll(shiftedRay, Number.MAX_VALUE, Layer.Everything, results)).to.eq(true);
+      expect(results[0]).to.eq(previousHits[0]);
+      expect(results[1]).to.eq(previousHits[1]);
       expect(results.map((hit) => hit.distance)).to.have.members(previousDistances.map((distance) => distance + 1));
-      expect(physicsScene.raycastAll(ray, 0, Layer.Everything, results)).to.have.length(0);
+      expect(physicsScene.raycastAll(ray, 0, Layer.Everything, results)).to.eq(false);
+      expect(results).to.have.length(0);
+      expect(previousHits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(previousHits[0]);
+      expect(results[1]).to.eq(previousHits[1]);
 
-      const limitedResults = physicsScene.raycastAll(ray, 5);
+      expect(physicsScene.raycastAll(ray, 5, results)).to.eq(true);
+      expect(results).to.have.length(1);
+      expect(previousHits[1].shape).to.eq(null);
+      expect(previousHits[1].entity).to.eq(null);
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
+      expect(results[1]).to.eq(previousHits[1]);
+
+      results.length = 0;
+      expect(physicsScene.raycastAll(ray, 100, Layer.Nothing, results)).to.eq(false);
+      expect(previousHits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(previousHits[0]);
+      expect(results[1]).to.eq(previousHits[1]);
+
+      const sparseResults = new Array<HitResult>(4);
+      expect(physicsScene.raycastAll(ray, sparseResults)).to.eq(true);
+      expect(sparseResults).to.have.length(2);
+      const sparseHits = sparseResults.slice();
+      expect(physicsScene.raycastAll(new Ray(ray.origin, new Vector3()), sparseResults)).to.eq(false);
+      expect(sparseResults).to.have.length(0);
+      expect(physicsScene.raycastAll(ray, sparseResults)).to.eq(true);
+      expect(sparseResults[0]).to.eq(sparseHits[0]);
+      expect(sparseResults[1]).to.eq(sparseHits[1]);
+
+      const limitedResults: HitResult[] = [];
+      expect(physicsScene.raycastAll(ray, 5, limitedResults)).to.eq(true);
       expect(limitedResults).to.have.length(1);
       expect(limitedResults[0].shape).to.eq(nearShape);
       expect(limitedResults[0].entity).to.eq(nearEntity);
 
-      const filteredResults = physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Layer1);
+      const filteredResults: HitResult[] = [];
+      expect(physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Layer1, filteredResults)).to.eq(true);
       expect(filteredResults).to.have.length(1);
       expect(filteredResults[0].shape).to.eq(farShape);
       expect(filteredResults[0].entity).to.eq(farEntity);
-      expect(physicsScene.raycastAll(ray, 0)).to.have.length(0);
+      expect(physicsScene.raycastAll(ray)).to.eq(true);
+      expect(physicsScene.raycastAll(ray, 5)).to.eq(true);
+      expect(physicsScene.raycastAll(ray, 100, Layer.Nothing)).to.eq(false);
+      expect(physicsScene.raycastAll(ray, 0)).to.eq(false);
 
       farShape.isSceneQuery = false;
-      const queryFilteredResults = physicsScene.raycastAll(ray);
+      const queryFilteredResults: HitResult[] = [];
+      expect(physicsScene.raycastAll(ray, queryFilteredResults)).to.eq(true);
       expect(queryFilteredResults).to.have.length(1);
       expect(queryFilteredResults[0].shape).to.eq(nearShape);
 
       root.destroy();
+    });
+
+    it("raycastAll reuses output storage across scenes", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("shared-raycast-output");
+      for (let i = 0; i < 2; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 100, 0);
+        entity.addComponent(StaticCollider).addShape(new BoxColliderShape());
+      }
+      const otherScene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(otherScene);
+      const otherRoot = otherScene.createRootEntity();
+      otherRoot.transform.setPosition(0, 100, 0);
+      otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
+
+      const ray = new Ray(new Vector3(-3, 100, 0), new Vector3(1, 0, 0));
+      const results: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      const hits = results.slice();
+      expect(hits).to.have.length(2);
+      expect(otherScene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results).to.have.length(1);
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      results.length = 0;
+      expect(otherScene.physics.raycastAll(ray, 100, Layer.Nothing, results)).to.eq(false);
+      expect(hits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(hits[0]);
+      expect(results[1]).to.eq(hits[1]);
+
+      root.destroy();
+      otherScene.destroy();
     });
 
     it("query filters follow native shape and layer changes", () => {
@@ -556,17 +632,22 @@ describe("Physics Test", () => {
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(2, 0, 0));
       const originalDirection = ray.direction.clone();
       const hit = new HitResult();
+      const hits: HitResult[] = [];
       const mask = Layer.Layer1 | Layer.Layer31;
-      expect(physics.raycastAll(ray, 100, mask).map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
+      expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
       expect(ray.direction).to.deep.equal(originalDirection);
-      expect(physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([farShape]);
-      expect(physics.raycastAll(ray, 100, Layer.Nothing)).to.have.length(0);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(physics.raycastAll(ray, 100, Layer.Nothing, hits)).to.eq(false);
+      expect(hits).to.have.length(0);
       expect(physics.raycast(ray, 100, Layer.Layer31, hit)).to.eq(true);
       expect(hit.shape).to.eq(farShape);
 
       nearShape.isSceneQuery = false;
       nearShape.isTrigger = true;
-      expect(physics.raycastAll(ray, 100, mask).map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(physics.raycastAll(ray, 100, mask, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.deep.equal([farShape]);
       expect(
         physics.boxCast(ray.origin, new Vector3(0.1, 0.1, 0.1), ray.direction, new Quaternion(), 100, mask, hit)
       ).to.eq(true);
@@ -581,17 +662,20 @@ describe("Physics Test", () => {
       expect(physics.overlapCapsuleAll(center, 5, 1, new Quaternion(), mask)).to.deep.equal([farShape]);
       nearShape.isSceneQuery = true;
       nearCollider.collisionLayer = Layer.Layer31;
-      expect(physics.raycastAll(ray, 100, Layer.Layer1)).to.have.length(0);
-      expect(physics.raycastAll(ray, 100, Layer.Layer31)).to.have.length(2);
+      expect(physics.raycastAll(ray, 100, Layer.Layer1, hits)).to.eq(false);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits).to.have.length(2);
       const addedShape = new SphereColliderShape();
       nearCollider.addShape(addedShape);
-      expect(physics.raycastAll(ray, 100, Layer.Layer31)).to.have.length(3);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits).to.have.length(3);
       nearShape.isSceneQuery = false;
       const cloneEntity = near.clone();
       root.addChild(cloneEntity);
       const clone = cloneEntity.getComponent(StaticCollider).shapes[0];
       expect(clone.isSceneQuery).to.eq(false);
-      expect(physics.raycastAll(ray).map((hit) => hit.shape)).to.not.include(clone);
+      expect(physics.raycastAll(ray, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.not.include(clone);
       root.destroy();
     });
 
@@ -605,16 +689,22 @@ describe("Physics Test", () => {
       shape.isSceneQuery = false;
       controller.addShape(shape);
       const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
-      expect(scene.physics.raycastAll(ray)).to.have.length(0);
+      const hits: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
+      expect(hits).to.have.length(0);
       shape.isSceneQuery = true;
-      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([shape]);
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.deep.equal([shape]);
       shape.isSceneQuery = false;
       controller.enabled = false;
       controller.enabled = true;
-      expect(scene.physics.raycastAll(ray)).to.have.length(0);
+      expect(scene.physics.raycastAll(ray, hits)).to.eq(false);
+      expect(hits).to.have.length(0);
       shape.isSceneQuery = true;
-      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([shape]);
-      expect(scene.physics.raycastAll(ray, 100, Layer.Layer0)).to.have.length(0);
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31, hits)).to.eq(true);
+      expect(hits.map((hit) => hit.shape)).to.deep.equal([shape]);
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer0, hits)).to.eq(false);
+      expect(hits).to.have.length(0);
       root.destroy();
     });
 
@@ -665,7 +755,9 @@ describe("Physics Test", () => {
         expectedShapes.add(shape);
       }
 
-      const results = physicsScene.raycastAll(new Ray(new Vector3(-1, 0, 0), new Vector3(1, 0, 0)));
+      const ray = new Ray(new Vector3(-1, 0, 0), new Vector3(1, 0, 0));
+      const results: HitResult[] = [];
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
       const resultShapes = new Set(results.map((result) => result.shape));
       const resultEntities = new Set(results.map((result) => result.entity));
       expect(results).to.have.length(hitCount);
@@ -677,6 +769,14 @@ describe("Physics Test", () => {
       for (const entity of expectedEntities) {
         expect(resultEntities.has(entity)).to.eq(true);
       }
+
+      const previousHits = results.slice();
+      const previousPoints = results.map((hit) => hit.point);
+      const previousNormals = results.map((hit) => hit.normal);
+      expect(physicsScene.raycastAll(ray, results)).to.eq(true);
+      expect(results.every((hit, index) => hit === previousHits[index])).to.eq(true);
+      expect(results.every((hit, index) => hit.point === previousPoints[index])).to.eq(true);
+      expect(results.every((hit, index) => hit.normal === previousNormals[index])).to.eq(true);
 
       root.destroy();
     });

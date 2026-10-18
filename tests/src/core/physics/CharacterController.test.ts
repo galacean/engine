@@ -155,7 +155,7 @@ describe("CharacterController", function () {
     physics._update(1 / 60);
 
     const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, 0, 1));
-    expect(physics.raycastAll(ray).length).eq(enabled ? 1 : 0);
+    expect(physics.raycastAll(ray)).eq(enabled);
     const controller = roleEntity.getComponent(CharacterController);
     const flags = controller.move(new Vector3(0, 0, 4), 0.0001, 1 / 60);
     expect(flags & ControllerCollisionFlag.Sides).eq(ControllerCollisionFlag.Sides);
