@@ -238,35 +238,27 @@ export class PhysicsScene {
 
   raycastAll(
     ray: Ray,
-    distanceOrResults?: number | HitResult[],
-    layerMaskOrResults?: Layer | HitResult[],
+    distance: number | HitResult[] = Number.MAX_VALUE,
+    layerMask: Layer | HitResult[] = Layer.Everything,
     outHitResults?: HitResult[]
   ): boolean {
-    let distance = Number.MAX_VALUE;
-    let layerMask = Layer.Everything;
-    let hitResults: HitResult[] | undefined;
-    if (typeof distanceOrResults === "number") {
-      distance = distanceOrResults;
-    } else if (distanceOrResults != undefined) {
-      hitResults = distanceOrResults;
+    if (typeof layerMask !== "number") {
+      outHitResults ||= layerMask;
+      layerMask = Layer.Everything;
     }
-    if (typeof layerMaskOrResults === "number") {
-      layerMask = layerMaskOrResults;
-    } else if (layerMaskOrResults != undefined) {
-      hitResults = layerMaskOrResults;
+    if (typeof distance !== "number") {
+      outHitResults ||= distance;
+      distance = Number.MAX_VALUE;
     }
-    if (outHitResults) {
-      hitResults = outHitResults;
-    }
-    if (!hitResults) {
+    if (!outHitResults) {
       return this.raycast(ray, distance, layerMask);
     }
 
     // Keep spare hit objects when the visible output array shrinks
-    let pool = PhysicsScene._raycastHitPools.get(hitResults);
+    let pool = PhysicsScene._raycastHitPools.get(outHitResults);
     if (!pool) {
       pool = { hits: [], count: 0 };
-      PhysicsScene._raycastHitPools.set(hitResults, pool);
+      PhysicsScene._raycastHitPools.set(outHitResults, pool);
     }
 
     let hitCount = 0;
@@ -278,21 +270,21 @@ export class PhysicsScene {
         distance,
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-          const hitResult = (hitResults[hitCount] ||= pool.hits[hitCount] || new HitResult());
+          const hitResult = (outHitResults[hitCount] ||= pool.hits[hitCount] || new HitResult());
           pool.hits[hitCount++] = hitResult;
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
     }
-    for (let i = hitCount, n = Math.max(pool.count, hitResults.length); i < n; i++) {
-      const hitResult = hitResults[i] || pool.hits[i];
+    for (let i = hitCount, n = Math.max(pool.count, outHitResults.length); i < n; i++) {
+      const hitResult = outHitResults[i] || pool.hits[i];
       if (hitResult) {
         pool.hits[i] = hitResult;
         this._clearHitResult(hitResult);
       }
     }
     pool.count = hitCount;
-    hitResults.length = hitCount;
+    outHitResults.length = hitCount;
     return hitCount > 0;
   }
 

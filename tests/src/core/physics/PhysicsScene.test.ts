@@ -567,6 +567,12 @@ describe("Physics Test", () => {
       expect(filteredResults).to.have.length(1);
       expect(filteredResults[0].shape).to.eq(farShape);
       expect(filteredResults[0].entity).to.eq(farEntity);
+      expect(physicsScene.raycastAll(ray, undefined, Layer.Layer1, filteredResults)).to.eq(true);
+      expect(filteredResults.map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(physicsScene.raycastAll(ray, 5, undefined, filteredResults)).to.eq(true);
+      expect(filteredResults.map((hit) => hit.shape)).to.deep.equal([nearShape]);
+      expect(physicsScene.raycastAll(ray, undefined, undefined, filteredResults)).to.eq(true);
+      expect(filteredResults.map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
       expect(physicsScene.raycastAll(ray)).to.eq(true);
       expect(physicsScene.raycastAll(ray, 5)).to.eq(true);
       expect(physicsScene.raycastAll(ray, 100, Layer.Nothing)).to.eq(false);
