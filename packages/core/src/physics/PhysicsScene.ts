@@ -18,7 +18,7 @@ export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
-  private static readonly _raycastHitPools = new WeakMap<HitResult[], { hits: HitResult[]; count: number }>();
+  private static _raycastHitPools = new WeakMap<HitResult[], { hits: HitResult[]; count: number }>();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -208,6 +208,7 @@ export class PhysicsScene {
    * @returns Whether any query shape was hit
    *
    * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
+   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
@@ -219,6 +220,7 @@ export class PhysicsScene {
    * @returns Whether any query shape was hit
    *
    * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
+   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
@@ -232,7 +234,8 @@ export class PhysicsScene {
    *
    * @remarks Hits at distance 0 are ignored. Non-positive distances or directions that cannot be normalized produce
    * no hits and clear the output array. Reusing the output array overwrites its result objects; copy values that must
-   * be retained. Omitting the output array performs only a hit test.
+   * be retained. Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction
+   * releases the cache. Omitting the output array performs only a hit test.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
 
@@ -261,6 +264,26 @@ export class PhysicsScene {
       PhysicsScene._raycastHitPools.set(outHitResults, pool);
     }
 
+    const cachedHits = pool.hits;
+    // Reserve caller-provided objects before filling holes or reusing spare slots
+    for (let i = 0, n = outHitResults.length; i < n; i++) {
+      const hit = outHitResults[i];
+      if (hit && hit !== cachedHits[i]) {
+        const cachedIndex = cachedHits.indexOf(hit);
+        if (cachedIndex >= 0) {
+          if (cachedIndex < i && outHitResults[cachedIndex] === hit) {
+            continue;
+          }
+          const displacedHit = cachedHits[i];
+          if (displacedHit) {
+            this._clearHitResult(displacedHit);
+          }
+          cachedHits[cachedIndex] = displacedHit;
+        }
+        cachedHits[i] = hit;
+      }
+    }
+
     let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (distance > 0 && normalizedDirection) {
@@ -270,16 +293,15 @@ export class PhysicsScene {
         distance,
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-          const hitResult = (outHitResults[hitCount] ||= pool.hits[hitCount] || new HitResult());
-          pool.hits[hitCount++] = hitResult;
+          const hitResult = (cachedHits[hitCount] ||= new HitResult());
+          outHitResults[hitCount++] = hitResult;
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
     }
     for (let i = hitCount, n = Math.max(pool.count, outHitResults.length); i < n; i++) {
-      const hitResult = outHitResults[i] || pool.hits[i];
+      const hitResult = cachedHits[i];
       if (hitResult) {
-        pool.hits[i] = hitResult;
         this._clearHitResult(hitResult);
       }
     }
@@ -832,6 +854,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
+    PhysicsScene._raycastHitPools = new WeakMap();
     this._colliders.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
@@ -840,6 +863,7 @@ export class PhysicsScene {
    * @internal
    */
   _destroy(): void {
+    PhysicsScene._raycastHitPools = new WeakMap();
     this._nativePhysicsScene?.destroy();
   }
 

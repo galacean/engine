@@ -620,6 +620,141 @@ describe("Physics Test", () => {
       otherScene.destroy();
     });
 
+    it.each([5, 100])("raycastAll preserves hits after the caller removes an element (distance %i)", (distance) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("mutated-raycast-output");
+      const shapes: ColliderShape[] = [];
+      for (let i = 0; i < 2; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 1000 + distance, 0);
+        const shape = new BoxColliderShape();
+        entity.addComponent(StaticCollider).addShape(shape);
+        shapes.push(shape);
+      }
+      const ray = new Ray(new Vector3(-3, 1000 + distance, 0), new Vector3(1, 0, 0));
+      const results: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      const originalHits = results.slice();
+      results.shift();
+      expect(scene.physics.raycastAll(ray, distance, results)).to.eq(true);
+      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(
+        (distance === 5 ? [shapes[0]] : shapes).map((shape) => shape.id)
+      );
+      expect(new Set(results).size).to.eq(results.length);
+      expect(results[0] === originalHits[1]).to.eq(true);
+
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results.length).to.eq(originalHits.length);
+      expect(originalHits.every((hit) => results.includes(hit))).to.eq(true);
+      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+
+      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
+      const activeHit = results[0];
+      const spareHit = originalHits.find((hit) => hit !== activeHit)!;
+      results[0] = spareHit;
+      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
+      expect(results[0] === spareHit).to.eq(true);
+      expect(results[0].shape?.id).to.eq(shapes[0].id);
+      expect(activeHit.shape === null && activeHit.entity === null).to.eq(true);
+
+      const replacement = new HitResult();
+      results[0] = replacement;
+      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
+      expect(results[0] === replacement).to.eq(true);
+      expect(spareHit.shape?.id).to.eq(shapes[0].id);
+      results.length = 0;
+      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
+      expect(results[0] === replacement).to.eq(true);
+
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      results.fill(results[0]);
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(new Set(results).size).to.eq(2);
+      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+
+      const reservedHit = results[0];
+      results.length = 0;
+      results[1] = reservedHit;
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results[1] === reservedHit).to.eq(true);
+      expect(new Set(results).size).to.eq(2);
+      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+
+      root.destroy();
+    });
+
+    it("raycastAll preserves distinct caller objects after duplicate entries", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("duplicate-raycast-output");
+      const shapes: ColliderShape[] = [];
+      for (let i = 0; i < 3; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 1200, 0);
+        const shape = new BoxColliderShape();
+        entity.addComponent(StaticCollider).addShape(shape);
+        shapes.push(shape);
+      }
+      const ray = new Ray(new Vector3(-3, 1200, 0), new Vector3(1, 0, 0));
+      const results: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      const originalHits = results.slice();
+      results[0] = originalHits[2];
+      results[1] = originalHits[2];
+      results[2] = originalHits[1];
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results[0] === originalHits[2]).to.eq(true);
+      expect(results[2] === originalHits[1]).to.eq(true);
+      expect(new Set(results).size).to.eq(3);
+      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+
+      root.destroy();
+    });
+
+    it.each(["gc", "destroy"])(
+      "raycastAll releases hidden storage on %s without changing caller results",
+      (release) => {
+        const scene = enginePhysX.sceneManager.activeScene;
+        const root = scene.createRootEntity("released-raycast-output");
+        root.transform.setPosition(0, 1300, 0);
+        root.addComponent(StaticCollider).addShape(new BoxColliderShape());
+        const otherScene = new Scene(enginePhysX);
+        enginePhysX.sceneManager.addScene(otherScene);
+        const otherRoot = otherScene.createRootEntity();
+        otherRoot.transform.setPosition(0, 1300, 0);
+        otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
+
+        const ray = new Ray(new Vector3(-3, 1300, 0), new Vector3(1, 0, 0));
+        const results: HitResult[] = [];
+        expect(otherScene.physics.raycastAll(ray, results)).to.eq(true);
+        const cachedHit = results[0];
+        results.length = 0;
+        const suppliedHit = new HitResult();
+        const retainedResults = [suppliedHit];
+        expect(scene.physics.raycastAll(ray, retainedResults)).to.eq(true);
+        const retainedShapeID = suppliedHit.shape!.id;
+        expect((PhysicsScene as any)._raycastHitPools.has(results)).to.eq(true);
+
+        if (release === "gc") {
+          enginePhysX.resourceManager.gc();
+        } else {
+          otherScene.destroy();
+        }
+        expect((PhysicsScene as any)._raycastHitPools.has(results)).to.eq(false);
+        expect(retainedResults[0] === suppliedHit).to.eq(true);
+        expect(suppliedHit.entity === root).to.eq(true);
+        expect(suppliedHit.shape?.id).to.eq(retainedShapeID);
+        expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+        expect(results[0] === cachedHit).to.eq(false);
+        expect(scene.physics.raycastAll(ray, retainedResults)).to.eq(true);
+        expect(retainedResults[0] === suppliedHit).to.eq(true);
+
+        root.destroy();
+        if (!otherScene.destroyed) {
+          otherScene.destroy();
+        }
+      }
+    );
+
     it("query filters follow native shape and layer changes", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physics = scene.physics;
