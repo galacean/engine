@@ -182,7 +182,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -190,7 +189,7 @@ export class PhysicsScene {
         ray.origin,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -202,17 +201,14 @@ export class PhysicsScene {
   }
 
   /**
-   * Casts a ray through the Scene and returns all hits.
+   * Casts a ray through the Scene and returns all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param distance - The maximum query distance; non-positive values return no hits
+   * @param layerMask - The collision layers to include
+   * @param hitResults - The output array; existing HitResult objects are reused and its length is set to the hit count
+   * @returns The same `hitResults` array
    *
-   * The returned hit order is not guaranteed, so `hitResults[0]` is not
-   * necessarily the nearest hit. Sort by `distance`, or use `raycast` when only
-   * the nearest hit is needed. Unlike `raycast`, a hit at distance 0 is reported
-   * when the ray origin is already inside a collider.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check. @defaultValue `Number.MAX_VALUE`
-   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting. @defaultValue `Layer.Everything`
-   * @param hitResults - Array to store raycast results. @defaultValue `[]`
-   * @returns The raycast results
+   * @remarks Hits at distance 0 are ignored. A direction that cannot be normalized produces no hits.
    */
   raycastAll(
     ray: Ray,
@@ -220,27 +216,29 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     hitResults: HitResult[] = []
   ): HitResult[] {
-    hitResults.length = 0;
     if (distance <= 0) {
+      hitResults.length = 0;
       return hitResults;
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (!normalizedDirection) {
+      hitResults.length = 0;
       return hitResults;
     }
 
+    let hitCount = 0;
     this._nativePhysicsScene.raycastAll(
       ray.origin,
       normalizedDirection,
       distance,
-      this._createPreFilter(layerMask),
+      layerMask,
       (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-        const hitResult = new HitResult();
+        const hitResult = (hitResults[hitCount++] ||= new HitResult());
         this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
-        hitResults.push(hitResult);
       }
     );
+    hitResults.length = hitCount;
     return hitResults;
   }
 
@@ -348,7 +346,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -358,7 +355,7 @@ export class PhysicsScene {
         halfExtents,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -457,7 +454,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -466,7 +462,7 @@ export class PhysicsScene {
         radius,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -588,7 +584,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -599,7 +594,7 @@ export class PhysicsScene {
         orientation,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -626,12 +621,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapBoxAll(
-      center,
-      orientation,
-      halfExtents,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
     shapes.length = 0;
     for (let i = 0, n = ids.length; i < n; i++) {
@@ -654,7 +644,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, this._createPreFilter(layerMask));
+    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -681,13 +671,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapCapsuleAll(
-      center,
-      radius,
-      height,
-      orientation,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -908,16 +892,6 @@ export class PhysicsScene {
 
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
-  }
-
-  private _createPreFilter(mask: Layer): (obj: number) => boolean {
-    return (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return (shape.collider!.collisionLayer & mask) !== 0 && shape.isSceneQuery;
-    };
   }
 
   private _createHitCallback(

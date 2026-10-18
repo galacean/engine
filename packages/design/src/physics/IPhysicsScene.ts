@@ -56,40 +56,48 @@ export interface IPhysicsScene {
   updateEvents(): IPhysicsEvents;
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param origin - The origin of the ray
-   * @param direction - The direction of the ray, which must be normalized
-   * @param distance - The max distance the ray should check
-   * @param onRaycast - The raycast result callback which pre filter result
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns True if the ray intersects with a collider, otherwise false
+   * Casts a ray and reports the nearest hit with a positive distance.
+   * @param origin - The world-space ray origin
+   * @param direction - The normalized world-space ray direction
+   * @param distance - The maximum query distance
+   * @param layerMask - The collision layers to include
+   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @returns Whether an enabled query shape was hit
    */
   raycast(
     origin: Vector3,
     direction: Vector3,
     distance: number,
-    onRaycast: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
 
   /**
-   * Casts a ray through the scene and reports every hit.
-   * @param origin - The origin of the ray
-   * @param direction - The direction of the ray, which must be normalized
-   * @param distance - The max distance the ray should check
-   * @param onRaycast - The callback used to pre-filter shapes
-   * @param onHit - The callback invoked for every hit
+   * Casts a ray and reports all hits with a positive distance, in unspecified order.
+   * @param origin - The world-space ray origin
+   * @param direction - The normalized world-space ray direction
+   * @param distance - The maximum query distance
+   * @param layerMask - The collision layers to include
+   * @param onHit - The per-hit callback; copy its borrowed point and normal vectors before retaining them
    */
   raycastAll(
     origin: Vector3,
     direction: Vector3,
     distance: number,
-    onRaycast: (obj: number) => boolean,
+    layerMask: number,
     onHit: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): void;
 
   /**
-   * Casts a box through the scene and returns true if there is any hit.
+   * Sweeps a box and reports the nearest hit with a positive distance.
+   * @param center - The world-space box center
+   * @param orientation - The world-space box rotation
+   * @param halfExtents - The half size along each box axis
+   * @param direction - The normalized world-space sweep direction
+   * @param distance - The maximum sweep distance
+   * @param layerMask - The collision layers to include
+   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @returns Whether an enabled query shape was hit
    */
   boxCast(
     center: Vector3,
@@ -97,24 +105,40 @@ export interface IPhysicsScene {
     halfExtents: Vector3,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean;
 
   /**
-   * Casts a sphere through the scene and returns true if there is any hit.
+   * Sweeps a sphere and reports the nearest hit with a positive distance.
+   * @param center - The world-space sphere center
+   * @param radius - The sphere radius
+   * @param direction - The normalized world-space sweep direction
+   * @param distance - The maximum sweep distance
+   * @param layerMask - The collision layers to include
+   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @returns Whether an enabled query shape was hit
    */
   sphereCast(
     center: Vector3,
     radius: number,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean;
 
   /**
-   * Casts a capsule through the scene and returns true if there is any hit.
+   * Sweeps a capsule and reports the nearest hit with a positive distance.
+   * @param center - The world-space capsule center
+   * @param radius - The capsule radius
+   * @param height - The height between the capsule's hemisphere centers
+   * @param orientation - The world-space capsule rotation
+   * @param direction - The normalized world-space sweep direction
+   * @param distance - The maximum sweep distance
+   * @param layerMask - The collision layers to include
+   * @param outHitResult - The optional hit callback; copy its borrowed point and normal vectors before retaining them
+   * @returns Whether an enabled query shape was hit
    */
   capsuleCast(
     center: Vector3,
@@ -123,38 +147,45 @@ export interface IPhysicsScene {
     orientation: Quaternion,
     direction: Vector3,
     distance: number,
-    onSweep: (obj: number) => boolean,
+    layerMask: number,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean;
 
   /**
-   * Get all colliders overlapping with a box.
-   * Returns an array of shape unique IDs.
+   * Finds query shapes overlapping a box, in unspecified order.
+   * @param center - The world-space box center
+   * @param orientation - The world-space box rotation
+   * @param halfExtents - The half size along each box axis
+   * @param layerMask - The collision layers to include
+   * @returns Borrowed shape IDs; consume them before the next physics operation
    */
-  overlapBoxAll(
-    center: Vector3,
-    orientation: Quaternion,
-    halfExtents: Vector3,
-    onOverlap: (obj: number) => boolean
-  ): number[];
+  overlapBoxAll(center: Vector3, orientation: Quaternion, halfExtents: Vector3, layerMask: number): ArrayLike<number>;
 
   /**
-   * Get all colliders overlapping with a sphere.
-   * Returns an array of shape unique IDs.
+   * Finds query shapes overlapping a sphere, in unspecified order.
+   * @param center - The world-space sphere center
+   * @param radius - The sphere radius
+   * @param layerMask - The collision layers to include
+   * @returns Borrowed shape IDs; consume them before the next physics operation
    */
-  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[];
+  overlapSphereAll(center: Vector3, radius: number, layerMask: number): ArrayLike<number>;
 
   /**
-   * Get all colliders overlapping with a capsule.
-   * Returns an array of shape unique IDs.
+   * Finds query shapes overlapping a capsule, in unspecified order.
+   * @param center - The world-space capsule center
+   * @param radius - The capsule radius
+   * @param height - The height between the capsule's hemisphere centers
+   * @param orientation - The world-space capsule rotation
+   * @param layerMask - The collision layers to include
+   * @returns Borrowed shape IDs; consume them before the next physics operation
    */
   overlapCapsuleAll(
     center: Vector3,
     radius: number,
     height: number,
     orientation: Quaternion,
-    onOverlap: (obj: number) => boolean
-  ): number[];
+    layerMask: number
+  ): ArrayLike<number>;
 
   /**
    * Trim internal object pools after a GC cycle.

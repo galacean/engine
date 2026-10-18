@@ -47,12 +47,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _rotation: Vector3 = new Vector3();
 
+  /** @internal */
+  _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
+
   protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
   protected _axis: Quaternion | null = null;
   protected _physXRotation: Quaternion = new Quaternion();
-
-  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
@@ -132,6 +133,18 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this._setShapeFlags(this._shapeFlags);
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.setIsSceneQuery }
+   */
+  setIsSceneQuery(value: boolean): void {
+    this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
+    this._setShapeFlags(this._shapeFlags);
+    const controllers = this._controllers;
+    for (let i = 0; i < controllers.length; i++) {
+      controllers.get(i)._pxController?.setSceneQueryEnabled(value);
+    }
   }
 
   /**

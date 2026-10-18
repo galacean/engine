@@ -42,6 +42,12 @@ export interface IColliderShape {
   setIsTrigger(value: boolean): void;
 
   /**
+   * Enables this shape for raycasts, shape casts, and overlap queries.
+   * @param value - Whether the shape participates in scene queries
+   */
+  setIsSceneQuery(value: boolean): void;
+
+  /**
    * Get the distance between a point and the shape.
    * @param point - Location in world space you want to find the closest point to
    * @returns The x, y, and z components of the Vector4 represent the closest point on the shape in world space,

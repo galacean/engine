@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   BoxColliderShape,
   Camera,
@@ -16,13 +17,8 @@ import {
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import type { IPhysicsScene } from "@galacean/engine-design";
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
-
-const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
-const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
-  .href;
 
 class CollisionTestScript extends Script {
   onCollisionEnter(other) {}
@@ -127,10 +123,7 @@ describe("Physics Test", () => {
       // Init engine with PhysXPhysics.
       enginePhysX = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
-          wasmModeUrl: physXWasmModeUrl,
-          wasmSIMDModeUrl: physXWasmSIMDModeUrl
-        })
+        physics: createPhysics()
       });
       physicsScene = enginePhysX.sceneManager.activeScene.physics;
 
@@ -505,45 +498,23 @@ describe("Physics Test", () => {
       expect(results.every((result) => result.distance > 0)).to.eq(true);
 
       const nativeScene = (physicsScene as any)._nativePhysicsScene as IPhysicsScene;
-      expect(() => (nativeScene.raycastAll as any)(ray.origin, ray.direction, Number.MAX_VALUE, () => true)).to.throw();
-
       const nativeHitIds: number[] = [];
-      nativeScene.raycastAll(
-        ray.origin,
-        ray.direction,
-        Number.MAX_VALUE,
-        () => true,
-        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
+      nativeScene.raycastAll(ray.origin, ray.direction, Number.MAX_VALUE, Layer.Everything, (shapeUniqueID) =>
+        nativeHitIds.push(shapeUniqueID)
       );
       expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
+      const nestedHitIds: number[] = [];
+      nativeScene.raycastAll(ray.origin, ray.direction, 100, Layer.Everything, (shapeID) => {
+        nestedHitIds.push(shapeID);
+        physicsScene.raycast(ray, 100, Layer.Layer1);
+      });
+      expect(nestedHitIds).to.have.members([nearShape.id, farShape.id]);
 
-      expect(() => {
-        nativeScene.raycastAll(
-          ray.origin,
-          ray.direction,
-          Number.MAX_VALUE,
-          () => true,
-          () => {
-            throw new Error("intentional all-hit callback failure");
-          }
-        );
-      }).to.throw("intentional all-hit callback failure");
-      nativeHitIds.length = 0;
-      nativeScene.raycastAll(
-        ray.origin,
-        ray.direction,
-        Number.MAX_VALUE,
-        () => true,
-        (shapeUniqueID) => nativeHitIds.push(shapeUniqueID)
-      );
-      expect(nativeHitIds).to.have.members([nearShape.id, farShape.id]);
-
-      expect(() => {
-        nativeScene.overlapBoxAll(new Vector3(0, 0, 0), new Quaternion(), new Vector3(10, 10, 10), () => {
-          throw new Error("intentional overlap callback failure");
-        });
-      }).to.throw("intentional overlap callback failure");
-      expect(physicsScene.overlapBoxAll(new Vector3(0, 0, 0), new Vector3(10, 10, 10))).to.have.length(2);
+      const previousHits = results.slice();
+      expect(physicsScene.raycastAll(ray, Number.MAX_VALUE, Layer.Everything, results)).to.eq(results);
+      expect(results[0]).to.eq(previousHits[0]);
+      expect(results[1]).to.eq(previousHits[1]);
+      expect(physicsScene.raycastAll(ray, 0, Layer.Everything, results)).to.have.length(0);
 
       const limitedResults = physicsScene.raycastAll(ray, 5);
       expect(limitedResults).to.have.length(1);
@@ -562,6 +533,114 @@ describe("Physics Test", () => {
       expect(queryFilteredResults[0].shape).to.eq(nearShape);
 
       root.destroy();
+    });
+
+    it("query filters follow native shape and layer changes", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physics = scene.physics;
+      const root = scene.createRootEntity("native-query-filters");
+      const near = root.createChild("near");
+      const nearCollider = near.addComponent(StaticCollider);
+      const nearShape = new BoxColliderShape();
+      nearCollider.addShape(nearShape);
+      nearCollider.collisionLayer = Layer.Layer1;
+      const far = root.createChild("far");
+      far.transform.position = new Vector3(4, 0, 0);
+      const farCollider = far.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farCollider.addShape(farShape);
+      farCollider.collisionLayer = Layer.Layer31;
+      const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(2, 0, 0));
+      const originalDirection = ray.direction.clone();
+      const hit = new HitResult();
+      const mask = Layer.Layer1 | Layer.Layer31;
+      expect(physics.raycastAll(ray, 100, mask).map((hit) => hit.shape)).to.have.members([nearShape, farShape]);
+      expect(ray.direction).to.deep.equal(originalDirection);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(physics.raycastAll(ray, 100, Layer.Nothing)).to.have.length(0);
+      expect(physics.raycast(ray, 100, Layer.Layer31, hit)).to.eq(true);
+      expect(hit.shape).to.eq(farShape);
+
+      nearShape.isSceneQuery = false;
+      nearShape.isTrigger = true;
+      expect(physics.raycastAll(ray, 100, mask).map((hit) => hit.shape)).to.deep.equal([farShape]);
+      expect(
+        physics.boxCast(ray.origin, new Vector3(0.1, 0.1, 0.1), ray.direction, new Quaternion(), 100, mask, hit)
+      ).to.eq(true);
+      expect(hit.shape).to.eq(farShape);
+      expect(physics.sphereCast(ray.origin, 0.1, ray.direction, 100, mask, hit)).to.eq(true);
+      expect(hit.shape).to.eq(farShape);
+      expect(physics.capsuleCast(ray.origin, 0.1, 0.2, ray.direction, new Quaternion(), 100, mask, hit)).to.eq(true);
+      expect(hit.shape).to.eq(farShape);
+      const center = new Vector3(2, 0, 0);
+      expect(physics.overlapBoxAll(center, new Vector3(5, 5, 5), new Quaternion(), mask)).to.deep.equal([farShape]);
+      expect(physics.overlapSphereAll(center, 5, mask)).to.deep.equal([farShape]);
+      expect(physics.overlapCapsuleAll(center, 5, 1, new Quaternion(), mask)).to.deep.equal([farShape]);
+      nearShape.isSceneQuery = true;
+      nearCollider.collisionLayer = Layer.Layer31;
+      expect(physics.raycastAll(ray, 100, Layer.Layer1)).to.have.length(0);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31)).to.have.length(2);
+      const addedShape = new SphereColliderShape();
+      nearCollider.addShape(addedShape);
+      expect(physics.raycastAll(ray, 100, Layer.Layer31)).to.have.length(3);
+      nearShape.isSceneQuery = false;
+      const cloneEntity = near.clone();
+      root.addChild(cloneEntity);
+      const clone = cloneEntity.getComponent(StaticCollider).shapes[0];
+      expect(clone.isSceneQuery).to.eq(false);
+      expect(physics.raycastAll(ray).map((hit) => hit.shape)).to.not.include(clone);
+      root.destroy();
+    });
+
+    it("character-controller query settings survive native recreation", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("controller-query-settings");
+      const entity = root.createChild("controller");
+      const controller = entity.addComponent(CharacterController);
+      controller.collisionLayer = Layer.Layer31;
+      const shape = new BoxColliderShape();
+      shape.isSceneQuery = false;
+      controller.addShape(shape);
+      const ray = new Ray(new Vector3(-3, 0, 0), new Vector3(1, 0, 0));
+      expect(scene.physics.raycastAll(ray)).to.have.length(0);
+      shape.isSceneQuery = true;
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([shape]);
+      shape.isSceneQuery = false;
+      controller.enabled = false;
+      controller.enabled = true;
+      expect(scene.physics.raycastAll(ray)).to.have.length(0);
+      shape.isSceneQuery = true;
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer31).map((hit) => hit.shape)).to.deep.equal([shape]);
+      expect(scene.physics.raycastAll(ray, 100, Layer.Layer0)).to.have.length(0);
+      root.destroy();
+    });
+
+    it("native hit buffers preserve all bits of shape IDs", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const entity = scene.createRootEntity("query-shape-id");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      collider.addShape(shape);
+      const native = (scene.physics as any)._nativePhysicsScene as IPhysicsScene;
+      const backend = WebGLEngine._nativePhysics;
+      const material = backend.createPhysicsMaterial(0, 0, 0, 0, 0);
+      const id = 0xffffffff;
+      const nativeShape = backend.createBoxColliderShape(id, new Vector3(1, 1, 1), material);
+      const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());
+      nativeCollider.addShape(nativeShape);
+      native.addCollider(nativeCollider);
+      const hits: number[] = [];
+      native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything, (shapeID) =>
+        hits.push(shapeID)
+      );
+      expect(hits).to.deep.equal([id]);
+      expect(Array.from(native.overlapSphereAll(new Vector3(0, 3, 0), 1, Layer.Everything))).to.deep.equal([id]);
+      native.removeCollider(nativeCollider);
+      nativeCollider.removeShape(nativeShape);
+      nativeShape.destroy();
+      nativeCollider.destroy();
+      material.destroy();
+      entity.destroy();
     });
 
     it("raycastAll returns every hit beyond the native touch chunk", () => {
@@ -721,155 +800,6 @@ describe("Physics Test", () => {
       expect(ok).to.eq(true);
       expect(hit.entity).to.eq(farBox);
       expect(hit.distance).to.be.greaterThan(0);
-
-      root.destroy();
-    });
-
-    it("raycast nested inside another raycast's onRaycast keeps stack ordering", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity("nested_raycast_root");
-      // Native PhysX scene exposes the (ray, distance, onRaycast, hit) signature
-      // that takes a per-call filter; the persistent-callback stack pattern is
-      // verified through this layer.
-      const nativeScene = (scene.physics as any)._nativePhysicsScene;
-
-      const boxA = root.createChild("box_a");
-      boxA.transform.position = new Vector3(2, 0, 0);
-      const colA = boxA.addComponent(StaticCollider);
-      const shapeA = new BoxColliderShape();
-      shapeA.size = new Vector3(1, 1, 1);
-      colA.addShape(shapeA);
-
-      const boxB = root.createChild("box_b");
-      boxB.transform.position = new Vector3(0, 2, 0);
-      const colB = boxB.addComponent(StaticCollider);
-      const shapeB = new BoxColliderShape();
-      shapeB.size = new Vector3(1, 1, 1);
-      colB.addShape(shapeB);
-
-      const seenInOuter: number[] = [];
-      const seenInInner: number[] = [];
-
-      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
-      nativeScene.raycast(outerRay.origin, outerRay.direction, 100, (uuid: number) => {
-        seenInOuter.push(uuid);
-        // Nested raycast inside the outer's filter callback. If the stack got
-        // mixed up, the inner ray's preFilter would dispatch to the outer
-        // recorder (or vice versa).
-        const innerRay = new Ray(new Vector3(0, -5, 0), new Vector3(0, 1, 0));
-        nativeScene.raycast(innerRay.origin, innerRay.direction, 100, (innerUuid: number) => {
-          seenInInner.push(innerUuid);
-          return true;
-        });
-        return true;
-      });
-
-      // The outer ray (along +X from -5,0,0) cannot intersect boxB at (0,2,0),
-      // so its preFilter must never see shapeB. Conversely, the inner ray
-      // (along +Y from 0,-5,0) cannot intersect boxA at (2,0,0), so its
-      // preFilter must never see shapeA. Stack mixing would violate either.
-      expect(seenInOuter).to.not.include(shapeB.id);
-      expect(seenInInner).to.not.include(shapeA.id);
-      // Both filters must have run — otherwise the assertions above are vacuous.
-      expect(seenInOuter.length).to.be.greaterThan(0);
-      expect(seenInInner.length).to.be.greaterThan(0);
-
-      root.destroy();
-    });
-
-    it("sweep nested inside raycast's onRaycast uses independent filter stacks", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity("nested_mixed_root");
-      const nativeScene = (scene.physics as any)._nativePhysicsScene;
-
-      const boxA = root.createChild("box_a");
-      boxA.transform.position = new Vector3(3, 0, 0);
-      const colA = boxA.addComponent(StaticCollider);
-      const shapeA = new BoxColliderShape();
-      shapeA.size = new Vector3(1, 1, 1);
-      colA.addShape(shapeA);
-
-      let outerCalls = 0;
-      let innerSweepCalls = 0;
-      const innerSweepUuids: number[] = [];
-
-      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
-      const outerHitFn = (uuid: number, distance: number, _p: Vector3, _n: Vector3) => {
-        // The outer raycast must successfully report a hit on shapeA's UUID.
-        expect(uuid).to.eq(shapeA.id);
-        expect(distance).to.be.greaterThan(0);
-      };
-      const result = nativeScene.raycast(
-        outerRay.origin,
-        outerRay.direction,
-        100,
-        (uuid: number) => {
-          outerCalls++;
-          // Nested boxCast (sweep) inside the raycast filter — uses a different
-          // persistent callback / stack on the PhysX side. The two stacks must
-          // not interfere.
-          const sweepCenter = new Vector3(3, 0, 0);
-          const halfExtents = new Vector3(0.5, 0.5, 0.5);
-          const direction = new Vector3(0, 1, 0);
-          const orientation = new Quaternion(0, 0, 0, 1);
-          nativeScene.boxCast(sweepCenter, orientation, halfExtents, direction, 100, (sweepUuid: number) => {
-            innerSweepCalls++;
-            innerSweepUuids.push(sweepUuid);
-            return false; // skip everything in inner sweep
-          });
-          return uuid === shapeA.id;
-        },
-        outerHitFn
-      );
-
-      // Outer raycast must succeed despite the nested sweep with its own filter.
-      expect(result).to.eq(true);
-      expect(outerCalls).to.be.greaterThan(0);
-      // Nested sweep had to actually run at least once for this test to be meaningful.
-      expect(innerSweepCalls).to.be.greaterThan(0);
-
-      root.destroy();
-    });
-
-    it("raycast callback throwing leaves the filter stack clean for subsequent calls", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
-      const root = scene.createRootEntity("throw_recovery_root");
-      const nativeScene = (scene.physics as any)._nativePhysicsScene;
-
-      const box = root.createChild("box");
-      box.transform.position = new Vector3(2, 0, 0);
-      const col = box.addComponent(StaticCollider);
-      const shape = new BoxColliderShape();
-      shape.size = new Vector3(1, 1, 1);
-      col.addShape(shape);
-
-      const ray = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
-
-      expect(() => {
-        nativeScene.raycast(ray.origin, ray.direction, 100, () => {
-          throw new Error("intentional in test");
-        });
-      }).to.throw("intentional in test");
-
-      // Stack must be clean — subsequent raycast must work and the shared
-      // persistent callback must dispatch to the new filter, not a stale one.
-      let secondCalled = false;
-      let observedUuid = -1;
-      const ok = nativeScene.raycast(
-        ray.origin,
-        ray.direction,
-        100,
-        (uuid: number) => {
-          secondCalled = true;
-          observedUuid = uuid;
-          return true;
-        },
-        (_uuid: number, _distance: number, _p: Vector3, _n: Vector3) => {}
-      );
-
-      expect(secondCalled).to.eq(true);
-      expect(ok).to.eq(true);
-      expect(observedUuid).to.eq(shape.id);
 
       root.destroy();
     });

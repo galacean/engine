@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Engine,
   CharacterController,
@@ -14,7 +15,6 @@ import {
   ColliderShapeUpAxis
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -82,7 +82,7 @@ describe("CharacterController", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
