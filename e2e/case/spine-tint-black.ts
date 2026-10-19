@@ -12,7 +12,6 @@ registerSpineRuntime(new Spine42Runtime());
 Logger.enable();
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const root = scene.createRootEntity();
 
