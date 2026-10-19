@@ -122,6 +122,7 @@ export class SpineTrackEntry {
   /** @internal */
   _invalidate(): void {
     this._native = null;
+    this._state = null;
     this._listener = null;
   }
   private _requireNative(): ISpineTrackEntry {

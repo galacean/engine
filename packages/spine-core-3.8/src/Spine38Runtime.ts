@@ -91,6 +91,18 @@ export class Spine38Runtime implements ISpineRuntime<Texture2D> {
     return new AnimationState(stateData);
   }
 
+  batchAnimationStateEvents<T>(state: AnimationState, command: () => T): T {
+    const queue = state.queue;
+    const wasDisabled = queue.drainDisabled;
+    queue.drainDisabled = true;
+    try {
+      return command();
+    } finally {
+      queue.drainDisabled = wasDisabled;
+      queue.drain();
+    }
+  }
+
   updateState(skeleton: Skeleton, state: AnimationState, delta: number): void {
     state.update(delta);
     state.apply(skeleton);

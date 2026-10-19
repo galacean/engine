@@ -2,8 +2,10 @@ import type {
   ISpineAnimationState,
   ISpineAnimationStateListener,
   ISpineTrackEntry,
+  ISpineSkeleton,
   ISpineEvent
 } from "@galacean/engine-design";
+import type { ISpineRuntime } from "./runtime/ISpineRuntime";
 import type { SpineAnimationStateData } from "./SpineAnimationStateData";
 import type { SpineAnimationStateListener, SpineEvent } from "./SpineAnimationStateListener";
 import { SpineTrackEntry } from "./SpineTrackEntry";
@@ -15,10 +17,13 @@ export class SpineAnimationState {
   readonly data: SpineAnimationStateData;
   private _entries = new WeakMap<ISpineTrackEntry, SpineTrackEntry>();
   private _listeners = new Set<SpineAnimationStateListener>();
+  private _operationDepth = 0;
+  private _disposed = false;
 
   private constructor(
     private _native: ISpineAnimationState,
-    data: SpineAnimationStateData
+    data: SpineAnimationStateData,
+    private _runtime: ISpineRuntime
   ) {
     this.data = data;
     _native.addListener({
@@ -44,8 +49,12 @@ export class SpineAnimationState {
     });
   }
   /** @internal */
-  static _create(native: ISpineAnimationState, data: SpineAnimationStateData): SpineAnimationState {
-    return new SpineAnimationState(native, data);
+  static _create(
+    native: ISpineAnimationState,
+    data: SpineAnimationStateData,
+    runtime: ISpineRuntime
+  ): SpineAnimationState {
+    return new SpineAnimationState(native, data, runtime);
   }
 
   get timeScale(): number {
@@ -55,28 +64,28 @@ export class SpineAnimationState {
     this._native.timeScale = value;
   }
   setAnimation(track: number, name: string, loop: boolean): SpineTrackEntry {
-    return this._wrap(this._native.setAnimation(track, name, loop));
+    return this._command(() => this._wrap(this._native.setAnimation(track, name, loop)));
   }
   addAnimation(track: number, name: string, loop: boolean, delay: number): SpineTrackEntry {
-    return this._wrap(this._native.addAnimation(track, name, loop, delay));
+    return this._command(() => this._wrap(this._native.addAnimation(track, name, loop, delay)));
   }
   setEmptyAnimation(track: number, mixDuration: number): SpineTrackEntry {
-    return this._wrap(this._native.setEmptyAnimation(track, mixDuration));
+    return this._command(() => this._wrap(this._native.setEmptyAnimation(track, mixDuration)));
   }
   addEmptyAnimation(track: number, mixDuration: number, delay: number): SpineTrackEntry {
-    return this._wrap(this._native.addEmptyAnimation(track, mixDuration, delay));
+    return this._command(() => this._wrap(this._native.addEmptyAnimation(track, mixDuration, delay)));
   }
   setEmptyAnimations(mixDuration: number): void {
-    this._native.setEmptyAnimations(mixDuration);
+    this._command(() => this._native.setEmptyAnimations(mixDuration));
   }
   getCurrent(track: number): SpineTrackEntry | null {
     return this._wrap(this._native.getCurrent(track));
   }
   clearTrack(track: number): void {
-    this._native.clearTrack(track);
+    this._command(() => this._native.clearTrack(track));
   }
   clearTracks(): void {
-    this._native.clearTracks();
+    this._command(() => this._native.clearTracks());
   }
   addListener(listener: SpineAnimationStateListener): void {
     this._listeners.add(listener);
@@ -113,9 +122,43 @@ export class SpineAnimationState {
 
   /** @internal */
   _dispose(): void {
-    this._native.clearTracks();
-    this._native.clearListeners();
-    this._listeners.clear();
+    if (this._disposed) return;
+    this._disposed = true;
+    this._operationDepth++;
+    try {
+      this._native.clearTracks();
+    } finally {
+      this._endOperation();
+    }
+  }
+
+  /** @internal */
+  _update(skeleton: ISpineSkeleton, delta: number): void {
+    this._operationDepth++;
+    try {
+      this._runtime.updateState(skeleton, this._native, delta);
+    } finally {
+      this._endOperation();
+    }
+  }
+
+  private _command<T>(command: () => T): T {
+    if (this._disposed) throw new Error("This Spine animation state has been disposed.");
+    this._operationDepth++;
+    try {
+      // Bind returned entries before callbacks can release them or recycle their native objects.
+      return this._runtime.batchAnimationStateEvents(this._native, command);
+    } finally {
+      this._endOperation();
+    }
+  }
+
+  private _endOperation(): void {
+    if (--this._operationDepth === 0 && this._disposed) {
+      // A clearTracks called from a callback only queues disposal. Keep the bridge until dispatch finishes.
+      this._native.clearListeners();
+      this._listeners.clear();
+    }
   }
 
   private _dispatch(event: PlaybackEvent, native: ISpineTrackEntry): void {

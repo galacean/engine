@@ -29,7 +29,64 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
     this.bounds.max.set(-Infinity, -Infinity, -Infinity);
   }
 
-  ensureCapacity(vertexCount: number, indexCount: number): void {
+  append(
+    vertices: ArrayLike<number>,
+    vertexCount: number,
+    indices: ArrayLike<number>,
+    indexCount: number,
+    texture: Texture2D,
+    blendMode: SpineBlendMode,
+    drawOrder: number
+  ): void {
+    if (!vertexCount || !indexCount) return;
+
+    const vertexStart = this.vertexCount;
+    const indexStart = this.indexCount;
+    this._ensureCapacity(vertexStart + vertexCount, indexStart + indexCount);
+    const { vertices: targetVertices, indices: targetIndices, vertexStride, tintBlack } = this;
+    const z = drawOrder * this.zSpacing;
+    const { min, max } = this.bounds;
+    let targetOffset = vertexStart * vertexStride;
+    let sourceOffset = 0;
+    for (let vertex = 0; vertex < vertexCount; vertex++) {
+      const x = vertices[sourceOffset++];
+      const y = vertices[sourceOffset++];
+      targetVertices[targetOffset++] = x;
+      targetVertices[targetOffset++] = y;
+      targetVertices[targetOffset++] = z;
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // r
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // g
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // b
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // a
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // u
+      targetVertices[targetOffset++] = vertices[sourceOffset++]; // v
+      if (tintBlack) {
+        targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkR
+        targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkG
+        targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkB
+        sourceOffset++; // darkA is supplied by the material, not the vertex buffer.
+      }
+      min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
+      max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
+    }
+    for (let i = 0; i < indexCount; i++) targetIndices[indexStart + i] = indices[i] + vertexStart;
+    this.vertexCount += vertexCount;
+    this.indexCount += indexCount;
+
+    const lastBatch = this.batches[this.batchCount - 1];
+    if (lastBatch && lastBatch.texture === texture && lastBatch.blendMode === blendMode) {
+      lastBatch.count += indexCount;
+    } else {
+      const index = this.batchCount++;
+      const batch = this.batches[index] ?? (this.batches[index] = { start: 0, count: 0, texture, blendMode });
+      batch.start = indexStart;
+      batch.count = indexCount;
+      batch.texture = texture;
+      batch.blendMode = blendMode;
+    }
+  }
+
+  private _ensureCapacity(vertexCount: number, indexCount: number): void {
     const length = vertexCount * this.vertexStride;
     if (length > this.vertices.length) {
       const vertices = new Float32Array(Math.max(length, this.vertices.length * 2, 64 * this.vertexStride));
@@ -41,20 +98,5 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
       indices.set(this.indices);
       this.indices = indices;
     }
-  }
-
-  addBatch(start: number, count: number, texture: Texture2D, blendMode: SpineBlendMode): void {
-    const index = this.batchCount++;
-    const batch = this.batches[index] ?? (this.batches[index] = { start, count, texture, blendMode });
-    batch.start = start;
-    batch.count = count;
-    batch.texture = texture;
-    batch.blendMode = blendMode;
-  }
-
-  expandBounds(x: number, y: number, z: number): void {
-    const { min, max } = this.bounds;
-    min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
-    max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
   }
 }

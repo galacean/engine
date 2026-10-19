@@ -47,6 +47,9 @@ export interface ISpineRuntime<TTexture> {
   /** Create an animation state instance. */
   createAnimationState(stateData: ISpineAnimationStateData): ISpineAnimationState;
 
+  /** Finish a playback command before dispatching its events. Nested calls preserve the current dispatch. */
+  batchAnimationStateEvents<T>(state: ISpineAnimationState, command: () => T): T;
+
   /** Advance the animation state and apply it to the skeleton, then update world transforms. */
   updateState(skeleton: ISpineSkeleton, state: ISpineAnimationState, delta: number): void;
 

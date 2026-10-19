@@ -50,13 +50,17 @@ A supported capability with an empty constraint list is different from an unsupp
 
 ## Resource lifetime
 
+Use `state.addAnimation` for a known playback sequence, and `entry.listener` for callbacks belonging to one playback. Playback commands finish configuring and wrapping their entries before dispatching callbacks; callbacks remain synchronous and are not deferred to another frame. The returned entry and callback arguments have the same identity.
+
+Completion callbacks can replace or enqueue animations, or destroy the effect entity. Disposal notifications run while their entries are still readable, then those entries become invalid. Internal listener cleanup waits for the active command or animation update to finish dispatching. A renderer whose resource binding ended during a callback does not submit the old binding's geometry.
+
 Entities instantiated from a resource keep it alive. The resource retains textures referenced by all skins, attachments and sequence frames, including those not currently drawn. Destroying the resource releases its internal entity template and rendering resources.
 
 Matching renderers share cached materials. Live renderer references protect them; unused variants participate in `ResourceManager.gc()`. Material destruction evicts its own cache entry. Destroying one renderer does not evict or destroy a material still used by another.
 
 ## Backend integration
 
-The shared package registers the Spine loader. Version packages export their runtime adapter classes for explicit registration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Geometry generation writes reusable CPU arrays and ordered draw batches; the shared renderer owns GPU buffers and materials.
+The shared package registers the Spine loader. Version packages export their runtime adapter classes for explicit registration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Backends calculate world vertices and perform native clipping, then submit attachment geometry through `ISpineGeometry`. The shared layer owns the final vertex layout, index offsets, bounds and ordered draw batches, along with GPU buffers and materials. Input arrays and output buffers are reused.
 
 For script/UMD builds, load the engine, shared Spine bundle and required version bundles, then register before loading assets:
 

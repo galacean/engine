@@ -183,7 +183,9 @@ export class SpineAnimationRenderer extends Renderer {
     const { _state: state, _skeleton: skeleton } = this;
     if (!state || !skeleton) return;
     const runtime = this._runtime;
-    runtime.updateState(skeleton, state, delta);
+    this._publicState._update(skeleton, delta);
+    // Playback callbacks may end this binding by releasing its resource or destroying the renderer.
+    if (this.destroyed || this._state !== state || this._skeleton !== skeleton) return;
     const geometry = this._geometry;
     geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack);
     runtime.buildGeometry(skeleton, geometry);
@@ -243,7 +245,7 @@ export class SpineAnimationRenderer extends Renderer {
    */
   _setState(state: ISpineAnimationState, data: SpineAnimationStateData) {
     this._state = state;
-    this._publicState = SpineAnimationState._create(state, data);
+    this._publicState = SpineAnimationState._create(state, data, this._runtime);
   }
 
   /**

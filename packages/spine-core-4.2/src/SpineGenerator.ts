@@ -1,7 +1,6 @@
 import type { ISpineGeometry } from "@galacean/engine-design";
 import {
   ArrayLike,
-  BlendMode,
   ClippingAttachment,
   Color,
   MeshAttachment,
@@ -25,22 +24,12 @@ export class SpineGenerator {
   private _clipper: SkeletonClipping = new SkeletonClipping();
 
   buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>) {
-    const { zSpacing, premultipliedAlpha, tintBlack, vertexStride: stride } = target;
+    const { premultipliedAlpha, tintBlack } = target;
     const { _clipper } = this;
     const { tempVerts } = SpineGenerator;
 
     let triangles: Array<number>;
     let uvs: NumberArrayLike;
-
-    let verticesLength = 0;
-    let indicesLength = 0;
-    let start = 0;
-    let count = 0;
-
-    let blend = BlendMode.Normal;
-    let texture: SpineTexture = null;
-    let tempBlendMode: BlendMode | null = null;
-    let tempTexture: SpineTexture | null = null;
 
     const drawOrder = skeleton.drawOrder;
     for (let slotIndex = 0, n = drawOrder.length; slotIndex < n; ++slotIndex) {
@@ -56,26 +45,13 @@ export class SpineGenerator {
         continue;
       }
 
-      const z = zSpacing * slotIndex;
       const isClipping = _clipper.isClipping();
       let numFloats = 0;
       let attachmentColor: Color = null;
+      let texture: SpineTexture;
 
-      // This vertexSize will be passed to spine-core's computeWorldVertices function.
-      //
-      // Expected format by computeWorldVertices:
-      // - Without tintBlack: [x, y, r, g, b, a, u, v] = 8 components
-      // - With tintBlack:    [x, y, r, g, b, a, u, v, dr, dg, db, da] = 12 components
-      //
-      // Our actual vertex buffer format:
-      // - vertexStrideWithoutTint: [x, y, z, r, g, b, a, u, v] = 9 components
-      // - vertexStrideWithTint:    [x, y, z, r, g, b, a, u, v, dr, dg, db] = 12 components
-      //   (Note: we optimized 'da' as uniform instead of buffer attribute)
-      //
-      // Calculation:
-      // - Without tintBlack: 9 - 1 (remove z) = 8 ✓
-      // - With tintBlack:    12 - 1 (remove z) + 1 (add back da) = 12 ✓
-      const vertexSize = tintBlack ? stride : stride - 1;
+      // Native clipping produces xy, light RGBA, UV, and optional dark RGBA.
+      const vertexSize = tintBlack ? 12 : 8;
       const clippedVertexSize = isClipping ? 2 : vertexSize;
 
       switch (attachment.constructor) {
@@ -181,75 +157,20 @@ export class SpineGenerator {
           finalIndicesLength = triangles.length;
         }
 
-        if (finalVerticesLength == 0 || finalIndicesLength == 0) {
-          _clipper.clipEndWithSlot(slot);
-          continue;
-        }
-
-        target.ensureCapacity(
-          verticesLength / stride + finalVerticesLength / vertexSize,
-          indicesLength + finalIndicesLength
+        target.append(
+          finalVertices,
+          finalVerticesLength / vertexSize,
+          finalIndices,
+          finalIndicesLength,
+          texture.getImage(),
+          slot.data.blendMode,
+          slotIndex
         );
-        const { vertices: _vertices, indices: _indices } = target;
-        const indexStart = verticesLength / stride;
-        let i = verticesLength;
-        let j = 0;
-        for (; j < finalVerticesLength; ) {
-          const x = finalVertices[j++];
-          const y = finalVertices[j++];
-          _vertices[i++] = x;
-          _vertices[i++] = y;
-          _vertices[i++] = z;
-          _vertices[i++] = finalVertices[j++]; // r
-          _vertices[i++] = finalVertices[j++]; // g
-          _vertices[i++] = finalVertices[j++]; // b
-          _vertices[i++] = finalVertices[j++]; // a
-          _vertices[i++] = finalVertices[j++]; // u
-          _vertices[i++] = finalVertices[j++]; // v
-          if (tintBlack) {
-            _vertices[i++] = finalVertices[j++]; // darkR
-            _vertices[i++] = finalVertices[j++]; // darkG
-            _vertices[i++] = finalVertices[j++]; // darkB
-            j++; // darkA
-          }
-          target.expandBounds(x, y, z);
-        }
-        verticesLength = i;
-
-        for (i = indicesLength, j = 0; j < finalIndicesLength; i++, j++) {
-          _indices[i] = finalIndices[j] + indexStart;
-        }
-        indicesLength += finalIndicesLength;
-
-        const textureChanged = tempTexture !== null && tempTexture !== texture;
-        blend = slot.data.blendMode;
-        const blendModeChanged = tempBlendMode !== null && tempBlendMode !== blend;
-
-        if (blendModeChanged || textureChanged) {
-          // Finish accumulated count first
-          if (count > 0) {
-            target.addBatch(start, count, tempTexture.getImage(), tempBlendMode);
-            start += count;
-            count = 0;
-          }
-        }
-        count += finalIndicesLength;
-        tempTexture = texture;
-        tempBlendMode = blend;
       }
 
       _clipper.clipEndWithSlot(slot);
     } // slot traverse end
 
-    // add reset sub primitive
-    if (count > 0) {
-      target.addBatch(start, count, texture.getImage(), blend);
-      count = 0;
-    }
-
     _clipper.clipEnd();
-
-    target.vertexCount = verticesLength / stride;
-    target.indexCount = indicesLength;
   }
 }

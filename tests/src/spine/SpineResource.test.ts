@@ -165,6 +165,60 @@ describe("Spine resource ownership", () => {
   }
 
   for (const version of ["3.8", "4.2"] as const) {
+    it(`${version}: batches adjacent attachments without losing draw order or index offsets`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots = [];
+      raw.skins.length = 1;
+      raw.skins[0].attachments = {};
+      const paths = ["quad", null, "quad", "quad", "alt", "quad"];
+      paths.forEach((path, index) => {
+        const name = `slot${index}`;
+        raw.slots.push({
+          name,
+          bone: "root",
+          attachment: path ? "quad" : undefined,
+          blend: index === 3 ? "additive" : "normal",
+          dark: "000000"
+        });
+        if (path) raw.skins[0].attachments[name] = { quad: { path, width: 100, height: 100 } };
+      });
+      const renderer = attach(await createGeometryResource(version, raw));
+      renderer.zSpacing = 0.01;
+      for (const tintBlack of [false, true]) {
+        renderer.tintBlack = tintBlack;
+        expect(visiblePixels()).to.be.greaterThan(100);
+        const geometry = renderer["_geometry"];
+        expect(geometry.vertexCount).to.equal(20);
+        expect(geometry.indexCount).to.equal(30);
+        expect(geometry.batchCount).to.equal(4);
+        expect(
+          geometry.batches.slice(0, 4).map(({ start, count, blendMode }) => [start, count, blendMode])
+        ).to.deep.equal([
+          [0, 12, 0],
+          [12, 6, 1],
+          [18, 6, 0],
+          [24, 6, 0]
+        ]);
+        expect(geometry.batches[0].texture).to.equal(geometry.batches[1].texture);
+        expect(geometry.batches[0].texture).to.not.equal(geometry.batches[2].texture);
+        expect(geometry.batches[0].texture).to.equal(geometry.batches[3].texture);
+        const drawOrder = [0, 2, 3, 4, 5];
+        for (let quad = 0; quad < 5; quad++) {
+          expect(Array.from(geometry.indices.subarray(quad * 6, quad * 6 + 6))).to.deep.equal(
+            [0, 1, 2, 2, 3, 0].map((index) => index + quad * 4)
+          );
+          for (let vertex = 0; vertex < 4; vertex++) {
+            expect(geometry.vertices[(quad * 4 + vertex) * geometry.vertexStride + 2]).to.be.closeTo(
+              drawOrder[quad] * renderer.zSpacing,
+              0.000001
+            );
+          }
+        }
+        expect(renderer._localBounds.min.z).to.equal(0);
+        expect(renderer._localBounds.max.z).to.equal(0.05);
+      }
+    });
+
     it(`${version}: allocates mesh vertices independently of triangle indices`, async () => {
       const raw = await fetch(urls[version]).then((r) => r.json());
       raw.skins.length = 1;
@@ -219,6 +273,93 @@ describe("Spine resource ownership", () => {
   });
 
   for (const first of ["3.8", "4.2"] as const) {
+    for (const nextAction of ["replace", "enqueue"] as const) {
+      it(`${first}: ${nextAction}s the next animation from a playback completion callback`, async () => {
+        const renderer = attach(await load(first));
+        const state = renderer.state;
+        const firstEntry = state.setAnimation(0, "idle", false);
+        let nextEntry: SpineTrackEntry;
+        let completions = 0;
+        let disposals = 0;
+        state.addListener({ dispose: () => disposals++ });
+        firstEntry.listener = {
+          complete(entry) {
+            expect(entry).to.equal(firstEntry);
+            completions++;
+            nextEntry =
+              nextAction === "replace" ? state.setAnimation(0, "idle", true) : state.addAnimation(0, "idle", true, 0);
+          }
+        };
+        renderer.update(0);
+        renderer.update(1.1);
+        renderer.update(0.1);
+        expect(completions).to.equal(1);
+        expect(state.getCurrent(0)).to.equal(nextEntry!);
+        expect(nextEntry!.disposed).to.equal(false);
+        expect(visiblePixels()).to.be.greaterThan(100);
+        state.clearTracks();
+        expect(firstEntry.disposed).to.equal(true);
+        expect(nextEntry!.disposed).to.equal(true);
+        expect(disposals).to.equal(2);
+      });
+    }
+
+    for (const updateMode of ["engine", "manual"] as const) {
+      it(`${first}: disposes a completed effect and its queued animations during ${updateMode} update`, async () => {
+        const renderer = attach(await load(first));
+        const state = renderer.state;
+        const effect = state.setAnimation(0, "idle", false);
+        const queued = state.addAnimation(0, "idle", false, 2);
+        const globalDisposals: SpineTrackEntry[] = [];
+        const entryDisposals: SpineTrackEntry[] = [];
+        state.addListener({
+          dispose(entry) {
+            expect(entry.disposed).to.equal(false);
+            expect(entry.trackTime).to.be.a("number");
+            globalDisposals.push(entry);
+          }
+        });
+        const dispose = (entry: SpineTrackEntry) => {
+          expect(entry.disposed).to.equal(false);
+          entryDisposals.push(entry);
+        };
+        effect.listener = { complete: () => renderer.entity.destroy(), dispose };
+        queued.listener = { dispose };
+        renderer.update(0);
+        if (updateMode === "engine") {
+          effect.trackTime = 1.1;
+          engine.update();
+        } else {
+          renderer.update(1.1);
+        }
+        expect(renderer.entity.destroyed).to.equal(true);
+        expect(globalDisposals).to.have.members([effect, queued]);
+        expect(entryDisposals).to.have.members([effect, queued]);
+        expect(effect.disposed).to.equal(true);
+        expect(queued.disposed).to.equal(true);
+        expect(() => {
+          effect.trackTime = 0;
+        }).to.throw("disposed");
+        expect(visiblePixels()).to.equal(0);
+      });
+    }
+
+    it(`${first}: publishes a fully configured empty animation before its start callback`, async () => {
+      const renderer = attach(await load(first));
+      const state = renderer.state;
+      state.setAnimation(0, "idle", true);
+      renderer.update(0);
+      let started: SpineTrackEntry;
+      state.addListener({
+        start(entry) {
+          started = entry;
+          expect(entry.mixDuration).to.equal(0.25);
+        }
+      });
+      const entry = state.setEmptyAnimation(0, 0.25);
+      expect(started!).to.equal(entry);
+    });
+
     it(`${first}: reuses public objects and forwards pose and mix changes to the backend`, async () => {
       const resource = await load(first);
       const a = attach(resource),
