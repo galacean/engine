@@ -1,65 +1,57 @@
-import { SpineAtlas } from "./SpineAtlas";
-import { AssetPromise, AssetType, Engine, Texture2D } from "@galacean/engine";
+import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
 
-/**
- * @internal
- */
+/** @internal */
+type SpineAtlasData = {
+  text: string;
+  textures: Texture2D[];
+};
+
+/** @internal */
 export class LoaderUtils {
-  static loadTexturesByPaths(
-    imagePaths: string[],
-    imageExtensions: string[],
-    engine: Engine,
-    reject: (reason?: any) => void
-  ): Promise<Texture2D[]> {
-    const resourceManager = engine.resourceManager;
-    const virtualPathResourceMap = resourceManager._virtualPathResourceMap;
-    const texturePromises: AssetPromise<Texture2D>[] = imagePaths.map((imagePath, index) => {
-      const ext = imageExtensions[index];
-      let imageLoaderType: string = AssetType.Texture;
-      const virtualElement = virtualPathResourceMap[imagePath];
-      if (virtualElement) {
-        imageLoaderType = virtualElement.type;
-      } else if (ext === "ktx") {
-        imageLoaderType = AssetType.KTX;
-      } else if (ext === "ktx2") {
-        imageLoaderType = AssetType.KTX2;
-      }
-      return resourceManager.load({
-        url: imagePath,
-        type: imageLoaderType
-      });
-    });
-    return Promise.all(texturePromises).catch((error) => {
-      reject(error);
-      throw error;
-    });
+  static async loadAtlas(
+    atlasPath: string,
+    extraPaths: string[],
+    resourceManager: ResourceManager
+  ): Promise<SpineAtlasData> {
+    const text = await resourceManager._request<string>(atlasPath, { type: "text" });
+    const virtualResources = resourceManager._virtualPathResourceMap;
+    let imagePaths = extraPaths.filter((path) => /\.(png|jpg|webp|jpeg|ktx|ktx2)(?:\?|$)/.test(path));
+    if (extraPaths.length === 0) {
+      const dependencies = virtualResources[atlasPath]?.dependentAssetMap;
+      if (dependencies) imagePaths = Object.values(dependencies);
+    }
+    if (imagePaths.length === 0) {
+      const baseUrl = LoaderUtils.getBaseUrl(atlasPath);
+      imagePaths = LoaderUtils.readAtlasPageNames(text).map((name) => baseUrl + name);
+    }
+    const textures = await Promise.all(
+      imagePaths.map((url) => {
+        const extension = /\.(\w+)(?:\?|$)/.exec(url)?.[1];
+        const type =
+          virtualResources[url]?.type ??
+          (extension === "ktx" ? AssetType.KTX : extension === "ktx2" ? AssetType.KTX2 : AssetType.Texture);
+        return resourceManager.load<Texture2D>({ url, type });
+      })
+    );
+    return { text, textures };
   }
 
-  static loadTextureAtlas(atlasPath: string, engine: Engine, reject: (reason?: any) => void): Promise<SpineAtlas> {
-    const baseUrl = LoaderUtils.getBaseUrl(atlasPath);
-    const resourceManager = engine.resourceManager;
-    let atlasText: string;
-    return resourceManager
-
-      ._request(atlasPath, { type: "text" })
-      .then((text: string) => {
-        atlasText = text;
-        const pageNames = SpineAtlas.pageNames(atlasText);
-        const loadTexturePromises = pageNames.map((name) => {
-          const textureUrl = baseUrl + name;
-          return resourceManager.load<Texture2D>({
-            url: textureUrl,
-            type: AssetType.Texture
-          });
-        });
-        return Promise.all(loadTexturePromises).then((textures) => {
-          return new SpineAtlas(engine, atlasText, textures);
-        });
-      })
-      .catch((err) => {
-        reject(new Error(`Spine Atlas: ${atlasPath} load error: ${err}`));
-        throw err;
-      });
+  /** Atlas pages begin a block; regions and their properties remain in the same block. */
+  static readAtlasPageNames(text: string): string[] {
+    const pages: string[] = [];
+    let pageStart = true;
+    for (const line of text.split(/\r?\n/)) {
+      const value = line.trim();
+      if (!value) {
+        pageStart = true;
+      } else if (pageStart) {
+        // Optional atlas-level properties precede the first page in newer exports.
+        if (value.includes(":")) continue;
+        pages.push(value);
+        pageStart = false;
+      }
+    }
+    return pages;
   }
 
   static getBaseUrl(url: string): string {

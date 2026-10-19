@@ -39,8 +39,3 @@ state.methodThatDoesNotExist();
 renderer.physics.value.physicsTranslate(1, 2);
 // @ts-expect-error Playback names must be strings.
 state.setAnimation(0, 123, true);
-
-import type { Engine } from "@galacean/engine";
-import type { SpineAtlas } from "@galacean/engine-spine";
-declare const engine: Engine;
-engine.resourceManager.load<SpineAtlas>({ url: "character.atlas", type: "SpineAtlas" });

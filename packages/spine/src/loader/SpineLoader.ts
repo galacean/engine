@@ -1,4 +1,4 @@
-import type { SpineAtlas } from "./SpineAtlas";
+import { LoaderUtils } from "./LoaderUtils";
 import { readSpineVersion } from "./SpineVersion";
 import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine";
@@ -108,25 +108,14 @@ export class SpineLoader extends Loader<SpineResource> {
   private _loadAndCreateSpineResource(
     spineLoadContext: SpineLoadContext,
     resourceManager: ResourceManager
-  ): AssetPromise<SpineResource> {
+  ): Promise<SpineResource> {
     const { engine } = resourceManager;
     const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
 
     const runtime = getSpineRuntime(readSpineVersion(skeletonRawData));
-    const atlasLoadPromise =
-      extraPaths.length === 0
-        ? resourceManager.load<SpineAtlas>({
-            url: atlasPath,
-            type: "SpineAtlas"
-          })
-        : resourceManager.load<SpineAtlas>({
-            urls: [atlasPath].concat(extraPaths),
-            type: "SpineAtlas"
-          });
-
-    return atlasLoadPromise.then((atlas) => {
-      const textureAtlas = runtime.createTextureAtlas(atlas.text, Array.from(atlas.textures));
+    return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager).then((atlas) => {
+      const textureAtlas = runtime.createTextureAtlas(atlas.text, atlas.textures);
       const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
       return SpineResource._create(engine, skeletonData, skeletonPath);
     });

@@ -1,6 +1,5 @@
-import { Camera, Color, Entity, WebGLEngine } from "@galacean/engine";
+import { AssetType, Camera, Color, Entity, WebGLEngine } from "@galacean/engine";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { SpineAtlas } from "../../../packages/spine/src/loader/SpineAtlas";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
 import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
@@ -11,7 +10,6 @@ import { SpineAnimationState } from "../../../packages/spine/src/SpineAnimationS
 import { SpineTrackEntry } from "../../../packages/spine/src/SpineTrackEntry";
 import type { SpineEvent } from "../../../packages/spine/src/SpineAnimationStateListener";
 import "../../../packages/spine/src/loader/SpineLoader";
-import "../../../packages/spine/src/loader/SpineAtlasLoader";
 
 const runtimes = { "3.8": new Spine38Runtime(), "4.2": new Spine42Runtime() };
 for (const runtime of Object.values(runtimes)) registerSpineRuntime(runtime);
@@ -58,28 +56,54 @@ describe("Spine resource ownership", () => {
     return count;
   }
 
-  for (const explicitTextures of [false, true]) {
-    it(`loads an atlas asset with ${explicitTextures ? "explicit" : "atlas-relative"} textures`, async () => {
-      const atlasUrl = new URL("./fixtures/3.8.atlas", import.meta.url).href;
-      const atlas = await engine.resourceManager.load<SpineAtlas>(
-        explicitTextures
-          ? {
-              urls: [
-                atlasUrl,
-                ...["page.png", "alt.png"].map((name) => new URL(`./fixtures/${name}`, import.meta.url).href)
-              ],
-              type: "SpineAtlas"
-            }
-          : { url: atlasUrl, type: "SpineAtlas" }
-      );
-      expect(atlas.engine).to.equal(engine);
-      expect(SpineAtlas.pageNames(atlas.text)).to.deep.equal(["page.png", "alt.png"]);
-      expect(atlas.textures).to.have.length(2);
-      expect(atlas.textures.every((texture) => texture.engine === engine && !texture.destroyed)).to.be.true;
-      atlas.destroy();
-      expect(atlas.destroyed).to.be.true;
-    });
+  for (const version of ["3.8", "4.2"] as const) {
+    for (const mode of ["atlas-relative", "explicit", "virtual"] as const) {
+      it(`${version}: loads and renders with ${mode} atlas textures`, async () => {
+        const atlasUrl = new URL(`./fixtures/${version}.atlas`, import.meta.url).href;
+        const textureUrls = ["page.png", "alt.png"].map((name) => new URL(`./fixtures/${name}`, import.meta.url).href);
+        let resource: SpineResource;
+        if (mode === "virtual") {
+          const skeletonPath = `/characters/${version}/character.json`;
+          const atlasPath = `/characters/${version}/character.atlas`;
+          const texturePaths = ["page.png", "alt.png"].map((name) => `/textures/${version}/${name}`);
+          engine.resourceManager.registerVirtualResources([
+            { virtualPath: skeletonPath, path: urls[version], type: "Spine", dependentAssetMap: { atlas: atlasPath } },
+            {
+              virtualPath: atlasPath,
+              path: atlasUrl,
+              type: "SpineAtlas",
+              dependentAssetMap: { page: texturePaths[0], alt: texturePaths[1] }
+            },
+            ...texturePaths.map((virtualPath, index) => ({
+              virtualPath,
+              path: textureUrls[index],
+              type: AssetType.Texture
+            }))
+          ]);
+          resource = await engine.resourceManager.load<SpineResource>({ url: skeletonPath, type: "Spine" });
+        } else {
+          resource = await engine.resourceManager.load<SpineResource>({
+            urls: [urls[version], atlasUrl, ...(mode === "explicit" ? textureUrls : [])],
+            type: "Spine"
+          });
+        }
+        const renderer = attach(resource);
+        expect(visiblePixels()).to.be.greaterThan(100);
+        renderer.skeleton.setSkinByName("alt");
+        renderer.skeleton.setSlotsToSetupPose();
+        expect(visiblePixels()).to.be.greaterThan(100);
+      });
+    }
   }
+
+  it("rejects the Spine load when its atlas cannot be fetched", async () => {
+    await expect(
+      engine.resourceManager.load<SpineResource>({
+        urls: [urls["3.8"], new URL("./fixtures/missing.atlas", import.meta.url).href],
+        type: "Spine"
+      })
+    ).rejects.toBeDefined();
+  });
 
   for (const first of ["3.8", "4.2"] as const) {
     it(`${first}: reuses public objects and forwards pose and mix changes to the backend`, async () => {

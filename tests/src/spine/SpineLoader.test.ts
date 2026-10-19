@@ -18,7 +18,7 @@ describe("SpineLoader._getUrlExtension", () => {
 });
 
 import { readSpineVersion } from "../../../packages/spine/src/loader/SpineVersion";
-import { SpineAtlas } from "../../../packages/spine/src/loader/SpineAtlas";
+import { LoaderUtils } from "../../../packages/spine/src/loader/LoaderUtils";
 
 describe("Spine export headers", () => {
   function string(value: string) {
@@ -40,7 +40,7 @@ describe("Spine export headers", () => {
   });
   it("reads page names without loading any backend", () => {
     expect(
-      SpineAtlas.pageNames("\npage.png\nsize: 4,4\nregion\n  bounds: 0,0,4,4\n\nother.png\nsize: 4,4\n")
+      LoaderUtils.readAtlasPageNames("\npage.png\nsize: 4,4\nregion\n  bounds: 0,0,4,4\n\nother.png\nsize: 4,4\n")
     ).to.deep.equal(["page.png", "other.png"]);
   });
 });
