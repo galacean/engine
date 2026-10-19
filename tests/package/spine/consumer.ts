@@ -39,3 +39,13 @@ state.methodThatDoesNotExist();
 renderer.physics.value.physicsTranslate(1, 2);
 // @ts-expect-error Playback names must be strings.
 state.setAnimation(0, 123, true);
+
+import { registerSpineRuntime } from "@galacean/engine-spine";
+// @ts-expect-error A version string alone does not supply a backend.
+registerSpineRuntime("4.2");
+// @ts-expect-error Application code cannot retrieve backend handles.
+import { getSpineRuntime } from "@galacean/engine-spine";
+// @ts-expect-error Render integration is not part of the application API.
+import { ISpineRenderTarget } from "@galacean/engine-spine";
+// @ts-expect-error Vertex layout is an implementation detail.
+import { SpineVertexStride } from "@galacean/engine-spine";

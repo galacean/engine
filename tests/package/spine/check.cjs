@@ -76,7 +76,14 @@ function checkTypes(directory, versions) {
   const consumer = path.join(directory, "consumer.ts");
   fs.writeFileSync(
     consumer,
-    versions.map((v) => `import "@galacean/engine-spine-core-${v}";`).join("\n") +
+    versions
+      .map(
+        (v) => `import { Spine${v.replace(".", "")}Runtime } from "@galacean/engine-spine-core-${v}";
+registerSpineRuntime(new Spine${v.replace(".", "")}Runtime());
+// @ts-expect-error Native classes are not exported by backend packages.
+import { Skeleton as Native${v.replace(".", "")} } from "@galacean/engine-spine-core-${v}";`
+      )
+      .join("\n") +
       "\n" +
       fs.readFileSync(path.join(__dirname, "consumer.ts"), "utf8")
   );
@@ -87,7 +94,12 @@ function checkTypes(directory, versions) {
 async function checkSingleBackendBundle(directory, version) {
   const other = version === "3.8" ? "4.2" : "3.8";
   const entry = path.join(directory, "single-backend.js");
-  fs.writeFileSync(entry, `import '@galacean/engine-spine-core-${version}';`);
+  fs.writeFileSync(
+    entry,
+    `import { registerSpineRuntime } from '@galacean/engine-spine';
+import { Spine${version.replace(".", "")}Runtime } from '@galacean/engine-spine-core-${version}';
+registerSpineRuntime(new Spine${version.replace(".", "")}Runtime());`
+  );
   const bundle = await rollup({
     input: entry,
     plugins: [resolve({ mainFields: ["module", "main"] }), commonjs()],
@@ -107,6 +119,42 @@ async function checkSingleBackendBundle(directory, version) {
   );
   await bundle.close();
   console.log(`Bundle ${version}: PASS (unused backend absent)`);
+}
+
+async function checkWorkspaceBundle() {
+  // Resolve from an actual workspace consumer so symlink realpaths are exercised.
+  const entry = path.join(root, "examples", "spine-package-consumer.js");
+  for (const mainFields of [["module", "main"], ["main"]]) {
+    const bundle = await rollup({
+      input: entry,
+      external: ["@galacean/engine"],
+      plugins: [
+        {
+          name: "spine-workspace-consumer",
+          resolveId(id) {
+            if (id === entry) return id;
+          },
+          load(id) {
+            if (id === entry)
+              return `import { registerSpineRuntime } from '@galacean/engine-spine';
+import { Spine38Runtime } from '@galacean/engine-spine-core-3.8';
+import { Spine42Runtime } from '@galacean/engine-spine-core-4.2';
+registerSpineRuntime(new Spine38Runtime());
+registerSpineRuntime(new Spine42Runtime());`;
+          }
+        },
+        resolve({ mainFields }),
+        commonjs()
+      ],
+      onwarn(warning, warn) {
+        if (warning.code === "UNRESOLVED_IMPORT") throw new Error(warning.message);
+        if (warning.code !== "CIRCULAR_DEPENDENCY") warn(warning);
+      }
+    });
+    await bundle.generate({ format: "es" });
+    await bundle.close();
+    console.log(`Workspace ${mainFields[0]}: PASS`);
+  }
 }
 
 async function checkBrowser(directory, first, format, baseURL) {
@@ -146,6 +194,7 @@ async function checkBrowser(directory, first, format, baseURL) {
 }
 
 (async () => {
+  await checkWorkspaceBundle();
   const shared = path.join(temp, "shared");
   install([], shared);
   checkTypes(shared, []);

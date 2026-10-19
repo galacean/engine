@@ -23,4 +23,12 @@ describe("SpineRuntimeRegistry", () => {
     expect(() => registerSpineRuntime(new Spine38Runtime())).to.throw(/already registered/);
     expect(getSpineRuntime("3.8")).to.equal(runtime38);
   });
+
+  it("rejects backend versions that are not major.minor", () => {
+    for (const version of ["", "4", "4.2.119", "4.2-beta"]) {
+      const runtime = Object.assign(new Spine42Runtime(), { version });
+      expect(() => registerSpineRuntime(runtime)).to.throw(/Invalid Spine runtime version/);
+    }
+    expect(getSpineRuntime("4.2.119")).to.equal(runtime42);
+  });
 });

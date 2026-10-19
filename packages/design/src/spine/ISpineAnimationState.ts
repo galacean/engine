@@ -4,7 +4,6 @@ import type { ISpineTrackEntry } from "./ISpineTrackEntry";
 
 export interface ISpineAnimationState {
   readonly data: ISpineAnimationStateData;
-  readonly tracks: readonly (ISpineTrackEntry | null)[];
   timeScale: number;
   setAnimation(track: number, name: string, loop: boolean): ISpineTrackEntry;
   addAnimation(track: number, name: string, loop: boolean, delay: number): ISpineTrackEntry;
@@ -15,6 +14,5 @@ export interface ISpineAnimationState {
   clearTrack(track: number): void;
   clearTracks(): void;
   addListener(listener: ISpineAnimationStateListener): void;
-  removeListener(listener: ISpineAnimationStateListener): void;
   clearListeners(): void;
 }

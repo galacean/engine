@@ -1,3 +1,4 @@
+import type { ISpineGeometry } from "@galacean/engine-design";
 import {
   ArrayLike,
   BlendMode,
@@ -9,18 +10,8 @@ import {
   SkeletonClipping,
   TextureAtlasRegion
 } from "./spine-core";
-import { BoundingBox, SubPrimitive } from "@galacean/engine";
+import type { Texture2D } from "@galacean/engine";
 import { SpineTexture } from "./SpineTexture";
-import { ClearablePool } from "./util/ClearablePool";
-import { ReturnablePool } from "./util/ReturnablePool";
-import type { ISpineRenderTarget } from "@galacean/engine-spine";
-import { SpineBlendMode, SpineVertexStride } from "@galacean/engine-spine";
-
-class SubRenderItem {
-  subPrimitive: SubPrimitive;
-  blendMode: BlendMode;
-  texture: any;
-}
 
 /**
  * @internal
@@ -30,26 +21,13 @@ export class SpineGenerator {
   static tempColor = new Color();
   static tempVerts = new Array(8);
   static QUAD_TRIANGLES = [0, 1, 2, 2, 3, 0];
-  static subPrimitivePool = new ReturnablePool(SubPrimitive);
-  static subRenderItemPool = new ClearablePool(SubRenderItem);
 
-  private _subRenderItems: SubRenderItem[] = [];
   private _clipper: SkeletonClipping = new SkeletonClipping();
 
-  buildPrimitive(skeleton: Skeleton, renderer: ISpineRenderTarget) {
-    const { _indices, _vertices, _localBounds, _vertexCount, _subPrimitives, zSpacing, premultipliedAlpha, tintBlack } =
-      renderer;
-
-    _localBounds.min.set(Infinity, Infinity, Infinity);
-    _localBounds.max.set(-Infinity, -Infinity, -Infinity);
-
-    const { _clipper, _subRenderItems } = this;
-
-    const { tempVerts, subRenderItemPool, subPrimitivePool } = SpineGenerator;
-    const { withTint: vertexStrideWithTint, withoutTint: vertexStrideWithoutTint } = SpineVertexStride;
-
-    _subRenderItems.length = 0;
-    subRenderItemPool.clear();
+  buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>) {
+    const { zSpacing, premultipliedAlpha, tintBlack, vertexStride: stride } = target;
+    const { _clipper } = this;
+    const { tempVerts } = SpineGenerator;
 
     let triangles: Array<number>;
     let uvs: ArrayLike<number>;
@@ -63,8 +41,6 @@ export class SpineGenerator {
     let texture: SpineTexture = null;
     let tempBlendMode: BlendMode | null = null;
     let tempTexture: SpineTexture | null = null;
-
-    let primitiveIndex = 0;
 
     const drawOrder = skeleton.drawOrder;
     for (let slotIndex = 0, n = drawOrder.length; slotIndex < n; ++slotIndex) {
@@ -88,18 +64,18 @@ export class SpineGenerator {
       // This vertexSize will be passed to spine-core's computeWorldVertices function.
       //
       // Expected format by computeWorldVertices:
-      // - Without tintBlack: [x, y, u, v, r, g, b, a] = 8 components
-      // - With tintBlack:    [x, y, u, v, r, g, b, a, dr, dg, db, da] = 12 components
+      // - Without tintBlack: [x, y, r, g, b, a, u, v] = 8 components
+      // - With tintBlack:    [x, y, r, g, b, a, u, v, dr, dg, db, da] = 12 components
       //
       // Our actual vertex buffer format:
-      // - vertexStrideWithoutTint: [x, y, z, u, v, r, g, b, a] = 9 components
-      // - vertexStrideWithTint:    [x, y, z, u, v, r, g, b, a, dr, dg, db] = 12 components
+      // - vertexStrideWithoutTint: [x, y, z, r, g, b, a, u, v] = 9 components
+      // - vertexStrideWithTint:    [x, y, z, r, g, b, a, u, v, dr, dg, db] = 12 components
       //   (Note: we optimized 'da' as uniform instead of buffer attribute)
       //
       // Calculation:
       // - Without tintBlack: 9 - 1 (remove z) = 8 ✓
       // - With tintBlack:    12 - 1 (remove z) + 1 (add back da) = 12 ✓
-      const vertexSize = tintBlack ? vertexStrideWithTint : vertexStrideWithoutTint - 1;
+      const vertexSize = tintBlack ? stride : stride - 1;
       const clippedVertexSize = isClipping ? 2 : vertexSize;
 
       switch (attachment.constructor) {
@@ -121,8 +97,8 @@ export class SpineGenerator {
           const meshAttachment = <MeshAttachment>attachment;
           attachmentColor = meshAttachment.color;
           numFloats = (meshAttachment.worldVerticesLength >> 1) * clippedVertexSize;
-          if (numFloats > _vertices.length) {
-            SpineGenerator.tempVerts = new Array(numFloats);
+          if (numFloats > tempVerts.length) {
+            tempVerts.length = numFloats;
           }
           meshAttachment.computeWorldVertices(
             slot,
@@ -226,7 +202,11 @@ export class SpineGenerator {
           continue;
         }
 
-        const stride = tintBlack ? vertexStrideWithTint : vertexStrideWithoutTint;
+        target.ensureCapacity(
+          verticesLength / stride + finalVerticesLength / vertexSize,
+          indicesLength + finalIndicesLength
+        );
+        const { vertices: _vertices, indices: _indices } = target;
         const indexStart = verticesLength / stride;
         let i = verticesLength;
         let j = 0;
@@ -236,19 +216,19 @@ export class SpineGenerator {
           _vertices[i++] = x;
           _vertices[i++] = y;
           _vertices[i++] = z;
-          _vertices[i++] = finalVertices[j++]; // u
-          _vertices[i++] = finalVertices[j++]; // v
           _vertices[i++] = finalVertices[j++]; // r
           _vertices[i++] = finalVertices[j++]; // g
           _vertices[i++] = finalVertices[j++]; // b
           _vertices[i++] = finalVertices[j++]; // a
+          _vertices[i++] = finalVertices[j++]; // u
+          _vertices[i++] = finalVertices[j++]; // v
           if (tintBlack) {
             _vertices[i++] = finalVertices[j++]; // darkR
             _vertices[i++] = finalVertices[j++]; // darkG
             _vertices[i++] = finalVertices[j++]; // darkB
             j++; // darkA
           }
-          this._expandBounds(x, y, z, _localBounds);
+          target.expandBounds(x, y, z);
         }
         verticesLength = i;
 
@@ -264,14 +244,7 @@ export class SpineGenerator {
         if (blendModeChanged || textureChanged) {
           // Finish accumulated count first
           if (count > 0) {
-            primitiveIndex = this._createRenderItem(
-              _subPrimitives,
-              primitiveIndex,
-              start,
-              count,
-              tempTexture,
-              tempBlendMode
-            );
+            target.addBatch(start, count, tempTexture.getImage(), tempBlendMode);
             start += count;
             count = 0;
           }
@@ -286,73 +259,13 @@ export class SpineGenerator {
 
     // add reset sub primitive
     if (count > 0) {
-      primitiveIndex = this._createRenderItem(_subPrimitives, primitiveIndex, start, count, texture, blend);
+      target.addBatch(start, count, texture.getImage(), blend);
       count = 0;
     }
 
     _clipper.clipEnd();
 
-    const lastLen = _subPrimitives.length;
-    const curLen = _subRenderItems.length;
-    for (let i = curLen; i < lastLen; i++) {
-      const item = _subPrimitives[i];
-      subPrimitivePool.return(item);
-    }
-
-    renderer._clearSubPrimitives();
-    for (let i = 0, l = curLen; i < l; ++i) {
-      const item = _subRenderItems[i];
-      const { blendMode, texture } = item;
-      renderer._addSubPrimitive(item.subPrimitive);
-      const material = renderer._getMaterial(texture.getImage(), blendMode as unknown as SpineBlendMode);
-      renderer.setMaterial(i, material);
-    }
-
-    if (indicesLength > _vertexCount || renderer._needResizeBuffer) {
-      renderer._createAndBindBuffer(indicesLength);
-      renderer._needResizeBuffer = false;
-      this.buildPrimitive(skeleton, renderer);
-      return;
-    }
-
-    if (renderer._vertexBuffer) {
-      renderer._vertexBuffer.setData(_vertices);
-      renderer._indexBuffer.setData(_indices);
-    }
-  }
-
-  private _createRenderItem(
-    subPrimitives: SubPrimitive[],
-    primitiveIndex: number,
-    start: number,
-    count: number,
-    texture: SpineTexture,
-    blend: BlendMode
-  ): number {
-    const { subPrimitivePool, subRenderItemPool } = SpineGenerator;
-    const origin = subPrimitives[primitiveIndex];
-
-    if (origin) {
-      primitiveIndex++;
-    }
-
-    const subPrimitive = origin || subPrimitivePool.get();
-    subPrimitive.start = start;
-    subPrimitive.count = count;
-
-    const renderItem = subRenderItemPool.get();
-    renderItem.blendMode = blend;
-    renderItem.subPrimitive = subPrimitive;
-    renderItem.texture = texture;
-
-    this._subRenderItems.push(renderItem);
-
-    return primitiveIndex;
-  }
-
-  private _expandBounds(x: number, y: number, z: number, localBounds: BoundingBox) {
-    const { min, max } = localBounds;
-    min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
-    max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
+    target.vertexCount = verticesLength / stride;
+    target.indexCount = indicesLength;
   }
 }

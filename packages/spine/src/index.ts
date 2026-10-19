@@ -11,10 +11,7 @@ for (const key in LoaderObject) {
 
 export * from "./loader/index";
 export * from "./renderer/index";
-export { SpineBlendMode } from "./enums/SpineBlendMode";
-export { SpineVertexStride } from "./SpineConstant";
-export { registerSpineRuntime, getSpineRuntime } from "./runtime/SpineRuntimeRegistry";
-export type { ISpineRenderTarget } from "./runtime/ISpineRenderTarget";
+export { registerSpineRuntime } from "./runtime/SpineRuntimeRegistry";
 export { SpineSkeleton } from "./SpineSkeleton";
 export { SpineBone } from "./SpineBone";
 export { SpineSkin } from "./SpineSkin";

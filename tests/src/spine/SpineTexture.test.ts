@@ -1,6 +1,6 @@
 import { describe, beforeAll, expect, it } from "vitest";
 import { Texture2D, TextureFilterMode, WebGLEngine } from "@galacean/engine";
-import { TextureFilter as TextureFilter42 } from "@galacean/engine-spine-core-4.2";
+import { TextureFilter as TextureFilter42 } from "@esotericsoftware/spine-core";
 import { SpineTexture as SpineTexture42 } from "../../../packages/spine-core-4.2/src/SpineTexture";
 import { SpineTexture as SpineTexture38 } from "../../../packages/spine-core-3.8/src/SpineTexture";
 import { TextureFilter as TextureFilter38 } from "../../../packages/spine-core-3.8/src/spine-core/Texture";

@@ -1,11 +1,14 @@
 # Spine integration
 
-Application code uses `SpineResource` and `SpineAnimationRenderer` from `@galacean/engine-spine`. Include the backend packages needed by the application's exported assets at its entry point:
+Application code uses `SpineResource` and `SpineAnimationRenderer` from `@galacean/engine-spine`. Register the backends needed by the application's exported assets at its entry point, before loading Spine resources:
 
 ```ts
-import "@galacean/engine-spine-core-3.8";
-import "@galacean/engine-spine-core-4.2";
-import { SpineResource, SpineAnimationRenderer } from "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
+import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
+import { registerSpineRuntime, SpineResource, SpineAnimationRenderer } from "@galacean/engine-spine";
+
+registerSpineRuntime(new Spine38Runtime());
+registerSpineRuntime(new Spine42Runtime());
 
 const resource = await engine.resourceManager.load<SpineResource>({
   url: "character.json",
@@ -19,9 +22,11 @@ renderer.skeleton.setSkinByName("winter");
 renderer.skeleton.setSlotsToSetupPose();
 ```
 
-The loader reads the JSON or binary export header before parsing the skeleton. Its major/minor version selects a registered backend. Resources, instances and clones keep this backend for their entire lifetime. Missing versions fail explicitly; importing a second backend never changes existing instances. Duplicate registrations for the same version are rejected.
+The loader reads the JSON or binary export header before parsing the skeleton. Its major/minor version selects a registered backend once, and the resource retains that backend alongside the parsed data. Instances and clones use the resource's backend to create independent skeleton poses and animation states. Assigning another resource to a renderer recreates these states with the new resource's backend.
 
-An application using only 3.8 needs only the 3.8 backend. Neither the shared package nor the 3.8 backend depends on the 4.2 runtime. Import each required backend before loading its assets.
+The registry is shared by consumers of the same `engine-spine` module, rather than configured per Engine. Importing a backend package does not register it. Missing versions fail explicitly; registering another version never changes existing resources. Registering the same instance again is allowed, but a different instance for an already registered version is rejected.
+
+An application using only 3.8 installs and registers only the 3.8 backend. Neither the shared package nor the 3.8 backend depends on the 4.2 runtime. The loader does not download missing backends.
 
 ## Public API
 
@@ -48,3 +53,14 @@ A supported capability with an empty constraint list is different from an unsupp
 Entities instantiated from a resource keep it alive. The resource retains textures referenced by all skins, attachments and sequence frames, including those not currently drawn. Destroying the resource releases its internal entity template and rendering resources.
 
 Matching renderers share cached materials. Live renderer references protect them; unused variants participate in `ResourceManager.gc()`. Material destruction evicts its own cache entry. Destroying one renderer does not evict or destroy a material still used by another.
+
+## Backend integration
+
+The shared package registers the Spine loader. Version packages export their runtime adapter classes for explicit registration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Geometry generation writes reusable CPU arrays and ordered draw batches; the shared renderer owns GPU buffers and materials.
+
+For script/UMD builds, load the engine, shared Spine bundle and required version bundles, then register before loading assets:
+
+```js
+Galacean.Spine.registerSpineRuntime(new Galacean.SpineCore38.Spine38Runtime());
+Galacean.Spine.registerSpineRuntime(new Galacean.SpineCore42.Spine42Runtime());
+```

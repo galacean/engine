@@ -13,8 +13,7 @@ import {
   TextureAtlasRegion
 } from "./spine-core";
 import { Texture2D } from "@galacean/engine";
-import type { ISpineRenderTarget } from "@galacean/engine-spine";
-import type { ISpineRuntime, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
+import type { ISpineRuntime, ISpineGeometry, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
 import { SpineGenerator } from "./SpineGenerator";
 import { SpineTexture } from "./SpineTexture";
 
@@ -24,10 +23,10 @@ import { SpineTexture } from "./SpineTexture";
  * @remarks
  * Owns everything specific to the spine 3.8 runtime line: parsing (`SkeletonJson`/`SkeletonBinary`/
  * `TextureAtlas`), object-model construction, world-transform stepping (3.8 has no `Physics` argument),
- * and the attachment-reading mesh generator. Registered automatically when this package is imported.
+ * and the attachment-reading mesh generator. Register an instance before loading assets of this version.
  *
  */
-export class Spine38Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarget> {
+export class Spine38Runtime implements ISpineRuntime<Texture2D> {
   readonly version = "3.8";
 
   private _generator = new SpineGenerator();
@@ -99,7 +98,7 @@ export class Spine38Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarg
     skeleton.updateWorldTransform();
   }
 
-  buildPrimitive(skeleton: Skeleton, target: ISpineRenderTarget): void {
-    this._generator.buildPrimitive(skeleton, target);
+  buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>): void {
+    this._generator.buildGeometry(skeleton, target);
   }
 }

@@ -117,7 +117,7 @@ export class SpineLoader extends Loader<SpineResource> {
     return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager).then((atlas) => {
       const textureAtlas = runtime.createTextureAtlas(atlas.text, atlas.textures);
       const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
-      return SpineResource._create(engine, skeletonData, skeletonPath);
+      return SpineResource._create(engine, runtime, skeletonData, skeletonPath);
     });
   }
 }

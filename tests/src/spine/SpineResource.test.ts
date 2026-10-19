@@ -1,4 +1,4 @@
-import { AssetType, Camera, Color, Entity, WebGLEngine } from "@galacean/engine";
+import { AssetType, Camera, Color, Entity, Texture2D, WebGLEngine } from "@galacean/engine";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
@@ -39,6 +39,18 @@ describe("Spine resource ownership", () => {
 
   async function load(version: "3.8" | "4.2") {
     return engine.resourceManager.load<SpineResource>({ url: urls[version], type: "Spine" });
+  }
+  async function createGeometryResource(version: "3.8" | "4.2", raw: object) {
+    const atlasText = await fetch(new URL(`./fixtures/${version}.atlas`, import.meta.url)).then((r) => r.text());
+    const textures = await engine.resourceManager.load<Texture2D[]>(
+      ["page.png", "alt.png"].map((name) => ({
+        url: new URL(`./fixtures/${name}`, import.meta.url).href,
+        type: AssetType.Texture
+      }))
+    );
+    const runtime = runtimes[version];
+    const data = runtime.createSkeletonData(JSON.stringify(raw), runtime.createTextureAtlas(atlasText, textures), 0.01);
+    return SpineResource._create(engine, runtime, data, urls[version]);
   }
   function attach(resource: SpineResource) {
     const entity = resource.instantiate();
@@ -94,6 +106,101 @@ describe("Spine resource ownership", () => {
         expect(visiblePixels()).to.be.greaterThan(100);
       });
     }
+  }
+
+  for (const version of ["3.8", "4.2"] as const) {
+    it(`${version}: grows CPU geometry, reuses GPU buffers and switches tint layout`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots = [];
+      raw.skins.length = 1;
+      raw.skins[0].attachments = {};
+      for (let i = 0; i < 40; i++) {
+        const name = `slot${i}`;
+        raw.slots.push({ name, bone: "root", attachment: "quad", dark: "000000" });
+        raw.skins[0].attachments[name] = {
+          quad: { path: i % 2 ? "alt" : "quad", width: 100, height: 100 }
+        };
+      }
+      const resource = await createGeometryResource(version, raw);
+      const renderer = attach(resource);
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer._subPrimitives).to.have.length(40);
+      expect(renderer._subPrimitives[39].start).to.equal(39 * 6);
+      const geometry = renderer["_geometry"];
+      expect(geometry.vertexCount).to.equal(160);
+      expect(geometry.indexCount).to.equal(240);
+      expect(Math.max(...geometry.indices.subarray(0, geometry.indexCount))).to.equal(159);
+      const vertices = geometry.vertices;
+      const indices = geometry.indices;
+      const vertexBuffer = renderer._vertexBuffer;
+      const indexBuffer = renderer._indexBuffer;
+      visiblePixels();
+      expect(geometry.vertices).to.equal(vertices);
+      expect(geometry.indices).to.equal(indices);
+      expect(renderer._vertexBuffer).to.equal(vertexBuffer);
+      expect(renderer._indexBuffer).to.equal(indexBuffer);
+      renderer.tintBlack = true;
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(geometry.vertexStride).to.equal(12);
+      expect(vertexBuffer.destroyed).to.be.true;
+      expect(indexBuffer.destroyed).to.be.true;
+      renderer.tintBlack = false;
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(geometry.vertexStride).to.equal(9);
+      for (let i = 0; i < 40; i++) renderer.skeleton.setAttachment(`slot${i}`, null);
+      expect(visiblePixels()).to.equal(0);
+      expect(renderer._subPrimitives).to.have.length(0);
+      expect(renderer.getMaterials()).to.have.length(0);
+      expect(geometry.batches.every((batch) => batch.texture === null)).to.be.true;
+      renderer.skeleton.setAttachment("slot0", "quad");
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer._subPrimitives).to.have.length(1);
+    });
+  }
+
+  for (const version of ["3.8", "4.2"] as const) {
+    it(`${version}: allocates mesh vertices independently of triangle indices`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.skins.length = 1;
+      const points = [
+        [-50, -50],
+        [50, -50],
+        [-50, 50]
+      ];
+      raw.skins[0].attachments.slot.quad = {
+        type: "mesh",
+        path: "quad",
+        hull: 3,
+        triangles: [0, 1, 2],
+        uvs: Array.from({ length: 80 }, (_, i) => points[i % 3].map((v) => (v + 50) / 100)).flat(),
+        vertices: Array.from({ length: 80 }, (_, i) => points[i % 3]).flat()
+      };
+      const renderer = attach(await createGeometryResource(version, raw));
+      expect(visiblePixels()).to.be.greaterThan(100);
+      const geometry = renderer["_geometry"];
+      expect(geometry.vertexCount).to.equal(80);
+      expect(geometry.indexCount).to.equal(3);
+      expect(renderer._vertexBuffer.byteLength).to.be.at.least(80 * 9 * 4);
+      expect(Array.from(geometry.vertices.subarray(0, 3))).to.deep.equal([-0.5, -0.5, 0]);
+    });
+
+    it(`${version}: preserves clipping with both vertex layouts`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots.unshift({ name: "clip", bone: "root", attachment: "clip" });
+      raw.slots[1].dark = "000000";
+      raw.skins[0].attachments.clip = {
+        clip: { type: "clipping", end: "slot", vertexCount: 4, vertices: [-25, -25, -25, 25, 25, 25, 25, -25] }
+      };
+      const renderer = attach(await createGeometryResource(version, raw));
+      for (const tintBlack of [false, true]) {
+        renderer.tintBlack = tintBlack;
+        const count = visiblePixels();
+        expect(count).to.be.greaterThan(200);
+        expect(count).to.be.lessThan(2000);
+        expect(renderer._localBounds.min.x).to.be.closeTo(-0.25, 0.001);
+        expect(renderer._localBounds.max.x).to.be.closeTo(0.25, 0.001);
+      }
+    });
   }
 
   it("rejects the Spine load when its atlas cannot be fetched", async () => {

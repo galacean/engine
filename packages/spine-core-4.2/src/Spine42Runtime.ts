@@ -13,8 +13,7 @@ import {
   TextureAtlas
 } from "@esotericsoftware/spine-core";
 import { Texture2D } from "@galacean/engine";
-import type { ISpineRenderTarget } from "@galacean/engine-spine";
-import type { ISpineRuntime, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
+import type { ISpineRuntime, ISpineGeometry, SpineCapability, ISpinePhysics } from "@galacean/engine-design";
 import { SpineGenerator } from "./SpineGenerator";
 import { SpineTexture } from "./SpineTexture";
 
@@ -24,9 +23,9 @@ import { SpineTexture } from "./SpineTexture";
  * @remarks
  * Owns everything specific to the spine 4.2 runtime line: parsing (`SkeletonJson`/`SkeletonBinary`/
  * `TextureAtlas`), object-model construction, world-transform stepping (4.2's `Physics.update`), and
- * the attachment-reading mesh generator. Registered automatically when this package is imported.
+ * the attachment-reading mesh generator. Register an instance before loading assets of this version.
  */
-export class Spine42Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarget> {
+export class Spine42Runtime implements ISpineRuntime<Texture2D> {
   readonly version = "4.2";
 
   private _generator = new SpineGenerator();
@@ -102,7 +101,7 @@ export class Spine42Runtime implements ISpineRuntime<Texture2D, ISpineRenderTarg
     skeleton.updateWorldTransform(Physics.update);
   }
 
-  buildPrimitive(skeleton: Skeleton, target: ISpineRenderTarget): void {
-    this._generator.buildPrimitive(skeleton, target);
+  buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>): void {
+    this._generator.buildGeometry(skeleton, target);
   }
 }

@@ -1,3 +1,4 @@
+import type { ISpineGeometry } from "./ISpineGeometry";
 import type { ISpineSkin } from "./ISpineSkin";
 import type { ISpineSkeletonData } from "./ISpineSkeletonData";
 import type { ISpineSkeleton } from "./ISpineSkeleton";
@@ -12,9 +13,9 @@ import type { ISpineTextureAtlas } from "./ISpineTextureAtlas";
  *
  * @remarks
  * Parses assets, creates animation objects, updates poses and builds geometry for one Spine version.
- * Texture and render-target types are supplied by the integration layer.
+ * The texture type is supplied by the integration layer.
  */
-export interface ISpineRuntime<TTexture, TRenderTarget> {
+export interface ISpineRuntime<TTexture> {
   /** Export major.minor supported by this backend. */
   readonly version: string;
 
@@ -49,6 +50,6 @@ export interface ISpineRuntime<TTexture, TRenderTarget> {
   /** Advance the animation state and apply it to the skeleton, then update world transforms. */
   updateState(skeleton: ISpineSkeleton, state: ISpineAnimationState, delta: number): void;
 
-  /** Build the renderable primitive for the current skeleton pose into the given target. */
-  buildPrimitive(skeleton: ISpineSkeleton, target: TRenderTarget): void;
+  /** Write CPU geometry for the current pose. GPU resources remain owned by the shared renderer. */
+  buildGeometry(skeleton: ISpineSkeleton, target: ISpineGeometry<TTexture>): void;
 }

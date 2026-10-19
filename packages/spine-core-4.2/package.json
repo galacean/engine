@@ -20,8 +20,7 @@
   "umd": {
     "name": "Galacean.SpineCore42",
     "globals": {
-      "@galacean/engine": "Galacean",
-      "@galacean/engine-spine": "Galacean.Spine"
+      "@galacean/engine": "Galacean"
     }
   },
   "files": [
@@ -29,7 +28,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-spine": "workspace:*",
     "@esotericsoftware/spine-core": "~4.2.66",
     "@galacean/engine-design": "workspace:*"
   },

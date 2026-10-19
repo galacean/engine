@@ -6,9 +6,11 @@
  * this verifies the 3.8 backend against data it's actually meant to parse.
  */
 import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
-import "@galacean/engine-spine-core-3.8";
+import { registerSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
 import * as dat from "dat.gui";
+
+registerSpineRuntime(new Spine38Runtime());
 
 Logger.enable();
 

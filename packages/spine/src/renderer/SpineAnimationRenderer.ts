@@ -31,7 +31,7 @@ import {
 import { SpineResource } from "../loader/SpineResource";
 import { SpineMaterial } from "./SpineMaterial";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
-import { SpineVertexStride } from "../SpineConstant";
+import { SpineGeometry } from "./SpineGeometry";
 
 /**
  * Spine animation renderer, capable of rendering spine animations and providing functions for animation and skeleton manipulation.
@@ -100,16 +100,7 @@ export class SpineAnimationRenderer extends Renderer {
   _vertexBuffer: Buffer;
   /** @internal */
   @ignoreClone
-  _vertices = new Float32Array();
-  /** @internal */
-  @ignoreClone
-  _indices = new Uint16Array();
-  /** @internal */
-  @ignoreClone
   _needResizeBuffer = false;
-  /** @internal */
-  @ignoreClone
-  _vertexCount = 0;
   /** @internal */
   @ignoreClone
   _resource: SpineResource;
@@ -120,6 +111,8 @@ export class SpineAnimationRenderer extends Renderer {
     new Vector3(-Infinity, -Infinity, -Infinity)
   );
 
+  @ignoreClone
+  private _geometry = new SpineGeometry();
   @ignoreClone
   private _skeleton: ISpineSkeleton;
   @ignoreClone
@@ -191,7 +184,10 @@ export class SpineAnimationRenderer extends Renderer {
     if (!state || !skeleton) return;
     const runtime = this._runtime;
     runtime.updateState(skeleton, state, delta);
-    runtime.buildPrimitive(skeleton, this);
+    const geometry = this._geometry;
+    geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack);
+    runtime.buildGeometry(skeleton, geometry);
+    this._uploadGeometry();
     // Release materials for draw segments that disappeared after a skin/attachment change.
     if (this._materials.length > this._subPrimitives.length) {
       this.setMaterials(this._materials.slice(0, this._subPrimitives.length));
@@ -275,6 +271,7 @@ export class SpineAnimationRenderer extends Renderer {
    */
   override _onDestroy(): void {
     this._publicState?._dispose();
+    this._geometry = null;
     this._subPrimitives.length = 0;
     const primitive = this._primitive;
     if (primitive) {
@@ -298,44 +295,42 @@ export class SpineAnimationRenderer extends Renderer {
     super._onDestroy();
   }
 
-  /**
-   * @internal
-   */
-  _createAndBindBuffer(vertexCount: number): void {
-    const { engine: _engine, _primitive } = this;
-    const oldVertexBuffer = this._vertexBuffer;
-    const oldIndexBuffer = this._indexBuffer;
-    this._vertexCount = vertexCount;
-    const stride = this.tintBlack ? SpineVertexStride.withTint : SpineVertexStride.withoutTint;
-    this._vertices = new Float32Array(vertexCount * stride);
-    this._indices = new Uint16Array(vertexCount);
-    const vertexStride = stride << 2;
-    const vertexBuffer = new Buffer(_engine, BufferBindFlag.VertexBuffer, this._vertices, BufferUsage.Dynamic);
-    const indexBuffer = new Buffer(_engine, BufferBindFlag.IndexBuffer, this._indices, BufferUsage.Dynamic);
-    this._indexBuffer = indexBuffer;
-    this._vertexBuffer = vertexBuffer;
-    const vertexBufferBinding = new VertexBufferBinding(vertexBuffer, vertexStride);
-    this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
-    const indexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt16);
-    _primitive.setIndexBufferBinding(indexBufferBinding);
-    // Rebinding released the primitive's references to the old buffers; destroy() is
-    // refCount-guarded, so this frees their GPU resources without waiting for gc().
-    oldVertexBuffer?.destroy();
-    oldIndexBuffer?.destroy();
-  }
-
-  /**
-   * @internal
-   */
-  _addSubPrimitive(subPrimitive: SubPrimitive): void {
-    this._subPrimitives.push(subPrimitive);
-  }
-
-  /**
-   * @internal
-   */
-  _clearSubPrimitives(): void {
-    this._subPrimitives.length = 0;
+  private _uploadGeometry(): void {
+    const geometry = this._geometry;
+    const { vertices, indices, batches, batchCount, vertexCount, indexCount, bounds, vertexStride } = geometry;
+    const subPrimitives = this._subPrimitives;
+    for (let i = 0; i < batchCount; i++) {
+      const batch = batches[i];
+      const primitive = subPrimitives[i] ?? (subPrimitives[i] = new SubPrimitive());
+      primitive.start = batch.start;
+      primitive.count = batch.count;
+      this.setMaterial(i, this._getMaterial(batch.texture, batch.blendMode));
+    }
+    subPrimitives.length = batchCount;
+    if (!vertexCount) {
+      this._localBounds.min.set(0, 0, 0);
+      this._localBounds.max.set(0, 0, 0);
+      return;
+    }
+    this._localBounds.copyFrom(bounds);
+    if (
+      this._needResizeBuffer ||
+      this._vertexBuffer?.byteLength !== vertices.byteLength ||
+      this._indexBuffer?.byteLength !== indices.byteLength
+    ) {
+      const oldVertexBuffer = this._vertexBuffer;
+      const oldIndexBuffer = this._indexBuffer;
+      this._vertexBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Dynamic);
+      this._indexBuffer = new Buffer(this.engine, BufferBindFlag.IndexBuffer, indices, BufferUsage.Dynamic);
+      this._primitive.setVertexBufferBinding(0, new VertexBufferBinding(this._vertexBuffer, vertexStride * 4));
+      this._primitive.setIndexBufferBinding(new IndexBufferBinding(this._indexBuffer, IndexFormat.UInt16));
+      oldVertexBuffer?.destroy();
+      oldIndexBuffer?.destroy();
+      this._needResizeBuffer = false;
+    } else {
+      this._vertexBuffer.setData(vertices, 0, 0, vertexCount * vertexStride);
+      this._indexBuffer.setData(indices, 0, 0, indexCount);
+    }
   }
 
   /**
@@ -407,7 +402,8 @@ export class SpineAnimationRenderer extends Renderer {
     this._physics = null;
     this._publicSkeleton = null;
     this._publicState = null;
-    this._clearSubPrimitives();
+    this._subPrimitives.length = 0;
+    this._geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack);
     this.setMaterials([]);
     this._localBounds.min.set(0, 0, 0);
     this._localBounds.max.set(0, 0, 0);

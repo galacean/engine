@@ -2,7 +2,12 @@ import type { ISpineRuntime } from "./ISpineRuntime";
 
 const runtimes = new Map<string, ISpineRuntime>();
 
-/** Register one backend per export major.minor. Registration never replaces an existing backend. */
+/**
+ * Register a backend before loading assets of its export major.minor version.
+ * The registry is shared by consumers of this module. Registering the same instance again is allowed;
+ * another instance for an already registered version is rejected. Existing resources keep their backend.
+ * @param runtime - The backend instance to reuse for assets of its version.
+ */
 export function registerSpineRuntime(runtime: ISpineRuntime): void {
   if (!/^\d+\.\d+$/.test(runtime.version)) {
     throw new Error(`Invalid Spine runtime version: ${runtime.version}`);
@@ -19,7 +24,9 @@ export function getSpineRuntime(version: string | null | undefined): ISpineRunti
   const majorMinor = /^(\d+\.\d+)(?:\.|$)/.exec(version ?? "")?.[1];
   const runtime = runtimes.get(majorMinor);
   if (!runtime) {
-    throw new Error(`No Spine runtime registered for asset version "${version}". Include the matching Spine backend.`);
+    throw new Error(
+      `No Spine runtime registered for asset version "${version}". Register the matching Spine backend before loading assets.`
+    );
   }
   return runtime;
 }

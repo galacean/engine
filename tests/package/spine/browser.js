@@ -1,5 +1,6 @@
 import { WebGLEngine, Camera, Color } from "@galacean/engine";
-import "@galacean/engine-spine-core-__FIRST__";
+import { registerSpineRuntime } from "@galacean/engine-spine";
+import * as firstBackend from "@galacean/engine-spine-core-__FIRST__";
 
 (async () => {
   let engine;
@@ -37,9 +38,25 @@ import "@galacean/engine-spine-core-__FIRST__";
       return lit;
     }
 
+    async function expectUnregistered(version) {
+      try {
+        await load(version);
+      } catch (error) {
+        if (String(error).includes("No Spine runtime registered")) return;
+        throw error;
+      }
+      throw new Error(`Spine ${version} was registered implicitly`);
+    }
+
+    await expectUnregistered("__FIRST__");
+    const firstRuntime = new firstBackend["Spine" + "__FIRST__".replace(".", "") + "Runtime"]();
+    registerSpineRuntime(firstRuntime);
+    registerSpineRuntime(firstRuntime);
     const first = await load("__FIRST__");
     const firstOnly = visible();
-    await import("@galacean/engine-spine-core-__SECOND__");
+    const secondBackend = await import("@galacean/engine-spine-core-__SECOND__");
+    await expectUnregistered("__SECOND__");
+    registerSpineRuntime(new secondBackend["Spine" + "__SECOND__".replace(".", "") + "Runtime"]());
     const afterRegistration = visible();
     first.isActive = false;
     await load("__SECOND__");

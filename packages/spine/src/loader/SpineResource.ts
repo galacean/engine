@@ -5,7 +5,6 @@ import type { SpineSkin } from "../SpineSkin";
 import type { ISpineRuntime } from "../runtime/ISpineRuntime";
 import { Engine, Entity, ReferResource, Texture2D } from "@galacean/engine";
 import { SpineAnimationRenderer } from "../renderer/SpineAnimationRenderer";
-import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 
 /**
  * Represents a resource that manages Spine animation data, textures, and entity templates for the Galacean engine.
@@ -24,8 +23,7 @@ export class SpineResource extends ReferResource {
   /** @internal */
   readonly _runtime: ISpineRuntime;
 
-  private constructor(engine: Engine, skeletonData: ISpineSkeletonData, url?: string) {
-    const runtime = getSpineRuntime(skeletonData.version);
+  private constructor(engine: Engine, runtime: ISpineRuntime, skeletonData: ISpineSkeletonData, url?: string) {
     super(engine);
     this._runtime = runtime;
     this.url = url;
@@ -39,8 +37,13 @@ export class SpineResource extends ReferResource {
   }
 
   /** @internal */
-  static _create(engine: Engine, skeletonData: ISpineSkeletonData, url?: string): SpineResource {
-    return new SpineResource(engine, skeletonData, url);
+  static _create(
+    engine: Engine,
+    runtime: ISpineRuntime,
+    skeletonData: ISpineSkeletonData,
+    url?: string
+  ): SpineResource {
+    return new SpineResource(engine, runtime, skeletonData, url);
   }
 
   /**

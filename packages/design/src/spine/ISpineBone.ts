@@ -2,8 +2,6 @@ import type { ISpineBoneData } from "./ISpineBoneData";
 
 export interface ISpineBone {
   readonly data: ISpineBoneData;
-  readonly parent: ISpineBone | null;
-  readonly children: readonly ISpineBone[];
   /** Local pose, before constraints. */
   x: number;
   y: number;

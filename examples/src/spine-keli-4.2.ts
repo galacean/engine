@@ -3,9 +3,11 @@
  * @category Spine
  */
 import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
-import "@galacean/engine-spine-core-4.2";
+import { registerSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
+import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 import * as dat from "dat.gui";
+
+registerSpineRuntime(new Spine42Runtime());
 
 Logger.enable();
 
