@@ -15,8 +15,8 @@ type SpineLoadContext = {
   skeletonRawData: string | ArrayBuffer;
 };
 
-// Specify AssetType.JSON when loading plain JSON after registering this loader.
-@resourceLoader("Spine", ["json", "bin", "skel"])
+// Specify type: "Spine" when loading Spine assets with .json or .bin extensions.
+@resourceLoader("Spine", ["skel"])
 export class SpineLoader extends Loader<SpineResource> {
   private static _decoder = new TextDecoder("utf-8");
 

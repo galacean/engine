@@ -1,5 +1,28 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { AssetPromise, AssetType, ResourceManager } from "@galacean/engine";
 import { SpineLoader } from "../../../packages/spine/src/loader/SpineLoader";
+
+describe("Spine loader routing", () => {
+  it.each([
+    { url: "asset.skel", type: undefined, expectedType: "Spine" },
+    { url: "asset.json", type: undefined, expectedType: AssetType.JSON },
+    { url: "asset.bin", type: undefined, expectedType: AssetType.Buffer },
+    { url: "asset.json", type: "Spine", expectedType: "Spine" },
+    { url: "asset.bin", type: "Spine", expectedType: "Spine" }
+  ])("routes $url with type $type to $expectedType", async ({ url, type, expectedType }) => {
+    const resourceManager = new ResourceManager(null);
+    const resource = {};
+    const load = vi.spyOn(ResourceManager._loaders[expectedType], "load").mockImplementation(() => {
+      return AssetPromise.resolve(resource);
+    });
+    try {
+      expect(await resourceManager.load({ url, type })).to.equal(resource);
+      expect(load).toHaveBeenCalledOnce();
+    } finally {
+      load.mockRestore();
+    }
+  });
+});
 
 describe("SpineLoader._getUrlExtension", () => {
   it("extracts the extension for spine asset types", () => {
