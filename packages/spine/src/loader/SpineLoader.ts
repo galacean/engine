@@ -41,22 +41,21 @@ export class SpineLoader extends Loader<SpineResource> {
     if (skeletonDependency) {
       assetPath.atlasPath = skeletonDependency.atlas;
     } else {
+      const path = SpineLoader._getUrlPath(url);
       const extensionPattern: RegExp = /\.(json|bin|skel)$/;
-      let baseUrl: string;
-      if (extensionPattern.test(url)) {
-        baseUrl = url.replace(extensionPattern, "");
-      }
-      if (baseUrl) {
-        const atlasUrl = baseUrl + ".atlas";
-        assetPath.atlasPath = atlasUrl;
+      if (extensionPattern.test(path)) {
+        assetPath.atlasPath = path.replace(extensionPattern, ".atlas");
       }
     }
   }
 
   static _getUrlExtension(url: string): string | null {
-    const regex = /\.(\w+)(\?|$)/;
-    const match = url.match(regex);
+    const match = SpineLoader._getUrlPath(url).match(/\.(\w+)$/);
     return match ? match[1] : null;
+  }
+
+  private static _getUrlPath(url: string): string {
+    return url.split(/[?#]/, 1)[0];
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpineResource> {

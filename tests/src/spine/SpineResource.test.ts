@@ -69,7 +69,7 @@ describe("Spine resource ownership", () => {
   }
 
   for (const version of ["3.8", "4.2"] as const) {
-    for (const mode of ["atlas-relative", "explicit", "virtual"] as const) {
+    for (const mode of ["atlas-relative", "explicit", "virtual", "single-url-query", "single-url-fragment"] as const) {
       it(`${version}: loads and renders with ${mode} atlas textures`, async () => {
         const atlasUrl = new URL(`./fixtures/${version}.atlas`, import.meta.url).href;
         const textureUrls = ["page.png", "alt.png"].map((name) => new URL(`./fixtures/${name}`, import.meta.url).href);
@@ -93,6 +93,12 @@ describe("Spine resource ownership", () => {
             }))
           ]);
           resource = await engine.resourceManager.load<SpineResource>({ url: skeletonPath, type: "Spine" });
+        } else if (mode === "single-url-query" || mode === "single-url-fragment") {
+          const suffix = mode === "single-url-query" ? "?v=1.2&source=file.bin#preview" : "#preview";
+          resource = await engine.resourceManager.load<SpineResource>({
+            url: urls[version] + suffix,
+            type: "Spine"
+          });
         } else {
           resource = await engine.resourceManager.load<SpineResource>({
             urls: [urls[version], atlasUrl, ...(mode === "explicit" ? textureUrls : [])],
