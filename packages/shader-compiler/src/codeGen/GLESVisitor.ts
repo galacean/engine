@@ -304,19 +304,16 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _walkMacroDefineTokens(children: NodeChild[]): void {
     for (const child of children) {
       if (child instanceof ASTNode.MacroDefine) {
-        // IO declarations need macro members before emission. Ordinary globals
-        // belong to reachable stage code, not every macro replacement list.
-        if (child.valueExpression) this._collectMacroStructProps(child.valueExpression);
+        // Codegen the value once. Its side effects are what this walk is for: the
+        // enclosed `visitPostfixExpression` calls register the IO struct props they
+        // touch, and `visitVariableIdentifier`/`visitFunctionCall` register the
+        // globals they name — `INVERSE_MAT` expands to `inverseMat`, which is
+        // reachable only through the macro body. The returned text is discarded;
+        // the real emit happens in `_getGlobalMacroDeclarations`.
+        if (child.valueExpression) child.valueExpression.codeGen(this);
       } else if (child instanceof TreeNode) {
         this._walkMacroDefineTokens(child.children);
       }
-    }
-  }
-
-  private _collectMacroStructProps(node: TreeNode): void {
-    if (node instanceof ASTNode.PostfixExpression) this.referenceStructProp(node);
-    for (const child of node.children) {
-      if (child instanceof TreeNode) this._collectMacroStructProps(child);
     }
   }
 

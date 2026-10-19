@@ -775,4 +775,179 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.contain("u_globalLightDir");
     expect(fragment).to.contain("normalize");
   });
+
+  /**
+   * Regression guard for the stage-scope fixes: hoisting helper structs must neither
+   * duplicate a top-level declaration nor drop a helper function.
+   *
+   * Two bugs motivated this:
+   *  - IO structs (Attributes/Varyings/MRT) were collected from function signatures and
+   *    re-emitted at the top of the stage, duplicating the declaration that
+   *    `_getCustomStruct` already emits. Duplicate `varying`/`attribute` is a GLSL error.
+   *  - `_walkMacroDefineTokens` stopped codegen-ing macro bodies, so globals referenced
+   *    only from a macro (e.g. `INVERSE_MAT` → `inverseMat`) were never emitted.
+   */
+  describe("stage-scope struct and macro emission", () => {
+    const builtInShaders = [
+      "PBR.shader",
+      "BlinnPhong.shader",
+      "Unlit.shader",
+      "2D/Sprite.shader",
+      "2D/Text.shader",
+      "2D/UIDefault.shader",
+      "2D/SpriteMask.shader",
+      "Blit/Blit.shader",
+      "Blit/BlitScreen.shader",
+      "Effect/Particle.shader",
+      "Effect/ParticleFeedback.shader",
+      "Effect/Trail.shader",
+      "Pipeline/ShadowCaster.shader",
+      "Pipeline/DepthOnly.shader",
+      "PostProcess/Bloom.shader",
+      "PostProcess/Uber.shader",
+      "PostProcess/FinalSRGB.shader",
+      "PostProcess/FinalAntiAliasing.shader",
+      "Sky/Skybox.shader",
+      "Sky/BackgroundTexture.shader",
+      "Sky/SkyProcedural.shader",
+      "Lighting/ScalableAmbientOcclusion.shader"
+    ];
+
+    // The engine's own corpus must link in both stages. A struct emitted without the
+    // `#if` guards around its fields, or a helper emitted without its signature
+    // structs, surfaces here as an invalid shader program.
+    it.each(builtInShaders)("%s links", async (fileName) => {
+      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
+      // `SSAO_QUALITY` selects the sample spiral; without it the AO fragment stage
+      // references `SAMPLE_COUNT`/`angleIncCosSin` from an inactive `#if` arm.
+      glslValidate(engine, source, shaderCompilerRelease, [{ name: "SSAO_QUALITY", value: "1" }]);
+    });
+
+    // GLSL allows function overloading, so a function's identity is its full signature
+    // (`inverseMat(mat2)` vs `inverseMat(mat3)` are distinct, legal declarations).
+    // Variables and structs are identified by name alone.
+    const DECLARATION_PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
+      [/attribute\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
+      [/varying\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
+      [/struct\s+(\w+)\s*\{/g, (m) => m[1]],
+      [
+        /\b(?:float|int|void|bool|vec[234]|mat[234]|ivec[234]|bvec[234])\s+(\w+)\s*\(([^)]*)\)\s*\{/g,
+        (m) => `${m[1]}(${m[2].replace(/\s+/g, " ").trim()})`
+      ]
+    ];
+
+    /**
+     * Walk the generated source tracking `#if/#ifdef/#ifndef … #else … #endif` nesting and
+     * record, for every top-level declaration, the condition path it sits under.
+     *
+     * Two declarations of the same name only conflict when they share a condition path:
+     * mutually exclusive `#ifdef` branches legally declare the same symbol (e.g.
+     * `TANGENT_BS0` under `#if defined(N)&&defined(T)` vs `#else` → `#ifdef T`).
+     */
+    const duplicatesInSameBranch = (source: string) => {
+      const stack: { cond: string; branch: number }[] = [];
+      const byName = new Map<string, Map<string, number>>();
+      const pathKey = () => stack.map((f) => `${f.cond}#${f.branch}`).join(" && ") || "<unconditional>";
+
+      for (const line of source.split("\n")) {
+        const trimmed = line.trim();
+        if (/^#\s*if/.test(trimmed)) {
+          stack.push({ cond: trimmed, branch: 0 });
+          continue;
+        }
+        if (/^#\s*elif/.test(trimmed)) {
+          if (stack.length) {
+            stack[stack.length - 1].branch++;
+            stack[stack.length - 1].cond += ` | ${trimmed}`;
+          }
+          continue;
+        }
+        if (/^#\s*else/.test(trimmed)) {
+          if (stack.length) stack[stack.length - 1].branch++;
+          continue;
+        }
+        if (/^#\s*endif/.test(trimmed)) {
+          stack.pop();
+          continue;
+        }
+
+        for (const [pattern, key] of DECLARATION_PATTERNS) {
+          pattern.lastIndex = 0;
+          for (const match of line.matchAll(pattern)) {
+            const name = key(match);
+            let paths = byName.get(name);
+            if (!paths) byName.set(name, (paths = new Map()));
+            const path = pathKey();
+            paths.set(path, (paths.get(path) ?? 0) + 1);
+          }
+        }
+      }
+
+      const duplicates: { key: string; path: string; count: number }[] = [];
+      for (const [key, paths] of byName) {
+        for (const [path, count] of paths) {
+          if (count > 1) duplicates.push({ key, path, count });
+        }
+      }
+      return duplicates;
+    };
+
+    it.each(builtInShaders)("%s emits each top-level declaration once", async (fileName) => {
+      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
+      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
+
+      for (const subShader of shaderSource.subShaders) {
+        for (const passSource of subShader.passes) {
+          if (passSource.isUsePass) continue;
+          const parsed = shaderCompilerRelease._parseShaderPass(
+            passSource.contents,
+            passSource.vertexEntry,
+            passSource.fragmentEntry,
+            ShaderLanguage.GLSLES100
+          );
+          expect(parsed, `${fileName}: parse failed`).to.not.be.undefined;
+
+          for (const [stage, instructions] of [
+            ["vertex", parsed!.vertex],
+            ["fragment", parsed!.fragment]
+          ] as const) {
+            for (const duplicate of duplicatesInSameBranch(instructions)) {
+              expect.fail(
+                `${fileName} ${subShader.name}.${passSource.name} ${stage}: ` +
+                  `"${duplicate.key}" declared ${duplicate.count} times under ${duplicate.path}`
+              );
+            }
+          }
+        }
+      }
+    });
+
+    it("keeps helper functions referenced only from macro bodies", async () => {
+      // `INVERSE_MAT` expands to `inverseMat(mat)` on the WebGL1 path. The definition is
+      // reachable only through the macro, so macro-body codegen must register it.
+      const source = await readFile("../packages/shader/src/Shaders/PBR.shader");
+      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
+      const passSource = shaderSource.subShaders[0].passes[2];
+      const parsed = shaderCompilerRelease._parseShaderPass(
+        passSource.contents,
+        passSource.vertexEntry,
+        passSource.fragmentEntry,
+        ShaderLanguage.GLSLES100
+      )!;
+
+      for (const instructions of [parsed.vertex, parsed.fragment]) {
+        if (!instructions.includes("inverseMat(")) continue;
+        expect(instructions, "macro-only helper must still be defined").to.contain("mat2 inverseMat");
+      }
+    });
+
+    it("declares structs named only by an emitted helper's signature", async () => {
+      // `shadeSurface` reaches the vertex stage through `#define SURFACE_HOOK` alone, and
+      // the local that would otherwise name `SurfaceData` exists only in the fragment
+      // branch. Without registering the parameter type, the vertex stage emits a
+      // signature referencing an undeclared struct and the program fails to link.
+      const shaderSource = await readFile("src/shader-compiler/shaders/helper-signature-struct.shader");
+      glslValidate(engine, shaderSource, shaderCompilerRelease);
+    });
+  });
 });

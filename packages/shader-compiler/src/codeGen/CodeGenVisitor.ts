@@ -1,4 +1,4 @@
-import { ShaderPosition, ShaderRange } from "../common";
+import { GalaceanDataType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";
@@ -269,6 +269,7 @@ export abstract class CodeGenVisitor {
     let out = "";
     for (let i = 0, length = params.length; i < length; i++) {
       const item = params[i];
+      this._referenceSignatureStruct(item.typeInfo?.type, item.typeInfo?.typeLexeme);
       const astNode = item.astNode!;
       const code = astNode.codeGen(this);
       if (astNode instanceof ASTNode.MacroParamBlock || i === 0) {
@@ -282,11 +283,33 @@ export abstract class CodeGenVisitor {
   }
 
   visitFunctionHeader(node: ASTNode.FunctionHeader): string {
-    const returnType = node.returnType.typeSpecifier.lexeme;
+    const typeSpecifier = node.returnType.typeSpecifier;
+    const returnType = typeSpecifier.lexeme;
     if (VisitorContext.context.isVaryingStruct(returnType)) {
       return `void ${node.ident.lexeme}(`;
     }
+    this._referenceSignatureStruct(typeSpecifier.type, typeSpecifier.lexeme);
     return this.defaultCodeGen(node.children);
+  }
+
+  /**
+   * Register a custom struct type named in a function signature.
+   *
+   * A pass-scope helper can be pulled into a stage by a macro body alone —
+   * `#define FUNCTION_DIFFUSE_LOBE diffuseLobe` — and be emitted there while its
+   * parameter and return types are named nowhere else in that stage. Registering them
+   * lets `_getGlobalSymbol`'s existing emit path declare them at their own source
+   * position, keeping the `#if` guards around their fields intact.
+   *
+   * IO structs are skipped: `_getCustomStruct` owns their declarations, and a second
+   * copy would be a GLSL redeclaration error.
+   */
+  private _referenceSignatureStruct(type: GalaceanDataType | undefined, lexeme: string | undefined): void {
+    // Built-in types carry a numeric enum; custom ones carry their lexeme.
+    if (typeof type !== "string" || !lexeme) return;
+    const context = VisitorContext.context;
+    if (context.getStructRole(lexeme)) return;
+    context.referenceGlobal(lexeme, ESymbolType.STRUCT);
   }
 
   visitJumpStatement(node: ASTNode.JumpStatement): string {
