@@ -1,11 +1,14 @@
 import { IClone } from "@galacean/engine-design";
 import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
+import type { Shader } from "../shader/Shader";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
 import { request, RequestConfig } from "./request";
+
+type LoadableResource = EngineObject | Shader;
 
 /**
  * ResourceManager
@@ -65,28 +68,28 @@ export class ResourceManager {
    * @param assetItem - AssetItem
    * @returns AssetPromise
    */
-  load<T extends EngineObject>(assetItem: LoadItem): AssetPromise<T>;
+  load<T extends LoadableResource>(assetItem: LoadItem): AssetPromise<T>;
 
   /**
    * Load the asset collection asynchronously by loading the information collection.
    * @param assetItems - Asset collection
    * @returns AssetPromise
    */
-  load<T extends EngineObject[]>(assetItems: LoadItem[]): AssetPromise<T>;
+  load<T extends LoadableResource[]>(assetItems: LoadItem[]): AssetPromise<T>;
 
   /**
    * Load asset collection asynchronously through urls.
    * @param paths - Path collections
    * @returns Asset Promise
    */
-  load<T extends EngineObject[]>(paths: string[]): AssetPromise<T>;
+  load<T extends LoadableResource[]>(paths: string[]): AssetPromise<T>;
 
   /**
    * Load asset asynchronously through the path.
    * @param path - Path
    * @returns Asset promise
    */
-  load<T extends EngineObject>(path: string): AssetPromise<T>;
+  load<T extends LoadableResource>(path: string): AssetPromise<T>;
 
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
     // single item
@@ -103,7 +106,7 @@ export class ResourceManager {
    * @param url - Resource URL
    * @returns Resource object
    */
-  getFromCache<T>(url: string): T {
+  getFromCache<T>(url: string): T | null {
     return (this._assetUrlPool[this._getRemoteUrl(url)] as T) ?? null;
   }
 
@@ -213,7 +216,7 @@ export class ResourceManager {
     const subAssetPromiseCallbacks = (this._subAssetPromiseCallbacks[remoteAssetBaseURL] ||= {});
     const subPromiseCallback = subAssetPromiseCallbacks[assetSubPath];
     if (subPromiseCallback) {
-      subPromiseCallback.resolve(value);
+      subPromiseCallback.resolve!(value);
     } else {
       subAssetPromiseCallbacks[assetSubPath] = {
         resolvedValue: value
@@ -316,16 +319,16 @@ export class ResourceManager {
   _destroy(): void {
     this.cancelNotLoaded();
     this._gc(true);
-    this._assetPool = null;
-    this._assetUrlPool = null;
-    this._referResourcePool = null;
-    this._graphicResourcePool = null;
-    this._contentRestorerPool = null;
-    this._loadingPromises = null;
+    this._assetPool = null!;
+    this._assetUrlPool = null!;
+    this._referResourcePool = null!;
+    this._graphicResourcePool = null!;
+    this._contentRestorerPool = null!;
+    this._loadingPromises = null!;
   }
 
   private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: VirtualResource): void {
-    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url!);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -375,7 +378,7 @@ export class ResourceManager {
     }
 
     // Check loader
-    const loader = <Loader<T>>ResourceManager._loaders[item.type];
+    const loader = <Loader<T>>ResourceManager._loaders[item.type!];
     if (!loader) {
       throw `loader not found: ${item.type}`;
     }
@@ -400,7 +403,7 @@ export class ResourceManager {
     loader: Loader<T>,
     item: LoadItem,
     remoteAssetBaseURL: string,
-    subpackageName: string
+    subpackageName: string | undefined
   ): AssetPromise<T> {
     return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
@@ -516,9 +519,9 @@ export class ResourceManager {
     return remoteAssetURL;
   }
 
-  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string | undefined } {
     const [baseUrl, searchStr] = path.split("?");
-    let queryPath = undefined;
+    let queryPath: string | undefined;
     let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
@@ -536,7 +539,7 @@ export class ResourceManager {
   }
 
   private _parseQueryPath(string): string[] {
-    const result = [];
+    const result: string[] = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
     }
@@ -578,7 +581,11 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T extends EngineObject>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
+  getResourceByRef<T extends LoadableResource>(ref: {
+    url: string;
+    key?: string;
+    isClone?: boolean;
+  }): AssetPromise<T | null> {
     const { url, key, isClone } = ref;
     if (!url) {
       Logger.warn("ResourceManager.getResourceByRef: url is empty.");

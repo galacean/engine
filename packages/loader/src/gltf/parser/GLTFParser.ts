@@ -24,7 +24,7 @@ export abstract class GLTFParser {
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
   ): EngineObject | void | AssetPromise<EngineObject | Uint8Array | void> {
-    let resource: EngineObject | AssetPromise<EngineObject> = null;
+    let resource: EngineObject | AssetPromise<EngineObject> | null = null;
 
     const extensionArray = Object.keys(extensions);
     for (let i = extensionArray.length - 1; i >= 0; --i) {
@@ -49,13 +49,13 @@ export abstract class GLTFParser {
    * @param extra - Extra params
    */
   static executeExtensionsAdditiveAndParse(
-    extensions: { [key: string]: any },
+    extensions: { [key: string]: any } | undefined,
     context: GLTFParserContext,
     parseResource: EngineObject,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
   ): void {
-    for (let extensionName in extensions) {
+    for (const extensionName in extensions) {
       const extensionSchema = extensions[extensionName];
       GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
@@ -107,7 +107,7 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): EngineObject | Uint8Array | AssetPromise<EngineObject | Uint8Array> {
+  ): EngineObject | Uint8Array | AssetPromise<EngineObject | Uint8Array | null> | undefined {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
 
     if (parser) {

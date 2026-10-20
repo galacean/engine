@@ -23,8 +23,8 @@ export class ParticleTransformFeedbackSimulator {
 
   private _simulator: TransformFeedbackSimulator;
   private _particleInitData = new Float32Array(6);
-  private _oldReadBuffer: Buffer;
-  private _oldWriteBuffer: Buffer;
+  private _oldReadBuffer: Buffer | null;
+  private _oldWriteBuffer: Buffer | null;
 
   /**
    * The current read buffer binding for the render pass.
@@ -88,8 +88,8 @@ export class ParticleTransformFeedbackSimulator {
    * Must be called after `resize` which saves the old buffers.
    */
   copyOldBufferData(srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
-    this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer, srcByteOffset, dstByteOffset, byteLength);
-    this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
+    this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer!, srcByteOffset, dstByteOffset, byteLength);
+    this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer!, srcByteOffset, dstByteOffset, byteLength);
   }
 
   /**

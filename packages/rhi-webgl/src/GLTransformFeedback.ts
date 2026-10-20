@@ -8,7 +8,7 @@ import { GLBuffer } from "./GLBuffer";
  */
 export class GLTransformFeedback implements IPlatformTransformFeedback {
   private _gl: WebGL2RenderingContext;
-  private _glTransformFeedback: WebGLTransformFeedback;
+  private _glTransformFeedback: WebGLTransformFeedback | null;
 
   constructor(rhi: WebGLGraphicDevice) {
     const gl = <WebGL2RenderingContext>rhi.gl;
@@ -47,7 +47,7 @@ export class GLTransformFeedback implements IPlatformTransformFeedback {
   destroy(): void {
     if (this._glTransformFeedback) {
       this._gl.deleteTransformFeedback(this._glTransformFeedback);
-      this._glTransformFeedback = null;
+      this._glTransformFeedback = null!;
     }
   }
 }

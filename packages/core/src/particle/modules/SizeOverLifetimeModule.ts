@@ -14,15 +14,24 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Size over lifetime module.
  */
 export class SizeOverLifetimeModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _curveModeMacro = ShaderMacro.getByName("RENDERER_SOL_CURVE_MODE");
+  /** @internal */
   static readonly _isSeparateMacro = ShaderMacro.getByName("RENDERER_SOL_IS_SEPARATE");
+  /** @internal */
   static readonly _isRandomTwoMacro = ShaderMacro.getByName("RENDERER_SOL_IS_RANDOM_TWO");
 
+  /** @internal */
   static readonly _minCurveXProperty = ShaderProperty.getByName("renderer_SOLMinCurveX");
+  /** @internal */
   static readonly _minCurveYProperty = ShaderProperty.getByName("renderer_SOLMinCurveY");
+  /** @internal */
   static readonly _minCurveZProperty = ShaderProperty.getByName("renderer_SOLMinCurveZ");
+  /** @internal */
   static readonly _maxCurveXProperty = ShaderProperty.getByName("renderer_SOLMaxCurveX");
+  /** @internal */
   static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_SOLMaxCurveY");
+  /** @internal */
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
 
   /** @internal */
@@ -35,11 +44,11 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   private _sizeZ: ParticleCompositeCurve;
 
   @ignoreClone
-  private _enableSeparateMacro: ShaderMacro;
+  private _enableSeparateMacro: ShaderMacro | null;
   @ignoreClone
-  private _isCurveMacro: ShaderMacro;
+  private _isCurveMacro: ShaderMacro | null;
   @ignoreClone
-  private _isRandomTwoMacro: ShaderMacro;
+  private _isRandomTwoMacro: ShaderMacro | null;
 
   /**
    * Specifies whether the Size is separate on each axis.
@@ -123,9 +132,9 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let enableSeparateMacro = <ShaderMacro>null;
-    let isCurveMacro = <ShaderMacro>null;
-    let isRandomTwoMacro = <ShaderMacro>null;
+    let enableSeparateMacro: ShaderMacro | null = null;
+    let isCurveMacro: ShaderMacro | null = null;
+    let isRandomTwoMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const sizeX = this.sizeX;

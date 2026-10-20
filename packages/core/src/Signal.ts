@@ -127,6 +127,7 @@ export class Signal<T extends any[] = []> extends DataObject implements ICloneHo
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Signal<T>, cloneMap: ReadonlyMap<object, object>): void {
@@ -144,7 +145,7 @@ export class Signal<T extends any[] = []> extends DataObject implements ICloneHo
     }
   }
 
-  private _cloneArguments(args: any[], cloneMap: ReadonlyMap<object, object>): any[] {
+  private _cloneArguments(args: any[] | undefined, cloneMap: ReadonlyMap<object, object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);

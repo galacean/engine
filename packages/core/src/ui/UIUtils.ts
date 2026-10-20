@@ -55,7 +55,7 @@ export class UIUtils {
         engine._renderCount++;
       }
     }
-    renderContext.camera = null;
+    renderContext.camera = null!;
     engine._macroCollection.disable(UIUtils._shouldSRGBCorrect);
   }
 }

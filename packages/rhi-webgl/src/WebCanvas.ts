@@ -15,6 +15,7 @@ export class WebCanvas extends Canvas {
       typeof ResizeObserverEntry !== "undefined" && "devicePixelContentBoxSize" in ResizeObserverEntry.prototype);
   }
 
+  /** @internal */
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _resizeObserver?: ResizeObserver;
@@ -84,7 +85,7 @@ export class WebCanvas extends Canvas {
   /**
    * @internal
    */
-  _pumpPendingResolution(): void {
+  override _pumpPendingResolution(): void {
     if (!this._resolutionDirty) return;
 
     const webCanvas = this._webCanvas;

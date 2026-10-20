@@ -24,7 +24,7 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
  */
 export class Image extends UIRenderer implements ISpriteRenderer {
   @ignoreClone
-  private _sprite: Sprite = null;
+  private _sprite: Sprite | null = null;
   @ignoreClone
   private _drawMode: SpriteDrawMode;
   @ignoreClone
@@ -96,7 +96,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   /**
    * The Sprite to render.
    */
-  get sprite(): Sprite {
+  get sprite(): Sprite | null {
     return this._sprite;
   }
 
@@ -105,13 +105,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     if (lastSprite !== value) {
       if (lastSprite) {
         this._addResourceReferCount(lastSprite, -1);
-        // @ts-ignore
         lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       }
       this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
       if (value) {
         this._addResourceReferCount(value, 1);
-        // @ts-ignore
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(UIRenderer._textureProperty, value.texture);
       } else {
@@ -127,7 +125,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   constructor(entity: Entity) {
     super(entity);
     this.drawMode = SpriteDrawMode.Simple;
-    // @ts-ignore
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -147,6 +144,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onClone(target: Image): void {
@@ -159,7 +157,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const sprite = this._sprite;
     const rootCanvas = this._getRootCanvas();
     if (sprite && rootCanvas) {
-      const transform = <UITransform>this._transformEntity.transform;
+      const transform = <UITransform>this._transformEntity!.transform;
       const { size } = transform;
       this._assembler.updatePositions(
         this,
@@ -172,7 +170,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         rootCanvas.referenceResolutionPerUnit
       );
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }
@@ -180,7 +178,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
 
   protected override _render(context): void {
     const { _sprite: sprite } = this;
-    const transform = <UITransform>this._transformEntity.transform;
+    const transform = <UITransform>this._transformEntity!.transform;
     const { x: width, y: height } = transform.size;
     if (!sprite?.texture || !width || !height) {
       return;
@@ -192,7 +190,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      // @ts-ignore
       material = this._engine._getUIDefaultMaterial();
     }
 
@@ -202,7 +199,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
 
     let { _dirtyUpdateFlag: dirtyUpdateFlag } = this;
-    const canvas = this._getRootCanvas();
+    const canvas = this._getRootCanvas()!;
     // Update position
     if (dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(
@@ -234,7 +231,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const { engine } = context.camera;
     const renderElement = engine._renderElementPool.get();
     const subChunk = this._subChunk;
-    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite!.texture, subChunk);
     renderElement.subShader = material.shader.subShaders[0];
     renderElement.priority = canvas.sortOrder;
     renderElement.distanceForSort = canvas._sortDistance;
@@ -253,7 +250,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const sprite = this._sprite;
     if (sprite) {
       this._addResourceReferCount(sprite, -1);
-      // @ts-ignore
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
       this._sprite = null;
     }
@@ -264,7 +260,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(UIRenderer._textureProperty, this.sprite.texture);
+        this.shaderData.setTexture(UIRenderer._textureProperty, this.sprite!.texture);
         break;
       case SpriteModifyFlags.size:
         switch (this._drawMode) {

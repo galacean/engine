@@ -7,6 +7,7 @@ import type { ICloneHook } from "./clone/ICloneHook";
 
 /**
  * Used to implement transformation related functions.
+ * @remarks A `Transform` subclass must not declare component dependencies.
  */
 export class Transform extends Component implements ICloneHook<Transform> {
   private static _tempQuat0: Quaternion = new Quaternion();
@@ -43,16 +44,16 @@ export class Transform extends Component implements ICloneHook<Transform> {
   @ignoreClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _worldForward: Vector3 = null;
+  private _worldForward: Vector3 | null = null;
   @ignoreClone
-  private _worldRight: Vector3 = null;
+  private _worldRight: Vector3 | null = null;
   @ignoreClone
-  private _worldUp: Vector3 = null;
+  private _worldUp: Vector3 | null = null;
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
   @ignoreClone
-  private _parentTransformCache: Transform = null;
+  private _parentTransformCache: Transform | null = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
 
@@ -345,6 +346,14 @@ export class Transform extends Component implements ICloneHook<Transform> {
     this._scale._onValueChanged = this._onScaleChanged;
   }
 
+  override destroy(): void {
+    const entity = this._entity;
+    if (entity.transform === this && !entity.destroyed) {
+      throw "Transform cannot be destroyed directly; replace it by adding another Transform-compatible component";
+    }
+    super.destroy();
+  }
+
   /**
    * Set local position by X, Y, Z value.
    * @param x - X coordinate
@@ -472,7 +481,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
   ): void {
     if (typeof translationOrX === "number") {
       const translate = Transform._tempVec30;
-      translate.set(translationOrX, <number>relativeToLocalOrY, z);
+      translate.set(translationOrX, <number>relativeToLocalOrY, z!);
       this._translate(translate, relativeToLocal);
     } else {
       this._translate(translationOrX, <boolean>relativeToLocalOrY);
@@ -502,7 +511,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     relativeToLocal?: boolean
   ): void {
     if (typeof rotationOrX === "number") {
-      this._rotateXYZ(rotationOrX, <number>relativeToLocalOrY, z, relativeToLocal);
+      this._rotateXYZ(rotationOrX, <number>relativeToLocalOrY, z!, relativeToLocal);
     } else {
       this._rotateXYZ(rotationOrX.x, rotationOrX.y, rotationOrX.z, <boolean>relativeToLocalOrY);
     }
@@ -579,27 +588,44 @@ export class Transform extends Component implements ICloneHook<Transform> {
   }
 
   /**
+   * @internal
+   */
+  _copyLocalPoseFrom(source: Transform): void {
+    const { _position: position, _rotation: rotation, _rotationQuaternion: rotationQuaternion, _scale: scale } = this;
+
+    //@ts-ignore
+    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = null;
+
+    position.copyFrom(source._position);
+    scale.copyFrom(source._scale);
+    rotation.copyFrom(source._rotation);
+    rotationQuaternion.copyFrom(source._rotationQuaternion);
+
+    //@ts-ignore
+    position._onValueChanged = this._onPositionChanged;
+    //@ts-ignore
+    rotation._onValueChanged = this._onRotationChanged;
+    //@ts-ignore
+    rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    //@ts-ignore
+    scale._onValueChanged = this._onScaleChanged;
+
+    this._localUniformScaling = source._localUniformScaling;
+
+    const rotationDirtyBits = TransformModifyFlags.LocalEuler | TransformModifyFlags.LocalQuat;
+    this._dirtyFlag = (this._dirtyFlag & ~rotationDirtyBits) | (source._dirtyFlag & rotationDirtyBits);
+    this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: Transform): void {
-    const { _position: position, _rotation: rotation, _scale: scale } = target;
-
-    // @ts-ignore
-    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
-
-    position.copyFrom(this.position);
-    rotation.copyFrom(this.rotation);
-    scale.copyFrom(this.scale);
-
-    // @ts-ignore
-    position._onValueChanged = target._onPositionChanged;
-    // @ts-ignore
-    rotation._onValueChanged = target._onRotationChanged;
-    // @ts-ignore
-    scale._onValueChanged = target._onScaleChanged;
-
-    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected
-    target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
+    target._copyLocalPoseFrom(this);
   }
 
   protected _onLocalMatrixChanging(): void {
@@ -636,7 +662,7 @@ export class Transform extends Component implements ICloneHook<Transform> {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
-    let parentCache: Transform = null;
+    let parentCache: Transform | null = null;
     let parent = this._entity.parent;
     while (parent) {
       const transform = parent.transform;

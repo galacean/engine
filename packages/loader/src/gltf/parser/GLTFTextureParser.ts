@@ -35,10 +35,10 @@ export class GLTFTextureParser extends GLTFParser {
   ): AssetPromise<Texture2D> {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
-    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[imageIndex];
+    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images![imageIndex];
 
     const useSampler = sampler !== undefined;
-    const samplerInfo = useSampler && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
+    const samplerInfo = useSampler ? GLTFUtils.getSamplerInfo(glTF.samplers![sampler]) : undefined;
     let texture: AssetPromise<Texture2D>;
 
     if (uri) {
@@ -57,19 +57,19 @@ export class GLTFTextureParser extends GLTFParser {
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
           texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
-          useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
+          samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
           return texture;
         });
 
       context._addTaskCompletePromise(texture);
     } else {
-      const bufferView = glTF.bufferViews[bufferViewIndex];
+      const bufferView = glTF.bufferViews![bufferViewIndex!];
       texture = context
         .get<ArrayBuffer>(GLTFParserType.Buffer)
         .then((buffers) => {
-          const buffer = buffers[bufferView.buffer];
+          const buffer = buffers![bufferView.buffer];
           const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
-          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
+          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType!).then((image) => {
             const { width, height } = image;
             const format = TextureFormat.R8G8B8A8;
             const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
@@ -78,16 +78,16 @@ export class GLTFTextureParser extends GLTFParser {
               height,
               format,
               samplerInfo?.mipmap ?? true,
-              isSRGBColorSpace
+              isSRGBColorSpace!
             );
             const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
             texture.setImageSource(image);
             texture.generateMipmaps();
 
             texture.name = textureName || imageName || `texture_${textureIndex}`;
-            useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
+            samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
 
-            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType!);
             context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
 
             return texture;
@@ -102,7 +102,7 @@ export class GLTFTextureParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, textureIndex: number): AssetPromise<Texture> {
-    const textureInfo = context.glTF.textures[textureIndex];
+    const textureInfo = context.glTF.textures![textureIndex];
     const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
     const isSRGBColorSpace = this._isSRGBColorSpace(textureIndex, context.glTF.materials);
@@ -124,13 +124,12 @@ export class GLTFTextureParser extends GLTFParser {
 
     return AssetPromise.resolve(texture).then((texture) => {
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      // @ts-ignore
       texture._associationSuperResource(glTFResource);
       return texture;
     });
   }
 
-  private _isSRGBColorSpace(textureIndex: number, materials?: IMaterial[]): boolean {
+  private _isSRGBColorSpace(textureIndex: number, materials?: IMaterial[]): boolean | undefined {
     return materials?.some((material) => {
       if (material.emissiveTexture?.index === textureIndex) {
         return true;

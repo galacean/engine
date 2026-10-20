@@ -104,22 +104,22 @@ export class ParticleCompositeGradient extends DataObject {
    * @param out - The result color
    */
 
-  evaluate(time: number, lerpFactor: number, out: Color): void {
+  evaluate(time: number | undefined, lerpFactor: number | undefined, out: Color): void {
     switch (this.mode) {
       case ParticleGradientMode.Constant:
         out.copyFrom(this.constant);
         break;
       case ParticleGradientMode.TwoConstants:
-        Color.lerp(this.constantMin, this.constantMax, lerpFactor, out);
+        Color.lerp(this.constantMin, this.constantMax, lerpFactor!, out);
         break;
       case ParticleGradientMode.Gradient:
-        this.gradientMax._evaluate(time, out);
+        this.gradientMax._evaluate(time!, out);
         break;
       case ParticleGradientMode.TwoGradients: {
         const tmp = ParticleCompositeGradient._tempColor;
-        this.gradientMin._evaluate(time, tmp);
-        this.gradientMax._evaluate(time, out);
-        Color.lerp(tmp, out, lerpFactor, out);
+        this.gradientMin._evaluate(time!, tmp);
+        this.gradientMax._evaluate(time!, out);
+        Color.lerp(tmp, out, lerpFactor!, out);
         break;
       }
       default:

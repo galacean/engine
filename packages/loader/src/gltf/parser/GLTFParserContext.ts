@@ -55,7 +55,6 @@ export class GLTFParserContext {
     public resourceManager: ResourceManager,
     public params: GLTFParams
   ) {
-    // @ts-expect-error -- internal method is omitted from public declarations
     this._remoteAssetBaseURL = resourceManager._getRemoteUrl(glTFResource.url);
     this.contentRestorer = new GLTFContentRestorer(glTFResource);
   }
@@ -63,11 +62,11 @@ export class GLTFParserContext {
   get<T>(type: GLTFParserType.Entity, index: number): Entity;
   get<T>(type: GLTFParserType.Entity): Entity[];
   get<T>(type: GLTFParserType.Schema): AssetPromise<T>;
-  get<T>(type: GLTFParserType.Validator): AssetPromise<T>;
-  get<T>(type: GLTFParserType.AnimatorController): AssetPromise<T>;
+  get<T>(type: GLTFParserType.Validator): AssetPromise<T | null>;
+  get<T>(type: GLTFParserType.AnimatorController): AssetPromise<T | null>;
   get<T>(type: GLTFParserType, index: number): AssetPromise<T>;
-  get<T>(type: GLTFParserType): AssetPromise<T[]>;
-  get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | AssetPromise<T> | AssetPromise<T[]> {
+  get<T>(type: GLTFParserType): AssetPromise<T[] | null>;
+  get<T>(type: GLTFParserType, index?: number): Entity | Entity[] | AssetPromise<T | null> | AssetPromise<T[] | null> {
     const parser = GLTFParserContext._parsers[type];
 
     if (!parser) {
@@ -76,7 +75,7 @@ export class GLTFParserContext {
 
     const cache = this._resourceCache;
     const cacheKey = index === undefined ? `${type}` : `${type}:${index}`;
-    let resource: Entity | Entity[] | AssetPromise<T> | AssetPromise<T[]> = cache.get(cacheKey);
+    let resource: Entity | Entity[] | AssetPromise<T | null> | AssetPromise<T[] | null> = cache.get(cacheKey);
 
     if (resource) {
       return resource;
@@ -98,7 +97,7 @@ export class GLTFParserContext {
           isSubAsset && this._handleSubAsset(resource, type, index);
         }
       } else {
-        resource = AssetPromise.resolve<T>(null);
+        resource = AssetPromise.resolve(null);
       }
     } else {
       resource = parser.parse(this, index);
@@ -171,7 +170,7 @@ export class GLTFParserContext {
   }
 
   private _handleSubAsset<T>(
-    resource: Entity | Entity[] | AssetPromise<T> | AssetPromise<T[]>,
+    resource: Entity | Entity[] | AssetPromise<T | null> | AssetPromise<T[] | null>,
     type: GLTFParserType,
     index?: number
   ): void {
@@ -193,7 +192,6 @@ export class GLTFParserContext {
           if (type === GLTFParserType.Mesh) {
             for (let i = 0, length = (<ModelMesh[]>item).length; i < length; i++) {
               const mesh = item[i] as ModelMesh;
-              // @ts-ignore
               this.resourceManager._onSubAssetSuccess<ModelMesh>(
                 remoteAssetBaseURL,
                 `${glTFResourceKey}[${index}][${i}]`,
@@ -201,7 +199,6 @@ export class GLTFParserContext {
               );
             }
           } else {
-            // @ts-ignore
             this.resourceManager._onSubAssetSuccess<T>(
               remoteAssetBaseURL,
               `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
@@ -209,7 +206,6 @@ export class GLTFParserContext {
             );
 
             if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
-              // @ts-ignore
               this.resourceManager._onSubAssetSuccess<Entity>(remoteAssetBaseURL, `defaultSceneRoot`, item as Entity);
             }
           }

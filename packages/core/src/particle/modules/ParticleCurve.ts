@@ -55,7 +55,7 @@ export class ParticleCurve extends DataObject {
       throw new Error("Curve can only have 4 keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value!) : timeOrKey;
     this._addKey(keys, key);
     key._registerOnValueChanged(this._updateDispatch);
     this._updateDispatch();

@@ -21,7 +21,7 @@ export type SymbolAstNode =
 export class SymbolInfo implements IBaseSymbol {
   constructor(
     public ident: string,
-    public type: ESymbolType,
+    public type: ESymbolType | null,
     public astNode?: SymbolAstNode,
     public dataType?: SymbolDataType,
     public paramSignature?: GalaceanDataType[],
@@ -51,9 +51,9 @@ export class SymbolInfo implements IBaseSymbol {
       const comparedParams = symbol.paramSignature ?? (<ASTNode.FunctionDefinition>symbol.astNode).protoType.paramSig;
       const length = params?.length;
       if (length !== comparedParams?.length) return false;
-      for (let i = 0; i < length; i++) {
-        const t1 = params[i],
-          t2 = comparedParams[i];
+      for (let i = 0; i < length!; i++) {
+        const t1 = params![i],
+          t2 = comparedParams![i];
         if (t1 === TypeAny || t2 === TypeAny) continue;
         if (t1 !== t2) return false;
       }
