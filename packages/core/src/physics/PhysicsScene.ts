@@ -17,6 +17,7 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
+  private static _tempDirection = new Vector3();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -160,7 +161,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
 
     let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
@@ -180,14 +181,19 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.raycast(
-      ray,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -271,7 +277,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -298,17 +304,21 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.boxCast(
-      center,
-      orientation,
-      halfExtents,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.boxCast(
+        center,
+        orientation,
+        halfExtents,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -383,7 +393,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
@@ -403,16 +413,20 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.sphereCast(
-      center,
-      radius,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.sphereCast(
+        center,
+        radius,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -504,7 +518,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -530,18 +544,22 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
     const preFilter = this._createPreFilter(layerMask);
 
-    const result = this._nativePhysicsScene.capsuleCast(
-      center,
-      radius,
-      height,
-      orientation,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.capsuleCast(
+        center,
+        radius,
+        height,
+        orientation,
+        normalizedDirection,
+        distance,
+        preFilter,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -840,6 +858,11 @@ export class PhysicsScene {
     }
   }
 
+  private static _normalizeDirection(direction: Vector3): Vector3 | null {
+    const out = PhysicsScene._tempDirection;
+    return Vector3.normalize(direction, out) ? out : null;
+  }
+
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
@@ -850,7 +873,7 @@ export class PhysicsScene {
       if (!shape) {
         return false;
       }
-      return shape.collider.collisionLayer & mask && shape.isSceneQuery;
+      return (shape.collider!.collisionLayer & mask) !== 0 && shape.isSceneQuery;
     };
   }
 
@@ -858,7 +881,7 @@ export class PhysicsScene {
     outHitResult: HitResult
   ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
+      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider!.entity;
       outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
       outHitResult.distance = distance;
       outHitResult.point.copyFrom(position);

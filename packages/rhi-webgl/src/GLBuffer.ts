@@ -4,7 +4,7 @@ import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
   /** @internal */
-  _glBuffer: WebGLBuffer;
+  _glBuffer: WebGLBuffer | null;
 
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _glBindTarget: number;
@@ -77,17 +77,23 @@ export class GLBuffer implements IPlatformBuffer {
     if (dataOffset !== 0 || dataByteLength < data.byteLength) {
       const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
       if (this._isWebGL2 && isArrayBufferView) {
-        gl.bufferSubData(glBindTarget, bufferByteOffset, <ArrayBufferView>data, dataOffset, dataByteLength / byteSize);
+        gl.bufferSubData(
+          glBindTarget,
+          bufferByteOffset!,
+          <ArrayBufferView>data,
+          dataOffset!,
+          dataByteLength / byteSize
+        );
       } else {
         const subData = new Uint8Array(
           isArrayBufferView ? (<ArrayBufferView>data).buffer : <ArrayBuffer>data,
-          dataOffset * byteSize,
+          dataOffset! * byteSize,
           dataByteLength
         );
-        gl.bufferSubData(glBindTarget, bufferByteOffset, subData);
+        gl.bufferSubData(glBindTarget, bufferByteOffset!, subData);
       }
     } else {
-      gl.bufferSubData(glBindTarget, bufferByteOffset, data);
+      gl.bufferSubData(glBindTarget, bufferByteOffset!, data);
     }
     gl.bindBuffer(glBindTarget, null);
   }
@@ -96,7 +102,7 @@ export class GLBuffer implements IPlatformBuffer {
     if (this._isWebGL2) {
       const gl = <WebGL2RenderingContext>this._gl;
       this.bind();
-      gl.getBufferSubData(this._glBindTarget, bufferByteOffset, data, dataOffset, dataLength);
+      gl.getBufferSubData(this._glBindTarget, bufferByteOffset!, data, dataOffset, dataLength);
     } else {
       throw "Buffer is write-only on WebGL1.0 platforms.";
     }
@@ -113,8 +119,8 @@ export class GLBuffer implements IPlatformBuffer {
 
   destroy(): void {
     this._gl.deleteBuffer(this._glBuffer);
-    this._gl = null;
-    this._glBuffer = null;
+    this._gl = null!;
+    this._glBuffer = null!;
   }
 
   private _getGLBufferUsage(gl: WebGLRenderingContext, bufferUsage: BufferUsage): number {

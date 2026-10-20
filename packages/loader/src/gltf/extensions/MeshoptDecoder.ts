@@ -10,12 +10,14 @@ interface WorkerItem {
   requests: Record<string, any>;
 }
 
-export let ready: Promise<{
-  workerCount: number;
-  useWorkers: (count?: number) => void;
-  decodeGltfBuffer: (count, stride, source, mode, filter) => Promise<Uint8Array>;
-  release: () => void;
-}>;
+export let ready:
+  | Promise<{
+      workerCount: number;
+      useWorkers: (count?: number) => void;
+      decodeGltfBuffer: (count, stride, source, mode, filter) => Promise<Uint8Array>;
+      release: () => void;
+    }>
+  | undefined;
 
 export function getMeshoptDecoder() {
   if (ready) return ready;
@@ -30,7 +32,6 @@ export function getMeshoptDecoder() {
     29, 73, 115
   ]);
 
-  // @ts-ignore
   const wasm = SystemInfo._detectSIMDSupported() ? wasm_simd : wasm_base;
 
   let instance;
@@ -52,7 +53,7 @@ export function getMeshoptDecoder() {
 
         if (workers.length > 0) return decodeWorker(count, stride, source, decoders[mode], filters[filter]);
 
-        return ready.then(function () {
+        return ready!.then(function () {
           const target = new Uint8Array(count * stride);
           decode(instance.exports[decoders[mode]], target, count, stride, source, instance.exports[filters[filter]]);
           return target;

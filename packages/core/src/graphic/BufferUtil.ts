@@ -2,6 +2,9 @@ import { DataType } from "../base/Constant";
 import { IndexFormat } from "./enums/IndexFormat";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
 
+/**
+ * @internal
+ */
 export interface ElementInfo {
   size: number;
   type: DataType;
@@ -9,6 +12,9 @@ export interface ElementInfo {
   normalizedScaleFactor: number;
 }
 
+/**
+ * @internal
+ */
 export class BufferUtil {
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
@@ -32,14 +38,11 @@ export class BufferUtil {
     }
   }
 
-  /**
-   * @internal
-   */
   static _getElementInfo(format: VertexElementFormat): ElementInfo {
-    let size: number;
-    let type: DataType;
+    let size!: number;
+    let type!: DataType;
     let normalized: boolean = false;
-    let normalizedScaleFactor: number;
+    let normalizedScaleFactor!: number;
 
     switch (format) {
       case VertexElementFormat.Float:

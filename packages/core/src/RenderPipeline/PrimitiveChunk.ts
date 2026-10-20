@@ -60,8 +60,8 @@ export class PrimitiveChunk {
     primitive.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, IndexFormat.UInt16));
 
     this.primitive = primitive;
-    this.vertices = new Float32Array(vertexBuffer.data.buffer);
-    this.indices = new Uint16Array(indexBuffer.data.buffer);
+    this.vertices = new Float32Array(vertexBuffer.data!.buffer);
+    this.indices = new Uint16Array(indexBuffer.data!.buffer);
     this.vertexFreeAreas = [new VertexArea(0, maxVertexCount * 9)];
   }
 
@@ -92,7 +92,7 @@ export class PrimitiveChunk {
     // Device: iphone X(16.7.2)、iphone 15 pro max(17.1.1)、iphone XR(17.1.2) etc.
     const { primitive, updateVertexStart, updateVertexEnd } = this;
     if (updateVertexStart !== Number.MAX_SAFE_INTEGER && updateVertexEnd !== Number.MIN_SAFE_INTEGER) {
-      primitive.vertexBufferBindings[0].buffer.setData(
+      primitive.vertexBufferBindings[0]!.buffer.setData(
         this.vertices,
         updateVertexStart * 4,
         updateVertexStart,
@@ -104,16 +104,16 @@ export class PrimitiveChunk {
       this.updateVertexEnd = Number.MIN_SAFE_INTEGER;
     }
 
-    primitive.indexBufferBinding.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
+    primitive.indexBufferBinding!.buffer.setData(this.indices, 0, 0, this.updateIndexLength, SetDataOptions.Discard);
     this.updateIndexLength = 0;
   }
 
   destroy(): void {
     this.primitive._addReferCount(-1);
     this.primitive.destroy();
-    this.primitive = null;
-    this.vertices = null;
-    this.indices = null;
+    this.primitive = null!;
+    this.vertices = null!;
+    this.indices = null!;
   }
 
   private _allocateArea(needSize: number): VertexArea | null {

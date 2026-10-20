@@ -95,8 +95,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     dur: number,
     out: Float32Array
   ): Float32Array {
-    const t0 = frame.outTangent;
-    const t1 = nextFrame.inTangent;
+    const t0 = frame.outTangent!;
+    const t1 = nextFrame.inTangent!;
     const p0 = frame.value;
     const p1 = nextFrame.value;
 

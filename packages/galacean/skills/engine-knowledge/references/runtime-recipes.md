@@ -152,7 +152,8 @@ export function createLocalBloom(camera: Camera, entity: Entity, blendDistance: 
   }
 
   volume.blendDistance = blendDistance;
-  volume.addEffect(BloomEffect).intensity.value = 1;
+  const bloom = volume.addEffect(BloomEffect);
+  if (bloom) bloom.intensity.value = 1;
   camera.enablePostProcess = true;
 
   return volume;

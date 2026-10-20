@@ -15,11 +15,11 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   readonly shapeType = ParticleShapeType.Mesh;
 
   @ignoreClone
-  private _mesh: ModelMesh;
+  private _mesh: ModelMesh | null;
   @ignoreClone
-  private _positionBuffer: TypedArray;
+  private _positionBuffer: TypedArray | null;
   @ignoreClone
-  private _normalBuffer: TypedArray;
+  private _normalBuffer: TypedArray | null;
   @ignoreClone
   private _positionElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
   @ignoreClone
@@ -28,12 +28,12 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   /**
    * Mesh to emit particles from.
    */
-  get mesh(): ModelMesh {
+  get mesh(): ModelMesh | null {
     return this._mesh;
   }
 
-  set mesh(value: ModelMesh) {
-    const lastMesh = this._mesh;
+  set mesh(value: ModelMesh | null) {
+    const lastMesh = this._mesh!;
     if (lastMesh !== value) {
       this._mesh = value;
 
@@ -63,13 +63,15 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
    */
   _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const {
-      _positionBuffer: positions,
+      _positionBuffer: optionalPositions,
       _positionElementInfo: positionInfo,
-      _normalBuffer: normals,
+      _normalBuffer: optionalNormals,
       _normalElementInfo: normalInfo
     } = this;
 
-    const randomIndex = Math.floor(rand.random() * this._mesh.vertexCount);
+    const positions = optionalPositions!;
+    const normals = optionalNormals!;
+    const randomIndex = Math.floor(rand.random() * this._mesh!.vertexCount);
 
     // index = randomIndex * stride + offset
     const positionIndex = randomIndex * positionInfo.y + positionInfo.x;
@@ -86,7 +88,7 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
    * @internal
    */
   _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void {
-    const { bounds } = this._mesh;
+    const { bounds } = this._mesh!;
     bounds.min.copyTo(outMin);
     bounds.max.copyTo(outMax);
   }
@@ -96,7 +98,7 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
    */
   _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void {
     // @todo: Should use min and max of normal, use bounds is worst, but we can't get the min and max of normal by fast way.
-    const { bounds } = this._mesh;
+    const { bounds } = this._mesh!;
     bounds.min.copyTo(outMin);
     bounds.max.copyTo(outMax);
   }
@@ -106,11 +108,11 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
     vertexElement: VertexElement,
     reusePositionBuffer: boolean,
     outVertexElementInfo: Vector4
-  ): TypedArray {
+  ): TypedArray | null {
     const vertexBufferBinding = mesh.vertexBufferBindings[vertexElement.bindingIndex];
     const formatMetaInfo = vertexElement._formatMetaInfo;
 
-    let typedBuffer: TypedArray;
+    let typedBuffer: TypedArray | null;
     if (reusePositionBuffer) {
       typedBuffer = this._positionBuffer;
     } else {
@@ -121,18 +123,18 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
 
       if (buffer.readable) {
         // If buffer is readable, we can get the data directly
-        typedBuffer = mesh._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+        typedBuffer = mesh._getVertexTypedArray(buffer.data!.buffer, formatMetaInfo.type)!;
       } else {
         // Must read from GPU
         const unit8Buffer = new Uint8Array(buffer.byteLength);
-        typedBuffer = mesh._getVertexTypedArray(unit8Buffer.buffer, formatMetaInfo.type);
+        typedBuffer = mesh._getVertexTypedArray(unit8Buffer.buffer, formatMetaInfo.type)!;
         buffer.getData(typedBuffer);
       }
     }
 
     outVertexElementInfo.set(
-      vertexElement.offset / typedBuffer.BYTES_PER_ELEMENT,
-      vertexBufferBinding.stride / typedBuffer.BYTES_PER_ELEMENT,
+      vertexElement.offset / typedBuffer!.BYTES_PER_ELEMENT,
+      vertexBufferBinding!.stride / typedBuffer!.BYTES_PER_ELEMENT,
       formatMetaInfo.normalized ? 1 : 0,
       formatMetaInfo.normalizedScaleFactor
     );
@@ -143,7 +145,7 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   @ignoreClone
   private _onMeshChanged(type: MeshModifyFlags): void {
     if (type & MeshModifyFlags.VertexElements) {
-      const mesh = this._mesh;
+      const mesh = this._mesh!;
       if (mesh) {
         const positionElement = mesh.getVertexElement(VertexAttribute.Position);
         const normalElement = mesh.getVertexElement(VertexAttribute.Normal);
@@ -171,9 +173,10 @@ export class MeshShape extends BaseShape implements ICloneHook<MeshShape> {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   _onClone(target: MeshShape): void {
-    target.mesh = this._mesh;
+    target.mesh = this._mesh!;
   }
 }

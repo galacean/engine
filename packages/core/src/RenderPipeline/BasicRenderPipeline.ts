@@ -40,13 +40,13 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
 
-  private _internalColorTarget: RenderTarget = null;
+  private _internalColorTarget: RenderTarget | null = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
-  private _copyBackgroundTexture: Texture2D;
+  private _copyBackgroundTexture: Texture2D | null;
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
 
@@ -83,7 +83,7 @@ export class BasicRenderPipeline {
       this._copyBackgroundTexture = null;
     }
 
-    this._camera = null;
+    this._camera = null!;
   }
 
   /**
@@ -97,7 +97,8 @@ export class BasicRenderPipeline {
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
-    const { scene, engine, renderTarget } = camera;
+    const { engine, renderTarget } = camera;
+    const scene = camera.scene!;
     const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
@@ -120,7 +121,7 @@ export class BasicRenderPipeline {
     this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
-    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0).isSRGBColorSpace;
+    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
@@ -153,7 +154,7 @@ export class BasicRenderPipeline {
 
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
-      let depthFormat: TextureFormat;
+      let depthFormat: TextureFormat | null;
       if (camera.renderTarget) {
         depthFormat = camera.renderTarget._depthFormat;
       } else if (rhi._options.depth && rhi._options.stencil) {
@@ -197,7 +198,7 @@ export class BasicRenderPipeline {
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const saoPass = this._saoPass;
     if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
       saoPass.onRender(context);
     } else {
       this._saoPass.release();
@@ -226,7 +227,8 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
 
-    const { engine, scene, renderTarget: cameraRenderTarget } = camera;
+    const { engine, renderTarget: cameraRenderTarget } = camera;
+    const scene = camera.scene!;
     const { background } = scene;
 
     const rhi = engine._hardwareRenderer;
@@ -263,11 +265,11 @@ export class BasicRenderPipeline {
       if (keepColorFlag) {
         if (this._shouldCopyBackgroundColor) {
           // Copy RT's color buffer to grab texture
-          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
           Blitter.blitTexture(
             engine,
-            this._copyBackgroundTexture,
+            this._copyBackgroundTexture!,
             internalColorTarget,
             0,
             undefined,
@@ -300,10 +302,10 @@ export class BasicRenderPipeline {
     // Copy opaque texture
     if (camera.opaqueTextureEnabled) {
       // Should blit to resolve the MSAA
-      colorTarget._blitRenderTarget();
+      colorTarget!._blitRenderTarget();
 
       const opaqueTexturePass = this._opaqueTexturePass;
-      opaqueTexturePass.onConfig(camera, colorTarget.getColorTexture(0));
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
       opaqueTexturePass.onRender(context);
 
       // Should revert to original render target
@@ -317,14 +319,14 @@ export class BasicRenderPipeline {
     maskManager.clearMask(context, PipelineStage.Forward);
 
     // Output render target of each stage
-    let outputTarget = <RenderTarget>null;
+    let outputTarget: RenderTarget | null = null;
 
     // Post process
     const needFinalPass = camera._needFinalPass();
     const { postProcessManager } = scene;
     if (camera.enablePostProcess && postProcessManager._isValid()) {
       outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
-      postProcessManager._render(camera, internalColorTarget, outputTarget);
+      postProcessManager._render(camera, internalColorTarget!, outputTarget);
     } else {
       // Maybe internalColorTarget or camera.renderTarget or null
       outputTarget = colorTarget;
@@ -338,7 +340,7 @@ export class BasicRenderPipeline {
     // Final pass
     const finalPass = this._finalPass;
     if (needFinalPass) {
-      finalPass.onConfig(camera, outputTarget);
+      finalPass.onConfig(camera, outputTarget!);
       finalPass.onRender(context);
       outputTarget = cameraRenderTarget;
     } else {
@@ -347,7 +349,7 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
     }
 
     cameraRenderTarget?._blitRenderTarget();
@@ -465,7 +467,7 @@ export class BasicRenderPipeline {
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
-    const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene!._componentsManager;
 
     const rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {

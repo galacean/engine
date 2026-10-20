@@ -11,10 +11,10 @@ export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
-  } = { translation: null, rotation: null };
+  } = { translation: null!, rotation: null! };
 
   /** @internal  */
-  _scene: PhysXPhysicsScene = null;
+  _scene: PhysXPhysicsScene | null = null;
   /** @internal */
   _pxActor: any;
   /** @internal */

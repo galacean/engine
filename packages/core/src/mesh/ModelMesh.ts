@@ -16,6 +16,7 @@ import { VertexAttribute } from "./enums/VertexAttribute";
 
 /**
  * Mesh containing common vertex elements of the model.
+ * Define draw ranges with `addSubMesh()` and assign a material to each corresponding MeshRenderer slot.
  */
 export class ModelMesh extends Mesh {
   private static _tempVec0 = new Vector3();
@@ -60,7 +61,7 @@ export class ModelMesh extends Mesh {
   private _vertexBufferInfos: BufferUpdateInfo[] = [];
 
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
-  private _indicesFormat: IndexFormat = null;
+  private _indicesFormat: IndexFormat | null = null;
   private _indicesChangeFlag: boolean = false;
 
   /**
@@ -93,7 +94,7 @@ export class ModelMesh extends Mesh {
   /**
    * Vertex buffer binding collection.
    */
-  get vertexBufferBindings(): ReadonlyArray<VertexBufferBinding> {
+  get vertexBufferBindings(): ReadonlyArray<VertexBufferBinding | null> {
     // @todo: update if dirty like `vertexElements` is better
     return this._primitive.vertexBufferBindings;
   }
@@ -439,7 +440,7 @@ export class ModelMesh extends Mesh {
   /**
    * Get indices for the mesh.
    */
-  getIndices(): Uint8Array | Uint16Array | Uint32Array {
+  getIndices(): Uint8Array | Uint16Array | Uint32Array | null {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -608,8 +609,8 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Upload data to GPU set by `setPositions()`, `setNormals()`, `setColors()`, `setBoneWeights()`, `setBoneIndices()`, `setTangents()`, `setUVs()`, `setIndices()` methods.
-   * This method will be auto generate vertex element and vertex buffer binding if needed.
+   * Upload mesh data to the GPU, generating vertex elements and buffer bindings as needed.
+   * Bounds must be set separately for culling.
    *
    * @param releaseData - Whether to release the data cache, release data can reduce memory usage.
    */
@@ -633,7 +634,7 @@ export class ModelMesh extends Mesh {
         // VertexBufferInfo maybe undefined
         if (vertexBufferInfo?.uploadAdvancedData) {
           const buffer = vertexBufferBindings[i]?.buffer;
-          buffer.setData(buffer.data);
+          buffer!.setData(buffer!.data!);
           vertexBufferInfo.uploadAdvancedData = false;
         }
       }
@@ -647,11 +648,11 @@ export class ModelMesh extends Mesh {
         if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
           indexBuffer?.destroy();
           const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
-          this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
+          this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat!));
         } else {
           indexBuffer.setData(indices);
-          if (this._primitive.indexBufferBinding._format !== this._indicesFormat) {
-            this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+          if (this._primitive.indexBufferBinding!._format !== this._indicesFormat) {
+            this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat!));
           }
         }
       } else if (indexBuffer) {
@@ -677,7 +678,7 @@ export class ModelMesh extends Mesh {
    * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
-    const positions = this.getPositions();
+    const positions = this.getPositions()!;
     const normals = this.getNormals();
     const uvs = this.getUVs();
 
@@ -762,7 +763,7 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+  override _setVertexBufferBinding(index: number, binding: VertexBufferBinding | null): void {
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
     const onVertexBufferChanged = () => {
@@ -792,7 +793,7 @@ export class ModelMesh extends Mesh {
   /**
    * @internal
    */
-  _getVertexTypedArray(vertexDataBuffer: ArrayBufferLike, dataType: DataType): TypedArray {
+  _getVertexTypedArray(vertexDataBuffer: ArrayBufferLike, dataType: DataType): TypedArray | undefined {
     switch (dataType) {
       case DataType.BYTE:
         return new Int8Array(vertexDataBuffer);
@@ -816,10 +817,10 @@ export class ModelMesh extends Mesh {
   }
 
   private _getVertexElementData<T extends VertexType>(
-    vertices: T[],
+    vertices: T[] | null,
     vertexAttribute: VertexAttribute,
     vertexElementIndex: VertexElementIndex,
-    readVertexData: (vertexAttribute: VertexAttribute) => T[]
+    readVertexData: (vertexAttribute: VertexAttribute) => T[] | null
   ): T[] | null {
     const advancedVertexDataVersions = this._advancedVertexDataVersions;
     const advancedDataVersion = advancedVertexDataVersions[vertexElementIndex] ?? -1;
@@ -834,7 +835,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _beforeSetAdvancedVertexData<T extends VertexType>(
-    vertices: T[],
+    vertices: T[] | null,
     elementChangeFlag: VertexElementFlags,
     elementIndex: VertexElementIndex
   ): void {
@@ -885,25 +886,25 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _readVector2VertexData(attributeType: string): Vector2[] {
+  private _readVector2VertexData(attributeType: string): Vector2[] | null {
     return this._readVertexData<Vector2>(attributeType, (dataReader: TypedArray, offset: number) => {
       return new Vector2(dataReader[offset], dataReader[offset + 1]);
     });
   }
 
-  private _readVector3VertexData(attributeType: string): Vector3[] {
+  private _readVector3VertexData(attributeType: string): Vector3[] | null {
     return this._readVertexData<Vector3>(attributeType, (dataReader: TypedArray, offset: number) => {
       return new Vector3(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2]);
     });
   }
 
-  private _readVector4VertexData(attributeType: string): Vector4[] {
+  private _readVector4VertexData(attributeType: string): Vector4[] | null {
     return this._readVertexData<Vector4>(attributeType, (dataReader: TypedArray, offset: number) => {
       return new Vector4(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
     });
   }
 
-  private _readColorVertexData(attributeType: string): Color[] {
+  private _readColorVertexData(attributeType: string): Color[] | null {
     return this._readVertexData<Color>(attributeType, (dataReader: TypedArray, offset: number) => {
       return new Color(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
     });
@@ -912,7 +913,7 @@ export class ModelMesh extends Mesh {
   private _readVertexData<T extends VertexType>(
     attributeType: string,
     onVertexParse: (dataReader: TypedArray, offset: number) => T
-  ): T[] {
+  ): T[] | null {
     const primitive = this._primitive;
     const vertexElement = primitive._vertexElementMap[attributeType];
     if (!vertexElement) {
@@ -931,7 +932,7 @@ export class ModelMesh extends Mesh {
     const vertexCount = this.vertexCount;
     const formatMetaInfo = vertexElement._formatMetaInfo;
     const vertices = new Array<T>(vertexCount);
-    const dataReader = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+    const dataReader = this._getVertexTypedArray(buffer.data!.buffer, formatMetaInfo.type)!;
     const byteOffset = vertexElement.offset;
     const byteStride = bufferBinding.stride;
 
@@ -946,7 +947,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateAdvancedVertexElement(
-    vertices: VertexType[],
+    vertices: VertexType[] | null,
     attribute: VertexAttribute,
     flag: VertexElementFlags
   ): void {
@@ -1144,7 +1145,7 @@ export class ModelMesh extends Mesh {
     const vertexBufferInfo = this._vertexBufferInfos[bindingIndex];
     if (advancedDataVersion > vertexBufferInfo.dataVersion) {
       const formatMetaInfo = vertexElement._formatMetaInfo;
-      const typedArray = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
+      const typedArray = this._getVertexTypedArray(buffer.data!.buffer, formatMetaInfo.type)!;
       const byteOffset = vertexElement.offset;
       const byteStride = bufferBinding.stride;
       const { BYTES_PER_ELEMENT } = typedArray;
@@ -1168,7 +1169,7 @@ export class ModelMesh extends Mesh {
     const { _positions, _normals, _colors, _advancedDataUpdateFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     if (_advancedDataUpdateFlag & VertexElementFlags.Position) {
-      this._writeVector3AdvancedVertexData(VertexAttribute.Position, VertexElementIndex.Position, _positions);
+      this._writeVector3AdvancedVertexData(VertexAttribute.Position, VertexElementIndex.Position, _positions!);
     }
 
     if (_normals && _advancedDataUpdateFlag & VertexElementFlags.Normal) {

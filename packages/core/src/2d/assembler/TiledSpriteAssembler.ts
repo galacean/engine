@@ -7,6 +7,7 @@ import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
+ * @internal
  * Assemble vertex data for the sprite renderer in tiled mode.
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
@@ -25,7 +26,7 @@ export class TiledSpriteAssembler {
       sizeChanged && manager.freeSubChunk(lastSubChunk);
 
       if (!lastSubChunk || sizeChanged) {
-        const newSubChunk = manager.allocateSubChunk(vertexCount);
+        const newSubChunk = manager.allocateSubChunk(vertexCount)!;
         newSubChunk.indices = [];
         renderer._subChunk = newSubChunk;
       }
@@ -71,7 +72,7 @@ export class TiledSpriteAssembler {
     const rowLength = rPos.length - 1;
     const columnLength = cPos.length - 1;
 
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
     const indices = subChunk.indices;
     let count = 0;
@@ -129,7 +130,7 @@ export class TiledSpriteAssembler {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
     for (let j = 0, o = subChunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
@@ -160,8 +161,8 @@ export class TiledSpriteAssembler {
   }
 
   static updateColor(renderer: ISpriteRenderer, alpha: number): void {
-    const subChunk = renderer._subChunk;
-    const { r, g, b, a } = renderer.color;
+    const subChunk = renderer._subChunk!;
+    const { r, g, b, a } = renderer.color!;
     const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
@@ -183,7 +184,8 @@ export class TiledSpriteAssembler {
     cUV: DisorderedArray<number>,
     referenceResolutionPerUnit: number
   ): number {
-    const { sprite, tiledAdaptiveThreshold: threshold } = renderer;
+    const sprite = renderer.sprite!;
+    const threshold = renderer.tiledAdaptiveThreshold!;
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -200,8 +202,8 @@ export class TiledSpriteAssembler {
     const fixedTB = fixedT + fixedB;
     const fixedCH = expectHeight - fixedTB;
     const isAdaptive = renderer.tileMode === SpriteTileMode.Adaptive;
-    let rType: TiledType, rBlocksCount: number, rTiledCount: number;
-    let cType: TiledType, cBlocksCount: number, cTiledCount: number;
+    let rType: TiledType, rBlocksCount: number, rTiledCount!: number;
+    let cType: TiledType, cBlocksCount: number, cTiledCount!: number;
     if (fixedLR >= width) {
       rBlocksCount = 2;
       rType = TiledType.Compressed;

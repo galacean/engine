@@ -22,13 +22,13 @@ export class WebXRAnchorTracking extends WebXRTrackableFeature<IXRTracked, IWebX
 
   getTrackedResult(session: WebXRSession, frame: WebXRFrame, requestTrackings: IWebXRRequestTrackingAnchor[]): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
-    const { _platformFrame: platformFrame } = frame;
+    const platformFrame = frame._platformFrame!;
     const { trackedAnchors } = platformFrame;
     for (let i = 0, n = requestTrackings.length; i < n; i++) {
       const requestTracking = requestTrackings[i];
       if (requestTracking.state !== XRRequestTrackingState.Resolved) continue;
       const tracked = requestTracking.tracked[0];
-      if (trackedAnchors.has(requestTracking.xrAnchor)) {
+      if (trackedAnchors!.has(requestTracking.xrAnchor)) {
         const emulated = this._updateTrackedAnchor(platformFrame, platformReferenceSpace, requestTracking);
         if (emulated) {
           if (tracked.state === XRTrackingState.Tracking) {
@@ -66,7 +66,7 @@ export class WebXRAnchorTracking extends WebXRTrackableFeature<IXRTracked, IWebX
    * @internal
    */
   _assembleOptions(options: XRSessionInit): void {
-    options.optionalFeatures.push("anchors");
+    options.optionalFeatures!.push("anchors");
   }
 
   private _addAnchor(session: WebXRSession, frame: WebXRFrame, requestTracking: IWebXRRequestTrackingAnchor): void {
@@ -75,42 +75,41 @@ export class WebXRAnchorTracking extends WebXRTrackableFeature<IXRTracked, IWebX
     }
     requestTracking.state = XRRequestTrackingState.Submitted;
     const { position, rotation } = requestTracking;
-    const { _platformFrame: platformFrame } = frame;
+    const platformFrame = frame._platformFrame!;
     const { _platformReferenceSpace: platformReferenceSpace } = session;
-    platformFrame
-      .createAnchor(
-        new XRRigidTransform(
-          { x: position.x, y: position.y, z: position.z },
-          { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w }
-        ),
-        platformReferenceSpace
-      )
-      .then(
-        (xrAnchor) => {
-          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
-            xrAnchor.delete();
-            requestTracking.state = XRRequestTrackingState.Destroyed;
-          } else {
-            requestTracking.xrAnchor = xrAnchor;
-            requestTracking.state = XRRequestTrackingState.Resolved;
-          }
-        },
-        () => {
-          if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
-            requestTracking.state = XRRequestTrackingState.Destroyed;
-          } else {
-            requestTracking.state = XRRequestTrackingState.Rejected;
-          }
+    platformFrame.createAnchor!(
+      new XRRigidTransform(
+        { x: position.x, y: position.y, z: position.z },
+        { x: rotation.x, y: rotation.y, z: rotation.z, w: rotation.w }
+      ),
+      platformReferenceSpace
+    ).then(
+      (xrAnchor) => {
+        if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
+          xrAnchor.delete();
+          requestTracking.state = XRRequestTrackingState.Destroyed;
+        } else {
+          requestTracking.xrAnchor = xrAnchor;
+          requestTracking.state = XRRequestTrackingState.Resolved;
         }
-      );
+      },
+      () => {
+        if (requestTracking.state === XRRequestTrackingState.WaitingDestroy) {
+          requestTracking.state = XRRequestTrackingState.Destroyed;
+        } else {
+          requestTracking.state = XRRequestTrackingState.Rejected;
+        }
+      }
+    );
   }
 
   private _updateTrackedAnchor(frame: XRFrame, space: XRSpace, requestTracking: IWebXRRequestTrackingAnchor): boolean {
     const { xrAnchor } = requestTracking;
     const xrPose = frame.getPose(xrAnchor.anchorSpace, space);
+    if (!xrPose) return true;
     const { transform } = xrPose;
     const { pose } = requestTracking.tracked[0];
-    pose.matrix.copyFromArray(transform.matrix);
+    pose.matrix!.copyFromArray(transform.matrix);
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
     return xrPose.emulatedPosition;

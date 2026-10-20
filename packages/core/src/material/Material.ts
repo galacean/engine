@@ -70,6 +70,9 @@ export class Material extends ReferResource implements IClone {
     this.shaderData.cloneTo(target.shaderData);
   }
 
+  /**
+   * @internal
+   */
   override _addReferCount(value: number): void {
     if (this._destroyed) return;
     super._addReferCount(value);
@@ -87,7 +90,7 @@ export class Material extends ReferResource implements IClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._shader = null;
-    this._shaderData = null;
+    this._shader = null!;
+    this._shaderData = null!;
   }
 }

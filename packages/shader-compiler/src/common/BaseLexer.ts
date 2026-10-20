@@ -108,7 +108,7 @@ export abstract class BaseLexer {
   // #endif
 
   constructor(source?: string) {
-    this._source = source;
+    this._source = source!;
   }
 
   setSource(source: string): void {

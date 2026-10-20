@@ -71,7 +71,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
       gl.texSubImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         mipLevel,
@@ -79,8 +79,8 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
         y,
         width,
         height,
-        baseFormat,
-        dataType,
+        baseFormat!,
+        dataType!,
         colorBuffer
       );
     }
@@ -110,8 +110,8 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
       mipLevel,
       x || 0,
       y || 0,
-      baseFormat,
-      dataType,
+      baseFormat!,
+      dataType!,
       imageSource
     );
   }

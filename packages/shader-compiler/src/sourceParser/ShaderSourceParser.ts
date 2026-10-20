@@ -103,7 +103,7 @@ export class ShaderSourceParser {
 
     const { pendingContents } = shaderSource;
     while (true) {
-      const token = lexer.scanToken();
+      const token = lexer.scanToken()!;
       switch (token.type) {
         case Keyword.GSSubShader:
           this._addPendingContents(start, token.lexeme.length, pendingContents);
@@ -136,7 +136,7 @@ export class ShaderSourceParser {
 
   private static _parseRenderStateDeclarationOrAssignment(outRenderStates: IRenderStates, stateToken: BaseToken): void {
     const lexer = this._lexer;
-    const token = lexer.scanToken();
+    const token = lexer.scanToken()!;
     if (token.type === ETokenType.ID) {
       // Declaration
       lexer.scanLexeme("{");
@@ -145,7 +145,7 @@ export class ShaderSourceParser {
       this._symbolTableStack.insert(symbol);
     } else if (token.lexeme === "=") {
       // Check if it's direct assignment syntax sugar or variable assignment
-      const nextToken = lexer.scanToken();
+      const nextToken = lexer.scanToken()!;
 
       let renderState: IRenderStates;
       if (nextToken.lexeme === "{") {
@@ -187,7 +187,7 @@ export class ShaderSourceParser {
 
   private static _parseVariableDeclaration(): void {
     const lexer = this._lexer;
-    const token = lexer.scanToken();
+    const token = lexer.scanToken()!;
     lexer.scanLexeme(";");
     const symbol = new ShaderSourceSymbol(token.lexeme, token.type);
     this._symbolTableStack.insert(symbol);
@@ -223,7 +223,7 @@ export class ShaderSourceParser {
   private static _scanEnumConstValue(enumName: string): number | undefined {
     const lexer = this._lexer;
     lexer.advance(1);
-    const constValueToken = lexer.scanToken();
+    const constValueToken = lexer.scanToken()!;
     const value = this._renderStateConstMap[enumName]?.[constValueToken.lexeme] as number;
     if (value == undefined) {
       this._createCompileError(
@@ -239,7 +239,7 @@ export class ShaderSourceParser {
 
   private static _parseRenderStateProperty(stateLexeme: string, out: IRenderStates): void {
     const lexer = this._lexer;
-    const propertyToken = lexer.scanToken();
+    const propertyToken = lexer.scanToken()!;
     const propertyLexeme = propertyToken.lexeme;
     let stateElementKey = propertyLexeme;
     if (stateLexeme === "BlendState" && propertyLexeme !== "BlendColor" && propertyLexeme !== "AlphaToCoverage") {
@@ -271,14 +271,14 @@ export class ShaderSourceParser {
     }
 
     lexer.skipCommentsAndSpace();
-    let propertyValue: number | string | boolean | Color;
+    let propertyValue: number | string | boolean | Color | undefined;
 
     const curCharCode = lexer.getCurCharCode();
     if (BaseLexer.isDigit(curCharCode) || curCharCode === 46) {
       // Digit or '.'
       propertyValue = lexer.scanNumber();
     } else {
-      const valueToken = lexer.scanToken();
+      const valueToken = lexer.scanToken()!;
       const valueTokenType = valueToken.type;
 
       if (valueTokenType === Keyword.True) {
@@ -352,7 +352,7 @@ export class ShaderSourceParser {
 
   private static _parseRenderQueueDeclarationOrAssignment(renderStates: IRenderStates): void {
     const lexer = this._lexer;
-    const token = lexer.scanToken();
+    const token = lexer.scanToken()!;
     if (token.type === ETokenType.ID) {
       // Declaration
       lexer.scanLexeme(";");
@@ -367,7 +367,7 @@ export class ShaderSourceParser {
       return;
       // #endif
     }
-    const word = lexer.scanToken();
+    const word = lexer.scanToken()!;
     lexer.scanLexeme(";");
     const value = this._renderStateConstMap.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
@@ -416,7 +416,7 @@ export class ShaderSourceParser {
     let start = lexer.getShaderPosition(0);
 
     while (true) {
-      const token = lexer.scanToken();
+      const token = lexer.scanToken()!;
       switch (token.type) {
         case Keyword.GSPass:
           this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
@@ -446,7 +446,7 @@ export class ShaderSourceParser {
             start,
             subShaderSource.pendingContents,
             subShaderSource.renderStates,
-            subShaderSource.tags
+            subShaderSource.tags!
           );
       }
     }
@@ -456,7 +456,7 @@ export class ShaderSourceParser {
     const lexer = this._lexer;
     lexer.scanLexeme("{");
     while (true) {
-      const ident = lexer.scanToken();
+      const ident = lexer.scanToken()!;
       lexer.scanLexeme("=");
       const value = lexer.scanPairedChar('"', '"', false, false);
       lexer.skipCommentsAndSpace();
@@ -484,13 +484,13 @@ export class ShaderSourceParser {
     let start = lexer.getShaderPosition(0);
 
     while (true) {
-      const token = lexer.scanToken();
+      const token = lexer.scanToken()!;
       switch (token.type) {
         case Keyword.GSVertexShader:
         case Keyword.GSFragmentShader:
           this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
           lexer.scanLexeme("=");
-          const entry = lexer.scanToken();
+          const entry = lexer.scanToken()!;
           if (passSource[token.lexeme]) {
             const error = ShaderCompilerUtils.createGSError(
               "Reassign main entry",
@@ -524,7 +524,7 @@ export class ShaderSourceParser {
             start,
             passSource.pendingContents,
             passSource.renderStates,
-            passSource.tags
+            passSource.tags!
           );
       }
     }
