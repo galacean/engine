@@ -7,7 +7,6 @@ import { Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine"
 export class SpineTexture extends Texture {
   constructor(image: Texture2D) {
     super(image);
-    image.generateMipmaps();
   }
 
   // rewrite getImage function, return galacean texture2D, then attachment can get size of texture
@@ -22,7 +21,7 @@ export class SpineTexture extends Texture {
       this._image.filterMode = TextureFilterMode.Bilinear;
     } else {
       // The remaining min filters are the MipMap* family (mag filters are never MipMap*);
-      // mipmaps are generated in the constructor.
+      // mipmaps are supplied by the asset loader.
       this._image.filterMode = TextureFilterMode.Trilinear;
     }
   }

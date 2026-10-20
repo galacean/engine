@@ -67,15 +67,6 @@ export class SpineAnimationRenderer extends Renderer {
   @assignmentClone
   zSpacing = 0.001;
 
-  /**
-   * Whether to use premultiplied alpha mode for rendering.
-   * When enabled, vertex color values are multiplied by the alpha channel.
-   * @remarks
- If this option is enabled, the Spine editor must export textures with "Premultiply Alpha" checked.
-   */
-  @assignmentClone
-  premultipliedAlpha = false;
-
   @assignmentClone
   private _tintBlack = false;
 
@@ -258,7 +249,6 @@ export class SpineAnimationRenderer extends Renderer {
     this._publicState._update(skeleton, delta * this.timeScale);
     // Playback callbacks may end this binding by releasing its resource or destroying the renderer.
     if (this.destroyed || this._state !== state || this._skeleton !== skeleton) return;
-    this.shaderData.setFloat("renderer_PremultipliedAlpha", this.premultipliedAlpha ? 1 : 0);
     this._buildGeometry();
   }
 
@@ -416,7 +406,7 @@ export class SpineAnimationRenderer extends Renderer {
 
   private _buildGeometry(): void {
     const geometry = this._geometry;
-    geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack, this.getMaterial());
+    geometry.reset(this.zSpacing, this.tintBlack, this.getMaterial());
     this._runtime.buildGeometry(this._skeleton, geometry);
     this._uploadGeometry();
     this._slotMaterialsDirty = false;
@@ -430,8 +420,8 @@ export class SpineAnimationRenderer extends Renderer {
   }
 
   private _setBatchBlend(data: ShaderData, blendMode: SpineBlendMode): void {
-    const { One, SourceAlpha, OneMinusSourceAlpha, DestinationColor, OneMinusSourceColor } = BlendFactor;
-    let sourceColor = this.premultipliedAlpha ? One : SourceAlpha;
+    const { One, OneMinusSourceAlpha, DestinationColor, OneMinusSourceColor } = BlendFactor;
+    let sourceColor = One;
     let destinationColor = OneMinusSourceAlpha;
     let destinationAlpha = OneMinusSourceAlpha;
     switch (blendMode) {
@@ -491,7 +481,7 @@ export class SpineAnimationRenderer extends Renderer {
     this._publicSkeleton = null;
     this._publicState = null;
     this._subPrimitives.length = 0;
-    this._geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack, this.getMaterial());
+    this._geometry.reset(this.zSpacing, this.tintBlack, this.getMaterial());
     this._clearBatchTextures(0);
     this._localBounds.min.set(0, 0, 0);
     this._localBounds.max.set(0, 0, 0);

@@ -11,7 +11,6 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
   indexCount = 0;
   vertexStride: number = SpineVertexStride.withoutTint;
   zSpacing = 0;
-  premultipliedAlpha = false;
   tintBlack = false;
   defaultMaterial: Material | null = null;
   readonly bounds = new BoundingBox();
@@ -26,9 +25,8 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
 
   constructor(private _slotMaterials: ReadonlyMap<number, Material>) {}
 
-  reset(zSpacing: number, premultipliedAlpha: boolean, tintBlack: boolean, defaultMaterial: Material | null): void {
+  reset(zSpacing: number, tintBlack: boolean, defaultMaterial: Material | null): void {
     this.zSpacing = zSpacing;
-    this.premultipliedAlpha = premultipliedAlpha;
     this.tintBlack = tintBlack;
     this.defaultMaterial = defaultMaterial;
     this.vertexStride = tintBlack ? SpineVertexStride.withTint : SpineVertexStride.withoutTint;

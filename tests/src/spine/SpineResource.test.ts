@@ -332,8 +332,8 @@ describe("Spine resource ownership", () => {
         spineShaderSource
           .replace('Shader "2D/Spine"', `Shader "SpineCustomMaterial${version}"`)
           .replace(
-            "float renderer_PremultipliedAlpha;",
-            "float renderer_PremultipliedAlpha;\nfloat material_TestBrightness;"
+            "sampler2D renderElement_SpineTexture;",
+            "sampler2D renderElement_SpineTexture;\nfloat material_TestBrightness;"
           )
           .replace(
             "gl_FragColor = texColor * lightColor;",

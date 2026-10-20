@@ -13,7 +13,6 @@ describe("SpineAnimationRenderer", () => {
     const renderer = new Entity(engine).addComponent(SpineAnimationRenderer);
     expect(renderer.defaultConfig.animationName).to.be.null;
     expect(renderer.defaultConfig.skinName).to.equal("default");
-    expect(renderer.premultipliedAlpha).to.be.false;
     expect(renderer.tintBlack).to.be.false;
   });
 
@@ -28,7 +27,6 @@ describe("SpineAnimationRenderer", () => {
     const a = new Entity(engine).addComponent(SpineAnimationRenderer);
     const b = new Entity(engine).addComponent(SpineAnimationRenderer);
     a.tintBlack = true;
-    a.premultipliedAlpha = true;
     expect(a.getMaterial()).to.equal(b.getMaterial());
     expect(a.getMaterial().shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.false;
     expect(a.shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.true;

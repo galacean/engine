@@ -28,7 +28,10 @@ export interface ISpineRuntime<TTexture> {
   /** Create an empty skin for composition using attachments from this resource. */
   createSkin(name: string): ISpineSkin;
 
-  /** Build an atlas, binding the given engine textures to its pages (matched by page name). */
+  /**
+   * Build an atlas from canonical straight-alpha textures in atlas page order.
+   * The shared loader resolves page names and input alpha encoding before calling the backend.
+   */
   createTextureAtlas(atlasText: string, textures: TTexture[]): ISpineTextureAtlas;
 
   /** Parse skeleton data (json or binary) against an atlas. */

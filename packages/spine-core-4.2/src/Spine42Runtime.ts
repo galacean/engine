@@ -58,8 +58,7 @@ export class Spine42Runtime implements ISpineRuntime<Texture2D> {
   createTextureAtlas(atlasText: string, textures: Texture2D[]): TextureAtlas {
     const textureAtlas = new TextureAtlas(atlasText);
     textureAtlas.pages.forEach((page, index) => {
-      const engineTexture = textures.find((item) => item.name === page.name) || textures[index];
-      const texture = new SpineTexture(engineTexture);
+      const texture = new SpineTexture(textures[index]);
       page.setTexture(texture);
     });
     return textureAtlas;

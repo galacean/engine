@@ -24,7 +24,7 @@ export class SpineGenerator {
   private _clipper: SkeletonClipping = new SkeletonClipping();
 
   buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>) {
-    const { premultipliedAlpha, tintBlack } = target;
+    const { tintBlack } = target;
     const { _clipper } = this;
     const { tempVerts } = SpineGenerator;
 
@@ -109,24 +109,12 @@ export class SpineGenerator {
         finalColor.b = skeletonColor.b * slotColor.b * attachmentColor.b;
         finalColor.a = finalAlpha;
 
-        if (premultipliedAlpha) {
-          finalColor.r *= finalAlpha;
-          finalColor.g *= finalAlpha;
-          finalColor.b *= finalAlpha;
-        }
-
         const darkColor = SpineGenerator.tempDark;
         const slotDarkColor = slot.darkColor;
         if (!slotDarkColor) {
           darkColor.set(0, 0, 0, 1);
         } else {
-          if (premultipliedAlpha) {
-            darkColor.r = slotDarkColor.r * finalAlpha;
-            darkColor.g = slotDarkColor.g * finalAlpha;
-            darkColor.b = slotDarkColor.b * finalAlpha;
-          } else {
-            darkColor.setFromColor(slotDarkColor);
-          }
+          darkColor.setFromColor(slotDarkColor);
         }
 
         if (isClipping) {

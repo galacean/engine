@@ -100,11 +100,39 @@ A custom shader consumes the Spine vertex layout (`POSITION`, `LIGHT_COLOR`, `TE
 | Scope | Input |
 | --- | --- |
 | Renderer macro | `RENDERER_TINT_BLACK` |
-| Renderer float | `renderer_PremultipliedAlpha` |
 | Batch texture | `renderElement_SpineTexture` |
 | Batch blend factors | `renderElement_SpineSourceColorBlendFactor`, `renderElement_SpineDestinationColorBlendFactor`, `renderElement_SpineSourceAlphaBlendFactor`, `renderElement_SpineDestinationAlphaBlendFactor` |
 
+Textures and vertex colors use straight alpha. Vertex colors are sRGB values; decode them to linear space before tinting. Sample the atlas with `texture2DSRGB`. Premultiply the final linear RGB by the final alpha before output when using the supplied batch blend factors. The built-in shader follows this contract for normal, additive, multiply and screen blending.
+
 The built-in `2D/Spine` pass binds its blend state to the batch factors. Custom passes can bind these same variables to preserve Spine's blend modes, or declare their own fixed state. Spine does not overwrite a pass's state. User parameters remain on the original material; no hidden material copies need synchronizing. Renderer macros and batch textures do not mutate shared materials.
+
+## Atlas alpha encoding
+
+Prefer Spine's **Straight Alpha** export with color bleed. Alpha encoding belongs to each atlas page, not to a renderer instance. The loader reads each page's `pma` property; omitted means straight alpha. PMA RGBA8 pages are converted once to independent straight-alpha textures before filtering and mip generation. Other users of the source texture are unaffected. Resources using the same loaded source reuse the conversion, and converted textures participate in resource collection and context restoration.
+
+For older exports without metadata, or textures already converted by an asset pipeline, specify the actual input encoding:
+
+```ts
+import type { SpineLoadParams } from "@galacean/engine-spine";
+
+const params: SpineLoadParams = { alphaMode: "premultiplied" };
+// Mixed pages can instead use { alphaMode: { "character.png": "premultiplied" } }.
+// Unspecified pages still use atlas metadata.
+const resource = await engine.resourceManager.load<SpineResource>({
+  url: "character.skel",
+  type: "Spine",
+  params
+});
+```
+
+Configure the encoding before the asset URL's first load: ResourceManager caches assets by URL, not by loader parameters. Runtime conversion retains normalized RGBA8 pixels for context restoration and adds a derived GPU texture. It cannot recover colors lost through PMA quantization; zero-alpha RGB is filled from neighboring visible pixels. For best quality and memory use, convert assets during import or export straight alpha directly. **Compressed PMA pages must be converted before compression**; the loader rejects them. Straight-alpha compressed pages follow the existing texture loading path.
+
+### Editor migration
+
+The editor upgrade is separate from this engine change. Remove the serialized component-level `premultipliedAlpha` field and record the actual texture encoding on the asset import/load configuration. For legacy exports lacking `pma`, migrate the old setting into `SpineLoadParams.alphaMode`. If instances referencing the same asset disagree, resolve the asset's encoding during migration; do not select it from whichever instance loads last. When the editor converts images to straight alpha, emit `pma: false` (or supply `alphaMode: "straight"`) and generate compressed textures and mipmaps from those converted pixels.
+
+Load the skeleton and atlas dependencies through the registered Spine loader to obtain a `SpineResource`. The editor should stop constructing the old library's `SkeletonData`, `TextureAtlas` and `SpineResource` directly. Applications and custom shaders should remove the old renderer PMA property/uniform and follow the material contract above.
 
 ## Physics
 

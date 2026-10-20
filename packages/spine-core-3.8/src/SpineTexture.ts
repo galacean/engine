@@ -7,7 +7,6 @@ import { Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine"
 export class SpineTexture extends Texture {
   constructor(image: Texture2D) {
     super(image);
-    image.generateMipmaps();
   }
 
   // The vendored 3.8 `Texture` base class exposes the Texture2D via a `texture` getter instead of
@@ -23,7 +22,7 @@ export class SpineTexture extends Texture {
       this._texture.filterMode = TextureFilterMode.Bilinear;
     } else {
       // The remaining min filters are the MipMap* family (mag filters are never MipMap*);
-      // mipmaps are generated in the constructor.
+      // mipmaps are supplied by the asset loader.
       this._texture.filterMode = TextureFilterMode.Trilinear;
     }
   }
