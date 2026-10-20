@@ -5,6 +5,7 @@ import {
   CompareFunction,
   CullMode,
   RenderStateElementKey,
+  ShaderFactory,
   ShaderLanguage,
   StencilOperation
 } from "@galacean/engine-core";
@@ -32,6 +33,14 @@ Logger.enable();
 
 const shaderCompilerVerbose = new ShaderCompilerVerbose();
 const shaderCompilerRelease = new ShaderCompilerRelease();
+
+// `_parseShaderPass` resolves `#include` through the compiler's include map. `glslValidate`
+// binds it as a side effect, which would leave every test that parses without linking
+// first silently dependent on a sibling test having run. Bind it up front instead.
+// @ts-ignore — runtime-only binding.
+shaderCompilerRelease._includeMap = ShaderFactory.includeMap;
+// @ts-ignore — runtime-only binding.
+shaderCompilerVerbose._includeMap = ShaderFactory.includeMap;
 
 describe("ShaderCompiler", async () => {
   const canvas = document.createElement("canvas");
@@ -838,21 +847,47 @@ describe("ShaderCompiler", async () => {
 
     /**
      * Walk the generated source tracking `#if/#ifdef/#ifndef … #else … #endif` nesting and
-     * record, for every top-level declaration, the condition path it sits under.
+     * record, for every top-level declaration, the guard it sits under.
      *
-     * Two declarations of the same name only conflict when they share a condition path:
-     * mutually exclusive `#ifdef` branches legally declare the same symbol (e.g.
-     * `TANGENT_BS0` under `#if defined(N)&&defined(T)` vs `#else` → `#ifdef T`).
+     * Two declarations of the same name only conflict when their guards can be active at the
+     * same time. Two rules make that decidable without running the preprocessor:
+     *
+     * - Guards are compared arm by arm, so mutually exclusive branches stay legal
+     *   (`TANGENT_BS0` under `#if defined(N)&&defined(T)` vs `#else` → `#ifdef T`) while an
+     *   unconditional declaration still collides with a conditional one. Comparing whole
+     *   guard strings would miss that collision — the redeclaration this guards against.
+     * - A `#ifndef M` block that defines `M` is an include guard, and it neutralises every
+     *   later `#ifndef M` in the file. The generator emits some headers twice, each copy
+     *   behind its own include guard; the second copy is unreachable, not a redeclaration.
      */
-    const duplicatesInSameBranch = (source: string) => {
-      const stack: { cond: string; branch: number }[] = [];
-      const byName = new Map<string, Map<string, number>>();
-      const pathKey = () => stack.map((f) => `${f.cond}#${f.branch}`).join(" && ") || "<unconditional>";
+    const duplicatesUnderCompatibleGuards = (source: string) => {
+      type Frame = { cond: string; branch: number; ifndef?: string; definesGuard: boolean };
+      type Guard = { arms: { branch: number; frame: Frame }[]; label: string };
+
+      const stack: Frame[] = [];
+      const byName = new Map<string, Guard[]>();
+      const guard = (): Guard => ({
+        arms: stack.map((frame) => ({ branch: frame.branch, frame })),
+        label: stack.map((frame) => `${frame.cond}#${frame.branch}`).join(" && ") || "<unconditional>"
+      });
+      const compatible = (left: Guard, right: Guard) => {
+        for (let i = 0, n = Math.min(left.arms.length, right.arms.length); i < n; i++) {
+          if (left.arms[i].branch !== right.arms[i].branch) return false;
+        }
+        return !left.arms.some(
+          (a) => a.frame.ifndef && a.frame.definesGuard && right.arms.some((b) => b.frame.ifndef === a.frame.ifndef)
+        );
+      };
 
       for (const line of source.split("\n")) {
         const trimmed = line.trim();
         if (/^#\s*if/.test(trimmed)) {
-          stack.push({ cond: trimmed, branch: 0 });
+          stack.push({
+            cond: trimmed,
+            branch: 0,
+            ifndef: /^#\s*ifndef\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1],
+            definesGuard: false
+          });
           continue;
         }
         if (/^#\s*elif/.test(trimmed)) {
@@ -871,26 +906,72 @@ describe("ShaderCompiler", async () => {
           continue;
         }
 
+        const defined = /^#\s*define\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1];
+        if (defined) {
+          for (const frame of stack) {
+            if (frame.ifndef === defined) frame.definesGuard = true;
+          }
+        }
+
         for (const [pattern, key] of DECLARATION_PATTERNS) {
           pattern.lastIndex = 0;
           for (const match of line.matchAll(pattern)) {
             const name = key(match);
-            let paths = byName.get(name);
-            if (!paths) byName.set(name, (paths = new Map()));
-            const path = pathKey();
-            paths.set(path, (paths.get(path) ?? 0) + 1);
+            let guards = byName.get(name);
+            if (!guards) byName.set(name, (guards = []));
+            guards.push(guard());
           }
         }
       }
 
-      const duplicates: { key: string; path: string; count: number }[] = [];
-      for (const [key, paths] of byName) {
-        for (const [path, count] of paths) {
-          if (count > 1) duplicates.push({ key, path, count });
+      const duplicates: { key: string; left: string; right: string }[] = [];
+      for (const [key, guards] of byName) {
+        for (let i = 0; i < guards.length; i++) {
+          for (let j = i + 1; j < guards.length; j++) {
+            if (compatible(guards[i], guards[j])) {
+              duplicates.push({ key, left: guards[i].label, right: guards[j].label });
+            }
+          }
         }
       }
       return duplicates;
     };
+
+    it("scanner flags only declarations whose guards can be active together", () => {
+      const unconditionalAndConditional = duplicatesUnderCompatibleGuards(
+        [
+          "struct SurfaceData { vec3 albedo; };",
+          "#ifdef NEED_TANGENT_SPACE",
+          "struct SurfaceData { vec3 tangent; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(unconditionalAndConditional.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
+
+      const mutuallyExclusive = duplicatesUnderCompatibleGuards(
+        ["#ifdef A", "struct SurfaceData { vec3 a; };", "#else", "struct SurfaceData { vec3 b; };", "#endif"].join("\n")
+      );
+      expect(mutuallyExclusive).to.deep.equal([]);
+
+      // A header emitted twice, each copy behind its own include guard: the second copy is
+      // unreachable once the first defines the macro.
+      const includeGuarded = duplicatesUnderCompatibleGuards(
+        [
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "float sRGBToLinear ( float value ) { return value; }",
+          "#endif",
+          "#ifndef MOBILE_INCLUDED",
+          "#define MOBILE_INCLUDED",
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "float sRGBToLinear ( float value ) { return value; }",
+          "#endif",
+          "#endif"
+        ].join("\n")
+      );
+      expect(includeGuarded).to.deep.equal([]);
+    });
 
     it.each(builtInShaders)("%s emits each top-level declaration once", async (fileName) => {
       const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
@@ -911,10 +992,11 @@ describe("ShaderCompiler", async () => {
             ["vertex", parsed!.vertex],
             ["fragment", parsed!.fragment]
           ] as const) {
-            for (const duplicate of duplicatesInSameBranch(instructions)) {
+            for (const duplicate of duplicatesUnderCompatibleGuards(instructions)) {
               expect.fail(
                 `${fileName} ${subShader.name}.${passSource.name} ${stage}: ` +
-                  `"${duplicate.key}" declared ${duplicate.count} times under ${duplicate.path}`
+                  `"${duplicate.key}" declared twice under compatible guards ` +
+                  `(${duplicate.left}) and (${duplicate.right})`
               );
             }
           }
@@ -935,8 +1017,13 @@ describe("ShaderCompiler", async () => {
         ShaderLanguage.GLSLES100
       )!;
 
-      for (const instructions of [parsed.vertex, parsed.fragment]) {
-        if (!instructions.includes("inverseMat(")) continue;
+      // Guard the guard: if the macro walk regressed far enough that no stage expands
+      // `INVERSE_MAT`, the per-stage assertion below would be skipped and pass vacuously.
+      const referencing = [parsed.vertex, parsed.fragment].filter((instructions) =>
+        instructions.includes("inverseMat(")
+      );
+      expect(referencing, "at least one stage must expand INVERSE_MAT").to.not.be.empty;
+      for (const instructions of referencing) {
         expect(instructions, "macro-only helper must still be defined").to.contain("mat2 inverseMat");
       }
     });
