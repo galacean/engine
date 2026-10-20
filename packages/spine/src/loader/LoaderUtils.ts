@@ -19,7 +19,7 @@ export class LoaderUtils {
     const text = await resourceManager._request<string>(atlasPath, { type: "text" });
     const atlas = LoaderUtils._readAtlas(text);
     const virtualResources = resourceManager._virtualPathResourceMap;
-    let imagePaths = extraPaths.filter((path) => /\.(png|jpg|webp|jpeg|ktx|ktx2)(?:\?|$)/.test(path));
+    let imagePaths = extraPaths.filter((url) => /\.(png|jpg|webp|jpeg|ktx|ktx2)$/.test(url.split(/[?#]/, 1)[0]));
     if (extraPaths.length === 0) {
       const dependencies = virtualResources[atlasPath]?.dependentAssetMap;
       if (dependencies) imagePaths = Object.values(dependencies);
@@ -28,9 +28,17 @@ export class LoaderUtils {
       const baseUrl = LoaderUtils.getBaseUrl(atlasPath);
       imagePaths = atlas.pages.map((page) => baseUrl + page.name);
     }
+    const imageSources = imagePaths.map((url) => ({ url, path: url.split(/[?#]/, 1)[0] }));
+    const pagePaths = atlas.pages.map((page, index) => {
+      const source = imageSources.find(({ path }) => path === page.name || path.endsWith("/" + page.name));
+      // Renamed replacement images and exported dependencies can be supplied in atlas page order.
+      const url = (source ?? imageSources[index])?.url;
+      if (!url) throw new Error(`Spine atlas page "${page.name}" has no texture.`);
+      return url;
+    });
     const textures = await Promise.all(
-      imagePaths.map((url) => {
-        const extension = /\.(\w+)(?:\?|$)/.exec(url)?.[1];
+      pagePaths.map((url) => {
+        const extension = /\.(\w+)$/.exec(url.split(/[?#]/, 1)[0])?.[1];
         const type =
           virtualResources[url]?.type ??
           (extension === "ktx" ? AssetType.KTX : extension === "ktx2" ? AssetType.KTX2 : AssetType.Texture);
@@ -39,8 +47,7 @@ export class LoaderUtils {
     );
     const { alphaMode } = params ?? {};
     const normalizedTextures = atlas.pages.map((page, index) => {
-      const texture = textures.find((texture) => texture.name === page.name) ?? textures[index];
-      if (!texture) throw new Error(`Spine atlas page "${page.name}" has no texture.`);
+      const texture = textures[index];
       const mode = typeof alphaMode === "string" ? alphaMode : alphaMode?.[page.name];
       const premultiplied = mode ? mode === "premultiplied" : page.pma;
       return premultiplied ? normalizeSpineTexture(texture) : texture;

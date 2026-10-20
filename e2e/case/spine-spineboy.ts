@@ -3,7 +3,7 @@
  * @category Spine
  */
 import { Camera, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { registerSpineRuntime, SpineAnimationRenderer } from "@galacean/engine-spine";
+import { registerSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -21,11 +21,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
 
   engine.resourceManager
-    .load({
+    .load<SpineResource>({
       urls: ["/spineboy.json", "/spineboy.atlas", "/spineboy.png"],
       type: "Spine"
     })
-    .then((resource: any) => {
+    .then((resource) => {
       const spineEntity = resource.instantiate();
       spineEntity.transform.setPosition(-0.5, -3.2, 0);
       root.addChild(spineEntity);

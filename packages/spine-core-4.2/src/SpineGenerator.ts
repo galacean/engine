@@ -55,7 +55,7 @@ export class SpineGenerator {
       const clippedVertexSize = isClipping ? 2 : vertexSize;
 
       switch (attachment.constructor) {
-        case RegionAttachment:
+        case RegionAttachment: {
           const regionAttachment = <RegionAttachment>attachment;
           attachmentColor = regionAttachment.color;
           numFloats = clippedVertexSize << 2;
@@ -64,7 +64,8 @@ export class SpineGenerator {
           uvs = regionAttachment.uvs;
           texture = regionAttachment.region.texture;
           break;
-        case MeshAttachment:
+        }
+        case MeshAttachment: {
           const meshAttachment = <MeshAttachment>attachment;
           attachmentColor = meshAttachment.color;
           numFloats = (meshAttachment.worldVerticesLength >> 1) * clippedVertexSize;
@@ -83,10 +84,12 @@ export class SpineGenerator {
           uvs = meshAttachment.uvs;
           texture = meshAttachment.region.texture;
           break;
-        case ClippingAttachment:
+        }
+        case ClippingAttachment: {
           const clip = <ClippingAttachment>attachment;
           _clipper.clipStart(slot, clip);
           continue;
+        }
         default:
           _clipper.clipEndWithSlot(slot);
           continue;

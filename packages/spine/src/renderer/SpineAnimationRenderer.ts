@@ -257,7 +257,6 @@ export class SpineAnimationRenderer extends Renderer {
    */
   override _render(context: any): void {
     const { _primitive, _subPrimitives, _batchShaderData } = this;
-    if (!_subPrimitives) return;
     // Material selection may change after animation update, including through inherited material APIs.
     if (this._skeleton && (this._slotMaterialsDirty || this._geometry.defaultMaterial !== this.getMaterial())) {
       this._buildGeometry();
@@ -278,6 +277,7 @@ export class SpineAnimationRenderer extends Renderer {
       renderElement.shaderData = _batchShaderData[i];
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
+      renderElement.subDistancePriority = i;
       renderPipeline.pushRenderElement(context, renderElement);
     }
   }

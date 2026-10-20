@@ -401,7 +401,14 @@ describe("Spine resource ownership", () => {
   });
 
   for (const version of ["3.8", "4.2"] as const) {
-    for (const mode of ["atlas-relative", "explicit", "virtual", "single-url-query", "single-url-fragment"] as const) {
+    for (const mode of [
+      "atlas-relative",
+      "explicit",
+      "explicit-query",
+      "virtual",
+      "single-url-query",
+      "single-url-fragment"
+    ] as const) {
       it(`${version}: loads and renders with ${mode} atlas textures`, async () => {
         const atlasUrl = new URL(`./fixtures/${version}.atlas`, import.meta.url).href;
         const textureUrls = ["page.png", "alt.png"].map((name) => new URL(`./fixtures/${name}`, import.meta.url).href);
@@ -409,18 +416,18 @@ describe("Spine resource ownership", () => {
         if (mode === "virtual") {
           const skeletonPath = `/characters/${version}/character.json`;
           const atlasPath = `/characters/${version}/character.atlas`;
-          const texturePaths = ["page.png", "alt.png"].map((name) => `/textures/${version}/${name}`);
+          const texturePaths = [0, 1].map((index) => `/textures/${version}/${index}.tex`);
           engine.resourceManager.registerVirtualResources([
             { virtualPath: skeletonPath, path: urls[version], type: "Spine", dependentAssetMap: { atlas: atlasPath } },
             {
               virtualPath: atlasPath,
               path: atlasUrl,
               type: "SpineAtlas",
-              dependentAssetMap: { page: texturePaths[0], alt: texturePaths[1] }
+              dependentAssetMap: { "textures[0]": texturePaths[0], "textures[1]": texturePaths[1] }
             },
             ...texturePaths.map((virtualPath, index) => ({
               virtualPath,
-              path: textureUrls[index],
+              path: textureUrls[index] + "?v=1",
               type: AssetType.Texture
             }))
           ]);
@@ -432,16 +439,35 @@ describe("Spine resource ownership", () => {
             type: "Spine"
           });
         } else {
+          const explicitPaths =
+            mode === "explicit-query"
+              ? textureUrls
+                  .slice()
+                  .reverse()
+                  .map((url) => url + "?v=1&source=/other/image.png")
+              : mode === "explicit"
+                ? textureUrls
+                : [];
+          if (mode === "explicit-query") {
+            const textures = await engine.resourceManager.load<Texture2D[]>(explicitPaths);
+            textures.forEach((texture) => (texture.name = "user-renamed-texture"));
+          }
           resource = await engine.resourceManager.load<SpineResource>({
-            urls: [urls[version], atlasUrl, ...(mode === "explicit" ? textureUrls : [])],
+            urls: [urls[version], atlasUrl, ...explicitPaths],
             type: "Spine"
           });
         }
         const renderer = attach(resource);
+        const gl = canvas.getContext("webgl2")!;
+        const pixel = new Uint8Array(4);
         expect(visiblePixels()).to.be.greaterThan(100);
+        gl.readPixels(64, 64, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        expect(Array.from(pixel)).to.deep.equal([255, 0, 0, 255]);
         renderer.skeleton.setSkinByName("alt");
         renderer.skeleton.setSlotsToSetupPose();
         expect(visiblePixels()).to.be.greaterThan(100);
+        gl.readPixels(64, 64, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        expect(Array.from(pixel)).to.deep.equal([0, 0, 255, 255]);
       });
     }
   }
