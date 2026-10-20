@@ -1,12 +1,15 @@
 import type { ISpineSkeleton } from "@galacean/engine-design";
 import { SpineBone } from "./SpineBone";
+import { SpineSlot } from "./SpineSlot";
 import type { SpineSkin } from "./SpineSkin";
 import type { SpineSkeletonData } from "./SpineSkeletonData";
 
-/** The editable pose of one renderer. Bone wrappers are created once and reused. */
+/** The editable pose of one renderer. Bone and slot wrappers are created once and reused. */
 export class SpineSkeleton {
   readonly data: SpineSkeletonData;
   readonly bones: readonly SpineBone[];
+  /** Slots in setup order, independent of the animated draw order. */
+  readonly slots: readonly SpineSlot[];
 
   private constructor(
     private _native: ISpineSkeleton,
@@ -14,6 +17,8 @@ export class SpineSkeleton {
   ) {
     this.data = data;
     this.bones = Object.freeze(_native.bones.map((bone) => SpineBone._create(bone)));
+    const bones = new Map(_native.bones.map((bone, index) => [bone, this.bones[index]]));
+    this.slots = Object.freeze(_native.slots.map((slot) => SpineSlot._create(slot, _native, bones.get(slot.bone)!)));
   }
   /** @internal */
   static _create(native: ISpineSkeleton, data: SpineSkeletonData): SpineSkeleton {
@@ -49,6 +54,9 @@ export class SpineSkeleton {
   }
   findBone(name: string): SpineBone | null {
     return this.bones.find((bone) => bone.name === name) ?? null;
+  }
+  findSlot(name: string): SpineSlot | null {
+    return this.slots.find((slot) => slot.name === name) ?? null;
   }
   setSkinByName(name: string): void {
     this._native.setSkinByName(name);

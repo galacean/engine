@@ -1,6 +1,7 @@
 /** Version-independent Spine contracts. Shared data and per-instance state have separate interfaces. */
 export type { ISpineBoneData } from "./ISpineBoneData";
 export type { ISpineBone } from "./ISpineBone";
+export type { ISpineSlot } from "./ISpineSlot";
 export type { ISpineSkin } from "./ISpineSkin";
 export type { ISpineAnimation } from "./ISpineAnimation";
 export type { ISpineConstraintData } from "./ISpineConstraintData";

@@ -30,9 +30,83 @@ An application using only 3.8 installs and registers only the 3.8 backend. Neith
 
 ## Public API
 
-Use `SpineResource` and `SpineAnimationRenderer` to access skeletons, bones, skins and animation playback. These objects are shared across supported asset versions. Load resources through the resource manager; `renderer.skeleton` and `renderer.state` require a bound resource.
+Use `SpineResource` and `SpineAnimationRenderer` to access skeletons, bones, slots, skins and animation playback. These objects are shared across supported asset versions. Load resources through the resource manager; `renderer.skeleton` and `renderer.state` require a bound resource.
+
+`skeleton.findSlot(name)` returns a `SpineSlot`, or `null` if the name is missing. The same slot object is reused across lookups, animation updates and skin changes. `skeleton.slots` lists slots in setup order; `slot.bone` is the corresponding object from `skeleton.bones`. Slots belong to each skeleton instance.
+
+```ts
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  weapon.setAttachment("sword"); // Attachment entry in the current skin, falling back to the default skin.
+  weapon.setAttachment(null); // Hide this slot's attachment.
+  weapon.setToSetupPose(); // Restore its setup color and attachment using the current skin.
+}
+```
 
 Use `resource.createSkin(name)` to compose skins from the same resource. Skeleton data, skins and mixing configuration are shared across instances. Each instance has its own pose and playback state.
+
+## Playback and time
+
+The renderer updates automatically. Keep Spine's track and queue APIs to arrange animations:
+
+```ts
+resource.stateData.defaultMix = 0.2; // Shared mixing configuration.
+const state = renderer.state;
+state.setAnimation(0, "attack", false);
+state.addAnimation(0, "idle", true, 0);
+```
+
+`renderer.timeScale` defaults to 1 and scales both animation and skeleton time, including 4.2 physics. Zero stops time advancement but continues applying the pose and drawing, so skin changes and explicit track-time edits still appear. Restore the previous multiplier to resume:
+
+```ts
+renderer.timeScale = 0.5;
+const previousTimeScale = renderer.timeScale;
+renderer.timeScale = 0;
+renderer.timeScale = previousTimeScale;
+```
+
+The native `state.timeScale` and `entry.timeScale` remain independent animation controls. Relative to the engine's delta time, a track advances by `renderer.timeScale * state.timeScale * entry.timeScale`; mixing advances by `renderer.timeScale * state.timeScale`, and skeleton physics by `renderer.timeScale`. Changing an entry's `trackTime` selects an animation time on the next update; it does not seek physics history.
+
+## Materials
+
+Renderers in the same engine initially share one default `SpineMaterial`. Set or instance this material using the standard renderer API. It is used by slots without a material override and remains assigned through animation updates, skin changes and resource rebinding. Dynamic batch indices are not material slots.
+
+```ts
+import { SpineMaterial } from "@galacean/engine-spine";
+
+const material = new SpineMaterial(engine, customShader);
+renderer.setMaterial(material);
+// Or get an independent copy of the current material:
+const instance = renderer.getInstanceMaterial();
+```
+
+Use a `SpineSlot` to override the material for part of a character:
+
+```ts
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  renderer.setMaterial(weapon, weaponMaterial);
+  renderer.getMaterial(weapon); // Effective material: the override, or the renderer's default.
+  renderer.setMaterial(weapon, null); // Remove the override.
+}
+```
+
+`setMaterial(material)` and `setMaterial(0, material)` set the default material. Numeric indices retain their renderer material-array meaning; they do not identify Spine slots. `getMaterials()` and `getInstanceMaterial()` retain their inherited material-array behavior. Slot overrides are independent of this array. With a null default material, only slots with an override render.
+
+Overrides survive skin, attachment and draw-order changes. Clones retain the material references and apply them to their own slots. Changing or clearing the resource removes the overrides; a slot from another instance or an old resource binding is rejected. Adjacent attachments batch together only when their effective material, texture and blend mode match.
+
+A custom shader consumes the Spine vertex layout (`POSITION`, `LIGHT_COLOR`, `TEXCOORD_0`, and `DARK_COLOR` when enabled) and these inputs:
+
+| Scope | Input |
+| --- | --- |
+| Renderer macro | `RENDERER_TINT_BLACK` |
+| Renderer float | `renderer_PremultipliedAlpha` |
+| Batch texture | `renderElement_SpineTexture` |
+| Batch blend factors | `renderElement_SpineSourceColorBlendFactor`, `renderElement_SpineDestinationColorBlendFactor`, `renderElement_SpineSourceAlphaBlendFactor`, `renderElement_SpineDestinationAlphaBlendFactor` |
+
+The built-in `2D/Spine` pass binds its blend state to the batch factors. Custom passes can bind these same variables to preserve Spine's blend modes, or declare their own fixed state. Spine does not overwrite a pass's state. User parameters remain on the original material; no hidden material copies need synchronizing. Renderer macros and batch textures do not mutate shared materials.
+
+## Physics
 
 Physics is an explicit capability, including on backends that do not support it:
 
@@ -56,7 +130,7 @@ Completion callbacks can replace or enqueue animations, or destroy the effect en
 
 Entities instantiated from a resource keep it alive. The resource retains textures referenced by all skins, attachments and sequence frames, including those not currently drawn. Destroying the resource releases its internal entity template and rendering resources.
 
-Matching renderers share cached materials. Live renderer references protect them; unused variants participate in `ResourceManager.gc()`. Material destruction evicts its own cache entry. Destroying one renderer does not evict or destroy a material still used by another.
+Live renderer references protect shared or user-assigned materials. Unreferenced materials participate in `ResourceManager.gc()`. Destroying one renderer does not destroy a material still used by another.
 
 ## Backend integration
 

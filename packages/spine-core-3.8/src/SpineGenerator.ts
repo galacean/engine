@@ -32,8 +32,8 @@ export class SpineGenerator {
     let uvs: ArrayLike<number>;
 
     const drawOrder = skeleton.drawOrder;
-    for (let slotIndex = 0, n = drawOrder.length; slotIndex < n; ++slotIndex) {
-      const slot = drawOrder[slotIndex];
+    for (let drawOrderIndex = 0, n = drawOrder.length; drawOrderIndex < n; ++drawOrderIndex) {
+      const slot = drawOrder[drawOrderIndex];
       if (!slot.bone.active) {
         _clipper.clipEndWithSlot(slot);
         continue;
@@ -180,7 +180,8 @@ export class SpineGenerator {
           finalIndicesLength,
           texture.getImage(),
           slot.data.blendMode,
-          slotIndex
+          drawOrderIndex,
+          slot.data.index
         );
       }
 

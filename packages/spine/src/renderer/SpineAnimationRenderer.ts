@@ -1,5 +1,6 @@
 import type { ISpineAnimationState, ISpineSkeleton } from "@galacean/engine-design";
 import { SpineSkeleton } from "../SpineSkeleton";
+import { SpineSlot } from "../SpineSlot";
 import { SpineAnimationState } from "../SpineAnimationState";
 import { SpinePhysics } from "../SpinePhysics";
 import type { SpinePhysicsSupport } from "../SpinePhysics";
@@ -8,12 +9,14 @@ import type { SpineAnimationStateData } from "../SpineAnimationStateData";
 import type { ISpineRuntime } from "../runtime/ISpineRuntime";
 import {
   assignmentClone,
+  BlendFactor,
   BoundingBox,
   Buffer,
   BufferBindFlag,
   BufferUsage,
   deepClone,
   Entity,
+  Engine,
   ignoreClone,
   IndexBufferBinding,
   IndexFormat,
@@ -21,8 +24,10 @@ import {
   Primitive,
   Renderer,
   RendererUpdateFlags,
+  ShaderData,
+  ShaderDataGroup,
+  ShaderProperty,
   SubPrimitive,
-  Texture2D,
   Vector3,
   VertexBufferBinding,
   VertexElement,
@@ -37,13 +42,24 @@ import { SpineGeometry } from "./SpineGeometry";
  * Spine animation renderer, capable of rendering spine animations and providing functions for animation and skeleton manipulation.
  */
 export class SpineAnimationRenderer extends Renderer {
+  private static _defaultMaterials = new WeakMap<Engine, SpineMaterial>();
+  private static _textureProperty = ShaderProperty.getByName("renderElement_SpineTexture");
+  private static _sourceColorProperty = ShaderProperty.getByName("renderElement_SpineSourceColorBlendFactor");
+  private static _destinationColorProperty = ShaderProperty.getByName("renderElement_SpineDestinationColorBlendFactor");
+  private static _sourceAlphaProperty = ShaderProperty.getByName("renderElement_SpineSourceAlphaBlendFactor");
+  private static _destinationAlphaProperty = ShaderProperty.getByName("renderElement_SpineDestinationAlphaBlendFactor");
   private static _positionVertexElement = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
   private static _lightColorVertexElement = new VertexElement("LIGHT_COLOR", 12, VertexElementFormat.Vector4, 0);
   private static _uvVertexElement = new VertexElement("TEXCOORD_0", 28, VertexElementFormat.Vector2, 0);
   private static _darkColorVertexElement = new VertexElement("DARK_COLOR", 36, VertexElementFormat.Vector3, 0);
 
-  /** @internal */
-  static _materialCacheMap = new Map<string, SpineMaterial>();
+  /**
+   * Time multiplier for both animation playback and skeleton physics. Defaults to 1.
+   * Zero stops time advancement while still applying the pose and rendering.
+   * AnimationState and TrackEntry time scales multiply animation time independently.
+   */
+  @assignmentClone
+  timeScale = 1;
 
   /**
    * The spacing between z layers in world units.
@@ -76,6 +92,11 @@ export class SpineAnimationRenderer extends Renderer {
     if (this._tintBlack !== value) {
       this._tintBlack = value;
       this._needResizeBuffer = true;
+      if (value) {
+        this.shaderData.enableMacro("RENDERER_TINT_BLACK");
+      } else {
+        this.shaderData.disableMacro("RENDERER_TINT_BLACK");
+      }
     }
   }
 
@@ -103,7 +124,7 @@ export class SpineAnimationRenderer extends Renderer {
   _needResizeBuffer = false;
   /** @internal */
   @ignoreClone
-  _resource: SpineResource;
+  _resource: SpineResource | null = null;
   /** @internal */
   @ignoreClone
   _localBounds = new BoundingBox(
@@ -112,7 +133,13 @@ export class SpineAnimationRenderer extends Renderer {
   );
 
   @ignoreClone
-  private _geometry = new SpineGeometry();
+  private _slotMaterials = new Map<number, Material>();
+  @ignoreClone
+  private _slotMaterialsDirty = false;
+  @ignoreClone
+  private _geometry = new SpineGeometry(this._slotMaterials);
+  @ignoreClone
+  private _batchShaderData: ShaderData[] = [];
   @ignoreClone
   private _skeleton: ISpineSkeleton;
   @ignoreClone
@@ -160,6 +187,13 @@ export class SpineAnimationRenderer extends Renderer {
    */
   constructor(entity: Entity) {
     super(entity);
+    const defaults = SpineAnimationRenderer._defaultMaterials;
+    let material = defaults.get(this.engine);
+    if (!material || material.destroyed || material.pendingDestroy) {
+      material = new SpineMaterial(this.engine);
+      defaults.set(this.engine, material);
+    }
+    this.setMaterial(material);
     const primitive = new Primitive(this.engine);
     this._primitive = primitive;
     this._primitive._addReferCount(1);
@@ -167,6 +201,45 @@ export class SpineAnimationRenderer extends Renderer {
     primitive.addVertexElement(SpineAnimationRenderer._lightColorVertexElement);
     primitive.addVertexElement(SpineAnimationRenderer._uvVertexElement);
     primitive.addVertexElement(SpineAnimationRenderer._darkColorVertexElement);
+  }
+
+  /** Set the default material used by slots without an override. */
+  override setMaterial(material: Material | null): void;
+  /** Set a renderer material by index. Spine uses index 0 as its default material. */
+  override setMaterial(index: number, material: Material | null): void;
+  /** Override a slot's material, or pass null to restore the renderer's default material. */
+  override setMaterial(slot: SpineSlot, material: Material | null): void;
+  override setMaterial(
+    indexOrSlotOrMaterial: number | SpineSlot | Material | null,
+    material: Material | null = null
+  ): void {
+    if (indexOrSlotOrMaterial instanceof SpineSlot) {
+      const index = this._getSlotIndex(indexOrSlotOrMaterial);
+      const previous = this._slotMaterials.get(index);
+      if (previous === material || (!previous && !material)) return;
+      if (previous) this._addResourceReferCount(previous, -1);
+      if (material) {
+        this._slotMaterials.set(index, material);
+        this._addResourceReferCount(material, 1);
+      } else {
+        this._slotMaterials.delete(index);
+      }
+      this._slotMaterialsDirty = true;
+    } else if (typeof indexOrSlotOrMaterial === "number") {
+      super.setMaterial(indexOrSlotOrMaterial, material);
+    } else {
+      super.setMaterial(indexOrSlotOrMaterial);
+    }
+  }
+
+  override getMaterial(): Material | null;
+  override getMaterial(index: number): Material | null;
+  /** Get a slot's effective material, including the renderer's default when no override is set. */
+  override getMaterial(slot: SpineSlot): Material | null;
+  override getMaterial(indexOrSlot: number | SpineSlot = 0): Material | null {
+    return indexOrSlot instanceof SpineSlot
+      ? (this._slotMaterials.get(this._getSlotIndex(indexOrSlot)) ?? super.getMaterial())
+      : super.getMaterial(indexOrSlot);
   }
 
   /**
@@ -182,42 +255,37 @@ export class SpineAnimationRenderer extends Renderer {
   override update(delta: number): void {
     const { _state: state, _skeleton: skeleton } = this;
     if (!state || !skeleton) return;
-    const runtime = this._runtime;
-    this._publicState._update(skeleton, delta);
+    this._publicState._update(skeleton, delta * this.timeScale);
     // Playback callbacks may end this binding by releasing its resource or destroying the renderer.
     if (this.destroyed || this._state !== state || this._skeleton !== skeleton) return;
-    const geometry = this._geometry;
-    geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack);
-    runtime.buildGeometry(skeleton, geometry);
-    this._uploadGeometry();
-    // Release materials for draw segments that disappeared after a skin/attachment change.
-    if (this._materials.length > this._subPrimitives.length) {
-      this.setMaterials(this._materials.slice(0, this._subPrimitives.length));
-    }
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    this.shaderData.setFloat("renderer_PremultipliedAlpha", this.premultipliedAlpha ? 1 : 0);
+    this._buildGeometry();
   }
 
   /**
    * @internal
    */
   override _render(context: any): void {
-    const { _primitive, _subPrimitives, _materials: materials } = this;
+    const { _primitive, _subPrimitives, _batchShaderData } = this;
     if (!_subPrimitives) return;
+    // Material selection may change after animation update, including through inherited material APIs.
+    if (this._skeleton && (this._slotMaterialsDirty || this._geometry.defaultMaterial !== this.getMaterial())) {
+      this._buildGeometry();
+    }
     const engine = this.engine;
     const priority = this.priority;
     const distanceForSort = this._distanceForSort;
     const renderElementPool = engine._renderElementPool;
     const renderPipeline = context.camera._renderPipeline;
     for (let i = 0, n = _subPrimitives.length; i < n; i++) {
-      let material = materials[i];
-      if (!material) {
-        continue;
-      }
+      let material = this._geometry.batches[i].material;
+      if (!material) continue;
       if (material.destroyed || material.shader.destroyed) {
         material = engine._basicResources.meshMagentaMaterial;
       }
       const renderElement = renderElementPool.get();
       renderElement.set(this, material, _primitive, _subPrimitives[i]);
+      renderElement.shaderData = _batchShaderData[i];
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
       renderPipeline.pushRenderElement(context, renderElement);
@@ -252,20 +320,12 @@ export class SpineAnimationRenderer extends Renderer {
    * @internal
    */
   override _onClone(target: SpineAnimationRenderer): void {
-    super._onClone(target);
-    // A renderer added manually and never bound to a resource has no skeleton/state to clone.
-    if (!this._skeleton || !this._state) return;
-    const runtime = this._runtime;
-    // Clones share the source's SkeletonData and AnimationStateData (mix config),
-    // so mix times configured on the resource propagate to every instance; only the
-    // per-instance ISpineSkeleton / ISpineAnimationState are fresh.
-    const skeleton = runtime.createSkeleton(this._skeleton.data);
-    const state = runtime.createAnimationState(this._state.data);
-    target._setRuntime(runtime);
-    target._resource = this._resource;
-    target._resource?._addReferCount(1);
-    target._setSkeleton(skeleton, this._publicSkeleton.data);
-    target._setState(state, this._publicState.data);
+    target.setMaterials(this._materials);
+    // Each instance binds fresh playback and pose objects to the shared resource data.
+    target.resource = this._resource;
+    for (const [index, material] of this._slotMaterials) {
+      target.setMaterial(target.skeleton.slots[index], material);
+    }
   }
 
   /**
@@ -273,7 +333,10 @@ export class SpineAnimationRenderer extends Renderer {
    */
   override _onDestroy(): void {
     this._publicState?._dispose();
+    this._clearSlotMaterials();
     this._geometry = null;
+    this._clearBatchTextures(0);
+    this._batchShaderData.length = 0;
     this._subPrimitives.length = 0;
     const primitive = this._primitive;
     if (primitive) {
@@ -286,7 +349,7 @@ export class SpineAnimationRenderer extends Renderer {
     this._indexBuffer?.destroy();
     this._vertexBuffer = null;
     this._indexBuffer = null;
-    this._resource?._addReferCount(-1);
+    if (this._resource) this._addResourceReferCount(this._resource, -1);
     this._resource = null;
     this._runtime = null;
     this._physics = null;
@@ -306,8 +369,12 @@ export class SpineAnimationRenderer extends Renderer {
       const primitive = subPrimitives[i] ?? (subPrimitives[i] = new SubPrimitive());
       primitive.start = batch.start;
       primitive.count = batch.count;
-      this.setMaterial(i, this._getMaterial(batch.texture, batch.blendMode));
+      const data =
+        this._batchShaderData[i] ?? (this._batchShaderData[i] = new ShaderData(ShaderDataGroup.RenderElement));
+      data.setTexture(SpineAnimationRenderer._textureProperty, batch.texture);
+      this._setBatchBlend(data, batch.blendMode);
     }
+    this._clearBatchTextures(batchCount);
     subPrimitives.length = batchCount;
     if (!vertexCount) {
       this._localBounds.min.set(0, 0, 0);
@@ -335,34 +402,54 @@ export class SpineAnimationRenderer extends Renderer {
     }
   }
 
-  /**
-   * @internal
-   */
-  _getMaterial(texture: Texture2D, blendMode: SpineBlendMode): Material {
-    const engine = this.engine;
-    const premultipliedAlpha = this.premultipliedAlpha;
-    const tintBlack = this.tintBlack;
+  private _getSlotIndex(slot: SpineSlot): number {
+    const index = this._publicSkeleton?.slots.indexOf(slot) ?? -1;
+    if (index < 0) throw new Error("The Spine slot does not belong to this renderer's current skeleton.");
+    return index;
+  }
 
-    // tintBlack must be part of the key: it toggles a per-material macro, so renderers that
-    // differ only in tintBlack cannot share a material.
-    const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}_${tintBlack ? 1 : 0}`;
-    let cached = SpineAnimationRenderer._materialCacheMap.get(key);
-    if (!cached || cached.destroyed || cached.pendingDestroy) {
-      cached = new SpineMaterial(engine);
-      // Renderer material references protect live entries. Unused variants participate in normal GC.
-      const material = cached;
-      cached._onCacheDestroy = () => {
-        const cache = SpineAnimationRenderer._materialCacheMap;
-        if (cache.get(key) === material) cache.delete(key);
-      };
-      cached._cacheKey = key;
-      SpineAnimationRenderer._materialCacheMap.set(key, cached);
+  private _clearSlotMaterials(): void {
+    for (const material of this._slotMaterials.values()) this._addResourceReferCount(material, -1);
+    this._slotMaterials.clear();
+    this._slotMaterialsDirty = false;
+  }
+
+  private _buildGeometry(): void {
+    const geometry = this._geometry;
+    geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack, this.getMaterial());
+    this._runtime.buildGeometry(this._skeleton, geometry);
+    this._uploadGeometry();
+    this._slotMaterialsDirty = false;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  private _clearBatchTextures(start: number): void {
+    for (let i = start; i < this._batchShaderData.length; i++) {
+      this._batchShaderData[i].setTexture(SpineAnimationRenderer._textureProperty, null);
     }
-    cached._setBlendMode(blendMode, premultipliedAlpha);
-    cached._setTexture(texture);
-    cached._setTintBlack(tintBlack);
-    cached._setPremultipliedAlpha(premultipliedAlpha);
-    return cached;
+  }
+
+  private _setBatchBlend(data: ShaderData, blendMode: SpineBlendMode): void {
+    const { One, SourceAlpha, OneMinusSourceAlpha, DestinationColor, OneMinusSourceColor } = BlendFactor;
+    let sourceColor = this.premultipliedAlpha ? One : SourceAlpha;
+    let destinationColor = OneMinusSourceAlpha;
+    let destinationAlpha = OneMinusSourceAlpha;
+    switch (blendMode) {
+      case SpineBlendMode.Additive:
+        destinationColor = destinationAlpha = One;
+        break;
+      case SpineBlendMode.Multiply:
+        sourceColor = DestinationColor;
+        break;
+      case SpineBlendMode.Screen:
+        sourceColor = One;
+        destinationColor = OneMinusSourceColor;
+        break;
+    }
+    data.setInt(SpineAnimationRenderer._sourceColorProperty, sourceColor);
+    data.setInt(SpineAnimationRenderer._destinationColorProperty, destinationColor);
+    data.setInt(SpineAnimationRenderer._sourceAlphaProperty, One);
+    data.setInt(SpineAnimationRenderer._destinationAlphaProperty, destinationAlpha);
   }
 
   private _applyDefaultConfig(): void {
@@ -380,23 +467,22 @@ export class SpineAnimationRenderer extends Renderer {
   }
 
   /**
-   * * @deprecated This property is deprecated and will be removed in future releases.
-   * Spine resource of current spine animation.
+   * Spine resource of this renderer, or null when unbound.
    */
-  get resource(): SpineResource {
+  get resource(): SpineResource | null {
     return this._resource;
   }
 
   /**
-   * * @deprecated This property is deprecated and will be removed in future releases.
-   * Sets the Spine resource for the current animation. This property allows switching to a different `SpineResource`.
+   * Bind a Spine resource, or assign null to clear its pose and playback.
    *
-   * @param value - The new `SpineResource` to be used for the current animation
+   * @param value - The resource to use, or null to unbind
    */
-  set resource(value: SpineResource) {
+  set resource(value: SpineResource | null) {
     if (this._resource === value) return;
     this._publicState?._dispose();
-    this._resource?._addReferCount(-1);
+    this._clearSlotMaterials();
+    if (this._resource) this._addResourceReferCount(this._resource, -1);
     this._resource = value;
     this._state = null;
     this._skeleton = null;
@@ -405,13 +491,13 @@ export class SpineAnimationRenderer extends Renderer {
     this._publicSkeleton = null;
     this._publicState = null;
     this._subPrimitives.length = 0;
-    this._geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack);
-    this.setMaterials([]);
+    this._geometry.reset(this.zSpacing, this.premultipliedAlpha, this.tintBlack, this.getMaterial());
+    this._clearBatchTextures(0);
     this._localBounds.min.set(0, 0, 0);
     this._localBounds.max.set(0, 0, 0);
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     if (!value) return;
-    value._addReferCount(1);
+    this._addResourceReferCount(value, 1);
     const { skeletonData, stateData, _runtime: runtime } = value;
     this._setRuntime(runtime);
     this._setSkeleton(runtime.createSkeleton(skeletonData._native), skeletonData);

@@ -42,17 +42,19 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const spineEntity: Entity = resource.instantiate();
       root.addChild(spineEntity);
 
-      const animator = spineEntity.getComponent(SpineAnimationRenderer);
+      const renderer = spineEntity.getComponent(SpineAnimationRenderer);
       const animationNames = resource.skeletonData.animations.map((animation) => animation.name);
 
+      gui.add(renderer, "timeScale", 0, 2, 0.05).name("Time Scale");
+
       state.animation = animationNames[0];
-      animator.state.setAnimation(0, state.animation, true);
+      renderer.state.setAnimation(0, state.animation, true);
 
       gui
         .add(state, "animation", animationNames)
         .name("Animation")
         .onChange((name: string) => {
-          animator.state.setAnimation(0, name, true);
+          renderer.state.setAnimation(0, name, true);
         });
     })
     .catch((error) => {

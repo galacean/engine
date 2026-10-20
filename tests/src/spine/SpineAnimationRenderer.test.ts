@@ -1,8 +1,6 @@
 import { describe, beforeAll, expect, it } from "vitest";
-import { Entity, Material, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
+import { Entity, Material, Shader, ShaderMacro, WebGLEngine } from "@galacean/engine";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
-import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
-import { SpineBlendMode } from "../../../packages/spine/src/enums/SpineBlendMode";
 
 describe("SpineAnimationRenderer", () => {
   let engine: WebGLEngine;
@@ -26,49 +24,38 @@ describe("SpineAnimationRenderer", () => {
     expect((renderer as any)._needResizeBuffer).to.be.true;
   });
 
-  it("_getMaterial caches by texture + blendMode", () => {
-    const renderer = new Entity(engine).addComponent(SpineAnimationRenderer);
-    const texture = new Texture2D(engine, 4, 4);
-    const normal = renderer._getMaterial(texture, SpineBlendMode.Normal);
-    // Renderers using the same texture and blend mode share the cached material.
-    expect(renderer._getMaterial(texture, SpineBlendMode.Normal)).to.equal(normal);
-    // Different blendMode must produce a different material.
-    expect(renderer._getMaterial(texture, SpineBlendMode.Additive)).to.not.equal(normal);
+  it("shares the default material without sharing renderer features", () => {
+    const a = new Entity(engine).addComponent(SpineAnimationRenderer);
+    const b = new Entity(engine).addComponent(SpineAnimationRenderer);
+    a.tintBlack = true;
+    a.premultipliedAlpha = true;
+    expect(a.getMaterial()).to.equal(b.getMaterial());
+    expect(a.getMaterial().shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.false;
+    expect(a.shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.true;
+    expect(b.shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.false;
   });
 
-  it("_getMaterial does not share a material across tintBlack variants", () => {
-    const renderer = new Entity(engine).addComponent(SpineAnimationRenderer);
-    const texture = new Texture2D(engine, 4, 4);
-    const plain = renderer._getMaterial(texture, SpineBlendMode.Normal);
-    renderer.tintBlack = true;
-    const tinted = renderer._getMaterial(texture, SpineBlendMode.Normal);
-    // Sharing one material would let renderers that differ only in tintBlack clobber
-    // each other's RENDERER_TINT_BLACK macro every frame.
-    expect(tinted).to.not.equal(plain);
-    expect(renderer._getMaterial(texture, SpineBlendMode.Normal)).to.equal(tinted);
-    renderer.tintBlack = false;
-    expect(renderer._getMaterial(texture, SpineBlendMode.Normal)).to.equal(plain);
-  });
-
-  it("destroy tolerates user-set materials and removes cached entries by key", () => {
+  it("clones playback speed and custom material selection", () => {
     const entity = new Entity(engine);
     const renderer = entity.addComponent(SpineAnimationRenderer);
-    const texture = new Texture2D(engine, 4, 4);
-    const cached = renderer._getMaterial(texture, SpineBlendMode.Normal) as SpineMaterial;
-    renderer.setMaterial(0, cached);
-    // setMaterial is public API — destroy must not assume every entry is a SpineMaterial.
-    renderer.setMaterial(1, new Material(engine, Shader.find("2D/Spine")));
-    const cacheKey = cached._cacheKey;
-    expect(SpineAnimationRenderer._materialCacheMap.has(cacheKey)).to.be.true;
-    expect(() => entity.destroy()).to.not.throw();
+    renderer.timeScale = 0.25;
+    renderer.tintBlack = true;
+    const material = new Material(engine, Shader.find("2D/Spine"));
+    renderer.setMaterial(material);
+    const clone = entity.clone().getComponent(SpineAnimationRenderer);
+    expect(clone.timeScale).to.equal(0.25);
+    expect(clone.getMaterial()).to.equal(material);
+    expect(clone.shaderData.getMacros().includes(ShaderMacro.getByName("RENDERER_TINT_BLACK"))).to.be.true;
+    entity.destroy();
     engine.resourceManager.gc();
-    expect(cached.destroyed).to.be.true;
-    expect(SpineAnimationRenderer._materialCacheMap.has(cacheKey)).to.be.false;
+    expect(material.destroyed).to.be.false;
+    clone.entity.destroy();
   });
 
   it("cloning an entity whose renderer has no skeleton does not throw", () => {
     const entity = new Entity(engine);
-    entity.addComponent(SpineAnimationRenderer);
-    expect(() => entity.clone()).to.not.throw();
+    entity.addComponent(SpineAnimationRenderer).setMaterials([]);
+    const clone = entity.clone().getComponent(SpineAnimationRenderer);
+    expect(clone.getMaterials()).to.have.length(0);
   });
 });

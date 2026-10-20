@@ -4,6 +4,7 @@ import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
+import { ShaderDataGroup } from "../enums/ShaderDataGroup";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -13,6 +14,15 @@ import { StencilState } from "./StencilState";
  * Render state.
  */
 export class RenderState extends DataObject {
+  /** @internal Select batch data for RenderElement parameters; other state parameters use material data. */
+  static _getShaderData(
+    property: ShaderProperty,
+    materialData: ShaderData,
+    renderElementData?: ShaderData
+  ): ShaderData | undefined {
+    return property._group === ShaderDataGroup.RenderElement ? renderElementData : materialData;
+  }
+
   /** Blend state. */
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */
@@ -33,12 +43,13 @@ export class RenderState extends DataObject {
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    customRenderStates?: RenderStateElementMap | null
+    customRenderStates?: RenderStateElementMap | null,
+    renderElementData?: ShaderData
   ): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData, renderElementData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData, renderElementData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData, renderElementData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData, renderElementData);
 
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
@@ -59,11 +70,14 @@ export class RenderState extends DataObject {
    */
   _getRenderQueueByShaderData(
     renderStateDataMap: Record<number, ShaderProperty>,
-    shaderData: ShaderData
+    shaderData: ShaderData,
+    renderElementData?: ShaderData
   ): RenderQueueType {
     const renderQueueTypeProp = renderStateDataMap[RenderStateElementKey.RenderQueueType];
     if (renderQueueTypeProp !== undefined) {
-      const renderQueueType = shaderData.getFloat(renderQueueTypeProp);
+      const renderQueueType = RenderState._getShaderData(renderQueueTypeProp, shaderData, renderElementData)?.getFloat(
+        renderQueueTypeProp
+      );
       if (renderQueueType !== undefined) return renderQueueType;
     }
     return this.renderQueueType;

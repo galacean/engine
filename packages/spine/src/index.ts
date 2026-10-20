@@ -14,6 +14,7 @@ export * from "./renderer/index";
 export { registerSpineRuntime } from "./runtime/SpineRuntimeRegistry";
 export { SpineSkeleton } from "./SpineSkeleton";
 export { SpineBone } from "./SpineBone";
+export { SpineSlot } from "./SpineSlot";
 export { SpineSkin } from "./SpineSkin";
 export { SpineSkeletonData } from "./SpineSkeletonData";
 export { SpineAnimationStateData } from "./SpineAnimationStateData";

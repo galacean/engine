@@ -75,7 +75,10 @@ export class SpineResource extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._template?.destroy();
+    if (this._template) {
+      this._template.getComponent(SpineAnimationRenderer).getMaterial()?._disassociationSuperResource(this);
+      this._template.destroy();
+    }
     this._template = null;
     this._disassociateTextures();
     this._skeletonData = null;
@@ -85,14 +88,10 @@ export class SpineResource extends ReferResource {
   private _createTemplate(): void {
     const name = this._extractFileName(this.url);
     const spineEntity = new Entity(this.engine, name);
-    const spineAnimationRenderer = spineEntity.addComponent(SpineAnimationRenderer);
-    const runtime = this._runtime;
-    const skeleton = runtime.createSkeleton(this._skeletonData._native);
-    const state = runtime.createAnimationState(this._stateData._native);
-    spineAnimationRenderer._setRuntime(runtime);
-    spineAnimationRenderer._setSkeleton(skeleton, this._skeletonData);
-    spineAnimationRenderer._setState(state, this._stateData);
     spineEntity._markAsTemplate(this);
+    const spineAnimationRenderer = spineEntity.addComponent(SpineAnimationRenderer);
+    spineAnimationRenderer.getMaterial()._associationSuperResource(this);
+    spineAnimationRenderer.resource = this;
     this._template = spineEntity;
   }
 

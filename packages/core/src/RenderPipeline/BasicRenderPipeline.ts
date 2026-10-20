@@ -402,7 +402,8 @@ export class BasicRenderPipeline {
       const renderState = shaderPass._renderState;
       const renderQueueType = renderState._getRenderQueueByShaderData(
         shaderPass._renderStateDataMap,
-        renderElement.material.shaderData
+        renderElement.material.shaderData,
+        renderElement.shaderData
       );
 
       const flag = 1 << renderQueueType;

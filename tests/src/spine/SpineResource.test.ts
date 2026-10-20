@@ -1,4 +1,7 @@
-import { AssetType, Camera, Color, Entity, Texture2D, WebGLEngine } from "@galacean/engine";
+import { AssetType, Camera, Color, Entity, Script, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import spineShaderSource from "../../../packages/shader/src/Shaders/2D/Spine.shader?raw";
+import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
@@ -6,6 +9,7 @@ import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineR
 import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runtime";
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
 import { SpineSkeleton } from "../../../packages/spine/src/SpineSkeleton";
+import { SpineSlot } from "../../../packages/spine/src/SpineSlot";
 import { SpineAnimationState } from "../../../packages/spine/src/SpineAnimationState";
 import { SpineTrackEntry } from "../../../packages/spine/src/SpineTrackEntry";
 import type { SpineEvent } from "../../../packages/spine/src/SpineAnimationStateListener";
@@ -25,7 +29,11 @@ describe("Spine resource ownership", () => {
   beforeEach(async () => {
     canvas = document.createElement("canvas");
     canvas.width = canvas.height = 128;
-    engine = await WebGLEngine.create({ canvas, graphicDeviceOptions: { preserveDrawingBuffer: true } });
+    engine = await WebGLEngine.create({
+      canvas,
+      shaderCompiler: new ShaderCompiler(),
+      graphicDeviceOptions: { preserveDrawingBuffer: true }
+    });
     root = engine.sceneManager.activeScene.createRootEntity();
     const cameraEntity = root.createChild();
     cameraEntity.transform.setPosition(0, 0, 3);
@@ -67,6 +75,330 @@ describe("Spine resource ownership", () => {
     expect(gl.getError()).to.equal(0);
     return count;
   }
+
+  for (const version of ["3.8", "4.2"] as const) {
+    it(`${version}: renders slot materials through late edits, skin changes and animated draw order`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots = [0, 1, 2].map((i) => ({ name: `slot${i}`, bone: "root", attachment: "quad" }));
+      raw.skins.forEach((skin, skinIndex) => {
+        skin.attachments = Object.fromEntries(
+          [0, 1, 2].map((i) => [
+            `slot${i}`,
+            { quad: { path: skinIndex ? "alt" : "quad", x: (i - 1) * 60, width: 40, height: 40 } }
+          ])
+        );
+      });
+      raw.animations = {
+        reorder: { drawOrder: [{ time: 0, offsets: [{ slot: "slot1", offset: 1 }] }] }
+      };
+      const resource = await createGeometryResource(version, raw);
+      resource._runtime.getTextures(resource.skeletonData._native).forEach((texture, i) => {
+        const color = i ? [0, 0, 255, 255] : [255, 0, 0, 255];
+        texture.setPixelBuffer(new Uint8Array(Array.from({ length: 16 }, () => color).flat()));
+      });
+      const renderer = attach(resource);
+      const slot = renderer.skeleton.findSlot("slot1")!;
+      const original = renderer.getMaterial();
+      const shader = Shader.create(
+        spineShaderSource
+          .replace('Shader "2D/Spine"', `Shader "SpineSlotMaterial${version}"`)
+          .replace("gl_FragColor = texColor * lightColor;", "gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);")
+      );
+      const material = new SpineMaterial(engine, shader);
+      let changeMaterial: (() => void) | null = null;
+      class LateMaterialChange extends Script {
+        override onLateUpdate(): void {
+          changeMaterial?.();
+          changeMaterial = null;
+        }
+      }
+      renderer.entity.addComponent(LateMaterialChange);
+      const sample = () =>
+        [26, 64, 102].map((x) => {
+          const pixel = new Uint8Array(4);
+          canvas.getContext("webgl2")!.readPixels(x, 64, 1, 1, 0x1908, 0x1401, pixel);
+          return Array.from(pixel.slice(0, 3));
+        });
+      visiblePixels();
+      expect(renderer["_geometry"].batchCount).to.equal(1);
+      changeMaterial = () => renderer.setMaterial(slot, material);
+      visiblePixels();
+      expect(sample()).to.deep.equal([
+        [255, 0, 0],
+        [0, 255, 0],
+        [255, 0, 0]
+      ]);
+      expect(renderer["_geometry"].batchCount).to.equal(3);
+      expect(renderer.getMaterial(slot)).to.equal(material);
+      expect(renderer.getMaterial(0)).to.equal(original);
+
+      renderer.state.setAnimation(0, "reorder", true);
+      visiblePixels();
+      expect(sample()).to.deep.equal([
+        [255, 0, 0],
+        [0, 255, 0],
+        [255, 0, 0]
+      ]);
+      expect(renderer["_geometry"].batchCount).to.equal(2);
+      expect(renderer["_geometry"].batches.slice(0, 2).map((batch) => batch.material)).to.deep.equal([
+        original,
+        material
+      ]);
+      renderer.skeleton.setSkinByName("alt");
+      renderer.skeleton.setSlotsToSetupPose();
+      visiblePixels();
+      expect(sample()).to.deep.equal([
+        [0, 0, 255],
+        [0, 255, 0],
+        [0, 0, 255]
+      ]);
+
+      changeMaterial = () => renderer.setMaterial(slot, null);
+      visiblePixels();
+      expect(renderer.getMaterial(slot)).to.equal(original);
+      expect(renderer["_geometry"].batchCount).to.equal(1);
+      expect(sample()).to.deep.equal([
+        [0, 0, 255],
+        [0, 0, 255],
+        [0, 0, 255]
+      ]);
+      changeMaterial = () => {
+        renderer.setMaterial(0, material);
+        renderer.setMaterial(slot, material);
+      };
+      visiblePixels();
+      expect(renderer["_geometry"].batchCount).to.equal(1);
+      expect(sample()).to.deep.equal([
+        [0, 255, 0],
+        [0, 255, 0],
+        [0, 255, 0]
+      ]);
+      changeMaterial = () => renderer.setMaterial(null);
+      visiblePixels();
+      expect(sample()).to.deep.equal([
+        [0, 0, 0],
+        [0, 255, 0],
+        [0, 0, 0]
+      ]);
+    });
+
+    it(`${version}: owns slot material references across cloning, rebinding and destruction`, async () => {
+      const resource = await load(version);
+      const a = attach(resource);
+      const slot = a.skeleton.findSlot("slot")!;
+      const material = new SpineMaterial(engine);
+      a.setMaterial(slot, material);
+      a.setMaterial(slot, material);
+      expect(material.refCount).to.equal(1);
+      const b = a.entity.clone().getComponent(SpineAnimationRenderer);
+      root.addChild(b.entity);
+      const cloneSlot = b.skeleton.findSlot("slot")!;
+      expect(b.getMaterial(cloneSlot)).to.equal(material);
+      expect(material.refCount).to.equal(2);
+      expect(() => b.setMaterial(slot, material)).to.throw("current skeleton");
+      expect(() => b.getMaterial(slot)).to.throw("current skeleton");
+      a.resource = await load(version === "3.8" ? "4.2" : "3.8");
+      expect(material.refCount).to.equal(1);
+      expect(() => a.setMaterial(slot, material)).to.throw("current skeleton");
+      expect(a.getMaterial(a.skeleton.findSlot("slot")!)).to.equal(a.getMaterial());
+      engine.resourceManager.gc();
+      expect(material.destroyed).to.equal(false);
+      b.entity.destroy();
+      expect(material.refCount).to.equal(0);
+      engine.resourceManager.gc();
+      expect(material.destroyed).to.equal(true);
+    });
+
+    it(`${version}: keeps slot handles stable across skin changes and attachment edits local to each instance`, async () => {
+      const resource = await load(version);
+      const a = attach(resource);
+      const b = attach(resource);
+      const slot = a.skeleton.findSlot("slot")!;
+      expect(slot).to.be.instanceOf(SpineSlot);
+      expect(slot).to.equal(a.skeleton.slots[0]);
+      expect(slot.bone).to.equal(a.skeleton.findBone("root"));
+      expect(slot).to.not.equal(b.skeleton.findSlot("slot"));
+      expect(a.skeleton.findSlot("missing")).to.equal(null);
+
+      slot.setAttachment(null);
+      a.update(0);
+      b.update(0);
+      expect(a["_geometry"].indexCount).to.equal(0);
+      expect(b["_geometry"].indexCount).to.be.greaterThan(0);
+
+      a.skeleton.setSkinByName("alt");
+      slot.setToSetupPose();
+      a.update(0);
+      expect(a["_geometry"].indexCount).to.be.greaterThan(0);
+      expect(a["_geometry"].batches[0].texture).to.not.equal(b["_geometry"].batches[0].texture);
+      expect(a.skeleton.findSlot("slot")).to.equal(slot);
+      slot.setAttachment(null);
+      slot.setAttachment("quad");
+      a.update(0);
+      expect(a["_geometry"].indexCount).to.be.greaterThan(0);
+    });
+
+    it(`${version}: scales animation and skeleton time together, and applies manual poses while paused`, async () => {
+      const renderer = attach(await load(version));
+      const state = renderer.state;
+      const entry = state.setAnimation(0, "idle", true);
+      renderer.timeScale = 0.5;
+      state.timeScale = 0.5;
+      entry.timeScale = 0.5;
+      renderer.update(0.8);
+      expect(entry.trackTime).to.be.closeTo(0.1, 1e-6);
+      expect((renderer["_skeleton"] as any).time).to.be.closeTo(0.4, 1e-6);
+      renderer.timeScale = 0;
+      renderer.update(1);
+      expect(entry.trackTime).to.be.closeTo(0.1, 1e-6);
+      expect((renderer["_skeleton"] as any).time).to.be.closeTo(0.4, 1e-6);
+      entry.trackTime = 0.75;
+      renderer.update(1);
+      expect(renderer.skeleton.findBone("root").x).to.be.closeTo(0.15, 1e-6);
+      renderer.skeleton.setSkinByName("alt");
+      renderer.skeleton.setSlotsToSetupPose();
+      expect(visiblePixels()).to.be.greaterThan(100);
+      renderer.timeScale = 1;
+      renderer.update(0.4);
+      expect(entry.trackTime).to.be.closeTo(0.85, 1e-6);
+      expect((renderer["_skeleton"] as any).time).to.be.closeTo(0.8, 1e-6);
+    });
+
+    it(`${version}: draws per-batch textures and blend modes with one shared material, respecting fixed custom states`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots = [];
+      raw.skins = [{ name: "default", attachments: {} }];
+      ["normal", "additive", "multiply", "screen"].forEach((blend, index) => {
+        for (let layer = 0; layer < 2; layer++) {
+          const name = `slot${index}_${layer}`;
+          raw.slots.push({ name, bone: "root", attachment: "quad", blend: layer ? blend : "normal" });
+          raw.skins[0].attachments[name] = {
+            quad: { path: layer ? "alt" : "quad", x: -60 + index * 40, width: 30, height: 40 }
+          };
+        }
+      });
+      const resource = await createGeometryResource(version, raw);
+      const textures = resource._runtime.getTextures(resource.skeletonData._native);
+      textures.forEach((texture, index) => {
+        const pixel = index ? [0, 128, 0, 255] : [128, 0, 0, 255];
+        texture.setPixelBuffer(new Uint8Array(Array.from({ length: 16 }, () => pixel).flat()));
+      });
+      const renderer = attach(resource);
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer.getMaterials()).to.have.length(1);
+      const gl = canvas.getContext("webgl2")!;
+      const sample = (x: number) => {
+        const pixel = new Uint8Array(4);
+        gl.readPixels(x, 64, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+        return Array.from(pixel);
+      };
+      const [normal, additive, multiply, screen] = [26, 51, 77, 102].map(sample);
+      expect(normal[0]).to.equal(0);
+      expect(normal[1]).to.be.greaterThan(50);
+      expect(additive[0]).to.be.greaterThan(50);
+      expect(additive[1]).to.be.greaterThan(50);
+      expect(multiply.slice(0, 3)).to.deep.equal([0, 0, 0]);
+      expect(screen[0]).to.be.greaterThan(50);
+      expect(screen[1]).to.be.greaterThan(50);
+      const fixedShader = Shader.create(
+        spineShaderSource
+          .replace('Shader "2D/Spine"', `Shader "SpineFixedBlend${version}"`)
+          .replace(
+            "SourceColorBlendFactor = renderElement_SpineSourceColorBlendFactor;",
+            "SourceColorBlendFactor = BlendFactor.One;"
+          )
+          .replace(
+            "DestinationColorBlendFactor = renderElement_SpineDestinationColorBlendFactor;",
+            "DestinationColorBlendFactor = BlendFactor.Zero;"
+          )
+      );
+      renderer.setMaterial(new SpineMaterial(engine, fixedShader));
+      expect(visiblePixels()).to.be.greaterThan(100);
+      for (const x of [26, 51, 77, 102]) {
+        const pixel = sample(x);
+        expect(pixel[0]).to.equal(0);
+        expect(pixel[1]).to.be.greaterThan(50);
+      }
+    });
+
+    it(`${version}: keeps one custom material across batches, parameter edits, skins and resource bindings`, async () => {
+      const raw = await fetch(urls[version]).then((r) => r.json());
+      raw.slots.push({ name: "second", bone: "root", attachment: "quad", blend: "additive" });
+      raw.skins[0].attachments.second = { quad: { path: "alt", width: 100, height: 100 } };
+      const resource = await createGeometryResource(version, raw);
+      const renderer = attach(resource);
+      expect(renderer.resource).to.equal(resource);
+      const shader = Shader.create(
+        spineShaderSource
+          .replace('Shader "2D/Spine"', `Shader "SpineCustomMaterial${version}"`)
+          .replace(
+            "float renderer_PremultipliedAlpha;",
+            "float renderer_PremultipliedAlpha;\nfloat material_TestBrightness;"
+          )
+          .replace(
+            "gl_FragColor = texColor * lightColor;",
+            "gl_FragColor = texColor * lightColor;\ngl_FragColor.rgb *= material_TestBrightness;"
+          )
+      );
+      const material = new SpineMaterial(engine, shader);
+      material.shaderData.setFloat("material_TestBrightness", 1);
+      renderer.setMaterial(material);
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer["_geometry"].batchCount).to.equal(2);
+      expect(renderer.getMaterials()).to.deep.equal([material]);
+      material.shaderData.setFloat("material_TestBrightness", 0);
+      expect(visiblePixels()).to.equal(0);
+      material.shaderData.setFloat("material_TestBrightness", 1);
+      const instance = renderer.getInstanceMaterial();
+      expect(instance).to.not.equal(material);
+      expect(instance.shader).to.equal(shader);
+      instance.shaderData.setFloat("material_TestBrightness", 0);
+      expect(visiblePixels()).to.equal(0);
+      expect(material.shaderData.getFloat("material_TestBrightness")).to.equal(1);
+      instance.shaderData.setFloat("material_TestBrightness", 1);
+      renderer.skeleton.setSkinByName("alt");
+      renderer.skeleton.setSlotsToSetupPose();
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer.getMaterial()).to.equal(instance);
+      renderer.resource = null;
+      expect(visiblePixels()).to.equal(0);
+      expect(renderer.getMaterial()).to.equal(instance);
+      renderer.resource = await load(version === "3.8" ? "4.2" : "3.8");
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(renderer.getMaterial()).to.equal(instance);
+      renderer.setMaterial(null);
+      expect(visiblePixels()).to.equal(0);
+    });
+  }
+
+  it("4.2: renderer speed scales physics simulation with the same elapsed time as animation", async () => {
+    const resource = await engine.resourceManager.load<SpineResource>({
+      url: new URL("./fixtures/physics.json", import.meta.url).href,
+      type: "Spine"
+    });
+    const slow = attach(resource);
+    const reference = attach(resource);
+    slow.timeScale = 0.5;
+    const slowEntry = slow.state.setAnimation(0, "idle", true);
+    const referenceEntry = reference.state.setAnimation(0, "idle", true);
+    for (let i = 0; i < 60; i++) {
+      slow.update(1 / 60);
+      reference.update(1 / 120);
+    }
+    expect(slowEntry.trackTime).to.be.closeTo(0.5, 1e-6);
+    expect(slowEntry.trackTime).to.equal(referenceEntry.trackTime);
+    const a = slow["_skeleton"] as any;
+    const b = reference["_skeleton"] as any;
+    expect(a.time).to.be.closeTo(0.5, 1e-6);
+    expect(a.physicsConstraints[0].lastTime).to.be.closeTo(0.5, 1e-6);
+    expect(a.physicsConstraints[0].lastTime).to.equal(b.physicsConstraints[0].lastTime);
+    expect(a.bones[0].worldX).to.be.closeTo(b.bones[0].worldX, 1e-6);
+    const worldX = a.bones[0].worldX;
+    slow.timeScale = 0;
+    slow.update(1);
+    expect(a.time).to.be.closeTo(0.5, 1e-6);
+    expect(a.bones[0].worldX).to.be.closeTo(worldX, 1e-6);
+  });
 
   for (const version of ["3.8", "4.2"] as const) {
     for (const mode of ["atlas-relative", "explicit", "virtual", "single-url-query", "single-url-fragment"] as const) {
@@ -156,7 +488,7 @@ describe("Spine resource ownership", () => {
       for (let i = 0; i < 40; i++) renderer.skeleton.setAttachment(`slot${i}`, null);
       expect(visiblePixels()).to.equal(0);
       expect(renderer._subPrimitives).to.have.length(0);
-      expect(renderer.getMaterials()).to.have.length(0);
+      expect(renderer.getMaterials()).to.have.length(1);
       expect(geometry.batches.every((batch) => batch.texture === null)).to.be.true;
       renderer.skeleton.setAttachment("slot0", "quad");
       expect(visiblePixels()).to.be.greaterThan(100);
@@ -508,9 +840,9 @@ describe("Spine resource ownership", () => {
       b.skeleton.setSkinByName("alt");
       b.skeleton.setSlotsToSetupPose();
       b.update(0);
-      expect(b.getMaterial()).to.not.equal(material);
+      expect(b.getMaterial()).to.equal(material);
       engine.resourceManager.gc();
-      expect(material.destroyed).to.equal(true);
+      expect(material.destroyed).to.equal(false);
       // The resource owns its template, including the template renderer's primitive.
       const template = resource["_template"];
       const primitive = template.getComponent(SpineAnimationRenderer)._primitive;
@@ -519,7 +851,7 @@ describe("Spine resource ownership", () => {
       expect(resource.destroyed).to.equal(true);
       expect(template.destroyed).to.equal(true);
       expect(primitive.destroyed).to.equal(true);
-      expect(SpineAnimationRenderer._materialCacheMap.size).to.equal(0);
+      expect(material.destroyed).to.equal(true);
     });
   }
 
@@ -630,7 +962,7 @@ describe("Spine resource ownership", () => {
     renderer.resource = null;
     expect(b.refCount).to.equal(0);
     expect(renderer._subPrimitives).to.have.length(0);
-    expect(renderer.getMaterials()).to.have.length(0);
+    expect(renderer.getMaterials()).to.have.length(1);
     expect(visiblePixels()).to.equal(0);
   });
 });

@@ -36,6 +36,7 @@ export class RenderElement implements IPoolElement {
     this.material = material;
     this.primitive = primitive;
     this.subPrimitive = subPrimitive;
+    this.shaderData = undefined;
     this.texture = texture;
     this.subChunk = subChunk;
     this.instancedRenderers.length = 0;

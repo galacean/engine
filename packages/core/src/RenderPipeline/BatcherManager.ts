@@ -68,7 +68,14 @@ export class BatcherManager {
 
       const renderer = curElement.component;
       const constructor = renderer.constructor;
-      if (preElement && preConstructor === constructor && preRenderer!._canBatch(preElement, curElement)) {
+      if (
+        preElement &&
+        preConstructor === constructor &&
+        preElement.subShader === curElement.subShader &&
+        // One draw has one batch-data source; distinct sources must remain separate.
+        preElement.shaderData === curElement.shaderData &&
+        preRenderer!._canBatch(preElement, curElement)
+      ) {
         preRenderer!._batch(preElement, curElement);
       } else {
         preElement && BatcherManager._flush(output, preElement);

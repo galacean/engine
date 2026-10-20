@@ -9,6 +9,7 @@ export interface ISpineGeometry<TTexture> {
    * Input vertices contain x, y, r, g, b, a, u, v, followed by dark r, g, b, a when tintBlack is enabled.
    * Only vertexCount vertices and indexCount indices are consumed; indices are local to this attachment.
    * drawOrder is the slot's index in the skeleton draw order, including slots without geometry.
+   * slotIndex is its stable index in Skeleton.slots, independent of animated draw order.
    * Blend modes: normal=0, additive=1, multiply=2, screen=3.
    * The input arrays are copied during this call and are not retained.
    */
@@ -19,6 +20,7 @@ export interface ISpineGeometry<TTexture> {
     indexCount: number,
     texture: TTexture,
     blendMode: 0 | 1 | 2 | 3,
-    drawOrder: number
+    drawOrder: number,
+    slotIndex: number
   ): void;
 }

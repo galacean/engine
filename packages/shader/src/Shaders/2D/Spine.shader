@@ -3,17 +3,17 @@ Shader "2D/Spine" {
     Pass "Default" {
       Tags { pipelineStage = "Forward" }
 
-      BlendFactor sourceColorBlendFactor;
-      BlendFactor destinationColorBlendFactor;
-      BlendFactor sourceAlphaBlendFactor;
-      BlendFactor destinationAlphaBlendFactor;
+      BlendFactor renderElement_SpineSourceColorBlendFactor;
+      BlendFactor renderElement_SpineDestinationColorBlendFactor;
+      BlendFactor renderElement_SpineSourceAlphaBlendFactor;
+      BlendFactor renderElement_SpineDestinationAlphaBlendFactor;
 
       BlendState = {
         Enabled = true;
-        SourceColorBlendFactor = sourceColorBlendFactor;
-        DestinationColorBlendFactor = destinationColorBlendFactor;
-        SourceAlphaBlendFactor = sourceAlphaBlendFactor;
-        DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        SourceColorBlendFactor = renderElement_SpineSourceColorBlendFactor;
+        DestinationColorBlendFactor = renderElement_SpineDestinationColorBlendFactor;
+        SourceAlphaBlendFactor = renderElement_SpineSourceAlphaBlendFactor;
+        DestinationAlphaBlendFactor = renderElement_SpineDestinationAlphaBlendFactor;
       }
       DepthState = {
         WriteEnabled = false;
@@ -46,7 +46,7 @@ Shader "2D/Spine" {
       };
 
       mat4 renderer_MVPMat;
-      sampler2D material_SpineTexture;
+      sampler2D renderElement_SpineTexture;
       float renderer_PremultipliedAlpha;
 
       v2f SpineVertex(a2v attr) {
@@ -61,7 +61,7 @@ Shader "2D/Spine" {
       }
 
       void SpineFragment(v2f v) {
-        vec4 texColor = texture2D(material_SpineTexture, v.v_uv);
+        vec4 texColor = texture2D(renderElement_SpineTexture, v.v_uv);
         vec4 lightColor = sRGBToLinear(v.v_lightColor);
       #ifdef RENDERER_TINT_BLACK
         vec4 darkColor = sRGBToLinear(vec4(v.v_darkColor, 1.0));

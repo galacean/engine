@@ -1,5 +1,5 @@
 import type { ISpineGeometry } from "@galacean/engine-design";
-import { BoundingBox, Texture2D } from "@galacean/engine";
+import { BoundingBox, Material, Texture2D } from "@galacean/engine";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
 import { SpineVertexStride } from "../SpineConstant";
 
@@ -13,18 +13,31 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
   zSpacing = 0;
   premultipliedAlpha = false;
   tintBlack = false;
+  defaultMaterial: Material | null = null;
   readonly bounds = new BoundingBox();
-  readonly batches: { start: number; count: number; texture: Texture2D; blendMode: SpineBlendMode }[] = [];
+  readonly batches: {
+    start: number;
+    count: number;
+    texture: Texture2D;
+    blendMode: SpineBlendMode;
+    material: Material | null;
+  }[] = [];
   batchCount = 0;
 
-  reset(zSpacing: number, premultipliedAlpha: boolean, tintBlack: boolean): void {
+  constructor(private _slotMaterials: ReadonlyMap<number, Material>) {}
+
+  reset(zSpacing: number, premultipliedAlpha: boolean, tintBlack: boolean, defaultMaterial: Material | null): void {
     this.zSpacing = zSpacing;
     this.premultipliedAlpha = premultipliedAlpha;
     this.tintBlack = tintBlack;
+    this.defaultMaterial = defaultMaterial;
     this.vertexStride = tintBlack ? SpineVertexStride.withTint : SpineVertexStride.withoutTint;
     this.vertexCount = this.indexCount = this.batchCount = 0;
-    // Release textures from inactive batches without discarding reusable batch records.
-    for (const batch of this.batches) batch.texture = null;
+    // Release references from inactive batches without discarding reusable batch records.
+    for (const batch of this.batches) {
+      batch.texture = null;
+      batch.material = null;
+    }
     this.bounds.min.set(Infinity, Infinity, Infinity);
     this.bounds.max.set(-Infinity, -Infinity, -Infinity);
   }
@@ -36,7 +49,8 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
     indexCount: number,
     texture: Texture2D,
     blendMode: SpineBlendMode,
-    drawOrder: number
+    drawOrder: number,
+    slotIndex: number
   ): void {
     if (!vertexCount || !indexCount) return;
 
@@ -64,7 +78,7 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
         targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkR
         targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkG
         targetVertices[targetOffset++] = vertices[sourceOffset++]; // darkB
-        sourceOffset++; // darkA is supplied by the material, not the vertex buffer.
+        sourceOffset++; // darkA is derived by the shader, not stored in the vertex buffer.
       }
       min.set(Math.min(min.x, x), Math.min(min.y, y), Math.min(min.z, z));
       max.set(Math.max(max.x, x), Math.max(max.y, y), Math.max(max.z, z));
@@ -74,15 +88,22 @@ export class SpineGeometry implements ISpineGeometry<Texture2D> {
     this.indexCount += indexCount;
 
     const lastBatch = this.batches[this.batchCount - 1];
-    if (lastBatch && lastBatch.texture === texture && lastBatch.blendMode === blendMode) {
+    const material = this._slotMaterials.get(slotIndex) ?? this.defaultMaterial;
+    if (
+      lastBatch &&
+      lastBatch.texture === texture &&
+      lastBatch.blendMode === blendMode &&
+      lastBatch.material === material
+    ) {
       lastBatch.count += indexCount;
     } else {
       const index = this.batchCount++;
-      const batch = this.batches[index] ?? (this.batches[index] = { start: 0, count: 0, texture, blendMode });
+      const batch = this.batches[index] ?? (this.batches[index] = { start: 0, count: 0, texture, blendMode, material });
       batch.start = indexStart;
       batch.count = indexCount;
       batch.texture = texture;
       batch.blendMode = blendMode;
+      batch.material = material;
     }
   }
 

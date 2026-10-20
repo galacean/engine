@@ -89,29 +89,14 @@ export class RenderQueue {
 
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
-      } else {
-        if (needMaskInteraction) {
-          maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
-          customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
-        } else {
-          maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
-        }
-        maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
+      } else if (needMaskInteraction) {
+        customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
       }
 
       const { shaderData: renderElementShaderData } = curElement;
       const shaderPasses = curElement.subShader.passes;
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId } = material;
-
-      // Build compile macros
-      const compileMacros = Shader._compileMacros;
-      ShaderMacroCollection.unionCollection(component._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-
-      if (isInstanced) {
-        compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
-      }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const shaderPass = shaderPasses[j];
@@ -121,15 +106,48 @@ export class RenderQueue {
 
         const renderState = shaderPass._renderState;
         if (!needMaskType) {
-          const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
+          const passQueueType = renderState._getRenderQueueByShaderData(
+            shaderPass._renderStateDataMap,
+            materialData,
+            renderElementShaderData
+          );
           if (passQueueType !== renderQueueType) {
             continue;
           }
         }
 
+        // Mask draws can change the shared macro collection between passes.
+        const compileMacros = Shader._compileMacros;
+        ShaderMacroCollection.unionCollection(
+          component._globalShaderMacro,
+          materialData._macroCollection,
+          compileMacros
+        );
+        ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+
+        if (isInstanced) {
+          compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
+        }
+
         const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
+        }
+
+        // Only passes that will draw may affect mask bookkeeping. Resolve the same
+        // stencil bindings used by _applyStates, including constants and batch data.
+        if (!needMaskType) {
+          if (needMaskInteraction) {
+            maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
+            // Mask interaction overrides writeMask to zero, so this pass cannot write stencil.
+          } else {
+            const stencilState = renderState.stencilState;
+            stencilState._applyShaderDataValue(shaderPass._renderStateDataMap, materialData, renderElementShaderData);
+            const readsStencil = stencilState._isRead();
+            const writesStencil = stencilState._isWritten();
+            if (readsStencil || writesStencil) maskManager.clearMask(context, pipelineStageTagValue);
+            if (writesStencil) maskManager.hasStencilWritten = true;
+          }
         }
 
         const switchProgram = program.bind();
@@ -193,13 +211,14 @@ export class RenderQueue {
           }
         }
 
-        // Apply render state
+        // Resolve again after mask drawing: nested draws may use the same shared pass state.
         renderState._applyStates(
           engine,
           component._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
           material.shaderData,
-          customStates
+          customStates,
+          renderElementShaderData
         );
 
         // Draw
