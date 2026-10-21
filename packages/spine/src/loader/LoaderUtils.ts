@@ -1,6 +1,4 @@
 import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
-import type { SpineLoadParams } from "./SpineLoader";
-import { normalizeSpineTexture } from "./SpineTextureNormalization";
 
 /** @internal */
 type SpineAtlasData = {
@@ -13,8 +11,7 @@ export class LoaderUtils {
   static async loadAtlas(
     atlasPath: string,
     extraPaths: string[],
-    resourceManager: ResourceManager,
-    params?: SpineLoadParams
+    resourceManager: ResourceManager
   ): Promise<SpineAtlasData> {
     const text = await resourceManager._request<string>(atlasPath, { type: "text" });
     const atlas = LoaderUtils._readAtlas(text);
@@ -36,23 +33,31 @@ export class LoaderUtils {
       if (!url) throw new Error(`Spine atlas page "${page.name}" has no texture.`);
       return url;
     });
+    for (const page of atlas.pages) {
+      if (page.pma) {
+        throw new Error(
+          `Spine atlas page "${page.name}" uses premultiplied alpha, which is not supported by the linear rendering workflow. ` +
+            'Re-export with "Premultiply alpha" disabled and "Bleed" enabled.'
+        );
+      }
+    }
     const textures = await Promise.all(
-      pagePaths.map((url) => {
+      pagePaths.map(async (url, index) => {
         const extension = /\.(\w+)$/.exec(url.split(/[?#]/, 1)[0])?.[1];
         const type =
           virtualResources[url]?.type ??
           (extension === "ktx" ? AssetType.KTX : extension === "ktx2" ? AssetType.KTX2 : AssetType.Texture);
-        return resourceManager.load<Texture2D>({ url, type });
+        const texture = await resourceManager.load<Texture2D>({ url, type });
+        if (!texture.isSRGBColorSpace) {
+          throw new Error(
+            `Spine atlas page "${atlas.pages[index].name}" requires an sRGB texture. ` +
+              "Set isSRGBColorSpace=true before its first load, or enable sRGB in the exported texture."
+          );
+        }
+        return texture;
       })
     );
-    const { alphaMode } = params ?? {};
-    const normalizedTextures = atlas.pages.map((page, index) => {
-      const texture = textures[index];
-      const mode = typeof alphaMode === "string" ? alphaMode : alphaMode?.[page.name];
-      const premultiplied = mode ? mode === "premultiplied" : page.pma;
-      return premultiplied ? normalizeSpineTexture(texture) : texture;
-    });
-    return { text: atlas.text, textures: normalizedTextures };
+    return { text: atlas.text, textures };
   }
 
   /** Atlas pages begin a block; regions and their properties remain in the same block. */
@@ -82,7 +87,7 @@ export class LoaderUtils {
           pageHeader = false;
         } else if (value.substring(0, separator).trim() === "pma") {
           pages[pages.length - 1].pma = value.substring(separator + 1).trim() === "true";
-          // Textures are canonical straight alpha; 3.8 cannot parse this newer page property.
+          // Validate alpha encoding before loading textures; 3.8 cannot parse this newer page property.
           continue;
         }
       }

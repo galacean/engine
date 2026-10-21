@@ -50,9 +50,5 @@ import { ISpineRenderTarget } from "@galacean/engine-spine";
 // @ts-expect-error Vertex layout is an implementation detail.
 import { SpineVertexStride } from "@galacean/engine-spine";
 
-import type { SpineLoadParams } from "@galacean/engine-spine";
-const alphaParams: SpineLoadParams = { alphaMode: { "character.png": "premultiplied" } };
-// @ts-expect-error Alpha encoding is an asset property, not an instance rendering mode.
+// @ts-expect-error Spine assets use straight alpha; there is no instance rendering mode.
 renderer.premultipliedAlpha = true;
-// @ts-expect-error Alpha encoding is a finite set of supported input representations.
-const invalidAlphaParams: SpineLoadParams = { alphaMode: "unknown" };

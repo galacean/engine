@@ -162,17 +162,11 @@ if (weapon) {
 
 `new SpineMaterial(engine, customShader)` 支持自定义 shader。启用 `renderer.tintBlack` 可渲染资产的双色 tint。自定义 shader 需匹配 Spine 顶点格式，并按批次读取贴图和混合参数；使用内置混合参数时，在线性空间完成 tint 后，将最终 RGB 乘最终 alpha。详细输入见 [Spine 包说明](https://github.com/galacean/engine/blob/dev/2.0/packages/spine/README.md#materials)。
 
-alpha 编码属于 atlas 页。优先导出带颜色扩边的 Straight Alpha 贴图；loader 按 atlas 的 `pma` 信息识别，未提供时按 straight 处理。旧资产缺少元数据，或导入流程已转换贴图时，可以在首次加载前指定：
+Spine 使用引擎的线性渲染流程，要求输入 **Straight Alpha（未预乘）贴图**。在 Spine 的 Texture Packer 中关闭 **Premultiply alpha**，开启 **Bleed（颜色扩边）**。颜色扩边会把邻近颜色填入透明像素的 RGB，保持 Alpha 不变，减少纹理过滤时的黑边。Shader 仍会在输出前对最终线性颜色进行预乘，以匹配混合参数。
 
-```typescript
-const legacyResource = await engine.resourceManager.load<SpineResource>({
-  url: "/spine/legacy.skel",
-  type: "Spine",
-  params: { alphaMode: "premultiplied" }
-});
-```
+Loader 会拒绝标记为 `pma: true` 的 atlas 页，以及 `isSRGBColorSpace: false` 的纹理。普通图片默认启用 sRGB 采样；导出 `.tex` 或压缩纹理时也需要启用 sRGB，并基于扩边后的未预乘图片生成压缩数据和 mipmap。纹理沿用现有资源加载、共享和设备恢复流程，不进行 GPU 回读，也不创建转换纹理。
 
-`alphaMode` 也可以按 atlas 页名配置。ResourceManager 按 URL 缓存资源，因此更换同一 URL 的加载参数不会重新转换已缓存资产。RGBA8 PMA 页会转换为独立的 straight-alpha 贴图；压缩 PMA 贴图需要在压缩前完成转换。组件上没有 `premultipliedAlpha` 开关。
+旧 atlas 缺少 `pma` 时，按未预乘资产处理。已有 PMA 图片需要重新导出，不能仅修改 atlas 标记。加载器没有 Alpha 模式覆盖参数，组件上也没有 `premultipliedAlpha` 开关。
 
 ## 物理能力和解绑
 

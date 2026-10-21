@@ -1,10 +1,9 @@
 import { Camera, Color, Texture2D, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
 import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
-import { normalizeSpineTexture } from "../../../packages/spine/src/loader/SpineTextureNormalization";
 import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runtime";
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
 import "../../../packages/spine/src/loader/SpineLoader";
@@ -36,7 +35,10 @@ describe("Spine atlas alpha encoding", () => {
     camera.enableHDR = false;
     engine.sceneManager.activeScene.background.solidColor = new Color(0.3, 0.3, 0.3, 1);
   });
-  afterEach(() => engine.destroy());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    engine.destroy();
+  });
 
   function pixels(): Uint8Array {
     engine.update();
@@ -50,7 +52,7 @@ describe("Spine atlas alpha encoding", () => {
   async function load(version: string, suffix = "") {
     return engine.resourceManager.load<SpineResource>({
       type: "Spine",
-      urls: [url(`alpha-${version}.json`) + suffix, url("alpha.atlas")]
+      urls: [url(`alpha-${version}.json`) + suffix, url("alpha-straight.atlas")]
     });
   }
 
@@ -63,7 +65,7 @@ describe("Spine atlas alpha encoding", () => {
   }
 
   for (const version of ["3.8", "4.2"]) {
-    it(`${version}: matches straight exports through fades, tint, four blend modes and mip filtering`, async () => {
+    it(`${version}: renders straight-alpha textures with fades, tint and all blend modes`, async () => {
       const background = toLinear(pixels()[0] / 255);
       const renderer = attach(await load(version));
       const entry = renderer.state.setAnimation(0, "fade", false);
@@ -71,14 +73,7 @@ describe("Spine atlas alpha encoding", () => {
         renderer.tintBlack = tint;
         for (const alpha of [0, 0.25, 0.5, 0.75, 1]) {
           entry.trackTime = alpha;
-          renderer.skeleton.setSkinByName("default");
-          renderer.skeleton.setSlotsToSetupPose();
-          const pma = pixels();
-          renderer.skeleton.setSkinByName("straight");
-          renderer.skeleton.setSlotsToSetupPose();
-          const straight = pixels();
-          expect(pma).to.deep.equal(straight);
-
+          const result = pixels();
           const a = alpha * (128 / 255);
           const gray = toLinear(128 / 255);
           const color = gray * gray + (tint ? (1 - gray) * toLinear(64 / 255) : 0);
@@ -90,74 +85,73 @@ describe("Spine atlas alpha encoding", () => {
             source + background * (1 - source)
           ];
           [16, 48, 80, 112].forEach((x, i) => {
-            expect(pma[(64 * 128 + x) * 4]).to.be.closeTo(toSRGB(expected[i]), 2);
+            expect(result[(64 * 128 + x) * 4]).to.be.closeTo(toSRGB(expected[i]), 2);
           });
         }
       }
-      // Minification samples mip levels, including the transparent border around each region.
-      camera.orthographicSize = 16;
-      renderer.skeleton.setSkinByName("default");
-      renderer.skeleton.setSlotsToSetupPose();
-      const pma = pixels();
-      renderer.skeleton.setSkinByName("straight");
-      renderer.skeleton.setSlotsToSetupPose();
-      expect(pixels()).to.deep.equal(pma);
+    });
+
+    it(`${version}: rejects PMA atlas pages with export instructions`, async () => {
+      await expect(
+        engine.resourceManager.load<SpineResource>({
+          type: "Spine",
+          urls: [url(`alpha-${version}.json`), url("alpha.atlas")]
+        })
+      ).rejects.toThrow('Spine atlas page "alpha-pma.png" uses premultiplied alpha');
+      expect(engine.resourceManager.getFromCache(url("alpha-pma.png"))).to.be.null;
     });
   }
 
-  it("shares conversions without changing the source, restores their content and releases them with resources", async () => {
+  it("shares original textures and restores assets loaded before and during device loss without readback", async () => {
+    const readback = vi.spyOn(Texture2D.prototype, "getPixelBuffer");
     const a = await load("3.8");
     const b = await load("4.2");
     const textures = (resource: SpineResource) => resource._runtime.getTextures(resource.skeletonData._native);
-    const converted = textures(a)[0];
-    expect(textures(b)[0]).to.equal(converted);
-    const source = await engine.resourceManager.load<Texture2D>(url("alpha-pma.png"));
-    expect(source).not.to.equal(converted);
-    const original = new Uint8Array(8 * 8 * 4);
-    source.getPixelBuffer(original);
-    expect(Array.from(original.slice((3 * 8 + 3) * 4, (3 * 8 + 3) * 4 + 4))).to.deep.equal([64, 64, 64, 128]);
-    const before = new Uint8Array(8 * 8 * 4);
-    converted.getPixelBuffer(before);
+    const source = await engine.resourceManager.load<Texture2D>(url("alpha-straight.png"));
+    expect(textures(a)[0]).to.equal(source);
+    expect(textures(b)[0]).to.equal(source);
+    expect(source.isSRGBColorSpace).to.equal(true);
+    const renderer = attach(a);
+    const before = pixels();
     const lost = new Promise<void>((resolve) => engine.once("devicelost", resolve));
     engine.forceLoseDevice();
     await lost;
+    const loadedWhileLost = await engine.resourceManager.load<SpineResource>({
+      type: "Spine",
+      urls: [url("alpha-4.2.json") + "?lost", url("alpha-straight.atlas"), url("alpha-straight.png") + "?lost"]
+    });
+    expect(textures(loadedWhileLost)[0]).not.to.equal(source);
     // WEBGL_lose_context makes restoration available on a later browser task.
     await new Promise((resolve) => setTimeout(resolve, 100));
     const restored = new Promise<void>((resolve) => engine.once("devicerestored", resolve));
     engine.forceRestoreDevice();
     await restored;
-    const after = new Uint8Array(before.length);
-    converted.getPixelBuffer(after);
-    expect(after).to.deep.equal(before);
-    const renderer = attach(a);
-    pixels();
+    // Core cleanup of old-context shader programs can leave INVALID_OPERATION.
+    // Clear it before checking the restored draw for errors and pixel correctness.
+    canvas.getContext("webgl2")!.getError();
+    expect(pixels()).to.deep.equal(before);
+    renderer.resource = loadedWhileLost;
+    expect(pixels()).to.deep.equal(before);
+    expect(readback).not.toHaveBeenCalled();
+
+    renderer.resource = a;
     engine.resourceManager.gc();
-    expect(converted.destroyed).to.equal(false);
-    expect(converted.pendingDestroy).to.equal(false);
+    expect(source.destroyed).to.equal(false);
+    expect(source.pendingDestroy).to.equal(false);
     renderer.entity.destroy();
     engine.update();
     engine.resourceManager.gc();
     engine.update();
-    expect(converted.destroyed).to.equal(true);
+    expect(source.destroyed).to.equal(true);
   });
 
-  it("accepts asset import overrides for legacy atlases without PMA metadata", async () => {
-    const pma = await engine.resourceManager.load<Texture2D>(url("alpha-pma.png"));
-    const straight = await engine.resourceManager.load<Texture2D>(url("alpha-straight.png"));
-    const resource = await engine.resourceManager.load<SpineResource>({
-      type: "Spine",
-      urls: [url("3.8.json"), url("3.8.atlas"), url("alpha-pma.png"), url("alpha-straight.png")],
-      params: { alphaMode: { "page.png": "premultiplied" } }
+  it("rejects a shared texture loaded without sRGB sampling without modifying it", async () => {
+    const source = await engine.resourceManager.load<Texture2D>({
+      url: url("alpha-straight.png"),
+      params: { isSRGBColorSpace: false }
     });
-    const textures = resource._runtime.getTextures(resource.skeletonData._native);
-    expect(textures[0]).to.equal(normalizeSpineTexture(pma));
-    expect(textures[1]).to.equal(straight);
-
-    const alreadyConverted = await engine.resourceManager.load<SpineResource>({
-      type: "Spine",
-      urls: [url("alpha-4.2.json"), url("alpha.atlas"), url("alpha-straight.png"), url("alpha-straight.png")],
-      params: { alphaMode: "straight" }
-    });
-    expect(alreadyConverted._runtime.getTextures(alreadyConverted.skeletonData._native)).to.deep.equal([straight]);
+    await expect(load("4.2")).rejects.toThrow("requires an sRGB texture");
+    expect(source.isSRGBColorSpace).to.equal(false);
+    expect(source.destroyed).to.equal(false);
   });
 });

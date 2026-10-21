@@ -30,7 +30,7 @@ export interface ISpineRuntime<TTexture> {
 
   /**
    * Build an atlas from canonical straight-alpha textures in atlas page order.
-   * The shared loader resolves page names and input alpha encoding before calling the backend.
+   * The shared loader resolves page names and validates straight-alpha input before calling the backend.
    */
   createTextureAtlas(atlasText: string, textures: TTexture[]): ISpineTextureAtlas;
 

@@ -162,17 +162,11 @@ if (weapon) {
 
 `new SpineMaterial(engine, customShader)` supports custom shaders. Enable `renderer.tintBlack` for two-color tint. A custom shader must consume Spine's vertex layout and batch texture/blend inputs. When using the supplied blend factors, tint in linear space and multiply the final RGB by the final alpha. See the [Spine package material contract](https://github.com/galacean/engine/blob/dev/2.0/packages/spine/README.md#materials) for the inputs.
 
-Alpha encoding belongs to each atlas page. Prefer Straight Alpha exports with color bleed. The loader reads the atlas `pma` flag; absent means straight alpha. For legacy assets without metadata, or textures converted by an import pipeline, specify the actual encoding before the URL's first load:
+Spine uses the engine's linear rendering workflow. Export **Straight Alpha** textures: disable **Premultiply alpha** and enable **Bleed** in Spine's Texture Packer. Bleed fills transparent pixels with neighboring colors without changing alpha, reducing dark edges during filtering. The shader premultiplies its final linear output for blending.
 
-```typescript
-const legacyResource = await engine.resourceManager.load<SpineResource>({
-  url: "/spine/legacy.skel",
-  type: "Spine",
-  params: { alphaMode: "premultiplied" }
-});
-```
+The loader rejects atlas pages marked `pma: true` and textures with `isSRGBColorSpace: false`. Ordinary images use sRGB sampling by default; enable sRGB when exporting `.tex` or compressed textures as well. Generate compression and mipmaps from the straight-alpha image with color bleed. Textures share the existing resource loading and restoration path, without GPU readback or conversion textures.
 
-`alphaMode` can also be configured by atlas page name. ResourceManager caches by URL, so changing load parameters for an already cached URL does not reconvert the asset. RGBA8 PMA pages are converted to independent straight-alpha textures. Compressed PMA textures must be converted before compression. There is no renderer-level `premultipliedAlpha` switch.
+Older atlases without `pma` are assumed to be straight alpha. Re-export legacy PMA images; merely changing the atlas flag does not convert the image. There is no alpha-mode override or renderer-level `premultipliedAlpha` switch.
 
 ## Physics and resource unbinding
 

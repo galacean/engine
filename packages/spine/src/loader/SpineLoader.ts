@@ -4,16 +4,6 @@ import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine";
 import { SpineResource } from "./SpineResource";
 
-/** Parameters for loading a Spine asset. */
-export interface SpineLoadParams {
-  /**
-   * Texture encoding override, for all atlas pages or by page name.
-   * Unspecified pages use the atlas `pma` property (false when absent).
-   * Configure this once per asset URL, before its first load.
-   */
-  alphaMode?: "straight" | "premultiplied" | Record<string, "straight" | "premultiplied">;
-}
-
 type SpineAssetPath = {
   atlasPath: string;
   skeletonPath: string;
@@ -22,7 +12,6 @@ type SpineAssetPath = {
 
 type SpineLoadContext = {
   spineAssetPath: SpineAssetPath;
-  params?: SpineLoadParams;
   skeletonRawData: string | ArrayBuffer;
 };
 
@@ -73,7 +62,6 @@ export class SpineLoader extends Loader<SpineResource> {
     return new AssetPromise((resolve, reject) => {
       const spineLoadContext: SpineLoadContext = {
         skeletonRawData: "",
-        params: item.params,
         spineAssetPath: {
           atlasPath: null,
           skeletonPath: null,
@@ -121,11 +109,11 @@ export class SpineLoader extends Loader<SpineResource> {
     resourceManager: ResourceManager
   ): Promise<SpineResource> {
     const { engine } = resourceManager;
-    const { skeletonRawData, spineAssetPath, params } = spineLoadContext;
+    const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
 
     const runtime = getSpineRuntime(readSpineVersion(skeletonRawData));
-    return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager, params).then((atlas) => {
+    return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager).then((atlas) => {
       const textureAtlas = runtime.createTextureAtlas(atlas.text, atlas.textures);
       const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
       return SpineResource._create(engine, runtime, skeletonData, skeletonPath);

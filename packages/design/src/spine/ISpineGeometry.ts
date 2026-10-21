@@ -7,7 +7,7 @@ export interface ISpineGeometry<TTexture> {
   /** Append one drawable attachment after world vertex calculation and clipping.
    * Input vertices contain x, y, r, g, b, a, u, v, followed by dark r, g, b, a when tintBlack is enabled.
    * Colors are unassociated (straight) sRGB values; the shared shader converts RGB to linear.
-   * Textures have already been normalized to straight alpha at the asset boundary.
+   * Textures use straight alpha, validated at the asset boundary.
    * Only vertexCount vertices and indexCount indices are consumed; indices are local to this attachment.
    * drawOrder is the slot's index in the skeleton draw order, including slots without geometry.
    * slotIndex is its stable index in Skeleton.slots, independent of animated draw order.
