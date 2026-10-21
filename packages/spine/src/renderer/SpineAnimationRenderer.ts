@@ -308,8 +308,7 @@ export class SpineAnimationRenderer extends Renderer {
         material = engine._basicResources.meshMagentaMaterial;
       }
       const renderElement = renderElementPool.get();
-      renderElement.set(this, material, _primitive, _subPrimitives[i]);
-      renderElement.shaderData = _batchShaderData[i];
+      renderElement.set(this, material, _primitive, _subPrimitives[i], undefined, undefined, _batchShaderData[i]);
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
       renderElement.subDistancePriority = i;

@@ -30,13 +30,14 @@ export class RenderElement implements IPoolElement {
     primitive: Primitive,
     subPrimitive: SubMesh,
     texture?: Texture2D,
-    subChunk?: SubPrimitiveChunk
+    subChunk?: SubPrimitiveChunk,
+    shaderData?: ShaderData
   ): void {
     this.component = component;
     this.material = material;
     this.primitive = primitive;
     this.subPrimitive = subPrimitive;
-    this.shaderData = undefined;
+    this.shaderData = shaderData;
     this.texture = texture;
     this.subChunk = subChunk;
     this.instancedRenderers.length = 0;
@@ -51,11 +52,18 @@ export class RenderElement implements IPoolElement {
    * material) without one queue's batching corrupting another's `instancedRenderers`.
    */
   _cloneFrom(source: RenderElement): void {
-    this.set(source.component, source.material, source.primitive, source.subPrimitive, source.texture, source.subChunk);
+    this.set(
+      source.component,
+      source.material,
+      source.primitive,
+      source.subPrimitive,
+      source.texture,
+      source.subChunk,
+      source.shaderData
+    );
     this.priority = source.priority;
     this.distanceForSort = source.distanceForSort;
     this.subShader = source.subShader;
-    this.shaderData = source.shaderData;
     this.subDistancePriority = source.subDistancePriority;
   }
 

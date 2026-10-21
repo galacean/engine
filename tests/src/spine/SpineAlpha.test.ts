@@ -1,4 +1,4 @@
-import { Camera, Color, Texture2D, WebGLEngine } from "@galacean/engine";
+import { Camera, Color, MeshRenderer, PrimitiveMesh, Texture2D, UnlitMaterial, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
@@ -101,6 +101,28 @@ describe("Spine atlas alpha encoding", () => {
       expect(engine.resourceManager.getFromCache(url("alpha-pma.png"))).to.be.null;
     });
   }
+
+  it("clears Spine batch data when an ordinary renderer reuses the draw element", async () => {
+    const renderer = attach(await load("4.2"));
+    pixels();
+    const queue = camera._renderPipeline._cullingResults.transparentQueue;
+    const spineElement = queue.elements[0];
+    expect(spineElement.component).to.equal(renderer);
+    expect(spineElement.shaderData).not.to.be.undefined;
+
+    renderer.entity.destroy();
+    const meshRenderer = engine.sceneManager.activeScene.createRootEntity().addComponent(MeshRenderer);
+    meshRenderer.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 0.1);
+    const material = new UnlitMaterial(engine);
+    material.baseColor.set(0, 1, 0, 1);
+    meshRenderer.setMaterial(material);
+    const result = pixels();
+    const meshElement = camera._renderPipeline._cullingResults.opaqueQueue.elements[0];
+    expect(meshElement === spineElement).to.be.true;
+    expect(meshElement.component).to.equal(meshRenderer);
+    expect(meshElement.shaderData).to.be.undefined;
+    expect(Array.from(result.slice((64 * 128 + 64) * 4, (64 * 128 + 64) * 4 + 3))).to.deep.equal([0, 255, 0]);
+  });
 
   it("shares original textures and restores assets loaded before and during device loss without readback", async () => {
     const readback = vi.spyOn(Texture2D.prototype, "getPixelBuffer");
