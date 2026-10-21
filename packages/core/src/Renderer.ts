@@ -64,6 +64,7 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
   protected _transformEntity: Entity | null;
 
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
