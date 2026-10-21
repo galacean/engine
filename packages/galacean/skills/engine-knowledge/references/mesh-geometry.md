@@ -1,6 +1,6 @@
-# Primitive Geometry
+# Runtime Mesh Geometry
 
-Use this reference when default dimensions or orientation affect placement, collider alignment, or camera composition.
+Use this reference when primitive dimensions or orientation affect code, or when uploading custom geometry. Material assignment and draw ordering are covered in [rendering-and-color.md](rendering-and-color.md).
 
 The table describes meshes created with omitted size arguments and an entity scale of `(1, 1, 1)`.
 
@@ -29,3 +29,25 @@ Primitive meshes and collider shapes own independent dimensions. Their defaults 
 Set collider dimensions from the intended collision geometry. Do not infer them from the assigned mesh or assume entity scale repairs a default mismatch.
 
 Exact constructor arguments remain declaration-owned. Use this page only for the default spatial semantics that are easy to misremember.
+
+## Draw-ready custom mesh
+
+Vertex data alone is not drawable. Close the chain with correct bounds, an index range, a SubMesh, a Renderer, and the matching material slot. See [rendering-and-color.md](rendering-and-color.md).
+
+```ts
+import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial, Vector3 } from "@galacean/engine";
+
+export function createTriangle(engine: Engine, entity: Entity): void {
+  const mesh = new ModelMesh(engine);
+  mesh.setPositions([new Vector3(-0.5, -0.5, 0), new Vector3(0.5, -0.5, 0), new Vector3(0, 0.5, 0)]);
+  mesh.setIndices(new Uint16Array([0, 1, 2]));
+  mesh.bounds.min.set(-0.5, -0.5, -0.001);
+  mesh.bounds.max.set(0.5, 0.5, 0.001);
+  mesh.uploadData(true);
+  mesh.addSubMesh(0, 3);
+
+  const renderer = entity.addComponent(MeshRenderer);
+  renderer.mesh = mesh;
+  renderer.setMaterial(new UnlitMaterial(engine));
+}
+```

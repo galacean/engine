@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const skillRoot = resolve(packageRoot, "skills/engine-knowledge");
-const recipesPath = resolve(skillRoot, "references/runtime-recipes.md");
 
 function files(root: string, directory = root): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -19,8 +18,8 @@ function files(root: string, directory = root): string[] {
   });
 }
 
-function recipeSource(heading: string): string {
-  const content = readFileSync(recipesPath, "utf8");
+function recipeSource(reference: string, heading: string): string {
+  const content = readFileSync(resolve(skillRoot, "references", reference), "utf8");
   const sectionStart = content.indexOf(`## ${heading}`);
   expect(sectionStart).toBeGreaterThanOrEqual(0);
   const nextSection = content.indexOf("\n## ", sectionStart + 1);
@@ -30,8 +29,8 @@ function recipeSource(heading: string): string {
   return source!;
 }
 
-function loadRecipe<T extends object>(heading: string, engineExports: Record<string, unknown>): T {
-  const javascript = ts.transpileModule(recipeSource(heading), {
+function loadRecipe<T extends object>(reference: string, heading: string, engineExports: Record<string, unknown>): T {
+  const javascript = ts.transpileModule(recipeSource(reference, heading), {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2020
@@ -125,7 +124,7 @@ describe("engine-knowledge Skill contract", () => {
     class Texture2D {}
     const { assignNormalMap } = loadRecipe<{
       assignNormalMap: (engine: object, renderer: object, url: string) => Promise<boolean>;
-    }>("Linear normal map on one renderer", {
+    }>("rendering-and-color.md", "Linear normal map on one renderer", {
       AssetType: { Texture: "Texture" },
       PBRMaterial,
       Texture2D
@@ -176,7 +175,7 @@ describe("engine-knowledge Skill contract", () => {
     class Script {}
     const { enable3DPicking } = loadRecipe<{
       enable3DPicking: (entity: object) => object;
-    }>("Physics-backed screen picking", { Script });
+    }>("physics-setup.md", "Physics-backed screen picking", { Script });
     const originalShapeOwner = { id: "existing-collider" };
     const shape = { owner: originalShapeOwner };
     const addedComponents: unknown[] = [];
@@ -229,7 +228,7 @@ describe("engine-knowledge Skill contract", () => {
         entity: object,
         distance: number
       ) => PostProcess;
-    }>("Collider-bounded local bloom", { BloomEffect, Collider, PostProcess });
+    }>("rendering-and-color.md", "Collider-bounded local bloom", { BloomEffect, Collider, PostProcess });
 
     const scene = {};
     const collider = new Collider();
