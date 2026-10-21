@@ -27,6 +27,7 @@ import {
   ShaderData,
   ShaderDataGroup,
   ShaderProperty,
+  Signal,
   SubPrimitive,
   Vector3,
   VertexBufferBinding,
@@ -52,6 +53,22 @@ export class SpineAnimationRenderer extends Renderer {
   private static _lightColorVertexElement = new VertexElement("LIGHT_COLOR", 12, VertexElementFormat.Vector4, 0);
   private static _uvVertexElement = new VertexElement("TEXCOORD_0", 28, VertexElementFormat.Vector2, 0);
   private static _darkColorVertexElement = new VertexElement("DARK_COLOR", 36, VertexElementFormat.Vector3, 0);
+
+  /** Called after time advances, before animations are applied. Use to prepare the base pose. */
+  readonly onBeforeApply = new Signal<[SpineAnimationRenderer]>();
+
+  /** Called after animations are applied, before world transforms are solved. Use to edit local bone values. */
+  readonly onUpdateLocal = new Signal<[SpineAnimationRenderer]>();
+
+  /**
+   * Called with evaluated world transforms, before the final constraint and physics solve.
+   * Use to edit local bone values based on world values. A listener enables an additional pose solve;
+   * physics simulation still advances only once per update.
+   */
+  readonly onUpdateWorld = new Signal<[SpineAnimationRenderer]>();
+
+  /** Called after the final bone transforms are solved, before geometry is built. Use to read the final pose. */
+  readonly onUpdateComplete = new Signal<[SpineAnimationRenderer]>();
 
   /**
    * Time multiplier for both animation playback and skeleton physics. Defaults to 1.
@@ -244,12 +261,30 @@ export class SpineAnimationRenderer extends Renderer {
    * @internal
    */
   override update(delta: number): void {
-    const { _state: state, _skeleton: skeleton } = this;
+    const { _publicState: state, _skeleton: skeleton, _runtime: runtime } = this;
     if (!state || !skeleton) return;
-    this._publicState._update(skeleton, delta * this.timeScale);
-    // Playback callbacks may end this binding by releasing its resource or destroying the renderer.
-    if (this.destroyed || this._state !== state || this._skeleton !== skeleton) return;
+    state._advance(skeleton, delta * this.timeScale);
+    if (!this._isCurrentState(state)) return;
+    this.onBeforeApply.invoke(this);
+    if (!this._isCurrentState(state)) return;
+    state._apply(skeleton);
+    if (!this._isCurrentState(state)) return;
+    this.onUpdateLocal.invoke(this);
+    if (!this._isCurrentState(state)) return;
+    if (this.onUpdateWorld.listenerCount > 0) {
+      runtime.updateWorldTransform(skeleton, false);
+      this.onUpdateWorld.invoke(this);
+      if (!this._isCurrentState(state)) return;
+    }
+    runtime.updateWorldTransform(skeleton, true);
+    this.onUpdateComplete.invoke(this);
+    if (!this._isCurrentState(state)) return;
     this._buildGeometry();
+  }
+
+  private _isCurrentState(state: SpineAnimationState): boolean {
+    // A playback or pose callback may end this binding by switching resources or destroying the renderer.
+    return !this.destroyed && this._publicState === state;
   }
 
   /**
@@ -322,6 +357,10 @@ export class SpineAnimationRenderer extends Renderer {
    * @internal
    */
   override _onDestroy(): void {
+    this.onBeforeApply.removeAll();
+    this.onUpdateLocal.removeAll();
+    this.onUpdateWorld.removeAll();
+    this.onUpdateComplete.removeAll();
     this._publicState?._dispose();
     this._clearSlotMaterials();
     this._geometry = null;

@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { AssetPromise, AssetType, ResourceManager } from "@galacean/engine";
 import { SpineLoader } from "../../../packages/spine/src/loader/SpineLoader";
 
 describe("Spine loader routing", () => {
+  afterEach(() => vi.restoreAllMocks());
   it.each([
     { url: "asset.skel", type: undefined, expectedType: "Spine" },
     { url: "asset.json", type: undefined, expectedType: AssetType.JSON },
@@ -15,12 +16,8 @@ describe("Spine loader routing", () => {
     const load = vi.spyOn(ResourceManager._loaders[expectedType], "load").mockImplementation(() => {
       return AssetPromise.resolve(resource);
     });
-    try {
-      expect(await resourceManager.load({ url, type })).to.equal(resource);
-      expect(load).toHaveBeenCalledOnce();
-    } finally {
-      load.mockRestore();
-    }
+    expect(await resourceManager.load({ url, type })).to.equal(resource);
+    expect(load).toHaveBeenCalledOnce();
   });
 });
 

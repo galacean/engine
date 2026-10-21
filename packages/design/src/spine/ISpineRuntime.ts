@@ -53,8 +53,17 @@ export interface ISpineRuntime<TTexture> {
   /** Finish a playback command before dispatching its events. Nested calls preserve the current dispatch. */
   batchAnimationStateEvents<T>(state: ISpineAnimationState, command: () => T): T;
 
-  /** Advance the animation state and apply it to the skeleton, then update world transforms. */
-  updateState(skeleton: ISpineSkeleton, state: ISpineAnimationState, delta: number): void;
+  /** Advance animation and skeleton time without applying the animation or solving the pose. */
+  advanceState(skeleton: ISpineSkeleton, state: ISpineAnimationState, delta: number): void;
+
+  /** Apply the current animation to the skeleton's local pose. */
+  applyState(skeleton: ISpineSkeleton, state: ISpineAnimationState): void;
+
+  /**
+   * Solve bone world transforms and constraints. When advancePhysics is false, apply the existing
+   * physics pose without advancing the simulation; this permits world-space-driven pose edits.
+   */
+  updateWorldTransform(skeleton: ISpineSkeleton, advancePhysics: boolean): void;
 
   /** Write CPU geometry for the current pose. GPU resources remain owned by the shared renderer. */
   buildGeometry(skeleton: ISpineSkeleton, target: ISpineGeometry<TTexture>): void;

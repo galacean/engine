@@ -107,6 +107,31 @@ attack.listener = {
 
 Use `state.addListener(listener)` for state-wide notifications and `removeListener` to remove it. Looping animations emit `complete` each loop. An entry becomes invalid after its `dispose` callback returns; authored event values are snapshots that may be retained. Command callbacks are synchronous, so a listener assigned after a command returns does not receive a `start` event that has already happened.
 
+## Pose update signals
+
+Use the renderer's signals to work with the current frame's pose:
+
+| Signal             | Timing and purpose                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------- |
+| `onBeforeApply`    | After time advances, before animation application; prepare the base pose.                     |
+| `onUpdateLocal`    | After animation application, before world transforms and constraints; edit local bone values. |
+| `onUpdateWorld`    | After a preliminary world-transform solve; adjust local values using evaluated world values.  |
+| `onUpdateComplete` | After the final solve, before geometry generation; read the final pose for following objects. |
+
+```typescript
+const aim = (source: SpineAnimationRenderer) => {
+  const head = source.skeleton.findBone("head");
+  if (head) head.rotation += 15;
+};
+renderer.onUpdateLocal.on(aim);
+// Remove when no longer needed:
+renderer.onUpdateLocal.off(aim);
+```
+
+Signals run synchronously in the listed order, even with `timeScale = 0`. A listener on `onUpdateWorld` enables an additional pose solve; 4.2 physics still advances only once. `onUpdateComplete` does not re-solve subsequent local bone edits. Bone world values are in skeleton space and need the entity's world transform to position scene objects.
+
+Spine updates after scripts' `onLateUpdate`; use these signals for precise pose timing. Listeners remain on the renderer when its resource changes, so access its current skeleton in callbacks. Renderer destruction clears listeners. Signal cloning remaps component/method bindings and does not copy function listeners.
+
 ## Skins, bones and slots
 
 `renderer.skeleton` is this instance's `SpineSkeleton`. After switching skins, restore slots to their setup pose to select the new skin's setup attachments:

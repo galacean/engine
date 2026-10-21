@@ -69,6 +69,31 @@ renderer.timeScale = previousTimeScale;
 
 The native `state.timeScale` and `entry.timeScale` remain independent animation controls. Relative to the engine's delta time, a track advances by `renderer.timeScale * state.timeScale * entry.timeScale`; mixing advances by `renderer.timeScale * state.timeScale`, and skeleton physics by `renderer.timeScale`. Changing an entry's `trackTime` selects an animation time on the next update; it does not seek physics history.
 
+## Pose update signals
+
+Use renderer signals to modify or read the current frame's pose at a defined stage:
+
+| Signal | Timing and purpose |
+| --- | --- |
+| `onBeforeApply` | After time advances, before animation application; prepare the base pose. |
+| `onUpdateLocal` | After animation application, before constraints and world transforms; edit local bone values. |
+| `onUpdateWorld` | After a preliminary pose solve; read world values to adjust local values before the final solve. |
+| `onUpdateComplete` | After the final solve, before geometry generation; read the final bone transforms. |
+
+```ts
+const aim = (source: SpineAnimationRenderer) => {
+  const head = source.skeleton.findBone("head");
+  if (head) head.rotation += 15;
+};
+renderer.onUpdateLocal.on(aim);
+// Remove when the behavior is no longer needed:
+renderer.onUpdateLocal.off(aim);
+```
+
+Signals run synchronously in this order, including when `renderer.timeScale` is zero. `onUpdateWorld` adds a preliminary solve only while it has listeners; 4.2 uses the existing physics pose for this solve and advances simulation only in the final solve. Bone world values are in skeleton space; apply the entity's world transform when positioning scene objects. Changing local bone values in `onUpdateComplete` does not trigger another solve.
+
+Pose updates still run in the renderer update phase, after scripts' `onLateUpdate`. Signals belong to the renderer and survive resource changes; read its current skeleton in callbacks. Destroying the renderer removes the listeners. Cloning follows `Signal` rules: component/method bindings are remapped, while function listeners are not copied.
+
 ## Materials
 
 Renderers in the same engine initially share one default `SpineMaterial`. Set or instance this material using the standard renderer API. It is used by slots without a material override and remains assigned through animation updates, skin changes and resource rebinding. Dynamic batch indices are not material slots.

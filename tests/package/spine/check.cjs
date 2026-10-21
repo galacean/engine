@@ -1,5 +1,6 @@
 // Run after `npm run build`. Uses actual packed artifacts in a clean directory, outside the workspace.
 const assert = require("node:assert/strict");
+const { test } = require("node:test");
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
@@ -157,7 +158,7 @@ registerSpineRuntime(new Spine42Runtime());`;
   }
 }
 
-async function checkBrowser(directory, first, format, baseURL) {
+async function checkBrowser(directory, first, format, baseURL, t) {
   const second = first === "3.8" ? "4.2" : "3.8";
   const entry = path.join(directory, `entry-${first}-${format}.js`);
   const output = path.join(directory, `bundle-${first}-${format}`);
@@ -177,23 +178,20 @@ async function checkBrowser(directory, first, format, baseURL) {
   await bundle.write({ dir: output, format: "es", entryFileNames: "entry.js" });
   await bundle.close();
   const browser = await chromium.launch({ headless: true });
-  try {
-    const page = await browser.newPage();
-    await page.goto(baseURL);
-    await page.addScriptTag({
-      type: "module",
-      url: `${baseURL}/${path.relative(temp, output).split(path.sep).join("/")}/entry.js`
-    });
-    await page.waitForFunction(() => window.result, null, { timeout: 30000 });
-    const result = await page.evaluate(() => window.result);
-    assert(!result.error, result.error);
-    console.log(`Browser ${format} ${first}->${second}: PASS ${JSON.stringify(result)}`);
-  } finally {
-    await browser.close();
-  }
+  t.after(() => browser.close());
+  const page = await browser.newPage();
+  await page.goto(baseURL);
+  await page.addScriptTag({
+    type: "module",
+    url: `${baseURL}/${path.relative(temp, output).split(path.sep).join("/")}/entry.js`
+  });
+  await page.waitForFunction(() => window.result, null, { timeout: 30000 });
+  const result = await page.evaluate(() => window.result);
+  assert(!result.error, result.error);
+  console.log(`Browser ${format} ${first}->${second}: PASS ${JSON.stringify(result)}`);
 }
 
-(async () => {
+test("Spine published packages", async (t) => {
   await checkWorkspaceBundle();
   const shared = path.join(temp, "shared");
   install([], shared);
@@ -235,17 +233,12 @@ async function checkBrowser(directory, first, format, baseURL) {
     response.end(fs.readFileSync(file));
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-  try {
-    for (const first of ["3.8", "4.2"])
-      for (const format of ["esm", "cjs"]) {
-        await checkBrowser(both, first, format, `http://127.0.0.1:${server.address().port}`);
-      }
-  } finally {
-    await new Promise((resolve) => server.close(resolve));
-  }
+  t.after(() => new Promise((resolve) => server.close(resolve)));
+  for (const first of ["3.8", "4.2"])
+    for (const format of ["esm", "cjs"]) {
+      await t.test(`Browser ${format} ${first}`, async (t) => {
+        await checkBrowser(both, first, format, `http://127.0.0.1:${server.address().port}`, t);
+      });
+    }
   fs.rmSync(temp, { recursive: true, force: true });
-})().catch((error) => {
-  console.error(error);
-  console.error(`Failed consumer artifacts retained at ${temp}`);
-  process.exitCode = 1;
 });

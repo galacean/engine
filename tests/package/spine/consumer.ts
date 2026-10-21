@@ -3,6 +3,19 @@ declare const renderer: SpineAnimationRenderer;
 declare const resource: SpineResource;
 const skeleton: SpineSkeleton = renderer.skeleton;
 const state: SpineAnimationState = renderer.state;
+renderer.onBeforeApply.on((source) => source.skeleton.setBonesToSetupPose());
+renderer.onUpdateLocal.on((source) => {
+  const bone = source.skeleton.findBone("root");
+  if (bone) bone.rotation += 10;
+});
+renderer.onUpdateWorld.once((source) => {
+  const skeleton: SpineSkeleton = source.skeleton;
+});
+renderer.onUpdateComplete.on((source) => {
+  const current: SpineAnimationState = source.state;
+});
+// @ts-expect-error Pose signals supply the renderer, not a delta time.
+renderer.onUpdateLocal.on((delta: number) => {});
 // @ts-expect-error Backend handles are not part of the public API.
 resource.skeletonData._native;
 // @ts-expect-error Resources are loaded, not constructed from backend handles.

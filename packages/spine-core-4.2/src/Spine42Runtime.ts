@@ -97,19 +97,23 @@ export class Spine42Runtime implements ISpineRuntime<Texture2D> {
     const queue = state.queue;
     const wasDisabled = queue.drainDisabled;
     queue.drainDisabled = true;
-    try {
-      return command();
-    } finally {
-      queue.drainDisabled = wasDisabled;
-      queue.drain();
-    }
+    const result = command();
+    queue.drainDisabled = wasDisabled;
+    queue.drain();
+    return result;
   }
 
-  updateState(skeleton: Skeleton, state: AnimationState, delta: number): void {
+  advanceState(skeleton: Skeleton, state: AnimationState, delta: number): void {
     state.update(delta);
-    state.apply(skeleton);
     skeleton.update(delta);
-    skeleton.updateWorldTransform(Physics.update);
+  }
+
+  applyState(skeleton: Skeleton, state: AnimationState): void {
+    state.apply(skeleton);
+  }
+
+  updateWorldTransform(skeleton: Skeleton, advancePhysics: boolean): void {
+    skeleton.updateWorldTransform(advancePhysics ? Physics.update : Physics.pose);
   }
 
   buildGeometry(skeleton: Skeleton, target: ISpineGeometry<Texture2D>): void {

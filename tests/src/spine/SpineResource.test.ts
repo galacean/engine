@@ -2,7 +2,7 @@ import { AssetType, Camera, Color, Entity, Script, Shader, Texture2D, WebGLEngin
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import spineShaderSource from "../../../packages/shader/src/Shaders/2D/Spine.shader?raw";
 import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
 import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
@@ -43,7 +43,10 @@ describe("Spine resource ownership", () => {
     camera.enableHDR = false;
     engine.sceneManager.activeScene.background.solidColor = new Color(0, 0, 0, 1);
   });
-  afterEach(() => engine.destroy());
+  afterEach(() => {
+    vi.restoreAllMocks();
+    engine.destroy();
+  });
 
   async function load(version: "3.8" | "4.2") {
     return engine.resourceManager.load<SpineResource>({ url: urls[version], type: "Spine" });
@@ -77,6 +80,27 @@ describe("Spine resource ownership", () => {
   }
 
   for (const version of ["3.8", "4.2"] as const) {
+    it(`${version}: rejects invalid playback arguments before changing the event queue`, async () => {
+      const renderer = attach(await load(version));
+      const state = renderer.state;
+      const starts: SpineTrackEntry[] = [];
+      state.addListener({ start: (entry) => starts.push(entry) });
+      expect(() => state.setAnimation(0, "missing", false)).to.throw("Animation not found: missing");
+      expect(() => state.addAnimation(0, "missing", false, 0)).to.throw("Animation not found: missing");
+      for (const track of [-1, 0.5, NaN, Infinity]) {
+        expect(() => state.setAnimation(track, "idle", true)).to.throw("non-negative integer");
+        expect(() => state.addAnimation(track, "idle", true, 0)).to.throw("non-negative integer");
+        expect(() => state.setEmptyAnimation(track, 0)).to.throw("non-negative integer");
+        expect(() => state.addEmptyAnimation(track, 0, 0)).to.throw("non-negative integer");
+        expect(() => state.clearTrack(track)).to.throw("non-negative integer");
+        expect(() => state.getCurrent(track)).to.throw("non-negative integer");
+      }
+      const entry = state.setAnimation(0, "idle", true);
+      expect(starts).to.deep.equal([entry]);
+      state.clearTracks();
+      expect(entry.disposed).to.equal(true);
+    });
+
     it(`${version}: renders slot materials through late edits, skin changes and animated draw order`, async () => {
       const raw = await fetch(urls[version]).then((r) => r.json());
       raw.slots = [0, 1, 2].map((i) => ({ name: `slot${i}`, bone: "root", attachment: "quad" }));
@@ -264,6 +288,75 @@ describe("Spine resource ownership", () => {
       expect((renderer["_skeleton"] as any).time).to.be.closeTo(0.8, 1e-6);
     });
 
+    it(`${version}: applies pose signals in order and renders their final pose in the same frame`, async () => {
+      const renderer = attach(await load(version));
+      const bone = renderer.skeleton.findBone("root");
+      const entry = renderer.state.setAnimation(0, "idle", true);
+      const stages: string[] = [];
+      const marker = root.createChild("marker");
+      let finalX = 0.4;
+      renderer.onBeforeApply.on((source) => {
+        expect(source).to.equal(renderer);
+        expect(entry.trackTime).to.be.closeTo(0.25, 1e-6);
+        bone.x = 99;
+        stages.push("before");
+      });
+      renderer.onUpdateLocal.on(() => {
+        expect(bone.x).to.be.closeTo(0.05, 1e-6);
+        bone.x += 0.1;
+        stages.push("local");
+      });
+      const adjustWorld = () => {
+        expect(bone.worldX).to.be.closeTo(0.15, 1e-6);
+        bone.x += 0.4 - bone.worldX;
+        stages.push("world");
+      };
+      renderer.onUpdateWorld.on(adjustWorld);
+      renderer.onUpdateComplete.on(() => {
+        expect(bone.worldX).to.be.closeTo(finalX, 1e-6);
+        marker.transform.setPosition(bone.worldX, bone.worldY, 0);
+        stages.push("complete");
+      });
+      renderer.update(0.25);
+      expect(stages).to.deep.equal(["before", "local", "world", "complete"]);
+      expect(marker.transform.position.x).to.be.closeTo(0.4, 1e-6);
+      const bounds = renderer["_geometry"].bounds;
+      expect((bounds.min.x + bounds.max.x) / 2).to.be.closeTo(0.4, 1e-6);
+
+      // Automatic engine updates still evaluate pose hooks while time advancement is paused.
+      renderer.timeScale = 0;
+      stages.length = 0;
+      renderer.onUpdateWorld.off(adjustWorld);
+      finalX = 0.15;
+      const solve = vi.spyOn(runtimes[version], "updateWorldTransform");
+      expect(visiblePixels()).to.be.greaterThan(100);
+      expect(stages).to.deep.equal(["before", "local", "complete"]);
+      expect(solve).toHaveBeenCalledTimes(1);
+      expect(solve.mock.calls[0][1]).to.equal(true);
+      expect((bounds.min.x + bounds.max.x) / 2).to.be.closeTo(0.15, 1e-6);
+    });
+
+    it(`${version}: stops the old pose update when a signal switches the resource binding`, async () => {
+      const resource = await load(version);
+      const replacement = await load(version === "3.8" ? "4.2" : "3.8");
+      const renderer = attach(resource);
+      const oldSkeleton = renderer.skeleton;
+      const completed: SpineSkeleton[] = [];
+      renderer.onUpdateLocal.once(() => {
+        renderer.resource = replacement;
+      });
+      renderer.onUpdateComplete.on((source) => completed.push(source.skeleton));
+      renderer.update(0.1);
+      expect(completed).to.have.length(0);
+      expect(renderer["_subPrimitives"]).to.have.length(0);
+      renderer.update(0.1);
+      expect(completed).to.deep.equal([renderer.skeleton]);
+      expect(renderer.skeleton).to.not.equal(oldSkeleton);
+      expect(renderer["_geometry"].indexCount).to.be.greaterThan(0);
+      renderer.destroy();
+      expect(renderer.onUpdateComplete.listenerCount).to.equal(0);
+    });
+
     it(`${version}: seeks within a trimmed animation, clamping once and wrapping when looping`, async () => {
       const renderer = attach(await load(version));
       const entry = renderer.state.setAnimation(0, "idle", false);
@@ -415,6 +508,62 @@ describe("Spine resource ownership", () => {
     slow.update(1);
     expect(a.time).to.be.closeTo(0.5, 1e-6);
     expect(a.bones[0].worldX).to.be.closeTo(worldX, 1e-6);
+  });
+
+  it("clones structured pose listeners onto the cloned component without copying closures", async () => {
+    class PoseModifier extends Script {
+      calls = 0;
+      adjust(renderer: SpineAnimationRenderer) {
+        this.calls++;
+        renderer.skeleton.findBone("root").x = 0.3;
+      }
+    }
+    const source = attach(await load("4.2"));
+    const handler = source.entity.addComponent(PoseModifier);
+    let closureCalls = 0;
+    source.onUpdateLocal.on(handler, "adjust");
+    source.onUpdateLocal.on(() => closureCalls++);
+    const entity = source.entity.clone();
+    root.addChild(entity);
+    const clone = entity.getComponent(SpineAnimationRenderer);
+    clone.update(0);
+    expect(clone.onUpdateLocal).to.not.equal(source.onUpdateLocal);
+    expect(clone.skeleton.findBone("root").worldX).to.be.closeTo(0.3, 1e-6);
+    expect(source.skeleton.findBone("root").x).to.equal(0);
+    expect(entity.getComponent(PoseModifier).calls).to.equal(1);
+    expect(handler.calls).to.equal(0);
+    expect(closureCalls).to.equal(0);
+    clone.destroy();
+    expect(source.onUpdateLocal.listenerCount).to.equal(2);
+  });
+
+  it("4.2: a world-pose listener does not advance physics during the preliminary solve", async () => {
+    const resource = await engine.resourceManager.load<SpineResource>({
+      url: new URL("./fixtures/physics.json", import.meta.url).href,
+      type: "Spine"
+    });
+    const hooked = attach(resource);
+    const reference = attach(resource);
+    hooked.state.setAnimation(0, "idle", true);
+    reference.state.setAnimation(0, "idle", true);
+    const native = hooked["_skeleton"] as any;
+    const other = reference["_skeleton"] as any;
+    let previousTime = 0;
+    let calls = 0;
+    hooked.onUpdateWorld.on(() => {
+      expect(native.physicsConstraints[0].lastTime).to.be.closeTo(previousTime, 1e-6);
+      calls++;
+    });
+    for (let i = 0; i < 60; i++) {
+      hooked.update(1 / 60);
+      reference.update(1 / 60);
+      expect(native.time).to.equal(other.time);
+      expect(native.physicsConstraints[0].lastTime).to.equal(other.physicsConstraints[0].lastTime);
+      expect(native.bones[0].worldX).to.be.closeTo(other.bones[0].worldX, 1e-6);
+      expect(native.physicsConstraints[0].xVelocity).to.be.closeTo(other.physicsConstraints[0].xVelocity, 1e-6);
+      previousTime = native.time;
+    }
+    expect(calls).to.equal(60);
   });
 
   for (const version of ["3.8", "4.2"] as const) {

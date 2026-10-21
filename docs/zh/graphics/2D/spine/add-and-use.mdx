@@ -107,6 +107,31 @@ attack.listener = {
 
 也可以使用 `state.addListener(listener)` 监听整个状态，并用 `removeListener` 移除。循环动画每完成一轮都会通知 `complete`。`dispose` 回调结束后，该 `TrackEntry` 失效，不应继续使用；动画事件值是可以保留的快照。命令产生的回调同步派发；命令返回后才设置的 listener 不会收到已经发生的 `start`。
 
+## 姿态更新信号
+
+通过 Renderer 上的 Signal，在明确的阶段操作本帧姿态：
+
+| Signal             | 时机与用途                                               |
+| ------------------ | -------------------------------------------------------- |
+| `onBeforeApply`    | 时间推进后、动画应用前，准备基础姿态。                   |
+| `onUpdateLocal`    | 动画应用后、骨骼世界变换和约束求解前，修改局部骨骼属性。 |
+| `onUpdateWorld`    | 初步求解世界变换后，根据计算结果修正局部骨骼属性。       |
+| `onUpdateComplete` | 最终求解后、生成几何前，读取最终姿态以同步跟随对象。     |
+
+```typescript
+const aim = (source: SpineAnimationRenderer) => {
+  const head = source.skeleton.findBone("head");
+  if (head) head.rotation += 15;
+};
+renderer.onUpdateLocal.on(aim);
+// 不再需要时移除：
+renderer.onUpdateLocal.off(aim);
+```
+
+信号按上述顺序同步触发，`timeScale = 0` 时仍会执行。只有 `onUpdateWorld` 存在监听时才增加一次姿态求解，4.2 物理模拟仍只推进一次。`onUpdateComplete` 中修改局部骨骼属性不会再次求解。骨骼的世界变换属于骨骼坐标系，同步场景对象时还需要应用 Entity 的世界变换。
+
+Spine 更新发生在脚本 `onLateUpdate` 之后，需要精确姿态时机时使用这些信号。切换资源会保留 Renderer 的监听，因此回调中应访问当前的 skeleton。销毁 Renderer 会清空监听。克隆遵循 Signal 规则：组件/方法绑定会映射到克隆对象，函数监听不会复制。
+
 ## 皮肤、骨骼与插槽
 
 `renderer.skeleton` 是此实例的 `SpineSkeleton`。切换皮肤后，恢复插槽初始姿态，使附件使用新皮肤的配置：

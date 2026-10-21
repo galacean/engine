@@ -33,12 +33,9 @@ export class SpineAnimationState {
       complete: (entry) => this._dispatch("complete", entry),
       dispose: (native) => {
         const entry = this._wrap(native);
-        try {
-          this._dispatch("dispose", native);
-        } finally {
-          entry._invalidate();
-          this._entries.delete(native);
-        }
+        this._dispatch("dispose", native);
+        entry._invalidate();
+        this._entries.delete(native);
       },
       event: (native, event) => {
         if (!this._listeners.size) return;
@@ -64,24 +61,32 @@ export class SpineAnimationState {
     this._native.timeScale = value;
   }
   setAnimation(track: number, name: string, loop: boolean): SpineTrackEntry {
+    this._validateTrack(track);
+    if (!this.data.skeletonData.findAnimation(name)) throw new Error(`Animation not found: ${name}`);
     return this._command(() => this._wrap(this._native.setAnimation(track, name, loop)));
   }
   addAnimation(track: number, name: string, loop: boolean, delay: number): SpineTrackEntry {
+    this._validateTrack(track);
+    if (!this.data.skeletonData.findAnimation(name)) throw new Error(`Animation not found: ${name}`);
     return this._command(() => this._wrap(this._native.addAnimation(track, name, loop, delay)));
   }
   setEmptyAnimation(track: number, mixDuration: number): SpineTrackEntry {
+    this._validateTrack(track);
     return this._command(() => this._wrap(this._native.setEmptyAnimation(track, mixDuration)));
   }
   addEmptyAnimation(track: number, mixDuration: number, delay: number): SpineTrackEntry {
+    this._validateTrack(track);
     return this._command(() => this._wrap(this._native.addEmptyAnimation(track, mixDuration, delay)));
   }
   setEmptyAnimations(mixDuration: number): void {
     this._command(() => this._native.setEmptyAnimations(mixDuration));
   }
   getCurrent(track: number): SpineTrackEntry | null {
+    this._validateTrack(track);
     return this._wrap(this._native.getCurrent(track));
   }
   clearTrack(track: number): void {
+    this._validateTrack(track);
     this._command(() => this._native.clearTrack(track));
   }
   clearTracks(): void {
@@ -125,32 +130,35 @@ export class SpineAnimationState {
     if (this._disposed) return;
     this._disposed = true;
     this._operationDepth++;
-    try {
-      this._native.clearTracks();
-    } finally {
-      this._endOperation();
-    }
+    this._native.clearTracks();
+    this._endOperation();
   }
 
   /** @internal */
-  _update(skeleton: ISpineSkeleton, delta: number): void {
+  _advance(skeleton: ISpineSkeleton, delta: number): void {
     this._operationDepth++;
-    try {
-      this._runtime.updateState(skeleton, this._native, delta);
-    } finally {
-      this._endOperation();
-    }
+    this._runtime.advanceState(skeleton, this._native, delta);
+    this._endOperation();
+  }
+
+  /** @internal */
+  _apply(skeleton: ISpineSkeleton): void {
+    this._operationDepth++;
+    this._runtime.applyState(skeleton, this._native);
+    this._endOperation();
+  }
+
+  private _validateTrack(track: number): void {
+    if (!Number.isInteger(track) || track < 0) throw new Error("Spine track index must be a non-negative integer.");
   }
 
   private _command<T>(command: () => T): T {
     if (this._disposed) throw new Error("This Spine animation state has been disposed.");
     this._operationDepth++;
-    try {
-      // Bind returned entries before callbacks can release them or recycle their native objects.
-      return this._runtime.batchAnimationStateEvents(this._native, command);
-    } finally {
-      this._endOperation();
-    }
+    // Bind returned entries before callbacks can release them or recycle their native objects.
+    const result = this._runtime.batchAnimationStateEvents(this._native, command);
+    this._endOperation();
+    return result;
   }
 
   private _endOperation(): void {
