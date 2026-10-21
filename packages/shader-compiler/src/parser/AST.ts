@@ -251,10 +251,6 @@ export namespace ASTNode {
       }
       sa.symbolTableStack.insert(sm);
     }
-
-    override codeGen(visitor: CodeGenVisitor): string {
-      return this.setCache(visitor.visitSingleDeclaration(this));
-    }
   }
 
   @ASTNodeDecorator(NoneTerminal.fully_specified_type)
@@ -1758,15 +1754,23 @@ export namespace ASTNode {
       this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
     }
 
-    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
-     *  function-like parameter names (local to the macro, not call-site refs)
-     *  and duplicates. */
+    /**
+     * Collect identifier references through macro aliases, excluding form parameters and duplicates.
+     */
     private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
         if (child instanceof BaseToken) {
           const name = child.lexeme;
-          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) out.push(name);
+          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
+            out.push(name);
+          }
+        } else if (child instanceof MacroCallSymbol) {
+          for (const name of child.referenceSymbolNames) {
+            if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
+              out.push(name);
+            }
+          }
         }
         return;
       }

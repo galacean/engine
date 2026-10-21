@@ -872,10 +872,16 @@ describe("ShaderCompiler", async () => {
       });
       const compatible = (left: Guard, right: Guard) => {
         for (let i = 0, n = Math.min(left.arms.length, right.arms.length); i < n; i++) {
-          if (left.arms[i].branch !== right.arms[i].branch) return false;
+          const a = left.arms[i];
+          const b = right.arms[i];
+          if (a.frame !== b.frame) break;
+          if (a.branch !== b.branch) return false;
         }
         return !left.arms.some(
-          (a) => a.frame.ifndef && a.frame.definesGuard && right.arms.some((b) => b.frame.ifndef === a.frame.ifndef)
+          (a) =>
+            a.frame.ifndef &&
+            a.frame.definesGuard &&
+            right.arms.some((b) => b.frame !== a.frame && b.frame.ifndef === a.frame.ifndef)
         );
       };
 
@@ -952,6 +958,30 @@ describe("ShaderCompiler", async () => {
         ["#ifdef A", "struct SurfaceData { vec3 a; };", "#else", "struct SurfaceData { vec3 b; };", "#endif"].join("\n")
       );
       expect(mutuallyExclusive).to.deep.equal([]);
+
+      const independentConditions = duplicatesUnderCompatibleGuards(
+        [
+          "#ifdef A",
+          "#else",
+          "struct SurfaceData { vec3 a; };",
+          "#endif",
+          "#ifdef B",
+          "struct SurfaceData { vec3 b; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(independentConditions.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
+
+      const sameIncludeGuard = duplicatesUnderCompatibleGuards(
+        [
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "struct SurfaceData { vec3 a; };",
+          "struct SurfaceData { vec3 b; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(sameIncludeGuard.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
 
       // A header emitted twice, each copy behind its own include guard: the second copy is
       // unreachable once the first defines the macro.

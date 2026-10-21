@@ -117,13 +117,39 @@ export class VisitorContext {
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
+    if (type === ESymbolType.STRUCT && this.getStructRole(ident)) return;
     if (this._referencedGlobals[ident]) return;
 
     this._referencedGlobals[ident] = [];
 
     const lookupSymbol = VisitorContext._lookupSymbol;
     lookupSymbol.set(ident, type);
-    this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    const symbols = this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+    for (const symbol of symbols) {
+      this._referenceTypeDependencies(symbol.astNode!);
+    }
+  }
+
+  /** Collect a declaration's transitive type dependencies before generating its code. */
+  private _referenceTypeDependencies(node: TreeNode): void {
+    // Function call names share the type_specifier grammar, but are value references
+    if (node instanceof ASTNode.TypeSpecifier && !(node.parent instanceof ASTNode.FunctionIdentifier)) {
+      if (node.isCustom) {
+        this.referenceGlobal(node.lexeme, ESymbolType.STRUCT);
+      } else {
+        const type = (node.children[0] as ASTNode.TypeSpecifierNonArray).children[0];
+        if (type instanceof ASTNode.MacroCallSymbol) {
+          for (const ident of type.referenceSymbolNames) {
+            this.referenceGlobal(ident, ESymbolType.STRUCT);
+          }
+        }
+      }
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) {
+        this._referenceTypeDependencies(child);
+      }
+    }
   }
 
   private _referenceProp(
