@@ -733,9 +733,43 @@ describe("Spine resource ownership", () => {
       const bone = a.skeleton.findBone("root")!;
       expect(bone).to.equal(bones[0]);
       bone.x = 2;
+      bone.y = 3;
+      bone.rotation = 30;
+      bone.scaleX = 2;
+      bone.scaleY = 3;
+      bone.shearX = 60;
+      bone.shearY = 30;
+      a.skeleton.x = 10;
+      a.skeleton.y = 20;
+      a.skeleton.scaleX = -2;
+      a.skeleton.scaleY = 4;
       a.update(0);
-      expect(bone.worldX).to.equal(2);
-      expect(b.skeleton.findBone("root")!.x).to.equal(0);
+      // Local axes point at 90 and 150 degrees before the skeleton's scale and translation are applied.
+      expect(bone.a).to.be.closeTo(0, 1e-6);
+      expect(bone.b).to.be.closeTo(3 * Math.sqrt(3), 1e-6);
+      expect(bone.c).to.be.closeTo(8, 1e-6);
+      expect(bone.d).to.be.closeTo(6, 1e-6);
+      expect(bone.worldX).to.equal(6);
+      expect(bone.worldY).to.equal(32);
+      b.update(0);
+      const otherBone = b.skeleton.findBone("root")!;
+      expect(otherBone.a).to.equal(1);
+      expect(otherBone.b).to.be.closeTo(0, 1e-6);
+      expect(otherBone.c).to.equal(0);
+      expect(otherBone.d).to.be.closeTo(1, 1e-6);
+      expect([otherBone.worldX, otherBone.worldY]).to.deep.equal([0, 0]);
+      bone.setToSetupPose();
+      a.update(0);
+      expect([bone.x, bone.y, bone.rotation, bone.scaleX, bone.scaleY, bone.shearX, bone.shearY]).to.deep.equal([
+        0, 0, 0, 1, 1, 0, 0
+      ]);
+      // Resetting a bone preserves placement and mirroring of the skeleton instance.
+      expect([a.skeleton.x, a.skeleton.y, a.skeleton.scaleX, a.skeleton.scaleY]).to.deep.equal([10, 20, -2, 4]);
+      expect(bone.a).to.be.closeTo(-2, 1e-6);
+      expect(bone.b).to.be.closeTo(0, 1e-6);
+      expect(bone.c).to.be.closeTo(0, 1e-6);
+      expect(bone.d).to.be.closeTo(4, 1e-6);
+      expect([bone.worldX, bone.worldY]).to.deep.equal([10, 20]);
       expect(a.skeleton.bones).to.equal(bones);
       expect(a.skeleton.findBone("root")).to.equal(bone);
       const skin = resource.skeletonData.findSkin("alt")!;
