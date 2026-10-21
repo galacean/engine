@@ -6,7 +6,19 @@ group: Spine
 label: Graphics/2D/Spine/other
 ---
 
-### Spine and Editor Version Compatibility Table  
+### Engine 2.0 runtime
+
+Use the shared `@galacean/engine-spine` package with the backends required by your assets:
+
+| Spine asset version | Backend package |
+| --- | --- |
+| 3.8.x | `@galacean/engine-spine-core-3.8` |
+| 4.2.x | `@galacean/engine-spine-core-4.2` |
+
+Register the required backends at application startup; the loader selects them by asset version. Both versions can coexist. Use mutually compatible Engine 2.0 releases of the Galacean packages. Editor integration migrates separately, so this table does not establish editor import support. See [Using in Code](/en/docs/graphics/2D/spine/add-and-use).
+
+
+### Earlier version compatibility
 
 | Galacean Version | Spine Version | @galacean/engine-spine Version |
 |------------------|---------------|-------------------------------|
@@ -27,4 +39,4 @@ label: Graphics/2D/Spine/other
 ---
 
 ### Questions  
-For any questions about Spine, feel free to [create an issue](https://github.com/galacean/engine-spine/issues/new) in the `@galacean/engine-spine` repository.
+For any questions about Spine, feel free to [create an issue](https://github.com/galacean/engine/issues/new) in the `galacean/engine` repository for Engine 2.0 Spine.

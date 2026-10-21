@@ -6,246 +6,183 @@ group: Spine
 label: Graphics/2D/Spine/add-and-use
 ---
 
-After uploading the asset, click on the **SpineSkeletonData** asset, hold it, and drag it into the viewport to quickly add Spine to the scene.
+This page describes the Engine 2.0 Spine runtime API. See [Using in the Editor](/en/docs/graphics/2D/spine/editor) for editor asset names and import UI; editor integration migrates separately.
 
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*2s_oTZ4sIU0AAAAAAAAAAAAADvX8AQ/original" width="992" alt="Drag Spine skeleton data asset into viewport"/>
+## Install and register
 
+Application code uses objects from `@galacean/engine-spine`. Install `@galacean/engine-spine-core-3.8` and/or `@galacean/engine-spine-core-4.2` to match your assets' export versions. Register the required backends once at application startup, before loading assets:
 
-Essentially, this operation creates a new entity, adds the **SpineAnimationRenderer** component, and sets the **SpineSkeletonData** asset for the component. You can also perform these steps manually:
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*PO1FQ7rjMOkAAAAAAAAAAAAADvX8AQ/original" width="342" alt="Use add component to add spine animation renderer"/>
-
-
-## SpineAnimationRenderer Component
-
-The component configuration is as follows:
-
-<Image src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*OUfSSZtovAYAAAAAAAAAAAAAesp6AQ/original" width="503" alt="Spine animation renderer component config"/>
-
-- **Asset**: Spine animation resource (SpineSkeletonData asset)
-- **Loop**: Whether the default animation should loop
-- **Initial Animation**: Name of the animation to play by default
-- **Skin**: Name of the default skin
-- **Render Priority**
-- **Premultiplied Alpha**: Whether to render the animation in premultiplied alpha mode
-
-If you want to dynamically load Spine animations or perform advanced operations (e.g., control animation playback, modify bone states, switch skins), you'll need to use scripts. Below is how to achieve these functionalities in code.
-
-## Usage in Scripts
-
-### Dynamic Creation
-Spine assets can be loaded and animations created at runtime via scripts. Recommended workflow:
 ```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
+import { registerSpineRuntime } from "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
+import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 
-class YourAmazingScript extends Script {
+registerSpineRuntime(new Spine38Runtime());
+registerSpineRuntime(new Spine42Runtime());
+```
 
-  onStart() {
+Assets from both versions can coexist. An application using one version only installs and registers that backend. The loader reads the asset header to select the matching backend; it does not download missing backends. Importing a backend alone does not register it. Registration is shared by the module, so do not create another backend instance for each Engine.
 
-    // Load and create Spine animation asset
-    const spineResource = await engine.resourceManager.load(
-      {
-        // In the asset panel, right-click the SpineSkeletonData asset and "Copy Relative Path", paste it here
-        url: './spine.json',
-        type: 'Spine',
-      },
-    );
+## Load and instantiate
 
-    // Instantiate Spine animation entity using the asset's instantiate method
-    const spineEntity = spineResource.instantiate();
+Here, `engine` is an existing engine instance with an active scene. Configure a scene camera to cover the character's position.
 
-     // Add Spine animation entity to the current entity
-    this.entity.addChild(spineEntity);
+```typescript
+import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 
+const resource = await engine.resourceManager.load<SpineResource>({
+  url: "/spine/character.skel",
+  type: "Spine"
+});
+const entity = resource.instantiate();
+engine.sceneManager.activeScene!.addRootEntity(entity);
+const renderer = entity.getComponent(SpineAnimationRenderer)!;
+renderer.state.setAnimation(0, "idle", true);
+```
+
+Replace the animation, skin, slot and attachment names in these examples with names from your asset.
+
+| Input           | Loader selection                                                            |
+| --------------- | --------------------------------------------------------------------------- |
+| `.skel`         | Selects the Spine loader automatically; explicit `type: "Spine"` also works |
+| `.json`, `.bin` | Requires explicit `type: "Spine"`                                           |
+
+The loader accepts Spine JSON and binary skeleton data and detects the encoding from the content. The extension selects the loader; it does not guarantee binary content.
+
+For a single URL, an explicit atlas dependency takes precedence. Otherwise, the loader derives a sibling `.atlas` URL. For example, `character.skel?v=2` resolves to `character.atlas`, without inheriting the skeleton query. Use `urls` to specify atlas or texture addresses:
+
+```typescript
+const explicitResource = await engine.resourceManager.load<SpineResource>({
+  type: "Spine",
+  urls: ["/spine/character.json?v=2", "/spine/character.atlas?v=3", "/spine/body.png?v=4", "/spine/weapon.png?v=5"]
+});
+```
+
+Usually, skeleton and atlas URLs are enough: textures are loaded from atlas page names. Explicit texture URLs should match those names. Renamed textures that cannot be matched by page name use the URL at the corresponding page index. Requests retain the full URLs.
+
+`SpineResource` shares skeleton data, skins, mixing configuration and textures. Each `instantiate()` creates an independent pose and playback state. The following examples use the `resource` and `renderer` above.
+
+## Arrange playback and control time
+
+`renderer.state` is this instance's `SpineAnimationState`. Use `setAnimation` to replace an animation on a track and `addAnimation` to queue one. The engine advances playback automatically; application code does not call `update`.
+
+```typescript
+resource.stateData.defaultMix = 0.2;
+resource.stateData.setMix("attack", "idle", 0.15);
+
+const state = renderer.state;
+state.setAnimation(0, "attack", false);
+state.addAnimation(0, "idle", true, 0);
+```
+
+Tracks can play concurrently. They are applied from lower to higher indices, allowing higher tracks to override or blend with lower tracks. Mix durations belong to the resource and affect all its instances.
+
+`setAnimation` and `addAnimation` return a `SpineTrackEntry` representing one playback entry. It controls that entry's mixing weight, time and callbacks; it is not a reusable animation asset.
+
+```typescript
+renderer.timeScale = 0.5; // Scale animation and skeleton time, including 4.2 physics.
+const previousTimeScale = renderer.timeScale;
+renderer.timeScale = 0; // Pause time; pose application and rendering continue.
+renderer.timeScale = previousTimeScale;
+
+const entry = renderer.state.getCurrent(0);
+if (entry) entry.trackTime = 1.5; // Apply this animation time on the next update.
+```
+
+`state.timeScale` and `entry.timeScale` provide additional animation scaling without scaling skeleton physics time. Use `renderer.timeScale` for ordinary speed and pause controls. Seeking an animation does not reconstruct physics history.
+
+Use queues for known sequences and `entry.listener` for notifications belonging to one playback:
+
+```typescript
+const attack = renderer.state.setAnimation(0, "attack", false);
+attack.listener = {
+  complete(entry) {
+    console.log("Playback completed", entry.animation?.name);
+  },
+  event(entry, event) {
+    console.log("Authored event", event.data.name, event.stringValue);
   }
+};
+```
+
+Use `state.addListener(listener)` for state-wide notifications and `removeListener` to remove it. Looping animations emit `complete` each loop. An entry becomes invalid after its `dispose` callback returns; authored event values are snapshots that may be retained. Command callbacks are synchronous, so a listener assigned after a command returns does not receive a `start` event that has already happened.
+
+## Skins, bones and slots
+
+`renderer.skeleton` is this instance's `SpineSkeleton`. After switching skins, restore slots to their setup pose to select the new skin's setup attachments:
+
+```typescript
+renderer.skeleton.setSkinByName("winter");
+renderer.skeleton.setSlotsToSetupPose();
+```
+
+Create a composite skin through the resource and add skins from that same resource:
+
+```typescript
+const outfit = resource.createSkin("outfit");
+for (const name of ["base", "hair/brown", "clothes/winter"]) {
+  const skin = resource.skeletonData.findSkin(name);
+  if (skin) outfit.addSkin(skin);
+}
+renderer.skeleton.setSkin(outfit);
+renderer.skeleton.setSlotsToSetupPose();
+```
+
+Skins belong to a resource and may be shared by its instances. Cross-resource composition is rejected. `findBone(name)` and `findSlot(name)` return stable instance objects, or `null` for a missing name.
+
+```typescript
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  weapon.setAttachment("sword");
+  weapon.setAttachment(null); // Hide the attachment.
+  weapon.setToSetupPose(); // Restore the setup configuration.
 }
 ```
 
+Attachment names are resolved from the current skin, falling back to the default skin. `skeleton.slots` remains in setup order regardless of animated draw order. Bone local transforms are editable, but animation-controlled values are written again when animations are applied.
 
-### Animation Control - AnimationState
+The public API supports skin composition and attachment selection by name. Native `TextureAtlas`, `RegionAttachment` and `MeshAttachment` objects are internal. Older examples that load an extra atlas and directly modify native attachments do not apply to this API.
 
-The **SpineAnimationRenderer** component exposes the [AnimationState API](https://zh.esotericsoftware.com/spine-api-reference#AnimationState) via its `state` property.  
-The `AnimationState` object enables more complex animation operations.
+## Materials and alpha encoding
 
-To access the `AnimationState` object in scripts:
+Characters within an Engine share a default `SpineMaterial`. Use `setMaterial(material)` to assign the default or `getInstanceMaterial()` to obtain an independent copy. `setMaterial(0, material)` addresses the default material; numeric indices do not identify slots or internal draw batches.
+
+For a slot override, pass a `SpineSlot` from this character:
+
 ```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
+import { SpineMaterial } from "@galacean/engine-spine";
 
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { state } = spine; // AnimationState object
-  }
-  
+const material = new SpineMaterial(engine);
+const weapon = renderer.skeleton.findSlot("weapon");
+if (weapon) {
+  renderer.setMaterial(weapon, material);
+  renderer.setMaterial(weapon, null); // Remove the override and use the default.
 }
 ```
 
-#### **Playing Animations**
-The most commonly used API is [setAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-setAnimation):
+`new SpineMaterial(engine, customShader)` supports custom shaders. Enable `renderer.tintBlack` for two-color tint. A custom shader must consume Spine's vertex layout and batch texture/blend inputs. When using the supplied blend factors, tint in linear space and multiply the final RGB by the final alpha. See the [Spine package material contract](https://github.com/galacean/engine/blob/dev/2.0/packages/spine/README.md#materials) for the inputs.
+
+Alpha encoding belongs to each atlas page. Prefer Straight Alpha exports with color bleed. The loader reads the atlas `pma` flag; absent means straight alpha. For legacy assets without metadata, or textures converted by an import pipeline, specify the actual encoding before the URL's first load:
+
 ```typescript
-state.setAnimation(0, 'animationName', true)
-```
-`setAnimation` accepts three parameters:
-
-- `TrackIndex`: Animation track index
-- `animationName`: Animation name
-- `loop`: Whether to loop
-
-The last two parameters are straightforward. The first parameter introduces the Spine concept of **Tracks**:
-> When playing Spine animations, an animation track must be specified. Animation tracks allow layered animation application. Each track stores animations and playback parameters, with track indices starting at 0. After applying animations, Spine applies them from low to high tracks, with higher tracks overriding lower ones.
-
-#### **Animation Blending**
-This track override mechanism is powerful. For example:
-- Track 0 could contain walking, running, or swimming animations.
-- Track 1 could have a shooting animation with keyframes for arms and gun actions.
-- Adjusting the `TrackEntry` alpha of higher tracks enables blending with lower tracks. For instance, Track 0 could have a walking animation and Track 1 a limping animation. Increasing Track 1's alpha when the player is injured would emphasize the limp.
-Example:
-```typescript
-// The character walks while shooting
-state.setAnimation(0, 'walk', true);
-state.setAnimation(1, 'shoot', true);
+const legacyResource = await engine.resourceManager.load<SpineResource>({
+  url: "/spine/legacy.skel",
+  type: "Spine",
+  params: { alphaMode: "premultiplied" }
+});
 ```
 
-#### **Animation Transitions**
-Calling `setAnimation` immediately switches the current track's animation. For transitions between animations, set a transition duration using [AnimationStateData](https://zh.esotericsoftware.com/spine-api-reference#AnimationStateData):
+`alphaMode` can also be configured by atlas page name. ResourceManager caches by URL, so changing load parameters for an already cached URL does not reconvert the asset. RGBA8 PMA pages are converted to independent straight-alpha textures. Compressed PMA textures must be converted before compression. There is no renderer-level `premultipliedAlpha` switch.
+
+## Physics and resource unbinding
+
+The 4.2 backend supports Spine physics constraints; 3.8 explicitly reports the capability as unsupported. Check support before accessing it:
+
 ```typescript
-import { Script } from '@galacean/engine';
-import { SpineAnimationRenderer } from '@galacean/engine-spine';
-
-class YourAmazingScript extends Script {
-
-  onStart() {
-    const spine = this.entity.getComponent(SpineAnimationRenderer);
-    const { state } = spine; // AnimationState object
-    const { data } = state; // AnimationStateData object
-    data.defaultMix = 0.2; // Default transition duration
-    data.setMix('animationA', 'animationB', 0.3); // Transition duration between specific animations
-  }
-  
+const physics = renderer.physics;
+if (physics?.supported) {
+  for (const constraint of physics.value.physicsConstraints) constraint.reset();
 }
 ```
 
-- `defaultMix`: Default transition duration for animations without explicit settings
-- `setMix`: Accepts three parameters (animation names and transition duration)
-
-#### **Animation Queue**
-Spine provides [addAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addAnimation2) for queued animation playback:
-```typescript
-state.setAnimation(0, 'animationA', false); // Play animation A on track 0
-state.addAnimation(0, 'animationB', true, 0); // Queue animation B after A with looping
-```
-`addAnimation` accepts four parameters:
-
-- `TrackIndex`: Animation track
-- `animationName`: Animation name
-- `loop`: Whether to loop
-- `delay`: Delay time
-
-The `delay` parameter determines when the next animation starts:
-- When `delay > 0` (e.g., 1 second), the next animation begins 1 second after the previous one starts.
-- When `delay = 0`, the next animation starts after the previous one finishes.
-- When `delay < 0`, the next animation starts before the previous one finishes.
-
-Visual examples:
-- ![Delay > 0](https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-sY9TrNI8L8AAAAAAAAAAAAADvX8AQ/original)
-- ![Delay = 0](https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*jk2VRaHwUXMAAAAAAAAAAAAADvX8AQ/original)
-- ![Delay < 0](https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*1xJDTLr0ygAAAAAAAAAAAAAADvX8AQ/original)
-
-You can also use [addEmptyAnimation](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addEmptyAnimation) to add empty animations that return to the initial state. This is useful for blending transitions.
-
-#### **Track Parameters**
-`setAnimation` and `addAnimation` return a `TrackEntry` object containing additional control parameters:
-- `timeScale`: Controls playback speed
-- `animationStart`: Sets the start time
-- `alpha`: Blending coefficient for the track
-- ...
-
-See [TrackEntry documentation](https://zh.esotericsoftware.com/spine-api-reference#TrackEntry) for full details.
-
-#### **Animation Events**
-
-<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*j4SmSKjherYAAAAAAAAAAAAADvX8AQ/original" width="681" alt="Animation event diagram" />
-
-Using the AnimationState API triggers events like:
-- `start`: When a new animation begins
-- `end`: When an animation is removed or interrupted
-- `complete`: When an animation finishes (whether looping or not)
-
-Refer to [Spine Animation Events Documentation](https://zh.esotericsoftware.com/spine-unity-events) for full details.
-
-Listen for events with [AnimationState.addListener](https://zh.esotericsoftware.com/spine-api-reference#AnimationState-addListener):
-```typescript
-state.addListener({
-  start: (entry: TrackEntry) => { /* callback */ },
-  complete: (entry: TrackEntry) => { /* callback */ },
-  end: (entry: TrackEntry) => { /* callback */ },
-  interrupt: (entry: TrackEntry) => { /* callback */ },
-  dispose: (entry: TrackEntry) => { /* callback */ },
-  event: (entry: TrackEntry) => { /* callback */ },
-})
-```
-
-### Skeleton Operations - Skeleton
-The **SpineAnimationRenderer** component exposes the [Skeleton API](https://zh.esotericsoftware.com/spine-api-reference#Skeleton) via its `skeleton` property. Use this to perform advanced skeletal operations.
-
-Access the `Skeleton` object in scripts:
-```typescript
-const { skeleton } = spine; // Skeleton object
-```
-
-#### **Modifying Bone Positions**
-Use the Skeleton API to adjust bone positions, e.g., for IK targeting effects:
-```typescript
-const bone = skeleton.findBone('boneName');
-bone.x = targetX;
-bone.y = targetY;
-```
-
-#### **Attachment Replacement**
-Replace [slots](https://zh.esotericsoftware.com/spine-slots) with new [attachments](https://zh.esotericsoftware.com/spine-attachments) for partial outfit changes:
-```typescript
-const slot = skeleton.findSlot('slotName');
-const attachment = skeleton.getAttachment(slot.index, 'attachmentName');
-slot.attachment = attachment;
-// Or use skeleton.setAttachment('slotName', 'attachmentName');
-```
-
-#### **Skinning & Mixing**
-**Skin Replacement**
-Use `setSkin` to change the entire skin:
-```typescript
-skeleton.setSkinByName("skinName");
-skeleton.setSlotsToSetupPose();
-```
-
-**Skin Mixing**
-Combine multiple skins at runtime:
-```typescript
-const mixAndMatchSkin = new spine.Skin("custom-girl");
-mixAndMatchSkin.addSkin(skeletonData.findSkin("skin-base"));
-// Add other skin parts...
-this.skeleton.setSkin(mixAndMatchSkin);
-```
-
-#### **Dynamic Atlas Loading & Attachment Replacement**
-Load additional atlas files at runtime to support large-scale skin expansion without affecting initial load performance:
-```typescript
-async onStart() {
-  const extraAtlas = await this.engine.resourceManager.load('/extra.atlas') as TextureAtlas;
-  const slot = skeleton.findSlot(slotName);
-  const region = extraAtlas.findRegion(regionName);
-  const clone = this.cloneAttachmentWithRegion(slot.attachment, region);
-  slot.attachment = clone;
-}
-
-cloneAttachmentWithRegion(
-  attachment: RegionAttachment | MeshAttachment | Attachment,
-  atlasRegion: TextureAtlasRegion,
-): Attachment {
-  // Cloning logic for different attachment types
-}
-```
-
-Next section: [Spine Examples](/en/docs/graphics/2D/spine/example)
+Set `renderer.resource = null` to clear the binding. Do not access `state` or `skeleton` while unbound. Rebinding creates new instance state and clears slot material overrides. Do not continue controlling playback through objects from a destroyed entity.

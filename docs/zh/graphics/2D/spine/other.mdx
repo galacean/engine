@@ -6,7 +6,18 @@ group: Spine
 label: Graphics/2D/Spine/other
 ---
 
-### Spine 与编辑器版本对应表
+### Engine 2.0 运行时
+
+公共包 `@galacean/engine-spine` 按需配合以下后端使用：
+
+| Spine 资产版本 | 后端包 |
+| --- | --- |
+| 3.8.x | `@galacean/engine-spine-core-3.8` |
+| 4.2.x | `@galacean/engine-spine-core-4.2` |
+
+在应用入口注册所需后端后，loader 按资产版本选择它们；两种版本可以共存。各 Galacean 包使用相互兼容的 Engine 2.0 发布版本。编辑器接入单独迁移，不能根据此表推断编辑器的导入能力。具体代码见[添加与使用](/docs/graphics/2D/spine/add-and-use)。
+
+### 旧版本对应关系
 
 | Galacean 版本 | Spine 版本  | @galacean/engine-spine 版本         |
 |---------------------|--------------------------|--------------------------|
@@ -25,4 +36,4 @@ label: Graphics/2D/Spine/other
 
 
 ### 提问
-对于 Spine 有任何问题，欢迎在 @galacean/engine-spine [创建 issue](https://github.com/galacean/engine-spine/issues/new)
+Engine 2.0 Spine 的问题欢迎在 engine 仓库 [创建 issue](https://github.com/galacean/engine/issues/new)

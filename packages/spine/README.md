@@ -28,6 +28,8 @@ The registry is shared by consumers of the same `engine-spine` module, rather th
 
 An application using only 3.8 installs and registers only the 3.8 backend. Neither the shared package nor the 3.8 backend depends on the 4.2 runtime. The loader does not download missing backends.
 
+Only `.skel` selects the Spine loader automatically; `.json` and `.bin` require `type: "Spine"`. Skeleton content may be JSON or Spine binary data regardless of extension. For a single URL, explicit atlas dependencies take precedence; otherwise the loader derives a sibling `.atlas` path without inheriting the skeleton URL's query or fragment. Use `urls` to supply an atlas URL with its own query parameters. Textures resolve from atlas page names unless explicit URLs or asset dependencies provide them.
+
 ## Public API
 
 Use `SpineResource` and `SpineAnimationRenderer` to access skeletons, bones, slots, skins and animation playback. These objects are shared across supported asset versions. Load resources through the resource manager; `renderer.skeleton` and `renderer.state` require a bound resource.
@@ -163,6 +165,8 @@ Live renderer references protect shared or user-assigned materials. Unreferenced
 ## Backend integration
 
 The shared package registers the Spine loader. Version packages export their runtime adapter classes for explicit registration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Backends calculate world vertices and perform native clipping, then submit attachment geometry through `ISpineGeometry`. The shared layer owns the final vertex layout, index offsets, bounds and ordered draw batches, along with GPU buffers and materials. Input arrays and output buffers are reused.
+
+The 3.8 backend vendors runtime sources because the official `@esotericsoftware/spine-core` npm package has no 3.8 release. The 4.2 backend consumes the official npm package. Both backend builds bundle their native runtime code; this source-distribution difference does not change the public API or registration model.
 
 For script/UMD builds, load the engine, shared Spine bundle and required version bundles, then register before loading assets:
 
