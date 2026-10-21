@@ -264,6 +264,23 @@ describe("Spine resource ownership", () => {
       expect((renderer["_skeleton"] as any).time).to.be.closeTo(0.8, 1e-6);
     });
 
+    it(`${version}: seeks within a trimmed animation, clamping once and wrapping when looping`, async () => {
+      const renderer = attach(await load(version));
+      const entry = renderer.state.setAnimation(0, "idle", false);
+      entry.animationStart = 0.25;
+      entry.animationEnd = 0.75;
+      entry.trackTime = 0.6;
+      renderer.update(0);
+      expect(entry.isComplete()).to.be.true;
+      expect(entry.getAnimationTime()).to.be.closeTo(0.75, 1e-6);
+      expect(renderer.skeleton.findBone("root").x).to.be.closeTo(0.15, 1e-6);
+
+      entry.loop = true;
+      renderer.update(0);
+      expect(entry.getAnimationTime()).to.be.closeTo(0.35, 1e-6);
+      expect(renderer.skeleton.findBone("root").x).to.be.closeTo(0.07, 1e-6);
+    });
+
     it(`${version}: draws per-batch textures and blend modes with one shared material, respecting fixed custom states`, async () => {
       const raw = await fetch(urls[version]).then((r) => r.json());
       raw.slots = [];
