@@ -17,7 +17,8 @@ function sourceFileForShader(url: string, baseUrl: string | null): string {
   const sourceURL = new URL(url);
   sourceURL.search = "";
   sourceURL.hash = "";
-  if (baseUrl) {
+  // Relative bases do not identify an absolute source's project root without a host context.
+  if (baseUrl && ABSOLUTE_URL_PATTERN.test(baseUrl)) {
     const resolvedBase = new URL(baseUrl);
     const baseDirectory = resolvedBase.href.endsWith("/") ? resolvedBase : new URL(".", resolvedBase);
     if (sourceURL.origin === baseDirectory.origin && sourceURL.href.startsWith(baseDirectory.href)) {
