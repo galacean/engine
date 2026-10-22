@@ -7,12 +7,7 @@ Shader "define-multiline-params" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      // `\` + `\n` inside a function-like macro header must collapse
-      // logically. Previously `_scanUtilBreakLine` cut the directive at the
-      // first `\n`, leaving `a, b, c \\\n ) max(...)` as stray top-level
-      // tokens, and `_scanMacroDefineParams` (when reached) would push raw
-      // `\` `\n` into the params lexeme. Fix: both routines now honor C/GLSL
-      // line continuation.
+      // A continued function-like macro header is one logical directive.
       #define MAX3( \
                 a, b, c \
               ) max(max(a, b), c)

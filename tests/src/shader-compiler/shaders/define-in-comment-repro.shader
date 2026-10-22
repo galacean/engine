@@ -1,10 +1,7 @@
 Shader "define-in-comment-repro" {
   SubShader "Default" {
     Pass "0" {
-      // Issue #2980 example 1:
-      // The Preprocessor regex used to false-positive register MAX_LIGHTS
-      // from inside the block comment, so a use site below got tokenized
-      // as MACRO_CALL but no expansion was emitted.
+      // Directives inside block comments must not register macros.
       // Fix: regex runs on a comment-stripped source.
       /*
        * Documentation:

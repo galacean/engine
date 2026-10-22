@@ -7,10 +7,7 @@ Shader "define-line-continuation-member-access" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      // Reviewer P1-2: line continuation `\` + `\n` was not honored by
-      // `_defineHasValue`. The `.v_uv` lives on the next physical line; the
-      // peek would stop at the first `\n` and misroute to legacy, leaving
-      // `.v_uv` as a stray top-level token.
+      // A continued replacement list is one logical expression even when member access starts on the next line.
       #define UV foo \
                   .v_uv
 

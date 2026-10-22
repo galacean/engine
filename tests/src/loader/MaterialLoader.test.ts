@@ -1,5 +1,6 @@
-import { AssetType, Material, Shader, WebGLEngine } from "@galacean/engine";
+import { AssetType, Material, Shader, ShaderFactory, WebGLEngine } from "@galacean/engine";
 import "@galacean/engine-loader";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -36,6 +37,38 @@ afterAll(() => {
 });
 
 describe("ShaderLoader", () => {
+  it("preserves relative source includes and rejects duplicate source shader creation", async () => {
+    const name = `ShaderLoaderSource-${Math.random()}`;
+    const includeKey = `${name}/Common.glsl`;
+    ShaderFactory.registerInclude(includeKey, "vec4 includedColor() { return vec4(0.25); }");
+    const sourceEngine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      shaderCompiler: new ShaderCompiler()
+    });
+    const source = `Shader "${name}" { SubShader "s" { Pass "p" {
+#include "./Common.glsl"
+void vert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = includedColor(); }
+VertexShader = vert; FragmentShader = frag;
+} } }`;
+    const urls = [0, 1].map(() => URL.createObjectURL(new Blob([source], { type: "text/plain" })));
+    const paths = [`${name}/Main.shader`, `${name}/Duplicate.shader`];
+    try {
+      sourceEngine.resourceManager.registerVirtualResources(
+        paths.map((virtualPath, index) => ({ virtualPath, path: urls[index], type: AssetType.Shader }))
+      );
+      const shader = await sourceEngine.resourceManager.load<Shader>(paths[0]);
+      expect(shader).toBeInstanceOf(Shader);
+      expect(shader.compileVariant(sourceEngine, [])).toBe(true);
+      await expect(sourceEngine.resourceManager.load<Shader>(paths[1])).rejects.toBeDefined();
+      expect(sourceEngine.resourceManager.getFromCache(paths[1])).toBeNull();
+    } finally {
+      sourceEngine.destroy();
+      ShaderFactory.unregisterInclude(includeKey);
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    }
+  });
+
   it("rejects duplicate shader creation", async () => {
     const name = `ShaderLoaderDuplicate-${Math.random()}`;
     const source = { name, platformTarget: 0, subShaders: [] };

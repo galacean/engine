@@ -13,6 +13,8 @@ float material_farPlaneOverEdgeDistance;
       #define BLUR_SAMPLE_COUNT 6
 #elif SSAO_QUALITY == 2
       #define BLUR_SAMPLE_COUNT 12
+#else
+      #define BLUR_SAMPLE_COUNT 3
 #endif
 
 float material_kernel[12];
