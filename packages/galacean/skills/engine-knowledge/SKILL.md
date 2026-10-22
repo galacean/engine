@@ -1,30 +1,23 @@
 ---
 name: engine-knowledge
-description: "Use for non-derivable runtime semantics of the exact @galacean/engine package version that ships this Skill, including Script lifecycle, coordinate conventions, physics ownership, rendering, resource ownership, and supported Spine or XR companions. Use installed declarations as the authority for exports and signatures."
+description: "Use when writing Galacean runtime code that needs lifecycle, motion, rendering or resource-ownership behavior beyond API signatures. Includes version-matched Spine and XR guidance."
 ---
 
 # Engine Runtime Knowledge
 
-This Skill is a versioned companion to `@galacean/engine`. It records runtime behavior that declarations cannot express. Engine source and generated declarations remain authoritative for exports, signatures, overloads, enum members, and deprecations. The aggregate Skill also carries runtime semantics for supported Spine and XR companions; those packages remain the authority for their exact exports and signatures.
+Runtime semantics for the installed `@galacean/engine` and its supported Spine/XR companions. Use each installed package's declarations for exact API names and signatures; reuse declarations already obtained.
 
-In an Editor-managed project, default to the host authoring API for persistent scene structure, reusable assets and tunable defaults. Runtime code normally instantiates and controls that configured content. Use runtime construction when content depends on runtime data, requires procedural generation, or needs a capability the host does not expose; keep the supported, reusable setup authored. Standalone applications can construct scenes directly with Engine APIs.
+In Editor-managed projects, Scripts instantiate and control authored content. Keep persistent, reusable setup in the Editor API. Runtime construction remains appropriate for procedural content, content determined at runtime, or capabilities the host does not expose. Standalone applications own their scene construction.
 
-## Method
+## Read for the current task
 
-1. Identify the runtime decision that needs Engine-specific behavior.
-2. Read the relevant sections; follow links only for a missing runtime dependency or behavior.
-3. Resolve missing symbols and signatures from the installed declarations; reuse contracts already obtained for that version.
-4. Prefer compiler diagnostics and observable runtime behavior over remembered examples. Do not infer APIs from prose.
+Choose the reference for the current runtime decision; follow links only when another behavior affects it. Verify changes with compiler diagnostics and observable runtime behavior.
 
-## References
-
-- For handedness, forward direction, transform composition, Euler order, and screen or viewport spaces, read [coordinates-and-space.md](references/coordinates-and-space.md).
-- For Script activation and frame ordering, read [lifecycle-and-frame-order.md](references/lifecycle-and-frame-order.md).
-- For collider ownership, motion, fixed steps, callbacks, and screen picking, read [physics-setup.md](references/physics-setup.md).
-- For built-in mesh dimensions, orientation, and uploading drawable custom geometry, read [mesh-geometry.md](references/mesh-geometry.md).
-- For cloning, reference counts, garbage collection, and shared resources, read [resource-ownership.md](references/resource-ownership.md).
-- For material mutation, color-space intent, cameras, masks, runtime lighting, and post-processing, read [rendering-and-color.md](references/rendering-and-color.md).
-- For Spine runtime, instance, animation-state, and render ownership, read [spine.md](references/spine.md).
-- For XR device, origin, camera, session, input, and frame ownership, read [xr.md](references/xr.md).
-
-Do not pre-read every reference. For all API shape and provider-specific behavior, use the exact installed declarations and runtime tests instead of treating these references as an API catalog.
+- Coordinates, transform composition and screen conversion: [coordinates-and-space.md](references/coordinates-and-space.md).
+- Script activation and frame order: [lifecycle-and-frame-order.md](references/lifecycle-and-frame-order.md).
+- Motion ownership, fixed steps, collision callbacks and picking: [physics-setup.md](references/physics-setup.md).
+- Primitive dimensions and drawable custom geometry: [mesh-geometry.md](references/mesh-geometry.md).
+- Cloning, reference counts and garbage collection: [resource-ownership.md](references/resource-ownership.md).
+- Materials, color space, cameras, masks, lighting and post-processing: [rendering-and-color.md](references/rendering-and-color.md).
+- Spine instances, animation state and rendering: [spine.md](references/spine.md).
+- XR devices, origins, cameras, sessions and input: [xr.md](references/xr.md).

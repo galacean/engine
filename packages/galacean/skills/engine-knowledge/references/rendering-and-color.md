@@ -1,6 +1,6 @@
 # Rendering and Color Ownership
 
-Use this reference when material sharing, camera composition, masking, or color-space intent affects the rendered result.
+Use this reference when material sharing, camera composition, masking, or color-space intent affects the rendered result. For custom mesh draw requirements, see [mesh-geometry.md](mesh-geometry.md).
 
 ## Material state
 
@@ -8,7 +8,6 @@ Use this reference when material sharing, camera composition, masking, or color-
 - Requesting an instance material clones the assigned material for that renderer. Use this only when per-renderer mutation is intentional; otherwise retain the shared material and avoid the extra resource.
 - A missing material slot has no instance to clone. Treat material lookup as nullable rather than assuming slot zero exists.
 - Shader property names and macros are shader contracts, not universal Engine names. Resolve them from the selected shader or material implementation.
-- Uploading custom vertex or index data does not by itself make a Mesh drawable. A `MeshRenderer` needs at least one SubMesh and a material in the corresponding slot before it can emit a render element.
 
 ## Draw ordering
 
@@ -23,36 +22,26 @@ Use this reference when material sharing, camera composition, masking, or color-
 ## Color-space intent
 
 - Lighting and material computation use linear values.
-- Color textures normally represent sRGB content and should be decoded for linear computation. Data textures such as normals, masks, and packed material channels remain linear.
+- Choose conversion by data meaning, not filename. Color textures normally represent sRGB content and should be decoded for linear computation. Data textures such as normals, masks, and packed material channels remain linear.
 - Render-target color-space flags describe the stored data and conversion behavior. They must match the pass that writes and later samples the target.
 - Screen output performs the final conversion required for display. Avoid manually applying another conversion unless a custom pass explicitly owns that transform.
-
-## Decision rule
-
-Classify every texture by data meaning, not filename. Keep one material owner unless independent mutation is required, make camera and mask buffer ownership explicit, and keep color conversion at the boundary that changes representation.
 
 ## Shadow participation
 
 Shadow rendering requires the Scene shadow switch, its selected sun light's
 non-`None` shadow mode, and the participating Renderers' cast/receive settings.
-In a hosted project, author these defaults through the host API. Runtime changes
-operate on those configured objects; creating another light does not configure
-the existing one.
 
 ## Sky background requirements
 
 Sky background mode needs both a sky material and a mesh. `SkyBoxMaterial`
-samples a `TextureCube`, not a single `Texture2D` panorama. For a known background,
-author the material, texture and Scene references through the host API. Runtime
-code can switch between configured skies or create resources for a generated
-environment; the material-sharing rules above still apply.
+samples a `TextureCube`, not a single `Texture2D` panorama. Switching the sky's
+material follows the material-sharing rules above.
 
 ## Linear normal map on one renderer
 
-Normal maps contain linear data. Author known texture bindings through the host
-API. The example below is for a texture chosen during play. When only one
-Renderer should change, request its instance material and mutate the returned
-clone in place; do not assign it again.
+For a normal map selected at runtime, load linear data and request an instance
+material when only one Renderer should change. Mutate the returned clone in
+place; it is already assigned to the Renderer.
 
 ```ts
 import { AssetType, Engine, MeshRenderer, PBRMaterial, Texture2D } from "@galacean/engine";
@@ -90,8 +79,5 @@ the same Entity. The Camera and volume must share a physics-enabled Scene, the
 Camera's post-process path must be enabled, and the volume must contain an actual
 effect. A visual box alone does not establish a volume.
 
-Author stable volumes, collider shapes and effect defaults through the host API.
-Use runtime code for behavior-driven effect changes or runtime-only settings
-that the host does not expose. Preserve the configured Collider's physical
-behavior; a visual effect does not implicitly own it. See
-[physics-setup.md](physics-setup.md).
+Post-processing consumes the Collider's shapes; preserve their intended physical
+behavior. See [physics-setup.md](physics-setup.md).

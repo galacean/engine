@@ -30,7 +30,7 @@ Choose one motion owner per body: simulation for non-kinematic dynamics, applica
 
 ## Physics-backed screen picking
 
-Built-in 3D pointer callbacks and manual screen raycasts share the selection rules above. The caller owns the target's Collider, shape, collision layer, trigger behavior, and query policy; attach the Script and configure the target through the host API. This example does not create a collider or move a shape from another owner. See [coordinates-and-space.md](coordinates-and-space.md) for screen coordinates and [mesh-geometry.md](mesh-geometry.md) for visual/shape dimensions.
+Built-in callbacks and manual raycasts share the selection rules above. In Editor-managed projects, configure the target and attach the Script through the Editor API. See [coordinates-and-space.md](coordinates-and-space.md) for screen coordinates and [mesh-geometry.md](mesh-geometry.md) for visual/collider dimensions.
 
 ```ts
 import { Camera, HitResult, Layer, PointerEventData, Ray, Scene, Script, Vector2 } from "@galacean/engine";
