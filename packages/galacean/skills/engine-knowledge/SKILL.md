@@ -7,7 +7,7 @@ description: "Use for non-derivable runtime semantics of the exact @galacean/eng
 
 This Skill is a versioned companion to `@galacean/engine`. It records runtime behavior that declarations cannot express. Engine source and generated declarations remain authoritative for exports, signatures, overloads, enum members, and deprecations. The aggregate Skill also carries runtime semantics for supported Spine and XR companions; those packages remain the authority for their exact exports and signatures.
 
-In a hosted project, reuse the Engine and loaded objects provided by the host. Standalone applications own their initialization. This Skill does not define how a host creates, serializes, builds, or publishes project assets; those protocols belong to that host.
+In an Editor-managed project, default to the host authoring API for persistent scene structure, reusable assets and tunable defaults. Runtime code normally instantiates and controls that configured content. Use runtime construction when content depends on runtime data, requires procedural generation, or needs a capability the host does not expose; keep the supported, reusable setup authored. Standalone applications can construct scenes directly with Engine APIs.
 
 ## Method
 

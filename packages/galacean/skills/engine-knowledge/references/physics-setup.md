@@ -30,19 +30,15 @@ Choose one motion owner per body: simulation for non-kinematic dynamics, applica
 
 ## Physics-backed screen picking
 
-Built-in 3D pointer callbacks and manual screen raycasts share the selection rules above. The caller owns the target's Collider, shape, collision layer, trigger behavior, and query policy; this recipe does not create a collider or move a shape from another owner. See [coordinates-and-space.md](coordinates-and-space.md) for screen coordinates and [mesh-geometry.md](mesh-geometry.md) for visual/shape dimensions.
+Built-in 3D pointer callbacks and manual screen raycasts share the selection rules above. The caller owns the target's Collider, shape, collision layer, trigger behavior, and query policy; attach the Script and configure the target through the host API. This example does not create a collider or move a shape from another owner. See [coordinates-and-space.md](coordinates-and-space.md) for screen coordinates and [mesh-geometry.md](mesh-geometry.md) for visual/shape dimensions.
 
 ```ts
-import { Camera, Entity, HitResult, Layer, PointerEventData, Ray, Scene, Script, Vector2 } from "@galacean/engine";
+import { Camera, HitResult, Layer, PointerEventData, Ray, Scene, Script, Vector2 } from "@galacean/engine";
 
-class Pickable extends Script {
+export class Pickable extends Script {
   onPointerDown(event: PointerEventData): void {
     console.log(this.entity.name, event.worldPosition);
   }
-}
-
-export function enable3DPicking(entity: Entity): Pickable {
-  return entity.getComponent(Pickable) ?? entity.addComponent(Pickable);
 }
 
 export function pickFromScreen(

@@ -1,4 +1,4 @@
-# Runtime Mesh Geometry
+# Mesh Geometry
 
 Use this reference when primitive dimensions or orientation affect code, or when uploading custom geometry. Material assignment and draw ordering are covered in [rendering-and-color.md](rendering-and-color.md).
 
@@ -32,12 +32,12 @@ Exact constructor arguments remain declaration-owned. Use this page only for the
 
 ## Draw-ready custom mesh
 
-Vertex data alone is not drawable. Close the chain with correct bounds, an index range, a SubMesh, a Renderer, and the matching material slot. See [rendering-and-color.md](rendering-and-color.md).
+Use this example for procedural geometry created during execution. The caller supplies a Renderer with its material already configured. Fixed geometry and reusable templates are normally authored assets. Vertex data alone is not drawable: the Mesh still needs bounds, an index range and a SubMesh. See [rendering-and-color.md](rendering-and-color.md).
 
 ```ts
-import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial, Vector3 } from "@galacean/engine";
+import { Engine, MeshRenderer, ModelMesh, Vector3 } from "@galacean/engine";
 
-export function createTriangle(engine: Engine, entity: Entity): void {
+export function createTriangle(engine: Engine, renderer: MeshRenderer): void {
   const mesh = new ModelMesh(engine);
   mesh.setPositions([new Vector3(-0.5, -0.5, 0), new Vector3(0.5, -0.5, 0), new Vector3(0, 0.5, 0)]);
   mesh.setIndices(new Uint16Array([0, 1, 2]));
@@ -46,8 +46,6 @@ export function createTriangle(engine: Engine, entity: Entity): void {
   mesh.uploadData(true);
   mesh.addSubMesh(0, 3);
 
-  const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = mesh;
-  renderer.setMaterial(new UnlitMaterial(engine));
 }
 ```

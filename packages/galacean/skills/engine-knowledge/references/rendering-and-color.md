@@ -31,44 +31,28 @@ Use this reference when material sharing, camera composition, masking, or color-
 
 Classify every texture by data meaning, not filename. Keep one material owner unless independent mutation is required, make camera and mask buffer ownership explicit, and keep color conversion at the boundary that changes representation.
 
-## Shadow-ready main light
+## Shadow participation
 
-Shadows require all owners in the chain: the Scene enables shadow rendering, its main light selects a non-`None` shadow mode, and each Renderer opts into casting or receiving.
+Shadow rendering requires the Scene shadow switch, its selected sun light's
+non-`None` shadow mode, and the participating Renderers' cast/receive settings.
+In a hosted project, author these defaults through the host API. Runtime changes
+operate on those configured objects; creating another light does not configure
+the existing one.
 
-```ts
-import { DirectLight, Entity, Renderer, Scene, ShadowType } from "@galacean/engine";
+## Sky background requirements
 
-export function enableMainLightShadows(scene: Scene, sunEntity: Entity, renderer: Renderer): DirectLight {
-  const sun = sunEntity.addComponent(DirectLight);
-  sun.shadowType = ShadowType.SoftHigh;
-  scene.sun = sun;
-  scene.castShadows = true;
-  renderer.castShadows = true;
-  renderer.receiveShadows = true;
-  return sun;
-}
-```
-
-## Drawable skybox
-
-Selecting sky background mode is not sufficient. The Scene background also needs both a sky material and a mesh; the material needs a `TextureCube`, not a single 2D panorama.
-
-```ts
-import { BackgroundMode, Engine, PrimitiveMesh, Scene, SkyBoxMaterial, TextureCube } from "@galacean/engine";
-
-export function configureSkybox(engine: Engine, scene: Scene, texture: TextureCube): void {
-  const material = new SkyBoxMaterial(engine);
-  material.texture = texture;
-
-  scene.background.sky.material = material;
-  scene.background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
-  scene.background.mode = BackgroundMode.Sky;
-}
-```
+Sky background mode needs both a sky material and a mesh. `SkyBoxMaterial`
+samples a `TextureCube`, not a single `Texture2D` panorama. For a known background,
+author the material, texture and Scene references through the host API. Runtime
+code can switch between configured skies or create resources for a generated
+environment; the material-sharing rules above still apply.
 
 ## Linear normal map on one renderer
 
-Normal maps contain linear data. When only one Renderer should change, request its instance material and mutate the returned clone in place; do not assign it again.
+Normal maps contain linear data. Author known texture bindings through the host
+API. The example below is for a texture chosen during play. When only one
+Renderer should change, request its instance material and mutate the returned
+clone in place; do not assign it again.
 
 ```ts
 import { AssetType, Engine, MeshRenderer, PBRMaterial, Texture2D } from "@galacean/engine";
@@ -99,40 +83,15 @@ export async function assignNormalMap(engine: Engine, renderer: MeshRenderer, ur
 }
 ```
 
-## Collider-bounded local bloom
+## Local post-processing requirements
 
-A local PostProcess takes its influence volume from enabled collider shapes on the same Entity. The caller owns those colliders and their physical behavior; this recipe consumes but never creates or reconfigures that volume. It also requires the Camera and volume to share a physics-enabled Scene, an enabled Camera post-process path, and an actual effect. See [physics-setup.md](physics-setup.md).
+A local PostProcess takes its influence volume from enabled collider shapes on
+the same Entity. The Camera and volume must share a physics-enabled Scene, the
+Camera's post-process path must be enabled, and the volume must contain an actual
+effect. A visual box alone does not establish a volume.
 
-```ts
-import { BloomEffect, Camera, Collider, Entity, PostProcess } from "@galacean/engine";
-
-export function createLocalBloom(camera: Camera, entity: Entity, blendDistance: number): PostProcess {
-  if (!entity.scene || camera.scene !== entity.scene) {
-    throw new Error("Local post-process requires the Camera and volume Entity to share a Scene");
-  }
-
-  const colliders: Collider[] = [];
-  entity.getComponents(Collider, colliders);
-  if (!colliders.some((collider) => collider.enabled && collider.shapes.length > 0)) {
-    throw new Error("Local post-process requires an enabled collider shape owned by the same Entity");
-  }
-
-  if (entity.getComponent(PostProcess)) {
-    throw new Error("The volume Entity already owns a PostProcess");
-  }
-
-  const volume = entity.addComponent(PostProcess);
-  volume.isGlobal = false;
-  if (volume.isGlobal) {
-    volume.destroy();
-    throw new Error("Local post-process requires a physics-enabled Scene");
-  }
-
-  volume.blendDistance = blendDistance;
-  const bloom = volume.addEffect(BloomEffect);
-  if (bloom) bloom.intensity.value = 1;
-  camera.enablePostProcess = true;
-
-  return volume;
-}
-```
+Author stable volumes, collider shapes and effect defaults through the host API.
+Use runtime code for behavior-driven effect changes or runtime-only settings
+that the host does not expose. Preserve the configured Collider's physical
+behavior; a visual effect does not implicitly own it. See
+[physics-setup.md](physics-setup.md).
