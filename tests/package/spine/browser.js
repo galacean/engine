@@ -6,7 +6,12 @@ import * as firstBackend from "@galacean/engine-spine-core-__FIRST__";
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 128;
   document.body.appendChild(canvas);
-  const engine = await WebGLEngine.create({ canvas, graphicDeviceOptions: { preserveDrawingBuffer: true } });
+  const firstRuntime = new firstBackend["Spine" + "__FIRST__".replace(".", "") + "Runtime"]();
+  const engine = await WebGLEngine.create({
+    canvas,
+    spine: firstRuntime,
+    graphicDeviceOptions: { preserveDrawingBuffer: true }
+  });
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor = new Color(0, 0, 0, 1);
   const root = scene.createRootEntity();
@@ -47,15 +52,12 @@ import * as firstBackend from "@galacean/engine-spine-core-__FIRST__";
     );
   }
 
-  await expectUnregistered("__FIRST__");
-  const firstRuntime = new firstBackend["Spine" + "__FIRST__".replace(".", "") + "Runtime"]();
-  registerSpineRuntime(firstRuntime);
-  registerSpineRuntime(firstRuntime);
+  registerSpineRuntime(engine, firstRuntime);
   const first = await load("__FIRST__");
   const firstOnly = visible();
   const secondBackend = await import("@galacean/engine-spine-core-__SECOND__");
   await expectUnregistered("__SECOND__");
-  registerSpineRuntime(new secondBackend["Spine" + "__SECOND__".replace(".", "") + "Runtime"]());
+  registerSpineRuntime(engine, new secondBackend["Spine" + "__SECOND__".replace(".", "") + "Runtime"]());
   const afterRegistration = visible();
   first.isActive = false;
   await load("__SECOND__");

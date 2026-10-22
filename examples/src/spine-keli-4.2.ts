@@ -3,18 +3,16 @@
  * @category Spine
  */
 import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { registerSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
+import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 import * as dat from "dat.gui";
-
-registerSpineRuntime(new Spine42Runtime());
 
 Logger.enable();
 
 const gui = new dat.GUI();
 const state = { animation: "" };
 
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", spine: new Spine42Runtime() }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   const root = scene.createRootEntity();
 

@@ -15,7 +15,7 @@ label: Graphics/2D/Spine/other
 | 3.8.x | `@galacean/engine-spine-core-3.8` |
 | 4.2.x | `@galacean/engine-spine-core-4.2` |
 
-在应用入口注册所需后端后，loader 按资产版本选择它们；两种版本可以共存。各 Galacean 包使用相互兼容的 Engine 2.0 发布版本。编辑器接入单独迁移，不能根据此表推断编辑器的导入能力。具体代码见[添加与使用](/docs/graphics/2D/spine/add-and-use)。
+通过 `WebGLEngine.create({ canvas, spine: runtime })` 配置一个后端，loader 在所属 Engine 中按资产版本选择后端。后续可通过 `registerSpineRuntime(engine, runtime)` 补充版本，与已加载资源共存。各 Galacean 包使用相互兼容的 Engine 2.0 发布版本。编辑器接入单独迁移，不能根据此表推断编辑器的导入能力。具体代码见[添加与使用](/docs/graphics/2D/spine/add-and-use)。
 
 ### 旧版本对应关系
 

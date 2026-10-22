@@ -8,20 +8,31 @@ label: Graphics/2D/Spine/add-and-use
 
 This page describes the Engine 2.0 Spine runtime API. See [Using in the Editor](/en/docs/graphics/2D/spine/editor) for editor asset names and import UI; editor integration migrates separately.
 
-## Install and register
+## Install and configure
 
-Application code uses objects from `@galacean/engine-spine`. Install `@galacean/engine-spine-core-3.8` and/or `@galacean/engine-spine-core-4.2` to match your assets' export versions. Register the required backends once at application startup, before loading assets:
+Application code uses objects from `@galacean/engine-spine`. Install the backend matching your assets and pass one runtime instance when creating the engine. Import `engine-spine` before engine creation so its loader receives this configuration:
+
+```typescript
+import { WebGLEngine } from "@galacean/engine";
+import "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
+
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  spine: new Spine38Runtime()
+});
+```
+
+Editors or applications can register another version later without clearing existing resources:
 
 ```typescript
 import { registerSpineRuntime } from "@galacean/engine-spine";
-import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
 import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 
-registerSpineRuntime(new Spine38Runtime());
-registerSpineRuntime(new Spine42Runtime());
+registerSpineRuntime(engine, new Spine42Runtime());
 ```
 
-Assets from both versions can coexist. An application using one version only installs and registers that backend. The loader reads the asset header to select the matching backend; it does not download missing backends. Importing a backend alone does not register it. Registration is shared by the module, so do not create another backend instance for each Engine.
+Each engine has its own version map. Loading selects a registered backend by the asset's export major/minor version. Existing resources, cached results and playback keep their original backend; adding 4.2 does not replace 3.8. Re-registering the same instance is allowed, but a different instance for an already registered version is rejected. Reuse the backend instance when revisiting a version. An application using one version installs only that backend. Backend imports do not register it automatically, and missing versions fail explicitly without downloading another backend.
 
 ## Load and instantiate
 

@@ -1,3 +1,5 @@
+import { Engine, WebGLEngine } from "@galacean/engine";
+declare const engine: Engine;
 import { SpineAnimationRenderer, SpineResource, SpineSkeleton, SpineAnimationState } from "@galacean/engine-spine";
 declare const renderer: SpineAnimationRenderer;
 declare const resource: SpineResource;
@@ -55,7 +57,7 @@ state.setAnimation(0, 123, true);
 
 import { registerSpineRuntime } from "@galacean/engine-spine";
 // @ts-expect-error A version string alone does not supply a backend.
-registerSpineRuntime("4.2");
+registerSpineRuntime(engine, "4.2");
 // @ts-expect-error Application code cannot retrieve backend handles.
 import { getSpineRuntime } from "@galacean/engine-spine";
 // @ts-expect-error Render integration is not part of the application API.
@@ -65,3 +67,6 @@ import { SpineVertexStride } from "@galacean/engine-spine";
 
 // @ts-expect-error Spine assets use straight alpha; there is no instance rendering mode.
 renderer.premultipliedAlpha = true;
+
+// @ts-expect-error Engine creation accepts a backend instance, not a version string.
+WebGLEngine.create({ canvas: "canvas", spine: "4.2" });

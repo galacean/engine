@@ -8,20 +8,31 @@ label: Graphics/2D/Spine/add-and-use
 
 本页介绍 Engine 2.0 的 Spine 运行时 API。编辑器的导入界面和资产命名见[资产导入](/docs/graphics/2D/spine/editor)；编辑器接入单独迁移。
 
-## 安装与注册
+## 安装与配置
 
-业务代码使用 `@galacean/engine-spine` 提供的对象。根据资产导出版本，安装匹配的 `@galacean/engine-spine-core-3.8` 或 `@galacean/engine-spine-core-4.2`，并在应用入口、加载资产之前注册一次：
+业务代码使用 `@galacean/engine-spine` 提供的对象。按资产版本安装对应后端，创建 Engine 时传入一个 runtime。创建之前需要导入 `engine-spine`，让 SpineLoader 接收初始化配置：
+
+```typescript
+import { WebGLEngine } from "@galacean/engine";
+import "@galacean/engine-spine";
+import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
+
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  spine: new Spine38Runtime()
+});
+```
+
+编辑器或应用后续需要另一版本时，可以补充注册，无需清理已加载的资源：
 
 ```typescript
 import { registerSpineRuntime } from "@galacean/engine-spine";
-import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
 import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
 
-registerSpineRuntime(new Spine38Runtime());
-registerSpineRuntime(new Spine42Runtime());
+registerSpineRuntime(engine, new Spine42Runtime());
 ```
 
-两种资产可以在同一项目中共存。只使用一种版本时，只安装并注册对应后端。加载器读取资产头中的版本，选择匹配的后端；不会自动下载缺少的后端。仅导入后端包不会完成注册，也不需要给每个 Engine 重复创建后端实例。
+版本映射按 Engine 隔离，加载时根据资产的主次版本选择对应后端。已有资源、缓存和播放状态继续使用原后端；补充 4.2 不会替换 3.8。同一实例可重复注册，同版本的不同实例会明确报错，因此来回切换配置时应复用已有后端实例。只使用一种版本时，只安装对应后端。仅导入后端包不会完成注册；未配置匹配版本时明确报错，不会自动下载其他后端。
 
 ## 加载和创建角色
 

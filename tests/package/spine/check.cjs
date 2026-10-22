@@ -80,6 +80,9 @@ function checkTypes(directory, versions) {
     versions
       .map(
         (v) => `import { Spine${v.replace(".", "")}Runtime } from "@galacean/engine-spine-core-${v}";
+registerSpineRuntime(engine, new Spine${v.replace(".", "")}Runtime());
+WebGLEngine.create({ canvas: "canvas", spine: new Spine${v.replace(".", "")}Runtime() });
+// @ts-expect-error Registration requires an engine.
 registerSpineRuntime(new Spine${v.replace(".", "")}Runtime());
 // @ts-expect-error Native classes are not exported by backend packages.
 import { Skeleton as Native${v.replace(".", "")} } from "@galacean/engine-spine-core-${v}";`
@@ -97,9 +100,10 @@ async function checkSingleBackendBundle(directory, version) {
   const entry = path.join(directory, "single-backend.js");
   fs.writeFileSync(
     entry,
-    `import { registerSpineRuntime } from '@galacean/engine-spine';
+    `import { WebGLEngine } from '@galacean/engine';
+import '@galacean/engine-spine';
 import { Spine${version.replace(".", "")}Runtime } from '@galacean/engine-spine-core-${version}';
-registerSpineRuntime(new Spine${version.replace(".", "")}Runtime());`
+WebGLEngine.create({ canvas: "canvas", spine: new Spine${version.replace(".", "")}Runtime() });`
   );
   const bundle = await rollup({
     input: entry,
@@ -137,11 +141,13 @@ async function checkWorkspaceBundle() {
           },
           load(id) {
             if (id === entry)
-              return `import { registerSpineRuntime } from '@galacean/engine-spine';
+              return `import { WebGLEngine } from '@galacean/engine';
+import { registerSpineRuntime } from '@galacean/engine-spine';
 import { Spine38Runtime } from '@galacean/engine-spine-core-3.8';
 import { Spine42Runtime } from '@galacean/engine-spine-core-4.2';
-registerSpineRuntime(new Spine38Runtime());
-registerSpineRuntime(new Spine42Runtime());`;
+WebGLEngine.create({ canvas: "canvas", spine: new Spine38Runtime() }).then((engine) => {
+  registerSpineRuntime(engine, new Spine42Runtime());
+});`;
           }
         },
         resolve({ mainFields }),

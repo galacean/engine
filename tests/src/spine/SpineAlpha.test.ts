@@ -8,8 +8,6 @@ import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runt
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
 import "../../../packages/spine/src/loader/SpineLoader";
 
-registerSpineRuntime(new Spine38Runtime());
-registerSpineRuntime(new Spine42Runtime());
 const url = (name: string) => new URL(`./fixtures/${name}`, import.meta.url).href;
 const toLinear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 const toSRGB = (v: number) => (v <= 0.0031308 ? v * 12.92 : 1.055 * v ** (1 / 2.4) - 0.055) * 255;
@@ -24,9 +22,11 @@ describe("Spine atlas alpha encoding", () => {
     canvas.width = canvas.height = 128;
     engine = await WebGLEngine.create({
       canvas,
+      spine: new Spine38Runtime(),
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
+    registerSpineRuntime(engine, new Spine42Runtime());
     const entity = engine.sceneManager.activeScene.createRootEntity();
     entity.transform.setPosition(0, 0, 3);
     camera = entity.addComponent(Camera);

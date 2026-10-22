@@ -6,18 +6,16 @@
  * this verifies the 3.8 backend against data it's actually meant to parse.
  */
 import { Camera, Entity, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { registerSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
+import { SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 import { Spine38Runtime } from "@galacean/engine-spine-core-3.8";
 import * as dat from "dat.gui";
-
-registerSpineRuntime(new Spine38Runtime());
 
 Logger.enable();
 
 const gui = new dat.GUI();
 const state = { animation: "" };
 
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", spine: new Spine38Runtime() }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   const root = scene.createRootEntity();
 

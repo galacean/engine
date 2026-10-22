@@ -16,7 +16,6 @@ import type { SpineEvent } from "../../../packages/spine/src/SpineAnimationState
 import "../../../packages/spine/src/loader/SpineLoader";
 
 const runtimes = { "3.8": new Spine38Runtime(), "4.2": new Spine42Runtime() };
-for (const runtime of Object.values(runtimes)) registerSpineRuntime(runtime);
 const urls = {
   "3.8": new URL("./fixtures/3.8.json", import.meta.url).href,
   "4.2": new URL("./fixtures/4.2.json", import.meta.url).href
@@ -31,9 +30,11 @@ describe("Spine resource ownership", () => {
     canvas.width = canvas.height = 128;
     engine = await WebGLEngine.create({
       canvas,
+      spine: runtimes["3.8"],
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
+    registerSpineRuntime(engine, runtimes["4.2"]);
     root = engine.sceneManager.activeScene.createRootEntity();
     const cameraEntity = root.createChild();
     cameraEntity.transform.setPosition(0, 0, 3);

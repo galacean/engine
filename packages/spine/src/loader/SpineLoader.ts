@@ -1,7 +1,16 @@
 import { LoaderUtils } from "./LoaderUtils";
 import { readSpineVersion } from "./SpineVersion";
-import { getSpineRuntime } from "../runtime/SpineRuntimeRegistry";
-import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine";
+import { getSpineRuntime, registerSpineRuntime } from "../runtime/SpineRuntimeRegistry";
+import type { ISpineRuntime } from "../runtime/ISpineRuntime";
+import {
+  AssetPromise,
+  Engine,
+  EngineConfiguration,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine";
 import { SpineResource } from "./SpineResource";
 
 type SpineAssetPath = {
@@ -19,6 +28,12 @@ type SpineLoadContext = {
 @resourceLoader("Spine", ["skel"])
 export class SpineLoader extends Loader<SpineResource> {
   private static _decoder = new TextDecoder("utf-8");
+
+  override initialize(engine: Engine, configuration: EngineConfiguration): void {
+    if (configuration.spine) {
+      registerSpineRuntime(engine, configuration.spine);
+    }
+  }
 
   private static _groupAssetsByExtension(url: string, assetPath: SpineAssetPath) {
     const ext = SpineLoader._getUrlExtension(url);
@@ -112,11 +127,18 @@ export class SpineLoader extends Loader<SpineResource> {
     const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
 
-    const runtime = getSpineRuntime(readSpineVersion(skeletonRawData));
+    const runtime = getSpineRuntime(engine, readSpineVersion(skeletonRawData));
     return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager).then((atlas) => {
       const textureAtlas = runtime.createTextureAtlas(atlas.text, atlas.textures);
       const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);
       return SpineResource._create(engine, runtime, skeletonData, skeletonPath);
     });
+  }
+}
+
+declare module "@galacean/engine" {
+  interface EngineConfiguration {
+    /** Initial Spine backend. Import engine-spine before creating the engine. */
+    spine?: ISpineRuntime;
   }
 }
