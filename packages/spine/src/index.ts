@@ -11,7 +11,6 @@ for (const key in LoaderObject) {
 
 export * from "./loader/index";
 export * from "./renderer/index";
-export { registerSpineRuntime } from "./runtime/SpineRuntimeRegistry";
 export { SpineSkeleton } from "./SpineSkeleton";
 export { SpineBone } from "./SpineBone";
 export { SpineSlot } from "./SpineSlot";

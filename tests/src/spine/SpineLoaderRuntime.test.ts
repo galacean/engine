@@ -1,13 +1,13 @@
-import { EngineConfiguration, WebGLEngine } from "@galacean/engine";
+import { EngineConfiguration, ResourceManager, WebGLEngine } from "@galacean/engine";
 import { afterEach, describe, expect, it } from "vitest";
-import { registerSpineRuntime, getSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
 import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runtime";
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
+import type { SpineLoader } from "../../../packages/spine/src/loader/SpineLoader";
 import "../../../packages/spine/src/loader/SpineLoader";
 
-describe("SpineRuntimeRegistry", () => {
+describe("SpineLoader runtime configuration", () => {
   const engines: WebGLEngine[] = [];
   async function create(configuration: EngineConfiguration = {}) {
     const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), ...configuration });
@@ -52,7 +52,7 @@ describe("SpineRuntimeRegistry", () => {
     const timeBefore = entry38.trackTime;
 
     const runtime42 = new Spine42Runtime();
-    registerSpineRuntime(engine, runtime42);
+    (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, runtime42);
     const resource42 = await load(engine, "4.2");
     const entity42 = resource42.instantiate();
     engine.sceneManager.activeScene.addRootEntity(entity42);
@@ -76,22 +76,22 @@ describe("SpineRuntimeRegistry", () => {
       [new Spine42Runtime(), new Spine38Runtime()]
     ]) {
       const engine = await create({ spine: versions[0] });
-      registerSpineRuntime(engine, versions[1]);
+      (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, versions[1]);
       for (const runtime of versions) {
-        expect(getSpineRuntime(engine, `${runtime.version}.99`)).to.equal(runtime);
+        expect((await load(engine, runtime.version))._runtime).to.equal(runtime);
       }
     }
   });
 
-  it("allows idempotent registration and rejects replacement only within the same engine", async () => {
+  it("keeps the first runtime for repeated registrations of a version on each engine", async () => {
     const runtime38 = new Spine38Runtime();
     const engine = await create({ spine: runtime38 });
-    registerSpineRuntime(engine, runtime38);
-    expect(() => registerSpineRuntime(engine, new Spine38Runtime())).to.throw(/already registered/);
-    expect(getSpineRuntime(engine, "3.8")).to.equal(runtime38);
+    (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, runtime38);
+    (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, new Spine38Runtime());
+    expect((await load(engine, "3.8"))._runtime).to.equal(runtime38);
     const otherRuntime = new Spine38Runtime();
     const other = await create({ spine: otherRuntime });
-    expect(getSpineRuntime(other, "3.8")).to.equal(otherRuntime);
+    expect((await load(other, "3.8"))._runtime).to.equal(otherRuntime);
   });
 
   it("rejects malformed backend versions without changing existing registrations", async () => {
@@ -99,8 +99,10 @@ describe("SpineRuntimeRegistry", () => {
     const engine = await create({ spine: runtime42 });
     for (const version of ["", "4", "4.2.119", "4.2-beta"]) {
       const runtime = Object.assign(new Spine42Runtime(), { version });
-      expect(() => registerSpineRuntime(engine, runtime)).to.throw(/Invalid Spine runtime version/);
+      expect(() => (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, runtime)).to.throw(
+        /Invalid Spine runtime version/
+      );
     }
-    expect(getSpineRuntime(engine, "4.2.119")).to.equal(runtime42);
+    expect((await load(engine, "4.2"))._runtime).to.equal(runtime42);
   });
 });

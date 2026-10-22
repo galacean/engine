@@ -23,16 +23,7 @@ const engine = await WebGLEngine.create({
 });
 ```
 
-Editors or applications can register another version later without clearing existing resources:
-
-```typescript
-import { registerSpineRuntime } from "@galacean/engine-spine";
-import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
-
-registerSpineRuntime(engine, new Spine42Runtime());
-```
-
-Each engine has its own version map. Loading selects a registered backend by the asset's export major/minor version. Existing resources, cached results and playback keep their original backend; adding 4.2 does not replace 3.8. Re-registering the same instance is allowed, but a different instance for an already registered version is rejected. Reuse the backend instance when revisiting a version. An application using one version installs only that backend. Backend imports do not register it automatically, and missing versions fail explicitly without downloading another backend.
+Each engine has its own backend configuration. Loading checks the asset's export major/minor version against the configured backend. Install only the backend matching your assets. Backend imports alone do not configure the engine; missing versions fail explicitly and are not downloaded automatically. Application code selects a backend through engine creation; runtime registration is internal.
 
 ## Load and instantiate
 

@@ -23,16 +23,7 @@ const engine = await WebGLEngine.create({
 });
 ```
 
-编辑器或应用后续需要另一版本时，可以补充注册，无需清理已加载的资源：
-
-```typescript
-import { registerSpineRuntime } from "@galacean/engine-spine";
-import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
-
-registerSpineRuntime(engine, new Spine42Runtime());
-```
-
-版本映射按 Engine 隔离，加载时根据资产的主次版本选择对应后端。已有资源、缓存和播放状态继续使用原后端；补充 4.2 不会替换 3.8。同一实例可重复注册，同版本的不同实例会明确报错，因此来回切换配置时应复用已有后端实例。只使用一种版本时，只安装对应后端。仅导入后端包不会完成注册；未配置匹配版本时明确报错，不会自动下载其他后端。
+后端配置按 Engine 隔离，加载时检查资产的主次版本是否与配置的后端匹配。只需安装资产对应的后端。仅导入后端包不会完成配置；未配置匹配版本时明确报错，不会自动下载其他后端。业务代码通过创建 Engine 时的 `spine` 配置选择后端，注册由内部完成。
 
 ## 加载和创建角色
 

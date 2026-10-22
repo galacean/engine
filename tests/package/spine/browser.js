@@ -1,5 +1,5 @@
-import { WebGLEngine, Camera, Color } from "@galacean/engine";
-import { registerSpineRuntime } from "@galacean/engine-spine";
+import { WebGLEngine, Camera, Color, ResourceManager } from "@galacean/engine";
+import "@galacean/engine-spine";
 import * as firstBackend from "@galacean/engine-spine-core-__FIRST__";
 
 (async () => {
@@ -52,12 +52,15 @@ import * as firstBackend from "@galacean/engine-spine-core-__FIRST__";
     );
   }
 
-  registerSpineRuntime(engine, firstRuntime);
   const first = await load("__FIRST__");
   const firstOnly = visible();
   const secondBackend = await import("@galacean/engine-spine-core-__SECOND__");
   await expectUnregistered("__SECOND__");
-  registerSpineRuntime(engine, new secondBackend["Spine" + "__SECOND__".replace(".", "") + "Runtime"]());
+  // Exercise the editor-only hook; it is absent from published TypeScript declarations.
+  ResourceManager._loaders["Spine"]._registerRuntime(
+    engine,
+    new secondBackend["Spine" + "__SECOND__".replace(".", "") + "Runtime"]()
+  );
   const afterRegistration = visible();
   first.isActive = false;
   await load("__SECOND__");

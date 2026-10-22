@@ -1,6 +1,5 @@
 import { LoaderUtils } from "./LoaderUtils";
 import { readSpineVersion } from "./SpineVersion";
-import { getSpineRuntime, registerSpineRuntime } from "../runtime/SpineRuntimeRegistry";
 import type { ISpineRuntime } from "../runtime/ISpineRuntime";
 import {
   AssetPromise,
@@ -29,9 +28,27 @@ type SpineLoadContext = {
 export class SpineLoader extends Loader<SpineResource> {
   private static _decoder = new TextDecoder("utf-8");
 
+  private _runtimes = new WeakMap<Engine, Map<string, ISpineRuntime>>();
+
+  /** @internal */
+  _registerRuntime(engine: Engine, runtime: ISpineRuntime): void {
+    if (!/^\d+\.\d+$/.test(runtime.version)) {
+      throw new Error(`Invalid Spine runtime version: ${runtime.version}`);
+    }
+    let engineRuntimes = this._runtimes.get(engine);
+    if (engineRuntimes?.has(runtime.version)) {
+      return;
+    }
+    if (!engineRuntimes) {
+      engineRuntimes = new Map();
+      this._runtimes.set(engine, engineRuntimes);
+    }
+    engineRuntimes.set(runtime.version, runtime);
+  }
+
   override initialize(engine: Engine, configuration: EngineConfiguration): void {
     if (configuration.spine) {
-      registerSpineRuntime(engine, configuration.spine);
+      this._registerRuntime(engine, configuration.spine);
     }
   }
 
@@ -119,6 +136,18 @@ export class SpineLoader extends Loader<SpineResource> {
     });
   }
 
+  private _getRuntime(engine: Engine, version: string | null | undefined): ISpineRuntime {
+    const majorMinor = /^(\d+\.\d+)(?:\.|$)/.exec(version ?? "")?.[1];
+    const runtime = this._runtimes.get(engine)?.get(majorMinor);
+    if (!runtime) {
+      throw new Error(
+        `No Spine runtime registered for asset version "${version}" on this engine. ` +
+          "Pass a matching backend through the spine option when creating the engine."
+      );
+    }
+    return runtime;
+  }
+
   private _loadAndCreateSpineResource(
     spineLoadContext: SpineLoadContext,
     resourceManager: ResourceManager
@@ -127,7 +156,7 @@ export class SpineLoader extends Loader<SpineResource> {
     const { skeletonRawData, spineAssetPath } = spineLoadContext;
     const { skeletonPath, atlasPath, extraPaths } = spineAssetPath;
 
-    const runtime = getSpineRuntime(engine, readSpineVersion(skeletonRawData));
+    const runtime = this._getRuntime(engine, readSpineVersion(skeletonRawData));
     return LoaderUtils.loadAtlas(atlasPath, extraPaths, resourceManager).then((atlas) => {
       const textureAtlas = runtime.createTextureAtlas(atlas.text, atlas.textures);
       const skeletonData = runtime.createSkeletonData(skeletonRawData, textureAtlas, 0.01);

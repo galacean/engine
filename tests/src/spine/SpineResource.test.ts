@@ -1,11 +1,20 @@
-import { AssetType, Camera, Color, Entity, Script, Shader, Texture2D, WebGLEngine } from "@galacean/engine";
+import {
+  AssetType,
+  Camera,
+  Color,
+  Entity,
+  Script,
+  Shader,
+  ResourceManager,
+  Texture2D,
+  WebGLEngine
+} from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import spineShaderSource from "../../../packages/shader/src/Shaders/2D/Spine.shader?raw";
 import { SpineMaterial } from "../../../packages/spine/src/renderer/SpineMaterial";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
-import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
 import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runtime";
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
 import { SpineSkeleton } from "../../../packages/spine/src/SpineSkeleton";
@@ -13,6 +22,7 @@ import { SpineSlot } from "../../../packages/spine/src/SpineSlot";
 import { SpineAnimationState } from "../../../packages/spine/src/SpineAnimationState";
 import { SpineTrackEntry } from "../../../packages/spine/src/SpineTrackEntry";
 import type { SpineEvent } from "../../../packages/spine/src/SpineAnimationStateListener";
+import type { SpineLoader } from "../../../packages/spine/src/loader/SpineLoader";
 import "../../../packages/spine/src/loader/SpineLoader";
 
 const runtimes = { "3.8": new Spine38Runtime(), "4.2": new Spine42Runtime() };
@@ -34,7 +44,7 @@ describe("Spine resource ownership", () => {
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
-    registerSpineRuntime(engine, runtimes["4.2"]);
+    (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, runtimes["4.2"]);
     root = engine.sceneManager.activeScene.createRootEntity();
     const cameraEntity = root.createChild();
     cameraEntity.transform.setPosition(0, 0, 3);

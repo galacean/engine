@@ -15,7 +15,7 @@ Use the shared `@galacean/engine-spine` package with the backends required by yo
 | 3.8.x | `@galacean/engine-spine-core-3.8` |
 | 4.2.x | `@galacean/engine-spine-core-4.2` |
 
-Pass one backend through `WebGLEngine.create({ canvas, spine: runtime })`; the loader selects by asset version within that engine. Additional versions can be registered with `registerSpineRuntime(engine, runtime)` and coexist with previously loaded resources. Use mutually compatible Engine 2.0 releases of the Galacean packages. Editor integration migrates separately, so this table does not establish editor import support. See [Using in Code](/en/docs/graphics/2D/spine/add-and-use).
+Pass one backend through `WebGLEngine.create({ canvas, spine: runtime })`; the loader selects by asset version within that engine. Runtime registration is internal; application code uses the engine creation option. Use mutually compatible Engine 2.0 releases of the Galacean packages. Editor integration migrates separately, so this table does not establish editor import support. See [Using in Code](/en/docs/graphics/2D/spine/add-and-use).
 
 
 ### Earlier version compatibility

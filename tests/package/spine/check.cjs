@@ -80,10 +80,7 @@ function checkTypes(directory, versions) {
     versions
       .map(
         (v) => `import { Spine${v.replace(".", "")}Runtime } from "@galacean/engine-spine-core-${v}";
-registerSpineRuntime(engine, new Spine${v.replace(".", "")}Runtime());
 WebGLEngine.create({ canvas: "canvas", spine: new Spine${v.replace(".", "")}Runtime() });
-// @ts-expect-error Registration requires an engine.
-registerSpineRuntime(new Spine${v.replace(".", "")}Runtime());
 // @ts-expect-error Native classes are not exported by backend packages.
 import { Skeleton as Native${v.replace(".", "")} } from "@galacean/engine-spine-core-${v}";`
       )
@@ -141,12 +138,12 @@ async function checkWorkspaceBundle() {
           },
           load(id) {
             if (id === entry)
-              return `import { WebGLEngine } from '@galacean/engine';
-import { registerSpineRuntime } from '@galacean/engine-spine';
+              return `import { WebGLEngine, ResourceManager } from '@galacean/engine';
+import '@galacean/engine-spine';
 import { Spine38Runtime } from '@galacean/engine-spine-core-3.8';
 import { Spine42Runtime } from '@galacean/engine-spine-core-4.2';
 WebGLEngine.create({ canvas: "canvas", spine: new Spine38Runtime() }).then((engine) => {
-  registerSpineRuntime(engine, new Spine42Runtime());
+  ResourceManager._loaders["Spine"]._registerRuntime(engine, new Spine42Runtime());
 });`;
           }
         },

@@ -25,16 +25,7 @@ renderer.skeleton.setSlotsToSetupPose();
 
 The loader reads the JSON or binary export header before parsing the skeleton. Its major/minor version selects a backend registered for that engine, and the resource retains that backend alongside the parsed data. Instances and clones use the resource's backend to create independent skeleton poses and animation states. Assigning another resource to a renderer recreates these states with the resource's backend.
 
-Editors and applications that need another version later can register it on the same engine:
-
-```ts
-import { registerSpineRuntime } from "@galacean/engine-spine";
-import { Spine42Runtime } from "@galacean/engine-spine-core-4.2";
-
-registerSpineRuntime(engine, new Spine42Runtime());
-```
-
-Registration adds a version; it does not replace the previously configured backend or reinitialize existing resources. Loaded 3.8 resources keep their backend and playback state, while 4.2 assets can now load on the same engine. Cached resources keep their identity. Registrations are isolated per engine, so configuring one engine does not configure another. Registering the same instance again is allowed; a different instance for an already registered version is rejected. Editors should retain and reuse runtime instances when revisiting a version.
+The backend configuration belongs to each engine; configuring one engine does not configure another. Application code configures the backend through engine creation. Runtime registration is an internal integration detail.
 
 An application using only 3.8 installs and configures only the 3.8 backend. Neither the shared package nor the 3.8 backend depends on the 4.2 runtime. Importing a backend alone does not register it. Missing versions fail explicitly; the loader does not download missing backends or fall back to another version.
 
@@ -188,7 +179,7 @@ Live renderer references protect shared or user-assigned materials. Unreferenced
 
 ## Backend integration
 
-The shared package registers the Spine loader. Version packages export their runtime adapter classes for engine configuration and explicit registration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Backends calculate world vertices and perform native clipping, then submit attachment geometry through `ISpineGeometry`. The shared layer owns the final vertex layout, index offsets, bounds and ordered draw batches, along with GPU buffers and materials. Input arrays and output buffers are reused.
+The shared package registers the Spine loader. Version packages export their runtime adapter classes for engine configuration; native Spine classes are not re-exported from their package roots. Backend authors implement the contracts in `@galacean/engine-design`. Backends calculate world vertices and perform native clipping, then submit attachment geometry through `ISpineGeometry`. The shared layer owns the final vertex layout, index offsets, bounds and ordered draw batches, along with GPU buffers and materials. Input arrays and output buffers are reused.
 
 The 3.8 backend vendors runtime sources because the official `@esotericsoftware/spine-core` npm package has no 3.8 release. The 4.2 backend consumes the official npm package. Both backend builds bundle their native runtime code; this source-distribution difference does not change the public API or registration model.
 
@@ -199,6 +190,4 @@ const engine = await Galacean.WebGLEngine.create({
   canvas: "canvas",
   spine: new Galacean.SpineCore38.Spine38Runtime()
 });
-// Add another version when needed:
-Galacean.Spine.registerSpineRuntime(engine, new Galacean.SpineCore42.Spine42Runtime());
 ```

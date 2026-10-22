@@ -1,5 +1,4 @@
-import { Engine, WebGLEngine } from "@galacean/engine";
-declare const engine: Engine;
+import { WebGLEngine } from "@galacean/engine";
 import { SpineAnimationRenderer, SpineResource, SpineSkeleton, SpineAnimationState } from "@galacean/engine-spine";
 declare const renderer: SpineAnimationRenderer;
 declare const resource: SpineResource;
@@ -55,9 +54,12 @@ renderer.physics.value.physicsTranslate(1, 2);
 // @ts-expect-error Playback names must be strings.
 state.setAnimation(0, 123, true);
 
+// @ts-expect-error Runtime registration is not part of the public API.
 import { registerSpineRuntime } from "@galacean/engine-spine";
-// @ts-expect-error A version string alone does not supply a backend.
-registerSpineRuntime(engine, "4.2");
+import type { SpineLoader } from "@galacean/engine-spine/types/loader/SpineLoader";
+declare const spineLoader: SpineLoader;
+// @ts-expect-error The editor registration hook is stripped from published types.
+spineLoader._registerRuntime;
 // @ts-expect-error Application code cannot retrieve backend handles.
 import { getSpineRuntime } from "@galacean/engine-spine";
 // @ts-expect-error Render integration is not part of the application API.

@@ -1,11 +1,20 @@
-import { Camera, Color, MeshRenderer, PrimitiveMesh, Texture2D, UnlitMaterial, WebGLEngine } from "@galacean/engine";
+import {
+  Camera,
+  Color,
+  MeshRenderer,
+  PrimitiveMesh,
+  ResourceManager,
+  Texture2D,
+  UnlitMaterial,
+  WebGLEngine
+} from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SpineResource } from "../../../packages/spine/src/loader/SpineResource";
 import { SpineAnimationRenderer } from "../../../packages/spine/src/renderer/SpineAnimationRenderer";
-import { registerSpineRuntime } from "../../../packages/spine/src/runtime/SpineRuntimeRegistry";
 import { Spine38Runtime } from "../../../packages/spine-core-3.8/src/Spine38Runtime";
 import { Spine42Runtime } from "../../../packages/spine-core-4.2/src/Spine42Runtime";
+import type { SpineLoader } from "../../../packages/spine/src/loader/SpineLoader";
 import "../../../packages/spine/src/loader/SpineLoader";
 
 const url = (name: string) => new URL(`./fixtures/${name}`, import.meta.url).href;
@@ -26,7 +35,7 @@ describe("Spine atlas alpha encoding", () => {
       shaderCompiler: new ShaderCompiler(),
       graphicDeviceOptions: { preserveDrawingBuffer: true }
     });
-    registerSpineRuntime(engine, new Spine42Runtime());
+    (ResourceManager._loaders["Spine"] as SpineLoader)._registerRuntime(engine, new Spine42Runtime());
     const entity = engine.sceneManager.activeScene.createRootEntity();
     entity.transform.setPosition(0, 0, 3);
     camera = entity.addComponent(Camera);
