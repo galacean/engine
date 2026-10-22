@@ -13,8 +13,7 @@ Use this reference when deciding whether an object should be shared, cloned, gar
 ## Clone and instance choices
 
 - Cloning an Entity hierarchy does not imply deep-copying every Engine resource. Reference resources are generally shared unless a component or resource explicitly defines a different clone contract.
-- Shared materials are appropriate when all renderers should observe the same state. Mutating one shared material changes every consumer of that instance.
-- An instance material is a renderer-owned clone created from an assigned material. It isolates later material mutation for that renderer and also adds a resource with its own lifetime.
+- For shared materials and renderer-local material instances, see [rendering-and-color.md](rendering-and-color.md).
 - Loading a reusable template and instantiating it are separate ownership decisions. Do not mutate a cached template hierarchy when independent runtime instances are required.
 
 ## Decision rule
