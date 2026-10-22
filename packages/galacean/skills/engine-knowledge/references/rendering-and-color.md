@@ -43,32 +43,39 @@ For a normal map selected at runtime, load linear data and request an instance
 material when only one Renderer should change. Mutate the returned clone in
 place; it is already assigned to the Renderer.
 
+Attach this Script to an Entity with an authored `MeshRenderer` and PBR material.
+Call `setNormalMap(url)` when gameplay selects a texture. After loading, confirm
+that the Script, Renderer and assigned material are still valid before writing.
+
 ```ts
-import { AssetType, Engine, MeshRenderer, PBRMaterial, Texture2D } from "@galacean/engine";
+import { AssetType, MeshRenderer, PBRMaterial, Script, Texture2D } from "@galacean/engine";
 
-export async function assignNormalMap(engine: Engine, renderer: MeshRenderer, url: string): Promise<boolean> {
-  const assignedMaterial = renderer.getMaterial(0);
-  if (!(assignedMaterial instanceof PBRMaterial)) {
-    return false;
+export class NormalMapController extends Script {
+  async setNormalMap(url: string): Promise<boolean> {
+    const renderer = this.entity.getComponent(MeshRenderer);
+    const assignedMaterial = renderer?.getMaterial(0);
+    if (!renderer || !(assignedMaterial instanceof PBRMaterial)) {
+      return false;
+    }
+
+    const texture = await this.engine.resourceManager.load<Texture2D>({
+      type: AssetType.Texture,
+      url,
+      params: { isSRGBColorSpace: false }
+    });
+
+    if (this.destroyed || renderer.destroyed || renderer.getMaterial(0) !== assignedMaterial) {
+      return false;
+    }
+
+    const material = renderer.getInstanceMaterial(0);
+    if (!(material instanceof PBRMaterial)) {
+      return false;
+    }
+
+    material.normalTexture = texture;
+    return true;
   }
-
-  const texture = await engine.resourceManager.load<Texture2D>({
-    type: AssetType.Texture,
-    url,
-    params: { isSRGBColorSpace: false }
-  });
-
-  if (renderer.getMaterial(0) !== assignedMaterial) {
-    return false;
-  }
-
-  const material = renderer.getInstanceMaterial(0);
-  if (!(material instanceof PBRMaterial)) {
-    return false;
-  }
-
-  material.normalTexture = texture;
-  return true;
 }
 ```
 

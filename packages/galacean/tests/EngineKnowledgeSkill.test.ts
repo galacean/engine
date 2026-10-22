@@ -117,16 +117,30 @@ describe("engine-knowledge Skill contract", () => {
     );
   });
 
-  it("keeps the normal-map recipe free of failed-path material writes", async () => {
+  it("applies runtime normal maps only to the Script's current live renderer", async () => {
+    class Script {
+      destroyed = false;
+
+      constructor(
+        readonly engine: object,
+        readonly entity: object
+      ) {}
+    }
+    class MeshRenderer {}
     class PBRMaterial {
       normalTexture: unknown;
     }
     class Texture2D {}
-    const { assignNormalMap } = loadRecipe<{
-      assignNormalMap: (engine: object, renderer: object, url: string) => Promise<boolean>;
+    const { NormalMapController } = loadRecipe<{
+      NormalMapController: new (
+        engine: object,
+        entity: object
+      ) => { destroyed: boolean; setNormalMap: (url: string) => Promise<boolean> };
     }>("rendering-and-color.md", "Linear normal map on one renderer", {
       AssetType: { Texture: "Texture" },
+      MeshRenderer,
       PBRMaterial,
+      Script,
       Texture2D
     });
 
@@ -134,10 +148,13 @@ describe("engine-knowledge Skill contract", () => {
     let instanceCount = 0;
     let assignedMaterial: object = {};
     const renderer = {
+      destroyed: false,
       getMaterial: () => assignedMaterial,
       getInstanceMaterial: () => {
         instanceCount++;
-        return new PBRMaterial();
+        const material = new PBRMaterial();
+        assignedMaterial = material;
+        return material;
       }
     };
     const engine = {
@@ -148,26 +165,51 @@ describe("engine-knowledge Skill contract", () => {
         }
       }
     };
+    const controller = new NormalMapController(engine, { getComponent: () => renderer });
 
-    expect(await assignNormalMap(engine, renderer, "normal.png")).toBe(false);
+    expect(await controller.setNormalMap("normal.png")).toBe(false);
     expect(loadCount).toBe(0);
     expect(instanceCount).toBe(0);
 
     let resolveTexture!: (texture: Texture2D) => void;
-    assignedMaterial = new PBRMaterial();
     engine.resourceManager.load = () => {
       loadCount++;
       return new Promise<Texture2D>((resolve) => {
         resolveTexture = resolve;
       });
     };
-    const pending = assignNormalMap(engine, renderer, "normal.png");
-    const replacement = new PBRMaterial();
-    assignedMaterial = replacement;
-    resolveTexture(new Texture2D());
+    for (const invalidate of [
+      () => {
+        assignedMaterial = new PBRMaterial();
+      },
+      () => {
+        controller.destroyed = true;
+      },
+      () => {
+        renderer.destroyed = true;
+      }
+    ]) {
+      assignedMaterial = new PBRMaterial();
+      controller.destroyed = false;
+      renderer.destroyed = false;
+      const pending = controller.setNormalMap("normal.png");
+      invalidate();
+      const currentMaterial = assignedMaterial;
+      resolveTexture(new Texture2D());
 
-    expect(await pending).toBe(false);
-    expect(renderer.getMaterial()).toBe(replacement);
-    expect(instanceCount).toBe(0);
+      expect(await pending).toBe(false);
+      expect(renderer.getMaterial()).toBe(currentMaterial);
+      expect(instanceCount).toBe(0);
+    }
+
+    controller.destroyed = false;
+    renderer.destroyed = false;
+    const pending = controller.setNormalMap("normal.png");
+    const texture = new Texture2D();
+    resolveTexture(texture);
+
+    expect(await pending).toBe(true);
+    expect(instanceCount).toBe(1);
+    expect((renderer.getMaterial() as PBRMaterial).normalTexture).toBe(texture);
   });
 });
