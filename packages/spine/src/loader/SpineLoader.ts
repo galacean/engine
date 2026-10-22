@@ -30,26 +30,9 @@ export class SpineLoader extends Loader<SpineResource> {
 
   private _runtimes = new WeakMap<Engine, Map<string, ISpineRuntime>>();
 
-  /** @internal */
-  _registerRuntime(engine: Engine, runtime: ISpineRuntime): void {
-    if (!/^\d+\.\d+$/.test(runtime.version)) {
-      throw new Error(`Invalid Spine runtime version: ${runtime.version}`);
-    }
-    let engineRuntimes = this._runtimes.get(engine);
-    if (engineRuntimes?.has(runtime.version)) {
-      return;
-    }
-    if (!engineRuntimes) {
-      engineRuntimes = new Map();
-      this._runtimes.set(engine, engineRuntimes);
-    }
-    engineRuntimes.set(runtime.version, runtime);
-  }
-
-  override initialize(engine: Engine, configuration: EngineConfiguration): void {
-    if (configuration.spine) {
-      this._registerRuntime(engine, configuration.spine);
-    }
+  static _getUrlExtension(url: string): string | null {
+    const match = SpineLoader._getUrlPath(url).match(/\.(\w+)$/);
+    return match ? match[1] : null;
   }
 
   private static _groupAssetsByExtension(url: string, assetPath: SpineAssetPath) {
@@ -81,13 +64,14 @@ export class SpineLoader extends Loader<SpineResource> {
     }
   }
 
-  static _getUrlExtension(url: string): string | null {
-    const match = SpineLoader._getUrlPath(url).match(/\.(\w+)$/);
-    return match ? match[1] : null;
-  }
-
   private static _getUrlPath(url: string): string {
     return url.split(/[?#]/, 1)[0];
+  }
+
+  override initialize(engine: Engine, configuration: EngineConfiguration): void {
+    if (configuration.spine) {
+      this._registerRuntime(engine, configuration.spine);
+    }
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpineResource> {
@@ -134,6 +118,22 @@ export class SpineLoader extends Loader<SpineResource> {
         .then(resolve)
         .catch(reject);
     });
+  }
+
+  /** @internal */
+  _registerRuntime(engine: Engine, runtime: ISpineRuntime): void {
+    if (!/^\d+\.\d+$/.test(runtime.version)) {
+      throw new Error(`Invalid Spine runtime version: ${runtime.version}`);
+    }
+    let engineRuntimes = this._runtimes.get(engine);
+    if (engineRuntimes?.has(runtime.version)) {
+      return;
+    }
+    if (!engineRuntimes) {
+      engineRuntimes = new Map();
+      this._runtimes.set(engine, engineRuntimes);
+    }
+    engineRuntimes.set(runtime.version, runtime);
   }
 
   private _getRuntime(engine: Engine, version: string | null | undefined): ISpineRuntime {
