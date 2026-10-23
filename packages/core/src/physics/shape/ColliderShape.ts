@@ -28,6 +28,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   protected _id: number;
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
+  private _isSceneQuery: boolean = true;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
   private _contactOffset: number = 0.02;
@@ -35,9 +36,19 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
   /**
    * @internal
    * @beta
-   * Whether raycast can select it.
+   * Whether this shape participates in scene queries, including raycasts, shape casts, and overlap queries.
+   * This does not affect collision response.
    */
-  isSceneQuery: boolean = true;
+  get isSceneQuery(): boolean {
+    return this._isSceneQuery;
+  }
+
+  set isSceneQuery(value: boolean) {
+    if (this._isSceneQuery !== value) {
+      this._isSceneQuery = value;
+      this._nativeShape?.setIsSceneQuery(value);
+    }
+  }
 
   /**
    * Collider owner of this shape.
@@ -190,6 +201,7 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     this._nativeShape.setRotation(this._rotation);
     this._nativeShape.setContactOffset(this._contactOffset);
     this._nativeShape.setIsTrigger(this._isTrigger);
+    this._nativeShape.setIsSceneQuery(this._isSceneQuery);
     this._nativeShape.setMaterial(this._material._nativeMaterial);
 
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);

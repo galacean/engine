@@ -18,6 +18,7 @@ export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
+  private static _raycastHitPools = new WeakMap<HitResult[], { hits: HitResult[]; count: number }>();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -182,7 +183,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -190,7 +190,7 @@ export class PhysicsScene {
         ray.origin,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -199,6 +199,115 @@ export class PhysicsScene {
       this._clearHitResult(hitResult);
     }
     return result;
+  }
+
+  /**
+   * Casts a ray and writes all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
+   *
+   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
+   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
+   */
+  raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and writes all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param distance - The maximum query distance; non-positive values return no hits
+   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
+   *
+   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
+   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
+   */
+  raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and optionally writes all hits in unspecified order.
+   * @param ray - The world-space ray; its direction is normalized for the query
+   * @param distance - The maximum query distance; defaults to Number.MAX_VALUE
+   * @param layerMask - The collision layers to include; defaults to Layer.Everything
+   * @param outHitResults - The optional output array; its length is set to the hit count and its result objects are reused
+   * @returns Whether any query shape was hit
+   *
+   * @remarks Hits at distance 0 are ignored. Non-positive distances or directions that cannot be normalized produce
+   * no hits and clear the output array. Reusing the output array overwrites its result objects; copy values that must
+   * be retained. Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction
+   * releases the cache. Omitting the output array performs only a hit test.
+   */
+  raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
+
+  raycastAll(
+    ray: Ray,
+    distance: number | HitResult[] = Number.MAX_VALUE,
+    layerMask: Layer | HitResult[] = Layer.Everything,
+    outHitResults?: HitResult[]
+  ): boolean {
+    if (typeof layerMask !== "number") {
+      outHitResults ||= layerMask;
+      layerMask = Layer.Everything;
+    }
+    if (typeof distance !== "number") {
+      outHitResults ||= distance;
+      distance = Number.MAX_VALUE;
+    }
+    if (!outHitResults) {
+      return this.raycast(ray, distance, layerMask);
+    }
+
+    // Keep spare hit objects when the visible output array shrinks
+    let pool = PhysicsScene._raycastHitPools.get(outHitResults);
+    if (!pool) {
+      pool = { hits: [], count: 0 };
+      PhysicsScene._raycastHitPools.set(outHitResults, pool);
+    }
+
+    const cachedHits = pool.hits;
+    // Reserve caller-provided objects before filling holes or reusing spare slots
+    for (let i = 0, n = outHitResults.length; i < n; i++) {
+      const hit = outHitResults[i];
+      if (hit && hit !== cachedHits[i]) {
+        const cachedIndex = cachedHits.indexOf(hit);
+        if (cachedIndex >= 0) {
+          if (cachedIndex < i && outHitResults[cachedIndex] === hit) {
+            continue;
+          }
+          const displacedHit = cachedHits[i];
+          if (displacedHit) {
+            this._clearHitResult(displacedHit);
+          }
+          cachedHits[cachedIndex] = displacedHit;
+        }
+        cachedHits[i] = hit;
+      }
+    }
+
+    let hitCount = 0;
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
+    if (distance > 0 && normalizedDirection) {
+      this._nativePhysicsScene.raycastAll(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
+          const hitResult = (cachedHits[hitCount] ||= new HitResult());
+          outHitResults[hitCount++] = hitResult;
+          this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+        }
+      );
+    }
+    for (let i = hitCount, n = Math.max(pool.count, outHitResults.length); i < n; i++) {
+      const hitResult = cachedHits[i];
+      if (hitResult) {
+        this._clearHitResult(hitResult);
+      }
+    }
+    pool.count = hitCount;
+    outHitResults.length = hitCount;
+    return hitCount > 0;
   }
 
   /**
@@ -305,7 +414,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -315,7 +423,7 @@ export class PhysicsScene {
         halfExtents,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -414,7 +522,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -423,7 +530,7 @@ export class PhysicsScene {
         radius,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -545,7 +652,6 @@ export class PhysicsScene {
     }
 
     const normalizedDirection = PhysicsScene._normalizeDirection(direction);
-    const preFilter = this._createPreFilter(layerMask);
 
     let result = false;
     if (normalizedDirection) {
@@ -556,7 +662,7 @@ export class PhysicsScene {
         orientation,
         normalizedDirection,
         distance,
-        preFilter,
+        layerMask,
         hitResult ? this._createHitCallback(hitResult) : undefined
       );
     }
@@ -583,12 +689,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapBoxAll(
-      center,
-      orientation,
-      halfExtents,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
     shapes.length = 0;
     for (let i = 0, n = ids.length; i < n; i++) {
@@ -611,7 +712,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, this._createPreFilter(layerMask));
+    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -638,13 +739,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapCapsuleAll(
-      center,
-      radius,
-      height,
-      orientation,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -759,6 +854,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
+    PhysicsScene._raycastHitPools = new WeakMap();
     this._colliders.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
@@ -767,6 +863,7 @@ export class PhysicsScene {
    * @internal
    */
   _destroy(): void {
+    PhysicsScene._raycastHitPools = new WeakMap();
     this._nativePhysicsScene?.destroy();
   }
 
@@ -867,26 +964,27 @@ export class PhysicsScene {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
 
-  private _createPreFilter(mask: Layer): (obj: number) => boolean {
-    return (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return (shape.collider!.collisionLayer & mask) !== 0 && shape.isSceneQuery;
-    };
-  }
-
   private _createHitCallback(
     outHitResult: HitResult
   ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider!.entity;
-      outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
-      outHitResult.distance = distance;
-      outHitResult.point.copyFrom(position);
-      outHitResult.normal.copyFrom(normal);
+      this._setHitResult(outHitResult, shapeUniqueID, distance, position, normal);
     };
+  }
+
+  private _setHitResult(
+    outHitResult: HitResult,
+    shapeUniqueID: number,
+    distance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void {
+    const shape = Engine._physicalObjectsMap[shapeUniqueID];
+    outHitResult.entity = shape.collider!.entity;
+    outHitResult.shape = shape;
+    outHitResult.distance = distance;
+    outHitResult.point.copyFrom(position);
+    outHitResult.normal.copyFrom(normal);
   }
 
   private _clearHitResult(hitResult: HitResult): void {

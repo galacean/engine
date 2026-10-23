@@ -24,6 +24,7 @@ export class PhysXCharacterController implements ICharacterController {
   _shape: PhysXColliderShape | null;
   private _shapeScaledPosition = new Vector3();
   private _worldPosition: Vector3 | null = null;
+  private _collisionLayer = 0;
 
   private _physXPhysics: PhysXPhysics;
 
@@ -112,6 +113,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICollider.setCollisionLayer }
    */
   setCollisionLayer(layer: number): void {
+    this._collisionLayer = layer;
     const actor = this._pxController?.getActor();
 
     if (actor) {
@@ -160,6 +162,8 @@ export class PhysXCharacterController implements ICharacterController {
     desc.delete();
 
     this._pxController.setUUID(shape._id);
+    this._physXPhysics._physX.setGroup(this._pxController.getActor(), this._collisionLayer);
+    this._pxController.setSceneQueryEnabled(shape._pxShape.isSceneQueryEnabled());
 
     this._updateNativePosition();
   }
