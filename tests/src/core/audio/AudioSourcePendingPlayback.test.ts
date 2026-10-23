@@ -944,7 +944,7 @@ describe("AudioSource playback lifecycle", () => {
     expect(audioSource.isPlaying).to.be.false;
   });
 
-  it("resume() unlocks a suspended context and clears the gesture flag", async () => {
+  it("resume() unlocks a suspended context and clears pending interruption recovery", async () => {
     createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
     context.state = "suspended";
