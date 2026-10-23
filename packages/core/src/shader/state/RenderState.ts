@@ -33,9 +33,10 @@ export class RenderState extends DataObject {
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    customRenderStates?: RenderStateElementMap | null
+    customRenderStates?: RenderStateElementMap | null,
+    renderElementData?: ShaderData
   ): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData, renderElementData);
     this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
     this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);

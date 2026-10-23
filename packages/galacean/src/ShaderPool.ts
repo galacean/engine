@@ -9,6 +9,7 @@ import {
   TextSource,
   TrailSource,
   UIDefaultSource,
+  SpineSource,
   SkyboxSource,
   BackgroundTextureSource,
   SkyProceduralSource,
@@ -66,6 +67,7 @@ export class ShaderPool {
       TextSource,
       TrailSource,
       UIDefaultSource,
+      SpineSource,
       // Particle shaders
       ParticleSource,
       ParticleFeedbackSource,

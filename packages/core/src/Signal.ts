@@ -14,6 +14,11 @@ export class Signal<T extends any[] = []> extends DataObject implements ICloneHo
   @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
+  /** Number of registered listeners. */
+  get listenerCount(): number {
+    return this._listeners.length;
+  }
+
   /**
    * Add a listener for this signal.
    * @param fn - The callback function

@@ -72,6 +72,8 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Build
         run: npm run build
+      - name: Spine packed consumers
+        run: npm run test:spine:packages
       - name: Test
         run: npm run coverage
       - name: Upload coverage to Codecov

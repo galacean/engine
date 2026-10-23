@@ -33,7 +33,8 @@
     "pree2e:debug": "playwright install --with-deps chromium",
     "e2e:debug": "playwright test --ui",
     "prepare": "husky install",
-    "release": "bumpp -r"
+    "release": "bumpp -r",
+    "test:spine:packages": "node tests/package/spine/check.cjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^11.0.0",
