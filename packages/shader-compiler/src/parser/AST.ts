@@ -1765,7 +1765,7 @@ export namespace ASTNode {
           if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
             out.push(name);
           }
-        } else if (child instanceof MacroCallSymbol) {
+        } else if (child instanceof MacroCallSymbol || child instanceof MacroCallFunction) {
           for (const name of child.referenceSymbolNames) {
             if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
               out.push(name);

@@ -64,6 +64,13 @@ const cases: { name: string; helper: string; fragment: string; materialType?: st
     fragment: `${initializeSurface} return vec4(SURFACE_HOOK(surface), 1.0);`
   },
   {
+    name: "function_macro_field",
+    materialType: "MATERIAL_DATA_TYPE",
+    typeMacro: "#define MATERIAL_TYPE() MaterialData\n#define MATERIAL_DATA_TYPE MATERIAL_TYPE()",
+    helper: `vec3 shadeSurface(SurfaceData surface) { ${readSurface} }`,
+    fragment: `${initializeSurface} return vec4(SURFACE_HOOK(surface), 1.0);`
+  },
+  {
     name: "chained_macro_field",
     materialType: "MATERIAL_DATA_TYPE",
     typeMacro: "#define BASE_MATERIAL_TYPE MaterialData\n#define MATERIAL_DATA_TYPE BASE_MATERIAL_TYPE",
