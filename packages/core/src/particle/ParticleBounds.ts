@@ -59,19 +59,15 @@ export class ParticleBounds {
       return;
     }
 
-    this._updateInitialCurveFactor();
+    this.generateTransformed();
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       this._updateLocal(out);
     } else {
-      if (generator._renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume)) {
-        this.generateTransformed();
-      }
       this._updateWorld(out);
     }
   }
 
   generateTransformed(): void {
-    this._updateInitialCurveFactor();
     const generator = this._generator;
     const renderer = generator._renderer;
     const generatorBoundsDirty = renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.GeneratorVolume);
@@ -83,6 +79,12 @@ export class ParticleBounds {
     const maxLifetime = generator.main.startLifetime._getMax();
 
     if (generatorBoundsDirty) {
+      const inheritVelocity = generator.inheritVelocity;
+      const factor = inheritVelocity._usesInitialCurve(true) ? inheritVelocity.curve._getMaxMagnitude() : 0;
+      if (factor > this._lastInitialCurveFactor && this._emissionRecordCount > 0) {
+        this._preserveInitialCurveFactor(factor);
+      }
+      this._lastInitialCurveFactor = factor;
       this._calculateGeneratorBounds(maxLifetime, this._generatorBounds, true);
       renderer._clearDirtyFlag(ParticleBoundsUpdateFlags.GeneratorVolume);
     }
@@ -393,7 +395,6 @@ export class ParticleBounds {
   private _updateLocal(out: BoundingBox): void {
     const generator = this._generator;
     const maxLifetime = generator.main.startLifetime._getMax();
-    this.generateTransformed();
 
     const useOrbitalBounds = this._useOrbitalBounds();
     if (this._emissionRecordCount > 0) {
@@ -517,15 +518,6 @@ export class ParticleBounds {
     renderer._onWorldVolumeChanged();
   }
 
-  private _updateInitialCurveFactor(): void {
-    const inheritVelocity = this._generator.inheritVelocity;
-    const factor = inheritVelocity._usesInitialCurve(true) ? inheritVelocity.curve._getMaxMagnitude() : 0;
-    if (factor > this._lastInitialCurveFactor && this._emissionRecordCount > 0) {
-      this._preserveInitialCurveFactor(factor);
-    }
-    this._lastInitialCurveFactor = factor;
-  }
-
   private _preserveInitialCurveFactor(factor: number): void {
     const records = this._emissionRecords!;
     for (let index = 0; index < this._emissionRecordCount; index++) {
@@ -548,8 +540,10 @@ export class ParticleBounds {
     const records = this._emissionRecords!;
     const { min, max } = bounds;
     const displacement = ParticleBounds._tempVector34;
+    const useFeedback = this._generator._feedbackSimulator !== null;
     initialExtent.set(0, 0, 0);
     let maxLifetime = 0;
+    let maxSquaredReach = 0;
     for (let index = 0; index < this._emissionRecordCount; index++) {
       const offset = index * ParticleBounds._recordStride;
       min.set(
@@ -565,12 +559,16 @@ export class ParticleBounds {
       maxLifetime = Math.max(maxLifetime, records[offset + ParticleBounds._recordMaxLifetimeOffset]);
       displacement.copyFromArray(records, offset + ParticleBounds._recordInitialDisplacementOffset);
       displacement.scale(records[offset + ParticleBounds._recordInitialFactorOffset]);
-      if (this._generator._feedbackSimulator) {
-        // Local feedback can rotate accumulated displacement; formula motion applies it in world space.
-        const reach = displacement.length();
-        displacement.set(reach, reach, reach);
+      if (useFeedback) {
+        maxSquaredReach = Math.max(maxSquaredReach, displacement.lengthSquared());
+      } else {
+        Vector3.max(initialExtent, displacement, initialExtent);
       }
-      Vector3.max(initialExtent, displacement, initialExtent);
+    }
+    if (useFeedback) {
+      // Local feedback can rotate accumulated displacement; formula motion applies it in world space
+      const reach = Math.sqrt(maxSquaredReach);
+      initialExtent.set(reach, reach, reach);
     }
     return maxLifetime;
   }

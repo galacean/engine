@@ -5,6 +5,7 @@ import {
   Entity,
   ParticleCompositeCurve,
   ParticleCurve,
+  ParticleCurveMode,
   ParticleInheritVelocityMode,
   ParticleMaterial,
   ParticleRenderer,
@@ -129,6 +130,62 @@ describe("Sub-emitter rendering", () => {
   });
 
   for (const space of [ParticleSimulationSpace.World, ParticleSimulationSpace.Local]) {
+    it(`refreshes Initial curve bounds only after configuration changes (${ParticleSimulationSpace[space]})`, () => {
+      const parent = createRenderer("Parent");
+      const child = createRenderer("Child");
+      parent.generator.main.startLifetime.constant = 0.05;
+      parent.generator.velocityOverLifetime.enabled = true;
+      parent.generator.velocityOverLifetime.velocityX.constant = 10;
+      child.generator.main.simulationSpace = space;
+      const inheritVelocity = child.generator.inheritVelocity;
+      const curve = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1)));
+      inheritVelocity.enabled = true;
+      inheritVelocity.curve = curve;
+      child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1)));
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+      parent.generator.emit(1);
+      tick(4);
+      expect(parent.generator.isAlive).to.equal(false);
+
+      const initialMax = child.bounds.max.x;
+      const sample = vi.spyOn(curve, "_getMaxMagnitude");
+      tick(3);
+      camera.render();
+      expect(sample).not.toHaveBeenCalled();
+
+      for (const key of curve.curve.keys) {
+        key.value = 2;
+      }
+      const expandedMax = child.bounds.max.x;
+      expect(expandedMax).to.be.greaterThan(initialMax);
+      expect(sample).toHaveBeenCalledTimes(1);
+      tick(2);
+      camera.render();
+      expect(sample).toHaveBeenCalledTimes(1);
+
+      curve.mode = ParticleCurveMode.Constant;
+      curve.constant = 0;
+      expect(child.bounds.max.x).to.be.greaterThanOrEqual(expandedMax);
+      curve.mode = ParticleCurveMode.Curve;
+      expect(child.bounds.max.x).to.be.greaterThanOrEqual(expandedMax);
+      expect(sample).toHaveBeenCalledTimes(2);
+
+      inheritVelocity.enabled = false;
+      expect(child.bounds.max.x).to.be.greaterThanOrEqual(expandedMax);
+      inheritVelocity.enabled = true;
+      expect(child.bounds.max.x).to.be.greaterThanOrEqual(expandedMax);
+      expect(sample).toHaveBeenCalledTimes(3);
+
+      const replacement = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 3), new CurveKey(1, 3)));
+      const replacementSample = vi.spyOn(replacement, "_getMaxMagnitude");
+      inheritVelocity.curve = replacement;
+      expect(child.bounds.max.x).to.be.greaterThan(expandedMax);
+      expect(replacementSample).toHaveBeenCalledTimes(1);
+      tick(2);
+      expect(replacementSample).toHaveBeenCalledTimes(1);
+    });
+
     for (const feedback of [false, true]) {
       it(`keeps changed Initial curves inside ${ParticleSimulationSpace[space]} bounds (${feedback ? "TF" : "formula"})`, () => {
         const parent = createRenderer("Parent");
@@ -180,4 +237,38 @@ describe("Sub-emitter rendering", () => {
       });
     }
   }
+
+  it("takes one square root when merging Local feedback emission bounds", () => {
+    const parent = createRenderer("Parent");
+    const child = createRenderer("Child");
+    parent.generator.main.startLifetime.constant = 0.05;
+    parent.generator.velocityOverLifetime.enabled = true;
+    parent.generator.velocityOverLifetime.velocityX.constant = 10;
+    child.generator.main.simulationSpace = ParticleSimulationSpace.Local;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1))
+    );
+    child.generator.noise.strengthX.constant = 0;
+    child.generator.noise.enabled = true;
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1)));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    for (let i = 0; i < 3; i++) {
+      parent.entity.transform.setPosition(i * 2, 0, 0);
+      parent.generator.emit(1);
+      tick();
+    }
+    const expected = child.bounds.clone();
+    expect((child.generator._bounds as any)._emissionRecordCount).to.be.greaterThan(1);
+
+    const squareRoot = vi.spyOn(Math, "sqrt");
+    child.generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1))
+    );
+    const actual = child.bounds;
+    expect(squareRoot).toHaveBeenCalledTimes(1);
+    expect(actual.min).to.deep.equal(expected.min);
+    expect(actual.max).to.deep.equal(expected.max);
+  });
 });
