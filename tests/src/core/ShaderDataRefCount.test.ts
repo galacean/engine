@@ -171,7 +171,6 @@ describe("ShaderData / Material refCount cascade", () => {
 
     matA.shaderData.cloneTo(matB.shaderData);
 
-    // The destination owns the new entry and releases the entry it no longer holds.
     expect(texA.refCount).eq(1);
     expect(texB.refCount).eq(0);
 
