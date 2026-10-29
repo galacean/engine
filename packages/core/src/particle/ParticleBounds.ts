@@ -20,6 +20,7 @@ export class ParticleBounds {
   private static readonly _tempVector32 = new Vector3();
   private static readonly _tempVector33 = new Vector3();
   private static readonly _tempVector34 = new Vector3();
+  private static readonly _tempInitialDisplacement = new Vector3();
   private static readonly _tempMatrix = new Matrix();
   private static readonly _tempEmissionBounds = new BoundingBox();
   private static readonly _tempScaledBounds = new BoundingBox();
@@ -58,6 +59,7 @@ export class ParticleBounds {
       return;
     }
 
+    this._updateInitialCurveFactor();
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       this._updateLocal(out);
     } else {
@@ -69,6 +71,7 @@ export class ParticleBounds {
   }
 
   generateTransformed(): void {
+    this._updateInitialCurveFactor();
     const generator = this._generator;
     const renderer = generator._renderer;
     const generatorBoundsDirty = renderer._hasDirtyFlag(ParticleBoundsUpdateFlags.GeneratorVolume);
@@ -87,16 +90,6 @@ export class ParticleBounds {
     if (transformBoundsDirty) {
       this._calculateTransformedBounds(maxLifetime, this._generatorBounds, this._transformedBounds);
       renderer._clearDirtyFlag(ParticleBoundsUpdateFlags.TransformVolume);
-    }
-
-    if (generatorBoundsDirty) {
-      const initialCurveFactor = generator.inheritVelocity._usesInitialCurve(true)
-        ? generator.inheritVelocity.curve._getMaxMagnitude()
-        : 0;
-      if (initialCurveFactor > this._lastInitialCurveFactor && this._emissionRecordCount > 0) {
-        this._preserveInitialCurveFactor(initialCurveFactor);
-      }
-      this._lastInitialCurveFactor = initialCurveFactor;
     }
   }
 
@@ -124,24 +117,33 @@ export class ParticleBounds {
 
     const inheritVelocity = generator.inheritVelocity;
     const usesInitialCurve = inheritVelocity._usesInitialCurve(true);
-    let initialDisplacementX = 0;
-    let initialDisplacementY = 0;
-    let initialDisplacementZ = 0;
-    if (inheritVelocity.enabled && inheritVelocity.mode === ParticleInheritVelocityMode.Initial) {
-      const trajectoryDuration =
-        command.isBirth === true ? command.getTrajectoryDuration() : command.trajectoryDuration;
-      if (trajectoryDuration > MathUtil.zeroTolerance) {
-        const trajectoryDisplacement = command.source._bounds._trajectoryFrameDisplacement;
-        const factor =
-          (maxLifetime / trajectoryDuration) * (usesInitialCurve ? 1 : inheritVelocity.curve._getMaxMagnitude());
-        initialDisplacementX = trajectoryDisplacement.x * factor;
-        initialDisplacementY = trajectoryDisplacement.y * factor;
-        initialDisplacementZ = trajectoryDisplacement.z * factor;
-      }
+    const curveFactor = usesInitialCurve ? inheritVelocity.curve._getMaxMagnitude() : 0;
+    const trajectoryDuration = command.isBirth === true ? command.getTrajectoryDuration() : command.trajectoryDuration;
+    // Keep the source reach independently of the mutable curve, including when its factor is zero.
+    // A later Initial curve can also use the GPU source velocity of an already living sub-particle.
+    const initialDisplacement = ParticleBounds._tempInitialDisplacement.set(0, 0, 0);
+    if (trajectoryDuration > MathUtil.zeroTolerance) {
+      Vector3.scale(
+        command.source._bounds._trajectoryFrameDisplacement,
+        maxLifetime / trajectoryDuration,
+        initialDisplacement
+      );
     }
+    const constantFactor =
+      inheritVelocity.enabled && inheritVelocity.mode === ParticleInheritVelocityMode.Initial && !usesInitialCurve
+        ? inheritVelocity.curve._getMaxMagnitude()
+        : 0;
 
-    worldBounds.min.set(sourceMin.x - extraExtent, sourceMin.y - extraExtent, sourceMin.z - extraExtent);
-    worldBounds.max.set(sourceMax.x + extraExtent, sourceMax.y + extraExtent, sourceMax.z + extraExtent);
+    worldBounds.min.set(
+      sourceMin.x - extraExtent - initialDisplacement.x * constantFactor,
+      sourceMin.y - extraExtent - initialDisplacement.y * constantFactor,
+      sourceMin.z - extraExtent - initialDisplacement.z * constantFactor
+    );
+    worldBounds.max.set(
+      sourceMax.x + extraExtent + initialDisplacement.x * constantFactor,
+      sourceMax.y + extraExtent + initialDisplacement.y * constantFactor,
+      sourceMax.z + extraExtent + initialDisplacement.z * constantFactor
+    );
 
     if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
       const inverseTargetWorld = ParticleBounds._tempMatrix;
@@ -155,11 +157,6 @@ export class ParticleBounds {
       BoundingBox.transform(worldBounds, inverseTargetWorld, worldBounds);
       worldBounds.min.add(generatorBounds.min);
       worldBounds.max.add(generatorBounds.max);
-      // The target can rotate while inherited world velocity is still affecting its particles
-      initialDisplacementX =
-        initialDisplacementY =
-        initialDisplacementZ =
-          Math.hypot(initialDisplacementX, initialDisplacementY, initialDisplacementZ);
     } else {
       const sourceWorldMinX = worldBounds.min.x;
       const sourceWorldMinY = worldBounds.min.y;
@@ -185,14 +182,7 @@ export class ParticleBounds {
         worldBounds.max.z + sourceWorldMaxZ
       );
     }
-    this._recordEmission(
-      playTime,
-      maxLifetime,
-      worldBounds,
-      ParticleBounds._tempVector33.set(initialDisplacementX, initialDisplacementY, initialDisplacementZ),
-      usesInitialCurve,
-      undefined
-    );
+    this._recordEmission(playTime, maxLifetime, worldBounds, initialDisplacement, curveFactor);
   }
 
   recordWorldEmission(
@@ -211,14 +201,22 @@ export class ParticleBounds {
       this.generateTransformed();
     }
 
-    this._recordEmission(
-      playTime,
-      maxLifetime,
-      this._transformedBounds,
-      inheritedBounds,
-      usesInitialInheritCurve,
-      worldPosition
-    );
+    const bounds = ParticleBounds._tempEmissionBounds;
+    bounds.copyFrom(this._transformedBounds);
+    if (worldPosition) {
+      const offset = ParticleBounds._tempVector34;
+      Vector3.subtract(worldPosition, renderer.entity.transform.worldPosition, offset);
+      bounds.min.add(offset);
+      bounds.max.add(offset);
+    }
+    const hasInitialDisplacement = inheritedBounds.x !== 0 || inheritedBounds.y !== 0 || inheritedBounds.z !== 0;
+    const initialFactor = hasInitialDisplacement
+      ? usesInitialInheritCurve
+        ? generator.inheritVelocity.curve._getMaxMagnitude()
+        : ParticleBounds._bakedInitialVelocityFactor
+      : 0;
+
+    this._recordEmission(playTime, maxLifetime, bounds, inheritedBounds, initialFactor);
   }
 
   captureSource(): void {
@@ -382,7 +380,10 @@ export class ParticleBounds {
       if (!generator.inheritVelocity._getCurrentBoundsVelocity(currentInheritedVelocity)) {
         currentInheritedVelocity.set(0, 0, 0);
       }
-      maxLifetime = Math.max(maxLifetime, this._mergeEmissionBounds(out, useOrbitalBounds, currentInheritedVelocity));
+      maxLifetime = Math.max(
+        maxLifetime,
+        this._mergeWorldEmissionBounds(out, useOrbitalBounds, currentInheritedVelocity)
+      );
     }
     if (!useOrbitalBounds) {
       this._addGravityToBounds(maxLifetime, out, out);
@@ -397,12 +398,12 @@ export class ParticleBounds {
     const useOrbitalBounds = this._useOrbitalBounds();
     if (this._emissionRecordCount > 0) {
       const localBounds = ParticleBounds._tempEmissionBounds;
+      const initialExtent = ParticleBounds._tempInitialDisplacement;
       localBounds.copyFrom(this._generatorBounds);
-      const boundsLifetime = Math.max(
-        maxLifetime,
-        this._mergeEmissionBounds(localBounds, false, ParticleBounds._tempVector33.set(0, 0, 0))
-      );
+      const boundsLifetime = Math.max(maxLifetime, this._mergeLocalEmissionBounds(localBounds, initialExtent));
       this._calculateTransformedBounds(boundsLifetime, localBounds, out);
+      out.min.subtract(initialExtent);
+      out.max.add(initialExtent);
       if (!useOrbitalBounds) {
         this._addGravityToBounds(boundsLifetime, out, out);
       }
@@ -423,42 +424,19 @@ export class ParticleBounds {
     maxLifetime: number,
     bounds: BoundingBox,
     initialDisplacement: Vector3,
-    usesInitialCurve: boolean,
-    worldPosition: Vector3 | undefined
+    initialFactor: number
   ): void {
     const record = ParticleBounds._tempEmissionRecord;
-    const { min, max } = bounds;
-    let offsetX = 0;
-    let offsetY = 0;
-    let offsetZ = 0;
-    if (worldPosition) {
-      const emitterWorldPosition = this._generator._renderer.entity.transform.worldPosition;
-      offsetX = worldPosition.x - emitterWorldPosition.x;
-      offsetY = worldPosition.y - emitterWorldPosition.y;
-      offsetZ = worldPosition.z - emitterWorldPosition.z;
-    }
-    record[0] = min.x + offsetX;
-    record[1] = min.y + offsetY;
-    record[2] = min.z + offsetZ;
-    record[3] = max.x + offsetX;
-    record[4] = max.y + offsetY;
-    record[5] = max.z + offsetZ;
+    bounds.min.copyToArray(record, 0);
+    bounds.max.copyToArray(record, 3);
     record[ParticleBounds._recordTimeOffset] = playTime;
     record[ParticleBounds._recordMaxLifetimeOffset] = maxLifetime;
     const axisReach = this._currentInheritedAxisReach;
     record[ParticleBounds._recordCurrentAxisReachOffset] = axisReach?.x ?? 0;
     record[ParticleBounds._recordCurrentAxisReachOffset + 1] = axisReach?.y ?? 0;
     record[ParticleBounds._recordCurrentAxisReachOffset + 2] = axisReach?.z ?? 0;
-    record[ParticleBounds._recordInitialDisplacementOffset] = initialDisplacement.x;
-    record[ParticleBounds._recordInitialDisplacementOffset + 1] = initialDisplacement.y;
-    record[ParticleBounds._recordInitialDisplacementOffset + 2] = initialDisplacement.z;
-    const hasInitialDisplacement =
-      initialDisplacement.x !== 0 || initialDisplacement.y !== 0 || initialDisplacement.z !== 0;
-    record[ParticleBounds._recordInitialFactorOffset] = hasInitialDisplacement
-      ? usesInitialCurve
-        ? this._generator.inheritVelocity.curve._getMaxMagnitude()
-        : ParticleBounds._bakedInitialVelocityFactor
-      : 0;
+    initialDisplacement.copyToArray(record, ParticleBounds._recordInitialDisplacementOffset);
+    record[ParticleBounds._recordInitialFactorOffset] = initialFactor;
     this._storeEmissionRecord(record);
   }
 
@@ -539,6 +517,15 @@ export class ParticleBounds {
     renderer._onWorldVolumeChanged();
   }
 
+  private _updateInitialCurveFactor(): void {
+    const inheritVelocity = this._generator.inheritVelocity;
+    const factor = inheritVelocity._usesInitialCurve(true) ? inheritVelocity.curve._getMaxMagnitude() : 0;
+    if (factor > this._lastInitialCurveFactor && this._emissionRecordCount > 0) {
+      this._preserveInitialCurveFactor(factor);
+    }
+    this._lastInitialCurveFactor = factor;
+  }
+
   private _preserveInitialCurveFactor(factor: number): void {
     const records = this._emissionRecords!;
     for (let index = 0; index < this._emissionRecordCount; index++) {
@@ -555,6 +542,37 @@ export class ParticleBounds {
         );
       }
     }
+  }
+
+  private _mergeLocalEmissionBounds(bounds: BoundingBox, initialExtent: Vector3): number {
+    const records = this._emissionRecords!;
+    const { min, max } = bounds;
+    const displacement = ParticleBounds._tempVector34;
+    initialExtent.set(0, 0, 0);
+    let maxLifetime = 0;
+    for (let index = 0; index < this._emissionRecordCount; index++) {
+      const offset = index * ParticleBounds._recordStride;
+      min.set(
+        Math.min(min.x, records[offset]),
+        Math.min(min.y, records[offset + 1]),
+        Math.min(min.z, records[offset + 2])
+      );
+      max.set(
+        Math.max(max.x, records[offset + 3]),
+        Math.max(max.y, records[offset + 4]),
+        Math.max(max.z, records[offset + 5])
+      );
+      maxLifetime = Math.max(maxLifetime, records[offset + ParticleBounds._recordMaxLifetimeOffset]);
+      displacement.copyFromArray(records, offset + ParticleBounds._recordInitialDisplacementOffset);
+      displacement.scale(records[offset + ParticleBounds._recordInitialFactorOffset]);
+      if (this._generator._feedbackSimulator) {
+        // Local feedback can rotate accumulated displacement; formula motion applies it in world space.
+        const reach = displacement.length();
+        displacement.set(reach, reach, reach);
+      }
+      Vector3.max(initialExtent, displacement, initialExtent);
+    }
+    return maxLifetime;
   }
 
   private _getSubEmitterGeneratorBounds(
@@ -633,7 +651,7 @@ export class ParticleBounds {
     max.set(max.x + maxSize, max.y + maxSize, max.z + maxSize);
   }
 
-  private _mergeEmissionBounds(
+  private _mergeWorldEmissionBounds(
     bounds: BoundingBox,
     useOrbitalBounds: boolean,
     currentInheritedVelocity: Vector3

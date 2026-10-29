@@ -15,20 +15,26 @@ import {
   ParticleGradient,
   ParticleGradientMode,
   ParticleMaterial,
+  ParticleRenderMode,
   ParticleRenderer,
   ParticleSimulationSpace,
   ParticleStopMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
   Quaternion,
+  PrimitiveMesh,
+  RenderTarget,
   Scene,
   Shader,
   ShaderMacro,
   ConeShape,
+  Texture2D,
+  TextureFormat,
+  TextureFilterMode,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -973,10 +979,10 @@ describe("SubEmitter", () => {
     const vertices = (child.generator as any)._instanceVertices as Float32Array;
     const stride = vertices.length / child.generator._currentParticleCount;
     expect(child.generator._getAliveParticleCount()).to.equal(2);
-    expect(vertices[43]).to.equal(3);
-    expect(vertices[45]).to.be.greaterThanOrEqual(0);
-    expect(vertices[stride + 43]).to.not.equal(0);
-    expect(vertices[stride + 45]).to.be.lessThan(0);
+    expect(vertices[41]).to.equal(3);
+    expect(vertices[43]).to.be.greaterThanOrEqual(0);
+    expect(vertices[stride + 41]).to.not.equal(0);
+    expect(vertices[stride + 43]).to.be.lessThan(0);
     expect(readFeedbackParticle(child)[1]).to.be.closeTo(0.3, 1e-4);
 
     parent.entity.destroy();
@@ -1257,8 +1263,7 @@ describe("SubEmitter", () => {
       1,
       new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)),
       new Vector3(),
-      false,
-      undefined
+      0
     );
     parentGenerator._isPlaying = true;
     child.generator.main.simulationSpace = ParticleSimulationSpace.World;
@@ -2926,8 +2931,8 @@ describe("SubEmitter", () => {
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
-    // 2D rotation mode (default) stores Z rotation in the X slot of a_StartRotationSpeed (float offset 15)
-    expect(verts[15]).to.be.closeTo(0.75, 1e-3);
+    // 2D rotation mode (default) stores Z rotation in a_StartRotationRandom.x (float offset 16).
+    expect(verts[16]).to.be.closeTo(0.75, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -2968,8 +2973,8 @@ describe("SubEmitter", () => {
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
-    // a_StartRotationSpeed.x @ float offset 15 (2D mode stores Z rotation here)
-    expect(verts[15]).to.be.closeTo(1.25, 1e-3);
+    // a_StartRotationRandom.x @ float offset 16 (2D mode stores Z rotation here)
+    expect(verts[16]).to.be.closeTo(1.25, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -3195,5 +3200,241 @@ describe("SubEmitter", () => {
     cloneEntity.destroy();
     parent.entity.destroy();
     child.entity.destroy();
+  });
+});
+
+describe("SubEmitter rendering regressions", () => {
+  let engine: WebGLEngine;
+  let camera: Camera;
+  let texture: Texture2D;
+  let gl: WebGL2RenderingContext;
+  const resolution = 256;
+
+  const flatCurve = (value: number) =>
+    new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, value), new CurveKey(1, value)));
+
+  beforeEach(async () => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = resolution;
+    engine = await WebGLEngine.create({ canvas });
+    gl = canvas.getContext("webgl2")!;
+    const scene = engine.sceneManager.activeScene!;
+    scene.background.solidColor = new Color(0, 0, 0, 1);
+    scene.createRootEntity("Particles");
+    const cameraEntity = scene.createRootEntity("Camera");
+    cameraEntity.transform.setPosition(0, 0, 10);
+    camera = cameraEntity.addComponent(Camera);
+    camera.isOrthographic = true;
+    camera.orthographicSize = 4;
+    texture = new Texture2D(engine, resolution, resolution, TextureFormat.R8G8B8A8, false);
+    camera.renderTarget = new RenderTarget(engine, resolution, resolution, texture);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    engine.destroy();
+  });
+
+  function systems(space = ParticleSimulationSpace.World) {
+    const parent = createParticleRenderer(engine, "Parent");
+    const child = createParticleRenderer(engine, "Child");
+    for (const renderer of [parent, child]) {
+      const generator = renderer.generator;
+      generator.randomSeed = 42;
+      generator.main.startSpeed.constant = 0;
+      generator.main.simulationSpace = ParticleSimulationSpace.World;
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    }
+    (parent.getMaterial() as ParticleMaterial).baseColor = new Color(0, 0, 0, 1);
+    parent.generator.main.startSize.constant = 0.01;
+    child.generator.main.simulationSpace = space;
+    child.generator.main.startSize.constant = 0.2;
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1)));
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    return { parent, child };
+  }
+
+  function visiblePixels() {
+    const pixels = new Uint8Array(resolution * resolution * 4);
+    texture.getPixelBuffer(pixels);
+    let count = 0;
+    let sumX = 0;
+    let sumY = 0;
+    for (let y = 0; y < resolution; y++) {
+      for (let x = 0; x < resolution; x++) {
+        const offset = (y * resolution + x) * 4;
+        if (pixels[offset] > 100 || pixels[offset + 1] > 100 || pixels[offset + 2] > 100) {
+          count++;
+          sumX += x;
+          sumY += y;
+        }
+      }
+    }
+    return { count, x: sumX / count, y: sumY / count };
+  }
+
+  function expectVisibleWithCulling() {
+    camera.entity.transform.setPosition(0, 0, 10);
+    camera.orthographicSize = 10;
+    camera.enableFrustumCulling = false;
+    camera.render();
+    const wide = visiblePixels();
+    expect(wide.count).to.be.greaterThan(0);
+    const x = (((wide.x + 0.5) / resolution) * 2 - 1) * camera.orthographicSize;
+    const y = (((wide.y + 0.5) / resolution) * 2 - 1) * camera.orthographicSize;
+    camera.entity.transform.setPosition(x, y, 10);
+    camera.orthographicSize = 0.3;
+    camera.render();
+    const visible = visiblePixels().count;
+    expect(visible).to.be.greaterThan(0);
+    const frame = engine.time.frameCount;
+    camera.enableFrustumCulling = true;
+    camera.render();
+    expect(engine.time.frameCount).to.equal(frame);
+    expect(visiblePixels().count).to.equal(visible);
+  }
+
+  it.each([
+    [false, false],
+    [true, false],
+    [false, true],
+    [true, true]
+  ])(
+    "renders textured Mesh sub-particles within the attribute budget (vertex color=%s, feedback=%s)",
+    (vertexColor, feedback) => {
+      const { parent, child } = systems();
+      const generator = child.generator;
+      generator.main.startSize.constant = 0.8;
+      child.renderMode = ParticleRenderMode.Mesh;
+      const mesh = PrimitiveMesh.createCuboid(engine);
+      child.mesh = mesh;
+      if (vertexColor) {
+        mesh.setColors(Array.from({ length: mesh.vertexCount }, () => new Color(1, 1, 1, 1)));
+        mesh.uploadData(false);
+      }
+      const white = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+      white.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
+      (child.getMaterial() as ParticleMaterial).baseTexture = white;
+      generator.velocityOverLifetime.enabled = true;
+      generator.forceOverLifetime.enabled = true;
+      for (const axis of ["X", "Y", "Z"]) {
+        generator.velocityOverLifetime[`velocity${axis}`] = new ParticleCompositeCurve(1, 2);
+        generator.forceOverLifetime[`force${axis}`] = new ParticleCompositeCurve(1, 2);
+      }
+      // Exercise every forward random input along with mesh color and the parent trajectory.
+      generator.colorOverLifetime.enabled = true;
+      generator.colorOverLifetime.color.mode = ParticleGradientMode.TwoGradients;
+      generator.colorOverLifetime.color.gradientMin = new ParticleGradient(
+        [new GradientColorKey(0, new Color(0.8, 0.8, 0.8)), new GradientColorKey(1, new Color(1, 1, 1))],
+        [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
+      );
+      generator.sizeOverLifetime.enabled = true;
+      generator.sizeOverLifetime.size = new ParticleCompositeCurve(flatCurve(0.8).curve, flatCurve(1).curve);
+      generator.rotationOverLifetime.enabled = true;
+      generator.rotationOverLifetime.rotationZ = new ParticleCompositeCurve(0, 30);
+      generator.textureSheetAnimation.enabled = true;
+      generator.textureSheetAnimation.tiling.set(2, 2);
+      generator.textureSheetAnimation.frameOverTime.mode = ParticleCurveMode.TwoCurves;
+      generator.textureSheetAnimation.frameOverTime.curveMin = flatCurve(0).curve;
+      generator.textureSheetAnimation.frameOverTime.curveMax = flatCurve(0.5).curve;
+      if (feedback) {
+        enableZeroNoiseFeedback(child);
+        generator.limitVelocityOverLifetime.enabled = true;
+        generator.limitVelocityOverLifetime.speed = new ParticleCompositeCurve(100, 200);
+        generator.limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0, 0.1);
+        generator.limitVelocityOverLifetime.multiplyDragByParticleSize = true;
+        // Also make the child a trajectory source: this activates every feedback input stream.
+        const grandchild = createParticleRenderer(engine, "Grandchild");
+        grandchild.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+        generator.subEmitters.enabled = true;
+        generator.subEmitters.addSubEmitter(grandchild, ParticleSubEmitterType.Birth);
+      }
+
+      const linkProgram = gl.linkProgram.bind(gl);
+      const linkedAttributes: string[][] = [];
+      vi.spyOn(gl, "linkProgram").mockImplementation((program) => {
+        linkProgram(program);
+        expect(gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program) ?? undefined).to.equal(
+          true
+        );
+        const names: string[] = [];
+        for (let i = 0; i < gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES); i++) {
+          const name = gl.getActiveAttrib(program, i)!.name;
+          if (gl.getAttribLocation(program, name) >= 0) names.push(name);
+        }
+        expect(names.length).to.be.at.most(gl.getParameter(gl.MAX_VERTEX_ATTRIBS));
+        linkedAttributes.push(names);
+      });
+      parent.generator.emit(1);
+      updateEngine(engine, 2);
+      expect(generator._feedbackSimulator !== null).to.equal(feedback);
+      expect(linkedAttributes.some((names) => names.includes("POSITION"))).to.equal(true);
+      if (vertexColor) expect(linkedAttributes.some((names) => names.includes("COLOR_0"))).to.equal(true);
+      expect(visiblePixels().count).to.be.greaterThan(0);
+      // Stretched billboards still need the feedback velocity and parent trajectory for their shape.
+      child.renderMode = ParticleRenderMode.StretchBillboard;
+      updateEngine(engine, 1);
+      expect(visiblePixels().count).to.be.greaterThan(0);
+      expect(gl.getError()).to.equal(gl.NO_ERROR);
+    }
+  );
+
+  for (const space of [ParticleSimulationSpace.World, ParticleSimulationSpace.Local]) {
+    for (const feedback of [false, true]) {
+      it.each([2, -2])(
+        `keeps changed Initial curves visible (space=${space}, feedback=${feedback}, factor=%s)`,
+        (factor) => {
+          const { parent, child } = systems(space);
+          parent.generator.main.startLifetime.constant = 0.05;
+          parent.generator.velocityOverLifetime.enabled = true;
+          parent.generator.velocityOverLifetime.velocityX.constant = 10;
+          child.generator.inheritVelocity.enabled = true;
+          child.generator.inheritVelocity.curve = flatCurve(0);
+          if (feedback) enableZeroNoiseFeedback(child);
+          parent.generator.emit(1);
+          updateEngine(engine, 2);
+          expect(parent.generator.isAlive).to.equal(false);
+          // Mutating keys exercises change notifications as well as replacing the composite curve.
+          for (const key of child.generator.inheritVelocity.curve.curve.keys) key.value = factor;
+          updateEngine(engine, 1);
+          expectVisibleWithCulling();
+          if (space === ParticleSimulationSpace.Local) {
+            child.entity.transform.setRotation(0, 0, 90);
+            expectVisibleWithCulling();
+          }
+          const previousBounds = child.bounds.clone();
+          child.generator.inheritVelocity.curve = flatCurve(0);
+          updateEngine(engine, 1);
+          expectVisibleWithCulling();
+          expect(child.bounds.min.x).to.be.at.most(previousBounds.min.x);
+          expect(child.bounds.max.x).to.be.at.least(previousBounds.max.x);
+        }
+      );
+    }
+  }
+
+  it.each([2, 7])("preserves birth-time atlas rows when the grid changes (columns=%s)", (columns) => {
+    const { parent, child } = systems();
+    child.generator.main.startSize.constant = 0.8;
+    const atlas = new Texture2D(engine, columns, 2, TextureFormat.R8G8B8A8, false);
+    atlas.filterMode = TextureFilterMode.Point;
+    const pixels = new Uint8Array(columns * 2 * 4);
+    // Select the first tile of the second row. All other tiles are black.
+    pixels.fill(255, columns * 4, (columns + 1) * 4);
+    atlas.setPixelBuffer(pixels);
+    (child.getMaterial() as ParticleMaterial).baseTexture = atlas;
+    const animation = child.generator.textureSheetAnimation;
+    animation.enabled = true;
+    animation.tiling.set(columns, 2);
+    animation.frameOverTime.mode = ParticleCurveMode.Constant;
+    animation.frameOverTime.constant = 0.5;
+    parent.generator.emit(1);
+    updateEngine(engine, 2);
+    const before = visiblePixels().count;
+    expect(before).to.be.greaterThan(0);
+    animation.tiling.set(columns * 2, 4);
+    updateEngine(engine, 1);
+    expect(visiblePixels().count).to.equal(before);
   });
 });

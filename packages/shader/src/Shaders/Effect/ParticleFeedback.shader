@@ -30,19 +30,24 @@ Shader "Effect/ParticleFeedback" {
           #endif
           vec4 a_ShapePositionStartLifeTime;
           vec4 a_DirectionTime;
-          vec3 a_StartSize;
-          float a_StartSpeed;
-          vec4 a_Random0;
-
-          #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
-              vec4 a_Random1;
+          vec4 a_StartSizeSpeed;
+          vec4 a_WorldPositionGravity;
+          #ifdef RENDERER_NOISE_MODULE_ENABLED
+              vec4 a_UVTilingFrameRandom;
           #endif
 
-          vec3 a_SimulationWorldPosition;
+          #if defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
+              vec4 a_VelocityRandomTSA;
+          #endif
+
           vec4 a_SimulationWorldRotation;
 
-          #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE) || defined(RENDERER_LVL_MODULE_ENABLED)
-              vec4 a_Random2;
+          #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE)
+              vec4 a_ForceRandomColor;
+          #endif
+
+          #ifdef RENDERER_LVL_MODULE_ENABLED
+              float a_LimitVelocityRandom;
           #endif
 
           #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
@@ -86,7 +91,7 @@ Shader "Effect/ParticleFeedback" {
               #ifdef RENDERER_FOL_CONSTANT_MODE
                   acc = renderer_FOLMaxConst;
                   #ifdef RENDERER_FOL_IS_RANDOM_TWO
-                      acc = mix(renderer_FOLMinConst, acc, vec3(attributes.a_Random2.x, attributes.a_Random2.y, attributes.a_Random2.z));
+                      acc = mix(renderer_FOLMinConst, acc, attributes.a_ForceRandomColor.xyz);
                   #endif
               #endif
               #ifdef RENDERER_FOL_CURVE_MODE
@@ -101,7 +106,7 @@ Shader "Effect/ParticleFeedback" {
                           evaluateParticleCurve(renderer_FOLMinGradientY, normalizedAge),
                           evaluateParticleCurve(renderer_FOLMinGradientZ, normalizedAge)
                       );
-                      acc = mix(minAcc, acc, vec3(attributes.a_Random2.x, attributes.a_Random2.y, attributes.a_Random2.z));
+                      acc = mix(minAcc, acc, attributes.a_ForceRandomColor.xyz);
                   #endif
               #endif
           #endif
@@ -124,7 +129,7 @@ Shader "Effect/ParticleFeedback" {
               : attr.a_SimulationWorldRotation;
           vec4 invWorldRotation = quaternionConjugate(worldRotation);
           vec3 inheritedVelocityWorld = vec3(0.0);
-          vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
+          vec3 simulationWorldPosition = attr.a_WorldPositionGravity.xyz;
 
           #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
               if (isSubEmitterSpawnedParticle(attr)) {
@@ -153,7 +158,7 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           // Step 1: VOL + FOL + Gravity
-          vec3 gravityDelta = renderer_Gravity * attr.a_Random0.x * dt;
+          vec3 gravityDelta = renderer_Gravity * attr.a_WorldPositionGravity.w * dt;
 
           vec3 volLocal = vec3(0.0);
           vec3 volWorld = vec3(0.0);
@@ -195,7 +200,7 @@ Shader "Effect/ParticleFeedback" {
                   totalVelocity = rotationByQuaternions(localVelocity, worldRotation) + velocityOffset;
               }
 
-              float moduleRand = attr.a_Random2.w;
+              float moduleRand = attr.a_LimitVelocityRandom;
               float effectiveDampen = 1.0 - pow(1.0 - renderer_LVLDampen, dt * 30.0);
               totalVelocity =
                   applyLVLSpeedLimitTF(totalVelocity, normalizedAge, moduleRand, effectiveDampen);
@@ -206,7 +211,7 @@ Shader "Effect/ParticleFeedback" {
                   float speed = sqrt(speedSqr);
 
                   #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
-                      float maxDimension = max(attr.a_StartSize.x, max(attr.a_StartSize.y, attr.a_StartSize.z));
+                      float maxDimension = max(attr.a_StartSizeSpeed.x, max(attr.a_StartSizeSpeed.y, attr.a_StartSizeSpeed.z));
                       float radius = maxDimension * 0.5;
                       drag *= 3.14159265 * radius * radius;
                   #endif
@@ -237,10 +242,10 @@ Shader "Effect/ParticleFeedback" {
           #ifdef RENDERER_NOISE_MODULE_ENABLED
               vec3 noiseBasePos;
               if (renderer_SimulationSpace == 0) {
-                  noiseBasePos = attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge;
+                  noiseBasePos = attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSizeSpeed.w * simulationAge;
               } else {
                   noiseBasePos = rotationByQuaternions(
-                      attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * simulationAge,
+                      attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSizeSpeed.w * simulationAge,
                       worldRotation) + simulationWorldPosition;
               }
               totalLinearVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
@@ -301,14 +306,14 @@ Shader "Effect/ParticleFeedback" {
                   : gl_VertexID >= renderer_FirstNewParticle || gl_VertexID < renderer_FirstFreeParticle);
           if (isNewParticle) {
               position = attr.a_ShapePositionStartLifeTime.xyz;
-              localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+              localVelocity = attr.a_DirectionTime.xyz * attr.a_StartSizeSpeed.w;
               #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
                   if (isSubEmitterSpawnedParticle(attr)) {
                       vec3 parentWorldPosition = reconstructParentWorldPositionAtEmission(attr);
                       vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
                       if (renderer_SimulationSpace == 0) {
                           position += rotationByQuaternions(
-                              parentWorldPosition - attr.a_SimulationWorldPosition,
+                              parentWorldPosition - attr.a_WorldPositionGravity.xyz,
                               invSimulationWorldRotation
                           );
                       } else {
@@ -316,17 +321,17 @@ Shader "Effect/ParticleFeedback" {
                               rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
                               parentWorldPosition;
                       }
-                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, attr.a_StartSpeed, localVelocity);
+                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, localVelocity);
                   } else if (renderer_SimulationSpace != 0) {
                       position =
                           rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
-                          attr.a_SimulationWorldPosition;
+                          attr.a_WorldPositionGravity.xyz;
                   }
               #else
                   if (renderer_SimulationSpace != 0) {
                       position =
                           rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
-                          attr.a_SimulationWorldPosition;
+                          attr.a_WorldPositionGravity.xyz;
                   }
               #endif
           }

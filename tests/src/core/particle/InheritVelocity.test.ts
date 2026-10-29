@@ -165,8 +165,7 @@ describe("InheritVelocityModule", () => {
       1,
       new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)),
       new Vector3(),
-      false,
-      undefined
+      0
     );
     generator._isPlaying = true;
 
@@ -331,7 +330,7 @@ describe("InheritVelocityModule", () => {
     expect(vertices[4]).to.be.closeTo(1, 1e-5);
     expect(vertices[5]).to.be.closeTo(0, 1e-5);
     expect(vertices[6]).to.be.closeTo(0, 1e-5);
-    expect(vertices[18]).to.be.closeTo(10, 1e-5);
+    expect(vertices[15]).to.be.closeTo(10, 1e-5);
 
     renderer.entity.destroy();
   });
@@ -358,7 +357,7 @@ describe("InheritVelocityModule", () => {
     generator.emit(1);
 
     const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(vertices[18]).to.equal(0);
+    expect(vertices[15]).to.equal(0);
 
     renderer.entity.destroy();
   });
@@ -382,10 +381,10 @@ describe("InheritVelocityModule", () => {
     tick(engine, time);
 
     const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(vertices[18]).to.equal(0);
-    expect(vertices[42]).to.be.closeTo(10, 1e-5);
-    expect(vertices[43]).to.equal(0);
-    expect(vertices[44]).to.equal(0);
+    expect(vertices[15]).to.equal(0);
+    expect(vertices[40]).to.be.closeTo(10, 1e-5);
+    expect(vertices[41]).to.equal(0);
+    expect(vertices[42]).to.equal(0);
 
     generator.inheritVelocity.curve = new ParticleCompositeCurve(
       new ParticleCurve(new CurveKey(0, 2), new CurveKey(1, 2))
@@ -430,7 +429,7 @@ describe("InheritVelocityModule", () => {
 
     expect(random).not.toHaveBeenCalled();
     const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(Array.from(vertices.subarray(42, 46))).to.deep.equal([0, 0, 0, 0]);
+    expect(Array.from(vertices.subarray(40, 44))).to.deep.equal([0, 0, 0, 0]);
 
     random.mockRestore();
     renderer.entity.destroy();
@@ -464,8 +463,8 @@ describe("InheritVelocityModule", () => {
     tick(webgl1Engine, webgl1Time);
 
     const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(vertices[18]).to.equal(0);
-    expect(vertices[42]).to.be.closeTo(10, 1e-5);
+    expect(vertices[15]).to.equal(0);
+    expect(vertices[40]).to.be.closeTo(10, 1e-5);
 
     webgl1Engine.destroy();
   });
@@ -493,11 +492,11 @@ describe("InheritVelocityModule", () => {
     tick(engine, time);
 
     const vertices = (generator as any)._instanceVertices as Float32Array;
-    expect(vertices[18]).to.equal(0);
-    expect(vertices[42]).to.be.closeTo(10, 1e-5);
-    expect(vertices[43]).to.equal(0);
-    expect(vertices[44]).to.equal(0);
-    expect(vertices[45]).to.be.within(0, 1);
+    expect(vertices[15]).to.equal(0);
+    expect(vertices[40]).to.be.closeTo(10, 1e-5);
+    expect(vertices[41]).to.equal(0);
+    expect(vertices[42]).to.equal(0);
+    expect(vertices[43]).to.be.within(0, 1);
     expect(getFeedbackPositionX(renderer)).to.be.closeTo(1.0125, 1e-5);
 
     renderer.entity.transform.setPosition(3, 0, 0);

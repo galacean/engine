@@ -1,6 +1,10 @@
 #ifndef PARTICLE_VERT_INCLUDED
 #define PARTICLE_VERT_INCLUDED
 
+#ifdef RENDERER_TRANSFORM_FEEDBACK
+    #define PARTICLE_FORWARD_FEEDBACK
+#endif
+
 // Particle forward pass library: provides `Attributes`, `Varyings`, all engine
 // uniforms, and the reusable helpers below. The `vert` / `frag` entry points
 // live in the consuming `.shader` so they can be edited directly without
@@ -62,39 +66,43 @@ struct Attributes {
     vec4 a_ShapePositionStartLifeTime;
     vec4 a_DirectionTime;
     vec4 a_StartColor;
-    vec3 a_StartSize;
-    vec4 a_StartRotationSpeed;
-    vec4 a_Random0;
-
-    #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
-        vec4 a_Random1;
-    #endif
-
-    #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE) || defined(RENDERER_LVL_MODULE_ENABLED)
-        vec4 a_Random2;
-    #endif
-
-    vec3 a_SimulationWorldPosition;
+    // Eleven vec4 inputs cover the forward data without partially occupied attribute slots.
+    vec4 a_StartSizeSpeed;
+    vec4 a_StartRotationRandom;
+    vec4 a_WorldPositionGravity;
     vec4 a_SimulationWorldRotation;
+    vec4 a_VelocityRandomTSA;
+    vec4 a_ForceRandomColor;
+    vec4 a_UVTilingFrameRandom;
 
     #ifdef RENDERER_TRANSFORM_FEEDBACK
         vec3 a_FeedbackPosition;
-        vec3 a_FeedbackVelocity;
+        #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+            vec3 a_FeedbackVelocity;
+        #endif
     #endif
 
-    #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
-        vec3 a_ParentSampleWorldPosition;
-        vec3 a_ParentTrajectoryVelocity;
-    #endif
+    #if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD)
+        #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+            vec3 a_ParentSampleWorldPosition;
+            vec3 a_ParentTrajectoryVelocity;
+        #endif
 
-    #ifdef MATERIAL_HAS_BASETEXTURE
-        vec4 a_SimulationUV;
-    #endif
-
-    #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
-        vec4 a_InheritVelocity;
+        #if defined(RENDERER_INHERIT_VELOCITY_INITIAL_CURVE) || defined(RENDERER_INHERIT_VELOCITY_RANDOM) || defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES)
+            vec4 a_InheritVelocity;
+        #endif
     #endif
 };
+
+#ifdef MATERIAL_HAS_BASETEXTURE
+    vec4 getParticleSimulationUV(Attributes attr) {
+        vec2 tiling = attr.a_UVTilingFrameRandom.xy;
+        float frame = attr.a_UVTilingFrameRandom.z;
+        float row = floor(frame / tiling.x);
+        vec2 tile = vec2(frame - row * tiling.x, row);
+        return vec4(1.0 / tiling, tile / tiling);
+    }
+#endif
 
 struct Varyings {
     vec4 v_Color;
@@ -108,15 +116,20 @@ struct Varyings {
 
 // Particle module includes (must be after Attributes/Varyings declarations)
 #include "ShaderLibrary/Particle/ParticleCommon.glsl"
-#include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
-#include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
-#include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+#if !defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD)
+    #include "ShaderLibrary/Particle/Module/InheritVelocity.glsl"
+    #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
+#endif
+#ifndef RENDERER_TRANSFORM_FEEDBACK
+    #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+#endif
 #include "ShaderLibrary/Particle/Module/ColorOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/SizeOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/RotationOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
 #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
 
+#ifndef RENDERER_TRANSFORM_FEEDBACK
 vec3 computeParticlePosition(Attributes attributes, in vec3 initialPosition, in vec3 simulationWorldPosition, in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 localPositionOffset = startVelocity * age;
     vec3 worldPositionOffset = vec3(0.0);
@@ -167,12 +180,13 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 initialPosition, in 
 
     return finalPosition;
 }
+#endif
 
 // Returns the world-space center for the particle, applying simulation,
 // billboard / mesh placement, and 3D rotation. Writes v.v_MeshColor when
 // running in mesh mode with vertex color enabled.
 vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inout Varyings v) {
-    #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+    #if defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES) && (!defined(RENDERER_TRANSFORM_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD))
         bool isSubEmitterSpawned = isSubEmitterSpawnedParticle(attr);
     #endif
     vec4 worldRotation;
@@ -182,6 +196,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         worldRotation = attr.a_SimulationWorldRotation;
     }
 
+    vec3 startRotation = attr.a_StartRotationRandom.xyz;
     vec3 visualLocalVelocity;
     vec3 visualWorldVelocity;
 
@@ -192,22 +207,23 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         } else if (renderer_SimulationSpace == 1) {
             center = attr.a_FeedbackPosition;
         }
-        visualLocalVelocity = attr.a_FeedbackVelocity;
-        visualWorldVelocity = vec3(0.0);
-
-        #ifdef _VOL_LINEAR_MODULE_ENABLED
-            vec3 instantVOLVelocity = evaluateVOLVelocity(attr, normalizedAge);
-            if (renderer_VOLSpace == 0) {
-                visualLocalVelocity += instantVOLVelocity;
-            } else {
-                visualWorldVelocity += instantVOLVelocity;
-            }
-        #endif
-
         #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+            // Other render modes only need the position already computed by feedback.
+            visualLocalVelocity = attr.a_FeedbackVelocity;
+            visualWorldVelocity = vec3(0.0);
+
+            #ifdef _VOL_LINEAR_MODULE_ENABLED
+                vec3 instantVOLVelocity = evaluateVOLVelocity(attr, normalizedAge);
+                if (renderer_VOLSpace == 0) {
+                    visualLocalVelocity += instantVOLVelocity;
+                } else {
+                    visualWorldVelocity += instantVOLVelocity;
+                }
+            #endif
+
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
                 vec4 invWorldRotation = quaternionConjugate(worldRotation);
-                vec3 orbitalWorldOrigin = attr.a_SimulationWorldPosition;
+                vec3 orbitalWorldOrigin = attr.a_WorldPositionGravity.xyz;
                 #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
                     if (isSubEmitterSpawned) {
                         orbitalWorldOrigin = reconstructParentWorldPositionAtEmission(attr);
@@ -253,16 +269,16 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         #endif
     #else
         vec3 initialPosition = attr.a_ShapePositionStartLifeTime.xyz;
-        vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
-        vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartRotationSpeed.w;
+        vec3 simulationWorldPosition = attr.a_WorldPositionGravity.xyz;
+        vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSizeSpeed.w;
         #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
             if (isSubEmitterSpawned) {
                 vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
-                applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, attr.a_StartRotationSpeed.w, startVelocity);
+                applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, startVelocity);
 
                 if (renderer_SimulationSpace == 0) {
                     initialPosition += rotationByQuaternions(
-                        reconstructParentWorldPositionAtEmission(attr) - attr.a_SimulationWorldPosition,
+                        reconstructParentWorldPositionAtEmission(attr) - attr.a_WorldPositionGravity.xyz,
                         invSimulationWorldRotation
                     );
                 } else {
@@ -270,7 +286,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
                 }
             }
         #endif
-        vec3 gravityVelocity = renderer_Gravity * attr.a_Random0.x * age;
+        vec3 gravityVelocity = renderer_Gravity * attr.a_WorldPositionGravity.w * age;
         visualLocalVelocity = startVelocity;
         visualWorldVelocity = gravityVelocity;
         vec3 center = computeParticlePosition(
@@ -291,13 +307,13 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
         vec3 sideVector = normalize(cross(camera_Forward, camera_Up));
         vec3 upVector = normalize(cross(sideVector, camera_Forward));
-        corner *= computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
+        corner *= computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge);
         #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
             if (renderer_ThreeDStartRotation) {
-                vec3 rotation = radians(vec3(attr.a_StartRotationSpeed.xy, computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.z, age, normalizedAge)));
+                vec3 rotation = radians(vec3(startRotation.xy, computeParticleRotationFloat(attr, startRotation.z, age, normalizedAge)));
                 center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
             } else {
-                float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
+                float rot = radians(computeParticleRotationFloat(attr, startRotation.x, age, normalizedAge));
                 float c = cos(rot);
                 float s = sin(rot);
                 mat2 rotation = mat2(c, -s, s, c);
@@ -306,10 +322,10 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             }
         #else
             if (renderer_ThreeDStartRotation) {
-                center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, radians(attr.a_StartRotationSpeed.xyz));
+                center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, radians(startRotation));
             } else {
-                float c = cos(radians(attr.a_StartRotationSpeed.x));
-                float s = sin(radians(attr.a_StartRotationSpeed.x));
+                float c = cos(radians(startRotation.x));
+                float s = sin(radians(startRotation.x));
                 mat2 rotation = mat2(c, -s, s, c);
                 corner = rotation * corner;
                 center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * upVector);
@@ -327,7 +343,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         sideVector = renderer_SizeScale.xzy * sideVector;
         cameraUpVector = length(vec3(renderer_SizeScale.x, 0.0, 0.0)) * cameraUpVector;
 
-        vec2 size = computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
+        vec2 size = computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge);
 
         const mat2 rotationZHalfPI = mat2(0.0, -1.0, 1.0, 0.0);
         corner = rotationZHalfPI * corner;
@@ -342,13 +358,13 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
         const vec3 sideVector = vec3(1.0, 0.0, 0.0);
         const vec3 upVector = vec3(0.0, 0.0, -1.0);
-        corner *= computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
+        corner *= computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge);
 
         float rot;
         if (renderer_ThreeDStartRotation) {
-            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.z, age, normalizedAge));
+            rot = radians(computeParticleRotationFloat(attr, startRotation.z, age, normalizedAge));
         } else {
-            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
+            rot = radians(computeParticleRotationFloat(attr, startRotation.x, age, normalizedAge));
         }
 
         float c = cos(rot);
@@ -363,12 +379,12 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         const vec3 cameraUpVector = vec3(0.0, 1.0, 0.0);
         vec3 sideVector = normalize(cross(camera_Forward, cameraUpVector));
 
-        float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
+        float rot = radians(computeParticleRotationFloat(attr, startRotation.x, age, normalizedAge));
         float c = cos(rot);
         float s = sin(rot);
         mat2 rotation = mat2(c, -s, s, c);
         corner = rotation * corner * cos(0.78539816339744830961566084581988);
-        corner *= computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
+        corner *= computeParticleSizeBillboard(attr, attr.a_StartSizeSpeed.xy, normalizedAge);
         center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * cameraUpVector);
     #endif
 
@@ -377,7 +393,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             #define RENDERER_ROL_ENABLED
         #endif
 
-        vec3 size = computeParticleSizeMesh(attr, attr.a_StartSize, normalizedAge);
+        vec3 size = computeParticleSizeMesh(attr, attr.a_StartSizeSpeed.xyz, normalizedAge);
 
         bool is3DRotation = renderer_ThreeDStartRotation;
         #if defined(RENDERER_ROL_ENABLED) && defined(RENDERER_ROL_IS_SEPARATE)
@@ -386,17 +402,17 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
         if (is3DRotation) {
             #ifdef RENDERER_ROL_ENABLED
-                vec3 startRotation = renderer_ThreeDStartRotation ? attr.a_StartRotationSpeed.xyz : vec3(0.0, 0.0, attr.a_StartRotationSpeed.x);
-                vec3 rotation = radians(computeParticleRotationVec3(attr, startRotation, age, normalizedAge));
+                vec3 initialRotation = renderer_ThreeDStartRotation ? startRotation : vec3(0.0, 0.0, startRotation.x);
+                vec3 rotation = radians(computeParticleRotationVec3(attr, initialRotation, age, normalizedAge));
             #else
-                vec3 rotation = radians(attr.a_StartRotationSpeed.xyz);
+                vec3 rotation = radians(startRotation);
             #endif
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(attr.POSITION * size, rotation), worldRotation);
         } else {
             #ifdef RENDERER_ROL_ENABLED
-                float angle = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
+                float angle = radians(computeParticleRotationFloat(attr, startRotation.x, age, normalizedAge));
             #else
-                float angle = radians(attr.a_StartRotationSpeed.x);
+                float angle = radians(startRotation.x);
             #endif
             #ifdef RENDERER_EMISSION_SHAPE
                 vec3 axis = vec3(attr.a_ShapePositionStartLifeTime.xy, 0.0);
@@ -423,12 +439,13 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 // Returns the texture-sheet animated UV for the particle, covering both
 // billboard and mesh paths.
 vec2 computeParticleVaryingUV(Attributes attr, float normalizedAge) {
+    vec4 simulationUV = getParticleSimulationUV(attr);
     vec2 simulateUV;
     #if defined(RENDERER_MODE_SPHERE_BILLBOARD) || defined(RENDERER_MODE_STRETCHED_BILLBOARD) || defined(RENDERER_MODE_HORIZONTAL_BILLBOARD) || defined(RENDERER_MODE_VERTICAL_BILLBOARD)
-        simulateUV = attr.a_CornerTextureCoordinate.zw * attr.a_SimulationUV.xy + attr.a_SimulationUV.zw;
+        simulateUV = attr.a_CornerTextureCoordinate.zw * simulationUV.xy + simulationUV.zw;
     #endif
     #ifdef RENDERER_MODE_MESH
-        simulateUV = attr.a_SimulationUV.zw + attr.TEXCOORD_0 * attr.a_SimulationUV.xy;
+        simulateUV = simulationUV.zw + attr.TEXCOORD_0 * simulationUV.xy;
     #endif
     return computeParticleUV(attr, simulateUV, normalizedAge);
 }

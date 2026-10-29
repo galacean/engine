@@ -1029,97 +1029,96 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     if (main.startRotation3D) {
       const rotationX = main.startRotationX.evaluate(undefined, startRotationRand.random());
       const rotationY = main.startRotationY.evaluate(undefined, startRotationRand.random());
-      instanceVertices[offset + 15] = isFlip ? -rotationX : rotationX;
-      instanceVertices[offset + 16] = isFlip ? -rotationY : rotationY;
-      instanceVertices[offset + 17] = isFlip ? -rotationZ : rotationZ;
+      instanceVertices[offset + 16] = isFlip ? -rotationX : rotationX;
+      instanceVertices[offset + 17] = isFlip ? -rotationY : rotationY;
+      instanceVertices[offset + 18] = isFlip ? -rotationZ : rotationZ;
     } else {
-      instanceVertices[offset + 15] = isFlip ? -rotationZ : rotationZ;
+      instanceVertices[offset + 16] = isFlip ? -rotationZ : rotationZ;
     }
 
     // Start speed
-    instanceVertices[offset + 18] = startSpeed;
+    instanceVertices[offset + 15] = startSpeed;
 
     // Gravity, color, size, rotation
     switch (main.gravityModifier.mode) {
       case ParticleCurveMode.Constant:
-        instanceVertices[offset + 19] = main.gravityModifier.constant;
+        instanceVertices[offset + 23] = main.gravityModifier.constant;
         break;
       case ParticleCurveMode.TwoConstants:
-        instanceVertices[offset + 19] = main.gravityModifier.evaluate(undefined, main._gravityModifierRand.random());
+        instanceVertices[offset + 23] = main.gravityModifier.evaluate(undefined, main._gravityModifierRand.random());
         break;
     }
 
     const colorOverLifetime = this.colorOverLifetime;
     if (colorOverLifetime.enabled && colorOverLifetime.color.mode === ParticleGradientMode.TwoGradients) {
-      instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
+      instanceVertices[offset + 35] = colorOverLifetime._colorGradientRand.random();
     }
 
-    // Noise and size-over-lifetime temporarily share slot 21 (a_Random0.z), so noise takes precedence
+    // Noise and size-over-lifetime temporarily share slot 39 (a_UVTilingFrameRandom.w), so noise takes precedence
     // Track independent module randomness and instance layout optimization in #3075
     const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
-      instanceVertices[offset + 21] = this.noise._noiseRand.random();
+      instanceVertices[offset + 39] = this.noise._noiseRand.random();
     } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomCurveMode()) {
-      instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
+      instanceVertices[offset + 39] = sizeOverLifetime._sizeRand.random();
     }
 
     const rotationOverLifetime = this.rotationOverLifetime;
     if (rotationOverLifetime.enabled && rotationOverLifetime.rotationZ.mode === ParticleCurveMode.TwoConstants) {
-      instanceVertices[offset + 22] = rotationOverLifetime._rotationRand.random();
+      instanceVertices[offset + 19] = rotationOverLifetime._rotationRand.random();
     }
 
     // Texture sheet animation
     const textureSheetAnimation = this.textureSheetAnimation;
     if (textureSheetAnimation.enabled && textureSheetAnimation.frameOverTime.mode === ParticleCurveMode.TwoCurves) {
-      instanceVertices[offset + 23] = textureSheetAnimation._frameOverTimeRand.random();
+      instanceVertices[offset + 31] = textureSheetAnimation._frameOverTimeRand.random();
     }
 
     // Velocity random
     const velocityOverLifetime = this.velocityOverLifetime;
     if (velocityOverLifetime.enabled && velocityOverLifetime._isRandomMode()) {
       const rand = velocityOverLifetime._velocityRand;
-      instanceVertices[offset + 24] = rand.random();
-      instanceVertices[offset + 25] = rand.random();
-      instanceVertices[offset + 26] = rand.random();
+      instanceVertices[offset + 28] = rand.random();
+      instanceVertices[offset + 29] = rand.random();
+      instanceVertices[offset + 30] = rand.random();
     }
 
     if (pos) {
       // Simulation world position
-      pos.copyToArray(instanceVertices, offset + 27);
+      pos.copyToArray(instanceVertices, offset + 20);
 
       // Simulation world rotation
-      rot.copyToArray(instanceVertices, offset + 30);
+      rot.copyToArray(instanceVertices, offset + 24);
     }
 
     // Simulation UV
     if (textureSheetAnimation.enabled) {
       const { frameOverTime } = textureSheetAnimation;
-      const { x, y, z } = textureSheetAnimation._tillingInfo;
+      const { z: tileCount } = textureSheetAnimation._tillingInfo;
+      const tiling = textureSheetAnimation.tiling;
 
-      let tileRow = 0;
+      let frame = 0;
       if (frameOverTime.mode === ParticleCurveMode.Constant || frameOverTime.mode === ParticleCurveMode.TwoConstants) {
-        tileRow =
-          Math.floor(frameOverTime.evaluate(undefined, textureSheetAnimation._frameOverTimeRand.random()) * z) * x;
+        frame = Math.floor(
+          frameOverTime.evaluate(undefined, textureSheetAnimation._frameOverTimeRand.random()) * tileCount
+        );
       }
-      const tileRowIndex = Math.floor(tileRow);
-
-      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = x;
-      instanceVertices[offset + 35] = y;
-      instanceVertices[offset + 36] = tileRow - tileRowIndex;
-      instanceVertices[offset + 37] = tileRowIndex * y;
+      instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = tiling.x;
+      instanceVertices[offset + 37] = tiling.y;
+      // Store the frame and birth-time grid, from which both UV scale and offset are derived.
+      instanceVertices[offset + 38] = frame;
     } else {
       instanceVertices[offset + ParticleBufferUtils.simulationUVOffset] = 1;
-      instanceVertices[offset + 35] = 1;
-      instanceVertices[offset + 36] = 0;
-      instanceVertices[offset + 37] = 0;
+      instanceVertices[offset + 37] = 1;
+      instanceVertices[offset + 38] = 0;
     }
 
     const { forceOverLifetime } = this;
     if (forceOverLifetime.enabled && forceOverLifetime._isRandomMode()) {
       const rand = forceOverLifetime._forceRand;
-      instanceVertices[offset + 38] = rand.random();
-      instanceVertices[offset + 39] = rand.random();
-      instanceVertices[offset + 40] = rand.random();
+      instanceVertices[offset + 32] = rand.random();
+      instanceVertices[offset + 33] = rand.random();
+      instanceVertices[offset + 34] = rand.random();
     }
 
     const { limitVelocityOverLifetime } = this;
@@ -1127,7 +1126,8 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       limitVelocityOverLifetime.enabled &&
       (limitVelocityOverLifetime._isSpeedRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
     ) {
-      instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
+      instanceVertices[offset + ParticleBufferUtils.limitVelocityRandomOffset] =
+        limitVelocityOverLifetime._speedRand.random();
     }
 
     const inheritVelocityOffset = offset + ParticleBufferUtils.inheritVelocityOffset;
@@ -1163,9 +1163,9 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       instanceVertices[offset + 14] *= inheritSize.z;
     }
     if (inheritRotation) {
-      instanceVertices[offset + 15] += inheritRotation.x;
-      instanceVertices[offset + 16] += inheritRotation.y;
-      instanceVertices[offset + 17] += inheritRotation.z;
+      instanceVertices[offset + 16] += inheritRotation.x;
+      instanceVertices[offset + 17] += inheritRotation.y;
+      instanceVertices[offset + 18] += inheritRotation.z;
     }
 
     this._firstFreeElement = nextFreeElement;
@@ -1515,7 +1515,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const col = this.colorOverLifetime;
     if (col.enabled) {
       const colorFactor = ParticleGenerator._tempColor;
-      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 20], colorFactor);
+      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 35], colorFactor);
       r *= colorFactor.r;
       g *= colorFactor.g;
       b *= colorFactor.b;
@@ -1529,7 +1529,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     const sol = this.sizeOverLifetime;
     // SOL only contributes in Curve / TwoCurves modes (shader gates on RENDERER_SOL_CURVE_MODE)
     if (sol.enabled && (sol.sizeX.mode === ParticleCurveMode.Curve || sol.sizeX.mode === ParticleCurveMode.TwoCurves)) {
-      const sizeRand = instanceVertices[particleOffset + 21];
+      const sizeRand = instanceVertices[particleOffset + 39];
       if (sol.separateAxes) {
         sx *= sol.sizeX.evaluate(normalizedAge, sizeRand);
         sy *= sol.sizeY.evaluate(normalizedAge, sizeRand);
@@ -1543,12 +1543,12 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
     }
     parentSize.set(sx, sy, sz);
 
-    let rx = instanceVertices[particleOffset + 15];
-    let ry = instanceVertices[particleOffset + 16];
-    let rz = instanceVertices[particleOffset + 17];
+    let rx = instanceVertices[particleOffset + 16];
+    let ry = instanceVertices[particleOffset + 17];
+    let rz = instanceVertices[particleOffset + 18];
     const rol = this.rotationOverLifetime;
     if (rol.enabled) {
-      const rotRand = instanceVertices[particleOffset + 22];
+      const rotRand = instanceVertices[particleOffset + 19];
       const lifetime = instanceVertices[particleOffset + 3];
       const rolZ = rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
       if (rol.separateAxes) {
@@ -1558,7 +1558,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       } else if (this.main.startRotation3D) {
         rz += rolZ;
       } else {
-        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotationSpeed.x
+        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotationRandom.x
       }
     }
     parentRotation.set(rx, ry, rz);

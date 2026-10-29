@@ -1,7 +1,7 @@
 #ifndef PARTICLE_COMMON_INCLUDED
 #define PARTICLE_COMMON_INCLUDED
 
-#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+#if defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES) && (!defined(PARTICLE_FORWARD_FEEDBACK) || defined(RENDERER_MODE_STRETCHED_BILLBOARD))
     // Sub-emitter particles encode the random value as -random - 1 to reserve negative values as their marker
     bool isSubEmitterSpawnedParticle(Attributes attributes) {
         return attributes.a_InheritVelocity.w < 0.0;
@@ -21,11 +21,10 @@ vec4 quaternionConjugate(in vec4 q) {
     return vec4(-q.xyz, q.w);
 }
 
-#ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
+#if defined(RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES) && !defined(PARTICLE_FORWARD_FEEDBACK)
     void applyParentTrajectoryToStartVelocity(
         Attributes attributes,
         vec4 invSimulationWorldRotation,
-        float startSpeed,
         inout vec3 startVelocity
     ) {
         bool inheritDirection = attributes.a_InheritVelocity.y < 0.0;
@@ -47,8 +46,8 @@ vec4 quaternionConjugate(in vec4 q) {
         if (inheritDirection) {
             float parentSpeed = length(parentLocalVelocity);
             startVelocity = parentSpeed > EPSILON
-                ? parentLocalVelocity * (startSpeed / parentSpeed)
-                : vec3(0.0, 0.0, -startSpeed);
+                ? parentLocalVelocity * (attributes.a_StartSizeSpeed.w / parentSpeed)
+                : vec3(0.0, 0.0, -attributes.a_StartSizeSpeed.w);
         }
         #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
             startVelocity += parentLocalVelocity * inheritFactor;

@@ -11,7 +11,7 @@ import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-const particleInstanceFloatStride = 46;
+const particleInstanceFloatStride = 45;
 
 function tick(engine: Engine, times: { value: number }, deltaMs: number = 100): void {
   //@ts-ignore
@@ -195,7 +195,7 @@ describe("EmissionModule rateOverDistance", () => {
     // World position lives at float offset 27 in each particle instance.
     const xs: number[] = [];
     for (let i = 0; i < 4; i++) {
-      xs.push(verts[i * particleInstanceFloatStride + 27]);
+      xs.push(verts[i * particleInstanceFloatStride + 20]);
     }
     xs.sort((a, b) => a - b);
     // Expect roughly [1, 2, 3, 4] — accept loose tolerance for float ops.
@@ -415,7 +415,7 @@ describe("EmissionModule rateOverDistance", () => {
     //@ts-ignore - reach into instance buffer to verify positions stay in [lastPos, currentPos]
     const verts = (generator as any)._instanceVertices as Float32Array;
     for (let i = 0; i < 7; i++) {
-      const x = verts[i * particleInstanceFloatStride + 27];
+      const x = verts[i * particleInstanceFloatStride + 20];
       // Without the in-loop clamp this would be e.g. -1.0, -1.2, ... (extrapolated
       // far behind lastPos.x = 1.5). With the clamp every particle lives within
       // the legitimate frame window [lastPos.x, currentPos.x] = [1.5, 1.55].

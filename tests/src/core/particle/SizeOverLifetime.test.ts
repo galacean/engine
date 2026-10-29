@@ -21,7 +21,7 @@ const SOL_CURVE_MODE_MACRO = ShaderMacro.getByName("RENDERER_SOL_CURVE_MODE");
 const SOL_RANDOM_TWO_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_RANDOM_TWO");
 const SOL_SEPARATE_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_SEPARATE");
 // ParticleBufferUtils.instanceVertexFloatStride
-const FLOAT_STRIDE = 46;
+const FLOAT_STRIDE = 45;
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -117,7 +117,7 @@ describe("SizeOverLifetime", () => {
     renderer.entity.destroy();
   });
 
-  it("TwoCurves mode writes per-particle random factor to a_Random0.z when noise is disabled", () => {
+  it("TwoCurves mode writes per-particle random factor to a_UVTilingFrameRandom.w when noise is disabled", () => {
     const renderer = createParticleRenderer(engine, "SOL_Rand");
     const generator = renderer.generator;
     const sol = generator.sizeOverLifetime;
@@ -131,8 +131,8 @@ describe("SizeOverLifetime", () => {
 
     expect(generator._getAliveParticleCount()).to.eq(2);
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const first = verts[21];
-    const second = verts[FLOAT_STRIDE + 21];
+    const first = verts[39];
+    const second = verts[FLOAT_STRIDE + 39];
     expect(first).to.be.greaterThan(0);
     expect(first).to.be.lessThan(1);
     expect(second).to.be.greaterThan(0);
@@ -142,7 +142,7 @@ describe("SizeOverLifetime", () => {
     renderer.entity.destroy();
   });
 
-  it("slot a_Random0.z stays untouched for non-random SOL modes", () => {
+  it("slot a_UVTilingFrameRandom.w stays untouched for non-random SOL modes", () => {
     const renderer = createParticleRenderer(engine, "SOL_NoRand");
     const generator = renderer.generator;
     const sol = generator.sizeOverLifetime;
@@ -156,7 +156,7 @@ describe("SizeOverLifetime", () => {
 
     expect(generator._getAliveParticleCount()).to.eq(1);
     const verts = (generator as any)._instanceVertices as Float32Array;
-    expect(verts[21]).to.eq(0);
+    expect(verts[39]).to.eq(0);
 
     renderer.entity.destroy();
   });
@@ -183,8 +183,8 @@ describe("SizeOverLifetime", () => {
 
     const vertsNoiseOnly = (rendererNoiseOnly.generator as any)._instanceVertices as Float32Array;
     const vertsBoth = (rendererBoth.generator as any)._instanceVertices as Float32Array;
-    expect(vertsNoiseOnly[21]).to.be.greaterThan(0);
-    expect(vertsBoth[21]).to.eq(vertsNoiseOnly[21]);
+    expect(vertsNoiseOnly[39]).to.be.greaterThan(0);
+    expect(vertsBoth[39]).to.eq(vertsNoiseOnly[39]);
 
     rendererNoiseOnly.entity.destroy();
     rendererBoth.entity.destroy();
@@ -218,8 +218,8 @@ describe("SizeOverLifetime", () => {
     }
 
     const verts = (generator as any)._instanceVertices as Float32Array;
-    expect(verts[21]).to.be.greaterThan(0);
-    expect(verts[21]).to.be.lessThan(1);
+    expect(verts[39]).to.be.greaterThan(0);
+    expect(verts[39]).to.be.lessThan(1);
 
     renderer.entity.destroy();
   });
