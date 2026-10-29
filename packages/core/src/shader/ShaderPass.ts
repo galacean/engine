@@ -32,6 +32,8 @@ export class ShaderPass extends ShaderPart {
   static _shaderPassCounter: number = 0;
   /** @internal */
   static _shaderRootPath = "shaders://root/";
+  private static _shaderMacroList: ShaderMacro[] = [];
+  private static _macroMap: Map<string, string> = new Map();
 
   /** @internal */
   _platformTarget: ShaderLanguage;
@@ -50,11 +52,6 @@ export class ShaderPass extends ShaderPart {
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
-  /** @internal Transform feedback output varyings (WebGL2 only). */
-  _feedbackVaryings?: string[];
-
-  private static _shaderMacroList: ShaderMacro[] = [];
-  private static _macroMap: Map<string, string> = new Map();
 
   /**
    * Create a shader pass from precompiled instructions.
@@ -88,14 +85,18 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  _getShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    feedbackVaryings?: string[]
+  ): ShaderProgram {
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
-    shaderProgram = this._compileShaderProgram(engine, macroCollection);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection, feedbackVaryings);
 
     shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
@@ -117,14 +118,18 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  _compileShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    feedbackVaryings?: string[]
+  ): ShaderProgram {
     const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
       engine,
       macroCollection,
       isGPUInstance
     );
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, feedbackVaryings);
     program._instanceLayout = instanceLayout;
     return program;
   }

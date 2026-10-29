@@ -5,13 +5,15 @@ export enum ParticleInstanceVertexAttribute {
   ShapePositionStartLifeTime = "a_ShapePositionStartLifeTime",
   DirectionTime = "a_DirectionTime",
   StartColor = "a_StartColor",
-  StartSize = "a_StartSize",
-  StartRotation0 = "a_StartRotation0",
-  StartSpeed = "a_StartSpeed",
-  Random0 = "a_Random0",
-  Random1 = "a_Random1",
-  SimulationWorldPosition = "a_SimulationWorldPosition",
+  StartSizeSpeed = "a_StartSizeSpeed",
+  StartRotationRandom = "a_StartRotationRandom",
+  WorldPositionGravity = "a_WorldPositionGravity",
   SimulationWorldRotation = "a_SimulationWorldRotation",
-  SimulationUV = "a_SimulationUV",
-  Random2 = "a_Random2"
+  VelocityRandomTSA = "a_VelocityRandomTSA",
+  ForceRandomColor = "a_ForceRandomColor",
+  UVTilingFrameRandom = "a_UVTilingFrameRandom",
+  InheritVelocity = "a_InheritVelocity",
+  LimitVelocityRandom = "a_LimitVelocityRandom",
+  ParentSampleWorldPosition = "a_ParentSampleWorldPosition",
+  ParentTrajectoryVelocity = "a_ParentTrajectoryVelocity"
 }

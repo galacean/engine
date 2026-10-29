@@ -21,13 +21,13 @@ vec2 computeParticleSizeBillboard(Attributes attributes, in vec2 size, in float 
     #ifdef RENDERER_SOL_CURVE_MODE
         float lifeSizeX = evaluateParticleCurve(renderer_SOLMaxCurveX, normalizedAge);
         #ifdef RENDERER_SOL_IS_RANDOM_TWO
-            lifeSizeX = mix(evaluateParticleCurve(renderer_SOLMinCurveX, normalizedAge), lifeSizeX, attributes.a_Random0.z);
+            lifeSizeX = mix(evaluateParticleCurve(renderer_SOLMinCurveX, normalizedAge), lifeSizeX, attributes.a_UVTilingFrameRandom.w);
         #endif
 
         #ifdef RENDERER_SOL_IS_SEPARATE
             float lifeSizeY = evaluateParticleCurve(renderer_SOLMaxCurveY, normalizedAge);
             #ifdef RENDERER_SOL_IS_RANDOM_TWO
-                lifeSizeY = mix(evaluateParticleCurve(renderer_SOLMinCurveY, normalizedAge), lifeSizeY, attributes.a_Random0.z);
+                lifeSizeY = mix(evaluateParticleCurve(renderer_SOLMinCurveY, normalizedAge), lifeSizeY, attributes.a_UVTilingFrameRandom.w);
             #endif
             size *= vec2(lifeSizeX, lifeSizeY);
         #else
@@ -42,15 +42,15 @@ vec2 computeParticleSizeBillboard(Attributes attributes, in vec2 size, in float 
         #ifdef RENDERER_SOL_CURVE_MODE
             float lifeSizeX = evaluateParticleCurve(renderer_SOLMaxCurveX, normalizedAge);
             #ifdef RENDERER_SOL_IS_RANDOM_TWO
-                lifeSizeX = mix(evaluateParticleCurve(renderer_SOLMinCurveX, normalizedAge), lifeSizeX, attributes.a_Random0.z);
+                lifeSizeX = mix(evaluateParticleCurve(renderer_SOLMinCurveX, normalizedAge), lifeSizeX, attributes.a_UVTilingFrameRandom.w);
             #endif
 
             #ifdef RENDERER_SOL_IS_SEPARATE
                 float lifeSizeY = evaluateParticleCurve(renderer_SOLMaxCurveY, normalizedAge);
                 float lifeSizeZ = evaluateParticleCurve(renderer_SOLMaxCurveZ, normalizedAge);
                 #ifdef RENDERER_SOL_IS_RANDOM_TWO
-                    lifeSizeY = mix(evaluateParticleCurve(renderer_SOLMinCurveY, normalizedAge), lifeSizeY, attributes.a_Random0.z);
-                    lifeSizeZ = mix(evaluateParticleCurve(renderer_SOLMinCurveZ, normalizedAge), lifeSizeZ, attributes.a_Random0.z);
+                    lifeSizeY = mix(evaluateParticleCurve(renderer_SOLMinCurveY, normalizedAge), lifeSizeY, attributes.a_UVTilingFrameRandom.w);
+                    lifeSizeZ = mix(evaluateParticleCurve(renderer_SOLMinCurveZ, normalizedAge), lifeSizeZ, attributes.a_UVTilingFrameRandom.w);
                 #endif
                 size *= vec3(lifeSizeX, lifeSizeY, lifeSizeZ);
             #else

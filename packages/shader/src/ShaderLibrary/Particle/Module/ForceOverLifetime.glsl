@@ -66,7 +66,7 @@
             vec3 forceAcceleration = renderer_FOLMaxConst;
 
             #ifdef RENDERER_FOL_IS_RANDOM_TWO
-                forceAcceleration = mix(renderer_FOLMinConst, forceAcceleration, vec3(attributes.a_Random2.x, attributes.a_Random2.y, attributes.a_Random2.z));
+                forceAcceleration = mix(renderer_FOLMinConst, forceAcceleration, attributes.a_ForceRandomColor.xyz);
             #endif
 
             velocityOffset = forceAcceleration * age;
@@ -82,12 +82,12 @@
                 vec3 minVelocityOffset;
 
                 forcePosition = vec3(
-                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientX, normalizedAge, minVelocityOffset.x), forcePosition.x, attributes.a_Random2.x),
-                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientY, normalizedAge, minVelocityOffset.y), forcePosition.y, attributes.a_Random2.y),
-                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientZ, normalizedAge, minVelocityOffset.z), forcePosition.z, attributes.a_Random2.z)
+                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientX, normalizedAge, minVelocityOffset.x), forcePosition.x, attributes.a_ForceRandomColor.x),
+                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientY, normalizedAge, minVelocityOffset.y), forcePosition.y, attributes.a_ForceRandomColor.y),
+                    mix(evaluateForceParticleCurveCumulative(attributes, renderer_FOLMinGradientZ, normalizedAge, minVelocityOffset.z), forcePosition.z, attributes.a_ForceRandomColor.z)
                 );
 
-                velocityOffset = mix(minVelocityOffset, velocityOffset, vec3(attributes.a_Random2.x, attributes.a_Random2.y, attributes.a_Random2.z));
+                velocityOffset = mix(minVelocityOffset, velocityOffset, attributes.a_ForceRandomColor.xyz);
             #endif
         #endif
         return forcePosition;
