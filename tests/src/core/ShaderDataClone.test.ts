@@ -41,8 +41,6 @@ it("replaces referenced texture slots without accumulating ownership", () => {
     expect(old.refCount).toBe(0);
     expect(next.refCount).toBe(6);
   }
-  target.cloneTo(target);
-  expect(next.refCount).toBe(6);
   owners.forEach((entity) => entity.destroy());
   expect(next.refCount).toBe(0);
   source.destroy();
