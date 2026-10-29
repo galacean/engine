@@ -316,7 +316,7 @@ Shader "Effect/ParticleFeedback" {
                               rotationByQuaternions(position, attr.a_SimulationWorldRotation) +
                               parentWorldPosition;
                       }
-                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, localVelocity);
+                      applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, attr.a_StartSpeed, localVelocity);
                   } else if (renderer_SimulationSpace != 0) {
                       position =
                           rotationByQuaternions(position, attr.a_SimulationWorldRotation) +

@@ -474,9 +474,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
 
     const isAlive = this.isAlive;
     if (isAlive) {
-      if (main.simulationSpace === ParticleSimulationSpace.World) {
-        this._bounds.generateTransformed();
-      }
+      this._bounds.generateTransformed();
     } else {
       if (lastAlive) {
         this._bounds.resetEmissionRecords();
@@ -1560,7 +1558,7 @@ export class ParticleGenerator extends DataObject implements ICloneHook<Particle
       } else if (this.main.startRotation3D) {
         rz += rolZ;
       } else {
-        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotation0.x
+        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotationSpeed.x
       }
     }
     parentRotation.set(rx, ry, rz);

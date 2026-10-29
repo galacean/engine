@@ -160,7 +160,14 @@ describe("InheritVelocityModule", () => {
     generator.stop(false, ParticleStopMode.StopEmittingAndClear);
 
     bounds.recordWorldEmission(generator._playTime, undefined, new Vector3(5, 0, 0), false);
-    bounds._recordFixedEmission(generator._playTime, 1, new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)));
+    bounds._recordEmission(
+      generator._playTime,
+      1,
+      new BoundingBox(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)),
+      new Vector3(),
+      false,
+      undefined
+    );
     generator._isPlaying = true;
 
     expect(bounds._emissionRecordCount).to.equal(2);

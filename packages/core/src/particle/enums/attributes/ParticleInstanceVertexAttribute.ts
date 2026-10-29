@@ -6,7 +6,7 @@ export enum ParticleInstanceVertexAttribute {
   DirectionTime = "a_DirectionTime",
   StartColor = "a_StartColor",
   StartSize = "a_StartSize",
-  StartRotation0 = "a_StartRotation0",
+  StartRotationSpeed = "a_StartRotationSpeed",
   StartSpeed = "a_StartSpeed",
   Random0 = "a_Random0",
   Random1 = "a_Random1",

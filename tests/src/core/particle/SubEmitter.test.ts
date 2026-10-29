@@ -1252,7 +1252,14 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "LazySourceBounds_Child");
     const parentGenerator = parent.generator as any;
     const childGenerator = child.generator as any;
-    parentGenerator._bounds._recordFixedEmission(0, 1, new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)));
+    parentGenerator._bounds._recordEmission(
+      0,
+      1,
+      new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2)),
+      new Vector3(),
+      false,
+      undefined
+    );
     parentGenerator._isPlaying = true;
     child.generator.main.simulationSpace = ParticleSimulationSpace.World;
     child.generator.main.startLifetime.constant = 1;
@@ -2919,7 +2926,7 @@ describe("SubEmitter", () => {
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
-    // 2D rotation mode (default) stores Z rotation in the X slot of a_StartRotation0 (float offset 15).
+    // 2D rotation mode (default) stores Z rotation in the X slot of a_StartRotationSpeed (float offset 15)
     expect(verts[15]).to.be.closeTo(0.75, 1e-3);
 
     parent.entity.destroy();
@@ -2961,7 +2968,7 @@ describe("SubEmitter", () => {
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
-    // a_StartRotation0.x @ float offset 15 (2D mode stores Z rotation here)
+    // a_StartRotationSpeed.x @ float offset 15 (2D mode stores Z rotation here)
     expect(verts[15]).to.be.closeTo(1.25, 1e-3);
 
     parent.entity.destroy();

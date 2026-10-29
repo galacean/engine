@@ -63,8 +63,7 @@ struct Attributes {
     vec4 a_DirectionTime;
     vec4 a_StartColor;
     vec3 a_StartSize;
-    vec3 a_StartRotation0;
-    float a_StartSpeed;
+    vec4 a_StartRotationSpeed;
     vec4 a_Random0;
 
     #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
@@ -255,11 +254,11 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
     #else
         vec3 initialPosition = attr.a_ShapePositionStartLifeTime.xyz;
         vec3 simulationWorldPosition = attr.a_SimulationWorldPosition;
-        vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+        vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartRotationSpeed.w;
         #ifdef RENDERER_HAS_SUB_EMITTER_SPAWNED_PARTICLES
             if (isSubEmitterSpawned) {
                 vec4 invSimulationWorldRotation = quaternionConjugate(attr.a_SimulationWorldRotation);
-                applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, startVelocity);
+                applyParentTrajectoryToStartVelocity(attr, invSimulationWorldRotation, attr.a_StartRotationSpeed.w, startVelocity);
 
                 if (renderer_SimulationSpace == 0) {
                     initialPosition += rotationByQuaternions(
@@ -295,10 +294,10 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         corner *= computeParticleSizeBillboard(attr, attr.a_StartSize.xy, normalizedAge);
         #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
             if (renderer_ThreeDStartRotation) {
-                vec3 rotation = radians(vec3(attr.a_StartRotation0.xy, computeParticleRotationFloat(attr, attr.a_StartRotation0.z, age, normalizedAge)));
+                vec3 rotation = radians(vec3(attr.a_StartRotationSpeed.xy, computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.z, age, normalizedAge)));
                 center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
             } else {
-                float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.x, age, normalizedAge));
+                float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
                 float c = cos(rot);
                 float s = sin(rot);
                 mat2 rotation = mat2(c, -s, s, c);
@@ -307,10 +306,10 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             }
         #else
             if (renderer_ThreeDStartRotation) {
-                center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, radians(attr.a_StartRotation0));
+                center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, radians(attr.a_StartRotationSpeed.xyz));
             } else {
-                float c = cos(radians(attr.a_StartRotation0.x));
-                float s = sin(radians(attr.a_StartRotation0.x));
+                float c = cos(radians(attr.a_StartRotationSpeed.x));
+                float s = sin(radians(attr.a_StartRotationSpeed.x));
                 mat2 rotation = mat2(c, -s, s, c);
                 corner = rotation * corner;
                 center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * upVector);
@@ -347,9 +346,9 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
         float rot;
         if (renderer_ThreeDStartRotation) {
-            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.z, age, normalizedAge));
+            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.z, age, normalizedAge));
         } else {
-            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.x, age, normalizedAge));
+            rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
         }
 
         float c = cos(rot);
@@ -364,7 +363,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         const vec3 cameraUpVector = vec3(0.0, 1.0, 0.0);
         vec3 sideVector = normalize(cross(camera_Forward, cameraUpVector));
 
-        float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.x, age, normalizedAge));
+        float rot = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
         float c = cos(rot);
         float s = sin(rot);
         mat2 rotation = mat2(c, -s, s, c);
@@ -387,17 +386,17 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
         if (is3DRotation) {
             #ifdef RENDERER_ROL_ENABLED
-                vec3 startRotation = renderer_ThreeDStartRotation ? attr.a_StartRotation0 : vec3(0.0, 0.0, attr.a_StartRotation0.x);
+                vec3 startRotation = renderer_ThreeDStartRotation ? attr.a_StartRotationSpeed.xyz : vec3(0.0, 0.0, attr.a_StartRotationSpeed.x);
                 vec3 rotation = radians(computeParticleRotationVec3(attr, startRotation, age, normalizedAge));
             #else
-                vec3 rotation = radians(attr.a_StartRotation0);
+                vec3 rotation = radians(attr.a_StartRotationSpeed.xyz);
             #endif
             center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(attr.POSITION * size, rotation), worldRotation);
         } else {
             #ifdef RENDERER_ROL_ENABLED
-                float angle = radians(computeParticleRotationFloat(attr, attr.a_StartRotation0.x, age, normalizedAge));
+                float angle = radians(computeParticleRotationFloat(attr, attr.a_StartRotationSpeed.x, age, normalizedAge));
             #else
-                float angle = radians(attr.a_StartRotation0.x);
+                float angle = radians(attr.a_StartRotationSpeed.x);
             #endif
             #ifdef RENDERER_EMISSION_SHAPE
                 vec3 axis = vec3(attr.a_ShapePositionStartLifeTime.xy, 0.0);

@@ -25,6 +25,7 @@ vec4 quaternionConjugate(in vec4 q) {
     void applyParentTrajectoryToStartVelocity(
         Attributes attributes,
         vec4 invSimulationWorldRotation,
+        float startSpeed,
         inout vec3 startVelocity
     ) {
         bool inheritDirection = attributes.a_InheritVelocity.y < 0.0;
@@ -46,8 +47,8 @@ vec4 quaternionConjugate(in vec4 q) {
         if (inheritDirection) {
             float parentSpeed = length(parentLocalVelocity);
             startVelocity = parentSpeed > EPSILON
-                ? parentLocalVelocity * (attributes.a_StartSpeed / parentSpeed)
-                : vec3(0.0, 0.0, -attributes.a_StartSpeed);
+                ? parentLocalVelocity * (startSpeed / parentSpeed)
+                : vec3(0.0, 0.0, -startSpeed);
         }
         #ifndef RENDERER_INHERIT_VELOCITY_INITIAL_CURVE
             startVelocity += parentLocalVelocity * inheritFactor;
