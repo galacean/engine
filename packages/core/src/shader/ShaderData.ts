@@ -611,12 +611,24 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
     return shaderData;
   }
 
+  /**
+   * Replace the target's shader properties and macros with copies of this data.
+   * Texture references follow the target's existing ownership count.
+   */
   cloneTo(target: ShaderData): void {
+    if (target === this) return;
     CloneUtil._cloneObjectFields(this._macroCollection, target._macroCollection, new Map<object, object>());
+    for (const key in target._macroMap) delete target._macroMap[key];
     Object.assign(target._macroMap, this._macroMap);
+    target._batchSharedFields = this._batchSharedFields.slice();
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
     const targetPropertyValueMap = target._propertyValueMap;
+    // Release the target's old slots, including properties absent from the source.
+    for (const key in targetPropertyValueMap) {
+      if (referCount > 0) this._addTexturesReferCount(targetPropertyValueMap[key], -referCount);
+      if (!(key in propertyValueMap)) delete targetPropertyValueMap[key];
+    }
     const keys = Object.keys(propertyValueMap);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
