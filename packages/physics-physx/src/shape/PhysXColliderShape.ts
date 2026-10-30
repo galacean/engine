@@ -135,6 +135,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
+   * {@inheritDoc IColliderShape.setIsSceneQuery }
+   */
+  setIsSceneQuery(value: boolean): void {
+    this._pxShape.setSceneQueryEnabled(value);
+    const controllers = this._controllers;
+    for (let i = 0; i < controllers.length; i++) {
+      controllers.get(i)._pxController?.setSceneQueryEnabled(value);
+    }
+  }
+
+  /**
    * {@inheritDoc IColliderShape.pointDistance }
    */
   pointDistance(point: Vector3): Vector4 {

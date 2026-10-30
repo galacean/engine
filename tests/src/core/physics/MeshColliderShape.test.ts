@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Entity,
   MeshColliderShape,
@@ -13,7 +14,6 @@ import {
 } from "@galacean/engine-core";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
 class CollisionScript extends Script {
@@ -52,7 +52,7 @@ describe("MeshColliderShape PhysX", () => {
   let physicsScene: any;
 
   beforeAll(async () => {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     engine.run();
 
     const scene = engine.sceneManager.activeScene;
