@@ -6,17 +6,15 @@ import { IColliderShape } from "./IColliderShape";
  */
 export interface IMeshColliderShape extends IColliderShape {
   /**
-   * Set mesh data for this collider shape.
+   * Update mesh data without changing the geometry type.
    * @param positions - Vertex positions
-   * @param indices - The index array (Uint16Array or Uint32Array), required for triangle mesh
-   * @param isConvex - Whether to use convex mesh (true) or triangle mesh (false)
+   * @param indices - Index array (null for convex mesh)
    * @param cookingFlags - Cooking flags
-   * @returns Whether the mesh data was successfully set
+   * @returns Whether the update succeeded; failure leaves the shape unchanged
    */
   setMeshData(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
-    isConvex: boolean,
     cookingFlags: number
   ): boolean;
 }

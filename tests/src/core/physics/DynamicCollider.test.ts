@@ -10,13 +10,9 @@ import {
   PlaneColliderShape
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
-
-const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
-const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
-  .href;
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -28,8 +24,8 @@ describe("DynamicCollider", function () {
     planeEntity.transform.setScale(20, 1, 20);
 
     const physicsPlane = new PlaneColliderShape();
-    physicsPlane.material.dynamicFriction = 0;
-    physicsPlane.material.staticFriction = 0;
+    physicsPlane.getInstanceMaterial().dynamicFriction = 0;
+    physicsPlane.getInstanceMaterial().staticFriction = 0;
     const planeCollider = planeEntity.addComponent(StaticCollider);
     planeCollider.addShape(physicsPlane);
     return planeEntity;
@@ -40,8 +36,8 @@ describe("DynamicCollider", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     if (type === DynamicCollider) {
@@ -74,10 +70,7 @@ describe("DynamicCollider", function () {
   beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
-      physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
-        wasmModeUrl: physXWasmModeUrl,
-        wasmSIMDModeUrl: physXWasmSIMDModeUrl
-      })
+      physics: createPhysics()
     });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
