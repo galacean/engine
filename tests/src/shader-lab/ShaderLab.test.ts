@@ -84,6 +84,16 @@ describe("ShaderLab", async () => {
       { name: "MATERIAL_ENABLE_TRANSMISSION" },
       { name: "MATERIAL_HAS_THICKNESS" }
     ]);
+
+    // Exercise the software sRGB sampling overloads in the shader package as well as core.
+    glslValidate(engine, PBRSource, shaderLabRelease, [
+      { name: "ENGINE_NO_SRGB" },
+      { name: "MATERIAL_HAS_BASETEXTURE" },
+      { name: "MATERIAL_HAS_EMISSIVETEXTURE" },
+      { name: "MATERIAL_ENABLE_SHEEN" },
+      { name: "MATERIAL_HAS_SHEEN_TEXTURE" },
+      { name: "MATERIAL_ENABLE_TRANSMISSION" }
+    ]);
   });
 
   it("render state", async () => {

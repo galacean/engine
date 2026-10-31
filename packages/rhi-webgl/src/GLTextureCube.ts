@@ -14,9 +14,10 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
 
     this._validate(textureCube, rhi);
 
-    const { format, isSRGBColorSpace } = textureCube;
+    // @ts-ignore Internal core fields are stripped from the published declarations.
+    const { format, isSRGBColorSpace, _useSRGBDecode } = textureCube;
     const isWebGL2 = this._isWebGL2;
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace && !_useSRGBDecode, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
   }
 

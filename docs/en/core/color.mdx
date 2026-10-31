@@ -90,4 +90,29 @@ export declare class Texture2D extends Texture {
 }
 ```
 
-By correctly managing the color space settings of textures, you can ensure rendering accuracy while improving performance. 
+By correctly managing the color space settings of textures, you can ensure rendering accuracy while improving performance.
+
+### WebGL1 without EXT_sRGB
+
+For ordinary `R8G8B8` and `R8G8B8A8` input textures, the engine uses RGB/RGBA storage when `EXT_sRGB` is unavailable. Built-in materials decode sRGB samples in the shader and leave linear samples unchanged. The public `isSRGBColorSpace` flag still describes the input data: setting it to `false` does not convert sRGB pixels into linear pixels. Compressed sRGB formats require their own format support and are not covered by this fallback.
+
+Internal render targets use linear storage on these devices, and the existing final pass converts the result for display. No additional rendering pass is introduced. An explicitly created sRGB `RenderTarget` is unsupported and throws an error; use a linear color attachment instead:
+
+```ts
+const color = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+const target = new RenderTarget(engine, width, height, color);
+```
+
+Custom shaders that accept either sRGB or linear textures can declare a companion boolean named `<sampler>_SRGBDecode`. The engine derives its value from the bound texture, including the default texture. Use it with the three-argument helper from `<common>`:
+
+```glsl
+#include <common>
+uniform sampler2D material_CustomTexture;
+uniform bool material_CustomTexture_SRGBDecode;
+// Inside the fragment shader:
+vec4 color = texture2DSRGB(material_CustomTexture, uv, material_CustomTexture_SRGBDecode);
+```
+
+This convention supports individual 2D and cube samplers, not sampler arrays. For cube sampling, apply `sRGBToLinear` to the sampled color only when the companion boolean is true. The existing two-argument `texture2DSRGB` helper remains available for shaders that always sample sRGB data.
+
+Software decoding adds shader arithmetic on devices using the fallback. It occurs after texture filtering, so filtering and mipmap results can differ from native sRGB sampling. Linear RGBA8 render targets also have less precision in dark colors than sRGB targets. Devices with hardware sRGB support continue to use the hardware path.

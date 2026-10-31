@@ -705,6 +705,12 @@ export class GLTexture implements IPlatformTexture {
 
     const isWebGL2 = rhi.isWebGL2;
 
+    // @ts-ignore Internal core fields are stripped from the published declarations.
+    texture._useSRGBDecode =
+      texture.isSRGBColorSpace &&
+      (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) &&
+      !rhi.canIUse(GLCapabilityType.sRGB);
+
     // Validate mipmap
     // @ts-ignore
     const mipmap = texture._mipmap;

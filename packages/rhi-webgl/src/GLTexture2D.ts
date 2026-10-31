@@ -14,9 +14,10 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
 
     this._validate(texture2D, rhi);
 
-    const { format, isSRGBColorSpace } = texture2D;
+    // @ts-ignore Internal core fields are stripped from the published declarations.
+    const { format, isSRGBColorSpace, _useSRGBDecode } = texture2D;
     const isWebGL2 = this._isWebGL2;
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, isWebGL2);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace && !_useSRGBDecode, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 

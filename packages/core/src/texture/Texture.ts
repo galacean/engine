@@ -21,6 +21,8 @@ export abstract class Texture extends GraphicsResource {
   _mipmap: boolean;
   /** @internal */
   _isDepthTexture: boolean = false;
+  /** @internal Whether sampling needs software sRGB decoding instead of hardware decoding. */
+  _useSRGBDecode: boolean = false;
 
   protected _format: TextureFormat;
   protected _width: number;

@@ -253,6 +253,10 @@ export class ShaderUniform {
     value._setUseDepthCompareMode(shaderUniform.textureUseCompareMode);
   }
 
+  uploadSRGBDecode(shaderUniform: ShaderUniform, value: Texture): void {
+    this.upload1i(shaderUniform, +value._useSRGBDecode);
+  }
+
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
     const rhi = this._rhi;
     const textureIndices = shaderUniform.textureIndex as GLenum[];

@@ -572,7 +572,7 @@ NOTE the other tuning knobs are now in the shader function inputs!
     #if (FXAA_FAST_PIXEL_OFFSET == 1)
         #define FxaaTexOff(t, p, o, r) texture2DLodOffset(t, p, 0.0, o)
     #else
-        #define FxaaTexOff(t, p, o, r) texture2DLodEXT(t, p + (o * r), 0.0)
+        #define FxaaTexOff(t, p, o, r) texture2DLodEXT(t, p + (vec2(o) * r), 0.0)
     #endif
     #if (FXAA_GATHER4_ALPHA == 1)
         // use #extension gpu_shader5 : enable

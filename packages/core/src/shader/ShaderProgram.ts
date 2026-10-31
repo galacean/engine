@@ -329,6 +329,25 @@ export class ShaderProgram {
       shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
 
+      // A sampler's software decode flag follows the texture actually bound, including defaults.
+      // Built-in hardware sRGB shader variants use constants instead of these uniforms.
+      if (!isArray && type === gl.BOOL && name.endsWith("_SRGBDecode")) {
+        const textureName = name.slice(0, -"_SRGBDecode".length);
+        const sampler = uniformInfos.find(
+          (info) => info.name === textureName && (info.type === gl.SAMPLER_2D || info.type === gl.SAMPLER_CUBE)
+        );
+        if (sampler) {
+          shaderUniform.name = textureName;
+          shaderUniform.propertyId = ShaderProperty.getByName(textureName)._uniqueId;
+          shaderUniform.textureDefault =
+            sampler.type === gl.SAMPLER_CUBE ? basicResources.whiteTextureCube : basicResources.whiteTexture2D;
+          shaderUniform.cacheValue = 0;
+          shaderUniform.applyFunc = shaderUniform.uploadSRGBDecode;
+          this._groupingUniform(shaderUniform, ShaderProperty._getShaderPropertyGroup(textureName), true);
+          return;
+        }
+      }
+
       switch (type) {
         case gl.FLOAT:
           if (isArray) {

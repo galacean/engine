@@ -71,7 +71,7 @@ vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int 
         #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
         #elif defined(ENGINE_NO_SRGB)
-            envMapColor = sRGBToLinear(envMapColor);
+            if (scene_EnvSpecularSampler_SRGBDecode) envMapColor = sRGBToLinear(envMapColor);
         #endif
         
         return envMapColor.rgb * specularIntensity;

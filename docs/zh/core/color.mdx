@@ -93,3 +93,28 @@ export declare class Texture2D extends Texture {
 
 
 通过正确管理纹理的色彩空间设置，可以确保渲染结果的准确性，同时提升性能。
+
+### WebGL1 缺少 EXT_sRGB 时
+
+对于普通 `R8G8B8`、`R8G8B8A8` 输入纹理，设备缺少 `EXT_sRGB` 时，引擎使用 RGB/RGBA 存储。内置材质在 Shader 中解码 sRGB 采样结果，线性纹理则保持原值。公开的 `isSRGBColorSpace` 标记仍描述输入数据：设置为 `false` 并不会将 sRGB 像素转换为线性像素。压缩 sRGB 格式需要对应的格式支持，不属于此降级方案的范围。
+
+这些设备上的内部渲染目标使用线性存储，现有的最终输出 Pass 负责转换为显示颜色，不增加额外的渲染 Pass。显式创建 sRGB `RenderTarget` 不受支持，会抛出错误；请使用线性颜色附件：
+
+```ts
+const color = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+const target = new RenderTarget(engine, width, height, color);
+```
+
+需要同时接受 sRGB 和线性纹理的自定义 Shader，可以声明名为 `<sampler>_SRGBDecode` 的配套布尔 uniform。引擎会根据实际绑定的纹理（包括默认纹理）设置其值，配合 `<common>` 中的三参数采样函数使用：
+
+```glsl
+#include <common>
+uniform sampler2D material_CustomTexture;
+uniform bool material_CustomTexture_SRGBDecode;
+// 在片元 Shader 内：
+vec4 color = texture2DSRGB(material_CustomTexture, uv, material_CustomTexture_SRGBDecode);
+```
+
+该约定支持单个 2D、Cube sampler，不支持 sampler 数组。Cube 采样时，仅在配套布尔值为 true 时对采样结果调用 `sRGBToLinear`。原有的双参数 `texture2DSRGB` 仍保留，适用于始终采样 sRGB 数据的自定义 Shader。
+
+软件解码会在降级设备上增加 Shader 运算。解码发生在纹理过滤之后，因此过滤和 mipmap 的结果可能与原生 sRGB 采样不同；线性 RGBA8 渲染目标的暗部精度也低于 sRGB 目标。支持硬件 sRGB 的设备继续使用硬件路径。
