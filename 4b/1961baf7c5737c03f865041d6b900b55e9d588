@@ -1,0 +1,21 @@
+packages/core/src/shader/ShaderData.ts
+  s_e908f19eed9719::t_a8dc921ba29584 615-617
+tests/src/core/ShaderDataClone.test.ts
+  s_e908f19eed9719::t_a8dc921ba29584 96-138
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "4b1961baf7c5737c03f865041d6b900b55e9d588",
+  "prompts": {},
+  "sessions": {
+    "s_e908f19eed9719": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a191a0-7119-7590-a213-5373779c9bd3",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
