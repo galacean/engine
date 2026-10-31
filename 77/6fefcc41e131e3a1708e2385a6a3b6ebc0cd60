@@ -1,0 +1,21 @@
+packages/rhi-webgl/src/GLCapability.ts
+  s_d38fe2a3a29c8c::t_f4c3ed8f530aa3 224-227
+tests/src/rhi-webgl/GLCapability.test.ts
+  s_d38fe2a3a29c8c::t_a554a7b09341eb 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "776fefcc41e131e3a1708e2385a6a3b6ebc0cd60",
+  "prompts": {},
+  "sessions": {
+    "s_d38fe2a3a29c8c": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a19249-28ae-7301-9850-276de3ebe437",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "cptbtptpbcptdtptp <njktsmshh@gmail.com>"
+    }
+  }
+}
