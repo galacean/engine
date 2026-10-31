@@ -90,4 +90,21 @@ export declare class Texture2D extends Texture {
 }
 ```
 
-By correctly managing the color space settings of textures, you can ensure rendering accuracy while improving performance. 
+By correctly managing the color space settings of textures, you can ensure rendering accuracy while improving performance.
+
+### WebGL1 without EXT_sRGB
+
+For ordinary `R8G8B8` and `R8G8B8A8` textures, the engine converts sRGB input pixels to linear RGB/RGBA storage during upload when `EXT_sRGB` is unavailable. Native `texture2D` / `textureCube` sampling and the existing `texture2DSRGB` helper then return linear colors without custom sampler names or decode uniforms. The engine no longer emits `ENGINE_NO_SRGB` to request shader-side decoding. Do not manually decode these samples again.
+
+`isSRGBColorSpace` still describes the input data: setting it to `false` does not convert sRGB pixels into linear pixels. Linear inputs and devices with hardware sRGB support retain their normal upload path. Compressed sRGB textures require their own format support and are not converted by this fallback.
+
+Pixel-buffer conversion uses a lookup table without modifying the caller's buffer. Image sources use a temporary RGBA upload and readback before conversion, preserving the browser's orientation and premultiplied-alpha behavior. Temporary GPU resources are released after each upload. This adds upload work and synchronous readback for image sources, but no drawing pass or per-sample shader decoding. Dynamic textures pay this cost on each update.
+
+Linear 8-bit storage has less dark-color precision than sRGB storage. `getPixelBuffer` re-encodes converted textures to the declared sRGB space; a round trip is therefore approximate, especially in dark colors. Mip levels and subregion uploads are converted as well; generated mipmaps operate on the linearized storage.
+
+Internal render targets use linear attachments on these devices, and the existing final pass converts the result for display. An explicitly created sRGB `RenderTarget` remains unsupported and throws an error; use a linear attachment:
+
+```ts
+const color = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+const target = new RenderTarget(engine, width, height, color);
+```

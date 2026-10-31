@@ -10,9 +10,6 @@ varying vec2 v_uv;
 #ifdef HAS_TEX_LOD
 	vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
 		vec4 color = texture2DLodEXT(tex, uv, lod);
-		#ifdef ENGINE_NO_SRGB
-			color = sRGBToLinear(color);
-		#endif
 		return color;
 	}
 #endif

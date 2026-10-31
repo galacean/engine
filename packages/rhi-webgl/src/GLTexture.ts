@@ -12,6 +12,7 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
+import { SRGBTextureConverter } from "./SRGBTextureConverter";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 
@@ -450,6 +451,8 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _formatDetail: TextureFormatDetail;
 
+  protected _convertSRGB: boolean = false;
+
   /**
    * Wrapping mode for texture coordinate S.
    */
@@ -571,7 +574,14 @@ export class GLTexture implements IPlatformTexture {
     //@ts-ignore
     const mipmap = texture._mipmap;
 
-    if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, this._isWebGL2)) {
+    if (
+      !TextureUtils.supportGenerateMipmaps(
+        texture.format,
+        mipmap,
+        texture.isSRGBColorSpace && !this._convertSRGB,
+        this._isWebGL2
+      )
+    ) {
       Logger.warn(
         "Auto-generating mipmaps for sRGB textures is only supported in [WebGL2 + R8G8B8A8], you must generate mipmaps manually."
       );
@@ -681,6 +691,10 @@ export class GLTexture implements IPlatformTexture {
     gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    if (this._convertSRGB) {
+      // Readback retains the declared input color space, with the linear RGBA8 quantization loss.
+      SRGBTextureConverter.encodePixels(out, baseFormat === gl.RGB ? 3 : 4, width * height);
+    }
   }
 
   protected _getReadFrameBuffer(): WebGLFramebuffer {
@@ -704,6 +718,11 @@ export class GLTexture implements IPlatformTexture {
     }
 
     const isWebGL2 = rhi.isWebGL2;
+
+    this._convertSRGB =
+      texture.isSRGBColorSpace &&
+      (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) &&
+      !rhi.canIUse(GLCapabilityType.sRGB);
 
     // Validate mipmap
     // @ts-ignore
