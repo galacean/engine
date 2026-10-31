@@ -22,13 +22,13 @@ void main() {
 	#endif
 
 	#ifdef MATERIAL_HAS_BASETEXTURE
-		color *= texture2DSRGB(material_BaseTexture, v_TextureCoordinate, material_BaseTexture_SRGBDecode);
+		color *= texture2DSRGB(material_BaseTexture, v_TextureCoordinate);
 	#endif
 	
 	// Emissive
 	vec3 emissiveRadiance = material_EmissiveColor;
 	#ifdef MATERIAL_HAS_EMISSIVETEXTURE
-		emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_TextureCoordinate, material_EmissiveTexture_SRGBDecode).rgb;
+		emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_TextureCoordinate).rgb;
 	#endif
 
 	color.rgb += emissiveRadiance;

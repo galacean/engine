@@ -16,20 +16,20 @@ uniform vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: hei
 
 
 void main(){
-	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv, renderer_BlitTexture_SRGBDecode);
+	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
 	#ifdef ENABLE_EFFECT_BLOOM
     	#ifdef BLOOM_HQ
-          mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize, material_BloomTexture_SRGBDecode);
+    	  mediump vec4 bloom = sampleTexture2DBicubic(material_BloomTexture, v_uv, renderer_texelSize);
     	#else
-          mediump vec4 bloom = texture2DSRGB(material_BloomTexture, v_uv, material_BloomTexture_SRGBDecode);
+    	  mediump vec4 bloom = texture2DSRGB(material_BloomTexture, v_uv);
     	#endif
 
     	bloom *= material_BloomIntensityParams.x;
     	color += bloom * material_BloomTint;
 
     	#ifdef BLOOM_DIRT
-          mediump vec4 dirt = texture2DSRGB(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw, material_BloomDirtTexture_SRGBDecode);
+    	  mediump vec4 dirt = texture2DSRGB(material_BloomDirtTexture, v_uv * material_BloomDirtTilingOffset.xy + material_BloomDirtTilingOffset.zw);
     	  dirt *= material_BloomIntensityParams.y;
     	  // Additive bloom (artist friendly)
     	  color += dirt * bloom;

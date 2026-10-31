@@ -5,7 +5,7 @@ varying vec2 v_uv;
 varying vec4 v_color;
 
 void main() {
-    vec4 baseColor = texture2DSRGB(renderer_UITexture, v_uv, renderer_UITexture_SRGBDecode);
+    vec4 baseColor = texture2DSRGB(renderer_UITexture, v_uv);
     vec4 finalColor = baseColor * v_color;
     #ifdef ENGINE_SHOULD_SRGB_CORRECT
         finalColor = outputSRGBCorrection(finalColor);

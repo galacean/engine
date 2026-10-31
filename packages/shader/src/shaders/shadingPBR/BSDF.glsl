@@ -405,7 +405,7 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
         vec2 refractionCoords = (samplingPositionNDC.xy / samplingPositionNDC.w) * 0.5 + 0.5;
 
         // Sample the opaque texture to get the transmitted light
-        vec3 refractionTransmitted = texture2DSRGB(camera_OpaqueTexture, refractionCoords, camera_OpaqueTexture_SRGBDecode).rgb;
+        vec3 refractionTransmitted = texture2DSRGB(camera_OpaqueTexture, refractionCoords).rgb;
         
         refractionTransmitted *= bsdfData.diffuseColor;
          

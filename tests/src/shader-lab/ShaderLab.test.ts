@@ -85,9 +85,8 @@ describe("ShaderLab", async () => {
       { name: "MATERIAL_HAS_THICKNESS" }
     ]);
 
-    // Exercise the software sRGB sampling overloads in the shader package as well as core.
+    // Compile textured variants after removing shader-side fallback decoding.
     glslValidate(engine, PBRSource, shaderLabRelease, [
-      { name: "ENGINE_NO_SRGB" },
       { name: "MATERIAL_HAS_BASETEXTURE" },
       { name: "MATERIAL_HAS_EMISSIVETEXTURE" },
       { name: "MATERIAL_ENABLE_SHEEN" },

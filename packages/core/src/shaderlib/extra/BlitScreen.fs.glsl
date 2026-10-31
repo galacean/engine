@@ -7,13 +7,20 @@ uniform mediump sampler2D renderer_BlitTexture;
 
 varying vec2 v_uv;
 
+#ifdef HAS_TEX_LOD
+	vec4 texture2DLodSRGB(sampler2D tex, vec2 uv, float lod) {
+		vec4 color = texture2DLodEXT(tex, uv, lod);
+		return color;
+	}
+#endif
+
 void main() {
 	vec2 uv = v_uv;
 	// Screen uv is flipped
 	uv.y = 1.0 - uv.y;
 
 	#ifdef HAS_TEX_LOD
-		gl_FragColor = texture2DLodEXT( renderer_BlitTexture, uv, renderer_BlitMipLevel );
+		gl_FragColor = texture2DLodSRGB( renderer_BlitTexture, uv, renderer_BlitMipLevel );
 	#else
 		gl_FragColor = texture2D( renderer_BlitTexture, uv );
 	#endif

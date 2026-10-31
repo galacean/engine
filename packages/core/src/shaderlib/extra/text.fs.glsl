@@ -6,6 +6,6 @@ varying vec4 v_color;
 
 void main()
 {
-  vec4 baseColor = texture2DSRGB(renderElement_TextTexture, v_uv, renderElement_TextTexture_SRGBDecode);
+  vec4 baseColor = texture2DSRGB(renderElement_TextTexture, v_uv);
   gl_FragColor = baseColor * v_color;
 }

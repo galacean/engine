@@ -122,7 +122,7 @@ describe.each([
     expectGray(screenPixel(), 188);
   });
 
-  it("only keeps software decode uniforms active when hardware sRGB is unavailable", () => {
+  it("does not add software decode uniforms on any device", () => {
     const linkProgram = vi.spyOn(gl, "linkProgram");
     material.baseTexture = texture(true);
     expectGray(screenPixel(), 128);
@@ -133,7 +133,7 @@ describe.each([
         if (name.endsWith("_SRGBDecode")) decodeUniforms.push(name);
       }
     }
-    expect(decodeUniforms.length > 0).toBe(missingSRGB);
+    expect(decodeUniforms).toHaveLength(0);
   });
 
   it("follows custom sampler bindings across materials, clones and destroyed textures", () => {
@@ -146,9 +146,8 @@ describe.each([
          void main() { gl_Position = renderer_MVPMat * vec4(POSITION, 1.0); }`,
         `#include <common>
          uniform sampler2D material_CustomTexture;
-         uniform bool material_CustomTexture_SRGBDecode;
          void main() {
-           vec4 color = texture2DSRGB(material_CustomTexture, vec2(0.5), material_CustomTexture_SRGBDecode);
+           vec4 color = texture2D(material_CustomTexture, vec2(0.5));
            gl_FragColor = vec4(color.rgb * 0.5, 1.0);
          }`
       );

@@ -100,7 +100,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         material.IOR = material_IOR;
 
         #ifdef MATERIAL_HAS_BASETEXTURE
-            baseColor *= texture2DSRGB(material_BaseTexture, v_uv, material_BaseTexture_SRGBDecode);
+            baseColor *= texture2DSRGB(material_BaseTexture, v_uv);
         #endif
 
         #ifdef RENDERER_ENABLE_VERTEXCOLOR
@@ -193,7 +193,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         #ifdef MATERIAL_ENABLE_SHEEN
             vec3 sheenColor = material_SheenColor;
             #ifdef MATERIAL_HAS_SHEEN_TEXTURE
-                sheenColor *= texture2DSRGB(material_SheenTexture, v_uv, material_SheenTexture_SRGBDecode).rgb;
+                sheenColor *= texture2DSRGB(material_SheenTexture, v_uv).rgb;
             #endif
             material.sheenColor = sheenColor;
 

@@ -3,7 +3,7 @@ varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
 
 void main(){
-	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv, renderer_BlitTexture_SRGBDecode);
+	mediump vec4 color = texture2DSRGB(renderer_BlitTexture, v_uv);
 
     // This is final output, maybe has alpha
     // If we use premultiplied color to convert to sRGB. Since we ignored the background color, the greater the transparency, the greater the final composite color

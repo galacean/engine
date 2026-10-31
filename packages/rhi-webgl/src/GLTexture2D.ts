@@ -1,5 +1,6 @@
 import { IPlatformTexture2D, Texture2D, TextureUsage } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
+import { SRGBTextureConverter } from "./SRGBTextureConverter";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
@@ -14,10 +15,9 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
 
     this._validate(texture2D, rhi);
 
-    // @ts-ignore Internal core fields are stripped from the published declarations.
-    const { format, isSRGBColorSpace, _useSRGBDecode } = texture2D;
+    const { format, isSRGBColorSpace } = texture2D;
     const isWebGL2 = this._isWebGL2;
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace && !_useSRGBDecode, this._gl, isWebGL2);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace && !this._convertSRGB, this._gl, isWebGL2);
     (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 
@@ -55,6 +55,9 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
       }
     } else {
       const { baseFormat, dataType } = formatDetail;
+      if (this._convertSRGB) {
+        colorBuffer = SRGBTextureConverter.decodePixels(colorBuffer, baseFormat === gl.RGB ? 3 : 4, width * height);
+      }
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
@@ -79,6 +82,19 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     this._bind();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
+
+    if (this._convertSRGB) {
+      const { data, width, height } = SRGBTextureConverter.decodeImage(gl, imageSource, baseFormat === gl.RGB ? 3 : 4);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, this._formatDetail.alignment);
+      if (this._texture.usage === TextureUsage.Dynamic) {
+        gl.texImage2D(this._target, mipLevel, internalFormat, width, height, 0, baseFormat, dataType, data);
+      } else {
+        gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, width, height, baseFormat, dataType, data);
+      }
+      return;
+    }
 
     if (this._texture.usage === TextureUsage.Dynamic) {
       gl.texImage2D(this._target, mipLevel, internalFormat, baseFormat, dataType, imageSource);

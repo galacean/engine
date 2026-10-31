@@ -49,32 +49,9 @@ vec4 linearToSRGB(vec4 value){
     return vec4(linearToSRGB(value.r), linearToSRGB(value.g), linearToSRGB(value.b), value.a);
 }
 
-// Decode flags follow the bound textures. Hardware sRGB variants need no flag uniforms.
-#ifdef ENGINE_NO_SRGB
-bool camera_OpaqueTexture_SRGBDecode;
-bool material_BaseTexture_SRGBDecode;
-bool material_EmissiveTexture_SRGBDecode;
-bool material_SheenTexture_SRGBDecode;
-bool scene_EnvSpecularSampler_SRGBDecode;
-#else
-const bool camera_OpaqueTexture_SRGBDecode = false;
-const bool material_BaseTexture_SRGBDecode = false;
-const bool material_EmissiveTexture_SRGBDecode = false;
-const bool material_SheenTexture_SRGBDecode = false;
-const bool scene_EnvSpecularSampler_SRGBDecode = false;
-#endif
-
-vec4 texture2DSRGB(sampler2D tex, vec2 uv, bool decodeSRGB) {
-	vec4 color = texture2D(tex, uv);
-	#ifdef ENGINE_NO_SRGB
-		if (decodeSRGB) color = sRGBToLinear(color);
-	#endif
-	return color;
-}
-
-// Keep the two-argument helper for custom shaders that explicitly sample sRGB data.
+// sRGB textures are decoded by hardware or converted to linear storage during upload.
 vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
-	return texture2DSRGB(tex, uv, true);
+    return texture2D(tex, uv);
 }
 
 vec4 outputSRGBCorrection(vec4 linearIn){
