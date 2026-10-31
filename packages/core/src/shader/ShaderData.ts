@@ -3,7 +3,6 @@ import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
 import { ignoreClone } from "../clone/CloneDecorators";
-import { CloneUtil } from "../clone/CloneUtil";
 import type { ICloneHook } from "../clone/ICloneHook";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
@@ -613,7 +612,9 @@ export class ShaderData extends DataObject implements IReferable, IClone, IClone
 
   cloneTo(target: ShaderData): void {
     if (target === this) return;
-    CloneUtil._cloneObjectFields(this._macroCollection, target._macroCollection, new Map<object, object>());
+    const targetMacroCollection = target._macroCollection;
+    targetMacroCollection.clear();
+    targetMacroCollection.unionCollection(this._macroCollection);
     for (const key in target._macroMap) delete target._macroMap[key];
     Object.assign(target._macroMap, this._macroMap);
     const sourceFields = this._batchSharedFields;

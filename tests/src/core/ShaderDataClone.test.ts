@@ -93,6 +93,49 @@ it("synchronizes replaced macro values and empty macro sets when copying", () =>
   targetMaterial.destroy();
 });
 
+it("reuses independent macro masks across growing, shrinking and empty copies", () => {
+  const material = new Material(engine, Shader.find("Unlit"));
+  const targetMaterial = material.clone();
+  const emptyMaterial = material.clone();
+  const source = material.shaderData;
+  const target = targetMaterial.shaderData;
+  const targetMask = target._macroCollection._mask;
+  const macros = Array.from({ length: 65 }, (_, index) => ShaderMacro.getByName(`COPY_MASK_${index}`));
+  const low = macros[0],
+    middle = macros[32],
+    high = macros[64];
+  source.enableMacro(low);
+  source.enableMacro(high);
+
+  source.cloneTo(target);
+  expect(target._macroCollection._mask).toBe(targetMask);
+  expect(target._macroCollection.isEqual(source._macroCollection)).toBe(true);
+  expect(target.getMacros()).toEqual([low, high]);
+
+  source.disableMacro(high);
+  source.cloneTo(target);
+  expect(target._macroCollection._mask).toBe(targetMask);
+  expect(target._macroCollection.isEqual(source._macroCollection)).toBe(true);
+  expect(target._macroCollection.isEnable(high)).toBe(false);
+  target.enableMacro(high);
+  expect(source._macroCollection.isEnable(high)).toBe(false);
+
+  emptyMaterial.shaderData.cloneTo(target);
+  expect(target._macroCollection._mask).toBe(targetMask);
+  expect(target._macroCollection.isEqual(emptyMaterial.shaderData._macroCollection)).toBe(true);
+  expect(target.getMacros()).toEqual([]);
+  target.enableMacro(low);
+  target.enableMacro(middle);
+  const renderMacros: ShaderMacro[] = [];
+  ShaderMacro._getMacrosElements(target._macroCollection, renderMacros);
+  expect(renderMacros).toEqual([low, middle]);
+  expect(target._macroCollection.isEnable(high)).toBe(false);
+  expect(source._macroCollection.isEnable(middle)).toBe(false);
+  material.destroy();
+  targetMaterial.destroy();
+  emptyMaterial.destroy();
+});
+
 it("updates renderer batching metadata when copying shared texture slots", () => {
   const a = engine.sceneManager.activeScene.createRootEntity();
   const b = engine.sceneManager.activeScene.createRootEntity();
