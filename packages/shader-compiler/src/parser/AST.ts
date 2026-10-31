@@ -143,7 +143,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (ASTNode._unwrapToken(this.children![0]).type === Keyword.RETURN) {
-        sa.curFunctionInfo.returnStatement = this;
+        sa.curFunctionInfo.returnStatements.push(this);
       }
     }
 
@@ -250,10 +250,6 @@ export namespace ASTNode {
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
       sa.symbolTableStack.insert(sm);
-    }
-
-    override codeGen(visitor: CodeGenVisitor): string {
-      return this.setCache(visitor.visitSingleDeclaration(this));
     }
   }
 
@@ -531,7 +527,7 @@ export namespace ASTNode {
     paramSig: GalaceanDataType[] | undefined;
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      sa.curFunctionInfo.returnStatement = null;
+      sa.curFunctionInfo.returnStatements.length = 0;
       sa.curFunctionInfo.header = this;
 
       const children = this.children;
@@ -687,13 +683,13 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.function_definition)
   export class FunctionDefinition extends TreeNode {
-    returnStatement?: ASTNode.JumpStatement;
+    returnStatements: ASTNode.JumpStatement[] = [];
     protoType: FunctionProtoType;
     statements: CompoundStatementNoScope;
     isInMacroBranch: boolean;
 
     override init(): void {
-      this.returnStatement = undefined;
+      this.returnStatements.length = 0;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -707,20 +703,20 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
-      const { header, returnStatement } = curFunctionInfo;
+      const { header, returnStatements } = curFunctionInfo;
       if (header!.returnType.type === Keyword.VOID) {
-        if (returnStatement) {
+        if (returnStatements.length) {
           sa.reportError(header!.returnType.location, "Return in void function.");
         }
       } else {
-        if (!returnStatement) {
+        if (!returnStatements.length) {
           sa.reportError(header!.returnType.location, `No return statement found.`);
         } else {
-          this.returnStatement = returnStatement;
+          this.returnStatements.push(...returnStatements);
         }
       }
       curFunctionInfo.header = undefined;
-      curFunctionInfo.returnStatement = undefined;
+      curFunctionInfo.returnStatements.length = 0;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -1758,15 +1754,23 @@ export namespace ASTNode {
       this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
     }
 
-    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
-     *  function-like parameter names (local to the macro, not call-site refs)
-     *  and duplicates. */
+    /**
+     * Collect identifier references through macro aliases, excluding form parameters and duplicates.
+     */
     private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
         if (child instanceof BaseToken) {
           const name = child.lexeme;
-          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) out.push(name);
+          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
+            out.push(name);
+          }
+        } else if (child instanceof MacroCallSymbol || child instanceof MacroCallFunction) {
+          for (const name of child.referenceSymbolNames) {
+            if (params.indexOf(name) === -1 && out.indexOf(name) === -1) {
+              out.push(name);
+            }
+          }
         }
         return;
       }

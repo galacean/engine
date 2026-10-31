@@ -221,9 +221,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
-      if (returnStatement) {
+      for (const returnStatement of fnNode.returnStatements) {
         returnStatement.isFragReturnStatement = true;
       }
 
@@ -306,9 +304,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   private _walkMacroDefineTokens(children: NodeChild[]): void {
     for (const child of children) {
       if (child instanceof ASTNode.MacroDefine) {
-        // Codegen the value once so the enclosed `visitPostfixExpression` calls
-        // register their struct-prop references. The returned string is discarded
-        // — the real emit happens later in `_getGlobalMacroDeclarations`.
+        // Codegen the value once. Its side effects are what this walk is for: the
+        // enclosed `visitPostfixExpression` calls register the IO struct props they
+        // touch, and `visitVariableIdentifier`/`visitFunctionCall` register the
+        // globals they name — `INVERSE_MAT` expands to `inverseMat`, which is
+        // reachable only through the macro body. The returned text is discarded;
+        // the real emit happens in `_getGlobalMacroDeclarations`.
         if (child.valueExpression) child.valueExpression.codeGen(this);
       } else if (child instanceof TreeNode) {
         this._walkMacroDefineTokens(child.children);

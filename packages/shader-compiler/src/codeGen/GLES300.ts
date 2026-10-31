@@ -100,12 +100,12 @@ export class GLES300Visitor extends GLESVisitor {
   override visitJumpStatement(node: ASTNode.JumpStatement): string {
     if (node.isFragReturnStatement) {
       if (VisitorContext.context.mrtStructs.length) {
-        return "";
+        return "return;";
       }
       this._registerFragColorVariable();
 
       const expression = node.children[1] as ASTNode.Expression;
-      return `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
+      return `{ ${V3_GL_FragColor} = ${expression.codeGen(this)}; return; }`;
     }
     return super.visitJumpStatement(node);
   }
