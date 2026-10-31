@@ -1,4 +1,11 @@
-import { PointerEventData, Script, Sprite, SpriteMaskInteraction, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import {
+  PointerEventData,
+  Script,
+  Sprite,
+  SpriteMaskInteraction,
+  SpriteMaskLayer,
+  Texture2D
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { CanvasRenderMode, Image, Mask, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
@@ -12,8 +19,7 @@ describe("Mask", async () => {
 
   const engine = await WebGLEngine.create({ canvas: canvasDOM });
   const webCanvas = engine.canvas;
-  webCanvas.width = 300;
-  webCanvas.height = 300;
+  webCanvas.setResolution(300, 300);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
   const inputManager = engine.inputManager;
@@ -105,6 +111,33 @@ describe("Mask", async () => {
     // Circle center should still hit.
     clickAtNormalizedPosition(0.5, 0.5);
     expect(clickScript.clickCount).toBe(1);
+  });
+
+  it("should clone mask resources and keep the clone independent", () => {
+    const sourceEntity = canvasEntity.createChild("cloneSource");
+    const source = sourceEntity.addComponent(Mask);
+    const sprite = createSolidSprite(engine);
+    source.sprite = sprite;
+    source.alphaCutoff = 0.3;
+    source.flipX = true;
+    source.influenceLayers = SpriteMaskLayer.Layer1;
+    const references = sprite.refCount;
+
+    const cloneEntity = sourceEntity.clone();
+    const clone = cloneEntity.getComponent(Mask)!;
+    expect(clone.sprite).toBe(sprite);
+    expect(sprite.refCount).toBe(references + 1);
+    expect(clone.alphaCutoff).toBe(0.3);
+    expect(clone.flipX).toBe(true);
+    expect(clone.influenceLayers).toBe(SpriteMaskLayer.Layer1);
+    expect(clone._renderElement).not.toBe(source._renderElement);
+    expect(clone._subChunk).not.toBe(source._subChunk);
+
+    clone.sprite = null;
+    expect(source.sprite).toBe(sprite);
+    expect(sprite.refCount).toBe(references);
+    cloneEntity.destroy();
+    sourceEntity.destroy();
   });
 });
 

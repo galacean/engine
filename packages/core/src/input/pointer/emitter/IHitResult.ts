@@ -5,7 +5,7 @@ import { Entity } from "../../../Entity";
  * @internal
  */
 export interface IHitResult {
-  entity: Entity;
+  entity: Entity | null;
   distance: number;
   point: Vector3;
   normal: Vector3;

@@ -8,8 +8,7 @@ import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
-import { GLCapabilityType, Logger } from "./base";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneDecorators";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
@@ -24,7 +23,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { TextureFormat } from "./texture";
+import { TextureFormat, TextureUtils } from "./texture";
 import { RenderTarget } from "./texture/RenderTarget";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
@@ -116,20 +115,18 @@ export class Camera extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
   _frustum: BoundingFrustum = new BoundingFrustum();
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
-  _replacementShader: Shader = null;
+  _replacementShader: Shader | null = null;
   /** @internal */
-  _replacementSubShaderTag: ShaderTagKey = null;
+  _replacementSubShaderTag: ShaderTagKey | null | undefined = null;
   /** @internal */
-  _replacementFailureStrategy: ReplacementFailureStrategy = null;
+  _replacementFailureStrategy: ReplacementFailureStrategy | null = null;
   /** @internal */
   @ignoreClone
   _cameraIndex: number = -1;
@@ -145,28 +142,19 @@ export class Camera extends Component {
   private _opaqueTextureEnabled: boolean = false;
   private _enableHDR = false;
   private _enablePostProcess = false;
-  private _msaaSamples: MSAASamples;
+  private _msaaSamples = MSAASamples.FourX;
 
-  private _renderTarget: RenderTarget = null;
-  @ignoreClone
+  private _renderTarget: RenderTarget | null = null;
   private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   @ignoreClone
   private _depthBufferParams: Vector4 = new Vector4();
-  @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  @deepClone
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
-  @deepClone
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
@@ -277,7 +265,7 @@ export class Camera extends Component {
   set priority(value: number) {
     if (this._priority !== value) {
       if (this._phasedActiveInScene) {
-        this.scene._componentsManager._cameraNeedSorting = true;
+        this.scene!._componentsManager._cameraNeedSorting = true;
       }
       this._priority = value;
     }
@@ -382,21 +370,14 @@ export class Camera extends Component {
   /**
    * Whether to enable HDR.
    * @defaultValue `false`
+   * @remarks Kept on this property across backends; rendering falls back to LDR when the device lacks HDR color targets.
    */
   get enableHDR(): boolean {
     return this._enableHDR;
   }
 
   set enableHDR(value: boolean) {
-    if (this.enableHDR !== value) {
-      const rhi = this.engine._hardwareRenderer;
-      const supportHDR = rhi.isWebGL2 || rhi.canIUse(GLCapabilityType.textureHalfFloat);
-      if (value && !supportHDR) {
-        Logger.warn("Can't enable HDR in this device.");
-        return;
-      }
-      this._enableHDR = value;
-    }
+    this._enableHDR = value;
   }
 
   /**
@@ -434,21 +415,14 @@ export class Camera extends Component {
    * Higher sample counts (e.g., 2x, 4x, 8x) produce smoother edges.
    *
    * @defaultValue `MSAASamples.FourX`
+   * @remarks The requested count is kept; rendering uses at most the count supported by the device.
    */
   get msaaSamples(): MSAASamples {
     return this._msaaSamples;
   }
 
   set msaaSamples(value: MSAASamples) {
-    if (this._msaaSamples !== value) {
-      const maxMSAASamples = this._engine._hardwareRenderer.capability.maxAntiAliasing;
-      if (value > maxMSAASamples) {
-        Logger.warn(`MSAA samples exceeds the limit and is automatically downgraded to:${maxMSAASamples}`);
-        this._msaaSamples = maxMSAASamples;
-      } else {
-        this._msaaSamples = value;
-      }
-    }
+    this._msaaSamples = value;
   }
 
   /**
@@ -456,8 +430,6 @@ export class Camera extends Component {
    */
   constructor(entity: Entity) {
     super(entity);
-    // Includes hardware detection correction
-    this.msaaSamples = MSAASamples.FourX;
 
     this._isViewMatrixDirty = entity.registerWorldChangeFlag();
     this._isInvViewProjDirty = entity.registerWorldChangeFlag();
@@ -635,10 +607,11 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
-   * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
+   * @param mipLevel - Set mip level the data want to write
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     const engine = this._engine;
+    if (!engine._hardwareRenderer.supportsRendering) return;
     const context = engine._renderContext;
     const virtualCamera = this._virtualCamera;
 
@@ -665,22 +638,18 @@ export class Camera extends Component {
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
-      this.scene.shaderData._macroCollection,
+      this.scene!.shaderData._macroCollection,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
 
-    if (mipLevel > 0 && !engine._hardwareRenderer.isWebGL2) {
-      mipLevel = 0;
-      Logger.error("mipLevel only take effect in WebGL2.0");
-    }
-    let ignoreClearFlags: CameraClearFlags;
+    let ignoreClearFlags: CameraClearFlags | undefined;
     if (this._cameraType !== CameraType.Normal && !this._renderTarget) {
       ignoreClearFlags = engine.xrManager._getCameraIgnoreClearFlags(this._cameraType);
     }
     this._renderPipeline.render(context, cubeFace, mipLevel, ignoreClearFlags);
     engine._renderCount++;
-    context.camera = null;
+    context.camera = null!;
   }
 
   /**
@@ -728,18 +697,20 @@ export class Camera extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onEnableInScene(): void {
-    this.scene._componentsManager.addCamera(this);
+    this.scene!._componentsManager.addCamera(this);
     this._dispatchModify(CameraModifyFlags.EnableInScene);
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDisableInScene(): void {
-    this.scene._componentsManager.removeCamera(this);
+    this.scene!._componentsManager.removeCamera(this);
     this._dispatchModify(CameraModifyFlags.DisableInScene);
   }
 
@@ -749,7 +720,7 @@ export class Camera extends Component {
    */
   _isIndependentCanvasEnabled(): boolean {
     // Uber pass need internal RT
-    if (this.enablePostProcess && this.scene.postProcessManager._isValid()) {
+    if (this.enablePostProcess && this.scene!.postProcessManager._isValid()) {
       return true;
     }
 
@@ -759,12 +730,13 @@ export class Camera extends Component {
     }
 
     const renderTarget = this._renderTarget;
+    const internalColorFormat = this._getInternalColorTextureFormat();
     // Need HDR and opaque texture
-    if (this.enableHDR || this.opaqueTextureEnabled) {
+    if (TextureUtils.isHDRFormat(internalColorFormat) || this.opaqueTextureEnabled) {
       if (renderTarget) {
         // If camera is HDR and format is same with renderTarget can reuse renderTarget if renderTarget is same HDR format
-        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8)
-        return this._getInternalColorTextureFormat() !== renderTarget.getColorTexture(0).format;
+        // If camera is LDR and opaqueTextureEnabled is true, can reuse renderTarget if renderTarget is LDR format(Only R8G8B8A8_UNorm)
+        return internalColorFormat !== renderTarget.getColorTexture(0)!.format;
       } else {
         return true;
       }
@@ -777,11 +749,23 @@ export class Camera extends Component {
    * @internal
    */
   _getInternalColorTextureFormat(): TextureFormat {
-    return this._enableHDR
-      ? this.engine._hardwareRenderer.isWebGL2 && !this.isAlphaOutputRequired
-        ? TextureFormat.R11G11B10_UFloat
-        : TextureFormat.R16G16B16A16
-      : TextureFormat.R8G8B8A8;
+    if (this._enableHDR) {
+      const rhi = this._engine._hardwareRenderer;
+      if (!this.isAlphaOutputRequired && rhi.supportsRenderTargetColorFormat(TextureFormat.R11G11B10_UFloat)) {
+        return TextureFormat.R11G11B10_UFloat;
+      }
+      if (rhi.supportsRenderTargetColorFormat(TextureFormat.R16G16B16A16_SFloat)) {
+        return TextureFormat.R16G16B16A16_SFloat;
+      }
+    }
+    return TextureFormat.R8G8B8A8_UNorm;
+  }
+
+  /**
+   * @internal
+   */
+  _isInternalFormatHDR(): boolean {
+    return TextureUtils.isHDRFormat(this._getInternalColorTextureFormat());
   }
 
   /**
@@ -797,19 +781,14 @@ export class Camera extends Component {
    */
   _getTargetColorTextureFormat(): TextureFormat {
     const renderTarget = this._renderTarget;
-    return renderTarget ? renderTarget.getColorTexture(0).format : TextureFormat.R8G8B8A8;
+    return renderTarget ? renderTarget.getColorTexture(0)!.format : TextureFormat.R8G8B8A8_UNorm;
   }
 
   /**
    * @internal
    */
   _isTargetFormatHDR(): boolean {
-    const format = this._getTargetColorTextureFormat();
-    return (
-      format === TextureFormat.R16G16B16A16 ||
-      format === TextureFormat.R32G32B32A32 ||
-      format === TextureFormat.R11G11B10_UFloat
-    );
+    return TextureUtils.isHDRFormat(this._getTargetColorTextureFormat());
   }
 
   /**
@@ -828,13 +807,6 @@ export class Camera extends Component {
 
   /**
    * @internal
-   */
-  _cloneTo(target: Camera, srcRoot: Entity, targetRoot: Entity): void {
-    this._renderTarget?._addReferCount(1);
-  }
-
-  /**
-   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {
@@ -848,17 +820,17 @@ export class Camera extends Component {
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
-    this._globalShaderMacro = null;
-    this._frustum = null;
-    this._renderPipeline = null;
-    this._virtualCamera = null;
-    this._shaderData = null;
-    this._frustumChangeFlag = null;
-    this._isViewMatrixDirty = null;
-    this._isInvViewProjDirty = null;
-    this._viewport = null;
-    this._inverseProjectionMatrix = null;
-    this._invViewProjMat = null;
+    this._globalShaderMacro = null!;
+    this._frustum = null!;
+    this._renderPipeline = null!;
+    this._virtualCamera = null!;
+    this._shaderData = null!;
+    this._frustumChangeFlag = null!;
+    this._isViewMatrixDirty = null!;
+    this._isInvViewProjDirty = null!;
+    this._viewport = null!;
+    this._inverseProjectionMatrix = null!;
+    this._invViewProjMat = null!;
   }
 
   private _updatePixelViewport(): void {
@@ -934,7 +906,15 @@ export class Camera extends Component {
   private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._entity.transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
+      const matrix = this._invViewProjMat;
+      if (this._isCustomViewMatrix) {
+        Matrix.invert(this.viewMatrix, matrix);
+      } else {
+        // Ignore scale, consistent with viewMatrix getter
+        const transform = this._entity.transform;
+        Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, matrix);
+      }
+      matrix.multiply(this._getInverseProjectionMatrix());
     }
     return this._invViewProjMat;
   }

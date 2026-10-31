@@ -2,7 +2,6 @@
  * @title Animation BlendShape
  * @category Animation
  */
-import { OrbitControl } from "@galacean/engine-toolkit";
 import * as dat from "dat.gui";
 
 import {
@@ -11,7 +10,6 @@ import {
   DirectLight,
   Logger,
   SkinnedMeshRenderer,
-  SystemInfo,
   Vector3,
   WebGLEngine,
   GLTFResource
@@ -20,8 +18,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-  engine.canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -30,7 +26,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.position = new Vector3(-30, 1, 0);
   const camera = cameraEntity.addComponent(Camera);
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).intensity = 1.0;
@@ -46,10 +42,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator)!;
 
-      animator.play("Right");
-      const state = animator.getCurrentAnimatorState(0);
+      // clipStartTime/clipEndTime are on the shared AnimatorState asset, not the per-Animator instance view.
+      const state = animator.animatorController.layers[0].stateMachine.findStateByName("Right");
       state.clipStartTime = 1;
       state.clipEndTime = 1;
+      animator.play("Right");
 
       updateForE2E(engine);
 

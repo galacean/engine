@@ -15,8 +15,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
-        // @ts-ignore
-        ._request<any>(item.url, {
+        ._request<any>(item.url!, {
           ...item,
           type: "arraybuffer"
         })
@@ -24,7 +23,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
           return decode<AnimationClip>(data, resourceManager.engine)
             .then((clip) => {
               const curveBindingPromises = clip.curveBindings.map((curveBinding) => {
-                const { curve } = curveBinding;
+                const curve = curveBinding.curve!;
                 const promises = curve.keys.map((key) => {
                   return this._parseKeyframeValue(key, resourceManager).then((actualValue) => {
                     key.value = actualValue;
@@ -47,13 +46,10 @@ class AnimationClipLoader extends Loader<AnimationClip> {
 
     if (typeof value === "object" && (value as any)?.url) {
       return new Promise((resolve) => {
-        resourceManager
-          // @ts-ignore
-          .getResourceByRef<ReferResource>(value as any)
-          .then((asset: ReferResource) => {
-            keyframe.value = asset;
-            resolve(keyframe.value);
-          });
+        resourceManager.getResourceByRef<ReferResource>(value as any).then((asset: ReferResource) => {
+          keyframe.value = asset;
+          resolve(keyframe.value);
+        });
       });
     } else {
       return Promise.resolve(keyframe.value);

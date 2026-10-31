@@ -1,46 +1,58 @@
-import { IColliderShape } from "@galacean/engine-design";
+import { BasicResources } from "../../BasicResources";
+import { DataObject } from "../../base/DataObject";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { assignmentClone, ignoreClone } from "../../clone/CloneDecorators";
+import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
-import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICloneHook<ColliderShape> {
   private static _idGenerator: number = 0;
 
   /** @internal */
   @ignoreClone
-  _collider: Collider;
+  _collider: Collider | null;
   /** @internal */
   @ignoreClone
-  _nativeShape: IColliderShape;
-
+  _nativeShape: IColliderShape | null;
   @ignoreClone
   protected _id: number;
-  protected _material: PhysicsMaterial;
+  @assignmentClone
+  protected _material: PhysicsMaterial | null = null;
+  @ignoreClone
+  private _materialInstanced: boolean = false;
   private _isTrigger: boolean = false;
-  @deepClone
+  private _isSceneQuery: boolean = true;
   private _rotation: Vector3 = new Vector3();
-  @deepClone
   private _position: Vector3 = new Vector3();
   private _contactOffset: number = 0.02;
 
   /**
    * @internal
    * @beta
-   * Whether raycast can select it.
+   * Whether this shape participates in scene queries, including raycasts, shape casts, and overlap queries.
+   * This does not affect collision response.
    */
-  isSceneQuery: boolean = true;
+  get isSceneQuery(): boolean {
+    return this._isSceneQuery;
+  }
+
+  set isSceneQuery(value: boolean) {
+    if (this._isSceneQuery !== value) {
+      this._isSceneQuery = value;
+      this._nativeShape?.setIsSceneQuery(value);
+    }
+  }
 
   /**
    * Collider owner of this shape.
    */
-  get collider(): Collider {
+  get collider(): Collider | null {
     return this._collider;
   }
 
@@ -60,27 +72,30 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   set contactOffset(value: number) {
+    if (!Number.isFinite(value)) {
+      throw new Error("ColliderShape contactOffset must be finite.");
+    }
     value = Math.max(0, value);
     if (this._contactOffset !== value) {
-      this._contactOffset = value;
       this._nativeShape?.setContactOffset(value);
+      this._contactOffset = value;
     }
   }
 
   /**
-   * Physical material, material can't be null.
+   * The assigned material, or null to use the shared default material.
+   * @defaultValue null
+   * @remarks This property returns null for the shared default. Use {@link getInstanceMaterial} to obtain an instance.
    */
-  get material(): PhysicsMaterial {
+  get material(): PhysicsMaterial | null {
     return this._material;
   }
 
-  set material(value: PhysicsMaterial) {
-    if (!value) {
-      throw new Error("The physics material of the shape can't be null.");
-    }
+  set material(value: PhysicsMaterial | null) {
     if (this._material !== value) {
+      this._materialInstanced = false;
       this._material = value;
-      this._nativeShape?.setMaterial(value._nativeMaterial);
+      this._nativeShape?.setMaterial(this._getNativeMaterial());
     }
   }
 
@@ -125,7 +140,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected constructor() {
-    this._material = new PhysicsMaterial();
+    super();
     this._id = ColliderShape._idGenerator++;
 
     this._setRotation = this._setRotation.bind(this);
@@ -139,19 +154,33 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   /**
+   * Get the instance material for this shape.
+   * @remarks On first use, assigns a clone of {@link material}, or a new material with default properties if null.
+   * Reuses the instance until a different material or null is assigned.
+   * @returns The instance material
+   */
+  getInstanceMaterial(): PhysicsMaterial {
+    if (!this._materialInstanced) {
+      this.material = this._material ? this._material.clone() : new PhysicsMaterial();
+      this._materialInstanced = true;
+    }
+    return this._material!;
+  }
+
+  /**
    * Get the distance and the closest point on the shape from a point.
    * @param point - Location in world space you want to find the closest point to
    * @param outClosestPoint - The closest point on the shape in world space
    * @returns The distance between the point and the shape
    */
   getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
-    const collider = this._collider;
+    const collider = this._collider!;
     if (collider.enabled === false || collider.entity._isActiveInHierarchy === false) {
       console.warn("The collider is not active in scene.");
       return -1;
     }
 
-    const res = this._nativeShape.pointDistance(point);
+    const res = this._nativeShape!.pointDistance(point);
     const distance = res.w;
     if (distance > 0) {
       outClosestPoint.set(res.x, res.y, res.z);
@@ -164,9 +193,12 @@ export abstract class ColliderShape implements ICustomClone {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: ColliderShape) {
-    target._syncNative();
+  _onClone(target: ColliderShape): void {
+    // The clone shares its material until it requests an instance
+    target._materialInstanced = false;
+    this._cloneNativeShape(target);
   }
 
   /**
@@ -180,26 +212,42 @@ export abstract class ColliderShape implements ICustomClone {
     delete Engine._physicalObjectsMap[this._id];
   }
 
-  protected _syncNative(): void {
-    if (!this._nativeShape) return;
-    this._nativeShape.setPosition(this._position);
-    this._nativeShape.setRotation(this._rotation);
-    this._nativeShape.setContactOffset(this._contactOffset);
-    this._nativeShape.setIsTrigger(this._isTrigger);
-    this._nativeShape.setMaterial(this._material._nativeMaterial);
+  protected _cloneNativeShape(target: ColliderShape): void {
+    target._syncNative();
+  }
 
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+  protected _getNativeMaterial(): IPhysicsMaterial {
+    return this._material?._nativeMaterial ?? BasicResources.physicsDefaultMaterial._nativeMaterial;
+  }
+
+  protected _syncNative(): void {
+    const nativeShape = this._nativeShape;
+    if (!nativeShape) {
+      return;
+    }
+    this._syncNativeShape(nativeShape);
+
+    this._collider?._handleShapesChanged();
+  }
+
+  protected _syncNativeShape(nativeShape: IColliderShape): void {
+    nativeShape.setPosition(this._position);
+    nativeShape.setRotation(this._rotation);
+    nativeShape.setContactOffset(this._contactOffset);
+    nativeShape.setIsTrigger(this._isTrigger);
+    nativeShape.setIsSceneQuery(this._isSceneQuery);
+    nativeShape.setMaterial(this._getNativeMaterial());
   }
 
   @ignoreClone
   private _setPosition(): void {
     this._nativeShape?.setPosition(this._position);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 
   @ignoreClone
   private _setRotation(): void {
     this._nativeShape?.setRotation(this._rotation);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 }

@@ -15,7 +15,7 @@ import {
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const entity = rootEntity.createChild("mesh");
       entity.transform.setRotation(0, 90, 0);
       const meshRenderer = entity.addComponent(MeshRenderer);
-      meshRenderer.mesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine);
+      meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 0.5);
       meshRenderer.setMaterial(material);
 
       updateForE2E(engine);

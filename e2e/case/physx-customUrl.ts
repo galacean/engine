@@ -21,7 +21,6 @@ import {
   BlinnPhongMaterial,
   Entity
 } from "@galacean/engine";
-import { WireframeManager } from "@galacean/engine-toolkit";
 
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -46,9 +45,9 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
 
   const physicsBox = new BoxColliderShape();
   physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-  physicsBox.material.staticFriction = 0.1;
-  physicsBox.material.dynamicFriction = 0.2;
-  physicsBox.material.bounciness = 1;
+  physicsBox.getInstanceMaterial().staticFriction = 0.1;
+  physicsBox.getInstanceMaterial().dynamicFriction = 0.2;
+  physicsBox.getInstanceMaterial().bounciness = 1;
   physicsBox.isTrigger = true;
 
   const boxCollider = boxEntity.addComponent(StaticCollider);
@@ -63,7 +62,6 @@ WebGLEngine.create({
     wasmModeUrl: "../physx.release.js"
   })
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 
@@ -99,19 +97,15 @@ WebGLEngine.create({
 
   const physicsSphere = new SphereColliderShape();
   physicsSphere.radius = radius;
-  physicsSphere.material.staticFriction = 0.1;
-  physicsSphere.material.dynamicFriction = 0.2;
-  physicsSphere.material.bounciness = 1;
+  physicsSphere.getInstanceMaterial().staticFriction = 0.1;
+  physicsSphere.getInstanceMaterial().dynamicFriction = 0.2;
+  physicsSphere.getInstanceMaterial().bounciness = 1;
 
   const sphereCollider = sphereEntity.addComponent(DynamicCollider);
   sphereCollider.isKinematic = true;
   sphereCollider.addShape(physicsSphere);
 
   rootEntity.addComponent(MeshRenderer);
-  const wireframe = rootEntity.addComponent(WireframeManager); // debug draw
-  wireframe.addEntityWireframe(sphereEntity);
-  wireframe.addEntityWireframe(boxEntity1);
-  wireframe.addEntityWireframe(boxEntity2);
 
   class MoveScript extends Script {
     pos: number = -5;
@@ -151,7 +145,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.AmbientLight,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;

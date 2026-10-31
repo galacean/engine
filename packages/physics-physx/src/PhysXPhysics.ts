@@ -3,14 +3,13 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
   IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
-  IPhysicsMaterial,
+  IPhysicsMaterialProperties,
   IPhysicsScene,
   IPlaneColliderShape,
   ISphereColliderShape,
@@ -52,10 +51,9 @@ export class PhysXPhysics implements IPhysics {
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
-  private _initializePromise: Promise<void>;
+  private _initializePromise: Promise<void> | null;
   private _defaultErrorCallback: any;
   private _allocator: any;
-  private _tolerancesScale: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
 
@@ -68,22 +66,21 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*FHYHS4_ZL5UAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*Ig51T5AwyTgAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*2fv0RLMK1d0AAAAAQ4AAAAgAehQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*y4S4S5-ud-QAAAAAQ4AAAAgAehQnAQ/physx.release.js";
   }
 
   /**
    * Initialize PhysXPhysics.
-   * @param runtimeMode - Runtime mode
    * @returns Promise object
    */
   initialize(): Promise<void> {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
-      return this._initializePromise;
+      return this._initializePromise!;
     }
 
     this._initializeState = InitializeState.Initializing;
@@ -139,7 +136,6 @@ export class PhysXPhysics implements IPhysics {
     this._pxFoundation.release();
     this._defaultErrorCallback.delete();
     this._allocator.delete();
-    this._tolerancesScale.delete();
   }
 
   /**
@@ -152,25 +148,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(
-    physicsManager: PhysXPhysicsManager,
-    onContactBegin?: (collision: ICollision) => void,
-    onContactEnd?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(
-      this,
-      physicsManager,
-      onContactBegin,
-      onContactEnd,
-      onContactStay,
-      onTriggerBegin,
-      onTriggerEnd,
-      onTriggerStay
-    );
+  createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
+    const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
   }
 
@@ -198,14 +177,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsMaterial }
    */
-  createPhysicsMaterial(
-    staticFriction: number,
-    dynamicFriction: number,
-    bounciness: number,
-    frictionCombine: number,
-    bounceCombine: number
-  ): IPhysicsMaterial {
-    return new PhysXPhysicsMaterial(this, staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
+  createPhysicsMaterial(properties: IPhysicsMaterialProperties): PhysXPhysicsMaterial {
+    return new PhysXPhysicsMaterial(this, properties);
   }
 
   /**
@@ -250,9 +223,19 @@ export class PhysXPhysics implements IPhysics {
     indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
     material: PhysXPhysicsMaterial,
-    cookingFlags: number
+    cookingFlags: number,
+    worldScale: Vector3
   ): IMeshColliderShape | null {
-    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
+    const shape = new PhysXMeshColliderShape(
+      this,
+      uniqueID,
+      positions,
+      indices,
+      isConvex,
+      material,
+      cookingFlags,
+      worldScale
+    );
     return shape._pxShape ? shape : null;
   }
 
@@ -303,6 +286,8 @@ export class PhysXPhysics implements IPhysics {
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
+    // PxPhysics and PxCookingParams copy the scale
+    tolerancesScale.delete();
     physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
     cookingParams.meshWeldTolerance = 0.001;
     // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
@@ -318,7 +303,6 @@ export class PhysXPhysics implements IPhysics {
     this._pxCookingParams = cookingParams;
     this._defaultErrorCallback = defaultErrorCallback;
     this._allocator = allocator;
-    this._tolerancesScale = tolerancesScale;
   }
 }
 
@@ -329,8 +313,8 @@ enum InitializeState {
 }
 
 interface PhysXRuntimeUrls {
-  /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
+  /** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
-  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  /** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
   wasmSIMDModeUrl?: string;
 }

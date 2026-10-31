@@ -1,3 +1,4 @@
+import { DataObject } from "../base/DataObject";
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Texture } from "../texture";
 
@@ -6,7 +7,7 @@ import { Texture } from "../texture";
  * @remarks
  * The parameter will be mixed to a final value and be used in post process manager.
  */
-export abstract class PostProcessEffectParameter<T> {
+export abstract class PostProcessEffectParameter<T> extends DataObject {
   /**
    * Whether the parameter is enabled.
    */
@@ -27,6 +28,7 @@ export abstract class PostProcessEffectParameter<T> {
   }
 
   constructor(value: T, needLerp = false) {
+    super();
     this._needLerp = needLerp;
     this._value = value;
   }
@@ -70,6 +72,9 @@ export class PostProcessEffectFloatParameter extends PostProcessEffectParameter<
     this.value = value;
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: number, factor: number) {
     if (this._needLerp) {
       this.value = MathUtil.lerp(this.value, to, factor);
@@ -95,12 +100,12 @@ export class PostProcessEffectBoolParameter extends PostProcessEffectParameter<b
 /**
  * Represents a texture parameter of a post process effect.
  */
-export class PostProcessEffectTextureParameter extends PostProcessEffectParameter<Texture> {
+export class PostProcessEffectTextureParameter extends PostProcessEffectParameter<Texture | null> {
   /**
    * Create a new texture parameter.
    * @param value - The default texture of the parameter
    */
-  constructor(value: Texture) {
+  constructor(value: Texture | null) {
     super(value, false);
   }
 }
@@ -118,6 +123,9 @@ export class PostProcessEffectColorParameter extends PostProcessEffectParameter<
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Color, factor: number) {
     if (this._needLerp) {
       Color.lerp(this.value, to, factor, this.value);
@@ -140,6 +148,9 @@ export class PostProcessEffectVector2Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector2, factor: number) {
     if (this._needLerp) {
       Vector2.lerp(this.value, to, factor, this.value);
@@ -162,6 +173,9 @@ export class PostProcessEffectVector3Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector3, factor: number) {
     if (this._needLerp) {
       Vector3.lerp(this.value, to, factor, this.value);
@@ -184,6 +198,9 @@ export class PostProcessEffectVector4Parameter extends PostProcessEffectParamete
     super(value, needLerp);
   }
 
+  /**
+   * @internal
+   */
   override _lerp(to: Vector4, factor: number) {
     if (this._needLerp) {
       Vector4.lerp(this.value, to, factor, this.value);

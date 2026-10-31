@@ -1,9 +1,8 @@
 import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -21,8 +20,8 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { TrailTextureMode } from "./enums/TrailTextureMode";
 
 /**
- * Trail Renderer Component.
- * Renders a trail behind a moving object.
+ * Renders a trail by sampling the entity's world position during render updates.
+ * Trail length depends on sampled movement and point lifetime.
  */
 export class TrailRenderer extends Renderer {
   private static readonly VERTEX_STRIDE = 36; // 9 floats * 4 bytes
@@ -41,27 +40,23 @@ export class TrailRenderer extends Renderer {
 
   private static _tempVector3 = new Vector3();
 
-  /** Whether the trail is being created as the object moves. */
+  /** Whether to record new trail points. */
   emitting = true;
 
-  /** The minimum distance the object must move before a new trail segment is added, in world units. */
+  /** Minimum world-space distance from the last recorded point before adding a sample. */
   minVertexDistance = 0.1;
 
-  /** The curve describing the trail width from start to end. */
-  @deepClone
+  /** Full width in world units over normalized trail distance: head (0) to tail (1). */
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
 
-  /** The gradient describing the trail color from start to end. */
-  @deepClone
+  /** Linear HDR color and opacity over normalized trail distance: head (0) to tail (1). */
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
 
   // Shader parameters
-  @deepClone
   private _trailParams = new Vector4(TrailTextureMode.Stretch, 1.0, 1.0, 0); // x: textureMode, y: textureScaleX, z: textureScaleY
-  @deepClone
   private _textureScale = new Vector2(1.0, 1.0);
   @ignoreClone
   private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance
@@ -111,7 +106,7 @@ export class TrailRenderer extends Renderer {
   private _lastPlayTimeUpdateFrameCount = -1;
 
   /**
-   * How long the trail takes to fade out, in seconds.
+   * Point lifetime in seconds.
    */
   get time(): number {
     return this._time;
@@ -232,8 +227,9 @@ export class TrailRenderer extends Renderer {
 
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
 
-    const renderElement = this._engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderPipeline = context.camera._renderPipeline;
 
     // spansBoundary: active points cross buffer end
     // wrapped: spansBoundary AND point 0 has been written (need bridge + second segment)
@@ -241,13 +237,19 @@ export class TrailRenderer extends Renderer {
     const wrapped = spansBoundary && firstFree > 0;
     const mainCount =
       (spansBoundary ? this._currentPointCapacity - firstActive + (wrapped ? 1 : 0) : firstFree - firstActive) * 2;
-    this._addSubRenderElement(renderElement, material, this._mainSubPrimitive, firstActive * 2, mainCount);
+    this._addRenderElement(
+      context,
+      material,
+      this._mainSubPrimitive,
+      firstActive * 2,
+      mainCount,
+      priority,
+      distanceForSort
+    );
 
     if (wrapped) {
-      this._addSubRenderElement(renderElement, material, this._wrapSubPrimitive, 0, firstFree * 2);
+      this._addRenderElement(context, material, this._wrapSubPrimitive, 0, firstFree * 2, priority, distanceForSort);
     }
-
-    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -588,18 +590,22 @@ export class TrailRenderer extends Renderer {
     this._bufferResized = false;
   }
 
-  private _addSubRenderElement(
-    renderElement: RenderElement,
+  private _addRenderElement(
+    context: RenderContext,
     material: Material,
     subPrimitive: SubPrimitive,
     start: number,
-    count: number
+    count: number,
+    priority: number,
+    distanceForSort: number
   ): void {
     subPrimitive.start = start;
     subPrimitive.count = count;
-    const subRenderElement = this._engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, this._primitive, subPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    const renderElement = this._engine._renderElementPool.get();
+    renderElement.set(this, material, this._primitive, subPrimitive);
+    renderElement.priority = priority;
+    renderElement.distanceForSort = distanceForSort;
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   @ignoreClone

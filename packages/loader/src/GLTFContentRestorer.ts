@@ -13,6 +13,7 @@ import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import type { AccessorComponentType, IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
+import { ImageDecoder } from "./ImageDecoder";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
 
 /**
@@ -61,10 +62,12 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                   }
                 });
               } else {
-                return GLTFUtils.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
-                  texture.setImageSource(image);
-                  texture.generateMipmaps();
-                });
+                return ImageDecoder._decode(bufferData, this.resource.url, textureRestoreInfo.mimeType).then(
+                  (image) => {
+                    texture.setImageSource(image);
+                    texture.generateMipmaps();
+                  }
+                );
               }
             })
           )
@@ -131,7 +134,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): TypedArray {
     const main = restoreInfo.main;
     let data: TypedArray;
-    if (main) {
+    if (main.bufferIndex !== undefined) {
       const buffer = buffers[main.bufferIndex];
       data = new main.TypedArray(buffer, main.byteOffset, main.length);
     } else {
@@ -140,15 +143,15 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
 
     const sparseCount = restoreInfo.sparseCount;
     if (sparseCount) {
-      const sparseIndex = restoreInfo.sparseIndices;
-      const sparseIndexBuffer = buffers[sparseIndex.bufferIndex];
+      const sparseIndex = restoreInfo.sparseIndices!;
+      const sparseIndexBuffer = buffers[sparseIndex.bufferIndex!];
       const sparseIndexData = new sparseIndex.TypedArray(sparseIndexBuffer, sparseIndex.byteOffset, sparseIndex.length);
 
-      const sparseValue = restoreInfo.sparseValues;
-      const sparseValueBuffer = buffers[sparseValue.bufferIndex];
+      const sparseValue = restoreInfo.sparseValues!;
+      const sparseValueBuffer = buffers[sparseValue.bufferIndex!];
       const sparseValueData = new sparseValue.TypedArray(sparseValueBuffer, sparseValue.byteOffset, sparseValue.length);
 
-      const typeSize = restoreInfo.typeSize;
+      const typeSize = restoreInfo.typeSize!;
       for (let i = 0; i < sparseCount; i++) {
         const replaceIndex = sparseIndexData[i];
         for (let j = 0; j < typeSize; j++) {
@@ -220,7 +223,7 @@ export class BufferDataRestoreInfo {
  */
 export class RestoreDataAccessor {
   constructor(
-    public bufferIndex: number,
+    public bufferIndex: number | undefined,
     public TypedArray:
       | Uint8ArrayConstructor
       | Int8ArrayConstructor
@@ -228,7 +231,7 @@ export class RestoreDataAccessor {
       | Uint16ArrayConstructor
       | Uint32ArrayConstructor
       | Float32ArrayConstructor,
-    public byteOffset: number,
+    public byteOffset: number | undefined,
     public length: number
   ) {}
 }
@@ -240,8 +243,8 @@ export class BlendShapeRestoreInfo {
   constructor(
     public blendShape: BlendShape,
     public position: BlendShapeDataRestoreInfo,
-    public normal?: BlendShapeDataRestoreInfo,
-    public tangent?: BlendShapeDataRestoreInfo
+    public normal?: BlendShapeDataRestoreInfo | null,
+    public tangent?: BlendShapeDataRestoreInfo | null
   ) {}
 }
 
@@ -253,7 +256,7 @@ export class BlendShapeDataRestoreInfo {
     public buffer: BufferDataRestoreInfo,
     public byteOffset: number,
     public count: number,
-    public normalized: boolean,
+    public normalized: boolean | undefined,
     public componentType: AccessorComponentType
   ) {}
 }

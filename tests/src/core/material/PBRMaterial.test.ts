@@ -1,4 +1,4 @@
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Texture2D, PBRMaterial } from "@galacean/engine-core";
 import { describe, beforeAll, expect, it } from "vitest";
 

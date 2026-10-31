@@ -1,9 +1,10 @@
+import { DataObject } from "../base/DataObject";
 import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
 
 /**
  * The base class for post process effect.
  */
-export class PostProcessEffect {
+export class PostProcessEffect extends DataObject {
   private _enabled = true;
   private _parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;
@@ -56,7 +57,7 @@ export class PostProcessEffect {
   private _getParameters(): PostProcessEffectParameter<any>[] {
     if (!this._parameterInitialized) {
       this._parameterInitialized = true;
-      for (let key in this) {
+      for (const key in this) {
         const value = this[key];
         if (value instanceof PostProcessEffectParameter) {
           this._parameters.push(value);

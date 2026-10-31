@@ -60,14 +60,14 @@ export class PointLight extends Light {
    * @internal
    */
   override _onEnableInScene(): void {
-    this.scene._lightManager._attachPointLight(this);
+    this.scene!._lightManager._attachPointLight(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene._lightManager._detachPointLight(this);
+    this.scene!._lightManager._detachPointLight(this);
   }
 }
 

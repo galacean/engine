@@ -1,4 +1,4 @@
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Camera, Font, TextRenderer, Entity } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, expect, it, afterAll } from "vitest";

@@ -1,0 +1,32 @@
+import { Engine, type EngineConfiguration } from "@galacean/engine";
+import { HeadlessCanvas } from "./HeadlessCanvas";
+import { NullGraphicDevice } from "./NullGraphicDevice";
+
+/** Engine simulation and resources without graphics or DOM input. */
+export class HeadlessEngine extends Engine {
+  /**
+   * Create a paused engine without opening a graphics device.
+   * @param configuration - Engine, loader and fixed canvas options
+   * @returns The initialized engine; call `update` or `run` to advance simulation
+   * @throws If `width` or `height` is not a positive finite number.
+   */
+  static create(configuration: HeadlessEngineConfiguration = {}): Promise<HeadlessEngine> {
+    const canvas = new HeadlessCanvas(configuration.width, configuration.height);
+    const engine = new HeadlessEngine(canvas, new NullGraphicDevice(), configuration);
+    return engine._initialize(configuration);
+  }
+}
+
+/** Options for an engine without graphics, XR or DOM input. */
+export interface HeadlessEngineConfiguration extends Omit<EngineConfiguration, "xrDevice" | "input"> {
+  /**
+   * Fixed canvas width in pixels.
+   * @defaultValue `1`
+   */
+  width?: number;
+  /**
+   * Fixed canvas height in pixels.
+   * @defaultValue `1`
+   */
+  height?: number;
+}

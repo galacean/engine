@@ -1,0 +1,234 @@
+import { EShaderStage } from "@galacean/engine-shader-parser/internal";
+import { ASTNode, BaseToken } from "@galacean/engine-shader-parser/internal";
+import { ShaderData } from "@galacean/engine-shader-parser/internal";
+import { ShaderBuiltinSemantic } from "@galacean/engine-shader-parser/internal";
+import { ParserUtils } from "@galacean/engine-shader-parser/internal";
+import { ShaderEntryPointInfo } from "@galacean/engine-shader-parser/internal";
+import { TreeNode } from "@galacean/engine-shader-parser/internal";
+import { StructProp } from "@galacean/engine-shader-parser/internal";
+import { ShaderStructRole } from "@galacean/engine-shader-parser/internal";
+import { GLESVisitor } from "./GLESVisitor";
+import { ICodeSegment } from "./types";
+import type { DeferredDeclarationOwnership } from "@galacean/engine-shader-parser/internal";
+import { ShaderInstructionEncoder } from "../ShaderInstructionEncoder";
+
+export class GLES300Visitor extends GLESVisitor {
+  private readonly _outputDeclarations = new Map<
+    string,
+    { text: string; owners: Map<number, DeferredDeclarationOwnership>; unconditional: boolean }
+  >();
+  private _fragDataArrayRequired = false;
+  private readonly _fragDataIndices = new Map<ASTNode.PostfixExpression, number>();
+  private readonly _scannedFragmentFunctions = new Set<ShaderEntryPointInfo["functions"][number]>();
+
+  override reset(): void {
+    super.reset();
+
+    this._outputDeclarations.clear();
+    this._fragDataArrayRequired = false;
+    this._fragDataIndices.clear();
+    this._scannedFragmentFunctions.clear();
+  }
+
+  override getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
+    super.getOtherGlobal(data, out);
+
+    for (const output of this._outputDeclarations.values()) {
+      out.push({
+        text: output.unconditional
+          ? output.text
+          : ShaderInstructionEncoder.sharedDeclaration(output.text, Array.from(output.owners.values())),
+        // A source macro block can start at zero and contain the first output use.
+        index: -1
+      });
+    }
+  }
+
+  override getAttributeProp(prop: StructProp): string {
+    return `in ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+  }
+
+  override getVaryingProp(prop: StructProp): string {
+    const qualifier = this.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
+    return `${qualifier} ${prop.typeInfo.typeLexeme} ${this.interfaceName(prop, ShaderStructRole.Varying)};`;
+  }
+
+  override getMRTProp(prop: StructProp): string {
+    const index = prop.mrtIndex!;
+    if (!prop.isInMacroBranch) {
+      this._registerFragDataVariable(index);
+      return "";
+    }
+
+    // Parser declaration IDs are positive; each conditional output location owns one negative ID.
+    const id = -(index + 1);
+    const owner = { id, group: id, sourceScope: 0 };
+    this._registerFragDataVariable(index, owner);
+    // Activate the output at the member's source position, reachable only from its selected struct.
+    return (
+      ShaderInstructionEncoder.declaration("", owner) +
+      ShaderInstructionEncoder.reference(this.currentDeclarationOwner?.id ?? 0, id)
+    );
+  }
+
+  override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
+    const children = node.children;
+    const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
+    const call = node.parent;
+    if (
+      (call instanceof ASTNode.FunctionCallGeneric && call.fnSymbol) ||
+      typeSpecifier.children.length !== 1 ||
+      typeSpecifier.structDependencies.length
+    ) {
+      // Preserve resolved user functions and struct type dependencies.
+      return super.visitFunctionIdentifier(node);
+    }
+    return this._textureBuiltinName(node.lexeme) ?? node.lexeme;
+  }
+
+  override visitMacroDefine(node: ASTNode.MacroDefine): string {
+    if (!node.isFunction && node.valueExpression) {
+      const alias = ParserUtils.unwrapBareIdentifier(node.valueExpression, { allowParens: false });
+      const token = alias?.children[0];
+      if (alias && token instanceof BaseToken && !alias.resolvedSymbols().length) {
+        const builtin = this._textureBuiltinName(token.lexeme);
+        if (builtin) return `\n#define ${node.macroName} ${builtin}\n`;
+      }
+    }
+    return super.visitMacroDefine(node);
+  }
+
+  private _textureBuiltinName(name: string): string | undefined {
+    switch (name) {
+      case "texture2D":
+      case "textureCube":
+        return "texture";
+      case "texture2DProj":
+        return "textureProj";
+      case "texture2DLodEXT":
+      case "textureCubeLodEXT":
+        return "textureLod";
+      case "texture2DGradEXT":
+      case "textureCubeGradEXT":
+        return "textureGrad";
+      case "texture2DProjLodEXT":
+        return "textureProjLod";
+      case "texture2DProjGradEXT":
+        return "textureProjGrad";
+    }
+  }
+
+  override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
+    const context = this.context;
+    if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutput0) {
+      this._registerFragColorVariable();
+      return this._fragmentColorName();
+    }
+    if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentDepth) {
+      return "gl_FragDepth";
+    }
+    if (context.stage === EShaderStage.FRAGMENT && node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray) {
+      this._registerFragDataArray();
+      return this._fragmentDataName();
+    }
+    return super.visitVariableIdentifier(node);
+  }
+
+  override visitPostfixExpression(node: ASTNode.PostfixExpression): string {
+    if (!this._fragDataArrayRequired) {
+      const index = this._fragDataIndices.get(node);
+      if (index !== undefined) return this._registerFragDataVariable(index);
+    }
+    return super.visitPostfixExpression(node);
+  }
+
+  protected override fragmentColorOutput(): string {
+    this._registerFragColorVariable();
+    return this._fragmentColorName();
+  }
+
+  protected override mrtOutput(prop: StructProp): string {
+    return this._fragmentDataVariableName(prop.mrtIndex!);
+  }
+
+  private _fragmentColorName(): string {
+    return this.context.names.allocate("fragment-output", "output_color");
+  }
+
+  private _fragmentDataName(): string {
+    return this.context.names.allocate("fragment-output-array", "output_colors");
+  }
+
+  private _registerFragColorVariable(): void {
+    const name = this._fragmentColorName();
+    this._registerOutput(name, `layout(location = 0) out vec4 ${name};`);
+  }
+
+  private _registerOutput(name: string, text: string, owner = this.currentDeclarationOwner): void {
+    let output = this._outputDeclarations.get(name);
+    if (!output) this._outputDeclarations.set(name, (output = { text, owners: new Map(), unconditional: false }));
+    if (owner) output.owners.set(owner.id, owner);
+    else output.unconditional = true;
+  }
+
+  protected override prepareFragment(
+    entryInfo: ShaderEntryPointInfo,
+    outerGlobalMacroStatements: readonly ASTNode.GlobalDeclaration[]
+  ): void {
+    const pending = entryInfo.functions.slice();
+    while (pending.length) {
+      const fn = pending.pop()!;
+      if (this._scannedFragmentFunctions.has(fn)) continue;
+      this._scannedFragmentFunctions.add(fn);
+      this._scanFragmentOutputs(fn.astNode);
+      pending.push(...fn.calledFunctions);
+    }
+    for (const macro of outerGlobalMacroStatements) this._scanFragmentOutputs(macro);
+  }
+
+  private _scanFragmentOutputs(node: TreeNode): void {
+    if (node instanceof ASTNode.PostfixExpression && node.children.length === 4) {
+      const base = node.children[0];
+      const index = node.children[2];
+      if (
+        base instanceof TreeNode &&
+        index instanceof TreeNode &&
+        ParserUtils.unwrapBareIdentifier(base, { allowParens: true })?.builtinSemantic ===
+          ShaderBuiltinSemantic.FragmentOutputArray
+      ) {
+        const value = ParserUtils.constIntegerValue(index);
+        if (value === undefined || value < 0) this._fragDataArrayRequired = true;
+        else this._fragDataIndices.set(node, value);
+        this._scanFragmentOutputs(index);
+        return;
+      }
+    }
+    if (
+      node instanceof ASTNode.VariableIdentifier &&
+      node.builtinSemantic === ShaderBuiltinSemantic.FragmentOutputArray
+    ) {
+      this._fragDataArrayRequired = true;
+      return;
+    }
+    for (const child of node.children) {
+      if (child instanceof TreeNode) this._scanFragmentOutputs(child);
+    }
+  }
+
+  private _registerFragDataArray(): void {
+    const name = this._fragmentDataName();
+    this._registerOutput(name, `layout(location = 0) out vec4 ${name}[gl_MaxDrawBuffers];`);
+  }
+
+  private _fragmentDataVariableName(index: number): string {
+    return index === 0
+      ? this._fragmentColorName()
+      : this.context.names.allocate(`fragment-output:${index}`, `output_color_${index}`);
+  }
+
+  private _registerFragDataVariable(index: number, owner = this.currentDeclarationOwner): string {
+    const name = this._fragmentDataVariableName(index);
+    this._registerOutput(name, `layout(location = ${index}) out vec4 ${name};`, owner);
+    return name;
+  }
+}

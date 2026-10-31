@@ -422,7 +422,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   /** @internal */
   _w: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    * The x component of the quaternion.

@@ -9,9 +9,9 @@ import { PointerEventEmitter } from "./PointerEventEmitter";
  * @internal
  */
 export class PhysicsPointerEventEmitter extends PointerEventEmitter {
-  protected _enteredEntity: Entity;
-  protected _pressedEntity: Entity;
-  protected _draggedEntity: Entity;
+  protected _enteredEntity: Entity | null;
+  protected _pressedEntity: Entity | null;
+  protected _draggedEntity: Entity | null;
 
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
@@ -24,7 +24,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
         continue;
       }
       const cameras = scene._componentsManager._activeCameras;
-      let scenePhysics = scene.physics;
+      const scenePhysics = scene.physics;
       for (let j = cameras.length - 1; j >= 0; j--) {
         const camera = cameras.get(j);
         if (camera.renderTarget) continue;
@@ -104,7 +104,7 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     this._hitResult = new HitResult();
   }
 
-  private _updateRaycast(entity: Entity, pointer: Pointer): void {
+  private _updateRaycast(entity: Entity | null, pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (entity !== enteredEntity) {
       if (enteredEntity) {

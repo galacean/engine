@@ -115,9 +115,9 @@ export class InputManager {
   }
 
   /**
-   * Whether the pointer starts to be pressed down during the current frame, if there is no parameter, return whether any pointer starts to be pressed down during the current frame.
-   * @param pointerButton - The pointerButton on a pointer device
-   * @returns Whether the pointer starts to be pressed down during the current frame
+   * Whether any pointer was pressed this frame.
+   * @param pointerButton - The button to query; omit to include all buttons
+   * @returns The result remains true for the frame, even if a release also occurred
    */
   isPointerDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
@@ -132,9 +132,9 @@ export class InputManager {
   }
 
   /**
-   * Whether the pointer is released during the current frame, if there is no parameter, return whether any pointer released during the current frame.
-   * @param pointerButton - The pointerButtons on a mouse device
-   * @returns Whether the pointer is released during the current frame
+   * Whether any pointer was released this frame.
+   * @param pointerButton - The button to query; omit to include all buttons
+   * @returns The result remains true for the frame, even if a press also occurred
    */
   isPointerUp(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
@@ -155,7 +155,7 @@ export class InputManager {
     this._engine = engine;
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
-    if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
+    if (canvas && (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas))) {
       this._wheelManager = new WheelManager(engine, inputOptions?.wheelTarget ?? canvas);
       this._pointerManager = new PointerManager(engine, inputOptions?.pointerTarget ?? canvas);
       this._keyboardManager = new KeyboardManager(engine, inputOptions?.keyboardTarget ?? window);
@@ -187,11 +187,11 @@ export class InputManager {
   _destroy(): void {
     if (this._initialized) {
       this._wheelManager._destroy();
-      this._wheelManager = null;
+      this._wheelManager = null!;
       this._pointerManager._destroy();
-      this._pointerManager = null;
+      this._pointerManager = null!;
       this._keyboardManager._destroy();
-      this._keyboardManager = null;
+      this._keyboardManager = null!;
     }
   }
 }

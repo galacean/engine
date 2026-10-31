@@ -118,7 +118,7 @@ export class PointerManager implements IInput {
             pointer = pointerPool[j] = new Pointer(j);
             engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
             PointerManager._pointerEventEmitters.forEach((emitter) => {
-              pointer._addEmitters(emitter, eventPool);
+              pointer!._addEmitters(emitter, eventPool);
             });
           }
           pointer._uniqueID = pointerId;
@@ -205,7 +205,7 @@ export class PointerManager implements IInput {
     this._nativeEvents.push(evt);
   }
 
-  private _getPointerByID(pointerId: number): Pointer {
+  private _getPointerByID(pointerId: number): Pointer | null {
     const { _pointers: pointers } = this;
     for (let i = pointers.length - 1; i >= 0; i--) {
       if (pointers[i]._uniqueID === pointerId) {

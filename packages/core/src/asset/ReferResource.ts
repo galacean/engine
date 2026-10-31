@@ -1,4 +1,5 @@
 import { EngineObject } from "../base/EngineObject";
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { IReferable } from "./IReferable";
 
@@ -10,7 +11,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   isGCIgnored: boolean = false;
 
   private _refCount: number = 0;
-  private _superResources: ReferResource[] = null;
+  private _superResources: ReferResource[] | null = null;
 
   /**
    * Counted by valid references.
@@ -42,7 +43,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
         return false;
       }
 
-      const superResources = this._superResources;
+      const superResources = this._superResources!;
       if (superResources?.length) {
         if (isGC) {
           for (let i = 0, n = superResources.length; i < n; i++) {
@@ -71,7 +72,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    * @internal
    */
   _disassociationSuperResource(superResource: ReferResource): void {
-    const superResources = this._superResources;
+    const superResources = this._superResources!;
     const index = superResources.indexOf(superResource);
     superResources.splice(index, 1);
   }
@@ -109,3 +110,5 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     }
   }
 }
+
+registerDefaultCloneMode(ReferResource, CloneMode.Assignment);

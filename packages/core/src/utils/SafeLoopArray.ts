@@ -1,3 +1,5 @@
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
+
 export class SafeLoopArray<T> {
   private _array: T[] = [];
   private _loopArray: T[] = [];
@@ -84,3 +86,5 @@ export class SafeLoopArray<T> {
     return loopArray;
   }
 }
+
+registerDefaultCloneMode(SafeLoopArray, CloneMode.Ignore);

@@ -1,8 +1,7 @@
 import { Engine } from "../Engine";
-import { BlendFactor, BlendOperation, CullMode, Shader, ShaderProperty } from "../shader";
+import { BlendFactor, CullMode, Shader, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { RenderState } from "../shader/state/RenderState";
 import { BlendMode } from "./enums/BlendMode";
 import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
@@ -29,43 +28,20 @@ export class BaseMaterial extends Material {
   protected static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
+  private static _blendEnabledProp: ShaderProperty = ShaderProperty.getByName("blendEnabled");
+  private static _depthWriteEnabledProp: ShaderProperty = ShaderProperty.getByName("depthWriteEnabled");
+  private static _renderQueueTypeProp: ShaderProperty = ShaderProperty.getByName("renderQueueType");
+  private static _sourceColorBlendFactorProp: ShaderProperty = ShaderProperty.getByName("sourceColorBlendFactor");
+  private static _destinationColorBlendFactorProp: ShaderProperty =
+    ShaderProperty.getByName("destinationColorBlendFactor");
+  private static _sourceAlphaBlendFactorProp: ShaderProperty = ShaderProperty.getByName("sourceAlphaBlendFactor");
+  private static _destinationAlphaBlendFactorProp: ShaderProperty =
+    ShaderProperty.getByName("destinationAlphaBlendFactor");
+  private static _rasterStateCullModeProp: ShaderProperty = ShaderProperty.getByName("rasterStateCullMode");
+
   private _renderFace: RenderFace = RenderFace.Front;
   protected _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
-
-  /**
-   * Shader used by the material.
-   */
-  override get shader(): Shader {
-    return this._shader;
-  }
-
-  override set shader(value: Shader) {
-    const refCount = this._getReferCount();
-    if (refCount > 0) {
-      this._shader?._addReferCount(-refCount);
-      value._addReferCount(refCount);
-    }
-
-    this._shader = value;
-    const renderStates = this._renderStates;
-    const lastStatesCount = renderStates.length;
-
-    let maxPassCount = 0;
-    const subShaders = value.subShaders;
-    for (let i = 0; i < subShaders.length; i++) {
-      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
-    }
-
-    if (lastStatesCount < maxPassCount) {
-      for (let i = lastStatesCount; i < maxPassCount; i++) {
-        renderStates.push(new RenderState());
-        this.setBlendMode(i, BlendMode.Normal);
-      }
-    } else {
-      renderStates.length = maxPassCount;
-    }
-  }
 
   /**
    * Whether transparent of first shader pass render state.
@@ -88,7 +64,7 @@ export class BaseMaterial extends Material {
 
   set blendMode(value: BlendMode) {
     if (value !== this._blendMode) {
-      this.setBlendMode(0, value);
+      this.setBlendMode(value);
       this._blendMode = value;
     }
   }
@@ -116,7 +92,7 @@ export class BaseMaterial extends Material {
 
   set renderFace(value: RenderFace) {
     if (value !== this._renderFace) {
-      this.setRenderFace(0, value);
+      this.setRenderFace(value);
       this._renderFace = value;
     }
   }
@@ -133,87 +109,74 @@ export class BaseMaterial extends Material {
     shaderData.setFloat(BaseMaterial._alphaCutoffProp, 0);
     shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
     shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Opaque);
+
+    this.setIsTransparent(false);
+    this.setRenderFace(RenderFace.Front);
+    this.setBlendMode(BlendMode.Normal);
   }
 
   /**
    * Set if is transparent of the shader pass render state.
-   * @param passIndex - Shader pass index
    * @param isTransparent - If is transparent
    */
-  setIsTransparent(passIndex: number, isTransparent: boolean): void {
-    const { renderStates } = this;
-    if (renderStates.length < passIndex) {
-      throw "Pass should less than pass count.";
-    }
-    const renderState = renderStates[passIndex];
+  setIsTransparent(isTransparent: boolean): void {
     const { shaderData } = this;
 
     if (isTransparent) {
-      renderState.blendState.targetBlendState.enabled = true;
-      renderState.depthState.writeEnabled = false;
-      renderState.renderQueueType = RenderQueueType.Transparent;
+      shaderData.setInt(BaseMaterial._blendEnabledProp, 1);
+      shaderData.setInt(BaseMaterial._depthWriteEnabledProp, 0);
+      shaderData.setInt(BaseMaterial._renderQueueTypeProp, RenderQueueType.Transparent);
       shaderData.enableMacro(BaseMaterial._transparentMacro);
     } else {
-      renderState.blendState.targetBlendState.enabled = false;
-      renderState.depthState.writeEnabled = true;
-
-      renderState.renderQueueType = shaderData.getFloat(BaseMaterial._alphaCutoffProp)
-        ? RenderQueueType.AlphaTest
-        : RenderQueueType.Opaque;
+      shaderData.setInt(BaseMaterial._blendEnabledProp, 0);
+      shaderData.setInt(BaseMaterial._depthWriteEnabledProp, 1);
+      shaderData.setInt(
+        BaseMaterial._renderQueueTypeProp,
+        shaderData.getFloat(BaseMaterial._alphaCutoffProp) ? RenderQueueType.AlphaTest : RenderQueueType.Opaque
+      );
       shaderData.disableMacro(BaseMaterial._transparentMacro);
     }
   }
 
   /**
    * Set the blend mode of shader pass render state.
-   * @param passIndex - Shader pass index
    * @param blendMode - Blend mode
    */
-  setBlendMode(passIndex: number, blendMode: BlendMode): void {
-    const { renderStates } = this;
-    if (renderStates.length < passIndex) {
-      throw "Pass should less than pass count.";
-    }
-    const { targetBlendState: target } = renderStates[passIndex].blendState;
+  setBlendMode(blendMode: BlendMode): void {
+    const { shaderData } = this;
 
     switch (blendMode) {
       case BlendMode.Normal:
-        target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-        target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-        target.sourceAlphaBlendFactor = BlendFactor.One;
-        target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-        target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+        shaderData.setInt(BaseMaterial._sourceColorBlendFactorProp, BlendFactor.SourceAlpha);
+        shaderData.setInt(BaseMaterial._destinationColorBlendFactorProp, BlendFactor.OneMinusSourceAlpha);
+        shaderData.setInt(BaseMaterial._sourceAlphaBlendFactorProp, BlendFactor.One);
+        shaderData.setInt(BaseMaterial._destinationAlphaBlendFactorProp, BlendFactor.OneMinusSourceAlpha);
         break;
       case BlendMode.Additive:
-        target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-        target.destinationColorBlendFactor = BlendFactor.One;
-        target.sourceAlphaBlendFactor = BlendFactor.Zero;
-        target.destinationAlphaBlendFactor = BlendFactor.One;
-        target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
+        shaderData.setInt(BaseMaterial._sourceColorBlendFactorProp, BlendFactor.SourceAlpha);
+        shaderData.setInt(BaseMaterial._destinationColorBlendFactorProp, BlendFactor.One);
+        shaderData.setInt(BaseMaterial._sourceAlphaBlendFactorProp, BlendFactor.Zero);
+        shaderData.setInt(BaseMaterial._destinationAlphaBlendFactorProp, BlendFactor.One);
         break;
     }
   }
 
   /**
    * Set the render face of shader pass render state.
-   * @param passIndex - Shader pass index
    * @param renderFace - Render face
    */
-  setRenderFace(passIndex: number, renderFace: RenderFace): void {
-    const { renderStates } = this;
-    if (renderStates.length < passIndex) {
-      throw "Pass should less than pass count.";
-    }
+  setRenderFace(renderFace: RenderFace): void {
+    const { shaderData } = this;
 
     switch (renderFace) {
       case RenderFace.Front:
-        renderStates[passIndex].rasterState.cullMode = CullMode.Back;
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Back);
         break;
       case RenderFace.Back:
-        renderStates[passIndex].rasterState.cullMode = CullMode.Front;
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Front);
         break;
       case RenderFace.Double:
-        renderStates[passIndex].rasterState.cullMode = CullMode.Off;
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Off);
         break;
     }
   }
@@ -241,7 +204,7 @@ export class BaseMaterial extends Material {
   protected _seIsTransparent(value: boolean): void {
     if (value !== this._isTransparent) {
       // Forward pass
-      this.setIsTransparent(0, value);
+      this.setIsTransparent(value);
 
       // Shadow caster pass and depth only pass
       const { shaderData } = this;
@@ -272,7 +235,7 @@ export class BaseMaterial extends Material {
 
         // Forward render queue
         const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.AlphaTest;
-        this.renderStates[0].renderQueueType = forwardQueue;
+        shaderData.setInt(BaseMaterial._renderQueueTypeProp, forwardQueue);
         // Shadow caster render queue
         shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
         // Depth only render queue
@@ -282,7 +245,7 @@ export class BaseMaterial extends Material {
 
         // Forward render queue
         const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.Opaque;
-        this.renderStates[0].renderQueueType = forwardQueue;
+        shaderData.setInt(BaseMaterial._renderQueueTypeProp, forwardQueue);
         // Shadow caster render queue
         const shadowCasterQueue = isTransparent ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
         shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, shadowCasterQueue);

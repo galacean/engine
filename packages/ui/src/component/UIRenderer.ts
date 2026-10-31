@@ -1,5 +1,5 @@
 import {
-  BatchUtils,
+  VertexMergeBatcher,
   Color,
   DependentMode,
   Entity,
@@ -15,11 +15,10 @@ import {
   SpriteMaskLayer,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
+import type { PrimitiveChunkManager } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -55,11 +54,9 @@ export class UIRenderer extends Renderer implements IGraphics {
    * Custom boundary for raycast detection.
    * @remarks this is based on `this.entity.transform`.
    */
-  @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   /** @internal */
-  @ignoreClone
-  _rootCanvas: UICanvas;
+  _rootCanvas: UICanvas | null;
   /** @internal */
   @ignoreClone
   _indexInRootCanvas: number = -1;
@@ -70,8 +67,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
-  _group: UIGroup;
+  _group: UIGroup | null;
   /** @internal */
   @ignoreClone
   _indexInGroup: number = -1;
@@ -100,9 +96,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _rectMaskHardClip: boolean = false;
 
-  @assignmentClone
   private _raycastEnabled: boolean = true;
-  @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
 
   /**
@@ -169,23 +163,31 @@ export class UIRenderer extends Renderer implements IGraphics {
     this.shaderData.setFloat(UIRenderer._rectClipHardClipProperty, 0);
   }
 
-  // @ts-ignore
-  override _canBatch(elementA, elementB): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  /**
+   * @internal
+   */
+  override _canBatch(preElement, curElement): boolean {
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
-  // @ts-ignore
-  override _batch(elementA, elementB?): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  /**
+   * @internal
+   */
+  override _batch(preElement, curElement): void {
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
-  // @ts-ignore
-  override _updateTransformShaderData(context, onlyMVP: boolean, batched: boolean): void {
+  /**
+   * @internal
+   */
+  override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _prepareRender(context): void {
     // Update once per frame per renderer, not influenced by batched
     if (this._renderFrameCount !== this.engine.time.frameCount) {
@@ -198,26 +200,26 @@ export class UIRenderer extends Renderer implements IGraphics {
     // union camera global macro and renderer macro.
     ShaderMacroCollection.unionCollection(
       context.camera._globalShaderMacro,
-      // @ts-ignore
       this.shaderData._macroCollection,
-      //@ts-ignore
       this._globalShaderMacro
     );
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
-    // @ts-ignore
-    this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
+    this._overrideUpdate && this.scene!._componentsManager.addOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
-    // @ts-ignore
-    this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+    this._overrideUpdate && this.scene!._componentsManager.removeOnUpdateRenderers(this);
     this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
@@ -233,7 +235,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getRootCanvas(): UICanvas {
+  _getRootCanvas(): UICanvas | null {
     this._isRootCanvasDirty && Utils.setRootCanvas(this, Utils.searchRootCanvasInParents(this));
     return this._rootCanvas;
   }
@@ -241,7 +243,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getGroup(): UIGroup {
+  _getGroup(): UIGroup | null {
     this._isGroupDirty && Utils.setGroup(this, Utils.searchGroupInParents(this));
     return this._group;
   }
@@ -290,8 +292,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _getChunkManager() {
-    // @ts-ignore
+  _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManagerUI;
   }
 
@@ -309,9 +310,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number): boolean {
     const plane = UIRenderer._tempPlane;
-    const transform = <UITransform>this._transformEntity.transform;
+    const transform = <UITransform>this._transformEntity!.transform;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
     const curDistance = ray.intersectPlane(plane);
@@ -339,7 +340,7 @@ export class UIRenderer extends Renderer implements IGraphics {
 
   protected _hitTest(localPosition: Vector3): boolean {
     const { x, y } = localPosition;
-    const uiTransform = <UITransform>this._transformEntity.transform;
+    const uiTransform = <UITransform>this._transformEntity!.transform;
     const { x: width, y: height } = uiTransform.size;
     const { x: pivotX, y: pivotY } = uiTransform.pivot;
     const { x: paddingLeft, y: paddingBottom, z: paddingRight, w: paddingTop } = this.raycastPadding;
@@ -357,7 +358,7 @@ export class UIRenderer extends Renderer implements IGraphics {
       return true;
     }
     // @ts-ignore
-    return this.scene._maskManager.isVisibleByMask(maskInteraction, this._maskLayer, hitPointWorld);
+    return this.scene!._maskManager.isVisibleByMask(maskInteraction, this._maskLayer, hitPointWorld);
   }
 
   private _isRaycastVisibleByRectMask(hitPointWorld: Vector3): boolean {
@@ -514,9 +515,9 @@ export class UIRenderer extends Renderer implements IGraphics {
     super._onDestroy();
     //@ts-ignore
     this._color._onValueChanged = null;
-    this._color = null;
-    this._rectMasks = null;
-    this._rectMaskSoftness = null;
+    this._color = null!;
+    this._rectMasks = null!;
+    this._rectMaskSoftness = null!;
   }
 }
 

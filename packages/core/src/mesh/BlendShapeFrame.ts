@@ -12,15 +12,15 @@ export class BlendShapeFrame {
   _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _dirty: BlendShapeFrameDirty = BlendShapeFrameDirty.All;
-  private _deltaPositions: Vector3[];
-  private _deltaNormals: Vector3[];
-  private _deltaTangents: Vector3[];
+  private _deltaPositions: Vector3[] | null;
+  private _deltaNormals: Vector3[] | null;
+  private _deltaTangents: Vector3[] | null;
 
   /**
    * Delta positions for the frame being added.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
-  get deltaPositions(): Vector3[] {
+  get deltaPositions(): Vector3[] | null {
     return this._deltaPositions;
   }
 
@@ -34,7 +34,7 @@ export class BlendShapeFrame {
    * Delta normals for the frame being added.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
-  get deltaNormals(): Vector3[] {
+  get deltaNormals(): Vector3[] | null {
     return this._deltaNormals;
   }
 
@@ -48,7 +48,7 @@ export class BlendShapeFrame {
    * Delta tangents for the frame being added.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
    */
-  get deltaTangents(): Vector3[] {
+  get deltaTangents(): Vector3[] | null {
     return this._deltaTangents;
   }
 
@@ -68,8 +68,8 @@ export class BlendShapeFrame {
   constructor(
     weight: number,
     deltaPositions: Vector3[],
-    deltaNormals: Vector3[] = null,
-    deltaTangents: Vector3[] = null
+    deltaNormals: Vector3[] | null = null,
+    deltaTangents: Vector3[] | null = null
   ) {
     if (deltaNormals && deltaNormals.length !== deltaPositions.length) {
       throw "deltaNormals length must same with deltaPositions length.";

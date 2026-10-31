@@ -1,6 +1,5 @@
 import { Color } from "@galacean/engine-math";
-import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
+import { ShaderMacro, ShaderProperty } from "../../shader";
 
 import { PostProcessEffect } from "../PostProcessEffect";
 import {
@@ -10,10 +9,6 @@ import {
   PostProcessEffectFloatParameter,
   PostProcessEffectTextureParameter
 } from "../PostProcessEffectParameter";
-import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
-import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
-import fragPrefilter from "../shaders/Bloom/BloomPrefilter.glsl";
-import fragUpsample from "../shaders/Bloom/BloomUpsample.glsl";
 
 /**
  * This controls the size of the bloom texture.
@@ -26,27 +21,23 @@ export enum BloomDownScaleMode {
 }
 
 export class BloomEffect extends PostProcessEffect {
-  static readonly SHADER_NAME = "PostProcessEffect Bloom";
+  static readonly SHADER_NAME = "PostProcess/Bloom";
 
   // Bloom shader properties
-  /** @internal */
-  static _maxIterations = 6;
   /** @internal */
   static _hqMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_HQ");
   /** @internal */
   static _dirtMacro: ShaderMacro = ShaderMacro.getByName("BLOOM_DIRT");
   /** @internal */
-  static _bloomParams = ShaderProperty.getByName("material_BloomParams"); // x: threshold (linear), y: threshold knee, z: scatter
-  /** @internal */
-  static _lowMipTextureProp = ShaderProperty.getByName("material_lowMipTexture");
-  /** @internal */
-  static _lowMipTexelSizeProp = ShaderProperty.getByName("material_lowMipTexelSize"); // x: 1/width, y: 1/height, z: width, w: height
+  static _bloomParams = ShaderProperty.getByName("material_BloomParams"); // x: threshold (linear), y: threshold knee, z: scatter, w: prefilter step scale
 
   // Uber shader properties
   /** @internal */
   static _enableMacro: ShaderMacro = ShaderMacro.getByName("ENABLE_EFFECT_BLOOM");
   /** @internal */
   static _bloomTextureProp = ShaderProperty.getByName("material_BloomTexture");
+  /** @internal */
+  static _bloomTexelSizeProp = ShaderProperty.getByName("material_BloomTexelSize"); // x: 1/width, y: 1/height, z: width, w: height
   /** @internal */
   static _dirtTextureProp = ShaderProperty.getByName("material_BloomDirtTexture");
   /** @internal */
@@ -57,7 +48,7 @@ export class BloomEffect extends PostProcessEffect {
   static _dirtTilingOffsetProp = ShaderProperty.getByName("material_BloomDirtTilingOffset");
 
   /**
-   * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
+   * Controls whether to use higher-quality filtering for the bloom prefilter and upsampling passes.
    * @remarks This is slightly more expensive but helps getting smoother visuals.
    */
   highQualityFiltering = new PostProcessEffectBoolParameter(false);
@@ -66,6 +57,13 @@ export class BloomEffect extends PostProcessEffect {
    * Controls the starting resolution that this effect begins processing.
    */
   downScale = new PostProcessEffectEnumParameter(BloomDownScaleMode, BloomDownScaleMode.Half);
+
+  /**
+   * Controls the maximum number of blur iterations for the bloom effect.
+   * @remarks Higher values widen the bloom spread at higher performance cost. Effective range is `1`–`8` (rounded to an integer and bounded by resolution).
+   * @defaultValue `6`
+   */
+  maxIterations = new PostProcessEffectFloatParameter(6, 1, 8, false);
 
   /**
    * Specifies a Texture to add smudges or dust to the bloom effect.
@@ -103,10 +101,3 @@ export class BloomEffect extends PostProcessEffect {
     return this.enabled && this.intensity.value > 0;
   }
 }
-
-Shader.create(BloomEffect.SHADER_NAME, [
-  new ShaderPass("Bloom Prefilter", blitVs, fragPrefilter),
-  new ShaderPass("Bloom Blur Horizontal", blitVs, fragBlurH),
-  new ShaderPass("Bloom Blur Vertical", blitVs, fragBlurV),
-  new ShaderPass("Bloom Upsample", blitVs, fragUpsample)
-]);

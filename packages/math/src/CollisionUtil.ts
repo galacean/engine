@@ -278,7 +278,7 @@ export class CollisionUtil {
       return -1;
     }
 
-    let discriminant = b * b - c;
+    const discriminant = b * b - c;
     if (discriminant < 0) {
       return -1;
     }
@@ -353,7 +353,7 @@ export class CollisionUtil {
     const p = CollisionUtil._tempVec30;
 
     for (let i = 0; i < 6; ++i) {
-      const plane = frustum.getPlane(i);
+      const plane = frustum.getPlane(i)!;
       const normal = plane.normal;
 
       p.set(normal.x >= 0 ? max.x : min.x, normal.y >= 0 ? max.y : min.y, normal.z >= 0 ? max.z : min.z);
@@ -424,7 +424,7 @@ export class CollisionUtil {
     let result = ContainmentType.Contains;
 
     for (let i = 0; i < 6; ++i) {
-      const plane = frustum.getPlane(i);
+      const plane = frustum.getPlane(i)!;
       const normal = plane.normal;
 
       if (normal.x >= 0) {
@@ -471,7 +471,7 @@ export class CollisionUtil {
     let result = ContainmentType.Contains;
 
     for (let i = 0; i < 6; ++i) {
-      const plane = frustum.getPlane(i);
+      const plane = frustum.getPlane(i)!;
       const intersectionType = CollisionUtil.intersectsPlaneAndSphere(plane, sphere);
       if (intersectionType === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;

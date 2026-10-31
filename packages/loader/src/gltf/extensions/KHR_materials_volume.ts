@@ -14,7 +14,12 @@ class KHR_materials_volume extends GLTFExtensionParser {
     material.attenuationDistance = attenuationDistance;
 
     if (attenuationColor) {
-      material.attenuationColor.set(attenuationColor[0], attenuationColor[1], attenuationColor[2], undefined);
+      material.attenuationColor.set(
+        attenuationColor[0],
+        attenuationColor[1],
+        attenuationColor[2],
+        material.attenuationColor.a
+      );
     }
 
     if (thicknessTexture) {

@@ -11,10 +11,10 @@ export abstract class PhysXCollider implements ICollider {
   private static _tempTransform: {
     translation: Vector3;
     rotation: Quaternion;
-  } = { translation: null, rotation: null };
+  } = { translation: null!, rotation: null! };
 
   /** @internal  */
-  _scene: PhysXPhysicsScene = null;
+  _scene: PhysXPhysicsScene | null = null;
   /** @internal */
   _pxActor: any;
   /** @internal */
@@ -29,10 +29,13 @@ export abstract class PhysXCollider implements ICollider {
   /**
    * {@inheritDoc ICollider.addShape }
    */
-  addShape(shape: PhysXColliderShape): void {
-    this._pxActor.attachShape(shape._pxShape);
+  addShape(shape: PhysXColliderShape, layer: number): boolean {
+    if (!this._pxActor.attachShapeWithLayer(shape._pxShape, layer)) {
+      return false;
+    }
     this._shapes.push(shape);
     this._scene?._addColliderShape(shape._id);
+    return true;
   }
 
   /**
@@ -43,6 +46,20 @@ export abstract class PhysXCollider implements ICollider {
     const shapes = this._shapes;
     shapes.splice(shapes.indexOf(shape), 1);
     this._scene?._removeColliderShape(shape._id);
+  }
+
+  /**
+   * {@inheritDoc IStaticCollider.replaceShape }
+   */
+  replaceShape(previousShape: PhysXColliderShape, newShape: PhysXColliderShape, layer: number): boolean {
+    if (!this._pxActor.attachShapeWithLayer(newShape._pxShape, layer)) {
+      return false;
+    }
+    this._shapes[this._shapes.indexOf(previousShape)] = newShape;
+    this._pxActor.detachShape(previousShape._pxShape, true);
+    this._scene?._removeColliderShape(previousShape._id);
+    this._scene?._addColliderShape(newShape._id);
+    return true;
   }
 
   /**

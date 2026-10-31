@@ -24,7 +24,7 @@ import { BinomialLLCTranscoder } from "./transcoder/BinomialLLCTranscoder";
 
 @resourceLoader(AssetType.KTX2, ["ktx2"])
 export class KTX2Loader extends Loader<Texture2D | TextureCube> {
-  private static _binomialLLCTranscoder: BinomialLLCTranscoder;
+  private static _binomialLLCTranscoder: BinomialLLCTranscoder | null;
   private static _priorityFormats = {
     [ColorModel.ETC1S]: [
       KTX2TargetFormat.ETC,
@@ -40,35 +40,36 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
       KTX2TargetFormat.BC1_BC3,
       KTX2TargetFormat.PVRTC
     ],
-    [ColorModel.UASTC_HDR_4X4]: [KTX2TargetFormat.ASTC_HDR_4x4, KTX2TargetFormat.BC6H, KTX2TargetFormat.R16G16B16A16]
+    [ColorModel.UASTC_HDR_4X4]: [
+      KTX2TargetFormat.ASTC_HDR_4x4,
+      KTX2TargetFormat.BC6H,
+      KTX2TargetFormat.R16G16B16A16_SFloat
+    ]
   };
   private static _capabilityMap = {
     [KTX2TargetFormat.ASTC]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.astc, GLCapabilityType.astc_webkit]
+      [DFDTransferFunction.linear]: GLCapabilityType.astc,
+      [DFDTransferFunction.sRGB]: GLCapabilityType.astc
     },
     [KTX2TargetFormat.ETC]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.etc, GLCapabilityType.etc_webkit]
+      [DFDTransferFunction.linear]: GLCapabilityType.etc,
+      [DFDTransferFunction.sRGB]: GLCapabilityType.etc
     },
     [KTX2TargetFormat.BC7]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.bptc],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.bptc]
+      [DFDTransferFunction.linear]: GLCapabilityType.bptc,
+      [DFDTransferFunction.sRGB]: GLCapabilityType.bptc
     },
     [KTX2TargetFormat.BC1_BC3]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.s3tc],
-      [DFDTransferFunction.sRGB]: [GLCapabilityType.s3tc_srgb]
+      [DFDTransferFunction.linear]: GLCapabilityType.s3tc,
+      [DFDTransferFunction.sRGB]: GLCapabilityType.s3tc_srgb
     },
     [KTX2TargetFormat.BC6H]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.bptc]
+      [DFDTransferFunction.linear]: GLCapabilityType.bptc
     },
     [KTX2TargetFormat.ASTC_HDR_4x4]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.astc_hdr]
+      [DFDTransferFunction.linear]: GLCapabilityType.astc_hdr
     },
-    [KTX2TargetFormat.R16G16B16A16]: {
-      [DFDTransferFunction.linear]: [GLCapabilityType.textureHalfFloat]
-    },
-    [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: [GLCapabilityType.pvrtc, GLCapabilityType.pvrtc_webkit] }
+    [KTX2TargetFormat.PVRTC]: { [DFDTransferFunction.linear]: GLCapabilityType.pvrtc }
   };
 
   /**
@@ -146,19 +147,19 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): KTX2TargetFormat {
     const renderer = (engine as any)._hardwareRenderer;
     const { isSRGB, pixelWidth, pixelHeight } = ktx2Container;
-    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats, isSRGB) as KTX2TargetFormat;
+    const targetFormat = this._detectSupportedFormat(renderer, priorityFormats!, isSRGB) as KTX2TargetFormat;
 
     if (
       targetFormat === KTX2TargetFormat.PVRTC &&
       (!MathUtil.isPowerOf2(pixelWidth) || !MathUtil.isPowerOf2(pixelHeight) || pixelWidth !== pixelHeight)
     ) {
       Logger.warn("PVRTC image need power of 2 and width===height, downgrade to RGBA8");
-      return KTX2TargetFormat.R8G8B8A8;
+      return KTX2TargetFormat.R8G8B8A8_UNorm;
     }
 
     if (targetFormat === null) {
       Logger.warn("Can't support any compressed texture, downgrade to RGBA8");
-      return KTX2TargetFormat.R8G8B8A8;
+      return KTX2TargetFormat.R8G8B8A8_UNorm;
     }
     return targetFormat;
   }
@@ -170,21 +171,18 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   ): KTX2TargetFormat | null {
     for (let i = 0; i < priorityFormats.length; i++) {
       const format = priorityFormats[i];
-      const capabilities =
-        this._capabilityMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
-      if (capabilities) {
-        for (let j = 0; j < capabilities.length; j++) {
-          if (renderer.canIUse(capabilities[j])) {
-            return format;
-          }
-        }
+      const capability = this._capabilityMap[format]?.[isSRGB ? DFDTransferFunction.sRGB : DFDTransferFunction.linear];
+      if (capability) {
+        if (renderer.canIUse(capability)) return format;
       } else {
         switch (priorityFormats[i]) {
-          case KTX2TargetFormat.R8G8B8A8:
+          case KTX2TargetFormat.R8G8B8A8_UNorm:
             return format;
-          case KTX2TargetFormat.R8:
-          case KTX2TargetFormat.R8G8:
-            if (renderer.isWebGL2) return format;
+          case KTX2TargetFormat.R8_UNorm:
+          case KTX2TargetFormat.R8G8_UNorm:
+            return format;
+          case KTX2TargetFormat.R16G16B16A16_SFloat:
+            if (!isSRGB) return format;
         }
       }
     }
@@ -198,7 +196,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
   private static _getEngineTextureFormat(
     basisFormat: KTX2TargetFormat,
     transcodeResult: TranscodeResult
-  ): TextureFormat {
+  ): TextureFormat | undefined {
     const { hasAlpha } = transcodeResult;
     switch (basisFormat) {
       case KTX2TargetFormat.ASTC:
@@ -211,26 +209,20 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
         return hasAlpha ? TextureFormat.BC3 : TextureFormat.BC1;
       case KTX2TargetFormat.PVRTC:
         return hasAlpha ? TextureFormat.PVRTC_RGBA4 : TextureFormat.PVRTC_RGB4;
-      case KTX2TargetFormat.R8G8B8A8:
-        return TextureFormat.R8G8B8A8;
+      case KTX2TargetFormat.R8G8B8A8_UNorm:
+        return TextureFormat.R8G8B8A8_UNorm;
       case KTX2TargetFormat.BC6H:
         return TextureFormat.BC6H;
       case KTX2TargetFormat.ASTC_HDR_4x4:
         return TextureFormat.ASTC_4x4;
-      case KTX2TargetFormat.R16G16B16A16:
-        return TextureFormat.R16G16B16A16;
+      case KTX2TargetFormat.R16G16B16A16_SFloat:
+        return TextureFormat.R16G16B16A16_SFloat;
     }
   }
 
-  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> {
+  override initialize(_: Engine, configuration: EngineConfiguration): Promise<void> | void {
     if (configuration.ktx2Loader) {
-      const options = configuration.ktx2Loader;
-      if (options.priorityFormats) {
-        KTX2Loader._priorityFormats["etc1s"] = options.priorityFormats;
-        KTX2Loader._priorityFormats["uastc"] = options.priorityFormats;
-      }
-
-      return KTX2Loader._getBinomialLLCTranscoder(options.workerCount).init();
+      return KTX2Loader._getBinomialLLCTranscoder(configuration.ktx2Loader.workerCount).init();
     }
   }
 
@@ -241,15 +233,14 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
     item: LoadItem & { params?: KTX2Params },
     resourceManager: ResourceManager
   ): AssetPromise<Texture2D | TextureCube> {
+    const remoteUrl = resourceManager._getRemoteUrl(item.url!);
     return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
       const requestConfig = <RequestConfig>{
         ...item,
         type: "arraybuffer"
       };
-      const url = item.url;
       resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(remoteUrl, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), resourceManager.engine, item.params)
@@ -257,7 +248,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
               KTX2Loader._createTextureByBuffer(engine, ktx2Container.isSRGB, result, targetFormat, params)
             )
             .then((texture) => {
-              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, url, requestConfig));
+              resourceManager.addContentRestorer(new KTX2ContentRestorer(texture, remoteUrl, requestConfig));
               resolve(texture);
             })
         )
@@ -269,7 +260,7 @@ export class KTX2Loader extends Loader<Texture2D | TextureCube> {
 class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
   constructor(
     resource: Texture2D | TextureCube,
-    public url: string,
+    public remoteUrl: string,
     public requestConfig: RequestConfig & { params?: KTX2Params }
   ) {
     super(resource);
@@ -280,8 +271,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
     const engine = resource.engine;
     return new AssetPromise((resolve, reject) => {
       engine.resourceManager
-        // @ts-ignore
-        ._request<ArrayBuffer>(this.url, requestConfig)
+        ._requestByRemoteUrl<ArrayBuffer>(this.remoteUrl, requestConfig)
         .then((buffer) =>
           KTX2Loader._parseBuffer(new Uint8Array(buffer), engine, requestConfig.params).then(
             ({ ktx2Container, engine, result, targetFormat, params }) =>
@@ -298,7 +288,7 @@ class KTX2ContentRestorer extends ContentRestorer<Texture2D | TextureCube> {
  * KTX2 loader params interface.
  */
 export interface KTX2Params {
-  /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
+  /** Priority transcoding format queue which is preferred options, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8_UNorm. */
   /** @deprecated */
   priorityFormats: KTX2TargetFormat[];
 }
@@ -309,9 +299,6 @@ declare module "@galacean/engine-core" {
     ktx2Loader?: {
       /** Worker count for transcoder, default is 4. */
       workerCount?: number;
-      /** Global transcoding format queue which will be used if not specified in per-instance param, default is BC7/ASTC/BC3_BC1/ETC/PVRTC/R8G8B8A8. */
-      /** @deprecated */
-      priorityFormats?: KTX2TargetFormat[];
     };
   }
 }

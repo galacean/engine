@@ -44,6 +44,7 @@ export class AnimationClipDecoder {
     return new AssetPromise((resolve) => {
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
+      const version = bufferReader.header?.version ?? 1;
       const eventsLen = bufferReader.nextUint16();
       for (let i = 0; i < eventsLen; ++i) {
         const event = new AnimationEvent();
@@ -58,6 +59,7 @@ export class AnimationClipDecoder {
         const relativePath = bufferReader.nextStr();
         const componentStr = bufferReader.nextStr();
         const componentType = Loader.getClass(componentStr);
+        const typeIndex = version >= 2 ? bufferReader.nextUint16() : 0;
         const property = bufferReader.nextStr();
         const getProperty = bufferReader.nextStr();
         let curve: AnimationCurve<KeyframeValueType>;
@@ -230,7 +232,7 @@ export class AnimationClipDecoder {
             curve = new AnimationRefCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
-              const keyframe = new Keyframe<ReferResource>();
+              const keyframe = new Keyframe<ReferResource | null>();
               keyframe.time = bufferReader.nextFloat32();
               const str = bufferReader.nextStr();
               if (str) {
@@ -265,7 +267,7 @@ export class AnimationClipDecoder {
             break;
           }
         }
-        clip.addCurveBinding(relativePath, componentType, property, getProperty, curve);
+        clip.addCurveBinding(relativePath, componentType, typeIndex, property, getProperty, curve!);
       }
       resolve(clip);
     });

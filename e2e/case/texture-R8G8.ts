@@ -16,7 +16,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
@@ -37,7 +37,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const width = 1024;
   const height = 1024;
-  const r8Texture = new Texture2D(engine, width, height, TextureFormat.R8G8, false);
+  const r8Texture = new Texture2D(engine, width, height, TextureFormat.R8G8_UNorm, false);
   const pixels = new Uint8Array(width * height * 2); // 2 bytes per pixel (R and G)
   for (let i = 0; i < width * height; i++) {
     pixels[i * 2] = 200; // R

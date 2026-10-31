@@ -1,4 +1,5 @@
-import { IHardwareRenderer, IXRDevice } from "@galacean/engine-design";
+import { WebGLGraphicDevice } from "@galacean/engine";
+import { IXRDevice } from "@galacean/engine-design";
 import { XRFeatureType, XRSessionMode } from "@galacean/engine-xr";
 import { parseXRMode } from "./Util";
 import { WebXRSession } from "./WebXRSession";
@@ -18,7 +19,7 @@ export class WebXRDevice implements IXRDevice {
         reject(new Error("WebXR isn't available"));
         return;
       }
-      navigator.xr.isSessionSupported(parseXRMode(mode)).then((isSupported: boolean) => {
+      navigator.xr.isSessionSupported(parseXRMode(mode)!).then((isSupported: boolean) => {
         isSupported ? resolve() : reject(new Error("The current context doesn't support WebXR."));
       });
     });
@@ -34,36 +35,42 @@ export class WebXRDevice implements IXRDevice {
       case XRFeatureType.ImageTracking:
         // @ts-ignore
         return typeof XRImageTrackingResult !== "undefined";
+      default:
+        return false;
     }
   }
 
-  createPlatformFeature(type: XRFeatureType, ...args: any[]): WebXRFeature {
+  createPlatformFeature(type: XRFeatureType, ...args: any[]): WebXRFeature | null {
     const platformFeatureConstructor = WebXRDevice._platformFeatureMap[type];
     return platformFeatureConstructor ? new platformFeatureConstructor(...args) : null;
   }
 
-  requestSession(rhi: IHardwareRenderer, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
+  requestSession(rhi: unknown, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
+    if (!(rhi instanceof WebGLGraphicDevice)) {
+      return Promise.reject(new Error("WebXR requires a WebGL graphics device."));
+    }
     return new Promise((resolve, reject) => {
-      const sessionMode = parseXRMode(mode);
+      const sessionMode = parseXRMode(mode)!;
       const options: XRSessionInit = { requiredFeatures: ["local"], optionalFeatures: [] };
-      const promiseArr = [];
+      const promiseArr: Promise<void>[] = [];
       for (let i = 0, n = platformFeatures.length; i < n; i++) {
         const promise = platformFeatures[i]._assembleOptions(options);
         promise && promiseArr.push(promise);
       }
       Promise.all(promiseArr).then(() => {
-        navigator.xr.requestSession(sessionMode, options).then((session) => {
+        navigator.xr!.requestSession(sessionMode, options).then((session) => {
           const { gl } = rhi;
           const attributes = gl.getContextAttributes();
           if (!attributes) {
             reject(Error("GetContextAttributes Error!"));
+            return;
           }
           gl.makeXRCompatible().then(() => {
             const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
             let layer: XRWebGLLayer;
-            if (session.renderState.layers === undefined || !!!rhi.isWebGL2) {
+            if (session.renderState.layers === undefined) {
               const layerInit = {
-                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                antialias: attributes.antialias,
                 alpha: true,
                 depth: attributes.depth,
                 stencil: attributes.stencil,
@@ -80,7 +87,7 @@ export class WebXRDevice implements IXRDevice {
               });
             }
             session.requestReferenceSpace("local").then((referenceSpace: XRReferenceSpace) => {
-              resolve(new WebXRSession(session, layer, referenceSpace));
+              resolve(new WebXRSession(rhi, session, layer, referenceSpace));
             }, reject);
           }, reject);
         }, reject);

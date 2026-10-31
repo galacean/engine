@@ -30,16 +30,17 @@ All collider types have the following common features:
 
 1. **Shape Management**: Each collider can contain multiple [collision shapes](/en/docs/physics/collider/colliderShape) (character controllers can only add one). For detailed instructions on collision shapes, please refer to the [Collision Shape](/en/docs/physics/collider/colliderShape) documentation.
 
-Currently, four types of `collision shapes` are supported, but the support varies among different backend physics packages, as shown below:
+Currently, the built-in PhysX backend supports the following `collision shapes`:
 
-| Name                                                     | Description             | Supported Backend Physics Packages             |
-| :------------------------------------------------------- | :--------------- | :--------------------------- |
-| [BoxColliderShape](/apis/core/#BoxColliderShape)         | Box-shaped collision shape     | physics-lite, physics-physx |
-| [SphereColliderShape](/apis/core/#SphereColliderShape)   | Sphere-shaped collision shape     | physics-lite, physics-physx |
-| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | Infinite plane collision shape | physics-physx                |
-| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collision shape     | physics-physx                |
+| Name | Description |
+| :-- | :-- |
+| [BoxColliderShape](/apis/core/#BoxColliderShape) | Box-shaped collision shape |
+| [SphereColliderShape](/apis/core/#SphereColliderShape) | Sphere-shaped collision shape |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape) | Infinite plane collision shape |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | Capsule-shaped collision shape |
 
 2. **Transform Synchronization**:
+
    - Colliders automatically synchronize the world transform of the entity, including position, rotation, and scale
    - `Collision shapes` can be set with local offsets and rotations relative to the entity
 

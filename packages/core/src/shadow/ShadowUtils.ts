@@ -15,7 +15,6 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer } from "../Renderer";
 import { Utils } from "../Utils";
 import { DirectLight, Light } from "../lighting";
-import { TextureFormat } from "../texture";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowType } from "./enum/ShadowType";
@@ -148,14 +147,6 @@ export class ShadowUtils {
     }
   }
 
-  static shadowDepthFormat(value: ShadowResolution, supportDepthTexture: boolean): TextureFormat {
-    if (supportDepthTexture) {
-      return TextureFormat.Depth16;
-    } else {
-      return TextureFormat.R8G8B8A8;
-    }
-  }
-
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
     const { min, max } = bounds;
 
@@ -241,12 +232,12 @@ export class ShadowUtils {
     const out = shadowSliceData.cullPlanes;
 
     // cameraFrustumPlanes is share
-    const near = cameraFrustum.getPlane(FrustumFace.Near);
-    const far = cameraFrustum.getPlane(FrustumFace.Far);
-    const left = cameraFrustum.getPlane(FrustumFace.Left);
-    const right = cameraFrustum.getPlane(FrustumFace.Right);
-    const bottom = cameraFrustum.getPlane(FrustumFace.Bottom);
-    const top = cameraFrustum.getPlane(FrustumFace.Top);
+    const near = cameraFrustum.getPlane(FrustumFace.Near)!;
+    const far = cameraFrustum.getPlane(FrustumFace.Far)!;
+    const left = cameraFrustum.getPlane(FrustumFace.Left)!;
+    const right = cameraFrustum.getPlane(FrustumFace.Right)!;
+    const bottom = cameraFrustum.getPlane(FrustumFace.Bottom)!;
+    const top = cameraFrustum.getPlane(FrustumFace.Top)!;
 
     // adjustment the near/far plane
     const splitNearDistance = splitDistance - cameraNear;
@@ -273,7 +264,7 @@ export class ShadowUtils {
     let backIndex = 0;
     for (let i = 0; i < 6; i++) {
       // maybe 3、4、5(light eye is at far, forward is near, or orthographic camera is any axis)
-      let plane: Plane;
+      let plane: Plane | null;
       switch (i) {
         case FrustumFace.Near:
           plane = splitNear;
@@ -282,7 +273,7 @@ export class ShadowUtils {
           plane = splitFar;
           break;
         default:
-          plane = cameraFrustum.getPlane(i);
+          plane = cameraFrustum.getPlane(i)!;
           break;
       }
       if (Vector3.dot(plane.normal, direction) < 0.0) {

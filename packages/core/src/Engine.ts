@@ -1,57 +1,47 @@
-import {
-  IHardwareRenderer,
-  IInputOptions,
-  IPhysics,
-  IPhysicsManager,
-  IShaderLab,
-  IXRDevice
-} from "@galacean/engine-design";
+import { IInputOptions, IPhysics, IPhysicsManager, IShaderCompiler, IXRDevice } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
+import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 import { RenderTargetPool } from "./RenderPipeline/RenderTargetPool";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
 import { ColliderShape } from "./physics/shape/ColliderShape";
 import { PostProcessPass } from "./postProcess/PostProcessPass";
 import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
+import type { BuiltinShaders } from "./shader/BuiltinShaders";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderPass } from "./shader/ShaderPass";
-import { ShaderPool } from "./shader/ShaderPool";
-import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { ShaderProgramMap } from "./shader/ShaderProgramMap";
+import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
+import type { IHardwareRenderer } from "./renderingHardwareInterface";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-
-ShaderPool.init();
 
 /**
  * Engine.
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
-  /** @internal */
-  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  static _builtinShaders: BuiltinShaders;
+
   /** @internal */
   static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
@@ -73,6 +63,7 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _batcherManager: BatcherManager;
 
+  /** @internal */
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
   _frameInProcess = false;
@@ -84,36 +75,34 @@ export class Engine extends EventDispatcher {
   _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
-  /* @internal */
+  /** @internal */
   _hardwareRenderer: IHardwareRenderer;
-  /* @internal */
+  /** @internal */
   _renderTargetPool: RenderTargetPool;
-  /* @internal */
+  /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
-  /* @internal */
+  /** @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
-  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
-  /* @internal */
-  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
-  /* @internal */
+  /** @internal */
+  _textRenderElementPool = new ClearableObjectPool(RenderElement);
+  /** @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
-  /* @internal */
+  /** @internal */
   _basicResources: BasicResources;
-  /* @internal */
-  _textDefaultFont: Font;
-  /* @internal */
+  /** @internal */
+  _textDefaultFont: Font | null;
+  /** @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
+  /** @internal */
   _depthTexture2D: Texture2D;
 
-  /* @internal */
+  /** @internal */
   _renderCount: number = 0;
-  /* @internal */
-  _shaderProgramPools: ShaderProgramPool[] = [];
+  /** @internal */
+  _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal */
@@ -133,7 +122,7 @@ export class Engine extends EventDispatcher {
   private _time: Time = new Time();
   private _isPaused: boolean = true;
   private _requestId: number;
-  private _timeoutId: number;
+  private _timeoutId: ReturnType<typeof setTimeout>;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
@@ -142,16 +131,18 @@ export class Engine extends EventDispatcher {
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
 
+  private _onCanvasResize = (): void => this._renderTargetPool.gc();
+
   private _animate = () => {
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
         this.update();
         this._vSyncCounter = 1;
       }
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
       this.update();
     }
   };
@@ -207,7 +198,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * The number of vertical synchronization means the number of vertical blanking for one frame.
-   * @remarks 0 means that the vertical synchronization is turned off.
+   * @remarks 0 means that the vertical synchronization is turned off. Hosts without animation-frame scheduling use `targetFrameRate`.
    */
   get vSyncCount(): number {
     return this._vSyncCount;
@@ -220,8 +211,8 @@ export class Engine extends EventDispatcher {
   /**
    * Set the target frame rate you want to achieve.
    * @remarks
-   * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
-   * The larger the value, the higher the target frame rate, Number.POSITIVE_INFINITY represents the infinite target frame rate.
+   * It takes effect when `vSyncCount = 0` or the host does not provide animation-frame scheduling.
+   * The larger the value, the higher the target frame rate, `Number.POSITIVE_INFINITY` represents the infinite target frame rate.
    */
   get targetFrameRate(): number {
     return this._targetFrameRate;
@@ -255,10 +246,11 @@ export class Engine extends EventDispatcher {
     this._canvas = canvas;
 
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = true;
+    this._textDefaultFont!.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -267,19 +259,11 @@ export class Engine extends EventDispatcher {
       this.xrManager._initialize(this, xrDevice);
     }
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      this._macroCollection.enable(Engine._noDepthTextureMacro);
-    } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
-      depthTexture2D.isGCIgnored = true;
-      this._depthTexture2D = depthTexture2D;
-    }
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
+    depthTexture2D.isGCIgnored = true;
+    this._depthTexture2D = depthTexture2D;
 
-    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
-      this._macroCollection.enable(Engine._noSRGBSupportMacro);
-    }
-
-    this._basicResources = new BasicResources(this);
+    this._basicResources = new BasicResources(this, Engine._builtinShaders);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
     const uberPass = new PostProcessUberPass(this);
@@ -300,8 +284,10 @@ export class Engine extends EventDispatcher {
    */
   pause(): void {
     this._isPaused = true;
-    const caf = this.xrManager?._getCancelAnimationFrame() || cancelAnimationFrame;
-    caf(this._requestId);
+    const caf =
+      this.xrManager?._getCancelAnimationFrame() ||
+      (typeof cancelAnimationFrame === "undefined" ? undefined : cancelAnimationFrame);
+    caf?.(this._requestId);
     clearTimeout(this._timeoutId);
   }
 
@@ -312,11 +298,11 @@ export class Engine extends EventDispatcher {
     if (!this._isPaused) return;
     this._isPaused = false;
     this.time._reset();
-    if (this._vSyncCount) {
-      const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
+    const raf = this._vSyncCount ? this._getRequestAnimationFrame() : undefined;
+    if (raf) {
       this._requestId = raf(this._animate);
     } else {
-      this._timeoutId = window.setTimeout(this._animate, this._targetFrameInterval);
+      this._timeoutId = setTimeout(this._animate, this._targetFrameInterval);
     }
   }
 
@@ -324,15 +310,16 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
+    this._canvas._pumpPendingResolution();
+
     const time = this._time;
     time._update();
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._subRenderElementPool.clear();
-    this._textSubRenderElementPool.clear();
     this._renderElementPool.clear();
+    this._textRenderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -409,7 +396,7 @@ export class Engine extends EventDispatcher {
    */
   run(): void {
     this.resume();
-    this.dispatch("run", this);
+    this.dispatch(EngineEventType.Run, this);
   }
 
   /**
@@ -505,6 +492,9 @@ export class Engine extends EventDispatcher {
     this._destroyed = true;
     this._waitingDestroy = false;
 
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+    this._canvas._destroy();
+
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
 
@@ -512,7 +502,7 @@ export class Engine extends EventDispatcher {
     this._batcherManager.destroy();
     this._renderTargetPool.gc();
     this.xrManager?._destroy();
-    this.dispatch("shutdown", this);
+    this.dispatch(EngineEventType.Shutdown, this);
 
     // Cancel animation
     this.pause();
@@ -542,33 +532,33 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
-    const index = shaderPass._shaderPassId;
-    const shaderProgramPools = this._shaderProgramPools;
-    let pool = shaderProgramPools[index];
-    if (!pool) {
+  _getShaderProgramMap(index: number, trackMaps?: ShaderProgramMap[]): ShaderProgramMap {
+    const shaderProgramMaps = this._shaderProgramMaps;
+    let map = shaderProgramMaps[index];
+    if (!map) {
       const length = index + 1;
-      if (length > shaderProgramPools.length) {
-        shaderProgramPools.length = length;
+      if (length > shaderProgramMaps.length) {
+        shaderProgramMaps.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
-      shaderPass._shaderProgramPools.push(pool);
+      shaderProgramMaps[index] = map = new ShaderProgramMap(this);
+      trackMaps?.push(map);
     }
-    return pool;
+    return map;
   }
 
   /**
    * @internal
    */
   _render(scenes: ReadonlyArray<Scene>): void {
-    // Update `Renderer` logic and shader data
+    // Update all scenes before rendering any camera
     const deltaTime = this.time.deltaTime;
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      scene._componentsManager.callRendererOnUpdate(deltaTime);
-      scene._updateShaderData();
+      scene._updateRendering(deltaTime);
     }
+
+    if (!this._hardwareRenderer.supportsRendering) return;
 
     // Fire script `onBeginRender` and `onEndRender`
     for (let i = 0, n = scenes.length; i < n; i++) {
@@ -630,23 +620,32 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { shaderLab, physics } = configuration;
+  protected _initialize(configuration: EngineConfiguration): Promise<this> {
+    const { shaderCompiler, physics } = configuration;
 
-    if (shaderLab && !Shader._shaderLab) {
-      Shader._shaderLab = shaderLab;
+    if (shaderCompiler && !Shader._shaderCompiler) {
+      // Bind the runtime include map so the preprocessor sees every chunk
+      // the umbrella package's ShaderPool registered into ShaderFactory.
+      // shader-compiler defaults to an empty map and stays free of any direct
+      // ShaderFactory dependency, so the binding has to be wired here at the
+      // runtime boundary.
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      Shader._shaderCompiler = shaderCompiler;
     }
 
-    const initializePromises = new Array<Promise<any>>();
+    const initializePromises: (Promise<unknown> | void)[] = [];
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
-          if (Engine._nativePhysics) {
-            console.warn(
-              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
-            );
+          if (Engine._nativePhysics !== physics) {
+            if (Engine._nativePhysics) {
+              console.warn(
+                "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+              );
+            }
+            Engine._nativePhysics = physics;
+            BasicResources._initializePhysics();
           }
-          Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;
@@ -655,13 +654,23 @@ export class Engine extends EventDispatcher {
     }
 
     const loaders = ResourceManager._loaders;
-    for (let key in loaders) {
+    for (const key in loaders) {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
 
     initializePromises.push(this._basicResources._initialize());
-    return Promise.all(initializePromises).then(() => this);
+    return Promise.all(initializePromises).then(() => {
+      this.sceneManager.addScene(new Scene(this, "DefaultScene"));
+      return this;
+    });
+  }
+
+  private _getRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | undefined {
+    return (
+      this.xrManager?._getRequestAnimationFrame() ||
+      (typeof requestAnimationFrame === "undefined" ? undefined : requestAnimationFrame)
+    );
   }
 
   private _onDeviceLost(): void {
@@ -670,15 +679,15 @@ export class Engine extends EventDispatcher {
     this.resourceManager._lostGraphicResources();
     this._renderingStatistics._reset();
     console.log("Device lost.");
-    this.dispatch("devicelost", this);
+    this.dispatch(EngineEventType.DeviceLost, this);
   }
 
   private _onDeviceRestored(): void {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
-    // Clear shader pools
+    // Clear shader program maps
     Shader._clear(this);
-    this._shaderProgramPools.length = 0;
+    this._shaderProgramMaps.length = 0;
 
     const { resourceManager } = this;
     // Restore graphic resources
@@ -691,7 +700,7 @@ export class Engine extends EventDispatcher {
       ._restoreResourcesContent()
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
-        this.dispatch("devicerestored", this);
+        this.dispatch(EngineEventType.DeviceRestored, this);
       })
       .catch((error) => {
         console.error(error);
@@ -699,10 +708,13 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
-    this._subRenderElementPool.garbageCollection();
-    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
+    this._textRenderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
+    const scenes = this._sceneManager._scenes.getLoopArray();
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      scenes[i]?.physics?._gc();
+    }
   }
 
   /**
@@ -722,8 +734,8 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Shader lab. */
-  shaderLab?: IShaderLab;
+  /** Shader compiler. */
+  shaderCompiler?: IShaderCompiler;
   /** Input options. */
   input?: IInputOptions;
 }

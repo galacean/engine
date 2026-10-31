@@ -23,8 +23,8 @@ class KHR_texture_basisu extends GLTFExtensionParser {
 
     const { sampler, name: textureName } = textureInfo;
     const { source } = schema;
-    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
-    const samplerInfo = sampler !== undefined && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
+    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images![source];
+    const samplerInfo = sampler !== undefined ? GLTFUtils.getSamplerInfo(glTF.samplers![sampler]) : undefined;
     if (uri) {
       const index = uri.lastIndexOf(".");
       const promise = engine.resourceManager
@@ -37,7 +37,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
           if (!texture.name) {
             texture.name = textureName || imageName || `texture_${index}`;
           }
-          if (sampler !== undefined) {
+          if (samplerInfo) {
             GLTFUtils.parseSampler(texture, samplerInfo);
           }
           return texture;
@@ -46,7 +46,7 @@ class KHR_texture_basisu extends GLTFExtensionParser {
       context._addTaskCompletePromise(promise);
       return promise;
     } else {
-      const bufferView = glTF.bufferViews[bufferViewIndex];
+      const bufferView = glTF.bufferViews![bufferViewIndex!];
 
       return context
         .get<ArrayBuffer>(GLTFParserType.Buffer, bufferView.buffer)
@@ -59,10 +59,10 @@ class KHR_texture_basisu extends GLTFExtensionParser {
             )
             .then((texture: Texture2D) => {
               texture.name = textureName || imageName || `texture_${bufferViewIndex}`;
-              if (sampler !== undefined) {
+              if (samplerInfo) {
                 GLTFUtils.parseSampler(texture, samplerInfo);
               }
-              const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
+              const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType!);
               context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
               return texture;
             });

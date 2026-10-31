@@ -1,31 +1,24 @@
 import { Matrix } from "@galacean/engine-math";
 import { Entity } from "../Entity";
-import { CloneUtils } from "../clone/CloneUtils";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
-import { EngineObject } from "../base/EngineObject";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
-import { IComponentCustomClone } from "../clone/ComponentCloner";
+import { DataObject } from "../base/DataObject";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
  * Skin used for skinned mesh renderer.
  */
-export class Skin extends EngineObject implements IComponentCustomClone {
+export class Skin extends DataObject {
   /** Inverse bind matrices. */
-  @deepClone
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
-  @ignoreClone
   _skinMatrices: Float32Array;
   /** @internal */
-  @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
-  @ignoreClone
   private _rootBone: Entity;
-  @ignoreClone
   private _bones = new Array<Entity>();
   @ignoreClone
   private _updateMark = -1;
@@ -68,7 +61,7 @@ export class Skin extends EngineObject implements IComponentCustomClone {
   }
 
   constructor(public name: string) {
-    super(null);
+    super();
   }
 
   /**
@@ -93,28 +86,6 @@ export class Skin extends EngineObject implements IComponentCustomClone {
     }
 
     this._updateMark = renderer.engine.time.frameCount;
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: Skin, srcRoot: Entity, targetRoot: Entity): void {
-    // Clone rootBone
-    const rootBone = this.rootBone;
-    if (rootBone) {
-      target.rootBone = CloneUtils.remapEntity(srcRoot, targetRoot, rootBone);
-    }
-
-    // Clone bones
-    const bones = this.bones;
-    if (bones.length > 0) {
-      const boneCount = bones.length;
-      const destBones = new Array<Entity>(boneCount);
-      for (let i = 0; i < boneCount; i++) {
-        destBones[i] = CloneUtils.remapEntity(srcRoot, targetRoot, bones[i]);
-      }
-      target.bones = destBones;
-    }
   }
 
   /** @deprecated Please use `bones` instead. */

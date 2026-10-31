@@ -23,7 +23,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: new Vector3(),
-    rotation: null
+    rotation: null as Quaternion | null
   };
 
   protected static _tempVector4 = new Vector4();
@@ -31,7 +31,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
   /** @internal */
-  _contractOffset: number = 0.02;
+  _contactOffset: number = 0.02;
 
   /** @internal */
   _worldScale: Vector3 = new Vector3(1, 1, 1);
@@ -49,7 +49,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   protected _physXPhysics: PhysXPhysics;
   protected _pxGeometry: any;
-  protected _axis: Quaternion = null;
+  protected _axis: Quaternion | null = null;
   protected _physXRotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
@@ -106,14 +106,14 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contractOffset = offset;
     const controllers = this._controllers;
-    if (controllers.length) {
-      for (let i = 0, n = controllers.length; i < n; i++) {
-        controllers.get(i)._pxController?.setContactOffset(offset);
-      }
-    } else {
-      this._pxShape.setContactOffset(offset);
+    if (controllers.length && offset <= 0) {
+      throw new Error("CharacterController contactOffset must be positive.");
+    }
+    this._contactOffset = offset;
+    this._pxShape.setContactOffset(offset);
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController?.setContactOffset(offset);
     }
   }
 
@@ -123,6 +123,10 @@ export abstract class PhysXColliderShape implements IColliderShape {
   setMaterial(value: PhysXPhysicsMaterial): void {
     this._pxMaterial = value._pxMaterial;
     this._pxShape.setMaterial(this._pxMaterial);
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController?.setMaterial(this._pxMaterial);
+    }
   }
 
   /**
@@ -132,6 +136,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this._setShapeFlags(this._shapeFlags);
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.setIsSceneQuery }
+   */
+  setIsSceneQuery(value: boolean): void {
+    this._pxShape.setSceneQueryEnabled(value);
+    const controllers = this._controllers;
+    for (let i = 0; i < controllers.length; i++) {
+      controllers.get(i)._pxController?.setSceneQueryEnabled(value);
+    }
   }
 
   /**
@@ -174,7 +189,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._id = id;
     this._pxMaterial = material._pxMaterial;
     const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
-    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
+    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, this._pxMaterial, true, shapeFlags);
     shapeFlags.delete();
     this._pxShape.setUUID(id);
   }

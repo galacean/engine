@@ -54,10 +54,10 @@ sRGB 色彩空间的伽马校正正是基于这种感知特性设计的，并对
 [加载纹理](/docs/assets/load) 默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
 
 ```ts showLineNumbers {7}
-// 使用 Texture2DLoader 加载纹理
+// 使用 TextureLoader 加载纹理
 engine.resourceManager
   .load<Texture2D>({
-    type: AssetType.Texture2D,
+    type: AssetType.Texture,
     url: "https://***.png",
     params: {
       isSRGBColorSpace: false // 关闭 sRGB，使用线性空间，如法线贴图
@@ -74,7 +74,7 @@ export declare class Texture2D extends Texture {
    * @param engine - 渲染引擎实例
    * @param width - 纹理宽度
    * @param height - 纹理高度
-   * @param format - 纹理格式，默认值为 `TextureFormat.R8G8B8A8`
+   * @param format - 纹理格式，默认值为 `TextureFormat.R8G8B8A8_UNorm`
    * @param mipmap - 是否使用多级纹理
    * @param isSRGBColorSpace - 是否使用 sRGB 色彩空间，默认值为 `true`
    * @param usage - 纹理用途

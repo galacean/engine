@@ -19,6 +19,7 @@ export class AnimatorController extends ReferResource {
   _layersMap: Record<string, AnimatorControllerLayer> = {};
 
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private _onStatesInvalidate = (): void => this._updateFlagManager.dispatch();
 
   /**
    * The layers in the controller.
@@ -54,15 +55,15 @@ export class AnimatorController extends ReferResource {
    * @param name - The name of the parameter
    * @param defaultValue - The default value of the parameter
    */
-  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter {
-    return this._addParameter(name, defaultValue, false);
+  addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter | null {
+    return this._addParameter(name, defaultValue!, false);
   }
 
   /**
    * Add a trigger parameter to the controller.
    * @param name - The name of the parameter
    */
-  addTriggerParameter(name: string): AnimatorControllerParameter {
+  addTriggerParameter(name: string): AnimatorControllerParameter | null {
     return this._addParameter(name, false, true);
   }
 
@@ -84,7 +85,7 @@ export class AnimatorController extends ReferResource {
    */
   clearParameters(): void {
     this._parameters.length = 0;
-    for (let name in this._parametersMap) {
+    for (const name in this._parametersMap) {
       delete this._parametersMap[name];
     }
   }
@@ -112,6 +113,7 @@ export class AnimatorController extends ReferResource {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
+    layer._setStatesInvalidateCallback(this._onStatesInvalidate);
     layer._setEngine(this._engine);
     this._updateFlagManager.dispatch();
   }
@@ -123,6 +125,7 @@ export class AnimatorController extends ReferResource {
   removeLayer(layerIndex: number): void {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
+    theLayer._setStatesInvalidateCallback(null);
     delete this._layersMap[theLayer.name];
     this._updateFlagManager.dispatch();
   }
@@ -131,8 +134,13 @@ export class AnimatorController extends ReferResource {
    * Clear layers.
    */
   clearLayers(): void {
-    this._layers.length = 0;
-    for (let name in this._layersMap) {
+    const { _layers: layers } = this;
+    for (let i = 0, n = layers.length; i < n; i++) {
+      layers[i]._setStatesInvalidateCallback(null);
+    }
+    layers.length = 0;
+
+    for (const name in this._layersMap) {
       delete this._layersMap[name];
     }
     this._updateFlagManager.dispatch();
@@ -151,7 +159,9 @@ export class AnimatorController extends ReferResource {
   _setEngine(engine: Engine): void {
     const { _layers: layers } = this;
     for (let i = 0, n = layers.length; i < n; i++) {
-      layers[i]._setEngine(engine);
+      const layer = layers[i];
+      layer._setStatesInvalidateCallback(this._onStatesInvalidate);
+      layer._setEngine(engine);
     }
   }
 
@@ -159,7 +169,7 @@ export class AnimatorController extends ReferResource {
     name: string,
     defaultValue: AnimatorControllerParameterValue,
     isTrigger: boolean = false
-  ): AnimatorControllerParameter {
+  ): AnimatorControllerParameter | null {
     if (this._parametersMap[name]) {
       console.warn(`Parameter ${name} already exists.`);
       return null;

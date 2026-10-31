@@ -58,7 +58,7 @@ export class RenderTargetPool {
     }
 
     const engine = this._engine;
-    let colorTexture: Texture2D = null;
+    let colorTexture: Texture2D | null = null;
     if (colorFormat != null) {
       colorTexture = new Texture2D(engine, width, height, colorFormat, mipmap, isSRGBColorSpace);
       colorTexture.isGCIgnored = true;
@@ -68,7 +68,7 @@ export class RenderTargetPool {
 
     let renderTarget: RenderTarget;
     if (needDepthTexture) {
-      let depthTexture: Texture2D = null;
+      let depthTexture: Texture2D | null = null;
       if (depthFormat) {
         depthTexture = new Texture2D(engine, width, height, depthFormat, mipmap, isSRGBColorSpace);
         depthTexture.isGCIgnored = true;

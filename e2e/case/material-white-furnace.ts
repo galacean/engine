@@ -20,8 +20,6 @@ import {
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -54,7 +52,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   // sRGB texture: hardware auto-converts sRGB->Linear on sampling
   const cubeSize = 64;
   const furnaceValue = sRGBByte;
-  const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, true);
+  const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8_UNorm, true, true);
   const grayPixels = new Uint8Array(cubeSize * cubeSize * 4);
   for (let i = 0; i < grayPixels.length; i += 4) {
     grayPixels[i] = furnaceValue;
@@ -97,7 +95,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       entity.transform.setPosition(col * spacing - offsetX, (rows - 1 - row) * spacing - offsetY, 0);
 
       const renderer = entity.addComponent(MeshRenderer);
-      renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5, 32);
+      renderer.mesh = PrimitiveMesh.createSphere(engine, 0.5, { subdivisionLevel: 4 });
 
       const material = new PBRMaterial(engine);
       material.baseColor = rowConfigs[row].baseColor;

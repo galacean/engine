@@ -1,6 +1,6 @@
 import { BlendShape, BlendShapeFrame, PrimitiveMesh } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BlendShape", () => {
@@ -176,7 +176,7 @@ describe("BlendShape", () => {
     blendShape.addFrame(0.4, deltaPositions, deltaNormals, null);
     blendShape.addFrame(0.7, deltaPositions, null, deltaTangents);
 
-    const modelMesh = PrimitiveMesh.createPlane(engine, 1, 1, 1, 1);
+    const modelMesh = PrimitiveMesh.createPlane(engine, 1, 1);
     modelMesh.addBlendShape(blendShape);
     modelMesh.uploadData(true);
 

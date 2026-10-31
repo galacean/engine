@@ -25,7 +25,7 @@ export class Texture2DArray extends Texture {
    * @param width - Texture width
    * @param height - Texture height
    * @param length - Texture length
-   * @param format - Texture format. default `TextureFormat.R8G8B8A8`
+   * @param format - Texture format. default `TextureFormat.R8G8B8A8_UNorm`
    * @param mipmap - Whether to use multi-level texture
    * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    */
@@ -34,14 +34,10 @@ export class Texture2DArray extends Texture {
     width: number,
     height: number,
     length: number,
-    format: TextureFormat = TextureFormat.R8G8B8A8,
+    format: TextureFormat = TextureFormat.R8G8B8A8_UNorm,
     mipmap: boolean = true,
     isSRGBColorSpace = true
   ) {
-    if (!engine._hardwareRenderer.isWebGL2) {
-      throw new Error(`Texture2D Array is not supported in WebGL1.0`);
-    }
-
     super(engine, width, height, format, mipmap, isSRGBColorSpace);
 
     this._length = length;
@@ -57,7 +53,6 @@ export class Texture2DArray extends Texture {
 
   /**
    * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
    * @param offsetIndex - The texture array element offset index
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level
@@ -177,7 +172,7 @@ export class Texture2DArray extends Texture {
     out?: ArrayBufferView
   ): void {
     const argsLength = arguments.length;
-    if (argsLength === 1) {
+    if (argsLength === 2) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -187,7 +182,7 @@ export class Texture2DArray extends Texture {
         0,
         <ArrayBufferView>xOrMipLevelOrOut
       );
-    } else if (argsLength === 2) {
+    } else if (argsLength === 3) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         0,
@@ -197,25 +192,25 @@ export class Texture2DArray extends Texture {
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
-    } else if (argsLength === 5) {
-      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
-        elementIndex,
-        <number>xOrMipLevelOrOut,
-        <number>yOrMipLevel,
-        width,
-        height,
-        0,
-        <ArrayBufferView>mipLevelOrOut
-      );
     } else if (argsLength === 6) {
       (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
         elementIndex,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
+        0,
+        <ArrayBufferView>mipLevelOrOut
+      );
+    } else if (argsLength === 7) {
+      (this._platformTexture as IPlatformTexture2DArray).getPixelBuffer(
+        elementIndex,
+        <number>xOrMipLevelOrOut,
+        <number>yOrMipLevel,
+        width!,
+        height!,
         <number>mipLevelOrOut,
-        out
+        out!
       );
     }
   }

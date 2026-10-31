@@ -44,6 +44,6 @@ You can debug each property in the provided example to better understand and con
 
 The scalingMode has the following options:
 
-- **Local**: Particles inherit the local transformation of the particle generator, meaning the particle transformation occurs in the generator's local coordinate system.
-- **World**: Particles inherit the global transformation of the particle generator, meaning the particle transformation occurs in the world coordinate system.
-- **Hierarchy**: Particles inherit transformations from the entire transformation hierarchy, meaning particles consider transformations of the generator's parent and higher-level transformations.
+- **World**: Scale particle emission position and size using the world scale, including all parent transforms.
+- **Local**: Scale particle emission position and size using only its own transform scale, ignoring parent scale.
+- **Shape**: Only scale the emission shape area, particles themselves are not affected.

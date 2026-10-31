@@ -1,4 +1,5 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "esnext",
     "target": "esnext",
@@ -11,8 +12,7 @@
     "noImplicitOverride": true,
     "sourceMap": true,
     "incremental": false,
-    "skipLibCheck": true,
-    "stripInternal": true
+    "skipLibCheck": true
   },
   "include": ["src/**/*"]
 }

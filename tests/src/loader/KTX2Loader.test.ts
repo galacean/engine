@@ -1,6 +1,6 @@
 import { GLCapabilityType, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { KTX2Loader } from "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -83,7 +83,7 @@ describe("ktx2 Loader test", function () {
     expect(texture2d.mipmapCount).to.be.equal(6);
 
     // pbrtc don't support sRGB, should downgrade to R8G8B8A8
-    expect(texture2d.format).to.be.equal(TextureFormat.R8G8B8A8);
+    expect(texture2d.format).to.be.equal(TextureFormat.R8G8B8A8_UNorm);
     texture2d.destroy();
   });
 

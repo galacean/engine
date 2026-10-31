@@ -15,11 +15,17 @@ export class TextureCube extends Texture {
    * Create TextureCube.
    * @param engine - Define the engine to use to render this texture
    * @param size - Texture size. texture width must be equal to height in cube texture
-   * @param format - Texture format,default TextureFormat.R8G8B8A8
+   * @param format - Texture format,default TextureFormat.R8G8B8A8_UNorm
    * @param mipmap - Whether to use multi-level texture
    * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    */
-  constructor(engine: Engine, size: number, format = TextureFormat.R8G8B8A8, mipmap = true, isSRGBColorSpace = true) {
+  constructor(
+    engine: Engine,
+    size: number,
+    format = TextureFormat.R8G8B8A8_UNorm,
+    mipmap = true,
+    isSRGBColorSpace = true
+  ) {
     super(engine, size, size, format, mipmap, isSRGBColorSpace);
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
@@ -34,7 +40,6 @@ export class TextureCube extends Texture {
 
   /**
    * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks When compressed texture is in WebGL1, the texture must be filled first before writing the sub-region
    * @param face - Cube face
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level
@@ -171,8 +176,8 @@ export class TextureCube extends Texture {
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         0,
         <ArrayBufferView>mipLevelOrOut
       );
@@ -181,10 +186,10 @@ export class TextureCube extends Texture {
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         <number>mipLevelOrOut,
-        out
+        out!
       );
     }
   }

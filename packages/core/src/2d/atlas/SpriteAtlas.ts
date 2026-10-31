@@ -45,7 +45,7 @@ export class SpriteAtlas extends ReferResource {
         sprite.name === name && outSprites.push(sprite);
       }
     } else {
-      console.warn("The name of the sprite you want to find is not exit in SpriteAtlas.");
+      console.warn("There is no sprite named " + name + " in the atlas.");
     }
     return outSprites;
   }
@@ -62,7 +62,7 @@ export class SpriteAtlas extends ReferResource {
    * @internal
    */
   _addSprite(sprite: Sprite): void {
-    this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
+    this._spriteNamesToIndex[String(sprite.name)] = this._sprites.push(sprite) - 1;
     sprite._atlas = this;
     sprite.isGCIgnored = true;
   }
@@ -77,7 +77,7 @@ export class SpriteAtlas extends ReferResource {
       sprites[i].destroy();
     }
     sprites.length = 0;
-    this._sprites = null;
-    this._spriteNamesToIndex = null;
+    this._sprites = null!;
+    this._spriteNamesToIndex = null!;
   }
 }

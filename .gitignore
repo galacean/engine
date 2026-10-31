@@ -26,6 +26,7 @@ stats.html
 tsconfig.tsbuildinfo
 api
 docs/api
+docs/plans
 yarn.lock
 e2e/videos/*
 e2e/screenshots/*

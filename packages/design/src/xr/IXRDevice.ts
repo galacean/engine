@@ -1,4 +1,3 @@
-import { IHardwareRenderer } from "../renderingHardwareInterface";
 import { IXRSession } from "./IXRSession";
 import { IXRPlatformFeature } from "./feature/IXRPlatformFeature";
 
@@ -23,13 +22,13 @@ export interface IXRDevice {
    * @param engine - The engine.
    * @param type - The type of the feature.
    */
-  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature;
+  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature | null;
 
   /**
    * Request a session.
-   * @param engine - The engine
+   * @param rhi - Backend-specific graphics device handle
    * @param mode - The mode of the session
    * @param platformFeatures - The requested platform features
    */
-  requestSession(rhi: IHardwareRenderer, mode: number, platformFeatures: IXRPlatformFeature[]): Promise<IXRSession>;
+  requestSession(rhi: unknown, mode: number, platformFeatures: IXRPlatformFeature[]): Promise<IXRSession>;
 }

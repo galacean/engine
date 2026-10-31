@@ -1,10 +1,11 @@
-import { Script, Signal } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Entity, Script, Signal } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
 class TestHandler extends Script {
   callCount = 0;
   lastPrefix = "";
+  lastArgs: any[] = [];
 
   handleClick() {
     this.callCount++;
@@ -13,6 +14,11 @@ class TestHandler extends Script {
   handleClickWithPrefix(prefix: string) {
     this.callCount++;
     this.lastPrefix = prefix;
+  }
+
+  handleWithArgs(...args: any[]) {
+    this.callCount++;
+    this.lastArgs = args;
   }
 }
 
@@ -70,7 +76,9 @@ describe("Signal", async () => {
     const signal = new Signal<[number]>();
     const fn = vi.fn();
     signal.once(fn);
+    expect(signal.listenerCount).toBe(1);
     signal.invoke(1);
+    expect(signal.listenerCount).toBe(0);
     signal.invoke(2);
     expect(fn).toHaveBeenCalledOnce();
     expect(fn).toHaveBeenCalledWith(1);
@@ -274,7 +282,68 @@ describe("Signal", async () => {
     expect(fn2).toHaveBeenCalledOnce();
   });
 
+  // ---- Structured binding arg order (runtime first, bound last) ----
+
+  it("structured binding: runtime args precede bound args", () => {
+    const signal = new Signal<[string, number]>();
+    const entity = root.createChild("sb-order");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.on(handler, "handleWithArgs", "boundA", "boundB");
+    signal.invoke("event", 42);
+    expect(handler.lastArgs).toEqual(["event", 42, "boundA", "boundB"]);
+
+    entity.destroy();
+  });
+
+  it("structured binding: event object stays at index 0 regardless of bound args count", () => {
+    const event = { type: "click", x: 10, y: 20 };
+    const signal = new Signal<[typeof event]>();
+    const e1 = root.createChild("sb-evt-1");
+    const e2 = root.createChild("sb-evt-2");
+    const h1 = e1.addComponent(TestHandler);
+    const h2 = e2.addComponent(TestHandler);
+
+    signal.on(h1, "handleWithArgs");
+    signal.on(h2, "handleWithArgs", "ctx", 1, true);
+
+    signal.invoke(event);
+
+    expect(h1.lastArgs[0]).toBe(event);
+    expect(h2.lastArgs[0]).toBe(event);
+    expect(h2.lastArgs).toEqual([event, "ctx", 1, true]);
+
+    e1.destroy();
+    e2.destroy();
+  });
+
+  it("structured binding once: runtime + bound args order preserved", () => {
+    const signal = new Signal<[number]>();
+    const entity = root.createChild("sb-once-args");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.once(handler, "handleWithArgs", "bound");
+    signal.invoke(99);
+    signal.invoke(100);
+
+    expect(handler.callCount).toBe(1);
+    expect(handler.lastArgs).toEqual([99, "bound"]);
+
+    entity.destroy();
+  });
+
   // ---- Clone ----
+
+  /** Build the identity map (source entity/component -> clone) the engine passes to `_onClone`. */
+  function buildCloneMap(src: Entity, target: Entity, map = new Map<Object, Object>()): Map<Object, Object> {
+    map.set(src, target);
+    // @ts-ignore
+    const srcComponents = src._components,
+      targetComponents = target._components;
+    for (let i = 0; i < srcComponents.length; i++) map.set(srcComponents[i], targetComponents[i]);
+    for (let i = 0; i < src.children.length; i++) buildCloneMap(src.children[i], target.children[i], map);
+    return map;
+  }
 
   it("clone: closure-based listeners are not cloned", () => {
     const signal = new Signal<[number]>();
@@ -285,7 +354,7 @@ describe("Signal", async () => {
     const srcRoot = root.createChild("clSrc1");
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     // Closure listeners should NOT be copied to clone
     targetSignal.invoke(42);
@@ -306,7 +375,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -329,7 +398,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     targetSignal.invoke();
     expect(externalHandler.callCount).toBe(1);
@@ -352,7 +421,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -375,7 +444,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._onClone(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();

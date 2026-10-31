@@ -16,8 +16,7 @@ import {
   PrimitiveMesh,
   Scene,
   TonemappingEffect,
-  WebGLEngine,
-  WebGLMode
+  WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -25,12 +24,9 @@ Logger.enable();
 WebGLEngine.create({
   canvas: "canvas",
   graphicDeviceOptions: {
-    webGLMode: WebGLMode.WebGL2,
     antialias: false
   }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   initFirstScene(engine);
   engine.run();
 });
@@ -56,7 +52,7 @@ function initFirstScene(engine: Engine): Scene {
   const cubeEntity = rootEntity.createChild("cube");
   cubeEntity.transform.setPosition(-3, 0, 3);
   const renderer = cubeEntity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createSphere(engine, 2, 24);
+  renderer.mesh = PrimitiveMesh.createSphere(engine, 2, { subdivisionLevel: 3 });
   const material = new BlinnPhongMaterial(engine);
   material.baseColor = new Color(1, 0, 0, 1);
   renderer.setMaterial(material);
@@ -85,7 +81,7 @@ function initFirstScene(engine: Engine): Scene {
     cubeEntity.layer = Layer.Layer1;
     cubeEntity.transform.setPosition(-2, 0, 3);
     const renderer = cubeEntity.addComponent(MeshRenderer);
-    renderer.mesh = PrimitiveMesh.createSphere(engine, 2, 24);
+    renderer.mesh = PrimitiveMesh.createSphere(engine, 2, { subdivisionLevel: 3 });
     const material = new BlinnPhongMaterial(engine);
     material.baseColor = new Color(1, 0, 0, 1);
     material.emissiveColor.set(1, 0, 0, 1);

@@ -23,35 +23,13 @@ Due to this sampling characteristic, cube textures can be used to implement effe
 The editor supports generating cube textures by uploading HDR images. This method allows for HDR color gamut representation and is relatively convenient.
 
 <Callout type="info">
-  You can download free HDR images from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/).
+  You can download free HDR images from [Poly Haven](https://polyhaven.com/).
 </Callout>
 
 After preparing the HDR image, follow the steps:  
 **[Assets Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube (.hdr)** -> **Choose the corresponding HDR image** -> **Cube texture asset creation is complete**.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
-
-Of course, you can also create a cube texture in scripts by loading six textures in the corresponding order.
-
-```typescript
-const cubeTextureResource = {
-  type: AssetType.TextureCube,
-  urls: [
-    "px - right image url",
-    "nx - left image url",
-    "py - top image url",
-    "ny - bottom image url",
-    "pz - front image url",
-    "nz - back image url",
-  ],
-};
-
-engine.resourceManager.load(cubeTextureResource).then((resource) => {
-  // Cube texture supported by the engine
-  const cubeTexture = resource;
-  // The texture can now be applied to materials or used for other operations
-});
-```
 
 ## Usage
 

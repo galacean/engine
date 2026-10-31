@@ -8,7 +8,7 @@ export class AnimatorControllerParameter {
   defaultValue: AnimatorControllerParameterValue;
 
   /** @internal */
-  _onNameChanged: (oldName: string, newName: string) => void = null;
+  _onNameChanged: ((oldName: string, newName: string) => void) | null = null;
 
   /** @internal */
   _isTrigger: boolean = false;

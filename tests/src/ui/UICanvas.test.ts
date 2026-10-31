@@ -1,15 +1,14 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
+import { WebGLEngine } from "@galacean/engine";
+import { CanvasRenderMode, Image, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UICanvas", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 
@@ -71,6 +70,29 @@ describe("UICanvas", async () => {
     expect(rootCanvas.distance).to.eq(50);
   });
 
+  it("Resort overlay canvases after sort order changes", () => {
+    const lowerEntity = scene.createRootEntity("lowerCanvas");
+    const lowerCanvas = lowerEntity.addComponent(UICanvas);
+    lowerCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    lowerCanvas.sortOrder = 1;
+
+    const upperEntity = scene.createRootEntity("upperCanvas");
+    const upperCanvas = upperEntity.addComponent(UICanvas);
+    upperCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    upperCanvas.sortOrder = 2;
+
+    const componentsManager = scene._componentsManager;
+    componentsManager.sortOverlayUICanvases();
+    expect(lowerCanvas._canvasIndex).to.be.lessThan(upperCanvas._canvasIndex);
+
+    lowerCanvas.sortOrder = 3;
+    componentsManager.sortOverlayUICanvases();
+    expect(lowerCanvas._canvasIndex).to.be.greaterThan(upperCanvas._canvasIndex);
+
+    lowerEntity.destroy();
+    upperEntity.destroy();
+  });
+
   // Is Root Canvas
   it("Is root canvas", () => {
     // @ts-ignore
@@ -94,6 +116,12 @@ describe("UICanvas", async () => {
     expect(childCanvas._isRootCanvas).to.eq(false);
 
     parentCanvas.destroy();
+    // @ts-ignore
+    expect(rootCanvas._isRootCanvas).to.eq(true);
+    // @ts-ignore
+    expect(childCanvas._isRootCanvas).to.eq(false);
+    // @ts-ignore
+    expect(childCanvas._getRootCanvas()).to.eq(rootCanvas);
     childCanvas.destroy();
     // @ts-ignore
     expect(rootCanvas._isRootCanvas).to.eq(true);
@@ -294,7 +322,7 @@ describe("UICanvas", async () => {
     // @ts-ignore
     expect(cloneCanvas._isRootCanvas).to.eq(true);
 
-    const cameraNeedClone = canvasEntity.createChild('camera').addComponent(Camera);
+    const cameraNeedClone = canvasEntity.createChild("camera").addComponent(Camera);
     rootCanvas.renderCamera = cameraNeedClone;
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
@@ -351,5 +379,66 @@ describe("UICanvas", async () => {
     camera.enabled = true;
     // @ts-ignore
     expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
+  });
+  it("re-homes elements to the new root canvas when theirs loses root status", () => {
+    const outerEntity = root.createChild("outer");
+    const innerEntity = outerEntity.createChild("inner");
+    const innerCanvas = innerEntity.addComponent(UICanvas);
+    const imageEntity = innerEntity.createChild("image");
+    const image = imageEntity.addComponent(Image);
+
+    // Collected by the inner canvas while it is the root.
+    // @ts-ignore
+    innerCanvas._getRenderers();
+    // @ts-ignore
+    expect(image._getRootCanvas()).to.eq(innerCanvas);
+    // @ts-ignore
+    expect(innerCanvas._disorderedElements.length).to.be.greaterThan(0);
+
+    // Enabling a canvas on an ancestor demotes the inner one.
+    const outerCanvas = outerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(outerCanvas._isRootCanvas).to.be.true;
+    // The element's canvas state must be reset (the walk's re-assignment is gated on the
+    // dirty flag), otherwise it keeps rendering into the demoted canvas's dead queue.
+    // @ts-ignore
+    expect(image._isRootCanvasDirty).to.be.true;
+    // @ts-ignore
+    expect(image._rootCanvas).to.be.null;
+
+    // The new root adopts it on its next walk.
+    // @ts-ignore
+    outerCanvas._getRenderers();
+    // @ts-ignore
+    expect(image._getRootCanvas()).to.eq(outerCanvas);
+
+    outerEntity.destroy();
+  });
+  it("re-roots nested canvases to the enabling ancestor canvas", () => {
+    const outerEntity = root.createChild("outer");
+    const midEntity = outerEntity.createChild("mid");
+    const midCanvas = midEntity.addComponent(UICanvas);
+    const innerEntity = midEntity.createChild("inner");
+    const innerCanvas = innerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(midCanvas._isRootCanvas).to.be.true;
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+
+    const outerCanvas = outerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(outerCanvas._isRootCanvas).to.be.true;
+    // @ts-ignore
+    expect(midCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(midCanvas._getRootCanvas()).to.eq(outerCanvas);
+    // @ts-ignore
+    expect(innerCanvas._getRootCanvas()).to.eq(outerCanvas);
+
+    outerEntity.destroy();
   });
 });

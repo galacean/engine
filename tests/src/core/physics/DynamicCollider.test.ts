@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Engine,
   Entity,
@@ -9,8 +10,7 @@ import {
   StaticCollider,
   PlaneColliderShape
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -24,8 +24,8 @@ describe("DynamicCollider", function () {
     planeEntity.transform.setScale(20, 1, 20);
 
     const physicsPlane = new PlaneColliderShape();
-    physicsPlane.material.dynamicFriction = 0;
-    physicsPlane.material.staticFriction = 0;
+    physicsPlane.getInstanceMaterial().dynamicFriction = 0;
+    physicsPlane.getInstanceMaterial().staticFriction = 0;
     const planeCollider = planeEntity.addComponent(StaticCollider);
     planeCollider.addShape(physicsPlane);
     return planeEntity;
@@ -36,8 +36,8 @@ describe("DynamicCollider", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     if (type === DynamicCollider) {
@@ -52,8 +52,26 @@ describe("DynamicCollider", function () {
     return Math.round(value * 100000) / 100000;
   }
 
+  function getPhysXRigidBody(collider: DynamicCollider) {
+    const nativeCollider = collider._nativeCollider as any;
+    return {
+      actor: nativeCollider._pxActor,
+      flags: nativeCollider._physXPhysics._physX.PxRigidBodyFlag
+    };
+  }
+
+  function expectFlagDisabledBeforeEnabled(calls: unknown[][], disabledFlag: unknown, enabledFlag: unknown) {
+    const disableCallIndex = calls.findIndex(([flag, enabled]) => flag === disabledFlag && enabled === false);
+    const enableCallIndex = calls.findIndex(([flag, enabled]) => flag === enabledFlag && enabled === true);
+    expect(disableCallIndex).toBeGreaterThanOrEqual(0);
+    expect(enableCallIndex).toBeGreaterThan(disableCallIndex);
+  }
+
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      physics: createPhysics()
+    });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -290,6 +308,57 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.angularVelocity.y)).eq(200);
   });
 
+  it("applyForceAtPosition delegates world-space force and position to the native collider", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    const nativeCollider = (boxCollider as any)._nativeCollider;
+    const force = new Vector3(1, 2, 3);
+    const position = new Vector3(4, 5, 6);
+    const addForceAtPositionSpy = vi.spyOn(nativeCollider, "addForceAtPosition").mockImplementation(() => {});
+
+    boxCollider.applyForceAtPosition(force, position);
+
+    expect(addForceAtPositionSpy).toHaveBeenCalledOnce();
+    expect(addForceAtPositionSpy).toHaveBeenCalledWith(force, position);
+  });
+
+  it("applyForceAtPosition produces the same motion as an equivalent force and torque", function () {
+    const setupBox = () => {
+      const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+      const collider = box.getComponent(DynamicCollider);
+      collider.mass = 1;
+      collider.useGravity = false;
+      collider.centerOfMass = new Vector3(0, 0, 0);
+      collider.inertiaTensor = new Vector3(1, 1, 1);
+      return collider;
+    };
+
+    const force = new Vector3(1, 0, 0);
+    const position = new Vector3(0, 1, 0);
+
+    const reference = setupBox();
+    reference.applyForce(force);
+    reference.applyTorque(new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const referenceLinearVelocity = reference.linearVelocity.clone();
+    const referenceAngularVelocity = reference.angularVelocity.clone();
+
+    rootEntity.clearChildren();
+
+    const target = setupBox();
+    target.applyForceAtPosition(force, position);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(target.linearVelocity.x)).eq(formatValue(referenceLinearVelocity.x));
+    expect(formatValue(target.linearVelocity.y)).eq(formatValue(referenceLinearVelocity.y));
+    expect(formatValue(target.linearVelocity.z)).eq(formatValue(referenceLinearVelocity.z));
+    expect(formatValue(target.angularVelocity.x)).eq(formatValue(referenceAngularVelocity.x));
+    expect(formatValue(target.angularVelocity.y)).eq(formatValue(referenceAngularVelocity.y));
+    expect(formatValue(target.angularVelocity.z)).eq(formatValue(referenceAngularVelocity.z));
+  });
+
   it("maxDepenetrationVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const box2 = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
@@ -383,6 +452,139 @@ describe("DynamicCollider", function () {
     expect(formatValue(box.transform.position.y)).lessThan(10);
   });
 
+  it.each([
+    [true, true, false],
+    [true, false, false],
+    [false, true, false],
+    [false, false, false],
+    [true, true, true],
+    [true, false, true],
+    [false, true, true],
+    [false, false, true]
+  ])(
+    "clone preserves mass properties (automatic center: %s, automatic inertia: %s, kinematic: %s)",
+    function (automaticCenterOfMass, automaticInertiaTensor, isKinematic) {
+      const entity = rootEntity.createChild("source");
+      const collider = entity.addComponent(DynamicCollider);
+      const shape = new BoxColliderShape();
+      shape.size.set(2, 4, 6);
+      shape.position.set(1, 2, 3);
+      collider.mass = 3;
+      collider.addShape(shape);
+      collider.automaticCenterOfMass = automaticCenterOfMass;
+      collider.automaticInertiaTensor = automaticInertiaTensor;
+      if (!automaticCenterOfMass) {
+        collider.centerOfMass.set(-1, -2, -3);
+      }
+      if (!automaticInertiaTensor) {
+        collider.inertiaTensor.set(2, 3, 4);
+      }
+      const centerOfMass = collider.centerOfMass.clone();
+      const inertiaTensor = collider.inertiaTensor.clone();
+      collider.isKinematic = isKinematic;
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const clone = entity.clone();
+        rootEntity.addChild(clone);
+        const clonedCollider = clone.getComponent(DynamicCollider);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(clonedCollider.automaticCenterOfMass).eq(automaticCenterOfMass);
+        expect(clonedCollider.automaticInertiaTensor).eq(automaticInertiaTensor);
+        expect(clonedCollider.isKinematic).eq(isKinematic);
+        expect(clonedCollider.mass).eq(3);
+        if (!automaticCenterOfMass) {
+          expect(Vector3.equals(clonedCollider.centerOfMass, centerOfMass)).true;
+        }
+        if (!automaticInertiaTensor) {
+          expect(Vector3.equals(clonedCollider.inertiaTensor, inertiaTensor)).true;
+        }
+
+        clonedCollider.isKinematic = false;
+        expect(Vector3.equals(clonedCollider.centerOfMass, centerOfMass)).true;
+        expect(Vector3.equals(clonedCollider.inertiaTensor, inertiaTensor)).true;
+
+        const clonedShape = clonedCollider.shapes[0] as BoxColliderShape;
+        clonedShape.position.set(3, 4, 5);
+        clonedShape.size.set(4, 6, 8);
+        clonedCollider.mass = 6;
+        expect(Vector3.equals(clonedCollider.centerOfMass, automaticCenterOfMass ? clonedShape.position : centerOfMass))
+          .true;
+        const expectedInertiaTensor = automaticInertiaTensor ? new Vector3(50, 40, 26) : inertiaTensor;
+        expect(clonedCollider.inertiaTensor.x).toBeCloseTo(expectedInertiaTensor.x, 5);
+        expect(clonedCollider.inertiaTensor.y).toBeCloseTo(expectedInertiaTensor.y, 5);
+        expect(clonedCollider.inertiaTensor.z).toBeCloseTo(expectedInertiaTensor.z, 5);
+        if (!automaticCenterOfMass) {
+          clonedCollider.centerOfMass.set(-4, -5, -6);
+          expect(clonedCollider.centerOfMass).to.deep.include({ x: -4, y: -5, z: -6 });
+        }
+        if (!automaticInertiaTensor) {
+          clonedCollider.inertiaTensor.set(6, 7, 8);
+          expect(Vector3.equals(clonedCollider.inertiaTensor, new Vector3(6, 7, 8))).true;
+        }
+        expect(Vector3.equals(collider.centerOfMass, centerOfMass)).true;
+        expect(Vector3.equals(collider.inertiaTensor, inertiaTensor)).true;
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    }
+  );
+
+  describe.each(["new", "cloned", "reshaped", "reenabled"])("automatic mass properties on a %s collider", (state) => {
+    it.each([
+      ["centerOfMass", "automaticCenterOfMass", false],
+      ["inertiaTensor", "automaticInertiaTensor", false],
+      ["centerOfMass", "automaticCenterOfMass", true],
+      ["inertiaTensor", "automaticInertiaTensor", true]
+    ] as const)("preserves %s when disabling %s (kinematic: %s)", (property, automatic, isKinematic) => {
+      const entity = rootEntity.createChild("source");
+      const source = entity.addComponent(DynamicCollider);
+      const shape = new BoxColliderShape();
+      shape.size.set(2, 4, 6);
+      shape.position.set(1, 2, 3);
+      source.mass = 3;
+      source.addShape(shape);
+
+      let target = source;
+      if (state === "cloned" || state === "reshaped") {
+        const clone = entity.clone();
+        rootEntity.addChild(clone);
+        target = clone.getComponent(DynamicCollider);
+      }
+      if (state === "reshaped") {
+        const clonedShape = target.shapes[0] as BoxColliderShape;
+        clonedShape.size.set(4, 6, 8);
+        clonedShape.position.set(3, 4, 5);
+      } else if (state === "reenabled") {
+        target[automatic] = false;
+        target[property].set(2, 3, 4);
+        target[automatic] = true;
+      }
+
+      target.isKinematic = isKinematic;
+      // Reading the property here would hide a stale cache
+      target[automatic] = false;
+      target.mass = 6;
+      target.isKinematic = false;
+
+      const expected =
+        property === "centerOfMass"
+          ? state === "reshaped"
+            ? new Vector3(3, 4, 5)
+            : new Vector3(1, 2, 3)
+          : state === "reshaped"
+            ? new Vector3(25, 20, 13)
+            : new Vector3(13, 10, 5);
+      const actual = target[property];
+      expect(actual.x).toBeCloseTo(expected.x, 5);
+      expect(actual.y).toBeCloseTo(expected.y, 5);
+      expect(actual.z).toBeCloseTo(expected.z, 5);
+      target[property].set(6, 7, 8);
+      expect(Vector3.equals(target[property], new Vector3(6, 7, 8))).true;
+    });
+  });
+
   it("isKinematic", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 1, 0));
     const boxCollider = box.getComponent(DynamicCollider);
@@ -440,6 +642,69 @@ describe("DynamicCollider", function () {
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)
     ).toBeTruthy();
+  });
+
+  it("keeps CCD valid across kinematic transitions", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    const { actor, flags } = getPhysXRigidBody(boxCollider);
+    const setRigidBodyFlag = vi.spyOn(actor, "setRigidBodyFlag");
+    const hasFlag = (flag: unknown) => actor.getRigidBodyFlags(flag);
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
+
+    setRigidBodyFlag.mockClear();
+    boxCollider.isKinematic = true;
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eKINEMATIC);
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_CCD, flags.eENABLE_SPECULATIVE_CCD);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.ContinuousDynamic);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeFalsy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeTruthy();
+
+    setRigidBodyFlag.mockClear();
+    boxCollider.isKinematic = false;
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eKINEMATIC, flags.eENABLE_CCD);
+    expectFlagDisabledBeforeEnabled(setRigidBodyFlag.mock.calls, flags.eENABLE_SPECULATIVE_CCD, flags.eENABLE_CCD);
+    expect(hasFlag(flags.eENABLE_CCD)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_CCD_FRICTION)).toBeTruthy();
+    expect(hasFlag(flags.eENABLE_SPECULATIVE_CCD)).toBeFalsy();
+    setRigidBodyFlag.mockRestore();
+  });
+
+  it("uses speculative CCD behavior for non-discrete kinematic motion", function () {
+    const simulate = (kinematicMode: CollisionDetectionMode) => {
+      const moving = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-5, 0, 0));
+      const target = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(0, 0, 0));
+      const movingCollider = moving.getComponent(DynamicCollider);
+      const targetCollider = target.getComponent(DynamicCollider);
+      movingCollider.isKinematic = true;
+      movingCollider.collisionDetectionMode = kinematicMode;
+      targetCollider.useGravity = false;
+      targetCollider.linearDamping = 0;
+      targetCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      movingCollider.move(new Vector3(5, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      const result = {
+        targetPosition: target.transform.position.x,
+        targetVelocity: targetCollider.linearVelocity.x
+      };
+      rootEntity.clearChildren();
+      return result;
+    };
+
+    const fallback = simulate(CollisionDetectionMode.Continuous);
+    const explicit = simulate(CollisionDetectionMode.ContinuousSpeculative);
+    expect(fallback.targetPosition).toBeGreaterThan(0);
+    expect(fallback.targetPosition).toBeCloseTo(explicit.targetPosition, 5);
+    expect(fallback.targetVelocity).toBeCloseTo(explicit.targetVelocity, 5);
   });
 
   it("sleep", function () {

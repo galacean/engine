@@ -1,14 +1,14 @@
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
@@ -36,38 +36,24 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @ignoreClone
   private _textChunks = Array<TextChunk>();
   /** @internal */
-  @assignmentClone
-  _subFont: SubFont = null;
+  _subFont: SubFont | null = null;
   /** @internal */
   @ignoreClone
   _dirtyFlag = DirtyFlag.Font;
-  @deepClone
   private _color = new Color(1, 1, 1, 1);
-  @assignmentClone
   private _text = "";
-  @assignmentClone
   private _width = 0;
-  @assignmentClone
   private _height = 0;
   @ignoreClone
   private _localBounds = new BoundingBox();
-  @assignmentClone
-  private _font: Font = null;
-  @assignmentClone
+  private _font: Font | null = null;
   private _fontSize = 24;
-  @assignmentClone
   private _fontStyle = FontStyle.None;
-  @assignmentClone
   private _lineSpacing = 0;
-  @assignmentClone
   private _characterSpacing = 0;
-  @assignmentClone
   private _horizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
   private _verticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
   private _enableWrapping = false;
-  @assignmentClone
   private _overflowMode = OverflowMode.Overflow;
 
   /**
@@ -129,7 +115,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * The font of the Text.
    */
-  get font(): Font {
+  get font(): Font | null {
     return this._font;
   }
 
@@ -307,7 +293,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._addResourceReferCount(this._font, 1);
+    this._addResourceReferCount(this._font!, 1);
     this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
@@ -325,18 +311,9 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     super._onDestroy();
 
     this._freeTextChunks();
-    this._textChunks = null;
+    this._textChunks = null!;
 
     this._subFont && (this._subFont = null);
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: TextRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**
@@ -367,29 +344,29 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (!this._subFont) {
       this._resetSubFont();
     }
-    return this._subFont;
+    return this._subFont!;
   }
 
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   /**
@@ -430,24 +407,26 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const textSubRenderElementPool = engine._textSubRenderElementPool;
-    const material = this.getMaterial();
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    const textRenderElementPool = engine._textRenderElementPool;
+    const material = this.getMaterial()!;
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderPipeline = camera._renderPipeline;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
-      const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
-      renderElement.addSubRenderElement(subRenderElement);
+      const renderElement = textRenderElementPool.get();
+      const shaderData = renderElement.shaderData ?? new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk, shaderData);
+      shaderData.setTexture(TextRenderer._textureProperty, texture);
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderPipeline.pushRenderElement(context, renderElement);
     }
-    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _resetSubFont(): void {
-    const font = this._font;
+    const font = this._font!;
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
@@ -458,8 +437,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
-    e4 = e[4], e5 = e[5], e6 = e[6],
-    e12 = e[12], e13 = e[13], e14 = e[14];
+      e4 = e[4], e5 = e[5], e6 = e[6],
+      e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
@@ -555,8 +534,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
-      const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
-      const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+      const topDiff = lineHeight * 0.5 - lineMaxSizes![0].ascent;
+      const bottomDiff = lineHeight * 0.5 - lineMaxSizes![linesLen - 1].descent - 1;
       switch (this.verticalAlignment) {
         case TextVerticalAlignment.Top:
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
@@ -596,12 +575,12 @@ export class TextRenderer extends Renderer implements ITextRenderer {
           }
           for (let j = 0, n = line.length; j < n; ++j) {
             const char = line[j];
-            const charInfo = charFont._getCharInfo(char);
+            const charInfo = charFont._getCharInfo(char)!;
             if (charInfo.h > 0) {
               firstRow < 0 && (firstRow = j);
               const charRenderInfo = (charRenderInfos[renderElementCount++] = charRenderInfoPool.get());
               const { localPositions } = charRenderInfo;
-              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
+              charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index)!;
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
               const left = startX * pixelsPerUnitReciprocal;
@@ -690,13 +669,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     );
   }
 
-  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk {
+  private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk | null {
     const { r, g, b, a } = this.color;
     const tempIndices = CharRenderInfo.triangles;
     const tempIndicesLength = tempIndices.length;
-    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));
+    const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4)!);
     const vertices = subChunk.chunk.vertices;
-    const indices = (subChunk.indices = []);
+    const indices: number[] = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
@@ -733,8 +712,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       }
       charRenderInfos.length = 0;
       manager.freeSubChunk(textChunk.subChunk);
-      textChunk.subChunk = null;
-      textChunk.texture = null;
+      textChunk.subChunk = null!;
+      textChunk.texture = null!;
     }
     textChunks.length = 0;
   }

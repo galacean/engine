@@ -43,13 +43,13 @@ export class GLTFAnimationParser extends GLTFParser {
     const entities = context.get<Entity>(GLTFParserType.Entity);
 
     let duration = -1;
-    let promises = new Array<AssetPromise<void | Entity[]>>();
+    const promises = new Array<AssetPromise<void | Entity[] | null>>();
 
     // parse samplers
     for (let j = 0, m = len; j < m; j++) {
       const glTFSampler = samplers[j];
-      const inputAccessor = accessors[glTFSampler.input];
-      const outputAccessor = accessors[glTFSampler.output];
+      const inputAccessor = accessors![glTFSampler.input];
+      const outputAccessor = accessors![glTFSampler.output];
 
       const promise = AssetPromise.all([
         GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor),
@@ -118,8 +118,8 @@ export class GLTFAnimationParser extends GLTFParser {
           continue;
         }
 
-        let ComponentType: ComponentConstructor<Component>;
-        let propertyName: string;
+        let ComponentType!: ComponentConstructor<Component>;
+        let propertyName!: string;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
             ComponentType = Transform;
@@ -143,8 +143,8 @@ export class GLTFAnimationParser extends GLTFParser {
         const curve = this._addCurve(target.path, glTFChannel, sampleDataCollection);
 
         if (target.path === AnimationChannelTargetPath.WEIGHTS) {
-          const mesh = glTF.nodes[target.node].mesh;
-          for (let i = 0, n = glTF.meshes[mesh].primitives.length; i < n; i++) {
+          const mesh = glTF.nodes![target.node].mesh;
+          for (let i = 0, n = glTF.meshes![mesh!].primitives.length; i < n; i++) {
             animationClip.addCurveBinding(relativePath, ComponentType, i, propertyName, curve);
           }
         } else {
@@ -230,7 +230,7 @@ export class GLTFAnimationParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index: number): AssetPromise<AnimationClip> {
-    const animationInfo = context.glTF.animations[index];
+    const animationInfo = context.glTF.animations![index];
     const { name = `AnimationClip${index}` } = animationInfo;
 
     const animationClipPromise =

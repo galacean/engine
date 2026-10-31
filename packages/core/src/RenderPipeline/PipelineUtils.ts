@@ -41,7 +41,7 @@ export class PipelineUtils {
 
   static recreateRenderTargetIfNeeded(
     engine: Engine,
-    currentRenderTarget: RenderTarget | null,
+    currentRenderTarget: RenderTarget | null | undefined,
     width: number,
     height: number,
     colorFormat: TextureFormat | null,

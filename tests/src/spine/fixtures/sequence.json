@@ -1,0 +1,55 @@
+{
+  "skeleton": {
+    "spine": "4.2.40"
+  },
+  "bones": [
+    {
+      "name": "root"
+    }
+  ],
+  "slots": [
+    {
+      "name": "slot",
+      "bone": "root",
+      "attachment": "quad"
+    }
+  ],
+  "skins": [
+    {
+      "name": "default",
+      "attachments": {
+        "slot": {
+          "quad": {
+            "path": "frame",
+            "width": 100,
+            "height": 100,
+            "sequence": {
+              "count": 2,
+              "start": 0,
+              "digits": 0,
+              "setup": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "animations": {
+    "idle": {
+      "bones": {
+        "root": {
+          "translate": [
+            {
+              "time": 0,
+              "x": 0
+            },
+            {
+              "time": 1,
+              "x": 20
+            }
+          ]
+        }
+      }
+    }
+  }
+}

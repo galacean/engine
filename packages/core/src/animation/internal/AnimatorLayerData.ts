@@ -1,9 +1,12 @@
+import { Component } from "../../Component";
 import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
+import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateInstance } from "../AnimatorStateInstance";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
+import type { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 
 /**
  * @internal
@@ -11,21 +14,25 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 export class AnimatorLayerData {
   layerIndex: number;
   layer: AnimatorControllerLayer;
-  curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
-  animatorStateDataMap: Record<string, AnimatorStateData> = {};
-  srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
-  destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
+  curveOwnerPool: WeakMap<Component, Record<string, AnimationCurveLayerOwner>> = new WeakMap();
+  animatorStateDataMap: Map<AnimatorState, AnimatorStateData> = new Map();
+  instanceMap: WeakMap<AnimatorState, AnimatorStateInstance> = new WeakMap();
+  srcPlayData: AnimatorStatePlayData | null = null;
+  destPlayData: AnimatorStatePlayData | null = null;
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
-  crossFadeTransition: AnimatorStateTransition;
+  crossFadeTransition: AnimatorStateTransition | null;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
-  switchPlayData(): void {
-    const srcPlayData = this.destPlayData;
-    const switchTemp = this.srcPlayData;
-    this.srcPlayData = srcPlayData;
-    this.destPlayData = switchTemp;
+  getOrCreateInstance(state: AnimatorState): AnimatorStateInstance {
+    const map = this.instanceMap;
+    let instance = map.get(state);
+    if (!instance) {
+      instance = new AnimatorStateInstance(state);
+      map.set(state, instance);
+    }
+    return instance;
   }
 
   resetCurrentCheckIndex(): void {

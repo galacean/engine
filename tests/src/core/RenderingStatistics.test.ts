@@ -7,7 +7,7 @@ import {
   TextureCube,
   TextureFormat
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("RenderingStatistics", () => {
@@ -21,7 +21,7 @@ describe("RenderingStatistics", () => {
   describe("textureMemory", () => {
     it("Texture2D creation increases textureMemory", () => {
       const before = engine.renderingStatistics.textureMemory;
-      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8_UNorm, false, false);
       const after = engine.renderingStatistics.textureMemory;
 
       // 256 * 256 * 4 = 262144
@@ -32,7 +32,7 @@ describe("RenderingStatistics", () => {
 
     it("Texture2D with mipmaps accounts for all levels", () => {
       const before = engine.renderingStatistics.textureMemory;
-      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, true, false);
+      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8_UNorm, true, false);
       const after = engine.renderingStatistics.textureMemory;
 
       // With mipmaps: 256x256 + 128x128 + 64x64 + ... + 1x1, all * 4 bytes
@@ -43,7 +43,7 @@ describe("RenderingStatistics", () => {
 
     it("TextureCube accounts for 6 faces", () => {
       const before = engine.renderingStatistics.textureMemory;
-      const texture = new TextureCube(engine, 64, TextureFormat.R8G8B8A8, false);
+      const texture = new TextureCube(engine, 64, TextureFormat.R8G8B8A8_UNorm, false);
       const after = engine.renderingStatistics.textureMemory;
 
       // 64 * 64 * 4 * 6 faces = 98304
@@ -54,7 +54,7 @@ describe("RenderingStatistics", () => {
 
     it("Texture destroy decreases textureMemory", () => {
       const before = engine.renderingStatistics.textureMemory;
-      const texture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false, false);
       texture.destroy();
       const after = engine.renderingStatistics.textureMemory;
 
@@ -85,7 +85,7 @@ describe("RenderingStatistics", () => {
 
   describe("totalMemory", () => {
     it("totalMemory equals textureMemory + bufferMemory", () => {
-      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false, false);
       const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
 
       expect(engine.renderingStatistics.totalMemory).to.equal(
@@ -99,7 +99,7 @@ describe("RenderingStatistics", () => {
 
   describe("RenderTarget renderbuffer", () => {
     it("RenderTarget with depth format tracks renderbuffer memory", () => {
-      const colorTexture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+      const colorTexture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8_UNorm, false, false);
       const afterTexture = engine.renderingStatistics.textureMemory;
 
       const renderTarget = new RenderTarget(engine, 256, 256, colorTexture, TextureFormat.Depth24Stencil8);
@@ -113,7 +113,7 @@ describe("RenderingStatistics", () => {
     });
 
     it("RenderTarget destroy decreases renderbuffer memory", () => {
-      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false, false);
       const before = engine.renderingStatistics.textureMemory;
 
       const renderTarget = new RenderTarget(engine, 128, 128, colorTexture, TextureFormat.Depth24Stencil8);
@@ -126,7 +126,7 @@ describe("RenderingStatistics", () => {
     });
 
     it("RenderTarget with depth texture in non-MSAA mode does not add depth renderbuffer memory", () => {
-      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8_UNorm, false, false);
       const depthTexture = new Texture2D(engine, 128, 128, TextureFormat.Depth24Stencil8, false, false);
       const before = engine.renderingStatistics.textureMemory;
 
@@ -142,7 +142,7 @@ describe("RenderingStatistics", () => {
 
   describe("device loss", () => {
     it("counters reset on device lost and recover on rebuild", async () => {
-      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false, false);
       const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
 
       const totalBefore = engine.renderingStatistics.totalMemory;
@@ -173,7 +173,7 @@ describe("RenderingStatistics", () => {
     });
 
     it("failed restore keeps device-lost state and avoids negative counters on destroy", async () => {
-      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false, false);
       const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
 
       // @ts-ignore
@@ -215,7 +215,7 @@ describe("RenderingStatistics", () => {
     });
 
     it("resources created and destroyed during device lost should not affect counters", async () => {
-      const baseTexture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const baseTexture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8_UNorm, false, false);
       const baseBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
       const totalBefore = engine.renderingStatistics.totalMemory;
 
@@ -223,7 +223,7 @@ describe("RenderingStatistics", () => {
         engine.once("devicelost", () => {
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
 
-          const transientTexture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, false, false);
+          const transientTexture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false, false);
           const transientBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 256, BufferUsage.Static);
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
 
@@ -255,7 +255,7 @@ describe("RenderingStatistics", () => {
         engine.once("devicelost", () => {
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
 
-          const texture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, false, false);
+          const texture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8_UNorm, false, false);
           const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 256, BufferUsage.Static);
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
 

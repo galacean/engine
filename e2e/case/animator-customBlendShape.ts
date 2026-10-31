@@ -2,7 +2,6 @@
  * @title Animation CustomBlendShape
  * @category Animation
  */
-import { OrbitControl } from "@galacean/engine-toolkit";
 import {
   AnimationClip,
   AnimationFloatArrayCurve,
@@ -24,7 +23,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -32,7 +31,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = rootEntity.createChild("cameraNode");
   cameraEntity.transform.position = new Vector3(0, 0, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl);
 
   const meshEntity = rootEntity.createChild("meshEntity");
   const skinnedMeshRenderer = meshEntity.addComponent(SkinnedMeshRenderer);

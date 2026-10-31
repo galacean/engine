@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { Renderer } from "./Renderer";
+import { ParticleSystemManager } from "./particle/ParticleSystemManager";
 import { Script } from "./Script";
 import { Animator } from "./animation";
 import { IUICanvas } from "./ui/IUICanvas";
@@ -10,7 +11,9 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * The manager of the components.
  */
 export class ComponentsManager {
-  /* @internal */
+  /** @internal */
+  readonly _particleSystemManager = new ParticleSystemManager();
+  /** @internal */
   _cameraNeedSorting = false;
   /** @internal */
   _activeCameras = new DisorderedArray<Camera>();
@@ -19,7 +22,7 @@ export class ComponentsManager {
 
   /** @internal */
   _overlayCanvases = new DisorderedArray<IUICanvas>();
-  /* @internal */
+  /** @internal */
   _overlayCanvasesSortingDirty = false;
   /** @internal */
   _canvases = new DisorderedArray<IUICanvas>();
@@ -271,7 +274,7 @@ export class ComponentsManager {
   }
 
   getActiveChangedTempList(): Component[] {
-    return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
+    return this._componentsContainerPool.length ? this._componentsContainerPool.pop()! : [];
   }
 
   putActiveChangedTempList(componentContainer: Component[]): void {

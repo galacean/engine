@@ -57,7 +57,6 @@ function createFallingBox(
 
 const physics = new PhysXPhysics(PhysXRuntimeMode.WebAssemblySIMD);
 WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 
@@ -85,7 +84,7 @@ WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
     }),
     engine.resourceManager.load<AmbientLight>({
       type: AssetType.AmbientLight,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
     })
   ]).then(([gltf, ambientLight]) => {
     scene.ambientLight = ambientLight;

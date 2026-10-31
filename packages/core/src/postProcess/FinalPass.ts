@@ -7,39 +7,28 @@ import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { ShaderLib } from "../shaderlib";
-import BlitVS from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
-import FinalAntiAliasingFS from "./shaders/FinalAntiAliasing.fs.glsl";
-import SRGBFS from "./shaders/FinalSRGB.fs.glsl";
-import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 
 /**
  * @internal
  * Processing sRGB Conversion and FXAA.
  */
 export class FinalPass extends PipelinePass {
-  private _inputRenderTarget: RenderTarget;
-  private _srgbRenderTarget: RenderTarget;
+  private _inputRenderTarget: RenderTarget | null;
+  private _srgbRenderTarget: RenderTarget | null;
   private _antiAliasingMaterial: Material;
   private _sRGBmaterial: Material;
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, sRGBShader: Shader, antiAliasingShader: Shader) {
     super(engine);
 
     // SRGB Material
-    const sRGBmaterial = new Material(engine, Shader.find("FinalSRGB"));
-    const sRGBdepthState = sRGBmaterial.renderState.depthState;
-    sRGBdepthState.enabled = false;
-    sRGBdepthState.writeEnabled = false;
+    const sRGBmaterial = new Material(engine, sRGBShader);
     sRGBmaterial._addReferCount(1);
     this._sRGBmaterial = sRGBmaterial;
 
     // FXAA Material
-    const antiAliasingMaterial = new Material(engine, Shader.find("FinalAntiAliasing"));
-    const antiAliasingDepthState = antiAliasingMaterial.renderState.depthState;
-    antiAliasingDepthState.enabled = false;
-    antiAliasingDepthState.writeEnabled = false;
+    const antiAliasingMaterial = new Material(engine, antiAliasingShader);
     antiAliasingMaterial._addReferCount(1);
     this._antiAliasingMaterial = antiAliasingMaterial;
   }
@@ -54,7 +43,7 @@ export class FinalPass extends PipelinePass {
         this._srgbRenderTarget,
         pixelViewport.width,
         pixelViewport.height,
-        TextureFormat.R8G8B8A8, // FXAA need color range [0, 1], so we use R8G8B8A8 and ignore camera target HDR format
+        TextureFormat.R8G8B8A8_UNorm, // FXAA need color range [0, 1], so we use R8G8B8A8_UNorm and ignore camera target HDR format
         null,
         false,
         false,
@@ -73,10 +62,10 @@ export class FinalPass extends PipelinePass {
     const enableFXAA = camera.antiAliasing === AntiAliasing.FXAA;
 
     // Should convert to sRGB when FXAA is enabled or camera's render target is not set
-    const sourceTexture = <Texture2D>this._inputRenderTarget.getColorTexture();
+    const sourceTexture = <Texture2D>this._inputRenderTarget!.getColorTexture();
     if (enableFXAA) {
       Blitter.blitTexture(engine, sourceTexture, this._srgbRenderTarget, 0, undefined, this._sRGBmaterial);
-      const sRGBTexture = <Texture2D>this._srgbRenderTarget.getColorTexture();
+      const sRGBTexture = <Texture2D>this._srgbRenderTarget!.getColorTexture();
       Blitter.blitTexture(engine, sRGBTexture, renderTarget, 0, viewport, this._antiAliasingMaterial);
     } else {
       Blitter.blitTexture(engine, sourceTexture, renderTarget, 0, viewport, this._sRGBmaterial);
@@ -92,10 +81,3 @@ export class FinalPass extends PipelinePass {
     this._inputRenderTarget = null;
   }
 }
-
-Object.assign(ShaderLib, {
-  FXAA3_11
-});
-
-Shader.create("FinalSRGB", BlitVS, SRGBFS);
-Shader.create("FinalAntiAliasing", BlitVS, FinalAntiAliasingFS);

@@ -1,5 +1,5 @@
 import { Camera, dependentComponents, DependentMode, Entity, Script } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
 
 describe("Script", () => {

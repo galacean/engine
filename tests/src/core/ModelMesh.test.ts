@@ -7,12 +7,13 @@ import {
   IndexFormat,
   ModelMesh,
   VertexAttribute,
+  VertexBufferBinding,
   VertexElement,
   VertexElementFormat
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { describe, beforeAll, expect, it } from "vitest";
+import { WebGLEngine } from "@galacean/engine";
+import { describe, beforeAll, expect, it, vi } from "vitest";
 
 describe("ModelMesh Test", async function () {
   let engine: Engine;
@@ -342,6 +343,101 @@ describe("ModelMesh Test", async function () {
       new VertexElement(VertexAttribute.BoneWeight, 36, VertexElementFormat.NormalizedUByte4, 0)
     ]);
     expect(vertexBufferBindings.length).eq(1);
+  });
+
+  it("reuses a listener when vertex buffers are rebound", () => {
+    const mesh = new ModelMesh(engine);
+    const first = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 0, 0]),
+      BufferUsage.Static,
+      true
+    );
+    const second = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([2, 0, 0]),
+      BufferUsage.Static,
+      true
+    );
+    const addFirst = vi.spyOn(first._dataUpdateManager, "addListener");
+    const removeFirst = vi.spyOn(first._dataUpdateManager, "removeListener");
+    const addSecond = vi.spyOn(second._dataUpdateManager, "addListener");
+    const removeSecond = vi.spyOn(second._dataUpdateManager, "removeListener");
+    try {
+      mesh.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 3)]);
+      mesh.setVertexBufferBinding(first, 12, 3);
+      const listener = addFirst.mock.calls[0][0];
+      mesh.setVertexBufferBinding(first, 12, 3);
+      mesh.setVertexBufferBindings([new VertexBufferBinding(second, 12)], 3);
+      mesh.setVertexBufferBinding(first, 12, 3);
+      expect(addFirst.mock.calls).toEqual([[listener], [listener], [listener]]);
+      expect(addSecond.mock.calls).toEqual([[listener]]);
+      expect(removeFirst.mock.calls).toEqual([[listener], [listener]]);
+      expect(removeSecond.mock.calls).toEqual([[listener]]);
+
+      mesh.setPositions([new Vector3(9, 0, 0)]);
+      second.setData(new Float32Array([4, 0, 0]));
+      expect(mesh.getPositions()![0].x).toBe(9);
+      first.setData(new Float32Array([5, 0, 0]));
+      expect(mesh.getPositions()![0].x).toBe(5);
+
+      mesh.destroy();
+      expect(removeFirst.mock.calls).toEqual([[listener], [listener], [listener]]);
+    } finally {
+      mesh.destroy();
+      first.destroy();
+      second.destroy();
+      addFirst.mockRestore();
+      removeFirst.mockRestore();
+      addSecond.mockRestore();
+      removeSecond.mockRestore();
+    }
+  });
+
+  it("removes only the destroyed mesh's listeners from a shared vertex buffer", () => {
+    const first = new ModelMesh(engine);
+    const second = new ModelMesh(engine);
+    const buffer = new Buffer(
+      engine,
+      BufferBindFlag.VertexBuffer,
+      new Float32Array([1, 0, 0]),
+      BufferUsage.Static,
+      true
+    );
+    const addListener = vi.spyOn(buffer._dataUpdateManager, "addListener");
+    const removeListener = vi.spyOn(buffer._dataUpdateManager, "removeListener");
+    try {
+      first.setVertexElements([
+        new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+        new VertexElement(VertexAttribute.Normal, 0, VertexElementFormat.Vector3, 3)
+      ]);
+      second.setVertexElements([new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0)]);
+      first.setVertexBufferBinding(buffer, 12, 0);
+      first.setVertexBufferBinding(buffer, 12, 3);
+      second.setVertexBufferBinding(buffer, 12, 0);
+      const listeners = addListener.mock.calls.map(([listener]) => listener);
+      expect(new Set(listeners).size).toBe(3);
+
+      buffer.setData(new Float32Array([2, 0, 0]));
+      expect(first.getPositions()![0].x).toBe(2);
+      expect(first.getNormals()![0].x).toBe(2);
+      expect(second.getPositions()![0].x).toBe(2);
+
+      first.destroy();
+      expect(removeListener.mock.calls).toEqual([[listeners[0]], [listeners[1]]]);
+      buffer.setData(new Float32Array([3, 0, 0]));
+      expect(second.getPositions()![0].x).toBe(3);
+      second.destroy();
+      expect(removeListener.mock.calls).toEqual([[listeners[0]], [listeners[1]], [listeners[2]]]);
+    } finally {
+      first.destroy();
+      second.destroy();
+      buffer.destroy();
+      addListener.mockRestore();
+      removeListener.mockRestore();
+    }
   });
 
   it("Test non-contiguous custom vertex buffer", () => {

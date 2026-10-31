@@ -1,5 +1,5 @@
 import { PointerEventData, Script } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -12,8 +12,7 @@ describe("UIEvent", async () => {
 
   const engine = await WebGLEngine.create({ canvas: canvasDOM });
   const webCanvas = engine.canvas;
-  webCanvas.width = 300;
-  webCanvas.height = 300;
+  webCanvas.setResolution(300, 300);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
   const inputManager = engine.inputManager;
@@ -129,7 +128,6 @@ describe("UIEvent", async () => {
     target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 5, top + 5));
     engine.update();
 
-
     expect(script1.enterCount).toBe(1);
     expect(script1.exitCount).toBe(0);
     expect(script1.downCount).toBe(1);
@@ -160,10 +158,8 @@ describe("UIEvent", async () => {
     expect(script3.upCount).toBe(0);
     expect(script3.dropCount).toBe(0);
 
-
     target.dispatchEvent(generatePointerEvent("pointermove", 2, left + 5, top + 5));
     engine.update();
-
 
     expect(script1.enterCount).toBe(1);
     expect(script1.exitCount).toBe(0);

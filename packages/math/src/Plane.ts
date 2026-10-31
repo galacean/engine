@@ -63,7 +63,7 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
    * @param normal - The normal vector
    * @param distance - The distance of the plane along its normal to the origin
    */
-  constructor(normal: Vector3 = null, distance: number = 0) {
+  constructor(normal: Vector3 | null = null, distance: number = 0) {
     normal && this.normal.copyFrom(normal);
     this.distance = distance;
   }

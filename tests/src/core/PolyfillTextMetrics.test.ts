@@ -11,7 +11,10 @@ describe("Polyfill", () => {
       expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.false;
       expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.false;
 
-      await import("@galacean/engine-core");
+      // Polyfill registration moved out of `engine-core` (which is now
+      // flavor-agnostic with no top-level browser side effects) into the
+      // umbrella `@galacean/engine` package. Importing the umbrella triggers it.
+      await import("@galacean/engine");
 
       expect("actualBoundingBoxLeft" in TextMetrics.prototype).to.be.true;
       expect("actualBoundingBoxRight" in TextMetrics.prototype).to.be.true;

@@ -3,11 +3,17 @@
  * @category Text
  */
 
-import { Camera, TextHorizontalAlignment, TextRenderer, TextVerticalAlignment, Vector3, WebGLEngine } from "@galacean/engine";
+import {
+  Camera,
+  TextHorizontalAlignment,
+  TextRenderer,
+  TextVerticalAlignment,
+  Vector3,
+  WebGLEngine
+} from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

@@ -61,6 +61,27 @@ describe("RectMask2D", () => {
     expect(rectMask.softness.y).toBe(0);
   });
 
+  it("should clone softness with an independent change callback", async () => {
+    const fixture = await createUIFixture();
+    const sourceEntity = fixture.canvasEntity.createChild("mask");
+    const source = sourceEntity.addComponent(RectMask2D);
+    source.softness.set(4, 6);
+    source.alphaClip = true;
+    const cloneEntity = sourceEntity.clone();
+    const clone = cloneEntity.getComponent(RectMask2D)!;
+
+    expect(clone.alphaClip).toBe(true);
+    expect(clone.softness).not.toBe(source.softness);
+    expect(clone.softness.x).toBe(4);
+    expect(clone.softness.y).toBe(6);
+    clone.softness.set(-2, 8);
+    expect(clone.softness.x).toBe(0);
+    expect(clone.softness.y).toBe(8);
+    expect(source.softness.x).toBe(4);
+    expect(source.softness.y).toBe(6);
+    cloneEntity.destroy();
+  });
+
   it("should compute world rect from parent transform scale and translation", async () => {
     const fixture = await createUIFixture();
     const container = fixture.root.createChild("container");
@@ -289,8 +310,7 @@ async function createUIFixture(
 
   const engine = await WebGLEngine.create({ canvas: canvasDOM });
   const webCanvas = engine.canvas;
-  webCanvas.width = width;
-  webCanvas.height = height;
+  webCanvas.setResolution(width, height);
 
   const scene = engine.sceneManager.scenes[0];
   scene.background.solidColor.set(0, 0, 0, 1);

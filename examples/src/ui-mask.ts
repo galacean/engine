@@ -31,8 +31,7 @@ class ClickCounter extends Script {
 
 async function main() {
   const engine = await WebGLEngine.create({ canvas: "canvas" });
-  engine.canvas.resizeByClientSize();
-  window.addEventListener("resize", () => engine.canvas.resizeByClientSize());
+  engine.canvas.setAutoResolution();
 
   const scene = engine.sceneManager.activeScene;
   const root = scene.createRootEntity("Root");
@@ -90,7 +89,14 @@ async function main() {
     new Color(1, 1, 1, 0.95)
   );
 
-  const insideCountLabel = createLabel(canvasEntity, "InsideCount", "Inside hits: 0", -260, 30, new Color(1, 0.85, 0.8, 1));
+  const insideCountLabel = createLabel(
+    canvasEntity,
+    "InsideCount",
+    "Inside hits: 0",
+    -260,
+    30,
+    new Color(1, 0.85, 0.8, 1)
+  );
   const outsideCountLabel = createLabel(
     canvasEntity,
     "OutsideCount",
@@ -141,14 +147,7 @@ function createCircleSprite(engine: WebGLEngine, size: number): Sprite {
   return new Sprite(engine, texture);
 }
 
-function createLabel(
-  parent: Entity,
-  name: string,
-  content: string,
-  y: number,
-  fontSize: number,
-  color: Color
-): Text {
+function createLabel(parent: Entity, name: string, content: string, y: number, fontSize: number, color: Color): Text {
   const entity = parent.createChild(name);
   const transform = entity.transform as UITransform;
   transform.size.set(980, 64);

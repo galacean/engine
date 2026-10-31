@@ -1,4 +1,4 @@
-import { ICharacterController, ICollider, ICollision, IPhysicsScene } from "@galacean/engine-design";
+import { ICharacterController, ICollider, IPhysicsScene, IPhysicsEvents } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -17,6 +17,12 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
+  private static _tempDirection = new Vector3();
+  private static _raycastHitPool: HitResult[] = [];
+  private static _raycastSeenHits = new Set<HitResult>();
+  private static _scriptIndexSetter = (element: Script, index: number) => {
+    element._entityScriptsIndex = index;
+  };
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -27,162 +33,7 @@ export class PhysicsScene {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
 
-  private _onContactEnter = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionEnter(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionEnter(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onContactExit = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionExit(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionExit(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-  private _onContactStay = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionStay(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionStay(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-  private _onTriggerEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerEnter(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerEnter(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onTriggerExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerExit(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerExit(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onTriggerStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerStay(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerStay(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
+  private _contactEventConsumerCount = 0;
 
   /**
    * The gravity of physics scene.
@@ -218,15 +69,8 @@ export class PhysicsScene {
 
     const engine = scene.engine;
     if (engine._physicsInitialized) {
-      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(
-        engine._nativePhysicsManager,
-        this._onContactEnter,
-        this._onContactExit,
-        this._onContactStay,
-        this._onTriggerEnter,
-        this._onTriggerExit,
-        this._onTriggerStay
-      );
+      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(engine._nativePhysicsManager);
+      this._nativePhysicsScene.setContactEventEnabled(false);
     }
   }
 
@@ -319,7 +163,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
 
     let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
@@ -339,19 +183,120 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const preFilter = this._createPreFilter(layerMask);
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
 
-    const result = this._nativePhysicsScene.raycast(
-      ray,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.raycast(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
     }
     return result;
+  }
+
+  /**
+   * Casts a ray and writes all hits in unspecified order.
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
+   * @returns Whether any hit was found
+   *
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
+   */
+  raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and writes all hits in unspecified order.
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param distance - Maximum query distance; non-positive values return no hits
+   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
+   * @returns Whether any hit was found
+   *
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
+   */
+  raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
+
+  /**
+   * Casts a ray and optionally writes all hits in unspecified order.
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param distance - Maximum query distance; defaults to `Number.MAX_VALUE`
+   * @param layerMask - Collision layers to include; defaults to `Layer.Everything`
+   * @param outHitResults - Receives the hits; resized to the hit count. Omit to test for a hit only
+   * @returns Whether any hit was found
+   *
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
+   * Non-positive distances or directions that cannot be normalized clear the output; hits at distance 0 are ignored.
+   */
+  raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
+
+  raycastAll(
+    ray: Ray,
+    distance: number | HitResult[] = Number.MAX_VALUE,
+    layerMask: Layer | HitResult[] = Layer.Everything,
+    outHitResults?: HitResult[]
+  ): boolean {
+    if (typeof layerMask !== "number") {
+      outHitResults ||= layerMask;
+      layerMask = Layer.Everything;
+    }
+    if (typeof distance !== "number") {
+      outHitResults ||= distance;
+      distance = Number.MAX_VALUE;
+    }
+    if (!outHitResults) {
+      return this.raycast(ray, distance, layerMask);
+    }
+
+    const pool = PhysicsScene._raycastHitPool;
+    let hitCount = 0;
+    const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
+    if (distance > 0 && normalizedDirection) {
+      this._nativePhysicsScene.raycastAll(
+        ray.origin,
+        normalizedDirection,
+        distance,
+        layerMask,
+        (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
+          const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
+          this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
+        }
+      );
+    }
+    const length = outHitResults.length;
+    if (hitCount < length) {
+      // Preserve active aliases and recycle each unused object only once
+      const seenHits = PhysicsScene._raycastSeenHits;
+      for (let i = 0; i < hitCount; i++) {
+        seenHits.add(outHitResults[i]);
+      }
+      for (let i = hitCount; i < length; i++) {
+        const hitResult = outHitResults[i];
+        if (hitResult && !seenHits.has(hitResult)) {
+          seenHits.add(hitResult);
+          this._clearHitResult(hitResult);
+          pool.push(hitResult);
+        }
+      }
+      seenHits.clear();
+    }
+    outHitResults.length = hitCount;
+    return hitCount > 0;
   }
 
   /**
@@ -430,7 +375,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -457,17 +402,20 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const preFilter = this._createPreFilter(layerMask);
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
-    const result = this._nativePhysicsScene.boxCast(
-      center,
-      orientation,
-      halfExtents,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.boxCast(
+        center,
+        orientation,
+        halfExtents,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -542,7 +490,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
 
@@ -562,16 +510,19 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const preFilter = this._createPreFilter(layerMask);
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
-    const result = this._nativePhysicsScene.sphereCast(
-      center,
-      radius,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.sphereCast(
+        center,
+        radius,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -663,7 +614,7 @@ export class PhysicsScene {
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): boolean {
-    let hitResult: HitResult;
+    let hitResult: HitResult | undefined;
     let orientation = PhysicsScene._identityQuaternion;
     let distance = Number.MAX_VALUE;
     let layerMask = Layer.Everything;
@@ -689,18 +640,21 @@ export class PhysicsScene {
       hitResult = outHitResult;
     }
 
-    const preFilter = this._createPreFilter(layerMask);
+    const normalizedDirection = PhysicsScene._normalizeDirection(direction);
 
-    const result = this._nativePhysicsScene.capsuleCast(
-      center,
-      radius,
-      height,
-      orientation,
-      direction,
-      distance,
-      preFilter,
-      hitResult ? this._createHitCallback(hitResult) : undefined
-    );
+    let result = false;
+    if (normalizedDirection) {
+      result = this._nativePhysicsScene.capsuleCast(
+        center,
+        radius,
+        height,
+        orientation,
+        normalizedDirection,
+        distance,
+        layerMask,
+        hitResult ? this._createHitCallback(hitResult) : undefined
+      );
+    }
 
     if (!result && hitResult) {
       this._clearHitResult(hitResult);
@@ -724,12 +678,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapBoxAll(
-      center,
-      orientation,
-      halfExtents,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapBoxAll(center, orientation, halfExtents, layerMask);
 
     shapes.length = 0;
     for (let i = 0, n = ids.length; i < n; i++) {
@@ -752,7 +701,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, this._createPreFilter(layerMask));
+    const ids = this._nativePhysicsScene.overlapSphereAll(center, radius, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -779,13 +728,7 @@ export class PhysicsScene {
     layerMask: Layer = Layer.Everything,
     shapes: ColliderShape[] = []
   ): ColliderShape[] {
-    const ids = this._nativePhysicsScene.overlapCapsuleAll(
-      center,
-      radius,
-      height,
-      orientation,
-      this._createPreFilter(layerMask)
-    );
+    const ids = this._nativePhysicsScene.overlapCapsuleAll(center, radius, height, orientation, layerMask);
 
     shapes.length = 0;
     for (let i = 0; i < ids.length; i++) {
@@ -810,6 +753,7 @@ export class PhysicsScene {
       this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
+      this._dispatchEvents(nativePhysicsManager.updateEvents());
     }
   }
 
@@ -866,6 +810,18 @@ export class PhysicsScene {
   /**
    * @internal
    */
+  _addContactEventConsumer(delta: 1 | -1): void {
+    const wasEnabled = this._contactEventConsumerCount > 0;
+    this._contactEventConsumerCount += delta;
+    const enabled = this._contactEventConsumerCount > 0;
+    if (wasEnabled !== enabled) {
+      this._nativePhysicsScene?.setContactEventEnabled(enabled);
+    }
+  }
+
+  /**
+   * @internal
+   */
   _callColliderOnUpdate(): void {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
@@ -887,40 +843,139 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
+    PhysicsScene._raycastHitPool.length = 0;
+    PhysicsScene._raycastSeenHits.clear();
     this._colliders.garbageCollection();
+    this._nativePhysicsScene?.gc();
   }
 
   /**
    * @internal
    */
   _destroy(): void {
+    PhysicsScene._raycastHitPool.length = 0;
+    PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.destroy();
+  }
+
+  private _dispatchEvents(events: IPhysicsEvents): void {
+    const physicalObjectsMap = Engine._physicalObjectsMap;
+    const collision = PhysicsScene._collision;
+    const scriptIndexSetter = PhysicsScene._scriptIndexSetter;
+    const { contactEvents, contactEventCount, triggerEvents } = events;
+
+    // Dispatch contact events
+    for (let i = 0, n = contactEventCount; i < n; i++) {
+      const event = contactEvents[i];
+      const shape1 = physicalObjectsMap[event.shape0Id];
+      const shape2 = physicalObjectsMap[event.shape1Id];
+      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
+      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
+      if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
+      collision._nativeCollision = event;
+
+      switch (event.state) {
+        case PhysicsEventState.Enter:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionEnter(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionEnter(collision);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Stay:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionStay(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionStay(collision);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Exit:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionExit(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionExit(collision);
+          }, scriptIndexSetter);
+          break;
+      }
+    }
+
+    // Dispatch trigger events
+    for (let i = 0, n = triggerEvents.length; i < n; i++) {
+      const event = triggerEvents[i];
+      const shape1 = physicalObjectsMap[event.index1];
+      const shape2 = physicalObjectsMap[event.index2];
+      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
+      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
+      if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
+
+      switch (event.dispatchState) {
+        case PhysicsEventState.Enter:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerEnter(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerEnter(shape1);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Stay:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerStay(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerStay(shape1);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Exit:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerExit(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerExit(shape1);
+          }, scriptIndexSetter);
+          break;
+      }
+    }
+  }
+
+  private static _normalizeDirection(direction: Vector3): Vector3 | null {
+    const out = PhysicsScene._tempDirection;
+    return Vector3.normalize(direction, out) ? out : null;
   }
 
   private _setGravity(): void {
     this._nativePhysicsScene.setGravity(this._gravity);
   }
 
-  private _createPreFilter(mask: Layer): (obj: number) => boolean {
-    return (obj: number) => {
-      const shape = Engine._physicalObjectsMap[obj];
-      if (!shape) {
-        return false;
-      }
-      return shape.collider.entity.layer & mask && shape.isSceneQuery;
-    };
-  }
-
   private _createHitCallback(
     outHitResult: HitResult
   ): (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void {
     return (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => {
-      outHitResult.entity = Engine._physicalObjectsMap[shapeUniqueID].collider.entity;
-      outHitResult.shape = Engine._physicalObjectsMap[shapeUniqueID];
-      outHitResult.distance = distance;
-      outHitResult.point.copyFrom(position);
-      outHitResult.normal.copyFrom(normal);
+      this._setHitResult(outHitResult, shapeUniqueID, distance, position, normal);
     };
+  }
+
+  private _setHitResult(
+    outHitResult: HitResult,
+    shapeUniqueID: number,
+    distance: number,
+    position: Vector3,
+    normal: Vector3
+  ): void {
+    const shape = Engine._physicalObjectsMap[shapeUniqueID];
+    outHitResult.entity = shape.collider!.entity;
+    outHitResult.shape = shape;
+    outHitResult.distance = distance;
+    outHitResult.point.copyFrom(position);
+    outHitResult.normal.copyFrom(normal);
   }
 
   private _clearHitResult(hitResult: HitResult): void {
@@ -930,4 +985,13 @@ export class PhysicsScene {
     hitResult.point.set(0, 0, 0);
     hitResult.normal.set(0, 0, 0);
   }
+}
+
+/**
+ * @internal
+ */
+enum PhysicsEventState {
+  Enter = 0,
+  Stay = 1,
+  Exit = 2
 }

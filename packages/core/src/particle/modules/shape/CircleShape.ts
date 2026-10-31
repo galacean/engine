@@ -1,4 +1,4 @@
-import { MathUtil, Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeArcMode } from "./enums/ParticleShapeArcMode";
@@ -8,8 +8,6 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a circle.
  */
 export class CircleShape extends BaseShape {
-  private static _tempPositionPoint = new Vector2();
-
   readonly shapeType = ParticleShapeType.Circle;
 
   private _radius = 1.0;
@@ -76,8 +74,8 @@ export class CircleShape extends BaseShape {
   /**
    * @internal
    */
-  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
-    const positionPoint = CircleShape._tempPositionPoint;
+  _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+    const positionPoint = BaseShape._tempVector20;
 
     switch (this.arcMode) {
       case ParticleShapeArcMode.Loop:
@@ -101,7 +99,7 @@ export class CircleShape extends BaseShape {
   /**
    * @internal
    */
-  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const randomDirZ = this.randomDirectionAmount > 0.5 ? 1 : Math.sin(this.randomDirectionAmount * Math.PI);
     const randomDegreeOnXY = 0.5 * (360 - this._arc) * this.randomDirectionAmount;
     const randomDirY = randomDegreeOnXY > 90 ? -1 : -Math.sin(randomDegreeOnXY);
@@ -111,7 +109,7 @@ export class CircleShape extends BaseShape {
   /**
    * @internal
    */
-  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void {
     this._getUnitArcRange(this._arc, outMin, outMax, 0, 0);
     outMin.scale(this._radius);
     outMax.scale(this._radius);

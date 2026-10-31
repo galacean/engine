@@ -4,8 +4,8 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
-import { ColliderShape } from "./shape";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { BoxColliderShape, CapsuleColliderShape } from "./shape";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * The character controllers.
@@ -13,13 +13,12 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
 export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  @deepClone
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
   /**
    * The step offset for the controller, the value must be greater than or equal to 0.
-   * @remarks Character can overcome obstacle less than the height(stepOffset + contractOffset of the shape).
+   * @remarks Character can overcome obstacle less than the height(stepOffset + contactOffset of the shape).
    */
   get stepOffset(): number {
     return this._stepOffset;
@@ -107,9 +106,15 @@ export class CharacterController extends Collider {
    * Add collider shape on this controller.
    * @param shape - Collider shape
    */
-  override addShape(shape: ColliderShape): void {
+  override addShape(shape: BoxColliderShape | CapsuleColliderShape): void {
     if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
+    }
+    if (!(shape instanceof BoxColliderShape || shape instanceof CapsuleColliderShape)) {
+      throw new Error("CharacterController only supports BoxColliderShape or CapsuleColliderShape.");
+    }
+    if (shape.contactOffset <= 0) {
+      throw new Error("CharacterController contactOffset must be positive.");
     }
     super.addShape(shape);
     this._updateFlag.flag = true;
@@ -126,7 +131,7 @@ export class CharacterController extends Collider {
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
-        shapes[i]._nativeShape.setWorldScale(worldScale);
+        shapes[i]._nativeShape!.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
@@ -144,14 +149,14 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onEnableInScene() {
-    this.scene.physics._addCharacterController(this);
+    this.scene!.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene() {
-    this.scene.physics._removeCharacterController(this);
+    this.scene!.physics._removeCharacterController(this);
   }
 
   protected override _syncNative(): void {

@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   BoxColliderShape,
   Collision,
@@ -10,9 +11,7 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { LitePhysics } from "@galacean/engine-physics-lite";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 
 class CollisionScript extends Script {
@@ -70,8 +69,8 @@ describe("physics collider test", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -83,7 +82,7 @@ describe("physics collider test", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -106,7 +105,7 @@ describe("physics collider test", function () {
     boxEntity.transform.position.y = cubeSize / 2;
     physicsBox = new BoxColliderShape();
     physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-    physicsBox.material.bounciness = 0.1;
+    physicsBox.getInstanceMaterial().bounciness = 0.1;
 
     const radius = 1.25;
     sphereEntity.transform.position.x = 0;
@@ -310,7 +309,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].material.dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);
@@ -325,7 +324,7 @@ describe("physics collider test", function () {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
     collider2.applyForce(new Vector3(1000, 0, 0));
-    collider2.shapes[0].material.dynamicFriction = 1;
+    collider2.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.linearVelocity.x)).eq(0.97066);
@@ -339,7 +338,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].material.dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);
@@ -383,108 +382,6 @@ describe("physics collider test", function () {
 });
 
 describe("Collider Layer Collision Tests", () => {
-  describe("LitePhysics Layer Collision", () => {
-    let engine: WebGLEngine;
-    let rootEntity: Entity;
-    let physics: LitePhysics;
-
-    beforeAll(async () => {
-      physics = new LitePhysics();
-      engine = await WebGLEngine.create({
-        canvas: document.createElement("canvas"),
-        physics
-      });
-      rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
-    });
-
-    it("should respect collision group settings", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(DynamicCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      collider2.addShape(shape2);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      const script = entity1.addComponent(CollisionDetectionScript);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(true);
-
-      script.reset();
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
-    });
-
-    it("should handle manual collision group setting in LitePhysics", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(StaticCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      shape2.isTrigger = true;
-      collider2.addShape(shape2);
-
-      const script = entity2.addComponent(CollisionDetectionScript);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(true);
-
-      script.reset();
-
-      collider1.collisionLayer = Layer.Layer10;
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
-    });
-
-    afterEach(() => {
-      const entities = rootEntity.children;
-      for (let i = entities.length - 1; i >= 0; i--) {
-        entities[i].destroy();
-      }
-    });
-  });
-
   describe("PhysXPhysics Layer Collision", () => {
     let engine: WebGLEngine;
     let rootEntity: Entity;
@@ -492,7 +389,7 @@ describe("Collider Layer Collision Tests", () => {
     beforeAll(async () => {
       engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: createPhysics()
       });
       rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
     });

@@ -5,9 +5,9 @@ import {
   Vector2,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
-  dependentComponents
+  dependentComponents,
+  ICloneHook,
+  ignoreClone
 } from "@galacean/engine";
 import { UICanvas } from "../UICanvas";
 import { UITransform } from "../UITransform";
@@ -16,16 +16,14 @@ import { UITransform } from "../UITransform";
  * UI component that clips descendant graphics by an axis-aligned rectangle.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class RectMask2D extends Component {
+export class RectMask2D extends Component implements ICloneHook<RectMask2D> {
   private static _tempRect: Vector4 = new Vector4();
   private static _tempCorner0: Vector3 = new Vector3();
   private static _tempCorner1: Vector3 = new Vector3();
   private static _tempCorner2: Vector3 = new Vector3();
   private static _tempCorner3: Vector3 = new Vector3();
 
-  @deepClone
   private _softness: Vector2 = new Vector2(0, 0);
-  @assignmentClone
   private _alphaClip: boolean = false;
 
   /**
@@ -121,10 +119,7 @@ export class RectMask2D extends Component {
   }
 
   // @ts-ignore
-  override _cloneTo(target: RectMask2D, srcRoot: Entity, targetRoot: Entity): void {
-    // @ts-ignore
-    super._cloneTo(target, srcRoot, targetRoot);
-
+  _onClone(target: RectMask2D): void {
     const targetSoftness = target._softness;
     // @ts-ignore
     targetSoftness._onValueChanged = null;
@@ -137,10 +132,11 @@ export class RectMask2D extends Component {
   protected override _onDestroy(): void {
     // @ts-ignore
     this._softness._onValueChanged = null;
-    this._softness = null;
+    this._softness = null!;
     super._onDestroy();
   }
 
+  @ignoreClone
   private _onSoftnessChanged(): void {
     this._clampSoftness();
   }

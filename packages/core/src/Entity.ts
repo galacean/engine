@@ -10,6 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
+import { CloneMode, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -21,10 +22,21 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
+
+  private static _isTransformType(type: ComponentConstructor): boolean {
+    return type === Transform || type.prototype instanceof Transform;
+  }
+
+  private static _checkTransformDependencies(type: ComponentConstructor): void {
+    if (ComponentsDependencies._hasDependencies(type)) {
+      throw `Transform-compatible component ${type.name} cannot declare component dependencies`;
+    }
+  }
+
   /**
    * @internal
    */
-  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity | null {
     const searchPath = paths[pathIndex];
     const isEndPath = pathIndex === paths.length - 1;
     const children = entity._children;
@@ -39,13 +51,13 @@ export class Entity extends EngineObject {
     // Search failed if first path, or upward search
     return pathIndex === 0
       ? null
-      : Entity._findChildByName(entity.parent, entity.siblingIndex + 1, paths, pathIndex - 1);
+      : Entity._findChildByName(entity.parent!, entity.siblingIndex + 1, paths, pathIndex - 1);
   }
 
   /**
    * @internal
    */
-  static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+  static _traverseSetOwnerScene(entity: Entity, scene: Scene | null | undefined): void {
     entity._scene = scene;
     const children = entity._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -104,9 +116,11 @@ export class Entity extends EngineObject {
   /** @internal */
   _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
+  _scriptsVersion = 0;
+  /** @internal */
   _children: Entity[] = [];
   /** @internal */
-  _scene: Scene;
+  _scene: Scene | null | undefined;
   /** @internal */
   _isRoot: boolean = false;
   /** @internal */
@@ -120,8 +134,8 @@ export class Entity extends EngineObject {
 
   private _transform: Transform;
   private _templateResource: ReferResource;
-  private _parent: Entity = null;
-  private _activeChangedComponents: Component[];
+  private _parent: Entity | null = null;
+  private _activeChangedComponents: Component[] | null | undefined;
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -145,7 +159,7 @@ export class Entity extends EngineObject {
         const parent = this._parent;
 
         let activeChangeFlag = ActiveChangeFlag.None;
-        if (this._isRoot && this._scene._isActiveInEngine) {
+        if (this._isRoot && this._scene!._isActiveInEngine) {
           activeChangeFlag |= ActiveChangeFlag.All;
         } else {
           parent?._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -171,13 +185,13 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The parent entity.
+   * The parent entity, or null if this entity has no parent.
    */
-  get parent(): Entity {
+  get parent(): Entity | null {
     return this._parent;
   }
 
-  set parent(value: Entity) {
+  set parent(value: Entity | null) {
     this._setParent(value);
   }
 
@@ -197,9 +211,9 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * The scene the entity belongs to.
+   * The owning scene, or null/undefined if this entity is not in a scene.
    */
-  get scene(): Scene {
+  get scene(): Scene | null | undefined {
     return this._scene;
   }
 
@@ -216,9 +230,9 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._setSiblingIndex(this._scene._rootEntities, value);
+      this._setSiblingIndex(this._scene!._rootEntities, value);
     } else {
-      const parent = this._parent;
+      const parent = this._parent!;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
     }
@@ -233,10 +247,29 @@ export class Entity extends EngineObject {
   constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
     this.name = name ?? "Entity";
-    for (let i = 0, n = components.length; i < n; i++) {
-      this.addComponent(components[i]);
+    let transformType: ComponentConstructor = Transform;
+    const n = components.length;
+    for (let i = n - 1; i >= 0; i--) {
+      const componentType = components[i];
+      if (Entity._isTransformType(componentType)) {
+        transformType = componentType;
+        break;
+      }
     }
-    !this._transform && this.addComponent(Transform);
+
+    Entity._checkTransformDependencies(transformType);
+    const transform = <Transform>new transformType(this);
+    // Constructors may add components, but Transform always owns slot zero
+    this._components.unshift(transform);
+    this._transform = transform;
+    transform._setActive(true, ActiveChangeFlag.All);
+
+    for (let i = 0; i < n; i++) {
+      const componentType = components[i];
+      if (!Entity._isTransformType(componentType)) {
+        this.addComponent(componentType);
+      }
+    }
     this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
@@ -247,12 +280,20 @@ export class Entity extends EngineObject {
    * @returns	The component which has been added
    */
   addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
-    ComponentsDependencies._addCheck(this, type);
-    const component = new type(this, ...args) as InstanceType<T>;
-    this._components.push(component);
+    const isTransform = Entity._isTransformType(type);
+    if (isTransform) {
+      Entity._checkTransformDependencies(type);
+      ComponentsDependencies._removeCheck(this, this._transform.constructor as ComponentConstructor, type);
+    } else {
+      ComponentsDependencies._addCheck(this, type);
+    }
 
-    // @todo: temporary solution
-    if (component instanceof Transform) this._setTransform(component);
+    const component = new type(this, ...args) as InstanceType<T>;
+    if (isTransform) {
+      this._replaceTransform(<Transform>component);
+    } else {
+      this._components.push(component);
+    }
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -293,9 +334,10 @@ export class Entity extends EngineObject {
 
   /**
    * Get the components which match the type of the entity and it's children.
+   * @remarks The components are returned in depth-first pre-order: the entity itself first, then each child's subtree in sibling order.
    * @param type - The component type
    * @param results - The components collection
-   * @returns	The components collection which match the type
+   * @returns The components collection which match the type
    */
   getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
@@ -317,14 +359,14 @@ export class Entity extends EngineObject {
   addChild(index: number, child: Entity): void;
 
   addChild(indexOrChild: number | Entity, child?: Entity): void {
-    let index: number;
+    let index: number | undefined;
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
     } else {
       index = undefined;
       child = indexOrChild;
     }
-    child._setParent(this, index);
+    child!._setParent(this, index);
   }
 
   /**
@@ -337,21 +379,21 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * Get a child entity by index.
+   * @param index - The zero-based child index
+   * @returns The child at the index, or undefined if none exists
    * @deprecated Please use `children` property instead.
-   * Find child entity by index.
-   * @param index - The index of the child entity
-   * @returns	The component which be found
    */
-  getChild(index: number): Entity {
+  getChild(index: number): Entity | undefined {
     return this._children[index];
   }
 
   /**
-   * Find entity by name.
-   * @param name - The name of the entity which want to be found
-   * @returns The component which be found
+   * Find the first entity with the given name in this entity and its descendants.
+   * @param name - The name of the entity to find
+   * @returns The first matching entity, or null if none is found
    */
-  findByName(name: string): Entity {
+  findByName(name: string): Entity | null {
     if (name === this.name) {
       return this;
     }
@@ -366,16 +408,15 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find the entity by path.
-   * @param path - The path of the entity eg: /entity
-   * @returns The component which be found
+   * Find a descendant by its path relative to this entity.
+   * @param path - The entity path, with names separated by "/"
+   * @returns The matching entity, this entity for an empty path, or null if none is found
    */
-  findByPath(path: string): Entity {
+  findByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
     }
-
     return Entity._findChildByName(this, 0, splits, 0);
   }
 
@@ -414,12 +455,13 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone this entity include children and components.
-   * @returns Cloned entity
+   * Clone this Entity, including children and components.
+   * @returns A detached clone that must be added to a parent Entity or Scene to update and render
    */
   clone(): Entity {
-    const cloneEntity = this._createCloneEntity();
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
+    const cloneMap = new Map<object, object>();
+    const cloneEntity = this._createCloneEntity(cloneMap);
+    this._parseCloneEntity(this, cloneEntity, cloneMap);
     return cloneEntity;
   }
 
@@ -439,14 +481,20 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  private _createCloneEntity(): Entity {
+  private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
+    componentConstructors.length = components.length;
     for (let i = 0, n = components.length; i < n; i++) {
       componentConstructors[i] = components[i].constructor as ComponentConstructor;
     }
     const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
     componentConstructors.length = 0;
+    cloneMap.set(this, cloneEntity);
+    const targetComponents = cloneEntity._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      cloneMap.set(components[i], targetComponents[i]);
+    }
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -457,27 +505,21 @@ export class Entity extends EngineObject {
     cloneEntity._isActive = this._isActive;
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      cloneEntity.addChild(srcChildren[i]._createCloneEntity());
+      cloneEntity.addChild(srcChildren[i]._createCloneEntity(cloneMap));
     }
     return cloneEntity;
   }
 
-  private _parseCloneEntity(
-    src: Entity,
-    target: Entity,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
-  ): void {
+  private _parseCloneEntity(src: Entity, target: Entity, cloneMap: Map<object, object>): void {
     const srcChildren = src._children;
     const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
-      this._parseCloneEntity(srcChildren[i], targetChildren[i], srcRoot, targetRoot, deepInstanceMap);
+      this._parseCloneEntity(srcChildren[i], targetChildren[i], cloneMap);
     }
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
+      ComponentCloner.cloneComponent(components[i], target._components[i], cloneMap);
     }
   }
 
@@ -492,7 +534,7 @@ export class Entity extends EngineObject {
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);
-      this._templateResource = null;
+      this._templateResource = null!;
     }
 
     const components = this._components;
@@ -507,7 +549,7 @@ export class Entity extends EngineObject {
     }
 
     if (this._isRoot) {
-      this._scene.removeRootEntity(this);
+      this._scene!.removeRootEntity(this);
     } else {
       this._setParent(null);
     }
@@ -519,9 +561,13 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
-    components.splice(components.indexOf(component), 1);
+    const index = components.indexOf(component);
+    // A replaced Transform is detached from the component slot immediately but
+    // can still reach here later because object destruction may be deferred
+    if (index < 0) return;
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
+    components.splice(index, 1);
   }
 
   /**
@@ -530,6 +576,7 @@ export class Entity extends EngineObject {
   _addScript(script: Script) {
     script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
+    this._scriptsVersion++;
   }
 
   /**
@@ -539,6 +586,7 @@ export class Entity extends EngineObject {
     const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
     replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
     script._entityScriptsIndex = -1;
+    this._scriptsVersion++;
   }
 
   /**
@@ -560,8 +608,8 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
     this._setActiveComponents(true, activeChangeFlag);
   }
 
@@ -572,8 +620,8 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setInActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._activeChangedComponents = this._scene!._componentsManager.getActiveChangedTempList();
+    this._setInActiveInHierarchy(this._activeChangedComponents!, activeChangeFlag);
     this._setActiveComponents(false, activeChangeFlag);
   }
 
@@ -603,16 +651,16 @@ export class Entity extends EngineObject {
     this._modifyFlagManager?.dispatch(flag, param);
   }
 
-  private _addToChildrenList(index: number, child: Entity): void {
+  private _addToChildrenList(index: number | undefined, child: Entity): void {
     Entity._addToChildren(this._children, child, index);
     this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
-  private _setParent(parent: Entity, siblingIndex?: number): void {
+  private _setParent(parent: Entity | null, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
       if (this._isRoot) {
-        Entity._removeFromChildren(this._scene._rootEntities, this);
+        Entity._removeFromChildren(this._scene!._rootEntities, this);
         this._isRoot = false;
       } else {
         this._removeFromParent();
@@ -671,23 +719,28 @@ export class Entity extends EngineObject {
   }
 
   private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
       if (component instanceof type) {
         results.push(component);
       }
     }
-    for (let i = this._children.length - 1; i >= 0; i--) {
-      this._children[i]._getComponentsInChildren<T>(type, results);
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i]._getComponentsInChildren<T>(type, results);
     }
   }
 
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
-    const activeChangedComponents = this._activeChangedComponents;
+    const activeChangedComponents = this._activeChangedComponents!;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(isActive, activeChangeFlag);
+      const component = activeChangedComponents[i];
+      // Skip components whose scene was already cleared by an earlier callback's removeChild
+      if (!isActive && !component._entity._scene) continue;
+      component._setActive(isActive, activeChangeFlag);
     }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._scene!._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
@@ -707,17 +760,18 @@ export class Entity extends EngineObject {
   }
 
   private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+    // Children-first, reverse traversal for safe removeChild during callbacks
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+    }
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       component.enabled && activeChangedComponents.push(component);
-    }
-    const children = this._children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
     }
   }
 
@@ -744,13 +798,17 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setTransform(value: Transform): void {
-    this._transform?.destroy();
-    this._transform = value;
+  private _replaceTransform(replacement: Transform): void {
+    const previous = this._transform;
+    replacement._copyLocalPoseFrom(previous);
+    this._components[0] = replacement;
+    this._transform = replacement;
+
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
-      children[i].transform?._parentChange();
+      children[i].transform._parentChange();
     }
+    previous.destroy();
   }
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
@@ -768,6 +826,8 @@ export class Entity extends EngineObject {
     return this._invModelMatrix;
   }
 }
+
+registerDefaultCloneMode(Entity, CloneMode.Remap);
 
 export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,

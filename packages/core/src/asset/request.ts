@@ -13,8 +13,11 @@ const mimeType = {
 };
 
 const defaultRetryCount = 1;
-const defaultTimeout = Infinity;
 const defaultInterval = 500;
+
+function hasTimeout(timeout: number | undefined): timeout is number {
+  return Number.isFinite(timeout) && timeout! > 0;
+}
 
 /**
  * Configuration options for `request`.
@@ -36,26 +39,62 @@ export type RequestConfig = {
  * @returns A promise that resolves with the response of type `T`
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
-    const retryCount = config.retryCount ?? defaultRetryCount;
-    const retryInterval = config.retryInterval ?? defaultInterval;
-    config.timeout = config.timeout ?? defaultTimeout;
-    config.type = config.type ?? getMimeTypeFromUrl(url);
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
+    const { retryCount = defaultRetryCount, retryInterval = defaultInterval, signal, ...rest } = config;
+    const getAbortReason = () =>
+      signal?.reason !== undefined ? signal.reason : new DOMException("This operation was aborted", "AbortError");
+    if (signal?.aborted) {
+      reject(getAbortReason());
+      return;
+    }
+
+    let currentRequest: AssetPromise<T> | undefined;
+    const attemptConfig: RequestConfig = {
+      ...rest,
+      type: rest.type ?? getMimeTypeFromUrl(url)
+    };
+    const send = typeof XMLHttpRequest === "undefined" ? requestWithFetch : requestWithXHR;
     const executor = new MultiExecutor(
-      () => requestRes<T>(url, config).onProgress(setTaskCompleteProgress, setTaskDetailProgress),
+      () => (currentRequest = send<T>(url, attemptConfig).onProgress(setTaskCompleteProgress, setTaskDetailProgress)),
       retryCount,
       retryInterval
     );
-    executor.start().onError(reject).onComplete(resolve);
+
+    const cleanup = () => {
+      signal?.removeEventListener("abort", onSignalAbort);
+    };
+    const stop = () => {
+      cleanup();
+      executor.cancel();
+      currentRequest?.cancel();
+    };
+    const onSignalAbort = () => {
+      stop();
+      reject(getAbortReason());
+    };
+
+    signal?.addEventListener("abort", onSignalAbort, { once: true });
+    onCancel(stop);
+    executor
+      .onError((e) => {
+        cleanup();
+        reject(e);
+      })
+      .onComplete((res) => {
+        cleanup();
+        resolve(res);
+      })
+      .start();
   });
 }
 
-function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
-  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
+function requestWithXHR<T>(url: string, config: RequestConfig): AssetPromise<T> {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress, onCancel) => {
     const xhr = new XMLHttpRequest();
+    onCancel(() => xhr.abort());
     const isImg = config.type === "image";
-    xhr.timeout = config.timeout;
-    config.method = config.method ?? "get";
+    xhr.timeout = hasTimeout(config.timeout) ? config.timeout : 0;
+    const method = config.method ?? "get";
     xhr.withCredentials = config.credentials === "include";
     // @ts-ignore
     xhr.responseType = isImg ? "blob" : config.type;
@@ -110,7 +149,7 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         setTaskDetailProgress(url, e.loaded, e.total);
       }
     };
-    xhr.open(config.method, url, true);
+    xhr.open(method, url, true);
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {
@@ -122,13 +161,51 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
   });
 }
 
+function requestWithFetch<T>(url: string, config: RequestConfig): AssetPromise<T> {
+  return new AssetPromise((resolve, reject, setTaskCompleteProgress, _setTaskDetailProgress, onCancel) => {
+    const { type, timeout, ...init } = config;
+    if (type === "image" || type === "document") {
+      reject(new Error(`Request type "${type}" requires a browser decoder.`));
+      return;
+    }
+    const controller = new AbortController();
+    const timer = hasTimeout(timeout)
+      ? setTimeout(() => controller.abort(new DOMException(`Request timeout from: ${url}`, "TimeoutError")), timeout)
+      : undefined;
+    onCancel(() => {
+      clearTimeout(timer);
+      controller.abort();
+    });
+    fetch(url, { ...init, signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`Request failed from: ${url} (${res.status})`);
+        const result =
+          type === "arraybuffer"
+            ? await res.arrayBuffer()
+            : type === "blob"
+              ? await res.blob()
+              : type === "json"
+                ? await res.json()
+                : await res.text();
+        setTaskCompleteProgress(1, 1);
+        return result as T;
+      })
+      .finally(() => {
+        // A rejected response may still own an unread body and connection.
+        controller.abort();
+        clearTimeout(timer);
+      })
+      .then(resolve, reject);
+  });
+}
+
 function getMimeTypeFromUrl(url: string) {
   const extname = url.substring(url.lastIndexOf(".") + 1);
   return mimeType[extname];
 }
 
 export class MultiExecutor {
-  private _timeoutId: number = -100;
+  private _timeoutId: ReturnType<typeof setTimeout>;
   private _currentCount = 0;
   private _onComplete: Function;
   private _onError: Function;
@@ -157,7 +234,8 @@ export class MultiExecutor {
   }
 
   cancel() {
-    window.clearTimeout(this._timeoutId);
+    clearTimeout(this._timeoutId);
+    this._onComplete = this._onError = undefined!;
   }
 
   private exec(): void {
@@ -169,8 +247,13 @@ export class MultiExecutor {
     this.execFunc(this._currentCount)
       .then((result) => this._onComplete && this._onComplete(result))
       .catch((e) => {
+        if (!this._onError) return;
         this._error = e;
-        this._timeoutId = window.setTimeout(this.exec, this.interval);
+        if (this._currentCount >= this.totalCount) {
+          this._onError(e);
+        } else {
+          this._timeoutId = setTimeout(this.exec, this.interval);
+        }
       });
   }
 }

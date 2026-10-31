@@ -5,6 +5,7 @@ import { VertexElementFormat } from "./enums/VertexElementFormat";
  * Vertex element.
  */
 export class VertexElement {
+  /** @internal */
   _formatMetaInfo: ElementInfo;
 
   private _attributeName: string;

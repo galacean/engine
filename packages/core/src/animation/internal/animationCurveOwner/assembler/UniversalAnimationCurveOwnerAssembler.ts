@@ -23,7 +23,7 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
   private _setArrayIndex: number;
 
   initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
-    let mounted = owner.component;
+    const mounted = owner.component;
 
     const setProperties = owner.property.split(".");
 
@@ -76,7 +76,7 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
         // is method
         const methodName = property.slice(0, property.indexOf("("));
         const args = property
-          .match(/\w+\(([^)]*)\)/)[1]
+          .match(/\w+\(([^)]*)\)/)![1]
           .split(",")
           .map((arg) => arg.trim().replace(/['"]+/g, ""))
           .filter((arg) => arg !== "");
@@ -90,9 +90,9 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     const property = properties[endIndex];
 
     let handleType: HandleType;
-    let arrayIndex: number;
-    let methodName: string;
-    let args: any[];
+    let arrayIndex!: number;
+    let methodName!: string;
+    let args!: any[];
 
     if (property.indexOf("[") > -1) {
       const indexPos = property.indexOf("[");
@@ -102,7 +102,7 @@ export class UniversalAnimationCurveOwnerAssembler implements IAnimationCurveOwn
     } else if (property.endsWith(")")) {
       methodName = property.slice(0, property.indexOf("("));
       args = property
-        .match(/\w+\(([^)]*)\)/)[1]
+        .match(/\w+\(([^)]*)\)/)![1]
         .split(",")
         .map((arg) => arg.trim().replace(/['"]+/g, ""))
         .filter((arg) => arg !== "");

@@ -53,10 +53,10 @@ When uploading textures in the editor, the sRGB toggle is enabled by default. If
 [Loading textures](/en/docs/assets/load) uses the sRGB color space by default. If linear space is required, you can disable the sRGB setting via parameters:
 
 ```ts showLineNumbers {7}
-// Load textures using Texture2DLoader
+// Load textures using TextureLoader
 engine.resourceManager
   .load<Texture2D>({
-    type: AssetType.Texture2D,
+    type: AssetType.Texture,
     url: "https://***.png",
     params: {
       isSRGBColorSpace: false // Disable sRGB, use linear space, e.g., for normal maps
@@ -73,7 +73,7 @@ export declare class Texture2D extends Texture {
    * @param engine - Rendering engine instance
    * @param width - Texture width
    * @param height - Texture height
-   * @param format - Texture format, default is `TextureFormat.R8G8B8A8`
+   * @param format - Texture format, default is `TextureFormat.R8G8B8A8_UNorm`
    * @param mipmap - Whether to use mipmaps
    * @param isSRGBColorSpace - Whether to use the sRGB color space, default is `true`
    * @param usage - Texture usage

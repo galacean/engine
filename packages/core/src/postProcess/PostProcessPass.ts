@@ -67,11 +67,12 @@ export abstract class PostProcessPass extends EngineObject {
    * Execute the post process pass if it is active.
    * @param camera - The camera used to render
    * @param srcTexture - The source texture from last render target
-   * @param destTarget - The destination render target
+   * @param destTarget - The destination render target, or null for the canvas
    */
-  abstract onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void;
+  abstract onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget | null): void;
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy() {

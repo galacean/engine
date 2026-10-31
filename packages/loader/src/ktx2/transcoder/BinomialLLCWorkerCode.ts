@@ -95,12 +95,12 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     BC1_BC3,
     PVRTC,
     ETC,
-    R8,
-    R8G8,
-    R8G8B8A8,
+    R8_UNorm,
+    R8G8_UNorm,
+    R8G8B8A8_UNorm,
     BC6H,
     ASTC_HDR_4x4,
-    R16G16B16A16
+    R16G16B16A16_SFloat
   }
 
   function getTranscodeFormatFromTarget(target: TargetFormat, hasAlpha: boolean) {
@@ -111,7 +111,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return hasAlpha ? BasisFormat.ETC2 : BasisFormat.ETC1;
       case TargetFormat.PVRTC:
         return hasAlpha ? BasisFormat.PVRTC1_4_RGBA : BasisFormat.PVRTC1_4_RGB;
-      case TargetFormat.R8G8B8A8:
+      case TargetFormat.R8G8B8A8_UNorm:
         return BasisFormat.RGBA8;
       case TargetFormat.ASTC:
         return BasisFormat.ASTC_4x4;
@@ -121,7 +121,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
         return BasisFormat.BC6H;
       case TargetFormat.ASTC_HDR_4x4:
         return BasisFormat.ASTC_HDR_4x4;
-      case TargetFormat.R16G16B16A16:
+      case TargetFormat.R16G16B16A16_SFloat:
         return BasisFormat.RGBA_HALF;
     }
   }
@@ -176,7 +176,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
     const mipmaps = new Array(levelCount);
     for (let mip = 0; mip < levelCount; mip++) {
       const layerMips: Uint8Array[] | Uint16Array[] = new Array(layerCount);
-      let mipWidth: number, mipHeight: number;
+      let mipWidth!: number, mipHeight!: number;
 
       for (let layer = 0; layer < layerCount; layer++) {
         const levelInfo = ktx2File.getImageLevelInfo(mip, layer, face);
@@ -198,7 +198,7 @@ export function transcode(buffer: Uint8Array, targetFormat: any, KTX2File: any):
 
         const status = ktx2File.transcodeImage(dst, mip, layer, face, format, 0, -1, -1);
 
-        if (targetFormat === TargetFormat.R16G16B16A16) {
+        if (targetFormat === TargetFormat.R16G16B16A16_SFloat) {
           dst = new Uint16Array(dst.buffer, dst.byteOffset, dst.byteLength / Uint16Array.BYTES_PER_ELEMENT);
         }
 

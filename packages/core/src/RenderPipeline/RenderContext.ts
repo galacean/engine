@@ -28,16 +28,16 @@ export class RenderContext {
   camera: Camera;
   virtualCamera: VirtualCamera;
 
-  replacementShader: Shader;
-  replacementTag: ShaderTagKey;
-  replacementFailureStrategy: ReplacementFailureStrategy;
+  replacementShader: Shader | null;
+  replacementTag: ShaderTagKey | null | undefined;
+  replacementFailureStrategy: ReplacementFailureStrategy | null;
 
-  flipProjection = false;
+  flipProjection: boolean | null = false;
   viewMatrix: Matrix;
   projectionMatrix: Matrix;
   viewProjectionMatrix: Matrix;
 
-  applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean): void {
+  applyVirtualCamera(virtualCamera: VirtualCamera, flipProjection: boolean | null): void {
     this.virtualCamera = virtualCamera;
     this.flipProjection = flipProjection;
 
@@ -78,7 +78,7 @@ export class RenderContext {
   }
 
   garbageCollection(): void {
-    this.camera = null;
+    this.camera = null!;
   }
 }
 

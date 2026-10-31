@@ -31,15 +31,15 @@ export class AnimationClipCurveBinding {
    */
   getProperty?: string;
   /** The animation curve. */
-  curve: AnimationCurve<KeyframeValueType>;
+  curve: AnimationCurve<KeyframeValueType> | undefined;
 
-  private _tempCurveOwner: Record<number, AnimationCurveOwner<KeyframeValueType>> = {};
+  private _tempCurveOwner = new WeakMap<Entity, AnimationCurveOwner<KeyframeValueType>>();
 
   /**
    * @internal
    */
   _createCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
-    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const curveType = (<unknown>this.curve!.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const owner = new AnimationCurveOwner(entity, this.type, component, this.property, this.getProperty, curveType);
     curveType._initializeOwner(owner);
     owner.saveDefaultValue();
@@ -50,7 +50,7 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveLayerOwner {
-    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const curveType = (<unknown>this.curve!.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const layerOwner = new AnimationCurveLayerOwner();
     layerOwner.curveOwner = owner;
     curveType._initializeLayerOwner(layerOwner);
@@ -63,10 +63,11 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _getTempCurveOwner(entity: Entity, component: Component): AnimationCurveOwner<KeyframeValueType> {
-    const { instanceId } = entity;
-    if (!this._tempCurveOwner[instanceId]) {
-      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity, component);
+    let owner = this._tempCurveOwner.get(entity);
+    if (!owner) {
+      owner = this._createCurveOwner(entity, component);
+      this._tempCurveOwner.set(entity, owner);
     }
-    return this._tempCurveOwner[instanceId];
+    return owner;
   }
 }

@@ -1,7 +1,6 @@
-import { IPlatformPrimitive } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { ShaderProgram } from "../shader/ShaderProgram";
+import type { IPlatformPrimitive, IPlatformShaderProgram } from "../renderingHardwareInterface";
 import { BufferUtil } from "./BufferUtil";
 import { IndexBufferBinding } from "./IndexBufferBinding";
 import { SubPrimitive } from "./SubPrimitive";
@@ -15,26 +14,26 @@ import { VertexElement } from "./VertexElement";
 export class Primitive extends GraphicsResource {
   enableVAO: boolean = true;
   instanceCount: number = 0;
-  vertexBufferBindings: VertexBufferBinding[] = [];
+  vertexBufferBindings: (VertexBufferBinding | null)[] = [];
 
   /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
   /** @internal */
-  _glIndexType: number;
+  _glIndexType: number | undefined;
   /** @internal */
   _glIndexByteCount: number;
   /** @internal */
   _bufferStructChanged: boolean = false;
 
   private _vertexElements: VertexElement[] = [];
-  private _indexBufferBinding: IndexBufferBinding;
+  private _indexBufferBinding: IndexBufferBinding | null;
   private _platformPrimitive: IPlatformPrimitive;
 
   get vertexElements(): VertexElement[] {
     return this._vertexElements;
   }
 
-  get indexBufferBinding(): IndexBufferBinding {
+  get indexBufferBinding(): IndexBufferBinding | null {
     return this._indexBufferBinding;
   }
 
@@ -103,7 +102,7 @@ export class Primitive extends GraphicsResource {
     vertexElements.length = length;
   }
 
-  setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+  setVertexBufferBinding(index: number, binding: VertexBufferBinding | null): void {
     const referCount = this._getReferCount();
     const vertexBufferBindings = this.vertexBufferBindings;
     if (referCount > 0) {
@@ -119,7 +118,7 @@ export class Primitive extends GraphicsResource {
    * @param vertexBufferBindings - Vertex buffer binding
    * @param firstIndex - First vertex buffer index, the default value is 0
    */
-  setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
+  setVertexBufferBindings(vertexBufferBindings: (VertexBufferBinding | null)[], firstIndex: number = 0): void {
     const bindings = this.vertexBufferBindings;
     const count = vertexBufferBindings.length;
     const needLength = firstIndex + count;
@@ -147,7 +146,7 @@ export class Primitive extends GraphicsResource {
     }
   }
 
-  draw(shaderProgram: ShaderProgram, subMesh: SubPrimitive): void {
+  draw(shaderProgram: IPlatformShaderProgram, subMesh: SubPrimitive): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
     this._bufferStructChanged = false;
   }
@@ -169,6 +168,6 @@ export class Primitive extends GraphicsResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._platformPrimitive.destroy();
-    this._vertexElementMap = null;
+    this._vertexElementMap = null!;
   }
 }

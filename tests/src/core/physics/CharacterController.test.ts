@@ -1,3 +1,4 @@
+import { createPhysics } from "../../utils/physics";
 import {
   Engine,
   CharacterController,
@@ -11,11 +12,11 @@ import {
   Script,
   ControllerCollisionFlag,
   Layer,
-  ColliderShapeUpAxis
+  ColliderShapeUpAxis,
+  MeshColliderShape
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("CharacterController", function () {
@@ -41,8 +42,8 @@ describe("CharacterController", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -82,7 +83,7 @@ describe("CharacterController", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -129,6 +130,18 @@ describe("CharacterController", function () {
     expect(controller.shapes.length).eq(1);
   });
 
+  it("rejects unsupported shapes before assigning an owner", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+    const shape = new MeshColliderShape();
+
+    expect(() => controller.addShape(shape as unknown as BoxColliderShape)).toThrow();
+    expect(controller.shapes).toHaveLength(0);
+    expect(shape.collider).toBeFalsy();
+
+    shape._destroy();
+  });
+
   it("shape position", () => {
     const controller = roleEntity.getComponent(CharacterController);
     controller.clearShapes();
@@ -145,6 +158,21 @@ describe("CharacterController", function () {
     const controller = roleEntity.getComponent(CharacterController);
     controller.move(new Vector3(0, 0, 1), 0.0001, 0.1);
     expect(roleEntity.transform.position.z).eq(1);
+  });
+
+  it.each([true, false])("scene-query participation %s preserves controller collisions", (enabled) => {
+    roleEntity.transform.setPosition(0, 2, 0);
+    const wall = addBox(new Vector3(10, 10, 1), StaticCollider, new Vector3(0, 2, 2));
+    wall.getComponent(StaticCollider).shapes[0].isSceneQuery = enabled;
+    const physics = engine.sceneManager.activeScene.physics;
+    physics._update(1 / 60);
+
+    const ray = new Ray(new Vector3(0, 5, 0), new Vector3(0, 0, 1));
+    expect(physics.raycastAll(ray)).eq(enabled);
+    const controller = roleEntity.getComponent(CharacterController);
+    const flags = controller.move(new Vector3(0, 0, 4), 0.0001, 1 / 60);
+    expect(flags & ControllerCollisionFlag.Sides).eq(ControllerCollisionFlag.Sides);
+    expect(roleEntity.transform.position.z).closeTo(0.98, 0.0001);
   });
 
   it("upDirection", () => {
@@ -175,6 +203,90 @@ describe("CharacterController", function () {
     controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
     engine.update();
     expect(formatValue(roleEntity.transform.position.y)).eq(1.5);
+  });
+
+  it("preserves contactOffset when the native controller is recreated", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.shapes[0].contactOffset = 0.3;
+
+    controller.enabled = false;
+    controller.enabled = true;
+    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
+    controller.move(new Vector3(0, 0, 0.1), 0.0001, 1);
+    engine.update();
+
+    expect(formatValue(roleEntity.transform.position.y)).eq(0.8);
+  });
+
+  it("rejects zero contactOffset before attaching the shape", () => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.clearShapes();
+    const shape = new BoxColliderShape();
+    shape.contactOffset = 0;
+
+    expect(() => controller.addShape(shape)).toThrowError("CharacterController contactOffset must be positive.");
+    expect(controller.shapes).toHaveLength(0);
+    expect(shape.collider).toBeFalsy();
+
+    shape._destroy();
+  });
+
+  it("preserves contactOffset when transferring a shape to a rigid collider", () => {
+    roleEntity.isActive = false;
+    const controllerEntity = rootEntity.createChild("offsetController");
+    controllerEntity.transform.setPosition(100, 100, 0);
+    const controller = controllerEntity.addComponent(CharacterController);
+    const shape = new BoxColliderShape();
+    controller.addShape(shape);
+    shape.contactOffset = 0.3;
+
+    const rigidEntity = rootEntity.createChild("offsetRigidCollider");
+    rigidEntity.transform.setPosition(100, 100, 0);
+    const rigidCollider = rigidEntity.addComponent(StaticCollider);
+    rigidCollider.addShape(shape);
+
+    const probe = rootEntity.createChild("offsetProbe");
+    probe.transform.setPosition(100, 101.2, 0);
+    const probeCollider = probe.addComponent(DynamicCollider);
+    probeCollider.useGravity = false;
+    const probeShape = new BoxColliderShape();
+    probeCollider.addShape(probeShape);
+
+    class ContactScript extends Script {
+      collided = false;
+
+      onCollisionEnter(): void {
+        this.collided = true;
+      }
+    }
+
+    const script = probe.addComponent(ContactScript);
+    try {
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      expect(controller.shapes).toHaveLength(0);
+      expect(shape.collider).toBe(rigidCollider);
+      expect(shape.contactOffset).toBe(0.3);
+      expect(script.collided).toBe(true);
+    } finally {
+      controllerEntity.destroy();
+      rigidEntity.destroy();
+      probe.destroy();
+    }
+  });
+
+  it.each([true, false])("keeps contactOffset when invalid input is rejected (enabled=%s)", (enabled) => {
+    const controller = roleEntity.getComponent(CharacterController);
+    controller.enabled = enabled;
+    const shape = controller.shapes[0];
+    shape.contactOffset = 0.3;
+
+    for (const value of [0, NaN, Infinity, -Infinity]) {
+      const message = Number.isFinite(value)
+        ? "CharacterController contactOffset must be positive."
+        : "ColliderShape contactOffset must be finite.";
+      expect(() => (shape.contactOffset = value)).toThrowError(message);
+      expect(shape.contactOffset).toBe(0.3);
+    }
   });
 
   it("slopeLimit notPass", () => {

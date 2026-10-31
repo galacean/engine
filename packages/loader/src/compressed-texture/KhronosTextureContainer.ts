@@ -16,20 +16,20 @@ const TEX_2D = 2; // uses a gl.texImage2D()
 const TEX_3D = 3; // uses a gl.texImage3D()
 
 function getMipmaps(ktxContainer: KTXContainer, loadMipmaps: boolean): Mipmap[] {
-  const mipmaps = [];
+  const mipmaps: Mipmap[] = [];
 
   // initialize width & height for level 1
-  var dataOffset = HEADER_LEN + ktxContainer.bytesOfKeyValueData;
-  var width = ktxContainer.pixelWidth;
-  var height = ktxContainer.pixelHeight;
-  var mipmapCount = loadMipmaps ? ktxContainer.numberOfMipmapLevels : 1;
+  let dataOffset = HEADER_LEN + ktxContainer.bytesOfKeyValueData;
+  let width = ktxContainer.pixelWidth;
+  let height = ktxContainer.pixelHeight;
+  const mipmapCount = loadMipmaps ? ktxContainer.numberOfMipmapLevels : 1;
 
-  for (var level = 0; level < mipmapCount; level++) {
-    var imageSize = new Int32Array(ktxContainer.buffer, dataOffset, 1)[0]; // size per face, since not supporting array cubemaps
+  for (let level = 0; level < mipmapCount; level++) {
+    const imageSize = new Int32Array(ktxContainer.buffer, dataOffset, 1)[0]; // size per face, since not supporting array cubemaps
     dataOffset += 4; // size of the image + 4 for the imageSize field
 
-    for (var face = 0; face < ktxContainer.numberOfFaces; face++) {
-      var byteArray = new Uint8Array(ktxContainer.buffer, dataOffset, imageSize);
+    for (let face = 0; face < ktxContainer.numberOfFaces; face++) {
+      const byteArray = new Uint8Array(ktxContainer.buffer, dataOffset, imageSize);
 
       mipmaps.push({ data: byteArray, width: width, height: height });
 

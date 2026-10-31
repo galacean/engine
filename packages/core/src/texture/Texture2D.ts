@@ -16,7 +16,7 @@ export class Texture2D extends Texture {
    * @param engine - Define the engine to use to render this texture
    * @param width - Texture width
    * @param height - Texture height
-   * @param format - Texture format. default `TextureFormat.R8G8B8A8`
+   * @param format - Texture format. default `TextureFormat.R8G8B8A8_UNorm`
    * @param mipmap - Whether to use multi-level texture
    * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    * @param usage - Texture usage
@@ -25,7 +25,7 @@ export class Texture2D extends Texture {
     engine: Engine,
     width: number,
     height: number,
-    format = TextureFormat.R8G8B8A8,
+    format = TextureFormat.R8G8B8A8_UNorm,
     mipmap = true,
     isSRGBColorSpace = true,
     usage = TextureUsage.Static
@@ -46,7 +46,6 @@ export class Texture2D extends Texture {
 
   /**
    * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level
    * @param x - X coordinate of area start
@@ -152,8 +151,8 @@ export class Texture2D extends Texture {
       (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         0,
         <ArrayBufferView>mipLevelOrOut
       );
@@ -161,10 +160,10 @@ export class Texture2D extends Texture {
       (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         <number>mipLevelOrOut,
-        out
+        out!
       );
     }
   }

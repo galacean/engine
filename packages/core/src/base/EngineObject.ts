@@ -1,4 +1,4 @@
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 
 /**

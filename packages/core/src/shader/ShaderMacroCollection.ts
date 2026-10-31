@@ -159,6 +159,20 @@ export class ShaderMacroCollection {
   }
 
   /**
+   * Whether this macro collection is equal to another.
+   * @param other - macro collection to compare
+   */
+  isEqual(other: ShaderMacroCollection): boolean {
+    if (this._length !== other._length) return false;
+    const mask = this._mask;
+    const otherMask = other._mask;
+    for (let i = 0, n = this._length; i < n; i++) {
+      if (mask[i] !== otherMask[i]) return false;
+    }
+    return true;
+  }
+
+  /**
    * Clear this macro collection.
    */
   clear(): void {

@@ -14,12 +14,13 @@ export class AnimatorStateMachine {
   readonly states: AnimatorState[] = [];
 
   private _engine: Engine;
+  private _onStatesInvalidate: (() => void) | null = null;
 
   /**
    * The state will be played automatically.
-   * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered.
+   * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered. Cleared to `null` if the state is removed via `removeState`.
    */
-  defaultState: AnimatorState;
+  defaultState: AnimatorState | null = null;
 
   /** @internal */
   _entryTransitionCollection = new AnimatorStateTransitionCollection();
@@ -68,8 +69,12 @@ export class AnimatorStateMachine {
     const index = this.states.indexOf(state);
     if (index > -1) {
       this.states.splice(index, 1);
+      delete this._statesMap[name];
+      if (this.defaultState === state) {
+        this.defaultState = null;
+      }
+      this._onStatesInvalidate?.();
     }
-    delete this._statesMap[name];
   }
 
   /**
@@ -166,5 +171,12 @@ export class AnimatorStateMachine {
     for (let i = 0, n = states.length; i < n; i++) {
       states[i]._setEngine(engine);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _setStatesInvalidateCallback(onStatesInvalidate: (() => void) | null): void {
+    this._onStatesInvalidate = onStatesInvalidate;
   }
 }

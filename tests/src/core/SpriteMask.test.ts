@@ -1,6 +1,13 @@
-import { RendererUpdateFlags, Sprite, SpriteMask, SpriteMaskLayer, Texture2D } from "@galacean/engine-core";
+import {
+  RendererUpdateFlags,
+  MaskDirtyFlags as SpriteMaskUpdateFlags,
+  Sprite,
+  SpriteMask,
+  SpriteMaskLayer,
+  Texture2D
+} from "@galacean/engine-core";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it } from "vitest";
 
 describe("SpriteMask", async () => {
@@ -222,17 +229,3 @@ describe("SpriteMask", async () => {
     expect(spriteMask.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
-
-/**
- * @remarks Extends `RendererUpdateFlags`.
- */
-enum SpriteMaskUpdateFlags {
-  /** UV. */
-  UV = 0x2,
-  /** Automatic Size. */
-  AutomaticSize = 0x4,
-  /** WorldVolume and UV. */
-  WorldVolumeAndUV = 0x3,
-  /** All. */
-  All = 0x7
-}

@@ -19,17 +19,12 @@ export interface IXRSession {
   /**
    * Returns the current frame rate.
    */
-  get frameRate(): number;
+  get frameRate(): number | undefined;
 
   /**
    * Returns the frame rate supported by the device.
    */
-  get supportedFrameRates(): Float32Array;
-
-  /**
-   * Returns the device's default main framebuffer.
-   */
-  get framebuffer(): WebGLFramebuffer;
+  get supportedFrameRates(): Float32Array | undefined;
 
   /**
    * Returns the width of the device's default main framebuffer.
@@ -42,6 +37,11 @@ export interface IXRSession {
   get framebufferHeight(): number;
 
   /**
+   * Synchronize per-frame session state before updating inputs and cameras.
+   */
+  onUpdate(): void;
+
+  /**
    * Set fixed foveation for camera.
    * @param value - The fixed foveation value
    */
@@ -50,7 +50,7 @@ export interface IXRSession {
   /**
    * Return fixed foveation of camera.
    */
-  getFixedFoveation(): number;
+  getFixedFoveation(): number | undefined;
 
   /**
    * Add event listener for XR session.

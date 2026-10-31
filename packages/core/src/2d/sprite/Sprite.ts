@@ -2,7 +2,7 @@ import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-
 import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
-import { ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { Texture2D } from "../../texture/Texture2D";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
@@ -12,18 +12,18 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
  */
 export class Sprite extends ReferResource {
   /** The name of sprite. */
-  name: string;
+  name: string | null;
 
   private _automaticWidth: number = 0;
   private _automaticHeight: number = 0;
-  private _customWidth: number = undefined;
-  private _customHeight: number = undefined;
+  private _customWidth: number | undefined = undefined;
+  private _customHeight: number | undefined = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _bounds: BoundingBox = new BoundingBox();
 
-  private _texture: Texture2D = null;
+  private _texture: Texture2D | null = null;
   private _atlasRotated: boolean = false;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
   private _atlasRegionOffset: Vector4 = new Vector4(0, 0, 0, 0);
@@ -42,7 +42,7 @@ export class Sprite extends ReferResource {
   /**
    * The reference to the used texture.
    */
-  get texture(): Texture2D {
+  get texture(): Texture2D | null {
     return this._texture;
   }
 
@@ -198,11 +198,11 @@ export class Sprite extends ReferResource {
    */
   constructor(
     engine: Engine,
-    texture: Texture2D = null,
-    region: Rect = null,
-    pivot: Vector2 = null,
-    border: Vector4 = null,
-    name: string = null
+    texture: Texture2D | null = null,
+    region: Rect | null = null,
+    pivot: Vector2 | null = null,
+    border: Vector4 | null = null,
+    name: string | null = null
   ) {
     super(engine);
     this._texture = texture;
@@ -272,16 +272,16 @@ export class Sprite extends ReferResource {
     this._dispatchSpriteChange(SpriteModifyFlags.destroy);
     super._onDestroy();
     this._positions.length = 0;
-    this._positions = null;
+    this._positions = null!;
     this._uvs.length = 0;
-    this._uvs = null;
-    this._atlasRegion = null;
-    this._atlasRegionOffset = null;
-    this._region = null;
-    this._pivot = null;
-    this._border = null;
-    this._bounds = null;
-    this._atlas = null;
+    this._uvs = null!;
+    this._atlasRegion = null!;
+    this._atlasRegionOffset = null!;
+    this._region = null!;
+    this._pivot = null!;
+    this._border = null!;
+    this._bounds = null!;
+    this._atlas = null!;
     this._texture = null;
   }
 

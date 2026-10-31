@@ -1,15 +1,14 @@
 import {
   AssetPromise,
   AssetType,
-  Logger,
   Texture,
   Texture2D,
   TextureFormat,
-  TextureUtils,
   TextureWrapMode,
   Utils
 } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
+import { ImageDecoder } from "../../ImageDecoder";
 import { TextureWrapMode as GLTFTextureWrapMode, IMaterial } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -35,16 +34,16 @@ export class GLTFTextureParser extends GLTFParser {
   ): AssetPromise<Texture2D> {
     const { glTFResource, glTF } = context;
     const { engine, url } = glTFResource;
-    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[imageIndex];
+    const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images![imageIndex];
 
     const useSampler = sampler !== undefined;
-    const samplerInfo = useSampler && GLTFUtils.getSamplerInfo(glTF.samplers[sampler]);
+    const samplerInfo = useSampler ? GLTFUtils.getSamplerInfo(glTF.samplers![sampler]) : undefined;
     let texture: AssetPromise<Texture2D>;
 
     if (uri) {
       const extIndex = uri.lastIndexOf(".");
       const ext = uri.substring(extIndex + 1);
-      const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
+      const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
       texture = engine.resourceManager
         .load<Texture2D>({
           url: Utils.resolveAbsoluteUrl(url, uri),
@@ -57,52 +56,42 @@ export class GLTFTextureParser extends GLTFParser {
         .onProgress(undefined, context._onTaskDetail)
         .then<Texture2D>((texture) => {
           texture.name = textureName || imageName || texture.name || `texture_${textureIndex}`;
-          useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
+          samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
           return texture;
         });
 
       context._addTaskCompletePromise(texture);
     } else {
-      const bufferView = glTF.bufferViews[bufferViewIndex];
-      texture = context
-        .get<ArrayBuffer>(GLTFParserType.Buffer)
-        .then((buffers) => {
-          const buffer = buffers[bufferView.buffer];
-          const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
-          return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
-            const { width, height } = image;
-            const format = TextureFormat.R8G8B8A8;
-            const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-              engine,
-              width,
-              height,
-              format,
-              samplerInfo?.mipmap ?? true,
-              isSRGBColorSpace
-            );
-            const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
-            texture.setImageSource(image);
-            texture.generateMipmaps();
+      const bufferView = glTF.bufferViews![bufferViewIndex!];
+      texture = context.get<ArrayBuffer>(GLTFParserType.Buffer).then((buffers) => {
+        const buffer = buffers![bufferView.buffer];
+        const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
+        return ImageDecoder._decode(imageBuffer, imageName || textureName || url, mimeType).then((image) => {
+          const { width, height } = image;
+          const format = TextureFormat.R8G8B8A8_UNorm;
+          const generateMipmap =
+            (samplerInfo?.mipmap ?? true) &&
+            engine._hardwareRenderer.supportsGenerateMipmaps(format, isSRGBColorSpace!);
+          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
+          texture.setImageSource(image);
+          texture.generateMipmaps();
 
-            texture.name = textureName || imageName || `texture_${textureIndex}`;
-            useSampler && GLTFUtils.parseSampler(texture, samplerInfo);
+          texture.name = textureName || imageName || `texture_${textureIndex}`;
+          samplerInfo && GLTFUtils.parseSampler(texture, samplerInfo);
 
-            const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
-            context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
+          const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType!);
+          context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
 
-            return texture;
-          });
-        })
-        .catch((e) => {
-          Logger.error("GLTFTextureParser: image buffer error", e);
+          return texture;
         });
+      });
     }
 
     return texture;
   }
 
   parse(context: GLTFParserContext, textureIndex: number): AssetPromise<Texture> {
-    const textureInfo = context.glTF.textures[textureIndex];
+    const textureInfo = context.glTF.textures![textureIndex];
     const glTFResource = context.glTFResource;
     const { sampler, source: imageIndex = 0, name: textureName, extensions } = textureInfo;
     const isSRGBColorSpace = this._isSRGBColorSpace(textureIndex, context.glTF.materials);
@@ -124,13 +113,12 @@ export class GLTFTextureParser extends GLTFParser {
 
     return AssetPromise.resolve(texture).then((texture) => {
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, texture, textureInfo);
-      // @ts-ignore
       texture._associationSuperResource(glTFResource);
       return texture;
     });
   }
 
-  private _isSRGBColorSpace(textureIndex: number, materials?: IMaterial[]): boolean {
+  private _isSRGBColorSpace(textureIndex: number, materials?: IMaterial[]): boolean | undefined {
     return materials?.some((material) => {
       if (material.emissiveTexture?.index === textureIndex) {
         return true;

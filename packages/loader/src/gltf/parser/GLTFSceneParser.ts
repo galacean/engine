@@ -18,12 +18,14 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
+  private static _tempMatrix: Matrix = new Matrix();
+
   parse(context: GLTFParserContext, index: number): AssetPromise<Entity> {
     const {
       glTF: { scenes, scene = 0 },
       glTFResource
     } = context;
-    const sceneInfo = scenes[index];
+    const sceneInfo = scenes![index];
     const sceneExtensions = sceneInfo.extensions;
 
     const engine = glTFResource.engine;
@@ -31,23 +33,17 @@ export class GLTFSceneParser extends GLTFParser {
     const sceneNodes = sceneInfo.nodes || [];
     let sceneRoot: Entity;
 
-    if (sceneNodes.length === 1) {
-      sceneRoot = context.get<Entity>(GLTFParserType.Entity, sceneNodes[0]);
-    } else {
-      sceneRoot = new Entity(engine, "GLTF_ROOT");
-      // @ts-ignore
-      sceneRoot._markAsTemplate(glTFResource);
-      for (let i = 0; i < sceneNodes.length; i++) {
-        const childEntity = context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]);
-        sceneRoot.addChild(childEntity);
-      }
+    sceneRoot = new Entity(engine, "GLTF_ROOT");
+    sceneRoot._markAsTemplate(glTFResource);
+    for (let i = 0; i < sceneNodes.length; i++) {
+      sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
     }
 
     if (isDefaultScene) {
       glTFResource._defaultSceneRoot = sceneRoot;
     }
 
-    const promises = new Array<AssetPromise<void[]>>();
+    const promises = new Array<AssetPromise<unknown[]>>();
 
     for (let i = 0; i < sceneNodes.length; i++) {
       promises.push(this._parseEntityComponent(context, sceneNodes[i]));
@@ -59,15 +55,15 @@ export class GLTFSceneParser extends GLTFParser {
     });
   }
 
-  private _parseEntityComponent(context: GLTFParserContext, index: number): AssetPromise<void[]> {
+  private _parseEntityComponent(context: GLTFParserContext, index: number): AssetPromise<unknown[]> {
     const { glTF, glTFResource } = context;
-    const entityInfo = glTF.nodes[index];
+    const entityInfo = glTF.nodes![index];
     const { camera: cameraID, mesh: meshID } = entityInfo;
     const entity = context.get<Entity>(GLTFParserType.Entity, index);
-    let promise: AssetPromise<void>;
+    let promise: AssetPromise<void> | undefined;
 
     if (cameraID !== undefined) {
-      this._createCamera(glTFResource, glTF.cameras[cameraID], entity);
+      this._createCamera(glTFResource, glTF.cameras![cameraID], entity);
     }
 
     if (meshID !== undefined) {
@@ -75,7 +71,7 @@ export class GLTFSceneParser extends GLTFParser {
     }
 
     return AssetPromise.resolve(promise).then(() => {
-      const promises = [];
+      const promises: AssetPromise<unknown[]>[] = [];
       const children = entityInfo.children;
 
       if (children) {
@@ -93,7 +89,7 @@ export class GLTFSceneParser extends GLTFParser {
     const camera = entity.addComponent(Camera);
 
     if (type === CameraType.ORTHOGRAPHIC) {
-      const { xmag, ymag, zfar, znear } = orthographic;
+      const { xmag, ymag, zfar, znear } = orthographic!;
 
       camera.isOrthographic = true;
 
@@ -106,7 +102,7 @@ export class GLTFSceneParser extends GLTFParser {
 
       camera.orthographicSize = Math.max(ymag ?? 0, xmag ?? 0) / 2;
     } else if (type === CameraType.PERSPECTIVE) {
-      const { aspectRatio, yfov, zfar, znear } = perspective;
+      const { aspectRatio, yfov, zfar, znear } = perspective!;
 
       if (aspectRatio !== undefined) {
         camera.aspectRatio = aspectRatio;
@@ -130,24 +126,23 @@ export class GLTFSceneParser extends GLTFParser {
 
   private _createRenderer(context: GLTFParserContext, entityInfo: INode, entity: Entity): AssetPromise<void> {
     const { mesh: meshID, skin: skinID } = entityInfo;
-    const glTFMesh = context.glTF.meshes[meshID];
+    const glTFMesh = context.glTF.meshes![meshID!];
 
     const glTFMeshPrimitives = glTFMesh.primitives;
     const rendererCount = glTFMeshPrimitives.length;
     const blendShapeWeights = entityInfo.weights || glTFMesh.weights;
-    const materialPromises = new Array<AssetPromise<Material>>(rendererCount);
+    const materialPromises = new Array<AssetPromise<Material | null>>(rendererCount);
 
     for (let i = 0; i < rendererCount; i++) {
-      materialPromises[i] = context.get<Material>(GLTFParserType.Material, glTFMeshPrimitives[i].material ?? -1);
+      materialPromises[i] = context.get<Material | null>(GLTFParserType.Material, glTFMeshPrimitives[i].material ?? -1);
     }
 
     return AssetPromise.all([
-      context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID),
+      context.get<ModelMesh[]>(GLTFParserType.Mesh, meshID!),
       skinID !== undefined && context.get<Skin>(GLTFParserType.Skin, skinID),
       AssetPromise.all(materialPromises)
     ])
       .then(([meshes, skin, materials]) => {
-        // @ts-ignore
         const basicResources = context.glTFResource.engine._basicResources;
         for (let i = 0; i < rendererCount; i++) {
           const material = materials[i] || basicResources._getBlinnPhongMaterial();
@@ -200,49 +195,10 @@ export class GLTFSceneParser extends GLTFParser {
     if (rootBoneIndex !== -1) {
       BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
     } else {
-      // Root bone is not in joints list, we can only compute approximate inverse bind matrix
-      // Average all root bone's children inverse bind matrix
-      const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      let subRootBoneCount = this._computeApproximateBindMatrix(
-        bones,
-        inverseBindMatrices,
-        rootBone,
-        approximateBindMatrix
-      );
-
-      if (subRootBoneCount !== 0) {
-        Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
-        BoundingBox.transform(mesh.bounds, approximateBindMatrix, skinnedMeshRenderer.localBounds);
-      } else {
-        skinnedMeshRenderer.localBounds.copyFrom(mesh.bounds);
-      }
+      // rootBone can be outside skin.joints, so it has no inverse bind matrix
+      const inverseRootBoneWorld = GLTFSceneParser._tempMatrix;
+      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBoneWorld);
+      BoundingBox.transform(mesh.bounds, inverseRootBoneWorld, skinnedMeshRenderer.localBounds);
     }
-  }
-
-  private _computeApproximateBindMatrix(
-    jointEntities: ReadonlyArray<Entity>,
-    inverseBindMatrices: Matrix[],
-    rootEntity: Entity,
-    approximateBindMatrix: Matrix
-  ): number {
-    let subRootBoneCount = 0;
-    const children = rootEntity.children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const rootChild = children[i];
-      const index = jointEntities.indexOf(rootChild);
-      if (index !== -1) {
-        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
-        subRootBoneCount++;
-      } else {
-        subRootBoneCount += this._computeApproximateBindMatrix(
-          jointEntities,
-          inverseBindMatrices,
-          rootChild,
-          approximateBindMatrix
-        );
-      }
-    }
-
-    return subRootBoneCount;
   }
 }

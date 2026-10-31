@@ -1,19 +1,5 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CullMode,
-  Engine,
-  Entity,
-  Loader,
-  Material,
-  PipelineStage,
-  RenderQueueType,
-  Shader,
-  ShaderPass
-} from "@galacean/engine";
+import { Engine, Entity, Loader, Material } from "@galacean/engine";
 import * as GUIComponent from "./component";
-import uiDefaultFs from "./shader/uiDefault.fs.glsl";
-import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
@@ -21,24 +7,14 @@ export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { VerticalAlignmentMode } from "./enums/VerticalAlignmentMode";
 export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
+/**
+ * @internal
+ */
 export class EngineExtension {
   _uiDefaultMaterial: Material;
-  _getUIDefaultMaterial(): Material {
+  _getUIDefaultMaterial(this: Engine): Material {
     if (!this._uiDefaultMaterial) {
-      const shader = _getOrCreateUIShader();
-      // @ts-ignore
-      const material = new Material(this, shader);
-      const renderState = material.renderState;
-      const target = renderState.blendState.targetBlendState;
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-      renderState.depthState.writeEnabled = false;
-      renderState.rasterState.cullMode = CullMode.Off;
-      renderState.renderQueueType = RenderQueueType.Transparent;
+      const material = new Material(this, Engine._builtinShaders.ui);
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }
@@ -46,6 +22,9 @@ export class EngineExtension {
   }
 }
 
+/**
+ * @internal
+ */
 export class EntityExtension {
   _uiHierarchyVersion = 0;
   _updateUIHierarchyVersion(version: number): void {
@@ -59,15 +38,15 @@ export class EntityExtension {
 
 declare module "@galacean/engine" {
   interface Engine {
-    // @internal
+    /** @internal */
     _uiDefaultMaterial: Material;
-    // @internal
+    /** @internal */
     _getUIDefaultMaterial(): Material;
   }
   interface Entity {
-    // @internal
+    /** @internal */
     _uiHierarchyVersion: number;
-    // @internal
+    /** @internal */
     _updateUIHierarchyVersion(version: number): void;
   }
 }
@@ -91,20 +70,7 @@ ApplyMixins(Entity, [EntityExtension]);
  * Register GUI components for the editor.
  */
 export function registerGUI() {
-  for (let key in GUIComponent) {
+  for (const key in GUIComponent) {
     Loader.registerClass(key, GUIComponent[key]);
   }
-  _getOrCreateUIShader();
-}
-
-function _getOrCreateUIShader(): Shader {
-  let shader = Shader.find("ui");
-  if (!shader) {
-    shader = Shader.create("ui", [
-      new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
-        pipelineStage: PipelineStage.Forward
-      })
-    ]);
-  }
-  return shader;
 }

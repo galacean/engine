@@ -1,4 +1,4 @@
-import { IPlatformTexture2DArray, Logger, Texture2DArray, TextureUtils } from "@galacean/engine-core";
+import { IPlatformTexture2DArray, Texture2DArray } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -7,13 +7,13 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  */
 export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArray {
   constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
-    super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
+    super(rhi, texture2DArray, rhi.gl.TEXTURE_2D_ARRAY);
 
-    this._validate(texture2DArray, rhi);
+    this._validate(texture2DArray);
 
     const { format, width, height, length, mipmapCount, isSRGBColorSpace } = texture2DArray;
     this._bind();
-    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl, true);
+    this._formatDetail = GLTexture._getFormatDetail(format, isSRGBColorSpace, this._gl);
     this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }
 
@@ -56,8 +56,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
-      gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat, dataType, colorBuffer);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
+      gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat!, dataType!, colorBuffer);
     }
   }
 
@@ -88,8 +88,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       (<Exclude<TexImageSource, VideoFrame>>imageSource).width ?? (imageSource as unknown as VideoFrame).codedWidth,
       (<Exclude<TexImageSource, VideoFrame>>imageSource).height ?? (imageSource as unknown as VideoFrame).codedHeight,
       1,
-      baseFormat,
-      dataType,
+      baseFormat!,
+      dataType!,
       imageSource
     );
   }
@@ -112,23 +112,11 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error("Unable to read compressed texture");
     }
 
-    gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment);
+    const readFormat = this._getReadFormat();
+    gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment!);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
-    gl.readPixels(x, y, width, height, formatDetail.baseFormat, formatDetail.dataType, out);
+    gl.readPixels(x, y, width, height, readFormat, formatDetail.readType ?? formatDetail.dataType!, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  }
-
-  protected override _validate(texture: Texture2DArray, rhi: WebGLGraphicDevice): void {
-    const { format } = texture;
-
-    // Validate sRGB format
-    // @ts-ignore
-    const isSRGBColorSpace = texture._isSRGBColorSpace;
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      Logger.warn("Only support sRGB color space in RGB8 or RGBA8 or some compressed texture format");
-      // @ts-ignore
-      texture._isSRGBColorSpace = false;
-    }
   }
 }

@@ -19,7 +19,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -78,10 +77,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     }
   }
 
-  engine.resourceManager.load<Font>({ url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*1Bo5To15x0oAAAAAC_AAAAgAekp5AQ/钟齐志莽行书.json", type: AssetType.Font }).then((font) => {
-    const typedText = entity.addComponent(TypedText);
-    typedText.play(textRenderer, "我这一生，走过许多地方的桥儿");
-    typedText.font = font;
-    updateForE2E(engine, 100, 100);
-  });
+  engine.resourceManager
+    .load<Font>({
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*1Bo5To15x0oAAAAAC_AAAAgAekp5AQ/钟齐志莽行书.json",
+      type: AssetType.Font
+    })
+    .then((font) => {
+      const typedText = entity.addComponent(TypedText);
+      typedText.play(textRenderer, "我这一生，走过许多地方的桥儿");
+      typedText.font = font;
+      updateForE2E(engine, 100, 100);
+    });
 });

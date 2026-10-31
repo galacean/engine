@@ -46,7 +46,7 @@ export class AnimationClip extends EngineObject {
    * @param name - The AnimationClip's name
    */
   constructor(public readonly name: string) {
-    super(null);
+    super(null!);
   }
 
   /**
@@ -55,7 +55,7 @@ export class AnimationClip extends EngineObject {
    * @param time - The time when the event be triggered
    * @param parameter - The parameter that is stored in the event and will be sent to the function
    */
-  addEvent(functionName: string, time: number, parameter: Object): void;
+  addEvent(functionName: string, time: number, parameter: object): void;
 
   /**
    * Adds an animation event to the clip.
@@ -63,7 +63,7 @@ export class AnimationClip extends EngineObject {
    */
   addEvent(event: AnimationEvent): void;
 
-  addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
+  addEvent(param: AnimationEvent | string, time?: number, parameter?: object): void {
     let newEvent: AnimationEvent;
     if (typeof param === "string") {
       const event = new AnimationEvent();
@@ -76,13 +76,13 @@ export class AnimationClip extends EngineObject {
     }
     const events = this._events;
     const count = events.length;
-    const eventTime = newEvent.time;
-    const maxEventTime = count ? events[count - 1].time : 0;
+    const eventTime = newEvent.time!;
+    const maxEventTime = count ? events[count - 1].time! : 0;
     if (eventTime >= maxEventTime) {
       events.push(newEvent);
     } else {
       let index = count;
-      while (--index >= 0 && eventTime < events[index].time);
+      while (--index >= 0 && eventTime < events[index].time!);
       events.splice(index + 1, 0, newEvent);
     }
 
@@ -192,7 +192,7 @@ export class AnimationClip extends EngineObject {
       }
     }
 
-    this._length = Math.max(this._length, curveBinding.curve.length);
+    this._length = Math.max(this._length, curveBinding.curve!.length);
     this._curveBindings.push(curveBinding);
   }
 
@@ -205,12 +205,11 @@ export class AnimationClip extends EngineObject {
   }
 
   /**
-   * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
    * @param time - The time to sample an animation
    */
-  _sampleAnimation(entity: Entity, time: number): void {
+  sampleAnimation(entity: Entity, time: number): void {
     const { _curveBindings: curveBindings } = this;
     const components = AnimationCurveOwner._components;
     for (let i = curveBindings.length - 1; i >= 0; i--) {
@@ -226,9 +225,9 @@ export class AnimationClip extends EngineObject {
           continue;
         }
         const curveOwner = curve._getTempCurveOwner(targetEntity, component);
-        if (curveOwner && curve.curve.keys.length) {
-          const value = curveOwner.evaluateValue(curve.curve, time, false);
-          curveOwner.applyValue(value, 1, false);
+        if (curveOwner && curve.curve!.keys.length) {
+          const value = curveOwner.evaluateValue(curve.curve!, time, false);
+          curveOwner.applyValue(value!, 1, false);
         }
       }
     }

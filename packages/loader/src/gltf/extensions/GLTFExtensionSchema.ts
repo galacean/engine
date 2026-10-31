@@ -1,4 +1,5 @@
 import type { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
+import type { RefItem } from "../../schema/CommonSchema";
 
 /**
  * Interfaces from the KHR_lights_punctual extension
@@ -31,6 +32,13 @@ export interface IKHRMaterialsClearcoat {
   clearcoatRoughnessFactor?: number;
   clearcoatRoughnessTexture?: ITextureInfo;
   clearcoatNormalTexture?: IMaterialNormalTextureInfo;
+}
+
+/**
+ * Interfaces from the KHR_materials_emissive_strength extension
+ */
+export interface IKHRMaterialsEmissiveStrength {
+  emissiveStrength?: number;
 }
 
 /**
@@ -152,9 +160,7 @@ export interface IEXTMeshoptCompressionSchema {
   filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
 }
 
-export interface IGalaceanMaterialRemap {
-  url: string;
-  key?: string;
+export interface IGalaceanMaterialRemap extends RefItem {
   isClone?: boolean;
 }
 
@@ -191,6 +197,7 @@ export interface IKHRMaterialsVolume {
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRMaterialsClearcoat
+  | IKHRMaterialsEmissiveStrength
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
   | IKHRMaterialsSheen

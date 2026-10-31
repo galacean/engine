@@ -3,23 +3,19 @@
  * @category Advance
  */
 import { AssetType, Logger, WebGLEngine } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
-import { registerIncludes } from "@galacean/engine-shader";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 Logger.enable();
 
-const shaderLab = new ShaderLab();
-registerIncludes();
+const shaderCompiler = new ShaderCompiler();
 
 WebGLEngine.create({
   canvas: document.getElementById("canvas") as HTMLCanvasElement,
-  shaderLab
+  shaderCompiler
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   engine.resourceManager
     .load({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*4ZL9R5YX718AAAAAQMAAAAgAekp5AQ/project.json",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aE8_QotPNL4AAAAAQNAAAAgAekp5AQ/project.json",
       type: AssetType.Project
     })
     .then(() => {

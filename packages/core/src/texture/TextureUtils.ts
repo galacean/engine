@@ -1,70 +1,37 @@
-import { MathUtil } from "@galacean/engine-math";
-import { Engine } from "../Engine";
 import { TextureFormat } from "./enums/TextureFormat";
 
 /**
  * @internal
  */
 export class TextureUtils {
-  /**
-   * Check if the texture config supports auto mipmap generation with real correction for mipmap and isSRGBColorSpace.
-   */
-  static supportGenerateMipmapsWithCorrection(
-    engine: Engine,
-    width: number,
-    height: number,
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean
-  ): boolean {
-    const isWebGL2 = engine._hardwareRenderer._isWebGL2;
-    if (!mipmap) {
-      return false;
-    }
-
-    if (isSRGBColorSpace && !TextureUtils.supportSRGB(format)) {
-      isSRGBColorSpace = false;
-    }
-
-    if (!TextureUtils.supportMipmaps(width, height, isWebGL2)) {
-      mipmap = false;
-    }
-
-    return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, isWebGL2);
+  static isHDRFormat(format: TextureFormat): boolean {
+    return (
+      format === TextureFormat.R16G16B16A16_SFloat ||
+      format === TextureFormat.R32G32B32A32_SFloat ||
+      format === TextureFormat.R11G11B10_UFloat
+    );
   }
 
   static supportSRGB(format: TextureFormat) {
     switch (format) {
-      case TextureFormat.R8G8B8:
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8_UNorm:
+      case TextureFormat.R8G8B8A8_UNorm:
       case TextureFormat.BC1:
       case TextureFormat.BC3:
       case TextureFormat.BC7:
       case TextureFormat.ETC2_RGB:
       case TextureFormat.ETC2_RGBA8:
       case TextureFormat.ASTC_4x4:
+      case TextureFormat.ASTC_5x5:
+      case TextureFormat.ASTC_6x6:
+      case TextureFormat.ASTC_8x8:
+      case TextureFormat.ASTC_10x10:
+      case TextureFormat.ASTC_12x12:
+      case TextureFormat.ETC2_RGBA5:
         return true;
       default:
         return false;
     }
-  }
-
-  static supportMipmaps(width: number, height, isWebGL2: boolean): boolean {
-    return isWebGL2 || (MathUtil.isPowerOf2(width) && MathUtil.isPowerOf2(height));
-  }
-
-  static supportGenerateMipmaps(
-    format: TextureFormat,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean,
-    isWebGL2: boolean
-  ): boolean {
-    // Auto generating mipmaps for sRGB textures is only supported in [WebGL2 + RGBA]
-    if (mipmap && isSRGBColorSpace && !(isWebGL2 && format === TextureFormat.R8G8B8A8)) {
-      return false;
-    }
-
-    return true;
   }
 
   static getTextureByteCount(
@@ -86,24 +53,27 @@ export class TextureUtils {
   static getMipLevelByteCount(format: TextureFormat, width: number, height: number): number {
     switch (format) {
       // Uncompressed formats
-      case TextureFormat.R8:
-      case TextureFormat.Alpha8:
+      case TextureFormat.R8_UNorm:
         return width * height;
-      case TextureFormat.R8G8:
-      case TextureFormat.LuminanceAlpha:
+      case TextureFormat.R8G8_UNorm:
+      case TextureFormat.R16_UNorm:
+      case TextureFormat.R16_SFloat:
         return width * height * 2;
-      case TextureFormat.R8G8B8:
+      case TextureFormat.R8G8B8_UNorm:
         return width * height * 3;
-      case TextureFormat.R8G8B8A8:
+      case TextureFormat.R8G8B8A8_UNorm:
       case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R16G16_SFloat:
+      case TextureFormat.R32_SFloat:
         return width * height * 4;
-      case TextureFormat.R4G4B4A4:
-      case TextureFormat.R5G5B5A1:
-      case TextureFormat.R5G6B5:
+      case TextureFormat.R4G4B4A4_UNorm:
+      case TextureFormat.R5G5B5A1_UNorm:
+      case TextureFormat.R5G6B5_UNorm:
         return width * height * 2;
-      case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16G16B16A16_SFloat:
+      case TextureFormat.R32G32_SFloat:
         return width * height * 8;
-      case TextureFormat.R32G32B32A32:
+      case TextureFormat.R32G32B32A32_SFloat:
       case TextureFormat.R32G32B32A32_UInt:
         return width * height * 16;
 

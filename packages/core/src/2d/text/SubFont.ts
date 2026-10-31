@@ -60,7 +60,7 @@ export class SubFont {
   /**
    * @internal
    */
-  _getCharInfo(char: string): CharInfo {
+  _getCharInfo(char: string): CharInfo | null {
     const fontAtlases = this._fontAtlases;
     for (let i = 0, n = fontAtlases.length; i < n; ++i) {
       const fontAtlas = fontAtlases[i];
@@ -75,7 +75,7 @@ export class SubFont {
   /**
    * @internal
    */
-  _getTextureByIndex(index: number): Texture2D {
+  _getTextureByIndex(index: number): Texture2D | null {
     const fontAtlas = this._fontAtlases[index];
     if (fontAtlas) {
       return fontAtlas.texture;
@@ -106,12 +106,12 @@ export class SubFont {
           const { resource } = this;
           const charInfoMap = resource._charInfoMap;
           const texture = resource.texture;
-          for (let k in charInfoMap) {
+          for (const k in charInfoMap) {
             const charInfo = charInfoMap[k];
             const data = TextUtils.measureChar(charInfo.char, nativeFontString).data;
 
             if (charInfo.w > 0 && charInfo.h > 0 && data) {
-              const { bufferOffset } = charInfo;
+              const bufferOffset = charInfo.bufferOffset!;
               texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
             }
           }

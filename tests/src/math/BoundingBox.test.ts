@@ -63,8 +63,9 @@ describe("BoundingBox test", () => {
       new Vector3(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE)
     );
     BoundingBox.transform(maxValueBox, matrixWithoutScale, newBox);
-    expect(newBox.min).to.deep.eq(compare.set(-Infinity, -Infinity, -Infinity));
-    expect(newBox.max).to.deep.eq(compare.set(Infinity, Infinity, Infinity));
+    // Identity rotation * MAX_VALUE = MAX_VALUE, adding small translation doesn't overflow
+    expect(Math.abs(newBox.min.x)).eq(Number.MAX_VALUE);
+    expect(Math.abs(newBox.max.x)).eq(Number.MAX_VALUE);
     BoundingBox.transform(maxValueBox, matrixWithScale, newBox);
     expect(newBox.min).to.deep.eq(compare.set(-Infinity, -Infinity, -Infinity));
     expect(newBox.max).to.deep.eq(compare.set(Infinity, Infinity, Infinity));

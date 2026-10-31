@@ -28,7 +28,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
@@ -44,7 +43,7 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*yu-DSb0surwAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://gw.alipayobjects.com/os/OasisHub/267000040/9994/%25E5%25BD%2592%25E6%25A1%25A3.gltf",
@@ -67,7 +66,7 @@ WebGLEngine.create({
 
 function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture2D, glTFModel: GLTFResource): Entity {
   const meshRenderer = rootEntity.createChild("Mesh").addComponent(MeshRenderer);
-  meshRenderer.mesh = PrimitiveMesh.createCylinder(engine);
+  meshRenderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
   const unlitMaterial = new UnlitMaterial(engine);
   unlitMaterial.baseTexture = glTFModel.textures[0];
   meshRenderer.setMaterial(unlitMaterial);
@@ -86,7 +85,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
   // particleRenderer.mesh = glTFModel.meshes[0][0];
-  particleRenderer.mesh = PrimitiveMesh.createCylinder(engine);
+  particleRenderer.mesh = PrimitiveMesh.createCylinder(engine, 0.5, 2);
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;

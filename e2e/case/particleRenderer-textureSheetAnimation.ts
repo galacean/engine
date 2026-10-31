@@ -24,7 +24,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
 
   const ambientLight = scene.ambientLight;
@@ -45,7 +44,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*5EyLSqmA7q0AAAAAAAAAAAAADtKFAQ/original",
-      type: AssetType.Texture2D
+      type: AssetType.Texture
     })
     .then((texture) => {
       const particleEntity = new Entity(engine);

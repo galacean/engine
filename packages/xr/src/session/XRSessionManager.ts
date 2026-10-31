@@ -1,5 +1,5 @@
 import { Engine, Signal } from "@galacean/engine";
-import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
+import { IXRSession, IXRPlatformFeature } from "@galacean/engine-design";
 import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
@@ -13,11 +13,10 @@ export class XRSessionManager {
   readonly onStateChanged = new Signal<[XRSessionState]>();
 
   /** @internal */
-  _platformSession: IXRSession;
+  _platformSession: IXRSession | null;
 
   private _mode: XRSessionMode = XRSessionMode.None;
   private _state: XRSessionState = XRSessionState.None;
-  private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
 
@@ -36,17 +35,17 @@ export class XRSessionManager {
   }
 
   /**
-   * Return a list of supported frame rates.(only available in-session)
+   * Supported frame rates, or `undefined` if unsupported. Only available in-session.
    */
-  get supportedFrameRate(): Float32Array {
-    return this._platformSession.supportedFrameRates;
+  get supportedFrameRate(): Float32Array | undefined {
+    return this._platformSession!.supportedFrameRates;
   }
 
   /**
-   * Return the current frame rate as reported by the device.
+   * Current frame rate, or `undefined` if unsupported. Only available in-session.
    */
-  get frameRate(): number {
-    return this._platformSession.frameRate;
+  get frameRate(): number | undefined {
+    return this._platformSession!.frameRate;
   }
 
   /**
@@ -56,8 +55,6 @@ export class XRSessionManager {
     private _xrManager: XRManagerExtended,
     private _engine: Engine
   ) {
-    // @ts-ignore
-    this._rhi = _engine._hardwareRenderer;
     this._raf = requestAnimationFrame.bind(window);
     this._caf = cancelAnimationFrame.bind(window);
     this._onSessionExit = this._onSessionExit.bind(this);
@@ -93,15 +90,13 @@ export class XRSessionManager {
    * Stop the session.
    */
   stop(): void {
-    const { _platformSession: platformSession, _engine: engine, _rhi: rhi } = this;
+    const { _platformSession: platformSession, _engine: engine } = this;
     if (!platformSession) {
       throw new Error("Without session to stop.");
     }
     if (this._state !== XRSessionState.Running) {
       throw new Error("Session is not running.");
     }
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
     platformSession.stop();
     this._setState(XRSessionState.Paused);
     this._xrManager._onSessionStop();
@@ -126,13 +121,13 @@ export class XRSessionManager {
     return new Promise((resolve, reject) => {
       const { _xrManager: xrManager } = this;
       // Initialize all features
-      const platformFeatures = [];
+      const platformFeatures: IXRPlatformFeature[] = [];
       for (let i = 0, n = features.length; i < n; i++) {
         const { _platformFeature: platformFeature } = features[i];
         platformFeature && platformFeatures.push(platformFeature);
       }
       xrManager._platformDevice
-        .requestSession(this._rhi, mode, platformFeatures)
+        .requestSession(this._engine._hardwareRenderer, mode, platformFeatures)
         .then((platformSession: IXRSession) => {
           this._mode = mode;
           this._platformSession = platformSession;
@@ -149,10 +144,7 @@ export class XRSessionManager {
    * @internal
    */
   _onUpdate() {
-    const { _rhi: rhi, _platformSession: platformSession } = this;
-    rhi._mainFrameBuffer = platformSession.framebuffer;
-    rhi._mainFrameWidth = platformSession.framebufferWidth;
-    rhi._mainFrameHeight = platformSession.framebufferHeight;
+    this._platformSession!.onUpdate();
   }
 
   /**
@@ -160,7 +152,7 @@ export class XRSessionManager {
    */
   _getRequestAnimationFrame(): (callback: FrameRequestCallback) => number {
     if (this._state === XRSessionState.Running) {
-      return this._platformSession.requestAnimationFrame;
+      return this._platformSession!.requestAnimationFrame;
     } else {
       return this._raf;
     }
@@ -171,7 +163,7 @@ export class XRSessionManager {
    */
   _getCancelAnimationFrame(): (id: number) => void {
     if (this._state === XRSessionState.Running) {
-      return this._platformSession.cancelAnimationFrame;
+      return this._platformSession!.cancelAnimationFrame;
     } else {
       return this._caf;
     }
@@ -189,10 +181,8 @@ export class XRSessionManager {
   }
 
   private _onSessionExit() {
-    const { _rhi: rhi, _platformSession: platformSession, _engine: engine } = this;
-    rhi._mainFrameBuffer = null;
-    rhi._mainFrameWidth = rhi._mainFrameHeight = 0;
-    platformSession.removeEventListener();
+    const { _platformSession: platformSession, _engine: engine } = this;
+    platformSession!.removeEventListener();
     this._platformSession = null;
     this._setState(XRSessionState.None);
     this._xrManager._onSessionExit();
@@ -207,7 +197,7 @@ export class XRSessionManager {
    */
   _onDestroy(): void {
     this.onStateChanged.removeAll();
-    this._raf = this._caf = null;
+    this._raf = this._caf = null!;
   }
 
   /**

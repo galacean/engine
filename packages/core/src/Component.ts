@@ -1,6 +1,6 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { assignmentClone, ignoreClone } from "./clone/CloneManager";
+import { CloneMode, ignoreClone, registerDefaultCloneMode } from "./clone/CloneDecorators";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
@@ -10,7 +10,6 @@ import { Scene } from "./Scene";
  */
 export class Component extends EngineObject {
   /** @internal */
-  @ignoreClone
   _entity: Entity;
 
   /** @internal */
@@ -23,7 +22,6 @@ export class Component extends EngineObject {
   @ignoreClone
   private _phasedActive: boolean = false;
 
-  @assignmentClone
   private _enabled: boolean = true;
 
   /**
@@ -73,9 +71,9 @@ export class Component extends EngineObject {
   }
 
   /**
-   * The scene which the component's entity belongs to.
+   * The owning entity's scene, or null/undefined if it is not in a scene.
    */
-  get scene(): Scene {
+  get scene(): Scene | null | undefined {
     return this._entity.scene;
   }
 
@@ -171,3 +169,5 @@ export class Component extends EngineObject {
     }
   }
 }
+
+registerDefaultCloneMode(Component, CloneMode.Remap);

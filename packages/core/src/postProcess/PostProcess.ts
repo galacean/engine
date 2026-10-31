@@ -1,5 +1,4 @@
 import { Logger } from "../base";
-import { deepClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -19,7 +18,6 @@ export class PostProcess extends Component {
   blendDistance = 0;
 
   /** @internal */
-  @deepClone
   _effects: PostProcessEffect[] = [];
 
   private _priority = 0;
@@ -65,9 +63,9 @@ export class PostProcess extends Component {
   /**
    * Get the PostProcessEffect by type.
    * @param type - The type of PostProcessEffect
-   * @returns The PostProcessEffect found
+   * @returns The effect, or `undefined` if none matches.
    */
-  getEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+  getEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> | undefined {
     const effects = this._effects;
     const length = effects.length;
 
@@ -83,9 +81,9 @@ export class PostProcess extends Component {
    * Add a PostProcessEffect to the PostProcess.
    * @remarks Only one effect of the same type can be added to the PostProcess.
    * @param type - The type of PostProcessEffect
-   * @returns The PostProcessEffect added
+   * @returns The added effect, or `undefined` if the type already exists.
    */
-  addEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+  addEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> | undefined {
     if (this.getEffect(type)) {
       Logger.error(`effect "${type.name}" already exists in the PostProcess.`);
       return;
@@ -99,9 +97,9 @@ export class PostProcess extends Component {
   /**
    * Remove a PostProcessEffect from the PostProcess.
    * @param type - The type of PostProcessEffect
-   * @returns The PostProcessEffect removed
+   * @returns The removed effect, or `undefined` if none matches.
    */
-  removeEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> {
+  removeEffect<T extends typeof PostProcessEffect>(type: T): InstanceType<T> | undefined {
     const effects = this._effects;
     const length = effects.length;
 
@@ -115,20 +113,23 @@ export class PostProcess extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onEnableInScene() {
-    this.scene.postProcessManager._addPostProcess(this);
+    this.scene!.postProcessManager._addPostProcess(this);
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDisableInScene() {
-    this.scene.postProcessManager._removePostProcess(this);
+    this.scene!.postProcessManager._removePostProcess(this);
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy(): void {

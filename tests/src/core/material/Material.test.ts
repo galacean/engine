@@ -1,6 +1,6 @@
 import { Material, Shader, ShaderPropertyType, Texture2D, Texture2DArray } from "@galacean/engine-core";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("Material", () => {
@@ -22,7 +22,7 @@ describe("Material", () => {
     const intArray = new Int32Array([5, 6, 6, 6]);
     const floatArray = new Float32Array([0.4, 0.323, 2323.232, 23.232]);
 
-    const material = new Material(engine, Shader.find("blinn-phong"));
+    const material = new Material(engine, Shader.find("BlinnPhong"));
     const shaderData = material.shaderData;
 
     shaderData.setFloat("_float", 0.2);
@@ -54,7 +54,7 @@ describe("Material", () => {
     const shaderProperties = shaderData.getProperties();
     for (let i = 0, n = shaderProperties.length; i < n; i++) {
       const shaderProperty = shaderProperties[i];
-      switch (shaderProperty.type) {
+      switch (shaderProperty.types) {
         case ShaderPropertyType.Float:
           expect(shaderData.getFloat(shaderProperty)).to.equal(0.2);
           break;
@@ -93,10 +93,10 @@ describe("Material", () => {
   });
 
   it("clone", () => {
-    const material = new Material(engine, Shader.find("blinn-phong"));
-    expect(material.name).to.equal("blinn-phong");
+    const material = new Material(engine, Shader.find("BlinnPhong"));
+    expect(material.name).to.equal("BlinnPhong");
 
     const clone = material.clone();
-    expect(clone.name).to.equal("blinn-phong(Clone)");
+    expect(clone.name).to.equal("BlinnPhong(Clone)");
   });
 });

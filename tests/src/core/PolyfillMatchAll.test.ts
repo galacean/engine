@@ -13,7 +13,10 @@ describe("Polyfill", () => {
 
     String.prototype.matchAll = null;
 
-    await import("@galacean/engine-core");
+    // Polyfill registration moved out of `engine-core` (which is now flavor-
+    // agnostic with no top-level browser side effects) into the umbrella
+    // `@galacean/engine` package. Importing the umbrella triggers it.
+    await import("@galacean/engine");
 
     const regexTest = /noGlobal/;
     const contentTest = "test";

@@ -139,7 +139,7 @@ export class GLTFMaterialParser extends GLTFParser {
         }
         if (texCoord === TextureCoordinate.UV1) {
           material.occlusionTextureCoord = TextureCoordinate.UV1;
-        } else if (texCoord > TextureCoordinate.UV1) {
+        } else if (texCoord !== undefined && texCoord > TextureCoordinate.UV1) {
           Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
         }
       }
@@ -165,7 +165,7 @@ export class GLTFMaterialParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext, index: number): AssetPromise<Material> {
-    const materialInfo = context.glTF.materials[index];
+    const materialInfo = context.glTF.materials![index];
     const glTFResource = context.glTFResource;
     const engine = glTFResource.engine;
     let extensions = materialInfo.extensions || {};
@@ -183,15 +183,13 @@ export class GLTFMaterialParser extends GLTFParser {
 
     if (!material) {
       material = new PBRMaterial(engine);
-      material.name = materialInfo.name;
+      material.name = materialInfo.name!;
       GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
     }
 
     return AssetPromise.resolve(material).then((material) => {
-      // @ts-ignore
       material ||= engine._basicResources._getBlinnPhongMaterial();
       GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, material, materialInfo);
-      // @ts-ignore
       material._associationSuperResource(glTFResource);
       return material;
     });
