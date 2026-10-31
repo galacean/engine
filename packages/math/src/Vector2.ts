@@ -185,7 +185,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   /** @internal */
   _y: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    * The x component of the vector.

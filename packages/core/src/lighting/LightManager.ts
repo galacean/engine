@@ -180,7 +180,7 @@ export class LightManager {
   _getMaxBrightestSunlight(): DirectLight | null {
     const directLights = this._directLights;
 
-    let sunlight = null;
+    let sunlight: DirectLight | null = null;
     let maxIntensity = Number.NEGATIVE_INFINITY;
     let hasShadowLight = false;
     for (let i = 0, n = directLights.length; i < n; i++) {

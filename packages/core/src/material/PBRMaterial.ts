@@ -571,7 +571,7 @@ export class PBRMaterial extends BaseMaterial {
     this._seIsTransparent(value);
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
-      this.renderState.renderQueueType = RenderQueueType.Transparent;
+      this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
     }
   }
 
@@ -586,7 +586,7 @@ export class PBRMaterial extends BaseMaterial {
     this._setAlphaCutoff(value);
     if (this.transmission > 0) {
       // If transmission enabled, always use transparent queue to ensure get correct opaque texture
-      this.renderState.renderQueueType = RenderQueueType.Transparent;
+      this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
     }
   }
 
@@ -603,9 +603,19 @@ export class PBRMaterial extends BaseMaterial {
     if (!!this.shaderData.getFloat(PBRMaterial._transmissionProp) !== !!value) {
       if (value > 0) {
         this.shaderData.enableMacro(PBRMaterial._transmissionMacro);
-        this.renderState.renderQueueType = RenderQueueType.Transparent;
+        this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
       } else {
         this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
+        // Restore renderQueueType based on isTransparent / alphaCutoff state
+        let queue: RenderQueueType;
+        if (this._isTransparent) {
+          queue = RenderQueueType.Transparent;
+        } else if (this.shaderData.getFloat(BaseMaterial._alphaCutoffProp)) {
+          queue = RenderQueueType.AlphaTest;
+        } else {
+          queue = RenderQueueType.Opaque;
+        }
+        this.shaderData.setInt("renderQueueType", queue);
       }
     }
     this.shaderData.setFloat(PBRMaterial._transmissionProp, value);
@@ -757,7 +767,7 @@ export class PBRMaterial extends BaseMaterial {
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
-    super(engine, Shader.find("pbr"));
+    super(engine, Shader.find("PBR"));
 
     const shaderData = this.shaderData;
 

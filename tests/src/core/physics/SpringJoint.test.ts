@@ -1,5 +1,5 @@
 import { Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine, SpringJoint } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";

@@ -11,7 +11,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.AnimatorController)
 export class GLTFAnimatorControllerParser extends GLTFParser {
-  parse(context: GLTFParserContext): AssetPromise<AnimatorController> {
+  parse(context: GLTFParserContext): AssetPromise<AnimatorController | null> {
     if (!context.needAnimatorController) {
       return AssetPromise.resolve(null);
     }
@@ -27,7 +27,10 @@ export class GLTFAnimatorControllerParser extends GLTFParser {
       });
   }
 
-  private _createAnimatorController(context: GLTFParserContext, animations: AnimationClip[]): AnimatorController {
+  private _createAnimatorController(
+    context: GLTFParserContext,
+    animations: AnimationClip[] | null
+  ): AnimatorController {
     const { glTFResource } = context;
     const engine = glTFResource.engine;
     const animatorController = new AnimatorController(engine);

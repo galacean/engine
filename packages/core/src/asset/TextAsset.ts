@@ -9,6 +9,6 @@ export class TextAsset extends EngineObject {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.text = null;
+    this.text = null!;
   }
 }

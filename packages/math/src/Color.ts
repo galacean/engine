@@ -126,7 +126,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /** @internal */
   _a: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    * The red component of the color, 0~1.

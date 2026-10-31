@@ -9,7 +9,7 @@ import {
   ModelMesh
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("MeshRenderer", async function () {
@@ -68,6 +68,22 @@ describe("MeshRenderer", async function () {
     // Test that set false value works correctly.
     mr.enableVertexColor = false;
     expect(mr.enableVertexColor).to.be.equal(false);
+  });
+
+  it("keeps empty material slots when creating instance materials", () => {
+    const renderer = rootEntity.createChild().addComponent(MeshRenderer);
+    const material = new BlinnPhongMaterial(engine);
+    renderer.setMaterials([null, material]);
+
+    const instances = renderer.getInstanceMaterials();
+    expect(instances[0]).toBeNull();
+    expect(instances[1]).not.toBe(material);
+    expect(renderer.getInstanceMaterials()[1]).toBe(instances[1]);
+    expect(material.refCount).toBe(0);
+
+    renderer.setMaterial(1, null);
+    expect(renderer.getMaterial(1)).toBeNull();
+    renderer.entity.destroy();
   });
 
   it("bounds", () => {
@@ -195,7 +211,7 @@ describe("MeshRenderer", async function () {
     // Test that getInstanceMaterial works correctly.
     const material = mr.getInstanceMaterial();
     expect(material).to.be.instanceOf(UnlitMaterial);
-    expect(material.name).to.be.equal("unlit(Instance)");
+    expect(material.name).to.be.equal("Unlit(Instance)");
 
     // Test that material0 is same as material.
     const material0 = mr.getInstanceMaterial(0);
@@ -203,7 +219,7 @@ describe("MeshRenderer", async function () {
 
     const material2 = mr.getInstanceMaterial(2);
     expect(material2).to.be.instanceOf(PBRMaterial);
-    expect(material2.name).to.be.equal("pbr(Instance)");
+    expect(material2.name).to.be.equal("PBR(Instance)");
 
     expect(mr.getInstanceMaterial(1)).to.be.null;
 
@@ -219,9 +235,9 @@ describe("MeshRenderer", async function () {
     // Test that getInstanceMaterials works correctly.
     const materials = mr.getInstanceMaterials();
     expect(materials[0]).to.be.instanceOf(UnlitMaterial);
-    expect(materials[0].name).to.be.equal("unlit(Instance)");
+    expect(materials[0].name).to.be.equal("Unlit(Instance)");
     expect(materials[1]).to.be.instanceOf(PBRMaterial);
-    expect(materials[1].name).to.be.equal("pbr(Instance)");
+    expect(materials[1].name).to.be.equal("PBR(Instance)");
   });
 
   it("priority", () => {

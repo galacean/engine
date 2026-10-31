@@ -22,7 +22,6 @@ import {
   Entity,
   BaseMaterial
 } from "@galacean/engine";
-import { WireframeManager } from "@galacean/engine-toolkit";
 
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -58,7 +57,6 @@ function addBox(rootEntity: Entity, cubeSize: number, x: number, y: number, z: n
 }
 
 WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
 
@@ -103,10 +101,6 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   sphereCollider.addShape(physicsSphere);
 
   rootEntity.addComponent(MeshRenderer);
-  const wireframe = rootEntity.addComponent(WireframeManager); // debug draw
-  wireframe.addEntityWireframe(sphereEntity);
-  wireframe.addEntityWireframe(boxEntity1);
-  wireframe.addEntityWireframe(boxEntity2);
 
   class MoveScript extends Script {
     pos: number = -5;
@@ -146,7 +140,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.AmbientLight,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;

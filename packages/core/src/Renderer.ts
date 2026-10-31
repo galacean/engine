@@ -5,10 +5,10 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { IComponentCustomClone } from "./clone/ComponentCloner";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -21,17 +21,18 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component implements IComponentCustomClone {
+export class Renderer extends Component implements ICloneHook<Renderer> {
   private static _tempVector0 = new Vector3();
 
+  /** @internal */
+  static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
+  /** @internal */
+  static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
+
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = ShaderProperty.getByName("renderer_LocalMat");
-  private static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
   private static _mvMatrixProperty = ShaderProperty.getByName("renderer_MVMat");
   private static _mvpMatrixProperty = ShaderProperty.getByName("renderer_MVPMat");
-  private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
-  private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
   /** @internal */
   @ignoreClone
@@ -45,20 +46,18 @@ export class Renderer extends Component implements IComponentCustomClone {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  @ignoreClone
-  _renderFrameCount: number;
-  @assignmentClone
-  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
   @ignoreClone
-  _batchedTransformShaderData: boolean = false;
-  @assignmentClone
+  _renderFrameCount: number;
+  /** @internal */
+  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+  /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @ignoreClone
-  protected _materials: Material[] = [];
+  protected _materials: (Material | null)[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
   @ignoreClone
@@ -66,23 +65,18 @@ export class Renderer extends Component implements IComponentCustomClone {
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
-  protected _transformEntity: Entity;
+  protected _transformEntity: Entity | null;
 
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
   private _mvpMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _mvInvMatrix: Matrix = new Matrix();
-  @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @assignmentClone
   private _priority: number = 0;
-  @assignmentClone
   private _receiveShadows: boolean = true;
 
   /**
@@ -93,7 +87,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   }
 
   /**
-   * Whether it is culled in the current frame and does not participate in rendering.
+   * Whether this renderer was culled by all cameras in the previous frame.
    */
   get isCulled(): boolean {
     return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
@@ -225,16 +219,16 @@ export class Renderer extends Component implements IComponentCustomClone {
    * Set the first material.
    * @param material - The first material
    */
-  setMaterial(material: Material): void;
+  setMaterial(material: Material | null): void;
 
   /**
    * Set material by index.
    * @param index - Material index
    * @param material - The material
    */
-  setMaterial(index: number, material: Material): void;
+  setMaterial(index: number, material: Material | null): void;
 
-  setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
+  setMaterial(indexOrMaterial: number | Material | null, material: Material | null = null): void {
     if (typeof indexOrMaterial === "number") {
       this._setMaterial(indexOrMaterial, material);
     } else {
@@ -247,12 +241,13 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @remarks Calling this function for the first time after the material is set will create an instance material to ensure that it is unique to the renderer.
    * @returns All instance materials
    */
-  getInstanceMaterials(): Readonly<Material[]> {
+  getInstanceMaterials(): Readonly<(Material | null)[]> {
     const materials = this._materials;
     const materialsInstance = this._materialsInstanced;
     for (let i = 0, n = materials.length; i < n; i++) {
-      if (!materialsInstance[i]) {
-        this._createInstanceMaterial(this._materials[i], i);
+      const material = materials[i];
+      if (material && !materialsInstance[i]) {
+        this._createInstanceMaterial(material, i);
       }
     }
     return materials;
@@ -262,7 +257,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * Get all materials.
    * @returns All materials
    */
-  getMaterials(): Readonly<Material[]> {
+  getMaterials(): Readonly<(Material | null)[]> {
     return this._materials;
   }
 
@@ -270,7 +265,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * Set all materials.
    * @param materials - All materials
    */
-  setMaterials(materials: Material[]): void {
+  setMaterials(materials: (Material | null)[]): void {
     const count = materials.length;
     const internalMaterials = this._materials;
     const materialsInstanced = this._materialsInstanced;
@@ -300,7 +295,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   override _onEnableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
     }
@@ -311,7 +306,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   override _onDisableInScene(): void {
-    const componentsManager = this.scene._componentsManager;
+    const componentsManager = this.scene!._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
     }
@@ -349,8 +344,9 @@ export class Renderer extends Component implements IComponentCustomClone {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: Renderer, srcRoot: Entity, targetRoot: Entity): void {
+  _onClone(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);
@@ -361,7 +357,7 @@ export class Renderer extends Component implements IComponentCustomClone {
    * @internal
    */
   _isFrontFaceInvert(): boolean {
-    return this._transformEntity.transform._isFrontFaceInvert();
+    return this._transformEntity!.transform._isFrontFaceInvert();
   }
 
   /**
@@ -379,96 +375,87 @@ export class Renderer extends Component implements IComponentCustomClone {
       material && this._addResourceReferCount(material, -1);
     }
 
-    this._globalShaderMacro = null;
-    this._bounds = null;
-    this._materials = null;
-    this._shaderData = null;
-    this._mvMatrix = null;
-    this._mvpMatrix = null;
-    this._mvInvMatrix = null;
-    this._normalMatrix = null;
-    this._materialsInstanced = null;
-    this._rendererLayer = null;
+    this._globalShaderMacro = null!;
+    this._bounds = null!;
+    this._materials = null!;
+    this._shaderData = null!;
+    this._mvMatrix = null!;
+    this._mvpMatrix = null!;
+    this._normalMatrix = null!;
+    this._materialsInstanced = null!;
+    this._rendererLayer = null!;
   }
 
   /**
    * @internal
    */
-  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    const worldMatrix = this._transformEntity.transform.worldMatrix;
+  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
+    const worldMatrix = this._transformEntity!.transform.worldMatrix;
+    const { shaderData } = this;
     if (onlyMVP) {
-      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     } else {
-      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
+      const mvMatrix = this._mvMatrix;
+      const normalMatrix = this._normalMatrix;
+
+      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+      Matrix.invert(worldMatrix, normalMatrix);
+      normalMatrix.transpose();
+
+      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     }
   }
 
   /**
    * @internal
    */
-  _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+  _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
     return false;
   }
 
   /**
    * @internal
    */
-  _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+  _batch(preElement: RenderElement | null, curElement: RenderElement): void {}
 
   /**
-   * Update once per frame per renderer, not influenced by batched.
+   * Update once per frame per renderer.
    */
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
-    if (batched) {
+  /**
+   * Update transform shader data for world-space vertices (2D renderers).
+   * Vertices are already in world space, so model matrix is identity.
+   */
+  protected _updateWorldSpaceTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
+    const { shaderData } = this;
+    if (onlyMVP) {
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
+    } else {
       // @ts-ignore
       const identityMatrix = Matrix._identity;
-
-      Matrix.invert(context.viewMatrix, mvInvMatrix);
-
-      shaderData.setMatrix(Renderer._localMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
       shaderData.setMatrix(Renderer._normalMatrixProperty, identityMatrix);
-    } else {
-      const mvMatrix = this._mvMatrix;
-      const normalMatrix = this._normalMatrix;
-
-      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-      Matrix.invert(mvMatrix, mvInvMatrix);
-      Matrix.invert(worldMatrix, normalMatrix);
-      normalMatrix.transpose();
-
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
-      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-    }
-
-    this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-  }
-
-  protected _updateProjectionRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    if (batched) {
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
-    } else {
-      const mvpMatrix = this._mvpMatrix;
-      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
     }
   }
 
   /**
    * @internal
    */
-  protected _setTransformEntity(entity: Entity): void {
+  protected _setTransformEntity(entity: Entity | null): void {
     const preEntity = this._transformEntity;
     if (entity !== preEntity) {
       preEntity?._updateFlagManager.removeListener(this._onTransformChanged);
@@ -493,7 +480,7 @@ export class Renderer extends Component implements IComponentCustomClone {
     return insMaterial;
   }
 
-  private _setMaterial(index: number, material: Material): void {
+  private _setMaterial(index: number, material: Material | null): void {
     const materials = this._materials;
     if (index >= materials.length) {
       materials.length = index + 1;

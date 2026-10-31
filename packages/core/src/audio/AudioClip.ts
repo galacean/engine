@@ -14,21 +14,21 @@ export class AudioClip extends ReferResource {
    * Number of discrete audio channels.
    */
   get channels(): number {
-    return this._audioBuffer.numberOfChannels;
+    return this._audioBuffer!.numberOfChannels;
   }
 
   /**
    * Sample rate, in samples per second.
    */
   get sampleRate(): number {
-    return this._audioBuffer.sampleRate;
+    return this._audioBuffer!.sampleRate;
   }
 
   /**
    * Duration, in seconds.
    */
   get duration(): number {
-    return this._audioBuffer.duration;
+    return this._audioBuffer!.duration;
   }
 
   constructor(engine: Engine, name: string = "") {
@@ -39,7 +39,7 @@ export class AudioClip extends ReferResource {
   /**
    * @internal
    */
-  _getAudioSource(): AudioBuffer {
+  _getAudioSource(): AudioBuffer | null {
     return this._audioBuffer;
   }
 
@@ -53,6 +53,6 @@ export class AudioClip extends ReferResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._audioBuffer = null;
-    this.name = null;
+    this.name = null!;
   }
 }

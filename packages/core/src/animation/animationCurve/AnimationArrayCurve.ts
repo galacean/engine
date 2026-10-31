@@ -93,8 +93,8 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     duration: number,
     out: number[]
   ): number[] {
-    const t0 = frame.outTangent;
-    const t1 = nextFrame.inTangent;
+    const t0 = frame.outTangent!;
+    const t1 = nextFrame.inTangent!;
     const p0 = frame.value;
     const p1 = nextFrame.value;
 

@@ -97,8 +97,8 @@ export class AssetPromise<T> implements PromiseLike<T> {
   private _state = PromiseState.Pending;
   private _taskCompleteProgress: TaskCompleteProgress;
   private _taskDetailProgress: Record<string, TaskCompleteProgress>;
-  private _onTaskCompleteCallbacks: TaskCompleteCallback[] = [];
-  private _onTaskDetailCallbacks: TaskDetailCallback[] = [];
+  private _onTaskCompleteCallbacks: TaskCompleteCallback[] | undefined = [];
+  private _onTaskDetailCallbacks: TaskDetailCallback[] | undefined = [];
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
@@ -140,7 +140,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
           progress.loaded = loaded;
           progress.total = total;
 
-          this._onTaskCompleteCallbacks.forEach((callback) => callback(loaded, total));
+          this._onTaskCompleteCallbacks!.forEach((callback) => callback(loaded, total));
         }
       };
       const setTaskDetailProgress = (url: string, loaded: number, total: number) => {
@@ -149,7 +149,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
           const progress = (this._taskDetailProgress[url] ||= { loaded, total });
           progress.loaded = loaded;
           progress.total = total;
-          this._onTaskDetailCallbacks.forEach((callback) => callback(url, loaded, total));
+          this._onTaskDetailCallbacks!.forEach((callback) => callback(url, loaded, total));
         }
       };
 
@@ -164,33 +164,33 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   onProgress(
-    onTaskComplete: (loaded: number, total: number) => void,
+    onTaskComplete?: (loaded: number, total: number) => void,
     onTaskDetail?: (identifier: string, loaded: number, total: number) => void
   ): AssetPromise<T> {
     const completeProgress = this._taskCompleteProgress;
     const detailProgress = this._taskDetailProgress;
     if (completeProgress) {
-      onTaskComplete(completeProgress.loaded, completeProgress.total);
+      onTaskComplete?.(completeProgress.loaded, completeProgress.total);
     }
 
     if (detailProgress) {
-      for (let url in detailProgress) {
+      for (const url in detailProgress) {
         const { loaded, total } = detailProgress[url];
-        onTaskDetail(url, loaded, total);
+        onTaskDetail?.(url, loaded, total);
       }
     }
 
     if (this._state === PromiseState.Pending) {
-      onTaskComplete && this._onTaskCompleteCallbacks.push(onTaskComplete);
-      onTaskDetail && this._onTaskDetailCallbacks.push(onTaskDetail);
+      onTaskComplete && this._onTaskCompleteCallbacks!.push(onTaskComplete);
+      onTaskDetail && this._onTaskDetailCallbacks!.push(onTaskDetail);
     }
 
     return this;
   }
 
   then<TResult1 = T, TResult2 = never>(
-    onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
-    onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>
+    onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | null,
+    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
   ): AssetPromise<TResult1 | TResult2> {
     return new AssetPromise<TResult1 | TResult2>((resolve, reject) => {
       this._promise.then(onfulfilled, onrejected).then(resolve).catch(reject);
@@ -232,7 +232,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * Cancel promise request.
    * @returns Asset promise
    */
-  cancel(): AssetPromise<T> {
+  cancel(): AssetPromise<T> | undefined {
     if (this._state !== PromiseState.Pending) {
       return;
     }
@@ -246,10 +246,10 @@ export class AssetPromise<T> implements PromiseLike<T> {
 interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
-    reject?: (reason?: any) => void,
-    setTaskCompleteProgress?: TaskCompleteCallback,
-    setTaskDetailProgress?: TaskDetailCallback,
-    onCancel?: (callback: () => void) => void
+    reject: (reason?: any) => void,
+    setTaskCompleteProgress: TaskCompleteCallback,
+    setTaskDetailProgress: TaskDetailCallback,
+    onCancel: (callback: () => void) => void
   ): void;
 }
 

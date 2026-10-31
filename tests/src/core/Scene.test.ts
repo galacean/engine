@@ -1,5 +1,5 @@
 import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("Scene", () => {

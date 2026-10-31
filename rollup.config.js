@@ -3,7 +3,7 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import glsl from "./rollup-plugin-glsl";
+import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup";
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
@@ -24,25 +24,30 @@ const pkgs = fs
     };
   });
 
-const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
-pkgs.push({ ...shaderLabPkg, verboseMode: true });
+const shaderCompilerPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-compiler");
+pkgs.push({ ...shaderCompilerPkg, verboseMode: true });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
-const glslPlugin = glsl({
-  include: [/\.(glsl|gs)$/],
-  compress: false
+const shaderCompilerPlugin = shaderCompiler({
+  precompile: {
+    input: path.join(__dirname, "packages/shader/src/Shaders"),
+    output: path.join(__dirname, "packages/shader/compiledShaders")
+  }
 });
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  glslPlugin,
+  shaderCompilerPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
-      exclude: /node_modules/,
+      // Transpile bundled @esotericsoftware/spine-core to es5 too, so spine core packages'
+      // es5 subclasses (e.g. SpineTexture extends Texture) can extend it without the
+      // "Class constructor cannot be invoked without 'new'" es5-extends-es6 error.
+      exclude: /node_modules\/(?!\.pnpm\/@esotericsoftware\+|@esotericsoftware\/)/,
       jsc: {
         loose: true,
         externalHelpers: true,
@@ -71,7 +76,10 @@ function config({ location, pkgJson, verboseMode }) {
     })
   );
 
-  const external = Object.keys(dependencies);
+  // Bundle the native Spine runtime with the ES5 adapter so SpineTexture can extend it.
+  const external = Object.keys(dependencies).filter(
+    (name) => !(pkgJson.name === "@galacean/engine-spine-core-4.2" && name === "@esotericsoftware/spine-core")
+  );
   curPlugins.push(
     replace({
       preventAssignment: true,
@@ -85,15 +93,6 @@ function config({ location, pkgJson, verboseMode }) {
       let file = path.join(location, "dist", "browser.js");
 
       if (compress) {
-        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslPlugin);
-        curPlugins.splice(
-          glslifyPluginIdx,
-          1,
-          glsl({
-            include: [/\.(glsl|gs)$/],
-            compress: true
-          })
-        );
         curPlugins.push(minify({ sourceMap: true }));
       }
 
@@ -145,6 +144,28 @@ function config({ location, pkgJson, verboseMode }) {
         plugins: curPlugins
       };
     },
+    sources: () => {
+      // Build the "sources" subpath entry for @galacean/engine-shader.
+      // Exports raw .shader source strings (for editor use).
+      const sourcesInput = path.join(location, "src", "sources.ts");
+      return {
+        input: sourcesInput,
+        external,
+        output: [
+          {
+            file: path.join(location, "dist", "sources.module.js"),
+            format: "es",
+            sourcemap: true
+          },
+          {
+            file: path.join(location, "dist", "sources.main.js"),
+            format: "commonjs",
+            sourcemap: true
+          }
+        ],
+        plugins: curPlugins
+      };
+    },
     bundled: (compress) => {
       // ES module format with no external dependencies (bundled)
       const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
@@ -152,19 +173,12 @@ function config({ location, pkgJson, verboseMode }) {
       const bundledPlugins = Array.from(curPlugins);
 
       if (compress) {
-        const glslifyPluginIdx = bundledPlugins.findIndex((item) => item === glslPlugin);
-        bundledPlugins.splice(
-          glslifyPluginIdx,
-          1,
-          glsl({
-            include: [/\.(glsl|gs)$/],
-            compress: true
+        bundledPlugins.push(
+          minify({
+            sourceMap: true,
+            module: true // Indicate this is an ES module
           })
         );
-        bundledPlugins.push(minify({
-          sourceMap: true,
-          module: true // Indicate this is an ES module
-        }));
       }
 
       return {
@@ -224,7 +238,15 @@ function getUMD() {
 
 function getModule() {
   const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  const result = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+
+  // Build shader package "sources" subpath entry (raw .shader strings for editor)
+  const shaderPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader");
+  if (shaderPkg) {
+    result.push(makeRollupConfig({ ...shaderPkg, type: "sources" }));
+  }
+
+  return result;
 }
 
 function getBundled() {

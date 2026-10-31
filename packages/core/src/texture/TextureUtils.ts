@@ -43,6 +43,12 @@ export class TextureUtils {
       case TextureFormat.ETC2_RGB:
       case TextureFormat.ETC2_RGBA8:
       case TextureFormat.ASTC_4x4:
+      case TextureFormat.ASTC_5x5:
+      case TextureFormat.ASTC_6x6:
+      case TextureFormat.ASTC_8x8:
+      case TextureFormat.ASTC_10x10:
+      case TextureFormat.ASTC_12x12:
+      case TextureFormat.ETC2_RGBA5:
         return true;
       default:
         return false;

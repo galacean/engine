@@ -102,7 +102,7 @@ export class PhysXJoint implements IJoint {
   destroy(): void {
     if (!this._pxJoint) return;
     this._pxJoint.release();
-    this._collider = null;
+    this._collider = null!;
   }
   /**
    * Set the joint local pose for an actor.

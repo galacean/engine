@@ -5,24 +5,13 @@ import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Shader } from "../shader";
-import { ShaderLib } from "../shaderlib";
-import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
-import Filtering from "./shaders/Filtering.glsl";
-import PostCommon from "./shaders/PostCommon.glsl";
-import ACESTonemapping from "./shaders/Tonemapping/ACES/ACESTonemapping.glsl";
-import ColorTransform from "./shaders/Tonemapping/ACES/ColorTransform.glsl";
-import ODT from "./shaders/Tonemapping/ACES/ODT.glsl";
-import RRT from "./shaders/Tonemapping/ACES/RRT.glsl";
-import Tonescale from "./shaders/Tonemapping/ACES/Tonescale.glsl";
-import NeutralTonemapping from "./shaders/Tonemapping/NeutralTonemapping.glsl";
-import UberPost from "./shaders/UberPost.glsl";
 
 export class PostProcessUberPass extends PostProcessPass {
-  static readonly UBER_SHADER_NAME = "UberPost";
+  static readonly UBER_SHADER_NAME = "PostProcess/Uber";
 
   private _uberMaterial: Material;
 
@@ -37,16 +26,10 @@ export class PostProcessUberPass extends PostProcessPass {
 
     // Uber Material
     const uberMaterial = new Material(engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME));
-    const uberDepthState = uberMaterial.renderState.depthState;
-    uberDepthState.enabled = false;
-    uberDepthState.writeEnabled = false;
     this._uberMaterial = uberMaterial;
 
     // Bloom Material
     const bloomMaterial = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
-    const bloomDepthState = bloomMaterial.renderState.depthState;
-    bloomDepthState.enabled = false;
-    bloomDepthState.writeEnabled = false;
     this._bloomMaterial = bloomMaterial;
 
     // ShaderData initialization
@@ -74,7 +57,7 @@ export class PostProcessUberPass extends PostProcessPass {
    * @inheritdoc
    */
   onRender(camera: Camera, srcTexture: Texture2D, destTarget: RenderTarget): void {
-    const postProcessManager = camera.scene.postProcessManager;
+    const postProcessManager = camera.scene!.postProcessManager;
     const uberShaderData = this._uberMaterial.shaderData;
     const bloomBlend = postProcessManager.getBlendEffect(BloomEffect);
     const tonemappingBlend = postProcessManager.getBlendEffect(TonemappingEffect);
@@ -98,6 +81,7 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   override _onDestroy() {
@@ -263,16 +247,3 @@ export class PostProcessUberPass extends PostProcessPass {
     this._mipUpRT.length = 0;
   }
 }
-
-Object.assign(ShaderLib, {
-  PostCommon,
-  Filtering,
-  ODT,
-  RRT,
-  Tonescale,
-  ColorTransform,
-  NeutralTonemapping,
-  ACESTonemapping
-});
-
-Shader.create(PostProcessUberPass.UBER_SHADER_NAME, blitVs, UberPost);

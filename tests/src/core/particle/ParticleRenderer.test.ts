@@ -1,6 +1,36 @@
-import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, Scene } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { beforeAll, describe, expect, it } from "vitest";
+import {
+  BoxShape,
+  Camera,
+  Engine,
+  Layer,
+  ModelMesh,
+  ParticleMaterial,
+  ParticleRenderer,
+  ParticleRenderMode,
+  ParticleSimulationSpace,
+  ParticleStopMode,
+  PrimitiveMesh,
+  Scene,
+  Script,
+  ShaderMacro
+} from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine";
+import { beforeAll, describe, expect, it, vi } from "vitest";
+
+function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
+  //@ts-ignore
+  engine._vSyncCount = Infinity;
+  //@ts-ignore
+  engine._time._lastSystemTime = 0;
+  let times = 0;
+  performance.now = function () {
+    times++;
+    return times * deltaTime;
+  };
+  for (let i = 0; i < frames; i++) {
+    engine.update();
+  }
+}
 
 describe("ParticleRenderer", () => {
   let engine: WebGLEngine;
@@ -41,6 +71,235 @@ describe("ParticleRenderer", () => {
     expect(renderer.velocityScale).to.eq(0);
   });
 
+  it.each([0.01, 7.5, 100001])("preserves positive finite particle duration %s", (value) => {
+    const entity = scene.createRootEntity("DurationRange");
+    try {
+      const generator = entity.addComponent(ParticleRenderer).generator;
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      generator.main.duration = value;
+      expect(generator.main.duration).to.equal(value);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it.each([-1, 0, NaN, Infinity, -Infinity])("rejects invalid particle duration %s without changing it", (value) => {
+    const entity = scene.createRootEntity("InvalidDuration");
+    try {
+      const generator = entity.addComponent(ParticleRenderer).generator;
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      const main = generator.main;
+      main.duration = 7.5;
+      expect(() => (main.duration = value)).to.throw(RangeError);
+      expect(main.duration).to.equal(7.5);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("can play after a zero duration is rejected while stopped", () => {
+    const entity = scene.createRootEntity("DurationReplay");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.setMaterial(new ParticleMaterial(engine));
+    const generator = renderer.generator;
+    generator.main.startSpeed.constant = 0;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+
+    try {
+      expect(() => (generator.main.duration = 0)).to.throw(RangeError);
+      updateEngine(engine, 1);
+      generator.main.duration = 5;
+      generator.play(false);
+      updateEngine(engine, 2);
+      expect(generator._getAliveParticleCount()).to.equal(2);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("resets the gravity modifier random stream with the generator seed", () => {
+    const entity = scene.createRootEntity("GravityRandomSeed");
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    const gravityRand = generator.main._gravityModifierRand;
+
+    generator.randomSeed = 123;
+    const first = gravityRand.random();
+    generator.randomSeed = 123;
+    expect(gravityRand.random()).to.equal(first);
+
+    entity.destroy();
+  });
+
+  it("pauses simulation while culled and resumes without catch-up", () => {
+    const entity = scene.createRootEntity("CulledParticle");
+    entity.transform.setPosition(100000, 0, 0);
+    const generator = entity.addComponent(ParticleRenderer).generator;
+    generator.useAutoRandomSeed = false;
+    generator.main.isLoop = true;
+    generator.main.startLifetime.constant = 10;
+    generator.emission.rateOverTime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.play(false);
+
+    updateEngine(engine, 3);
+    const culledPlayTime = generator._playTime;
+    expect(culledPlayTime).to.be.closeTo(0.1, 1e-6);
+
+    updateEngine(engine, 3);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    entity.transform.setPosition(0, 0, 0);
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.equal(culledPlayTime);
+
+    updateEngine(engine, 1);
+    expect(generator._playTime).to.be.closeTo(culledPlayTime + 0.1, 1e-6);
+
+    entity.destroy();
+  });
+
+  it("updates renderer data when a particle system is added during onUpdate", () => {
+    let particleRenderer: ParticleRenderer;
+    class ParticleCreator extends Script {
+      override onUpdate(): void {
+        const entity = this.entity.createChild("DynamicParticle");
+        entity.layer = Layer.Layer3;
+        particleRenderer = entity.addComponent(ParticleRenderer);
+        particleRenderer.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+        this.enabled = false;
+      }
+    }
+
+    const host = scene.createRootEntity("ParticleCreator");
+    host.addComponent(ParticleCreator);
+    updateEngine(engine, 1);
+
+    expect(particleRenderer!.shaderData.getVector4("renderer_Layer").x).to.equal(Layer.Layer3);
+    host.destroy();
+  });
+
+  it("updates generator and renderer shader data for active particles", () => {
+    const entity = scene.createRootEntity("FeedbackParticle");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator;
+    renderer.lengthScale = 3;
+    renderer.velocityScale = 4;
+    renderer.pivot.set(1, 2, 3);
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+
+    updateEngine(engine, 1);
+
+    const shaderData = renderer.shaderData;
+    expect(shaderData.getFloat("renderer_CurrentTime")).to.equal(generator._playTime);
+    expect(shaderData.getFloat("renderer_StretchedBillboardLengthScale")).to.equal(3);
+    expect(shaderData.getFloat("renderer_StretchedBillboardSpeedScale")).to.equal(4);
+    expect(shaderData.getVector3("renderer_PivotOffset")).to.deep.equal(renderer.pivot);
+    entity.destroy();
+  });
+
+  it("restores CPU-simulated particles after instance-buffer content loss", () => {
+    const entity = scene.createRootEntity("RestoredCpuParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const instanceBuffer = generator._instanceVertexBufferBinding.buffer;
+    instanceBuffer._isContentLost = true;
+    const setData = vi.spyOn(instanceBuffer, "setData");
+    updateEngine(engine, 1);
+
+    expect(generator._getAliveParticleCount()).to.equal(2);
+    expect(setData).toHaveBeenCalled();
+    expect(instanceBuffer.isContentLost).to.equal(false);
+
+    entity.destroy();
+  });
+
+  it("discards lost transform-feedback state once before accepting new emissions", () => {
+    const entity = scene.createRootEntity("RestoredFeedbackParticles");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(2);
+    updateEngine(engine, 1);
+
+    const lostBuffer = generator._instanceVertexBufferBinding.buffer;
+    lostBuffer._isContentLost = true;
+    generator.emit(1);
+    generator.emit(1);
+
+    expect(lostBuffer.destroyed).to.equal(true);
+    expect(generator._instanceVertexBufferBinding.buffer.isContentLost).to.equal(false);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    updateEngine(engine, 1);
+    expect(generator._getAliveParticleCount()).to.equal(2);
+
+    entity.destroy();
+  });
+
+  it("keeps sub-emitter commands queued for the restored target update", () => {
+    const entity = scene.createRootEntity("RestoredSubEmitterTarget");
+    const generator = entity.addComponent(ParticleRenderer).generator as any;
+    generator.noise.enabled = true;
+    generator.main.startLifetime.constant = 10;
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    generator.emit(1);
+    updateEngine(engine, 1);
+
+    const command = {
+      isBirth: false,
+      frameTime: 1,
+      release: vi.fn()
+    };
+    generator._incomingSubEmitterCommands.push(command);
+    generator._instanceVertexBufferBinding.buffer._isContentLost = true;
+    const emitParticles = vi.spyOn(generator, "_emitParticles").mockReturnValue(0);
+    updateEngine(engine, 1);
+
+    expect(emitParticles).toHaveBeenCalledWith(
+      generator._playTime,
+      undefined,
+      generator.main.maxParticles,
+      undefined,
+      command,
+      1
+    );
+    expect(command.release).toHaveBeenCalledOnce();
+    expect(generator._incomingSubEmitterCommands).to.have.length(0);
+
+    entity.destroy();
+  });
+
+  it("keeps Local simulation rotations independent between particle systems", () => {
+    const firstEntity = scene.createRootEntity("FirstLocalParticle");
+    const secondEntity = scene.createRootEntity("SecondLocalParticle");
+    secondEntity.transform.setRotation(0, 90, 0);
+    const firstRenderer = firstEntity.addComponent(ParticleRenderer);
+    const secondRenderer = secondEntity.addComponent(ParticleRenderer);
+    firstRenderer.generator.emit(1);
+    secondRenderer.generator.emit(1);
+
+    updateEngine(engine, 1);
+
+    const firstRotation = firstRenderer.shaderData.getVector4("renderer_WorldRotation");
+    const secondRotation = secondRenderer.shaderData.getVector4("renderer_WorldRotation");
+    expect(firstRotation).to.not.equal(secondRotation);
+    expect(firstRotation.w).to.be.closeTo(1, 1e-6);
+    expect(secondRotation.y).to.be.closeTo(Math.SQRT1_2, 1e-6);
+    expect(secondRotation.w).to.be.closeTo(Math.SQRT1_2, 1e-6);
+
+    firstEntity.destroy();
+    secondEntity.destroy();
+  });
+
   it("ParticleRenderer renderMode", () => {
     const renderer = scene.createRootEntity("Renderer").addComponent(ParticleRenderer);
     renderer.renderMode = ParticleRenderMode.None;
@@ -49,14 +308,29 @@ describe("ParticleRenderer", () => {
     expect(renderer.renderMode).to.eq(ParticleRenderMode.Billboard);
     renderer.renderMode = ParticleRenderMode.StretchBillboard;
     expect(renderer.renderMode).to.eq(ParticleRenderMode.StretchBillboard);
-    expect(() => {
-      renderer.renderMode = ParticleRenderMode.HorizontalBillboard;
-    }).to.throw("Not implemented");
+    renderer.renderMode = ParticleRenderMode.HorizontalBillboard;
+    expect(renderer.renderMode).to.eq(ParticleRenderMode.HorizontalBillboard);
     renderer.renderMode = ParticleRenderMode.Mesh;
     expect(renderer.renderMode).to.eq(ParticleRenderMode.Mesh);
     expect(() => {
       renderer.renderMode = ParticleRenderMode.VerticalBillboard;
     }).to.throw("Not implemented");
+  });
+
+  it("releases mesh geometry bindings when the mesh is removed", () => {
+    const entity = scene.createRootEntity("MeshBindingCleanup");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.be.greaterThan(0);
+
+    renderer.mesh = null;
+    expect(renderer.generator._primitive.vertexBufferBindings.length).to.equal(0);
+    expect(renderer.generator._primitive.indexBufferBinding).to.equal(null);
+
+    entity.destroy();
+    mesh.destroy();
   });
 
   it("refCount", () => {
@@ -88,5 +362,182 @@ describe("ParticleRenderer", () => {
 
     mesh.destroy(true);
     expect(mesh.refCount).to.eq(0);
+  });
+
+  it("clone with mesh render mode", () => {
+    const entity = scene.createRootEntity("CloneSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    expect(mesh.refCount).to.eq(1);
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+    expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+    expect(cloneRenderer.mesh).to.eq(mesh);
+    expect(mesh.refCount).to.eq(2);
+
+    // Each renderer holds its own reference, destroying one should not release the other's
+    cloneEntity.destroy();
+    expect(mesh.refCount).to.eq(1);
+    entity.destroy();
+    expect(mesh.refCount).to.eq(0);
+  });
+
+  it("clone applies render mode macro and mesh layout together", () => {
+    const meshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
+    const billboardMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
+
+    // Mesh mode + noise triggers buffer reorganization mid-clone, before mesh is applied
+    const entity = scene.createRootEntity("CloneMacroSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    renderer.generator.noise.enabled = true;
+
+    let cloneEntity: typeof entity;
+    expect(() => {
+      cloneEntity = entity.clone();
+      scene.addRootEntity(cloneEntity);
+    }).not.to.throw();
+
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+    expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+    expect(cloneRenderer.mesh).to.eq(mesh);
+    expect(mesh.refCount).to.eq(2);
+    // Shader macro must match renderMode, not stay on the constructor's billboard default
+    const macroCollection = cloneRenderer.shaderData["_macroCollection"];
+    expect(macroCollection.isEnable(meshMacro)).to.eq(true);
+    expect(macroCollection.isEnable(billboardMacro)).to.eq(false);
+
+    cloneEntity.destroy();
+    entity.destroy();
+    expect(mesh.refCount).to.eq(0);
+  });
+
+  it("clone with mesh render mode but no mesh", () => {
+    const entity = scene.createRootEntity("CloneSourceNoMesh");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+
+    expect(() => {
+      const cloneEntity = entity.clone();
+      const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+      expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+      expect(cloneRenderer.mesh).to.be.undefined;
+      cloneEntity.destroy();
+    }).not.to.throw();
+
+    entity.destroy();
+  });
+
+  it("attaches the latest particle buffer when a render mesh is assigned", () => {
+    const entity = scene.createRootEntity("NoMeshReorganize");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator as any;
+    renderer.renderMode = ParticleRenderMode.Mesh;
+
+    generator.noise.enabled = true;
+    generator._resizeInstanceBuffer(256);
+    expect(generator._primitive.vertexBufferBindings).to.have.length(0);
+
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.mesh = mesh;
+    expect(generator._primitive.vertexBufferBindings).to.include(generator._instanceVertexBufferBinding);
+
+    entity.destroy();
+    mesh.destroy();
+  });
+
+  it("clone a grown particle system keeps capacity consistent", () => {
+    const entity = scene.createRootEntity("GrownSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator;
+    generator.main.maxParticles = 1000;
+    generator.main.startLifetime.constant = 100;
+    generator.emission.rateOverTime.constant = 500;
+    generator.play();
+
+    // Drive the simulation so the instance buffer grows well past its initial capacity
+    updateEngine(engine, 30, 100);
+    const sourceCount = generator["_currentParticleCount"];
+    expect(sourceCount).to.be.greaterThan(128);
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneGenerator = cloneEntity.getComponent(ParticleRenderer).generator;
+
+    // The clone starts with a freshly built buffer; it must not inherit the source's grown count,
+    // otherwise the capacity and the actual buffer length disagree and emitting overflows
+    expect(cloneGenerator["_currentParticleCount"]).to.be.lessThan(sourceCount);
+
+    // The clone can play and grow on its own without crashing on the stale capacity
+    expect(() => {
+      cloneGenerator.play();
+      updateEngine(engine, 30, 100);
+    }).not.to.throw();
+
+    cloneEntity.destroy();
+    entity.destroy();
+  });
+
+  it("clone preserves generator module config", () => {
+    const entity = scene.createRootEntity("ConfigSource");
+    const generator = entity.addComponent(ParticleRenderer).generator;
+
+    // Spread config across several @deepClone modules and value kinds (scalar / bool / enum / curve / module enabled)
+    generator.main.duration = 7.5;
+    generator.main.isLoop = false;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    generator.main.startLifetime.constant = 3;
+    generator.emission.rateOverTime.constant = 42;
+    generator.noise.enabled = true;
+    generator.noise.frequency = 1.5;
+
+    const cloneEntity = entity.clone();
+    const cloneGenerator = cloneEntity.getComponent(ParticleRenderer).generator;
+
+    expect(cloneGenerator.main.duration).to.eq(7.5);
+    expect(cloneGenerator.main.isLoop).to.eq(false);
+    expect(cloneGenerator.main.simulationSpace).to.eq(ParticleSimulationSpace.World);
+    expect(cloneGenerator.main.startLifetime.constant).to.eq(3);
+    expect(cloneGenerator.emission.rateOverTime.constant).to.eq(42);
+    expect(cloneGenerator.noise.enabled).to.eq(true);
+    expect(cloneGenerator.noise.frequency).to.eq(1.5);
+
+    // Cloned config curves must be independent instances, not shared with the source
+    expect(cloneGenerator.main.startLifetime).to.not.eq(generator.main.startLifetime);
+
+    cloneEntity.destroy();
+    entity.destroy();
+  });
+
+  it("clone keeps emission shape macro in sync", () => {
+    const emissionShapeMacro = ShaderMacro.getByName("RENDERER_EMISSION_SHAPE");
+
+    const entity = scene.createRootEntity("EmissionShapeSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.generator.emission.shape = new BoxShape();
+    renderer.generator.emission.rateOverTime.constant = 100;
+    renderer.generator.play();
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+
+    // Shape value is deep cloned into an independent instance
+    expect(cloneRenderer.generator.emission.shape).to.not.eq(renderer.generator.emission.shape);
+    expect(cloneRenderer.generator.emission.shape).to.be.instanceOf(BoxShape);
+
+    // The macro is derived every frame from `enabled && shape`, so after a frame the clone's
+    // shaderData carries the emission shape macro instead of staying on the constructor default
+    updateEngine(engine, 2, 100);
+    expect(cloneRenderer.shaderData["_macroCollection"].isEnable(emissionShapeMacro)).to.eq(true);
+
+    cloneEntity.destroy();
+    entity.destroy();
   });
 });

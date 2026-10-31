@@ -28,7 +28,7 @@ export type LoadItem = {
   params?: Record<string, any>;
 } & PickOnlyOne<{
   /**
-   * Loading url.
+   * URL of the resource to load.
    */
   url: string;
   /**

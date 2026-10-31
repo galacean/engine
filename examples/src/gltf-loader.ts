@@ -186,7 +186,6 @@ class Oasis {
   }
 
   initScene() {
-    this.engine.canvas.resizeByClientSize();
     this.controler.minDistance = 0;
 
     // debug sync

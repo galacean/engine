@@ -13,7 +13,7 @@ export class Font extends ReferResource {
    * @param name - The name of font want to create
    * @returns The font object has been create
    */
-  static createFromOS(engine: Engine, name: string): Font {
+  static createFromOS(engine: Engine, name: string): Font | null {
     if (name) {
       const fontMap = engine._fontMap;
       let font = fontMap[name];
@@ -63,10 +63,10 @@ export class Font extends ReferResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     const subFontMap = this._subFontMap;
-    for (let k in subFontMap) {
+    for (const k in subFontMap) {
       subFontMap[k].destroy();
     }
-    this._subFontMap = null;
+    this._subFontMap = null!;
     delete this.engine._fontMap[this._name];
   }
 }

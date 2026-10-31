@@ -17,8 +17,9 @@ export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
-export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
+export { EngineEventType } from "./EngineEventType";
+export type { EngineSettings } from "./EngineSettings";
 export type { ComponentConstructor } from "./Entity";
 
 export { request } from "./asset/request";
@@ -26,7 +27,7 @@ export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { RenderingStatistics } from "./asset/RenderingStatistics";
-export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
+export { ResourceManager, resourceLoader, type VirtualResource } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
@@ -60,7 +61,6 @@ export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
-export * from "./shaderlib/index";
 export * from "./animation/index";
 export * from "./mesh/index";
 export * from "./sky/index";
@@ -69,18 +69,16 @@ export * from "./trail/index";
 export * from "./env-probe/index";
 export * from "./shader/index";
 export * from "./Layer";
-export * from "./clone/CloneManager";
-export { CloneUtils } from "./clone/CloneUtils";
+export { deepClone, assignmentClone, ignoreClone } from "./clone/CloneDecorators";
+export type { ICloneHook } from "./clone/ICloneHook";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 export * from "./audio/index";
-import { Polyfill } from "./Polyfill";
+export { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
 
 export { AntiAliasing } from "./enums/AntiAliasing";
-
-Polyfill.registerPolyfill();

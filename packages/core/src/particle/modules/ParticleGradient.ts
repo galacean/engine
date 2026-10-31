@@ -1,13 +1,12 @@
+import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 
 /**
  * Particle gradient.
  */
-export class ParticleGradient {
-  @deepClone
+export class ParticleGradient extends DataObject {
   private _colorKeys: GradientColorKey[] = [];
-  @deepClone
   private _alphaKeys: GradientAlphaKey[] = [];
   @ignoreClone
   private _colorTypeArray: Float32Array;
@@ -36,7 +35,8 @@ export class ParticleGradient {
    * @param colorKeys - The color keys of the gradient
    * @param alphaKeys - The alpha keys of the gradient
    */
-  constructor(colorKeys: GradientColorKey[] = null, alphaKeys: GradientAlphaKey[] = null) {
+  constructor(colorKeys: GradientColorKey[] | null = null, alphaKeys: GradientAlphaKey[] | null = null) {
+    super();
     if (colorKeys) {
       for (let i = 0, n = colorKeys.length; i < n; i++) {
         const key = colorKeys[i];
@@ -97,7 +97,7 @@ export class ParticleGradient {
       throw new Error("Gradient can only have 4 alpha keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new GradientAlphaKey(timeOrKey, alpha!) : timeOrKey;
     key._onValueChanged = this._setAlphaTypeArrayDirty.bind(this);
     this._addKey(alphaKeys, key);
     this._alphaTypeArrayDirty = true;
@@ -129,6 +129,13 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys
    */
   setKeys(colorKeys: GradientColorKey[], alphaKeys: GradientAlphaKey[]): void {
+    if (colorKeys.length > 4) {
+      throw new Error("Gradient can only have 4 color keys");
+    }
+    if (alphaKeys.length > 4) {
+      throw new Error("Gradient can only have 4 alpha keys");
+    }
+
     const currentColorKeys = this._colorKeys;
     const currentAlphaKeys = this._alphaKeys;
     for (let i = 0, n = currentColorKeys.length; i < n; i++) {
@@ -191,6 +198,63 @@ export class ParticleGradient {
     return typeArray;
   }
 
+  /**
+   * @internal
+   */
+  _evaluate(time: number, out: Color): void {
+    const alphaKeys = this._alphaKeys;
+    const alphaCount = alphaKeys.length;
+    if (alphaCount === 0) {
+      out.a = 0;
+    } else {
+      const alphaMaxTime = alphaKeys[alphaCount - 1].time;
+      const alphaT = Math.min(time, alphaMaxTime);
+      for (let i = 0; i < alphaCount; i++) {
+        const key = alphaKeys[i];
+        if (alphaT <= key.time) {
+          if (i === 0) {
+            out.a = key.alpha;
+          } else {
+            const lastKey = alphaKeys[i - 1];
+            const age = (alphaT - lastKey.time) / (key.time - lastKey.time);
+            out.a = lastKey.alpha + (key.alpha - lastKey.alpha) * age;
+          }
+          break;
+        }
+      }
+    }
+
+    const colorKeys = this._colorKeys;
+    const colorCount = colorKeys.length;
+    if (colorCount === 0) {
+      out.r = 0;
+      out.g = 0;
+      out.b = 0;
+    } else {
+      const colorMaxTime = colorKeys[colorCount - 1].time;
+      const colorT = Math.min(time, colorMaxTime);
+      for (let i = 0; i < colorCount; i++) {
+        const key = colorKeys[i];
+        if (colorT <= key.time) {
+          const c = key.color;
+          if (i === 0) {
+            out.r = c.r;
+            out.g = c.g;
+            out.b = c.b;
+          } else {
+            const lastKey = colorKeys[i - 1];
+            const last = lastKey.color;
+            const age = (colorT - lastKey.time) / (key.time - lastKey.time);
+            out.r = last.r + (c.r - last.r) * age;
+            out.g = last.g + (c.g - last.g) * age;
+            out.b = last.b + (c.b - last.b) * age;
+          }
+          break;
+        }
+      }
+    }
+  }
+
   private _addKey<T extends { time: number }>(keys: T[], key: T): void {
     const time = key.time;
     const count = keys.length;
@@ -222,9 +286,9 @@ export class ParticleGradient {
 /**
  * The color key of the particle gradient.
  */
-export class GradientColorKey {
+export class GradientColorKey extends DataObject {
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   private _time: number;
   private _color: Color = new Color();
@@ -259,7 +323,8 @@ export class GradientColorKey {
    * @param time - The time of the gradient colorKey
    * @param color - The alpha component of the gradient colorKey
    */
-  constructor(time: number, color: Color) {
+  constructor(time: number, color: Color | undefined) {
+    super();
     this._time = time;
     color && this._color.copyFrom(color);
     // @ts-ignore
@@ -270,9 +335,9 @@ export class GradientColorKey {
 /**
  * The alpha key of the particle gradient.
  */
-export class GradientAlphaKey {
+export class GradientAlphaKey extends DataObject {
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   private _time: number;
   private _alpha: number;
@@ -307,6 +372,7 @@ export class GradientAlphaKey {
    * @param alpha - The alpha component of the gradient alpha key
    */
   constructor(time: number, alpha: number) {
+    super();
     this._time = time;
     this._alpha = alpha;
   }

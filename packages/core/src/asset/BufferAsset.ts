@@ -9,6 +9,6 @@ export class BufferAsset extends EngineObject {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.buffer = null;
+    this.buffer = null!;
   }
 }

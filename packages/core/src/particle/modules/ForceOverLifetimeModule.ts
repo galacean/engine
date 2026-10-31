@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -35,15 +35,12 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _forceMaxConstant = new Vector3();
   @ignoreClone
-  private _forceMacro: ShaderMacro;
+  private _forceMacro: ShaderMacro | null;
   @ignoreClone
-  private _randomModeMacro: ShaderMacro;
+  private _randomModeMacro: ShaderMacro | null;
 
-  @deepClone
   private _forceX: ParticleCompositeCurve;
-  @deepClone
   private _forceY: ParticleCompositeCurve;
-  @deepClone
   private _forceZ: ParticleCompositeCurve;
   private _space = ParticleSimulationSpace.Local;
 
@@ -118,8 +115,8 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let forceModeMacro = <ShaderMacro>null;
-    let isRandomModeMacro = <ShaderMacro>null;
+    let forceModeMacro: ShaderMacro | null = null;
+    let isRandomModeMacro: ShaderMacro | null = null;
 
     if (this.enabled) {
       const forceX = this._forceX;

@@ -4,7 +4,7 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { MaskDirtyFlags, MaskRenderable } from "./MaskRenderable";
@@ -25,10 +25,8 @@ export class SpriteMask extends MaskRenderable(Renderer) {
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
-  private _customWidth: number = undefined;
-  @assignmentClone
-  private _customHeight: number = undefined;
+  private _customWidth: number | undefined = undefined;
+  private _customHeight: number | undefined = undefined;
 
   /**
    * Render width (in world coordinates).
@@ -87,16 +85,16 @@ export class SpriteMask extends MaskRenderable(Renderer) {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
+  override _onClone(target: SpriteMask): void {
+    super._onClone(target);
     this._cloneMaskData(target);
   }
 
@@ -128,7 +126,7 @@ export class SpriteMask extends MaskRenderable(Renderer) {
 
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
-      this._subChunk = null;
+      this._subChunk = null!;
     }
   }
 
@@ -141,7 +139,7 @@ export class SpriteMask extends MaskRenderable(Renderer) {
   }
 
   override _getSpritePivot() {
-    return this.sprite?.pivot;
+    return this.sprite!.pivot;
   }
 
   override _onSpriteChangeExtra(type: SpriteModifyFlags): void {

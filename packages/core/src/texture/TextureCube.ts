@@ -171,8 +171,8 @@ export class TextureCube extends Texture {
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         0,
         <ArrayBufferView>mipLevelOrOut
       );
@@ -181,10 +181,10 @@ export class TextureCube extends Texture {
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         <number>mipLevelOrOut,
-        out
+        out!
       );
     }
   }

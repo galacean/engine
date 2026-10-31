@@ -13,17 +13,17 @@ export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
 
   /** @internal  */
-  _scene: PhysXPhysicsScene = null;
+  _scene: PhysXPhysicsScene | null = null;
   /** @internal */
   _id: number;
   /** @internal */
   _pxController: any;
   /** @internal */
-  _pxManager: PhysXPhysicsScene;
+  _pxManager: PhysXPhysicsScene | null;
   /** @internal */
-  _shape: PhysXColliderShape;
+  _shape: PhysXColliderShape | null;
   private _shapeScaledPosition = new Vector3();
-  private _worldPosition: Vector3 = null;
+  private _worldPosition: Vector3 | null = null;
 
   private _physXPhysics: PhysXPhysics;
 

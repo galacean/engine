@@ -263,7 +263,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
   /** @internal */
   _w: number;
   /** @internal */
-  _onValueChanged: () => void = null;
+  _onValueChanged: (() => void) | null = null;
 
   /**
    * The x component of the vector.
@@ -459,7 +459,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
    * @returns A clone of this vector
    */
   clone(): Vector4 {
-    let ret = new Vector4(this._x, this._y, this._z, this._w);
+    const ret = new Vector4(this._x, this._y, this._z, this._w);
     return ret;
   }
 

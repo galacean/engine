@@ -5,9 +5,9 @@ import { UIRenderer } from "../component/UIRenderer";
  * @internal
  */
 export class UIHitResult {
-  entity: Entity = null;
+  entity: Entity | null = null;
   distance: number = 0;
   point: Vector3 = new Vector3();
   normal: Vector3 = new Vector3();
-  component: UIRenderer = null;
+  component: UIRenderer | null = null;
 }

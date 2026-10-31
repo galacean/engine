@@ -29,7 +29,7 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
    * Constructor of BoundingFrustum.
    * @param matrix - The view-projection matrix
    */
-  constructor(matrix: Matrix = null) {
+  constructor(matrix: Matrix | null = null) {
     this.near = new Plane();
     this.far = new Plane();
     this.left = new Plane();
@@ -43,9 +43,9 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
   /**
    * Get the plane by the given frustum face.
    * @param face - The frustum face
-   * @returns The plane get
+   * @returns The plane, or null for an invalid face
    */
-  getPlane(face: FrustumFace): Plane {
+  getPlane(face: FrustumFace): Plane | null {
     switch (face) {
       case FrustumFace.Near:
         return this.near;

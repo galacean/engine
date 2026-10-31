@@ -76,8 +76,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     t: number,
     dur: number
   ): number {
-    const t0 = frame.outTangent;
-    const t1 = nextFrame.inTangent;
+    const t0 = frame.outTangent!;
+    const t1 = nextFrame.inTangent!;
     if (Number.isFinite(t0) && Number.isFinite(t1)) {
       const t2 = t * t;
       const t3 = t2 * t;

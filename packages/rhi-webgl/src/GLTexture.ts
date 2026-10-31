@@ -181,7 +181,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ETC2_RGBA5:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
+            : GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
           isCompressed: true
         };
       case TextureFormat.ETC2_RGBA8:
@@ -220,27 +222,37 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ASTC_5x5:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_5X5_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_6x6:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_6X6_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_8x8:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_8X8_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_10x10:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_10X10_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_12x12:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_12X12_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
           isCompressed: true
         };
 
@@ -439,7 +451,7 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _texture: Texture;
   /** @internal */
-  _glTexture: WebGLTexture;
+  _glTexture: WebGLTexture | null;
   /** @internal */
   _rhi: WebGLGraphicDevice;
   /** @internal */
@@ -473,7 +485,6 @@ export class GLTexture implements IPlatformTexture {
   set filterMode(value: TextureFilterMode) {
     const gl = this._gl;
     const target = this._target;
-    /** @ts-ignore */
     const { _mipmap } = this._texture;
 
     this._bind();
@@ -551,9 +562,9 @@ export class GLTexture implements IPlatformTexture {
    */
   destroy() {
     this._gl.deleteTexture(this._glTexture);
-    this._texture = null;
-    this._glTexture = null;
-    this._formatDetail = null;
+    this._texture = null!;
+    this._glTexture = null!;
+    this._formatDetail = null!;
   }
 
   /**
@@ -569,7 +580,6 @@ export class GLTexture implements IPlatformTexture {
    */
   generateMipmaps(): void {
     const texture = this._texture;
-    //@ts-ignore
     const mipmap = texture._mipmap;
 
     if (!TextureUtils.supportGenerateMipmaps(texture.format, mipmap, texture.isSRGBColorSpace, this._isWebGL2)) {
@@ -596,8 +606,7 @@ export class GLTexture implements IPlatformTexture {
   protected _init(isCube: boolean): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
-    let { internalFormat, baseFormat, dataType } = this._formatDetail;
-    // @ts-ignore
+    const { internalFormat, baseFormat, dataType } = this._formatDetail;
     const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 
     this._bind();
@@ -607,12 +616,12 @@ export class GLTexture implements IPlatformTexture {
     } else {
       if (!isCube) {
         if (_isDepthTexture) {
-          gl.texImage2D(this._target, 0, internalFormat, width, height, 0, baseFormat, dataType, null);
+          gl.texImage2D(this._target, 0, internalFormat, width, height, 0, baseFormat!, dataType!, null);
         } else {
           for (let i = 0; i < mipmapCount; i++) {
             const mipWidth = Math.max(1, width >> i);
             const mipHeight = Math.max(1, height >> i);
-            gl.texImage2D(this._target, i, internalFormat, mipWidth, mipHeight, 0, baseFormat, dataType, null);
+            gl.texImage2D(this._target, i, internalFormat, mipWidth, mipHeight, 0, baseFormat!, dataType!, null);
           }
         }
       } else {
@@ -626,8 +635,8 @@ export class GLTexture implements IPlatformTexture {
               size,
               size,
               0,
-              baseFormat,
-              dataType,
+              baseFormat!,
+              dataType!,
               null
             );
           }
@@ -677,14 +686,14 @@ export class GLTexture implements IPlatformTexture {
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
 
-    gl.pixelStorei(gl.PACK_ALIGNMENT, alignment);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, alignment!);
     // Base format is different from read format in webgl1.0 with sRGB
-    gl.readPixels(x, y, width, height, readFormat ?? baseFormat, dataType, out);
+    gl.readPixels(x, y, width, height, readFormat ?? baseFormat!, dataType!, out);
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
-  protected _getReadFrameBuffer(): WebGLFramebuffer {
+  protected _getReadFrameBuffer(): WebGLFramebuffer | null {
     let frameBuffer = this._rhi._readFrameBuffer;
     if (!frameBuffer) {
       this._rhi._readFrameBuffer = frameBuffer = this._gl.createFramebuffer();
@@ -707,13 +716,11 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = rhi.isWebGL2;
 
     // Validate mipmap
-    // @ts-ignore
     const mipmap = texture._mipmap;
     if (mipmap && !TextureUtils.supportMipmaps(width, height, isWebGL2)) {
       Logger.warn(
         "Non-power-2 texture is not supported for mipmap in WebGL1, and has automatically downgraded to non-mipmap"
       );
-      /** @ts-ignore */
       texture._mipmap = false;
       /** @ts-ignore */
       texture._mipmapCount = texture._getMipmapCount();

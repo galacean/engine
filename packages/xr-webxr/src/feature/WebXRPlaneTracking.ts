@@ -31,13 +31,13 @@ export class WebXRPlaneTracking extends WebXRTrackableFeature<IWebXRTrackedPlane
     generateTracked: () => IWebXRTrackedPlane
   ): void {
     const { _platformReferenceSpace: platformReferenceSpace } = session;
-    const { _platformFrame: platformFrame } = frame;
+    const platformFrame = frame._platformFrame!;
     // @ts-ignore
     const detectedPlanes: XRPlaneSet = platformFrame.detectedPlanes || platformFrame.worldInformation?.detectedPlanes;
     const tracked = <IWebXRTrackedPlane[]>requestTrackings[0].tracked;
     for (let i = 0, n = tracked.length; i < n; i++) {
       const trackedPlane = tracked[i];
-      if (detectedPlanes.has(trackedPlane.xrPlane)) {
+      if (detectedPlanes.has(trackedPlane.xrPlane!)) {
         trackedPlane.state = XRTrackingState.Tracking;
         this._updatePlane(platformFrame, platformReferenceSpace, trackedPlane);
       } else {
@@ -66,17 +66,18 @@ export class WebXRPlaneTracking extends WebXRTrackableFeature<IWebXRTrackedPlane
    * @internal
    */
   _assembleOptions(options: XRSessionInit): void {
-    options.optionalFeatures.push("plane-detection");
+    options.optionalFeatures!.push("plane-detection");
   }
 
   private _updatePlane(frame: XRFrame, space: XRSpace, trackedPlane: IWebXRTrackedPlane): void {
-    const { pose, polygon, xrPlane } = trackedPlane;
+    const { pose, polygon } = trackedPlane;
+    const xrPlane = trackedPlane.xrPlane!;
     const planePose = frame.getPose(xrPlane.planeSpace, space);
     if (!planePose) return;
     const { transform, emulatedPosition } = planePose;
     trackedPlane.state = emulatedPosition ? XRTrackingState.TrackingLost : XRTrackingState.Tracking;
     trackedPlane.planeMode = xrPlane.orientation === "horizontal" ? XRPlaneMode.Horizontal : XRPlaneMode.Vertical;
-    if (trackedPlane.lastChangedTime < xrPlane.lastChangedTime) {
+    if (trackedPlane.lastChangedTime! < xrPlane.lastChangedTime) {
       trackedPlane.lastChangedTime = xrPlane.lastChangedTime;
       trackedPlane.attributesDirty = true;
       const { polygon: oriPolygon } = xrPlane;
@@ -88,8 +89,8 @@ export class WebXRPlaneTracking extends WebXRTrackableFeature<IWebXRTrackedPlane
     }
     pose.rotation.copyFrom(transform.orientation);
     pose.position.copyFrom(transform.position);
-    pose.matrix.copyFromArray(transform.matrix);
-    pose.inverseMatrix.copyFromArray(transform.inverse.matrix);
+    pose.matrix!.copyFromArray(transform.matrix);
+    pose.inverseMatrix!.copyFromArray(transform.inverse.matrix);
   }
 }
 

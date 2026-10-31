@@ -36,7 +36,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
@@ -44,7 +43,7 @@ WebGLEngine.create({
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
-  cameraEntity.transform.position = new Vector3(-10, 1, 3);// -10 can test bounds transform
+  cameraEntity.transform.position = new Vector3(-10, 1, 3); // -10 can test bounds transform
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
 
@@ -52,19 +51,19 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*yu-DSb0surwAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: " https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JlayRa2WltYAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*cFafRr6WaWUAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*TASTTpESkIIAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((textures) => {
@@ -199,7 +198,7 @@ function createFireGlowParticle(fireEntity: Entity, texture: Texture2D): void {
 
   main.simulationSpace = ParticleSimulationSpace.World;
 
-  main.scalingMode = ParticleScaleMode.Hierarchy;
+  main.scalingMode = ParticleScaleMode.World;
 
   // Emission module
   emission.rateOverTime.constant = 20;
@@ -270,7 +269,7 @@ function createFireSmokeParticle(fireEntity: Entity, texture: Texture2D): void {
 
   main.simulationSpace = ParticleSimulationSpace.World;
 
-  main.scalingMode = ParticleScaleMode.Hierarchy;
+  main.scalingMode = ParticleScaleMode.World;
 
   // Emission module
   emission.rateOverTime.constant = 25;
@@ -353,7 +352,7 @@ function createFireEmbersParticle(fireEntity: Entity, texture: Texture2D): void 
 
   main.simulationSpace = ParticleSimulationSpace.World;
 
-  main.scalingMode = ParticleScaleMode.Hierarchy;
+  main.scalingMode = ParticleScaleMode.World;
 
   // Emission module
   emission.rateOverTime.constant = 65;

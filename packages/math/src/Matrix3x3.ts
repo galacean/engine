@@ -230,6 +230,7 @@ export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3>
    * Calculate the inverse of the specified matrix.
    * @param a - The matrix whose inverse is to be calculated
    * @param out - The inverse of the specified matrix
+   * @returns Null if the matrix is singular; otherwise undefined
    */
   static invert(a: Matrix3x3, out: Matrix3x3): void {
     const ae = a.elements;
@@ -274,7 +275,7 @@ export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3>
    * @param mat4 - The 4x4 matrix
    * @param out - THe 3x3 normal matrix
    */
-  static normalMatrix(mat4: Matrix, out: Matrix3x3): void {
+  static normalMatrix(mat4: Matrix, out: Matrix3x3): void | null {
     const ae = mat4.elements;
     const oe = out.elements;
 
@@ -674,7 +675,7 @@ export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3>
    */
   clone(): Matrix3x3 {
     const e = this.elements;
-    let ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
+    const ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
     return ret;
   }
 

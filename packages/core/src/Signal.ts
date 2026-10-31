@@ -1,16 +1,23 @@
+import { DataObject } from "./base/DataObject";
+import { ignoreClone } from "./clone/CloneDecorators";
+import type { ICloneHook } from "./clone/ICloneHook";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { CloneUtils } from "./clone/CloneUtils";
-import { ignoreClone } from "./clone/CloneManager";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
  * @typeParam T - Tuple type of the signal arguments
  */
-export class Signal<T extends any[] = []> {
+export class Signal<T extends any[] = []> extends DataObject implements ICloneHook<Signal<T>> {
+  // Rebuilt by `_onClone`; must survive even a propagated @deepClone.
   @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
+
+  /** Number of registered listeners. */
+  get listenerCount(): number {
+    return this._listeners.length;
+  }
 
   /**
    * Add a listener for this signal.
@@ -20,9 +27,11 @@ export class Signal<T extends any[] = []> {
   on(fn: (...args: T) => void, target?: any): void;
   /**
    * Add a structured binding listener. Structured bindings support clone remapping.
+   * The target method will be invoked as `method(...signalArgs, ...args)` —
+   * runtime signal arguments come first, bound arguments are appended.
    * @param target - The target component
    * @param methodName - The method name to invoke on the target
-   * @param args - Pre-resolved arguments
+   * @param args - Pre-resolved arguments appended after the runtime signal arguments
    */
   on(target: Component, methodName: string, ...args: any[]): void;
   on(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
@@ -37,9 +46,11 @@ export class Signal<T extends any[] = []> {
   once(fn: (...args: T) => void, target?: any): void;
   /**
    * Add a one-time structured binding listener.
+   * The target method will be invoked as `method(...signalArgs, ...args)` —
+   * runtime signal arguments come first, bound arguments are appended.
    * @param target - The target component
    * @param methodName - The method name to invoke on the target
-   * @param args - Pre-resolved arguments
+   * @param args - Pre-resolved arguments appended after the runtime signal arguments
    */
   once(target: Component, methodName: string, ...args: any[]): void;
   once(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
@@ -122,35 +133,31 @@ export class Signal<T extends any[] = []> {
 
   /**
    * @internal
-   * Clone listeners to target signal, remapping entity/component references.
+   * @inheritdoc
    */
-  _cloneTo(target: Signal<T>, srcRoot: Entity, targetRoot: Entity): void {
+  _onClone(target: Signal<T>, cloneMap: ReadonlyMap<object, object>): void {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed || !listener.methodName) continue;
-      const clonedTarget = CloneUtils.remapComponent(srcRoot, targetRoot, listener.target);
-      if (clonedTarget) {
-        const clonedArgs = this._cloneArguments(listener.arguments, srcRoot, targetRoot);
-        if (listener.once) {
-          target.once(clonedTarget, listener.methodName, ...clonedArgs);
-        } else {
-          target.on(clonedTarget, listener.methodName, ...clonedArgs);
-        }
+      const clonedTarget = <Component>(cloneMap.get(listener.target) ?? listener.target);
+      const clonedArgs = this._cloneArguments(listener.arguments, cloneMap);
+      if (listener.once) {
+        target.once(clonedTarget, listener.methodName, ...clonedArgs);
+      } else {
+        target.on(clonedTarget, listener.methodName, ...clonedArgs);
       }
     }
   }
 
-  private _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
+  private _cloneArguments(args: any[] | undefined, cloneMap: ReadonlyMap<object, object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);
     for (let i = 0; i < len; i++) {
       const arg = args[i];
-      if (arg instanceof Entity) {
-        clonedArgs[i] = CloneUtils.remapEntity(srcRoot, targetRoot, arg);
-      } else if (arg instanceof Component) {
-        clonedArgs[i] = CloneUtils.remapComponent(srcRoot, targetRoot, arg);
+      if (arg instanceof Entity || arg instanceof Component) {
+        clonedArgs[i] = cloneMap.get(arg) ?? arg;
       } else {
         clonedArgs[i] = arg;
       }
@@ -171,7 +178,7 @@ export class Signal<T extends any[] = []> {
       const methodName = targetOrMethodName as string;
       const fn =
         args.length > 0
-          ? (...signalArgs: any[]) => (target as any)[methodName](...args, ...signalArgs)
+          ? (...signalArgs: any[]) => (target as any)[methodName](...signalArgs, ...args)
           : (...signalArgs: any[]) => (target as any)[methodName](...signalArgs);
       this._listeners.push({
         fn: fn as (...args: T) => void,

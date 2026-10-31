@@ -3,7 +3,6 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
@@ -52,7 +51,7 @@ export class PhysXPhysics implements IPhysics {
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
-  private _initializePromise: Promise<void>;
+  private _initializePromise: Promise<void> | null;
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
@@ -68,10 +67,10 @@ export class PhysXPhysics implements IPhysics {
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*FHYHS4_ZL5UAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*2fv0RLMK1d0AAAAAQ4AAAAgAehQnAQ/physx.release.js";
+      "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1787063975729/suyi/physx.release.js";
   }
 
   /**
@@ -83,7 +82,7 @@ export class PhysXPhysics implements IPhysics {
     if (this._initializeState === InitializeState.Initialized) {
       return Promise.resolve();
     } else if (this._initializeState === InitializeState.Initializing) {
-      return this._initializePromise;
+      return this._initializePromise!;
     }
 
     this._initializeState = InitializeState.Initializing;
@@ -152,25 +151,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(
-    physicsManager: PhysXPhysicsManager,
-    onContactBegin?: (collision: ICollision) => void,
-    onContactEnd?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(
-      this,
-      physicsManager,
-      onContactBegin,
-      onContactEnd,
-      onContactStay,
-      onTriggerBegin,
-      onTriggerEnd,
-      onTriggerStay
-    );
+  createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
+    const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
   }
 

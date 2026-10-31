@@ -10,9 +10,8 @@ import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/Scal
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ShaderPass } from "../shader/ShaderPass";
+import { SubShader } from "../shader/SubShader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
-import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import {
@@ -30,7 +29,6 @@ import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
 /**
  * Basic render pipeline.
@@ -42,13 +40,13 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _lastCanvasSize = new Vector2();
 
-  private _internalColorTarget: RenderTarget = null;
+  private _internalColorTarget: RenderTarget | null = null;
   private _cascadedShadowCasterPass: CascadedShadowCasterPass;
   private _depthOnlyPass: DepthOnlyPass;
   private _saoPass: ScalableAmbientObscurancePass;
   private _opaqueTexturePass: OpaqueTexturePass;
   private _finalPass: FinalPass;
-  private _copyBackgroundTexture: Texture2D;
+  private _copyBackgroundTexture: Texture2D | null;
   private _canUseBlitFrameBuffer = false;
   private _shouldCopyBackgroundColor = false;
 
@@ -85,7 +83,7 @@ export class BasicRenderPipeline {
       this._copyBackgroundTexture = null;
     }
 
-    this._camera = null;
+    this._camera = null!;
   }
 
   /**
@@ -99,7 +97,8 @@ export class BasicRenderPipeline {
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.All);
 
     const camera = this._camera;
-    const { scene, engine, renderTarget } = camera;
+    const { engine, renderTarget } = camera;
+    const scene = camera.scene!;
     const independentCanvasEnabled = camera._isIndependentCanvasEnabled();
     const rhi = engine._hardwareRenderer;
     const cullingResults = this._cullingResults;
@@ -122,7 +121,7 @@ export class BasicRenderPipeline {
     this._canUseBlitFrameBuffer = rhi.isWebGL2 && msaaSamples === 1;
 
     // Because internal render target is linear color space, so we should convert srgb background color to linear color space
-    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0).isSRGBColorSpace;
+    const isSRGBBackground = !renderTarget || renderTarget.getColorTexture(0)!.isSRGBColorSpace;
     this._shouldCopyBackgroundColor =
       independentCanvasEnabled &&
       !(finalClearFlags & CameraClearFlags.Color) &&
@@ -132,7 +131,6 @@ export class BasicRenderPipeline {
       this._cascadedShadowCasterPass.onRender(context);
     }
 
-    const batcherManager = engine._batcherManager;
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
@@ -140,6 +138,7 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
+    const batcherManager = engine._batcherManager;
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
@@ -151,9 +150,11 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
+    const pool = engine._renderTargetPool;
+
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
-      let depthFormat: TextureFormat;
+      let depthFormat: TextureFormat | null;
       if (camera.renderTarget) {
         depthFormat = camera.renderTarget._depthFormat;
       } else if (rhi._options.depth && rhi._options.stencil) {
@@ -166,9 +167,7 @@ export class BasicRenderPipeline {
         depthFormat = null;
       }
       const viewport = camera.pixelViewport;
-      const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._internalColorTarget,
+      this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
@@ -183,9 +182,7 @@ export class BasicRenderPipeline {
 
       if (this._shouldCopyBackgroundColor) {
         const colorTexture = camera.renderTarget?.getColorTexture(0);
-        const copyBackgroundTexture = PipelineUtils.recreateTextureIfNeeded(
-          engine,
-          this._copyBackgroundTexture,
+        this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
           colorTexture?.format ?? TextureFormat.R8G8B8A8,
@@ -194,21 +191,6 @@ export class BasicRenderPipeline {
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
-        this._copyBackgroundTexture = copyBackgroundTexture;
-      }
-
-      this._internalColorTarget = internalColorTarget;
-    } else {
-      const internalColorTarget = this._internalColorTarget;
-      const copyBackgroundTexture = this._copyBackgroundTexture;
-      const pool = engine._renderTargetPool;
-      if (internalColorTarget) {
-        pool.freeRenderTarget(internalColorTarget);
-        this._internalColorTarget = null;
-      }
-      if (copyBackgroundTexture) {
-        pool.freeTexture(copyBackgroundTexture);
-        this._copyBackgroundTexture = null;
       }
     }
 
@@ -216,13 +198,23 @@ export class BasicRenderPipeline {
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const saoPass = this._saoPass;
     if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget!);
       saoPass.onRender(context);
     } else {
       this._saoPass.release();
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+
+    // Return the per-frame leases so the next camera with matching shape can reuse them
+    if (this._internalColorTarget) {
+      pool.freeRenderTarget(this._internalColorTarget);
+      this._internalColorTarget = null;
+    }
+    if (this._copyBackgroundTexture) {
+      pool.freeTexture(this._copyBackgroundTexture);
+      this._copyBackgroundTexture = null;
+    }
   }
 
   private _drawRenderPass(
@@ -235,7 +227,8 @@ export class BasicRenderPipeline {
     const cullingResults = this._cullingResults;
     const { opaqueQueue, alphaTestQueue, transparentQueue } = cullingResults;
 
-    const { engine, scene, renderTarget: cameraRenderTarget } = camera;
+    const { engine, renderTarget: cameraRenderTarget } = camera;
+    const scene = camera.scene!;
     const { background } = scene;
 
     const rhi = engine._hardwareRenderer;
@@ -272,11 +265,11 @@ export class BasicRenderPipeline {
       if (keepColorFlag) {
         if (this._shouldCopyBackgroundColor) {
           // Copy RT's color buffer to grab texture
-          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture, camera.viewport);
+          rhi.copyRenderTargetToSubTexture(camera.renderTarget, this._copyBackgroundTexture!, camera.viewport);
           // Then blit grab texture to internal RT's color buffer
           Blitter.blitTexture(
             engine,
-            this._copyBackgroundTexture,
+            this._copyBackgroundTexture!,
             internalColorTarget,
             0,
             undefined,
@@ -309,10 +302,10 @@ export class BasicRenderPipeline {
     // Copy opaque texture
     if (camera.opaqueTextureEnabled) {
       // Should blit to resolve the MSAA
-      colorTarget._blitRenderTarget();
+      colorTarget!._blitRenderTarget();
 
       const opaqueTexturePass = this._opaqueTexturePass;
-      opaqueTexturePass.onConfig(camera, colorTarget.getColorTexture(0));
+      opaqueTexturePass.onConfig(camera, colorTarget!.getColorTexture(0)!);
       opaqueTexturePass.onRender(context);
 
       // Should revert to original render target
@@ -326,14 +319,14 @@ export class BasicRenderPipeline {
     maskManager.clearMask(context, PipelineStage.Forward);
 
     // Output render target of each stage
-    let outputTarget = <RenderTarget>null;
+    let outputTarget: RenderTarget | null = null;
 
     // Post process
     const needFinalPass = camera._needFinalPass();
     const { postProcessManager } = scene;
     if (camera.enablePostProcess && postProcessManager._isValid()) {
       outputTarget = needFinalPass ? postProcessManager._getOutputRenderTarget(camera) : camera.renderTarget;
-      postProcessManager._render(camera, internalColorTarget, outputTarget);
+      postProcessManager._render(camera, internalColorTarget!, outputTarget);
     } else {
       // Maybe internalColorTarget or camera.renderTarget or null
       outputTarget = colorTarget;
@@ -347,7 +340,7 @@ export class BasicRenderPipeline {
     // Final pass
     const finalPass = this._finalPass;
     if (needFinalPass) {
-      finalPass.onConfig(camera, outputTarget);
+      finalPass.onConfig(camera, outputTarget!);
       finalPass.onRender(context);
       outputTarget = cameraRenderTarget;
     } else {
@@ -356,7 +349,7 @@ export class BasicRenderPipeline {
 
     // If output target is not camera's render target(only enable HDR or opaqueTexture), we should blit it to camera's render target
     if (outputTarget !== cameraRenderTarget) {
-      Blitter.blitTexture(engine, <Texture2D>outputTarget.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
+      Blitter.blitTexture(engine, <Texture2D>outputTarget!.getColorTexture(0), cameraRenderTarget, 0, camera.viewport);
     }
 
     cameraRenderTarget?._blitRenderTarget();
@@ -369,84 +362,77 @@ export class BasicRenderPipeline {
    * @param renderElement - Render element
    */
   pushRenderElement(context: RenderContext, renderElement: RenderElement): void {
-    renderElement.renderQueueFlags = RenderQueueFlags.None;
-    const subRenderElements = renderElement.subRenderElements;
-    for (let i = 0, n = subRenderElements.length; i < n; ++i) {
-      const subRenderElement = subRenderElements[i];
-      const { material } = subRenderElement;
-      const { renderStates } = material;
-      const materialSubShader = material.shader.subShaders[0];
-      const replacementShader = context.replacementShader;
-      if (replacementShader) {
-        const replacementSubShaders = replacementShader.subShaders;
-        const { replacementTag } = context;
-        if (replacementTag) {
-          let replacementSuccess = false;
-          for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
-            const subShader = replacementSubShaders[j];
-            if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes, renderStates);
-              replacementSuccess = true;
-            }
+    const { material } = renderElement;
+    const materialSubShader = material.shader.subShaders[0];
+    const replacementShader = context.replacementShader;
+    if (replacementShader) {
+      const replacementSubShaders = replacementShader.subShaders;
+      const { replacementTag } = context;
+      if (replacementTag) {
+        let replacementSuccess = false;
+        for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
+          const subShader = replacementSubShaders[j];
+          if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
+            this._pushRenderElementByType(renderElement, subShader);
+            replacementSuccess = true;
           }
+        }
 
-          if (
-            !replacementSuccess &&
-            context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
-          ) {
-            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
-          }
-        } else {
-          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
+        if (
+          !replacementSuccess &&
+          context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
+        ) {
+          this._pushRenderElementByType(renderElement, materialSubShader);
         }
       } else {
-        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+        this._pushRenderElementByType(renderElement, replacementSubShaders[0]);
       }
+    } else {
+      this._pushRenderElementByType(renderElement, materialSubShader);
     }
   }
 
-  private pushRenderElementByType(
-    renderElement: RenderElement,
-    subRenderElement: SubRenderElement,
-    shaderPasses: ReadonlyArray<ShaderPass>,
-    renderStates: ReadonlyArray<RenderState>
-  ): void {
+  private _pushRenderElementByType(renderElement: RenderElement, subShader: SubShader): void {
+    const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
+    renderElement.subShader = subShader;
+    let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      // Get render queue type
-      let renderQueueType: RenderQueueType;
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
-      if (renderState) {
-        renderQueueType = renderState._getRenderQueueByShaderData(
-          shaderPass._renderStateDataMap,
-          subRenderElement.material.shaderData
-        );
-      } else {
-        renderQueueType = renderStates[i].renderQueueType;
-      }
+      const renderQueueType = renderState._getRenderQueueByShaderData(
+        shaderPass._renderStateDataMap,
+        renderElement.material.shaderData
+      );
 
       const flag = 1 << renderQueueType;
-
-      subRenderElement.shaderPasses = shaderPasses;
-      subRenderElement.renderQueueFlags |= flag;
-
-      if (renderElement.renderQueueFlags & flag) {
+      if (pushedQueueFlags & flag) {
         continue;
+      }
+
+      // First queue keeps the original element; subsequent queues each get an isolated
+      // clone so per-queue batch state (`_isBatched`, `instancedRenderers`) doesn't
+      // leak across queues for multi-pass materials (e.g. Opaque + Transparent)
+      let elementForQueue: RenderElement;
+      if (pushedQueueFlags === RenderQueueFlags.None) {
+        elementForQueue = renderElement;
+      } else {
+        elementForQueue = renderElement.component.engine._renderElementPool.get();
+        elementForQueue._cloneFrom(renderElement);
       }
 
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          cullingResults.opaqueQueue.pushRenderElement(renderElement);
+          cullingResults.opaqueQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.AlphaTest:
-          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
+          cullingResults.alphaTestQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.Transparent:
-          cullingResults.transparentQueue.pushRenderElement(renderElement);
+          cullingResults.transparentQueue.pushRenderElement(elementForQueue);
           break;
       }
-      renderElement.renderQueueFlags |= flag;
+      pushedQueueFlags |= flag;
     }
   }
 
@@ -473,19 +459,15 @@ export class BasicRenderPipeline {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || material.renderState)._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      material.shaderData
-    );
+    const renderState = pass._renderState;
+    renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 
   private _prepareRender(context: RenderContext): void {
     const camera = context.camera;
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
-    const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
+    const { _renderers: renderers, _canvases: canvases } = camera.scene!._componentsManager;
 
     const rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -516,7 +498,10 @@ export class BasicRenderPipeline {
         continue;
       }
       canvas._prepareRender(context);
-      this.pushRenderElement(context, canvas._renderElement);
+      const canvasElements = canvas._batchedRenderElements;
+      for (let j = 0, m = canvasElements.length; j < m; j++) {
+        this.pushRenderElement(context, canvasElements[j]);
+      }
     }
   }
 }

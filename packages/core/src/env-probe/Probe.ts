@@ -41,14 +41,14 @@ export abstract class Probe extends Script {
    */
   protected readonly _isCube: boolean = false;
 
-  private _oriCameraRenderTarget: RenderTarget;
+  private _oriCameraRenderTarget: RenderTarget | null;
   private _renderTarget: RenderTarget;
   private _renderTargetSwap: RenderTarget;
   private _activeRenderTarget: RenderTarget;
   private _camera: Camera;
   private _oriCameraCullingMask: Layer;
 
-  private get _texture(): Texture {
+  private get _texture(): Texture | null {
     return this._activeRenderTarget?.getColorTexture();
   }
 
@@ -56,7 +56,7 @@ export abstract class Probe extends Script {
    * Provide hooks for users to exchange Texture.
    * @remarks Prevent issue: Feedback Loops Between Textures and the Framebuffer.
    */
-  onTextureChange(renderColorTexture: Texture) {}
+  onTextureChange(renderColorTexture: Texture | null) {}
 
   override onBeginRender(camera: Camera): void {
     if (!this.enabled) return;

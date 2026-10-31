@@ -1,213 +1,235 @@
-import { EngineObject, Entity, Loader, Signal, Transform } from "@galacean/engine-core";
-import type {
-  IAssetRef,
-  IBasicType,
-  IClass,
-  IClassType,
-  IComponentRef,
-  IEntity,
-  IEntityRef,
-  IHierarchyFile,
-  IMethod,
-  IMethodParams,
-  IRefEntity,
-  ISignalRef
-} from "../schema";
+import { Component, Entity, Loader } from "@galacean/engine-core";
+import { resolveRefItem } from "../../../schema/refs";
+import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
+  /** @internal shared with HierarchyParser; each use must length=0 -> getComponents -> read -> length=0 synchronously. */
+  static _componentBuffer: Component[] = [];
 
-  parseEntity(entityConfig: IEntity): Promise<Entity> {
-    return this._getEntityByConfig(entityConfig).then((entity) => {
-      entity.isActive = entityConfig.isActive ?? true;
-      const transform = entity.transform;
-      const transformConfig = entityConfig.transform;
-      if (transformConfig) {
-        this.parsePropsAndMethods(transform, transformConfig);
-      } else {
-        const { position, rotation, scale } = entityConfig;
-        if (position) transform.position.copyFrom(position);
-        if (rotation) transform.rotation.copyFrom(rotation);
-        if (scale) transform.scale.copyFrom(scale);
-      }
-      entity.layer = entityConfig.layer ?? entity.layer;
-      // @ts-ignore
-      this._context.type === ParserType.Prefab && entity._markAsTemplate(this._context.resource);
-      return entity;
-    });
-  }
+  constructor(
+    private readonly _context: ParserContext,
+    private readonly _refs: RefItem[]
+  ) {}
 
-  parseClassObject(item: IClass) {
-    const Class = Loader.getClass(item.class);
-    const params = item.constructParams ?? [];
-    return Promise.all(params.map((param) => this.parseBasicType(param)))
-      .then((resultParams) => new Class(...resultParams))
-      .then((instance) => this.parsePropsAndMethods(instance, item));
-  }
-
-  parsePropsAndMethods(instance: any, item: Omit<IClass, "class">) {
-    const promises = [];
-    if (item.methods) {
-      for (let methodName in item.methods) {
-        const methodParams = item.methods[methodName];
-        for (let i = 0, count = methodParams.length; i < count; i++) {
-          promises.push(this.parseMethod(instance, methodName, methodParams[i]));
-        }
-      }
-    }
-
-    if (item.props) {
-      for (let key in item.props) {
-        const value = item.props[key];
-        const promise = this.parseBasicType(value, instance[key]).then((v) => {
-          return (instance[key] = v);
+  /**
+   * Apply v2 props to a component/object instance.
+   * Each prop value is resolved recursively (handling $ref, $number, $type, $class, $entity, $component, $signal).
+   */
+  parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
+    const promises: Promise<any>[] = [];
+    if (props) {
+      for (const key in props) {
+        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
+          instance[key] = v;
         });
         promises.push(promise);
       }
     }
-
     return Promise.all(promises).then(() => instance);
   }
 
-  parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
-    const isMethodObject = ReflectionParser._isMethodObject(methodParams);
-    const params = isMethodObject ? methodParams.params : methodParams;
+  /**
+   * Execute calls sequentially on a target instance.
+   * Call args are resolved with the same v2 value rules as props.
+   */
+  parseCalls(instance: any, calls?: CallSpec[]): Promise<any> {
+    if (!calls?.length) return Promise.resolve(instance);
 
-    return Promise.all(params.map((param) => this.parseBasicType(param))).then((result) => {
-      const methodResult = instance[methodName](...result);
-      if (isMethodObject && methodParams.result) {
-        return this.parsePropsAndMethods(methodResult, methodParams.result);
-      } else {
-        return methodResult;
-      }
-    });
-  }
-
-  parseSignal(signalRef: ISignalRef): Promise<Signal> {
-    const signal = new Signal();
-    return Promise.all(
-      signalRef.listeners.map((listener) =>
-        Promise.all([
-          this.parseBasicType(listener.target),
-          listener.arguments ? Promise.all(listener.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
-        ]).then(([target, resolvedArgs]) => {
-          if (target) {
-            signal.on(target, listener.methodName, ...resolvedArgs);
+    let chain = Promise.resolve();
+    for (let i = 0, n = calls.length; i < n; i++) {
+      const call = calls[i];
+      chain = chain.then(() => {
+        let target = instance;
+        if (call.target !== undefined) {
+          if (!Array.isArray(call.target) || call.target.some((key) => typeof key !== "string" || key.length === 0)) {
+            return Promise.reject(new Error(`Call "${call.method}" target must be an array of non-empty strings`));
           }
-        })
-      )
-    ).then(() => signal);
-  }
-
-  parseBasicType(value: IBasicType, originValue?: any): Promise<any> {
-    if (Array.isArray(value)) {
-      return Promise.all(value.map((item) => this.parseBasicType(item)));
-    } else if (typeof value === "object" && value != null) {
-      if (ReflectionParser._isClassType(value)) {
-        return Promise.resolve(Loader.getClass(value["classType"]));
-      } else if (ReflectionParser._isClass(value)) {
-        // class object
-        return this.parseClassObject(value);
-      } else if (ReflectionParser._isAssetRef(value)) {
-        const { _context: context } = this;
-        // reference object
-        // @ts-ignore
-        return context.resourceManager.getResourceByRef(value).then((resource) => {
-          if (resource && context.type === ParserType.Prefab) {
-            // @ts-ignore
-            context.resource._addDependenceAsset(resource);
-          }
-          return resource;
-        });
-      } else if (ReflectionParser._isComponentRef(value)) {
-        return Promise.resolve(this._context.components.get(value.componentId) ?? null);
-      } else if (ReflectionParser._isEntityRef(value)) {
-        // entity reference
-        return Promise.resolve(this._context.entityMap.get(value.entityId));
-      } else if (ReflectionParser._isSignalRef(value)) {
-        return this.parseSignal(value);
-      } else if (originValue) {
-        const promises: Promise<any>[] = [];
-        for (let key in value as any) {
-          if (key === "methods") {
-            const methods: any = value[key];
-            for (let methodName in methods) {
-              const methodParams = methods[methodName];
-              for (let i = 0, count = methodParams.length; i < count; i++) {
-                const params = methodParams[i];
-                const promise = this.parseMethod(originValue, methodName, params);
-                promises.push(promise);
-              }
-            }
-          } else {
-            promises.push(this.parseBasicType(value[key], originValue[key]).then((v) => (originValue[key] = v)));
-          }
+          for (const key of call.target) target = target?.[key];
         }
-        return Promise.all(promises).then(() => originValue);
-      }
-    }
-    // primitive type
-    return Promise.resolve(value);
-  }
+        const method = target?.[call.method];
+        if (typeof method !== "function") {
+          const path = call.target?.length ? `${call.target.join(".")}.` : "";
+          return Promise.reject(new Error(`Call target does not have method "${path}${call.method}"`));
+        }
 
-  private _getEntityByConfig(entityConfig: IEntity) {
-    // @ts-ignore
-    const assetUrl: string = entityConfig.assetUrl;
-    const engine = this._context.engine;
-
-    if (assetUrl) {
-      return (
-        engine.resourceManager
-          // @ts-ignore
-          .getResourceByRef({
-            url: assetUrl,
-            key: (entityConfig as IRefEntity).key,
-            isClone: (entityConfig as IRefEntity).isClone
-          })
-          .then((entity) => {
-            // @ts-ignore
-            const resource = engine.resourceManager._objectPool[assetUrl];
-            if (resource && this._context.type === ParserType.Prefab) {
-              // @ts-ignore
-              this._context.resource._addDependenceAsset(resource);
+        return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
+          .then((resolvedArgs) => Promise.resolve(method.apply(target, resolvedArgs)))
+          .then((result) => {
+            if (!call.result) return result;
+            if (result == null || (typeof result !== "object" && typeof result !== "function")) {
+              return Promise.reject(
+                new Error(`Call "${call.method}" returned ${result} and cannot be mutated by result`)
+              );
             }
-            entity.name = entityConfig.name;
-            return entity;
-          })
-      );
-    } else {
-      const transform = entityConfig.transform;
-      const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
-      return Promise.resolve(entity);
+            return this.parseMutationBlock(result, call.result);
+          });
+      });
+    }
+
+    return chain.then(() => instance);
+  }
+
+  /**
+   * Apply props before executing calls from the same mutation block.
+   */
+  parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
+    if (!block) return Promise.resolve(target);
+    return this.parseProps(target, block.props)
+      .then(() => this.parseCalls(target, block.calls))
+      .then(() => target);
+  }
+
+  /**
+   * Resolve a v2 value with $ prefix detection.
+   *
+   * Priority:
+   * 1. null/undefined/primitive → passthrough
+   * 2. Array → recurse each element
+   * 3. { $ref }       → asset reference
+   * 4. { $number }    → JSON-safe special number
+   * 5. { $type, $args? } → polymorphic type construct
+   * 6. { $class }     → registered class constructor
+   * 7. { $entity }    → entity reference by path (flat index + optional children descent)
+   * 8. { $component } → component reference
+   * 9. { $signal }    → signal binding
+   * 10. plain object  → recurse values (modify originValue in place if exists)
+   */
+  private _resolveValue(value: unknown, originValue?: any): Promise<any> {
+    if (value == null || typeof value !== "object") return Promise.resolve(value);
+    if (Array.isArray(value)) return Promise.all(value.map((v) => this._resolveValue(v)));
+
+    const obj = value as Record<string, unknown>;
+
+    if ("$args" in obj && !("$type" in obj)) {
+      return Promise.reject(new Error("$args requires $type"));
+    }
+
+    // $ref — asset reference (index into refs array)
+    if ("$ref" in obj) {
+      const { _context: context } = this;
+      let refItem: RefItem;
+      try {
+        refItem = resolveRefItem(this._refs, obj.$ref as number, "ReflectionParser", "$ref");
+      } catch (error) {
+        return Promise.reject(error);
+      }
+      return context.resourceManager.getResourceByRef(refItem).then((resource) => {
+        if (resource && context.type === ParserType.Prefab) {
+          // @ts-ignore
+          context.resource._addDependenceAsset(resource);
+        }
+        return resource;
+      });
+    }
+
+    if ("$number" in obj) {
+      if (Object.keys(obj).length !== 1 || obj.$number !== "Infinity") {
+        return Promise.reject(new Error('$number must be exactly "Infinity"'));
+      }
+      return Promise.resolve(Infinity);
+    }
+
+    // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
+    if ("$type" in obj) {
+      const { $type, $args, ...rest } = obj;
+      if ($args !== undefined && !Array.isArray($args)) {
+        return Promise.reject(new Error("$args must be an array when used with $type"));
+      }
+      const constructorArgs = Array.isArray($args) ? $args : [];
+      return this._resolveRegisteredClass($type, "$type").then((Class) => {
+        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
+          const instance = new Class(...args);
+          return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
+        });
+      });
+    }
+
+    // $class — registered class constructor for factory-style methods.
+    if ("$class" in obj) {
+      return this._resolveRegisteredClass(obj.$class, "$class");
+    }
+
+    // $entity — entity reference by path (first element = flat index, subsequent = children indices)
+    if ("$entity" in obj) {
+      return Promise.resolve(this._resolveEntityRef(obj.$entity as number[]));
+    }
+
+    // $component — component reference: { entity, type, index }
+    if ("$component" in obj) {
+      return Promise.resolve(this._resolveComponent(obj.$component as ComponentRef));
+    }
+
+    // $signal — signal binding: register listeners on the existing Signal instance
+    if ("$signal" in obj) {
+      return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
+    }
+
+    // Plain object — recurse each value, modifying originValue in place or building a new object
+    const target =
+      originValue && typeof originValue === "object" && !Array.isArray(originValue)
+        ? originValue
+        : ({} as Record<string, unknown>);
+    const promises: Promise<any>[] = [];
+    for (const key in obj) {
+      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
+    }
+    return Promise.all(promises).then(() => target);
+  }
+
+  private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {
+    if (typeof value !== "string" || value.length === 0) {
+      throw new Error(`${sentinel} must be a non-empty registered class name string`);
+    }
+
+    const Class = Loader.getClass(value);
+    if (!Class) throw new Error(`Loader.getClass: class "${value}" is not registered`);
+    return Class;
+  }
+
+  /** Promise-adapt {@link _getRegisteredClass} so $type/$class branches can fold into the resolver chain. */
+  private _resolveRegisteredClass(value: unknown, sentinel: "$type" | "$class"): Promise<any> {
+    try {
+      return Promise.resolve(this._getRegisteredClass(value, sentinel));
+    } catch (error) {
+      return Promise.reject(error);
     }
   }
 
-  private static _isClass(value: any): value is IClass {
-    return value["class"] !== undefined;
+  private _resolveSignal(signal: any, listeners: SignalListener[]): Promise<any> {
+    if (!signal || typeof signal.on !== "function") {
+      return Promise.reject(new Error("$signal requires a pre-initialized Signal instance on the target property"));
+    }
+    const promises = listeners.map((listener) => {
+      const targetComponent = this._resolveComponent(listener.target.$component);
+      if (!targetComponent) return Promise.resolve();
+
+      return Promise.all((listener.args ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
+        signal.on(targetComponent, listener.methodName, ...resolvedArgs);
+      });
+    });
+    return Promise.all(promises).then(() => signal);
   }
 
-  private static _isClassType(value: any): value is IClassType {
-    return value["classType"] !== undefined;
+  private _resolveComponent(comp: ComponentRef): Component | null {
+    const entity = this._resolveEntityRef(comp.entity);
+    if (!entity) return null;
+    const type = Loader.getClass(comp.type);
+    if (!type) return null;
+    const buffer = ReflectionParser._componentBuffer;
+    buffer.length = 0;
+    entity.getComponents(type, buffer);
+    const result = buffer[comp.index] ?? null;
+    buffer.length = 0;
+    return result;
   }
 
-  private static _isAssetRef(value: any): value is IAssetRef {
-    return value["url"] !== undefined;
-  }
-
-  private static _isEntityRef(value: any): value is IEntityRef {
-    return value["entityId"] !== undefined;
-  }
-
-  private static _isComponentRef(value: any): value is IComponentRef {
-    return value["ownerId"] !== undefined && value["componentId"] !== undefined;
-  }
-
-  private static _isSignalRef(value: any): value is ISignalRef {
-    return value["listeners"] !== undefined;
-  }
-
-  private static _isMethodObject(value: any): value is IMethod {
-    return Array.isArray(value?.params);
+  private _resolveEntityRef(path: number[]): Entity | null {
+    if (!path || path.length === 0) return null;
+    let entity = this._context.entityInstances[path[0]] ?? null;
+    for (let i = 1, n = path.length; entity && i < n; i++) {
+      entity = entity.children[path[i]] ?? null;
+    }
+    return entity;
   }
 }

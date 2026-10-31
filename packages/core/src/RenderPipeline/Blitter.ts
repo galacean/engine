@@ -39,7 +39,7 @@ export class Blitter {
     destination: RenderTarget | null,
     mipLevel: number = 0,
     viewport: Vector4 = PipelineUtils.defaultViewport,
-    material: Material = null,
+    material: Material | null = null,
     passIndex = 0,
     sourceScaleOffset?: Vector4
   ): void {
@@ -78,18 +78,14 @@ export class Blitter {
 
     program.bind();
     program.groupingOtherUniformBlock();
-    program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
+    program.uploadAll(program.sceneUniformBlock, camera.scene!.shaderData);
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadAll(program.rendererUniformBlock, rendererShaderData);
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || blitMaterial.renderState)._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      blitMaterial.shaderData
-    );
+    const renderState = pass._renderState;
+    renderState._applyStates(engine, false, pass._renderStateDataMap, blitMaterial.shaderData);
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);
     rendererShaderData.setTexture(Blitter._blitTextureProperty, null);

@@ -7,10 +7,10 @@ import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
- * Store a collection of Keyframes that can be evaluated over time.
+ * Animates resource references. A `null` keyframe clears the reference.
  */
-@StaticInterfaceImplement<IAnimationCurveCalculator<ReferResource>>()
-export class AnimationRefCurve extends AnimationCurve<ReferResource> {
+@StaticInterfaceImplement<IAnimationCurveCalculator<ReferResource | null>>()
+export class AnimationRefCurve extends AnimationCurve<ReferResource | null> {
   /** @internal */
   static _isCopyMode: boolean = false;
   /** @internal */
@@ -19,7 +19,7 @@ export class AnimationRefCurve extends AnimationCurve<ReferResource> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<ReferResource>): void {}
+  static _initializeOwner(owner: AnimationCurveOwner<ReferResource | null>): void {}
 
   /**
    * @internal
@@ -29,7 +29,7 @@ export class AnimationRefCurve extends AnimationCurve<ReferResource> {
   /**
    * @internal
    */
-  static _setValue(value: ReferResource): ReferResource {
+  static _setValue(value: ReferResource | null): ReferResource | null {
     return value;
   }
 

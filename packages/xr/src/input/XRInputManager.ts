@@ -76,7 +76,7 @@ export class XRInputManager {
       controller.down = controller.up = 0;
     }
     // Handle events and update tracked devices
-    const { _platformSession: platformSession } = this._xrManager.sessionManager;
+    const platformSession = this._xrManager.sessionManager._platformSession!;
     const { events: platformEvents } = platformSession;
     for (let i = 0, n = platformEvents.length; i < n; i++) {
       this._handleEvent(platformEvents[i]);
@@ -143,19 +143,19 @@ export class XRInputManager {
         // @ts-ignore
         const canvas = <HTMLCanvasElement>engine.canvas._webCanvas;
         const { clientWidth, clientHeight } = canvas;
-        const clientX = clientWidth * (event.x + 1) * 0.5;
-        const clientY = clientHeight * (event.y + 1) * 0.5;
+        const clientX = clientWidth * (event.x! + 1) * 0.5;
+        const clientY = clientHeight * (event.y! + 1) * 0.5;
         // @ts-ignore
         switch (event.type) {
           case XRInputEventType.SelectStart:
-            target.dispatchEvent(this._makeUpPointerEvent("pointerdown", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerdown", event.id!, clientX, clientY));
             break;
           case XRInputEventType.Select:
-            target.dispatchEvent(this._makeUpPointerEvent("pointermove", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointermove", event.id!, clientX, clientY));
             break;
           case XRInputEventType.SelectEnd:
-            target.dispatchEvent(this._makeUpPointerEvent("pointerup", event.id, clientX, clientY));
-            target.dispatchEvent(this._makeUpPointerEvent("pointerleave", event.id, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerup", event.id!, clientX, clientY));
+            target.dispatchEvent(this._makeUpPointerEvent("pointerleave", event.id!, clientX, clientY));
             break;
           default:
             break;

@@ -10,7 +10,7 @@ export class StateMachineScript extends EngineObject {
   _state: AnimatorState;
 
   constructor() {
-    super(null);
+    super(null!);
   }
 
   /**

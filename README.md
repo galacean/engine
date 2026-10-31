@@ -1,6 +1,6 @@
 # Galacean Engine
 
-<a href="https://www.npmjs.com/package/@galacean/engine"><img src="https://img.shields.io/npm/v/@galacean/engine"/></a>
+[![npm-version](https://img.shields.io/npm/v/@galacean/engine)](https://www.npmjs.com/package/@galacean/engine)
 ![npm-size](https://img.shields.io/bundlephobia/minzip/@galacean/engine)
 ![npm-download](https://img.shields.io/npm/dm/@galacean/engine)
 [![codecov](https://codecov.io/gh/galacean/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/galacean/engine)
@@ -22,12 +22,13 @@
 ## Usage
 
 ### Using Editor
-We recommend using [**Editor**](https://galacean.antgroup.com/editor)  for a streamlined workflow that enables seamless integration between artists and developers. Its intuitive visual tools allow artists to quickly create scenes and enable developers to write custom logic, with convenient platform export. You can even create projects based on pre-built case templates.
+
+We recommend using [**Editor**](https://galacean.antgroup.com/editor) for a streamlined workflow that enables seamless integration between artists and developers. Its intuitive visual tools allow artists to quickly create scenes and enable developers to write custom logic, with convenient platform export. You can even create projects based on pre-built case templates.
 
 ![image](https://github.com/user-attachments/assets/18f63fef-696c-4f9f-b44a-d8b7af481a3e)
 
-
 ### Using Pure Code
+
 If you want to build your project using pure code via runtime, install the engine from npm:
 
 ```sh
@@ -39,9 +40,8 @@ Create a simple scene:
 ```typescript
 import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, WebGLEngine, PrimitiveMesh } from "@galacean/engine";
 
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
+// Create engine by passing in the HTMLCanvasElement id (canvas auto-resizes by default)
 const engine = await WebGLEngine.create({ canvas: "canvas-id" });
-engine.canvas.resizeByClientSize();
 
 // Get scene and create root entity
 const scene = engine.sceneManager.activeScene;
@@ -73,7 +73,7 @@ engine.run();
 
 This repository contains the runtime's source code and documentation. Everyone is welcome to contribute—whether you find a bug, have a feature request, or want to tackle a task from our roadmap, please get in touch.
 
-Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/galacean/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
+Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) before submitting changes.
 
 ## Clone
 
@@ -91,7 +91,7 @@ git clone git@github.com:galacean/engine.git
 
 Prerequisites:
 
-- [Node.js v15.0.0+](https://nodejs.org/en/) and NPM (Install by official website)
+- [Node.js v20.19.0+](https://nodejs.org/en/) (Install by official website)
 - [PNPM](https://pnpm.io/) (Install globally by `npm install -g pnpm`)
 
 In the folder where you have cloned the repository, install the build dependencies using pnpm:
@@ -100,10 +100,10 @@ In the folder where you have cloned the repository, install the build dependenci
 pnpm install
 ```
 
-Then, to build the source, using npm:
+Then, to build the source, using pnpm:
 
 ```sh
-npm run b:all
+pnpm run b:all
 ```
 
 ## Links

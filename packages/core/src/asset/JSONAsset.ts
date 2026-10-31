@@ -5,10 +5,10 @@ import { EngineObject } from "../base/EngineObject";
  */
 export class JSONAsset extends EngineObject {
   /** The parsed JSON data. */
-  data: Object;
+  data: object;
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.data = null;
+    this.data = null!;
   }
 }

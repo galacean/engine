@@ -1,6 +1,16 @@
-import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
+import {
+  Camera,
+  CameraClearFlags,
+  Entity,
+  Layer,
+  ReplacementFailureStrategy,
+  Shader,
+  ShaderLanguage,
+  ShaderPass,
+  SubShader
+} from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {
@@ -77,18 +87,9 @@ describe("camera test", function () {
     camera.orthographicSize = expectedOrthographicSize;
     expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
     camera.orthographicSize = orthographicSize;
-    const testVS = `    
-    void main() {
-      gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
-    }`;
-
-    const testFS = `    
-    void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    `;
-
-    const shader = Shader.create("TestReplaceShader", testVS, testFS);
+    const shader = Shader.create("TestReplaceShader", [
+      new SubShader("Default", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES100)])
+    ]);
 
     // Test ReplacementShader
     camera.setReplacementShader(shader, "CanReplace");
@@ -117,7 +118,7 @@ describe("camera test", function () {
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
     // @ts-ignore
-    expect(camera._isIndependentCanvasEnabled()).to.eq(true);// Because sRGB pass
+    expect(camera._isIndependentCanvasEnabled()).to.eq(true); // Because sRGB pass
     // set enableHDR
     camera.enableHDR = true;
     expect(camera.enableHDR).to.eq(true);
@@ -170,13 +171,12 @@ describe("camera test", function () {
     expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.1, "Result z should match expected value");
 
     const webCanvas = engine.canvas;
-    webCanvas.width = 100;
-    webCanvas.height = 1000;
+    webCanvas.setResolution(100, 1000);
     camera.viewportToWorldPoint(viewportPoint, worldPoint);
     expect(worldPoint.x).to.be.closeTo(-1.73, 0.1, "Result x should match expected value");
     expect(worldPoint.y).to.be.closeTo(17.32, 0.1, "Result y should match expected value");
     expect(worldPoint.z).to.be.closeTo(-30, 0.1, "Result z should match expected value");
-    webCanvas.width = webCanvas.height = 256;
+    webCanvas.setResolution(256, 256);
   });
 
   it("viewport to world point, while isOrthographic = true", () => {
@@ -245,10 +245,64 @@ describe("camera test", function () {
     expect(Math.abs(ray.direction.z)).not.eq(Infinity);
   });
 
+  it("screenPointToRay should ignore inherited scale from parent entity", () => {
+    // Simulate UICanvas scenario: camera is a child of a scaled parent entity
+    const scene = engine.sceneManager.scenes[0];
+    const parentEntity = scene.createRootEntity("scaledParent");
+    parentEntity.transform.setScale(1.5, 1.5, 1.5);
+    parentEntity.transform.setPosition(100, 200, 0);
+
+    const childEntity = parentEntity.createChild("cameraChild");
+    childEntity.transform.setPosition(0, 0, 500);
+    const scaledCamera = childEntity.addComponent(Camera);
+    scaledCamera.isOrthographic = true;
+    scaledCamera.orthographicSize = 5;
+    scaledCamera.nearClipPlane = 0.1;
+    scaledCamera.farClipPlane = 1000;
+
+    // A camera without inherited scale at the same world position/rotation for comparison
+    const refEntity = scene.createRootEntity("refCamera");
+    refEntity.transform.setWorldPosition(
+      childEntity.transform.worldPosition.x,
+      childEntity.transform.worldPosition.y,
+      childEntity.transform.worldPosition.z
+    );
+    const refCamera = refEntity.addComponent(Camera);
+    refCamera.isOrthographic = true;
+    refCamera.orthographicSize = 5;
+    refCamera.nearClipPlane = 0.1;
+    refCamera.farClipPlane = 1000;
+
+    // Both cameras should produce the same ray for the same screen point
+    const screenPoint = new Vector2(128, 128);
+    const rayScaled = scaledCamera.screenPointToRay(screenPoint, new Ray());
+    const rayRef = refCamera.screenPointToRay(screenPoint, new Ray());
+
+    expect(rayScaled.origin.x).to.be.closeTo(rayRef.origin.x, 0.001);
+    expect(rayScaled.origin.y).to.be.closeTo(rayRef.origin.y, 0.001);
+    expect(rayScaled.direction.x).to.be.closeTo(rayRef.direction.x, 0.001);
+    expect(rayScaled.direction.y).to.be.closeTo(rayRef.direction.y, 0.001);
+    expect(rayScaled.direction.z).to.be.closeTo(rayRef.direction.z, 0.001);
+
+    // Round-trip: worldToViewportPoint -> viewportToWorldPoint should be accurate
+    const worldPoint = new Vector3(105, 210, 0);
+    const viewportPoint = scaledCamera.worldToViewportPoint(worldPoint, new Vector3());
+    const recoveredPoint = scaledCamera.viewportToWorldPoint(viewportPoint, new Vector3());
+    expect(recoveredPoint.x).to.be.closeTo(worldPoint.x, 0.01);
+    expect(recoveredPoint.y).to.be.closeTo(worldPoint.y, 0.01);
+    expect(recoveredPoint.z).to.be.closeTo(worldPoint.z, 0.01);
+
+    // Clean up
+    scaledCamera.destroy();
+    refCamera.destroy();
+    parentEntity.destroy();
+    refEntity.destroy();
+  });
+
   /*
     Attention:
-    Below methods will change the default view of current Camera. 
-    If executed in advance, it will affect the expected results of other test cases, 
+    Below methods will change the default view of current Camera.
+    If executed in advance, it will affect the expected results of other test cases,
     so it should be placed at the end of the test case execution.
   */
   it("projection matrix", () => {
@@ -365,14 +419,14 @@ describe("camera test", function () {
     camera.nearClipPlane = 1;
     camera.farClipPlane = 255;
     const cloneCamera = camera.entity.clone().getComponent(Camera);
-    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic);
     expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
     expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
     expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
     // @ts-ignore
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
-  })
+  });
 
   it("destroy test", () => {
     camera.destroy();

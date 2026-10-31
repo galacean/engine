@@ -12,18 +12,11 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import {
-  CanvasRenderMode,
-  Image,
-  Mask,
-  Text,
-  UICanvas,
-  UITransform
-} from "../../packages/ui/dist/module.js";
+import { CanvasRenderMode, Image, Mask, Text, UICanvas, UITransform } from "../../packages/ui/dist/module.js";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setAutoResolution();
 
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor = new Color(0.03, 0.04, 0.07, 1);

@@ -2,7 +2,7 @@ import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * Spot light.
@@ -97,14 +97,14 @@ export class SpotLight extends Light {
    * @internal
    */
   override _onEnableInScene(): void {
-    this.scene._lightManager._attachSpotLight(this);
+    this.scene!._lightManager._attachSpotLight(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    this.scene._lightManager._detachSpotLight(this);
+    this.scene!._lightManager._detachSpotLight(this);
   }
 }
 

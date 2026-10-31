@@ -30,14 +30,14 @@ export abstract class Loader<T> {
    * @param obj - class object
    * @returns class name
    */
-  public static getClassName(obj: Object): string {
+  public static getClassName(obj: object): string | undefined {
     return this._classNameMap.get(obj);
   }
 
   private static _engineObjects: { [key: string]: any } = {};
-  private static _classNameMap: Map<Object, string> = new Map();
+  private static _classNameMap: Map<object, string> = new Map();
 
   constructor(public readonly useCache: boolean) {}
-  initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void>;
+  initialize?(engine: Engine, configuration: EngineConfiguration): Promise<void> | void;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T>;
 }

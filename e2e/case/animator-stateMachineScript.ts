@@ -2,7 +2,6 @@
  * @title AnimatorStateScript
  * @category Animation
  */
-import { OrbitControl } from "@galacean/engine-toolkit";
 import {
   Animator,
   AnimatorState,
@@ -21,7 +20,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -29,7 +28,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(
@@ -56,9 +55,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
 
       const animator = defaultSceneRoot.getComponent(Animator);
-      const state = animator.findAnimatorState("walk");
+      const walkState = animator.animatorController.layers[0].stateMachine.findStateByName("walk");
+      if (!walkState) {
+        throw new Error("Animator state not found: walk");
+      }
 
-      state.addStateMachineScript(
+      walkState.addStateMachineScript(
         class extends StateMachineScript {
           onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "0";

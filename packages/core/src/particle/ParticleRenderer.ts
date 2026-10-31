@@ -1,18 +1,18 @@
 import { BoundingBox, Vector3 } from "@galacean/engine-math";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
+import type { Entity } from "../Entity";
+import type { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
-import { ModelMesh } from "../mesh/ModelMesh";
+import { ignoreClone } from "../clone/CloneDecorators";
+import type { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { ParticleBoundsUpdateFlags } from "./ParticleBounds";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
-import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import type { ParticleSystemManager } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -21,36 +21,41 @@ export class ParticleRenderer extends Renderer {
   private static readonly _billboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
   private static readonly _stretchedBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_STRETCHED_BILLBOARD");
   private static readonly _horizontalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_HORIZONTAL_BILLBOARD");
-  private static readonly _verticalBillboardModeMacro = ShaderMacro.getByName("RENDERER_MODE_VERTICAL_BILLBOARD");
   private static readonly _meshModeMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
 
   private static readonly _pivotOffsetProperty = ShaderProperty.getByName("renderer_PivotOffset");
   private static readonly _lengthScale = ShaderProperty.getByName("renderer_StretchedBillboardLengthScale");
   private static readonly _speedScale = ShaderProperty.getByName("renderer_StretchedBillboardSpeedScale");
-  private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
-  @deepClone
   readonly generator: ParticleGenerator;
   /** Specifies how much particles stretch depending on their velocity. */
   velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
   lengthScale = 2;
   /** The pivot of particle. */
-  @shallowClone
   pivot = new Vector3();
 
   /** @internal */
   @ignoreClone
-  _generatorBounds = new BoundingBox();
+  _particleSystemManager: ParticleSystemManager | null = null;
   /** @internal */
   @ignoreClone
-  _transformedBounds = new BoundingBox();
-
-  private _renderMode: ParticleRenderMode;
-  private _currentRenderModeMacro: ShaderMacro;
+  _particleSystemIndex = -1;
+  /** @internal */
+  @ignoreClone
+  _particleUpdateIndegree = 0;
+  /** @internal */
+  @ignoreClone
+  _subEmitterDependencyFrame = -1;
+  @ignoreClone
   private _mesh: ModelMesh;
-  private _supportInstancedArrays: boolean;
+
+  @ignoreClone
+  private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
+  @ignoreClone
+  private _currentRenderModeMacro: ShaderMacro | null;
+  private readonly _supportInstancedArrays: boolean;
 
   /**
    * Specifies how particles are rendered.
@@ -64,7 +69,7 @@ export class ParticleRenderer extends Renderer {
       const lastRenderMode = this._renderMode;
       this._renderMode = value;
 
-      let renderModeMacro = <ShaderMacro>null;
+      let renderModeMacro: ShaderMacro | null = null;
       switch (value) {
         case ParticleRenderMode.Billboard:
           renderModeMacro = ParticleRenderer._billboardModeMacro;
@@ -73,13 +78,10 @@ export class ParticleRenderer extends Renderer {
           renderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
           break;
         case ParticleRenderMode.HorizontalBillboard:
-          throw "Not implemented";
           renderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:
           throw "Not implemented";
-          renderModeMacro = ParticleRenderer._verticalBillboardModeMacro;
-          break;
         case ParticleRenderMode.Mesh:
           renderModeMacro = ParticleRenderer._meshModeMacro;
           break;
@@ -87,17 +89,19 @@ export class ParticleRenderer extends Renderer {
 
       if (this._currentRenderModeMacro !== renderModeMacro) {
         const { shaderData } = this;
-        this._currentRenderModeMacro && shaderData.disableMacro(this._currentRenderModeMacro);
-        renderModeMacro && shaderData.enableMacro(renderModeMacro);
+        if (this._currentRenderModeMacro) {
+          shaderData.disableMacro(this._currentRenderModeMacro);
+        }
+        if (renderModeMacro) {
+          shaderData.enableMacro(renderModeMacro);
+        }
         this._currentRenderModeMacro = renderModeMacro;
       }
 
       const wasMeshMode = lastRenderMode === ParticleRenderMode.Mesh;
       const isMeshMode = value === ParticleRenderMode.Mesh;
       if (wasMeshMode !== isMeshMode) {
-        if (!isMeshMode || this.mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -114,7 +118,9 @@ export class ParticleRenderer extends Renderer {
     const lastMesh = this._mesh;
     if (lastMesh !== value) {
       this._mesh = value;
-      lastMesh && this._addResourceReferCount(lastMesh, -1);
+      if (lastMesh) {
+        this._addResourceReferCount(lastMesh, -1);
+      }
 
       if (value) {
         if (value.subMeshes.length !== 1) {
@@ -122,9 +128,9 @@ export class ParticleRenderer extends Renderer {
         }
 
         this._addResourceReferCount(value, 1);
-        if (this.renderMode === ParticleRenderMode.Mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+      }
+      if (this.renderMode === ParticleRenderMode.Mesh) {
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -149,8 +155,10 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onEnable(): void {
-    if (this.generator.main.playOnEnabled) {
-      this.generator.play(false);
+    const generator = this.generator;
+    generator._setTransformFeedback();
+    if (generator.main.playOnEnabled) {
+      generator.play(false);
     }
   }
 
@@ -158,7 +166,26 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onDisable(): void {
+    this.generator.inheritVelocity._resyncEmitterVelocity();
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    if (this._supportInstancedArrays) {
+      this.scene!._componentsManager._particleSystemManager.add(this);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    this._particleSystemManager?.remove(this);
+    super._onDisableInScene();
   }
 
   /**
@@ -175,49 +202,21 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Don't need to update transform shader data, temp solution
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    const { generator } = this;
 
-    // Using `isAlive` instead of `firstActiveElement !== firstFreeElement`
-    // Because `firstActiveElement !== firstFreeElement` will cause bounds is merely a point, and cannot be culled forever
-    // Must generate bounds even when there is no particle but in play state
-    if (!generator.isAlive) {
-      const worldPosition = this.entity.transform.worldPosition;
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-      return;
-    }
-    if (generator.main.simulationSpace === ParticleSimulationSpace.Local) {
-      generator._updateBoundsSimulationLocal(worldBounds);
-    } else {
-      if (this._isContainDirtyFlag(ParticleUpdateFlags.TransformVolume)) {
-        generator._generateTransformedBounds();
-        this._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
-      }
-      generator._updateBoundsSimulationWorld(worldBounds);
-    }
+  protected override _updateBounds(worldBounds: BoundingBox): void {
+    this.generator._bounds.update(worldBounds);
   }
 
   protected override _update(context: RenderContext): void {
-    const generator = this.generator;
-    generator._update(this.engine.time.deltaTime);
-
-    // No particles to render
-    if (generator._firstActiveElement === generator._firstFreeElement) {
-      return;
-    }
-
+    super._update(context);
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
-    shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
-
-    this.generator._updateShaderData(shaderData);
   }
 
   protected override _render(context: RenderContext): void {
@@ -228,8 +227,13 @@ export class ParticleRenderer extends Renderer {
     if (!aliveParticleCount) {
       return;
     }
-
-    generator._primitive.instanceCount = aliveParticleCount;
+    // Transform Feedback: render all slots (instance buffer not compacted, dead particles discarded in shader)
+    // Non-Transform Feedback: render only alive particles (instance buffer compacted)
+    generator._primitive.instanceCount = generator._feedbackSimulator
+      ? generator._firstActiveElement <= generator._firstFreeElement
+        ? generator._firstFreeElement
+        : generator._currentParticleCount
+      : aliveParticleCount;
 
     let material = this.getMaterial();
     if (!material || (this._renderMode === ParticleRenderMode.Mesh && !this._mesh)) {
@@ -242,17 +246,16 @@ export class ParticleRenderer extends Renderer {
 
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, generator._primitive, generator._subPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, generator._primitive, generator._subPrimitive);
+    renderElement.priority = this.priority;
+    renderElement.distanceForSort = this._distanceForSort;
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   protected override _onDestroy(): void {
     const mesh = this._mesh;
-    if (mesh) {
-      mesh.destroyed || this._addResourceReferCount(mesh, -1);
+    if (mesh && !mesh.destroyed) {
+      this._addResourceReferCount(mesh, -1);
     }
     super._onDestroy();
     this.generator._destroy();
@@ -260,15 +263,25 @@ export class ParticleRenderer extends Renderer {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  _isContainDirtyFlag(type: number): boolean {
+  override _onClone(target: ParticleRenderer): void {
+    super._onClone(target);
+    target.mesh = this._mesh;
+    target.renderMode = this._renderMode;
+  }
+
+  /**
+   * @internal
+   */
+  _hasDirtyFlag(type: number): boolean {
     return (this._dirtyUpdateFlag & type) != 0;
   }
 
   /**
    * @internal
    */
-  _setDirtyFlagFalse(type: number): void {
+  _clearDirtyFlag(type: number): void {
     this._dirtyUpdateFlag &= ~type;
   }
 
@@ -285,24 +298,16 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
-      ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+      ParticleBoundsUpdateFlags.GeneratorVolume |
+      ParticleBoundsUpdateFlags.TransformVolume |
+      RendererUpdateFlags.WorldVolume;
   }
 
   /**
    * @internal
    */
   @ignoreClone
-  override _onTransformChanged(type: TransformModifyFlags): void {
-    this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
+  override _onTransformChanged(): void {
+    this._dirtyUpdateFlag |= ParticleBoundsUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }
-}
-
-/**
- * @internal
- */
-export enum ParticleUpdateFlags {
-  /** On World Transform Changed */
-  TransformVolume = 0x2,
-  /** On Generator Bounds Related Params Changed */
-  GeneratorVolume = 0x4
 }

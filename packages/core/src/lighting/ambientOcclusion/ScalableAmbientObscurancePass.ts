@@ -6,19 +6,16 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { Shader, ShaderData, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
+import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
-import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
-import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
 /**
  * @internal
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  static readonly SHADER_NAME = "ScalableAmbientOcclusion";
+  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
 
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");
@@ -37,9 +34,9 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
 
   private readonly _material: Material;
 
-  private _saoRenderTarget?: RenderTarget;
-  private _depthRenderTarget: RenderTarget;
-  private _blurRenderTarget: RenderTarget;
+  private _saoRenderTarget?: RenderTarget | null;
+  private _depthRenderTarget: RenderTarget | null;
+  private _blurRenderTarget: RenderTarget | null;
 
   private _aoSpiralSampleCount: number;
   private _blurStepPixels: number;
@@ -98,7 +95,8 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   override onRender(context: RenderContext): void {
     const { engine } = this;
     const { camera } = context;
-    const { viewport, scene, pixelViewport } = camera;
+    const { viewport, pixelViewport } = camera;
+    const scene = camera.scene!;
     const { ambientOcclusion } = scene;
     const { shaderData } = this._material;
     const { projectionMatrix } = context;
@@ -139,10 +137,11 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     shaderData.setFloat(ScalableAmbientObscurancePass._projectionScaleRadiusProp, radius * projectionScale);
     shaderData.setFloat(ScalableAmbientObscurancePass._farPlaneOverEdgeDistanceProp, farPlaneOverEdgeDistance);
 
-    const { _saoRenderTarget: saoTarget, _material: material } = this;
+    const { _material: material } = this;
+    const saoTarget = this._saoRenderTarget!;
 
     // Draw ambient occlusion texture
-    const sourceTexture = <Texture2D>this._depthRenderTarget.depthTexture;
+    const sourceTexture = <Texture2D>this._depthRenderTarget!.depthTexture;
     Blitter.blitTexture(engine, sourceTexture, saoTarget, 0, undefined, material, 0);
 
     // Horizontal blur, saoRenderTarget -> blurRenderTarget
@@ -151,7 +150,7 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     Blitter.blitTexture(engine, saoTexture, this._blurRenderTarget, 0, undefined, material, 1, offsetX);
 
     // Vertical blur, blurRenderTarget -> saoRenderTarget
-    const horizontalBlur = <Texture2D>this._blurRenderTarget.getColorTexture();
+    const horizontalBlur = <Texture2D>this._blurRenderTarget!.getColorTexture();
     const offsetY = this._offsetY.set(1, 1, 0, this._blurStepPixels / saoTexture.height);
     Blitter.blitTexture(engine, horizontalBlur, saoTarget, 0, undefined, material, 1, offsetY);
 
@@ -222,8 +221,3 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._quality = quality;
   }
 }
-
-Shader.create(ScalableAmbientObscurancePass.SHADER_NAME, [
-  new ShaderPass("ScalableAmbientOcclusion", blitVs, scalableAmbientOcclusionFS),
-  new ShaderPass("BilateralBlur", blitVs, bilateralBlurFS)
-]);

@@ -202,8 +202,8 @@ export class Texture2DArray extends Texture {
         elementIndex,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         0,
         <ArrayBufferView>mipLevelOrOut
       );
@@ -212,10 +212,10 @@ export class Texture2DArray extends Texture {
         elementIndex,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
-        width,
-        height,
+        width!,
+        height!,
         <number>mipLevelOrOut,
-        out
+        out!
       );
     }
   }

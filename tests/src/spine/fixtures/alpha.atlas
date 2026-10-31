@@ -1,0 +1,27 @@
+alpha-pma.png
+size: 8,8
+format: RGBA8888
+filter: MipMapLinearLinear,Linear
+repeat: none
+pma: true
+quad
+  rotate: false
+  xy: 0,0
+  size: 8,8
+  orig: 8,8
+  offset: 0,0
+  index: -1
+
+alpha-straight.png
+size: 8,8
+format: RGBA8888
+filter: MipMapLinearLinear,Linear
+repeat: none
+pma: false
+alt
+  rotate: false
+  xy: 0,0
+  size: 8,8
+  orig: 8,8
+  offset: 0,0
+  index: -1

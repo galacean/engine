@@ -99,7 +99,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
-    const { _rotation: rotation, _axis: axis, _physXRotation: physXRotation } = this;
+    const { _rotation: rotation, _physXRotation: physXRotation } = this;
+    const axis = this._axis!;
 
     this._upAxis = upAxis;
     switch (this._upAxis) {

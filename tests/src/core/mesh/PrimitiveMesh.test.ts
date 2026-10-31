@@ -1,5 +1,5 @@
 import { Camera, GLCapabilityType, PrimitiveMesh } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, expect, it } from "vitest";
 

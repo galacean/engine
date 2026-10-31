@@ -16,18 +16,13 @@ module.exports = {
       browserPath: "dist/browser.min.js"
     },
     {
-      name: "@galacean/engine-physics-lite",
-      path: "packages/physics-lite",
-      browserPath: "dist/browser.min.js"
-    },
-    {
       name: "@galacean/engine-physics-physx",
       path: "packages/physics-physx",
       browserPath: "dist/browser.min.js"
     },
     {
-      name: "@galacean/engine-shaderlab",
-      path: "packages/shader-lab",
+      name: "@galacean/engine-shader-compiler",
+      path: "packages/shader-compiler",
       browserPath: "dist/browser.min.js"
     },
     {
@@ -55,13 +50,6 @@ module.exports = {
           browserPath: "dist/umd/browser.js"
         }
       ]
-    },
-    {
-      name: "@galacean/engine-lottie",
-      repo: "https://github.com/galacean/engine-lottie.git",
-      packagePath: ".",
-      browserPath: "dist/browser.js",
-      buildCommand: "pnpm build"
     },
     {
       name: "@galacean/engine-spine",

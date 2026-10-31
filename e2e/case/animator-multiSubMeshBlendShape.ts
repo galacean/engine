@@ -8,7 +8,6 @@ import {
   DirectLight,
   Logger,
   SkinnedMeshRenderer,
-  SystemInfo,
   Vector3,
   WebGLEngine,
   GLTFResource,
@@ -23,8 +22,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-  engine.canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -45,8 +42,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((asset) => {
       const { defaultSceneRoot } = asset;
       rootEntity.addChild(defaultSceneRoot);
-      const entity = defaultSceneRoot;
-      defaultSceneRoot.transform.rotation = new Vector3(-90, -0, 0);
+      const entity = defaultSceneRoot.children[0];
+      entity.transform.rotation = new Vector3(-90, -0, 0);
       const animator = entity.addComponent(Animator);
 
       animator.animatorController = new AnimatorController(engine);

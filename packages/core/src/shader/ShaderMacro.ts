@@ -26,7 +26,7 @@ export class ShaderMacro {
    * @param value - Value of the shader macro
    * @returns Shader macro
    */
-  static getByName(name: string, value: string): ShaderMacro;
+  static getByName(name: string, value: string | undefined): ShaderMacro;
 
   static getByName(name: string, value?: string): ShaderMacro {
     const key = value ? name + ` ` + value : name;
@@ -71,7 +71,7 @@ export class ShaderMacro {
   /** Name. */
   readonly name: string;
   /** Value. */
-  readonly value: string;
+  readonly value: string | undefined;
 
   /** @internal */
   _nameId: number;
@@ -80,7 +80,7 @@ export class ShaderMacro {
   /** @internal */
   _maskValue: number;
 
-  private constructor(name: string, value: string, maskIndex: number, maskValue: number) {
+  private constructor(name: string, value: string | undefined, maskIndex: number, maskValue: number) {
     this.name = name;
     this._maskIndex = maskIndex;
     this._maskValue = maskValue;

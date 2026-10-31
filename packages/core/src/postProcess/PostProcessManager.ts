@@ -24,15 +24,15 @@ export class PostProcessManager {
   _postProcessPassNeedSorting = false;
 
   private _activePostProcesses: PostProcess[] = [];
-  private _swapRenderTarget: RenderTarget;
+  private _swapRenderTarget: RenderTarget | null;
   private _srcRenderTarget: RenderTarget;
-  private _destRenderTarget: RenderTarget;
+  private _destRenderTarget: RenderTarget | null;
   private _currentSourceRenderTarget: RenderTarget;
-  private _currentDestRenderTarget: RenderTarget;
+  private _currentDestRenderTarget: RenderTarget | null;
   private _blendEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _defaultEffectMap = new Map<typeof PostProcessEffect, PostProcessEffect>();
   private _remainActivePassCount = 0;
-  private _outputRenderTarget: RenderTarget;
+  private _outputRenderTarget: RenderTarget | null;
 
   /**
    * Create a PostProcessManager.
@@ -169,7 +169,7 @@ export class PostProcessManager {
   /**
    * @internal
    */
-  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget): void {
+  _render(camera: Camera, srcRenderTarget: RenderTarget, destRenderTarget: RenderTarget | null): void {
     const engine = this.scene.engine;
     this._srcRenderTarget = srcRenderTarget;
     this._destRenderTarget = destRenderTarget;
@@ -289,7 +289,7 @@ export class PostProcessManager {
     const currentSourceRenderTarget = this._currentSourceRenderTarget;
     const currentDestRenderTarget = this._currentDestRenderTarget;
 
-    this._currentSourceRenderTarget = currentDestRenderTarget;
+    this._currentSourceRenderTarget = currentDestRenderTarget!;
 
     if (this._remainActivePassCount > 1) {
       this._currentDestRenderTarget = currentSourceRenderTarget;

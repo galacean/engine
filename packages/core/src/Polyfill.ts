@@ -7,6 +7,7 @@ export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
+    Polyfill._registerOfflineAudioContext();
     Polyfill._registerTextMetrics();
     Polyfill._registerPromiseFinally();
   }
@@ -42,34 +43,47 @@ export class Polyfill {
     if (!window.AudioContext && (window as any).webkitAudioContext) {
       Logger.info("Polyfill window.AudioContext");
       window.AudioContext = (window as any).webkitAudioContext;
-
-      const originalDecodeAudioData = AudioContext.prototype.decodeAudioData as (
-        audioData: ArrayBuffer,
-        successCallback?: DecodeSuccessCallback | null,
-        errorCallback?: DecodeErrorCallback | null
-      ) => void;
-
-      AudioContext.prototype.decodeAudioData = function (
-        arrayBuffer: ArrayBuffer,
-        successCallback?: DecodeSuccessCallback | null,
-        errorCallback?: DecodeErrorCallback | null
-      ): Promise<AudioBuffer> {
-        return new Promise<AudioBuffer>((resolve, reject) => {
-          originalDecodeAudioData.call(
-            this,
-            arrayBuffer,
-            (buffer: AudioBuffer) => {
-              successCallback?.(buffer);
-              resolve(buffer);
-            },
-            (error: DOMException) => {
-              errorCallback?.(error);
-              reject(error);
-            }
-          );
-        });
-      };
+      Polyfill._promisifyDecodeAudioData(AudioContext.prototype);
     }
+  }
+
+  private static _registerOfflineAudioContext(): void {
+    // iOS 14.0 and earlier expose only webkitOfflineAudioContext, with callback-form decodeAudioData
+    if (!window.OfflineAudioContext && (window as any).webkitOfflineAudioContext) {
+      Logger.info("Polyfill window.OfflineAudioContext");
+      window.OfflineAudioContext = (window as any).webkitOfflineAudioContext;
+      Polyfill._promisifyDecodeAudioData(OfflineAudioContext.prototype);
+    }
+  }
+
+  // Wrap the old callback-form decodeAudioData (on prefixed iOS contexts) into the modern Promise form
+  private static _promisifyDecodeAudioData(proto: BaseAudioContext): void {
+    const originalDecodeAudioData = proto.decodeAudioData as (
+      audioData: ArrayBuffer,
+      successCallback?: DecodeSuccessCallback | null,
+      errorCallback?: DecodeErrorCallback | null
+    ) => void;
+
+    proto.decodeAudioData = function (
+      arrayBuffer: ArrayBuffer,
+      successCallback?: DecodeSuccessCallback | null,
+      errorCallback?: DecodeErrorCallback | null
+    ): Promise<AudioBuffer> {
+      return new Promise<AudioBuffer>((resolve, reject) => {
+        originalDecodeAudioData.call(
+          this,
+          arrayBuffer,
+          (buffer: AudioBuffer) => {
+            successCallback?.(buffer);
+            resolve(buffer);
+          },
+          (error: DOMException) => {
+            errorCallback?.(error);
+            reject(error);
+          }
+        );
+      });
+    };
   }
 
   private static _registerTextMetrics(): void {

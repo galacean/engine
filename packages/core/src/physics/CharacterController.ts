@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 
 /**
  * The character controllers.
@@ -13,7 +13,6 @@ import { deepClone, ignoreClone } from "../clone/CloneManager";
 export class CharacterController extends Collider {
   private _stepOffset = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  @deepClone
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit = 45;
 
@@ -126,7 +125,7 @@ export class CharacterController extends Collider {
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
-        shapes[i]._nativeShape.setWorldScale(worldScale);
+        shapes[i]._nativeShape!.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
@@ -144,14 +143,14 @@ export class CharacterController extends Collider {
    * @internal
    */
   override _onEnableInScene() {
-    this.scene.physics._addCharacterController(this);
+    this.scene!.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene() {
-    this.scene.physics._removeCharacterController(this);
+    this.scene!.physics._removeCharacterController(this);
   }
 
   protected override _syncNative(): void {

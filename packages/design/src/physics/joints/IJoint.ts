@@ -8,7 +8,7 @@ export interface IJoint {
   /**
    * The connected collider.
    */
-  setConnectedCollider(value: ICollider): void;
+  setConnectedCollider(value: ICollider | null | undefined): void;
 
   /**
    * The connected anchor position.

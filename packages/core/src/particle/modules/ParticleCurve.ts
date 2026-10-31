@@ -1,13 +1,12 @@
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 
 /**
  * Particle curve.
  */
-export class ParticleCurve {
-  @ignoreClone
+export class ParticleCurve extends DataObject {
   private _updateManager = new UpdateFlagManager();
-  @deepClone
   private _keys = new Array<CurveKey>();
   @ignoreClone
   private _typeArray: Float32Array;
@@ -27,6 +26,7 @@ export class ParticleCurve {
    * @param keys - The keys of the curve
    */
   constructor(...keys: CurveKey[]) {
+    super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
 
     for (let i = 0, n = keys.length; i < n; i++) {
@@ -55,7 +55,7 @@ export class ParticleCurve {
       throw new Error("Curve can only have 4 keys");
     }
 
-    const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value) : timeOrKey;
+    const key = typeof timeOrKey === "number" ? new CurveKey(timeOrKey, value!) : timeOrKey;
     this._addKey(keys, key);
     key._registerOnValueChanged(this._updateDispatch);
     this._updateDispatch();
@@ -116,6 +116,39 @@ export class ParticleCurve {
   /**
    * @internal
    */
+  _evaluateCumulative(normalizedAge: number): number {
+    const { keys } = this;
+    const { length } = keys;
+    if (length === 0) return 0;
+    // Single key is a constant curve (matches `_evaluate`); its integral is value × age.
+    if (length === 1) return keys[0].value * normalizedAge;
+
+    const firstKey = keys[0];
+    if (normalizedAge <= firstKey.time) return firstKey.value * normalizedAge;
+
+    let cumulative = firstKey.value * firstKey.time;
+    for (let i = 1; i < length; i++) {
+      const key = keys[i];
+      const lastKey = keys[i - 1];
+      const segmentTime = key.time - lastKey.time;
+      if (segmentTime <= 0) continue;
+
+      if (key.time >= normalizedAge) {
+        const offsetTime = normalizedAge - lastKey.time;
+        const t = offsetTime / segmentTime;
+        const currentValue = lastKey.value + (key.value - lastKey.value) * t;
+        cumulative += (lastKey.value + currentValue) * 0.5 * offsetTime;
+        return cumulative;
+      }
+      cumulative += (lastKey.value + key.value) * 0.5 * segmentTime;
+    }
+    const lastKey = keys[length - 1];
+    return cumulative + lastKey.value * (normalizedAge - lastKey.time);
+  }
+
+  /**
+   * @internal
+   */
   _getTypeArray(): Float32Array {
     const typeArray = (this._typeArray ||= new Float32Array(4 * 2));
     if (this._typeArrayDirty) {
@@ -162,8 +195,7 @@ export class ParticleCurve {
 /**
  * The key of the curve.
  */
-export class CurveKey {
-  @ignoreClone
+export class CurveKey extends DataObject {
   private _updateManager = new UpdateFlagManager();
   private _time: number;
   private _value: number;
@@ -200,6 +232,7 @@ export class CurveKey {
    * Create a new key.
    */
   constructor(time: number, value: number) {
+    super();
     this._time = time;
     this._value = value;
   }

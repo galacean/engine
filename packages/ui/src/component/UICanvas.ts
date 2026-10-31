@@ -7,19 +7,20 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  Layer,
   Logger,
   MathUtil,
   Matrix,
   Ray,
+  RenderElement,
   Vector2,
   Vector3,
-  assignmentClone,
-  deepClone,
   dependentComponents,
-  ignoreClone,
-  CloneUtils
+  ignoreClone
 } from "@galacean/engine";
+import type { ICloneHook } from "@galacean/engine";
 import { Utils } from "../Utils";
+import { UIBatchSorter } from "./UIBatchSorter";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";
@@ -36,7 +37,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
  * handling rendering and events based on it.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements IElement {
+export class UICanvas extends Component implements IElement, ICloneHook<UICanvas> {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
@@ -48,8 +49,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _canvasIndex: number = -1;
   /** @internal */
-  @ignoreClone
-  _rootCanvas: UICanvas;
+  _rootCanvas: UICanvas | null;
   /** @internal */
   @ignoreClone
   _indexInRootCanvas: number = -1;
@@ -65,7 +65,10 @@ export class UICanvas extends Component implements IElement {
   _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
-  _renderElement: any;
+  _renderElements: RenderElement[] = [];
+  /** @internal */
+  @ignoreClone
+  _batchedRenderElements: RenderElement[] = [];
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
@@ -76,34 +79,26 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IElement> = new DisorderedArray<IElement>();
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
   private _camera: Camera;
-  @ignoreClone
-  private _cameraObserver: Camera;
-  @assignmentClone
+  private _cameraObserver: Camera | null;
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @assignmentClone
   private _sortOrder: number = 0;
-  @assignmentClone
   private _distance: number = 10;
-  @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @assignmentClone
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;
   @ignoreClone
   private _center: Vector3 = new Vector3();
-  @ignoreClone
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
-   * The conversion ratio between reference resolution and unit for UI elements in this canvas.
+   * Local UI units per sprite world unit for sliced borders and tile sizing.
+   * One glyph pixel maps to `referenceResolutionPerUnit / 100` local UI units.
    */
   get referenceResolutionPerUnit(): number {
     return this._referenceResolutionPerUnit;
@@ -119,7 +114,8 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * The reference resolution of the UI canvas in `ScreenSpaceCamera` and `ScreenSpaceOverlay` mode.
+   * Design resolution in pixels for {@link CanvasRenderMode.ScreenSpaceCamera} and {@link CanvasRenderMode.ScreenSpaceOverlay}.
+   * The root canvas adapts it to the camera viewport or engine canvas using {@link UICanvas.resolutionAdaptationMode}.
    */
   get referenceResolution(): Vector2 {
     return this._referenceResolution;
@@ -212,7 +208,7 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * The rendering order priority of the UI canvas in `ScreenSpaceOverlay` mode.
+   * The rendering priority of the canvas.
    */
   get sortOrder(): number {
     return this._sortOrder;
@@ -222,8 +218,7 @@ export class UICanvas extends Component implements IElement {
     if (this._sortOrder !== value) {
       this._sortOrder = value;
       this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay &&
-        // @ts-ignore
-        (this.scene._componentsManager._overlayCanvasesSortingFlag = true);
+        (this.scene!._componentsManager._overlayCanvasesSortingDirty = true);
     }
   }
 
@@ -262,11 +257,15 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _raycast(ray: Ray, out: UIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+  _raycast(ray: Ray, out: UIHitResult, distance: number, cullingMask: Layer): boolean {
     const renderers = this._getRenderers();
     for (let i = renderers.length - 1; i >= 0; i--) {
       const element = renderers[i];
-      if (element.raycastEnabled && element._raycast(ray, out, distance)) {
+      if (
+        (cullingMask & element.entity.layer) !== 0 &&
+        element.raycastEnabled &&
+        element._raycast(ray, out, distance)
+      ) {
         return true;
       }
     }
@@ -281,7 +280,7 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _getRootCanvas(): UICanvas {
+  _getRootCanvas(): UICanvas | null {
     return this._rootCanvas;
   }
 
@@ -296,9 +295,11 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canDispatchEvent(camera: Camera): boolean {
-    const realMode = this._realRenderMode;
-    if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
+    if (this._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
+    }
+    if (!(camera.cullingMask & this.entity.layer)) {
+      return false;
     }
     const assignedCamera = this._camera;
     // @ts-ignore
@@ -312,20 +313,17 @@ export class UICanvas extends Component implements IElement {
     const { engine, _realRenderMode: mode } = this;
     const { enableFrustumCulling, cullingMask, _frustum: frustum } = context.camera;
     const { frameCount } = engine.time;
-    // @ts-ignore
-    const renderElement = (this._renderElement = engine._renderElementPool.get());
+    const renderElements = this._renderElements;
+    renderElements.length = 0;
     const virtualCamera = context.virtualCamera;
     this._updateSortDistance(virtualCamera.isOrthographic, virtualCamera.position, virtualCamera.forward);
-    renderElement.set(this.sortOrder, this._sortDistance);
     const { width, height } = engine.canvas;
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      // Filter by camera culling mask
       if (!(cullingMask & renderer.entity.layer)) {
         continue;
       }
-      // Filter by camera frustum
       if (enableFrustumCulling) {
         switch (mode) {
           case CanvasRenderMode.ScreenSpaceOverlay:
@@ -346,6 +344,14 @@ export class UICanvas extends Component implements IElement {
       }
       renderer._prepareRender(context);
       renderer._renderFrameCount = frameCount;
+    }
+
+    const batchedRenderElements = this._batchedRenderElements;
+    batchedRenderElements.length = 0;
+    UIBatchSorter.sort(renderElements, this.entity.transform.worldMatrix);
+    (engine as any)._batcherManager.batch(renderElements, batchedRenderElements);
+    for (let i = 0, n = batchedRenderElements.length; i < n; i++) {
+      batchedRenderElements[i].subDistancePriority = i;
     }
   }
 
@@ -373,7 +379,9 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
     const entity = this.entity;
     // @ts-ignore
@@ -383,10 +391,20 @@ export class UICanvas extends Component implements IElement {
     Utils.setRootCanvas(this, rootCanvas);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisable(): void {
+    this._renderElements.length = 0;
+    this._batchedRenderElements.length = 0;
   }
 
   /**
@@ -414,13 +432,10 @@ export class UICanvas extends Component implements IElement {
 
   /**
    * @internal
+   * @inheritdoc
    */
-  _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
+  _onClone(target: UICanvas): void {
     target.renderMode = this._renderMode;
-    const camera = this._camera;
-    if (camera) {
-      target.camera = CloneUtils.remapComponent(srcRoot, targetRoot, camera);
-    }
   }
 
   private _getRenderers(): UIRenderer[] {
@@ -476,7 +491,7 @@ export class UICanvas extends Component implements IElement {
       curHeight = canvas.height;
       curWidth = canvas.width;
     }
-    let expectX: number, expectY: number, expectZ: number;
+    let expectX!: number, expectY!: number, expectZ!: number;
     switch (this._resolutionAdaptationMode) {
       case ResolutionAdaptationMode.WidthAdaptation:
         expectX = expectY = expectZ = curWidth / width;
@@ -514,14 +529,14 @@ export class UICanvas extends Component implements IElement {
     entity: Entity,
     renderers: UIRenderer[],
     depth = 0,
-    group: UIGroup = null,
+    group: UIGroup | null = null,
     rectMaskCount: number = 0
   ): number {
     // @ts-ignore
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
     const tempRectMaskList = UICanvas._tempRectMaskList;
-    let rectMask: RectMask2D = null;
+    let rectMask: RectMask2D | null = null;
     let groupAbleCount = 0;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -567,15 +582,11 @@ export class UICanvas extends Component implements IElement {
     if (preCamera !== camera) {
       this._cameraObserver = camera;
       if (preCamera) {
-        // @ts-ignore
         preCamera.entity._updateFlagManager.removeListener(this._onCameraTransformListener);
-        // @ts-ignore
         preCamera._unRegisterModifyListener(this._onCameraModifyListener);
       }
       if (camera) {
-        // @ts-ignore
         camera.entity._updateFlagManager.addListener(this._onCameraTransformListener);
-        // @ts-ignore
         camera._registerModifyListener(this._onCameraModifyListener);
       }
     }
@@ -612,12 +623,10 @@ export class UICanvas extends Component implements IElement {
   }
 
   private _addCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.addListener(this._onCanvasSizeListener);
   }
 
   private _removeCanvasListener(): void {
-    // @ts-ignore
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
@@ -695,8 +704,7 @@ export class UICanvas extends Component implements IElement {
     const preRealMode = this._realRenderMode;
     if (preRealMode !== curRealMode) {
       this._realRenderMode = curRealMode;
-      // @ts-ignore
-      const componentsManager = this.scene._componentsManager;
+      const componentsManager = this.scene!._componentsManager;
       switch (preRealMode) {
         case CanvasRenderMode.ScreenSpaceOverlay:
           this._removeCanvasListener();
@@ -722,7 +730,7 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  private _isSameOrChildEntity(cameraEntity: Entity): boolean {
+  private _isSameOrChildEntity(cameraEntity: Entity | null): boolean {
     const canvasEntity = this.entity;
     while (cameraEntity) {
       if (cameraEntity === canvasEntity) return true;

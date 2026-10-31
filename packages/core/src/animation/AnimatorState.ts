@@ -27,7 +27,7 @@ export class AnimatorState {
   private _engine: Engine;
   private _clipStartTime = 0;
   private _clipEndTime = 1;
-  private _clip: AnimationClip;
+  private _clip: AnimationClip | null | undefined;
 
   /**
    * The transitions that are going out of the state.
@@ -39,11 +39,11 @@ export class AnimatorState {
   /**
    * The clip that is being played by this animator state.
    */
-  get clip(): AnimationClip {
+  get clip(): AnimationClip | null | undefined {
     return this._clip;
   }
 
-  set clip(clip: AnimationClip) {
+  set clip(clip: AnimationClip | null | undefined) {
     const lastClip = this._clip;
     if (lastClip === clip) {
       return;
@@ -190,9 +190,9 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _getDuration(): number {
+  _getDuration(): number | null {
     if (this.clip) {
-      return (this._clipEndTime - this._clipStartTime) * this.clip.length;
+      return (this._clipEndTime - this._clipStartTime) * this.clip!.length;
     }
     return null;
   }
@@ -227,14 +227,14 @@ export class AnimatorState {
    * @internal
    */
   _getClipActualStartTime(): number {
-    return this._clipStartTime * this.clip.length;
+    return this._clipStartTime * this.clip!.length;
   }
 
   /**
    * @internal
    */
   _getClipActualEndTime(): number {
-    return this._clipEndTime * this.clip.length;
+    return this._clipEndTime * this.clip!.length;
   }
 
   /**

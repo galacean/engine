@@ -15,18 +15,17 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(
@@ -54,6 +53,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator);
 
       const state = animator.findAnimatorState("walk");
+      if (!state) {
+        throw new Error("Animator state not found: walk");
+      }
       const clip = state.clip;
 
       const event0 = new AnimationEvent();

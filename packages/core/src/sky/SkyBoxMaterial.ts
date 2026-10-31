@@ -3,8 +3,6 @@ import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { Shader } from "../shader/Shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { CompareFunction } from "../shader/enums/CompareFunction";
-import { CullMode } from "../shader/enums/CullMode";
 import { TextureCube } from "../texture";
 
 /**
@@ -65,10 +63,7 @@ export class SkyBoxMaterial extends Material {
   }
 
   constructor(engine: Engine) {
-    super(engine, Shader.find("skybox"));
-
-    this.renderState.rasterState.cullMode = CullMode.Off;
-    this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    super(engine, Shader.find("Sky/Skybox"));
 
     this.shaderData.setFloat(SkyBoxMaterial._rotationProp, 0);
     this.shaderData.setFloat(SkyBoxMaterial._exposureProp, 1);

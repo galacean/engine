@@ -56,8 +56,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     } else {
       gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
       gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
-      gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat, dataType, colorBuffer);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment!);
+      gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat!, dataType!, colorBuffer);
     }
   }
 
@@ -88,8 +88,8 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       (<Exclude<TexImageSource, VideoFrame>>imageSource).width ?? (imageSource as unknown as VideoFrame).codedWidth,
       (<Exclude<TexImageSource, VideoFrame>>imageSource).height ?? (imageSource as unknown as VideoFrame).codedHeight,
       1,
-      baseFormat,
-      dataType,
+      baseFormat!,
+      dataType!,
       imageSource
     );
   }
@@ -112,10 +112,10 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error("Unable to read compressed texture");
     }
 
-    gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment);
+    gl.pixelStorei(gl.PACK_ALIGNMENT, formatDetail.alignment!);
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
     gl.framebufferTextureLayer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, this._glTexture, mipLevel, elementIndex);
-    gl.readPixels(x, y, width, height, formatDetail.baseFormat, formatDetail.dataType, out);
+    gl.readPixels(x, y, width, height, formatDetail.baseFormat!, formatDetail.dataType!, out);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 

@@ -16,7 +16,7 @@ In the editor, simply follow these steps to set the skybox for the background:
 
 ### 1. Create Skybox Texture
 
-> You can download free HDR maps from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/)
+> You can download free HDR maps from [Poly Haven](https://polyhaven.com/)
 
 A skybox texture is a [cube texture](/en/docs/graphics/texture/cube/). After preparing the HDR, follow the path **[Asset Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube(.hdr)** -> **Choose the corresponding HDR map** -> **Cube texture asset creation complete**.
 
@@ -33,31 +33,6 @@ After creating the cube texture asset, follow the path **[Asset Panel](/en/docs/
 Finally, follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the material created in the second step** -> **Set Mesh to the built-in Cuboid** to see the background of the scene change to the skybox.
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original" />
-
-### Code to Set Skybox
-
-```typescript
-// 创建天空盒纹理
-const textureCube = await engine.resourceManager.load<TextureCube>({
-  urls: [
-    "px - right 图片 url",
-    "nx - left 图片 url",
-    "py - top 图片 url",
-    "ny - bottom 图片 url",
-    "pz - front 图片 url",
-    "nz - back 图片 url",
-  ],
-  type: AssetType.TextureCube,
-});
-// 创建天空盒材质
-const skyMaterial = new SkyBoxMaterial(engine);
-skyMaterial.texture = textureCube;
-// 设置天空盒
-const background = scene.background;
-background.mode = BackgroundMode.Sky;
-background.sky.material = skyMaterial;
-background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
-```
 
 ## Setting Procedural Sky
 

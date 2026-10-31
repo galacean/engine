@@ -4,6 +4,7 @@ import { ISpriteAssembler } from "./ISpriteAssembler";
 import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
+ * @internal
  * Assemble vertex data for the sprite renderer in sliced mode.
  */
 @StaticInterfaceImplement<ISpriteAssembler>()
@@ -20,7 +21,7 @@ export class SlicedSpriteAssembler {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
-    const subChunk = manager.allocateSubChunk(16);
+    const subChunk = manager.allocateSubChunk(16)!;
     subChunk.indices = SlicedSpriteAssembler._rectangleTriangles;
     renderer._subChunk = subChunk;
   }
@@ -35,7 +36,7 @@ export class SlicedSpriteAssembler {
     flipY: boolean,
     referenceResolutionPerUnit: number = 1
   ): void {
-    const { sprite } = renderer;
+    const sprite = renderer.sprite!;
     const { border } = sprite;
     // Update local positions.
     const spritePositions = sprite._getPositions();
@@ -106,7 +107,7 @@ export class SlicedSpriteAssembler {
     //  0 - 4 - 8  - 12
     // ------------------------
     // Assemble position and uv.
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start; i < 4; i++) {
       const rowValue = row[i];
@@ -126,9 +127,9 @@ export class SlicedSpriteAssembler {
   }
 
   static updateUVs(renderer: ISpriteRenderer): void {
-    const subChunk = renderer._subChunk;
+    const subChunk = renderer._subChunk!;
     const vertices = subChunk.chunk.vertices;
-    const spriteUVs = renderer.sprite._getUVs();
+    const spriteUVs = renderer.sprite!._getUVs();
     for (let i = 0, o = subChunk.vertexArea.start + 3; i < 4; i++) {
       const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++, o += 9) {
@@ -139,8 +140,8 @@ export class SlicedSpriteAssembler {
   }
 
   static updateColor(renderer: ISpriteRenderer, alpha: number): void {
-    const subChunk = renderer._subChunk;
-    const { r, g, b, a } = renderer.color;
+    const subChunk = renderer._subChunk!;
+    const { r, g, b, a } = renderer.color!;
     const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 16; ++i, o += 9) {

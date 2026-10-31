@@ -10,7 +10,7 @@ import {
   TextureFormat
 } from "@galacean/engine-core";
 import { Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { debug } from "console";
 import { beforeEach, describe, expect, it } from "vitest";
 

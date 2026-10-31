@@ -121,7 +121,7 @@ class CustomScript extends Script {
   a:boolean = false;
   @assignmentClone
   b:number = 1;
-  @shallowClone
+  @deepClone
   c:Vector3[] = [new Vector3(0,0,0)];
 }
 ```
@@ -135,7 +135,7 @@ class CustomScript extends Script{
   a:boolean = false;
   @assignmentClone
   b:number = 1;
-  @shallowClone
+  @deepClone
   c:Vector3[] = [new Vector3(0,0,0)];
 }
 ```

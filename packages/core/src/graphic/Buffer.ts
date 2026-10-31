@@ -13,13 +13,14 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 export class Buffer extends GraphicsResource {
   /** @internal */
   _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _platformBuffer: IPlatformBuffer;
 
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
-  private _platformBuffer: IPlatformBuffer;
   private _readable: boolean;
-  private _data: Uint8Array;
+  private _data: Uint8Array | null;
 
   /**
    * Buffer binding flag.
@@ -56,7 +57,7 @@ export class Buffer extends GraphicsResource {
    * Buffer must be readable.
    * If the data you get is modified, must call `setData()` to update buffer to GPU.
    */
-  get data(): Uint8Array {
+  get data(): Uint8Array | null {
     if (this._readable) {
       return this._data;
     } else {
@@ -172,7 +173,7 @@ export class Buffer extends GraphicsResource {
     data: ArrayBuffer | ArrayBufferView,
     bufferByteOffset: number,
     dataOffset: number,
-    dataLength: number,
+    dataLength: number | undefined,
     options: SetDataOptions
   ): void;
 
@@ -188,13 +189,13 @@ export class Buffer extends GraphicsResource {
     if (this._readable) {
       const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
 
-      if (this._data.buffer !== arrayBuffer) {
+      if (this._data!.buffer !== arrayBuffer) {
         const byteSize = (<TypedArray>data).BYTES_PER_ELEMENT || 1; // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
         const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
         const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
         const byteOffset = isArrayBufferView ? (<ArrayBufferView>data).byteOffset + dataOffset * byteSize : dataOffset;
         const srcData = new Uint8Array(arrayBuffer, byteOffset, dataByteLength);
-        this._data.set(srcData, bufferByteOffset);
+        this._data!.set(srcData, bufferByteOffset);
       }
     }
     this._isContentLost = false;
@@ -228,6 +229,17 @@ export class Buffer extends GraphicsResource {
   }
 
   /**
+   * Copy data from another buffer on the GPU.
+   * @param srcBuffer - Source buffer
+   * @param srcByteOffset - Byte offset in the source buffer
+   * @param dstByteOffset - Byte offset in this buffer
+   * @param byteLength - Number of bytes to copy
+   */
+  copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+    this._platformBuffer.copyFromBuffer(srcBuffer._platformBuffer, srcByteOffset, dstByteOffset, byteLength);
+  }
+
+  /**
    * Mark buffer as readable, the `data` property will be not accessible anymore.
    */
   markAsUnreadable(): void {
@@ -235,6 +247,9 @@ export class Buffer extends GraphicsResource {
     this._readable = false;
   }
 
+  /**
+   * @internal
+   */
   override _rebuild(): void {
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
       this._type,

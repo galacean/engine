@@ -15,8 +15,8 @@ export class CharRenderInfo implements IPoolElement {
   indexInChunk: number;
 
   dispose(): void {
-    this.texture = null;
-    this.localPositions = null;
-    this.uvs = null;
+    this.texture = null!;
+    this.localPositions = null!;
+    this.uvs = null!;
   }
 }

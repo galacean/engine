@@ -25,14 +25,14 @@ export class XRManager {
   /**
    * @internal
    */
-  _getRequestAnimationFrame(): (callback: FrameRequestCallback) => number {
+  _getRequestAnimationFrame(): ((callback: FrameRequestCallback) => number) | null {
     return null;
   }
 
   /**
    * @internal
    */
-  _getCancelAnimationFrame(): (id: number) => void {
+  _getCancelAnimationFrame(): ((id: number) => void) | null {
     return null;
   }
   /**

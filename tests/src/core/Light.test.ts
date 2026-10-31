@@ -14,7 +14,7 @@ import {
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 
 import { ShadowType } from "@galacean/engine-core";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

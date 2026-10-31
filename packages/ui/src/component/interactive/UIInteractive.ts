@@ -1,4 +1,4 @@
-import { CloneUtils, Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -11,7 +11,6 @@ import { Transition } from "./transition/Transition";
  */
 export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
@@ -23,7 +22,6 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _group: UIGroup;
   /** @internal */
   @ignoreClone
@@ -42,9 +40,7 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
-  @ignoreClone
   protected _transitions: Transition[] = [];
-  @assignmentClone
   protected _interactive: boolean = true;
   @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
@@ -164,24 +160,6 @@ export class UIInteractive extends Script implements IGroupAble {
     }
   }
 
-  // @ts-ignore
-  override _cloneTo(target: UIInteractive, srcRoot: Entity, targetRoot: Entity): void {
-    const transitions = this._transitions;
-    for (let i = 0, n = transitions.length; i < n; i++) {
-      const srcTransition = transitions[i];
-      const dstTransition = new (transitions[i].constructor as new () => Transition)();
-      dstTransition.normal = srcTransition.normal;
-      dstTransition.pressed = srcTransition.pressed;
-      dstTransition.hover = srcTransition.hover;
-      dstTransition.disabled = srcTransition.disabled;
-      const transitionTarget = srcTransition.target;
-      if (transitionTarget) {
-        dstTransition.target = CloneUtils.remapComponent(srcRoot, targetRoot, transitionTarget);
-      }
-      target.addTransition(dstTransition);
-    }
-  }
-
   /**
    * @internal
    */
@@ -198,18 +176,20 @@ export class UIInteractive extends Script implements IGroupAble {
     return this._group;
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onEnableInScene(): void {
-    // @ts-ignore
     super._onEnableInScene();
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
     this._updateState(true);
   }
 
-  // @ts-ignore
+  /**
+   * @internal
+   */
   override _onDisableInScene(): void {
-    // @ts-ignore
     super._onDisableInScene();
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);

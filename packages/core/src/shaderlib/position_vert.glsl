@@ -1,1 +1,0 @@
-    gl_Position = renderer_MVPMat * position;

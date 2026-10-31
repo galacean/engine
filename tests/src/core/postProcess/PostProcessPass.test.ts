@@ -8,7 +8,7 @@ import {
   Scene,
   Texture2D
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 class CustomPass extends PostProcessPass {

@@ -1,6 +1,6 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { UICanvas, UIGroup } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -8,8 +8,7 @@ describe("UIGroup", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 

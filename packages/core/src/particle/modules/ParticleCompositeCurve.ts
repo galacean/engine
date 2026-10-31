@@ -1,5 +1,6 @@
+import { DataObject } from "../../base/DataObject";
 import { Vector2 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -7,15 +8,14 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
 /**
  * Particle composite curve.
  */
-export class ParticleCompositeCurve {
-  @ignoreClone
+export class ParticleCompositeCurve extends DataObject {
+  private static _minMaxRange = new Vector2();
+
   private _updateManager = new UpdateFlagManager();
   private _mode = ParticleCurveMode.Constant;
   private _constantMin = 0;
   private _constantMax = 0;
-  @deepClone
   private _curveMin: ParticleCurve;
-  @deepClone
   private _curveMax: ParticleCurve;
   @ignoreClone
   private _updateDispatch: () => void;
@@ -140,9 +140,10 @@ export class ParticleCompositeCurve {
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
   constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+    super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
     if (typeof constantOrCurve === "number") {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.constantMin = constantOrCurve;
         this.constantMax = <number>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoConstants;
@@ -151,7 +152,7 @@ export class ParticleCompositeCurve {
         this.mode = ParticleCurveMode.Constant;
       }
     } else {
-      if (constantMaxOrCurveMax) {
+      if (constantMaxOrCurveMax !== undefined) {
         this.curveMin = constantOrCurve;
         this.curveMax = <ParticleCurve>constantMaxOrCurveMax;
         this.mode = ParticleCurveMode.TwoCurves;
@@ -169,19 +170,38 @@ export class ParticleCompositeCurve {
    * @returns - The result curve value
    */
 
-  evaluate(time: number, lerpFactor: number): number {
+  evaluate(time: number | undefined, lerpFactor: number | undefined): number {
     switch (this.mode) {
       case ParticleCurveMode.Constant:
         return this.constant;
       case ParticleCurveMode.TwoConstants:
-        return this.constantMin + (this.constantMax - this.constantMin) * lerpFactor;
+        return this.constantMin + (this.constantMax - this.constantMin) * lerpFactor!;
       case ParticleCurveMode.Curve:
-        return this.curve?._evaluate(time);
+        return this.curve?._evaluate(time!);
       case ParticleCurveMode.TwoCurves:
-        const min = this.curveMin?._evaluate(time);
-        return min + (this.curveMax?._evaluate(time) - min) * lerpFactor;
+        const min = this.curveMin?._evaluate(time!);
+        return min + (this.curveMax?._evaluate(time!) - min) * lerpFactor!;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateCumulative(normalizedAge: number, lerpFactor: number | undefined): number {
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        return this.constantMax * normalizedAge;
+      case ParticleCurveMode.TwoConstants:
+        return (this.constantMin + (this.constantMax - this.constantMin) * lerpFactor!) * normalizedAge;
+      case ParticleCurveMode.Curve:
+        return this.curveMax?._evaluateCumulative(normalizedAge) ?? 0;
+      case ParticleCurveMode.TwoCurves: {
+        const min = this.curveMin?._evaluateCumulative(normalizedAge) ?? 0;
+        const max = this.curveMax?._evaluateCumulative(normalizedAge) ?? 0;
+        return min + (max - min) * lerpFactor!;
+      }
       default:
-        break;
+        return 0;
     }
   }
 
@@ -189,23 +209,25 @@ export class ParticleCompositeCurve {
    * @internal
    */
   _getMax(): number {
+    const minMaxRange = ParticleCompositeCurve._minMaxRange;
     switch (this.mode) {
       case ParticleCurveMode.Constant:
         return this.constantMax;
       case ParticleCurveMode.TwoConstants:
         return Math.max(this.constantMin, this.constantMax);
       case ParticleCurveMode.Curve:
-        return this._getMaxKeyValue(this.curveMax?.keys);
+        this._getKeyMinMax(this.curveMax?.keys, minMaxRange);
+        return minMaxRange.y;
       case ParticleCurveMode.TwoCurves:
-        const min = this._getMaxKeyValue(this.curveMin?.keys);
-        const max = this._getMaxKeyValue(this.curveMax?.keys);
-        return min > max ? min : max;
+        this._getKeyMinMax(this.curveMin?.keys, minMaxRange);
+        const maxCurveMin = minMaxRange.y;
+        this._getKeyMinMax(this.curveMax?.keys, minMaxRange);
+        return maxCurveMin > minMaxRange.y ? maxCurveMin : minMaxRange.y;
     }
   }
 
   /**
    * @internal
-
    */
   _getMinMax(out: Vector2): void {
     switch (this.mode) {
@@ -216,21 +238,60 @@ export class ParticleCompositeCurve {
         out.set(Math.min(this.constantMin, this.constantMax), Math.max(this.constantMin, this.constantMax));
         break;
       case ParticleCurveMode.Curve:
-        out.set(this._getMinKeyValue(this.curveMax?.keys), this._getMaxKeyValue(this.curveMax?.keys));
+        this._getKeyMinMax(this.curveMax?.keys, out);
         break;
       case ParticleCurveMode.TwoCurves:
-        const minCurveMax = this._getMinKeyValue(this.curveMax?.keys);
-        const minCurveMin = this._getMinKeyValue(this.curveMin?.keys);
-
-        const maxCurveMax = this._getMaxKeyValue(this.curveMax?.keys);
-        const maxCurveMin = this._getMaxKeyValue(this.curveMin?.keys);
-
-        const min = minCurveMax < minCurveMin ? minCurveMax : minCurveMin;
-        const max = maxCurveMax > maxCurveMin ? maxCurveMax : maxCurveMin;
-
-        out.set(min, max);
+        this._getKeyMinMax(this.curveMin?.keys, out);
+        const minCurveMin = out.x;
+        const maxCurveMin = out.y;
+        this._getKeyMinMax(this.curveMax?.keys, out);
+        const minCurveMax = out.x;
+        const maxCurveMax = out.y;
+        out.set(
+          minCurveMax < minCurveMin ? minCurveMax : minCurveMin,
+          maxCurveMax > maxCurveMin ? maxCurveMax : maxCurveMin
+        );
         break;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _getMaxMagnitude(): number {
+    const minMax = ParticleCompositeCurve._minMaxRange;
+    this._getMinMax(minMax);
+    return Math.max(Math.abs(minMax.x), Math.abs(minMax.y));
+  }
+
+  /**
+   * @internal
+   */
+  _isZero(): boolean {
+    const minMax = ParticleCompositeCurve._minMaxRange;
+    this._getMinMax(minMax);
+    return minMax.x === 0 && minMax.y === 0;
+  }
+
+  /**
+   * @internal
+   */
+  _isCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.Curve || this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoConstants || this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoCurves;
   }
 
   /**
@@ -247,30 +308,19 @@ export class ParticleCompositeCurve {
     this._updateManager.removeListener(listener);
   }
 
-  private _getMaxKeyValue(keys: ReadonlyArray<CurveKey>): number {
-    let max = undefined;
+  private _getKeyMinMax(keys: ReadonlyArray<CurveKey> | undefined, out: Vector2): void {
+    let min: number | undefined;
+    let max: number | undefined;
     const count = keys?.length ?? 0;
     if (count > 0) {
-      max = keys[0].value;
+      min = max = keys![0].value;
       for (let i = 1; i < count; i++) {
-        const value = keys[i].value;
-        max = Math.max(max, value);
+        const value = keys![i].value;
+        min = Math.min(min!, value);
+        max = Math.max(max!, value);
       }
     }
-    return max;
-  }
-
-  private _getMinKeyValue(keys: ReadonlyArray<CurveKey>): number {
-    let min = undefined;
-    const count = keys?.length ?? 0;
-    if (count > 0) {
-      min = keys[0].value;
-      for (let i = 1; i < count; i++) {
-        const value = keys[i].value;
-        min = Math.min(min, value);
-      }
-    }
-    return min;
+    out.set(min ?? 0, max ?? 0);
   }
 
   private _onCurveChange(lastValue: ParticleCurve, value: ParticleCurve) {

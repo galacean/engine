@@ -18,8 +18,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -39,11 +37,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load([
       {
-        type: AssetType.Texture2D,
+        type: AssetType.Texture,
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*g_HIRqQdNUcAAAAAAAAAAAAAARQnAQ"
       },
       {
-        type: AssetType.Texture2D,
+        type: AssetType.Texture,
         url: "https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*H7nMRY2SuWcAAAAAAAAAAAAAARQnAQ",
         params: {
           isSRGBColorSpace: false

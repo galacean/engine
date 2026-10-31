@@ -10,7 +10,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /** All keys defined in the animation curve. */
   keys: Keyframe<V>[] = [];
 
-  protected _evaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+  protected _evaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null! };
   protected _length: number = 0;
   protected _interpolation: InterpolationType;
 
@@ -67,7 +67,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): V {
+  evaluate(time: number): V | undefined {
     return this._evaluate(time, this._evaluateData);
   }
 
@@ -92,7 +92,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * @internal
    */
-  _evaluate(time: number, evaluateData: IEvaluateData<V>): V {
+  _evaluate(time: number, evaluateData: IEvaluateData<V>): V | undefined {
     const { length } = this.keys;
     if (!length) {
       console.warn(`This curve don't have any keyframes: `, this);
@@ -135,14 +135,14 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, evaluateData.value);
+          value = this._type._lerpValue!(curFrame.value, nextFrame.value, t, evaluateData.value);
           break;
         case InterpolationType.Step:
           value = this._type._setValue(curFrame.value, evaluateData.value);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, evaluateData.value);
+          value = this._type._hermiteInterpolationValue!(curFrame, nextFrame, t, duration, evaluateData.value);
           break;
       }
     }
@@ -157,6 +157,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    */
   _evaluateAdditive(time: number, evaluateData: IEvaluateData<V>): V {
     const result = this._evaluate(time, evaluateData);
-    return this._type._subtractValue(result, this.keys[0].value, evaluateData.value);
+    return this._type._subtractValue!(result!, this.keys[0].value, evaluateData.value);
   }
 }

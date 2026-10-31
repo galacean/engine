@@ -9,7 +9,6 @@ import {
   BackgroundTextureFillMode,
   BlendFactor,
   BlendMode,
-  BlendOperation,
   Camera,
   Color,
   Engine,
@@ -29,17 +28,17 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
 
   engine.resourceManager
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*3d2oSbam_wcAAAAAAAAAAAAAesp6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*j6MERb-exVgAAAAAAAAAAAAADtKFAQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((resources) => {
@@ -69,17 +68,14 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } })
 
       // Use premultiplied blend mode to simulate canvas transparency blending
       canvasMaterial.isTransparent = true;
-      const target = canvasMaterial.renderState.blendState.targetBlendState;
-      target.sourceColorBlendFactor = BlendFactor.One;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = BlendOperation.Add;
-
+      const { shaderData } = canvasMaterial;
+      shaderData.setInt("sourceColorBlendFactor", BlendFactor.One);
+      shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
       // This setup is to simulate canvas transparency blending with browser
       // Browser don't care alpha, but need to avoid 0,we use dest(is 1.0)
       // Zero also will cause can't revert un-premultiplied color in sRGB Pass in this simulation mode
-      target.sourceAlphaBlendFactor = BlendFactor.Zero;
-      target.destinationAlphaBlendFactor = BlendFactor.One;
-      target.alphaBlendOperation = BlendOperation.Add;
+      shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.Zero);
+      shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.One);
 
       // Use big plane to simulate transparency canvas
       const canvasPlaneEntity = canvasRootEntity.createChild("Plane");

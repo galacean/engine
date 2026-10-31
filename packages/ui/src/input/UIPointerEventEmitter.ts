@@ -2,6 +2,7 @@ import {
   CameraClearFlags,
   DisorderedArray,
   Entity,
+  Layer,
   Pointer,
   PointerEventData,
   PointerEventEmitter,
@@ -17,6 +18,10 @@ import { UIHitResult } from "./UIHitResult";
  */
 @registerPointerEventEmitter()
 export class UIPointerEventEmitter extends PointerEventEmitter {
+  private static _compareRaycastOrder(a: UICanvas, b: UICanvas): number {
+    return b.sortOrder - a.sortOrder || a._sortDistance - b._sortDistance;
+  }
+
   private static _MAX_PATH_DEPTH = 2048;
   private static _tempSet: Set<number> = new Set();
   private static _path: Entity[] = [];
@@ -33,22 +38,20 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
 
   override processRaycast(scenes: readonly Scene[], pointer: Pointer): void {
     const { _tempRay: ray } = PointerEventEmitter;
-    const hitResult = this._hitResult;
+    const hitResult = this._hitResult as UIHitResult;
     const { position } = pointer;
     const { x, y } = position;
     for (let i = scenes.length - 1; i >= 0; i--) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      // @ts-ignore
       const componentsManager = scene._componentsManager;
-      // Overlay Canvas
-      let canvasElements: DisorderedArray<UICanvas> = componentsManager._overlayCanvases;
-      // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
+      let canvasElements = componentsManager._overlayCanvases as DisorderedArray<UICanvas>;
+      // Convert screen coordinates to overlay coordinates.
       ray.origin.set(position.x, scene.engine.canvas.height - position.y, 1);
       ray.direction.set(0, 0, -1);
       for (let j = canvasElements.length - 1; j >= 0; j--) {
-        if (canvasElements.get(j)._raycast(ray, hitResult)) {
-          this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+        if (canvasElements.get(j)._raycast(ray, hitResult, Number.MAX_SAFE_INTEGER, Layer.Everything)) {
+          this._updateRaycast(hitResult.component, pointer);
           return;
         }
       }
@@ -68,25 +71,23 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
         }
         camera.screenPointToRay(pointer.position, ray);
 
-        // Other canvases
-        const isOrthographic = camera.isOrthographic;
-        const { worldPosition: cameraPosition, worldForward: cameraForward } = camera.entity.transform;
-        // Sort by rendering order
-        canvasElements = componentsManager._canvases;
+        canvasElements = componentsManager._canvases as DisorderedArray<UICanvas>;
+        const { isOrthographic, farClipPlane, cullingMask } = camera;
+        const { worldPosition, worldForward } = camera.entity.transform;
         for (let k = 0, n = canvasElements.length; k < n; k++) {
-          canvasElements.get(k)._updateSortDistance(isOrthographic, cameraPosition, cameraForward);
+          canvasElements.get(k)._updateSortDistance(isOrthographic, worldPosition, worldForward);
         }
-        canvasElements.sort((a, b) => a.sortOrder - b.sortOrder || a._sortDistance - b._sortDistance);
+        canvasElements.sort(UIPointerEventEmitter._compareRaycastOrder);
+        // Update registry indices after sorting.
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           canvasElements.get(k)._canvasIndex = k;
         }
-        const farClipPlane = camera.farClipPlane;
-        // Post-rendering first detection
+        // Fully tied canvases may differ in hit and draw order.
         for (let k = 0, n = canvasElements.length; k < n; k++) {
           const canvas = canvasElements.get(k);
           if (!canvas._canDispatchEvent(camera)) continue;
-          if (canvas._raycast(ray, hitResult, farClipPlane)) {
-            this._updateRaycast((<UIHitResult>hitResult).component, pointer);
+          if (canvas._raycast(ray, hitResult, farClipPlane, cullingMask)) {
+            this._updateRaycast(hitResult.component, pointer);
             return;
           }
         }
@@ -128,7 +129,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       if (pressedPath.length > 0) {
         const common = UIPointerEventEmitter._tempArray0;
         if (this._findCommonInPath(enteredPath, pressedPath, common)) {
-          const eventData = this._createEventData(pointer);
+          const eventData = this._createEventData(pointer!);
           for (let i = 0, n = common.length; i < n; i++) {
             this._fireClick(common[i], eventData);
           }
@@ -170,13 +171,13 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     this._enteredPath.length = this._pressedPath.length = this._draggedPath.length = 0;
   }
 
-  private _updateRaycast(element: UIRenderer, pointer: Pointer = null): void {
+  private _updateRaycast(element: UIRenderer | null, pointer: Pointer | null = null): void {
     const enteredPath = this._enteredPath;
     const curPath = this._composedPath(element, UIPointerEventEmitter._path);
     const add = UIPointerEventEmitter._tempArray0;
     const del = UIPointerEventEmitter._tempArray1;
     if (this._findDiffInPath(enteredPath, curPath, add, del)) {
-      const eventData = this._createEventData(pointer);
+      const eventData = this._createEventData(pointer!);
       for (let i = 0, n = add.length; i < n; i++) {
         this._fireEnter(add[i], eventData);
       }
@@ -193,16 +194,16 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     curPath.length = 0;
   }
 
-  private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {
+  private _composedPath(element: UIRenderer | null, path: Entity[]): Entity[] {
     if (!element) {
       path.length = 0;
       return path;
     }
     let entity = (path[0] = element.entity);
     let i = 1;
-    const rootEntity = element._getRootCanvas().entity;
+    const rootEntity = element._getRootCanvas()!.entity;
     for (; i < UIPointerEventEmitter._MAX_PATH_DEPTH && !!entity && entity !== rootEntity; i++) {
-      entity = path[i] = entity.parent;
+      entity = path[i] = entity.parent!;
     }
     path.length = i;
     return path;
@@ -256,7 +257,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
     const length = path.length;
     if (length <= 0) return;
-    const eventData = this._createEventData(pointer);
+    const eventData = this._createEventData(pointer!);
     for (let i = 0; i < length; i++) {
       fireEvent(path[i], eventData);
     }

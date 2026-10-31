@@ -1,3 +1,4 @@
+import { CloneMode, registerDefaultCloneMode } from "../clone/CloneDecorators";
 import { Utils } from "../Utils";
 
 /**
@@ -80,11 +81,11 @@ export class DisorderedArray<T> {
    * @param index - The index of the element to be deleted
    * @returns The replaced item is used to reset its index
    */
-  deleteByIndex(index: number): T {
+  deleteByIndex(index: number): T | undefined {
     const elements = this._elements;
-    let end: T;
+    let end: T | undefined;
     if (this._loopCounter > 0) {
-      this._elements[index] = null;
+      this._elements[index] = null!;
       this._blankCount++;
     } else {
       const endIndex = this.length - 1;
@@ -92,7 +93,7 @@ export class DisorderedArray<T> {
         end = elements[endIndex];
         elements[index] = end;
       }
-      elements[endIndex] = null;
+      elements[endIndex] = null!;
       this.length--;
     }
 
@@ -149,7 +150,7 @@ export class DisorderedArray<T> {
     ++this._loopCounter;
   }
 
-  private _endLoop(swapFn: (e: T, idx: number) => void): void {
+  private _endLoop(swapFn: ((e: T, idx: number) => void) | undefined): void {
     if (--this._loopCounter !== 0) {
       return;
     }
@@ -172,7 +173,7 @@ export class DisorderedArray<T> {
         const swapElement = elements[to];
         swapFn?.(swapElement, from);
         elements[from++] = swapElement;
-        elements[to--] = null;
+        elements[to--] = null!;
       } while (from < to);
 
       this.length -= this._blankCount;
@@ -180,7 +181,11 @@ export class DisorderedArray<T> {
     }
   }
 
-  private _endLoopAndClean(preEnd: number, elements: T[], swapFn: (element: T, index: number) => void): void {
+  private _endLoopAndClean(
+    preEnd: number,
+    elements: T[],
+    swapFn: ((element: T, index: number) => void) | undefined
+  ): void {
     if (--this._loopCounter !== 0) {
       return;
     }
@@ -197,3 +202,5 @@ export class DisorderedArray<T> {
     this._blankCount = 0;
   }
 }
+
+registerDefaultCloneMode(DisorderedArray, CloneMode.Ignore);

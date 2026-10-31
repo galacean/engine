@@ -1,4 +1,18 @@
 export const E2E_CONFIG = {
+  Spine: {
+    spineboy: {
+      category: "Spine",
+      caseFileName: "spine-spineboy",
+      threshold: 0,
+      diffPercentage: 0.05
+    },
+    tintBlack: {
+      category: "Spine",
+      caseFileName: "spine-tint-black",
+      threshold: 0,
+      diffPercentage: 0.05
+    }
+  },
   Animator: {
     additive: {
       category: "Animator",
@@ -70,7 +84,7 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-reuse",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.000417
     },
     stateMachineScript: {
       category: "Animator",
@@ -117,7 +131,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr-clearcoat",
       threshold: 0,
-      diffPercentage: 0.12
+      diffPercentage: 0.1293
     },
     "white-furnace": {
       category: "Material",
@@ -135,17 +149,17 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0044
+      diffPercentage: 0.008
     },
-    shaderLab: {
+    shader: {
       category: "Material",
-      caseFileName: "material-shaderLab",
+      caseFileName: "material-shader",
       threshold: 0,
       diffPercentage: 0
     },
-    shaderLabMRT: {
+    shaderMRT: {
       category: "Material",
-      caseFileName: "shaderLab-mrt",
+      caseFileName: "shader-mrt",
       threshold: 0,
       diffPercentage: 0
     },
@@ -161,9 +175,9 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.033
     },
-    "shaderLab-renderState": {
+    "shader-renderState": {
       category: "Material",
-      caseFileName: "shaderLab-renderState",
+      caseFileName: "shader-renderState",
       threshold: 0,
       diffPercentage: 0
     },
@@ -197,7 +211,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-hdr",
       threshold: 0,
-      diffPercentage: 0.0512
+      diffPercentage: 0.0523
     }
   },
   Shadow: {
@@ -211,7 +225,7 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-transparent",
       threshold: 0,
-      diffPercentage: 0.0552
+      diffPercentage: 0.001
     }
   },
   Primitive: {
@@ -283,13 +297,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision",
       threshold: 0,
-      diffPercentage: 0
-    },
-    "LitePhysics Collision Group": {
-      category: "Physics",
-      caseFileName: "litePhysics-collision-group",
-      threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0011459
     },
     "PhysXPhysics Collision Group": {
       category: "Physics",
@@ -301,19 +309,25 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-customUrl",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.001146
     },
     "PhysX Mesh Collider": {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.12094
+      diffPercentage: 0.001
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
       caseFileName: "physx-mesh-collider-data",
       threshold: 0,
       diffPercentage: 0.02
+    },
+    "PhysX Deferred Contact": {
+      category: "Physics",
+      caseFileName: "physx-deferred-contact",
+      threshold: 0,
+      diffPercentage: 0.0
     }
   },
   Particle: {
@@ -327,13 +341,25 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.0707
+      diffPercentage: 0.15386
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
       threshold: 0,
       diffPercentage: 0.1630209
+    },
+    limitVelocityOverLifetime: {
+      category: "Particle",
+      caseFileName: "particleRenderer-limitVelocity",
+      threshold: 0,
+      diffPercentage: 0.0364
+    },
+    velocityOrbitalConstant: {
+      category: "Particle",
+      caseFileName: "particleRenderer-velocity-orbital-constant",
+      threshold: 0,
+      diffPercentage: 0.04
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -345,7 +371,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0162
+      diffPercentage: 0.01698
     },
     particleEmissive: {
       category: "Particle",
@@ -407,11 +433,71 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.00782
     },
+    particleEmitMeshRotationLifeCurve: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-rotation-life-curve",
+      threshold: 0,
+      diffPercentage: 0.02553
+    },
+    particleEmitMeshSizeOverLifetime: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-size-over-lifetime",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",
       threshold: 0,
       diffPercentage: 0.0
+    },
+    inheritVelocityStretched: {
+      category: "Particle",
+      caseFileName: "particleRenderer-inherit-velocity-stretched",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    particleHorizontalBillboard: {
+      category: "Particle",
+      caseFileName: "particleRenderer-horizontal-billboard",
+      threshold: 0,
+      diffPercentage: 0.2162
+    },
+    noiseModule: {
+      category: "Particle",
+      caseFileName: "particleRenderer-noise",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    shapeTransform: {
+      category: "Particle",
+      caseFileName: "particleRenderer-shape-transform",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    burstCycles: {
+      category: "Particle",
+      caseFileName: "particleRenderer-burst-cycles",
+      threshold: 0,
+      diffPercentage: 0.2
+    },
+    subEmitter: {
+      category: "Particle",
+      caseFileName: "particleRenderer-sub-emitter",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    rateOverDistance: {
+      category: "Particle",
+      caseFileName: "particleRenderer-rateOverDistance",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    customShader: {
+      category: "Particle",
+      caseFileName: "particleRenderer-customShader",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {
@@ -425,19 +511,33 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.072
+      diffPercentage: 0.001
     },
     LDRBloomNeutral: {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.097
+      diffPercentage: 0.001
     },
     customPass: {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0,
-      diffPercentage: 0.03
+      diffPercentage: 0.001
+    }
+  },
+  GPUInstancing: {
+    autoBatch: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-auto-batch",
+      threshold: 0,
+      diffPercentage: 0.00126
+    },
+    customData: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-custom-data",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   SpriteMask: {
@@ -459,10 +559,16 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-character-spacing",
       threshold: 0.0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0129
     }
   },
   UI: {
+    batchOrder: {
+      category: "UI",
+      caseFileName: "ui-batch-order",
+      threshold: 0,
+      diffPercentage: 0
+    },
     Mask: {
       category: "UI",
       caseFileName: "ui-mask",

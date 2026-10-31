@@ -1,10 +1,10 @@
 import { Quaternion } from "@galacean/engine";
 import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script { }
+class TestComponent extends Script {}
 
 describe("Entity", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
@@ -264,20 +264,27 @@ describe("Entity", async () => {
 
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
+      expect(child.scene).eq(undefined);
+      expect(child.transform.scene).eq(undefined);
       child.parent = parent;
+      expect(child.transform.scene).eq(scene);
       parent.removeChild(child);
       expect(child.parent).eq(null);
       expect(child.scene).eq(null);
+      expect(child.transform.scene).eq(null);
     });
 
     it("getChild", () => {
       const parent = new Entity(engine, "parent");
 
       parent.parent = scene.getRootEntity();
+      expect(parent.getChild(0)).eq(undefined);
       const child = new Entity(engine, "child");
       child.parent = parent;
       const theChild = parent.getChild(0);
       expect(theChild).eq(child);
+      expect(parent.getChild(-1)).eq(undefined);
+      expect(parent.getChild(1)).eq(undefined);
     });
 
     it("getChild", () => {
@@ -299,6 +306,7 @@ describe("Entity", async () => {
       expect(parent.findByName("parent")).eq(parent);
       expect(parent.findByName("child")).eq(child);
       expect(parent.findByName("child2")).eq(child2);
+      expect(parent.findByName("missing")).eq(null);
     });
 
     it("findByPath", () => {
@@ -318,6 +326,9 @@ describe("Entity", async () => {
 
       expect(parent.findByPath("/child")).eq(child);
       expect(parent.findByPath("child/grandson")).eq(grandson2);
+      expect(parent.findByPath("")).eq(parent);
+      expect(parent.findByPath("missing")).eq(null);
+      expect(parent.findByPath("child/missing")).eq(null);
     });
 
     it("clearChildren", () => {
@@ -568,7 +579,9 @@ describe("Entity", async () => {
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
       expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
-      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
+      expect(
+        Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)
+      ).eq(true);
     });
   });
 
@@ -655,8 +668,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void { }
-        onDestroy(): void { }
+        onDisable(): void {}
+        onDestroy(): void {}
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
@@ -679,6 +692,238 @@ describe("Entity", async () => {
 
       engine.update();
       expect(script.onDestroy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("removeChild during onDisable", () => {
+    it("should not crash when removing children during parent's onDisable", () => {
+      // Issue #2947: Entity._scene is null in _onDisableInScene when child removed during parent's onDisable
+      //
+      // Entity tree: root → A → [B, C, D]
+      // A has a script that removes all children in onDisable
+      // B, C, D each have Script components
+      // When root.removeChild(A), the two-phase batched approach causes:
+      //   Phase 1: sets A/B/C/D._isActiveInScene = false, collects all components
+      //   Phase 2: fires callbacks — A's onDisable removes B/C/D, clearing their _scene,
+      //            then B/C/D's _onDisableInScene tries to access this.scene._componentsManager → crash
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      const D = new Entity(engine, "D");
+      A.addChild(B);
+      A.addChild(C);
+      A.addChild(D);
+
+      // A's script removes all children during onDisable
+      class ParentScript extends Script {
+        onDisable() {
+          const children = [...this.entity.children];
+          for (const child of children) {
+            this.entity.removeChild(child);
+          }
+        }
+      }
+      A.addComponent(ParentScript);
+
+      // B, C, D each have a Script component (triggers _onDisableInScene)
+      B.addComponent(Script);
+      C.addComponent(Script);
+      D.addComponent(Script);
+
+      // This should not throw "Cannot read properties of null (reading '_componentsManager')"
+      expect(() => {
+        root.removeChild(A);
+      }).not.toThrow();
+    });
+
+    it("should not crash when sibling removes another sibling during onDisable", () => {
+      // Entity tree: root → A → [B, C, D]
+      // D's onDisable removes sibling C
+      // With deferred callbacks, D fires first (children-first + reverse), then C's callback
+      // should be skipped since C's _scene was cleared by D's removeChild
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      const D = new Entity(engine, "D");
+      A.addChild(B);
+      A.addChild(C);
+      A.addChild(D);
+
+      class SiblingRemoverScript extends Script {
+        onDisable() {
+          // D removes sibling C
+          const parent = this.entity.parent;
+          const c = parent.findByName("C");
+          if (c && c.parent === parent) {
+            parent.removeChild(c);
+          }
+        }
+      }
+      D.addComponent(SiblingRemoverScript);
+
+      B.addComponent(Script);
+      C.addComponent(Script);
+
+      expect(() => {
+        root.removeChild(A);
+      }).not.toThrow();
+    });
+
+    it("should throw when child tries to removeChild its deactivating parent (reentrant)", () => {
+      // Entity tree: root → A → B
+      // B's onDisable tries to remove parent A — triggers reentrant _processInActive which should throw
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      A.addChild(B);
+
+      class ReentrantScript extends Script {
+        onDisable() {
+          root.removeChild(this.entity.parent);
+        }
+      }
+      B.addComponent(ReentrantScript);
+
+      expect(() => {
+        A.isActive = false;
+      }).toThrow();
+    });
+
+    it("should not crash when setting sibling isActive=false during onDisable", () => {
+      // Entity tree: root → A → [B, C]
+      // B's onDisable sets C.isActive = false
+      // C's _isActiveInScene is already false from Phase 1, so _processInActive is skipped
+      // Phase 2 still triggers C's callback normally via _phasedActiveInScene
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      A.addChild(B);
+      A.addChild(C);
+
+      let cDisableCount = 0;
+
+      class DeactivateSiblingScript extends Script {
+        onDisable() {
+          C.isActive = false;
+        }
+      }
+      B.addComponent(DeactivateSiblingScript);
+
+      C.addComponent(
+        class extends Script {
+          onDisable() {
+            cDisableCount++;
+          }
+        }
+      );
+
+      root.removeChild(A);
+      // C's onDisable should fire exactly once
+      expect(cDisableCount).eq(1);
+    });
+
+    it("should fire deactivation callbacks in children-first order", () => {
+      // Entity tree: root → A → [B, C]
+      // Deactivation order should be: B, C (children) before A (parent)
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      A.addChild(B);
+      A.addChild(C);
+
+      const order: string[] = [];
+
+      A.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("A");
+          }
+        }
+      );
+      B.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("B");
+          }
+        }
+      );
+      C.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("C");
+          }
+        }
+      );
+
+      A.isActive = false;
+      // Children-first + reverse: C, B, then A
+      expect(order).toEqual(["C", "B", "A"]);
+    });
+  });
+
+  describe("getComponentsIncludeChildren", () => {
+    class ScriptA extends Script {}
+    class ScriptB extends Script {}
+
+    it("should return components in depth-first front-to-back order", () => {
+      const root = new Entity(engine, "root");
+      root.parent = scene.getRootEntity();
+
+      const child0 = new Entity(engine, "child0");
+      child0.parent = root;
+      const child1 = new Entity(engine, "child1");
+      child1.parent = root;
+
+      const grandchild = new Entity(engine, "grandchild");
+      grandchild.parent = child0;
+
+      const compRoot = root.addComponent(ScriptA);
+      const compChild0 = child0.addComponent(ScriptA);
+      const compGrandchild = grandchild.addComponent(ScriptA);
+      const compChild1 = child1.addComponent(ScriptA);
+
+      const results: ScriptA[] = [];
+      root.getComponentsIncludeChildren(ScriptA, results);
+
+      expect(results).toEqual([compRoot, compChild0, compGrandchild, compChild1]);
+    });
+
+    it("should return multiple components per entity in add order", () => {
+      const root = new Entity(engine, "root");
+      root.parent = scene.getRootEntity();
+
+      const comp1 = root.addComponent(ScriptA);
+      const comp2 = root.addComponent(ScriptB);
+
+      const results: Script[] = [];
+      root.getComponentsIncludeChildren(Script, results);
+
+      expect(results[0]).eq(comp1);
+      expect(results[1]).eq(comp2);
     });
   });
 });

@@ -1,5 +1,4 @@
 import { BoundingBox, Entity, MaskRenderable, Vector2 } from "@galacean/engine";
-import type { IMaskRenderable } from "@galacean/engine";
 import { UIRenderer, UITransform } from "..";
 
 export class Mask extends MaskRenderable(UIRenderer) {
@@ -23,9 +22,9 @@ export class Mask extends MaskRenderable(UIRenderer) {
   /**
    * @internal
    */
-  _cloneTo(target: Mask, srcRoot: Entity, targetRoot: Entity): void {
+  override _onClone(target: Mask): void {
     // @ts-ignore
-    super._cloneTo(target, srcRoot, targetRoot);
+    super._onClone(target);
     this._cloneMaskData(target);
   }
 
@@ -34,7 +33,7 @@ export class Mask extends MaskRenderable(UIRenderer) {
     if (this.sprite && rootCanvas) {
       this._updateMaskBounds(worldBounds);
     } else {
-      const { worldPosition } = this._transformEntity.transform;
+      const { worldPosition } = this._transformEntity!.transform;
       worldBounds.min.copyFrom(worldPosition);
       worldBounds.max.copyFrom(worldPosition);
     }
@@ -62,14 +61,14 @@ export class Mask extends MaskRenderable(UIRenderer) {
   }
 
   override _getSpriteWidth(): number {
-    return (<UITransform>this._transformEntity.transform).size.x;
+    return (<UITransform>this._transformEntity!.transform).size.x;
   }
 
   override _getSpriteHeight(): number {
-    return (<UITransform>this._transformEntity.transform).size.y;
+    return (<UITransform>this._transformEntity!.transform).size.y;
   }
 
   override _getSpritePivot(): Vector2 {
-    return (<UITransform>this._transformEntity.transform).pivot;
+    return (<UITransform>this._transformEntity!.transform).pivot;
   }
 }

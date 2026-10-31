@@ -118,21 +118,16 @@ export interface IDynamicCollider extends ICollider {
   setSolverIterations(value: number): void;
 
   /**
-   * Sets the colliders' collision detection mode.
-   * @param value - rigid body flag
-   */
-  setCollisionDetectionMode(value: number): void;
-
-  /**
    * Whether the collider is affected by gravity.
    */
   setUseGravity(value: boolean): void;
 
   /**
-   * Controls whether physics affects the dynamic collider.
-   * @param value - is or not
+   * Sets the kinematic state and requested collision detection mode in one native transition.
+   * @param isKinematic - Whether the dynamic collider is kinematic
+   * @param collisionDetectionMode - The requested collision detection mode
    */
-  setIsKinematic(value: boolean): void;
+  setMotionState(isKinematic: boolean, collisionDetectionMode: number): void;
 
   /**
    * Raises or clears a particular rigid dynamic lock flag.
@@ -145,6 +140,13 @@ export interface IDynamicCollider extends ICollider {
    * @param force - The force make the collider move
    */
   addForce(force: Vector3): void;
+
+  /**
+   * Apply a force to the dynamic collider at a world-space position.
+   * @param force - The force make the collider move
+   * @param position - The world-space position where the force is applied
+   */
+  addForceAtPosition(force: Vector3, position: Vector3): void;
 
   /**
    * Apply a torque to the dynamic collider.

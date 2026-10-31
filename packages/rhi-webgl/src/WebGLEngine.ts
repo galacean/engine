@@ -3,7 +3,7 @@ import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
 /**
- * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
+ * WebGL platform engine, supports WebGL 1.0 and WebGL 2.0.
  */
 export class WebGLEngine extends Engine {
   /**
@@ -16,7 +16,7 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
-    // @ts-ignore
+    webCanvas.setAutoResolution();
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
     return promise.then(() => {
       engine.sceneManager.addScene(new Scene(engine, "DefaultScene"));
@@ -25,16 +25,15 @@ export class WebGLEngine extends Engine {
   }
 
   /**
-   * Web canvas.
+   * The web canvas the engine renders to.
    */
   override get canvas(): WebCanvas {
-    // @ts-ignore
     return this._canvas as WebCanvas;
   }
 }
 
 /**
- * WebGL engine configuration.
+ * Options for `WebGLEngine.create()`.
  */
 export interface WebGLEngineConfiguration extends EngineConfiguration {
   /** Canvas element or canvas id. */

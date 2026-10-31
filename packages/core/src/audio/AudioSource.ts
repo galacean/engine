@@ -1,4 +1,4 @@
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneDecorators";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
@@ -16,8 +16,7 @@ export class AudioSource extends Component {
   @ignoreClone
   private _pendingPlay = false;
 
-  @assignmentClone
-  private _clip: AudioClip;
+  private _clip: AudioClip | null;
   @ignoreClone
   private _gainNode: GainNode;
   @ignoreClone
@@ -28,23 +27,19 @@ export class AudioSource extends Component {
   @ignoreClone
   private _playTime = -1;
 
-  @assignmentClone
   private _volume = 1;
-  @assignmentClone
   private _lastVolume = 1;
-  @assignmentClone
   private _playbackRate = 1;
-  @assignmentClone
   private _loop = false;
 
   /**
    * The audio clip to play.
    */
-  get clip(): AudioClip {
+  get clip(): AudioClip | null {
     return this._clip;
   }
 
-  set clip(value: AudioClip) {
+  set clip(value: AudioClip | null) {
     const lastClip = this._clip;
     if (lastClip !== value) {
       lastClip && lastClip._addReferCount(-1);
@@ -72,7 +67,8 @@ export class AudioSource extends Component {
   set volume(value: number) {
     value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
-    this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
+    // No node yet -> _ensureGainNode() applies _volume on first play
+    this._gainNode?.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
   }
 
   /**
@@ -86,7 +82,7 @@ export class AudioSource extends Component {
   set playbackRate(value: number) {
     this._playbackRate = value;
     if (this._isPlaying) {
-      this._sourceNode.playbackRate.value = this._playbackRate;
+      this._sourceNode!.playbackRate.value = this._playbackRate;
     }
   }
 
@@ -120,7 +116,7 @@ export class AudioSource extends Component {
       this._loop = value;
 
       if (this._isPlaying) {
-        this._sourceNode.loop = this._loop;
+        this._sourceNode!.loop = this._loop;
       }
     }
   }
@@ -143,9 +139,9 @@ export class AudioSource extends Component {
   constructor(entity: Entity) {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
-
-    this._gainNode = AudioManager.getContext().createGain();
-    this._gainNode.connect(AudioManager.getGainNode());
+    // Gain node is created lazily on first play, not here: creating it would spin up the AudioContext
+    // before any user gesture, and on iOS such a pre-gesture context never recovers from a phone-call
+    // interruption (stays a silent zombie)
   }
 
   /**
@@ -153,6 +149,10 @@ export class AudioSource extends Component {
    */
   play(): void {
     if (!this._clip?._getAudioSource() || this._isPlaying || this._pendingPlay) {
+      return;
+    }
+    // Hidden page: don't start (would leak a sound) and don't pend (would replay out of sync) -> drop
+    if (document.hidden) {
       return;
     }
 
@@ -169,8 +169,8 @@ export class AudioSource extends Component {
             return;
           }
           this._pendingPlay = false;
-          // Check if still valid to play after async resume
-          if (this._destroyed || !this.enabled || !this._clip) {
+          // Check if still valid to play after async resume (page may have been hidden meanwhile)
+          if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
             return;
           }
           this._startPlayback();
@@ -191,12 +191,13 @@ export class AudioSource extends Component {
 
     if (this._isPlaying) {
       this._clearSourceNode();
-
       this._isPlaying = false;
-      this._pausedTime = -1;
-      this._playTime = -1;
       AudioManager._playingCount--;
     }
+
+    // stop() always resets to the start, including from a paused state (where _isPlaying is already false)
+    this._pausedTime = -1;
+    this._playTime = -1;
   }
 
   /**
@@ -212,14 +213,6 @@ export class AudioSource extends Component {
       this._isPlaying = false;
       AudioManager._playingCount--;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: AudioSource, srcRoot: Entity, targetRoot: Entity): void {
-    target._clip?._addReferCount(1);
-    target._gainNode.gain.setValueAtTime(target._volume, AudioManager.getContext().currentTime);
   }
 
   /**
@@ -250,6 +243,16 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  private _ensureGainNode(): GainNode {
+    let gainNode = this._gainNode;
+    if (!gainNode) {
+      this._gainNode = gainNode = AudioManager.getContext().createGain();
+      gainNode.connect(AudioManager.getGainNode());
+      gainNode.gain.setValueAtTime(this._volume, AudioManager.getContext().currentTime);
+    }
+    return gainNode;
+  }
+
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
     this._initSourceNode(startTime);
@@ -263,21 +266,25 @@ export class AudioSource extends Component {
   private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
+    const buffer = this._clip!._getAudioSource()!;
 
-    sourceNode.buffer = this._clip._getAudioSource();
+    sourceNode.buffer = buffer;
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
     sourceNode.onended = this._onPlayEnd;
     this._sourceNode = sourceNode;
 
-    sourceNode.connect(this._gainNode);
-    sourceNode.start(0, startTime);
+    sourceNode.connect(this._ensureGainNode());
+    // startTime is total elapsed time; for a looping clip wrap it into the buffer to keep the loop phase
+    // (start()'s offset clamps past the end, it does not wrap)
+    const offset = this._loop && buffer.duration > 0 ? startTime % buffer.duration : startTime;
+    sourceNode.start(0, offset);
   }
 
   private _clearSourceNode(): void {
-    this._sourceNode.stop();
-    this._sourceNode.disconnect();
-    this._sourceNode.onended = null;
+    this._sourceNode!.stop();
+    this._sourceNode!.disconnect();
+    this._sourceNode!.onended = null;
     this._sourceNode = null;
   }
 }

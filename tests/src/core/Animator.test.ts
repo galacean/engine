@@ -21,7 +21,7 @@ import {
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
 const canvasDOM = document.createElement("canvas");
@@ -42,6 +42,40 @@ describe("Animator test", function () {
   let resource: GLTFResource;
   let engine: WebGLEngine;
 
+  const findSharedState = (stateName: string) =>
+    animator.animatorController.layers[0].stateMachine.findStateByName(stateName);
+  const createLoopAnimator = () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("Base Layer");
+    controller.addLayer(layer);
+
+    const state = layer.stateMachine.addState("loop");
+    state.wrapMode = WrapMode.Loop;
+
+    const clip = new AnimationClip("loop-clip");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 1;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+    state.clip = clip;
+
+    localAnimator.animatorController = controller;
+    return { entity, animator: localAnimator, clip };
+  };
+  const updateAnimator = (target: Animator, deltaTime: number) => {
+    // @ts-ignore
+    target.engine.time._frameCount++;
+    target.update(deltaTime);
+  };
+
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
@@ -55,8 +89,8 @@ describe("Animator test", function () {
   });
 
   afterAll(function () {
-    animator.destroy();
-    engine.destroy();
+    animator?.destroy();
+    engine?.destroy();
   });
 
   afterEach(function () {
@@ -73,13 +107,14 @@ describe("Animator test", function () {
     // 清理各状态的 transitions 并恢复默认属性
     const stateNames = ["Survey", "Walk", "Run"];
     for (const name of stateNames) {
-      const state = animator.findAnimatorState(name);
+      const state = findSharedState(name);
       if (state) {
         state.clearTransitions();
         state.speed = 1;
         state.clipStartTime = 0;
         state.clipEndTime = 1;
         state.wrapMode = WrapMode.Loop;
+        state.clip?.clearEvents();
       }
     }
   });
@@ -196,29 +231,107 @@ describe("Animator test", function () {
   it("find animator state", () => {
     const stateName = "Survey";
     const expectedStateName = "Run";
-    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
+    const layerIndex = 0;
 
-    animator.play(stateName);
+    animator.play(stateName, layerIndex);
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     let animatorState = animator.findAnimatorState(stateName, layerIndex);
     expect(animatorState).to.eq(currentAnimatorState);
 
-    animator.play(expectedStateName);
+    animator.play(expectedStateName, layerIndex);
     animatorState = animator.findAnimatorState(expectedStateName, layerIndex);
     expect(animatorState).not.to.eq(currentAnimatorState);
     expect(animatorState.name).to.eq(expectedStateName);
   });
 
-  it("animation getCurrentAnimatorState", () => {
-    //get random animation element from gltf resource
-    const min = 0;
-    const max = resource.animations.length - 1;
-    const index = Math.floor(Math.random() * (max - min + 1)) + min;
+  it("findAnimatorState returns a stable per-state instance for states that are not currently playing", () => {
+    animator.play("Walk");
+    const walkInstance = animator.getCurrentAnimatorState(0);
+    const runInstance = animator.findAnimatorState("Run", 0);
+    const sharedRunState = findSharedState("Run");
 
+    expect(runInstance).not.to.eq(null);
+    expect(runInstance).not.to.eq(walkInstance);
+    expect(runInstance.name).to.eq("Run");
+
+    runInstance.speed = 0.5;
+
+    expect(sharedRunState.speed).to.eq(1);
+
+    animator.play("Run");
+    expect(animator.getCurrentAnimatorState(0)).to.eq(runInstance);
+    expect(animator.getCurrentAnimatorState(0).speed).to.eq(0.5);
+  });
+
+  it("findAnimatorState remains stable after crossFade play slots are reused", () => {
+    const walkState = findSharedState("Walk");
+    const runState = findSharedState("Run");
+
+    animator.play("Walk");
+    const walkInstance = animator.getCurrentAnimatorState(0);
+    const runInstance = animator.findAnimatorState("Run", 0);
+    walkInstance.speed = 2;
+    runInstance.speed = 0.5;
+
+    animator.crossFade("Run", 0.1, 0);
+    updateAnimator(animator, runState._getDuration());
+
+    expect(animator.getCurrentAnimatorState(0)).to.eq(runInstance);
+    expect(animator.getCurrentAnimatorState(0).speed).to.eq(0.5);
+    expect(animator.findAnimatorState("Walk", 0)).to.eq(walkInstance);
+    expect(animator.findAnimatorState("Walk", 0).speed).to.eq(2);
+    expect(animator.findAnimatorState("Walk", 0)._state).to.eq(walkState);
+  });
+
+  it("crossFade to the active state is a no-op", () => {
+    animator.play("Walk");
+    const currentInstance = animator.getCurrentAnimatorState(0);
+    updateAnimator(animator, 0.1);
+
+    const layerData = animator["_animatorLayersData"][0];
+    const playedBefore = layerData.srcPlayData.playedTime;
+
+    animator.crossFade("Walk", 0.1, 0);
+
+    expect(layerData.destPlayData).to.eq(null);
+    expect(layerData.crossFadeTransition).to.eq(null);
+    expect(animator.getCurrentAnimatorState(0)).to.eq(currentInstance);
+    expect(layerData.srcPlayData.playedTime).to.eq(playedBefore);
+  });
+
+  it("crossFade to the active destination is a no-op", () => {
+    animator.play("Walk");
+    animator.crossFade("Run", 0.5, 0);
+
+    const layerData = animator["_animatorLayersData"][0];
+    const destBefore = layerData.destPlayData;
+    const transitionBefore = layerData.crossFadeTransition;
+    const playedBefore = destBefore.playedTime;
+
+    animator.crossFade("Run", 0.1, 0);
+
+    expect(layerData.destPlayData).to.eq(destBefore);
+    expect(layerData.crossFadeTransition).to.eq(transitionBefore);
+    expect(layerData.destPlayData.playedTime).to.eq(playedBefore);
+  });
+
+  it("play, crossFade, and state lookup ignore out-of-range layers without throwing", () => {
+    animator.play("Walk");
+    const before = animator.getCurrentAnimatorState(0);
+
+    expect(() => animator.play("Run", 99)).not.to.throw();
+    expect(() => animator.crossFade("Run", 0.1, 99)).not.to.throw();
+    expect(animator.findAnimatorState("Run", 99)).to.eq(null);
+    expect(animator.findAnimatorState("Run", -2)).to.eq(null);
+    expect(animator.getCurrentAnimatorState(99)).to.eq(null);
+    expect(animator.getCurrentAnimatorState(0)).to.eq(before);
+  });
+
+  it("animation getCurrentAnimatorState", () => {
     //play animation and get current animator state
-    const expectedStateName = resource.animations[index].name;
-    animator.play(expectedStateName);
-    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
+    const layerIndex = 0;
+    const expectedStateName = resource.animations[0].name;
+    animator.play(expectedStateName, layerIndex);
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     expect(currentAnimatorState.name).to.eq(expectedStateName);
   });
@@ -238,8 +351,91 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
+  it("crossFade advances with per-instance playData speed instead of shared AnimatorState speed", () => {
+    const sharedStates = animator.animatorController.layers[0].stateMachine.states;
+    const sharedWalkState = sharedStates.find((state) => state.name === "Walk");
+    const sharedRunState = sharedStates.find((state) => state.name === "Run");
+    const oldWalkSpeed = sharedWalkState.speed;
+    const oldRunSpeed = sharedRunState.speed;
+
+    try {
+      animator.play("Walk");
+      animator.crossFade("Run", 1.0, 0);
+
+      const layerData = animator["_animatorLayersData"][0];
+      layerData.srcPlayData.instance.speed = 0.25;
+      layerData.destPlayData.instance.speed = 0.25;
+      sharedWalkState.speed = 10;
+      sharedRunState.speed = 10;
+
+      const srcPlayedTime = layerData.srcPlayData.playedTime;
+      const destPlayedTime = layerData.destPlayData.playedTime;
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(0.2);
+
+      expect(layerData.srcPlayData.playedTime - srcPlayedTime).toBeCloseTo(0.05, 5);
+      expect(layerData.destPlayData.playedTime - destPlayedTime).toBeCloseTo(0.05, 5);
+    } finally {
+      sharedWalkState.speed = oldWalkSpeed;
+      sharedRunState.speed = oldRunSpeed;
+    }
+  });
+
+  it("playData wrapMode overrides shared AnimatorState wrapMode per instance", () => {
+    const sharedWalkState = animator.animatorController.layers[0].stateMachine.states.find(
+      (state) => state.name === "Walk"
+    );
+    const oldWrapMode = sharedWalkState.wrapMode;
+
+    try {
+      sharedWalkState.wrapMode = WrapMode.Loop;
+      animator.play("Walk");
+
+      const layerData = animator["_animatorLayersData"][0];
+      const playData = layerData.srcPlayData;
+      playData.instance.wrapMode = WrapMode.Once;
+
+      expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
+
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(playData.state.clip.length + 0.1);
+
+      expect(layerData.layerState).to.eq(LayerState.Finished);
+    } finally {
+      sharedWalkState.wrapMode = oldWrapMode;
+    }
+  });
+
+  it("playData wrapMode does not leak between animators sharing one controller", () => {
+    const sharedWalkState = animator.animatorController.layers[0].stateMachine.states.find(
+      (state) => state.name === "Walk"
+    );
+    const oldWrapMode = sharedWalkState.wrapMode;
+    const otherEntity = new Entity(engine);
+    const otherAnimator = otherEntity.addComponent(Animator);
+    otherAnimator.animatorController = animator.animatorController;
+
+    try {
+      sharedWalkState.wrapMode = WrapMode.Loop;
+      animator.play("Walk");
+      otherAnimator.play("Walk");
+
+      const playData = animator["_animatorLayersData"][0].srcPlayData;
+      const otherPlayData = otherAnimator["_animatorLayersData"][0].srcPlayData;
+      playData.instance.wrapMode = WrapMode.Once;
+
+      expect(otherPlayData.wrapMode).to.eq(WrapMode.Loop);
+      expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
+    } finally {
+      sharedWalkState.wrapMode = oldWrapMode;
+      otherEntity.destroy();
+    }
+  });
+
   it("cross fade in fixed time", () => {
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     animator.play("Walk");
     animator.crossFadeInFixedDuration("Run", 0.3, 0, 0.1);
     // @ts-ignore
@@ -257,8 +453,8 @@ describe("Animator test", function () {
   });
 
   it("animation cross fade by transition", () => {
-    const walkState = animator.findAnimatorState("Walk");
-    const runState = animator.findAnimatorState("Run");
+    const walkState = findSharedState("Walk");
+    const runState = findSharedState("Run");
     const transition = new AnimatorStateTransition();
     transition.destinationState = runState;
     transition.duration = 1;
@@ -307,11 +503,11 @@ describe("Animator test", function () {
     const additiveLayer = new AnimatorControllerLayer("additiveLayer");
     additiveLayer.stateMachine = animatorStateMachine;
     const mask = AnimatorLayerMask.createByEntity(animator.entity);
-    mask.setPathMaskActive("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04", false, true);
+    mask.setPathMaskActive("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04", false, true);
     additiveLayer.mask = mask;
     additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
     animatorController.addLayer(additiveLayer);
-    const clip = animator.findAnimatorState("Run").clip;
+    const clip = findSharedState("Run").clip;
     const newState = animatorStateMachine.addState("Run");
     newState.clipStartTime = 1;
     newState.clip = clip;
@@ -319,30 +515,30 @@ describe("Animator test", function () {
     animator.play("Walk", 0);
     animator.play("Run", 1);
 
-    const parentEntity = animator.entity.findByPath("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/");
+    const parentEntity = animator.entity.findByPath("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/");
     const targetEntity = animator.entity.findByPath(
-      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04"
+      "root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04"
     );
     const childEntity = animator.entity.findByPath(
-      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
+      "root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
     );
 
     let layerData = animator["_animatorLayersData"][1];
-    const layerCurveOwner = layerData.curveOwnerPool[targetEntity.transform.instanceId]["rotationQuaternion"];
-    const parentLayerCurveOwner = layerData.curveOwnerPool[parentEntity.transform.instanceId]["rotationQuaternion"];
+    const layerCurveOwner = layerData.curveOwnerPool.get(targetEntity.transform)["rotationQuaternion"];
+    const parentLayerCurveOwner = layerData.curveOwnerPool.get(parentEntity.transform)["rotationQuaternion"];
 
-    let childLayerCurveOwner = layerData.curveOwnerPool[childEntity.transform.instanceId]["rotationQuaternion"];
+    let childLayerCurveOwner = layerData.curveOwnerPool.get(childEntity.transform)["rotationQuaternion"];
 
     expect(layerCurveOwner.isActive).to.eq(false);
     expect(parentLayerCurveOwner.isActive).to.eq(true);
     expect(childLayerCurveOwner.isActive).to.eq(false);
 
     animator.animatorController.removeLayer(1);
-    mask.removePathMask("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05");
+    mask.removePathMask("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05");
     animator.animatorController.addLayer(additiveLayer);
     animator.play("Run", 1);
     layerData = animator["_animatorLayersData"][1];
-    childLayerCurveOwner = layerData.curveOwnerPool[childEntity.transform.instanceId]["rotationQuaternion"];
+    childLayerCurveOwner = layerData.curveOwnerPool.get(childEntity.transform)["rotationQuaternion"];
     expect(childLayerCurveOwner.isActive).to.eq(true);
   });
 
@@ -350,7 +546,7 @@ describe("Animator test", function () {
     animator.play("Walk");
 
     class TestScript extends Script {
-      event0(): void { }
+      event0(): void {}
     }
 
     const testScript = animator.entity.addComponent(TestScript);
@@ -360,22 +556,282 @@ describe("Animator test", function () {
     event0.functionName = "event0";
     event0.time = 0;
 
-    const state = animator.findAnimatorState("Walk");
+    const state = findSharedState("Walk");
     state.clip.addEvent(event0);
     animator.update(10);
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("animation events bind scripts added after play", () => {
+    const state = findSharedState("Walk");
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+    state.clip.addEvent(event0);
+
+    animator.play("Walk");
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const testScript = animator.entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("animation events added after play rebuild handlers lazily", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.05);
+      expect(testScriptSpy).not.toHaveBeenCalled();
+
+      const event0 = new AnimationEvent();
+      event0.functionName = "event0";
+      event0.time = 0.1;
+      clip.addEvent(event0);
+
+      updateAnimator(loopAnimator, 0.1);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("fireEvents gates AnimationEvent dispatch without consuming the event", () => {
+    animator.play("Walk");
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const testScript = animator.entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+
+    const state = findSharedState("Walk");
+    state.clip.addEvent(event0);
+
+    animator.fireEvents = false;
+    animator.update(0);
+    expect(testScriptSpy).not.toHaveBeenCalled();
+
+    animator.fireEvents = true;
+    animator.update(0.1);
+    expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires animation events across forward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 1.25);
+
+      expect(event0Spy).toHaveBeenCalledTimes(2);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("keeps AnimationEvent cursor in sync when fireEvents is disabled across forward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.8);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      loopAnimator.fireEvents = false;
+      updateAnimator(loopAnimator, 0.25);
+      expect(event0Spy).not.toHaveBeenCalled();
+      expect(event1Spy).not.toHaveBeenCalled();
+
+      loopAnimator.fireEvents = true;
+      updateAnimator(loopAnimator, 0.45);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).not.toHaveBeenCalled();
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("fires animation events across backward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+      event2(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+    const event2Spy = vi.spyOn(testScript, "event2");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event2 = new AnimationEvent();
+    event2.functionName = "event2";
+    event2.time = 0.6;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event2);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.25);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).not.toHaveBeenCalled();
+      expect(event2Spy).not.toHaveBeenCalled();
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      event2Spy.mockClear();
+      loopAnimator.speed = -1;
+      updateAnimator(loopAnimator, 0.5);
+
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+      expect(event2Spy).not.toHaveBeenCalled();
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      event2Spy.mockClear();
+      updateAnimator(loopAnimator, 0.25);
+
+      expect(event0Spy).not.toHaveBeenCalled();
+      expect(event1Spy).not.toHaveBeenCalled();
+      expect(event2Spy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("does not refire animation events when a once clip reaches the end", () => {
+    const entity = new Entity(engine);
+    const onceAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("Base Layer");
+    controller.addLayer(layer);
+
+    const state = layer.stateMachine.addState("once");
+    state.wrapMode = WrapMode.Once;
+
+    const clip = new AnimationClip("once-clip");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 1;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.5;
+    clip.addEvent(event0);
+    state.clip = clip;
+    onceAnimator.animatorController = controller;
+
+    const testScript = entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    try {
+      onceAnimator.play("once");
+      // @ts-ignore
+      onceAnimator.engine.time._frameCount++;
+      onceAnimator.update(0.75);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+
+      // @ts-ignore
+      onceAnimator.engine.time._frameCount++;
+      onceAnimator.update(0.5);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
+  });
+
   it("stateMachine", () => {
     animator.animatorController.addParameter("playerSpeed", 1);
     const stateMachine = animator.animatorController.layers[0].stateMachine;
-    const idleState = animator.findAnimatorState("Survey");
+    const idleState = findSharedState("Survey");
     const idleSpeed = 2;
     idleState.speed = idleSpeed;
     idleState.clearTransitions();
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clearTransitions();
     let idleToWalkTime = 0;
     let walkToRunTime = 0;
@@ -494,13 +950,13 @@ describe("Animator test", function () {
     stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
 
-    const idleState = animator.findAnimatorState("Survey");
+    const idleState = findSharedState("Survey");
     const idleSpeed = 2;
     idleState.speed = idleSpeed;
     idleState.clearTransitions();
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clearTransitions();
     let idleToWalkTime = 0;
     let walkToRunTime = 0;
@@ -613,9 +1069,9 @@ describe("Animator test", function () {
   });
 
   it("transitionOffset", () => {
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clearTransitions();
     const toRunTransition = walkState.addTransition(runState);
     toRunTransition.exitTime = 0;
@@ -634,11 +1090,11 @@ describe("Animator test", function () {
   });
 
   it("clipStartTime crossFade", () => {
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.wrapMode = WrapMode.Once;
     walkState.clipStartTime = 0.8;
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clearTransitions();
     const toRunTransition = walkState.addTransition(runState);
     toRunTransition.exitTime = 0.5;
@@ -656,7 +1112,7 @@ describe("Animator test", function () {
   it("transition to exit but no entry", () => {
     const animatorLayerData = animator["_animatorLayersData"];
 
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.wrapMode = WrapMode.Once;
     walkState.clearTransitions();
     walkState.addExitTransition();
@@ -792,8 +1248,8 @@ describe("Animator test", function () {
     animator.animatorController = animatorController;
 
     class TestScript extends StateMachineScript {
-      onStateEnter(animator) { }
-      onStateExit(animator) { }
+      onStateEnter(animator) {}
+      onStateExit(animator) {}
     }
 
     const testScript = state1.addStateMachineScript(TestScript);
@@ -824,7 +1280,7 @@ describe("Animator test", function () {
     const stateMachine = animatorController.layers[0].stateMachine;
     stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
-    const walkState = animator.findAnimatorState("Run");
+    const walkState = findSharedState("Run");
     // For test clipStartTime is not 0 and transition duration is 0
     walkState.clipStartTime = 0.5;
     walkState.addStateMachineScript(
@@ -834,7 +1290,7 @@ describe("Animator test", function () {
         }
       }
     );
-    const transition = stateMachine.addAnyStateTransition(animator.findAnimatorState("Run"));
+    const transition = stateMachine.addAnyStateTransition(findSharedState("Run"));
     transition.addCondition("playRun", AnimatorConditionMode.Equals, 1);
     // For test clipStartTime is not 0 and transition duration is 0
     transition.duration = 0;
@@ -858,13 +1314,13 @@ describe("Animator test", function () {
     const stateMachine = animatorController.layers[0].stateMachine;
     stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
-    const idleState = animator.findAnimatorState("Survey");
+    const idleState = findSharedState("Survey");
     idleState.speed = 1;
     idleState.clearTransitions();
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clipStartTime = 0;
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clearTransitions();
     const walkToRunTransition = walkState.addTransition(runState);
     walkToRunTransition.hasExitTime = true;
@@ -903,9 +1359,9 @@ describe("Animator test", function () {
     const stateMachine = animatorController.layers[0].stateMachine;
     stateMachine.clearEntryStateTransitions();
     stateMachine.clearAnyStateTransitions();
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clipStartTime = 0;
     runState.clearTransitions();
     const walkToRunTransition = walkState.addTransition(runState);
@@ -955,9 +1411,9 @@ describe("Animator test", function () {
     animatorController.addTriggerParameter("triggerWalk");
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
-    const walkState = animator.findAnimatorState("Walk");
+    const walkState = findSharedState("Walk");
     walkState.clearTransitions();
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
     runState.clipStartTime = runState.clipEndTime = 0;
     runState.clearTransitions();
     const walkToRunTransition = walkState.addTransition(runState);
@@ -1042,15 +1498,230 @@ describe("Animator test", function () {
     expect(animatorLayerData[0]?.srcPlayData.state.name).to.eq("state2");
   });
 
+  it("removing a default state prevents it from being auto-played", () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+
+    const removedState = layer.stateMachine.addState("removed");
+    const clip = new AnimationClip("removed-clip");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 1;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+    removedState.clip = clip;
+    layer.stateMachine.defaultState = removedState;
+    layer.stateMachine.removeState(removedState);
+    localAnimator.animatorController = controller;
+
+    try {
+      localAnimator.update(0.1);
+      expect(localAnimator.getCurrentAnimatorState(0)).to.eq(null);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("removing a state invalidates cached layer data before the state name is reused", () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+
+    const oldState = layer.stateMachine.addState("Temp");
+    const oldClip = new AnimationClip("old-temp-clip");
+    const oldCurve = new AnimationFloatCurve();
+    const oldStart = new Keyframe<number>();
+    const oldEnd = new Keyframe<number>();
+    oldStart.time = 0;
+    oldStart.value = 0;
+    oldEnd.time = 1;
+    oldEnd.value = 1;
+    oldCurve.addKey(oldStart);
+    oldCurve.addKey(oldEnd);
+    oldClip.addCurveBinding("", Transform, "position.x", oldCurve);
+    oldState.clip = oldClip;
+    localAnimator.animatorController = controller;
+
+    try {
+      localAnimator.play("Temp");
+      let layerData = localAnimator["_animatorLayersData"][0];
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(true);
+
+      layer.stateMachine.removeState(oldState);
+      const newState = layer.stateMachine.addState("Temp");
+      const newClip = new AnimationClip("new-temp-clip");
+      const newCurve = new AnimationFloatCurve();
+      const newStart = new Keyframe<number>();
+      const newEnd = new Keyframe<number>();
+      newStart.time = 0;
+      newStart.value = 0;
+      newEnd.time = 1;
+      newEnd.value = 2;
+      newCurve.addKey(newStart);
+      newCurve.addKey(newEnd);
+      newClip.addCurveBinding("", Transform, "position.x", newCurve);
+      newState.clip = newClip;
+
+      localAnimator.play("Temp");
+      layerData = localAnimator["_animatorLayersData"][0];
+
+      expect(localAnimator.getCurrentAnimatorState(0)._state).to.eq(newState);
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(false);
+      expect(layerData.animatorStateDataMap.has(newState)).to.eq(true);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("replacing a layer state machine keeps state removal invalidation", () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+
+    const stateMachine = new AnimatorStateMachine();
+    layer.stateMachine = stateMachine;
+
+    const oldState = stateMachine.addState("Temp");
+    const oldClip = new AnimationClip("old-temp-clip");
+    const oldCurve = new AnimationFloatCurve();
+    const oldStart = new Keyframe<number>();
+    const oldEnd = new Keyframe<number>();
+    oldStart.time = 0;
+    oldStart.value = 0;
+    oldEnd.time = 1;
+    oldEnd.value = 1;
+    oldCurve.addKey(oldStart);
+    oldCurve.addKey(oldEnd);
+    oldClip.addCurveBinding("", Transform, "position.x", oldCurve);
+    oldState.clip = oldClip;
+    localAnimator.animatorController = controller;
+
+    try {
+      localAnimator.play("Temp");
+      let layerData = localAnimator["_animatorLayersData"][0];
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(true);
+
+      stateMachine.removeState(oldState);
+      const newState = stateMachine.addState("Temp");
+      const newClip = new AnimationClip("new-temp-clip");
+      const newCurve = new AnimationFloatCurve();
+      const newStart = new Keyframe<number>();
+      const newEnd = new Keyframe<number>();
+      newStart.time = 0;
+      newStart.value = 0;
+      newEnd.time = 1;
+      newEnd.value = 2;
+      newCurve.addKey(newStart);
+      newCurve.addKey(newEnd);
+      newClip.addCurveBinding("", Transform, "position.x", newCurve);
+      newState.clip = newClip;
+
+      localAnimator.play("Temp");
+      layerData = localAnimator["_animatorLayersData"][0];
+
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(false);
+      expect(layerData.animatorStateDataMap.has(newState)).to.eq(true);
+    } finally {
+      entity.destroy();
+    }
+  });
+
   it("Clone", () => {
     expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
+  });
+
+  it("samples self-name-prefixed curve paths on wrapped roots", () => {
+    const wrappedRoot = new Entity(engine, "GLTF_ROOT");
+    const hips = new Entity(engine, "mixamorig:Hips");
+    const spine = new Entity(engine, "mixamorig:Spine");
+    hips.parent = wrappedRoot;
+    spine.parent = hips;
+
+    const clip = new AnimationClip("idle");
+    const hipsCurve = new AnimationFloatCurve();
+    const spineCurve = new AnimationFloatCurve();
+    const hipsStart = new Keyframe<number>();
+    const hipsEnd = new Keyframe<number>();
+    hipsStart.time = 0;
+    hipsStart.value = 0;
+    hipsEnd.time = 0.1;
+    hipsEnd.value = 1;
+    hipsCurve.addKey(hipsStart);
+    hipsCurve.addKey(hipsEnd);
+
+    const spineStart = new Keyframe<number>();
+    const spineEnd = new Keyframe<number>();
+    spineStart.time = 0;
+    spineStart.value = 0;
+    spineEnd.time = 0.1;
+    spineEnd.value = 1;
+    spineCurve.addKey(spineStart);
+    spineCurve.addKey(spineEnd);
+
+    clip.addCurveBinding("mixamorig:Hips", Transform, "position.x", hipsCurve);
+    clip.addCurveBinding("mixamorig:Hips/mixamorig:Spine", Transform, "position.y", spineCurve);
+
+    expect(wrappedRoot.findByPath("mixamorig:Hips")).to.eq(hips);
+    expect(wrappedRoot.findByPath("mixamorig:Hips/mixamorig:Spine")).to.eq(spine);
+
+    clip.sampleAnimation(wrappedRoot, 0.1);
+
+    expect(wrappedRoot.transform.position.x).to.eq(0);
+    expect(hips.transform.position.x).to.eq(1);
+    expect(spine.transform.position.y).to.eq(1);
+  });
+
+  it("sampleAnimation samples clip curves without firing AnimationEvents", () => {
+    const entity = new Entity(engine, "sample-root");
+    const clip = new AnimationClip("sample");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 3;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const script = entity.addComponent(TestScript);
+    const eventSpy = vi.spyOn(script, "event0");
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+    clip.addEvent(event0);
+
+    try {
+      clip.sampleAnimation(entity, 1);
+      expect(entity.transform.position.x).to.eq(3);
+      expect(eventSpy).not.toHaveBeenCalled();
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("anyState transition interrupts crossFade", () => {
     const { animatorController } = animator;
     animatorController.addParameter("interrupt", false);
     const stateMachine = animatorController.layers[0].stateMachine;
-    const idleState = animator.findAnimatorState("Survey");
+    const idleState = findSharedState("Survey");
 
     // AnyState -> Idle (can interrupt)
     const anyToIdle = stateMachine.addAnyStateTransition(idleState);
@@ -1087,9 +1758,9 @@ describe("Animator test", function () {
     animatorController.addParameter("goRun", true);
     animatorController.addParameter("never", false);
 
-    const walkState = animator.findAnimatorState("Walk");
-    const runState = animator.findAnimatorState("Run");
-    const idleState = animator.findAnimatorState("Survey");
+    const walkState = findSharedState("Walk");
+    const runState = findSharedState("Run");
+    const idleState = findSharedState("Survey");
 
     walkState.clipStartTime = 0;
     walkState.clipEndTime = 1;
@@ -1119,7 +1790,7 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(preExitDeltaTime);
     expect(layerData.srcPlayData.state.name).to.eq("Walk");
-    expect(layerData.destPlayData.state).to.be.undefined;
+    expect(layerData.destPlayData).to.be.null;
 
     // Update past exitTime, should transition to Run.
     // @ts-ignore
@@ -1132,8 +1803,8 @@ describe("Animator test", function () {
     const { animatorController } = animator;
     animatorController.addParameter("interrupt", false);
     const stateMachine = animatorController.layers[0].stateMachine;
-    const idleState = animator.findAnimatorState("Survey");
-    const walkState = animator.findAnimatorState("Walk");
+    const idleState = findSharedState("Survey");
+    const walkState = findSharedState("Walk");
 
     // AnyState -> Idle (can interrupt)
     const anyToIdle = stateMachine.addAnyStateTransition(idleState);
@@ -1176,7 +1847,7 @@ describe("Animator test", function () {
     const { animatorController } = animator;
     animatorController.addParameter("alwaysTrue", true);
     const stateMachine = animatorController.layers[0].stateMachine;
-    const runState = animator.findAnimatorState("Run");
+    const runState = findSharedState("Run");
 
     // AnyState -> Run (always true, noExitTime)
     const anyToRun = stateMachine.addAnyStateTransition(runState);
@@ -1212,7 +1883,7 @@ describe("Animator test", function () {
     const { animatorController } = animator;
     animatorController.addParameter("interrupt", true);
     const stateMachine = animatorController.layers[0].stateMachine;
-    const idleState = animator.findAnimatorState("Survey");
+    const idleState = findSharedState("Survey");
 
     // AnyState -> Idle (always true, noExitTime)
     const anyToIdle = stateMachine.addAnyStateTransition(idleState);
@@ -1235,9 +1906,9 @@ describe("Animator test", function () {
   });
 
   it("toggle hasExitTime should maintain correct noExitTimeCount", () => {
-    const walkState = animator.findAnimatorState("Walk");
-    const runState = animator.findAnimatorState("Run");
-    const idleState = animator.findAnimatorState("Survey");
+    const walkState = findSharedState("Walk");
+    const runState = findSharedState("Run");
+    const idleState = findSharedState("Survey");
     walkState.clearTransitions();
 
     // Add a noExitTime transition

@@ -5,7 +5,7 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 @registerGLTFParser(GLTFParserType.BufferView)
 export class GLTFBufferViewParser extends GLTFParser {
   parse(context: GLTFParserContext, index: number): AssetPromise<Uint8Array> {
-    const bufferView = context.glTF.bufferViews[index];
+    const bufferView = context.glTF.bufferViews![index];
     const { extensions, byteOffset = 0, byteLength, buffer: bufferIndex } = bufferView;
     return extensions
       ? <AssetPromise<Uint8Array>>GLTFParser.executeExtensionsCreateAndParse(extensions, context, bufferView)

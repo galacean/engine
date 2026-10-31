@@ -13,7 +13,12 @@ class KHR_materials_specular extends GLTFExtensionParser {
     material.specularIntensity = specularFactor;
 
     if (specularColorFactor) {
-      material.specularColor.set(specularColorFactor[0], specularColorFactor[1], specularColorFactor[2], undefined);
+      material.specularColor.set(
+        specularColorFactor[0],
+        specularColorFactor[1],
+        specularColorFactor[2],
+        material.specularColor.a
+      );
     }
 
     if (specularTexture) {

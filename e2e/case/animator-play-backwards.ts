@@ -3,12 +3,11 @@
  * @category Animation
  */
 import { Animator, Camera, Color, DirectLight, GLTFResource, Logger, Vector3, WebGLEngine } from "@galacean/engine";
-import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -16,7 +15,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(
@@ -34,7 +33,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const { defaultSceneRoot } = gltfResource;
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator);
-      animator.findAnimatorState("walk").speed = -1;
+      const walkState = animator.findAnimatorState("walk");
+      if (!walkState) {
+        throw new Error("Animator state not found: walk");
+      }
+      walkState.speed = -1;
       animator.play("walk");
       updateForE2E(engine);
 

@@ -1,5 +1,5 @@
 import { Color, Rand, Vector4 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneDecorators";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -13,17 +13,23 @@ import { GradientAlphaKey, GradientColorKey, ParticleGradient } from "./Particle
  * Color over lifetime module.
  */
 export class ColorOverLifetimeModule extends ParticleGeneratorModule {
+  /** @internal */
   static readonly _gradientMacro = ShaderMacro.getByName("RENDERER_COL_GRADIENT");
+  /** @internal */
   static readonly _randomGradientsMacro = ShaderMacro.getByName("RENDERER_COL_RANDOM_GRADIENTS");
 
+  /** @internal */
   static readonly _minGradientColor = ShaderProperty.getByName("renderer_COLMinGradientColor");
+  /** @internal */
   static readonly _minGradientAlpha = ShaderProperty.getByName("renderer_COLMinGradientAlpha");
+  /** @internal */
   static readonly _maxGradientColor = ShaderProperty.getByName("renderer_COLMaxGradientColor");
+  /** @internal */
   static readonly _maxGradientAlpha = ShaderProperty.getByName("renderer_COLMaxGradientAlpha");
+  /** @internal */
   static readonly _gradientKeysCount = ShaderProperty.getByName("renderer_COLGradientKeysMaxTime");
 
   /** Color gradient over lifetime. */
-  @deepClone
   color = new ParticleCompositeGradient(
     new ParticleGradient(
       [new GradientColorKey(0.0, new Color(1, 1, 1)), new GradientColorKey(1.0, new Color(1, 1, 1))],
@@ -38,13 +44,13 @@ export class ColorOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _gradientKeysCount = new Vector4(0, 0, 0, 0); // x: minColorKeysMaxTime, y: minAlphaKeysMaxTime, z: maxColorKeysMaxTime, w: maxAlphaKeysMaxTime
   @ignoreClone
-  private _colorMacro: ShaderMacro;
+  private _colorMacro: ShaderMacro | null;
 
   /**
    * @internal
    */
   _updateShaderData(shaderData: ShaderData): void {
-    let colorMacro = <ShaderMacro>null;
+    let colorMacro: ShaderMacro | null = null;
     if (this.enabled) {
       const mode = this.color.mode;
 

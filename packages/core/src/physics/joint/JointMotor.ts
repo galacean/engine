@@ -1,11 +1,10 @@
-import { deepClone } from "../../clone/CloneManager";
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * The JointMotor is used to motorize a joint.
  */
-export class JointMotor {
-  @deepClone
+export class JointMotor extends DataObject {
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 

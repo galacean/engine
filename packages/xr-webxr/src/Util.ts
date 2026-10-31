@@ -11,8 +11,8 @@ export function parseXRMode(mode: number): XRSessionMode | null {
   }
 }
 
-export function getInputSource(inputSource: XRInputSource): XRTrackedInputDevice {
-  let type: number;
+export function getInputSource(inputSource: XRInputSource): XRTrackedInputDevice | undefined {
+  let type: XRTrackedInputDevice | undefined;
   switch (inputSource.targetRayMode) {
     case "gaze":
       break;

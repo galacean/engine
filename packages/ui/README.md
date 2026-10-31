@@ -51,7 +51,7 @@ const image = imageEntity.addComponent(Image);
 engine.resourceManager
   .load({
     url: "https://xxx.png",
-    type: AssetType.Texture2D
+    type: AssetType.Texture
   })
   .then((texture) => {
     image.sprite = new Sprite(engine, <Texture2D>texture);

@@ -46,4 +46,5 @@ export type KeyframeValueType =
   | Rect
   | string
   | boolean
-  | ReferResource;
+  | ReferResource
+  | null;

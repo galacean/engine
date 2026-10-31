@@ -16,7 +16,7 @@ import { PipelineStage } from "./enums/PipelineStage";
  */
 export class DepthOnlyPass extends PipelinePass {
   readonly supportDepthTexture: boolean;
-  renderTarget: RenderTarget;
+  renderTarget: RenderTarget | null;
 
   constructor(engine: Engine) {
     super(engine);
@@ -57,7 +57,7 @@ export class DepthOnlyPass extends PipelinePass {
     cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
 
-    camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget.depthTexture);
+    camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget!.depthTexture);
   }
 
   release(): void {

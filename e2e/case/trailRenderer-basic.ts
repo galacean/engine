@@ -168,7 +168,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
@@ -238,7 +237,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load<Texture2D>({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*-DEWQZ0ncrEAAAAASTAAAAgAeil6AQ/original",
-      type: AssetType.Texture2D
+      type: AssetType.Texture
     })
     .then((texture) => {
       // Set texture on all trail materials

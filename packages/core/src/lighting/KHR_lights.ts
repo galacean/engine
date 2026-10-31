@@ -6,7 +6,10 @@ import { Logger } from "../base";
 
 class KHR_lights {
   static parseLights(lights) {
-    const results = [];
+    const results: {
+      component: typeof AmbientLight | typeof DirectLight | typeof PointLight | typeof SpotLight;
+      props: { name: string; color: number[]; intensity: number; angle?: number };
+    }[] = [];
 
     for (let i = 0; i < lights.length; i++) {
       const { name, type, spot } = lights[i];

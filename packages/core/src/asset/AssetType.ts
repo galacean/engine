@@ -8,10 +8,8 @@ export enum AssetType {
   JSON = "JSON",
   /** ArrayBuffer. */
   Buffer = "Buffer",
-  /** 2D Texture. */
-  Texture2D = "Texture2D",
-  /** Cube Texture. */
-  TextureCube = "TextureCube",
+  /** Texture. */
+  Texture = "Texture",
   /** Material. */
   Material = "Material",
   /** Shader. */
@@ -46,7 +44,7 @@ export enum AssetType {
   Font = "Font",
   /** Source Font, include ttf, otf and woff. */
   SourceFont = "SourceFont",
-  /** AudioClip, include ogg, wav and mp3. */
+  /** AudioClip, include ogg, wav, mp3, m4a, aac and flac. */
   Audio = "Audio",
   /** Project asset. */
   Project = "project",

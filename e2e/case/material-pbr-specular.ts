@@ -14,18 +14,13 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
-registerIncludes();
-
 // Create engine
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 
@@ -48,7 +43,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
         const { defaultSceneRoot, materials } = gltf;
         const entity = rootEntity.createChild();
         entity.addChild(defaultSceneRoot);
-        const shader = Shader.create(PBRSource);
+        const shader = Shader.find("PBR");
         materials?.forEach((material) => {
           material.shader = shader;
         });
@@ -56,7 +51,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.AmbientLight,
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;

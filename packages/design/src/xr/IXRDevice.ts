@@ -23,7 +23,7 @@ export interface IXRDevice {
    * @param engine - The engine.
    * @param type - The type of the feature.
    */
-  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature;
+  createPlatformFeature(type: number, ...args: any[]): IXRPlatformFeature | null;
 
   /**
    * Request a session.
