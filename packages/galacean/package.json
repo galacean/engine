@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine",
-  "version": "2.0.0-alpha.51",
+  "version": "2.0.0-alpha.52",
   "description": "Galacean is a web-first, mobile-first, high-performance real-time interactive engine with component-based design, supporting 2D/3D graphics, animation, physics, input and TypeScript scripting.",
   "keywords": [
     "galacean",
