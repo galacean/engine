@@ -118,6 +118,70 @@ describe("ResourceManager", () => {
   });
 
   describe("load asset", () => {
+    it("loads concurrent uncached requests independently", async () => {
+      const resourceManager = engine.resourceManager;
+      const url = "Assets/concurrent-primitive.mesh";
+      const resolves: ((value?: any) => void)[] = [];
+      const cachePool = (resourceManager as any)._assetUrlPool;
+      cachePool[url] = { instanceId: 987654329 };
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.PrimitiveMesh], "load")
+        .mockImplementation(() => new AssetPromise((resolve) => resolves.push(resolve)) as any);
+
+      try {
+        const firstPromise = resourceManager.load<any>({ type: AssetType.PrimitiveMesh, url });
+        const secondPromise = resourceManager.load<any>({ type: AssetType.PrimitiveMesh, url });
+
+        expect(loaderSpy).toHaveBeenCalledTimes(2);
+
+        const firstResource = { instanceId: 987654326 };
+        const secondResource = { instanceId: 987654327 };
+        resolves[0](firstResource);
+        resolves[1](secondResource);
+
+        await expect(firstPromise).resolves.toBe(firstResource);
+        await expect(secondPromise).resolves.toBe(secondResource);
+      } finally {
+        delete cachePool[url];
+        resourceManager.cancelNotLoaded(url);
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("cancels every pending uncached request for a URL", async () => {
+      const resourceManager = engine.resourceManager;
+      const url = "Assets/cancel-primitive.mesh";
+      const resolves: ((value?: any) => void)[] = [];
+      const cancelSpies = [vi.fn(), vi.fn(), vi.fn()];
+      let loadIndex = 0;
+      const loaderSpy = vi.spyOn(ResourceManager._loaders[AssetType.PrimitiveMesh], "load").mockImplementation(
+        () =>
+          new AssetPromise((resolve, _reject, _setComplete, _setDetail, onCancel) => {
+            resolves.push(resolve);
+            onCancel(cancelSpies[loadIndex++]);
+          }) as any
+      );
+
+      try {
+        const firstPromise = resourceManager.load<any>({ type: AssetType.PrimitiveMesh, url });
+        const secondPromise = resourceManager.load<any>({ type: AssetType.PrimitiveMesh, url });
+        resolves[0]({ instanceId: 987654328 });
+        await expect(firstPromise).resolves.toEqual({ instanceId: 987654328 });
+
+        const thirdPromise = resourceManager.load<any>({ type: AssetType.PrimitiveMesh, url });
+        resourceManager.cancelNotLoaded(url);
+
+        expect(cancelSpies[0]).not.toHaveBeenCalled();
+        expect(cancelSpies[1]).toHaveBeenCalledOnce();
+        expect(cancelSpies[2]).toHaveBeenCalledOnce();
+        await expect(secondPromise).rejects.toBe("canceled");
+        await expect(thirdPromise).rejects.toBe("canceled");
+      } finally {
+        resourceManager.cancelNotLoaded(url);
+        loaderSpy.mockRestore();
+      }
+    });
+
     it("resolves a relative baseUrl once at the request boundary", async () => {
       const resourceManager = engine.resourceManager;
       const requestSpy = vi
