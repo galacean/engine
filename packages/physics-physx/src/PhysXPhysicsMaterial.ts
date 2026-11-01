@@ -1,4 +1,4 @@
-import { IPhysicsMaterial } from "@galacean/engine-design";
+import { IPhysicsMaterial, IPhysicsMaterialProperties } from "@galacean/engine-design";
 import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
@@ -8,17 +8,8 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   /** @internal */
   _pxMaterial: any;
 
-  protected _physXPhysics: PhysXPhysics;
-
-  constructor(
-    physXPhysics: PhysXPhysics,
-    staticFriction: number,
-    dynamicFriction: number,
-    bounciness: number,
-    frictionCombine: CombineMode,
-    bounceCombine: CombineMode
-  ) {
-    this._physXPhysics = physXPhysics;
+  constructor(physXPhysics: PhysXPhysics, properties: IPhysicsMaterialProperties) {
+    const { staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine } = properties;
     const pxMaterial = physXPhysics._pxPhysics.createMaterial(staticFriction, dynamicFriction, bounciness);
     pxMaterial.setFrictionCombineMode(frictionCombine);
     pxMaterial.setRestitutionCombineMode(bounceCombine);
@@ -49,14 +40,14 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   /**
    * {@inheritDoc IPhysicsMaterial.setBounceCombine }
    */
-  setBounceCombine(value: CombineMode) {
+  setBounceCombine(value: number) {
     this._pxMaterial.setRestitutionCombineMode(value);
   }
 
   /**
    * {@inheritDoc IPhysicsMaterial.setFrictionCombine }
    */
-  setFrictionCombine(value: CombineMode) {
+  setFrictionCombine(value: number) {
     this._pxMaterial.setFrictionCombineMode(value);
   }
 
@@ -66,18 +57,4 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   destroy(): void {
     this._pxMaterial.release();
   }
-}
-
-/**
- * Describes how physics materials of the colliding objects are combined.
- */
-enum CombineMode {
-  /** Averages the friction/bounce of the two colliding materials. */
-  Average,
-  /** Uses the smaller friction/bounce of the two colliding materials. */
-  Minimum,
-  /** Multiplies the friction/bounce of the two colliding materials. */
-  Multiply,
-  /** Uses the larger friction/bounce of the two colliding materials. */
-  Maximum
 }
