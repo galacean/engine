@@ -30,8 +30,8 @@ export default class SemanticAnalyzer {
   symbolTableStack: SymbolTableStack<SymbolInfo, SymbolTable<SymbolInfo>> = new SymbolTableStack();
   curFunctionInfo: {
     header?: ASTNode.FunctionDeclarator;
-    returnStatement?: ASTNode.JumpStatement | null;
-  } = {};
+    returnStatements: ASTNode.JumpStatement[];
+  } = { returnStatements: [] };
   private _shaderData = new ShaderData();
   private _translationRuleTable: Map<number /** production id */, TranslationRule> = new Map();
 

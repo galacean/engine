@@ -5,6 +5,7 @@ import {
   CompareFunction,
   CullMode,
   RenderStateElementKey,
+  ShaderFactory,
   ShaderLanguage,
   StencilOperation
 } from "@galacean/engine-core";
@@ -12,7 +13,17 @@ import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader
 import { ShaderCompiler as ShaderCompilerVerbose } from "@galacean/engine-shader-compiler/verbose";
 import { glslValidate } from "./ShaderValidate";
 
-import { Logger, WebGLEngine } from "@galacean/engine";
+import {
+  Camera,
+  Logger,
+  Material,
+  MeshRenderer,
+  ModelMesh,
+  Shader,
+  Vector3,
+  WebGLEngine,
+  WebGLMode
+} from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 
@@ -23,6 +34,14 @@ Logger.enable();
 const shaderCompilerVerbose = new ShaderCompilerVerbose();
 const shaderCompilerRelease = new ShaderCompilerRelease();
 
+// `_parseShaderPass` resolves `#include` through the compiler's include map. `glslValidate`
+// binds it as a side effect, which would leave every test that parses without linking
+// first silently dependent on a sibling test having run. Bind it up front instead.
+// @ts-ignore — runtime-only binding.
+shaderCompilerRelease._includeMap = ShaderFactory.includeMap;
+// @ts-ignore — runtime-only binding.
+shaderCompilerVerbose._includeMap = ShaderFactory.includeMap;
+
 describe("ShaderCompiler", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
@@ -32,6 +51,122 @@ describe("ShaderCompiler", async () => {
     expect(shaderCompilerVerbose).not.be.null;
     expect(shaderCompilerRelease).not.be.null;
   });
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "compiles conditional fragment helper macros without vertex dependencies (%s)",
+    async (language) => {
+      const fixtureEngine = await WebGLEngine.create({
+        canvas: document.createElement("canvas"),
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentHelperMacro${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            struct Attributes { vec4 POSITION; };
+            struct Varyings { vec2 uv; };
+            struct SurfaceData { vec3 color; };
+            vec3 shadeSurface(SurfaceData surface) { return surface.color; }
+            #ifdef MATERIAL_TEST_LIGHT
+              #define SURFACE_HOOK shadeSurface
+            #endif
+            Varyings vertexMain(Attributes attributes) {
+              Varyings output;
+              gl_Position = attributes.POSITION;
+              output.uv = attributes.POSITION.xy;
+              return output;
+            }
+            vec4 fragmentMain(Varyings input) {
+              #ifdef MATERIAL_TEST_LIGHT
+                SurfaceData surface;
+                surface.color = vec3(input.uv, 1.0);
+                return vec4(SURFACE_HOOK(surface), 1.0);
+              #else
+                return vec4(input.uv, 0.0, 1.0);
+              #endif
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        expect(shader.compileVariant(fixtureEngine, [])).to.be.true;
+        expect(shader.compileVariant(fixtureEngine, ["MATERIAL_TEST_LIGHT"])).to.be.true;
+      } finally {
+        shader.destroy();
+        fixtureEngine.destroy();
+      }
+    }
+  );
+
+  it.each([ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300])(
+    "preserves early fragment return colors (%s)",
+    async (language) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 32;
+      const fixtureEngine = await WebGLEngine.create({
+        canvas,
+        shaderCompiler: shaderCompilerRelease,
+        graphicDeviceOptions: {
+          webGLMode: language === ShaderLanguage.GLSLES100 ? WebGLMode.WebGL1 : WebGLMode.WebGL2,
+          preserveDrawingBuffer: true
+        }
+      });
+      const shader = Shader.create(
+        `Shader "FragmentReturnColors${language}" {
+          SubShader "Default" { Pass "Forward" {
+            VertexShader = vertexMain;
+            FragmentShader = fragmentMain;
+            float material_UseRed;
+            mat4 renderer_MVPMat;
+            struct Attributes { vec4 POSITION; };
+            void vertexMain(Attributes attributes) { gl_Position = renderer_MVPMat * attributes.POSITION; }
+            vec4 fragmentMain() {
+              if (material_UseRed > 0.5) return vec4(1.0, 0.0, 0.0, 1.0);
+              return vec4(0.0, 1.0, 0.0, 1.0);
+            }
+          } }
+        }`,
+        language
+      );
+      try {
+        const root = fixtureEngine.sceneManager.activeScene.createRootEntity();
+        const camera = root.createChild().addComponent(Camera);
+        camera.entity.transform.setPosition(0, 0, 3);
+        const mesh = new ModelMesh(fixtureEngine);
+        mesh.setPositions([new Vector3(-1, -1, 0), new Vector3(1, -1, 0), new Vector3(0, 1, 0)]);
+        mesh.setIndices(new Uint16Array([0, 1, 2]));
+        mesh.addSubMesh(0, 3);
+        mesh.bounds.min.set(-1, -1, 0);
+        mesh.bounds.max.set(1, 1, 0);
+        mesh.uploadData(false);
+        const renderer = root.createChild().addComponent(MeshRenderer);
+        renderer.mesh = mesh;
+        const material = new Material(fixtureEngine, shader);
+        renderer.setMaterial(material);
+        const gl = canvas.getContext(language === ShaderLanguage.GLSLES100 ? "webgl" : "webgl2") as
+          | WebGLRenderingContext
+          | WebGL2RenderingContext;
+        const pixel = new Uint8Array(4);
+        for (const [useRed, expected] of [
+          [0, [0, 255, 0, 255]],
+          [1, [255, 0, 0, 255]]
+        ] as const) {
+          material.shaderData.setFloat("material_UseRed", useRed);
+          fixtureEngine.update();
+          gl.readPixels(16, 16, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
+          expect(Array.from(pixel)).to.deep.equal(expected);
+        }
+      } finally {
+        fixtureEngine.destroy();
+        shader.destroy();
+      }
+    }
+  );
 
   it("PBR", async () => {
     const shader = shaderCompilerVerbose._parseShaderSource(PBRSource);
@@ -648,5 +783,288 @@ describe("ShaderCompiler", async () => {
     )!;
     expect(fragment).to.contain("u_globalLightDir");
     expect(fragment).to.contain("normalize");
+  });
+
+  /**
+   * Regression guard for the stage-scope fixes: hoisting helper structs must neither
+   * duplicate a top-level declaration nor drop a helper function.
+   *
+   * Two bugs motivated this:
+   *  - IO structs (Attributes/Varyings/MRT) were collected from function signatures and
+   *    re-emitted at the top of the stage, duplicating the declaration that
+   *    `_getCustomStruct` already emits. Duplicate `varying`/`attribute` is a GLSL error.
+   *  - `_walkMacroDefineTokens` stopped codegen-ing macro bodies, so globals referenced
+   *    only from a macro (e.g. `INVERSE_MAT` → `inverseMat`) were never emitted.
+   */
+  describe("stage-scope struct and macro emission", () => {
+    const builtInShaders = [
+      "PBR.shader",
+      "BlinnPhong.shader",
+      "Unlit.shader",
+      "2D/Sprite.shader",
+      "2D/Text.shader",
+      "2D/UIDefault.shader",
+      "2D/SpriteMask.shader",
+      "Blit/Blit.shader",
+      "Blit/BlitScreen.shader",
+      "Effect/Particle.shader",
+      "Effect/ParticleFeedback.shader",
+      "Effect/Trail.shader",
+      "Pipeline/ShadowCaster.shader",
+      "Pipeline/DepthOnly.shader",
+      "PostProcess/Bloom.shader",
+      "PostProcess/Uber.shader",
+      "PostProcess/FinalSRGB.shader",
+      "PostProcess/FinalAntiAliasing.shader",
+      "Sky/Skybox.shader",
+      "Sky/BackgroundTexture.shader",
+      "Sky/SkyProcedural.shader",
+      "Lighting/ScalableAmbientOcclusion.shader"
+    ];
+
+    // The engine's own corpus must link in both stages. A struct emitted without the
+    // `#if` guards around its fields, or a helper emitted without its signature
+    // structs, surfaces here as an invalid shader program.
+    it.each(builtInShaders)("%s links", async (fileName) => {
+      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
+      // `SSAO_QUALITY` selects the sample spiral; without it the AO fragment stage
+      // references `SAMPLE_COUNT`/`angleIncCosSin` from an inactive `#if` arm.
+      glslValidate(engine, source, shaderCompilerRelease, [{ name: "SSAO_QUALITY", value: "1" }]);
+    });
+
+    // GLSL allows function overloading, so a function's identity is its full signature
+    // (`inverseMat(mat2)` vs `inverseMat(mat3)` are distinct, legal declarations).
+    // Variables and structs are identified by name alone.
+    const DECLARATION_PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
+      [/attribute\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
+      [/varying\s+\w+\s+(\w+)\s*;/g, (m) => m[1]],
+      [/struct\s+(\w+)\s*\{/g, (m) => m[1]],
+      [
+        /\b(?:float|int|void|bool|vec[234]|mat[234]|ivec[234]|bvec[234])\s+(\w+)\s*\(([^)]*)\)\s*\{/g,
+        (m) => `${m[1]}(${m[2].replace(/\s+/g, " ").trim()})`
+      ]
+    ];
+
+    /**
+     * Walk the generated source tracking `#if/#ifdef/#ifndef … #else … #endif` nesting and
+     * record, for every top-level declaration, the guard it sits under.
+     *
+     * Two declarations of the same name only conflict when their guards can be active at the
+     * same time. Two rules make that decidable without running the preprocessor:
+     *
+     * - Guards are compared arm by arm, so mutually exclusive branches stay legal
+     *   (`TANGENT_BS0` under `#if defined(N)&&defined(T)` vs `#else` → `#ifdef T`) while an
+     *   unconditional declaration still collides with a conditional one. Comparing whole
+     *   guard strings would miss that collision — the redeclaration this guards against.
+     * - A `#ifndef M` block that defines `M` is an include guard, and it neutralises every
+     *   later `#ifndef M` in the file. The generator emits some headers twice, each copy
+     *   behind its own include guard; the second copy is unreachable, not a redeclaration.
+     */
+    const duplicatesUnderCompatibleGuards = (source: string) => {
+      type Frame = { cond: string; branch: number; ifndef?: string; definesGuard: boolean };
+      type Guard = { arms: { branch: number; frame: Frame }[]; label: string };
+
+      const stack: Frame[] = [];
+      const byName = new Map<string, Guard[]>();
+      const guard = (): Guard => ({
+        arms: stack.map((frame) => ({ branch: frame.branch, frame })),
+        label: stack.map((frame) => `${frame.cond}#${frame.branch}`).join(" && ") || "<unconditional>"
+      });
+      const compatible = (left: Guard, right: Guard) => {
+        for (let i = 0, n = Math.min(left.arms.length, right.arms.length); i < n; i++) {
+          const a = left.arms[i];
+          const b = right.arms[i];
+          if (a.frame !== b.frame) break;
+          if (a.branch !== b.branch) return false;
+        }
+        return !left.arms.some(
+          (a) =>
+            a.frame.ifndef &&
+            a.frame.definesGuard &&
+            right.arms.some((b) => b.frame !== a.frame && b.frame.ifndef === a.frame.ifndef)
+        );
+      };
+
+      for (const line of source.split("\n")) {
+        const trimmed = line.trim();
+        if (/^#\s*if/.test(trimmed)) {
+          stack.push({
+            cond: trimmed,
+            branch: 0,
+            ifndef: /^#\s*ifndef\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1],
+            definesGuard: false
+          });
+          continue;
+        }
+        if (/^#\s*elif/.test(trimmed)) {
+          if (stack.length) {
+            stack[stack.length - 1].branch++;
+            stack[stack.length - 1].cond += ` | ${trimmed}`;
+          }
+          continue;
+        }
+        if (/^#\s*else/.test(trimmed)) {
+          if (stack.length) stack[stack.length - 1].branch++;
+          continue;
+        }
+        if (/^#\s*endif/.test(trimmed)) {
+          stack.pop();
+          continue;
+        }
+
+        const defined = /^#\s*define\s+([A-Za-z_]\w*)/.exec(trimmed)?.[1];
+        if (defined) {
+          for (const frame of stack) {
+            if (frame.ifndef === defined) frame.definesGuard = true;
+          }
+        }
+
+        for (const [pattern, key] of DECLARATION_PATTERNS) {
+          pattern.lastIndex = 0;
+          for (const match of line.matchAll(pattern)) {
+            const name = key(match);
+            let guards = byName.get(name);
+            if (!guards) byName.set(name, (guards = []));
+            guards.push(guard());
+          }
+        }
+      }
+
+      const duplicates: { key: string; left: string; right: string }[] = [];
+      for (const [key, guards] of byName) {
+        for (let i = 0; i < guards.length; i++) {
+          for (let j = i + 1; j < guards.length; j++) {
+            if (compatible(guards[i], guards[j])) {
+              duplicates.push({ key, left: guards[i].label, right: guards[j].label });
+            }
+          }
+        }
+      }
+      return duplicates;
+    };
+
+    it("scanner flags only declarations whose guards can be active together", () => {
+      const unconditionalAndConditional = duplicatesUnderCompatibleGuards(
+        [
+          "struct SurfaceData { vec3 albedo; };",
+          "#ifdef NEED_TANGENT_SPACE",
+          "struct SurfaceData { vec3 tangent; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(unconditionalAndConditional.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
+
+      const mutuallyExclusive = duplicatesUnderCompatibleGuards(
+        ["#ifdef A", "struct SurfaceData { vec3 a; };", "#else", "struct SurfaceData { vec3 b; };", "#endif"].join("\n")
+      );
+      expect(mutuallyExclusive).to.deep.equal([]);
+
+      const independentConditions = duplicatesUnderCompatibleGuards(
+        [
+          "#ifdef A",
+          "#else",
+          "struct SurfaceData { vec3 a; };",
+          "#endif",
+          "#ifdef B",
+          "struct SurfaceData { vec3 b; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(independentConditions.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
+
+      const sameIncludeGuard = duplicatesUnderCompatibleGuards(
+        [
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "struct SurfaceData { vec3 a; };",
+          "struct SurfaceData { vec3 b; };",
+          "#endif"
+        ].join("\n")
+      );
+      expect(sameIncludeGuard.map((d) => d.key)).to.deep.equal(["SurfaceData"]);
+
+      // A header emitted twice, each copy behind its own include guard: the second copy is
+      // unreachable once the first defines the macro.
+      const includeGuarded = duplicatesUnderCompatibleGuards(
+        [
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "float sRGBToLinear ( float value ) { return value; }",
+          "#endif",
+          "#ifndef MOBILE_INCLUDED",
+          "#define MOBILE_INCLUDED",
+          "#ifndef COMMON_INCLUDED",
+          "#define COMMON_INCLUDED",
+          "float sRGBToLinear ( float value ) { return value; }",
+          "#endif",
+          "#endif"
+        ].join("\n")
+      );
+      expect(includeGuarded).to.deep.equal([]);
+    });
+
+    it.each(builtInShaders)("%s emits each top-level declaration once", async (fileName) => {
+      const source = await readFile(`../packages/shader/src/Shaders/${fileName}`);
+      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
+
+      for (const subShader of shaderSource.subShaders) {
+        for (const passSource of subShader.passes) {
+          if (passSource.isUsePass) continue;
+          const parsed = shaderCompilerRelease._parseShaderPass(
+            passSource.contents,
+            passSource.vertexEntry,
+            passSource.fragmentEntry,
+            ShaderLanguage.GLSLES100
+          );
+          expect(parsed, `${fileName}: parse failed`).to.not.be.undefined;
+
+          for (const [stage, instructions] of [
+            ["vertex", parsed!.vertex],
+            ["fragment", parsed!.fragment]
+          ] as const) {
+            for (const duplicate of duplicatesUnderCompatibleGuards(instructions)) {
+              expect.fail(
+                `${fileName} ${subShader.name}.${passSource.name} ${stage}: ` +
+                  `"${duplicate.key}" declared twice under compatible guards ` +
+                  `(${duplicate.left}) and (${duplicate.right})`
+              );
+            }
+          }
+        }
+      }
+    });
+
+    it("keeps helper functions referenced only from macro bodies", async () => {
+      // `INVERSE_MAT` expands to `inverseMat(mat)` on the WebGL1 path. The definition is
+      // reachable only through the macro, so macro-body codegen must register it.
+      const source = await readFile("../packages/shader/src/Shaders/PBR.shader");
+      const shaderSource = shaderCompilerRelease._parseShaderSource(source);
+      const passSource = shaderSource.subShaders[0].passes[2];
+      const parsed = shaderCompilerRelease._parseShaderPass(
+        passSource.contents,
+        passSource.vertexEntry,
+        passSource.fragmentEntry,
+        ShaderLanguage.GLSLES100
+      )!;
+
+      // Guard the guard: if the macro walk regressed far enough that no stage expands
+      // `INVERSE_MAT`, the per-stage assertion below would be skipped and pass vacuously.
+      const referencing = [parsed.vertex, parsed.fragment].filter((instructions) =>
+        instructions.includes("inverseMat(")
+      );
+      expect(referencing, "at least one stage must expand INVERSE_MAT").to.not.be.empty;
+      for (const instructions of referencing) {
+        expect(instructions, "macro-only helper must still be defined").to.contain("mat2 inverseMat");
+      }
+    });
+
+    it("declares structs named only by an emitted helper's signature", async () => {
+      // `shadeSurface` reaches the vertex stage through `#define SURFACE_HOOK` alone, and
+      // the local that would otherwise name `SurfaceData` exists only in the fragment
+      // branch. Without registering the parameter type, the vertex stage emits a
+      // signature referencing an undeclared struct and the program fails to link.
+      const shaderSource = await readFile("src/shader-compiler/shaders/helper-signature-struct.shader");
+      glslValidate(engine, shaderSource, shaderCompilerRelease);
+    });
   });
 });
