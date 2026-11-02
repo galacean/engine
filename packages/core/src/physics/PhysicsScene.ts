@@ -203,38 +203,37 @@ export class PhysicsScene {
 
   /**
    * Casts a ray and writes all hits in unspecified order.
-   * @param ray - The world-space ray; its direction is normalized for the query
-   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
-   * @returns Whether any query shape was hit
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
+   * @returns Whether any hit was found
    *
-   * @remarks Reuses output objects; copy values to retain them. See the full overload for pooling rules.
+   * @remarks Existing entries are overwritten. Copy hit values to retain them.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
   /**
    * Casts a ray and writes all hits in unspecified order.
-   * @param ray - The world-space ray; its direction is normalized for the query
-   * @param distance - The maximum query distance; non-positive values return no hits
-   * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
-   * @returns Whether any query shape was hit
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param distance - Maximum query distance; non-positive values return no hits
+   * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
+   * @returns Whether any hit was found
    *
-   * @remarks Reuses output objects; copy values to retain them. See the full overload for pooling rules.
+   * @remarks Existing entries are overwritten. Copy hit values to retain them.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
   /**
    * Casts a ray and optionally writes all hits in unspecified order.
-   * @param ray - The world-space ray; its direction is normalized for the query
-   * @param distance - The maximum query distance; defaults to Number.MAX_VALUE
-   * @param layerMask - The collision layers to include; defaults to Layer.Everything
-   * @param outHitResults - The optional output array; its length is set to the hit count and its result objects are reused
-   * @returns Whether any query shape was hit
+   * @param ray - World-space ray; its direction is normalized internally
+   * @param distance - Maximum query distance; defaults to `Number.MAX_VALUE`
+   * @param layerMask - Collision layers to include; defaults to `Layer.Everything`
+   * @param outHitResults - Receives the hits; resized to the hit count. Omit to test for a hit only
+   * @returns Whether any hit was found
    *
-   * @remarks Reuses supplied objects, fills missing slots, and clears/pools surplus objects.
-   * Use distinct objects per slot and output array. Results are borrowed; copy values to retain them.
-   * Reuse the array without clearing it; manually removed entries are not pooled.
-   * Resource GC and scene destruction release idle results. Omitting the array performs only a hit test.
-   * Non-positive distances or invalid directions clear the output; hits at distance 0 are ignored.
+   * @remarks Overwrites existing entries and fills missing slots; clears and pools surplus entries.
+   * Use distinct objects per slot and array. Copy values to retain them; reuse the array without clearing it.
+   * Manually removed entries are not pooled. Resource GC and scene destruction release idle pooled objects.
+   * Non-positive distances or directions that cannot be normalized clear the output; hits at distance 0 are ignored.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
 
