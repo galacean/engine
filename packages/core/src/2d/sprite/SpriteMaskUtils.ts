@@ -9,11 +9,8 @@ import { Sprite } from "./Sprite";
 export class SpriteMaskUtils {
   private static _tempMat: Matrix = new Matrix();
   private static _tempVec3: Vector3 = new Vector3();
-  private static _u8Buffer1 = new Uint8Array(1);
-  private static _u8Buffer2 = new Uint8Array(2);
   private static _u8Buffer4 = new Uint8Array(4);
   private static _u16Buffer1 = new Uint16Array(1);
-  private static _u16Buffer4 = new Uint16Array(4);
   private static _f32Buffer4 = new Float32Array(4);
   private static _u32Buffer4 = new Uint32Array(4);
 
@@ -84,39 +81,23 @@ export class SpriteMaskUtils {
   private static _sampleTextureAlpha(texture: Texture2D, x: number, y: number): number {
     try {
       switch (texture.format) {
-        case TextureFormat.R8G8B8A8: {
+        case TextureFormat.R8G8B8A8_UNorm: {
           const buffer = SpriteMaskUtils._u8Buffer4;
           texture.getPixelBuffer(x, y, 1, 1, buffer);
           return buffer[3] / 255;
         }
-        case TextureFormat.R4G4B4A4: {
+        case TextureFormat.R4G4B4A4_UNorm: {
           const buffer = SpriteMaskUtils._u16Buffer1;
           texture.getPixelBuffer(x, y, 1, 1, buffer);
           return (buffer[0] & 0xf) / 15;
         }
-        case TextureFormat.R5G5B5A1: {
+        case TextureFormat.R5G5B5A1_UNorm: {
           const buffer = SpriteMaskUtils._u16Buffer1;
           texture.getPixelBuffer(x, y, 1, 1, buffer);
           return buffer[0] & 0x1;
         }
-        case TextureFormat.Alpha8:
-        case TextureFormat.R8: {
-          const buffer = SpriteMaskUtils._u8Buffer1;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[0] / 255;
-        }
-        case TextureFormat.LuminanceAlpha:
-        case TextureFormat.R8G8: {
-          const buffer = SpriteMaskUtils._u8Buffer2;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[1] / 255;
-        }
-        case TextureFormat.R16G16B16A16: {
-          const buffer = SpriteMaskUtils._u16Buffer4;
-          texture.getPixelBuffer(x, y, 1, 1, buffer);
-          return buffer[3] / 65535;
-        }
-        case TextureFormat.R32G32B32A32: {
+        case TextureFormat.R16G16B16A16_SFloat:
+        case TextureFormat.R32G32B32A32_SFloat: {
           const buffer = SpriteMaskUtils._f32Buffer4;
           texture.getPixelBuffer(x, y, 1, 1, buffer);
           return buffer[3];

@@ -51,26 +51,26 @@ async function main() {
 
   const panelSize = { width: 760, height: 420 };
 
-  const outsideEntity = canvasEntity.createChild("OutsidePanel");
-  const outsideImage = outsideEntity.addComponent(Image);
-  (outsideEntity.transform as UITransform).size.set(panelSize.width, panelSize.height);
-  outsideImage.sprite = solidSprite;
-  outsideImage.color.set(0.2, 0.56, 0.96, 0.95);
-  outsideImage.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
-
-  const insideEntity = canvasEntity.createChild("InsidePanel");
-  const insideImage = insideEntity.addComponent(Image);
-  (insideEntity.transform as UITransform).size.set(panelSize.width, panelSize.height);
-  insideImage.sprite = solidSprite;
-  insideImage.color.set(0.96, 0.36, 0.28, 0.95);
-  insideImage.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
-
   const maskEntity = canvasEntity.createChild("Mask");
   const maskTransform = maskEntity.transform as UITransform;
   maskTransform.size.set(280, 280);
   const mask = maskEntity.addComponent(Mask);
   mask.sprite = circleSprite;
   mask.alphaCutoff = 0.1;
+
+  const outsideEntity = maskEntity.createChild("OutsidePanel");
+  const outsideImage = outsideEntity.addComponent(Image);
+  (outsideEntity.transform as UITransform).size.set(panelSize.width, panelSize.height);
+  outsideImage.sprite = solidSprite;
+  outsideImage.color.set(0.2, 0.56, 0.96, 0.95);
+  outsideImage.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+
+  const insideEntity = maskEntity.createChild("InsidePanel");
+  const insideImage = insideEntity.addComponent(Image);
+  (insideEntity.transform as UITransform).size.set(panelSize.width, panelSize.height);
+  insideImage.sprite = solidSprite;
+  insideImage.color.set(0.96, 0.36, 0.28, 0.95);
+  insideImage.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
 
   const maskPreviewEntity = maskEntity.createChild("MaskPreview");
   const maskPreview = maskPreviewEntity.addComponent(Image);
@@ -120,7 +120,7 @@ async function main() {
 main();
 
 function createSolidSprite(engine: WebGLEngine): Sprite {
-  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
   texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
   return new Sprite(engine, texture);
 }
@@ -142,7 +142,7 @@ function createCircleSprite(engine: WebGLEngine, size: number): Sprite {
   context.closePath();
   context.fill();
 
-  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, false);
+  const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8_UNorm, false);
   texture.setImageSource(canvas);
   return new Sprite(engine, texture);
 }

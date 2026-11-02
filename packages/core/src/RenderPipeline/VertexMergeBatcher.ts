@@ -12,6 +12,14 @@ export class VertexMergeBatcher {
     const preRenderer = <SpriteRenderer>preElement.component;
     const renderer = <SpriteRenderer>curElement.component;
     const maskInteraction = preRenderer.maskInteraction;
+    const preMasks = preRenderer._uiMasks;
+    const masks = renderer._uiMasks;
+    if (preMasks !== masks) {
+      if (!preMasks || !masks || preMasks.length !== masks.length) return false;
+      for (let i = 0; i < masks.length; i++) {
+        if (preMasks[i] !== masks[i]) return false;
+      }
+    }
 
     const rendererAAny = preRenderer as any;
     const rendererBAny = renderer as any;
@@ -49,7 +57,9 @@ export class VertexMergeBatcher {
       preElement.texture === curElement.texture &&
       preElement.material === curElement.material &&
       maskInteraction === renderer.maskInteraction &&
-      (maskInteraction === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      (preMasks !== null ||
+        maskInteraction === SpriteMaskInteraction.None ||
+        preRenderer.maskLayer === renderer.maskLayer) &&
       curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
     );
   }

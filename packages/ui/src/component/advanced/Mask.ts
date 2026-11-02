@@ -1,7 +1,18 @@
 import { BoundingBox, Entity, MaskRenderable, Vector2 } from "@galacean/engine";
-import { UIRenderer, UITransform } from "..";
+import type { IMaskRenderable } from "@galacean/engine";
+import { UIRenderer } from "../UIRenderer";
+import { UITransform } from "../UITransform";
 
+/**
+ * Clips descendant UI graphics to this sprite's alpha shape.
+ * Nested Masks intersect; siblings and other canvases are unaffected.
+ */
 export class Mask extends MaskRenderable(UIRenderer) {
+  /** @internal */
+  override _getUIMask(): IMaskRenderable {
+    return this;
+  }
+
   /**
    * @internal
    */

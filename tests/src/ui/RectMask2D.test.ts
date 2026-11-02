@@ -323,7 +323,7 @@ async function createUIFixture(
   let colorTexture: Texture2D = null;
   let renderTarget: RenderTarget = null;
   if (withRenderTarget) {
-    colorTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+    colorTexture = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8_UNorm, false, false);
     renderTarget = new RenderTarget(engine, width, height, colorTexture, TextureFormat.Depth24Stencil8, 1);
     camera.renderTarget = renderTarget;
   }

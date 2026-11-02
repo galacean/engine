@@ -48,7 +48,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   mask.sprite = solidSprite;
 
   // Image behind mask (VisibleInsideMask)
-  const insideImageEntity = leftGroupEntity.createChild("InsideImage");
+  const insideImageEntity = maskEntity.createChild("InsideImage");
   const insideImageTransform = insideImageEntity.transform as UITransform;
   insideImageTransform.size.set(500, 500);
   const insideImage = insideImageEntity.addComponent(Image);
@@ -79,7 +79,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   mask2.sprite = solidSprite;
 
   // Image behind mask (VisibleOutsideMask)
-  const outsideImageEntity = rightGroupEntity.createChild("OutsideImage");
+  const outsideImageEntity = maskEntity2.createChild("OutsideImage");
   const outsideImageTransform = outsideImageEntity.transform as UITransform;
   outsideImageTransform.size.set(500, 500);
   const outsideImage = outsideImageEntity.addComponent(Image);
@@ -102,7 +102,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 });
 
 function createSolidSprite(engine: WebGLEngine): Sprite {
-  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
   texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
   return new Sprite(engine, texture);
 }

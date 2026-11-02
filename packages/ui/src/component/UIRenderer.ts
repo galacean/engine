@@ -12,13 +12,12 @@ import {
   ShaderMacroCollection,
   ShaderProperty,
   SpriteMaskInteraction,
-  SpriteMaskLayer,
   Vector3,
   Vector4,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";
-import type { PrimitiveChunkManager } from "@galacean/engine";
+import type { IMaskRenderable, PrimitiveChunkManager } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
@@ -82,6 +81,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   _subChunk;
   /** @internal */
   @ignoreClone
+  override _uiMasks: IMaskRenderable[] = [];
+  /** @internal */
+  @ignoreClone
   _rectMasks: RectMask2D[] = [];
   /** @internal */
   @ignoreClone
@@ -113,18 +115,8 @@ export class UIRenderer extends Renderer implements IGraphics {
   }
 
   /**
-   * The mask layer the sprite renderer belongs to.
-   */
-  get maskLayer(): SpriteMaskLayer {
-    return this._maskLayer;
-  }
-
-  set maskLayer(value: SpriteMaskLayer) {
-    this._maskLayer = value;
-  }
-
-  /**
-   * Interacts with the masks.
+   * Visibility relative to the intersection of ancestor UI Masks. Defaults to VisibleInsideMask.
+   * With no ancestor Mask, the renderer is unaffected. RectMask2D clipping is independent.
    */
   get maskInteraction(): SpriteMaskInteraction {
     return this._maskInteraction;
@@ -152,6 +144,7 @@ export class UIRenderer extends Renderer implements IGraphics {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
     this._dirtyUpdateFlag = RendererUpdateFlags.WorldVolume | UIRendererUpdateFlags.Color;
     this._onColorChanged = this._onColorChanged.bind(this);
     //@ts-ignore
@@ -299,6 +292,21 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
+  _getUIMask(): IMaskRenderable | null {
+    return null;
+  }
+
+  /** @internal */
+  _setMasks(masks: IMaskRenderable[], count: number): void {
+    // An 8-bit stencil buffer can represent at most 255 overlapping ancestors.
+    if (count > 255) throw new Error("UI Mask supports at most 255 active ancestors.");
+    this._uiMasks.length = count;
+    for (let i = 0; i < count; i++) {
+      this._uiMasks[i] = masks[i];
+    }
+  }
+
+  /** @internal */
   _setRectMasks(rectMasks: RectMask2D[], count: number): void {
     const targetMasks = this._rectMasks;
     targetMasks.length = count;
@@ -357,8 +365,16 @@ export class UIRenderer extends Renderer implements IGraphics {
     if (maskInteraction === SpriteMaskInteraction.None) {
       return true;
     }
-    // @ts-ignore
-    return this.scene!._maskManager.isVisibleByMask(maskInteraction, this._maskLayer, hitPointWorld);
+    const masks = this._uiMasks;
+    if (masks.length === 0) return true;
+    let inside = true;
+    for (let i = 0; i < masks.length; i++) {
+      if (!masks[i]._containsWorldPoint(hitPointWorld)) {
+        inside = false;
+        break;
+      }
+    }
+    return maskInteraction === SpriteMaskInteraction.VisibleOutsideMask ? !inside : inside;
   }
 
   private _isRaycastVisibleByRectMask(hitPointWorld: Vector3): boolean {
@@ -516,6 +532,7 @@ export class UIRenderer extends Renderer implements IGraphics {
     //@ts-ignore
     this._color._onValueChanged = null;
     this._color = null!;
+    this._uiMasks.length = 0;
     this._rectMasks = null!;
     this._rectMaskSoftness = null!;
   }

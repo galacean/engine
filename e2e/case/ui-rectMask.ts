@@ -111,7 +111,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 });
 
 function createSolidSprite(engine: WebGLEngine): Sprite {
-  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8, false);
+  const texture = new Texture2D(engine, 1, 1, TextureFormat.R8G8B8A8_UNorm, false);
   texture.setPixelBuffer(new Uint8Array([255, 255, 255, 255]));
   return new Sprite(engine, texture);
 }
