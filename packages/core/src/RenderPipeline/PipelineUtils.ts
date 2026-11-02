@@ -1,4 +1,5 @@
 import { Vector4 } from "@galacean/engine-math";
+import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 
@@ -84,6 +85,8 @@ export class PipelineUtils {
     textureWrapMode: TextureWrapMode,
     textureFilterMode: TextureFilterMode
   ): RenderTarget {
+    // Without hardware sRGB writes, internal passes keep their results in linear space.
+    isSRGBColorSpace &&= engine._hardwareRenderer.canIUse(GLCapabilityType.sRGB);
     const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
     const colorTexture =
       colorFormat != null

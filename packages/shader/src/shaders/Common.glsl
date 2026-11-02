@@ -49,13 +49,9 @@ vec4 linearToSRGB(vec4 value){
     return vec4(linearToSRGB(value.r), linearToSRGB(value.g), linearToSRGB(value.b), value.a);
 }
 
-// Compatible with devices that do not even support EXT_sRGB in WebGL1.0.
+// sRGB textures are decoded by hardware or converted to linear storage during upload.
 vec4 texture2DSRGB(sampler2D tex, vec2 uv) {
-	vec4 color = texture2D(tex, uv);
-	#ifdef ENGINE_NO_SRGB
-		color = sRGBToLinear(color);
-	#endif
-	return color;
+    return texture2D(tex, uv);
 }
 
 vec4 outputSRGBCorrection(vec4 linearIn){

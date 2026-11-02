@@ -1,4 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
+import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
@@ -156,6 +157,17 @@ export class RenderTarget extends GraphicsResource {
     depth: Texture | null | TextureFormat | RenderBufferDepthFormat = TextureFormat.Depth,
     antiAliasing: number = 1
   ) {
+    const colorTextures = renderTexture
+      ? renderTexture instanceof Array
+        ? renderTexture.slice()
+        : [renderTexture]
+      : [];
+    if (
+      colorTextures.some((texture) => texture.isSRGBColorSpace) &&
+      !engine._hardwareRenderer.canIUse(GLCapabilityType.sRGB)
+    ) {
+      throw new Error("sRGB RenderTarget requires EXT_sRGB in WebGL1. Use a linear color texture instead.");
+    }
     super(engine);
 
     this._width = width;
@@ -164,7 +176,6 @@ export class RenderTarget extends GraphicsResource {
     this._depth = <Texture | null | TextureFormat>depth;
 
     if (renderTexture) {
-      const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
         const colorTexture = colorTextures[i];
         if (colorTexture._isDepthTexture) {

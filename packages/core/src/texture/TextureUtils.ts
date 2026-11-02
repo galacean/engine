@@ -1,4 +1,5 @@
 import { MathUtil } from "@galacean/engine-math";
+import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { TextureFormat } from "./enums/TextureFormat";
 
@@ -30,6 +31,13 @@ export class TextureUtils {
       mipmap = false;
     }
 
+    // Ordinary sRGB inputs use linear storage when EXT_sRGB is unavailable.
+    if (
+      (format === TextureFormat.R8G8B8 || format === TextureFormat.R8G8B8A8) &&
+      !engine._hardwareRenderer.canIUse(GLCapabilityType.sRGB)
+    ) {
+      isSRGBColorSpace = false;
+    }
     return TextureUtils.supportGenerateMipmaps(format, mipmap, isSRGBColorSpace, isWebGL2);
   }
 
