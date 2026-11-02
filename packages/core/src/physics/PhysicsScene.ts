@@ -19,6 +19,7 @@ export class PhysicsScene {
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
   private static _raycastHitPool: HitResult[] = [];
+  private static _raycastSeenHits = new Set<HitResult>();
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -271,13 +272,22 @@ export class PhysicsScene {
         }
       );
     }
-    for (let i = hitCount, n = outHitResults.length; i < n; i++) {
-      const hitResult = outHitResults[i];
-      // Recycle the first surplus occurrence only; earlier occurrences may be active hits.
-      if (hitResult && outHitResults.indexOf(hitResult) === i) {
-        this._clearHitResult(hitResult);
-        pool.push(hitResult);
+    const length = outHitResults.length;
+    if (hitCount < length) {
+      // outHitResults may reuse the same HitResult; register [0, hitCount) before pooling tail slots.
+      const seenHits = PhysicsScene._raycastSeenHits;
+      for (let i = 0; i < hitCount; i++) {
+        seenHits.add(outHitResults[i]);
       }
+      for (let i = hitCount; i < length; i++) {
+        const hitResult = outHitResults[i];
+        if (hitResult && !seenHits.has(hitResult)) {
+          seenHits.add(hitResult);
+          this._clearHitResult(hitResult);
+          pool.push(hitResult);
+        }
+      }
+      seenHits.clear();
     }
     outHitResults.length = hitCount;
     return hitCount > 0;
@@ -828,6 +838,7 @@ export class PhysicsScene {
    */
   _gc(): void {
     PhysicsScene._raycastHitPool.length = 0;
+    PhysicsScene._raycastSeenHits.clear();
     this._colliders.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
@@ -837,6 +848,7 @@ export class PhysicsScene {
    */
   _destroy(): void {
     PhysicsScene._raycastHitPool.length = 0;
+    PhysicsScene._raycastSeenHits.clear();
     this._nativePhysicsScene?.destroy();
   }
 
