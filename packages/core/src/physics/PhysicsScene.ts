@@ -257,7 +257,6 @@ export class PhysicsScene {
     }
 
     const pool = PhysicsScene._raycastHitPool;
-    const seenHits = new Set<HitResult>();
     let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (distance > 0 && normalizedDirection) {
@@ -268,15 +267,14 @@ export class PhysicsScene {
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
           const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
-          seenHits.add(hitResult);
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
     }
     for (let i = hitCount, n = outHitResults.length; i < n; i++) {
       const hitResult = outHitResults[i];
-      if (hitResult && !seenHits.has(hitResult)) {
-        seenHits.add(hitResult);
+      // Recycle the first surplus occurrence only; earlier occurrences may be active hits.
+      if (hitResult && outHitResults.indexOf(hitResult) === i) {
         this._clearHitResult(hitResult);
         pool.push(hitResult);
       }
