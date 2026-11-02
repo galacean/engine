@@ -6,7 +6,6 @@ import { Collider } from "../Collider";
 import { ignoreClone } from "../../clone/CloneDecorators";
 import type { ICloneHook } from "../../clone/ICloneHook";
 import { Engine } from "../../Engine";
-import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
@@ -204,18 +203,18 @@ export abstract class ColliderShape extends DataObject implements ICloneHook<Col
     this._nativeShape.setIsSceneQuery(this._isSceneQuery);
     this._nativeShape.setMaterial(this._material._nativeMaterial);
 
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 
   @ignoreClone
   private _setPosition(): void {
     this._nativeShape?.setPosition(this._position);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 
   @ignoreClone
   private _setRotation(): void {
     this._nativeShape?.setRotation(this._rotation);
-    this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
+    this._collider?._handleShapesChanged();
   }
 }

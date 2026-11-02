@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneDecorators";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 import { ColliderShape } from "./shape/ColliderShape";
 import { MeshColliderShape } from "./shape/MeshColliderShape";
 
@@ -474,9 +473,7 @@ export class DynamicCollider extends Collider {
   /**
    * @internal
    */
-  override _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
-    super._handleShapesChanged(changeType);
-
+  override _handleShapesChanged(): void {
     if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
       this._setMassAndUpdateInertia();
     }
