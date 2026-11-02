@@ -1,5 +1,5 @@
 import { GLCapabilityType } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine, WebGLMode } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
 describe("ASTC capabilities", () => {
