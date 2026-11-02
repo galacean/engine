@@ -529,22 +529,20 @@ describe("Physics Test", () => {
       expect(results).to.have.length(0);
       expect(previousHits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
-      expect(results[0]).to.eq(previousHits[0]);
-      expect(results[1]).to.eq(previousHits[1]);
+      expect(new Set(results).size).to.eq(2);
 
+      const spareHit = results[1];
       expect(physicsScene.raycastAll(ray, 5, results)).to.eq(true);
       expect(results).to.have.length(1);
-      expect(previousHits[1].shape).to.eq(null);
-      expect(previousHits[1].entity).to.eq(null);
+      expect(spareHit.shape).to.eq(null);
+      expect(spareHit.entity).to.eq(null);
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
-      expect(results[1]).to.eq(previousHits[1]);
+      expect(results[1]).to.eq(spareHit);
 
       results.length = 0;
       expect(physicsScene.raycastAll(ray, 100, Layer.Nothing, results)).to.eq(false);
-      expect(previousHits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
       expect(physicsScene.raycastAll(ray, results)).to.eq(true);
-      expect(results[0]).to.eq(previousHits[0]);
-      expect(results[1]).to.eq(previousHits[1]);
+      expect(results.some((hit) => previousHits.includes(hit))).to.eq(false);
 
       const sparseResults = new Array<HitResult>(4);
       expect(physicsScene.raycastAll(ray, sparseResults)).to.eq(true);
@@ -553,8 +551,7 @@ describe("Physics Test", () => {
       expect(physicsScene.raycastAll(new Ray(ray.origin, new Vector3()), sparseResults)).to.eq(false);
       expect(sparseResults).to.have.length(0);
       expect(physicsScene.raycastAll(ray, sparseResults)).to.eq(true);
-      expect(sparseResults[0]).to.eq(sparseHits[0]);
-      expect(sparseResults[1]).to.eq(sparseHits[1]);
+      expect(sparseResults).to.have.members(sparseHits);
 
       const limitedResults: HitResult[] = [];
       expect(physicsScene.raycastAll(ray, 5, limitedResults)).to.eq(true);
@@ -587,10 +584,10 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it("raycastAll reuses output storage across scenes", () => {
+    it("raycastAll shares only retired results across arrays and scenes", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("shared-raycast-output");
-      for (let i = 0; i < 2; i++) {
+      for (let i = 0; i < 3; i++) {
         const entity = root.createChild();
         entity.transform.setPosition(i * 5, 100, 0);
         entity.addComponent(StaticCollider).addShape(new BoxColliderShape());
@@ -604,82 +601,114 @@ describe("Physics Test", () => {
       const ray = new Ray(new Vector3(-3, 100, 0), new Vector3(1, 0, 0));
       const results: HitResult[] = [];
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      const hits = results.slice();
-      expect(hits).to.have.length(2);
+      const initialHits = results.slice();
+      const points = initialHits.map((hit) => hit.point);
+      const normals = initialHits.map((hit) => hit.normal);
       expect(otherScene.physics.raycastAll(ray, results)).to.eq(true);
       expect(results).to.have.length(1);
+      expect(results[0]).to.eq(initialHits[0]);
+      const active = results[0];
+      const activePoint = active.point.clone();
+      expect(initialHits.slice(1).every((hit) => hit.entity === null && hit.shape === null)).to.eq(true);
+      expect(
+        initialHits.slice(1).every((hit) => hit.distance === 0 && hit.point.length() === 0 && hit.normal.length() === 0)
+      ).to.eq(true);
+
+      const otherResults: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, otherResults)).to.eq(true);
+      expect(otherResults).to.include(initialHits[1]);
+      expect(otherResults).to.include(initialHits[2]);
+      expect(otherResults).to.not.include(active);
+      for (let i = 1; i < initialHits.length; i++) {
+        expect(initialHits[i].point).to.eq(points[i]);
+        expect(initialHits[i].normal).to.eq(normals[i]);
+      }
+      expect(active.entity).to.eq(otherRoot);
+      expect(active.point).to.deep.equal(activePoint);
+      expect(new Set([...results, ...otherResults]).size).to.eq(4);
+
+      const otherValues = otherResults.map((hit) => ({ entity: hit.entity, distance: hit.distance }));
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      results.length = 0;
-      expect(otherScene.physics.raycastAll(ray, 100, Layer.Nothing, results)).to.eq(false);
-      expect(hits.every((hit) => hit.shape === null && hit.entity === null)).to.eq(true);
-      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      expect(results[0]).to.eq(hits[0]);
-      expect(results[1]).to.eq(hits[1]);
+      expect(results[0]).to.eq(active);
+      expect(new Set([...results, ...otherResults]).size).to.eq(6);
+      expect(otherResults.map((hit) => ({ entity: hit.entity, distance: hit.distance }))).to.deep.equal(otherValues);
 
       root.destroy();
       otherScene.destroy();
     });
 
-    it.each([5, 100])("raycastAll preserves hits after the caller removes an element (distance %i)", (distance) => {
+    it("raycastAll uses current caller storage without tracking removed objects", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("mutated-raycast-output");
       const shapes: ColliderShape[] = [];
       for (let i = 0; i < 2; i++) {
         const entity = root.createChild();
-        entity.transform.setPosition(i * 5, 1000 + distance, 0);
+        entity.transform.setPosition(i * 5, 1100, 0);
         const shape = new BoxColliderShape();
         entity.addComponent(StaticCollider).addShape(shape);
         shapes.push(shape);
       }
-      const ray = new Ray(new Vector3(-3, 1000 + distance, 0), new Vector3(1, 0, 0));
+      const ray = new Ray(new Vector3(-3, 1100, 0), new Vector3(1, 0, 0));
       const results: HitResult[] = [];
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      const originalHits = results.slice();
-      results.shift();
-      expect(scene.physics.raycastAll(ray, distance, results)).to.eq(true);
-      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(
-        (distance === 5 ? [shapes[0]] : shapes).map((shape) => shape.id)
-      );
-      expect(new Set(results).size).to.eq(results.length);
-      expect(results[0] === originalHits[1]).to.eq(true);
-
+      results.reverse();
+      const reordered = results.slice();
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      expect(results.length).to.eq(originalHits.length);
-      expect(originalHits.every((hit) => results.includes(hit))).to.eq(true);
-      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+      expect(results[0]).to.eq(reordered[0]);
+      expect(results[1]).to.eq(reordered[1]);
 
-      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
-      const activeHit = results[0];
-      const spareHit = originalHits.find((hit) => hit !== activeHit)!;
-      results[0] = spareHit;
-      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
-      expect(results[0] === spareHit).to.eq(true);
-      expect(results[0].shape?.id).to.eq(shapes[0].id);
-      expect(activeHit.shape === null && activeHit.entity === null).to.eq(true);
+      const removed = results.shift()!;
+      const retained = results[0];
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(retained);
+      expect(results).to.not.include(removed);
+      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
 
       const replacement = new HitResult();
       results[0] = replacement;
-      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
-      expect(results[0] === replacement).to.eq(true);
-      expect(spareHit.shape?.id).to.eq(shapes[0].id);
+      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
+      expect(results[0]).to.eq(replacement);
+      expect(results).to.not.include(retained);
+      const discarded = results.slice();
       results.length = 0;
-      expect(scene.physics.raycastAll(ray, 5, results)).to.eq(true);
-      expect(results[0] === replacement).to.eq(true);
-
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      results.fill(results[0]);
-      expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      expect(new Set(results).size).to.eq(2);
-      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+      expect(results.some((hit) => discarded.includes(hit))).to.eq(false);
+      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
 
-      const reservedHit = results[0];
+      const supplied = new HitResult();
       results.length = 0;
-      results[1] = reservedHit;
+      results[1] = supplied;
       expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-      expect(results[1] === reservedHit).to.eq(true);
+      expect(results[1]).to.eq(supplied);
       expect(new Set(results).size).to.eq(2);
-      expect(results.map((hit) => hit.shape?.id ?? null)).to.have.members(shapes.map((shape) => shape.id));
+      expect(results.map((hit) => hit.shape)).to.have.members(shapes);
+      root.destroy();
+    });
 
+    it.each([0, 5, 100])("raycastAll does not return duplicate active hits (distance %i)", (distance) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("duplicate-retirement");
+      const shapes: ColliderShape[] = [];
+      for (let i = 0; i < 2; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 1150, 0);
+        const shape = new BoxColliderShape();
+        entity.addComponent(StaticCollider).addShape(shape);
+        shapes.push(shape);
+      }
+      const ray = new Ray(new Vector3(-3, 1150, 0), new Vector3(1, 0, 0));
+      const supplied = new HitResult();
+      const results = [supplied, supplied];
+      const hitCount = distance === 0 ? 0 : distance === 5 ? 1 : 2;
+      expect(scene.physics.raycastAll(ray, distance, results)).to.eq(hitCount > 0);
+      expect(results.map((hit) => hit.shape)).to.have.members(shapes.slice(0, hitCount));
+      expect(new Set(results).size).to.eq(hitCount);
+      const activeShapes = results.map((hit) => hit.shape);
+      const otherResults: HitResult[] = [];
+      expect(scene.physics.raycastAll(ray, otherResults)).to.eq(true);
+      expect(otherResults.map((hit) => hit.shape)).to.have.members(shapes);
+      expect(new Set([...results, ...otherResults]).size).to.eq(hitCount + 2);
+      expect(results.map((hit) => hit.shape)).to.deep.equal(activeShapes);
       root.destroy();
     });
 
@@ -710,50 +739,54 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
-    it.each(["gc", "destroy"])(
-      "raycastAll releases hidden storage on %s without changing caller results",
-      (release) => {
-        const scene = enginePhysX.sceneManager.activeScene;
-        const root = scene.createRootEntity("released-raycast-output");
-        root.transform.setPosition(0, 1300, 0);
-        root.addComponent(StaticCollider).addShape(new BoxColliderShape());
-        const otherScene = new Scene(enginePhysX);
-        enginePhysX.sceneManager.addScene(otherScene);
-        const otherRoot = otherScene.createRootEntity();
-        otherRoot.transform.setPosition(0, 1300, 0);
-        otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
+    it.each(["gc", "destroy"])("raycastAll releases only idle storage on %s", (release) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("released-raycast-output");
+      root.transform.setPosition(0, 1300, 0);
+      root.addComponent(StaticCollider).addShape(new BoxColliderShape());
+      const otherScene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(otherScene);
+      const otherRoot = otherScene.createRootEntity();
+      otherRoot.transform.setPosition(0, 1300, 0);
+      otherRoot.addComponent(StaticCollider).addShape(new BoxColliderShape());
 
-        const ray = new Ray(new Vector3(-3, 1300, 0), new Vector3(1, 0, 0));
-        const results: HitResult[] = [];
-        expect(otherScene.physics.raycastAll(ray, results)).to.eq(true);
-        const cachedHit = results[0];
-        results.length = 0;
-        const suppliedHit = new HitResult();
-        const retainedResults = [suppliedHit];
-        expect(scene.physics.raycastAll(ray, retainedResults)).to.eq(true);
-        const retainedShapeID = suppliedHit.shape!.id;
-        expect((PhysicsScene as any)._raycastHitPools.has(results)).to.eq(true);
+      const ray = new Ray(new Vector3(-3, 1300, 0), new Vector3(1, 0, 0));
+      const idleResults: HitResult[] = [];
+      expect(otherScene.physics.raycastAll(ray, idleResults)).to.eq(true);
+      const retired = idleResults[0];
+      const supplied = new HitResult();
+      const activeResults = [supplied];
+      expect(scene.physics.raycastAll(ray, activeResults)).to.eq(true);
+      const point = supplied.point.clone();
+      const normal = supplied.normal.clone();
+      const distance = supplied.distance;
+      const shape = supplied.shape;
+      expect(otherScene.physics.raycastAll(ray, 0, idleResults)).to.eq(false);
+      expect(retired.entity).to.eq(null);
+      expect(retired.shape).to.eq(null);
 
-        if (release === "gc") {
-          enginePhysX.resourceManager.gc();
-        } else {
-          otherScene.destroy();
-        }
-        expect((PhysicsScene as any)._raycastHitPools.has(results)).to.eq(false);
-        expect(retainedResults[0] === suppliedHit).to.eq(true);
-        expect(suppliedHit.entity === root).to.eq(true);
-        expect(suppliedHit.shape?.id).to.eq(retainedShapeID);
-        expect(scene.physics.raycastAll(ray, results)).to.eq(true);
-        expect(results[0] === cachedHit).to.eq(false);
-        expect(scene.physics.raycastAll(ray, retainedResults)).to.eq(true);
-        expect(retainedResults[0] === suppliedHit).to.eq(true);
-
-        root.destroy();
-        if (!otherScene.destroyed) {
-          otherScene.destroy();
-        }
+      if (release === "gc") {
+        enginePhysX.resourceManager.gc();
+      } else {
+        otherScene.destroy();
       }
-    );
+      expect(activeResults[0]).to.eq(supplied);
+      expect(supplied.entity).to.eq(root);
+      expect(supplied.shape).to.eq(shape);
+      expect(supplied.distance).to.eq(distance);
+      expect(supplied.point).to.deep.equal(point);
+      expect(supplied.normal).to.deep.equal(normal);
+      expect(scene.physics.raycastAll(ray, idleResults)).to.eq(true);
+      expect(idleResults[0]).to.not.eq(retired);
+      expect(idleResults[0]).to.not.eq(supplied);
+      expect(scene.physics.raycastAll(ray, activeResults)).to.eq(true);
+      expect(activeResults[0]).to.eq(supplied);
+
+      root.destroy();
+      if (!otherScene.destroyed) {
+        otherScene.destroy();
+      }
+    });
 
     it("query filters follow native shape and layer changes", () => {
       const scene = enginePhysX.sceneManager.activeScene;
@@ -1065,7 +1098,9 @@ describe("Physics Test", () => {
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
-      expect(physicsScene.boxCast(center, halfExtents, direction, orientation)).to.eq(false);
+      expect(
+        physicsScene.boxCast(center, halfExtents, direction, orientation, Number.MAX_VALUE, Layer.Everything)
+      ).to.eq(false);
 
       // Test boxCast with hit
       direction.set(-1, -1, -1);

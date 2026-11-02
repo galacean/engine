@@ -5,6 +5,8 @@ import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
+import type { IPoolElement } from "../utils/ObjectPool";
+import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
@@ -18,7 +20,7 @@ export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
-  private static _raycastHitPools = new WeakMap<HitResult[], { hits: HitResult[]; count: number }>();
+  private static _raycastHitPool = new ReturnableObjectPool<HitResult & IPoolElement>(HitResult, 0);
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -207,8 +209,8 @@ export class PhysicsScene {
    * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
    * @returns Whether any query shape was hit
    *
-   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
-   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
+   * @remarks Results are borrowed until the next query using this array or until removed by the caller.
+   * Copy values to retain them; a shallow array copy still shares result objects. See the full overload for reuse rules.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
@@ -219,8 +221,8 @@ export class PhysicsScene {
    * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
    * @returns Whether any query shape was hit
    *
-   * @remarks Reusing the output array overwrites its result objects. Copy values that must be retained.
-   * Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction releases the cache.
+   * @remarks Results are borrowed until the next query using this array or until removed by the caller.
+   * Copy values to retain them; a shallow array copy still shares result objects. See the full overload for reuse rules.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
@@ -233,9 +235,13 @@ export class PhysicsScene {
    * @returns Whether any query shape was hit
    *
    * @remarks Hits at distance 0 are ignored. Non-positive distances or directions that cannot be normalized produce
-   * no hits and clear the output array. Reusing the output array overwrites its result objects; copy values that must
-   * be retained. Clearing the array keeps cached objects for reuse; engine.resourceManager.gc() or scene destruction
-   * releases the cache. Omitting the output array performs only a hit test.
+   * no hits and clear the output array. Omitting the output array performs only a hit test.
+   * The caller owns the array; its result objects are borrowed until this array is queried again or the caller removes
+   * them. Existing objects are reused, missing objects are acquired from a shared pool, and surplus objects are cleared
+   * and returned to that pool. This also applies to caller-supplied objects; do not share them between output arrays.
+   * Result identities are not guaranteed. Copy values to retain them; a shallow array copy still shares result objects.
+   * Reuse the array without clearing it first. Manually removed objects are not tracked or returned to the pool.
+   * engine.resourceManager.gc() or scene destruction releases only idle pooled objects, leaving active results unchanged.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
 
@@ -257,30 +263,12 @@ export class PhysicsScene {
       return this.raycast(ray, distance, layerMask);
     }
 
-    // Keep spare hit objects when the visible output array shrinks
-    let pool = PhysicsScene._raycastHitPools.get(outHitResults);
-    if (!pool) {
-      pool = { hits: [], count: 0 };
-      PhysicsScene._raycastHitPools.set(outHitResults, pool);
-    }
-
-    const cachedHits = pool.hits;
-    // Reserve caller-provided objects before filling holes or reusing spare slots
+    const pool = PhysicsScene._raycastHitPool;
+    // Keep one slot per supplied object so active hits cannot also be returned to the pool.
+    const suppliedHits = new Set(outHitResults);
     for (let i = 0, n = outHitResults.length; i < n; i++) {
-      const hit = outHitResults[i];
-      if (hit && hit !== cachedHits[i]) {
-        const cachedIndex = cachedHits.indexOf(hit);
-        if (cachedIndex >= 0) {
-          if (cachedIndex < i && outHitResults[cachedIndex] === hit) {
-            continue;
-          }
-          const displacedHit = cachedHits[i];
-          if (displacedHit) {
-            this._clearHitResult(displacedHit);
-          }
-          cachedHits[cachedIndex] = displacedHit;
-        }
-        cachedHits[i] = hit;
+      if (!suppliedHits.delete(outHitResults[i])) {
+        outHitResults[i] = undefined!;
       }
     }
 
@@ -293,19 +281,18 @@ export class PhysicsScene {
         distance,
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-          const hitResult = (cachedHits[hitCount] ||= new HitResult());
-          outHitResults[hitCount++] = hitResult;
+          const hitResult = (outHitResults[hitCount++] ||= pool.get());
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
     }
-    for (let i = hitCount, n = Math.max(pool.count, outHitResults.length); i < n; i++) {
-      const hitResult = cachedHits[i];
+    for (let i = hitCount, n = outHitResults.length; i < n; i++) {
+      const hitResult = outHitResults[i];
       if (hitResult) {
         this._clearHitResult(hitResult);
+        pool.return(hitResult);
       }
     }
-    pool.count = hitCount;
     outHitResults.length = hitCount;
     return hitCount > 0;
   }
@@ -854,7 +841,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
-    PhysicsScene._raycastHitPools = new WeakMap();
+    PhysicsScene._raycastHitPool.garbageCollection();
     this._colliders.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
@@ -863,7 +850,7 @@ export class PhysicsScene {
    * @internal
    */
   _destroy(): void {
-    PhysicsScene._raycastHitPools = new WeakMap();
+    PhysicsScene._raycastHitPool.garbageCollection();
     this._nativePhysicsScene?.destroy();
   }
 
