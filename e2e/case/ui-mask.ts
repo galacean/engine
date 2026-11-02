@@ -48,7 +48,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   mask.sprite = solidSprite;
 
   // Image behind mask (VisibleInsideMask)
-  const insideImageEntity = leftGroupEntity.createChild("InsideImage");
+  const insideImageEntity = maskEntity.createChild("InsideImage");
   const insideImageTransform = insideImageEntity.transform as UITransform;
   insideImageTransform.size.set(500, 500);
   const insideImage = insideImageEntity.addComponent(Image);
@@ -79,7 +79,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   mask2.sprite = solidSprite;
 
   // Image behind mask (VisibleOutsideMask)
-  const outsideImageEntity = rightGroupEntity.createChild("OutsideImage");
+  const outsideImageEntity = maskEntity2.createChild("OutsideImage");
   const outsideImageTransform = outsideImageEntity.transform as UITransform;
   outsideImageTransform.size.set(500, 500);
   const outsideImage = outsideImageEntity.addComponent(Image);

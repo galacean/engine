@@ -90,10 +90,15 @@ export class RenderQueue {
       if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
       } else {
-        if (needMaskInteraction) {
+        const uiMasks = component._uiMasks;
+        if (uiMasks !== null && uiMasks.length > 0 && needMaskInteraction) {
+          maskManager.drawUIMasks(context, pipelineStageTagValue, uiMasks);
+          customStates = BasicResources.getUIMaskInteractionRenderStates(uiMasks.length, maskInteraction);
+        } else if (uiMasks === null && needMaskInteraction) {
           maskManager.drawMask(context, pipelineStageTagValue, component._maskLayer);
           customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
         } else {
+          maskManager.clearUIMasks(context, pipelineStageTagValue);
           maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
         }
         maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);

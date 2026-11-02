@@ -1,6 +1,5 @@
-import { Vector3 } from "@galacean/engine-math";
 import { IMaskRenderable } from "../2d/sprite/MaskRenderable";
-import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
+import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
@@ -42,52 +41,71 @@ export class MaskManager {
   hasStencilWritten = false;
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
-  private _allSpriteMasks = new DisorderedArray<IMaskRenderable>();
-  private _filteredMasksByLayer = new Map<SpriteMaskLayer, IMaskRenderable[]>();
-  private _isFilteredMasksDirty = true;
+  private _allSpriteMasks = new DisorderedArray<SpriteMask>();
+  private _uiMasks: IMaskRenderable[] = [];
 
-  addSpriteMask(mask: IMaskRenderable): void {
+  addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
     this._allSpriteMasks.add(mask);
-    this._setFilteredMasksDirty();
   }
 
-  removeSpriteMask(mask: IMaskRenderable): void {
+  removeSpriteMask(mask: SpriteMask): void {
     const replaced = this._allSpriteMasks.deleteByIndex(mask._maskIndex);
     replaced && (replaced._maskIndex = mask._maskIndex);
     mask._maskIndex = -1;
-    this._setFilteredMasksDirty();
   }
 
-  onMaskInfluenceLayersChange(): void {
-    this._setFilteredMasksDirty();
-  }
-
-  isVisibleByMask(maskInteraction: SpriteMaskInteraction, maskLayer: SpriteMaskLayer, worldPoint: Vector3): boolean {
-    if (maskInteraction === SpriteMaskInteraction.None) {
-      return true;
+  /** Update only the changed suffix of the ancestor chain. Each shape contributes one stencil count. */
+  drawUIMasks(context: RenderContext, stage: string, masks: readonly IMaskRenderable[]): void {
+    if (this._preMaskLayer !== SpriteMaskLayer.Nothing) {
+      this.clearMask(context, stage);
     }
+    const previous = this._uiMasks;
+    let common = 0;
+    while (common < previous.length && common < masks.length && previous[common] === masks[common]) {
+      common++;
+    }
+    this._drawUIMaskRange(context, stage, previous, common, RenderQueueMaskType.Decrement);
+    previous.length = common;
+    this._drawUIMaskRange(context, stage, masks, common, RenderQueueMaskType.Increment);
+    for (let i = common; i < masks.length; i++) {
+      previous.push(masks[i]);
+    }
+  }
 
-    const masks = this._getMasksByLayer(maskLayer);
-    let insideMask = false;
-    for (let i = 0, n = masks.length; i < n; i++) {
-      if (masks[i]._containsWorldPoint(worldPoint)) {
-        insideMask = true;
-        break;
+  clearUIMasks(context: RenderContext, stage: string): void {
+    this._drawUIMaskRange(context, stage, this._uiMasks, 0, RenderQueueMaskType.Decrement);
+    this._uiMasks.length = 0;
+  }
+
+  private _drawUIMaskRange(
+    context: RenderContext,
+    stage: string,
+    masks: readonly IMaskRenderable[],
+    start: number,
+    type: RenderQueueMaskType
+  ): void {
+    if (start === masks.length) return;
+    const queue =
+      type === RenderQueueMaskType.Increment
+        ? MaskManager.getMaskIncrementRenderQueue()
+        : MaskManager.getMaskDecrementRenderQueue();
+    for (let i = start; i < masks.length; i++) {
+      const mask = masks[i];
+      // Prepare even offscreen masks: an invalid/empty ancestor must still constrain its children.
+      if (mask._renderMask(0)) {
+        queue.pushRenderElement(mask._renderElement);
       }
     }
-
-    switch (maskInteraction) {
-      case SpriteMaskInteraction.VisibleInsideMask:
-        return insideMask;
-      case SpriteMaskInteraction.VisibleOutsideMask:
-        return !insideMask;
-      default:
-        return true;
-    }
+    const batcher = context.camera.engine._batcherManager;
+    queue.batch(batcher);
+    batcher.uploadBuffer();
+    queue.render(context, stage, type);
+    queue.clear();
   }
 
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
+    this.clearUIMasks(context, pipelineStageTagValue);
     const incrementMaskQueue = MaskManager.getMaskIncrementRenderQueue();
     const decrementMaskQueue = MaskManager.getMaskDecrementRenderQueue();
 
@@ -105,6 +123,7 @@ export class MaskManager {
   }
 
   clearMask(context: RenderContext, pipelineStageTagValue: string): void {
+    this.clearUIMasks(context, pipelineStageTagValue);
     const preMaskLayer = this._preMaskLayer;
     if (preMaskLayer !== SpriteMaskLayer.Nothing) {
       if (this.hasStencilWritten) {
@@ -112,7 +131,9 @@ export class MaskManager {
         const masks = this._allSpriteMasks;
         for (let i = 0, n = masks.length; i < n; i++) {
           const mask = masks.get(i);
-          mask.influenceLayers & preMaskLayer && decrementMaskQueue.pushRenderElement(mask._renderElement);
+          if (mask.influenceLayers & preMaskLayer && mask._renderMask(mask._distanceForSort)) {
+            decrementMaskQueue.pushRenderElement(mask._renderElement);
+          }
         }
 
         const batcherManager = context.camera.engine._batcherManager;
@@ -168,38 +189,7 @@ export class MaskManager {
     const allSpriteMasks = this._allSpriteMasks;
     allSpriteMasks.length = 0;
     allSpriteMasks.garbageCollection();
-    this._filteredMasksByLayer.clear();
-    this._isFilteredMasksDirty = true;
-  }
-
-  private _setFilteredMasksDirty(): void {
-    this._isFilteredMasksDirty = true;
-  }
-
-  private _getMasksByLayer(maskLayer: SpriteMaskLayer): IMaskRenderable[] {
-    if (maskLayer === SpriteMaskLayer.Nothing) {
-      return [];
-    }
-
-    if (this._isFilteredMasksDirty) {
-      this._filteredMasksByLayer.clear();
-      this._isFilteredMasksDirty = false;
-    }
-
-    let filteredMasks = this._filteredMasksByLayer.get(maskLayer);
-    if (!filteredMasks) {
-      filteredMasks = [];
-      const allMasks = this._allSpriteMasks;
-      const maskElements = allMasks._elements;
-      for (let i = 0, n = allMasks.length; i < n; i++) {
-        const mask = maskElements[i];
-        if (mask.influenceLayers & maskLayer) {
-          filteredMasks.push(mask);
-        }
-      }
-      this._filteredMasksByLayer.set(maskLayer, filteredMasks);
-    }
-    return filteredMasks;
+    this._uiMasks.length = 0;
   }
 
   private _buildMaskRenderElement(
@@ -221,9 +211,9 @@ export class MaskManager {
           continue;
         }
 
-        if (influenceLayers & curMaskLayer) {
+        if (influenceLayers & curMaskLayer && mask._renderMask(mask._distanceForSort)) {
           incrementMaskQueue.pushRenderElement(mask._renderElement);
-        } else if (influenceLayers & reduceLayer) {
+        } else if (influenceLayers & reduceLayer && mask._renderMask(mask._distanceForSort)) {
           decrementMaskQueue.pushRenderElement(mask._renderElement);
         }
       }

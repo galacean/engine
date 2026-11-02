@@ -1,4 +1,5 @@
 import { BoundingBox } from "@galacean/engine-math";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { Entity } from "../../Entity";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -13,6 +14,24 @@ import { MaskDirtyFlags, MaskRenderable } from "./MaskRenderable";
  * A component for masking Sprites.
  */
 export class SpriteMask extends MaskRenderable(Renderer) {
+  /** The mask layers this sprite mask influences. */
+  influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
+  /** @internal */
+  @ignoreClone
+  _maskIndex: number = -1;
+
+  /** @internal */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this.scene!._maskManager.addSpriteMask(this);
+  }
+
+  /** @internal */
+  override _onDisableInScene(): void {
+    super._onDisableInScene();
+    this.scene!._maskManager.removeSpriteMask(this);
+  }
+
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
   /** @internal */

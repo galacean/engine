@@ -3,7 +3,6 @@ import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { ignoreClone } from "../../clone/CloneDecorators";
-import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import type { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
@@ -15,19 +14,17 @@ import { SpriteMaskUtils } from "./SpriteMaskUtils";
  * Public contract of the MaskRenderable mixin, used for declaration file generation.
  */
 export interface IMaskRenderable {
-  influenceLayers: SpriteMaskLayer;
   flipX: boolean;
   flipY: boolean;
   sprite: Sprite | null;
   alphaCutoff: number;
   _renderElement: RenderElement;
-  _maskIndex: number;
   _containsWorldPoint(worldPoint: Vector3): boolean;
   _initMask(): void;
   _cloneMaskData(target: IMaskRenderable): void;
   _destroyMaskResources(): void;
   _updateMaskBounds(worldBounds: BoundingBox): void;
-  _renderMask(distanceForSort: number): void;
+  _renderMask(distanceForSort: number): boolean;
   _onSpriteChange(type: SpriteModifyFlags): void;
   _onSpriteChangeExtra(type: SpriteModifyFlags): void;
   _getSpriteWidth(): number;
@@ -45,35 +42,14 @@ export function MaskRenderable<T extends RendererConstructor>(
     private static _maskTextureProperty = ShaderProperty.getByName("renderer_MaskTexture");
     private static _alphaCutoffProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
-    private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
     /** @internal */
     @ignoreClone
     _renderElement: RenderElement;
-    /** @internal */
-    @ignoreClone
-    _maskIndex: number = -1;
     @ignoreClone
     private _sprite: Sprite | null = null;
     private _flipX: boolean = false;
     private _flipY: boolean = false;
     private _alphaCutoff: number = 0.5;
-
-    /**
-     * The mask layers the sprite mask influence to.
-     */
-    get influenceLayers(): SpriteMaskLayer {
-      return this._influenceLayers;
-    }
-
-    set influenceLayers(value: SpriteMaskLayer) {
-      if (this._influenceLayers !== value) {
-        this._influenceLayers = value;
-        if (this._phasedActiveInScene) {
-          // @ts-ignore
-          this.scene!._maskManager.onMaskInfluenceLayersChange();
-        }
-      }
-    }
 
     /**
      * Flips the sprite on the X axis.
@@ -160,30 +136,8 @@ export function MaskRenderable<T extends RendererConstructor>(
     /**
      * @internal
      */
-    // @ts-ignore
-    override _onEnableInScene(): void {
-      // @ts-ignore
-      super._onEnableInScene();
-      // @ts-ignore
-      this.scene!._maskManager.addSpriteMask(this);
-    }
-
-    /**
-     * @internal
-     */
-    // @ts-ignore
-    override _onDisableInScene(): void {
-      // @ts-ignore
-      super._onDisableInScene();
-      // @ts-ignore
-      this.scene!._maskManager.removeSpriteMask(this);
-    }
-
-    /**
-     * @internal
-     */
     _containsWorldPoint(worldPoint: Vector3): boolean {
-      if (!this._sprite) {
+      if (!this._sprite?.texture || !this.getMaterial()) {
         return false;
       }
       return SpriteMaskUtils.containsWorldPoint(
@@ -261,17 +215,17 @@ export function MaskRenderable<T extends RendererConstructor>(
      * @internal
      * Shared render logic for mask geometry.
      */
-    _renderMask(distanceForSort: number): void {
+    _renderMask(distanceForSort: number): boolean {
       const { _sprite: sprite } = this;
       const width = this._getSpriteWidth();
       const height = this._getSpriteHeight();
       if (!sprite?.texture || !width || !height) {
-        return;
+        return false;
       }
 
       let material = this.getMaterial();
       if (!material) {
-        return;
+        return false;
       }
       // @ts-ignore
       if (material.destroyed) {
@@ -305,6 +259,7 @@ export function MaskRenderable<T extends RendererConstructor>(
       renderElement.priority = this.priority;
       renderElement.distanceForSort = distanceForSort;
       renderElement.subShader = material.shader.subShaders[0];
+      return true;
     }
 
     /** @internal */
