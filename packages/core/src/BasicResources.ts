@@ -62,6 +62,27 @@ export class BasicResources {
     return renderStates;
   }
 
+  private static _uiMaskReadStates: RenderStateElementMap[] = [];
+
+  static getUIMaskInteractionRenderStates(depth: number, interaction: SpriteMaskInteraction): RenderStateElementMap {
+    const outside = interaction === SpriteMaskInteraction.VisibleOutsideMask;
+    const index = depth * 2 + (outside ? 1 : 0);
+    let states = BasicResources._uiMaskReadStates[index];
+    if (!states) {
+      states = BasicResources._uiMaskReadStates[index] = {
+        ...BasicResources.getMaskInteractionRenderStates(interaction)
+      };
+      states[RenderStateElementKey.StencilStateReferenceValue] = depth;
+      states[RenderStateElementKey.StencilStateCompareFunctionFront] = outside
+        ? CompareFunction.NotEqual
+        : CompareFunction.Equal;
+      states[RenderStateElementKey.StencilStateCompareFunctionBack] = outside
+        ? CompareFunction.NotEqual
+        : CompareFunction.Equal;
+    }
+    return states;
+  }
+
   static getMaskTypeRenderStates(maskType: RenderQueueMaskType): RenderStateElementMap {
     const isIncrement = maskType === RenderQueueMaskType.Increment;
     let renderStates: RenderStateElementMap | null;

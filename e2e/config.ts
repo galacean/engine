@@ -562,6 +562,26 @@ export const E2E_CONFIG = {
       diffPercentage: 0.0129
     }
   },
+  UI: {
+    batchOrder: {
+      category: "UI",
+      caseFileName: "ui-batch-order",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    Mask: {
+      category: "UI",
+      caseFileName: "ui-mask",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    RectMask2D: {
+      category: "UI",
+      caseFileName: "ui-rectMask",
+      threshold: 0,
+      diffPercentage: 0
+    }
+  },
   Trail: {
     basic: {
       category: "Trail",
@@ -595,14 +615,6 @@ export const E2E_CONFIG = {
       caseFileName: "canvas-transparency",
       threshold: 0,
       diffPercentage: 0.044
-    }
-  },
-  UI: {
-    batchOrder: {
-      category: "UI",
-      caseFileName: "ui-batch-order",
-      threshold: 0,
-      diffPercentage: 0
     }
   }
 };

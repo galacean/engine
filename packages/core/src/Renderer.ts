@@ -1,5 +1,6 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
+import type { IMaskRenderable } from "./2d/sprite/MaskRenderable";
 import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
@@ -53,6 +54,9 @@ export class Renderer extends Component implements ICloneHook<Renderer> {
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
+  /** @internal Null selects SpriteMask layers; an array selects the UI ancestor chain. */
+  @ignoreClone
+  _uiMasks: readonly IMaskRenderable[] | null = null;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
