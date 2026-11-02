@@ -714,6 +714,68 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it.each([0, 1, 2])("raycastAll retires duplicate entries safely with %i hits", (hitCount) => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("retired-raycast-aliases");
+      const shapes: ColliderShape[] = [];
+      for (let i = 0; i < 3; i++) {
+        const entity = root.createChild();
+        entity.transform.setPosition(i * 5, 1400, 0);
+        const shape = new BoxColliderShape();
+        entity.addComponent(StaticCollider).addShape(shape);
+        shapes.push(shape);
+      }
+      const ray = new Ray(new Vector3(-3, 1400, 0), new Vector3(1, 0, 0));
+      const shared = new HitResult();
+      const spare = new HitResult();
+      const results = [shared, shared, spare, spare];
+      enginePhysX.resourceManager.gc();
+
+      try {
+        expect(scene.physics.raycastAll(ray, hitCount * 5, results)).to.eq(hitCount > 0);
+        expect(results).to.have.length(hitCount);
+        if (hitCount > 0) {
+          expect(results[0]).to.eq(shared);
+          if (hitCount === 2) {
+            expect(results[1]).to.eq(shared);
+          }
+          expect(shapes.slice(0, hitCount)).to.include(shared.shape);
+          expect(shared.entity).to.eq(shared.shape!.collider.entity);
+          expect(shared.distance).to.be.greaterThan(0);
+          expect(shared.point.y).to.eq(1400);
+          expect(shared.normal.length()).to.be.closeTo(1, 1e-4);
+        } else {
+          expect(shared.shape).to.eq(null);
+          expect(shared.entity).to.eq(null);
+        }
+        expect(spare.shape).to.eq(null);
+        expect(spare.entity).to.eq(null);
+        const activeShape = shared.shape;
+        const activeDistance = shared.distance;
+        const activePoint = shared.point.clone();
+        const activeNormal = shared.normal.clone();
+
+        const nextResults: HitResult[] = [];
+        expect(scene.physics.raycastAll(ray, nextResults)).to.eq(true);
+        expect(nextResults).to.have.length(3);
+        expect(new Set(nextResults).size).to.eq(3);
+        expect(nextResults.map((hit) => hit.shape)).to.have.members(shapes);
+        expect(nextResults).to.include(spare);
+        if (hitCount > 0) {
+          expect(nextResults).to.not.include(shared);
+          expect(shared.shape).to.eq(activeShape);
+          expect(shared.distance).to.eq(activeDistance);
+          expect(shared.point).to.deep.equal(activePoint);
+          expect(shared.normal).to.deep.equal(activeNormal);
+        } else {
+          expect(nextResults).to.include(shared);
+        }
+      } finally {
+        root.destroy();
+        enginePhysX.resourceManager.gc();
+      }
+    });
+
     it.each(["gc", "destroy"])("raycastAll releases only idle storage on %s", (release) => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("released-raycast-output");

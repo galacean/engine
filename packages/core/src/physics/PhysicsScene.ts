@@ -230,8 +230,9 @@ export class PhysicsScene {
    * @param outHitResults - Receives the hits; resized to the hit count. Omit to test for a hit only
    * @returns Whether any hit was found
    *
-   * @remarks Overwrites existing entries and fills missing slots; clears and pools surplus entries.
-   * Use distinct objects per slot and array. Copy values to retain them; reuse the array without clearing it.
+   * @remarks Overwrites existing entries and fills missing slots; clears and pools unused objects once.
+   * Duplicate entries keep their references and share the last write. Do not share objects across output arrays.
+   * Copy values to retain them; reuse the array without clearing it.
    * Manually removed entries are not pooled. Resource GC and scene destruction release idle pooled objects.
    * Non-positive distances or directions that cannot be normalized clear the output; hits at distance 0 are ignored.
    */
@@ -256,6 +257,7 @@ export class PhysicsScene {
     }
 
     const pool = PhysicsScene._raycastHitPool;
+    const seenHits = new Set<HitResult>();
     let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (distance > 0 && normalizedDirection) {
@@ -266,13 +268,15 @@ export class PhysicsScene {
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
           const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
+          seenHits.add(hitResult);
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
     }
     for (let i = hitCount, n = outHitResults.length; i < n; i++) {
       const hitResult = outHitResults[i];
-      if (hitResult) {
+      if (hitResult && !seenHits.has(hitResult)) {
+        seenHits.add(hitResult);
         this._clearHitResult(hitResult);
         pool.push(hitResult);
       }
