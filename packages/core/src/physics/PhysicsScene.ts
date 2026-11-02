@@ -5,8 +5,6 @@ import { Layer } from "../Layer";
 import { Scene } from "../Scene";
 import { Script } from "../Script";
 import { DisorderedArray } from "../utils/DisorderedArray";
-import type { IPoolElement } from "../utils/ObjectPool";
-import { ReturnableObjectPool } from "../utils/ReturnableObjectPool";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
@@ -20,7 +18,7 @@ export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
   private static _tempDirection = new Vector3();
-  private static _raycastHitPool = new ReturnableObjectPool<HitResult & IPoolElement>(HitResult, 0);
+  private static _raycastHitPool: HitResult[] = [];
   private static _scriptIndexSetter = (element: Script, index: number) => {
     element._entityScriptsIndex = index;
   };
@@ -209,8 +207,7 @@ export class PhysicsScene {
    * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
    * @returns Whether any query shape was hit
    *
-   * @remarks Results are borrowed until the next query using this array or until removed by the caller.
-   * Copy values to retain them; a shallow array copy still shares result objects. See the full overload for reuse rules.
+   * @remarks Reuses output objects; copy values to retain them. See the full overload for pooling rules.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
@@ -221,8 +218,7 @@ export class PhysicsScene {
    * @param outHitResults - The output array; its length is set to the hit count and its result objects are reused
    * @returns Whether any query shape was hit
    *
-   * @remarks Results are borrowed until the next query using this array or until removed by the caller.
-   * Copy values to retain them; a shallow array copy still shares result objects. See the full overload for reuse rules.
+   * @remarks Reuses output objects; copy values to retain them. See the full overload for pooling rules.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
@@ -234,14 +230,11 @@ export class PhysicsScene {
    * @param outHitResults - The optional output array; its length is set to the hit count and its result objects are reused
    * @returns Whether any query shape was hit
    *
-   * @remarks Hits at distance 0 are ignored. Non-positive distances or directions that cannot be normalized produce
-   * no hits and clear the output array. Omitting the output array performs only a hit test.
-   * The caller owns the array; its result objects are borrowed until this array is queried again or the caller removes
-   * them. Existing objects are reused, missing objects are acquired from a shared pool, and surplus objects are cleared
-   * and returned to that pool. This also applies to caller-supplied objects; do not share them between output arrays.
-   * Result identities are not guaranteed. Copy values to retain them; a shallow array copy still shares result objects.
-   * Reuse the array without clearing it first. Manually removed objects are not tracked or returned to the pool.
-   * engine.resourceManager.gc() or scene destruction releases only idle pooled objects, leaving active results unchanged.
+   * @remarks Reuses supplied objects, fills missing slots, and clears/pools surplus objects.
+   * Use distinct objects per slot and output array. Results are borrowed; copy values to retain them.
+   * Reuse the array without clearing it; manually removed entries are not pooled.
+   * Resource GC and scene destruction release idle results. Omitting the array performs only a hit test.
+   * Non-positive distances or invalid directions clear the output; hits at distance 0 are ignored.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
 
@@ -264,14 +257,6 @@ export class PhysicsScene {
     }
 
     const pool = PhysicsScene._raycastHitPool;
-    // Keep one slot per supplied object so active hits cannot also be returned to the pool.
-    const suppliedHits = new Set(outHitResults);
-    for (let i = 0, n = outHitResults.length; i < n; i++) {
-      if (!suppliedHits.delete(outHitResults[i])) {
-        outHitResults[i] = undefined!;
-      }
-    }
-
     let hitCount = 0;
     const normalizedDirection = PhysicsScene._normalizeDirection(ray.direction);
     if (distance > 0 && normalizedDirection) {
@@ -281,7 +266,7 @@ export class PhysicsScene {
         distance,
         layerMask,
         (shapeUniqueID: number, hitDistance: number, position: Vector3, normal: Vector3) => {
-          const hitResult = (outHitResults[hitCount++] ||= pool.get());
+          const hitResult = (outHitResults[hitCount++] ||= pool.pop() ?? new HitResult());
           this._setHitResult(hitResult, shapeUniqueID, hitDistance, position, normal);
         }
       );
@@ -290,7 +275,7 @@ export class PhysicsScene {
       const hitResult = outHitResults[i];
       if (hitResult) {
         this._clearHitResult(hitResult);
-        pool.return(hitResult);
+        pool.push(hitResult);
       }
     }
     outHitResults.length = hitCount;
@@ -841,7 +826,7 @@ export class PhysicsScene {
    * @internal
    */
   _gc(): void {
-    PhysicsScene._raycastHitPool.garbageCollection();
+    PhysicsScene._raycastHitPool.length = 0;
     this._colliders.garbageCollection();
     this._nativePhysicsScene?.gc();
   }
@@ -850,7 +835,7 @@ export class PhysicsScene {
    * @internal
    */
   _destroy(): void {
-    PhysicsScene._raycastHitPool.garbageCollection();
+    PhysicsScene._raycastHitPool.length = 0;
     this._nativePhysicsScene?.destroy();
   }
 

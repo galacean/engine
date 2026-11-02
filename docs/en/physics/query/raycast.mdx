@@ -215,7 +215,7 @@ scene.physics.raycastAll(nextRay, 100, Layer.Everything, hits);
 
 The array belongs to the caller. Its result objects are borrowed until the next query using that array or until the caller removes them. Queries using other output arrays do not change active results. Existing objects are reused, additional objects come from a shared pool, and surplus objects are cleared and returned to the pool. This also applies to caller-supplied objects: do not share one object between output arrays or use a retired object again.
 
-You may reorder, replace, or remove entries, but object identities are not guaranteed. Duplicate entries in one array are treated as one reusable object; distinct hits always receive distinct objects. Objects manually removed with `length = 0`, `splice`, or replacement are not tracked or returned to the pool and can be garbage-collected when no references remain. Clearing the array before every query can therefore increase allocations.
+You may reorder, replace, or remove entries, but object identities are not guaranteed. Entries are used as supplied, and only missing slots receive another object. Provide a distinct object for each slot: duplicate references are not normalized, so writes and returns through those slots affect the same object. Objects manually removed with `length = 0`, `splice`, or replacement are not tracked or returned to the pool and can be garbage-collected when no references remain. Clearing the array before every query can therefore increase allocations.
 
 Resource GC and scene destruction release idle pooled objects without modifying active results. Omitting the output array performs only a hit test. Queries with no hits empty the output array and return its objects to the pool.
 
