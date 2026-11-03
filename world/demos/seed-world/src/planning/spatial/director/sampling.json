@@ -1,0 +1,8 @@
+{
+  "spacingM": 4,
+  "minimumSpacingM": 0.5,
+  "maxSamples": 800,
+  "visualDelta": 0.04,
+  "turnDegrees": 12,
+  "maxDurationMs": 30000
+}

@@ -1,0 +1,216 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "root": "entity-000000",
+  "entities": [
+    {
+      "id": "entity-000000",
+      "name": "圆方 Gothic",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "children": [
+        "entity-000001",
+        "entity-000003"
+      ]
+    },
+    {
+      "id": "entity-000001",
+      "name": "房屋",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        -11.459156073371194,
+        0
+      ],
+      "components": [
+        "component-000000",
+        "component-000001",
+        "component-000002"
+      ],
+      "children": [
+        "entity-000002"
+      ]
+    },
+    {
+      "id": "entity-000002",
+      "name": "屋顶窗",
+      "components": [
+        "component-000003"
+      ]
+    },
+    {
+      "id": "entity-000003",
+      "name": "房屋",
+      "position": [
+        3.299999952316284,
+        0,
+        0.699999988079071
+      ],
+      "rotation": [
+        0,
+        -20.053522488069355,
+        0
+      ],
+      "components": [
+        "component-000004",
+        "component-000005",
+        "component-000006"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "component-000000",
+      "type": "HouseComponent",
+      "props": {
+        "assets": {
+          "$ref": "Building/Units/building-kit.prefab"
+        },
+        "shape": {
+          "$type": "CircularBuildingShape",
+          "radius": 2.4000000953674316
+        },
+        "height": 3.125,
+        "seed": 1,
+        "wallMaterial": 0,
+        "wallColor": 0,
+        "woodColor": 0,
+        "roof": {
+          "tip": [
+            0,
+            0
+          ],
+          "profile": 0,
+          "height": 0.3499999940395355,
+          "ridge_length": 0.6000000238418579,
+          "eave": 0.30000001192092896,
+          "ridge_direction": 0,
+          "flat_rim": 0,
+          "color": 2
+        },
+        "foundation": null,
+        "plaster": null,
+        "floors": null
+      }
+    },
+    {
+      "id": "component-000001",
+      "type": "BuildingSurfaceComponent",
+      "props": {
+        "role": "roof",
+        "placement": {
+          "rule": {
+            "type": "overlap_rows"
+          },
+          "unit_id": "roof_tile",
+          "footprint": {
+            "width": 0.5,
+            "height": 0.4375,
+            "depth": 0.1
+          },
+          "seed": "source"
+        }
+      }
+    },
+    {
+      "id": "component-000002",
+      "type": "BuildingSurfaceComponent",
+      "props": {
+        "role": "wall",
+        "placementEnabled": false
+      }
+    },
+    {
+      "id": "component-000003",
+      "type": "RoofWindowComponent",
+      "props": {
+        "type": "dormer-gothic",
+        "rank": 2,
+        "width": 1.2000000476837158,
+        "height": 1.1982831731438637,
+        "uv": [
+          0.012081486496702987,
+          0.6565982408069662
+        ],
+        "elevation": 0,
+        "woodColor": 0,
+        "lightIntensity": 0
+      }
+    },
+    {
+      "id": "component-000004",
+      "type": "HouseComponent",
+      "props": {
+        "assets": {
+          "$ref": "Building/Units/building-kit.prefab"
+        },
+        "shape": {
+          "$type": "RectangularBuildingShape",
+          "width": 4,
+          "depth": 3
+        },
+        "height": 3.125,
+        "seed": 2,
+        "wallMaterial": 0,
+        "wallColor": 0,
+        "woodColor": 0,
+        "roof": {
+          "tip": [
+            0,
+            0
+          ],
+          "profile": 0,
+          "height": 0.3499999940395355,
+          "ridge_length": 0.6000000238418579,
+          "eave": 0.30000001192092896,
+          "ridge_direction": 0,
+          "flat_rim": 0,
+          "color": 2
+        },
+        "foundation": null,
+        "plaster": null,
+        "floors": null
+      }
+    },
+    {
+      "id": "component-000005",
+      "type": "BuildingSurfaceComponent",
+      "props": {
+        "role": "roof",
+        "placement": {
+          "rule": {
+            "type": "overlap_rows"
+          },
+          "unit_id": "roof_tile",
+          "footprint": {
+            "width": 0.5,
+            "height": 0.4375,
+            "depth": 0.1
+          },
+          "seed": "source"
+        }
+      }
+    },
+    {
+      "id": "component-000006",
+      "type": "BuildingSurfaceComponent",
+      "props": {
+        "role": "wall",
+        "placementEnabled": false
+      }
+    }
+  ]
+}

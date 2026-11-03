@@ -1,0 +1,40 @@
+{
+  "scope": "Original source-order geometry, normals, vertex colors, UVs, tangents, bitangents glass and metal flags. No captured transforms or scene instances. Placement and host lighting are TS adaptations, not claimed as exact native generator/shader reproduction.",
+  "meshes": [
+    {
+      "name": "balcony_door_single",
+      "source": "decorators/balcony_door_single.json",
+      "sha256": "2a171d14727e8191aa95620f7fd3c0641c3547c3542ffb1f74719d082f37b628",
+      "vertices": 1014,
+      "indices": 1968
+    },
+    {
+      "name": "window_cottage_1x1",
+      "source": "decorators/window_cottage_1x1.json",
+      "sha256": "4256e96d1aadf5dfe1ec25a6e528485f2558098f945e71b373c5c46eef17db1f",
+      "vertices": 96,
+      "indices": 96
+    },
+    {
+      "name": "window_cottage_1x1_glass",
+      "source": "decorators/window_cottage_1x1_glass.json",
+      "sha256": "6bf5c8f89effad54003aeda7ceb534c95bcce3740ec6cdf18c84047aded700e7",
+      "vertices": 1056,
+      "indices": 1056
+    },
+    {
+      "name": "lantern_wall",
+      "source": "decorators/lantern_wall.json",
+      "sha256": "e84c276a7c70708d365182acf4e25148d125f40529d80085c79b4a0e7c849e50",
+      "vertices": 1923,
+      "indices": 1923
+    },
+    {
+      "name": "lantern_wall_inside",
+      "source": "decorators/lantern_wall_inside.json",
+      "sha256": "75c755128eb9cc302429ad59757b9fc56f62b8eb8e186458400bf84d198806f9",
+      "vertices": 72,
+      "indices": 72
+    }
+  ]
+}

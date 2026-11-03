@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Procedural Sky</title>
+  </head>
+  <body data-state="loading" data-panels-hidden="false">
+    <canvas id="canvas" aria-label="可拖动环视的 Integrated World 程序化天空"></canvas>
+
+    <div id="loading" role="status">
+      <b>正在构建程序化天空</b>
+      <small>Atmosphere → Volumetric Clouds → Realtime IBL → Post-process</small>
+    </div>
+
+    <aside aria-label="程序化天空控制">
+      <header>
+        <div>
+          <p>INTEGRATED WORLD</p>
+          <h1>程序化天空</h1>
+        </div>
+        <span>同源配置</span>
+      </header>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <small>ASTRONOMICAL TIME</small>
+            <h2>昼夜时间</h2>
+          </div>
+          <button id="time-toggle" class="secondary" type="button" aria-pressed="true">继续时间</button>
+        </div>
+
+        <div class="presets" id="time-presets">
+          <button data-time-hours="0" type="button">深夜</button>
+          <button data-time-hours="7" type="button">清晨</button>
+          <button data-time-hours="12" class="active" type="button">正午</button>
+          <button data-time-hours="16" type="button">日落</button>
+        </div>
+
+        <label>
+          <span><b>时间</b><small id="phase-value">白昼</small></span>
+          <input id="time" type="range" min="0" max="24" step="0.05" value="12" />
+          <output id="time-value">12:00</output>
+        </label>
+      </section>
+
+      <dl>
+        <div>
+          <dt>天空</dt>
+          <dd>晴朗 · 疏云</dd>
+        </div>
+        <div>
+          <dt>云质量</dt>
+          <dd>Balanced · Direction Cache</dd>
+        </div>
+        <div>
+          <dt>风场</dt>
+          <dd>和风</dd>
+        </div>
+        <div>
+          <dt>光照</dt>
+          <dd>实时 SH + GGX IBL</dd>
+        </div>
+        <div>
+          <dt>材质球</dt>
+          <dd>上排非金属 · 下排金属</dd>
+        </div>
+        <div>
+          <dt>粗糙度</dt>
+          <dd>左 0.04 → 右 0.90</dd>
+        </div>
+        <div>
+          <dt>显示</dt>
+          <dd>Integrated World 后处理</dd>
+        </div>
+      </dl>
+
+      <p class="hint">拖动环视天空与 IBL 反射 · 按 H 隐藏面板</p>
+    </aside>
+
+    <button
+      id="panel-toggle"
+      class="panel-toggle"
+      type="button"
+      aria-label="隐藏天空控制与性能面板"
+      aria-pressed="false"
+    >
+      <span id="panel-toggle-label">隐藏面板</span><kbd>H</kbd>
+    </button>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

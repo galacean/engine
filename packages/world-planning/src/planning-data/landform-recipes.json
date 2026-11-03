@@ -1,0 +1,43 @@
+{
+  "recipes": [
+    {
+      "kind": "canyon",
+      "label": "峡谷",
+      "weight": 1,
+      "tiers": [
+        "large"
+      ]
+    },
+    {
+      "kind": "cliff",
+      "label": "断崖",
+      "weight": 1,
+      "tiers": [
+        "medium"
+      ]
+    },
+    {
+      "kind": "plateau",
+      "label": "台地",
+      "weight": 1,
+      "tiers": [
+        "medium"
+      ]
+    }
+  ],
+  "canyonFit": {
+    "scales": [
+      1,
+      0.85,
+      0.7
+    ],
+    "yawOffsetsDegrees": [
+      0,
+      30,
+      -30,
+      60,
+      -60,
+      90
+    ]
+  }
+}

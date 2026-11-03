@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "sampleSpacingM": 7,
+  "jitter": 0.65,
+  "maxCandidates": 262144,
+  "priority": [
+    "building",
+    "road",
+    "landform",
+    "poi"
+  ],
+  "contexts": {
+    "building": {
+      "distanceM": [
+        2,
+        18
+      ],
+      "treeFraction": 0.75
+    },
+    "road": {
+      "distanceM": [
+        2,
+        18
+      ],
+      "treeFraction": 0.8
+    },
+    "poi": {
+      "distanceM": [
+        0,
+        28
+      ],
+      "treeFraction": 0.7
+    },
+    "landform": {
+      "distanceM": [
+        3,
+        22
+      ],
+      "treeFraction": 0.4
+    },
+    "openland": {
+      "distanceM": [
+        0,
+        2048
+      ],
+      "treeFraction": 0.7
+    }
+  },
+  "habitats": {
+    "tree": {
+      "altitudeM": [
+        1.5,
+        320
+      ],
+      "optimalAltitudeM": [
+        5,
+        160
+      ],
+      "slopeDegrees": [
+        10,
+        28
+      ],
+      "maxFootprintReliefM": 2.4
+    },
+    "rock": {
+      "altitudeM": [
+        0.5,
+        400
+      ],
+      "optimalAltitudeM": [
+        3,
+        200
+      ],
+      "slopeDegrees": [
+        25,
+        42
+      ],
+      "maxFootprintReliefM": 2.5
+    }
+  },
+  "distribution": {
+    "edgeDensity": 0,
+    "falloffRatio": 1,
+    "boundaryBlendM": 12,
+    "openlandDensity": 0,
+    "patchScaleM": 55,
+    "patchFloor": 0.45
+  }
+}

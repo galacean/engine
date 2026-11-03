@@ -1,0 +1,41 @@
+{
+  "status": "Design record; active study defaults live in landform-study/LandformMetrics.ts",
+  "units": "metres",
+  "source": "https://book.leveldesignbook.com/process/blockout/metrics#basic-metrics",
+  "sourceChecked": "2026-09-15",
+  "player": {
+    "collisionWidthM": 1.0,
+    "collisionHeightM": 1.8,
+    "eyeHeightM": 1.6
+  },
+  "architecture": {
+    "minHallWidthM": 2.0,
+    "doorWidthM": 1.25,
+    "doorHeightM": 2.5
+  },
+  "movement": {
+    "walkSpeedMps": 2,
+    "provenance": "User-confirmed walk 2 m/s and run 8 m/s",
+    "runSpeedMps": 8
+  },
+  "canyon": {
+    "segments": [
+      {
+        "id": "A",
+        "role": "open-entry",
+        "walkSeconds": 40
+      },
+      {
+        "id": "B",
+        "role": "staggered-narrowing",
+        "walkSeconds": 25
+      },
+      {
+        "id": "C",
+        "role": "turn-and-release",
+        "walkSeconds": 55
+      }
+    ],
+    "lengthMeaning": "Arc length of reference passage; excludes pauses and is not a terrain bounding-box dimension"
+  }
+}

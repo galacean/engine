@@ -1,0 +1,102 @@
+{
+  "conclusion": "halftimber_colors.tex and window_colors use the same native timberframe texture-library asset; the existing bundled timberframe compressed mip chain is byte-identical to that source package.",
+  "evidenceId": "ev_499994a971b2f506be4a4a96728ec056432bd73fd740e102df7ecba8add0d082",
+  "procedure": "0x10048f7bc",
+  "binarySha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+  "retainedResponseSha256": "44081a2d78ecaae30e031c41b01a4f0c21d4e009570deaa08946788c76ce9f4b",
+  "pseudocodeSha256": "0a867a212acdd730cf5c09e1e0574e87f52b70e6adacd910bd167e0409307b02",
+  "bindings": [
+    {
+      "target": "country_core/inc/window_color_customization/window_colors",
+      "shaderTexture": "window_colors.tex",
+      "sourceName": "timberframe",
+      "nameByteLength": 11,
+      "lines": [
+        663,
+        676
+      ],
+      "importedTextureVariable": "local_480"
+    },
+    {
+      "target": "country_core/inc/halftimber_color_customization/halftimber_colors",
+      "shaderTexture": "halftimber_colors.tex",
+      "sourceName": "timberframe",
+      "nameByteLength": 11,
+      "lines": [
+        677,
+        692
+      ],
+      "importedTextureVariable": "local_480",
+      "bufferVariable": "local_a00"
+    }
+  ],
+  "texture": {
+    "name": "timberframe",
+    "recipeIdHex": "401d062ce2479b5169680cafa4dd324b",
+    "source": "compiled-assets/texture-package/401d062ce2479b5169680cafa4dd324b.bin",
+    "sourceSha256": "3967e726c70e60d30ba55d646812190e43bf9ad24b662277c7866a996e34c24e",
+    "width": 512,
+    "height": 512,
+    "layers": 11,
+    "mipCount": 10,
+    "vkFormat": 146,
+    "srgb": true,
+    "compressedBytes": 3845072,
+    "mips": [
+      {
+        "mip": 0,
+        "bytes": 2883584,
+        "sha256": "f8da8946a6c9cab20bd903778a4eae3849e961cdbc837ebbb02f228bdd666b63"
+      },
+      {
+        "mip": 1,
+        "bytes": 720896,
+        "sha256": "1be6394216a3d4d7eeb14fa08dfbf41e01c8fc40e36dbd1481cbe542aa891293"
+      },
+      {
+        "mip": 2,
+        "bytes": 180224,
+        "sha256": "3a4773070aa595633345a7bed524fdeebb02fb2dc49299973c721b3426fe8aa3"
+      },
+      {
+        "mip": 3,
+        "bytes": 45056,
+        "sha256": "2e2ddd5218401e92c3dc789903a721eb23e03f2f5e6b44458418fd236472b3bf"
+      },
+      {
+        "mip": 4,
+        "bytes": 11264,
+        "sha256": "f3af433b5a6af77b21a7817bda0474050fd6ed58f7efb1de885104ca94fdbbc2"
+      },
+      {
+        "mip": 5,
+        "bytes": 2816,
+        "sha256": "2a982d1950cd5fbc872f7fadbb52e5f7bedc0a4a56936ce4eb4ff801bdd3f9ca"
+      },
+      {
+        "mip": 6,
+        "bytes": 704,
+        "sha256": "3fc586b9f25bb69541ea6c6e7e78940abe28d822d8e9e2ec22e5b115db705e93"
+      },
+      {
+        "mip": 7,
+        "bytes": 176,
+        "sha256": "ad987b02f77330e4209ab8c18116ec80abb29da79ec1a80b5d492f6d2fb6100d"
+      },
+      {
+        "mip": 8,
+        "bytes": 176,
+        "sha256": "8d9b0e444b4d4607502a73da46db992e494b7652316e133d426a183ef35f730c"
+      },
+      {
+        "mip": 9,
+        "bytes": 176,
+        "sha256": "2253ae9fd05c67bb1e0775da84d6278e205bfc013ba2900f37eac55280cd4945"
+      }
+    ]
+  },
+  "limitations": [
+    "Static native loader and shipped-asset evidence, not a new live rendering capture.",
+    "Shared texture identity does not imply shared colour-ID buffers or shared UV-generation algorithms."
+  ]
+}

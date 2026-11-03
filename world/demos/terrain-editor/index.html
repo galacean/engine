@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#090d12" />
+    <title>Terrain Editor</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div id="editor-app" class="editor-app">
+      <header class="command-bar">
+        <div class="project-summary" aria-label="Current project">
+          <span class="eyebrow">Terrain workspace</span>
+          <div class="project-identity">
+            <h1 id="project-name">Untitled project</h1>
+            <span id="project-status" class="status-badge" data-state="idle">Not loaded</span>
+          </div>
+        </div>
+
+        <div class="command-groups">
+          <div class="command-group" aria-label="Project actions">
+            <button id="import-project" class="button button-primary" type="button">Import project</button>
+            <button id="export-project" class="button" type="button" disabled>Export project</button>
+          </div>
+
+          <div class="command-group" aria-label="History actions">
+            <button id="undo" class="icon-button" type="button" aria-label="Undo last stroke" title="Undo" disabled>
+              <span aria-hidden="true">↶</span>
+              <span class="button-label">Undo</span>
+            </button>
+            <button id="redo" class="icon-button" type="button" aria-label="Redo last stroke" title="Redo" disabled>
+              <span aria-hidden="true">↷</span>
+              <span class="button-label">Redo</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <aside class="panel region-panel" aria-labelledby="region-panel-title">
+          <div class="panel-header">
+            <div>
+              <span class="panel-kicker">Project</span>
+              <h2 id="region-panel-title">Regions</h2>
+            </div>
+            <span class="panel-marker" aria-hidden="true">XZ</span>
+          </div>
+          <p id="region-list-help" class="panel-help">
+            Every imported Region stays in the preview and export. Selection only chooses the active painting target.
+          </p>
+          <ol
+            id="region-list"
+            class="region-list"
+            role="listbox"
+            aria-label="Project regions"
+            aria-describedby="region-list-help"
+            tabindex="0"
+          >
+            <li class="empty-state" role="option" aria-disabled="true">Import a project to list Regions.</li>
+          </ol>
+        </aside>
+
+        <section id="preview-shell" class="preview-shell" aria-label="Terrain preview" data-tool="raise">
+          <canvas
+            id="preview-canvas"
+            width="768"
+            height="432"
+            tabindex="0"
+            aria-label="Editable terrain preview"
+            aria-describedby="preview-instructions"
+          ></canvas>
+          <button
+            id="preview-paint-toggle"
+            class="preview-paint-toggle"
+            type="button"
+            aria-pressed="true"
+            title="Switch the primary pointer between painting and camera navigation"
+          >
+            <span class="preview-paint-toggle-mark" aria-hidden="true"></span>
+            Paint
+          </button>
+          <svg id="brush-cursor" class="brush-cursor" aria-hidden="true">
+            <path id="brush-cursor-outer"></path>
+            <path id="brush-cursor-inner"></path>
+          </svg>
+          <div id="preview-overlay" class="preview-overlay" role="status" aria-live="polite" aria-atomic="true">
+            <div class="overlay-card">
+              <span class="overlay-mark" aria-hidden="true"></span>
+              <strong>Preview waiting <output id="preview-progress-output">0%</output></strong>
+              <progress id="preview-progress" max="100" value="0">0%</progress>
+              <span>Import a complete project folder to begin.</span>
+            </div>
+          </div>
+          <p id="preview-instructions" class="preview-instructions">
+            Drag on terrain to paint. Brush hits and placed instances snap to the canonical heightfield.
+          </p>
+        </section>
+
+        <aside class="panel inspector-panel" aria-labelledby="inspector-title">
+          <div class="panel-header">
+            <div>
+              <span class="panel-kicker">Selected Region</span>
+              <h2 id="inspector-title">Inspector</h2>
+            </div>
+            <span id="dirty-summary" class="dirty-summary" role="status">Clean</span>
+          </div>
+
+          <div class="inspector-tabs" role="tablist" aria-label="Inspector sections">
+            <button
+              id="inspector-tab-paint"
+              class="inspector-tab is-active"
+              type="button"
+              role="tab"
+              aria-selected="true"
+            >
+              Paint
+            </button>
+            <button id="inspector-tab-scene" class="inspector-tab" type="button" role="tab" aria-selected="false">
+              Scene
+            </button>
+            <button id="inspector-tab-region" class="inspector-tab" type="button" role="tab" aria-selected="false">
+              Region data
+            </button>
+          </div>
+
+          <section
+            id="inspector-paint-panel"
+            class="inspector-section inspector-tab-panel"
+            role="tabpanel"
+            aria-labelledby="inspector-tab-paint"
+          >
+            <div class="section-heading">
+              <h3 id="tools-heading">Brush tool</h3>
+              <span id="brush-mode-hint" class="field-meta">Raise or lower terrain</span>
+            </div>
+            <div class="tool-tabs" role="tablist" aria-label="Terrain brush capability">
+              <button id="mode-height" type="button" class="tool-tab is-active" role="tab" aria-selected="true">
+                Terrain
+              </button>
+              <button id="mode-texture" type="button" class="tool-tab" role="tab" aria-selected="false">Texture</button>
+              <button id="mode-tree" type="button" class="tool-tab" role="tab" aria-selected="false">Trees</button>
+              <button id="mode-detail" type="button" class="tool-tab" role="tab" aria-selected="false">Details</button>
+              <button id="mode-object" type="button" class="tool-tab" role="tab" aria-selected="false">Objects</button>
+            </div>
+
+            <input id="brush-falloff" class="visually-hidden" type="hidden" value="1" />
+
+            <div class="field-group">
+              <div class="field-heading">
+                <label for="brush-radius">Brush size</label>
+                <output id="brush-radius-output" for="brush-radius">10 m</output>
+              </div>
+              <input id="brush-radius" type="range" min="1" max="128" step="1" value="10" />
+            </div>
+
+            <div id="height-controls" class="tool-panel" role="tabpanel">
+              <div class="segmented-control" role="group" aria-label="Height brush direction">
+                <button id="tool-raise" type="button" class="tool-button is-active" aria-pressed="true">
+                  <span aria-hidden="true">＋</span>
+                  Raise
+                </button>
+                <button id="tool-lower" type="button" class="tool-button" aria-pressed="false">
+                  <span aria-hidden="true">−</span>
+                  Lower
+                </button>
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <label for="height-strength">Strength</label>
+                  <output id="height-strength-output" for="height-strength">20% · 2.0 m/stamp</output>
+                </div>
+                <input id="height-strength" type="range" min="0.01" max="1" step="0.01" value="0.2" />
+                <p class="field-help">Applied height delta per stamp, clamped to the selected Region height range.</p>
+              </div>
+            </div>
+
+            <div id="texture-controls" class="tool-panel" role="tabpanel" hidden>
+              <div class="palette-field">
+                <div class="palette-heading palette-heading-actions">
+                  <div class="palette-actions">
+                    <input
+                      id="texture-asset-upload"
+                      class="visually-hidden"
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                    />
+                    <label class="compact-button" for="texture-asset-upload">+ Add</label>
+                    <button id="texture-refresh-previews" class="compact-button" type="button">Refresh</button>
+                  </div>
+                </div>
+                <div
+                  id="texture-layer-palette"
+                  class="asset-palette asset-palette-layers"
+                  role="listbox"
+                  aria-label="Terrain layers"
+                ></div>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Texture paint mode">
+                <button id="texture-paint" type="button" class="tool-button is-active" aria-pressed="true">
+                  Paint
+                </button>
+                <button id="texture-erase" type="button" class="tool-button" aria-pressed="false">Erase</button>
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <label for="texture-strength">Strength</label>
+                  <output id="texture-strength-output" for="texture-strength">100%</output>
+                </div>
+                <input id="texture-strength" type="range" min="0.05" max="1" step="0.05" value="1" />
+                <p class="field-help">Weight added or removed by each stamp.</p>
+              </div>
+            </div>
+
+            <div id="detail-controls" class="tool-panel" role="tabpanel" hidden>
+              <div class="palette-field">
+                <div class="palette-heading palette-heading-actions">
+                  <div class="palette-actions">
+                    <input
+                      id="detail-asset-upload"
+                      class="visually-hidden"
+                      type="file"
+                      accept=".glb,model/gltf-binary"
+                    />
+                    <label class="compact-button" for="detail-asset-upload">+ Add</label>
+                    <div class="view-toggle" role="group" aria-label="Detail prototype view">
+                      <button id="detail-view-list" class="compact-button" type="button" aria-pressed="false">
+                        List
+                      </button>
+                      <button id="detail-view-grid" class="compact-button is-active" type="button" aria-pressed="true">
+                        Grid
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  id="detail-prototype-palette"
+                  class="asset-palette asset-palette-details is-grid"
+                  role="listbox"
+                  aria-label="Detail prototypes"
+                ></div>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Detail paint mode">
+                <button id="detail-paint" type="button" class="tool-button is-active" aria-pressed="true">Paint</button>
+                <button id="detail-erase" type="button" class="tool-button" aria-pressed="false">Erase</button>
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <label for="detail-density">Density</label>
+                  <output id="detail-density-output" for="detail-density">100%</output>
+                </div>
+                <input id="detail-density" type="range" min="0" max="1" step="0.01" value="1" />
+                <p class="field-help">Stored per prototype; upload a static GLB to add grass or flowers.</p>
+              </div>
+            </div>
+
+            <div id="tree-controls" class="tool-panel" role="tabpanel" hidden>
+              <div class="palette-field">
+                <div class="palette-heading palette-heading-actions">
+                  <div class="palette-actions">
+                    <input id="tree-asset-upload" class="visually-hidden" type="file" accept=".glb,model/gltf-binary" />
+                    <label class="compact-button" for="tree-asset-upload">+ Add</label>
+                    <button id="tree-refresh-previews" class="compact-button" type="button">Refresh</button>
+                  </div>
+                </div>
+                <div
+                  id="tree-prototype-palette"
+                  class="asset-palette asset-palette-trees"
+                  role="listbox"
+                  aria-label="Tree prototypes"
+                ></div>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Tree paint mode">
+                <button id="tree-paint" type="button" class="tool-button is-active" aria-pressed="true">Paint</button>
+                <button id="tree-erase" type="button" class="tool-button" aria-pressed="false">Erase</button>
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <label for="tree-density">Density</label>
+                  <output id="tree-density-output" for="tree-density">55%</output>
+                </div>
+                <input id="tree-density" type="range" min="0.05" max="1" step="0.05" value="0.55" />
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <span>Height range</span>
+                  <span class="field-meta">Width locked</span>
+                </div>
+                <div class="field-pair">
+                  <label for="tree-min-height">
+                    Minimum
+                    <input id="tree-min-height" type="number" min="0.1" max="5" step="0.05" value="0.8" />
+                  </label>
+                  <label for="tree-max-height">
+                    Maximum
+                    <input id="tree-max-height" type="number" min="0.1" max="5" step="0.05" value="1.2" />
+                  </label>
+                </div>
+                <p class="field-help">Random uniform scale for newly placed instances.</p>
+              </div>
+            </div>
+
+            <div id="object-controls" class="tool-panel" role="tabpanel" hidden>
+              <div class="palette-field">
+                <div class="palette-heading palette-heading-actions">
+                  <div class="palette-actions">
+                    <input
+                      id="object-asset-upload"
+                      class="visually-hidden"
+                      type="file"
+                      accept=".glb,model/gltf-binary"
+                    />
+                    <label class="compact-button" for="object-asset-upload">+ Add</label>
+                    <button id="object-refresh-previews" class="compact-button" type="button">Refresh</button>
+                  </div>
+                </div>
+                <div
+                  id="object-prototype-palette"
+                  class="asset-palette asset-palette-objects"
+                  role="listbox"
+                  aria-label="Object prototypes"
+                ></div>
+              </div>
+              <div class="segmented-control" role="group" aria-label="Object paint mode">
+                <button id="object-paint" type="button" class="tool-button is-active" aria-pressed="true">Place</button>
+                <button id="object-erase" type="button" class="tool-button" aria-pressed="false">Erase</button>
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <label for="object-density">Density</label>
+                  <output id="object-density-output" for="object-density">35%</output>
+                </div>
+                <input id="object-density" type="range" min="0.05" max="1" step="0.05" value="0.35" />
+              </div>
+              <div class="field-group">
+                <div class="field-heading">
+                  <span>Scale range</span>
+                  <span class="field-meta">Uniform</span>
+                </div>
+                <div class="field-pair">
+                  <label for="object-min-scale"
+                    >Minimum <input id="object-min-scale" type="number" min="0.1" max="8" step="0.05" value="0.8"
+                  /></label>
+                  <label for="object-max-scale"
+                    >Maximum <input id="object-max-scale" type="number" min="0.1" max="8" step="0.05" value="1.2"
+                  /></label>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            id="inspector-scene-panel"
+            class="inspector-section inspector-tab-panel"
+            role="tabpanel"
+            aria-labelledby="inspector-tab-scene"
+            hidden
+          >
+            <div class="section-heading">
+              <h3 id="scene-settings-heading">Scene settings</h3>
+              <span class="unit-label">Project</span>
+            </div>
+            <div class="field-group">
+              <div class="field-heading"><label for="preview-camera-mode">Preview camera</label></div>
+              <select id="preview-camera-mode">
+                <option value="orbit">Region orbit</option>
+                <option value="roam">Ground roam</option>
+              </select>
+            </div>
+            <div class="field-group">
+              <div class="field-heading">
+                <label for="preview-move-speed">Move speed</label>
+                <output id="preview-move-speed-output" for="preview-move-speed">30 m/s</output>
+              </div>
+              <input id="preview-move-speed" type="range" min="1" max="120" step="1" value="30" />
+            </div>
+            <div class="field-group">
+              <div class="field-heading">
+                <label for="preview-eye-height">Eye height</label>
+                <output id="preview-eye-height-output" for="preview-eye-height">3 m</output>
+              </div>
+              <input id="preview-eye-height" type="range" min="0.5" max="5" step="0.1" value="3" />
+            </div>
+            <div class="scene-settings-grid">
+              <label class="check-field"><input id="scene-direct-light" type="checkbox" /> Direct light</label>
+              <label class="check-field"><input id="scene-environment" type="checkbox" /> Environment</label>
+              <label class="check-field"><input id="scene-fog" type="checkbox" /> Fog</label>
+              <label class="check-field"><input id="scene-wind" type="checkbox" /> Wind</label>
+              <label class="check-field"
+                ><input id="scene-region-boundaries" type="checkbox" /> Region boundaries</label
+              >
+            </div>
+            <p class="field-help">
+              Lighting, fog, and wind are saved with the Scene. Camera controls and boundaries affect preview only.
+            </p>
+          </section>
+
+          <section
+            id="inspector-region-panel"
+            class="inspector-section inspector-tab-panel"
+            role="tabpanel"
+            aria-labelledby="inspector-tab-region"
+            hidden
+          >
+            <div class="section-heading">
+              <h3 id="region-details-heading">Region data</h3>
+            </div>
+            <dl id="region-details" class="details-grid">
+              <div>
+                <dt>Selection</dt>
+                <dd>None</dd>
+              </div>
+              <div>
+                <dt>Sample size</dt>
+                <dd>—</dd>
+              </div>
+              <div>
+                <dt>World bounds</dt>
+                <dd>—</dd>
+              </div>
+            </dl>
+          </section>
+          <div id="capability-status" class="visually-hidden" role="status" aria-live="polite"></div>
+        </aside>
+      </main>
+
+      <footer class="live-bar">
+        <span class="live-indicator" aria-hidden="true"></span>
+        <span id="live-status" role="status" aria-live="polite" aria-atomic="true"
+          >Ready to import a project folder.</span
+        >
+      </footer>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,2332 @@
+{
+  "version": 1,
+  "maxTextureSize": 1024,
+  "textureFormat": "KTX2",
+  "encoder": "ktx version: v4.4.2",
+  "models": {
+    "./assets/low-poly-100/bear-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*4KzKSbX-bTcAAAAAXoAAAAgAehQnAQ/46f1186bf1d4cdf965ca6fa383fd126bd84a3138b4b08b368bdca168abb81b2a.glb",
+      "sha256": "46f1186bf1d4cdf965ca6fa383fd126bd84a3138b4b08b368bdca168abb81b2a",
+      "bytes": 499984,
+      "verifiedSha256": "46f1186bf1d4cdf965ca6fa383fd126bd84a3138b4b08b368bdca168abb81b2a",
+      "cors": "*",
+      "sourceSha256": "21cf2d4b8bf384f03752565f98627718ada1edabf3439e09fa4ec3d783433444",
+      "sourceBytes": 499784,
+      "binaryChunksSha256": "498d0b6b6f97aa968082bc0b54a452fd9d85634e9a71bf00e3e1756b04262935",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/bear-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*bjiiTZbaBdoAAAAAXoAAAAgAehQnAQ/77941f5bd8fa7a38fb54e23f833ad3479011cd5d432648c973afd87ea7d7f165.glb",
+      "sha256": "77941f5bd8fa7a38fb54e23f833ad3479011cd5d432648c973afd87ea7d7f165",
+      "bytes": 500036,
+      "verifiedSha256": "77941f5bd8fa7a38fb54e23f833ad3479011cd5d432648c973afd87ea7d7f165",
+      "cors": "*",
+      "sourceSha256": "ca6134fa3b482a03673813c063eada027134d3c24c73845931953a04b6bb98e9",
+      "sourceBytes": 499836,
+      "binaryChunksSha256": "0f57c5379dfd9a798f1d5a005305bfdb9c5e839c2b613409f16f6355cd2c806e",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/bear-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*BpXpQJELyvIAAAAAV6AAAAgAehQnAQ/230af10504675ddd1e216c8b3635a21417c93f72e40d8f778422ee818ef347cb.glb",
+      "sha256": "230af10504675ddd1e216c8b3635a21417c93f72e40d8f778422ee818ef347cb",
+      "bytes": 387556,
+      "verifiedSha256": "230af10504675ddd1e216c8b3635a21417c93f72e40d8f778422ee818ef347cb",
+      "cors": "*",
+      "sourceSha256": "db01ca460c8a3fd1ec6969f1c537f29bc269eb366ddfd7dbb96d6a727a9e34b6",
+      "sourceBytes": 387356,
+      "binaryChunksSha256": "76ab07ad6279144cf3f563d3583cfcde86a032846c6d1a35ed31cccd49c3efc0",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/bear-cub-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*cE23TKtpSw0AAAAAV7AAAAgAehQnAQ/f13431c84b6e4e64a35eb72f6cb375780f6115c81028d0ac67d9cee6727f4cde.glb",
+      "sha256": "f13431c84b6e4e64a35eb72f6cb375780f6115c81028d0ac67d9cee6727f4cde",
+      "bytes": 387608,
+      "verifiedSha256": "f13431c84b6e4e64a35eb72f6cb375780f6115c81028d0ac67d9cee6727f4cde",
+      "cors": "*",
+      "sourceSha256": "526da27a125c866d33971a8a9d64725b9e3eea8ae100d7bd2e650a9aa20bc5e3",
+      "sourceBytes": 387408,
+      "binaryChunksSha256": "79006bf618ec5c973f536475cfb3f97ea3998c1369264338f5a1ed09c20527c4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/bison-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*rNzKQ4F6lWUAAAAAXPAAAAgAehQnAQ/48c48448f0e278adf43e79eeb957c47ce83c5e1b77dd81dbd5169ca8fcdf3d8f.glb",
+      "sha256": "48c48448f0e278adf43e79eeb957c47ce83c5e1b77dd81dbd5169ca8fcdf3d8f",
+      "bytes": 474112,
+      "verifiedSha256": "48c48448f0e278adf43e79eeb957c47ce83c5e1b77dd81dbd5169ca8fcdf3d8f",
+      "cors": "*",
+      "sourceSha256": "6b35e048b2c1a03d7283419dfbfed21f80e80a0ac44e7991e464b51072780a62",
+      "sourceBytes": 473912,
+      "binaryChunksSha256": "0f3b97a3a112bc7f47f97f6c4a8035bf15f517bb4a699b20abc1fb73f7113a82",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/bull-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*nqXFT58Rbb0AAAAAWdAAAAgAehQnAQ/f6dd837899ad25bbb6398c0d91819e6a9ead1831fba47d07b8c321510bafb9d5.glb",
+      "sha256": "f6dd837899ad25bbb6398c0d91819e6a9ead1831fba47d07b8c321510bafb9d5",
+      "bytes": 423240,
+      "verifiedSha256": "f6dd837899ad25bbb6398c0d91819e6a9ead1831fba47d07b8c321510bafb9d5",
+      "cors": "*",
+      "sourceSha256": "d4292ad5539bbc621e137919bddd4e7a32e3a75bfd1856091876f6bfef61a4f1",
+      "sourceBytes": 423040,
+      "binaryChunksSha256": "5b76b8e86d379c915c7c2a4448c7bf9d876c5bc2a8684816d498a7352e01e0c8",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/camel-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*So8iQq6bnGgAAAAAWtAAAAgAehQnAQ/dc49411ad2557346c2eafdf4386769ff439284ac2f3118cbaf2f594101c54e3c.glb",
+      "sha256": "dc49411ad2557346c2eafdf4386769ff439284ac2f3118cbaf2f594101c54e3c",
+      "bytes": 439340,
+      "verifiedSha256": "dc49411ad2557346c2eafdf4386769ff439284ac2f3118cbaf2f594101c54e3c",
+      "cors": "*",
+      "sourceSha256": "fbbb62c998a21694111be41fbed36bce9e902895cb67fac2cf3b25cbb82d7b04",
+      "sourceBytes": 439140,
+      "binaryChunksSha256": "cb2ece7db962bf7f66548e92f02c905ebd6dad25f54df43607fa323faf63616c",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/camel-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*V2nXTr4bZwAAAAAAWtAAAAgAehQnAQ/fe62253603282aa2d781f0a31264b53154f3a4405e2a6d61f187e3ac09e31c13.glb",
+      "sha256": "fe62253603282aa2d781f0a31264b53154f3a4405e2a6d61f187e3ac09e31c13",
+      "bytes": 439368,
+      "verifiedSha256": "fe62253603282aa2d781f0a31264b53154f3a4405e2a6d61f187e3ac09e31c13",
+      "cors": "*",
+      "sourceSha256": "91b328a02ba6dd88a5a6ed70d346a8a991810d910109053e834393f9f0e9836e",
+      "sourceBytes": 439168,
+      "binaryChunksSha256": "e1674e4475f0565e239cbae772cb3e78f54698a6d41ac9ef10333799250be5a8",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/camel-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*ykJCSYBx-3wAAAAAWtAAAAgAehQnAQ/9312508d1ac169e972e0a25fce3634a13caafe8f1c2abd2cad2624176bc03b86.glb",
+      "sha256": "9312508d1ac169e972e0a25fce3634a13caafe8f1c2abd2cad2624176bc03b86",
+      "bytes": 439368,
+      "verifiedSha256": "9312508d1ac169e972e0a25fce3634a13caafe8f1c2abd2cad2624176bc03b86",
+      "cors": "*",
+      "sourceSha256": "497b1db5c1c0e74771e1ae67f765c2b53893ed322579e0b92b456606652bccbc",
+      "sourceBytes": 439168,
+      "binaryChunksSha256": "e1fa8a8807c450a509e07d5ddba3341b79bd9a0634fca2a66be7ebdb4aeca6c9",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cat-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*ZLJYSqe8BJQAAAAAZ7AAAAgAehQnAQ/a6cfb863518c122c77bacfedcd72cab77885207d16d4f72e8b7239e8a68a53d5.glb",
+      "sha256": "a6cfb863518c122c77bacfedcd72cab77885207d16d4f72e8b7239e8a68a53d5",
+      "bytes": 649860,
+      "verifiedSha256": "a6cfb863518c122c77bacfedcd72cab77885207d16d4f72e8b7239e8a68a53d5",
+      "cors": "*",
+      "sourceSha256": "0770889ff19c8a93f41d483a02999b058cc426e6b0fd78456366e5c2e0c1a973",
+      "sourceBytes": 649660,
+      "binaryChunksSha256": "6aa1441d6917e92555305f8e7af7eec25ca919d41dd53e4e46c6bf190df2d0d5",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cat-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*8P6GSoHT47IAAAAAaDAAAAgAehQnAQ/791e3ce701630c861ce435627102a79e06c52354e7d2c0522bd87f6a54a4f97e.glb",
+      "sha256": "791e3ce701630c861ce435627102a79e06c52354e7d2c0522bd87f6a54a4f97e",
+      "bytes": 658688,
+      "verifiedSha256": "791e3ce701630c861ce435627102a79e06c52354e7d2c0522bd87f6a54a4f97e",
+      "cors": "*",
+      "sourceSha256": "e590d4fc2e41629d69af996ce754c46ad2d5602a5280b7605cc1a48e7bfc9a48",
+      "sourceBytes": 658488,
+      "binaryChunksSha256": "e926f54efc8fb545f64c0913d5a874021582e79cf1621a3cc5d9b4eb6a02d8ef",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cat-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*FMoBSKClB5IAAAAAaDAAAAgAehQnAQ/d38d9be54159e5aa6a656e698bdbab8765ec372502ae5bfa903ea2e01df2f57c.glb",
+      "sha256": "d38d9be54159e5aa6a656e698bdbab8765ec372502ae5bfa903ea2e01df2f57c",
+      "bytes": 658688,
+      "verifiedSha256": "d38d9be54159e5aa6a656e698bdbab8765ec372502ae5bfa903ea2e01df2f57c",
+      "cors": "*",
+      "sourceSha256": "23f85735b9128deab45db33ecf3fbdc4b4287fedff9ff64cde3c9f5652817ec4",
+      "sourceBytes": 658488,
+      "binaryChunksSha256": "a4b5fb5656b3a5dafae3b73468226b0be5fe6f9bec95fd72615efc998bbd5df2",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cat-04.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*dUpCR7u2YSoAAAAAaDAAAAgAehQnAQ/18c9d11b6b20ab9363c4f9e0266ae5a004281145a59f52b555797e7e2dd72711.glb",
+      "sha256": "18c9d11b6b20ab9363c4f9e0266ae5a004281145a59f52b555797e7e2dd72711",
+      "bytes": 658320,
+      "verifiedSha256": "18c9d11b6b20ab9363c4f9e0266ae5a004281145a59f52b555797e7e2dd72711",
+      "cors": "*",
+      "sourceSha256": "4df8a94d6efbd29c8061543a1af7e10c8ddebfa94aeeccda974dc0a5c123ca6a",
+      "sourceBytes": 658120,
+      "binaryChunksSha256": "a3ac85f23639d16375df3ce37cfce21570fcb23fe350bd381f91cb1d8132a434",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/chick-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*wzwkQ6pZYdkAAAAASoAAAAgAehQnAQ/647c5a55b9d40f3939671fba0cb9c0541cba2e02afd64bec1ddebe5ce2677fe0.glb",
+      "sha256": "647c5a55b9d40f3939671fba0cb9c0541cba2e02afd64bec1ddebe5ce2677fe0",
+      "bytes": 171568,
+      "verifiedSha256": "647c5a55b9d40f3939671fba0cb9c0541cba2e02afd64bec1ddebe5ce2677fe0",
+      "cors": "*",
+      "sourceSha256": "dc7f5d8e69d702d1fc96972aa3e1c5e2386cb26187a488d520bb69bc5e67b55b",
+      "sourceBytes": 171368,
+      "binaryChunksSha256": "4512d19bad3b03441121c0f94c462029adc553ef968963bf8d9b24907cea513f",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/chicken-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*tdj3So8Tb84AAAAATbAAAAgAehQnAQ/e260d5c720cabf1222f72228753f22290aa7c6c22634c302d15582678b100fdc.glb",
+      "sha256": "e260d5c720cabf1222f72228753f22290aa7c6c22634c302d15582678b100fdc",
+      "bytes": 224196,
+      "verifiedSha256": "e260d5c720cabf1222f72228753f22290aa7c6c22634c302d15582678b100fdc",
+      "cors": "*",
+      "sourceSha256": "2f797e8a218540fbc801be1e723bc80c61e02601ec730a6e381f25332f98f3cd",
+      "sourceBytes": 223996,
+      "binaryChunksSha256": "0c8fc0a2aa5f88cd7716751536f447c2a1db265cac75854791905ae112112d7d",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/chicken-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Jk-rT5RpaL0AAAAATaAAAAgAehQnAQ/989b2a6875fa653d5ce940b428c29cc03772188ca07dbec97a8dcad4519496ce.glb",
+      "sha256": "989b2a6875fa653d5ce940b428c29cc03772188ca07dbec97a8dcad4519496ce",
+      "bytes": 223692,
+      "verifiedSha256": "989b2a6875fa653d5ce940b428c29cc03772188ca07dbec97a8dcad4519496ce",
+      "cors": "*",
+      "sourceSha256": "58e311b4c683e3a8c5aa50f7972fdd151f174d04ae93887cb7809c1571d89c32",
+      "sourceBytes": 223492,
+      "binaryChunksSha256": "b0d8156461be2faf4fbf1f48e9912e1dff2bbf1c169439d129798adc0941a6b4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/chicken-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*yoIwRKjsWrQAAAAATXAAAAgAehQnAQ/44ae931fba005e5e83a0bbfee2858eea3e143113e388f99dc43ae8cc727b967b.glb",
+      "sha256": "44ae931fba005e5e83a0bbfee2858eea3e143113e388f99dc43ae8cc727b967b",
+      "bytes": 219868,
+      "verifiedSha256": "44ae931fba005e5e83a0bbfee2858eea3e143113e388f99dc43ae8cc727b967b",
+      "cors": "*",
+      "sourceSha256": "aad2e8da07ec2ffb1fcdf9e3b55f90ade26621692dff80bdf45685b9d7f33b28",
+      "sourceBytes": 219668,
+      "binaryChunksSha256": "1c71c40698c0b76e89362ce9e6c98de170da17faa62c6c06b38afa7cf2b181ba",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cow-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Dg7TRZJ__v8AAAAAYCAAAAgAehQnAQ/a8337c74548b3ebaaf99bd57b7b7631b10f46271200da2e1bbd0d5ba5c837f8e.glb",
+      "sha256": "a8337c74548b3ebaaf99bd57b7b7631b10f46271200da2e1bbd0d5ba5c837f8e",
+      "bytes": 526436,
+      "verifiedSha256": "a8337c74548b3ebaaf99bd57b7b7631b10f46271200da2e1bbd0d5ba5c837f8e",
+      "cors": "*",
+      "sourceSha256": "07aa8af2f97c85354bd4eb049b818db9a9399a368cb2d682dbcc45ad977eb277",
+      "sourceBytes": 526236,
+      "binaryChunksSha256": "1ef05f1390c2d4c840f9d0ef4170ec5b8daef4c52bafa83691f4a262a2ed6dd3",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/cow-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*j6ngRoS0CQsAAAAAYCAAAAgAehQnAQ/dd63649c07ffe107302ca903c17e6a6195b0a2eb44afd9ffc19f299b7e5acd66.glb",
+      "sha256": "dd63649c07ffe107302ca903c17e6a6195b0a2eb44afd9ffc19f299b7e5acd66",
+      "bytes": 526636,
+      "verifiedSha256": "dd63649c07ffe107302ca903c17e6a6195b0a2eb44afd9ffc19f299b7e5acd66",
+      "cors": "*",
+      "sourceSha256": "b90a1bfc6bf69ab93770757d75384e2dfa4ef70baad8a8e85df2783812b966e2",
+      "sourceBytes": 526436,
+      "binaryChunksSha256": "ba5e201a2a0a5addf8066ed1b0f6fc113f5cdaf786b348b8ea1277622204549b",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/crocodile-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*FgG3RpqjQvAAAAAAa-AAAAgAehQnAQ/02d753a7274ef8e66463ef16888037f0cdc4cfa8ce85d2e313dace459cb26dc8.glb",
+      "sha256": "02d753a7274ef8e66463ef16888037f0cdc4cfa8ce85d2e313dace459cb26dc8",
+      "bytes": 719332,
+      "verifiedSha256": "02d753a7274ef8e66463ef16888037f0cdc4cfa8ce85d2e313dace459cb26dc8",
+      "cors": "*",
+      "sourceSha256": "307f27baf8d8fc9d573a00d4e1b11999eb37536c6b26e9f8de3160eca6f52303",
+      "sourceBytes": 719132,
+      "binaryChunksSha256": "8da5313a2922f9abfa7f9b34ba12a9c7bd02650b11870f991332782e1eb00110",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/deer-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*pbc7RopwlBgAAAAAdGAAAAgAehQnAQ/a633b7ca10687b15487433b437448bd71e63fbdcb3a38aea52a33f17f945dd6c.glb",
+      "sha256": "a633b7ca10687b15487433b437448bd71e63fbdcb3a38aea52a33f17f945dd6c",
+      "bytes": 857824,
+      "verifiedSha256": "a633b7ca10687b15487433b437448bd71e63fbdcb3a38aea52a33f17f945dd6c",
+      "cors": "*",
+      "sourceSha256": "60b7ca3d1712a94ee1c5e4c039d5560052f182adf9601b66ef7d6c22839c145a",
+      "sourceBytes": 857624,
+      "binaryChunksSha256": "8fa8a7017c1097a1d9652cc4f1132dbeb246cff92fb1fdb752c50d18208784f0",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/deer-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*BP__TZgoojoAAAAAYYAAAAgAehQnAQ/b69f1a822b89d294030228b0fb2e336eab0a97920383774bf2d9f3076fe3a5ea.glb",
+      "sha256": "b69f1a822b89d294030228b0fb2e336eab0a97920383774bf2d9f3076fe3a5ea",
+      "bytes": 548952,
+      "verifiedSha256": "b69f1a822b89d294030228b0fb2e336eab0a97920383774bf2d9f3076fe3a5ea",
+      "cors": "*",
+      "sourceSha256": "c1dac3d5e943a33de3397ae8f954b72515e23be5633bab24c61405cd732b4e35",
+      "sourceBytes": 548752,
+      "binaryChunksSha256": "a78456b680e4a4d30707716830a14aa1bbb4e72cb7bc7c2c3f47006cd76c5362",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/deer-cub-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*wFIqRqDHIgAAAAAAYYAAAAgAehQnAQ/60b4a9c8e16a412199a713aeb8b6814fb04f8b90199c9adceb197334c75f48cd.glb",
+      "sha256": "60b4a9c8e16a412199a713aeb8b6814fb04f8b90199c9adceb197334c75f48cd",
+      "bytes": 549164,
+      "verifiedSha256": "60b4a9c8e16a412199a713aeb8b6814fb04f8b90199c9adceb197334c75f48cd",
+      "cors": "*",
+      "sourceSha256": "c3e84a33cb836272a57cc7c55de8e1a79a85b9d9459fa7d9f77fb4e972a1aa92",
+      "sourceBytes": 548964,
+      "binaryChunksSha256": "4c28c90d9d470c50ccbc547fc1b24eb503139ed6b6b6444b19fe37b3aa096805",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/deer-female-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*upp3TYTl0P0AAAAAZvAAAAgAehQnAQ/9687f3c66691f2a10d20c34da8b12472deb4106fad03dafbc18d8cb536c62908.glb",
+      "sha256": "9687f3c66691f2a10d20c34da8b12472deb4106fad03dafbc18d8cb536c62908",
+      "bytes": 638316,
+      "verifiedSha256": "9687f3c66691f2a10d20c34da8b12472deb4106fad03dafbc18d8cb536c62908",
+      "cors": "*",
+      "sourceSha256": "90844b3af493b01074819d2483e28af286260517d7322e34b7d75201f3f26642",
+      "sourceBytes": 638116,
+      "binaryChunksSha256": "25fff2f3dd48dfb15d9dba225254b69c6803d92bee55351c2b2512487af8d460",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*UpcoTIkJ4zAAAAAAXHAAAAgAehQnAQ/177d66b537617983c7b83b436a5ac63bb9e4ec5f96ce5567536a586a634f5598.glb",
+      "sha256": "177d66b537617983c7b83b436a5ac63bb9e4ec5f96ce5567536a586a634f5598",
+      "bytes": 465624,
+      "verifiedSha256": "177d66b537617983c7b83b436a5ac63bb9e4ec5f96ce5567536a586a634f5598",
+      "cors": "*",
+      "sourceSha256": "64f4a154370c85e14095b8f1a9ef73147de02949c22054025fe9f8b12f5b8ce0",
+      "sourceBytes": 465424,
+      "binaryChunksSha256": "275da32724698bb4018599fef4b9601bcf34faea930f58ae93469bc116b7256d",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*xk7_R5-8JF4AAAAAXDAAAAgAehQnAQ/ab815945e746bd19ffa1ff99a0b3763a7e0a198b00feb0cf3d96a61f76153a26.glb",
+      "sha256": "ab815945e746bd19ffa1ff99a0b3763a7e0a198b00feb0cf3d96a61f76153a26",
+      "bytes": 461544,
+      "verifiedSha256": "ab815945e746bd19ffa1ff99a0b3763a7e0a198b00feb0cf3d96a61f76153a26",
+      "cors": "*",
+      "sourceSha256": "5ddae5e922201dd2fb717a78e17d2fc75452b2c2614c4a29d259efe01a6df20c",
+      "sourceBytes": 461344,
+      "binaryChunksSha256": "66e497bfa9125ba168831772409feb7f7c6fe39d6baf24123aaac1377b13cfcc",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*RNjzQ6J-qCwAAAAAXJAAAAgAehQnAQ/853527b38078766983aff5b9ed37973f52389603b26f7b42c406b9bdd17fefa3.glb",
+      "sha256": "853527b38078766983aff5b9ed37973f52389603b26f7b42c406b9bdd17fefa3",
+      "bytes": 468080,
+      "verifiedSha256": "853527b38078766983aff5b9ed37973f52389603b26f7b42c406b9bdd17fefa3",
+      "cors": "*",
+      "sourceSha256": "4ff495191583d8e390f02ef3050ab0e93d5de0e697d785c903c47db19cdce5c2",
+      "sourceBytes": 467880,
+      "binaryChunksSha256": "800839b26422a28ed994f023f5e0fa243ba36da1ac3cf6d2db2a743228207e27",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-04.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Oly7TIme4t4AAAAAW8AAAAgAehQnAQ/374acbadeec0f2472603c3be0e1e34d260c19a3bc57551d857d3978721d413e2.glb",
+      "sha256": "374acbadeec0f2472603c3be0e1e34d260c19a3bc57551d857d3978721d413e2",
+      "bytes": 454360,
+      "verifiedSha256": "374acbadeec0f2472603c3be0e1e34d260c19a3bc57551d857d3978721d413e2",
+      "cors": "*",
+      "sourceSha256": "309600d6d717278b275498307210f3f17dd55c890560d8b8374efa95c3237ebf",
+      "sourceBytes": 454160,
+      "binaryChunksSha256": "8db6b4698b82865b8e65f31e49843e96cba5da556cf2b5e8f29d34ac5571a0dc",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-05.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*tJN3QLL2m7IAAAAAXEAAAAgAehQnAQ/1caf01a480ad3061f933a5184065f3683ee0b817d3bd4e8cb931f0993aa454a0.glb",
+      "sha256": "1caf01a480ad3061f933a5184065f3683ee0b817d3bd4e8cb931f0993aa454a0",
+      "bytes": 463352,
+      "verifiedSha256": "1caf01a480ad3061f933a5184065f3683ee0b817d3bd4e8cb931f0993aa454a0",
+      "cors": "*",
+      "sourceSha256": "baa25958a5709ba82830df78d8202c66e581c09e1b9303dad57602dd4ae7cdbe",
+      "sourceBytes": 463152,
+      "binaryChunksSha256": "71a37379f05215078b7d91c22e60d5b7e56f770260421caed11d2bb5ed713dbc",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/dog-06.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*LF01QpD9O8EAAAAAXCAAAAgAehQnAQ/c6c05cd77fb64acd689ca7f0c3bf84b5677021c0edd18723f84ed8f37f94b40e.glb",
+      "sha256": "c6c05cd77fb64acd689ca7f0c3bf84b5677021c0edd18723f84ed8f37f94b40e",
+      "bytes": 460440,
+      "verifiedSha256": "c6c05cd77fb64acd689ca7f0c3bf84b5677021c0edd18723f84ed8f37f94b40e",
+      "cors": "*",
+      "sourceSha256": "2c38f65f0eb1b924494e03fa5f8c04c287e9af76e17ac92bd880e3d89e237d99",
+      "sourceBytes": 460240,
+      "binaryChunksSha256": "f685325a04e09f0100a4a44f30ad356af7777d5131ffdb959ee01b9e0b9b066a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/donkey-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*itbbQ5H8RvcAAAAAXiAAAAgAehQnAQ/11e13ad0c6bb708774c77d3c0c4f9241a5b9c77be303ee43be79c69cb2b59058.glb",
+      "sha256": "11e13ad0c6bb708774c77d3c0c4f9241a5b9c77be303ee43be79c69cb2b59058",
+      "bytes": 493580,
+      "verifiedSha256": "11e13ad0c6bb708774c77d3c0c4f9241a5b9c77be303ee43be79c69cb2b59058",
+      "cors": "*",
+      "sourceSha256": "d66c4a51354a9748c66d89cee37dc6ee05de830059f1d72b219ad9bae7c65d56",
+      "sourceBytes": 493380,
+      "binaryChunksSha256": "9261512f3c2c03b80a5ef3818afe4caca2aa4285ff39f1000098dace7cd97f0e",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/donkey-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*DkJ6QJGLaYsAAAAAXcAAAAgAehQnAQ/61e393190ecdcac9460bce6970a447d4063602e8490442b3999e25adbf4fd3db.glb",
+      "sha256": "61e393190ecdcac9460bce6970a447d4063602e8490442b3999e25adbf4fd3db",
+      "bytes": 487140,
+      "verifiedSha256": "61e393190ecdcac9460bce6970a447d4063602e8490442b3999e25adbf4fd3db",
+      "cors": "*",
+      "sourceSha256": "336221ea5dfd06554abf23be317e945ab8e327fd10258a799231d35e8c74d966",
+      "sourceBytes": 486940,
+      "binaryChunksSha256": "c9b7ae4abc68daf5eb570e70c77382575c460798b0af77f6be03966e72967678",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/duck-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*gRbpTJxR4AgAAAAAVrAAAAgAehQnAQ/85650afcdc08c1514b26c9dc30792d8a0de53d81c20f32582fcd262a5e866085.glb",
+      "sha256": "85650afcdc08c1514b26c9dc30792d8a0de53d81c20f32582fcd262a5e866085",
+      "bytes": 371788,
+      "verifiedSha256": "85650afcdc08c1514b26c9dc30792d8a0de53d81c20f32582fcd262a5e866085",
+      "cors": "*",
+      "sourceSha256": "783abb754fd40279b63e6ef677dd0cc243926d2db83e2ac0f6d23796cca66021",
+      "sourceBytes": 371588,
+      "binaryChunksSha256": "bc310fdb87ad6dd4417acd411405da8834056813d40443c3e241aa123a6c55aa",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/elephant-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*YRLbQ58mX6YAAAAAWkAAAAgAehQnAQ/86b554e5ae38c6a8a60ccbde26d6b5e5fbcaa2e43c0717286086525eedff014d.glb",
+      "sha256": "86b554e5ae38c6a8a60ccbde26d6b5e5fbcaa2e43c0717286086525eedff014d",
+      "bytes": 430100,
+      "verifiedSha256": "86b554e5ae38c6a8a60ccbde26d6b5e5fbcaa2e43c0717286086525eedff014d",
+      "cors": "*",
+      "sourceSha256": "1bc7992d839661f77fc623c668ee59fcdfa5e76f059001efeafc7ef6d861885f",
+      "sourceBytes": 429900,
+      "binaryChunksSha256": "4029ed1a02ff059ea9108289c9cb2dcd016fb95dd8117ce53edcfd31d1a74883",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/elephant-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*riThRYMqLK4AAAAAWkAAAAgAehQnAQ/89574da45d23c122566bb24488dd6cfa198978fd6bcad6c87a517018d76d7073.glb",
+      "sha256": "89574da45d23c122566bb24488dd6cfa198978fd6bcad6c87a517018d76d7073",
+      "bytes": 430056,
+      "verifiedSha256": "89574da45d23c122566bb24488dd6cfa198978fd6bcad6c87a517018d76d7073",
+      "cors": "*",
+      "sourceSha256": "55196f06917460e918777f693b2360203a4b380bd2d4fafb95ea2f8aa8e1e8e5",
+      "sourceBytes": 429856,
+      "binaryChunksSha256": "33917859c020932091f2077daa346d01917cf3eddb9e6fd3789bf1fa2c135263",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/elephant-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*NyCoToSbF8YAAAAAWRAAAAgAehQnAQ/9a88339f59f2266cd593b18260dfa2d3b31830c4046d4095fbda86210413e1fa.glb",
+      "sha256": "9a88339f59f2266cd593b18260dfa2d3b31830c4046d4095fbda86210413e1fa",
+      "bytes": 410628,
+      "verifiedSha256": "9a88339f59f2266cd593b18260dfa2d3b31830c4046d4095fbda86210413e1fa",
+      "cors": "*",
+      "sourceSha256": "45047d18e2ed118250bd9ccca4ca22104771e12bbf32e0b52ea7250003c20864",
+      "sourceBytes": 410428,
+      "binaryChunksSha256": "9453db8e3f09fc2a4df735ca659fca86a57478c69dbbffff4af3a50a237f84d0",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/elephant-cub-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*9OdqT7IVV9UAAAAAWRAAAAgAehQnAQ/ec882303cbc0daaf9cc46207981cade15394a777a4e3b1a13abd7e1c572e72dc.glb",
+      "sha256": "ec882303cbc0daaf9cc46207981cade15394a777a4e3b1a13abd7e1c572e72dc",
+      "bytes": 410460,
+      "verifiedSha256": "ec882303cbc0daaf9cc46207981cade15394a777a4e3b1a13abd7e1c572e72dc",
+      "cors": "*",
+      "sourceSha256": "8ff66c6faa843dc373db6491a395cd5bf8a46a69600bf1dae084c3bbed15580b",
+      "sourceBytes": 410260,
+      "binaryChunksSha256": "56caf35036c58fce7b3e09916d302b87364eed7fa11584a98565d79269490794",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/flamingo-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*9Qj-QIxzvrgAAAAAVAAAAAgAehQnAQ/22dc841a2e0616bd4f4ae81e81b9a125553ee3033198d4ccd1fdff5b95b12266.glb",
+      "sha256": "22dc841a2e0616bd4f4ae81e81b9a125553ee3033198d4ccd1fdff5b95b12266",
+      "bytes": 327708,
+      "verifiedSha256": "22dc841a2e0616bd4f4ae81e81b9a125553ee3033198d4ccd1fdff5b95b12266",
+      "cors": "*",
+      "sourceSha256": "c0b0c85bb7c2aa20995cd84b988dd7ce87994dad09977e8ed35612222d53fcb4",
+      "sourceBytes": 327508,
+      "binaryChunksSha256": "ad964f39edeb7671966a83b6902011ae57420ba9c09a2b60151d26a17b526d05",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/fox-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*enW2TqJ760MAAAAAXZAAAAgAehQnAQ/b344c69d4d007592d486e1190aa91c395bf579c6013bcd8789470acc264ed17e.glb",
+      "sha256": "b344c69d4d007592d486e1190aa91c395bf579c6013bcd8789470acc264ed17e",
+      "bytes": 484216,
+      "verifiedSha256": "b344c69d4d007592d486e1190aa91c395bf579c6013bcd8789470acc264ed17e",
+      "cors": "*",
+      "sourceSha256": "c65b716f0ae11ff566239ef8cf28f6c3a787477046a437143e13a793ca5ef0a9",
+      "sourceBytes": 484016,
+      "binaryChunksSha256": "7f8f5bce71099f5c98c8e9b083ba0c69bbb10fd5af932fb4eb81eb63e96204cf",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/giraffe-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*7ulER6Yc8aEAAAAAadAAAAgAehQnAQ/29806be7f2058423bf7c9fd7ee9e34076e068d3f4a7efd7e25572cb1585c756f.glb",
+      "sha256": "29806be7f2058423bf7c9fd7ee9e34076e068d3f4a7efd7e25572cb1585c756f",
+      "bytes": 685388,
+      "verifiedSha256": "29806be7f2058423bf7c9fd7ee9e34076e068d3f4a7efd7e25572cb1585c756f",
+      "cors": "*",
+      "sourceSha256": "d9ba395736883fda71f3540048e3a08412fda25a9878b31bd46c96be96470c35",
+      "sourceBytes": 685188,
+      "binaryChunksSha256": "ee556e25132b29da14e5fd4d442950f6f62599f31f571304b66915c0b0d405e9",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/goat-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*NsvWS5F57MAAAAAAVfAAAAgAehQnAQ/646ef225d86a585116e3e2890494ce020c2614ddbedd82037f66d26dfb4d9bf3.glb",
+      "sha256": "646ef225d86a585116e3e2890494ce020c2614ddbedd82037f66d26dfb4d9bf3",
+      "bytes": 359728,
+      "verifiedSha256": "646ef225d86a585116e3e2890494ce020c2614ddbedd82037f66d26dfb4d9bf3",
+      "cors": "*",
+      "sourceSha256": "db8a1e576fda84bb637af0d3181ebec447298807e0366a37c50f75d6ad868b62",
+      "sourceBytes": 359528,
+      "binaryChunksSha256": "2bdc0dc80498a230d8a4f5dfc186703ba896ed6296d812e2ec9569ddba1db6f2",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/goat-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*RbKmSba9bQsAAAAAVdAAAAgAehQnAQ/1aae130851afc77feb0302061136875972ce9b90ac36db13857cb213de356902.glb",
+      "sha256": "1aae130851afc77feb0302061136875972ce9b90ac36db13857cb213de356902",
+      "bytes": 356920,
+      "verifiedSha256": "1aae130851afc77feb0302061136875972ce9b90ac36db13857cb213de356902",
+      "cors": "*",
+      "sourceSha256": "946646249ab591aac2c898a052af25b2dc50c4e6269991f32e99dbd63bc165a0",
+      "sourceBytes": 356720,
+      "binaryChunksSha256": "20035e08afa84c6b930923fc31247e72e26467657120c78546cf44fb378b39b3",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/gorilla-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*6ceeQorNflQAAAAAZiAAAAgAehQnAQ/d6367fca796287c2c88245769220416fd3c1a0ce23a80d0d0cc1998e912e1a60.glb",
+      "sha256": "d6367fca796287c2c88245769220416fd3c1a0ce23a80d0d0cc1998e912e1a60",
+      "bytes": 624188,
+      "verifiedSha256": "d6367fca796287c2c88245769220416fd3c1a0ce23a80d0d0cc1998e912e1a60",
+      "cors": "*",
+      "sourceSha256": "2431af52dd3530ee047c52c2d7b08e6f936bebb883f2602aad797ae82ac3ebcb",
+      "sourceBytes": 623988,
+      "binaryChunksSha256": "c5f3e86384ba74082db8df5549d785ada1bdf75a67fc6e5e20f075e56ac7cac8",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/hippopotamus-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*tkb6S7ADybkAAAAAXeAAAAgAehQnAQ/5d4c5aa52bb6eddcc782b5dc1e2892054faba00889d0840fccc5115040e15e08.glb",
+      "sha256": "5d4c5aa52bb6eddcc782b5dc1e2892054faba00889d0840fccc5115040e15e08",
+      "bytes": 489760,
+      "verifiedSha256": "5d4c5aa52bb6eddcc782b5dc1e2892054faba00889d0840fccc5115040e15e08",
+      "cors": "*",
+      "sourceSha256": "7f21f161d05a6149f5d65e3f9f27c39145f3d95535779c3aea088ba3cf323462",
+      "sourceBytes": 489560,
+      "binaryChunksSha256": "646510620047d37b78f5b60faaeb5d5b8115810b9ae7478f08503c130e7507cf",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/horse-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*wujRTaVWnQwAAAAAWLAAAAgAehQnAQ/f08df9249d39a59413b8b6fd08d3d0b0b3c477610ef4548fb3b9068bf478878f.glb",
+      "sha256": "f08df9249d39a59413b8b6fd08d3d0b0b3c477610ef4548fb3b9068bf478878f",
+      "bytes": 404620,
+      "verifiedSha256": "f08df9249d39a59413b8b6fd08d3d0b0b3c477610ef4548fb3b9068bf478878f",
+      "cors": "*",
+      "sourceSha256": "59050228decb392282d7dbb6a2b58c7d6d155a7dcef5dd48ebf121ff4f40d6fb",
+      "sourceBytes": 404420,
+      "binaryChunksSha256": "f2bb92521e9b0bdcdd32bd1998c6e053ace760937ec3bbf9c1d9a96fe2776ef8",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/horse-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*gVUCRoAyptsAAAAAWNAAAAgAehQnAQ/b3b3c1e7e1c0d0290f8fd88496bae3ba53d0462ff8472a8a1b192e5bb1ee99d0.glb",
+      "sha256": "b3b3c1e7e1c0d0290f8fd88496bae3ba53d0462ff8472a8a1b192e5bb1ee99d0",
+      "bytes": 406532,
+      "verifiedSha256": "b3b3c1e7e1c0d0290f8fd88496bae3ba53d0462ff8472a8a1b192e5bb1ee99d0",
+      "cors": "*",
+      "sourceSha256": "b234a895f86e12cadc94cfd7b2142be990956486a8cc18119eb79fb1c0039eae",
+      "sourceBytes": 406332,
+      "binaryChunksSha256": "68acb09a04d478c2b63aef50e4e6d301de87d83e727ddade4d1858aaf5b58d4b",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/horse-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*vwE1TJT7pvYAAAAAWMAAAAgAehQnAQ/ce905e0cf15b6adb4dcc3702099f911dd7e82257d7a1e53ecbc150be67e4b805.glb",
+      "sha256": "ce905e0cf15b6adb4dcc3702099f911dd7e82257d7a1e53ecbc150be67e4b805",
+      "bytes": 405336,
+      "verifiedSha256": "ce905e0cf15b6adb4dcc3702099f911dd7e82257d7a1e53ecbc150be67e4b805",
+      "cors": "*",
+      "sourceSha256": "d5ea4ebef1faf9e912cce94ecae31d7c441bb17ad51f233b2a55eb3ca803449a",
+      "sourceBytes": 405136,
+      "binaryChunksSha256": "d42d704c9b4b671f975e95a863ee68d4afe1d43933c6f700f90ce3189ac449ac",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/horse-04.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*at8KT6V1xagAAAAAWCAAAAgAehQnAQ/3de216729df07adcdee0b2ddc314066bcc69aa661a5af8b30c6895a8a7c0237c.glb",
+      "sha256": "3de216729df07adcdee0b2ddc314066bcc69aa661a5af8b30c6895a8a7c0237c",
+      "bytes": 395308,
+      "verifiedSha256": "3de216729df07adcdee0b2ddc314066bcc69aa661a5af8b30c6895a8a7c0237c",
+      "cors": "*",
+      "sourceSha256": "3c45eca115b6e0dab67ae82c94ee21bddfea55156bda7cf2ec4e93087f07f3d2",
+      "sourceBytes": 395108,
+      "binaryChunksSha256": "d9a6bee95841c020c9f50e41cabf65c6ef48abd8a60048fd74ae8e334cb89328",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/horse-05.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*chVrS6ASRgcAAAAAWCAAAAgAehQnAQ/e4d7b36bd1c81178c639ffde7193e82c354c13f7d5e5be7c8414cc0995668cd6.glb",
+      "sha256": "e4d7b36bd1c81178c639ffde7193e82c354c13f7d5e5be7c8414cc0995668cd6",
+      "bytes": 395308,
+      "verifiedSha256": "e4d7b36bd1c81178c639ffde7193e82c354c13f7d5e5be7c8414cc0995668cd6",
+      "cors": "*",
+      "sourceSha256": "2a008451ef0fe721bc0b1fc6f54324ba198ba88760e6f999e729282d34bc995a",
+      "sourceBytes": 395108,
+      "binaryChunksSha256": "5aafc4a8c5fc4d241ceb59c5f97b408094017d1de48bd75e1d7432caaae85d34",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/kangoroo-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*MjZ1QoOyqFkAAAAAYEAAAAgAehQnAQ/0b7121c4d1b53e90d832b21b77f5794711570943a2215c141a9f6d423091869f.glb",
+      "sha256": "0b7121c4d1b53e90d832b21b77f5794711570943a2215c141a9f6d423091869f",
+      "bytes": 528860,
+      "verifiedSha256": "0b7121c4d1b53e90d832b21b77f5794711570943a2215c141a9f6d423091869f",
+      "cors": "*",
+      "sourceSha256": "3300dbf29b3e3172807d0af8024c16947a971541e956b417b0bb66049f4cbf1a",
+      "sourceBytes": 528660,
+      "binaryChunksSha256": "273ad32705806e0476b4076fc69a387534ca42ad02013ae53aafa60a1f6a031f",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/kitty-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*4Jr3R4imckYAAAAAVQAAAAgAehQnAQ/f88aa69cdec31cdf5e08dbd88148893ee9473fb98d6f953dc271bd237886e686.glb",
+      "sha256": "f88aa69cdec31cdf5e08dbd88148893ee9473fb98d6f953dc271bd237886e686",
+      "bytes": 344204,
+      "verifiedSha256": "f88aa69cdec31cdf5e08dbd88148893ee9473fb98d6f953dc271bd237886e686",
+      "cors": "*",
+      "sourceSha256": "3fa358c3cf820d5352c5db4a7810478ba501889962c2d34b94e166842cef1c03",
+      "sourceBytes": 344004,
+      "binaryChunksSha256": "ae7c8d25ab10e58092260777e984e24ce4fdfd0236fe15ee9399dd9d88862b62",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/kitty-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Ufd5S5GZuWQAAAAAVRAAAAgAehQnAQ/cdd3d141c626bc6764d097c3b3ca6a72f4ceb537a6c0166a449949d348c76690.glb",
+      "sha256": "cdd3d141c626bc6764d097c3b3ca6a72f4ceb537a6c0166a449949d348c76690",
+      "bytes": 344624,
+      "verifiedSha256": "cdd3d141c626bc6764d097c3b3ca6a72f4ceb537a6c0166a449949d348c76690",
+      "cors": "*",
+      "sourceSha256": "2850370e092c641154ec109fcc7df367bca72005ef3360dd2fdda1d147818b87",
+      "sourceBytes": 344424,
+      "binaryChunksSha256": "a0215e1d53ddb24aa1b138b26cb066fe5a7f5c0a872cc82365596074edec03f4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/kitty-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*LE1ZQpFQqXAAAAAAVTAAAAgAehQnAQ/95ac14a8e67b051f46ec3bde6d118112d54d4647fcc88883944fbb68bd146a8f.glb",
+      "sha256": "95ac14a8e67b051f46ec3bde6d118112d54d4647fcc88883944fbb68bd146a8f",
+      "bytes": 347528,
+      "verifiedSha256": "95ac14a8e67b051f46ec3bde6d118112d54d4647fcc88883944fbb68bd146a8f",
+      "cors": "*",
+      "sourceSha256": "b85a67dd86aec567b02800492a7ce3ed922838e7a7a70ed6c9a4033c3ebc2304",
+      "sourceBytes": 347328,
+      "binaryChunksSha256": "afef92bc195945bb8c09d59daa762bf7257e1d1566c99a163d7b25814012fde1",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/kitty-04.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*p4cwRJQ5rBIAAAAAVXAAAAgAehQnAQ/7cdfa411313835aaf73ebf65622a2ef76b32ccefe8b4dd779d832dfe1b502bcd.glb",
+      "sha256": "7cdfa411313835aaf73ebf65622a2ef76b32ccefe8b4dd779d832dfe1b502bcd",
+      "bytes": 351488,
+      "verifiedSha256": "7cdfa411313835aaf73ebf65622a2ef76b32ccefe8b4dd779d832dfe1b502bcd",
+      "cors": "*",
+      "sourceSha256": "f417a17b30e60020c1fed28e851d58dd2965f2035ad451e16e929c9317f23488",
+      "sourceBytes": 351288,
+      "binaryChunksSha256": "12de6fbfeeb6f01d9651681157158291258efc81f15195f835b5299adcb6af81",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/koala-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*ZyWsQ5K5_-gAAAAAWxAAAAgAehQnAQ/43a43640f830bad0361712e901455a49617e0952c33ca680c5ad2dbe6eda5b26.glb",
+      "sha256": "43a43640f830bad0361712e901455a49617e0952c33ca680c5ad2dbe6eda5b26",
+      "bytes": 443860,
+      "verifiedSha256": "43a43640f830bad0361712e901455a49617e0952c33ca680c5ad2dbe6eda5b26",
+      "cors": "*",
+      "sourceSha256": "7b00cc32dc80d39b2985045234c5978f16997713c2330c090df6b74ba0a2dc1f",
+      "sourceBytes": 443660,
+      "binaryChunksSha256": "d3307e66f3ea6407aa8077e70a1fddff2f6927abd5b20b5590a1a52043af563b",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/lama-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*_sXTRbf60TcAAAAAVwAAAAgAehQnAQ/762561da0c94d498ab93eb402f749490b8b1eabd491e0328aa79f6e6cdf1a2ac.glb",
+      "sha256": "762561da0c94d498ab93eb402f749490b8b1eabd491e0328aa79f6e6cdf1a2ac",
+      "bytes": 376336,
+      "verifiedSha256": "762561da0c94d498ab93eb402f749490b8b1eabd491e0328aa79f6e6cdf1a2ac",
+      "cors": "*",
+      "sourceSha256": "5385cf0457bfae2a30ed6cc48ae600023f381caa46fe441a137f6da8813df8b0",
+      "sourceBytes": 376136,
+      "binaryChunksSha256": "9f05db5dfa1bb2640e31f7c3d2fcd2cca8145220c0f19fe5d44731fa2335a858",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/lama-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*buOZTbLUwisAAAAAViAAAAgAehQnAQ/fcf84011fdeb87614784b04eb2f0e7dc06d8981d5c02fb116eb579bc1ad2fc31.glb",
+      "sha256": "fcf84011fdeb87614784b04eb2f0e7dc06d8981d5c02fb116eb579bc1ad2fc31",
+      "bytes": 362664,
+      "verifiedSha256": "fcf84011fdeb87614784b04eb2f0e7dc06d8981d5c02fb116eb579bc1ad2fc31",
+      "cors": "*",
+      "sourceSha256": "abb872c7c48e85ac3af1e04274014ef40cd2da3b1797b7898b201ea1afd45eef",
+      "sourceBytes": 362464,
+      "binaryChunksSha256": "3cccf89f7b0ced43a27bbfca05fe8f1084251fa8c51b73b7a024882658903fc5",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/lion-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*rYhCSrAoXSYAAAAAW9AAAAgAehQnAQ/13c2e2bf4b975ef7a1621e6554d7224f7562788a572793dac1393378c55a369a.glb",
+      "sha256": "13c2e2bf4b975ef7a1621e6554d7224f7562788a572793dac1393378c55a369a",
+      "bytes": 455384,
+      "verifiedSha256": "13c2e2bf4b975ef7a1621e6554d7224f7562788a572793dac1393378c55a369a",
+      "cors": "*",
+      "sourceSha256": "4fb01e913b321ca4bed2b231245ac2214c732fc48c2295ca5c923dc49d7a9539",
+      "sourceBytes": 455184,
+      "binaryChunksSha256": "0385ca5ae8b4281929e0450d67e312c442b23a187f01d79e91888f4ddba11471",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/lion-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*TBx1S4TcCkIAAAAAW1AAAAgAehQnAQ/d49d2b85e39c3352e171692b49f61af765e2ab0af646ef10b7bc1f158522031b.glb",
+      "sha256": "d49d2b85e39c3352e171692b49f61af765e2ab0af646ef10b7bc1f158522031b",
+      "bytes": 447656,
+      "verifiedSha256": "d49d2b85e39c3352e171692b49f61af765e2ab0af646ef10b7bc1f158522031b",
+      "cors": "*",
+      "sourceSha256": "de382b1326ce32876f0f687f6c9b7658fc45992d8a54afe286f11f7abf8413a7",
+      "sourceBytes": 447456,
+      "binaryChunksSha256": "d30986a81ce95d8513df6283aac20682d42d9f9baae56bcb6b831eb44ec5fd4a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/lion-female.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*ZNFfTI3ZSioAAAAAVsAAAAgAehQnAQ/1c8861dbdc0154a5d4edce12a98f3cc20dfab9e2e4e24307a46e0616ace20a6c.glb",
+      "sha256": "1c8861dbdc0154a5d4edce12a98f3cc20dfab9e2e4e24307a46e0616ace20a6c",
+      "bytes": 373116,
+      "verifiedSha256": "1c8861dbdc0154a5d4edce12a98f3cc20dfab9e2e4e24307a46e0616ace20a6c",
+      "cors": "*",
+      "sourceSha256": "b35906486bd6468c8b57ab6bbab450720744905e539efa730c47e3715d2136db",
+      "sourceBytes": 372916,
+      "binaryChunksSha256": "1a2da2c928f90e547103703ead57ac3631fef1e283d48a9039069ce00fb045ff",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/monkey-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*q0x7QLjxu54AAAAAceAAAAgAehQnAQ/e1e506114d9801e55792aea61417d63ac7720ad51dc45ad5352ed57e22466d9a.glb",
+      "sha256": "e1e506114d9801e55792aea61417d63ac7720ad51dc45ad5352ed57e22466d9a",
+      "bytes": 817368,
+      "verifiedSha256": "e1e506114d9801e55792aea61417d63ac7720ad51dc45ad5352ed57e22466d9a",
+      "cors": "*",
+      "sourceSha256": "ae4da6be9b3b9f2dd7e60849417534334258c2801116f5aa72f194c636639c24",
+      "sourceBytes": 817168,
+      "binaryChunksSha256": "21a46fc40920e1364adb77e19863259214f7b701cc0d57a5190a0af30f8a6679",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/monkey-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*bZMbSIf6yykAAAAAcWAAAAgAehQnAQ/e8d2a84e0265e7001c82b125b3027cee3c041a4ea38a63a50a13774fbe98873f.glb",
+      "sha256": "e8d2a84e0265e7001c82b125b3027cee3c041a4ea38a63a50a13774fbe98873f",
+      "bytes": 809032,
+      "verifiedSha256": "e8d2a84e0265e7001c82b125b3027cee3c041a4ea38a63a50a13774fbe98873f",
+      "cors": "*",
+      "sourceSha256": "677c2991582b657e0d7d1f773b630e97486f7fd652b4a931a223243a9a71a343",
+      "sourceBytes": 808832,
+      "binaryChunksSha256": "13cf089d9c676661815d040b08de1db537caf6208e141dfb8572a36dda9a16fb",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/moose-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*fKBUQ7ofpDAAAAAAY6AAAAgAehQnAQ/901f87261a6aae6ee707b0b51420bad80294c591a46cb4a985456501ff4b732e.glb",
+      "sha256": "901f87261a6aae6ee707b0b51420bad80294c591a46cb4a985456501ff4b732e",
+      "bytes": 584048,
+      "verifiedSha256": "901f87261a6aae6ee707b0b51420bad80294c591a46cb4a985456501ff4b732e",
+      "cors": "*",
+      "sourceSha256": "7fa68a65ec68c29487ba08829f0509a07c087059d4e9a9e7a89280242dbf3ff9",
+      "sourceBytes": 583848,
+      "binaryChunksSha256": "0377905e0c27564ec5daae03b022fc2c0b7be64af16d7d1e298fcb2ec58ea8ea",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/moose-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*WQ3ZTI_oM-sAAAAAV8AAAAgAehQnAQ/9b977951899b4152f128e480ca7c5c6b19533958b6d57b2197ad7c4b1ba36c89.glb",
+      "sha256": "9b977951899b4152f128e480ca7c5c6b19533958b6d57b2197ad7c4b1ba36c89",
+      "bytes": 389036,
+      "verifiedSha256": "9b977951899b4152f128e480ca7c5c6b19533958b6d57b2197ad7c4b1ba36c89",
+      "cors": "*",
+      "sourceSha256": "6a0899f4a84bf21d3b09f8e915856d5c34d658534cba72ea5d65f370472ad367",
+      "sourceBytes": 388836,
+      "binaryChunksSha256": "9ee8e6c8e1424be4f5272d4e32594a050d7ef90ea5e1de1139a21a271559925c",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/moose-female.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*rEDmT6Ue5bUAAAAAXIAAAAgAehQnAQ/96954493beb05f280213aad0ee5f9cc21a2072d86df1582ee83252fd60a9c3d5.glb",
+      "sha256": "96954493beb05f280213aad0ee5f9cc21a2072d86df1582ee83252fd60a9c3d5",
+      "bytes": 466456,
+      "verifiedSha256": "96954493beb05f280213aad0ee5f9cc21a2072d86df1582ee83252fd60a9c3d5",
+      "cors": "*",
+      "sourceSha256": "106328feef66c929a22ece528910fadeb0db033d73409242d77e7f1a201bb491",
+      "sourceBytes": 466256,
+      "binaryChunksSha256": "4c562f789201950d83403b16637a94d2c0e4d366bf3aec25682847d4aebc776f",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/panda-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*DAUdTZV5zIIAAAAAUsAAAAgAehQnAQ/2e05420979dcfc2908defcf3446e5ffe3596cee59e2013e04474d59987af6b1c.glb",
+      "sha256": "2e05420979dcfc2908defcf3446e5ffe3596cee59e2013e04474d59987af6b1c",
+      "bytes": 306936,
+      "verifiedSha256": "2e05420979dcfc2908defcf3446e5ffe3596cee59e2013e04474d59987af6b1c",
+      "cors": "*",
+      "sourceSha256": "2c54a90d8fa26236f56eb74886c84b0056432dd022fca9d2d9acbc1fd6256c5d",
+      "sourceBytes": 306736,
+      "binaryChunksSha256": "32a283c9744654abfca49f29ac6226488212604b403c30a19fc0212012746743",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/panda-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*nTS-T5zT8xIAAAAAWTAAAAgAehQnAQ/b13dd8d740ebb8658ceace91873005bc2d2c5a6abdc6fafad84e5ab2822b6fec.glb",
+      "sha256": "b13dd8d740ebb8658ceace91873005bc2d2c5a6abdc6fafad84e5ab2822b6fec",
+      "bytes": 412164,
+      "verifiedSha256": "b13dd8d740ebb8658ceace91873005bc2d2c5a6abdc6fafad84e5ab2822b6fec",
+      "cors": "*",
+      "sourceSha256": "efa0a766ac9679882b69c9e9bf034e0038468703ffc981b11a252cf4425bfb98",
+      "sourceBytes": 411964,
+      "binaryChunksSha256": "489125428ff204cdb4953541b2a49bfd8fe9cba3baef3a359b8bae3dcb40136a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pig-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*WwxHSoG2GbMAAAAAW8AAAAgAehQnAQ/56b7e245975beba7117f9fb2277beeb33989f6d606f1d8db062b837aa82f890b.glb",
+      "sha256": "56b7e245975beba7117f9fb2277beeb33989f6d606f1d8db062b837aa82f890b",
+      "bytes": 454216,
+      "verifiedSha256": "56b7e245975beba7117f9fb2277beeb33989f6d606f1d8db062b837aa82f890b",
+      "cors": "*",
+      "sourceSha256": "cf5c4430f505430f53ccdc9f2488e19b3a42c358b6dc024ab3e030be0f7b6433",
+      "sourceBytes": 454016,
+      "binaryChunksSha256": "58272d59d80f81d067978eb657b1f5d296c29d926fe0919cab2852eec2fffdfa",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pig-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*R7v4Rql8V6QAAAAAW7AAAAgAehQnAQ/376defc9c43cda306f57c9ebdab6ac89652820cd740cb87596e01e09ffa65346.glb",
+      "sha256": "376defc9c43cda306f57c9ebdab6ac89652820cd740cb87596e01e09ffa65346",
+      "bytes": 454044,
+      "verifiedSha256": "376defc9c43cda306f57c9ebdab6ac89652820cd740cb87596e01e09ffa65346",
+      "cors": "*",
+      "sourceSha256": "5087410e8a01f57d9ac72a42ad988f13a72edcfeec6f3973d7101f5fd61bbbdc",
+      "sourceBytes": 453844,
+      "binaryChunksSha256": "70b7b174c01bfb45594fbe2f787a48350d1e4cd2709176948a3d0f02af42490a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pig-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*FS1lTp25nqQAAAAAW7AAAAgAehQnAQ/5b83b361a8641d7ec1faaca4e6f13a6a43be160e4e497d06791a6fad5d453a30.glb",
+      "sha256": "5b83b361a8641d7ec1faaca4e6f13a6a43be160e4e497d06791a6fad5d453a30",
+      "bytes": 454044,
+      "verifiedSha256": "5b83b361a8641d7ec1faaca4e6f13a6a43be160e4e497d06791a6fad5d453a30",
+      "cors": "*",
+      "sourceSha256": "169c2448e576fd98a915ecdbd82af56ca1dc69a46df0842c0e7bcc3425c74e80",
+      "sourceBytes": 453844,
+      "binaryChunksSha256": "2ff68e74234d7ef4547aaf005cf3545bd38075e7e92262a57ae625ba84cac4d7",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pigeon-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*l2vTQpcNOkMAAAAAVzAAAAgAehQnAQ/54f53b281a6520151b479c02db922f967b4d066cdfb55574446c224898e36690.glb",
+      "sha256": "54f53b281a6520151b479c02db922f967b4d066cdfb55574446c224898e36690",
+      "bytes": 379904,
+      "verifiedSha256": "54f53b281a6520151b479c02db922f967b4d066cdfb55574446c224898e36690",
+      "cors": "*",
+      "sourceSha256": "4505fd079a17a73fe201439178e7077ea6348c9b572823547bb82aef352d8132",
+      "sourceBytes": 379704,
+      "binaryChunksSha256": "067e68b1502c9e7c7c13d94fdc4edc9561dcb1b01fe3d396e45e3242b8a81827",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pigeon-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*wnloT5UJawkAAAAAVjAAAAgAehQnAQ/8cf249675145a2756ff0ad87bb80b44a001416d1c0ba5664a1e13353c4484a7c.glb",
+      "sha256": "8cf249675145a2756ff0ad87bb80b44a001416d1c0ba5664a1e13353c4484a7c",
+      "bytes": 363380,
+      "verifiedSha256": "8cf249675145a2756ff0ad87bb80b44a001416d1c0ba5664a1e13353c4484a7c",
+      "cors": "*",
+      "sourceSha256": "c2bc4036aa1262f03e093123db9033feafc70e70865a51b01e015d1210e4868f",
+      "sourceBytes": 363180,
+      "binaryChunksSha256": "b84c65e95fe5ede08f8872d4acd90008e33db0196ed037d1b34b7bdcda7cdeb1",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pigeon-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*SUxBRo2yFqAAAAAAVjAAAAgAehQnAQ/e876afca48962df9bed862ed478047118f463aa2b0745dcff4de8f8156e12092.glb",
+      "sha256": "e876afca48962df9bed862ed478047118f463aa2b0745dcff4de8f8156e12092",
+      "bytes": 363380,
+      "verifiedSha256": "e876afca48962df9bed862ed478047118f463aa2b0745dcff4de8f8156e12092",
+      "cors": "*",
+      "sourceSha256": "1aa75977ca5e0e22bc0f0afc29ac0706bf8e6ae43681e13adc2925b1f046ef5e",
+      "sourceBytes": 363180,
+      "binaryChunksSha256": "b3ea7929152ed31f1624967ddc5f5c1f1c2ffcbdb790ed0f2f8d6b6ec0239892",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pinguin-adelie-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*cSXbSJk89N8AAAAAUmAAAAgAehQnAQ/79b4b36ed8883fc46e9db0d99fb023554a8b176f291ee7b38e6c57f1a590f093.glb",
+      "sha256": "79b4b36ed8883fc46e9db0d99fb023554a8b176f291ee7b38e6c57f1a590f093",
+      "bytes": 301252,
+      "verifiedSha256": "79b4b36ed8883fc46e9db0d99fb023554a8b176f291ee7b38e6c57f1a590f093",
+      "cors": "*",
+      "sourceSha256": "6ad67b0f5ef2de455776f6b03da845d761e326527c9d9fbce70f68706211b07b",
+      "sourceBytes": 301052,
+      "binaryChunksSha256": "423cfeef495e580b9e8c80ff77408b16eee2a829375508c1e319d83c05636989",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pinguin-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*GCtMTZc9TrYAAAAAUyAAAAgAehQnAQ/a805636f2b2ede08957e4cced99654f6eb7177633d3d48e30f73ff283207f7e9.glb",
+      "sha256": "a805636f2b2ede08957e4cced99654f6eb7177633d3d48e30f73ff283207f7e9",
+      "bytes": 312840,
+      "verifiedSha256": "a805636f2b2ede08957e4cced99654f6eb7177633d3d48e30f73ff283207f7e9",
+      "cors": "*",
+      "sourceSha256": "eba8573a1cea848d61be64db0925bb4ed6a94dc3f26160c721616ea1d14c8a55",
+      "sourceBytes": 312640,
+      "binaryChunksSha256": "1a94171876bcd98f975ad0d2114d3d6e2e33e60d390b91252d2268eeef058c82",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/pinguin-emperor-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*gcHgRZVOwbMAAAAAUqAAAAgAehQnAQ/3c15d9c4d7f3adfa1c135343edd4161e67f7aa3b1b3ae7d2b5334092e501581f.glb",
+      "sha256": "3c15d9c4d7f3adfa1c135343edd4161e67f7aa3b1b3ae7d2b5334092e501581f",
+      "bytes": 304852,
+      "verifiedSha256": "3c15d9c4d7f3adfa1c135343edd4161e67f7aa3b1b3ae7d2b5334092e501581f",
+      "cors": "*",
+      "sourceSha256": "e7097255ba45afd8968a1e209c57c7034b02364201ec91bf4fec6c97e166f3eb",
+      "sourceBytes": 304652,
+      "binaryChunksSha256": "6b8be3f47e6fd8e2f5a6577f9a60a3d28120bea24c0bceca39e20eeb1f667fa7",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/polar-bear-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*TEs5QL4HayEAAAAAWNAAAAgAehQnAQ/fa68ebebbed5915e42f8791408435607ce5b871dd043bf6f9867ea72122067a0.glb",
+      "sha256": "fa68ebebbed5915e42f8791408435607ce5b871dd043bf6f9867ea72122067a0",
+      "bytes": 406256,
+      "verifiedSha256": "fa68ebebbed5915e42f8791408435607ce5b871dd043bf6f9867ea72122067a0",
+      "cors": "*",
+      "sourceSha256": "613df9b5376c2df26e76a825827178b1359abd02606c33ab7ab37cd9ef60badd",
+      "sourceBytes": 406056,
+      "binaryChunksSha256": "3bd39562ab22a0f8ec4becf1612cbbc4bb942ad53be87c590a5eb092de025242",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/polar-bear-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*qBZcT6Ip8HIAAAAAWoAAAAgAehQnAQ/713f695bf030984a1c9556a6b93e09ffbb83a5aeedd33c195ad0287b6a1c9c3c.glb",
+      "sha256": "713f695bf030984a1c9556a6b93e09ffbb83a5aeedd33c195ad0287b6a1c9c3c",
+      "bytes": 434228,
+      "verifiedSha256": "713f695bf030984a1c9556a6b93e09ffbb83a5aeedd33c195ad0287b6a1c9c3c",
+      "cors": "*",
+      "sourceSha256": "cd082bb549eb728294606679782d418851de4cf0d7a55e5784c7b1fcffba2421",
+      "sourceBytes": 434028,
+      "binaryChunksSha256": "4666c3ffca46d7fe59c9d1e691889b1540149a58be4b1843acbb41fb2d782e90",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/raccoon-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*8kz4ToAXyuwAAAAAWfAAAAgAehQnAQ/2755327f092321d7c233a8de58771e29abb1b09cc580bbef99ba28c4c4bfdf35.glb",
+      "sha256": "2755327f092321d7c233a8de58771e29abb1b09cc580bbef99ba28c4c4bfdf35",
+      "bytes": 425380,
+      "verifiedSha256": "2755327f092321d7c233a8de58771e29abb1b09cc580bbef99ba28c4c4bfdf35",
+      "cors": "*",
+      "sourceSha256": "aba5e52fbfc7ebdc1b4f641aae6909f26898d8d54e4f125c77dc092945ed5316",
+      "sourceBytes": 425180,
+      "binaryChunksSha256": "da714d8e20fdfd10b008d1f845583e79a78b8d57289a8b564bd375083263a366",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/ram-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*cFviQaxic08AAAAAW3AAAAgAehQnAQ/f5b2176505f8056e5ada8da8a3500fdf262c1ca2a5d57ea1ce1819007abdf52d.glb",
+      "sha256": "f5b2176505f8056e5ada8da8a3500fdf262c1ca2a5d57ea1ce1819007abdf52d",
+      "bytes": 449784,
+      "verifiedSha256": "f5b2176505f8056e5ada8da8a3500fdf262c1ca2a5d57ea1ce1819007abdf52d",
+      "cors": "*",
+      "sourceSha256": "1392b913b099e5723e44e62ddcd3c87a3fd3bd9d370c06e2b2d533de68e1ab92",
+      "sourceBytes": 449584,
+      "binaryChunksSha256": "158dfb283a692f956cc30c0a1d0e73ac6c527be20bbbf15c8cff8f57975b963a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/ram-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*ft_LRqtMDU0AAAAAW3AAAAgAehQnAQ/6aa6ea15e7b700f06d354f1aff8b3b028d46b713797bb01bfffecbbb6650e4ca.glb",
+      "sha256": "6aa6ea15e7b700f06d354f1aff8b3b028d46b713797bb01bfffecbbb6650e4ca",
+      "bytes": 450032,
+      "verifiedSha256": "6aa6ea15e7b700f06d354f1aff8b3b028d46b713797bb01bfffecbbb6650e4ca",
+      "cors": "*",
+      "sourceSha256": "180b5866d56a44e71878084fa2283621b7f431866d6cf18cff44eac17b123c11",
+      "sourceBytes": 449832,
+      "binaryChunksSha256": "e5ae79683b5da9e0dc364240d64bbfdcf62db5afe4549ec2e8529b775d262752",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/rhinoceros-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*GJ-VR6DW8zkAAAAAbHAAAAgAehQnAQ/2c662c35b6b42bc98e4c6436a6f644faa769f9a30b1cdfd669331fec25bd51ec.glb",
+      "sha256": "2c662c35b6b42bc98e4c6436a6f644faa769f9a30b1cdfd669331fec25bd51ec",
+      "bytes": 727840,
+      "verifiedSha256": "2c662c35b6b42bc98e4c6436a6f644faa769f9a30b1cdfd669331fec25bd51ec",
+      "cors": "*",
+      "sourceSha256": "0705dbdcc91222f2444bf817df47b70b870b4445489b631710b97137882fb855",
+      "sourceBytes": 727640,
+      "binaryChunksSha256": "9247c9a9614494f2f9b921c32203494f27a4f230d39694a24794ab213a8cecb9",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/roe-deer-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*TGd3S4IOicQAAAAAX_AAAAgAehQnAQ/d8811fb603f463c632911cc75dc4306726a05c5b95b7ced3fcf626d49a20b3be.glb",
+      "sha256": "d8811fb603f463c632911cc75dc4306726a05c5b95b7ced3fcf626d49a20b3be",
+      "bytes": 523540,
+      "verifiedSha256": "d8811fb603f463c632911cc75dc4306726a05c5b95b7ced3fcf626d49a20b3be",
+      "cors": "*",
+      "sourceSha256": "6cd52135e37046d8a4736c57d18b9df001822b200704f9443161cbef8d5fd3a1",
+      "sourceBytes": 523340,
+      "binaryChunksSha256": "c89f0b4a9a59c5e08ab947f588cf6bcf669424e3a29b7bd2daf2bf632ea16b25",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/roe-deer-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*MSt8QY-pNCAAAAAAXSAAAAgAehQnAQ/5bbf67b725f691233865ba297c5edd5734f631b5de35762305782c79965712c1.glb",
+      "sha256": "5bbf67b725f691233865ba297c5edd5734f631b5de35762305782c79965712c1",
+      "bytes": 477328,
+      "verifiedSha256": "5bbf67b725f691233865ba297c5edd5734f631b5de35762305782c79965712c1",
+      "cors": "*",
+      "sourceSha256": "4783bc607a1c2de67def012cb421d4e2938cead91a1a80d01dd56682a73b6753",
+      "sourceBytes": 477128,
+      "binaryChunksSha256": "0e7e2ae2cfbf4d3f6dd97b3ff0d11ec1d4786724c2d182081e63364eb7740e9e",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/seal-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*rC3ET46NLQcAAAAAUJAAAAgAehQnAQ/9755e549ad71e512afb690c922d7697069d2d51c68f8cb3fdc7e1872e5887fe9.glb",
+      "sha256": "9755e549ad71e512afb690c922d7697069d2d51c68f8cb3fdc7e1872e5887fe9",
+      "bytes": 271324,
+      "verifiedSha256": "9755e549ad71e512afb690c922d7697069d2d51c68f8cb3fdc7e1872e5887fe9",
+      "cors": "*",
+      "sourceSha256": "6169e3766e858a3cb24878891bbb179f1ff43cebb1b9a2c78d024ac0eab1bdd0",
+      "sourceBytes": 271124,
+      "binaryChunksSha256": "30b6affbe13d5ec57576c6342b4365008f5209baf0f748bdaaf7aceb57e883a6",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/seal-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*UK8iTJsn2WwAAAAAUKAAAAgAehQnAQ/1d0a9bea1a986c0257b86ad0f769241c2e821d852ebfc283c44cb6b7b9d7fa27.glb",
+      "sha256": "1d0a9bea1a986c0257b86ad0f769241c2e821d852ebfc283c44cb6b7b9d7fa27",
+      "bytes": 271988,
+      "verifiedSha256": "1d0a9bea1a986c0257b86ad0f769241c2e821d852ebfc283c44cb6b7b9d7fa27",
+      "cors": "*",
+      "sourceSha256": "28c579158859b3bca85a5ee1f9fcb193e9ef9ebe8b85676708894b35d8945143",
+      "sourceBytes": 271788,
+      "binaryChunksSha256": "5d8a7571ab3451e76a37d086420c4e0f61381a8bf2d5ce984ffd5de156585ac4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/seal-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*MeDYQ5J3sBkAAAAAUKAAAAgAehQnAQ/727b57238d5c27e0695dbea8955b3594856ad2731df2ed7a1d02eca864dbac92.glb",
+      "sha256": "727b57238d5c27e0695dbea8955b3594856ad2731df2ed7a1d02eca864dbac92",
+      "bytes": 271988,
+      "verifiedSha256": "727b57238d5c27e0695dbea8955b3594856ad2731df2ed7a1d02eca864dbac92",
+      "cors": "*",
+      "sourceSha256": "d1f5f55c1f3361c8510d265fd68a0d4e31961fabd145348800ab7dacd6993f36",
+      "sourceBytes": 271788,
+      "binaryChunksSha256": "9d5eaac0e5eb7070db965be786ec0dd2f9459826626599373dccc400ff85d962",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/sheep-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*xgpyR5KWCJsAAAAAW5AAAAgAehQnAQ/85a2744ee24905ba4b5da29d2e014df6c4e8c65a83e239a31e267f7be06720a1.glb",
+      "sha256": "85a2744ee24905ba4b5da29d2e014df6c4e8c65a83e239a31e267f7be06720a1",
+      "bytes": 451172,
+      "verifiedSha256": "85a2744ee24905ba4b5da29d2e014df6c4e8c65a83e239a31e267f7be06720a1",
+      "cors": "*",
+      "sourceSha256": "90e18ce3f7e743084fd04393c3d18aa3d27fe7e8d4dcab5ccb9fc258c6f5d857",
+      "sourceBytes": 450972,
+      "binaryChunksSha256": "362bc30e5892dbd4113ca7eedf85f368097352719e80e71945f2cee6fdf859aa",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/sheep-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*umPsQpXF_N4AAAAAW4AAAAgAehQnAQ/3776476c6f7f1809fe28431a98c9a68a009a0ef121f8d63318f1b4cd1dd6142c.glb",
+      "sha256": "3776476c6f7f1809fe28431a98c9a68a009a0ef121f8d63318f1b4cd1dd6142c",
+      "bytes": 450168,
+      "verifiedSha256": "3776476c6f7f1809fe28431a98c9a68a009a0ef121f8d63318f1b4cd1dd6142c",
+      "cors": "*",
+      "sourceSha256": "a4d0d8b32f7066ee3c3db1ca8fa5ad933e8d5dabe996a777f415a770ec1f6897",
+      "sourceBytes": 449968,
+      "binaryChunksSha256": "f99104a9fc5b0d13d3e5d61f825d1e5ebdef6e41f6ca58f0a9021f3034b7ae55",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/sheep-03.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*QdnpRI3yt_4AAAAAW4AAAAgAehQnAQ/9f8d0738a9dc15bfcb6217062d7fc14d51c27ff78506daac5b56ca9e7845b341.glb",
+      "sha256": "9f8d0738a9dc15bfcb6217062d7fc14d51c27ff78506daac5b56ca9e7845b341",
+      "bytes": 450168,
+      "verifiedSha256": "9f8d0738a9dc15bfcb6217062d7fc14d51c27ff78506daac5b56ca9e7845b341",
+      "cors": "*",
+      "sourceSha256": "a52261d4f865b847f9a007279f22bbb0948f25c3f58fb372c9db5f5ddb562fc7",
+      "sourceBytes": 449968,
+      "binaryChunksSha256": "e153012c75831c0a890d9ad94197d92ad3e13cd59de746d7be517bc90056abdb",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/swan-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*yrICS5vpXEMAAAAAWDAAAAgAehQnAQ/4041190e5b1305218b0c418aa71c351269b539cb0dbcc8cc85142f30f08ec264.glb",
+      "sha256": "4041190e5b1305218b0c418aa71c351269b539cb0dbcc8cc85142f30f08ec264",
+      "bytes": 396276,
+      "verifiedSha256": "4041190e5b1305218b0c418aa71c351269b539cb0dbcc8cc85142f30f08ec264",
+      "cors": "*",
+      "sourceSha256": "4d4f308ab3073294f7678262942285db391918ad38552f8270bad34b2dbc454c",
+      "sourceBytes": 396076,
+      "binaryChunksSha256": "83f1888f4e07745bfdd37e7bb8afced8b7fea2f7ad406d08d867b1bd1d09cd1a",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/swan-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*RIAHTo6Yf_8AAAAAWEAAAAgAehQnAQ/f73d6ee3312a8f462138a43e3401bfee4c6ec67d9c5b227195ee4b4bb97bc757.glb",
+      "sha256": "f73d6ee3312a8f462138a43e3401bfee4c6ec67d9c5b227195ee4b4bb97bc757",
+      "bytes": 397332,
+      "verifiedSha256": "f73d6ee3312a8f462138a43e3401bfee4c6ec67d9c5b227195ee4b4bb97bc757",
+      "cors": "*",
+      "sourceSha256": "d01d6606c9ea24b9bd087fdcb48f90f1f8ee7d65e582bd277a91d894aa24e167",
+      "sourceBytes": 397132,
+      "binaryChunksSha256": "2265b742b857fa02e8c0666a71d0ed6890c4af5170dad5c6f20ab0320d403202",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/tiger-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*F8CjS4MmjlQAAAAAX5AAAAgAehQnAQ/73a24ada5f0da6921a6775092d1e3493aa9e75b7748d86ba79c1113d7c57371c.glb",
+      "sha256": "73a24ada5f0da6921a6775092d1e3493aa9e75b7748d86ba79c1113d7c57371c",
+      "bytes": 517468,
+      "verifiedSha256": "73a24ada5f0da6921a6775092d1e3493aa9e75b7748d86ba79c1113d7c57371c",
+      "cors": "*",
+      "sourceSha256": "098e8c63ef258538e3906fcb3d298f402afe759d4cb6fb002667f99faed64781",
+      "sourceBytes": 517268,
+      "binaryChunksSha256": "5b861fc8dd2ef71c616664f846fd9d5a73bd0bf392cb3d4675e2c93b26f64f0c",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/tiger-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*hhsbQbIds5AAAAAAX5AAAAgAehQnAQ/b1f53518e4005a7609696c65701c8fa41bbe8d84e965b27ebaf1945768f93cd2.glb",
+      "sha256": "b1f53518e4005a7609696c65701c8fa41bbe8d84e965b27ebaf1945768f93cd2",
+      "bytes": 517564,
+      "verifiedSha256": "b1f53518e4005a7609696c65701c8fa41bbe8d84e965b27ebaf1945768f93cd2",
+      "cors": "*",
+      "sourceSha256": "cbe72daae2e69e65d26328fae1d546db7b4543b19ed5e44d9ad4615ee27c5219",
+      "sourceBytes": 517364,
+      "binaryChunksSha256": "1f917a8e78ac4290ae0d98f606c60faafad326860aee2e07086b3129b0958f5b",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/tiger-cub-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*qzltTIH-kSAAAAAAa0AAAAgAehQnAQ/0615913a707fd0ae1f87dea91c6f6853b295b1c089c94c95cf161dad133c8c57.glb",
+      "sha256": "0615913a707fd0ae1f87dea91c6f6853b295b1c089c94c95cf161dad133c8c57",
+      "bytes": 708424,
+      "verifiedSha256": "0615913a707fd0ae1f87dea91c6f6853b295b1c089c94c95cf161dad133c8c57",
+      "cors": "*",
+      "sourceSha256": "e7c9be0954245dee66f0413058337e18a60b2c08bc9a4f6776bb71ad48708852",
+      "sourceBytes": 708224,
+      "binaryChunksSha256": "6bf1ef23d1cc34510048cdf25dcf159b74a279551ff80d9e6e42c916c8d5fdb0",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/tiger-cub-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Aw69SKa81a8AAAAAa0AAAAgAehQnAQ/8f6ffd73c78722088a96aada0abf975c25c092b9abe82f3e9283831ef7959f3e.glb",
+      "sha256": "8f6ffd73c78722088a96aada0abf975c25c092b9abe82f3e9283831ef7959f3e",
+      "bytes": 708652,
+      "verifiedSha256": "8f6ffd73c78722088a96aada0abf975c25c092b9abe82f3e9283831ef7959f3e",
+      "cors": "*",
+      "sourceSha256": "43861f203186fb5db4e2394052c1d4999eb9f0648db9c93ceca95f409ddcc7aa",
+      "sourceBytes": 708452,
+      "binaryChunksSha256": "2be0a7f9f04f7824f49ff7fad4f1f108dc448bd53bdea9fd614ecb72ad3f2ed4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/walrus-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*UPjhTrBab3sAAAAAWWAAAAgAehQnAQ/15858586a2e5fb97f2fd19941239cc2a3ecce00deff56f7e1f3825e9ff8db53f.glb",
+      "sha256": "15858586a2e5fb97f2fd19941239cc2a3ecce00deff56f7e1f3825e9ff8db53f",
+      "bytes": 415592,
+      "verifiedSha256": "15858586a2e5fb97f2fd19941239cc2a3ecce00deff56f7e1f3825e9ff8db53f",
+      "cors": "*",
+      "sourceSha256": "ab3e2a06c28d191275424f8868011c4f4b04339feef9845aaa1d38148bb83a26",
+      "sourceBytes": 415392,
+      "binaryChunksSha256": "8b07f59c9acdacbea4e26bd64789afdaaee324544017108a182ca051f22e65b4",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/wolf-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*Y4pSTrci2lkAAAAAYBAAAAgAehQnAQ/ca10efa1bd0b763e8db1f58cc49b30f5b64b7a33ab14f7cdc040cdbb8d07f62d.glb",
+      "sha256": "ca10efa1bd0b763e8db1f58cc49b30f5b64b7a33ab14f7cdc040cdbb8d07f62d",
+      "bytes": 525028,
+      "verifiedSha256": "ca10efa1bd0b763e8db1f58cc49b30f5b64b7a33ab14f7cdc040cdbb8d07f62d",
+      "cors": "*",
+      "sourceSha256": "19723825eb46d23aa1738a1517b16ae9218cd30fc25bb77e00637a40df3e54e4",
+      "sourceBytes": 524828,
+      "binaryChunksSha256": "20546bc7c303541a4a8d245e42b67d97158a8943443afd963c17f9f6227d0a5f",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/wolf-02.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*1N87RphFeL0AAAAAYBAAAAgAehQnAQ/4fdd0fee6e13ad78e9596b0ed79d650a1e1bb7cb7fc30474484463f5762ea177.glb",
+      "sha256": "4fdd0fee6e13ad78e9596b0ed79d650a1e1bb7cb7fc30474484463f5762ea177",
+      "bytes": 525212,
+      "verifiedSha256": "4fdd0fee6e13ad78e9596b0ed79d650a1e1bb7cb7fc30474484463f5762ea177",
+      "cors": "*",
+      "sourceSha256": "077fd0aa7867514b611dab4356080468becc3dc3b6d95289351ed6bb112c4ae3",
+      "sourceBytes": 525012,
+      "binaryChunksSha256": "2dcb1a1e69ee1ce5c6f22f3943e4874ad4d948121110e4baac5d3120823a91ec",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    },
+    "./assets/low-poly-100/zebra-01.glb": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/file/A*5JCbRIupLt4AAAAAYkAAAAgAehQnAQ/3b3a60c65a9c30ec33bf43d7bfc0b20a02de61fb8c3208df8276e1da492499e2.glb",
+      "sha256": "3b3a60c65a9c30ec33bf43d7bfc0b20a02de61fb8c3208df8276e1da492499e2",
+      "bytes": 560884,
+      "verifiedSha256": "3b3a60c65a9c30ec33bf43d7bfc0b20a02de61fb8c3208df8276e1da492499e2",
+      "cors": "*",
+      "sourceSha256": "1ecc164cb96ca868940e9a406072e39881be8bdd5d36fedcd0d81f0f231da6bb",
+      "sourceBytes": 560684,
+      "binaryChunksSha256": "a7481cd0d4c3eb86aecd03fdddf81b7e2b1a492bd1d17794dfb0666ccc38286e",
+      "binaryUnchanged": true,
+      "textures": [
+        "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2"
+      ],
+      "imageMimeTypes": [
+        "image/ktx2"
+      ],
+      "extensionsRequired": [
+        "KHR_texture_basisu"
+      ],
+      "basisuSources": [
+        0
+      ]
+    }
+  },
+  "textures": {
+    "d7d461f003a35a790b53ae3ed1aa1c10037e7f8db2dece4495a2a909de36492f": {
+      "url": "https://mdn.alipayobjects.com/rms/afts/img/A*bG7jSLQ_H6wAAAAARYAAAAgAehQnAQ/original/26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd.ktx2",
+      "sha256": "26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd",
+      "bytes": 90376,
+      "verifiedSha256": "26e7bd914297d4bfee52c99300023f8eed9c725f7b556664acd1bc35fb8a65fd",
+      "cors": "*",
+      "format": "KTX2",
+      "codec": "ETC1S",
+      "supercompression": "BasisLZ",
+      "transferFunction": "sRGB",
+      "mipLevels": 11,
+      "size": [
+        1024,
+        1024
+      ],
+      "sourceSha256": "d7d461f003a35a790b53ae3ed1aa1c10037e7f8db2dece4495a2a909de36492f",
+      "sourceBytes": 247745,
+      "sourceSize": [
+        1024,
+        1024
+      ]
+    }
+  }
+}

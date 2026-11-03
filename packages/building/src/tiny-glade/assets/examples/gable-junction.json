@@ -1,0 +1,119 @@
+{
+  "version": 1,
+  "construction": {
+    "version": 1,
+    "environment": {
+      "type": "original_cottage_terrain"
+    },
+    "identity_order": [
+      "tower",
+      "annex"
+    ],
+    "buildings": [
+      {
+        "id": "tower",
+        "height": 3.125,
+        "material": 0,
+        "roof": {
+          "tip": [
+            0,
+            0
+          ],
+          "profile": 0,
+          "height": 0.3499999940395355,
+          "ridge_length": 0.6000000238418579,
+          "eave": 0.30000001192092896,
+          "ridge_direction": 0,
+          "flat_rim": 0,
+          "color": 2
+        },
+        "circle": {
+          "center": [
+            0,
+            0
+          ],
+          "radius": 2.4000000953674316,
+          "phase": 0.20000000298023224
+        },
+        "decorations": [
+          {
+            "id": "gothic",
+            "kind": "window",
+            "type": "dormer-gothic",
+            "host": "roof",
+            "uv": [
+              0.012081486496702987,
+              0.6565982408069662
+            ],
+            "bottom": 0,
+            "rank": 2,
+            "width": 1.2000000476837158,
+            "height": 1.1982831731438637,
+            "woodColor": 0,
+            "lightIntensity": 0
+          }
+        ]
+      },
+      {
+        "id": "annex",
+        "height": 3.125,
+        "material": 0,
+        "roof": {
+          "tip": [
+            0,
+            0
+          ],
+          "profile": 1,
+          "height": 0.3499999940395355,
+          "ridge_length": 1,
+          "eave": 0.20000000298023224,
+          "ridge_direction": 0,
+          "flat_rim": 0,
+          "color": 2
+        },
+        "rectangle": {
+          "center": [
+            3.299999952316284,
+            0.699999988079071
+          ],
+          "size": [
+            4,
+            3
+          ],
+          "rotation": 0.3499999940395355
+        }
+      }
+    ]
+  },
+  "bindings": [
+    {
+      "id": "圆屋顶",
+      "geometry_id": "tower-roof",
+      "rule": {
+        "type": "overlap_rows"
+      },
+      "unit_id": "roof_tile",
+      "footprint": {
+        "width": 0.5,
+        "height": 0.4375,
+        "depth": 0.1
+      },
+      "seed": "source"
+    },
+    {
+      "id": "方屋顶",
+      "geometry_id": "annex-roof",
+      "rule": {
+        "type": "overlap_rows"
+      },
+      "unit_id": "roof_tile",
+      "footprint": {
+        "width": 0.5,
+        "height": 0.4375,
+        "depth": 0.1
+      },
+      "seed": "source"
+    }
+  ],
+  "overrides": []
+}

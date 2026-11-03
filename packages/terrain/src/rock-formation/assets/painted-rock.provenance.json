@@ -1,0 +1,20 @@
+{
+  "asset": "Tiny Glade rocky_terrain",
+  "width": 1024,
+  "height": 1024,
+  "steamBuild": 25545323,
+  "sourceDecodedImage": "/Users/owen/Documents/blender/articles/tiny-glade-rock-study/textures/rocky_terrain.png",
+  "sourceDecodedSha256": "1ea22a19af97fa610921267ef0803375152d1756c13640ae98a31cdd81eb0d62",
+  "localImageSha256": "654e3124b5f5226e4d36a26e60e160caf7e5500b4b525bf8e76c2cc7b09dcde4",
+  "sourcePackageSha256": "f563429ff8b0674759fa2a9b53b99480f32fe6f934348b253c6b26b9fa5b1259",
+  "evidence": "/Users/owen/Documents/blender/articles/tiny-glade-rock-study/texture-evidence.json",
+  "decode": "BC7 base mip decoded to PNG with sRGB code values preserved; local preview generates its own mipmaps",
+  "mapping": "Selective triplanar grayscale, 60 metres per repeat by default. Runtime samples grayscale directly and multiplies by material_RockColor in linear space.",
+  "material": "Shader Color is the only rock pigment and overall albedo control; white shows the normalized light grayscale texture, darker colors reduce its albedo. Native lighting, cavity shading and grass coverage remain independent.",
+  "processing": "Original RGB decoded from sRGB to linear; Rec.709 luminance (0.2126 R + 0.7152 G + 0.0722 B); divided by the measured source peak luminance so the brightest texel is white; encoded back to sRGB and stored as 8-bit grayscale + original alpha PNG. Uniform linear scaling preserves relative luminance without clipping, resampling or added contrast.",
+  "normalization": {
+    "method": "linear luminance / source peak luminance",
+    "sourcePeakLuminance": 0.29712895082459473,
+    "linearScale": 3.3655421231246287
+  }
+}

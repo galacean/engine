@@ -1,0 +1,30 @@
+{
+  "sourceSelection": "097-load-decorators.c case8 table0x103188a90; gothic-dormer-generator.c LAB_1011146e8 /set_colliders",
+  "scope": "Original collision triangles, not convex hulls, visual/interaction/outline meshes. No closed-solid assumption.",
+  "meshes": [
+    {
+      "rank": 1,
+      "name": "window_gothic_1x1_dormer_collision",
+      "source": "decorators/window_gothic_1x1_dormer_collision.json",
+      "sha256": "58759e6072f1485a300d968aeb021f99ef291af59e421b4c80b8e53b36b81342",
+      "vertices": 90,
+      "triangles": 86
+    },
+    {
+      "rank": 2,
+      "name": "window_gothic_2x1_dormer_collision",
+      "source": "decorators/window_gothic_2x1_dormer_collision.json",
+      "sha256": "06abbe98dfda9d85735196807e0b2099cfb4dbd5c79fa5ec1ac11dd92b0aebb3",
+      "vertices": 104,
+      "triangles": 100
+    },
+    {
+      "rank": 3,
+      "name": "window_gothic_3x1_dormer_collision",
+      "source": "decorators/window_gothic_3x1_dormer_collision.json",
+      "sha256": "03421b68934bd5302673ef05d79f252f9ee18d6203ba05f265fb11410c42e22e",
+      "vertices": 98,
+      "triangles": 94
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "span": 62,
+  "scaleMin": 0.75,
+  "scaleMax": 1.4,
+  "boundaryInset": 2,
+  "sitePaddingM": 5,
+  "candidateBudget": 600,
+  "maxBuildings": 24,
+  "plazaWidth": 10,
+  "plazaDepth": 8,
+  "unitId": "village",
+  "components": ["building", "door", "road", "plaza"],
+  "spacing": {
+    "metric": "footprint-edge-clearance",
+    "referenceSpeed": "actor.walkMps",
+    "edgeGapWalkSeconds": {
+      "min": 2,
+      "max": 4
+    },
+    "densityMapping": "higher-density-shorter-gap",
+    "maximumIs": "preferred-not-hard"
+  },
+  "densityMeaning": "building-edge-spacing",
+  "metrics": ["footprintCoverage", "floorAreaRatio", "edgeGapM", "doorRouteLengthM"],
+  "streetLoops": {
+    "radiusToSpanMin": 0.095,
+    "radiusToSpanMax": 0.12,
+    "aspectMin": 0.75,
+    "aspectMax": 1.05,
+    "controlPoints": 6,
+    "radiusVariation": 0.12
+  }
+}

@@ -1,0 +1,3 @@
+{
+  "defaults": { "heightM": 48, "neighbourRings": 2, "blendM": 80, "sources": "villages-canyons" }
+}

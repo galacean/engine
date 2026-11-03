@@ -1,0 +1,33 @@
+{
+  "scope": "Original door material equations adapted to shared host scene lighting; no runtime replay.",
+  "mesh": "decorators/balcony_door_single",
+  "attributes": {
+    "Vertex_UV": "original material UV, separate from wall-edit UV",
+    "is_metal_part": {
+      "woodVertices": 864,
+      "metalVertices": 150,
+      "triangleHomogeneous": true
+    }
+  },
+  "shaderSources": [
+    {
+      "name": "nani_balcony_door.0.glsl",
+      "sha256": "f467db47315c8b53fc131931efa013abf10ab1baeb6475e68c2da5a638656d37"
+    },
+    {
+      "name": "nani_balcony_door.1.glsl",
+      "sha256": "4c76baadea443ed40182c67ec19c962a48161dd05fe0ea1f837ce2a1a22e973e"
+    }
+  ],
+  "fragment": {
+    "lines": "33-77",
+    "wood": "window_colors texture array; Jenkins color-id UV phase; world XZ * 0.1 offset; palette 0 sampled * .7 blended 30% with original vertex color",
+    "metal": "original vertex color without wood texture"
+  },
+  "hostAdaptation": [
+    "timberframe asset binding reuses recovered window texture library",
+    "shared scene light and fog instead of native packed G-buffer",
+    "wood palette 0..10 is persisted building.wood_color",
+    "same 64-byte packed vertex payload in resident rendering; coarse preview carries identical material metadata"
+  ]
+}

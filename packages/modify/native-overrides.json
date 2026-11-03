@@ -1,0 +1,678 @@
+[
+  {
+    "original": "packages/core/src/Entity.ts",
+    "replacement": "packages/modify/src/native/core/src/Entity.ts"
+  },
+  {
+    "original": "packages/core/src/Engine.ts",
+    "replacement": "packages/modify/src/native/core/src/Engine.ts"
+  },
+  {
+    "original": "packages/core/src/Camera.ts",
+    "replacement": "packages/modify/src/native/core/src/Camera.ts"
+  },
+  {
+    "original": "packages/core/src/Scene.ts",
+    "replacement": "packages/modify/src/native/core/src/Scene.ts"
+  },
+  {
+    "original": "packages/core/src/Background.ts",
+    "replacement": "packages/modify/src/native/core/src/Background.ts"
+  },
+  {
+    "original": "packages/core/src/Renderer.ts",
+    "replacement": "packages/modify/src/native/core/src/Renderer.ts"
+  },
+  {
+    "original": "packages/core/src/renderingHardwareInterface/IPlatformTexture2D.ts",
+    "replacement": "packages/modify/src/native/core/src/renderingHardwareInterface/IPlatformTexture2D.ts"
+  },
+  {
+    "original": "packages/core/src/sky/SkyProceduralMaterial.ts",
+    "replacement": "packages/modify/src/native/core/src/sky/SkyProceduralMaterial.ts"
+  },
+  {
+    "original": "packages/core/src/sky/SkyBoxMaterial.ts",
+    "replacement": "packages/modify/src/native/core/src/sky/SkyBoxMaterial.ts"
+  },
+  {
+    "original": "packages/core/src/sky/index.ts",
+    "replacement": "packages/modify/src/native/core/src/sky/index.ts"
+  },
+  {
+    "original": "packages/core/src/asset/ResourceManager.ts",
+    "replacement": "packages/modify/src/native/core/src/asset/ResourceManager.ts"
+  },
+  {
+    "original": "packages/core/src/asset/AssetType.ts",
+    "replacement": "packages/modify/src/native/core/src/asset/AssetType.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/RenderTargetPool.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/RenderTargetPool.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/BasicRenderPipeline.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/BasicRenderPipeline.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/PipelinePass.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/PipelinePass.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/DepthOnlyPass.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/DepthOnlyPass.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/RenderQueue.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/RenderQueue.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/OpaqueTexturePass.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/OpaqueTexturePass.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/index.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/index.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/enums/PipelineStage.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/enums/PipelineStage.ts"
+  },
+  {
+    "original": "packages/core/src/shadow/CascadedShadowCasterPass.ts",
+    "replacement": "packages/modify/src/native/core/src/shadow/CascadedShadowCasterPass.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/TransformFeedbackSimulator.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/TransformFeedbackSimulator.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/Buffer.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/Buffer.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/index.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/index.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/BufferUtil.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/BufferUtil.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/enums/VertexElementFormat.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/enums/VertexElementFormat.ts"
+  },
+  {
+    "original": "packages/core/src/audio/AudioSource.ts",
+    "replacement": "packages/modify/src/native/core/src/audio/AudioSource.ts"
+  },
+  {
+    "original": "packages/core/src/audio/index.ts",
+    "replacement": "packages/modify/src/native/core/src/audio/index.ts"
+  },
+  {
+    "original": "packages/core/src/audio/AudioManager.ts",
+    "replacement": "packages/modify/src/native/core/src/audio/AudioManager.ts"
+  },
+  {
+    "original": "packages/core/src/texture/Texture2DArray.ts",
+    "replacement": "packages/modify/src/native/core/src/texture/Texture2DArray.ts"
+  },
+  {
+    "original": "packages/core/src/texture/Texture2D.ts",
+    "replacement": "packages/modify/src/native/core/src/texture/Texture2D.ts"
+  },
+  {
+    "original": "packages/core/src/shader/ShaderProgram.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderProgram.ts"
+  },
+  {
+    "original": "packages/core/src/shader/ShaderFactory.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderFactory.ts"
+  },
+  {
+    "original": "packages/core/src/shader/enums/ConstantBufferBindingPoint.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/enums/ConstantBufferBindingPoint.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/AmbientLight.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/AmbientLight.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/ambientOcclusion/ScalableAmbientObscurancePass.ts"
+  },
+  {
+    "original": "packages/core/src/postProcess/FinalPass.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/FinalPass.ts"
+  },
+  {
+    "original": "packages/core/src/postProcess/PostProcessUberPass.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/PostProcessUberPass.ts"
+  },
+  {
+    "original": "packages/core/src/postProcess/effects/index.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/effects/index.ts"
+  },
+  {
+    "original": "packages/core/src/particle/index.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/index.ts"
+  },
+  {
+    "original": "packages/core/src/material/Material.ts",
+    "replacement": "packages/modify/src/native/core/src/material/Material.ts"
+  },
+  {
+    "original": "packages/core/src/base/Time.ts",
+    "replacement": "packages/modify/src/native/core/src/base/Time.ts"
+  },
+  {
+    "original": "packages/core/src/RenderPipeline/RenderViewCulling.ts",
+    "replacement": "packages/modify/src/native/core/src/RenderPipeline/RenderViewCulling.ts"
+  },
+  {
+    "original": "packages/core/src/graphic/ElementRangeMapping.ts",
+    "replacement": "packages/modify/src/native/core/src/graphic/ElementRangeMapping.ts"
+  },
+  {
+    "original": "packages/core/src/audio/AudioListener.ts",
+    "replacement": "packages/modify/src/native/core/src/audio/AudioListener.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudLightingProfile.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudLightingProfile.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudNoiseAtlas.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudNoiseAtlas.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMaterial.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheSchedule.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudMultipleScatteringLUT.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudMultipleScatteringLUT.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudWind.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudWind.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudWeatherMap.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudWeatherMap.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudDirectionCacheRenderer.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/volumetricClouds/VolumetricCloudShapeProfile.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/volumetricClouds/VolumetricCloudShapeProfile.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindConsumer.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindConsumer.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindGpuPass.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindGpuPass.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindGpuFieldRenderer.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindGpuFieldRenderer.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindTypes.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindTypes.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindSceneBridge.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindSceneBridge.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindSystem.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindSystem.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/wind/WindGpuFieldShader.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/wind/WindGpuFieldShader.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightAdapters.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightAdapters.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightProfile.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightProfile.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightClock.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightClock.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightMoonLighting.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightMoonLighting.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightEnvironmentAdapter.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightEnvironmentAdapter.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightProfileFactory.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightProfileFactory.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightSolarTransmittance.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightSolarTransmittance.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightSystem.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightSystem.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightMoonPosition.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightMoonPosition.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightProceduralSky.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightProceduralSky.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/dayNight/DayNightSolarPosition.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/dayNight/DayNightSolarPosition.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/ProbeVolumeRegion.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/ProbeVolumeRegion.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/EnvironmentState.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/EnvironmentState.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/RealtimeIBLBaker.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/RealtimeIBLBaker.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/EnvironmentLighting.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/EnvironmentLighting.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/RealtimeIBLPrefilterSchedule.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/RealtimeIBLPrefilterSchedule.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/ProbeVolumeBinary.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/ProbeVolumeBinary.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/RealtimeIBLSourceMipmapSchedule.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/RealtimeIBLSourceMipmapSchedule.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/ProbeVolumeSamplingMode.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/ProbeVolumeSamplingMode.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/ProbeVolume.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/ProbeVolume.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/ProbeVolumeBaker.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/ProbeVolumeBaker.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/environment/RealtimeSphericalHarmonicsGPU.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/weather/WeatherState.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/weather/WeatherState.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/weather/WeatherSystem.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/weather/WeatherSystem.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/weather/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/weather/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionProfiler.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionPass.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/index.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/index.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflection.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionUpsamplingMode.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionUpsamplingMode.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionDebugMode.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionDebugMode.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionActivationMode.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionActivationMode.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionQuality.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionQuality.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode.ts"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverPolicy.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverPolicy.ts"
+  },
+  {
+    "original": "packages/core/src/postProcess/effects/ColorAdjustmentsEffect.ts",
+    "replacement": "packages/modify/src/native/core/src/postProcess/effects/ColorAdjustmentsEffect.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/WindOverLifetimeModule.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/WindOverLifetimeModule.ts"
+  },
+  {
+    "original": "packages/loader/src/MeshLoader.ts",
+    "replacement": "packages/modify/src/native/loader/src/MeshLoader.ts"
+  },
+  {
+    "original": "packages/loader/src/index.ts",
+    "replacement": "packages/modify/src/native/loader/src/index.ts"
+  },
+  {
+    "original": "packages/loader/src/ShaderLoader.ts",
+    "replacement": "packages/modify/src/native/loader/src/ShaderLoader.ts"
+  },
+  {
+    "original": "packages/loader/src/TextureLoader.ts",
+    "replacement": "packages/modify/src/native/loader/src/TextureLoader.ts"
+  },
+  {
+    "original": "packages/loader/src/resource-deserialize/index.ts",
+    "replacement": "packages/modify/src/native/loader/src/resource-deserialize/index.ts"
+  },
+  {
+    "original": "packages/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts",
+    "replacement": "packages/modify/src/native/loader/src/resource-deserialize/resources/parser/HierarchyParser.ts"
+  },
+  {
+    "original": "packages/loader/src/prefab/PrefabParser.ts",
+    "replacement": "packages/modify/src/native/loader/src/prefab/PrefabParser.ts"
+  },
+  {
+    "original": "packages/loader/src/prefab/PrefabResource.ts",
+    "replacement": "packages/modify/src/native/loader/src/prefab/PrefabResource.ts"
+  },
+  {
+    "original": "packages/loader/src/resource-deserialize/resources/mesh/BufferMeshDecoder.ts",
+    "replacement": "packages/modify/src/native/loader/src/resource-deserialize/resources/mesh/BufferMeshDecoder.ts"
+  },
+  {
+    "original": "packages/loader/src/resource-deserialize/resources/texture/TexturePixelsDecoder.ts",
+    "replacement": "packages/modify/src/native/loader/src/resource-deserialize/resources/texture/TexturePixelsDecoder.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTexture2D.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTexture2D.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLPrimitive.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLPrimitive.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLBuffer.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLBuffer.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTextureReadback.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTextureReadback.ts"
+  },
+  {
+    "original": "packages/shader/src/Shaders/PBR.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/PBR.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/index.ts",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/index.ts"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Sky/SkyProcedural.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/SkyProcedural.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Sky/Skybox.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Sky/Skybox.shader"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/index.ts",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/index.ts"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Common/Fog.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Common/Fog.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/Light.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/Light.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PostProcess/UberPost.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/UberPost.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/ReflectionLobe.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/ReflectionLobe.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightIndirectFunctions.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Pipeline/ScreenSpaceReflectionSurface.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/World/WindGpuTreeResponse.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/World/WindGpuTreeResponse.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/World/WindGpuGroundResponse.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/World/WindGpuGroundResponse.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/World/WindGpuField.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/World/WindGpuField.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/World/VolumetricCloud.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/World/VolumetricCloud.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLAccumulate.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLResolve.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Lighting/ProbeDepthCapture.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/ProbeDepthCapture.shader"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Lighting/RealtimeIBLProjectSH.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Lighting/RealtimeIBLProjectSH.shader"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/RealtimeSphericalHarmonics.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/VolumetricCloudShadow.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/VolumetricCloudShadow.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/VolumetricCloudComposition.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/VolumetricCloudComposition.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Lighting/ScreenSpaceReflection/ScreenSpaceReflection.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/WindOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/WindOverLifetime.glsl"
+  },
+  {
+    "original": "packages/core/src/particle/ParticleBufferUtils.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/ParticleBufferUtils.ts"
+  },
+  {
+    "original": "packages/core/src/particle/ParticleGenerator.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/ParticleGenerator.ts"
+  },
+  {
+    "original": "packages/core/src/particle/ParticleRenderer.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/ParticleRenderer.ts"
+  },
+  {
+    "original": "packages/core/src/particle/ParticleTransformFeedbackSimulator.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/ParticleTransformFeedbackSimulator.ts"
+  },
+  {
+    "original": "packages/core/src/particle/enums/ParticleRandomSubSeeds.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/enums/ParticleRandomSubSeeds.ts"
+  },
+  {
+    "original": "packages/core/src/particle/enums/ParticleSubEmitterType.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/enums/ParticleSubEmitterType.ts"
+  },
+  {
+    "original": "packages/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/enums/attributes/ParticleFeedbackVertexAttribute.ts"
+  },
+  {
+    "original": "packages/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/enums/attributes/ParticleInstanceVertexAttribute.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/EmissionModule.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/EmissionModule.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/MainModule.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/MainModule.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/ParticleCompositeCurve.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/ParticleCompositeCurve.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/SubEmitter.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/SubEmitter.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/SubEmittersModule.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/SubEmittersModule.ts"
+  },
+  {
+    "original": "packages/core/src/particle/modules/VelocityOverLifetimeModule.ts",
+    "replacement": "packages/modify/src/native/core/src/particle/modules/VelocityOverLifetimeModule.ts"
+  },
+  {
+    "original": "packages/core/src/shader/ShaderData.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderData.ts"
+  },
+  {
+    "original": "packages/core/src/shader/ShaderPass.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderPass.ts"
+  },
+  {
+    "original": "packages/core/src/shader/ShaderProgramMap.ts",
+    "replacement": "packages/modify/src/native/core/src/shader/ShaderProgramMap.ts"
+  },
+  {
+    "original": "packages/galacean/src/ShaderPool.ts",
+    "replacement": "packages/modify/src/native/galacean/src/ShaderPool.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/GLTransformFeedbackPrimitive.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/GLTransformFeedbackPrimitive.ts"
+  },
+  {
+    "original": "packages/shader/src/Shaders/Effect/ParticleFeedback.shader",
+    "replacement": "packages/modify/src/native/shader/src/Shaders/Effect/ParticleFeedback.shader"
+  },
+  {
+    "original": "packages/core/src/ComponentsManager.ts",
+    "replacement": "packages/modify/src/native/core/src/ComponentsManager.ts"
+  },
+  {
+    "original": "packages/rhi-webgl/src/WebGLEngine.ts",
+    "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLEngine.ts"
+  }
+]

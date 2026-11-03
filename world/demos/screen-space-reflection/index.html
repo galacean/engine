@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Meadow Lake · Screen Space Reflection</title>
+  </head>
+  <body data-state="loading" data-ssr="on" data-debug="final" data-pose="acceptance" data-frozen="false">
+    <canvas id="canvas" data-testid="ssr-canvas" aria-label="引擎级屏幕空间反射验收场景"></canvas>
+
+    <div id="loading" data-testid="ssr-loading" role="status" aria-live="polite">
+      <span class="boot-mark" aria-hidden="true">SSR</span>
+      <b>正在加载湖面反射展台</b>
+      <small>CC0 water PBR · Kenney trees · Meadow 2 IBL</small>
+    </div>
+
+    <header class="demo-heading" aria-label="案例说明">
+      <p class="eyebrow">WORLD ENGINE · MEADOW LAKE REFERENCE SCENE</p>
+      <h1>Lake SSR</h1>
+      <p>水面与铬球 Receiver · 树木/栈桥 SSR 命中 · 天空 IBL 回退</p>
+    </header>
+
+    <aside class="control-rail" data-testid="ssr-controls" aria-label="SSR 验收控制">
+      <section class="switch-row">
+        <div>
+          <p class="section-label">CAMERA FEATURE</p>
+          <h2>SSR 主开关</h2>
+        </div>
+        <label class="switch" for="ssr-enabled">
+          <input id="ssr-enabled" data-testid="ssr-enabled" type="checkbox" checked />
+          <span aria-hidden="true"></span>
+          <span class="sr-only">启用屏幕空间反射</span>
+        </label>
+      </section>
+
+      <section>
+        <div class="section-heading"><h2>质量预设</h2></div>
+        <div class="segment-grid three" role="group" aria-label="SSR 质量预设">
+          <button data-quality-preset="low" type="button" aria-pressed="false">性能</button>
+          <button data-quality-preset="medium" type="button" aria-pressed="false">均衡</button>
+          <button data-quality-preset="high" type="button" aria-pressed="false">画质</button>
+        </div>
+      </section>
+      <section>
+        <div class="section-heading">
+          <div>
+            <p class="section-label">FIXED + FREE CAMERA</p>
+            <h2>观察机位</h2>
+          </div>
+          <button id="camera-cut" data-testid="camera-cut" class="utility-button" type="button">Camera Cut</button>
+        </div>
+        <div id="pose-controls" class="segment-grid three" role="group" aria-label="固定机位">
+          <button data-camera-pose="acceptance" data-testid="pose-acceptance" type="button" aria-pressed="true">
+            展台
+          </button>
+          <button data-camera-pose="edge" data-testid="pose-edge" type="button" aria-pressed="false">离屏</button>
+          <button data-camera-pose="curve" data-testid="pose-curve" type="button" aria-pressed="false">特写</button>
+        </div>
+        <p class="camera-hint" data-testid="free-camera-help">
+          下方 40% 拖动移动 · 上方 60% 拖动视角 · 点击固定机位可重置
+        </p>
+      </section>
+
+      <section>
+        <div class="section-heading">
+          <div>
+            <p class="section-label">DEBUG OUTPUT</p>
+            <h2>管线可视化</h2>
+          </div>
+          <label class="freeze" for="freeze-time">
+            <input id="freeze-time" data-testid="freeze-time" type="checkbox" />
+            <span>冻结水波</span>
+          </label>
+        </div>
+        <div id="debug-controls" class="segment-grid debug" role="group" aria-label="SSR 调试模式">
+          <button data-debug-mode="final" data-testid="debug-final" type="button" aria-pressed="true">Final</button>
+          <button data-debug-mode="surface" data-testid="debug-surface" type="button" aria-pressed="false">
+            Surface
+          </button>
+          <button data-debug-mode="depth" data-testid="debug-depth" type="button" aria-pressed="false">Depth</button>
+          <button data-debug-mode="hit" data-testid="debug-hit" type="button" aria-pressed="false">Hit</button>
+          <button data-debug-mode="confidence" data-testid="debug-confidence" type="button" aria-pressed="false">
+            Confidence
+          </button>
+          <button data-debug-mode="steps" data-testid="debug-steps" type="button" aria-pressed="false">Steps</button>
+        </div>
+      </section>
+
+      <section class="diagnostic-section">
+        <div class="section-heading">
+          <div>
+            <p class="section-label">LIVE METRICS</p>
+            <h2>运行状态</h2>
+          </div>
+          <output id="effective-state" data-testid="effective-state" class="state-chip">PENDING</output>
+        </div>
+        <dl class="metrics">
+          <div>
+            <dt>Support</dt>
+            <dd id="support-state" data-testid="support-state">checking</dd>
+          </div>
+          <div>
+            <dt>Quality</dt>
+            <dd id="quality-state">自定义</dd>
+          </div>
+          <div>
+            <dt>Render targets</dt>
+            <dd id="rt-state" data-testid="rt-state">0 · 0×0</dd>
+          </div>
+          <div>
+            <dt>Surface draws</dt>
+            <dd id="draw-state" data-testid="draw-state">0</dd>
+          </div>
+          <div>
+            <dt>Fullscreen draws</dt>
+            <dd id="fullscreen-state">0</dd>
+          </div>
+          <div>
+            <dt>Estimated VRAM</dt>
+            <dd id="memory-state">0 B</dd>
+          </div>
+          <div>
+            <dt>Temporal</dt>
+            <dd>Off · V1</dd>
+          </div>
+        </dl>
+        <button id="capture-diagnostics" data-testid="capture-diagnostics" class="capture-button" type="button">
+          Capture diagnostics
+        </button>
+        <output id="diagnostic-result" data-testid="diagnostic-result" class="diagnostic-result">No capture</output>
+      </section>
+    </aside>
+
+    <section class="roughness-key" data-testid="roughness-key" aria-label="SSR 场景职责说明">
+      <div>
+        <span class="key-index">01</span>
+        <b>WATER</b>
+        <small>0.08 · 2× specular + SSR</small>
+      </div>
+      <div>
+        <span class="key-index">02</span>
+        <b>CHROME</b>
+        <small>0.06 · SSR receiver</small>
+      </div>
+      <div>
+        <span class="key-index">03</span>
+        <b>WOOD / CLAY</b>
+        <small>0.31 / 0.90 roughness</small>
+      </div>
+      <div>
+        <span class="key-index">04</span>
+        <b>TREES / SKY</b>
+        <small>SSR hit · IBL fallback</small>
+      </div>
+    </section>
+
+    <div class="edge-note" data-testid="edge-note">
+      <span aria-hidden="true"></span>
+      <p><b>OFFSCREEN FALLBACK</b><small>切换“离屏”机位：树木/栈桥离屏后，Meadow 2 天空与环境 IBL 继续回退</small></p>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

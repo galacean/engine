@@ -1,0 +1,19 @@
+{
+  "binarySha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+  "inputs": {
+    ".0.glsl": "1c04a3b612bcd260e90dbbd9e3fb7197fd1ba35e6deb3c3779eee88a870aa0fb",
+    ".0.reflection.json": "5cfd344264581090b56543d1e7ca6c91011cd85f2ac6bdfd5aa3ee5906a05c5e",
+    ".1.metal": "6cc427642029f3cf5a0ca60f05bcf7f9078b1de514aeb451621d9ceed08437ea",
+    ".1.reflection.json": "647f7c3b5634849d198049affb606afdc29b994affe5e4d9724b7ee3097768b8",
+    ".1.spv": "873ff35438fe7044e9739f2d6ca6d6412cec7b8fcbee276455b3a254f7ec3a46"
+  },
+  "adaptations": [
+    "Physical address loads replaced with owned integer data texture word reads; full-template binding is mandatory.",
+    "Original cut noise, finite-plank ray limits, twelve-step bevel iterations, normal and hit UV expressions retained; unit-scale arithmetic is unchanged.",
+    "Host XY resize stores positive scale in native unused GPU48 words40/44 (zero=1), scales sampling bounds and distance, and inverse-scales the ray metric. Original bevel constants/back cap are retained; nonuniform resize uses a conservative distance field rather than exact resized Euclidean distance. Arbitrary resize is a host adaptation, not a native behavior claim.",
+    "R8_SNORM samples transported as linear RGBA8 (signed sample+128), decoding after bilinear sampling.",
+    "Hit depth uses Engine MVP and forward-depth max rather than native reversed-depth min.",
+    "Recovered hit position is exported to existing building scene-lighting adapter."
+  ],
+  "scope": "Gable96 full vertex/fragment transport retaining skew fields and cut ray bounds. Native .2/.3 depth shaders, production board generation and full-scene parity not established."
+}

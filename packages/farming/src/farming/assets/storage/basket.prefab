@@ -1,0 +1,17 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Farming/Props/Storage/basket.glb"
+    }
+  ],
+  "entities": [
+    {
+      "instance": {
+        "asset": 0
+      }
+    }
+  ],
+  "components": [],
+  "root": 0
+}

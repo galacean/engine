@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "fit": {
+    "attemptsPerScale": 24,
+    "scales": [1, 0.75, 0.5, 0.3, 0.15],
+    "maxOffsetM": 32
+  },
+  "recipes": [
+    {
+      "id": "large-broken-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["large"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [50, 85],
+        "heightM": [18, 38],
+        "atoms": [5, 8],
+        "profiles": ["crown", "wall", "buttress/shoulder", "mass"],
+        "variation": 0.8
+      }
+    },
+    {
+      "id": "large-tapered-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["large"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [50, 85],
+        "heightM": [18, 38],
+        "atoms": [5, 8],
+        "profiles": ["crown", "spire", "buttress/shoulder"],
+        "variation": 0.8
+      }
+    },
+    {
+      "id": "medium-broken-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["medium"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [23, 42],
+        "heightM": [8, 20],
+        "atoms": [3, 6],
+        "profiles": ["crown", "wall", "buttress/shoulder", "mass"],
+        "variation": 0.8
+      }
+    },
+    {
+      "id": "medium-tapered-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["medium"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [23, 42],
+        "heightM": [8, 20],
+        "atoms": [3, 6],
+        "profiles": ["crown", "spire", "buttress/shoulder"],
+        "variation": 0.8
+      }
+    },
+    {
+      "id": "small-broken-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["small"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [6, 15],
+        "heightM": [0.8, 1.0],
+        "atoms": [2, 4],
+        "profiles": ["mass", "terrace/cap"],
+        "variation": 0.8,
+        "landingMinimumWidthM": 2
+      }
+    },
+    {
+      "id": "small-tapered-rocks",
+      "label": "\u5ca9\u7fa4",
+      "algorithm": "rock-group",
+      "tiers": ["small"],
+      "weight": 1,
+      "parameters": {
+        "lengthM": [6, 15],
+        "heightM": [0.8, 1.0],
+        "atoms": [2, 4],
+        "profiles": ["mass", "buttress/shoulder"],
+        "variation": 0.8,
+        "landingMinimumWidthM": 2
+      }
+    },
+    {
+      "id": "small-tall-tree",
+      "label": "\u9ad8\u6811",
+      "algorithm": "landmark-tree",
+      "tiers": ["small"],
+      "weight": 1.1,
+      "parameters": {
+        "heightMultiplier": 1.8,
+        "minimumAboveAmbientM": 3,
+        "trunkWidthRatio": 0.1,
+        "crownBaseRatio": 0.55,
+        "crownTopRatio": 0.5
+      }
+    }
+  ]
+}

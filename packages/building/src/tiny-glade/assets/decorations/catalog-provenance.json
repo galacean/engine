@@ -1,0 +1,1605 @@
+{
+  "scope": "Native source-order visual meshes only. Exact numeric attributes, triangles, bounds and double-sided metadata; no outlines, collision or interaction meshes. Existing five legacy exports are unchanged. Resource presence does not prove a runtime assembly, material assignment or host-placement algorithm.",
+  "encoding": "Per-attribute little-endian f32 when lossless, otherwise f64; triangle indices u32. Base64 modules decode lazily on first use.",
+  "meshes": [
+    {
+      "name": "arrow_slit_1x1",
+      "source": "decorators/arrow_slit_1x1.json",
+      "sha256": "8f773f1cb98c31595578675a8d9a7f99f9e5c473ab3d547544bd98f5eac56591",
+      "vertices": 194,
+      "indices": 528,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 16856,
+      "packedSha256": "9af045ee0691100eeb071d4b2b275ff450c3c53db7c9c93d3eb16e05d9f3d8b1",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x1_glass",
+      "source": "decorators/arrow_slit_1x1_glass.json",
+      "sha256": "e97dd09f365c12a8ecb3cdcd9a46c3d96e569dc0b10a319fce29c5761252e2cd",
+      "vertices": 4,
+      "indices": 6,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 312,
+      "packedSha256": "d587b485854a5176449a9c3790c024699b0b3f3b6df1eeafc2f8c0993edc86f3",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x2",
+      "source": "decorators/arrow_slit_1x2.json",
+      "sha256": "d63bef7c2c9ed502887bae856ac2fdfc0f5351f9745de93e1a3deeb115573627",
+      "vertices": 177,
+      "indices": 528,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 15564,
+      "packedSha256": "bafc43cc898975a51e1b0b9bad882612d92db957573dae9a296f83b58bbb2ff9",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x2_glass",
+      "source": "decorators/arrow_slit_1x2_glass.json",
+      "sha256": "1c33b3597d1469fa9457f81da70f30b7776a54af50934ef7664008fa156b24c9",
+      "vertices": 4,
+      "indices": 6,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 312,
+      "packedSha256": "4496bd0446e701e29a3b65700b55c348f6a2fa232ffd2c017069b2a234adc33c",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x2_hat",
+      "source": "decorators/arrow_slit_1x2_hat.json",
+      "sha256": "51d4eadd6b8d5e2eda964d82a14ef9c091d80f4d7110256c7ac8445d686e3711",
+      "vertices": 62,
+      "indices": 108,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 5888,
+      "packedSha256": "e2e9f387258190c9939c1bc1b9961cbbdcd277e1c22bf4b2c27d4f4b38b0e928",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x3",
+      "source": "decorators/arrow_slit_1x3.json",
+      "sha256": "2fcd439972a1b8a25fea63311f1ca13c90d1f7756f88b0eee65dbd4ffe084989",
+      "vertices": 455,
+      "indices": 1020,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 38660,
+      "packedSha256": "e1e5f4496ee2211c60a47ee676d8aec2d0d769d733795f2de2d502aa04ba299b",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x3_glass",
+      "source": "decorators/arrow_slit_1x3_glass.json",
+      "sha256": "ba158220bf0b0091616d53f01edc996472ebe565110bcd68a1784a8f4f95849f",
+      "vertices": 12,
+      "indices": 30,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 984,
+      "packedSha256": "bfce4934e7b8a4849527ed1694c72dd52df2e291a976104d0e4e26d2fd952717",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x3_halfdormer",
+      "source": "decorators/arrow_slit_1x3_halfdormer.json",
+      "sha256": "ba557f7891c62d3aeafbfdf5e2ed946ad2a5d1ae33cfa2826986c4e9192f7e82",
+      "vertices": 501,
+      "indices": 1164,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 42732,
+      "packedSha256": "2ec5127fdcb7de6c8bb13ebf1f8ffe0ec61ac7a89f4fffbe918fa02c321b261c",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "arrow_slit_1x3_hat",
+      "source": "decorators/arrow_slit_1x3_hat.json",
+      "sha256": "dbea41d53b8958d288041c1b20be161dbd6f46deb2c75183e018b69fe8d797f5",
+      "vertices": 110,
+      "indices": 204,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 10496,
+      "packedSha256": "9d697a070eaa36690953f2f0decb470ceb705c5abfd850a26b52a4e2627be988",
+      "family": "arrows",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank1",
+      "source": "decorators/balcony_door_gothic_rank1.json",
+      "sha256": "9bc30406c1abf2a2747a221f281ed32172e01a53304b7eae82215011e7b48c07",
+      "vertices": 1162,
+      "indices": 2496,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 102944,
+      "packedSha256": "149022683c048fcdeaa61e5b5a3140214e6cbd5b1237619d855bb09fcf646913",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank1_hat",
+      "source": "decorators/balcony_door_gothic_rank1_hat.json",
+      "sha256": "a19255cf16bb0210968e3513c56fbdb1c3d5435818f9d5d7dd0cdc8073fc599f",
+      "vertices": 972,
+      "indices": 972,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 89424,
+      "packedSha256": "7e3f3751ba621790f77c406651aac849c5228707e8445ee13a559b23e72a05b6",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank2",
+      "source": "decorators/balcony_door_gothic_rank2.json",
+      "sha256": "c833ef225843d87c8f10e2c5a6ba23399ac045505255fdb9a9542f93b7b40237",
+      "vertices": 1610,
+      "indices": 3390,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 142360,
+      "packedSha256": "5b4880e1d0d6f2ea0f4cf4146985093ece945b5a8cb55230de0d74f08edd4a0e",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank2_hat",
+      "source": "decorators/balcony_door_gothic_rank2_hat.json",
+      "sha256": "139731e521e52f6c53abadcb73c089846efeeb1311fffa3dbc597c573456ed74",
+      "vertices": 1020,
+      "indices": 1020,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 93840,
+      "packedSha256": "8f2354ebc851bfe9fa99d94d075035ca317d4bdb32d908932487654ba89e3b50",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank3",
+      "source": "decorators/balcony_door_gothic_rank3.json",
+      "sha256": "7015797274a360ac8e156c3ccae82e30550ed6e16fee9fec323969153f63bf6c",
+      "vertices": 2298,
+      "indices": 4752,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 202848,
+      "packedSha256": "3faf37e3cb5e98a68f61dbddd2563865a918712aac1a7595f331de6247e4a183",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_gothic_rank3_hat",
+      "source": "decorators/balcony_door_gothic_rank3_hat.json",
+      "sha256": "abcf246daf627baa7c19d69d464ea4ae42e18e1faf740897f0cc5bfdaa1cb5cd",
+      "vertices": 1020,
+      "indices": 1020,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 93840,
+      "packedSha256": "8f46416d48252e77e431b002bccc04b9504eaab9bf7ef2180f90a1ddbc976b0b",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank1",
+      "source": "decorators/balcony_door_rank1.json",
+      "sha256": "6595d601e3b6bebe792d0e9fe41f6559427b69eddbe648b50aae085924d17261",
+      "vertices": 1002,
+      "indices": 1932,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 63840,
+      "packedSha256": "e99d32f975f4051a5ad2d8f50ab59149e60aa80d9b91933727f0086dade657af",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank1_rails",
+      "source": "decorators/balcony_door_rank1_rails.json",
+      "sha256": "26a82f366dbda2dc013454584f6f7094773e8c74a0f8336d860b93ece1ba0b62",
+      "vertices": 608,
+      "indices": 888,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 35168,
+      "packedSha256": "b517451b990fe1cab25bc6434a2064e411926bedc0114ea0431628d917239dea",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank2",
+      "source": "decorators/balcony_door_rank2.json",
+      "sha256": "be35043fa699c2966323ccc092fd3d522700be6ddea33e84c766ef77cfd2ce85",
+      "vertices": 1242,
+      "indices": 2436,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 79296,
+      "packedSha256": "bf09281ae1c092413bc6f04e27174cfee348d4a8dc9bf226990af9835f5ed68c",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank2_rails",
+      "source": "decorators/balcony_door_rank2_rails.json",
+      "sha256": "b7c9aa3d92917de1fb7f2f570754c8355895bbaf3114815de9262c0880eb4737",
+      "vertices": 640,
+      "indices": 936,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 37024,
+      "packedSha256": "4a91ce7c2b6839b6e82e9a4d70c408fe13770cf9686bcdfa050c2c70e6698765",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank3",
+      "source": "decorators/balcony_door_rank3.json",
+      "sha256": "a1150d84e491ed526f263e1231429e19827c8649cacd26d147530ed457d7421e",
+      "vertices": 1716,
+      "indices": 3468,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 109968,
+      "packedSha256": "242276b6e359e551665f22979f285f73fa0e0bde1b3b7828adba5dbf4df2619f",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_rank3_rails",
+      "source": "decorators/balcony_door_rank3_rails.json",
+      "sha256": "390ab96ba368d7b69045c1d610b93de83b0de126e0bb9482669f63404ec22980",
+      "vertices": 672,
+      "indices": 984,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 38880,
+      "packedSha256": "05acc277fd19f89a12c81b62a5e2316ebb1e9991013c934bd02b04a130277603",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "balcony_door_single",
+      "source": "decorators/balcony_door_single.json",
+      "sha256": "2a171d14727e8191aa95620f7fd3c0641c3547c3542ffb1f74719d082f37b628",
+      "vertices": 1014,
+      "indices": 1968,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 64656,
+      "packedSha256": "c3c84f4732e1b94df839eb385799cab56499be54f7792558128eae427dd8998a",
+      "family": "doors",
+      "legacy": true
+    },
+    {
+      "name": "gothic_balcony_door_rank1_rails",
+      "source": "decorators/gothic_balcony_door_rank1_rails.json",
+      "sha256": "affe5073fd0aa26077066d70fb4ecabe84920dd2dd233adb19188837466cc4ae",
+      "vertices": 608,
+      "indices": 888,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 35168,
+      "packedSha256": "441c6c3b03862fef45f6bfc8f248b379091d854d490127522e534f4e21875b9e",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "gothic_balcony_door_rank2_rails",
+      "source": "decorators/gothic_balcony_door_rank2_rails.json",
+      "sha256": "5dcf0538327f63a9711001073591cfcbbc76d05fa73ec368dc6f1bb79e28f405",
+      "vertices": 640,
+      "indices": 936,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 37024,
+      "packedSha256": "3b79b84c71f7c65d5f15a5f167aed83b8b67bd8503b4f6cc512b53f514c79882",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "gothic_balcony_door_rank3_rails",
+      "source": "decorators/gothic_balcony_door_rank3_rails.json",
+      "sha256": "d92dadd5e4a7b1f35e4cfd74da2a51b057d36712b03530edb76c0db9df82e316",
+      "vertices": 704,
+      "indices": 1032,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 40736,
+      "packedSha256": "f9f587b5ceb548b5e1f9e1cd03a441ff3f3a4215984f50e20e9ff8416cdd5605",
+      "family": "doors",
+      "legacy": false
+    },
+    {
+      "name": "lantern_flat_roof",
+      "source": "decorators/lantern_flat_roof.json",
+      "sha256": "beee6d0e30bd47c51ef38e1b5c9677c346ede582ce65342a9829859b4c4e39d7",
+      "vertices": 1851,
+      "indices": 1851,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 88848,
+      "packedSha256": "367e649467675b9f591b8a91070d87789a8ec2132743f97e05c4a7835d32ce8e",
+      "family": "lanterns",
+      "legacy": false
+    },
+    {
+      "name": "lantern_flat_roof_inside",
+      "source": "decorators/lantern_flat_roof_inside.json",
+      "sha256": "a59ce63f92e77ef80d74ae043aa04b8f574dab0ff8a9d9a5d8cd9c5b3628db19",
+      "vertices": 72,
+      "indices": 72,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color"
+      ],
+      "doubleSided": false,
+      "packedBytes": 2880,
+      "packedSha256": "1bb72c659fbc1963de9ca6f5c220bbf1c9688b2ff067327425b21e48f258246d",
+      "family": "lanterns",
+      "legacy": false
+    },
+    {
+      "name": "lantern_terrain",
+      "source": "decorators/lantern_terrain.json",
+      "sha256": "401c1d6e52e06efc62879f618046507408a0a466e2971f1e408fee5e67628b98",
+      "vertices": 1503,
+      "indices": 1503,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color"
+      ],
+      "doubleSided": false,
+      "packedBytes": 60120,
+      "packedSha256": "ff950e53fbcd54c85cdd20cf48958c97589b23b5155890bdaaee72c9f08902b8",
+      "family": "lanterns",
+      "legacy": false
+    },
+    {
+      "name": "lantern_terrain_inside",
+      "source": "decorators/lantern_terrain_inside.json",
+      "sha256": "e1052627154e1af13a7ed1480daa8f0d7cfad2a508325164cb9a5c693db92eee",
+      "vertices": 72,
+      "indices": 72,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color"
+      ],
+      "doubleSided": false,
+      "packedBytes": 2880,
+      "packedSha256": "e768ff9026c4fba773f1e170860e6233c78d78b8f95fda811f0a56c95b361a97",
+      "family": "lanterns",
+      "legacy": false
+    },
+    {
+      "name": "lantern_terrain_support",
+      "source": "decorators/lantern_terrain_support.json",
+      "sha256": "a8db8d8707aa7421b7928bb3be6a1c2e9b29a1a0f74798a2079739b9d7e52542",
+      "vertices": 1068,
+      "indices": 1068,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "flags"
+      ],
+      "doubleSided": false,
+      "packedBytes": 64080,
+      "packedSha256": "7109d5f241c5853720a90848d1654450b6188ecb7be3cda261a6b9a082753969",
+      "family": "lanterns",
+      "legacy": false
+    },
+    {
+      "name": "lantern_wall",
+      "source": "decorators/lantern_wall.json",
+      "sha256": "e84c276a7c70708d365182acf4e25148d125f40529d80085c79b4a0e7c849e50",
+      "vertices": 1923,
+      "indices": 1923,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "soft_normal"
+      ],
+      "doubleSided": false,
+      "packedBytes": 99996,
+      "packedSha256": "5c7b5f219781c4b9914cc68aa8a82d257c2e17064c9a06dcc5702e8074e58b77",
+      "family": "lanterns",
+      "legacy": true
+    },
+    {
+      "name": "lantern_wall_inside",
+      "source": "decorators/lantern_wall_inside.json",
+      "sha256": "75c755128eb9cc302429ad59757b9fc56f62b8eb8e186458400bf84d198806f9",
+      "vertices": 72,
+      "indices": 72,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color"
+      ],
+      "doubleSided": false,
+      "packedBytes": 2880,
+      "packedSha256": "59dcd382ecf4d81fc7cddf9cc1e748c82a0ba18f4703d469ed5788bc9bf66667",
+      "family": "lanterns",
+      "legacy": true
+    },
+    {
+      "name": "setdressing_window_lintel",
+      "source": "decorators/setdressing_window_lintel.json",
+      "sha256": "fe5c82c3015772cc5c1963439d16c6ed75410a72997b97b86ee07fd9e188b48b",
+      "vertices": 228,
+      "indices": 228,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 16416,
+      "packedSha256": "bbc6579e65d31dfbebce2a6277dee7c4c279eadb932dc3e6d406f25af32caf9a",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "trap_door_cottage",
+      "source": "decorators/trap_door_cottage.json",
+      "sha256": "af43e033de78cd14fe1fa7285ee9b0937d834844584a025b2afdd3fe5b64551e",
+      "vertices": 1194,
+      "indices": 2196,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 75648,
+      "packedSha256": "3d917f5512cf2fb0ce3fa6427ef932b4d2656d647ac6ea87313b3802709559bc",
+      "family": "hatches",
+      "legacy": false
+    },
+    {
+      "name": "trap_door_gothic",
+      "source": "decorators/trap_door_gothic.json",
+      "sha256": "4ed011711e996f6651f6b4936ebe33fda7265f8c504e82a9f178686b3b0290fa",
+      "vertices": 1240,
+      "indices": 2118,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_metal_part"
+      ],
+      "doubleSided": false,
+      "packedBytes": 77912,
+      "packedSha256": "0c03e5a19997586c62682709da2d7832bddb32c70f1f15691c56938d74d101be",
+      "family": "hatches",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1",
+      "source": "decorators/window_cottage_1x1.json",
+      "sha256": "4256e96d1aadf5dfe1ec25a6e528485f2558098f945e71b373c5c46eef17db1f",
+      "vertices": 96,
+      "indices": 96,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 6912,
+      "packedSha256": "0de3c4b4b51a545d6e9bbb457ba722a6b95303e35c78a2414b09cd63eedddb6c",
+      "family": "cottage",
+      "legacy": true
+    },
+    {
+      "name": "window_cottage_1x1_corner",
+      "source": "decorators/window_cottage_1x1_corner.json",
+      "sha256": "32548d3559dda45af5c2ce97c496a695d8d023b96e812e8e1eec9da4ea26e915",
+      "vertices": 1488,
+      "indices": 1755,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 72492,
+      "packedSha256": "302c27afa84c055446d1b70f4f735c135c7a84197ebe9e68d5025cb2a9d898b5",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_dormer",
+      "source": "decorators/window_cottage_1x1_dormer.json",
+      "sha256": "2ee5c4c232c72ca0040d2619987b9eb922ad0be50ce2ab221414a2a82b8e2874",
+      "vertices": 120,
+      "indices": 120,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 5760,
+      "packedSha256": "0b7b84d36ae09273934286d981fd7049b8db8b1dc474a36f807a6539366e10d9",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_dormer_frame",
+      "source": "decorators/window_cottage_1x1_dormer_frame.json",
+      "sha256": "6fa24164d402a7b0ba94918aa731e9cc77d46ccea0721d81db540e5b7491acdc",
+      "vertices": 96,
+      "indices": 96,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 6912,
+      "packedSha256": "c9e230faee3a367b5bd519b218e58baad1994cde67eec229f65a0be2212077b9",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_dormer_glass",
+      "source": "decorators/window_cottage_1x1_dormer_glass.json",
+      "sha256": "08d1fa5dc0b952359c5db6fdb6acd2ec33788c1048d9cc9b0c43f31319875835",
+      "vertices": 864,
+      "indices": 864,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 44928,
+      "packedSha256": "c8dcbb1749d0fe06c8be65b6311edb749ea97fc1a956d2ee0d6784b237f448ff",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_full_dormer",
+      "source": "decorators/window_cottage_1x1_full_dormer.json",
+      "sha256": "6515ebcf3de781e32f1e115ce16ba49cb0095a67ebb07527157570e03f7a54c8",
+      "vertices": 828,
+      "indices": 828,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 39744,
+      "packedSha256": "6c3805de3782a395f86c02d1d7cbea95a7b638e13fd78b139248d34e5d96ac85",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_full_dormer_corner",
+      "source": "decorators/window_cottage_1x1_full_dormer_corner.json",
+      "sha256": "451ee3b04ead063cc480e57834de37f8d3fdea4713300a9f6155b6d933d20303",
+      "vertices": 816,
+      "indices": 816,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 39168,
+      "packedSha256": "40d2432841df51b9d71b19975d212a3ab0328b1708349532b9b1ae0afc8b0c10",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_glass",
+      "source": "decorators/window_cottage_1x1_glass.json",
+      "sha256": "6bf5c8f89effad54003aeda7ceb534c95bcce3740ec6cdf18c84047aded700e7",
+      "vertices": 1056,
+      "indices": 1056,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 54912,
+      "packedSha256": "00d972e80d1c55e25f04f23c7deef934f607336095c0731d30c607c01d38d062",
+      "family": "cottage",
+      "legacy": true
+    },
+    {
+      "name": "window_cottage_1x1_glass_broken_0",
+      "source": "decorators/window_cottage_1x1_glass_broken_0.json",
+      "sha256": "3b070bbab790480f7114266a478f77ec1635dd2a4062d4a7d8d795d275ce278b",
+      "vertices": 1290,
+      "indices": 2562,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 67008,
+      "packedSha256": "c6aa35ae3c8425776295338ed25642fac690ed5af2ee2f1cd9bf78811a4531f3",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_glass_broken_1",
+      "source": "decorators/window_cottage_1x1_glass_broken_1.json",
+      "sha256": "396088997dd68a565120ce748c14538ff0a58a9c7bc4e1098401c67471803f38",
+      "vertices": 2010,
+      "indices": 3813,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 103692,
+      "packedSha256": "5183cce9d31d66216151f8071940cf4b28c60772bdbdbfa43aeaee3e49ca6d0b",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_glass_broken_2",
+      "source": "decorators/window_cottage_1x1_glass_broken_2.json",
+      "sha256": "e2e6907d8c8bcbaf4078f703cc45dc3a2b036485dc221f68888b958332acfdbf",
+      "vertices": 1086,
+      "indices": 2169,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 56460,
+      "packedSha256": "0d1485c866ce53bdaa5f238ca335f2d676d4bff18aede4fe415d3c384e420a09",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_1x1_halfdormer_frame",
+      "source": "decorators/window_cottage_1x1_halfdormer_frame.json",
+      "sha256": "0cf09680a9848d1e3bbc129c7c4f92a3d7e439079ce7a9fdd9c64fe835325939",
+      "vertices": 312,
+      "indices": 312,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 22464,
+      "packedSha256": "ddc9dbd11a13ace3a865c30509c040371799ccd4e74a795dbf8c4a548a0ff82e",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_2x1",
+      "source": "decorators/window_cottage_2x1.json",
+      "sha256": "040a9956cae569761fdabe3991ce7b2714183ced646008a2c1a9d4916bdc0a17",
+      "vertices": 192,
+      "indices": 192,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 13824,
+      "packedSha256": "f040b55b253eb137455fe9989a437b1b9094c02f399bbe14e4a32fbe9d466736",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_2x1_full_dormer",
+      "source": "decorators/window_cottage_2x1_full_dormer.json",
+      "sha256": "4fec209cdf8cfba05e40b565ff708cf6f0d9a6ceebd0d436dd175a4f14dcfd4b",
+      "vertices": 1656,
+      "indices": 1656,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 79488,
+      "packedSha256": "362dbdcbcf02784c09582eea4d24a0d38f1a80a082a42f4aa6db943ce3b2a212",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_2x1_glass",
+      "source": "decorators/window_cottage_2x1_glass.json",
+      "sha256": "4ea5e93e2b11d0e460d42434a4d1a359d29d7e976b58a90578819ad8da5a2193",
+      "vertices": 2112,
+      "indices": 2112,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 109824,
+      "packedSha256": "274ab7f232086aefed1788a4a4c9903d3a92ae83e48636faf8a320ff2faeb69a",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_2x1_halfdormer_frame",
+      "source": "decorators/window_cottage_2x1_halfdormer_frame.json",
+      "sha256": "8d83bd44c7f0a0545ee27a7867d2480baa72e359e5a16b289772fadc7d179b93",
+      "vertices": 312,
+      "indices": 312,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 22464,
+      "packedSha256": "2517f280bef68366bf1ec84b37a145bc5441fb03e0d0cd09181c94d6db7104fd",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_3x1",
+      "source": "decorators/window_cottage_3x1.json",
+      "sha256": "f105a4cfb5083ace99170d081f5a49b8fa99c7fab973f55ee9b17b116d75ebab",
+      "vertices": 360,
+      "indices": 408,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 26112,
+      "packedSha256": "e25968b8400adf6017d30ad8ec4b0884e1790315334159a147d1b6560e8bad87",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_3x1_full_dormer",
+      "source": "decorators/window_cottage_3x1_full_dormer.json",
+      "sha256": "9a92d798df8cd880ff4ad05f58c1137fa19e88c7324bbbe8bfe5731d0d22cd04",
+      "vertices": 2484,
+      "indices": 2484,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV"
+      ],
+      "doubleSided": false,
+      "packedBytes": 119232,
+      "packedSha256": "4d427879ba2f43fd0840ef5de778343e8c71acd5a9a1ba8c49450db63734f288",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_3x1_glass",
+      "source": "decorators/window_cottage_3x1_glass.json",
+      "sha256": "54391bc976da412ac2cef84e14c79a5b9528759209d1a9fbba10fff625417d86",
+      "vertices": 3168,
+      "indices": 3168,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 164736,
+      "packedSha256": "b760b04a1ce8bd9735af0e790cfe649f576cbe383c71721ec1ab6e53c375350e",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_3x1_halfdormer_frame",
+      "source": "decorators/window_cottage_3x1_halfdormer_frame.json",
+      "sha256": "5696f6b0aeae264aa60efb82020e3054df39cb218436dfd984513b485a9f5cb0",
+      "vertices": 312,
+      "indices": 312,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 22464,
+      "packedSha256": "6413935b05f236d63bf5ee3e22f919f090aea4dafb260f7280dd51b5b5a1e488",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_1x1",
+      "source": "decorators/window_cottage_corner_1x1.json",
+      "sha256": "41536aa4f67d7ba42cb2cb26b5c19b82ec73af8d6653084dee3d51dc411041c3",
+      "vertices": 360,
+      "indices": 360,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 25920,
+      "packedSha256": "281389f9cf37f1bdea5b73d5a269f9f2a7cf03eba1d7b835c5d609dabe17c628",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_1x1_glass",
+      "source": "decorators/window_cottage_corner_1x1_glass.json",
+      "sha256": "b167048883821a3ce4017e42bb4c62f2cb0462493265020e2e7196caaddc292c",
+      "vertices": 1056,
+      "indices": 1056,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 54912,
+      "packedSha256": "32c4bc8f3a3f9860e52830a202d488a0b697517436bda99366cb2506c2c37f6f",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_1x1_sill",
+      "source": "decorators/window_cottage_corner_1x1_sill.json",
+      "sha256": "4a0e57c6bd62bd54c7715951ffd32656bf335c52a23f3d33b306c7d2da1d274e",
+      "vertices": 96,
+      "indices": 132,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 7056,
+      "packedSha256": "ace91548c83cef5f646ddf1753c79fbd7e7156d567fa5b9133043522bf9e5913",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_2x1",
+      "source": "decorators/window_cottage_corner_2x1.json",
+      "sha256": "835ddd32891b65f1c82a2dcc73c6c52498dff69f6808c7d71203acf2786ac9f0",
+      "vertices": 192,
+      "indices": 192,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 13824,
+      "packedSha256": "44e33d53fb09dcf47781a8d7f21454ad30eb8f7e56e3028b0042a2da6c2a2cbf",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_2x1_glass",
+      "source": "decorators/window_cottage_corner_2x1_glass.json",
+      "sha256": "12d5dc908e322be8fadf51fa48f2602554acab189c4c5f6bb4607e17f6836e26",
+      "vertices": 2112,
+      "indices": 2112,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 109824,
+      "packedSha256": "8d6b714eda446705c43d4440f2cc8f162d4ea43902ba0bc9be7a7ddc4e146afe",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_3x1",
+      "source": "decorators/window_cottage_corner_3x1.json",
+      "sha256": "262e2fa3230265ea543a3961a166432048fe9169df67db0b8f94ca8ea7ba1b1e",
+      "vertices": 288,
+      "indices": 288,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 20736,
+      "packedSha256": "e91c08218bc35015fbaab9629bc6759e114eb61ca6fe0314e227917ecc6fe4c6",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_cottage_corner_3x1_glass",
+      "source": "decorators/window_cottage_corner_3x1_glass.json",
+      "sha256": "fb9e1636299c40ae11e271fbab151289f216146f87da9d9321accaf8fecea459",
+      "vertices": 3168,
+      "indices": 3168,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "is_glass"
+      ],
+      "doubleSided": false,
+      "packedBytes": 164736,
+      "packedSha256": "90f092de3b2ef7c5972d30b77894ea6b1c189bdfe3c9034bbdd4b3c58a76923d",
+      "family": "cottage",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1",
+      "source": "decorators/window_gothic_1x1.json",
+      "sha256": "c5c94d7218495ad08856163303da37d44dd6bf009f5dc5adffafd318b292577f",
+      "vertices": 444,
+      "indices": 1128,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 38256,
+      "packedSha256": "2a0a1b99e4ca9b5761593333cb71504b39e62b9e55ca6f6ad91ca7e87f5632d5",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1_dormer",
+      "source": "decorators/window_gothic_1x1_dormer.json",
+      "sha256": "e3e301c1685680a178a07d0c011ab5c0e9690181bd7c1cf882e7c570b19ed09c",
+      "vertices": 508,
+      "indices": 1212,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 43456,
+      "packedSha256": "f87f1a829771e00bac0694daa6a180dcd633fafcccfe4211f840becbd8f8cb20",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1_dormer_glass",
+      "source": "decorators/window_gothic_1x1_dormer_glass.json",
+      "sha256": "cb0d38d9c713d7527c79197d26b3f04ee8ca5c85f237f545342c85e92958ca72",
+      "vertices": 15,
+      "indices": 39,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 1296,
+      "packedSha256": "4a8954281ecfa28a9f3276cc7502cb9bb635680b875cf5e9661661766dbdefd7",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1_glass",
+      "source": "decorators/window_gothic_1x1_glass.json",
+      "sha256": "576a668d6b2f5eaf929adf0ad1185c195098993b16d3d4c8dfa308cbeb33b6f5",
+      "vertices": 13,
+      "indices": 33,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 1120,
+      "packedSha256": "fa47bbd2b7af8bc1a7f9123fcfbb818984ec09dabe4a5b65ce5ff0b99865ed58",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1_hat",
+      "source": "decorators/window_gothic_1x1_hat.json",
+      "sha256": "ee1c29c89c0c287ca480f11f5192d6155e57635701b198e1f0751f1673e03cf7",
+      "vertices": 708,
+      "indices": 708,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 65136,
+      "packedSha256": "bed1f946ff9c90252a70e0a7b80bb63ac2eadb421a693e56892c7878b52e0107",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_1x1_hat_full",
+      "source": "decorators/window_gothic_1x1_hat_full.json",
+      "sha256": "f849191c306691a055cb378556a687957a9d1df75e2413a89f4b3cfcfae5c0ce",
+      "vertices": 684,
+      "indices": 684,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 62928,
+      "packedSha256": "16d9d9429b764bd044f870730df15e8dc6aede003b47f4aebc9fc459ffe1727e",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1",
+      "source": "decorators/window_gothic_2x1.json",
+      "sha256": "5504a97958625e2f136a00aea87f39c388c11b78c99fada02b03a83eefba0eaf",
+      "vertices": 912,
+      "indices": 2292,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 78480,
+      "packedSha256": "ee27e8ad5c3d0fd41e027b12b1be7b3cde8e5281e3026963b7ce6867236f0493",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1_dormer",
+      "source": "decorators/window_gothic_2x1_dormer.json",
+      "sha256": "3b1206539aead3a057c6298363010a83d7532a69e124c517c921d3d3f3a8d0e9",
+      "vertices": 948,
+      "indices": 2364,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 73920,
+      "packedSha256": "6609e0e0d21eb93b7a6d6ab2fb13c97a95d5758e70ca69467b961c1edd855495",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1_dormer_glass",
+      "source": "decorators/window_gothic_2x1_dormer_glass.json",
+      "sha256": "08c617182ac244c1d87c9147f044a014c94a2186b48341d2c9d8c3ae0293420c",
+      "vertices": 19,
+      "indices": 51,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 1648,
+      "packedSha256": "1e3ba46e625ca9be161e41e57ec166e5f948f38da4e189a378ba0942275a4650",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1_glass",
+      "source": "decorators/window_gothic_2x1_glass.json",
+      "sha256": "f7511bcf1546f93f0e1b6b646968e0a2c6ebaf8b30549c1e9fcde94363b74919",
+      "vertices": 22,
+      "indices": 60,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 1912,
+      "packedSha256": "0bc86366df6ec1f0d1e466401bc260eb71ebb7ec7a3738cc9a451a0ae5b9b641",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1_hat",
+      "source": "decorators/window_gothic_2x1_hat.json",
+      "sha256": "8f22503a749ed6f3eba42b929267cad87df6b53a5cb2abea58e08235f4e4242c",
+      "vertices": 612,
+      "indices": 612,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 56304,
+      "packedSha256": "cdd63ac0a735ae7f00e804d847da41e562821148df8d8221065d6a284b72d60e",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_2x1_hat_full",
+      "source": "decorators/window_gothic_2x1_hat_full.json",
+      "sha256": "7039ff8f42c4585dff48287078a58ea931f0928fe00866b0ae2b889a1c5916c0",
+      "vertices": 636,
+      "indices": 636,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 58512,
+      "packedSha256": "a6aa6d91c6c5ccaaf113abc0ab30666cd6145421a8fa5bd30df059ece74786af",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1",
+      "source": "decorators/window_gothic_3x1.json",
+      "sha256": "750e1fef7d7d1f560d017ac0f6f8c906dd36cd866a1c9e656b79ade0d5f82849",
+      "vertices": 1806,
+      "indices": 4572,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 155544,
+      "packedSha256": "e36ea9c3b7d7c6a9d8ca1a4918be3ce594db88e494ac807c0e3b9dbb6ca0b9a8",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1_dormer",
+      "source": "decorators/window_gothic_3x1_dormer.json",
+      "sha256": "9e2f2f03570718eb10ab046558b8688450a610b175d408527d221ea5a6bae14a",
+      "vertices": 1754,
+      "indices": 4440,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 137032,
+      "packedSha256": "cab03075fc6249848afbc877bedfaacd2f383177beea3c2c9bc5dc7685db62a6",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1_dormer_glass",
+      "source": "decorators/window_gothic_3x1_dormer_glass.json",
+      "sha256": "c614b53fcef5a6be3100902ce85215461f90a7f4b9c07b0952a3f7421fc97a4a",
+      "vertices": 25,
+      "indices": 69,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 2176,
+      "packedSha256": "1fbe2482e719b38ef66d45d49c675258778f95beb7f8787dbf31ad6fc73b7033",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1_glass",
+      "source": "decorators/window_gothic_3x1_glass.json",
+      "sha256": "fa6328fcfec29b6a43cf8152fdc5f9b890e24e70e7248a8f995ebc5b7aea90b8",
+      "vertices": 22,
+      "indices": 60,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 1736,
+      "packedSha256": "e784e4f9ccb884efdbf2ffa0a885a4a82d1c59df60790db107df5f70a61f054e",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1_hat",
+      "source": "decorators/window_gothic_3x1_hat.json",
+      "sha256": "3e8523d61311f74a8efde859b48fa601ce5977470a81f1df3d48851a5a0b85fa",
+      "vertices": 636,
+      "indices": 636,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 58512,
+      "packedSha256": "2af879295472cd5e265bec3ce0378cea2ffa2ca353a0d8cdb2b7d716774d250d",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_gothic_3x1_hat_full",
+      "source": "decorators/window_gothic_3x1_hat_full.json",
+      "sha256": "ba9113ca3f109de4c7a557add1746aee1675e4ea0dfacd010e04e833e759cc43",
+      "vertices": 852,
+      "indices": 852,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent",
+        "is_bevel",
+        "brick_id",
+        "bbx_x"
+      ],
+      "doubleSided": false,
+      "packedBytes": 78384,
+      "packedSha256": "7a9bec1994ac1d720f00fcf41bce93500cdf3063c55ade9c12d27daa00a5c8e2",
+      "family": "gothic",
+      "legacy": false
+    },
+    {
+      "name": "window_shutter",
+      "source": "clutter/window_shutter.json",
+      "sha256": "969f172f3a9da7f66e367a512705a5c260d5418a31aabf85bee2e10a29fded17",
+      "vertices": 1224,
+      "indices": 1224,
+      "attributes": [
+        "Vertex_Position",
+        "Vertex_Normal",
+        "Vertex_Color",
+        "Vertex_UV",
+        "tangent",
+        "bitangent"
+      ],
+      "doubleSided": false,
+      "packedBytes": 88128,
+      "packedSha256": "8c7bee14e3e1f96a19ea1e84971fb636d7207b305e94fd2bd2c8ad70d4c11b83",
+      "family": "cottage",
+      "legacy": false
+    }
+  ]
+}

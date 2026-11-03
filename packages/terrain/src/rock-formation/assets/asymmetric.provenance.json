@@ -1,0 +1,22 @@
+{
+  "schema": "baked-asymmetric-cellular/1",
+  "version": "asymmetric-baked/2",
+  "seed": 17,
+  "cellsAcross": 36,
+  "jointSpacing": 0.09,
+  "nominalCellSize": 8,
+  "repeatMetresAtUnitZoom": 288,
+  "periodic": true,
+  "reflected": false,
+  "bytes": 12045096,
+  "vertices": 65742,
+  "triangles": 129384,
+  "cells": 1368,
+  "logicalJoints": 4005,
+  "boundaryEdges": 2098,
+  "moduleSha256": "4ec3245ac98491e10e580a1717896c2d3bce7ad0fffd991608398e4085331c34",
+  "validation": {
+    "unmatchedPeriodicEdges": 0,
+    "internalOpenEdges": 0
+  }
+}

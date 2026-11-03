@@ -1,0 +1,51 @@
+import { planningRegistry } from "./PlanningComponents";
+import type { PlanningDocument } from "./PlanningDocument";
+import { createSeedPlanningDocument } from "./PlanningInitialization";
+import { resolveComponent } from "./SpatialDocument";
+
+/** World and tier policies describe generation; all other authoring records address layout instances. */
+export function isGlobalPlanningScope(id: string): boolean {
+  return id === "world" || id.startsWith("policy:");
+}
+
+export function planningSeed(document: PlanningDocument): number {
+  return Number(resolveComponent(document, "world", "world", planningRegistry).values.seed);
+}
+
+/** Switch only authoring configuration; inactive Seeds never retain generated snapshots. */
+export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed: number): void {
+  const nextSeed = planningSeed(draft);
+  if (nextSeed === previousSeed) return;
+  const archives = draft.layoutOverrides ?? {};
+  const outgoing = structuredClone(draft.entities);
+  outgoing.world.components.world.values.seed = previousSeed;
+  archives[String(previousSeed)] = {
+    ...(draft.waterAuthoringVersion === undefined ? {} : { waterAuthoringVersion: draft.waterAuthoringVersion }),
+    entities: outgoing,
+    edits: structuredClone(draft.passthrough.edits),
+    parameters: { ...structuredClone(draft.passthrough.parameters), seed: previousSeed },
+    ...(draft.authoredResources === undefined ? {} : { authoredResources: structuredClone(draft.authoredResources) })
+  };
+  const incoming = archives[String(nextSeed)];
+  if (incoming?.entities.world) {
+    draft.waterAuthoringVersion = incoming.waterAuthoringVersion;
+    draft.entities = structuredClone(incoming.entities);
+    draft.passthrough.edits = structuredClone(incoming.edits);
+    draft.passthrough.parameters = structuredClone(incoming.parameters!);
+  } else {
+    const fresh = createSeedPlanningDocument(nextSeed);
+    draft.waterAuthoringVersion = fresh.waterAuthoringVersion;
+    draft.entities = { ...fresh.entities, ...incoming?.entities };
+    draft.passthrough = fresh.passthrough;
+    draft.passthrough.edits = incoming?.edits ?? {};
+    delete draft.placementState;
+    // Lighting is presentation, never a seeded spatial variation.
+    for (const type of ["lighting", "postProcess"])
+      draft.entities.world.components[type] = outgoing.world.components[type];
+  }
+  if (incoming?.authoredResources !== undefined) draft.authoredResources = structuredClone(incoming.authoredResources);
+  else delete draft.authoredResources;
+  draft.entities.world.components.world.values.seed = nextSeed;
+  delete archives[String(nextSeed)];
+  draft.layoutOverrides = archives;
+}

@@ -1,0 +1,48 @@
+{
+  "C01": {
+    "label": "加高山肩遮住高台与后谷",
+    "values": {
+      "shoulderHeight": 150
+    }
+  },
+  "C02": {
+    "label": "将遮挡山肩降至0，检验暂隐是否失效",
+    "values": {
+      "shoulder-height": 0
+    }
+  },
+  "C03": {
+    "label": "仅抬高入湖节点，制造真实河湖水位断差",
+    "patches": [
+      {
+        "path": [
+          "recipe",
+          "riverNodes",
+          3,
+          "level"
+        ],
+        "value": 4
+      }
+    ]
+  },
+  "C04": {
+    "label": "把高脊及台地联动降到0，检验高处观湖收益是否消失",
+    "values": {
+      "ridge-height": 0
+    }
+  },
+  "C05": {
+    "label": "抬高入旧湖末点，破坏接口水位",
+    "patches": [
+      {
+        "path": [
+          "recipe",
+          "riverNodes",
+          3,
+          "level"
+        ],
+        "value": 6
+      }
+    ]
+  }
+}

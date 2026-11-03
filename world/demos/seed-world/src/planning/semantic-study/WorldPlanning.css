@@ -1,0 +1,148 @@
+.world-planning-editor { grid-template-columns:300px minmax(0,1fr); }
+.world-planning-editor .ip-brand { padding:17px 18px 14px; }
+.world-planning-editor .ip-brand h1 { font-size:20px; }
+.world-planning-editor .ip-sidebar { overscroll-behavior:contain; }
+.world-planning-editor .ip-workspace { grid-template-rows:auto minmax(0,1fr); }
+.world-planning-editor button:disabled { opacity:.35; cursor:default; }
+.world-planning-editor .ip-topbar nav { flex-wrap:wrap; justify-content:flex-end; }
+.world-planning-editor .ip-topbar nav button[aria-pressed="true"] { background:#30515c; border-color:#6b979d; color:#e7f2ec; }
+.wp-seed { padding:14px 14px 6px; display:flex; align-items:flex-end; gap:8px; }
+.wp-seed label { flex:1; min-width:0; font-size:10px; color:#8caab9; }
+.wp-seed input { display:block; margin-top:6px; width:100%; min-height:31px; padding:6px 9px; border:1px solid #385263; border-radius:4px; background:#0f2334; color:#dfebee; font-variant-numeric:tabular-nums; }
+.wp-seed input[aria-invalid="true"] { border-color:#d98765; }
+.wp-seed button { font-size:11px; padding:6px 9px; }
+.world-planning-editor .base-control-group { margin:10px 14px; }
+.world-planning-editor .base-control-group summary { padding:9px 11px; font-size:11px; }
+.world-planning-editor .base-control-group .ip-parameter { padding:9px 11px 5px; }
+.world-planning-editor .base-control-group .ip-parameter > span { font-size:10px; }
+.world-planning-editor .base-control-group .ip-parameter input { height:17px; margin-top:7px; }
+.wp-local { padding:15px 14px; border-top:1px solid #2a4252; border-bottom:1px solid #2a4252; margin:6px 0; }
+.wp-local select { width:100%; padding:8px; background:#0f2334; color:#d9e5e9; border:1px solid #385466; border-radius:4px; font-size:11px; }
+.wp-local-hint { color:#93adbc; line-height:1.7; margin:10px 0; font-size:10px; }
+.wp-local .ip-parameter { padding:9px 0 6px; }
+.world-planning-editor .base-layers { margin:10px 14px; }
+.world-planning-editor .base-layers summary { font-size:11px; }
+.world-planning-editor .base-layer-list button { font-size:10px; min-height:29px; }
+.world-planning-editor .ip-map-footer [role="status"] { flex:1; min-width:0; white-space:normal; line-height:1.6; }
+.world-planning-editor .ip-feature.is-selected > .planning-module-outline { fill:#f0a33e; fill-opacity:.15; stroke:#c56724; stroke-width:4; stroke-dasharray:none; filter:none; }
+.world-planning-editor .ip-feature[data-owner-id="routes"].is-selected > [data-route-surface="outline"],
+.world-planning-editor .ip-feature[data-owner-id="routes"]:focus-visible > [data-route-surface="outline"] { fill:#e99032; fill-opacity:1; stroke:#aa632b; stroke-width:.25; stroke-opacity:1; stroke-dasharray:none; vector-effect:none; filter:none; }
+.world-planning-editor .ip-feature[data-owner-id="routes"] > .planning-module-outline { stroke-width:.25; filter:none; }
+.world-planning-editor [data-module-hit] { outline:none; }
+@media(max-width:1100px) { .world-planning-editor { grid-template-columns:265px minmax(0,1fr); }
+.world-planning-editor .ip-topbar { align-items:flex-start; gap:10px; }
+.world-planning-editor .ip-topbar > div { display:block; min-width:100px; }
+.world-planning-editor .ip-topbar > div span { display:block; font-size:9px; margin-top:4px; }
+.world-planning-editor .ip-topbar nav { gap:3px; }
+.world-planning-editor .ip-topbar nav button { padding:3px 7px; font-size:10px; }
+ }
+@media(max-width:760px) { .world-planning-editor { grid-template-columns:1fr; height:auto; }
+.world-planning-editor .ip-sidebar { max-height:42dvh; }
+.world-planning-editor .ip-workspace { height:65dvh; min-height:460px; }
+.world-planning-editor .wp-global { display:grid; grid-template-columns:1fr 1fr; }
+.world-planning-editor .base-control-group { margin:6px; }
+ }
+.world-planning-editor .wp-map-body { display:grid; grid-template-columns:minmax(0,1fr) 220px; min-width:0; min-height:0; overflow:hidden; }
+.world-planning-editor .wp-map-body .ip-viewport { min-width:0; min-height:0; }
+.world-planning-editor .wp-layer-panel { margin:0; padding:12px 8px; min-height:0; overflow-y:auto; border:0; border-left:1px solid #29414f; border-radius:0; background:#102432; }
+.world-planning-editor .wp-layer-panel h2 { margin:0 6px 12px; color:#d4e5ec; font-size:12px; font-weight:600; }
+.world-planning-editor .wp-layer-panel .base-layer-list { padding:0; gap:5px; }
+.world-planning-editor .wp-layer-panel .base-layer-list button { min-width:0; min-height:32px; padding:6px 4px; }
+.world-planning-editor .wp-layer-panel .base-layer-list i { flex-shrink:0; width:13px; height:10px; }
+@media(max-width:1100px) { .world-planning-editor .wp-map-body { grid-template-columns:minmax(0,1fr) 170px; }
+.world-planning-editor .wp-layer-panel .base-layer-list { grid-template-columns:1fr; }
+ }
+.world-planning-editor { color:#40594f; --plan-ink:#40594f; }
+.world-planning-editor .ip-sidebar,
+.world-planning-editor .ip-workspace { background:#f3f0e4; border-color:#c4cbb7; }
+.world-planning-editor .ip-brand,
+.world-planning-editor .ip-topbar,
+.world-planning-editor .ip-map-footer { background:#e8eddd; border-color:#c4cbb7; color:#40594f; }
+.world-planning-editor .ip-brand h1,
+.world-planning-editor .ip-brand p,
+.world-planning-editor .ip-brand small,
+.world-planning-editor .ip-topbar strong,
+.world-planning-editor .ip-topbar span { color:#40594f; }
+.world-planning-editor button,
+.world-planning-editor input,
+.world-planning-editor select { color:#40594f; background:#f8f4e8; border-color:#b9c7b0; }
+.world-planning-editor button:hover { background:#e2e9d4; border-color:#819c79; }
+.world-planning-editor button.active,
+.world-planning-editor button[aria-pressed="true"] { background:#d3dfc2; color:#334d40; border-color:#819c79; }
+.world-planning-editor input[type="range"] { accent-color:#829d72; }
+.world-planning-editor .base-control-group,
+.world-planning-editor .wp-local,
+.world-planning-editor .base-layers,
+.world-planning-editor .ip-parameter { border-color:#c4cbb7; }
+.world-planning-editor .ip-parameter-help { margin:10px 12px; font-size:12px; line-height:1.6; color:#526a58; }
+.world-planning-editor .base-control-group summary,
+.world-planning-editor .base-layers summary,
+.world-planning-editor .ip-parameter,
+.world-planning-editor .ip-parameter > span,
+.world-planning-editor .ip-parameter output,
+.world-planning-editor .wp-local-hint,
+.world-planning-editor .base-domain { color:#526b59; }
+.world-planning-editor .ip-map-footer [role="status"] { color:#627967; }
+.world-planning-editor .base-label,
+.world-planning-editor .base-title,
+.world-planning-editor .base-subtitle,
+.world-planning-editor .base-height { fill:#40594f; }
+.world-planning-editor .ip-svg,
+.world-planning-editor .ip-viewport { background:#b5d6db; }
+.world-planning-editor .wp-layer-panel { background:#edf0e2; border-color:#c4cbb7; }
+.world-planning-editor .wp-layer-panel h2,
+.world-planning-editor .wp-seed,
+.world-planning-editor .ip-sidebar-footer,
+.world-planning-editor .ip-brand > span,
+.world-planning-editor .ip-domain { color:#526b59; }
+.world-planning-editor .ip-topbar nav button[aria-pressed="true"] { background:#d3dfc2; border-color:#819c79; color:#334d40; }
+.world-planning-editor [aria-label="白盒测试模式"] { background:#eef0e3ee !important; color:#40594f !important; }
+.world-planning-editor .ip-feature:focus-visible > .ip-feature-outline,
+.world-planning-editor .ip-feature.is-selected .ip-feature-outline,
+.world-planning-editor .ip-feature.is-selected > .planning-module-outline { vector-effect:non-scaling-stroke; stroke-width:1.75px; filter:none; }
+.world-planning-editor .ip-feature[data-owner-id].is-selected > [data-road-selection="fill"],
+.world-planning-editor .ip-feature[data-owner-id]:focus-visible > [data-road-selection="fill"],
+.world-planning-editor .ip-feature[data-owner-id]:hover > [data-road-selection="fill"] { fill:#cda976; fill-opacity:1; stroke:none; stroke-width:0; filter:none; }
+
+.poi-explanation { margin:9px 11px; font-size:11px; line-height:1.65; color:#657561; }
+[data-poi-tier] { border:0; border-top:1px solid #d4dbc8; margin:10px 11px; padding:8px 0 0; }
+[data-poi-tier] legend { font-size:12px; font-weight:600; }
+.poi-range { display:flex; align-items:end; gap:8px; }
+.poi-range label { flex:1; min-width:0; font-size:10px; }
+.poi-range input { display:block; width:100%; padding:6px; margin-top:3px; border:1px solid #b9c7b0; border-radius:4px; }
+.poi-range input[aria-invalid="true"] { border-color:#be6240; }
+[data-poi-metrics] { display:block; margin-top:6px; font-size:11px; font-variant-numeric:tabular-nums; }
+
+/* Global defaults and selected-instance overrides are separate editing scopes. */
+.world-planning-editor [hidden] { display:none !important; }
+.wp-tabs { display:flex; gap:6px; padding:8px 14px; position:sticky; top:0; z-index:2; background:#edf0e2; border-bottom:1px solid #c4cbb7; }
+.wp-tabs button { flex:1; padding:8px 5px; border:1px solid; border-radius:5px; font-size:12px; }
+.wp-section-title { font-size:11px; letter-spacing:.08em; color:#6b7b64; margin:18px 24px 6px; }
+.wp-object-list { padding:0 5px 15px; margin-bottom:14px; border-bottom:1px solid #c4cbb7; }
+.wp-object-list button { display:block; width:100%; padding:8px; margin:5px 0; text-align:left; border:1px solid; border-radius:5px; font-size:11px; }
+.wp-object-list .poi-explanation { margin:2px 0 10px; }
+.wp-local > strong { display:block; font-size:14px; margin:4px 0 12px; }
+.wp-local > button { font-size:10px; padding:5px 8px; border:1px solid; border-radius:4px; }
+.wp-local > p { font-size:11px; line-height:1.8; color:#647560; }
+/* Hierarchy rows have independent disclosure, focus and visibility hit areas. */
+body, body * { user-select:none; -webkit-user-select:none; }
+.world-planning-editor .wp-layer-node.base-control-group { margin:0; border:0; border-radius:0; }
+.wp-layer-children { padding-left:12px; }
+.wp-layer-row { display:grid; grid-template-columns:26px minmax(0,1fr) 28px; align-items:stretch; font-size:11px; }
+.wp-layer-row .wp-layer-visibility { align-self:center; justify-self:center; width:16px; height:16px; margin:0; accent-color:#829d72; cursor:pointer; }
+.wp-layer-row .wp-layer-visibility:disabled { cursor:default; }
+.wp-layer-row .wp-layer-disclosure { color:inherit; background:none; border:0; padding:0; cursor:pointer; }
+.wp-layer-disclosure[aria-expanded]::before { content:""; display:inline-block; border:solid currentColor; border-width:0 1.5px 1.5px 0; padding:3px; transform:rotate(-45deg); }
+.wp-layer-disclosure[aria-expanded="true"]::before { transform:translateY(-2px) rotate(45deg); }
+.wp-layer-row.is-disabled { opacity:.4; cursor:default; }
+
+.world-planning-editor .ip-feature .base-label { pointer-events:all; cursor:pointer; }
+
+.wp-layer-row .wp-layer-focus { font:inherit; color:inherit; background:none; border:0; padding:8px 4px; min-width:0; text-align:left; cursor:pointer; }
+.wp-layer-row .wp-layer-focus:hover { background:#d6e1bd66; }
+.wp-layer-row button:focus-visible, .wp-layer-row input:focus-visible { outline:2px solid #829d72; outline-offset:3px; }
+
+.wp-layer-row.is-selected { background:#d6e1bd; box-shadow:inset 3px 0 #476846; border-radius:3px; }
+.wp-layer-focus { overflow-wrap:anywhere; }
+
+.wp-diagnostic-item { display:block; width:100%; padding:6px; text-align:left; font-size:10px; overflow-wrap:anywhere; }

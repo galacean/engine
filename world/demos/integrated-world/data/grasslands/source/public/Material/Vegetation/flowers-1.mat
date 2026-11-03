@@ -1,0 +1,181 @@
+{
+  "name": "flowers-1",
+  "shader": "Terrain/Vegetation",
+  "shaderRef": {
+    "url": "Shader/Vegetation.shaderc"
+  },
+  "shaderData": {
+    "material_BaseColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.009027671748288535,
+        "g": 0.22322792849339698,
+        "b": 0.006512087559277722,
+        "a": 0
+      }
+    },
+    "material_Tiling": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_Smoothness": {
+      "type": "Float",
+      "value": 0.20000000298023224
+    },
+    "material_SmoothnessTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/809290efbe907696.png"
+      }
+    },
+    "material_NormalScale": {
+      "type": "Float",
+      "value": 0.699999988079071
+    },
+    "material_BaseTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/a00617d5ec5b44ba.png"
+      }
+    },
+    "material_NormalTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/4cb3a24c61098c5d.png"
+      }
+    },
+    "material_AlphaCutoff": {
+      "type": "Float",
+      "value": 0.15000000596046448
+    },
+    "material_LightingFlatness": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_SecondColor": {
+      "type": "Color",
+      "value": {
+        "r": 0.9330296819705113,
+        "g": 0.019377881260097495,
+        "b": 1,
+        "a": 0
+      }
+    },
+    "material_SecondColorOffset": {
+      "type": "Float",
+      "value": 1.4199999570846558
+    },
+    "material_SecondColorFade": {
+      "type": "Float",
+      "value": -0.7699999809265137
+    },
+    "material_SecondColorWorldNoiseScale": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_TranslucencyColor": {
+      "type": "Color",
+      "value": {
+        "r": 1,
+        "g": 1,
+        "b": 1,
+        "a": 0
+      }
+    },
+    "material_TranslucencyIntensity": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_WindForce": {
+      "type": "Float",
+      "value": 0.20000000298023224
+    },
+    "material_WindWavesScale": {
+      "type": "Float",
+      "value": 0.5
+    },
+    "material_WindFlowDensity": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_UVBaseLock": {
+      "type": "Float",
+      "value": 0
+    },
+    "material_GrassDistanceFadeEnable": {
+      "type": "Float",
+      "value": 1
+    },
+    "material_GrassFadeDistance": {
+      "type": "Float",
+      "value": 90
+    },
+    "material_GrassFalloff": {
+      "type": "Float",
+      "value": 0.800000011920929
+    },
+    "material_LodDitherTexture": {
+      "type": "Texture",
+      "value": {
+        "url": "Texture/140c55bd97c21b9b.png"
+      }
+    },
+    "material_LodDitherTextureInvSize": {
+      "type": "Float",
+      "value": 0.015625
+    },
+    "material_SnowResponse": {
+      "type": "Vector4",
+      "value": {
+        "x": 0.25,
+        "y": 0,
+        "z": 1,
+        "w": 0
+      }
+    },
+    "material_WindGroundWaveParams": {
+      "type": "Vector4",
+      "value": {
+        "x": 1.18,
+        "y": 0.55,
+        "z": 0.14,
+        "w": 0.34
+      }
+    },
+    "material_WindGroundShapeParams": {
+      "type": "Vector4",
+      "value": {
+        "x": 0.25,
+        "y": 1.18,
+        "z": 0.06,
+        "w": 0.2
+      }
+    }
+  },
+  "macros": [
+    {
+      "name": "MATERIAL_ENABLE_SECOND_COLOR"
+    },
+    {
+      "name": "MATERIAL_ENABLE_WIND"
+    },
+    {
+      "name": "MATERIAL_HAS_BASETEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_NORMALTEXTURE"
+    },
+    {
+      "name": "MATERIAL_HAS_SMOOTHNESS_TEXTURE"
+    },
+    {
+      "name": "MATERIAL_SECOND_COLOR_UV_GRADIENT"
+    },
+    {
+      "name": "MATERIAL_WIND_GROUND_VEGETATION"
+    },
+    {
+      "name": "MATERIAL_VEGETATION_CLIMATE_FLOWER"
+    }
+  ]
+}

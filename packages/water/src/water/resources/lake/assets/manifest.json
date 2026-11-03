@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "caseId": "showcase-grasslands-stylized-water",
+  "authorization": {
+    "status": "resolved-user-confirmed-paid-license",
+    "confirmationDate": "2026-07-24",
+    "allowedUse": ["project-use", "derivative-processing", "repository-integration", "demo-build-integration"],
+    "excludedUse": ["source-package-repackaging", "resale", "independent-asset-distribution"]
+  },
+  "reference": {
+    "repositoryStored": false,
+    "localPath": "external-reference/target-water-effect.png",
+    "sha256": "c0f711b35a06a31557c3a4ca922ed06cb3c02bca769df420024749b6fd77b4cb",
+    "width": 1340,
+    "height": 662,
+    "use": "internal-reference-parity-only"
+  },
+  "assets": [
+    {
+      "id": "grasslands-water-normal-1024",
+      "role": "derived-external-tangent-normal",
+      "sourcePath": "galacean-inputs/derived/textures/grasslands-water-normal-1024.png",
+      "sourceSha256": "af03f8e85a378367fc5e6a9f93faae1b1d83f4bd109a9ad247a864a506661f44",
+      "sourceByteLength": 1110556,
+      "origin": {
+        "path": "private commercial source package; file not stored",
+        "sha256": "0d9bfdded6d8c46cff4afe145cf052ec31f079ae03d89b73599ccb7807c02332",
+        "semantic": "grayscale height texture converted offline to a tangent-space normal map",
+        "offlineConversion": {
+          "heightToNormal": true,
+          "heightScale": 0.01,
+          "filter": "Sobel"
+        }
+      },
+      "trackedPath": "assets/grasslands-water-normal-512.ktx2",
+      "trackedUrl": "./assets/grasslands-water-normal-512.ktx2",
+      "trackedSha256": "4ba55626a9d761edf5d5beb7d71eafdf2e9d393e3029b33491b0dd3d44159594",
+      "byteLength": 271969,
+      "width": 512,
+      "height": 512,
+      "derivative": {
+        "kind": "offline-height-to-tangent-normal",
+        "steps": [
+          "convert the licensed grayscale height texture to a tangent normal with height scale 0.01 and Sobel filtering",
+          "decode the packed tangent normal into linear RGBA8",
+          "export the decoded 1024x1024 source texture",
+          "downsample the runtime derivative to 512x512 for the mobile profile",
+          "encode RGB as linear UASTC quality 4 with Zstd 18 and a complete offline mip chain"
+        ]
+      },
+      "runtimeEncoding": {
+        "container": "KTX2",
+        "codec": "UASTC",
+        "quality": 4,
+        "supercompression": "Zstd 18",
+        "dimensions": [512, 512],
+        "sourceSemanticSha256": "af03f8e85a378367fc5e6a9f93faae1b1d83f4bd109a9ad247a864a506661f44"
+      },
+      "sampling": {
+        "colorSpace": "linear",
+        "wrapU": "repeat",
+        "wrapV": "repeat",
+        "filter": "bilinear",
+        "mipmaps": true,
+        "anisotropy": 1
+      },
+      "ownership": {
+        "creator": "LakeNormalAssetLoader",
+        "runtime": "borrowed",
+        "destroyer": "LakeNormalAssetLoader"
+      }
+    }
+  ],
+  "excludedFiles": [
+    "complete commercial source package",
+    "purchase account or order data",
+    "unrelated source-editor assets",
+    "Lotus assets",
+    "source shader code"
+  ]
+}
