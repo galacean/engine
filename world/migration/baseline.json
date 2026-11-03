@@ -1,6 +1,6 @@
 {
   "targetRepository": "https://github.com/galacean/engine",
-  "branch": "codex/seed-world-monorepo",
+  "branch": "dev/engine-next",
   "targetBase": "aa195af6d5e07b4006b76ff7d6716ce58fac2580",
   "sourceRepository": "https://github.com/galacean/engine-next",
   "sourceHead": "0963b42d76040e8587a07b6837c3f4091f4cf332",
