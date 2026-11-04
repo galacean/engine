@@ -11,8 +11,7 @@ import {
   resourceLoader,
   ResourceManager,
   Scene,
-  ScreenSpaceReflectionReceiverPolicy,
-  ScreenSpaceReflectionUpsamplingMode
+  ScreenSpaceReflectionSettings
 } from "@galacean/engine-core";
 import { resolveRefItem } from "./schema/refs";
 import type { RefItem } from "./schema/CommonSchema";
@@ -30,15 +29,8 @@ function loadRef<T extends EngineObject>(
 }
 
 function applySceneScreenSpaceReflection(scene: Scene, sceneData: SceneFile["scene"]): void {
-  // Missing SSR is a legacy asset: preserve the previous Engine defaults.
-  scene.screenSpaceReflection.apply(
-    sceneData.screenSpaceReflection ?? {
-      receiverPolicy: ScreenSpaceReflectionReceiverPolicy.ExplicitOnly,
-      resolutionScale: 1,
-      upsamplingMode: ScreenSpaceReflectionUpsamplingMode.GaussianBilateral,
-      maxRayDistance: 20
-    }
-  );
+  // Missing SSR restores the same defaults as a runtime-created Scene.
+  scene.screenSpaceReflection.apply(sceneData.screenSpaceReflection ?? new ScreenSpaceReflectionSettings().toJSON());
 }
 
 /**

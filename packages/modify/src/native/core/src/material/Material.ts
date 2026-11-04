@@ -24,6 +24,11 @@ export class Material extends ReferResource implements IClone {
   );
 
   private _screenSpaceReflection: Readonly<ScreenSpaceReflectionMaterialSettings> | null = null;
+  private _screenSpaceReflectionRuntimeReceiver: {
+    mode: ScreenSpaceReflectionReceiverMode;
+    intensity: number;
+    registered: boolean;
+  } | null = null;
   /** Author intent, independent of the current shader, queue and compatible material lobes. */
   get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> {
     return (
@@ -34,7 +39,28 @@ export class Material extends ReferResource implements IClone {
       })
     );
   }
-  set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings>) {
+  /** Set null to release author ownership and restore the previous runtime receiver. */
+  set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings> | null) {
+    if (value == null) {
+      if (!this._screenSpaceReflection) return;
+      const receiver = this._screenSpaceReflectionRuntimeReceiver;
+      this._screenSpaceReflection = null;
+      this._screenSpaceReflectionRuntimeReceiver = null;
+      ScreenSpaceReflection.resolveMaterialReceiver(this);
+      if (receiver) {
+        this.shaderData.setFloat(Material._screenSpaceReflectionModeProperty, receiver.mode);
+        this.shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, receiver.intensity);
+        this._screenSpaceReflectionReceiverRegistered = receiver.registered;
+      }
+      return;
+    }
+    if (!this._screenSpaceReflection) {
+      this._screenSpaceReflectionRuntimeReceiver = {
+        mode: this.shaderData.getFloat(Material._screenSpaceReflectionModeProperty),
+        intensity: this.shaderData.getFloat(Material._screenSpaceReflectionIntensityProperty),
+        registered: this._screenSpaceReflectionReceiverRegistered
+      };
+    }
     this._screenSpaceReflection = Object.freeze({
       mode: value.mode === "On" || value.mode === "Auto" ? value.mode : "Off",
       intensity: Math.max(0, Math.min(1, Number.isFinite(value.intensity) ? value.intensity : 1))
@@ -126,6 +152,9 @@ export class Material extends ReferResource implements IClone {
     target._screenSpaceReflectionReceiverRegistered = this._screenSpaceReflectionReceiverRegistered;
     target._screenSpaceReflection = this._screenSpaceReflection
       ? Object.freeze({ ...this._screenSpaceReflection })
+      : null;
+    target._screenSpaceReflectionRuntimeReceiver = this._screenSpaceReflectionRuntimeReceiver
+      ? { ...this._screenSpaceReflectionRuntimeReceiver }
       : null;
   }
 

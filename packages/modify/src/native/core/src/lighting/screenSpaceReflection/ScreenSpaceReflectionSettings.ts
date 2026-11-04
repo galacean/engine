@@ -23,14 +23,17 @@ export interface ScreenSpaceReflectionSettingsData {
   maxRoughness: number;
   edgeFade: number;
 }
-/** Scene author settings. New scenes use standard PBR auto receivers. */
+/** Scene author settings. Runtime construction preserves the legacy receiver policy and trace budget. */
 export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSettingsData {
   /** @internal Scene changes are consumed once at camera render preparation. */
   _version = 0;
   private _data: ScreenSpaceReflectionSettingsData = {
     ...ScreenSpaceReflectionSettings.performancePreset(ScreenSpaceReflectionQuality.Medium),
     activationMode: ScreenSpaceReflectionActivationMode.Auto,
-    receiverPolicy: ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto,
+    receiverPolicy: ScreenSpaceReflectionReceiverPolicy.ExplicitOnly,
+    resolutionScale: 1,
+    upsamplingMode: ScreenSpaceReflectionUpsamplingMode.GaussianBilateral,
+    maxRayDistance: 20,
     intensity: 1,
     rayLengthFade: ScreenSpaceReflection.getQualityPreset(ScreenSpaceReflectionQuality.Medium).rayLengthFade,
     maxRoughness: ScreenSpaceReflection.getQualityPreset(ScreenSpaceReflectionQuality.Medium).maxRoughness,

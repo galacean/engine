@@ -97,12 +97,14 @@ it("loads three camera policies and resolves scene changes, dynamic cameras and 
   scene.destroy();
   other.destroy();
 });
-it("keeps legacy scene defaults and new scene defaults distinct", async () => {
+it("keeps runtime and missing-field scene defaults compatible; explicit product settings opt in", async () => {
   const scene = await engine.resourceManager.load<Scene>({ type: AssetType.Scene, url: resource(sceneData()) });
   expect(scene.screenSpaceReflection.receiverPolicy).toBe(Policy.ExplicitOnly);
   expect(scene.screenSpaceReflection.resolutionScale).toBe(1);
   const fresh = new Scene(engine);
-  expect(fresh.screenSpaceReflection.receiverPolicy).toBe(Policy.StandardPbrAuto);
+  expect(fresh.screenSpaceReflection.toJSON()).toEqual(scene.screenSpaceReflection.toJSON());
+  fresh.screenSpaceReflection.apply({ receiverPolicy: Policy.StandardPbrAuto });
+  fresh.screenSpaceReflection.applyPerformancePreset(Quality.Medium);
   expect(fresh.screenSpaceReflection.resolutionScale).toBe(0.5);
   scene.destroy();
   fresh.destroy();
@@ -162,6 +164,7 @@ it("Auto selects consumer requests and forced modes preserve dormant requests", 
 });
 it("loads four material classes, preserves strength, resolves queues and restores after incompatible lobes", async () => {
   const scene = new Scene(engine);
+  scene.screenSpaceReflection.receiverPolicy = Policy.StandardPbrAuto;
   const ssr = scene.createRootEntity().addComponent(Camera).screenSpaceReflection;
   const loaded: Material[] = [];
   for (const [shader, mode] of [
@@ -212,7 +215,7 @@ it("loads four material classes, preserves strength, resolves queues and restore
 it("renders a loaded author configuration through the built shader/pipeline", async () => {
   const scene = await engine.resourceManager.load<Scene>({
     type: AssetType.Scene,
-    url: resource(sceneData({ activationMode: Mode.ForceOn }))
+    url: resource(sceneData({ activationMode: Mode.ForceOn, receiverPolicy: Policy.StandardPbrAuto }))
   });
   engine.sceneManager.activeScene = scene;
   const camera = scene.rootEntities[0].getComponent(Camera)!;

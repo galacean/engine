@@ -306,7 +306,7 @@ export class SeedWorldPicker {
       aa = camera.antiAliasing;
     const depthMode = camera.depthTextureMode,
       opaque = camera.opaqueTextureEnabled;
-    const ssr = camera.screenSpaceReflection.activationMode,
+    const ssr = camera.screenSpaceReflectionSettings,
       ao = camera.scene!.ambientOcclusion.enabled;
     const backgroundMode = background.mode;
     this.savedColor.copyFrom(background.solidColor);
@@ -412,7 +412,7 @@ export class SeedWorldPicker {
       camera.antiAliasing = aa;
       camera.depthTextureMode = depthMode;
       camera.opaqueTextureEnabled = opaque;
-      camera.screenSpaceReflection.activationMode = ssr;
+      camera.screenSpaceReflectionSettings = ssr;
       camera.scene!.ambientOcclusion.enabled = ao;
       background.mode = backgroundMode;
       background.solidColor = this.savedColor;
