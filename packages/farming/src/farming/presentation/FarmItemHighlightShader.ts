@@ -8,7 +8,7 @@ export const FARM_ITEM_HIGHLIGHT_SHADER = pbr
   .replace("varyings.vertexColor = vec4(1.0);", "varyings.vertexColor = attributes.COLOR_0;")
   .replace("varyings.organMask = attributes.COLOR_0.a;", "")
   .replace(
-    / {2}float organMembership = 0\.0;[\s\S]*? {2}\/\/ Can modify surfaceData here/,
+    /  float organMembership = 0\.0;[\s\S]*?  \/\/ Can modify surfaceData here/,
     `  SurfaceData surfaceData = getSurfaceData(varyings, aoUV, gl_FrontFacing);
   // Preserve the original material inputs; highlight is added only to the final surface radiance.`
   )

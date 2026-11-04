@@ -23,7 +23,7 @@ const MECHANICAL_TEXTURE_WIDTH = 256;
 const MINIMUM_ROOT_SECTION_VERTICES = 3;
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const terrainDirectory = resolve(scriptDirectory, "../..");
+const terrainDirectory = resolve(dirname(fileURLToPath(import.meta.resolve("@galacean/engine-terrain/data/grasslands/project.json"))), "../..");
 const sourceModelDirectory = resolve(terrainDirectory, "data/grasslands/source/public/Models");
 const releaseModelDirectory = resolve(terrainDirectory, "data/grasslands/public/Models");
 

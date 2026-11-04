@@ -99,7 +99,7 @@ export const SOIL_MOISTURE_SHADER = pbr
   SurfaceData surfaceData = getSurfaceData`
   )
   .replace(
-    / {2}float value = max\(surfaceData\.albedoColor[\s\S]*?\/\/ Can modify surfaceData here/,
+    /  float value = max\(surfaceData\.albedoColor[\s\S]*?\/\/ Can modify surfaceData here/,
     `
     #ifdef RENDERER_ENABLE_VERTEXCOLOR
       surfaceData.opacity *= coverage;

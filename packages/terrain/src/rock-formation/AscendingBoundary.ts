@@ -24,7 +24,7 @@ export function ascendingBoundary(source: GuideProfile) {
     const a = source.top[i],
       b = source.top[(i + 1) % source.top.length];
     for (const t of [0, ...source.faces[i].bottomSplits]) {
-      const u = a.uv[0] + (b.uv[0] - a.uv[0]) * t,
+      let u = a.uv[0] + (b.uv[0] - a.uv[0]) * t,
         v = a.uv[1] + (b.uv[1] - a.uv[1]) * t;
       const x = (u * width) / 2,
         z = (v * depth) / 2,

@@ -195,13 +195,13 @@ const billboardSource = {
 };
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-const demoDirectory = resolve(scriptDirectory, "..");
-const grasslandsPublicDirectory = resolve(demoDirectory, "../data/grasslands/public");
+const dataDirectory = dirname(dirname(fileURLToPath(import.meta.resolve("@galacean/engine-terrain/data/grasslands/project.json"))));
+const grasslandsPublicDirectory = resolve(dataDirectory, "grasslands/public");
 const sourceModelDirectory = join(grasslandsPublicDirectory, "Models");
 const sourceMaterialDirectory = join(grasslandsPublicDirectory, "Material");
 const sourcePrototypeDirectory = join(grasslandsPublicDirectory, "Prefab", "Prototype");
 const sourceTextureDirectory = join(grasslandsPublicDirectory, "Texture");
-const sourceAuthoringDirectory = resolve(demoDirectory, "../data/seed-world/source");
+const sourceAuthoringDirectory = resolve(dataDirectory, "seed-world/source");
 const grassSourceDirectory = join(sourceAuthoringDirectory, "grass");
 const sourceTerrainDirectory = join(sourceAuthoringDirectory, "terrain");
 const stylizedSourceDirectory = join(sourceAuthoringDirectory, "stylized-environment");
@@ -212,10 +212,10 @@ const lotusSourceDirectory = join(sourceAuthoringDirectory, "grasslands-stylized
 const lotusModelDirectory = join(lotusSourceDirectory, "models");
 const lotusTextureDirectory = join(lotusSourceDirectory, "textures");
 const lotusCatalog = JSON.parse(await readFile(join(lotusSourceDirectory, "catalog.json"), "utf8"));
-const smoothCliffModelDirectory = resolve(demoDirectory, "../data/unity-cliffs-smooth/models");
-const outputDirectory = resolve(demoDirectory, "../data/seed-world/public");
+const smoothCliffModelDirectory = resolve(dataDirectory, "unity-cliffs-smooth/models");
+const outputDirectory = resolve(dataDirectory, "seed-world/public");
 
-if (dirname(outputDirectory) !== resolve(demoDirectory, "../data/seed-world")) {
+if (dirname(outputDirectory) !== resolve(dataDirectory, "seed-world")) {
   throw new Error("Generated Seed World assets must remain inside data/seed-world/public");
 }
 

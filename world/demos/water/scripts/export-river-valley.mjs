@@ -8,9 +8,7 @@ const arg = (name, fallback) => {
   const i = process.argv.indexOf(name);
   return i < 0 ? fallback : process.argv[i + 1];
 };
-const sourceProject = arg("--source-project", undefined);
-if (!sourceProject) throw new Error("--source-project must point to the external Unity project");
-const source = resolve(sourceProject);
+const source = resolve(arg("--source-project", "/Users/xingyi/Documents/github_code/stylized-water-2-demo"));
 const output = resolve(arg("--output", join(directory, "../assets/valley")));
 const editor = arg("--unity-editor", "/Applications/Unity/Hub/Editor/2021.3.45f1/Unity.app/Contents/MacOS/Unity");
 const scratch = await mkdtemp(join(tmpdir(), "river-valley-export-"));

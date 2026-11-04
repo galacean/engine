@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-const root = new URL('../dsh', import.meta.url);
+const root = new URL('../dsh/', import.meta.url);
 const manifest = JSON.parse(readFileSync(new URL('manifest.json', root), 'utf8'));
 const hash = value => createHash('sha256').update(value).digest('hex');
 for (const [file, expected] of Object.entries(manifest.outputs)) {

@@ -1,2 +1,5 @@
 dist/
 node_modules/
+.acceptance/
+# Agent declarations are runtime knowledge inputs, not generated engine API docs.
+!demos/seed-world/agent-adapter/contracts/generated/api/

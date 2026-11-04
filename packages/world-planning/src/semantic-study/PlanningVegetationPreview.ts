@@ -12,7 +12,7 @@ import terrainShader from "@galacean/engine-terrain/shaders/Terrain.shader?raw";
 import { vegetationCoverage, type VegetationCoverage } from "../spatial/ecology/VegetationCoverage";
 import type { IslandPlan } from "./IslandPlanModel";
 
-const sources = import.meta.glob("../../shaders/**/*.glsl", {
+const sources = import.meta.glob("../../../terrain/src/shaders/**/*.glsl", {
   query: "?raw",
   import: "default",
   eager: true
@@ -45,7 +45,7 @@ export class PlanningVegetationPreview {
     let shader = Shader.find(name);
     if (!shader) {
       for (const [path, source] of Object.entries(sources)) {
-        const name = path.replace("../../shaders/", "");
+        const name = path.replace("../../../terrain/src/shaders/", "");
         if (!ShaderFactory.includeMap[name]) ShaderFactory.registerInclude(name, source);
       }
       shader = Shader.create(

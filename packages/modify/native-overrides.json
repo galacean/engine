@@ -672,7 +672,55 @@
     "replacement": "packages/modify/src/native/core/src/ComponentsManager.ts"
   },
   {
-    "original": "packages/rhi-webgl/src/WebGLEngine.ts",
-    "replacement": "packages/modify/src/native/rhi-webgl/src/WebGLEngine.ts"
+    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleMesh.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleCommon.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/ParticleVert.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/ParticleVert.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/SizeOverLifetime.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/RotationOverLifetime.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/NoiseModule.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/ColorOverLifetime.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/SphereBillboard.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl"
+  },
+  {
+    "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl",
+    "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl"
   }
 ]

@@ -36,7 +36,7 @@ export function createSeedWorldKnowledge(
     ? collectPlanningSystemKnowledge(componentTypes ?? planningRegistry.describe().map(component => component.type))
     : [];
   const documents = Object.entries(files).flatMap(([path, content]) => {
-    const relative = path.slice("./knowledge".length);
+    const relative = path.slice("./knowledge/".length);
     const folder = relative.split("/")[0];
     const domain = folder === "object-management" ? "world" : folder;
     const hasApis = SEED_WORLD_API_CONTRACTS.some(api => api.domain === domain && available.has(api.name));

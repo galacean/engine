@@ -98,7 +98,7 @@ const inputSchemaNames = schemaDependencyClosure(
 // Write its generated contracts to the authoritative Gallery so a later test
 // sync cannot restore stale declarations over a successful generation.
 const generatedDirectory = process.env.WORLD_GALLERY_SOURCE_ROOT
-  ? resolve(process.env.WORLD_GALLERY_SOURCE_ROOT, "demos/terrain/seed-world-planner/agent-adapter/contracts/generated")
+  ? resolve(process.env.WORLD_GALLERY_SOURCE_ROOT, "world/demos/seed-world/agent-adapter/contracts/generated")
   : resolve(dirname(__filename), "generated");
 const declarationDirectory = resolve(generatedDirectory, "api");
 const checkMode = process.argv.includes("--check");

@@ -17,9 +17,9 @@ import Lighting_RealtimeIBLProjectSH from "./Lighting/RealtimeIBLProjectSH.shade
 import Lighting_RealtimeIBLResolve from "./Lighting/RealtimeIBLResolve.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
 import Lighting_ScreenSpaceReflection from "./Lighting/ScreenSpaceReflection.shader";
-import Pipeline_ScreenSpaceReflectionSurface from "./Pipeline/ScreenSpaceReflectionSurface.shader";
 import PBR from "./PBR.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
+import Pipeline_ScreenSpaceReflectionSurface from "./Pipeline/ScreenSpaceReflectionSurface.shader";
 import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.shader";
@@ -29,6 +29,10 @@ import Sky_BackgroundTexture from "./Sky/BackgroundTexture.shader";
 import Sky_SkyProcedural from "./Sky/SkyProcedural.shader";
 import Sky_Skybox from "./Sky/Skybox.shader";
 import Unlit from "./Unlit.shader";
+import World_VolumetricCloud from "./World/VolumetricCloud.shader";
+import World_WindGpuField from "./World/WindGpuField.shader";
+import World_WindGpuGroundResponse from "./World/WindGpuGroundResponse.shader";
+import World_WindGpuTreeResponse from "./World/WindGpuTreeResponse.shader";
 
 export interface IShaderSource {
   path: string;
@@ -54,9 +58,9 @@ export const shaders: IShaderSource[] = [
   { source: Lighting_RealtimeIBLResolve, path: "Shaders/Lighting/RealtimeIBLResolve.shader" },
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
   { source: Lighting_ScreenSpaceReflection, path: "Shaders/Lighting/ScreenSpaceReflection.shader" },
-  { source: Pipeline_ScreenSpaceReflectionSurface, path: "Shaders/Pipeline/ScreenSpaceReflectionSurface.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
+  { source: Pipeline_ScreenSpaceReflectionSurface, path: "Shaders/Pipeline/ScreenSpaceReflectionSurface.shader" },
   { source: Pipeline_ShadowCaster, path: "Shaders/Pipeline/ShadowCaster.shader" },
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },
   { source: PostProcess_FinalAntiAliasing, path: "Shaders/PostProcess/FinalAntiAliasing.shader" },
@@ -66,4 +70,8 @@ export const shaders: IShaderSource[] = [
   { source: Sky_SkyProcedural, path: "Shaders/Sky/SkyProcedural.shader" },
   { source: Sky_Skybox, path: "Shaders/Sky/Skybox.shader" },
   { source: Unlit, path: "Shaders/Unlit.shader" },
+  { source: World_VolumetricCloud, path: "Shaders/World/VolumetricCloud.shader" },
+  { source: World_WindGpuField, path: "Shaders/World/WindGpuField.shader" },
+  { source: World_WindGpuGroundResponse, path: "Shaders/World/WindGpuGroundResponse.shader" },
+  { source: World_WindGpuTreeResponse, path: "Shaders/World/WindGpuTreeResponse.shader" },
 ];

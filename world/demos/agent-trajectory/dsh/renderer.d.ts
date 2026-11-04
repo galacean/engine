@@ -1,8 +1,8 @@
 // Typed offline entry points. Data/prop declarations are extracted from upstream by vendor-dsh.mjs.
 import type { ComponentType } from "react";
-import type { ImageGalleryProps } from "../platform-types.ts";
-import type { TrajectoryTranslate } from "./locales.ts";
-import type { TrajectoryTableProps, TrajectoryToolbarProps, TrajectoryTimelineProps, TrajectoryTurnModel, TrajectoryCellProps, TrajectoryTimelineMode, TrajectoryTimeRange, TrajectoryTimelineModel, CodeProgram } from "./contracts.ts";
+import type { ImageGalleryProps } from "../platform-types";
+import type { TrajectoryTranslate } from "./locales";
+import type { TrajectoryTableProps, TrajectoryToolbarProps, TrajectoryTimelineProps, TrajectoryTurnModel, TrajectoryCellProps, TrajectoryTimelineMode, TrajectoryTimeRange, TrajectoryTimelineModel, CodeProgram } from "./contracts";
 export const TrajectoryTable: ComponentType<TrajectoryTableProps>;
 export const TrajectoryToolbar: ComponentType<TrajectoryToolbarProps>;
 export const TrajectoryTimeline: ComponentType<TrajectoryTimelineProps>;

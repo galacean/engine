@@ -159,7 +159,7 @@ export function planFlowerRegions(
     let sample = surface.samples.get(id);
     if (!sample) {
       const land = lands.find((l) => l.inside(p));
-      const mask = land ? Math.min(1, land.distance(p, 6) / 6) : -1;
+      let mask = land ? Math.min(1, land.distance(p, 6) / 6) : -1;
       sample = { mask };
       surface.samples.set(id, sample);
     }

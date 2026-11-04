@@ -35,7 +35,7 @@ import {
 } from "@galacean/engine-terrain/terrain/project/TerrainTreeWindResponseControls";
 import type { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 
-const PROJECT_URL = "../../../terrain/src/data/grasslands/project.json";
+import PROJECT_URL from "@galacean/engine-terrain/data/grasslands/project.json?url";
 const DETAIL_INSTANCE_MACRO = "RENDERER_DETAIL_INSTANCE";
 const DETAIL_LOCAL_MATRIX = ShaderProperty.getByName("renderer_DetailLocalMatrix");
 const DETAIL_LOCAL_NORMAL_MATRIX = ShaderProperty.getByName("renderer_DetailLocalNormalMat");

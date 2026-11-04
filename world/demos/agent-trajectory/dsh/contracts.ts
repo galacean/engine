@@ -1,7 +1,7 @@
 // Generated public contracts from pinned DSH sources. Do not hand-edit.
 import type { HTMLAttributes } from 'react';
-import type { TrajectoryTranslate, NS } from './locales.ts';
-import type { TranslateNS, AttachmentId, PropsRenderSlots, MessageImageLoader, ToolSchema } from '../platform-types.ts';
+import type { TrajectoryTranslate, NS } from './locales';
+import type { TranslateNS, AttachmentId, PropsRenderSlots, MessageImageLoader, ToolSchema } from '../platform-types';
 
 export type TrajectoryCellKind =
   | 'system'

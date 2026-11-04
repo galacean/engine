@@ -295,7 +295,7 @@ export function prepareLandscapeBasemap(
   ]);
   const cached = slotCache.get(key);
   if (cached) return cached;
-  const slots = createSlots(
+  let slots = createSlots(
     plan,
     step,
     (center, source) => {

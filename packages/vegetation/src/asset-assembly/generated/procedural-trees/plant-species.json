@@ -18800,7 +18800,7 @@
         ]
       },
       "leafMaskLabel": "簇状针叶",
-      "leafMaskFile": "../../../../../../world/demos/integrated-world/data/seed-world/source/stylized-environment/textures/procedural-leaf-mask-fir.png",
+      "leafMaskFile": "../../../../../terrain/src/data/seed-world/source/stylized-environment/textures/procedural-leaf-mask-fir.png",
       "transitionHeights": [
         0.54785144,
         0.30072588

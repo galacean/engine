@@ -3,7 +3,7 @@ import { createServer } from "vite";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const directory = path.dirname(fileURLToPath(import.meta.url));
-const root = path.resolve(directory, "../../../..");
+const root = path.resolve(directory, "../../../../..");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 const structure = JSON.parse(input);
@@ -15,7 +15,7 @@ const vite = await createServer({
 });
 try {
   const { buildProceduralPlantGeometry } = await vite.ssrLoadModule(
-    "../ProceduralPlantGeometry.ts"
+    "/packages/vegetation/src/asset-assembly/ProceduralPlantGeometry.ts"
   );
   const lods = structure.lods.map((_, lod) =>
     buildProceduralPlantGeometry(structure, lod).map(({ partId, materialId, mesh }) => ({

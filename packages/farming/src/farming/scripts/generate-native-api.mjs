@@ -38,7 +38,7 @@ function collect(symbol) {
   for (let node of symbol.declarations ?? []) {
     if (ts.isEnumMember(node)) node = node.parent;
     const source = node.getSourceFile();
-    if (!source.fileName.includes("/packages/farming/src/farming/") && !source.fileName.includes("/packages/farming/src/interaction/")) continue;
+    if (!source.fileName.includes("/packages/farming/src/farming/") && !source.fileName.includes("/packages/project/src/interaction/")) continue;
     if (
       !(
         ts.isInterfaceDeclaration(node) ||
@@ -122,7 +122,7 @@ if (process.argv.includes("--check")) {
 } else {
   writeIfChanged(output, content);
 }
-const knowledgeDir = new URL("../native/knowledge", import.meta.url);
+const knowledgeDir = new URL("../native/knowledge/", import.meta.url);
 const paths = ["README.md", "operations.md", "state-and-units.md", "verification.md", "system-editor.md"];
 const docs = paths.map((path) => ({
   path: `farming/${path}`,

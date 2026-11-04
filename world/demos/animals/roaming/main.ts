@@ -72,14 +72,19 @@ class PreviewScene extends Script {
   }
 }
 
-void boot().catch((error: unknown) => {
-  status.textContent = `初始化失败：${error instanceof Error ? error.message : String(error)}`;
-  console.error("[animal-preview]", error);
-});
+type PreviewPackFiles = Readonly<Record<"audit" | "animals" | "registrations", string>>;
 
-async function boot(): Promise<void> {
-  const packBase = new URL(document.body.dataset.assetBase ?? ".", location.href);
-  const packFile = (name: string) => new URL(`./${name}.json`, packBase);
+/** Each HTML entry owns its pack; explicit URLs include its runtime data in production. */
+export function startAnimalPreview(files: PreviewPackFiles): void {
+  void boot(files).catch((error: unknown) => {
+    status.textContent = `初始化失败：${error instanceof Error ? error.message : String(error)}`;
+    console.error("[animal-preview]", error);
+  });
+}
+
+async function boot(files: PreviewPackFiles): Promise<void> {
+  const packBase = new URL(".", new URL(files.animals, document.baseURI));
+  const packFile = (name: keyof PreviewPackFiles) => files[name];
   const [audit, configuration, registrationSource] = await Promise.all([
     fetch(packFile("audit")).then((r) => {
       if (!r.ok) throw Error("素材检查数据加载失败");
@@ -95,7 +100,10 @@ async function boot(): Promise<void> {
     })
   ]);
   const catalog = buildCatalog(audit.assets, configuration);
-  const registered = registerAnimalCatalog(registrationSource, catalog.map((entry) => entry.config!));
+  const registered = registerAnimalCatalog(
+    registrationSource,
+    catalog.map((entry) => entry.config!)
+  );
   const behaviorCatalog = registered.behaviors;
   const habitats = registered ? new AnimalDemoHabitats() : undefined;
   const spawnPositions =

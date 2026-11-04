@@ -202,7 +202,7 @@ export const zh = {
 /** The trajectory dictionary key union. */
 export type TrajectoryKey = keyof typeof zh
 
-declare module '../platform-types.ts' {
+declare module '../platform-types' {
   interface LocaleNamespaceMap {
     /** The complete trajectory ledger, timeline, inspector, and toolbar copy. */
     trajectory: TrajectoryKey
@@ -211,7 +211,7 @@ declare module '../platform-types.ts' {
 
 /** Namespace-bound translator threaded through trajectory presentation code. */
 export type TrajectoryTranslate =
-  import('../platform-types.ts').TranslateNS<typeof NS>
+  import('../platform-types').TranslateNS<typeof NS>
 
 /** English dictionary, checked complete against the Chinese source of truth. */
 export const en: Record<TrajectoryKey, string> = {

@@ -375,6 +375,13 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
+    devDependencies:
+      '@galacean/engine-toolkit-controls':
+        specifier: 1.6.0
+        version: 1.6.0(@galacean/engine@packages+galacean)
+      '@swc/core':
+        specifier: ^1.3.49
+        version: 1.9.2(@swc/helpers@0.5.15)
 
   packages/physics-physx:
     devDependencies:

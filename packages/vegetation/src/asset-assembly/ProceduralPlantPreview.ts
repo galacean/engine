@@ -1,3 +1,5 @@
+import candidateUrl from "./generated/procedural-trees/highlands-fir-3-candidate.json?url";
+import plantSpeciesUrl from "./generated/procedural-trees/plant-species.json?url";
 import { decodePlantParameters } from "./PlantParameterEncoding";
 import {
   Camera,
@@ -215,7 +217,7 @@ export async function bootProceduralPlantPreview(): Promise<void> {
   };
   publish(current, 0, true);
   if (new URLSearchParams(location.search).get("candidate") === "highlands-fir-3") {
-    const response = await fetch("./generated/procedural-trees/highlands-fir-3-candidate.json");
+    const response = await fetch(candidateUrl);
     if (!response.ok) throw new Error(`Candidate parameters unavailable: ${response.status}`);
     const candidate = decodePlantParameters<ProceduralPlantStructure>(await response.json());
     panel.querySelector("p")!.textContent = "锥形针叶乔木参数拟合候选 · 未通过还原验收";
@@ -230,7 +232,7 @@ export async function bootProceduralPlantPreview(): Promise<void> {
   }
   if (library !== null) {
     if (library !== "meadow") throw new Error(`Unknown plant data library: ${library}`);
-    const base = "./generated/procedural-trees";
+    const base = new URL("./", new URL(plantSpeciesUrl, import.meta.url)).href;
     const response = await fetch(`${base}plant-species.json`);
     if (!response.ok) throw new Error(`Plant data library unavailable: ${response.status}`);
     const catalog: { assets: ProceduralPlantLibraryEntry[]; prototypes?: ProceduralPlantLibraryEntry[] } =

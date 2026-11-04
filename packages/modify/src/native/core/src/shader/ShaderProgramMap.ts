@@ -84,7 +84,7 @@ export class ShaderProgramMap {
     increaseHierarchy: number
   ): void {
     if (hierarchy == currentHierarchy - 1) {
-      for (const k in cacheMap) {
+      for (let k in cacheMap) {
         const value = <ShaderProgram>cacheMap[k];
         let subCacheMap = cacheMap;
         for (let i = 0; i < increaseHierarchy; i++) {
@@ -94,7 +94,7 @@ export class ShaderProgramMap {
       }
     } else {
       hierarchy++;
-      for (const k in cacheMap) {
+      for (let k in cacheMap) {
         this._resizeCacheMapHierarchy(<Tree>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }

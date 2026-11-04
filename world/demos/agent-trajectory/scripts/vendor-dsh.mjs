@@ -82,7 +82,7 @@ for (const name of ['renderer.js.map', 'renderer.css.map']) {
 copyFileSync(join(root, 'LICENSE'), join(out, 'LICENSE'));
 const commonLocale = 'packages/client/locale/src/locales/zh.ts';
 copyFileSync(join(root, commonLocale), join(out, 'common-locales.ts'));
-writeFileSync(join(out, 'locales.ts'), readFileSync(join(root, trajectory, 'locales.ts'), 'utf8').replaceAll("'@deepseek-ai/dsh-client-ui-slots'", "'../platform-types.ts'"));
+writeFileSync(join(out, 'locales.ts'), readFileSync(join(root, trajectory, 'locales.ts'), 'utf8').replaceAll("'@deepseek-ai/dsh-client-ui-slots'", "'../platform-types'"));
 // Copy only the public data interfaces needed at the offline host boundary, without service dependencies.
 const definitions = {
   [trajectory + 'trajectory-record.ts']: ['TrajectoryCellKind', 'AssistantMetricDetail', 'TrajectorySourceBlock', 'TrajectoryCellProps'],
@@ -99,7 +99,7 @@ const definitions = {
   'packages/client/ui-conversation/src/client/contract/slots.ts': ['MessageImageLabels'],
   'packages/attachment/attachment/src/types.ts': ['ImageMediaType', 'ImageAttachmentRef', 'FileAttachmentRef'],
 };
-let declarations = `// Generated public contracts from pinned DSH sources. Do not hand-edit.\nimport type { HTMLAttributes } from 'react';\nimport type { TrajectoryTranslate, NS } from './locales';\nimport type { TranslateNS, AttachmentId, PropsRenderSlots, MessageImageLoader, ToolSchema } from '../platform-types.ts';\n`;
+let declarations = `// Generated public contracts from pinned DSH sources. Do not hand-edit.\nimport type { HTMLAttributes } from 'react';\nimport type { TrajectoryTranslate, NS } from './locales';\nimport type { TranslateNS, AttachmentId, PropsRenderSlots, MessageImageLoader, ToolSchema } from '../platform-types';\n`;
 for (const [path, names] of Object.entries(definitions)) {
   const source = readFileSync(join(root, path), 'utf8');
   const ast = ts.createSourceFile(path, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);

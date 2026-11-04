@@ -616,7 +616,7 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
       const implicitBase = usesImplicitBase(document, entity, definition.type);
       for (const [key, path] of Object.entries(definition.local))
         if (component.values[key] !== undefined || (component.base && !implicitBase)) {
-          const value = effective[key];
+          let value = effective[key];
           writePath(edit, path, value);
         }
     }

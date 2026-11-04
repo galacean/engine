@@ -213,7 +213,7 @@ function moveWaterJunctionsToBanks(plan: IslandPlan): boolean {
       });
       const options = incident
         .flatMap((edge) => {
-          const at = edge.points.findIndex(dry);
+          let at = edge.points.findIndex(dry);
           if (at < 0) return [];
           if (at === edge.points.length - 1) {
             // Keep a nonzero final edge even for a two-point bank approach.

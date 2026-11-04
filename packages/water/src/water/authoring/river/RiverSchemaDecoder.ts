@@ -487,7 +487,7 @@ function normalizeTypedRiverConfig(
   mode: RiverValidationMode,
   diagnostics: RiverDiagnostic[]
 ): RiverAuthoringConfig {
-  const points: RiverPathControlPoint[] = config.path.points.map((point, index) => ({
+  let points: RiverPathControlPoint[] = config.path.points.map((point, index) => ({
     ...point,
     position: normalizeTuple(point.position, `path.points[${index}].position`, diagnostics, mode),
     in: point.in ? normalizeTuple(point.in, `path.points[${index}].in`, diagnostics, mode) : undefined,

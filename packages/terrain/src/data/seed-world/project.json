@@ -1487,7 +1487,7 @@
     },
     {
       "virtualPath": "World/Vegetation/sources/data/seed-world/source/stylized-environment/textures/procedural-leaf-mask-fir.png",
-      "path": "../../../../../world/demos/integrated-world/data/seed-world/source/stylized-environment/textures/procedural-leaf-mask-fir.png",
+      "path": "source/stylized-environment/textures/procedural-leaf-mask-fir.png",
       "type": "Texture",
       "params": {
         "isSRGBColorSpace": true,

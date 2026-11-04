@@ -3,25 +3,25 @@ const fs = require("node:fs");
 
 /** Assert the actual Rollup graph, including resolved dynamic imports and emitted assets. */
 function plantingProductionBoundary({ requirePlantCatalog = true } = {}) {
-  let galleryRoot;
+  let farmingRoot;
   return {
     name: "planting-production-boundary",
     apply: "build",
     configResolved() {
-      galleryRoot = path.resolve(__dirname, "../../..");
+      farmingRoot = path.resolve(__dirname, "..");
     },
     generateBundle(_options, bundle) {
       const modules = [...this.getModuleIds()];
-      const plantingModules = modules.filter((id) => id.startsWith(`${galleryRoot}/shared/farming/`));
+      const plantingModules = modules.filter((id) => id.startsWith(`${farmingRoot}/`));
       const propModelsAllowed = [
-        "shared/farming/assets/sowing/seed-sack.glb",
-        "shared/farming/assets/watering/watering-can.glb",
-        "shared/farming/assets/tilling/hoe.glb",
-        "shared/farming/assets/tilling/rake.glb",
-        "shared/farming/assets/harvest/basket.glb",
-        "shared/farming/assets/storage/cart.glb",
-        "shared/farming/assets/storage/basket.glb"
-      ].map((file) => path.join(galleryRoot, file));
+        "assets/sowing/seed-sack.glb",
+        "assets/watering/watering-can.glb",
+        "assets/tilling/hoe.glb",
+        "assets/tilling/rake.glb",
+        "assets/harvest/basket.glb",
+        "assets/storage/cart.glb",
+        "assets/storage/basket.glb"
+      ].map((file) => path.join(farmingRoot, file));
       const sourceAtlases = plantingModules.filter((id) =>
         /\/catalog\/plants\/[^/]+\/procedural\/atlas\.png(?:\?|$)/.test(id)
       );
@@ -61,7 +61,7 @@ function plantingProductionBoundary({ requirePlantCatalog = true } = {}) {
             recipes: uniqueRecipes,
             plantModels,
             propModels,
-            modules: plantingModules.map((id) => path.relative(galleryRoot, id)).sort(),
+            modules: plantingModules.map((id) => path.relative(farmingRoot, id)).sort(),
             resources: Object.keys(bundle).sort()
           },
           null,

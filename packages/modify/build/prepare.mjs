@@ -17,7 +17,39 @@ for (const { original, replacement } of JSON.parse(fs.readFileSync(path.join(own
   fs.mkdirSync(path.dirname(destination), { recursive: true });
   fs.copyFileSync(path.join(root, replacement), destination);
 }
-execFileSync(process.execPath, [path.join(root, "packages/shader-compiler/bundler/cli.js"),
-  path.join(source, "Shaders"), path.join(cache, "compiled"), "--clean", "--emit-index"], { cwd: root, stdio: "inherit" });
-fs.writeFileSync(path.join(cache, "shaders.ts"),
-  'export { shaderLibrary } from "../../shader/src/ShaderLibrary";\nexport * from "./compiled/index";\n');
+execFileSync(
+  process.execPath,
+  [
+    path.join(root, "packages/shader-compiler/bundler/cli.js"),
+    path.join(source, "Shaders"),
+    path.join(cache, "compiled"),
+    "--clean",
+    "--emit-index"
+  ],
+  { cwd: root, stdio: "inherit" }
+);
+fs.writeFileSync(
+  path.join(cache, "shaders.ts"),
+  'export { shaderLibrary } from "../../shader/src/ShaderLibrary";\nexport * from "./compiled/index";\n'
+);
+
+// Raw editor/compiler sources must describe the same opted-in shader set.
+const rawShaders = [];
+function collectShaders(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const file = path.join(directory, entry.name);
+    if (entry.isDirectory()) collectShaders(file);
+    else if (entry.name.endsWith(".shader"))
+      rawShaders.push({
+        path: path.relative(source, file).split(path.sep).join("/"),
+        source: fs.readFileSync(file, "utf8")
+      });
+  }
+}
+collectShaders(path.join(source, "Shaders"));
+fs.writeFileSync(
+  path.join(cache, "sources.ts"),
+  'export { shaderLibrary } from "../../shader/src/ShaderLibrary";\nexport type { IShaderSource } from "../../shader/src/Shaders";\nexport const shaders = ' +
+    JSON.stringify(rawShaders) +
+    ";\n"
+);

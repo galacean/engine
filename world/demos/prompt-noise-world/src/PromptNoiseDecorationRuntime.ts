@@ -28,19 +28,19 @@ import type {
 type PromptNoiseDecorationModelKind = Exclude<PromptNoiseScenePlacementKind, "bridge">;
 
 const MODEL_URLS: Readonly<Record<PromptNoiseDecorationModelKind, string>> = Object.freeze({
-  tree: new URL("../../integrated-world/data/grasslands/public/Models/efd966152697c274.glb", import.meta.url).href,
-  shrub: new URL("../../integrated-world/data/grasslands/public/Models/6f030beac004c8e7.glb", import.meta.url).href,
-  rock: new URL("../../integrated-world/data/grasslands/public/Models/094da610ece1906f.glb", import.meta.url).href,
-  flower: new URL("../../integrated-world/data/grasslands/public/Models/6c6934f5fbae9763.glb", import.meta.url).href,
-  grass: new URL("../../integrated-world/data/grasslands/public/Models/grass-2-authored.glb", import.meta.url).href
+  tree: new URL("../../../../packages/terrain/src/data/grasslands/public/Models/efd966152697c274.glb", import.meta.url).href,
+  shrub: new URL("../../../../packages/terrain/src/data/grasslands/public/Models/6f030beac004c8e7.glb", import.meta.url).href,
+  rock: new URL("../../../../packages/terrain/src/data/grasslands/public/Models/094da610ece1906f.glb", import.meta.url).href,
+  flower: new URL("../../../../packages/terrain/src/data/grasslands/public/Models/6c6934f5fbae9763.glb", import.meta.url).href,
+  grass: new URL("../../../../packages/terrain/src/data/grasslands/public/Models/grass-2-authored.glb", import.meta.url).href
 });
 
 const TEXTURE_URLS = Object.freeze({
-  treeBark: new URL("../../integrated-world/data/grasslands/public/Texture/c7dba986e975bc38.ktx2", import.meta.url).href,
-  treeLeaves: new URL("../../integrated-world/data/grasslands/public/Texture/989ee6ee7600c0e4.ktx2", import.meta.url).href,
-  shrub: new URL("../../integrated-world/data/grasslands/public/Texture/c85fafa4b984fdd5.ktx2", import.meta.url).href,
-  rock: new URL("../../integrated-world/data/grasslands/public/Texture/48f1a2bb394eb4ae.ktx2", import.meta.url).href,
-  flower: new URL("../../integrated-world/data/grasslands/public/Texture/a00617d5ec5b44ba.ktx2", import.meta.url).href
+  treeBark: new URL("../../../../packages/terrain/src/data/grasslands/public/Texture/c7dba986e975bc38.ktx2", import.meta.url).href,
+  treeLeaves: new URL("../../../../packages/terrain/src/data/grasslands/public/Texture/989ee6ee7600c0e4.ktx2", import.meta.url).href,
+  shrub: new URL("../../../../packages/terrain/src/data/grasslands/public/Texture/c85fafa4b984fdd5.ktx2", import.meta.url).href,
+  rock: new URL("../../../../packages/terrain/src/data/grasslands/public/Texture/48f1a2bb394eb4ae.ktx2", import.meta.url).href,
+  flower: new URL("../../../../packages/terrain/src/data/grasslands/public/Texture/a00617d5ec5b44ba.ktx2", import.meta.url).href
 });
 
 const MODEL_SCALE: Readonly<Record<PromptNoiseDecorationModelKind, number>> = Object.freeze({

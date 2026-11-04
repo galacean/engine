@@ -4,7 +4,7 @@ import { assertProjectPath } from "../../project-files/virtual-project-files";
 export function resolveAssetPath(reference: string, baseDirectory: string): string {
   if (/^[A-Za-z][A-Za-z0-9+.-]*:/.test(reference) || reference.includes("?") || reference.includes("#"))
     throw new Error(`Expected a virtual asset path: '${reference}'`);
-  if (!reference.startsWith("./") && !reference.startsWith("../../../../runtime-editor/src/runtime-editor")) {
+  if (!reference.startsWith("./") && !reference.startsWith("../")) {
     assertProjectPath(reference);
     return reference;
   }

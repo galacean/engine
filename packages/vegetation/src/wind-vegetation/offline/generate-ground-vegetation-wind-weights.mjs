@@ -56,7 +56,7 @@ export const seedWorldFlowerCalibration = {
 
 async function main() {
   const scriptDirectory = dirname(fileURLToPath(import.meta.url));
-  const terrainDirectory = resolve(scriptDirectory, "../..");
+  const terrainDirectory = resolve(dirname(fileURLToPath(import.meta.resolve("@galacean/engine-terrain/data/grasslands/project.json"))), "../..");
   const publicRoots = [
     resolve(terrainDirectory, "data/grasslands/source/public"),
     resolve(terrainDirectory, "data/grasslands/public")

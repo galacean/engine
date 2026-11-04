@@ -318,7 +318,7 @@ export class TerrainIBLProfiler implements RealtimeIBLBakerProfiler {
       this._markContextLost();
       return;
     }
-    if (this._gl.getParameter(this._extension.GPU_DISJOINT_EXT)) {
+    if (Boolean(this._gl.getParameter(this._extension.GPU_DISJOINT_EXT))) {
       this._markDisjoint();
       return;
     }

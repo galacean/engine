@@ -163,6 +163,14 @@
       <a class="audit-link" href="./ASSET_AUDIT.md" target="_blank" rel="noopener">查看素材检查报告 ↗</a>
     </aside>
     <footer><span id="status" role="status" aria-live="polite">正在准备观察场…</span></footer>
-    <script type="module" src="../roaming/main.ts"></script>
+    <script type="module">
+      import audit from "./audit.json?url";
+      import animals from "./animals.json?url";
+      import registrations from "./registrations.json?url";
+      import auditReport from "./ASSET_AUDIT.md?url";
+      import { startAnimalPreview } from "../roaming/main.ts";
+      document.querySelector(".audit-link").href = auditReport;
+      startAnimalPreview({ audit, animals, registrations });
+    </script>
   </body>
 </html>

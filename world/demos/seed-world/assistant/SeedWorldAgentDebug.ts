@@ -245,7 +245,11 @@ class SeedWorldAgentDebugSurface implements SeedWorldAgentDebugController {
       void this._runButtonAction(download, "选择保存位置…", "已下载", "下载失败", () => this.downloadCurrentTrace());
     });
     const trajectory = createButton("查轨迹", () => {
-      const url = new URL("../../agent-trajectory/index.html", window.location.href);
+      const pageUrl = new URL(window.location.href);
+      const trajectoryPath = pageUrl.pathname.includes("/seed-world/dev/planning/")
+        ? "../../../agent-trajectory/index.html"
+        : "../agent-trajectory/index.html";
+      const url = new URL(trajectoryPath, pageUrl);
       window.open(url.href, "_blank", "noopener,noreferrer");
     });
     trajectory.title = "打开 DSH 轨迹页面，可导入复制或下载的 Trace JSON";

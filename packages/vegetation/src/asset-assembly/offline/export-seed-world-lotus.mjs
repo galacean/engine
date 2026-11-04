@@ -17,7 +17,7 @@ const unityEditor = resolve(readArgument("--unity-editor") ?? process.env.UNITY_
 const blender = resolve(readArgument("--blender") ?? process.env.BLENDER_PATH ?? defaultBlender);
 const blenderOptimizer = join(scriptDirectory, "blender/optimize-seed-world-lotus.py");
 const outputDirectory = resolve(
-  readArgument("--output") ?? resolve(demoDirectory, "../data/seed-world/source/grasslands-stylized-nature-lotus")
+  readArgument("--output") ?? resolve(dirname(fileURLToPath(import.meta.resolve("@galacean/engine-terrain/data/seed-world/project.json"))), "source/grasslands-stylized-nature-lotus")
 );
 const sourcePackageRoot = join(sourceProject, "Assets/Raygeas/Grasslands - Stylized Nature/Assets");
 const terminalScreenRelativeHeightByVariant = Object.freeze({

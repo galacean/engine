@@ -8,7 +8,7 @@ process.env.WORLD_GALLERY_SOURCE_ROOT ??= root;
 const server = await createServer({ root, configFile: false, logLevel: "error",
   server: { middlewareMode: true }, appType: "custom" });
 try {
-  await server.ssrLoadModule("./generate-agent-contracts.ts");
+  await server.ssrLoadModule("/world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts");
 } finally {
   await server.close();
 }

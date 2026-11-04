@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const KTX_SOFTWARE_VERSION = "v4.4.2";
 const checkOnly = process.argv.includes("--check");
 const ktx = process.env.OCEAN_KTX2_KTX ?? "ktx";
-const assetRoot = fileURLToPath(new URL("../resources/ocean/index.ts", import.meta.url));
+const assetRoot = fileURLToPath(new URL("../resources/ocean/", import.meta.url));
 
 const textures = [
   {
