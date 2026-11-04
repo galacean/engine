@@ -2,6 +2,7 @@
 Shader "AIWorld/HeightfieldWater{{VALUE_001_SURFACEAPPEARANCENAME}}{{VALUE_002_DEPTHSOURCENAME}}{{VALUE_003_QUALITYNAME}}{{VALUE_004_WAVECOUNT}}" {
   SubShader "Default" {
     Pass "Forward" {
+      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
       Bool blendEnabled;
       Bool depthWriteEnabled;
       BlendState customBlendState {

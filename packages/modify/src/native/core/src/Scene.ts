@@ -1,3 +1,4 @@
+import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { ComponentsManager } from "./ComponentsManager";
@@ -25,6 +26,7 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
+  readonly screenSpaceReflection = new ScreenSpaceReflectionSettings();
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");

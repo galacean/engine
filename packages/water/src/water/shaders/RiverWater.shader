@@ -2,6 +2,7 @@
 Shader "{{VALUE_001_SHADERNAME}}" {
   SubShader "Default" {
     Pass "Forward" {
+      Tags { pipelineStage = "Forward", screenSpaceReflectionTransparentSample = "SampleV1" }
       Bool depthWriteEnabled;
       BlendState customBlendState {
         Enabled = true;

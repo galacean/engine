@@ -1,3 +1,8 @@
+import { ScreenSpaceReflection } from "../lighting/screenSpaceReflection/ScreenSpaceReflection";
+export interface ScreenSpaceReflectionMaterialSettings {
+  mode: "Auto" | "Off" | "On";
+  intensity: number;
+}
 import { IClone } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
@@ -18,6 +23,28 @@ export class Material extends ReferResource implements IClone {
     "material_ScreenSpaceReflectionIntensity"
   );
 
+  private _screenSpaceReflection: Readonly<ScreenSpaceReflectionMaterialSettings> | null = null;
+  /** Author intent, independent of the current shader, queue and compatible material lobes. */
+  get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> {
+    return (
+      this._screenSpaceReflection ??
+      Object.freeze({
+        mode: this.shader.name === "PBR" ? "Auto" : "Off",
+        intensity: this.shader.name === "PBR" ? 1 : 0
+      })
+    );
+  }
+  set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings>) {
+    this._screenSpaceReflection = Object.freeze({
+      mode: value.mode === "On" || value.mode === "Auto" ? value.mode : "Off",
+      intensity: Math.max(0, Math.min(1, Number.isFinite(value.intensity) ? value.intensity : 1))
+    });
+    ScreenSpaceReflection.resolveMaterialReceiver(this);
+  }
+  /** @internal Null preserves legacy explicit runtime registration until an author API is used. */
+  get _screenSpaceReflectionAuthorSettings(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
+    return this._screenSpaceReflection;
+  }
   /** Name. */
   name: string;
 
@@ -97,6 +124,9 @@ export class Material extends ReferResource implements IClone {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
     target._screenSpaceReflectionReceiverRegistered = this._screenSpaceReflectionReceiverRegistered;
+    target._screenSpaceReflection = this._screenSpaceReflection
+      ? Object.freeze({ ...this._screenSpaceReflection })
+      : null;
   }
 
   /**

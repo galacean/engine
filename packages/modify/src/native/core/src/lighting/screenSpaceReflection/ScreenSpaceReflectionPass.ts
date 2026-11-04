@@ -121,6 +121,7 @@ export class ScreenSpaceReflectionPass {
     this._resetPipelineResourceStats();
 
     const screenSpaceReflection = camera.screenSpaceReflection;
+    screenSpaceReflection._prepareSettings();
     if (!screenSpaceReflection.metrics.requested) {
       screenSpaceReflection._skipFrame(screenSpaceReflection.metrics.inactiveReason ?? "not-requested");
       this.release();

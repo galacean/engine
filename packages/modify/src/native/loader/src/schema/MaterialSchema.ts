@@ -1,0 +1,28 @@
+import type { ScreenSpaceReflectionMaterialSettings } from "@galacean/engine-core";
+import type { RefItem } from "./CommonSchema";
+import type { IColor, IVector2, IVector3 } from "./BasicSchema";
+
+export interface IMaterialSchema {
+  screenSpaceReflection?: ScreenSpaceReflectionMaterialSettings;
+  name: string;
+  shader: string;
+  shaderData: {
+    [key: string]: {
+      type: MaterialLoaderType;
+      value: IVector3 | IVector2 | IColor | number | RefItem;
+    };
+  };
+  macros: Array<{ name: string; value?: string }>;
+  shaderRef: RefItem;
+}
+
+export enum MaterialLoaderType {
+  Vector2 = "Vector2",
+  Vector3 = "Vector3",
+  Vector4 = "Vector4",
+  Color = "Color",
+  Float = "Float",
+  Texture = "Texture",
+  Boolean = "Boolean",
+  Integer = "Integer"
+}

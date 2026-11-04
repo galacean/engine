@@ -1,3 +1,8 @@
+import {
+  ScreenSpaceReflectionSettings,
+  ScreenSpaceReflectionSettingsSource,
+  type ScreenSpaceReflectionSettingsData
+} from "./ScreenSpaceReflectionSettings";
 import type { Camera } from "../../Camera";
 import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import type { Material } from "../../material";
@@ -287,6 +292,80 @@ class ScreenSpaceReflectionLease implements ScreenSpaceReflectionConsumerLease {
  * restored when the final consumer releases its lease.
  */
 export class ScreenSpaceReflection {
+  /** Direct legacy parameter writes select Override; switching back retains those values. */
+  private _settingsSource = ScreenSpaceReflectionSettingsSource.UseSceneSettings;
+  /** @internal Whether dormant camera author settings have been initialized. */
+  _hasOverrideSettings = false;
+  get settingsSource(): ScreenSpaceReflectionSettingsSource {
+    return this._settingsSource;
+  }
+  set settingsSource(value: ScreenSpaceReflectionSettingsSource) {
+    this._settingsSource =
+      value === ScreenSpaceReflectionSettingsSource.Override
+        ? value
+        : ScreenSpaceReflectionSettingsSource.UseSceneSettings;
+    if (this._settingsSource === ScreenSpaceReflectionSettingsSource.Override && !this._hasOverrideSettings) {
+      this._hasOverrideSettings = true;
+      const sceneSettings = this._camera.entity?.scene?.screenSpaceReflection;
+      if (sceneSettings) this.applySettings(sceneSettings.toJSON());
+    }
+    this._refreshState();
+  }
+  private get _authorSettings(): ScreenSpaceReflectionSettingsData {
+    return this.settingsSource === ScreenSpaceReflectionSettingsSource.UseSceneSettings
+      ? (this._camera.entity?.scene?.screenSpaceReflection ?? this)
+      : this;
+  }
+  applySettings(data: Partial<ScreenSpaceReflectionSettingsData>): void {
+    this.settingsSource = ScreenSpaceReflectionSettingsSource.Override;
+    const normalized = ScreenSpaceReflectionSettings.normalize(data);
+    if (normalized.activationMode !== undefined) this._activationMode = normalized.activationMode;
+    if (normalized.receiverPolicy !== undefined) this._receiverPolicy = normalized.receiverPolicy;
+    if (normalized.resolutionScale !== undefined) this._resolutionScale = normalized.resolutionScale;
+    if (normalized.upsamplingMode !== undefined) this._upsamplingMode = normalized.upsamplingMode;
+    if (normalized.intensity !== undefined) this._intensity = normalized.intensity;
+    if (normalized.maxRayDistance !== undefined) this._maxRayDistance = normalized.maxRayDistance;
+    if (normalized.rayLengthFade !== undefined) this._rayLengthFade = normalized.rayLengthFade;
+    if (normalized.maxRaySteps !== undefined) this._maxRaySteps = normalized.maxRaySteps;
+    if (normalized.hitRefinementSteps !== undefined) this._hitRefinementSteps = normalized.hitRefinementSteps;
+    if (normalized.thickness !== undefined) this._thickness = normalized.thickness;
+    if (normalized.maxRoughness !== undefined) this._maxRoughness = normalized.maxRoughness;
+    if (normalized.edgeFade !== undefined) this._edgeFade = normalized.edgeFade;
+    this._refreshState();
+  }
+  /** Replace a complete author snapshot; omitted overrideSettings restores never-overridden state. */
+  restoreSettings(value: {
+    settingsSource: ScreenSpaceReflectionSettingsSource;
+    overrideSettings?: Partial<ScreenSpaceReflectionSettingsData>;
+  }): void {
+    const base =
+      this._camera.entity?.scene?.screenSpaceReflection.toJSON() ?? new ScreenSpaceReflectionSettings().toJSON();
+    this._hasOverrideSettings = true;
+    this.applySettings({ ...base, ...value.overrideSettings });
+    this._hasOverrideSettings = value.overrideSettings !== undefined;
+    this.settingsSource = value.settingsSource;
+    this._refreshState();
+  }
+  toJSON(): ScreenSpaceReflectionSettingsData {
+    return {
+      activationMode: this.activationMode,
+      receiverPolicy: this.receiverPolicy,
+      resolutionScale: this.resolutionScale,
+      upsamplingMode: this.upsamplingMode,
+      intensity: this.intensity,
+      maxRayDistance: this.maxRayDistance,
+      rayLengthFade: this.rayLengthFade,
+      maxRaySteps: this.maxRaySteps,
+      hitRefinementSteps: this.hitRefinementSteps,
+      thickness: this.thickness,
+      maxRoughness: this.maxRoughness,
+      edgeFade: this.edgeFade
+    };
+  }
+  applyPerformancePreset(quality: ScreenSpaceReflectionQuality): void {
+    this.applySettings(ScreenSpaceReflectionSettings.performancePreset(quality));
+  }
+
   /** Optional, caller-owned instrumentation. Disabled by default and not copied with cameras. */
   profiler: ScreenSpaceReflectionProfiler | null = null;
 
@@ -336,6 +415,7 @@ export class ScreenSpaceReflection {
 
   /** Apply a complete manual budget without changing activation, consumers, phase overrides or intensity. */
   applyQualityPreset(quality: ScreenSpaceReflectionQuality): void {
+    this.settingsSource = ScreenSpaceReflectionSettingsSource.Override;
     const preset = ScreenSpaceReflection.getQualityPreset(quality);
     this._quality = preset.quality;
     this._resolutionScale = preset.resolutionScale;
@@ -354,6 +434,19 @@ export class ScreenSpaceReflection {
   static readonly MATERIAL_RECEIVER_CONTRACT_TAG = "screenSpaceReflectionReceiver";
   /** Current MRT surface contract preserving a colored material response. */
   static readonly MATERIAL_RECEIVER_CONTRACT = "ColorResponseV2";
+  /** Forward implements sampling of the published camera SSR texture. */
+  static readonly MATERIAL_TRANSPARENT_SAMPLE_TAG = "screenSpaceReflectionTransparentSample";
+  static readonly MATERIAL_TRANSPARENT_SAMPLE_CONTRACT = "SampleV1";
+  static supportsMaterialTransparentSampling(material: Material): boolean {
+    return (
+      material.shader?.subShaders[0]?.passes.some(
+        (pass) =>
+          pass.getTagValue(ScreenSpaceReflection._pipelineStageTag) === PipelineStage.Forward &&
+          pass.getTagValue(ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_TAG) ===
+            ScreenSpaceReflection.MATERIAL_TRANSPARENT_SAMPLE_CONTRACT
+      ) ?? false
+    );
+  }
 
   /** @internal */
   static readonly _cameraTextureProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionTexture");
@@ -491,8 +584,7 @@ export class ScreenSpaceReflection {
   }
 
   set activationMode(value: ScreenSpaceReflectionActivationMode) {
-    this._activationMode = ScreenSpaceReflection._sanitizeActivationMode(value);
-    this._refreshState();
+    this.applySettings({ activationMode: value });
   }
 
   /** How standard PBR materials whose receiver mode is Auto are resolved. */
@@ -501,8 +593,7 @@ export class ScreenSpaceReflection {
   }
 
   set receiverPolicy(value: ScreenSpaceReflectionReceiverPolicy) {
-    this._receiverPolicy = ScreenSpaceReflection._sanitizeReceiverPolicy(value);
-    this._metricsState.receiverPolicy = this._receiverPolicy;
+    this.applySettings({ receiverPolicy: value });
   }
 
   /** Whether this camera explicitly requests SSR. Consumer leases are independent. */
@@ -521,6 +612,7 @@ export class ScreenSpaceReflection {
   }
 
   set quality(value: ScreenSpaceReflectionQuality) {
+    this.settingsSource = ScreenSpaceReflectionSettingsSource.Override;
     this._quality = ScreenSpaceReflection._sanitizeQuality(value);
     const tuning = ScreenSpaceReflection._qualityTuning(this._quality);
     this._maxRaySteps = tuning.maxRaySteps;
@@ -534,8 +626,7 @@ export class ScreenSpaceReflection {
   }
 
   set resolutionScale(value: number) {
-    this._resolutionScale = ScreenSpaceReflection._clampFinite(value, 0.25, 1, 1);
-    this._resolveSettings();
+    this.applySettings({ resolutionScale: value });
   }
 
   /** Reconstruction used below full resolution; defaults to the legacy Gaussian + bilateral path. */
@@ -544,8 +635,7 @@ export class ScreenSpaceReflection {
   }
 
   set upsamplingMode(value: ScreenSpaceReflectionUpsamplingMode) {
-    this._upsamplingMode = ScreenSpaceReflection._sanitizeUpsamplingMode(value);
-    this._resolveSettings();
+    this.applySettings({ upsamplingMode: value });
   }
 
   /** Global replacement weight for this camera, clamped to [0, 1]. */
@@ -554,8 +644,7 @@ export class ScreenSpaceReflection {
   }
 
   set intensity(value: number) {
-    this._intensity = ScreenSpaceReflection._clampFinite(value, 0, 1, 1);
-    this._resolveSettings();
+    this.applySettings({ intensity: value });
   }
 
   get maxRayDistance(): number {
@@ -563,8 +652,7 @@ export class ScreenSpaceReflection {
   }
 
   set maxRayDistance(value: number) {
-    this._maxRayDistance = Math.max(0.0001, Number.isFinite(value) ? value : 20);
-    this._resolveSettings();
+    this.applySettings({ maxRayDistance: value });
   }
 
   /** World-space fade distance before the maximum ray length. */
@@ -573,8 +661,7 @@ export class ScreenSpaceReflection {
   }
 
   set rayLengthFade(value: number) {
-    this._rayLengthFade = Math.max(0, Number.isFinite(value) ? value : 1);
-    this._resolveSettings();
+    this.applySettings({ rayLengthFade: value });
   }
 
   /** Maximum linear-march samples, clamped to the shader's static loop bound. */
@@ -583,8 +670,7 @@ export class ScreenSpaceReflection {
   }
 
   set maxRaySteps(value: number) {
-    this._maxRaySteps = ScreenSpaceReflection._clampInteger(value, 1, 64, 32);
-    this._resolveSettings();
+    this.applySettings({ maxRaySteps: value });
   }
 
   /** Binary-search iterations used to refine one candidate hit. */
@@ -593,8 +679,7 @@ export class ScreenSpaceReflection {
   }
 
   set hitRefinementSteps(value: number) {
-    this._hitRefinementSteps = ScreenSpaceReflection._clampInteger(value, 0, 5, 3);
-    this._resolveSettings();
+    this.applySettings({ hitRefinementSteps: value });
   }
 
   /** Near-field hit-thickness floor in metres; the trace expands it with linear depth. */
@@ -603,8 +688,7 @@ export class ScreenSpaceReflection {
   }
 
   set thickness(value: number) {
-    this._thickness = Math.max(0.0001, Number.isFinite(value) ? value : 0.2);
-    this._resolveSettings();
+    this.applySettings({ thickness: value });
   }
 
   get maxRoughness(): number {
@@ -612,8 +696,7 @@ export class ScreenSpaceReflection {
   }
 
   set maxRoughness(value: number) {
-    this._maxRoughness = ScreenSpaceReflection._clampFinite(value, 0, 1, 0.7);
-    this._resolveSettings();
+    this.applySettings({ maxRoughness: value });
   }
 
   get edgeFade(): number {
@@ -621,8 +704,7 @@ export class ScreenSpaceReflection {
   }
 
   set edgeFade(value: number) {
-    this._edgeFade = ScreenSpaceReflection._clampFinite(value, 0, 0.5, 0.1);
-    this._resolveSettings();
+    this.applySettings({ edgeFade: value });
   }
 
   get debugMode(): ScreenSpaceReflectionDebugMode {
@@ -791,13 +873,28 @@ export class ScreenSpaceReflection {
     mode: ScreenSpaceReflectionReceiverMode,
     intensity: number = 1
   ): boolean {
+    // Explicit asset authorship owns the receiver until changed through the author API.
+    if (material._screenSpaceReflectionAuthorSettings) return false;
+    return ScreenSpaceReflection._writeMaterialReceiver(material, mode, intensity);
+  }
+
+  private static _writeMaterialReceiver(
+    material: Material,
+    mode: ScreenSpaceReflectionReceiverMode,
+    intensity: number
+  ): boolean {
     const capability = ScreenSpaceReflection.getMaterialReceiverCapability(material);
     const validMode =
       mode === ScreenSpaceReflectionReceiverMode.Disabled ||
       mode === ScreenSpaceReflectionReceiverMode.OpaqueComposite ||
       mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly ||
       (mode === ScreenSpaceReflectionReceiverMode.Auto && material.shader?.name === "PBR");
-    if (!capability.supported || !validMode) {
+    if (
+      !capability.supported ||
+      !validMode ||
+      (mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
+        !ScreenSpaceReflection.supportsMaterialTransparentSampling(material))
+    ) {
       ScreenSpaceReflection._disableMaterialReceiver(material);
       return false;
     }
@@ -815,8 +912,25 @@ export class ScreenSpaceReflection {
     return true;
   }
 
+  /** Re-evaluate author intent after queue, shader or material-effect changes. */
+  static resolveMaterialReceiver(material: Material, queue?: RenderQueueType): void {
+    const author = material._screenSpaceReflectionAuthorSettings;
+    if (!author) return;
+    queue ??= material.shaderData.getInt("renderQueueType") ?? RenderQueueType.Opaque;
+    const mode =
+      author.mode === "Off"
+        ? ScreenSpaceReflectionReceiverMode.Disabled
+        : author.mode === "Auto"
+          ? ScreenSpaceReflectionReceiverMode.Auto
+          : queue === RenderQueueType.Transparent
+            ? ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
+            : ScreenSpaceReflectionReceiverMode.OpaqueComposite;
+    ScreenSpaceReflection._writeMaterialReceiver(material, mode, author.intensity);
+  }
+
   /** Return the effective explicit receiver mode, or Disabled for stale/unsupported state. */
-  static getMaterialReceiverMode(material: Material): ScreenSpaceReflectionReceiverMode {
+  static getMaterialReceiverMode(material: Material, queue?: RenderQueueType): ScreenSpaceReflectionReceiverMode {
+    ScreenSpaceReflection.resolveMaterialReceiver(material, queue);
     const shaderData = material.shaderData;
     if (!material._screenSpaceReflectionReceiverRegistered) {
       return ScreenSpaceReflectionReceiverMode.Disabled;
@@ -827,6 +941,11 @@ export class ScreenSpaceReflection {
     const intensity = shaderData.getFloat(ScreenSpaceReflection._receiverIntensityProperty) ?? 0;
     if (intensity <= 0) return ScreenSpaceReflectionReceiverMode.Disabled;
     const mode = shaderData.getFloat(ScreenSpaceReflection._receiverModeProperty);
+    if (
+      mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly &&
+      !ScreenSpaceReflection.supportsMaterialTransparentSampling(material)
+    )
+      return ScreenSpaceReflectionReceiverMode.Disabled;
     return mode === ScreenSpaceReflectionReceiverMode.OpaqueComposite ||
       mode === ScreenSpaceReflectionReceiverMode.TransparentSampleOnly
       ? mode
@@ -841,7 +960,7 @@ export class ScreenSpaceReflection {
 
   /** @internal Resolve an explicit receiver or the camera-local standard PBR Auto policy. */
   _isMaterialReceiver(material: Material, renderQueueType: RenderQueueType): boolean {
-    const explicitMode = ScreenSpaceReflection.getMaterialReceiverMode(material);
+    const explicitMode = ScreenSpaceReflection.getMaterialReceiverMode(material, renderQueueType);
     if (explicitMode === ScreenSpaceReflectionReceiverMode.OpaqueComposite) {
       return renderQueueType !== RenderQueueType.Transparent;
     }
@@ -852,7 +971,7 @@ export class ScreenSpaceReflection {
     const shaderData = material.shaderData;
     if (
       shaderData.getFloat(ScreenSpaceReflection._receiverModeProperty) !== ScreenSpaceReflectionReceiverMode.Auto ||
-      this._receiverPolicy !== ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto ||
+      this._authorSettings.receiverPolicy !== ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto ||
       renderQueueType === RenderQueueType.Transparent ||
       material.shader?.name !== "PBR" ||
       !ScreenSpaceReflection.getMaterialReceiverCapability(material).supported ||
@@ -872,12 +991,13 @@ export class ScreenSpaceReflection {
   constructor(private readonly _camera: Camera) {
     _camera.shaderData.setFloat(ScreenSpaceReflection._cameraIntensityProperty, this._resolvedSettingsState.intensity);
     _camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
+    this._refreshState();
   }
 
   /** @internal */
   _beginFrame(supported: boolean, unsupportedReason: string | null): boolean {
     const metrics = this._metricsState;
-    this._refreshState();
+    this._prepareSettings();
     metrics.supported = supported;
     metrics.unsupportedReason = supported ? null : unsupportedReason;
     metrics.effective = !this._destroyed && metrics.requested && supported && this._resolvedSettingsState.intensity > 0;
@@ -981,6 +1101,9 @@ export class ScreenSpaceReflection {
       ScreenSpaceReflectionReceiverMode.TransparentSampleOnly,
       source.getReceiverTraceSettingsOverride(ScreenSpaceReflectionReceiverMode.TransparentSampleOnly) ?? undefined
     );
+    this._hasOverrideSettings = source._hasOverrideSettings;
+    this._settingsSource = source.settingsSource;
+    this._refreshState();
     this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
     this._metricsState.supported = false;
     this._metricsState.effective = false;
@@ -1012,12 +1135,12 @@ export class ScreenSpaceReflection {
     const metrics = this._metricsState;
     const requestedByConsumers = this._leases.size > 0;
     metrics.activeConsumerLeaseCount = this._leases.size;
-    metrics.activationMode = this._activationMode;
-    metrics.receiverPolicy = this._receiverPolicy;
-    metrics.globalEnabled = this._activationMode !== ScreenSpaceReflectionActivationMode.ForceOff;
+    metrics.activationMode = this._authorSettings.activationMode;
+    metrics.receiverPolicy = this._authorSettings.receiverPolicy;
+    metrics.globalEnabled = this._authorSettings.activationMode !== ScreenSpaceReflectionActivationMode.ForceOff;
     metrics.requestedByManual = this._enabled;
     metrics.requestedByConsumers = requestedByConsumers;
-    switch (this._activationMode) {
+    switch (this._authorSettings.activationMode) {
       case ScreenSpaceReflectionActivationMode.ForceOn:
         metrics.requested = !this._destroyed;
         break;
@@ -1032,7 +1155,7 @@ export class ScreenSpaceReflection {
       metrics.effective = false;
       metrics.inactiveReason = this._destroyed
         ? "camera-destroyed"
-        : this._activationMode === ScreenSpaceReflectionActivationMode.ForceOff
+        : this._authorSettings.activationMode === ScreenSpaceReflectionActivationMode.ForceOff
           ? "disabled-by-global-switch"
           : "not-requested";
       metrics.unsupportedReason = null;
@@ -1041,7 +1164,18 @@ export class ScreenSpaceReflection {
     }
   }
 
+  private _resolvedSceneSettings: ScreenSpaceReflectionSettings | undefined;
+  private _resolvedSceneVersion = -1;
+  /** @internal Render preparation boundary; diagnostic getters never synchronize state. */
+  _prepareSettings(): void {
+    if (this._destroyed) return;
+    const settings = this._camera.entity?.scene?.screenSpaceReflection;
+    if (settings !== this._resolvedSceneSettings || (settings?._version ?? -1) !== this._resolvedSceneVersion)
+      this._refreshState();
+  }
   private _refreshState(): void {
+    this._resolvedSceneSettings = this._camera.entity?.scene?.screenSpaceReflection;
+    this._resolvedSceneVersion = this._resolvedSceneSettings?._version ?? -1;
     this._refreshRequested();
     this._resolveSettings();
   }
@@ -1052,7 +1186,7 @@ export class ScreenSpaceReflection {
     // Auto preserves the hardened whole-request consumer arbitration. Forced
     // modes use the manual camera settings so the global control is stable and
     // does not mutate or release dormant consumer requests.
-    if (this._activationMode === ScreenSpaceReflectionActivationMode.Auto) {
+    if (this._authorSettings.activationMode === ScreenSpaceReflectionActivationMode.Auto) {
       for (const lease of this._leases) {
         if (!selectedLease || ScreenSpaceReflection._compareConsumerLeases(lease, selectedLease) < 0) {
           selectedLease = lease;
@@ -1062,19 +1196,22 @@ export class ScreenSpaceReflection {
 
     const request = selectedLease?.request;
     resolved.quality = request?.quality ?? this._quality;
-    resolved.resolutionScale = request?.resolutionScale ?? this._resolutionScale;
-    resolved.upsamplingMode = request?.upsamplingMode ?? this._upsamplingMode;
-    resolved.intensity = request?.intensity ?? this._intensity;
-    resolved.maxRayDistance = request?.maxRayDistance ?? this._maxRayDistance;
-    resolved.rayLengthFade = request?.rayLengthFade ?? this._rayLengthFade;
+    resolved.resolutionScale = request?.resolutionScale ?? this._authorSettings.resolutionScale;
+    resolved.upsamplingMode = request?.upsamplingMode ?? this._authorSettings.upsamplingMode;
+    resolved.intensity = request?.intensity ?? this._authorSettings.intensity;
+    resolved.maxRayDistance = request?.maxRayDistance ?? this._authorSettings.maxRayDistance;
+    resolved.rayLengthFade = request?.rayLengthFade ?? this._authorSettings.rayLengthFade;
     const requestQualityTuning =
       request?.quality !== undefined ? ScreenSpaceReflection._qualityTuning(request.quality) : null;
-    resolved.maxRaySteps = request?.maxRaySteps ?? requestQualityTuning?.maxRaySteps ?? this._maxRaySteps;
+    resolved.maxRaySteps =
+      request?.maxRaySteps ?? requestQualityTuning?.maxRaySteps ?? this._authorSettings.maxRaySteps;
     resolved.hitRefinementSteps =
-      request?.hitRefinementSteps ?? requestQualityTuning?.hitRefinementSteps ?? this._hitRefinementSteps;
-    resolved.thickness = request?.thickness ?? this._thickness;
-    resolved.maxRoughness = request?.maxRoughness ?? this._maxRoughness;
-    resolved.edgeFade = request?.edgeFade ?? this._edgeFade;
+      request?.hitRefinementSteps ??
+      requestQualityTuning?.hitRefinementSteps ??
+      this._authorSettings.hitRefinementSteps;
+    resolved.thickness = request?.thickness ?? this._authorSettings.thickness;
+    resolved.maxRoughness = request?.maxRoughness ?? this._authorSettings.maxRoughness;
+    resolved.edgeFade = request?.edgeFade ?? this._authorSettings.edgeFade;
     this._metricsState.selectedConsumerLabel = selectedLease?.label ?? null;
     this._metricsState.selectedConsumerPriority = selectedLease ? (selectedLease.request.priority ?? 0) : null;
     const opaqueLease = this._resolveReceiverSettings(
@@ -1108,8 +1245,8 @@ export class ScreenSpaceReflection {
     for (const lease of this._leases) {
       const scopedMode = lease.request.receiverMode;
       const eligible =
-        scopedMode === receiverMode ||
-        (scopedMode === undefined && this._activationMode === ScreenSpaceReflectionActivationMode.Auto);
+        this._authorSettings.activationMode === ScreenSpaceReflectionActivationMode.Auto &&
+        (scopedMode === receiverMode || scopedMode === undefined);
       if (eligible && (!selectedLease || ScreenSpaceReflection._compareConsumerLeases(lease, selectedLease) < 0)) {
         selectedLease = lease;
       }
@@ -1121,13 +1258,17 @@ export class ScreenSpaceReflection {
         ? this._transparentTraceSettingsOverride
         : this._opaqueTraceSettingsOverride;
     resolved.quality = traceOverride?.quality ?? request?.quality ?? this._quality;
-    resolved.resolutionScale = traceOverride?.resolutionScale ?? request?.resolutionScale ?? this._resolutionScale;
-    resolved.upsamplingMode = traceOverride?.upsamplingMode ?? request?.upsamplingMode ?? this._upsamplingMode;
+    resolved.resolutionScale =
+      traceOverride?.resolutionScale ?? request?.resolutionScale ?? this._authorSettings.resolutionScale;
+    resolved.upsamplingMode =
+      traceOverride?.upsamplingMode ?? request?.upsamplingMode ?? this._authorSettings.upsamplingMode;
     // Camera intensity remains one ordinary camera uniform for the whole frame.
     // Receiver scoping isolates trace shape without introducing phase-stale camera uniforms.
     resolved.intensity = this._resolvedSettingsState.intensity;
-    resolved.maxRayDistance = traceOverride?.maxRayDistance ?? request?.maxRayDistance ?? this._maxRayDistance;
-    resolved.rayLengthFade = traceOverride?.rayLengthFade ?? request?.rayLengthFade ?? this._rayLengthFade;
+    resolved.maxRayDistance =
+      traceOverride?.maxRayDistance ?? request?.maxRayDistance ?? this._authorSettings.maxRayDistance;
+    resolved.rayLengthFade =
+      traceOverride?.rayLengthFade ?? request?.rayLengthFade ?? this._authorSettings.rayLengthFade;
     const overrideQualityTuning =
       traceOverride?.quality !== undefined ? ScreenSpaceReflection._qualityTuning(traceOverride.quality) : null;
     const requestQualityTuning =
@@ -1137,16 +1278,16 @@ export class ScreenSpaceReflection {
       overrideQualityTuning?.maxRaySteps ??
       request?.maxRaySteps ??
       requestQualityTuning?.maxRaySteps ??
-      this._maxRaySteps;
+      this._authorSettings.maxRaySteps;
     resolved.hitRefinementSteps =
       traceOverride?.hitRefinementSteps ??
       overrideQualityTuning?.hitRefinementSteps ??
       request?.hitRefinementSteps ??
       requestQualityTuning?.hitRefinementSteps ??
-      this._hitRefinementSteps;
-    resolved.thickness = traceOverride?.thickness ?? request?.thickness ?? this._thickness;
-    resolved.maxRoughness = traceOverride?.maxRoughness ?? request?.maxRoughness ?? this._maxRoughness;
-    resolved.edgeFade = traceOverride?.edgeFade ?? request?.edgeFade ?? this._edgeFade;
+      this._authorSettings.hitRefinementSteps;
+    resolved.thickness = traceOverride?.thickness ?? request?.thickness ?? this._authorSettings.thickness;
+    resolved.maxRoughness = traceOverride?.maxRoughness ?? request?.maxRoughness ?? this._authorSettings.maxRoughness;
+    resolved.edgeFade = traceOverride?.edgeFade ?? request?.edgeFade ?? this._authorSettings.edgeFade;
     return selectedLease;
   }
 
