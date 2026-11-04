@@ -720,7 +720,6 @@ export async function mountSeedWorldDemo(
               current.solids.setRockTextureScale(textureScale);
               current.vegetation!.setRockTextureScale(textureScale);
               current.solids.setRockColorBlend(readRockFormationSettings(document).colorBlend);
-              current.vegetation!.setRockColorBlend(readRockFormationSettings(document).colorBlend);
               current.world.population.setRockGrassGround(readRockFormationSettings(document));
               metrics.commitMs = performance.now() - commitStarted;
             }, discard() { solids?.discard(); vegetation.discard(); grass?.discard(); } };

@@ -61,7 +61,11 @@ async function migrateVegetationAssets(project: RuntimeProjectSession, initial: 
   const current = project.projectPackage;
   const contents: Record<string, string> = {}, retiredAliases = new Set<string>();
   let introduced: ReadonlySet<string> | undefined;
-  if (version === 1) {
+  // Version 1 also marked projects before native vegetation assets were imported.
+  // Only an existing namespace can be upgraded in place; otherwise import its
+  // native closure for the first time, preserving all other authored assets.
+  const hasNativeVegetation = current.project.files.some(file => file.virtualPath.startsWith(PLANT_PROJECT_ROOT));
+  if (version === 1 && hasNativeVegetation) {
     const provider = project.fileProvider();
     const read = async (path: string) => {
       await provider.prepare?.(path);
