@@ -1,5 +1,5 @@
 /** Seed's authored fog and shadow baseline, also consumed by the spatial editor. */
-export const SEED_WORLD_DEFAULT_SHADOW_STRENGTH = 0.9;
+export const SEED_WORLD_DEFAULT_SHADOW_STRENGTH = 1;
 export const SEED_WORLD_DEFAULT_FOG_VALUES = Object.freeze({
   fogExponent: 1.39,
   fogStart: 3636,
