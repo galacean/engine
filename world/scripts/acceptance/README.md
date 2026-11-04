@@ -1,5 +1,13 @@
 # 迁移验收
 
+本轮 Seed World 旧工程植被恢复与岩石颜色回归已独立保存在本仓库，不依赖相邻来源测试目录：
+
+```sh
+pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs
+```
+
+该入口执行 `world/tests/seed-world` 的 6 个来源用例文件；仅调整迁移后的模块和资源地址，覆盖旧工程保存重开、植被闭包、主岩体与小石头调色隔离、颜色面板和项目关闭。它不替代下述全量迁移验收。
+
 原项目默认位于相邻的 `engine-next`；原始源码为 `world/gallery`，可运行基线为 `world/.materialized/engine/world-gallery`。证据写入已忽略的 `world/.acceptance`，不发布到 Demo。
 
 - `prepare-tests.mjs`：复制原测试和夹具；业务实现通过迁移映射链接到新仓库，不回退到旧实现。

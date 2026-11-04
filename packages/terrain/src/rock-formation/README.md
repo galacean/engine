@@ -71,8 +71,8 @@ Edits use `PlanningSession`, native project persistence and undo/redo.
   values survive native Scene export/import. A texture-only edit updates material
   uniforms on main and companion rocks without regenerating geometry or grass.
   Vertex-defined slabs and cellular curvature share this texture, world-space
-  projection, roughness and Rock Color multiplier, including mixed OBB formations
-  and companion stones. Slabs retain their transported surface normals; cellular
+  projection and roughness, including mixed OBB formations and companion stones.
+  Tree-foot companion stones and scattered landscape stones use a white multiplier (`#ffffff`). Slabs retain their transported surface normals; cellular
   faces retain their edge lighting and stable cell texture offsets. Grass roots
   sample the same textured substrate as the surface beneath them in both modes.
 - The painted-rock PNG is grayscale with its original alpha and resolution retained.
@@ -81,14 +81,15 @@ Edits use `PlanningSession`, native project persistence and undo/redo.
   at white, and encoded back to sRGB once in the asset. This removes the source
   texture's dark overall exposure while preserving relative linear luminance.
   Runtime sampling does not extract luminance, normalize exposure or fit an A/B ramp.
-- **Shared material / 共用材质 → Rock Color / 岩石颜色** controls one linear RGB
-  multiplier: `grayscale texture × Color`. White shows the normalized light grayscale;
+- **Shared material / 共用材质 → Rock Color / 岩石颜色** controls the main rock formations' linear RGB
+  multiplier: `grayscale texture × Color`. The default is fitted to the original
+  rocky_terrain pixels in linear RGB (displayed as **#96967a**). White shows the normalized light grayscale;
   darker Color values control overall albedo, and a colored value tints it directly. Rock grass retains its independent native palette.
 
 Apply and reset use native authoring, save/replay and undo/redo. Color-only edits
 update shared material uniforms with no rock, collider, building support or grass
 regeneration. Retired seasonal A/B palette, balance, strength and saturation fields
-are removed at native document import; absent Color defaults to white.
+are removed at native document import; absent channels inherit the source tint.
 
 Reset removes the relevant authored overrides. Height grows upward from the
 existing bottom; position, yaw and the root seed remain fixed. Every editable OBB

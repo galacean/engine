@@ -11,8 +11,7 @@ import {
 
 /** Native authoring for a single Shader Color multiplier. */
 export class RockColorControls {
-  private settings = readRockColorBlend();
-  private readonly draft = { color: "#ffffff" };
+  private readonly draft = { color: rockPaletteLinearToHex(readRockColorBlend().color) };
   private readonly input: HTMLInputElement;
   private readonly controller: dat.GUIController;
   constructor(
@@ -30,12 +29,13 @@ export class RockColorControls {
     host.addReadout(
       folder,
       "Color guide / 配色说明"
-    )("Grayscale texture × Color. White preserves the texture. / 灰度贴图 × Color；白色显示贴图原始灰度。");
+    )("Grayscale × Color. Reset for the source tint. / 灰度贴图 × Color。重置可恢复原图色调。");
     host.addAction(folder, "Apply rock color / 应用岩石颜色", () => {
       if (this.input.value.toLowerCase() === this.input.dataset.displayed) return;
+      const displayed = rockPaletteHexToLinear(this.input.dataset.displayed!);
       const values: Record<string, number> = {};
       rockPaletteHexToLinear(this.input.value).forEach((value, i) => {
-        if (value !== this.settings.color[i]) values[`color.${["r", "g", "b"][i]}`] = value;
+        if (value !== displayed[i]) values[`color.${["r", "g", "b"][i]}`] = value;
       });
       if (Object.keys(values).length) void submit([{ op: "set", entity: "world", component: "rockFormation", values }]);
     }).dataset.rockColorApply = "";
@@ -52,10 +52,9 @@ export class RockColorControls {
           }
         ])
     ).dataset.rockColorReset = "";
-    this.synchronize(this.settings);
+    this.synchronize(readRockColorBlend());
   }
   synchronize(settings: RockColorBlend): void {
-    this.settings = settings;
     this.draft.color = rockPaletteLinearToHex(settings.color);
     this.controller.updateDisplay();
     this.input.value = this.draft.color;
