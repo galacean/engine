@@ -135,6 +135,10 @@ export class Utils {
       entity = entity.parent;
       count++;
     }
+    // Shorter chain: unregister dropped tail entities, or they leak the listener
+    for (let i = count, n = listeningEntities.length; i < n; i++) {
+      listeningEntities[i]._unRegisterModifyListener(listener);
+    }
     listeningEntities.length = count;
   }
 
