@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("ColliderShape PhysX", () => {
@@ -21,7 +21,7 @@ describe("ColliderShape PhysX", () => {
   }
 
   beforeAll(async () => {
-    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
     engine.run();
 
     const scene = engine.sceneManager.activeScene;
@@ -82,6 +82,20 @@ describe("ColliderShape PhysX", () => {
     // Test that set rotation works correctly.
     boxShape.rotation = new Vector3(40, -182, 720);
     expect(boxShape.rotation).to.deep.include({ x: 40, y: -182, z: 720 });
+  });
+
+  it("rejects non-finite contactOffset without changing the public value", () => {
+    const shape = new BoxColliderShape();
+    dynamicCollider.addShape(shape);
+    shape.contactOffset = 0.3;
+
+    for (const value of [NaN, Infinity, -Infinity]) {
+      expect(() => (shape.contactOffset = value)).toThrow();
+      expect(shape.contactOffset).toBe(0.3);
+    }
+
+    dynamicCollider.removeShape(shape);
+    shape._destroy();
   });
 
   it("CapsuleColliderShape", () => {

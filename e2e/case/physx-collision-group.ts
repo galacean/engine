@@ -61,7 +61,7 @@ function createPhysicsSphere(
   // Add physics
   const physicsSphere = new SphereColliderShape();
   physicsSphere.radius = radius;
-  physicsSphere.material.bounciness = 0.8;
+  physicsSphere.getInstanceMaterial().bounciness = 0.8;
 
   const sphereCollider = sphereEntity.addComponent(DynamicCollider);
   sphereCollider.collisionLayer = collisionLayer;

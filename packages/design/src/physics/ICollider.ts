@@ -7,8 +7,10 @@ export interface ICollider {
   /**
    * Add collider shape on collider.
    * @param shape - The collider shape attached
+   * @returns Whether the shape was accepted
+   * @remarks On failure, returns false and leaves the collider unchanged.
    */
-  addShape(shape: IColliderShape): void;
+  addShape(shape: IColliderShape): boolean;
 
   /**
    * Remove collider shape on collider.

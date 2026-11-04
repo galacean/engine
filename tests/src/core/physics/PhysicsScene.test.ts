@@ -16,13 +16,9 @@ import {
   OverlapHitResult
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
-import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
-
-const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
-const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
-  .href;
 
 class CollisionTestScript extends Script {
   onCollisionEnter(other) {}
@@ -127,10 +123,7 @@ describe("Physics Test", () => {
       // Init engine with PhysXPhysics.
       enginePhysX = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
-          wasmModeUrl: physXWasmModeUrl,
-          wasmSIMDModeUrl: physXWasmSIMDModeUrl
-        })
+        physics: createPhysics()
       });
       physicsScene = enginePhysX.sceneManager.activeScene.physics;
 

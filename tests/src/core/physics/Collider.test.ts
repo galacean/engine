@@ -10,7 +10,7 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { createPhysics } from "./PhysicsTestUtils";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 
@@ -69,8 +69,8 @@ describe("physics collider test", function () {
     boxEntity.transform.setPosition(pos.x, pos.y, pos.z);
 
     const physicsBox = new BoxColliderShape();
-    physicsBox.material.dynamicFriction = 0;
-    physicsBox.material.staticFriction = 0;
+    physicsBox.getInstanceMaterial().dynamicFriction = 0;
+    physicsBox.getInstanceMaterial().staticFriction = 0;
     physicsBox.size = cubeSize;
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
@@ -82,7 +82,7 @@ describe("physics collider test", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: createPhysics() });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -105,7 +105,7 @@ describe("physics collider test", function () {
     boxEntity.transform.position.y = cubeSize / 2;
     physicsBox = new BoxColliderShape();
     physicsBox.size = new Vector3(cubeSize, cubeSize, cubeSize);
-    physicsBox.material.bounciness = 0.1;
+    physicsBox.getInstanceMaterial().bounciness = 0.1;
 
     const radius = 1.25;
     sphereEntity.transform.position.x = 0;
@@ -309,7 +309,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].material.dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);
@@ -324,7 +324,7 @@ describe("physics collider test", function () {
     collider2.automaticInertiaTensor = false;
     collider2.inertiaTensor.set(10000000, 10000000, 10000000);
     collider2.applyForce(new Vector3(1000, 0, 0));
-    collider2.shapes[0].material.dynamicFriction = 1;
+    collider2.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     //@ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider2.linearVelocity.x)).eq(0.97066);
@@ -338,7 +338,7 @@ describe("physics collider test", function () {
     collider.automaticInertiaTensor = false;
     collider.inertiaTensor.set(10000000, 10000000, 10000000);
     collider.applyForce(new Vector3(1000, 0, 0));
-    collider.shapes[0].material.dynamicFriction = 1;
+    collider.shapes[0].getInstanceMaterial().dynamicFriction = 1;
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(collider.linearVelocity.x)).eq(0.97066);
@@ -389,7 +389,7 @@ describe("Collider Layer Collision Tests", () => {
     beforeAll(async () => {
       engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        physics: new PhysXPhysics()
+        physics: createPhysics()
       });
       rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
     });
