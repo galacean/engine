@@ -412,6 +412,10 @@
     "replacement": "packages/modify/src/native/core/src/particle/modules/WindOverLifetimeModule.ts"
   },
   {
+    "original": "packages/loader/src/MaterialLoader.ts",
+    "replacement": "packages/modify/src/native/loader/src/MaterialLoader.ts"
+  },
+  {
     "original": "packages/loader/src/MeshLoader.ts",
     "replacement": "packages/modify/src/native/loader/src/MeshLoader.ts"
   },

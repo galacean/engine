@@ -26,7 +26,7 @@
 
 补充验收入口：
 
-- `native-material.config.mjs` 只选原生 MaterialLoader 的 8 条测试。嵌套 ShaderLoader 的“重复创建拒绝”与原 overlay 的内容共享契约不同，显式跳过并保存原始失败记录；修改层另有共享契约回归。
+- `native-material.config.mjs` 在 modify 环境执行 5 条原生加载/有效性测试与 10 条旧材质兼容及失败清理测试。显式筛除 3 条未知字段拒绝测试和 1 条 Shader 重复创建拒绝测试：它们与修改层旧契约不同。原生完整 9 条必须在不加载 modify 的环境单独验证；筛除不计通过。
 - Agent Trace 自动导入原测试的离线 fixture，验证 6 条记录；不调用 LLM。建筑 generated/native-access/presets/validation 自动点击内置验收按钮并记录结果。
 - `DEMO_FILTER=demos/wind-tree/benchmark.html DEMO_QUERY='?trees=1000' WIND_GATES=1 RUN_TIMEOUT_MS=600000` 运行真正的千树 B/P3/B 与 OFF/ON/OFF 门禁。GPU timer 不可用时，内置 passed 不能解释为 GPU 已验收。
 - `REVERSE_ORDER=1` 反转 A/B 顺序；重点性能复测要串行执行，不能和单测、构建并跑。
@@ -41,3 +41,5 @@
 - `audit-source-parity.mjs`：按全部迁移映射核对来源工作区、物化快照和目标；报告是差异定位证据，不等于渲染/性能证明。
 - `run-source-parity-unit.mjs <文件名...>`：以原断言逐文件串行运行来源和目标，保留独立日志、JSON、运行状态和未完成前最后用例；进程超时只记未完成。
 - `source-parity-*` 证据是撤回额外修复后的续验结果。此前的 `continuation-*` 不能直接用于声明当前版本通过。
+
+干净旧主线复核后，基准必须区分 `engine-next/dev/2.0@039cbdcf`（引擎 `bd34daa`）与实验工作区（引擎 `5cac8daa`）。共同失败不能直接证明旧主线已有缺陷。用户要求修复旧主线没有的新增问题；MaterialLoader 已按旧基线恢复忽略未知字段，仅在 modify 生效。后续来源一致性审计应显式保留这项有依据的差异。详见 `world/migration/source-baseline-failure-review-2026-11-04.md`。

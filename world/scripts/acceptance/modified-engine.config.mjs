@@ -42,7 +42,8 @@ export default {
       .filter((f) => f.endsWith(".test.ts") && !f.includes("GaussianSplat"))
       .map((f) => path.relative(overlay, f))
       .concat([
-        path.join(root, "packages/modify/tests/LegacyToolkit.test.ts")
+        path.join(root, "packages/modify/tests/LegacyToolkit.test.ts"),
+        path.join(root, "packages/modify/tests/MaterialLoaderCompatibility.test.ts")
       ]),
     browser: {
       enabled: true,

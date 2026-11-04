@@ -1,5 +1,9 @@
 # engine-next 原仓库失败诊断（2026-11-04）
 
+> 后续修复与干净旧主线复验：Day/Night 已确认是引擎升级回归，现由 engine-modify 恢复旧加载行为，并补齐失败材质清理；另两页、58 条相关 Vitest 失败、Masonry 4 条和 shared 建筑 4 条失败已在 `039cbdcf + bd34daa` 实际复现。下面保留此前实验工作区诊断，不能将其“三个 Demo”结论当作干净旧主线结论。最新方法、结果和修复见 [来源版本复核](source-baseline-failure-review-2026-11-04.md)。
+
+> 后续版本核对更正：本文“原仓库直接运行”指实验分支合并后的有效工作区，并非干净的 engine-next/dev/2.0@039cbdcf。两者使用不同引擎基线。Day/Night 的 Select 异常由新版 MaterialLoader 的严格拒绝行为触发，旧主线加载器忽略该字段，不会抛出同一异常。不能把该项统称为原 dev/2.0 已有失败。完整证据和结论边界见 [来源版本复核](source-baseline-failure-review-2026-11-04.md)。
+
 ## 结论与范围
 
 三个 Demo 均在原仓库正常开发服务直接复现；原正式 Vitest 配置复现了此前同名的 51 条失败。不能把此前全部建筑失败算作原仓库问题：6 个 ENOENT 失败记录来自验收工作目录错误，其中 junction 用例修正目录后继续暴露原测试接口不匹配。
@@ -26,9 +30,9 @@
 
 代码定位：
 
-- [registrations.json](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/animals/cute-zoo/registrations.json)；[AnimalRegistration.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/shared/gameplay/animal/AnimalRegistration.ts:151)。
-- [main.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/day-night-system/main.ts)；来源加载器 [MaterialLoader.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/.materialized/engine/packages/loader/src/MaterialLoader.ts)。
-- [PlanningWaterRuntime.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/terrain/seed-world-planner/spatial/runtime/PlanningWaterRuntime.ts:655)；[PlanningOceanSource.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/terrain/seed-world-planner/semantic-study/PlanningOceanSource.ts:32)。
+- [registrations.json](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/demos/animals/cute-zoo/registrations.json)；[AnimalRegistration.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/shared/gameplay/animal/AnimalRegistration.ts:151)。
+- [main.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/demos/day-night-system/main.ts)；来源加载器 [MaterialLoader.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/.materialized/engine/packages/loader/src/MaterialLoader.ts)。
+- [PlanningWaterRuntime.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/demos/terrain/seed-world-planner/spatial/runtime/PlanningWaterRuntime.ts:655)；[PlanningOceanSource.ts](/Users/zhanyingwei/Downloads/AntGroup/Galacean/engine-next/world/gallery/demos/terrain/seed-world-planner/semantic-study/PlanningOceanSource.ts:32)。
 
 证据：original-direct/demos.json（只取 animals/cute-zoo 与 day-night-system 两项）、metrics-demo.json、select-materials.json 及截图。初次脚本误写 /demos/metrics-zoo/index.html 的记录无效，已用上表正确入口单独复测，不能将误写入口当产品错误。
 

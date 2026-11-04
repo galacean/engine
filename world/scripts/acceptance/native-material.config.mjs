@@ -7,8 +7,13 @@ export default {
   ...base,
   test: {
     ...base.test,
-    include: [path.join(root, "tests/src/loader/MaterialLoader.test.ts")],
-    testNamePattern: "MaterialLoader ",
+    include: [
+      path.join(root, "tests/src/loader/MaterialLoader.test.ts"),
+      path.join(root, "packages/modify/tests/MaterialLoaderCompatibility.test.ts")
+    ],
+    // Native unsupported-field rejection is a different contract. Its original
+    // tests remain unchanged and run separately without engineModify.
+    testNamePattern: "MaterialLoader (loads|rejects a)|old World loader|ignored editor metadata",
     outputFile: path.join(root, "world/.acceptance/native-material-compatibility.json")
   }
 };
