@@ -2,6 +2,7 @@ import { Color, Vector2, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../../Camera";
 import { Engine } from "../../Engine";
 import { Blitter } from "../../RenderPipeline/Blitter";
+import { PipelineStage } from "../../RenderPipeline/enums/PipelineStage";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { GLCapabilityType } from "../../base";
@@ -47,6 +48,9 @@ export class ScreenSpaceReflectionPass {
   private static readonly _verticalFilterDirection = new Vector2(0, 1);
 
   private _material: Material | null = null;
+  private _contributionTarget: RenderTarget | null = null;
+  private _contributionColorDrawCount = 0;
+  private _contributionDepthDrawCount = 0;
   private _sceneColorTarget: RenderTarget | null = null;
   private _surfaceTarget: RenderTarget | null = null;
   private _traceTarget: RenderTarget | null = null;
@@ -101,6 +105,8 @@ export class ScreenSpaceReflectionPass {
     const camera = this._camera;
     const rhi = this._engine._hardwareRenderer;
     let reason: string | null = null;
+    this._contributionColorDrawCount = 0;
+    this._contributionDepthDrawCount = 0;
     this._opaqueReceiverElementCount = 0;
     this._transparentReceiverElementCount = 0;
     this._opaqueSurfacePassDrawCount = 0;
@@ -284,6 +290,94 @@ export class ScreenSpaceReflectionPass {
     }
   }
 
+  /** Capture transparent hit content without changing the immutable opaque composite base. */
+  captureContributions(
+    context: RenderContext,
+    colorTarget: RenderTarget,
+    draw: (stage: PipelineStage) => number
+  ): void {
+    const camera = this._camera;
+    const cameraData = camera.shaderData;
+    const materialData = this._material!.shaderData;
+    const opaqueColor = this._sceneColorTarget!.getColorTexture(0) as Texture2D;
+    const opaqueDepth = colorTarget.depthTexture as Texture2D;
+    const previousColor = cameraData.getTexture(Camera._cameraOpaqueTextureProperty);
+    const previousDepth = cameraData.getTexture(Camera._cameraDepthTextureProperty);
+    const previousIntensity = cameraData.getFloat(ScreenSpaceReflection._cameraIntensityProperty);
+    const profiler = camera.screenSpaceReflection.profiler;
+    try {
+      // Reflection color needs roughness mips; depth must remain a single nearest-sampled level.
+      this._contributionTarget = this._engine._renderTargetPool.allocateRenderTarget(
+        this._fullWidth,
+        this._fullHeight,
+        opaqueColor.format,
+        colorTarget._depthFormat,
+        true,
+        true,
+        false,
+        1,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear,
+        TextureFilterMode.Point,
+        [],
+        false
+      );
+      this._updateResourcePeaks();
+      this._blit(opaqueColor, this._contributionTarget, "contribution-copy");
+      this._sceneCopyPassCount++;
+      profiler?.beginSample("contribution-depth-copy", null);
+      try {
+        this._engine._hardwareRenderer.blitInternalRTByBlitFrameBuffer(
+          colorTarget,
+          this._contributionTarget,
+          CameraClearFlags.Color | CameraClearFlags.Stencil,
+          PipelineUtils.defaultViewport
+        );
+      } finally {
+        profiler?.endSample();
+      }
+      // Refraction/depth consumers use this frame's opaque inputs. SSR must not feed itself.
+      cameraData.setTexture(Camera._cameraOpaqueTextureProperty, opaqueColor);
+      cameraData.setTexture(Camera._cameraDepthTextureProperty, opaqueDepth);
+      cameraData.setFloat(ScreenSpaceReflection._cameraIntensityProperty, 0);
+      context.setRenderTarget(this._contributionTarget, PipelineUtils.defaultViewport, 0);
+      profiler?.beginSample("contribution-color", null);
+      try {
+        this._contributionColorDrawCount = draw(PipelineStage.ScreenSpaceReflectionContributionColor);
+      } finally {
+        profiler?.endSample();
+      }
+      profiler?.beginSample("contribution-depth", null);
+      try {
+        this._contributionDepthDrawCount = draw(PipelineStage.ScreenSpaceReflectionContributionDepth);
+      } finally {
+        profiler?.endSample();
+      }
+      profiler?.beginSample("contribution-mipmap", null);
+      try {
+        this._contributionTarget.generateMipmaps();
+      } finally {
+        profiler?.endSample();
+      }
+      materialData.setTexture(
+        ScreenSpaceReflectionPass._sceneColorProperty,
+        this._contributionTarget.getColorTexture(0)
+      );
+      materialData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, this._contributionTarget.depthTexture);
+    } catch {
+      // The opaque capture remains usable if contribution allocation/drawing fails.
+      camera.screenSpaceReflection._failContribution("screen-space-reflection-contribution-unavailable");
+      materialData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, opaqueColor);
+      materialData.setTexture(ScreenSpaceReflectionPass._sceneDepthProperty, opaqueDepth);
+      if (this._contributionTarget) this._engine._renderTargetPool.freeRenderTarget(this._contributionTarget);
+      this._contributionTarget = null;
+    } finally {
+      cameraData.setTexture(Camera._cameraOpaqueTextureProperty, previousColor);
+      cameraData.setTexture(Camera._cameraDepthTextureProperty, previousDepth);
+      cameraData.setFloat(ScreenSpaceReflection._cameraIntensityProperty, previousIntensity);
+    }
+  }
+
   /** Prepare either logical phase, failing closed if its resources are unavailable. */
   beginSurface(
     context: RenderContext,
@@ -367,7 +461,14 @@ export class ScreenSpaceReflectionPass {
 
   /** Composite the Opaque logical layer as a full-output BRDF-unit delta. */
   composite(colorTarget: RenderTarget): void {
-    this._blit(this._sceneColorTarget!.getColorTexture(0) as Texture2D, colorTarget, "composite", 3);
+    const shaderData = this._material!.shaderData;
+    const hitColor = shaderData.getTexture(ScreenSpaceReflectionPass._sceneColorProperty);
+    shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, this._sceneColorTarget!.getColorTexture(0));
+    try {
+      this._blit(this._sceneColorTarget!.getColorTexture(0) as Texture2D, colorTarget, "composite", 3);
+    } finally {
+      shaderData.setTexture(ScreenSpaceReflectionPass._sceneColorProperty, hitColor);
+    }
     this._compositePassCount++;
   }
 
@@ -418,6 +519,8 @@ export class ScreenSpaceReflectionPass {
     this._camera.screenSpaceReflection._setRenderStats({
       width: this._peakTraceWidth,
       height: this._peakTraceHeight,
+      contributionColorDrawCount: this._contributionColorDrawCount,
+      contributionDepthDrawCount: this._contributionDepthDrawCount,
       opaqueSurfacePassDrawCount: this._opaqueSurfacePassDrawCount,
       transparentSurfacePassDrawCount: this._transparentSurfacePassDrawCount,
       tracePassCount: this._tracePassCount,
@@ -448,6 +551,10 @@ export class ScreenSpaceReflectionPass {
     materialData?.setTexture(ScreenSpaceReflectionPass._traceOriginProperty, null);
     this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
 
+    if (this._contributionTarget) {
+      pool.freeRenderTarget(this._contributionTarget);
+      this._contributionTarget = null;
+    }
     if (this._sceneColorTarget) {
       pool.freeRenderTarget(this._sceneColorTarget);
       this._sceneColorTarget = null;
@@ -694,6 +801,7 @@ export class ScreenSpaceReflectionPass {
 
   private _updateResourcePeaks(): void {
     this._estimatedBytes =
+      this._getRenderTargetTextureBytes(this._contributionTarget) +
       this._getRenderTargetTextureBytes(this._sceneColorTarget!) +
       this._getRenderTargetTextureBytes(this._surfaceTarget!) +
       this._getRenderTargetTextureBytes(this._traceTarget!) +
@@ -707,10 +815,13 @@ export class ScreenSpaceReflectionPass {
       Number(this._traceBlurTarget !== null) +
       Number(this._filteredTraceTarget !== null) +
       Number(this._resolvedTraceTarget !== null);
-    this._peakRenderTargetCount = Math.max(this._peakRenderTargetCount, 3 + optionalTargets);
+    this._peakRenderTargetCount = Math.max(
+      this._peakRenderTargetCount,
+      3 + optionalTargets + Number(this._contributionTarget !== null)
+    );
     this._peakRenderTextureCount = Math.max(
       this._peakRenderTextureCount,
-      4 + this._traceTarget!.colorTextureCount + optionalTargets
+      4 + this._traceTarget!.colorTextureCount + optionalTargets + 2 * Number(this._contributionTarget !== null)
     );
   }
 

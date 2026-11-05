@@ -71,6 +71,9 @@ export class Material extends ReferResource implements IClone {
   get _screenSpaceReflectionAuthorSettings(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
     return this._screenSpaceReflection;
   }
+  /** Allow this transparent material to supply SSR hit color/depth. Independent of receiver ownership. */
+  contributeScreenSpaceReflection = false;
+
   /** Name. */
   name: string;
 
@@ -149,6 +152,7 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
+    target.contributeScreenSpaceReflection = this.contributeScreenSpaceReflection;
     target._screenSpaceReflectionReceiverRegistered = this._screenSpaceReflectionReceiverRegistered;
     target._screenSpaceReflection = this._screenSpaceReflection
       ? Object.freeze({ ...this._screenSpaceReflection })

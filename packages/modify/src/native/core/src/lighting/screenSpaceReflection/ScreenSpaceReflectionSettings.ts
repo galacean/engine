@@ -4,6 +4,12 @@ import { ScreenSpaceReflectionReceiverPolicy } from "./enums/ScreenSpaceReflecti
 import { ScreenSpaceReflectionQuality } from "./enums/ScreenSpaceReflectionQuality";
 import { ScreenSpaceReflectionUpsamplingMode } from "./enums/ScreenSpaceReflectionUpsamplingMode";
 
+/** Which visible surfaces can supply reflection hits. */
+export enum ScreenSpaceReflectionContent {
+  OpaqueOnly = 0,
+  OpaqueAndTransparent = 1
+}
+
 export enum ScreenSpaceReflectionSettingsSource {
   UseSceneSettings = 0,
   Override = 1
@@ -12,6 +18,7 @@ export enum ScreenSpaceReflectionSettingsSource {
 export interface ScreenSpaceReflectionSettingsData {
   activationMode: ScreenSpaceReflectionActivationMode;
   receiverPolicy: ScreenSpaceReflectionReceiverPolicy;
+  reflectionContent: ScreenSpaceReflectionContent;
   resolutionScale: number;
   upsamplingMode: ScreenSpaceReflectionUpsamplingMode;
   intensity: number;
@@ -29,6 +36,7 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
   _version = 0;
   private _data: ScreenSpaceReflectionSettingsData = {
     ...ScreenSpaceReflectionSettings.performancePreset(ScreenSpaceReflectionQuality.Medium),
+    reflectionContent: ScreenSpaceReflectionContent.OpaqueOnly,
     activationMode: ScreenSpaceReflectionActivationMode.Auto,
     receiverPolicy: ScreenSpaceReflectionReceiverPolicy.ExplicitOnly,
     resolutionScale: 1,
@@ -57,6 +65,11 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
         data.receiverPolicy === ScreenSpaceReflectionReceiverPolicy.StandardPbrAuto
           ? data.receiverPolicy
           : ScreenSpaceReflectionReceiverPolicy.ExplicitOnly;
+    if (data.reflectionContent !== undefined)
+      result.reflectionContent =
+        data.reflectionContent === ScreenSpaceReflectionContent.OpaqueAndTransparent
+          ? ScreenSpaceReflectionContent.OpaqueAndTransparent
+          : ScreenSpaceReflectionContent.OpaqueOnly;
     return result;
   }
   static performancePreset(
@@ -84,6 +97,12 @@ export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSetti
   }
   set activationMode(value: ScreenSpaceReflectionSettingsData["activationMode"]) {
     this.apply({ activationMode: value });
+  }
+  get reflectionContent() {
+    return this._data.reflectionContent;
+  }
+  set reflectionContent(value: ScreenSpaceReflectionContent) {
+    this.apply({ reflectionContent: value });
   }
   get receiverPolicy() {
     return this._data.receiverPolicy;

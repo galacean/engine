@@ -9,7 +9,11 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { DepthTextureMode } from "../enums/DepthTextureMode";
 import { ReplacementFailureStrategy } from "../enums/ReplacementFailureStrategy";
 import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/ScalableAmbientObscurancePass";
-import { ScreenSpaceReflectionPass, ScreenSpaceReflectionReceiverMode } from "../lighting/screenSpaceReflection";
+import {
+  ScreenSpaceReflection,
+  ScreenSpaceReflectionPass,
+  ScreenSpaceReflectionReceiverMode
+} from "../lighting/screenSpaceReflection";
 import type { Material } from "../material";
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
@@ -578,6 +582,19 @@ export class BasicRenderPipeline {
       forwardTargetResolved = true;
       try {
         screenSpaceReflectionCaptured = screenSpaceReflectionPass.captureScene(context, internalColorTarget);
+        if (screenSpaceReflectionCaptured && camera.screenSpaceReflection._includesTransparentContributors) {
+          const contributes = (material: Material, element: RenderElement) =>
+            material.contributeScreenSpaceReflection &&
+            ScreenSpaceReflection.supportsMaterialContribution(material) &&
+            this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
+          if (
+            transparentQueue.countRenderElements(PipelineStage.ScreenSpaceReflectionContributionColor, contributes) > 0
+          ) {
+            screenSpaceReflectionPass.captureContributions(context, internalColorTarget, (stage) =>
+              transparentQueue.render(context, stage, RenderQueueMaskType.No, contributes, false)
+            );
+          }
+        }
       } finally {
         // MSAA resolve and SSR capture can leave the resolved/default or a private SSR FBO bound.
         // Always restore the Forward color/depth target, including fail-closed capture paths.

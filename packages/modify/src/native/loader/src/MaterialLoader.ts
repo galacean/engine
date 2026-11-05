@@ -122,6 +122,7 @@ class MaterialLoader extends Loader<Material> {
       for (let i = 0; i < textures.length; i++) {
         materialShaderData.setTexture(textureReferences[i].key, textures[i]);
       }
+      material.contributeScreenSpaceReflection = materialSchema.contributeScreenSpaceReflection === true;
       if (materialSchema.screenSpaceReflection !== undefined) {
         material.screenSpaceReflection = materialSchema.screenSpaceReflection;
       }

@@ -3,6 +3,7 @@ import type { RefItem } from "./CommonSchema";
 import type { IColor, IVector2, IVector3 } from "./BasicSchema";
 
 export interface IMaterialSchema {
+  contributeScreenSpaceReflection?: boolean;
   screenSpaceReflection?: ScreenSpaceReflectionMaterialSettings;
   name: string;
   shader: string;

@@ -174,5 +174,58 @@ Shader "PBR" {
 
         #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
+      Pass "SSR Contribution Color" {
+        Tags { pipelineStage = "ScreenSpaceReflectionContributionColor", screenSpaceReflectionContribution = "ColorDepthV1" }
+
+        RenderQueueType renderQueueType;
+        BlendFactor sourceColorBlendFactor;
+        BlendFactor destinationColorBlendFactor;
+        BlendFactor sourceAlphaBlendFactor;
+        BlendFactor destinationAlphaBlendFactor;
+        CullMode rasterStateCullMode;
+        Bool blendEnabled;
+        Bool depthWriteEnabled;
+
+        DepthState = {
+          WriteEnabled = depthWriteEnabled;
+        }
+
+        BlendState = {
+          Enabled = blendEnabled;
+          SourceColorBlendFactor = sourceColorBlendFactor;
+          DestinationColorBlendFactor = destinationColorBlendFactor;
+          SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+          DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+        }
+
+        RasterState = {
+          CullMode = rasterStateCullMode;
+        }
+
+        RenderQueueType = renderQueueType;
+
+        VertexShader = PBRVertex;
+        FragmentShader = PBRFragment;
+
+        #define SSR_CONTRIBUTION_CAPTURE
+        #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
+      }
+      Pass "SSR Contribution Depth" {
+        RenderQueueType renderQueueType;
+        Tags { pipelineStage = "ScreenSpaceReflectionContributionDepth", screenSpaceReflectionContribution = "ColorDepthV1" }
+        CullMode rasterStateCullMode;
+        DepthState = { WriteEnabled = true; CompareFunction = CompareFunction.LessEqual; }
+        BlendState = { Enabled = false; ColorWriteMask = ColorWriteMask.None; }
+        RasterState = { CullMode = rasterStateCullMode; }
+        RenderQueueType = renderQueueType;
+        VertexShader = PBRVertex;
+        FragmentShader = contributionDepth;
+        #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
+        void contributionDepth(Varyings varyings) {
+          SurfaceData surface = getSurfaceData(varyings, varyings.uv, gl_FrontFacing);
+          if (surface.opacity <= 0.0001) discard;
+        }
+      }
+
     }
   }

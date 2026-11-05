@@ -1,6 +1,7 @@
 import {
   ScreenSpaceReflectionSettings,
   ScreenSpaceReflectionSettingsSource,
+  ScreenSpaceReflectionContent,
   type ScreenSpaceReflectionSettingsData
 } from "./ScreenSpaceReflectionSettings";
 import type { Camera } from "../../Camera";
@@ -139,6 +140,9 @@ export interface ScreenSpaceReflectionMetrics {
   readonly opaqueReceiverElementCount: number;
   readonly transparentReceiverElementCount: number;
   readonly maskedReceiverElementCount: number;
+  readonly contributionColorDrawCount: number;
+  readonly contributionDepthDrawCount: number;
+  readonly contributionUnsupportedReason: string | null;
   readonly surfacePassDrawCount: number;
   readonly opaqueSurfacePassDrawCount: number;
   readonly transparentSurfacePassDrawCount: number;
@@ -196,6 +200,9 @@ interface MutableScreenSpaceReflectionMetrics {
   opaqueReceiverElementCount: number;
   transparentReceiverElementCount: number;
   maskedReceiverElementCount: number;
+  contributionColorDrawCount: number;
+  contributionDepthDrawCount: number;
+  contributionUnsupportedReason: string | null;
   surfacePassDrawCount: number;
   opaqueSurfacePassDrawCount: number;
   transparentSurfacePassDrawCount: number;
@@ -217,6 +224,8 @@ interface MutableScreenSpaceReflectionMetrics {
 }
 
 interface ScreenSpaceReflectionRenderStats {
+  contributionColorDrawCount: number;
+  contributionDepthDrawCount: number;
   width: number;
   height: number;
   opaqueSurfacePassDrawCount: number;
@@ -339,6 +348,7 @@ export class ScreenSpaceReflection {
     this.settingsSource = ScreenSpaceReflectionSettingsSource.Override;
     const normalized = ScreenSpaceReflectionSettings.normalize(data);
     if (normalized.activationMode !== undefined) this._activationMode = normalized.activationMode;
+    if (normalized.reflectionContent !== undefined) this._reflectionContent = normalized.reflectionContent;
     if (normalized.receiverPolicy !== undefined) this._receiverPolicy = normalized.receiverPolicy;
     if (normalized.resolutionScale !== undefined) this._resolutionScale = normalized.resolutionScale;
     if (normalized.upsamplingMode !== undefined) this._upsamplingMode = normalized.upsamplingMode;
@@ -369,6 +379,7 @@ export class ScreenSpaceReflection {
     return {
       activationMode: this.activationMode,
       receiverPolicy: this.receiverPolicy,
+      reflectionContent: this.reflectionContent,
       resolutionScale: this.resolutionScale,
       upsamplingMode: this.upsamplingMode,
       intensity: this.intensity,
@@ -467,6 +478,29 @@ export class ScreenSpaceReflection {
     );
   }
 
+  /** Color uses normal transparent sorting/blending; Depth writes nearest nonzero-alpha depth. */
+  static readonly MATERIAL_CONTRIBUTION_TAG = "screenSpaceReflectionContribution";
+  static readonly MATERIAL_CONTRIBUTION_CONTRACT = "ColorDepthV1";
+  static supportsMaterialContribution(material: Material): boolean {
+    const passes = material.shader?.subShaders[0]?.passes;
+    return (
+      !!passes &&
+      [
+        PipelineStage.ScreenSpaceReflectionContributionColor,
+        PipelineStage.ScreenSpaceReflectionContributionDepth
+      ].every((stage) =>
+        passes.some(
+          (pass) =>
+            pass.getTagValue(ScreenSpaceReflection._pipelineStageTag) === stage &&
+            pass.getTagValue(ScreenSpaceReflection.MATERIAL_CONTRIBUTION_TAG) ===
+              ScreenSpaceReflection.MATERIAL_CONTRIBUTION_CONTRACT &&
+            pass._renderState._getRenderQueueByShaderData(pass._renderStateDataMap, material.shaderData) ===
+              RenderQueueType.Transparent
+        )
+      )
+    );
+  }
+
   /** @internal */
   static readonly _cameraTextureProperty = ShaderProperty.getByName("camera_ScreenSpaceReflectionTexture");
   /** @internal */
@@ -496,8 +530,10 @@ export class ScreenSpaceReflection {
   );
 
   private _activationMode = ScreenSpaceReflectionActivationMode.Auto;
+  private _reflectionContent = ScreenSpaceReflectionContent.OpaqueOnly;
   private _receiverPolicy = ScreenSpaceReflectionReceiverPolicy.ExplicitOnly;
   private _enabled = false;
+  private _renderingEnabled = true;
   private _quality = ScreenSpaceReflectionQuality.Medium;
   private _resolutionScale = 1;
   private _upsamplingMode = ScreenSpaceReflectionUpsamplingMode.GaussianBilateral;
@@ -577,6 +613,9 @@ export class ScreenSpaceReflection {
     opaqueReceiverElementCount: 0,
     transparentReceiverElementCount: 0,
     maskedReceiverElementCount: 0,
+    contributionColorDrawCount: 0,
+    contributionDepthDrawCount: 0,
+    contributionUnsupportedReason: null,
     surfacePassDrawCount: 0,
     opaqueSurfacePassDrawCount: 0,
     transparentSurfacePassDrawCount: 0,
@@ -611,6 +650,21 @@ export class ScreenSpaceReflection {
   }
 
   /**
+   * Which visible surfaces can supply reflection hits.
+   * Independent camera value, not the effective Scene value; writing selects Override.
+   */
+  get reflectionContent(): ScreenSpaceReflectionContent {
+    return this._reflectionContent;
+  }
+  set reflectionContent(value: ScreenSpaceReflectionContent) {
+    this.applySettings({ reflectionContent: value });
+  }
+  /** @internal Resolved author source; consumers do not broaden content participation. */
+  get _includesTransparentContributors(): boolean {
+    return this._authorSettings.reflectionContent === ScreenSpaceReflectionContent.OpaqueAndTransparent;
+  }
+
+  /**
    * How standard PBR materials whose receiver mode is Auto are resolved.
    * Independent camera value, not the effective Scene value; writing selects Override.
    */
@@ -620,6 +674,17 @@ export class ScreenSpaceReflection {
 
   set receiverPolicy(value: ScreenSpaceReflectionReceiverPolicy) {
     this.applySettings({ receiverPolicy: value });
+  }
+
+  /** Runtime-only rendering gate. Does not change author settings or consumer requests, and is not cloned. */
+  get renderingEnabled(): boolean {
+    return this._renderingEnabled;
+  }
+
+  set renderingEnabled(value: boolean) {
+    if (this._renderingEnabled === value) return;
+    this._renderingEnabled = value;
+    this._refreshState();
   }
 
   /** Whether this camera explicitly requests SSR. Consumer leases are independent. */
@@ -1121,6 +1186,11 @@ export class ScreenSpaceReflection {
     return metrics.effective;
   }
 
+  /** @internal Contribution failure keeps opaque tracing available. */
+  _failContribution(reason: string): void {
+    this._metricsState.contributionUnsupportedReason = reason;
+  }
+
   /** @internal Mark a runtime failure without discarding work already submitted this frame. */
   _failFrame(reason: string): void {
     const metrics = this._metricsState;
@@ -1155,6 +1225,8 @@ export class ScreenSpaceReflection {
     metrics.height = stats.height;
     metrics.opaqueSurfacePassDrawCount = stats.opaqueSurfacePassDrawCount;
     metrics.transparentSurfacePassDrawCount = stats.transparentSurfacePassDrawCount;
+    metrics.contributionColorDrawCount = stats.contributionColorDrawCount;
+    metrics.contributionDepthDrawCount = stats.contributionDepthDrawCount;
     metrics.surfacePassDrawCount = stats.opaqueSurfacePassDrawCount + stats.transparentSurfacePassDrawCount;
     metrics.tracePassCount = stats.tracePassCount;
     metrics.sceneCopyPassCount = stats.sceneCopyPassCount;
@@ -1186,6 +1258,7 @@ export class ScreenSpaceReflection {
   _copySettingsFrom(source: ScreenSpaceReflection): void {
     this.activationMode = source.activationMode;
     this.receiverPolicy = source.receiverPolicy;
+    this.reflectionContent = source.reflectionContent;
     this.enabled = source.enabled;
     this.quality = source.quality;
     this.resolutionScale = source.resolutionScale;
@@ -1257,13 +1330,16 @@ export class ScreenSpaceReflection {
         metrics.requested = !this._destroyed && (this._enabled || requestedByConsumers);
         break;
     }
+    if (!this._renderingEnabled) metrics.requested = false;
     if (!metrics.requested) {
       metrics.effective = false;
-      metrics.inactiveReason = this._destroyed
-        ? "camera-destroyed"
-        : this._authorSettings.activationMode === ScreenSpaceReflectionActivationMode.ForceOff
-          ? "disabled-by-global-switch"
-          : "not-requested";
+      metrics.inactiveReason = !this._renderingEnabled
+        ? "disabled-by-runtime-switch"
+        : this._destroyed
+          ? "camera-destroyed"
+          : this._authorSettings.activationMode === ScreenSpaceReflectionActivationMode.ForceOff
+            ? "disabled-by-global-switch"
+            : "not-requested";
       metrics.unsupportedReason = null;
       this._camera.shaderData.setTexture(ScreenSpaceReflection._cameraTextureProperty, null);
       this._resetRenderStats();
@@ -1404,6 +1480,9 @@ export class ScreenSpaceReflection {
     metrics.opaqueReceiverElementCount = 0;
     metrics.transparentReceiverElementCount = 0;
     metrics.maskedReceiverElementCount = 0;
+    metrics.contributionColorDrawCount = 0;
+    metrics.contributionDepthDrawCount = 0;
+    metrics.contributionUnsupportedReason = null;
     metrics.surfacePassDrawCount = 0;
     metrics.opaqueSurfacePassDrawCount = 0;
     metrics.transparentSurfacePassDrawCount = 0;

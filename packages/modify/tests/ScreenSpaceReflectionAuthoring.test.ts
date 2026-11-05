@@ -157,6 +157,18 @@ it("Auto selects consumer requests and forced modes preserve dormant requests", 
   scene.screenSpaceReflection.activationMode = Mode.Auto;
   ssr._prepareSettings();
   expect(ssr.getResolvedSettings(Receiver.TransparentSampleOnly).maxRaySteps).toBe(12);
+  const settingsSource = ssr.settingsSource;
+  ssr.renderingEnabled = false;
+  expect(ssr.metrics.requested).toBe(false);
+  expect(ssr.metrics.inactiveReason).toBe("disabled-by-runtime-switch");
+  expect(lease.active).toBe(true);
+  scene.screenSpaceReflection.intensity = 0.6;
+  ssr._prepareSettings();
+  expect(ssr.metrics.requested).toBe(false);
+  ssr.renderingEnabled = true;
+  expect(ssr.metrics.requested).toBe(true);
+  expect(ssr.settingsSource).toBe(settingsSource);
+  expect(ssr.getResolvedSettings(Receiver.TransparentSampleOnly).maxRaySteps).toBe(12);
   lease.release();
   ssr._prepareSettings();
   expect(ssr.metrics.requested).toBe(false);
@@ -244,6 +256,17 @@ it("renders a loaded author configuration through the built shader/pipeline", as
   scene.screenSpaceReflection.apply({ activationMode: Mode.ForceOn, intensity: 0.35 });
   engine.update();
   expect(camera.screenSpaceReflection.metrics.resolvedSettings.intensity).toBe(0.35);
+  expect(camera.screenSpaceReflection.metrics.tracePassCount).toBeGreaterThan(0);
+  const author = camera.screenSpaceReflectionSettings;
+  camera.screenSpaceReflection.renderingEnabled = false;
+  engine.update();
+  expect(camera.screenSpaceReflection.metrics.tracePassCount).toBe(0);
+  expect(camera.screenSpaceReflectionSettings).toEqual(author);
+  const clone = camera.entity.clone();
+  expect(clone.getComponent(Camera)!.screenSpaceReflection.renderingEnabled).toBe(true);
+  clone.destroy();
+  camera.screenSpaceReflection.renderingEnabled = true;
+  engine.update();
   expect(camera.screenSpaceReflection.metrics.tracePassCount).toBeGreaterThan(0);
 
   scene.destroy();
