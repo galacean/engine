@@ -1,7 +1,8 @@
-import type { PublishedConstructionOwner, generateConstructionContacts } from "./ConstructionContacts";
-import type { MasonryBinding } from "./MasonryDocument";
-import type { SupportCell } from "./PlacementSupport";
-import { supportShapeFrame } from "./ConstructionSupportFrame";
+import type { ProfileWallGeometry } from "./ProfileWallGeometry";
+import type { placeProfileContacts } from "./ProfileContacts";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
+import type { SupportCell } from "./PlacementSupport.ts";
+import { supportShapeFrame } from "./ConstructionSupportFrame.ts";
 
 export interface ConstructionJunctionGroup {
   decorationId?: string;
@@ -20,15 +21,14 @@ export interface ConstructionJunctionGroup {
  * That same owner supplies a metric edit anchor, material and render slot.
  * Raw packed records remain the default variant; replacement units use the
  * decoded affine frame. No generated placement is persisted in author data. */
-export function constructionJunctionGroups(
-  owners: readonly PublishedConstructionOwner[],
-  contacts: Pick<ReturnType<typeof generateConstructionContacts>, "connections" | "merlons">,
-  bindings: readonly MasonryBinding[]
+export function profileJunctionGroups(
+  owners: readonly ProfileJunctionOwner[],
+  contacts: Pick<ReturnType<typeof placeProfileContacts>, "connections" | "merlons">
 ): ConstructionJunctionGroup[] {
   const byId = new Map(owners.map((o) => [o.nativeId, o]));
   const groups = new Map<string, ConstructionJunctionGroup>();
   const ordinals = new Map<string, number>();
-  const wallAnchor = (o: PublishedConstructionOwner, center: number[]): number[] => {
+  const wallAnchor = (o: ProfileJunctionOwner, center: number[]): number[] => {
     let best = Infinity,
       arc = 0,
       u = 0;
@@ -61,16 +61,14 @@ export function constructionJunctionGroups(
   ) => {
     const owner = byId.get(ownerId);
     if (!owner) throw Error("Junction owner is absent");
-    const binding = bindings.find(
-      (b) => b.geometry_id === owner.building.id + (role === "wall_junction" ? "-wall" : "-roof")
-    );
+    const binding = role === "wall_junction" ? owner.wallBinding : owner.roofBinding;
     // Legacy examples without wall author bindings keep their original static draw.
     if (!binding) return;
     const key = JSON.stringify([binding.id, role, sourceUnit, sourceDrawId]);
     let group = groups.get(key);
     if (!group) {
       group = {
-        ownerId: owner.building.id,
+        ownerId: owner.id,
         binding,
         slot: owner.slot,
         role,
@@ -89,15 +87,27 @@ export function constructionJunctionGroups(
     const center = [0, 1, 2].map(
       (i) => v.getFloat32(36 + i * 4, true) + (sourceUnit === "wooden_plank" ? columns[1][i] / 2 : 0)
     );
-    const identity = JSON.stringify([
-      role,
-      participants.map((id) => byId.get(id)!.building.id).sort(),
-      owner.building.id,
-      sourceUnit
-    ]);
+    const identity = JSON.stringify([role, participants.map((id) => byId.get(id)!.id).sort(), owner.id, sourceUnit]);
     const ordinal = ordinals.get(identity) ?? 0;
     ordinals.set(identity, ordinal + 1);
     const id = binding.geometry_id + "/junction/" + identity + "/" + ordinal;
+    const variationIdentity = JSON.stringify([
+      role,
+      participants
+        .map((id) => {
+          const p = byId.get(id)!;
+          return p.variationKey ?? p.id;
+        })
+        .sort(),
+      owner.variationKey ?? owner.id,
+      sourceUnit
+    ]);
+    const variationKey =
+      binding.variationKey !== undefined ||
+      owner.variationKey !== undefined ||
+      participants.some((id) => byId.get(id)!.variationKey !== undefined)
+        ? (binding.variationKey ?? binding.geometry_id) + "/junction/" + variationIdentity + "/" + ordinal
+        : undefined;
     let anchor: number[];
     if (role === "wall_junction") anchor = wallAnchor(owner, center);
     else {
@@ -109,6 +119,7 @@ export function constructionJunctionGroups(
     group.cells.push({
       id,
       logical_id: id,
+      ...(variationKey !== undefined ? { seed_id: variationKey, lod_seed_id: variationKey } : {}),
       surface_id: binding.geometry_id,
       anchor_uv: anchor,
       center,
@@ -139,4 +150,11 @@ export function constructionJunctionGroups(
       append(pair[0], pair, "roof_junction", "wooden_plank", "inter-roof-beams-" + index, b.packed80, b.packed80);
   });
   return [...groups.values()];
+}
+
+export interface ProfileJunctionOwner
+  extends Pick<ProfileWallGeometry, "id" | "slot" | "shape" | "profile" | "variationKey"> {
+  nativeId: bigint;
+  wallBinding?: MasonryBinding;
+  roofBinding?: MasonryBinding;
 }

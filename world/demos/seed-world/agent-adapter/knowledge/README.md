@@ -9,6 +9,7 @@ In execute, these world APIs live under `tools`, for example `await tools.world.
 When the scene exposes component authoring, the relevant guides include system-owned component usage knowledge for the available components. Discover exact fields, units, scope and constraints through `world.parameters.describe`, then inspect the actual target before proposing edits. System guides explain how capabilities relate; they do not supply fixed mood presets or override the current schema, authorization or runtime checks.
 
 - [对象：查询、检查、删除和标签](object-management/README.md)
+- [建筑：生成与原生编辑](building/README.md)
 - [空间：位置、相对方位与导航](spatial/README.md)
 - [时间与季节](time/README.md)
 - [天气与大气](atmosphere/README.md)

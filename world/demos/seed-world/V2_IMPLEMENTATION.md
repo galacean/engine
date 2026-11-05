@@ -14225,6 +14225,860 @@ Terrain/RuntimeEditor noEmit、preset 声明 105 文件 / 301718 bytes 一致性
 
 最终 CR 覆盖本轮全部 18 文件 diff，以及公共发布、历史差异、显式恢复、调用者与建筑/农场生命周期边界，未发现新的确认问题。未新增移动端、生产发布构建、整世界性能或真实 LLM 验收；全 PR 范围盘点仍为既有 `needs-scope-split`（含本地诊断产物），不宣称全 PR 门禁通过。独立 engine #3140 继续保留 issue 跟踪。本轮修复随 PR #116 提交，PR 保持未合并；独立 engine 问题仍由原 issue 跟踪。证据：`output/cr-116/undo-fix-review.json`、`undo-fix-*.log`、`undo-fix.patch`。
 
+### 2026-11-02：递归构件与 Mesh Surface
+
+根据本轮用户约定，通用构件直接使用 Entity/Prefab 递归组合，程序化和铺设算法沿用项目 Script 执行环境。新增 BuildingSurfaceComponent（直接引用原生 Mesh）、BuildingPathComponent、参数曲面/网格/弧长排列算法、组合实例生成与生成资源生命周期。连接沿用 land 的共用尺寸/端点、搭接和收边思路，不新增通用连接图或求解器。
+
+Agent 目录增加按需路由的建筑 Skill；主干的既有 House/Wall/Fence 和 shader/材质/LOD 未改写，作为真实消费者使用的成熟配方保留。新入口为 building-components/parts.html；实现边界和本轮证据见 [构件 README](../../../shared/tiny-glade/parts/README.md)。建筑回归 152 项通过，同相机下原房屋组合/拆出的稳定画面像素差异为 0。具体地标建筑的造型审美尚未验收。
+
+用户命名调整：通用 Mesh 表面统一命名 BuildingSurfaceComponent；原房屋铺设修改器改名 BuildingPlacementComponent，同步原生预设、生成器、编辑面板及 Script 声明。构件可持有多个 Surface；算法与铺设单元是 Script 使用的可复用输入，生成实例归属构件子树。
+
+### 2026-11-02：建筑身份、递归 parts 与独立算法落地
+
+按用户随后明确的契约收敛：BuildingComponent 同时声明建筑身份和 supports/parts 构成描述，空 parts 合法；Unit 是普通 Entity/Prefab，不强制建筑组件。BuildingManager 只管理身份、CRUD、失效和生命周期；支撑、铺设、递归编译与批处理分文件。函数引用保存为注册名，资源和节点沿用原生 $ref/$entity。没有新增 geometry 字段，也没有逐瓦创建 Entity 的要求。
+
+新增 point/path/meshSurface 支撑算法、placeAtPoint/alongPath/staggeredGrid 铺设算法、统一自定义注册接口。编译器保留 part 路径、逻辑实例、嵌套建筑身份与批次三角形来源；静态可读标准材质 Unit 合并几何，行为对象保留原生组件。失败保留完整旧输出，更新/删除清理独占 Mesh，克隆时移除派生输出。当前更新范围为 owner，非单瓦增量；通用批处理是合并网格，不声称已泛化专用瓦片 shader 的实例 ABI。
+
+MainBuildingComponent 继承 BuildingComponent；既有 House/Wall/Fence 的真实持久化消费者保留，原 Worker、瓦片实例缓冲、shader、材质、LOD 未改写。原房屋作为 Unit 时通过派生身份接入原 BuildingSystem；普通源身份解析不扫描派生集合。新入口 building-components/recursive.html 使用原生 Scene→Roof.prefab→Tile.prefab 资源链；右侧房屋生成 600 片瓦和一个屋顶逻辑实例，仅两个合批 MeshRenderer（屋面双 submesh、瓦片单 submesh），无逐瓦 Entity。
+
+验证：建筑 17 文件/157 测试通过；建筑及 Terrain 类型检查、Script 声明生成、Skill 校验通过。新入口 20 项真实引擎验收通过，另验证原生节点 $entity 引用、参数保存重载及会话内撤销。600 个独立瓦片对象与合批结果对照，1200×672 截图排除诊断面板后的渲染区域像素差为 0；原房屋与改动前固定相机截图对照，2400×1344 全画面像素差为 0。截图在 output/playwright/recursive-{batched,entities}.png 与 house-after-building-component.png。具体地标造型、移动端性能和逐实例编辑界面未作为本轮验收结论。
+
+范围审计返回 needs-scope-split：列出的三个内置 Prefab 变更是前述 BuildingSurfaceComponent→BuildingPlacementComponent 命名同步，Agent 配置变更是建筑 Skill 挂载，均属于本分支已授权建筑范围；未修改生产 shader/材质算法或空间布局规则。本记录不将该范围盘点宣称为 PR 合入门禁通过。
+
+### 2026-11-02：房屋墙体统一进入 parts
+
+按用户纠正，递归示例删除房屋直接持有的墙体子节点，改用 wallMount Point + placeAtPoint + Wall.prefab。墙体沿用原 Wall.mesh、材质与位置，没有强制添加 BuildingComponent。房屋现在有 wall/roof 两条 part，运行结果为墙体、屋顶和 600 片瓦共 602 条逻辑实例；瓦片继续合批，逐瓦 Entity 数为 0。墙体沿用不可读 PrimitiveMesh 资产，因此保留一个真实 Unit 实例。示例的合批对照开关改为统计瓦片实例，不再误用总 Entity 数；原生节点引用验收仅替换 roof part，保持墙体配方。
+
+建筑类型检查、21 项浏览器验收及 $entity 节点引用验收通过。与墙体修改前的截图比较，排除诊断面板后的渲染区域像素差为 0；合批/独立对象开关验证了 600 个瓦片 Entity 与 0 个瓦片 Entity 的往返切换。新示例使用独立的 v2 本地存储键，不覆盖先前示例的作者修改。
+
+
+## 2026-11-02 建筑 Plan → Build（codex/recursive-building）
+
+用户授权：在已落地递归构件系统上增加可检查的规划阶段，父级共享连接数据；先验证房屋保真、窗口连接、曲面泛化、局部更新，保持原有房屋效果和瓦片批处理。
+
+- BuildingPlan 是可保存作者配方 `{root, bindings, units}`，规划函数不接收 Engine context，不分配生成几何；BuildingComponent.plan 和直接 supports/parts 为互斥的作者描述，后者仍有真实 Prefab/Script 消费者，二者共用编译器而非双渲染路径。
+- BuildingPlanBuilder 为每个定义创建一个离线模板，再走原有递归编译和批处理。生成模板/Mesh 由 BuildingPartDraft 管理；Asset/Prefab/Material 借用。原子发布、失败保留、克隆、删除和跨建筑失效保持。
+- HousePlan 规划墙与 Roof.prefab；可选前墙矩形窗口由唯一 frontOpening binding 同时驱动墙洞、窗框、面板和挂接 Point。Surface 通过 planMesh 引用本单元生成的 native Mesh。原有专用 HouseComponent Worker/瓦片 ABI/Shader/LOD 未改。
+- ShellPlan 用同一编译器生成两片可复用拱壳，Surface 排饰面、Path 排边缘单元。它是泛化验证样板，不是悉尼歌剧院模型。公共内核没有增加太和殿/歌剧院/科幻类型分支。
+- recursive.html：默认房屋、添加/移除窗口、位置/宽度输入、屋顶高度、撤销、保存重载、批处理/实体对照、查看真实 Source 规划数据。recursive.html?shell：壳体高度、撤销、保存和规划查看。新 demo 存储 ID 不覆盖此前 v2 草稿。
+- Building Skill 增加 planning 引用，声明实际范围：前墙矩形洞口；拱壳竖向厚度和参数 UV；当前 owner 粒度重建；任意算法代码热替换未实现。现有算法的数据修改无需刷新。
+
+验证：
+- 建筑全量 18 个测试文件 / 163 项通过；随后新增注册函数规范化与真实 Script host Plan API 两项，相关 3 文件 / 14 项复测通过（当前总计 165 项）。
+- building、terrain 类型检查通过；公开声明检查通过，124 文件 / 324274 字节；Skill 校验与 diff 空白检查通过。
+- 真实浏览器房屋 35 项验收通过，含实际墙面三角形留洞、移动后补洞、窗框边界一致、跨 owner 无关建筑不重建、源 Mesh 与合批 Mesh 释放、生成中途失败保留、clone 和删除；原生 $entity Unit 引用通过。
+- 默认房屋（无窗口）与改动前 recursive-wall-part.png：1200×672，排除左侧面板 x<320，0 个差异像素。默认 602 逻辑实例、3 批、0 个逐单元 Entity；600 片瓦仍为共享瓦片批次。原有左侧房屋渲染保持。
+- 有窗口状态：604 逻辑实例、5 批、0 个逐单元 Entity；窗移至 x=1、宽1.6，原生事务保存后完整导航重载恢复；屋顶高度2.6→2.9→撤销2.6通过。
+- 瓦片合批与600独立对象模式：排除面板，0差异像素；最终恢复合批。
+- 曲面页：582逻辑实例、2批、0逐单元Entity；14项规划/连接/生命周期验收通过；视觉已检查（planned-shell.png）。功能验证不替代用户审美验收。
+- 证据在 output/playwright/planned-house.png、planned-window.png、planned-window-batched.png、planned-window-entities.png、planned-shell.png。
+- scope audit 仍标记 needs-scope-split：之前已授权的3个内置Prefab组件改名和Agent Skill配置接入。本轮未新增生产材质/Shader/Engine/LOD改动；该工具是范围清单，不是运行失败。未提交或推送。
+
+曲面持久化补充：真实按钮修改 rise 3→3.3、撤销回3、再次修改3.3，等待完整页面导航后确认保存重载保持3.3；饰面与边缘重算后586逻辑实例、2批、0逐单元Entity、errors为空。变更文件格式检查通过。
+
+## 2026-11-02 建筑规划输出收敛为统一构件（codex/recursive-building）
+
+本节取代上一节 Plan → Build 的双作者描述设计。用户明确：plan 是规划过程，最终房屋、屋顶等应输出同一种 BuildingComponent，不得同时维护 plan 和 supports/parts。
+
+- 删除 BuildingComponent._plan/get/set、Manager 的 BuildingPlan 重载分支、Compiler 的计划根模板/身份映射分支和 BuildingPlanBuilder。BuildingPlan.ts 现在仅提供纯函数规划注册与 planBuilding，返回 BuildingRecipe `{supports,parts}`。
+- 通用 Unit 增加内联节点描述 `{name?,geometry?,building?}`，geometry 生成 MeshRenderer，building 可选且直接使用同一个 BuildingRecipe。它不是另一种组件模式；手写和规划函数产物共用规范化、递归编译、合批与生命周期。Entity/Prefab 引用继续使用真实原生对象。
+- BuildingUnitTemplates 只处理通用 Unit，草稿拥有离线模板/生成 Mesh。编译器按 owner 缓存当次 recipe，使一个组合 part 的多次放置复用其内嵌模板；不创建逐瓦 Entity。
+- 开口联动改为规划时由同一 opening 输出墙洞、挂接点、窗框、面板的具体参数，整份 recipe 一次提交。没有运行时 planBinding 或 planMesh。需要联动修改时重新规划；直接修改单个消费者不会自动推导其他消费者。Demo 从当前 recipe 读取规划输入并保留屋顶位置，没有第二份持久化规划状态。
+- meshSurface 可显式引用原生 Mesh，也可省略 mesh 读取当前节点 MeshRenderer 的真实网格。房屋和曲面展馆 Source 均直接保存 supports/parts；屋顶与瓦 Prefab 保留。样板存档使用新的 building-recipe-house-v1 / building-recipe-shell-v1，不改写旧实验存档。
+- 更新 Agent Skill、README、runtime 契约和公开声明（124文件/323687字节）。House/Wall/Fence 的专用生产几何、瓦片 ABI、shader、LOD 没有本轮修改。
+
+验证：18文件/164项建筑测试通过；新增的旧 plan 属性类型拒绝断言随后在2文件/8项聚焦检查中通过。building/terrain 类型检查通过。浏览器覆盖手写嵌套程序化 Unit 的模板复用、普通Unit与建筑身份、真实开口移动、旧孔补齐、帧/面板对齐、资源释放、失败保留、克隆和删除。房屋窗口 x=1/width=1.6、屋顶移动/撤销、完整导航保存重载通过；壳体 rise=3→3.3→撤销→3.3→保存重载通过（16项规划/构建断言）。
+
+画面对照：默认房屋与之前 planned-house.png 在1200×672、排除左侧说明面板(x<320)后0像素差；窗口开启时合批/600个真实瓦片Entity也是0像素差。当前默认房屋602铺设记录/3批次/0 Entity实例；开启窗口604记录/5批次/0 Entity实例。壳体保存rise3.3后586记录/3批次/0 Entity实例；两个内联壳体分别生成模板，重复瓦片仍共用批次。批次数不等于draw call数。
+
+证据：output/playwright/unified-house.png、unified-window-batched.png、unified-window-entities.png、unified-shell.png。Scope audit仍提示此前已授权的3个Prefab组件重命名与Agent Skill配置接入；本轮没有新增这些保护范围变更。Skill校验通过，功能验证不替代用户审美验收。
+
+额外发现并修复生命周期问题：原 HouseComponent 作为 Unit 克隆后删除，会把原房屋稳定细节三角形从65122降到112。原因路径是原生 Entity.clone 将专用构建器挂在作者节点下的派生输出也复制为内容。通用编译器已有生成输出标记/克隆清理，现在 BuildingSystem 的 distance.root 与 fine.runtime.root 也加入相同标记；没有修改 LOD/Shader/几何算法。复测克隆前后65122保持，补充“复制后、专用构建前无派生 MeshRenderer”和“删除克隆后细节三角形一致”断言。该边界问题已修复，不保留未解决的视觉验收项。
+
+最终复测：房屋39项浏览器功能断言及原生$entity引用检查通过；包含旧房屋Unit的克隆/删除后，画面与操作前在面板外0像素差。公开声明最终124文件/323869字节。新增清理仅声明派生输出归属，未改专用生成算法。
+
+## 2026-11-02：原有效果实际迁入统一 parts（纠正保真验收范围）
+
+用户指出此前右侧只是简单房屋样板，不能用“简单样板合批前后相同”或“左侧旧系统未变”来声称新系统保留原房屋效果。该指正成立。此前相关0像素差记录仅覆盖各自注明的对象，不构成原房屋迁移完成证据；以下是本轮真正新旧实现同输入的对照。
+
+实现：
+- 新增 detailedHousePlan，纯规划输出同一种 BuildingRecipe `{supports,parts}`。房屋通过 Point 组合 wall/roof/details 三个内联建筑构件；墙砖、屋顶瓦片和门窗收口分别引用原生 brick/roof/building-kit Prefab。没有 BuildingComponent.plan，也没有在新房屋中包裹 HouseComponent。
+- masonrySurface 复用真实包络与洞口生产器，墙面/屋面生成 Mesh，门窗收口使用 Point。共享 document 参数包含屋顶、开口、种子和尺寸；一次 build 内缓存同源准备数据和 Worker 编译。masonryLayout 将原生产结果按墙/屋顶/装饰拆分后分别打包，保留原单位 Mesh、材质、实例 ABI 与近/中单位 LOD。Worker 协调计算仍为整栋范围，非逐 part 增量编译。
+- 通用铺设算法新增临时 batch 输出；Compiler/Manager 不新增房屋风格分支，仅负责异步准备、取消、预算、原子发布与资源释放。flush 启动批次准备，flushAsync 等待完整结果。保留普通 Pose/静态合并网格路径；异步前保留引用，替换/删除取消过期候选。算法注册保留具体返回类型，同时维持统一参数签名。
+- 默认 recursive.html 改为原有效果的详细房屋新旧对照。旧 HouseComponent 仅在左侧作为独立参照，新房屋运行时没有 HouseComponent/BuildingSystem 代理。界面提供同机位切换、开口位置/宽度、屋顶高度、撤销、保存重载和验收。原简单样板代码留在 recursive-basic.ts，曲面样板仍由 ?shell 访问。
+
+验证：
+- 默认新房屋578个墙面单元、759个屋顶单元，1337个原生铺设实例，逐砖瓦 Entity 为0。窗口 u=.33/width=1.8 后567墙面单元+759瓦片；装饰是另外的合并几何，不混入砖瓦实例数。draws字段是已分配记录（包括备选），不是屏幕 draw call。
+- 同尺寸/种子/资产/光照、同位置和相机，1440×716截图排除左侧面板(x<320)：默认无窗、正面窗口u=.375/width=1.6、屋顶height=.6、移动窗口u=.33/width=1.8四组旧/新画面对照均0差异像素。真实看到正面窗洞、窗框和窗棂；不使用背面不可见窗口冒充开口保真证据。
+- 真实按钮：屋顶 .5→.6→撤销 .5；窗口位置和宽度修改、保存后完整导航重载保持 .33/1.8，房屋仍有759瓦片且0逐单元Entity。源协议屋顶字段会浮点量化，比较使用1e-6容差。
+- 14项真实引擎验收包括新房屋无旧组件、递归墙/屋顶、原生瓦片批次、无逐瓦Entity、统一Schema、第二个异步批次失败保留之前完整房屋、删除roof part确实移除屋顶输出、替换清理原生renderer、过期候选不能覆盖新结果、删除取消与资源释放。
+- 18文件/164项建筑测试通过；注册类型修正后相关2文件/7项测试通过。building与terrain类型检查通过；公开声明126文件/328483字节；Skill校验和改动文件格式检查通过。
+- 证据：output/playwright/detailed-{old,new}.png、detailed-window-{old,new}.png、detailed-raised-{old,new}.png、detailed-edited-{old,new}.png、detailed-final.png。
+
+边界：本预设为单个矩形房屋/平地，门窗目前聚合在details构件；未宣称全部旧组合迁移或任意建筑风格自动生成。原生产系统的远景粗模、驻留预算和非平地接地尚未迁入此预设。原有真实持久化House/Wall/Fence消费者仍保留。这一轮证明详细渲染能由新构件描述驱动，不把功能/像素证据当成用户审美验收。
+
+范围审计仍为needs-scope-split，仅列出前轮已授权的3个内置Prefab组件改名与Agent Skill配置集成；本轮没有改生产Shader/素材、Engine或空间布局规则。未提交、推送或发布。
+
+
+### 2026-11-02 独立 Surface/Path 砖石房屋，移除旧整屋编译依赖
+
+用户要求假设旧系统已经清理，以新构件链路还原砖石与曲面瓦顶；期间进一步要求说明 land 的连接处理和当前墙角描述。此前 masonrySurface/masonryLayout 适配器仍依赖整栋旧编译及私有数据回取，不能满足这项要求。本次删除 native/MasonryParts.ts 及导出，详细 Demo 不再创建 HouseComponent 或加载旧对照房屋。
+
+- DetailedHousePlan 只输出统一 supports/parts。profileRoof 生成真实四坡曲面 Mesh，facade 生成带窗洞和墙角让位区域的实际 Mesh。SurfaceCourseCells 只读取 chart 三角形/UV 与显式排布参数；profileRoofEdge 与 pathCourses 生成斜脊、屋脊盖瓦。没有旧 ConstructionLayout/Preview/Roof/RecoveredRoofPlacement/Worker 调用或 Surface 到整屋 document 的 WeakMap。
+- 对照 land buildings.js:579–604：相邻墙倒角带、交替长短的整块角石由 block builder 统一生成。新规划器据此把墙角变为四个 corner part，共享 bands 尺寸驱动两面 facade 的 reservations 与竖向 Path 上的 pathBlocks；面砖在实际 Mesh 边界停止，不再用加宽面砖重叠模拟接缝。开口侵入角石区域明确拒绝。仅实现直角矩形房屋，不宣称自动识别任意墙面连接。
+- 原生 brick/roof Prefab、材质、shader、BuildingAssetKit 素材读取、UnitPacking、ConstructionPackageBuilder、EngineResidentScene 底层绘制仍保留。它们不决定房屋形状或砖瓦排布。显式 BuildingManager.camera 传入批处理服务，草稿持有资源并响应取消。
+- 新浏览器 storage id independent-building-parts-v1；保留真实 Editor 事务、撤销、窗口编辑、屋顶高度编辑和保存重载。不会清理既有其它 Demo 存储。
+
+验证：19 个 Building 测试文件、171 项通过（包括新增 7 项真实 Mesh 采样/洞口避让/变换/拓扑变化/确定性/搭接边界/预算/共享墙角规划测试）。浏览器 11 项递归与异步生命周期检查通过；窗口位置宽度编辑、屋顶抬高、撤销、完整保存重载另外通过。对 BuildingComponents、BuildingSystem、ConstructionWorkerClient、ConstructionLayout、ConstructionPreview、ConstructionRoof、RecoveredRectangularRoof、RecoveredRoofPlacement、MasonryParts 的模块 URL 设置 abort 后重新加载并构建成功，没有请求这些模块。素材读取仍加载 WindowCutAsset、DecorationMeshes/Material/Collisions 的资源定义，未宣称删除整个 runtime 目录。
+
+默认构建 1,212 个原生砖瓦实例、17 个原生批次（含四组墙角石）；逐单位 Entity 为 0。默认窗口以外的普通几何仍由通用合批处理；这些统计不等于整场景实际 draw call。
+
+实际独立结果：output/playwright/independent-final.png 与 independent-final-window.png；旧参考 detailed-old.png。新结果已具有曲面瓦顶、砖石、墙角石与窗格，但砖瓦随机排布、轮廓与屋面接缝细节仍不同，不能沿用此前适配器零像素差异的结论。此记录是功能验证，审美仍由用户评价。当前单位固定近景 LOD0，生产距离 LOD、粗模驻留、地形接地、任意曲面等距铺设/斜边裁瓦尚未迁移。
+
+声明已重新生成（131 文件）；范围审计仍报告 needs-scope-split，项目为此前已授权的三个内置 prefab 组件重命名与 agent skill 入口集成，未新增 shader/引擎/空间规则改动。未提交、未推送。
+
+
+## 2026-11-03 扁平建筑构件：欧式生成 → 设计 → 铺设渲染
+
+当前公开入口收敛为 `parts/architecture/index.ts`：`Building.European.buildHouses/buildTower/buildWall/buildSteps` 合并规划与草案，返回 `BuildingDraft {groups, parts, relations}`。公共墙、屋顶、基础、墙条和台阶生成器单独存放。每个 `BuildingPartComponent` 保存一个基础构件，包含类型、support 生成描述、铺设算法与 Unit；建筑组合使用原生 Entity/Prefab 层级，不再递归解释建筑配方。
+
+设计阶段求解显式墙顶/台基/开口关系及已有轮廓的相邻接触，保留作者输入，输出开口与预留范围、实际 support、派生 wall-junction Path 构件。实现阶段从这些结果调用精确砖瓦铺设内核；通用 Point/Path/Mesh support、注册算法与 Entity/Prefab/程序化 Unit 走扁平铺设。原生砖瓦保持实例批处理，无逐砖瓦 Entity。不同类型的连接规则可以注册；内置算法不是任意 Mesh 自动 CSG。
+
+BuildingManager 只管理作者组件、脏状态和生成结果生命周期：变换标记驱动重算、连续异步更新合并到最新版本、准备期资源保留、失败保留上一画面、销毁取消任务；原子发布派生结果。编辑演示使用原生 RuntimeEditor 事务，验证了撤销与保存重载，不把生成 Mesh/实例数据写回 Scene。
+
+验收基准固定为 dev/2.0 `aa2d4bb894dc5ea582b6bb9ae77d38499c48689e`。`demos/building-components/reference/` 冻结本轮有变动的整屋编排和接触内核，代码仅增加来源注释并重定位 import；其他未变内核、资产及渲染器共用。对照入口只在用户选择基准时动态加载。阻断旧 ConstructionLayout/ConstructionCompiler/ConstructionRuntime/ConstructionWorker/BuildingComponent 模块后，新页面加载成功、生成1337个单元且无错误，未触发任何被禁模块请求。
+
+实测完整画布1280×720，在相同输入、相机与光照下比较新流程与固定基准：房屋、圆塔（完整入镜）、带窗房屋、等尺寸交错房屋、独立墙五组均0个不同像素。证据在 worktree `output/playwright/staged-*-new.png`、`staged-*-reference.png`、`staged-pixel-results.json`。台阶为新公共生成器，已实际渲染6个实例，没有 dev/2.0 独立台阶基准，未声明其像素还原。
+
+自动回归：20个 Building*.spec.ts 文件181项通过，另5个收口/裁切/连接测试文件24项通过，共205项；更换冻结基准后 BuildingStages 的10项再次通过。building 与 terrain TypeScript 检查通过。浏览器额外验证：无变化保留输出、非法算法保留旧画面、相交后派生接缝、移开清除接缝、真实 Prefab 在 Point/Path/Mesh 上合批、普通构件变换触发更新、删除释放输出、并发flush发布最新版本、销毁中止生成、原生撤销、保存重载。Skill校验通过。
+
+本轮修正不等尺寸屋顶交线的 plane section 数值问题：原实现用接触分类容差把离平面的点当成交点，导致残差超阈值；计算实际交线改用精确平面容差，保留接触分类阈值。该场景旧版会失败，作为新修复单独回归，未混入五组像素一致声明。
+
+范围与限制：当前管理器集合整体重算，尚未接入空间局部增量；轮廓欧式构件要求共享水平刚性组坐标系，地形提供高度；任意 Mesh 的特定裁切/连接须注册适用的求解器。已有 House/Wall/Fence/Seed World 生产消费者保留原生命周期、Worker、远景LOD/驻留；公开新入口及演示不使用旧整屋生成器。历史递归实验与旧生产继承仍是内部文件，未从新公开API导出。未提交、推送或发布。
+
+最后浏览器UI验收：相交房屋按钮→新旧基准切换、台阶禁用不存在的旧基准、台阶运行验收、恢复精细房屋均通过。初次UI自动化过早在异步生成尚未结束时点击，触发busy忽略并超时；改为等待页面完成状态后通过，未放宽几何或像素断言。范围清单仍标记三份既有内置Prefab组件重命名与Agent Skill接入需要拆分审查（前序已授权改动），不是渲染失败；未据此声称合并门禁全部通过。
+
+最终窗口验收纠正：早期 u=.2/.7 的样例跨墙角，新旧内核均跳过窗体，因此该次“窗口像素一致”不足以证明开洞；现以正面有效安装位置 u=.35 重验，明确断言1个洞口、2个窗体部分、0诊断，实际可见窗户的完整画布对比为0像素差异。新增拒绝窗口诊断回归，当前相关测试总数206（其中 BuildingStages 11项）。设计结果和管理器公开 diagnostics，演示拒绝有诊断的显式编辑；窗门 Unit 改成明确 nativeAttachment 描述，mountAttachment算法消费它，不再用砖块占位。演示项目id升至building-stages-v2，保留之前实验的本地存储。
+
+
+## 2026-11-03 单一建筑系统替换目标（进行中）
+
+用户明确要求六项最终门槛：消除旧房屋模型耦合；统一算法执行；覆盖当前全部建筑类型；接入Worker/局部更新/远近加载/地形/拾取/编辑/保存撤销；迁移Seed World数据并删除旧入口；整个世界多视角、多距离的外观、性能和编辑验收。前述独立演示和五组截图不能替代这些门槛。本目标保持进行中。
+
+本轮首先移除 European.buildHouses 中构造完整 ConstructionSource 再拆分的做法：各基础构件直接消费独立参数规范。ProfileParameters 统一浮点精度、屋面/轮廓/台基/墙面涂层/楼层参数校验；旧存档 floors.first/clearance 的读取仍只在旧作者边界。ProfileGeometry 独立提供 profileShape、profileRoofGeometry、publishProfileWall，墙面算法接受形状、高度及可选屋面/台基约束，不要求整栋房屋。现有旧生产消费者暂从原函数入口调用同一几何算法，没有复制第二套几何实现；这些入口随生产消费者迁移删除。
+
+修改前记录了8组实际数值基准SHA256（旋转矩形、两种山墙方向、平顶、圆形、不同台基、无屋顶墙条），由 BuildingProfileGeometry.spec.ts 固定验证，禁止用改后实现重生成期望值。额外独立圆墙断言最初误将输入高度直接当成轮廓topY；原内核保留.46m的上缘分工，已据实际算法语义修正为1.54m的基准，未修改几何来迎合断言。
+
+尚未完成：BuildingDesign.buildingKernelDocument仍重建旧文档；实施和预览/渲染仍有整屋owner依赖；生产Worker、LOD、Scene与Prefab迁移、编辑消费者及全世界验收仍待执行。下一步沿这些消费者拆解窄算法输入和显式输出，不能通过改名或增加总适配器假装完成。
+
+### 2026-11-03 后续拆解与真实世界基准
+
+- `ProfileContacts` 直接接收参与连接的墙面几何、屋面几何、材质及身份/渲染槽，分开规划接缝/避让和生成批处理实例；`RecoveredInterRoofMerlons` 不再读取 building。新设计/实施阶段直接使用这些输入。原生产文档入口暂负责向同一算法交付数据，随真实消费者迁移删除，不作为最终双轨方案。
+- `StripPlacement.placeStripUnits` 直接消费条带 support、明确的排列规则和单元尺寸，保留旋转和坡地横杆方向。风格预设新增 `Building.European.buildFence`，和围墙共用条带算法，演示页有栅栏按钮。`UnitPlacementStyle` 从旧 MasonryDocument 中提取，算法名称和材质默认规则不再依赖整屋文档解析器。
+- `ProfileDecorations` 接收已经发布的墙面/屋面、厚度包络、身份、颜色和附件规格。半老虎窗、完整老虎窗、转角窗、平顶附件等下级算法的输入已移除 ConstructionBuilding；只需身份和颜色的网格装配函数进一步缩小输入。旧 compileConstructionDecorations 暂只在未迁移的生产调用边界构造这些数据；新构件流程直接调用 ProfileDecorations。屋面形状不再在附件算法内部按整屋描述重新生成。
+- 增加13份本轮改动对应的冻结 dev/2.0 装饰/条带代码作为对照，全部验证过：去掉来源注释、还原import路径后与基线提交逐字一致。它们仅在测试和显式对照页面使用。24种矩形/圆形、完整/半 Cottage/Gothic 老虎窗以冻结代码验证洞口、框体、瓦片输出，不能用双方共用刚修改的算法冒充独立对照。
+- 完整 Seed World 已实际启动至 ready：seed=1，17栋房屋/17组、220个建筑作者对象，建筑诊断errors=[]。截图 `output/playwright/seed-world-before-migration.png` 为尚未迁移的真实生产场景基准，不是新系统替换成功证明。
+- 本轮整张1280×720画布比较：房屋、有效墙窗、栅栏、可见老虎窗均0个不同像素。证据 `output/playwright/profile-refactor-*-new.png` / `*-reference.png` / `profile-refactor-pixels.json`。老虎窗首个视角在背面且顶部出画，已更换为窗体与整个屋顶可见的相机重验；初次测试参数错误地给屋顶附件指定wall-only seed，遵循现有校验修正测试输入，未放宽产品校验。
+- 栅栏对照的整套preview对象散列初次失败，确认差异是 owners 中携带的旧作者kind（fence）与新条带配方的旧转换值（wall）。批处理、所有预览几何、已解析owner几何及像素均一致。测试改为验证实际几何与解析结果，不将需要删除的作者模型描述当作外观不变量；未通过修改几何来迎合旧kind。
+
+目标仍未完成：`buildingKernelDocument` 和 `publishConstructionOwners` 仍待退出新版；预览/渲染包仍有整屋owner和geometry_id后缀推断；统一注册执行、Worker/局部重建/LOD/地形更新/拾取编辑、内置Prefab与初始世界迁移、删除旧生产入口及完整世界多距离验收尚未完成。这轮没有把这些门槛降为独立样例通过。
+
+本轮验证补充：新的几何/连接/装饰/条带/阶段流程共58项定向用例通过（阶段流程修正作者描述比较后12项重跑通过）；另完成装饰相关9文件128项、底层Dormer/Strip三文件23项回归，集合有重叠，不累加声称测试总数。building、terrain类型检查通过，声明快照156文件438772字节；Skill校验与git diff --check通过。范围审计仍报告三份前序内置Prefab改名和Agent Skill接入需拆分审查，属于已授权建筑工作范围清单，不冒充所有合并检查通过。演示相机改为按真实生成边界投影取景，避免高曲顶仅按墙高取景导致顶部出画；不改变建筑数据或生成几何。
+
+### 2026-11-03 渲染输入解耦；整屋模型迁移仍未完成
+
+针对用户要求“只复用算法，不把新构件套回旧整屋系统”，再次核对确认：BuildingDesign.buildingKernelDocument 仍重建旧 ConstructionBuilding/ConstructionSource/MasonryDocument；publishConstructionOwners、实施与 ConstructionPreview 仍消费旧模型。生产 NativeBuildingHost 仍接 BuildingSystem/ConstructionRuntime。这些是真实的未完成耦合，不能用没有调用 compileMasonryLayout 或像素相同来掩盖；源码注释和公开 README 已明确。
+
+本轮实际完成渲染端拆解：BuildingRenderInput 接收明确的 owner、palette slots、实例缓冲、墙顶裁切、垫底面、材质面及铺设编辑数据；BuildingGlobals 仅把显式颜色槽编成原 ABI。新实施阶段直接形成 renderInput，BuildingRender 不调用 constructionRenderInput 或 buildConstructionRenderPackage。纯渲染器没有旧整屋对象，也不通过 -wall/-roof 后缀判断归属或收口。placementDocument 移除 construction 作者模型。原生产调用者暂经 ConstructionRenderPackage 转成相同绘制协议，旧入口只因生产消费者尚未迁移而存在，须随最终迁移删除。
+
+对照新增冻结 dev2-render.ts；还原 import 路径并移除来源注释后，与 aa2d4bb894dc5ea582b6bb9ae77d38499c48689e 的原渲染编排逐字相同。基准按钮动态加载独立 renderer，正常新流程不加载它。BuildingRenderInput 九项通过：房屋、平顶、台基、楼层横带、围墙、栅栏、木墙、相交房屋的全部生成文件逐字节散列、绘制描述、程序和颜色与冻结代码一致；更改几何标识不改变渲染结果；原生产未绑定墙面及接缝绘制也保真。测试暴露并修正无屋顶条带的颜色槽默认值，沿用同一 ProfileParameters 默认规范。无效台基 mode、删除必要 roof binding 的两次测试输入已纠正，未放宽产品约束。BuildingStages 十二项、RetainedWallRender 八项通过；building/terrain 类型检查通过。
+
+1280×720 整张截图，房屋、有效墙窗、栅栏、可见老虎窗四组新流程与冻结旧渲染代码均 0 差异像素，实际浏览器无错误。证据 output/playwright/render-protocol-*-new.png、*-reference.png、*-diff.png、render-protocol-pixels.json。此结论仅覆盖这四组近景样例；完整 Seed World、远近 LOD、Worker/局部更新、拾取编辑和存档迁移仍未验收，目标保持进行中。
+
+### 2026-11-03 新构件生成链移除旧整屋模型；生产迁移仍在进行
+
+新版 BuildingDesign 已删除 buildingKernelDocument，不再调用旧整屋解析器或 publishConstructionOwners。BuildingProfileSupports 直接从构件参数及显式关系生成轮廓、墙顶约束与铺设绑定；BuildingImplementation、ProfilePreview 和 BuildingRenderInput 消费这些已解析结果，不生成 ConstructionBuilding/ConstructionSource/MasonryDocument。几何引用使用实际 part.id，任意改名有回归覆盖。参数与颜色校验迁至独立 ProfileParameters、DecorationParameters、UnitPlacement，未通过放宽旧合法性约束取得兼容。旧生产消费者仍经边界包装器调用同一数值算法；这些包装器随生产迁移删除，不是最终永久双轨。
+
+本轮新增七份冻结基准（WoodWall、WallWindowCuts、ArchGroups、JunctionLayout、WallLod、Plaster、Preview），还原来源注释和import重定位后与基线提交逐字一致。新版构件转旧模型的 draftToDev2 仅在测试对照目录使用，生产链不调用。
+
+实际浏览器阻断 ConstructionSource、MasonryDocument、ConstructionPreview、ConstructionContacts、ConstructionLayout、ConstructionCompiler、ConstructionRuntime、ConstructionWorkerClient、BuildingComponents 后，新链路仍正常构建老虎窗样例2344个原生实例，无逐瓦Entity、无错误，也未请求上述模块。证据 output/playwright/part-support-no-legacy.json。此验证仅证明新演示链独立，不证明 Seed World 已迁移。
+
+八组固定相机、光照、1280×720完整画布截图：house、window、fence、dormer、tower、flat、joined、foundation-with-plaster，新旧均0个不同像素；重新计算截图差异确认结果。证据 output/playwright/part-support-pixels.json 及 part-support-*-new/reference/diff.png。窗口和老虎窗样例已断言实际洞口；圆塔完整入镜。整体29文件268项测试通过，包含12项禁止旧模型调用的定向回归；building与terrain类型检查通过，声明快照164文件459281字节。浏览器构件编辑、原生撤销、保存重载通过。
+
+剩余阻断最终替换的工作：轮廓专用与通用Point/Path/Mesh仍分开实施，未统一为注册执行流程；BuildingManager当前集合整体重算；NativeBuildingHost仍引用旧BuildingSystem/ConstructionRuntime，Worker、局部更新、LOD驻留、地形原子发布、拾取编辑与数据入口尚未迁移；内置Prefab、初始世界、Agent入口和必要的存档转换及旧入口删除尚未完成。完整世界多视角/多距离的外观与性能验收仍未完成。八组样例零差异不能替代这些门槛。
+
+### 2026-11-03 按构件拆分铺设；显式连接规则统一注册执行
+
+`ProfilePlacementAlgorithms` 将墙、条带、台基、屋顶分别注册为单构件铺设函数；每次只消费选中构件的已解析几何、预留范围和必要邻居数据，返回实例布局及对应预览几何。墙砖与墙垫底的生成移入墙构件算法，不再由外层预先遍历整屋生成。`BuildingImplementation` 按原数值顺序调度构件，汇集布局后统一打包、批处理及渲染输入；没有用一个注册函数封装整栋房屋。该注册表当前仍是轮廓算法的执行边界，通用Point/Path/Mesh和派生接缝实施尚待收敛，不能声称单一执行流程已经完成。
+
+显式连接通过 `resolveBuildingConnections` 统一调用 `buildingConnectionRules`；内置墙顶、台基、开口、挂接规则不再被硬编码跳过。规则可修改工作副本、派生构件，或发布临时几何约束。`BuildingProfileSupports` 和附件宿主求解消费约束结果，不再根据原始规则字符串重做连接推断。约束检查端点类型及所属组，派生构件检查身份冲突，作者输入不被修改。自定义命名规则发布同一墙顶约束时，输出与内置规则完全一致，有实际执行回归。
+
+验证：5文件42项定向测试通过（包含新增7项独立构件执行、注册规则消费、派生身份冲突及非法约束测试）；building与terrain类型检查通过，声明164文件460742字节。八组完整1280×720画布再次对照冻结dev/2.0基准，house/window/fence/dormer/tower/flat/joined/foundation均0差异像素，实际开口断言保留；证据 `output/playwright/part-algorithms-pixels.json` 和同前缀截图。未把此次定向测试与上轮268项重复累加。范围审计仍为前序三份Prefab重命名与Agent Skill集成的needs-scope-split清单，未声称合并门禁通过。
+
+本轮未替换Seed World生产入口；Worker、局部重建、LOD驻留、地形原子发布、拾取编辑、原生Prefab/初始世界/存档迁移和完整世界验收保持未完成。目标继续进行，不以样例对照通过降低最终要求。
+
+编辑验收补充：四项页面验收、原生撤销与保存重载通过。首次把snapshot直接JSON.stringify比较时失败；通过圆塔→平顶→相交房屋→带台基涂层房屋的同类编辑序列复现，确认仅wall.support.params中rectangle/plaster对象键的插入顺序变化，参数值、构件与关系数组顺序完全相同。对对象键规范排序但保留数组顺序的比较通过；没有修改产品数据或放宽几何断言来掩盖差异。
+
+### 2026-11-03 通用实例布局进入实施阶段；统一候选发布
+
+删除 `BuildingFlatPlacement`。`BuildingInstancePlacement` 只调用注册的support与铺设算法，产生 `BuildingInstancePlacement {part,support,placements}`；`implementBuilding` 同时返回这些 `instanceParts` 和原生轮廓布局。通用布局不再在渲染过程中计算。`BuildingInstanceRender` 只消费已生成的布局，保留可读Prefab静态合批、原生实例缓冲及行为对象的Entity路径。Unit自身的程序化几何仍在资源创建阶段生成。
+
+`BuildingPipeline.prepareBuilding` 统一设计、实施、资源构建和未发布候选的生命周期。support和Unit生成使用同一资源作用域；成功时同步发布两个渲染后端，失败、取消、删除或替换时统一释放。Manager只保存一份已发布候选并调用prepare/publish/destroy，删除原来的flat/result/designResult并行状态，不再按support类型选择实施分支。直接调用implementBuilding且含通用构件时必须提供明确的算法资源上下文，不再静默忽略这些构件。演示预检提供独立作用域并在finally释放。
+
+验证：6文件44项定向测试通过，包含混合房屋与Path台阶布局、同一上下文中的自定义support/算法只执行一次、缺少上下文或预先取消拒绝执行；Agent实际声明脚本检查随后再次通过2项（不重复累加）。building与terrain类型检查通过；新增测试最初未缩窄坐标数组/自定义batch的联合类型，修正测试类型判断后terrain检查通过，产品逻辑未因此放宽。声明165文件461667字节。
+
+真实浏览器11项资源生命周期检查通过：support和铺设各执行一次、实例进入公共实施输出、真实Prefab保持合批、生成资源在发布期间有效、失败释放新Mesh并保留旧画面、替换和删除释放旧资源。统一候选后再次运行通过。另15项浏览器流程覆盖无变化复用、失败保留输出、相交生成与移开清除接缝、Point/Path/Mesh合批、构件移动、删除、并发构建发布最新结果、原生保存重载/撤销、构建中销毁及基础页面验收。脚本在output/playwright/instance-execution-lifecycle.js与common-pipeline-lifecycle.js。
+
+统一候选后的八组固定相机光照1280×720整图对照，house/window/fence/dormer/tower/flat/joined/foundation仍均0差异像素，实际洞口断言保留。证据output/playwright/common-pipeline-pixels.json及同前缀截图。未把这些样例替代整个Seed World验收。
+
+尚未完成：轮廓几何发布与派生接缝仍有专门的求解调度，需要继续收敛到可注册的执行契约；生产Seed World仍未迁移Worker、局部重建、LOD驻留、地形原子发布、拾取编辑和数据入口。统一一次入口与资源候选是已实现的边界，不被表述为全部算法和完整世界已替换。目标保持进行中。
+
+实际点击台阶按钮也通过新公共实施入口：instanceParts=1、flatUnits=6、entityInstances=0、errors=[]；截图common-pipeline-steps.png已检查，确为六级石阶。台阶没有旧版独立基准，未声明像素复刻。最后恢复房屋演示。git diff --check通过。
+
+### 2026-11-03 新构件 Worker 快照与远景渲染解耦（生产替换仍未完成）
+
+上一轮只核查并回应了用户关于旧模型与过渡实现的问题，没有推进实现。本轮继续完整替换目标，未把完成标准缩减为独立演示通过。
+
+- 新增 BuildingCpu / BuildingWorker / BuildingCpuClient / BuildingWorkerProtocol。输入为扁平 BuildingDraft、不可变地形与单位资产；预览在 Worker 内保留已求解几何，细节请求通过句柄复用该几何，主线程不接收带函数的设计对象。没有调用旧 ConstructionCpu/ConstructionWorker/ConstructionLayout，也不拼回旧整屋协议。当前仅支持原生轮廓及附件的可传输描述，通用 Entity/Prefab/Mesh、自定义运行时函数尚无 Worker codec，明确拒绝而非回退旧编译器或主线程。
+- BuildingPublication 将接缝和预览公共输入分离；预览不提前排列普通墙砖。publication 带设计对象身份，拒绝把另一个设计的求解结果用于当前细节编译。每次细节仍产生独立输出，保留的几何不转移/分离 ArrayBuffer。
+- Worker 客户端按引用共享资产与整个不可变地形快照，Worker 内按构件采样区域筛选岩石。独立快照释放、取消、Worker 故障后的句柄失效与重建、迟到结果拒绝已覆盖。发现并修复 postMessage 同步克隆失败导致后续请求误认资源已发送的竞态：立即回退引用计数，不等待 Promise 拒绝续体。
+- TerrainField 抽出原 R16/岩石采样与缓存边界，旧生产边界和新构件地形共同调用该数学实现。BuildingProfileTerrain 从构件轮廓计算采样范围，BuildingGrounding 从生成几何计算接地诊断与完整包围盒，包含台基和附件。水平平移/旋转及 grounded 模式世界 Y 规则保持原有行为，未用整屋描述桥接。
+- BuildingRecipe 使用 engine-core 与 engine-loader 的真实资源类型，不在 Worker 中启动聚合 engine 入口的浏览器初始化。初次将 PrefabResource 误放在 core 导致类型检查失败，改为 loader 原始导出后通过；未模拟 window 或增加执行回退。
+- 远景渲染从 MasonryDistanceView 抽为 BuildingDistanceView，直接消费生成几何、颜色槽位、颜色身份和拾取映射。DecorationNativeView 改为显式 paletteSlots。原阴影、材质、LOD 淡出、原生装饰和拾取实现保留一份；旧 MasonryDistanceView 仅为仍在生产运行的真实调用者转换输入，退出条件是 Seed World 调用者迁移完成。新 Worker 路径不经过此转换。槽位顺序来自已解析 support，不能根据当前是否有 draw 再挤压槽位。
+
+验证与发现：
+
+- 7 文件61项定向测试通过：新 CPU 预览/重复细节11、Worker客户端7、旧模型禁用12、基础构件12、地形2、装饰9、保留墙体渲染8。随后增加同步克隆失败回归，4 文件17项通过（客户端现8，另有旧recipe5、混合实例执行2、真实Agent声明2；不把重复客户端测试累加）。building和terrain类型检查通过，最终客户端修复后terrain再次通过；声明167文件483940字节。
+- 栅栏远景最初出现浮点坐标差异：预览用了未归一化矩形尺寸，细节用float32尺寸。改为同一 normalizeProfileFootprint，恢复精确几何/结构对照；没有放宽精度断言。老虎窗初始测试参数落在无效屋面转角，改用先前通过的10×8、height5、roof height0.9/profile0.7的有效参数，保留安装合法性检查。
+- 真实浏览器创建新版 Worker，在拦截旧 ConstructionSource/MasonryDocument/ConstructionPreview/ConstructionContacts/ConstructionLayout/ConstructionCompiler/ConstructionRuntime/ConstructionWorker/ConstructionWorkerClient 模块的情况下完成预览、纯远景渲染、1231单位细节、重复编译、独立句柄释放、取消与重新准备；被禁模块请求为0。Worker结果与直接新算法执行一致。证据 output/playwright/building-worker-browser.js / .txt。
+- 先截取拆分前远景，再用新 Worker + 新纯渲染器构建同输入（台基、抹灰、窗户），完整1280×720图像0差异像素，均20316三角形、5拾取批次，包围盒一致。截图已查看；这是远景几何表现，不冒充精细瓦片渲染。证据 building-distance-before/after/diff.png、building-distance-pixels.json。
+- 最新精细渲染回归8组 house/window/fence/dormer/tower/flat/joined/foundation，固定相机光照1280×720整图均0差异像素；洞口实际存在断言保留。证据 worker-boundary-pixels.json 及同前缀截图。未声称整个世界像素一致。
+- 共享远景修改后重新加载原Seed World：status=ready、17建筑/17组、220作者对象、errors=[]、detailFailures=0。这只是尚未迁移的生产消费者未破坏的检查，不是新系统已接管世界。
+- git diff --check通过；范围审计仍是已有三份Prefab变更与Agent Skill集成的needs-scope-split清单，没有声称合并门禁通过。无commit/push。
+
+尚未完成：新Worker/纯远景已经可调用并验证，但新版Manager仍未接入生产局部重建、距离驻留和地形事务；Seed World NativeBuildingHost 仍用旧BuildingSystem。算法注册统一、全部参数覆盖、拾取编辑/保存撤销生产接入、Prefab/初始世界/Agent/必要存档迁移与旧入口删除、完整世界多视角多距离外观/性能验收继续保持原目标，不因本轮样例通过而降低完成标准。
+
+本轮补充地形共享内核回归：BuildingWorldGrounding.spec.ts 5项通过，覆盖三个世界朝向的高度/岩石采样、附近岩石筛选与复制不分离原缓冲、非法地形坐标系拒绝。浏览器演示最后恢复默认房屋入口。
+
+### 2026-11-03 生产生成后端切换到扁平构件 Worker（作者模型迁移仍未完成）
+
+本轮继续用户要求的单一建筑版本，核查时如实指出此前 Seed World 尚在调用旧 Worker；没有把独立演示通过当作生产替换。本轮已实际替换生产生成后端，但未把中间状态表述为全部完成。
+
+- 生产真实 Prefab 使用 `placementEnabled=false`：旧墙体仍渲染原生砌体，仅绕过可编辑铺设层。新版明确使用 wallProfile + nativeMasonry + brick；整体台基使用 foundationSurface。它们直接调用构件级数值内核，不调用旧整屋编译器。普通铺设构件的 regions 保存 UV 隐藏/换材质数据；预览、细节、材质解析共同消费。结构材质单独明确为 masonry/timber。
+- UnitPlacement 提取局部区域校验；BuildingSurface 不再构造虚拟整屋用于局部参数校验。旧作者文档校验边界调用同一个低层函数。原生几何不接受局部 UV 编辑，保持既有实际行为。
+- BuildingSystem 现在调用 BuildingCpuClient / BuildingDistanceView / BuildingDetail。其生产调用链不再调用 buildingDocument、ConstructionCpuClient、createMasonryDistanceView 或 prepareMasonry；没有失败后回退旧生成器。现有分组签名、取消、LOD 驻留、入口动画、灯光、拾取、地形事务和表面查询机制保留。
+- BuildingSourceDraft 是明确的一次迁移边界：已有真实 Source House/Wall/Fence/附件/铺设组件单向收集成 BuildingDraft，保留 Source 组件身份与挂接反变换。建筑数据不会转回旧整屋协议。退出条件是 Prefab、初始生成、编辑/Agent、必要存档均改用 BuildingPartComponent 后删除此收集器与旧作者入口。当前这些作者入口仍存在，不宣称只有一个版本。
+- BuildingMount 提取墙面投影、附件尺寸和逆绑定数学，旧作者边界和新收集器共享同一份计算；避免单位切线重复归一化改变洞口剖分。分组仍使用精确局部矩阵与稳定身份顺序，不通过大世界矩阵相消求局部变换。
+- BuildingDetail 从已求解 Worker 句柄取得实例，独立隐藏候选负责 GPU 生命周期与表面查询；等待 CPU 期间保留资产，成功后只保留绘制包/铺设文档，不保留整个 CPU 布局。渲染器支持明确的局部包围盒与刚性附件绑定。MasonryResidency 只依赖 runtime/destroy，不再要求旧 prepareMasonry 类型。
+- 地形局部失效算法抽到 TerrainField.terrainAffectsRegion，生产使用新构件支持域；旧消费者仅转换其域。新 Worker 额外发布屋面挂接所需几何，不传回作者模型。
+- 演示对照发现 staged.ts 与测试目录重复了一份旧参数转换，未支持新增原生算法。已删除演示内重复转换，测试与对照按钮使用同一测试专用转换；正常新入口不加载它。
+
+验证：
+
+- 4 文件37项通过：ProductionCapabilities9、NoLegacyModel14、BuildingSurface6、RetainedWallRender8。新增原生墙/台基也在禁用旧整屋操作的条件下生成和渲染；普通墙/屋顶/平顶/台基局部隐藏与换材质的几何、实例和材质选择保持严格对照。
+- 3 文件41项通过：BuildingSourceDraft8、BuildingComponents22、BuildingWorkerCpu11。涵盖 Source 单向收集、附件逆绑定、刚性变换、禁用铺设、窗和局部区域。随后 BuildingSceneGeneration6、BuildingWorldGrounding5、BuildingPartScript2 通过。Scene fixture 为17个主体组成5组，不是17组；最初测试误把主体数当分组数，已按真实输入纠正描述与断言，未放宽几何比较。全部17主体逐组比较 groups、rawDraws 和 preview 的 SHA256，精确相等；该 fixture 不是整个真实世界截图。
+- building和terrain类型检查通过（最终terrain再次通过），声明166文件485695字节。Skill验证与git diff --check通过。范围审计仍为历史3份Prefab及Agent Skill集成的needs-scope-split，不宣称合并门禁通过。
+- 4个固定1280×720整图细节对照：native-wall、native-door、foundation-surface、wall-edits，全部0差异像素。证据 output/playwright/production-capabilities-pixels.json 及截图。
+- 真实 Seed World seed=1 ready，17建筑/17组/220作者对象，errors=[]、detailFailures=0。测试捕获实际 Worker 构造URL，仅有新版 architecture/BuildingWorker，无旧 runtime/ConstructionWorker。截图 seed-world-new-worker.png 已查看：实际砖墙、弯曲瓦屋顶和门窗，不是简化占位。原世界有风、云、动画等时间变量，此截图不声称全图0像素差异。
+- 生产浏览器11项运行检查通过：无变化复用全部视图、只修改一栋只替换对应分组、全部当前拾取身份解析（26条）、远处地形修改保留17栋、地形commit/rollback恢复同一视图与快照、真实表面查询455个单位、非法窗挂接拒绝且保留已发布视图、远处相机释放细节请求、近处相机恢复细节等。细节恢复后的出生点统计为3027400 residentBytes/160201 triangles，与原记录数值一致；未把单视角数字当全场性能验收。脚本 seed-world-new-worker-lifecycle.js / residency.js 及txt。
+- 实际原生编辑面板修改高度、撤销、重做、flush保存、重载保留修改通过；随后通过同一面板恢复原值并保存。CLI脚本外层最初无structuredClone，改为复制已经序列化的Source JSON，产品实现未变。证据 seed-world-new-worker-editor.js / reload.js 及txt。
+- 浏览器测试仅通过Playwright路由临时捕获NativeBuildingHost实例以检查状态，没有给产品添加调试global或另一条生成分支。
+
+剩余目标保持：公开 BuildingManager 与生产组级调度收敛；旧作者组件、Prefab、初始世界生成、编辑/Agent和必要存档迁移并删除旧入口；通用算法注册与Worker能力统一；完整世界多相机、多距离、固定时间的外观与性能验收。没有commit/push，不标记完整替换已完成。
+
+### 2026-11-03 当前依赖边界复核（不是完整替换验收）
+
+用户要求明确区分算法复用与旧系统包装。本轮直接核查调用者与消费者：
+
+- 新 BuildingImplementation / BuildingCpu 消费 BuildingDraft 与已解析的 support；未重新构造旧整屋作者文档，不调用旧整屋编译器，也没有失败后改走旧编译器的分支。材质、Shader、实例编码、几何内核及 LOD/事务机制的复用是明确保留项。
+- Seed World 仍通过 NativeBuildingHost → BuildingSystem → buildingSourceDraft 收集 HouseComponent 等旧组件。这是持续运行的旧输入转换，尚不是仅加载存档时执行的一次性迁移。三份内置建筑 Prefab、初始世界生成和编辑面板仍使用旧作者组件，不能宣称统一版本已交付。
+- 生产调度已抽到 BuildingRuntime，Source facade 仍在；公开 BuildingManager 仍直接调用 BuildingPipeline。新的 BuildingPartCollection 和 frame/assetLibrary 数据尚未被生产 Manager 接管，不能把文件存在当作功能接入完成。
+- Profile 支持域和普通 Mesh/Path/Point 的实施分派尚有专门路径；Worker 当前只接收已实现的数据型 profile/nativeAttachment 编码。任意新风格不因此自动具备完整 Worker 与连接求解能力。
+- 本轮 building 类型检查通过；BuildingNoLegacyModel14、BuildingComponents22、BuildingRecipe5、BuildingWorkerCpu11，共4文件52测试通过；git diff --check通过。这些不是新一轮完整场景像素或浏览器运行验收。
+
+下一完成条件保持不变：统一 Manager/运行调度，迁移真实作者与持久化消费者，删除旧持续转换和旧入口，再进行完整世界固定时间、多视角、多距离外观与性能验证。
+
+### 2026-11-03 公开 Manager 接入共享运行层（生产作者数据仍待迁移）
+
+本轮实际消除了“公开 Manager 全量主线程重建、生产 BuildingSystem 另有调度器”的重复所有权，没有把这一项完成当作整个迁移完成。
+
+- BuildingRuntime 从生产 BuildingSystem 抽出，统一管理分组签名、取消、候选发布与销毁、Worker 快照、LOD/驻留、地形事务、入口动画、灯光、碰撞查询和拾取。BuildingSystem 只保留旧 Source 收集、身份和旧面板查询；仍待随真实消费者迁移删除。
+- 新 BuildingManager 继承同一个 BuildingRuntime，删除自己的 pending/controller/drain/prepare/onUpdate 全集合生成循环。BuildingPartCollection 直接收集 BuildingPartComponent 的定义、祖先 frame、资源与关系，不经过 HouseComponent 或 BuildingSourceDraft。
+- 可传输 profile/nativeAttachment 在新版 Worker 中计算；含原生对象引用的 Mesh/Path/Point、函数地形采样在主线程执行同一 design/implement 算法。执行方式在输入阶段选择，两类候选共用分组调度和发布；失败不回退另一执行方式或旧生成器。
+- BuildingPartComponent 新增可保存的 frame 和主构件 assetLibrary；非作者数据 inputRevision/rebuild() 用于原位 Mesh/Unit 修改后局部失效。克隆清除派生输出，资源随构件和候选生命周期保留/释放。
+- 通用可读静态网格按构件合批并保留拾取身份，不逐 Unit 创建 Entity；原生砖瓦实例批处理不变。主线程构件当前保持完整表示，没有自动远景替身；结构碰撞目前仍来自 profile 生成面，任意 Unit 几何未自动加入结构查询。residentBytes 等驻留指标仍针对 profile 细节；主线程三角形另报 mainThreadTriangles 并计入 triangles。
+- 实际 Seed World 启动暴露循环依赖：运行层导入单元渲染器，渲染器反向导入作者组件及 Manager。改用独立 Symbol 构件身份标记，消除反向依赖；没有修改加载时序掩盖问题。
+- 新增 visualBounds 完整外观边界，独立于碰撞和显隐。第一次对照图因隐藏状态下碰撞 bounds 为空而裁掉屋顶，已修复相机消费者并重拍完整建筑。
+
+验证：
+
+- building、terrain 类型检查通过，最终外观边界修改后 terrain 再次通过。声明189文件590938字节；Skill与git diff检查通过。范围审计仍是此前3个Prefab和Agent Skill集成的 needs-scope-split 清单，不声称合入门禁通过。
+- 7文件61项通过：PartCollection5、NoLegacyModel14、Components22、InstanceExecution2、WorkerCpu11、Recipe5、PartScript2。新收集器与直接flat draft的renderInput SHA256相同，包含台基/窗；覆盖局部变换、悬空关系/歧义身份、无资产库generic和不一致profile坐标系。初始窗fixture落在墙角，被真实算法拒绝；改用已验证的10×8/指定屋顶/u=.35输入，没有关闭校验。
+- 浏览器同一新Manager同时拥有两个Worker房屋和一个原生Mesh/Point分组，验证合批、无变化复用、两类编辑只换本组、非法算法保留原结果、Mesh原位修改+rebuild、拾取身份和删除释放。证据 output/playwright/shared-building-manager.js / .txt。
+- 新Manager经真实编辑事务修改高度4→4.4、撤销、保存、重载保留修改通过，随后恢复原输入。证据 shared-manager-editor.js / .txt。演示最终通过“房屋”按钮回到默认房屋。
+- 实际Seed World seed1 ready，17建筑/17组/220作者对象；仅新版BuildingWorker。无变化复用、单栋只换一组、26条拾取身份、远处地形修改保留17组、地形commit/rollback恢复原视图和快照通过。该世界仍使用旧Source作者入口，不能称作者模型已迁移。证据 shared-building-runtime-world.txt。
+- 两组新Manager/Worker对独立dev2基准的完整1280×720图像：house/window均0差异像素。相同相机光照，两边显式LOD0，完整屋顶在图内，截图已查看。此结果不是生产动态LOD或全世界多视角验收。证据 shared-manager-pixels.json / .js / .txt及截图。固定LOD和参考runtime捕获仅在Playwright测试中执行，产品无额外分支。
+
+仍需完成：生产旧组件、Prefab、初始生成、编辑/Agent和必要存档迁移并删除持续转换；profile求解/派生处理与通用注册继续收敛；全世界固定时间、多视角、多距离外观与性能验收。目标保持active；未commit/push。
+
+本轮后续生命周期补充：真实 `frame.clone()` 最初失败，原因是子构件的 `_onClone` 删除了父级尚未完成遍历的生成兄弟节点。已把清理职责移到 frame 上的纯运行时 BuildingOutputOwner；其 post-clone 在全部子节点解析完成后执行。没有定时清理、引擎遍历补丁或保留生成树。真实克隆排除生成输出、销毁克隆后原输出仍为同一实例且可见，通过；克隆前后完整1280×720截图0差异。证据 shared-manager-clone.js / .txt / -pixels.json。该标记组件不是建筑构件或持久化定义。
+
+主线程候选与Worker统一严格处理设计诊断：非法开口不发布，保留之前输出。浏览器用“跨墙角窗户+普通Path台阶”强制主线程执行，确认整组拒绝、既有frame实例不变。最终克隆修复后的terrain类型检查、Recipe5与PartCollection5复测通过；声明最终189文件590785字节。此10项为原61项中的定向复测，不累加为71项。
+
+## 2026-11-03 新版 Source 输出与 Prefab 身份复制（生产作者迁移前置）
+
+- 新增公开 `buildingDraftSource`：只输出原生 Entity/BuildingPartComponent 作者数据，明确 frame 引用、组节点、主构件 palette/seed/assetLibrary、从构件出发的关系。没有运行时旧组件转换、生成网格持久化或递归建筑配方。运行时资源必须由项目引用回调转换为 `$ref` / `$entity`，循环或非序列化数据失败。
+- staged 演示页已删除自写的 Source 拼装，使用公共输出函数。无需更换保存 key；真实 Editor 事务仍负责源文件变更和投影。
+- `copyBuildingPrefab` 除 Source 实体/组件引用外，还重写新版组、构件、关系端点、附件拾取身份；共享 VFS 资源引用保持共享。附件隐式随机 seed 在重命名前解析，避免其生成器因复制身份变化重新随机。
+- 检查复制外观时发现尚未解决的真实差异：`UnitPacking.js` 从 `seed_id ?? logical_id ?? id` 计算部分材质随机输入，更换建筑身份会改变若干墙面/台基及通用单元的实例字节。该问题未通过忽略字节或加入旧模型回退掩盖。附件生成器身份/seed 的修复不等于完整复制外观等价；README 明确这一限制。后续应让材质变化的随机输入归属作者参数，独立于 Scene/构件身份，并验证原世界不变。
+- 验证：BuildingSource 6、BuildingPartCollection 5、BuildingPartScript 2，共 13 测试通过。Source 的完整往返测试比较真实渲染包及全部 dynamicFiles 内容哈希（不只比较文件名或对象描述）；附件复制测试比较实际装饰几何。building/terrain 类型检查通过；声明更新为 190 文件、591749 字节；git diff --check 通过。
+- 浏览器：`output/playwright/building-source-editor.txt` 记录公共 Source 输出下 height 4→4.4、原生撤销、保存重载、恢复原场景，errors=[]。未以这些局部验证声称全世界多距离像素验收完成。
+- 尚未切换：BuildingSceneGeneration、初始规划配方、内置旧 Prefab、NativeBuildingHost/Panel、旧存档加载和 Agent 作者入口。下一步必须完成这些真实消费者及一次性存档迁移，才能删除 BuildingSourceDraft/BuildingSystem 旧作者门面。没有新增永久兼容分支。
+
+
+### 2026-11-03：生产作者数据切换到扁平构件（最终世界验收仍未完成）
+
+- 修复新初始生成与旧 Source 重放的涂层差异。原因是墙窗原先保存实际挂接点后投影回墙周坐标，直接保留计划阶段的 u 会在裁剪边界改变顶点/索引。现在共享 WallMountGeometry 的真实折线挂接/投影：新初始化保存 `attachmentMount.params.point`，不同时保存 u/bottom；Design 依据显式墙宿主求解。组节点保存位置/朝向，support 保持局部。不是对指定 seed/建筑增补数值补丁。
+- `initialBuildingSource` 直接消费 European 基础构件并输出 Source。初始生成禁用旧整屋解析器仍通过；对17主体组合的完整绘制描述和全部动态 GPU 缓冲比较通过，未放宽容差或忽略涂层。
+- SeedWorldProject 在原持久化 key 下加载后一次性转换旧 Scene/Prefab，再原子提交并保存；任何待迁移文件失败不提交其他文件。未清空用户存档。生产不再注册旧作者组件；NativeBuildingHost/面板/脚本导出改用 BuildingPartComponent/BuildingManager。三份内置 Prefab 已保存新构件，原始快照仅放在 fixtures/building-legacy 供回归。离线旧样例导出也输出新构件。
+- 公开算法/资源基础从旧递归 BuildingRecipe 拆到 BuildingAlgorithms。新生成/设计/实施/支持/铺设模块只依赖公共算法，不公开旧递归 recipe/BuildingBuild；旧实验通过内部文件访问。模板 Unit 的公开类型没有递归 building 字段。
+- 真实 seed=1 存档迁移并重载：17栋、17编译组、203新构件（原220对象中每栋少一个冗余旧作者/铺设层对象），诊断为空。浏览器阻断旧 BuildingComponents 模块时无请求且正常启动。证据 output/playwright/seed-world-flat-reload.txt。此记录的细节驻留数受动态相机/加载影响，不作性能结论。
+- 实际 Source 编辑房屋高度只替换1个编译组；撤销恢复逐字相同 Source；屋顶批处理检查得到455单元；17栋保留。证据 seed-world-flat-editor.js/.txt。真实 GPU 窗口拾取解析到新构件，证据 seed-world-flat-pick.js/.txt。实际生产画面 seed-world-flat-production.png 已检查，不是 primitive 替身，也不作为整世界像素等价证据。
+- 原生浏览器测试：Script 导入与原生新组件同一类身份；Host 初始化/重复发布/删除/保存；local 与 Prefab root 初始化，以及 nested child 的取消重试，均通过一事务、undo/redo、保存重载、显式恢复与模板不变检查。只有 favicon 404，无业务控制台错误。
+- 验证：6文件43项（Migration10、NoLegacyModel14、Source6、PartCollection5、PartScript2、Placement6）通过；NativeBuildingLifetime2项通过，测试已使用新 Manager 与真实空集合验证器。building/terrain 类型检查通过；Skill校验通过。公共算法拆分后的类型/算法回归单独继续记录。
+- Scope audit 仍报告 needs-scope-split：3生产 Prefab + 3冻结测试 Prefab + Agent Skill 集成，均属于用户明确授权的建筑范围；未借此改变生产Shader/空间布局策略。
+- 尚未完成：全世界多视角多距离独立基准截图/性能、完整迁移后地形与远近景回归、历史实验入口清理、通用/专用算法注册进一步收敛、Prefab复制的材质随机身份问题。不能将本次生产切换、局部截图或三角形计数等同于整个目标完成。
+
+- 公共算法拆分后复验：building 类型检查通过；5文件30项（NoLegacyModel14、PartScript2、AlgorithmExecution7、InstanceExecution2、旧内部Recipe5）全部通过。没有复制第二个算法注册表；历史Recipe只重导出同一个 BuildingAlgorithms 实例。
+
+## 2026-11-03：铺设调度合并与独立世界基准（目标仍未完成）
+
+本轮删除独立的 `profilePlacementAlgorithms` 注册表和 `placeInstancePart` 执行入口。`BuildingImplementation` 对任务统一按作者的 `algorithm.type` 调用 `buildingPlacementAlgorithms`，不再把作者算法替换成 support 生成器名。原有排列算法仍消费解析 Surface 的精确轮廓、预留和邻居约束，保留砖瓦实例 ABI；普通 Point/Path/Mesh 返回姿态或原生批处理，同一个任务队列处理同步/异步结果与取消。解析表示是 Surface 的一种表示，没有新增作者层面的第四种 support 类别。`BuildingInstancePlacement` 仅保留结果类型。
+
+边界仍明确：附件和接缝还在 publication 准备阶段生成；profile binding 对 arrangement 的内置校验还没有开放为完整自定义协议。因此本次是实施调度的实质收敛，不是“所有构件/所有风格扩展已经完成”。材质随机值与身份的耦合、历史代码清理也尚未完成。
+
+验证：6 个测试文件 53 项通过，涵盖实际初始世界和三份 Prefab 的迁移输出、Worker 预览/细节、门窗/老虎窗/台基/围墙/栅栏、生产局部铺设参数、禁用旧模型操作。新增异步取消测试和 Surface 表示调整后，相关 3 文件 24 项通过；Script 声明与异步布局专项 5 项通过（这些集合重叠，不相加）。building 与 terrain 类型检查通过。公共声明生成 189 文件 / 587012 字节。Gallery 默认 index 进入新版 staged 演示，旧的 7 个 HTML 实验入口已删除，历史 TS 与测试尚未全部清理。
+
+演示基准纠正：原 reference/render.ts 只绘制固定近景的实例，而新版 Manager 已启用生产 LOD。相同相机不等于相同 LOD，滞回历史也会影响结果。参考视图现使用原有 MasonryLodProbe 和远景几何渲染器；延迟加载参考时，显式采用当前编译 frame 的起始 LOD 状态，之后自行按原策略更新。此设置只属于对照输入，不更改新版策略、几何、Shader 或批处理。默认房屋 1280×720 全画面差异为 0；截图和按距离对比结果见 output/playwright/building-unified-pixel-results.json。不能据此宣称整个世界已像素验收。
+
+完整世界的独立基准来自固定提交 aa2d4bb894dc5ea582b6bb9ae77d38499c48689e 的真实 Gallery 解包（/tmp/seed-world-dev2-aa2d4bb/world/gallery），使用未变化的同一 Engine。两边加载同一原始 seed=1 存档快照，测试存储使用独立 key；新边走真实一次性迁移，旧边走旧生产系统。浏览器测试在首次 engine.run 前冻结时间，并同步原生云层/IBL 输入，不改产品 Shader 或建筑参数。首个出生点全画面可达 0 像素差异。此前完整 53 视角扫描有 12 个完全一致，所有相机矩阵及选中 LOD 对应一致；严格像素通过值为 false（world-audit-pixel-results.json）。本轮调度调整后未重跑完整 53 视角，不把此前结果冒充最终通过。
+
+进一步证伪：旧版相机固定、time=0 时，连续重绘本身产生约 1000 个像素残差；不重绘而连续截图则 0 差异。云缓存 lease 冻结、关闭 GL_DITHER 以及同一 frameCount 跳过 Script 更新只重绘均未消除残差；相邻重绘的场景/Renderer/Material 数值 uniform 与物体矩阵快照没有变化。默认该相机 MSAA 已为 1。根因尚未确认，不能直接归因于新建筑，也不能忽略/裁掉差异或放宽阈值宣称像素完成。证据为 world-audit-baseline-{repeat,reset-repeat,frozen-cloud,no-dither,no-frame,render-only,msaa1}-*.png 及 world-audit-baseline-uniforms.txt；诊断修改均在独立测试浏览器恢复，没有产品补丁。
+
+性能初测：在同样三个视角，各 20 帧预热 + 60 帧 CPU 提交/显式 gl.finish 采样，两个浏览器串行执行，原始数组保存 world-audit-{baseline,new}-performance.json。近景两边均出现大尖峰，不能仅按中位数宣布性能合格；尚需稳定运行、移动/编辑及 GPU 成本验收。范围清单仍为 needs-scope-split：本任务内置 Prefab 与旧版测试 fixture，以及 Agent 接入；本轮未改生产 Shader、Engine 或 LOD 策略。
+
+同轮补充：参考视图加入相同 LOD 滞回起始状态后，默认、近景（orthographicSize=6）及中景（10）房屋全画面 1280×720 均为 0 像素差异。远景（200）新侧截图已生成，但浏览器命令仍停留在参考切换/采集期间；截至本记录未返回，不能计为远景通过。运行句柄 3764（playwright building-unified-lods）与排队诊断 86155 均仍活跃；下轮先检查实际状态，不因观察超时重启。原始日志 building-unified-lods.txt，截图 building-unified-{near,medium,far}-{new,reference}.png；缺失的远景 reference 图不能按零差异处理。
+# 2026-11-03：新版依赖边界复核（尚未完成整体验收）
+
+本轮按用户“是否仍在包装旧逻辑或使用临时处理”的问题核对当前实际调用链。`NativeBuildingHost` 使用新版 `architecture/BuildingManager`；`BuildingProfileSupports` 从扁平构件及显式关系求解，不重新构造旧整屋作者数据。保留原资产、着色器、实例缓冲格式、数值几何算法及 LOD 策略属于明确复用范围，不等于保留旧整屋执行入口。
+
+加强 `BuildingNoLegacyModel.spec.ts`：对 `ConstructionCompiler`、`ConstructionLayout`、`ConstructionRuntime`、`ConstructionCpu`、旧 `BuildingComponents` 和递归 `BuildingComponent` 设置模块加载即失败的边界，除原有禁用旧模型操作的案例外，增加公开 API 加载与相交房屋的 Worker CPU 预览/细节执行。当前源码上 15 项通过；测试实际生成连接构件、铺设和绘制数据，不只检查名称。该结果不覆盖浏览器 Worker 通信与完整世界像素性能验收。
+
+仍有明确的收敛欠账，不宣称全部算法已通用：
+
+- `BuildingPublication` 仍直接安排墙接缝和拱券等铺设；`wallStitches` 尚不是普通逐构件铺设队列中的注册算法。
+- `BuildingProfileSupports` 的 `parseUnitPlacement` 仍使用内置 arrangement 白名单。通用 Point/Path/Mesh 可以注册算法，解析轮廓不能据此声称任意算法可替换。
+- 原始构件模型与生产入口已切换，但历史实验和旧测试仍直接引用旧实现；删除工作尚未完成。存档迁移是加载阶段的一次性转换，不能演变为实时旧模型适配。
+- 部分材质随机输入仍来自逻辑单元身份，复制后保持完全相同外观的契约仍需落实。
+- 既有完整世界报告 `output/playwright/world-audit-pixel-results.json` 为 53 视角、12 个严格一致、`passed:false`。旧版自身跨帧渲染波动的诊断仅证明基线也有波动，不能据此豁免新旧差异；该报告也不能冒充本次修改后的重新扫描。最近单屋近景/中景对照为零差异，远景诊断调用取消后仍未取得完成结果。整体任务保持未完成。
+
+# 2026-11-03：删除旧生产入口，墙缝与屋顶收口走注册铺设
+
+用户明确纠正：删除旧实现，不能以“加载旧模块就报错”的验证代替收敛。本轮删除 BuildingNoLegacyModel.spec.ts；删除旧注册组件 BuildingComponents、递归 BuildingComponent/Manager/Compiler/Recipe/Unit/Plan、旧规划器和只消费这些入口的实验演示。保留 Point/Path/Surface、算法注册表、资产合批等真实公共能力。旧存档使用 LegacyBuildingSourceTypes 的纯数据定义，不注册旧组件。
+
+生产目录删除旧 ConstructionCompiler/Layout/Preview/Cpu/Worker/WorkerClient/Runtime、MasonryDistanceView、ConstructionRenderPackage/Globals/Junctions；旧基准只保留在 tests/dev2-reference，与真实新版测试明确区分。进一步删除无生产消费者的 ConstructionContacts、旧整屋接缝/拱券/窗口切割/墙LOD包装函数。旧安装校验放入测试对照目录。ConstructionWallLod 测试的当前路径直接调用 retainProfileWallUnits。离线样例导入和已有存档的一次性迁移保留，理由是实际历史数据，不形成运行时双轨。
+
+墙缝：设计阶段生成真实竖直 Path；wallStitches 通过 executeBuildingPlacement 公共调度执行，返回 wall-stitch/v1 数值记录，packWallConnections 保持全局砖/梁序号、交替归属及随机材质输入。发布阶段异步等待，细节阶段复用已铺设的连接。初始世界生成曾漏等 prepareBuildingPublication，经真实初始生成回归暴露后修复为 await。
+
+屋顶收口：设计阶段生成平顶/坡顶交界的真实水平 Path 与 roofMerlons 派生构件，算法消费 Path、边沿模式、尺寸与材质设置。数值内核 placeInterRoofMerlonPath 不接收整屋模型。发布阶段按构件声明的算法调用公共注册表，收集 roof-merlon-course/v1 结果；细节不再重新生成。砖石与木结构两种实例输出保持原数值精度和顺序。自定义异步算法、编辑 Path、取消和格式/Unit不匹配均有行为测试。
+
+验证：
+- 完整 terrain 类型检查通过；公开声明 185 文件/553977字节。删除后初始世界、内置 Prefab、Agent 脚本、独立 Mesh 铺设17项通过。
+- 最后7文件84项通过，包括初始世界迁移10、屋顶附件18、新CPU/Worker边界11、墙LOD9、开口7、派生连接执行7、旧数据读取/几何22。部分是明确的旧基准验证，不能把84项全称为新版生产验收。
+- 实际新版页面4组1280×720完整画面：house、roof-brick、roof-wood、joined，稳定LOD后与隔离dev/2.0基准均0差异像素。首次截在LOD渐变过程的结果曾有差异，未计通过；等待真实detailReady、pendingDetails=0、transitioning=0后重拍。证据 output/playwright/cleanup-pixel-results.json、cleanup-junction-pixels.js 与同前缀图片。
+- 当前源码真实 Seed World seed=1 重新启动：17建筑/17组/203新构件、errors=[]。实际Source修改高度只重建1个编译frame；撤销逐字恢复Source；屋顶检查455个实际铺设单元；17栋仍存在，保存flush完成。本轮复用了seed-world-flat-editor.js执行，结论不是仅凭历史记录。
+- skill校验与git diff --check通过。范围清单仍为needs-scope-split，内容是任务内三份内置Prefab及其旧测试fixture、Agent Skill接入；不是运行失败，也未宣称合并门禁通过。
+
+未完成：整个世界最新多视角/远近景像素与性能验收；拱券和附件的专门准备路径；解析曲面自定义算法的binding限制；复制后的材质随机输入。既有53视角报告仍是passed:false，不能以本轮4个样例或生产启动替代。本轮重新启动了building-world-new和building-world-baseline两个独立测试浏览器用于后续核对，原始目标继续有效。
+
+同轮整世界追加检查：独立新旧两个浏览器都完成原生加载动画及 photoPreparation，`body.dataset.worldReady=true` 后才重新截图；冻结世界时间时须单独推进加载动画并让拍照准备的异步帧完成，不能仅凭 bootPhase 文案判断整页就绪。最初被加载页遮住的截图已废弃重拍。三个可见建筑俯视视角和一个完整世界视角，同相机1200×672，分别残留1902/1482/1571/2356差异像素，最大通道差5/4/4/11。最新报告为 output/playwright/cleanup-world-results.json，passed:false；局部取样不能算全量扫描，未完成性能验收。
+
+额外证伪：旧版在同一冻结场景、同一相机连续重绘，临时关闭后处理仍有831/868像素波动（已恢复后处理）；直接 gl.readPixels 读取默认 framebuffer 也有1027/1053/950像素变化、glError=0。因此残差已经存在于GPU绘制结果，不能仅归因于Playwright截图编码，也不能仅归因于后处理。一次engine.update没有调用Math.random。根因仍未定位，不能作为豁免新旧差异的依据。探针分别见 cleanup-world-postprocess-probe.js、cleanup-world-framebuffer-probe.js；产品Renderer/Shader没有为通过对照而改动。
+
+
+### 2026-11-03：删除后的引用清理、拱券进入注册铺设流程
+
+- 删除生产 `ConstructionDecorations` 中剩余的旧整屋装饰包装入口。新 `planProfileDecorations` 直接消费已解析宿主几何；石拱/木拱拆为开洞规划与成员铺设。设计只发布接受的开口、基准 Path、抬升高度和铺设参数，`stoneArchCourses` / `woodArchMembers` 通过公共 executeBuildingPlacement 产生实例；预览铺设一次，细节复用。拱券规划元数据在发布边界剥离，不重复发送给渲染器。
+- 清理遗漏的动态 import 与独立 mjs 测试悬空引用。旧 Worker 的两项专属测试删除；新版 Worker 已有生命周期/取消验证。历史整体布局测试显式指向 tests/dev2-reference，不将它们计为新版证明。旧渲染测试改为实际原生资产 fixture，未给生产增加适配器。
+- 新版拱券4项通过：石/木两种开口与成员逐项对照、重叠开口只发布一个铺设任务、自定义异步注册算法实际消费 Path 且细节不重复执行。另有 ProfileDecorations24与旧数值拱券23通过；后23仅是共享数值内核/基准检查。WorkerCpu11、SourceMigration10、PartScript2、JunctionExecution7通过；terrain类型检查通过。独立masonry测试45项通过，明确包含旧基准检查。
+- 浏览器石拱、木拱在可见洞口一侧同相机、光照、完整1280×720画面对照，均0差异像素；实际截图已查看，未用被背面遮住的洞口作为验收。证据 output/playwright/arch-execution-pixels.js/.json 与 arch-execution-{stone,wood}-{new,reference}.png。页面控制台无新增业务错误。
+- 整世界验收仍不通过。进一步只读记录WebGL调用，观察到原版在冻结时间后云层方向缓存仍按切片和时间抖动更新；用既有云缓存snapshot租约冻结后，原版自身连续4帧依然分别973/999/970/1003像素变化，最大通道差11/16/12/9。因此云缓存更新并非已证实的唯一原因。没有更改引擎、Shader或降低截图验收标准。
+- 未完成事项仍包括普通附件/老虎窗铺设分离、解析曲面自定义算法入参约束、复制后材质随机身份，以及整世界视觉/性能验收。目标保持active，未commit/push。
+
+### 2026-11-03：复制身份与外观随机输入分离
+
+- 生产旧执行器和旧组件保持删除，未恢复禁止旧模块加载的测试。生产导入扫描未发现旧 ConstructionCompiler/Layout/Runtime/Worker/Cpu 或 BuildingComponents 的引用；历史对照仅在 tests/dev2-reference。
+- 修复 copyBuildingPrefab 重命名构件后改变材质随机外观的问题。组、铺设参数和附件新增可选 variationKey；复制前解析原有默认键，再改身份。连续复制保留外观键，连接、拾取和 Source 引用仍使用新身份。普通砖、角石、楼层、台基、平顶、曲顶、木墙、连接与拱券在单元生产位置根据局部编号生成随机键，不通过截取或替换生成 ID 回推旧身份。
+- 近景材质 seed_id 与远景 lod_seed_id 分开保留，因为原有木板切割的远景键包含 /wood-cut，而近景继承未切割单元的材质键。未指定 variationKey 的既有作者数据保持原有键及字节，未修改 UnitPacking、生产 Shader、渲染格式或 LOD 策略。屋顶附件复制不再误填该类型禁止的 seed；其外观键由屋顶、宿主和附件的原有局部身份组成。
+- BuildingSource 新增10种参数化原件/首次复制/再次复制验证：房屋、平顶、木墙、围墙、栅栏、墙窗、老虎窗、相交房屋、石拱、木拱。比较所有实际提交动态缓冲的长度及SHA256，并比较 Worker 距离预览几何、颜色和外观贴图。只排除 owner/bindingId/pickId/geometryId/regions 等身份及编辑引用，绘制数据不做数值容差处理。
+- 8文件75项通过：Source16、SourceMigration10、RenderInput9、WorkerCpu11、JunctionExecution7、ArchExecution4、PartScript2、ConstructionLodAppearance16。后者含隔离旧基准检查，不把75项全部称为新版生产验收。building/terrain类型检查通过；公开声明188文件/568545字节。
+- 浏览器通过真实 Source 复制并经编辑事务激活，木墙/石拱/老虎窗分别比较实际近、中、远三档LOD；nearReady/mediumReady/detailReady逐档检查，等待pendingDetails和transitioning归零。9组1280×1080完整画面均0差异像素；近景整栋轮廓已人工查看，未用裁掉屋顶的初始截图作为最终证据。证据 output/playwright/building-copy-variation.js/.json 和 variation-{wood,stone-arch,dormer}-{near,medium,far}-{original,copy}.png。这是复制前后对照，不冒充新的dev/2.0全世界验收。
+- 整世界像素仍未通过。新的逐draw探针补齐RGB浮点打包格式UNSIGNED_INT_10F_11F_11F_REV读取后，旧版自身重复纯render的首个已观测差异出现在岩石绘制（本视角draw21/24），并非已经定位为后处理。早先探针未读取该格式，只看见末端8位输出变化，不能据此归因后处理。逐draw关闭DITHER、冻结云缓存仍复现；根因未确定。诊断文件 world-packed-pass-probe、world-packed-dither-probe、world-post-input-probe，均在output/playwright，未修改产品引擎或Shader。
+- 剩余：普通附件/老虎窗的专门准备路径、解析曲面自定义算法限制、完整世界视觉/性能验收。复制随机身份欠账已由上述数值及浏览器证据收敛；整体目标仍active，未commit/push。
+
+## 2026-11-03：普通附件实施流程收敛及旧初始化执行器删除
+
+- 继续执行“只有新版生产系统，删除旧执行路径”的目标。原位于生产 masonry 目录、仅供七个测试消费的 `BuildingInitialRecipe.ts` 已移入 `shared/tiny-glade/tests/dev2-reference/`；生产初始化仍只使用 `BuildingInitialDraft/BuildingInitialSource`。删除不再被消费的整屋装饰安装断言。旧执行器与“加载旧模块即报错”验证已在前轮删除，本轮不新增该类测试。
+- `ProfileDecorations` 与 `planFlatRoofDecoration` 对普通墙窗/门/壁灯、平顶舱门/屋顶灯只计算洞口、占位与可结构化复制的精确挂点。`mountAttachment` 经共享铺设注册表执行资产几何生成，结果为 `native-attachment/v1`。普通附件的 authored 算法名现在真实可替换；自定义异步实现、取消、错误记录格式、冲突拒绝和只执行一次均有针对性测试。开口仍由设计阶段所有，单独替换铺设算法不会暗中移动洞口。
+- 独立旧基准的平顶实现仍来自固定提交原函数；未将新 planner/placer 作为旧对照。对照显示入口发现漏挂旧附件灯光池，已接入原共享 `ConstructionDecorationLights`（预算、距离、渐变不变），没有修改生产着色器或灯光来补偿差异。
+- 九类附件（cottage/gothic/arrow-slit 墙窗、cottage/gothic 门、壁灯、两种平顶舱门、屋顶灯）逐项比较 parts/frames/stones/holes/windowCuts/roofOpenings 及灯位一致。浏览器按真实挂点朝向取景，近景稳定且灯光渐变结束后，九组完整1280×1080画布均0变化像素。证据：`output/playwright/attachment-placement-pixels.js/.txt/.json` 与 `attachment-*-new/reference.png`。已目检哥特墙窗与壁灯画面，附件处于可见面。这只是上述单建筑样例，不能替代完整世界验收。
+- 本轮 building/terrain 类型检查通过；相关分组测试：Stages12、ProfileDecorations24、RenderInput9、Source16、WorkerCpu11、AttachmentExecution12；后续 SourceMigration10、AttachmentExecution12、PartScript2、InstanceExecution3、InitialRecipe4 通过。重复运行的 AttachmentExecution 不重复计作新增测试。
+- 未完成项明确保留：转角窗与完整/半老虎窗的专用准备流程、原生轮廓 binding 的内置 arrangement 限制，以及完整世界像素/性能验收。现有完整世界报告仍未通过，不能宣称最终目标已完成。
+- 实际 Seed World 编辑回归：墙高 Source 事务只重建一组；撤销恢复完全相同的 Source；17栋仍发布且错误为空，实际屋顶批处理检查返回455单元。保存后重载为17栋/203个 BuildingPartComponent、0旧组件、诊断为空。证据 `seed-world-attachment-editor.txt` / `seed-world-attachment-reload.txt`。此回归不以旧模块拦截作为通过条件。
+- 范围审计仍标记 needs-scope-split：三份已授权迁移的内置 Prefab、三份冻结旧资产测试夹具与 Agent skill 挂载。未改生产 shader/材质或性能策略；审计结果是范围清单，非运行失败。`git diff --check` 与 skill quick_validate 通过。
+
+## 2026-11-03：转角窗通过注册铺设实施
+
+- `planConstructionCornerDecoration` 只解析角点、两面墙的编辑坐标、窗口与过梁挂点、洞口和安装预留。用源资产顶点的精确变换测量可安装范围，不再生成法线、材质及渲染网格。已移除直接生成转角窗网格的生产入口；冻结旧基准不变。
+- `DecorationAssemblyMount.partMounts` 表示一个选定资产组合中成员的不同挂点。两根过梁与窗体仍属于同一基础附件；这不是递归建筑构件树。`mountAttachment` 通过同一注册表消费主挂点、成员挂点及资产集合，生成最终几何。墙面周向投影是纯数值 chart，设计输出可 structuredClone，不保存闭包。
+- 框材质专用 seed/颜色槽归入 frameAttributes，普通无石框附件不再填无效占位字段。删除无人调用的 `compileFlatRoofDecoration` 生产包装；平台开口实际使用的宿主槽位保留，新增多建筑用例验证第二栋平台开洞 raw48 指向槽位1。
+- 数值覆盖三种规格×四个旋转墙角×砖石/木墙共24组合，以及越界、超高、替代算法整体平移窗口和过梁。设计阶段 spy 验证不调用 `decorationAssemblyGeometry`；发布 parts/frames/stones/holes/windowCuts 与固定 dev/2.0 一致，自定义算法实际执行。
+- 六组实际浏览器近景（三规格×两墙材质）完整1280×1080画布与旧基准0像素差异。近景已就绪、pendingDetails/transitioning=0、错误/诊断为空。已目检可见转角窗及两侧过梁；证据 `output/playwright/corner-placement-pixels.js/.txt/.json`、`corner-*-new/reference.png`。
+- 回归结果：AttachmentExecution最终21项通过，Source16、PartScript2、WorkerCpu11、ProfileDecorations24通过；预设声明190文件573339bytes。building/terrain类型检查、skill校验及git diff --check通过。未更改生产shader、实例打包或LOD策略。
+- 目标仍未完成：完整/半老虎窗准备路径、原生轮廓binding自定义算法限制、完整世界像素及性能验收仍需推进，不把本轮六张单建筑对照等同于完整世界通过。
+
+## 2026-11-03：完整乡村式老虎窗拆为挂点与派生小屋面
+
+- `createCottageRoofDecorationPlanner` 现在只解析安装位置、碰撞占位、窗体成员挂点及洞口，不调用窗体网格或小屋面逐片瓦生成器。`CottageDormerSupport` 发布精确窗体挂点与解析小屋面域（宿主曲面、位置、宽度、升高及扩展量）；geometry/chart 保持可结构化复制，不保留闭包。
+- 窗体经注册 `mountAttachment` 放置；新增派生 `dormer-roof` 构件（`cottageDormerRoof` Surface + `cottageDormerCourses` + 宿主屋面共享材质 Unit）。`params.roofAlgorithm` 可真实替换小屋面排列，返回 `dormer-roof/v1`。派生身份碰撞与错误结果格式明确报错。窗体和小屋面均在发布阶段执行一次，细节复用；窗体投影器在单次构建作用域内按同一个几何对象复用。
+- 已删除生产 `ConstructionCottageDormer.ts` / `CottageDormerGenerator.ts` 整体生成入口；冻结旧生成器由固定提交提取到 `tests/dev2-reference`，三个历史数值测试改为显式消费旧基准。新生产调用不会进入旧基准，不以历史基准测试自身通过作为新版证据。
+- 新 `BuildingDormerExecution` 8项覆盖矩形/圆形×三规格、设计阶段不调用几何与铺瓦、发布几何/瓦片/开口逐项精确一致、异步替代算法、重复细节不重铺、派生身份冲突、错误输出拒绝。Source16、WorkerCpu11、ProfileDecorations24回归通过；最终附件21与新老虎窗8通过，另三个历史基准51项通过。新旧基准的验证含义保持区分。
+- 六组实际浏览器近景（矩形/圆形×三规格）完整1280×1080画布均0像素差异。近景ready=1、pendingDetails/transitioning=0、错误/诊断为空；已目检圆形三级老虎窗及小屋顶可见。证据 `output/playwright/dormer-placement-pixels.js/.txt/.json` 与 `dormer-cottage-*-new/reference.png`。只证明这些独立样例，不替代完整世界验收。
+- building/terrain类型检查通过，预设声明194文件582887bytes，skill校验通过。历史对照测试的输入已恢复为旧基准所需的完整测试数据，CottageDormerGeometry11与新版脚本声明PartScript2复核通过。未改生产着色器、材质资产、实例ABI或LOD策略。
+- 仍未完成：哥特式完整老虎窗、各类半老虎窗（其原安装预留还依赖小屋面瓦片范围）、原生轮廓binding对自定义算法的限制，以及完整世界像素与性能验收。完整目标继续保持active。
+
+
+### 2026-11-03 原生曲面自定义算法与执行域
+
+- `BuildingPlacementLibrary.register` 增加显式 `profile.basis` 几何约定，`BuildingProfileSupports` 以该声明准备原生 footprint/backing/binding；实际铺设继续按作者算法名调用函数。移除 wall/foundation 在设计、预览和实施中按算法名称匹配的特例。声明仅属于代码注册，不增加第二份作者描述。
+- `BuildingExecution` 根据主线程与 Worker 实际共同打包的函数选择执行域。动态铺设、连接和附件小屋面函数在编译前选主线程；直接提交给 Worker 时明确拒绝，失败后不重试到另一套执行器。内置 profile 保持 Worker/LOD。自定义主线程 profile 目前不自动提供远景替身，仍须声明原生几何约定；自由曲面使用 Mesh support。
+- 10 文件96项相关测试通过（含自定义函数实际减少 GPU 实例字节、编辑 plans 一致、原生砌体/台基改名仍保留几何、Worker准备/细节、门窗、老虎窗、Source复制）。building/terrain类型检查通过，声明194文件585011字节。
+- 浏览器完整1280×1080：内置 grid 屋面与固定dev/2.0基准0像素差异；等价自定义函数主线程与内置Worker0差异；稀疏算法1625→812片主屋面瓦，97025像素发生变化，逐Unit Entity仍为0。原生撤销恢复算法；自定义抛错编辑不改作者数据或已发布generation。证据 `output/playwright/profile-algorithm-runtime.json`、同名JS/TXT及`profile-algorithm-pixels.json`，完整取景已查看。
+- 本轮没有修改生产Shader/材质/实例ABI，也没有恢复旧生产入口。完整世界像素/性能验收、哥特式完整及半老虎窗分阶段收敛仍未完成，目标继续进行。
+
+
+### 2026-11-03：完整哥特式老虎窗与主线程附件灯光
+
+- 完整哥特式老虎窗已拆为挂点规划、两条截面定义的小屋面 support 和注册 `profiledDormerCourses` 铺设；窗体经 `mountAttachment`。设计输出可结构化复制，不保存渲染网格/实例缓冲；发布执行一次，细节复用。为保持原版重叠判断，设计仍以精确屋面采样求占用体，包含瓦片的倾斜与交叠范围；不能宣称设计阶段完全不涉及排列计算。替代算法改变外部包络时仍需重新设计占用范围。
+- `GothicRoofTiles` 数值采样与实例打包已拆开；冻结旧采样器从 aa2d4bb 提取到测试目录，避免新旧对照使用同一个改过的采样器。矩形/圆形×三规格×木框/石框共12组发布结果与冻结基准逐项一致，另测缩放、混合重叠次序、自定义算法、连续复制和远景外观。当前轮相关7文件80项通过，building/terrain类型检查、skill与diff检查通过，声明198文件592065字节。
+- 实际Worker的12组完整1280×1080画布及两组斜视角均0像素差异；近景稳定且错误/诊断为空。证据 `output/playwright/gothic-dormer-placement-pixels.json` 与 `gothic-dormer-oblique-pixels.json`（同名JS/TXT与截图），已目检完整建筑及窗体。此结论仅限这些单建筑案例。
+- 再次核对旧生产整屋编译器、Runtime/Worker/组件均已删除；生产未加入“加载旧模块即报错”检查。测试目录旧基准仅用于真实外观比较，不参与新版执行；半老虎窗专用准备仍需进一步收敛，删除旧入口不能视为整体目标完成。
+- 复现并修复主线程自定义算法漏掉原生附件照明：原 `updateLights` 仅遍历Worker驻留视图。两种执行域现在都从已发布附件几何生成挂点绑定，并由同一个场景灯光池管理；主线程不受另一执行域残留的入场状态限制。未改生产shader、灯光预算或距离策略。
+- 同一壁灯房屋内置Worker算法与等价自定义主线程算法，修复前完整1280×1080画布有54804差异像素、主线程active灯为0；修复后0差异像素，灯位/颜色/强度完全一致，两者active灯均为1。真实浏览器隐藏/显示、组平移、删除灯、Source撤销恢复均通过，错误为空。证据 `output/playwright/main-lamp-results.json`、`main-lamp-lifecycle.js/.txt` 与 before/after截图。整体世界像素及性能验收仍未完成。
+- 本次灯光修复验证：AttachmentExecution21、ProfileAlgorithms5、DecorationLighting5共31项通过（DecorationLighting含固定旧数值基准，不算全部新版验收）；building类型检查通过。已目检新主线程完整房屋与壁灯照明；公开声明更新为198文件592092字节。
+- 后续terrain类型检查与实际Agent声明PartScript2项通过；skill校验及git diff --check通过。生产入口扫描无旧整屋执行器、旧组件或测试基准依赖。整体目标保持进行中。
+
+
+### 2026-11-03：三类半老虎窗统一进入挂点与小屋面铺设
+
+- 乡村式、哥特式、箭孔式半老虎窗的设计阶段现在解析墙/屋顶双开口、窗体/百叶窗/石帽挂点、编辑坐标与精确占用。窗体与成员经 `mountAttachment` 生成，小屋面派生 Surface 并分别复用 `cottageDormerCourses` / `profiledDormerCourses`；`params.roofAlgorithm` 可真实替换。预览发布执行一次，细节复用，实例合批不变。
+- 保留原版避让所依赖的数值瓦带采样，但设计不生成窗体网格或材质/实例字节、不保存瓦片输出。乡村式支撑用宿主曲面、位置/宽度/升高/扩展量描述；石制支撑是两条截面加宿主曲面。`wall-curve` chart保留float32最近段计算及周向接缝，不拿近似UV替代原投影。
+- 删除生产 `StoneHalfDormerGenerator`、`CottageHalfDormerGenerator`、`ConstructionCottageHalfDormer`。两份旧整体生成器从固定aa2d4bb提取到tests/dev2-reference，旧几何适配器已在该目录；其历史测试显式引用旧基准。另发现只被旧基准/历史测试消费的 `ConstructionRoofSpire` 整屋包装，也已从生产删除并冻结原提交完整代码；没有新增加载拦截。
+- 新BuildingHalfDormerExecution20项验证三类×矩形/圆形全部16组合，实际几何/框/石帽/瓦片/开洞逐项与旧版一致，设计不调用网格/实例打包，支持异步替代算法，拒绝重叠不遗留开口，细节不重复执行。BuildingSource增加三类半老虎窗，验证原件/复制/再次复制的实际近景动态文件字节与远景外观hash一致。
+- 10文件126项通过，其中102项调用新版流程，24项属于隔离旧基准与数值检查。后续ConstructionRoofSpire7、CottageHalfDormerGeometry6历史检查与新版BuildingStages12通过。building类型检查、skill校验及git diff --check通过，预设声明198文件592425字节。
+- 实际Worker完整1280×1080画布16组全部0差异像素；近景就绪、无pending/transition，错误/诊断为空。证据 `output/playwright/half-dormer-placement-pixels.js/.txt/.json` 与 `half-*-new/reference.png`；已目检圆形三级乡村式、矩形三级哥特式，完整房屋/小屋面/窗体均可见。不是全世界验收结论。
+- 审核发现剩余真实流程缺口：`BuildingDesign` 仍直接生成屋顶尖饰网格，`ProfilePreview` 也有独立生成路径，需下一步收敛为派生Point与注册算法。完整世界多视角/多距离像素及性能验收仍未完成，整体目标保持active。
+- 最后terrain类型检查通过，历史几何测试输入已补全旧基准所需的真实作者字段，而未放宽旧接口类型。当前半老虎窗生产代码不存在旧整体生成器引用。
+- 整世界诊断恢复了已关闭的独立原版浏览器会话，沿用同一存档、种子和冻结时间，完成加载与photoPreparation后继续。补齐此前只覆盖drawElements的拓扑探针：首次差异处实际是drawArrays(2883顶点)，读取115320字节顶点缓冲，961个三角形中未找到完全重复三角形，GL错误为0。证据output/playwright/world-rock-array-topology-probe.js/.txt；这一结果只排除该draw内完全重复三角形，不能排除近共面、跨draw或其他原因。未修改生产着色器或放宽像素门槛。
+
+
+## 2026-11-03 — 尖饰注册实施与删除旧执行链核对
+
+用户再次明确：删除旧实现，不以“加载就报错”检查替代迁移。重新核对实际文件及生产引用：旧 BuildingComponents、ConstructionCompiler/Layout/Runtime/Cpu/Worker 等生产文件已删除；parts 与 Seed World masonry 无这些引用。旧执行基准只在 tests/dev2-reference，用于独立比较，不作为生产 fallback；旧 Source 的一次性转换仍用于真实已有存档，不注册旧组件。无效导入拦截检查已删除。这个事实不能代替完整世界验收。
+
+尖饰不再在 designBuilding 中生成网格。设计依据屋面求尖顶资格、Point 挂点和收口曲率，生成 flat roof-spire 构件：point + placeRoofSpire + {libraryMesh:"roofSpire"}。库网格身份明确，不借 brick Unit 或隐式空模板。发布通过 executeBuildingPlacement 调用注册算法，消费选定资产；ProfileRoofSpire 保留数值变形内核。输出 roof-spire/v1 的几何和实际挂点，预览/细节复用，不在零输出时补造。局部 UV 隐藏和开口判断使用相同挂点。roof.params.spireAlgorithm 可替换注册函数；默认函数打包到Worker，动态函数在编译前选择主线程，没有失败重试分支。作者Source仍只有基础墙/屋顶，派生尖饰不保存。
+
+验证：BuildingSpireExecution 11项覆盖圆/矩形 × 三曲率、发布只执行一次、冻结旧实现几何对照、平顶/长脊不生成、自定义异步省略、UV隐藏/恢复、Point朝向、资产不变及输出身份校验。测试原先为矩形设置非零tip，旧数值算法明确不支持；改成有效的矩形tip=0，圆形继续验证偏尖。旋转断言使用1e-12数值精度；默认垂直路线与旧数据仍严格相等。BuildingSource新增尖饰复制与重复复制的提交缓冲/远景外观一致检查，共21项。PartCollection10、Stages12、WorkerCpu11、InstanceExecution3、PartScript2通过：合计7文件70项新版测试。InstanceExecution从统计注册表查询次数改为统计实际执行，避免将几何约定查询误判为重复铺设。building/terrain类型检查通过；声明198文件592510字节；skill验证与git diff --check通过。
+
+实际浏览器：output/playwright/spire-placement-pixels.js/.txt/.json，六组Worker与冻结旧基准1280×1080完整画布，全部0像素差异。圆顶截图已人工查看，包含完整建筑和可见尖饰。output/playwright/spire-custom-placement.js/.txt/.json：等效自定义算法走main而默认走profile Worker，两者0像素差异；空输出仅改变尖饰附近2237像素，bbox[675,27,718,119]；Source撤销恢复尖饰，同相机画面0像素差异，作者类型始终只有wall/roof。
+
+真实撤销检查发现主线程原生渲染未传入已解算的包围盒，EngineResidentScene采用默认±10000裁剪盒，演示自动取景把orthographicSize设为15765，画面看似空白。根因修复在BuildingPipeline向renderBuilding传递result.preview.bounds，与Worker细节路线一致；未改相机规则、Shader或资产。复测撤销自动取景size约9.23，root处于active，全部errors为空。随后同相机像素复测通过。
+
+范围审计仍needs-scope-split：三份已授权内置Prefab迁移、三份冻结旧Prefab测试夹具、Agent skill接入；不把它标成普通通过。无本轮生产Shader修改。完整世界门禁依然未通过：原版自身重复静态渲染的岩石差异原因仍未定位，完整世界多距离/多视角和性能验收未完成。没有据本轮局部结果宣布全量目标完成。
+
+
+## 2026-11-03 — 继续删除旧作者入口及整世界验收证据
+
+删除生产ConstructionTerrain/ConstructionTerrainTransfer/ConstructionRelocation/ConstructionTerrainUpdate，通用地形场由TerrainField承担，新版按构件范围采样。旧前三份原提交实现仅冻结在tests/dev2-reference；删除未使用的placeMasonryOnLand/masonryFootprintSamples等整屋陆地放置API。旧BuildingDocument/BuildingGroup/BuildingSceneGeneration与ConstructionBuildingProfile/ConstructionEnclosure/ConstructionPlaster包装移入tests/legacy-source，仅供历史与迁移测试；明确不是固定原算法。生产无测试目录依赖。旧BuildingPresetExport及export-building-presets命令先生成旧组件再迁移，已无实际生产消费者，直接删除；新版已有buildingDraftSource。保留SourceMigration实际需要的一次性旧数据解析，不注册旧组件。
+
+第一轮删除后的回归：7文件43项（WorkerCpu/WorldGrounding/ConstructionGrounding/EntrancePublication/Placement/SourceMigration/PartScript）；masonry runner45项；building与terrain类型检查通过。以上包含历史测试，不将43+45全部视为新版生产验收。后续作者适配器清理另行回归。
+
+真实Seed World编辑：原生面板选择poi-large-1:volume:0，将墙高3.677703380584717改为3.877703380584717，选中组更新，其余16组保持view对象；撤销、重做、保存与真实重载读回通过，最后面板恢复原值并保存。证据world-building-editor-20261103.js/.txt、restore与reload-ready。删除后重新启动203作者构件/17组，errors为空；这次启动采样尚有LOD过渡，不能作为稳定像素截图。
+
+原版完整世界不稳定已定位：原样clone岩石Shader仍逐帧不同；将草地与岩石颜色的隐式导数采样从非一致分支移至一致控制流，保留原采样公式，浏览器隔离试验连续6帧所有HDR观测及最终RGBA完全一致。所有WebGL替换均在试验后恢复；没有修改生产Shader，也没有将改过Shader的画面称为原始基准。见world-rock-sampling-diagnosis.md及world-rock-colors-stability证据。此共享缺陷与建筑迁移分开，严格完整世界0像素仍未通过。
+
+完整世界首轮性能已记录CPU/GPU逐帧数据与图：world-building-performance-20261103-{baseline,new}.json、同名前缀.md/.png。3视角各40预热+120采样，1200×672；00-front实际GL draw不一致，09-front两版约2秒CPU尖峰未归因，不能宣称无回归或优化。建筑驻留/三角形一致，仍需重复稳定状态采样和生命周期检查。总体目标保持进行中。
+
+后续清理验收：SourceDraft、WorldGrounding、SceneGeneration、Group、DecorationIdentity、SourceMigration六文件47项通过，覆盖新版17组初始场景与旧数据/迁移对照。building类型检查再次通过；声明197文件591565字节。git diff --check通过。范围审计仍needs-scope-split：三份已授权生产Prefab、三份冻结旧Prefab及Agent技能接入；无生产Shader变更，不将范围清单称为质量通过。
+
+
+## 2026-11-03 - Full-world lifecycle and comparable performance follow-up
+
+Previous turn was progress: production legacy deletion and regression evidence. This turn did not alter production rendering, layout, shaders, or quality settings.
+
+Actual seed-1 world: world-flat-runtime-lifecycle.js verified 17 published groups, no-op view identity, one-part edit retaining the other 16 group views, 24 resolvable published pick identities, remote terrain change retaining all 17 groups, local 5x5 terrain change updating one group and retaining 16, and exact view/terrain restoration after commit/rollback. The initial draft is restored; this tests the real prepareTerrain transaction, not the whole terrain-editor UI.
+
+world-building-rebuild-lifetime.js performed six actual wall-height changes/restorations. Every retired view root was destroyed and CPU handle invalidated, unrelated views remained identical, Worker pending requests returned to zero. Graphic-resource pool counts stayed constant in all rounds and at restoration: Texture2D416, Primitive1113, Buffer2559, TextureCube7, Texture2DArray13, RenderTarget58, TransformFeedbackPrimitive4, TransformFeedback4. This is bounded-loop evidence, not a claim of no application-wide leaks.
+
+Performance probes established that bootPhase alone precedes reveal/photo/picking readiness. They also found that population residency and pending grass appearance alone do not certify publication completion: Detail compaction/publication work remains. CPU profiler and GL segmented timings trace second-long stalls to SeedWorldPopulationRuntime._advanceDetailPublication -> _bindGrassRockAppearance -> GrassRockAppearance.compile -> triangle-distance work, in the original shared vegetation implementation. No building function appears in this call path; the two source files are unchanged. Both original and new worlds exhibited the stalls.
+
+After waiting for actual detail compaction/publication, appearance and patch queues to empty, then 120 warm +120 measured frames at 1200x672, old/new GL calls match at 138/313/336 for 00-front,09-front,world-north. Old CPU median/P95:3.1/3.7,4.0/5.3,2.7/3.3ms; new:3.1/3.5,3.3/4.2,2.5/3.2ms. The published-state collection is world-performance-published.js with raw JSON/TXT. A separate same-method command inventory showed all135 draw calls and Shader hashes equal; that tightly driven diagnostic is not mixed into rAF counts.
+
+GPU repeated far-view ABBA medians:15.54(old),18.75(new),22.22(new),19.30(old)ms, all336calls. This variation prevents claiming a GPU improvement or no-regression acceptance from one favorable run. Original transitions and slow publication costs remain in raw evidence rather than being discarded. Report/plot:output/playwright/world-performance-current-report.md and world-performance-published.png; CPU profiler:world-cpu-spikes-new.cpuprofile.
+
+Strict unmodified full-world zero-pixel gate remains failed because of the separately diagnosed original-rock implicit-derivative sampling instability. No threshold relaxation or environment masking. GPU acceptance and remaining full-world audit are still incomplete; overall goal remains active.
+
+
+## 2026-11-03 — 实际拾取、Prefab 事务及完整世界测量控制修正
+
+前一轮取得新的受控 GPU 数据并更正报告，属于证据进展。本轮没有修改生产 Shader、布局、材质或质量设置。
+
+三种内置 Prefab（circle-circle、gable-junction、round-gothic）均通过真实面板完成创建、删除组、撤销删除和撤销创建，17组/203作者构件最终恢复并flush保存，生成错误为空。debug真实3D的“点击选中场景”开启后，在漫游模式通过实际鼠标按下/抬起和InputManager帧处理点击窗户，命中新版BuildingPartComponent Source身份，编辑面板自动选中对应window。证据output/playwright/world-prefab-ui-acceptance.json、world-mouse-pick-roaming.json及截图。观察模式的输入门控未绕过。
+
+此前“原版16–19ms、新版20–21ms”不是充分控制的性能对比：浏览器实例、编辑历史导致的排序、以及时间冻结仍继续推进的体积云采样相位存在差异。后续同一浏览器上下文、匹配历史和336条有序绘制、统一云历史及预热的8轮短采样不再复现该持续劣势。报告已明确撤回那组数字作为回退证据的用途，不宣称新版更快。
+
+连续完整帧检查进一步发现此前未对齐的植被LOD渐变状态。PlanningNaturalVegetationRuntime维护独立time；global timeScale=0使其停在中间状态。调用现有update按同等时长完成两边渐变后，00-back最大通道差异从190降至4，437株/782启用renderer一致；未改变LOD规则。更新验收脚本同时等待Population实例发布、草色/patch队列以及自然植被渐变结束，再统一云历史。world-critical-settled-capture保存3视角×2版本×4连续帧、原始状态和全画布差异，无遮盖环境像素。00-back仍2693–2723差异像素(max4)，05-front仍3104–3158，world-north仍2241–2293；原版本身连续帧也不同。这不是0像素通过，剩余固定差异未全部归因，不能只归咎于先前定位的岩石Shader。
+
+完整目标保持active：需要继续核对剩余视觉差异和补齐控制变量后的近远景性能结论。原始证据见output/playwright/world-critical-settled-pixel-results.json；运行期旧建筑执行链仍已删除，本轮没有新加兼容/拦截路径。
+
+
+补充受控性能证据：同一浏览器、自然植被LOD已完成、云历史对齐后，00-front/09-front/world-north新旧分别120/301/327次GL绘制。60预热+120采样的跨视角ABBA中新版09-front一轮GPU76.92ms、CPU偏高；随后只固定09-front按旧/新/新/旧复测，GPU中位62.33/62.90/63.24/62.94ms，CPU中位4.0/3.5/3.6/4.2ms，未稳定复现。远景240帧CPU profiler原/新中位4.2/3.9ms，热点共享渲染/阴影，不能把Profiler数据与无Profiler混算。全部原始样本、P95、工作量与前后结论保留于world-performance-current-report.md及controlled/near-repeat证据，未根据单次差异修改生产性能参数。当前未建立稳定性能回退证据；严格完整画布像素验收仍未通过，整体目标不标记完成。
+
+
+进一步证伪“差异全部来自岩石抖动”：在两版同一09-front中运行原程序、原样clone、统一采样控制流三种隔离实验，原程序/clone仍波动，统一控制流各自连续2帧完全稳定且GL错误0；但新旧之间仍1576像素不同(max通道差3)。所有WebGL替换恢复、临时程序删除，生产Shader未改。证据world-rock-both-diagnostic.json及-pixels.json。剩余固定差异需继续定位，不能把该诊断图作为原版0像素验收。初稿内建顶点属性绑定导致的GL错误已修正并重跑，不采用无效初稿结论。
+
+
+## 2026-11-03 — 固定颜色差异的输入归因
+
+前一轮完成真实拾取、Prefab事务和受控性能证据，属于进展。本轮以Source字段比较确认两版场景作者数据没有编辑残留：新场景等于旧存档迁移结果，原场景等于原存档。农场时钟变化单列，不与建筑字段混算。
+
+逐draw读取在09-front定位到第66次地形颜色绘制已经不同；普通uniform只有一盏壁灯位置Z相差一个float32单位，而环境SH的144字节有52字节不同。相同天气/太阳配置与云历史不足以证明IBL一致。使用现有接口重新烘焙后SH仍不同，该尝试未满足完全受控光照条件。
+
+独立、可恢复的浏览器实验：固定同一份原版SH后，排除岩石隐式采样波动时仅剩3像素(max1)；再固定同一份原版灯光池输入，两版完整画布hash377310651相同、0像素差异、GL错误0。原程序保留岩石波动时仍53像素差异。所有GPU buffer、灯光输入、WebGL程序均恢复，生产没有复制旧灯光、改shader或新增兼容路径。这个单视角隔离证据不能冒充未经干预的整个世界验收。
+
+壁灯舍入来自旧附件节点局部位移与新版support中的安装位置采用不同的等价换算顺序。尚未为追逐旧误差改生产算法。完整证据/限制：output/playwright/world-fixed-color-diagnosis.md、world-terrain-inputs.json、world-light-bindings.json、world-rock-shared-sh-pixels.json、world-rock-shared-light-pixels.json。严格原始画面0像素与全范围最终审计仍未完成，目标保持active。
+
+
+## 2026-11-03 — 固定IBL全视角采集与剩余旧绑定辅助清理
+
+从同一浏览器的独立aa2d4bb原版与新版页面，完成17组正/背/远景和两个总览，共53视角、318张完整1200×672画布。两版SH按144字节固定夹具写入并读回核对，所有相机矩阵一致；等待建筑与两类植被发布/LOD完成，统一云历史。保留双方实际灯光与原始生产Shader，没有像素遮罩。17个视角首帧严格一致；34个视角自身重复帧有变化；3个稳定差异视角分别24/14/3像素（类别有一处重叠）。这些稳定差异视角在只统一灯光描述的隔离复测中全部为0，结束恢复各自输入。17盏灯的颜色/强度/范围相等，6盏float32位置不同，最大空间偏差2.9852e-5米。没有把诊断干预写入生产，也未把这个结果说成全部目标完成。部分相机被树冠遮住，需以可见构件覆盖补充验证；完整报告world-fixed-ibl-report.md保留全部数据和限制。
+
+生产依赖复核：从SeedWorldProject、NativeBuildingHost和Script模块导出静态遍历1430文件，无tiny-glade测试目录依赖，列出的旧整屋编译器/Runtime/Worker/组件均已删除。此为依赖检查结果，不是生产加载拦截。
+
+本轮进一步发现BuildingSourceDraft中的groupBuildingDrafts/buildingPlacementFrame以及BuildingMount中的buildingRigidBindings仅供历史对照使用。已移至tests/legacy-source，生产一次性转换只返回draft，不再构造并丢弃旧逆绑定poses；历史比较显式从测试目录导入，不建立兼容运行路径。相关测试和类型检查结果在本段后续记录。
+
+
+清理后的回归：SourceDraft、SourceMigration、SceneGeneration、Components、RoofDecorations、Group共6文件71项通过（含历史几何基准，不将71项都称为新版独立验收）；building/terrain类型检查通过，生成声明仍197文件591565字节。生产依赖复核无测试目录导入。两处补充相机已目检：01-clear-east屋顶/墙面清楚可见，新旧及自身三帧均0像素；01-clear-west展示完整门、灯、墙、屋顶，新旧17差异像素均在本次观察的自身帧间变化位置内。两视角12张补图与主表分别记录，不覆盖原有证据。
+
+本次范围检查中origin/dev/2.0已经指向87450e45，而工作树HEAD/视觉基准仍为aa2d4bb。按远端引用直接比较会包含两提交间既有Engine/Shader差异，不能归因为本轮编辑；固定aa2d4bb检查只列三份生产Prefab、三份旧Prefab夹具及Agent知识接入，无本轮Engine/Shader修改。两份scope清单均保留，status仍needs-scope-split，未冒充质量验收通过。
+
+清理后真实页面重新加载，worldReady=true、loadingHidden=true，17组/203作者构件，errors为空、transitioning=0，临时SH/灯光诊断状态已释放。最初等待超时发生在测试暂停Engine后未推进拍照准备的异步渲染帧；改为在等待期间继续既有engine.update后就绪，没有修改产品加载逻辑。证据world-post-cleanup-ready-pumped.json，原超时记录保留。这是加载健康检查，不替代新的性能采样。
+
+
+### 2026-11-03：生产公开API验收与Agent契约收敛
+
+- 核对当前生产源码后，修正建筑Skill中失效的manager.output/design用法，改为errors/metrics/get/snapshot；明确flushAsync失败会抛出并保留上次可见结果。禁止把可见旧结果当成本次成功。
+- 修正“半老虎窗尚未拆分”的过期说明，路由到已实现的挂点/小屋面算法及params.roofAlgorithm协议；修正冻结对照基准实际路径。
+- 明确Seed World中复用已绑定的Manager，创建建筑不重设terrain平地函数；函数terrain会选择主线程，生产可传输快照保留Worker执行。更新运行时API说明，未向System Prompt加入业务规则。
+- 实际17组世界通过公开模块生成圆塔，创建/修改高度/移动/删除均成功。期间原有17组视图不变；新塔Worker句柄按替换和删除释放；最终恢复17组203构件，作者快照相等。没有把这次原生API验证称为LLM端到端验证。证据output/playwright/world-public-building-api.js/.json/.txt。
+- Agent公开声明的BuildingPartScript两项类型检查通过，Skill校验通过。无生成/渲染算法改动，无Engine/Shader补丁。
+- 此前绘制次数差异的10个视角已全部归因到树干材质拆批：Engine宏数组多余末尾零字导致有效宏相同却isEqual=false。05-far可恢复比较实验原版297→206→297、新版298→206→298，每帧提交元素总量不变。该共享Engine缺陷记录为独立前置修复，不能在建筑帧里塞规范化补丁；没有测量该实验的GPU毫秒。详见output/playwright/world-draw-attribution-report.md。
+- 全目标保持未完成：严格完整世界0像素未通过；环境IBL和岩石自身帧间波动、迁移附件灯位矩阵舍入仍需分别处理，性能不能基于先前未充分控变量的数据判回退或判通过。现有灯位差异无法仅从已投影的挂点唯一还原旧任意节点平移；本轮没有新增旧绑定缓存或复制基准灯位来制造像素通过。
+
+
+### 2026-11-03：保留原生挂接节点与实测编辑闭环
+
+- 上轮启动/打开LLM预览属于服务与页面请求的进展，不构成建筑验收。本轮继续检查真实工作树，原CLI验收浏览器已经关闭；重开后再次关闭，最后使用后台浏览器、同一上下文逐一加载原版/新版，避免同时保留两个完整世界。5194新版与5195固定aa2d4bb原版服务均持续可用。
+- BuildingAttachmentFrame在当前构件关系中定位唯一wallProfile/roofProfile宿主，只组合非共享节点链。原生Transform.position保留双精度平移，不把节点位置先转float32矩阵再求逆。墙Point挂点加上相对宿主的平移；几何仍由连接/开口算法计算。未存旧矩阵或旧灯光描述，未调用旧组件/编译器。UV挂点节点位移、附件相对旋转/缩放仍明确拒绝，不静默忽略。
+- collection使用宿主坐标系解算几何，渲染/灯光绑定使用实际附件节点；Manager的snapshot/partView遵循同一挂点解算。Source支持partTransforms；初始墙附件写原生位置与零Point偏移，一次性存档迁移保留原节点变换。三份生产Prefab与迁移结果同步。原来的groupTransforms仍只保存普通组节点变换。
+- 先前目标回归通过AttachmentFrame5、PartCollection10、SourceMigration10，Source21项亦通过；building/terrain类型检查通过，声明197文件591841字节。新增Source用例进一步验证Point节点双精度位置经过Source导出、JSON、Prefab复制仍保持，并拒绝未知partTransforms身份；新增用例的本轮执行结果另记，不能沿用前轮通过数。
+- 真实17组世界中，通过RuntimeEditor事务把一个窗户Entity的Y从0.85改为1.05；解算挂点同步增加0.2米，只有所属组替换，其余16组view对象保留。undo恢复完全相同的原Source及解算挂点；redo、flush、移除测试注入后的真实页面reload仍读到1.05与对应挂点。最后以事务恢复原Source并flush，17组/203作者构件、errors为空。证据world-native-mount-edit.js/.json和world-native-mount-reload-verify.js/.json。编辑前后WorldEnvironmentRuntime.getSnapshot深比较相等。此检查是实际作者事务和持久化验证，不冒充LLM端到端操作。
+- 原生节点保留后，17盏灯GPU float32位置与原版全部相同；少数CPU双精度值仍存在不超过2.3841854294030024e-7米的差异。这个结果不能代替像素验证。
+- 未通过结果保留：运行中替换Scene后的09/10/14-back分别38231/20814/30988差异像素；后台冷启动对照分别8964/872/2305像素，自身三帧均无差异。这些不同采样条件的数值不作为优化前后性能或画质改善幅度。目检发现第一张包含实际时钟驱动的语音球HUD，既有截图初始化时尚未枚举到其后创建的UICanvas。不能把该HUD差异算成建筑差异，也不能因此忽略其余世界差异。
+- 改进诊断采集：在主场景HUD overlay提交前读回完整默认Framebuffer；没有覆盖建筑区域、关闭世界效果或修改Shader。当无overlay时读最终世界Framebuffer。新增记录反射cubemap各面各mip的GPU读取哈希以及真实光照快照，固定漫反射SH不能证明反射输入相同。完整世界像素与性能门禁保持未通过，后续补记此次实际结果。
+
+本轮反射归因结果：HUD前世界读回、仅固定SH时三视角1295/774/2056像素差；太阳/曝光等参数相等，但反射cubemap48个面/mip中38个GPU哈希不同。使用新版实际反射字节作为公共输入后，原版临时安装并恢复，实际反射哈希、SH、相机均相等：09/10/14-back首帧0/7/0像素；自身三帧原版0/0/174、新版0/0/0。10-back剩7像素目检在树木/岩石区域，未做本轮逐draw像素归因，不断言根因全部证明。14-back仍有原版自波动，严格全世界门禁未通过。没有改生产反射算法、Shader、灯光或差异阈值。详见output/playwright/world-native-mount-verification.md及其中原始记录。
+
+本轮补充回归完成：BuildingSource22、SourceMigration10、PartCollection10、AttachmentFrame5，共4文件47项通过。Skill校验、git diff --check通过。相对当前origin/dev/2.0的范围审计仍包含基线aa2d4bb→87450e45的既有Engine/Shader差异；固定aa2d4bb审计仅列已授权的三份生产Prefab、三份旧Prefab夹具及Agent技能接入，status仍needs-scope-split，不作为运行/视觉通过。开始按统一漫反射与反射输入、完整世界HUD前读回，重新采53个原视角加2个无遮挡补充视角；任务完成前不将这55视角视为通过。
+
+### 2026-11-03：完整55视角结果、公开接口删除与资源释放修正
+
+- 完成55视角×双版本×各3帧，共330张1200×672完整世界帧。固定旧基准aa2d4bb、原始seed1存档，同一浏览器单版本顺序加载；相机、时间、SH、反射cubemap实际字节、17盏GPU灯位均核对相同，采集在HUD覆盖之前。结果：17个稳定逐像素一致；08-back/10-back/14-far稳定差异分别1/2/3像素；35个视角原版或新版自身帧间变化。不能把帧间变化或差异遮罩计为通过，完整视觉验收仍未完成。记录`output/playwright/world-full-ibl-report.md`、`world-full-ibl-results.json`；Shader未改。该轮采集先于下面的未使用接口清理与资源销毁修正。
+- 删除未被生产Scene/Prefab使用的`BuildingSurfaceComponent`、`BuildingPathComponent`、`placeBuildingParts`、`setBuildingPose`、`inspectBuildingConnection`，移除Agent系统模块对内部`BuildingPartDraft`的直接导出。一次性存档迁移仍识别真实旧角色组件名称，没有恢复旧执行器。更新实际Script示例与Host声明；197个声明文件589647bytes。清理后真实世界冷加载仍17组203构件，errors为空。
+- `parts-example.txt`改为同一Manager下的平铺skin/tiles/railing草案。skin显示的原生Mesh直接作为meshSurface输入，瓦和栏杆引用普通Prefab。真实浏览器运行240个铺设实例、0逐单元Entity；删除后恢复17组203构件，所有原有视图保持对象身份。证据`world-shell-example.json`，并不表示此自定义曲面也有远景代理或跨线程资源编解码。
+- 实测发现通用候选资源的帧内释放顺序错误：Engine延迟销毁节点时Mesh/Material仍被引用，立即destroy返回false，之后丢失显式清理机会。`BuildingPartDraft.dispose`现在先销毁输出/模板节点，在节点处于pendingDestroy时于当前帧结束后的microtask释放资源与借用租约；不是强制销毁仍被使用的资产。真实Engine复现修复前root已释放而Mesh/Material未释放、引用已归零；修复后全部释放。证据`world-draft-disposal-before.json`、`world-draft-disposal-after.json`。Script示例同样先等待Manager退役输出，再销毁其模板与Mesh。
+- 近景资源诊断六轮修改/恢复：每轮保持LOD0、有效细节绘制与pending0，旧预览/细节节点销毁、Worker句柄失效，16个邻居视图保留。全场景初始资源数在首轮减少2Texture2D/1Primitive/2Buffer，此后六轮计数完全稳定；各建筑的驻留状态和细节资源数量不变。未把初始减少解释成已定位的GC或建筑缺陷，原严格初始/最终总数相等的测试仍记录失败。证据`world-near-resource-diagnose.json`，早先失败输出`world-building-near-lifetime.txt`保留。
+- 本轮公开接口删除后的4文件20测试（SourceMigration、PartScript、Algorithms、InstanceExecution）、building及terrain类型检查通过；随后资源修正/示例修正的2文件5测试与building类型检查通过。资源专门回归及剩余像素归因继续进行，不据此标记整个目标完成。
+
+后续：`BuildingDraftLifetime.spec.ts`使用真实Engine的Entity/Component/ReferResource销毁机制（仅资源登记与帧调度由测试宿主提供），覆盖帧内延迟销毁与帧外立即销毁两条路径，2项通过；修正测试中内部引用操作的类型声明后，terrain类型检查通过。Scope审计相对移动中的origin/dev/2.0包含上游Engine/Shader差异；相对固定aa2d4bb的保护清单只有3个生产Prefab及其3个历史测试夹具，没有新增生产Engine/Shader修改，审计状态仍为needs-scope-split，不能视为运行验证。
+
+14-far逐draw取证复现原来的3像素差异；两版各3帧自身稳定、每帧258次绘制（含4次HUD绘制），GL错误均0。目标附近12×12的96次HDR取样及sRGB目标取样完全相同，首次差异在draw254的屏幕输出。当前证据仅缩小到最后输出或其采样范围/状态，尚不能断言根因与建筑完全无关。证据`world-pixel-trace-hdr-{baseline,new}.json`、`world-pixel-trace-hdr-differences.json`，继续核对完整输入与末次Shader。
+
+取证纠正：完整sRGB中间图同样已有3像素差异，只是Y坐标与最终屏幕上下翻转。因此前述12×12中间取样没有对应同一图像部位，不能据此把首次差异归到draw254。新旧最后一步的实际Shader源码、uniform及纹理过滤/环绕参数完全相同；正在同时采集上下对称区域重新追溯。证据`world-pixel-trace-final-{baseline,new}.json`与before截图。此前观察保留但结论作废，未修改产品渲染来适配测试。
+
+修正Y方向后的逐draw结果：14-far的3像素差异首次出现在draw225（drawElementsInstanced，12759索引、1实例），后续一直保留。两版命令相同；实际program是带renderer_DecorationMatrices及WindowTimber/WindowCurtains/WindowIndoors/WindowGlass的窗户装饰材质。此结果将调查收敛到窗户绘制，但尚未确认是矩阵、几何、纹理或其他输入。不能把它归因于最后屏幕blit，也不能宣称像素验收已通过。原始`world-pixel-trace-oriented-*`与`world-draw225-inspect.json`已保存。最后4项DraftLifetime/PartScript回归通过，最终terrain类型检查通过，diff-check通过；目标保持未完成。
+
+### 2026-11-03：窗户绑定矩阵的浮点顺序修正
+
+对14-far的draw225完整输入逐项取证：两版Shader、活动uniform、顶点属性布局、880400/44020字节的两个顶点缓冲、51036字节索引缓冲、SH UBO以及窗帘/室内/玻璃贴图均一致。唯一已观测差别是renderer_DecorationMatrices：10个窗户中slot8的local矩阵Z平移为新版-1.52587890625e-5、旧版0，逆转置矩阵对应项随之不同。原始证据`world-window-input-{baseline,new}.json`。
+
+根因：构件收集先把父屋体与挂点的局部矩阵相乘，再整体求逆；原生层级绑定先分别求逆再合成，float32舍入顺序不同。`partFrameInverse`现在沿真实节点层级合成局部逆矩阵；不读旧房屋模型、不保存补偿值、不按距离/阈值取整、不特判世界坐标或某扇窗。support几何的前向矩阵和作者Source均不变。
+
+可恢复数值实验使全部10窗的GPU矩阵hash从3897310485恢复为旧版2434285381（`window-inverse-probe.json`）。正式源代码修正后冷启动，14-far三帧1200×672完整世界画面均0像素差异，矩阵与旧版逐字节相同；相机、SH、反射cubemap和全部17盏灯GPU输入相同（`world-window-bind-fixed-result.json`及两版原始记录）。这只证明该视角，不替代全世界门禁。
+
+新增实际世界旋转与坐标的绑定回归；首轮新增夹具缺少scene导致测试失败，补齐真实场景归属后BuildingPartCollection11项通过；其余Source22/SourceMigration10/AttachmentFrame5项此前同轮通过，共48项。building类型检查通过。55个视角的新版本复采已启动，基准仍为原未修改旧版图像，不覆盖原始失败证据；脚本`world-bind-fixed-full.py`，运行日志`world-bind-fixed-full-progress.log`。尚未完成整体目标。
+
+55视角复采完成：19稳定一致、0稳定不一致、36存在自身帧间变化；全部控制输入检查通过。原08-back、10-back、14-far三个稳定差异都归零；15-back此前稳定一致，本轮7像素跨版本差异、6像素新版自身变化，需单独继续核查，不将变化帧计为通过。证据`world-bind-fixed-full-results.json`；原基准165帧保留，新采165帧单独命名。
+
+实际编辑器事务复测回归窗户：Y0.85→1.05，support同步变化，发布几何bounds上移约0.2米；16邻居保持原视图。撤销恢复精确Source及绑定矩阵，最终已恢复并保存原项目。`world-window-binding-edit.json`。terrain类型检查通过。本轮已修复确定的绑定误差，但完整世界视觉与性能目标仍未完成。
+
+### 2026-11-03：15-back 冷启动复查
+
+- 上轮新增的7像素差异中，6点在海面，1点在前景岩石。重新冷启动各采12帧，原7个差异点全部一致；不能由位置或未复现推定全部差异与建筑无关。
+- 本次完整图仍有171个跨版本差异像素，两版各自12帧稳定；标记目检集中在岩石区域。原版214 draw、新版210 draw，与前轮连续多视角到达此处时的166 draw不同，不混算性能或宣布视觉通过。相机、时间、SH、反射控制输入相同；所有GL错误0。证据`world-repeat15.py`、`world-repeat15-results.json`、`world-repeat15-context.png`。原始24帧单独保留，未覆盖旧证据；该视角完整画面仍待归因。
+- 开始在独立测试浏览器和独立存档命名空间，经真实8082 Wrapper连接新版5194；加载原存档并执行生产一次性迁移后17组203构件，无生成错误。未修改用户浏览器存档。页面打开不代表模型或工具执行通过，后续结果另记。
+
+
+### 2026-11-03：真实 Agent 生成入口、存档加载顺序和编辑事务回归
+
+- 上一轮打开预览是页面交付，不构成建筑目标验收。本轮重新核对后，原隔离 Playwright 会话已不存在（CLI 返回 no browsers）；此前提交的“9米改10米”LLM 请求没有可读取的终态，标为未验证，不重启冒充接续。遵循用户最新约定，后续复用8082 Wrapper/5194项目服务和唯一预览标签页，不再创建测试浏览器实例或端口。
+- 对已落盘的真实Trace重新核验：首次自然语言建塔请求在383秒时主动取消，17组203构件未变。原因是Agent execute不能导入游戏Script模块，没有可调用的纯生成入口。新增`building.generate`，直接调用现有五个European生成器，返回完整原生Prefab Source，不另建规划器，不发布场景或渲染。业务知识归属API契约和建筑Skill，没有System Prompt补丁。
+- 第二次相同自然语言请求318秒完成，生成AcceptanceRoundTower.prefab并通过原生事务实例化；18组205构件、errors为空，原203构件数据未变。但这次运行暴露了返回值缺少asset.version/root的问题，由模型修补后才成功，不能称作无错误调用。API随后已修正；新增测试验证返回content原样通过asset.create、同一Prefab两次实例化、单实例高度修改、Source JSON保存恢复、撤销恢复全部内容与资产元数据。该测试不替代真实LLM重新调用或GPU画面验证。
+- 真实保存重载曾报Cannot bind source component，定位为BuildingPartComponent启用时在SceneParser作者根节点之间插入Building manager根节点。已改为构件只向已有管理器注册；宿主在作者Scene加载后forScene并收集已启用构件。无延迟计时补丁、Engine投影修改或旧执行路径。已有真实reload证据为world-building-llm-reload-fixed.json：18组205构件、半径2.5、高9、中心512/512、errors为空。
+- 新增BuildingSceneLifecycle四项回归：原生Scene根操作及Entity/Component生命周期验证加载顺序、已加载构件收集/启停、跨Scene移动/删除、管理器销毁与重新绑定。CPU夹具省略GPU构造与脚本调度，不称作完整SceneParser/GPU测试。联合既有生命周期、collection、Agent契约/应用回归，共7文件76个不同用例通过；生成Prefab事务用例最后单独复测7项通过。terrain类型检查、Agent契约检查及Skill校验结果另以下文实际输出为准。
+- 重新核对视觉证据：55视角中19稳定一致、36自波动，不能计作全部通过。后续15-back冷加载各12帧虽消除了先前7个位置差异，完整画布仍有171稳定差异像素，原版214draw、新版210draw。README已补充这个反例，未用旧统计掩盖失败。严格完整世界外观及性能目标保持未完成。
+- 本轮通过现有内置预览的CDP定位管理器对象时，Runtime.queryObjects后上下文消失，随后显示浏览器崩溃页。时间相关性已记录，尚无证据确定根因；停止堆对象扫描，通过现有应用入口恢复预览。没有新开服务或并行浏览器。不会把这次恢复当作稳定性通过。
+
+本轮最终检查：building/terrain类型检查均通过；Agent契约生成一致性检查与Skill校验通过；git diff --check通过。Scope按当前origin/dev/2.0及固定aa2d4bb分别记录，均是范围清单而非验收通过。当前origin已经前进，含其与工作树基准之间的Engine/Shader差异；固定基准范围内仍为建筑Prefab/旧数据夹具与Agent接入等已授权变化，无新增Engine或Shader改动。真实唯一预览页已恢复可见3D房屋、HUD与Agent Trace(0)；Wrapper仍有99%指示及MutationObserver/Env getRuntimeInfo日志，不把页面可见等同于本轮LLM操作通过。
+
+
+### 2026-11-03：公开声明与旧整屋模型解耦、真实 Agent 编辑状态
+
+- 新版几何与铺设模块的类型引用改为独立的 `UnitPlacement` / `UnitPlacementStyle`；旧 `constructionWallEnvelope(ConstructionBuilding, binding)` 适配函数移入旧作者格式模块 `ConstructionSource`，新版 `profileWallEnvelope(footprint, unitFootprint)` 及数值计算未改动。旧格式仍被一次性存档转换和冻结对照测试消费，未删除真实迁移义务。生成的公开系统声明从197份减少为195份，不再包含ConstructionSource/MasonryDocument/BuildingConfiguration/BuildingShape；未新增加载禁令或双轨执行器。
+- `BuildingRuntime.buildStatus` 提供实时只读 bound/pending/generation/errors/diagnostics；pending包含输入/地形事务、执行任务、待处理细节、版本及变换脏状态，不消费脏标记。Agent属性读取会将数组转成 `{length,items,truncated}`，文档明确按length检查错误，避免调用不可执行的方法。
+- 只复用IAB标签页3及5194/8082原有服务。真实建塔请求 `4e1a8dd6-35f7-4de5-ba63-5c0ebdb52338` 已结束（352913ms），存档包含原生Prefab圆塔：半径2.5、塔身9、位置[512,0,512]、独立wall/roof构件和wallRoofJoint关系。随后真实编辑任务 `5520af11-e6d7-43cd-b943-60464d8f3d9a` 已提交9→10；独立读取IndexedDB逐字段对照，仅Prefab塔身height变化，Scene源字符串完全不变。实际runtime.component.read的step41回执为bound=true/pending=false/generation=19/errors.length=0/diagnostics.length=0。该模型仍额外查询数分钟，不能据此称交互效率合格；终态、撤销及修正后测试结果待后续补记。证据 `output/playwright/building-agent-live-edit-evidence.json`。
+- 初轮7文件109项：108通过，状态查询新增测试因将运行时数组摘要误当成原始数组而失败；断言已按真实序列化契约修正，尚待请求空闲后同步重跑。该轮SourceMigration10项包含全部初始世界构件的生成几何比对，AssemblyMigration42、Stages12、WallEnvelope28、GeometryAssets5、AgentGeneration7通过，Lifecycle原4项通过。building/terrain类型检查、Agent契约检查、skill校验和diff检查通过。后续待处理细节pending补充也需重跑类型检查。
+- 整个世界的严格像素及性能门禁仍未通过；本记录不替代171像素反例、存在自身帧变化的36视角及性能复测。固定基准范围审计仍为needs-scope-split（6个既知Prefab/夹具与Agent接入），没有新增Engine/Shader修改。
+
+
+同轮收尾：真实高度编辑任务终态completed（420056ms，包含大量成功后的额外查询，未称性能合格）；撤销任务762844c7-ca38-4ba2-ab4e-92dc33f1513d在11543ms完成，独立读取存档证明Scene与Prefab源字符串都逐字节恢复到编辑前。清理任务4b151df1-021d-45b8-b6e2-4208bdba239d在31702ms完成，经正常编辑事务分别删除测试实例及其Prefab；独立存档检查实例/资产均不存在，原203构件数据和根节点列表未变化。临时验收全局变量已移除，现有标签页保留，无新增浏览器或服务端口；画面证据building-agent-after-cleanup.png只证明当前可见预览，不作为全世界像素门禁。
+
+修正后Lifecycle5及PartScript2全部通过；包括前一轮已通过项，本轮8文件111个不同测试均取得通过结果（非单次全量运行）。最终building/terrain类型检查通过；公开声明确认不再携带旧整屋作者类型。后续继续严格全场景像素差异和受控性能归因，目标保持未完成。
+
+### 2026-11-03：同一标签页的完整画布差异与岩石顺序取证
+
+- 上轮按用户要求关闭额外调试页、恢复唯一LLM预览页，属于可验证的页面状态进展，不是建筑验收通过。本轮继续复用IAB标签页3和已有服务，未创建浏览器、标签页或新端口。固定aa2d4bb原版目录的6802个受跟踪Gallery文件逐一核验无缺失/不匹配（`iab-baseline-source-audit.json`）。新版生产依赖复核1431文件，无测试基准依赖、未解析相对导入或列出的旧生产执行文件（`building-production-import-audit.json`）；这个静态检查不证明动态字符串导入。
+- 固定15-back相机、时间、SH、反射cubemap与灯光，等待两边驻留完成后各采3帧：原版214draw、新版210draw，自身均稳定，完整1200×672画布171像素不同。临时令宏集合比较忽略末尾零字后双方170draw，差异降至1；恢复后各自图片逐像素回到实验前。全部GL错误0。没有产品宏比较补丁，不能把诊断变体当作原版通过。
+- 剩余像素(287,630)首次在第110次`SeedWorld/RockSurface`绘制出现，命令为2460顶点×16实例。读取的Shader、uniform、顶点和可读mip0纹理相同，16个实例矩阵集合相同而顺序不同。另一次冷启动的原始绘制为212draw，规范比较后与原版0像素；移除输入读取后仍为0，不能把这个结果覆盖前次1像素反例。
+- 同一个场景仅重排该批16条实例记录，完全倒序就稳定重现同一个差异像素；循环移位1/7均不变。替换为不采样纹理的纯法线fragment后，倒序仍在同一点变化，排除该单点完全由隐式纹理导数造成的解释。逐实例检查只有12/13覆盖该点；实际深度24位、LESS、写入开启且无混合，支持相交岩石的深度竞争解释。HDR读回不能无损保留RGB8编码，因此辅助深度编码相同不能宣称depth attachment逐位相等；报告已更正早先过强的口头表述。
+- 实验结束，已捕获的目标GPU输入逐字节恢复，完整画布恢复为0差异；临时GL方法、宏比较、UBO记录、shader program、脚本响应拦截与视口覆盖均清理。用户项目使用正常存档，诊断只写隔离命名空间。证据与重算脚本：`output/playwright/iab-rock-order-diagnosis.md`、`compare-iab-pixel-audit.py`及其列出的原始JSON/PNG。
+- 本轮没有生成/渲染产品代码改动，不重复声称先前测试为本轮新跑通过。整体目标继续未完成：这个归因结果不替代55视角的完整像素门禁或性能结论；共享引擎/环境问题不能用BuildingRuntime内的排序、比较器或shader临时补丁规避。
+
+
+### 2026-11-03：建筑汇总回归与共享宏集合缺陷的独立修复
+
+- 接续此前仍在执行的汇总任务，而非重启任务：`test:building` 最终45文件432测试通过（156.07秒）；补跑`NativeBuildingAssets`42与`NativeBuildingLifetime`2，共47文件476个不同用例通过。此汇总发生在本轮Engine修复之前，不冒充修复后全量GPU验收。
+- 从刚fetch的origin/dev/2.0（039cbdcf223e96ff0ea06504556a669e8b23de23）创建独立工作树`codex/shader-macro-normalization`，没有向上游提交或推送。原ShaderMacroCollection的disable只收缩一个尾部零字，使相同有效宏集合比较为不等；新增交集用例还证明intersectionCollection会消费clear后有效长度外的旧容量。7个实际源文件回归修复前6失败1通过，修复后7通过。
+- 依照world/README共享缺陷流程，把相同修复和测试放入可见Engine Overlay，未在BuildingRuntime、布局、环境排序或Shader加入补偿。独立分支、Overlay、物化后对应文件SHA256逐一一致。早期仅disable的候选与压力验证保留为历史证据，当前有效修复以独立分支及Overlay为准。
+- 已完成engine:prepare、engine:install、完整Engine build（含各包types）、物化后7项宏集合回归和building类型检查。首次prepare因进程PATH缺少已有git-lfs失败；补入/opt/homebrew/bin后重物化成功，没有修改构建器绕开LFS。安装阶段编译器CLI尚未构建的bin提示保留在输出中，后续完整构建成功。
+- 只停止并重启原5194服务，复用唯一IAB标签页3及8082 Wrapper；没有新浏览器或新端口。在实际页面通过已构建公共模块验证相同集合比较、禁用高位宏、清空后交集为空，均通过；之后重新加载清除诊断宏，原正常存档未改。页面可见真实瓦屋顶与砖/灰泥房屋，Wrapper既有99%与Env getRuntimeInfo日志仍存在，不宣称LLM链路本轮重测通过。
+- 证据目录改归已有忽略目录`output/playwright/engine-fixes/shader-macro-normalization/`：upstream-before/after、world-after、world-build.log、browser-smoke、upstream-integration、独立修复patch及README。未覆盖旧版全画布PNG。共享引擎修复后必须重新核验完整场景控制条件，不能把修复后的旧版建筑对照称作完全未修改的原版。
+- verify:isolation仍失败：manifest的引擎基线到当前建筑工作树HEAD已有19项world外提交差异（如粒子风场与仓库配置）；当前world外工作区改动为空。未改manifest、检查脚本或忽略规则以掩盖失败。相对固定aa2d4bb的范围清单423文件，新增3个Engine前置修复文件；原6个Prefab/历史夹具及Agent接入仍在清单内，状态needs-scope-split。详细日志与两种scope基准JSON已保存。
+- 整体目标继续未完成：这次是确定根因的源码修复及构建/页面验证，不证明岩石深度顺序、纹理采样、55视角像素与性能门禁通过，也未以截图可见替代像素对照。
+
+### 2026-11-03：单端口受控 BAAB 性能采样与完整画面自波动
+
+- 继续推进既定完整世界验收；未缩小为单栋建筑或单视角通过。停止旧5195对照服务，测试源与355个冻结资产URL统一在5194服务，复用IAB标签页3。旧版/新版串行切换，同一修复后的Engine，不称作未改动旧Engine。实际作者参数、资产字节不变；使用隔离诊断存档。
+- 固定15-back、1200×672 DPR1、时间0、SH/反射与17灯，等待驻留/植被稳定。BAAB每轮30预热+180实测，真实Engine.update CPU及异步GPU elapsed计时，计时区间无截图/readPixels。四轮GPU中位数分别24.428/24.341/25.416/24.626ms，均值24.500/24.467/24.827/24.712ms；CPU中位数3.1/2.9/3.2/3.4ms。全部disjoint0、GL0、建筑detailAttempts4→4。该视角未重现此前稳定数毫秒差距，也不能证明全世界性能等价；A2漂移、未观测热/频率状态与样本相关性保留。原始样本、时间曲线脚本、控制输入和量化口径保存在output/playwright/macro-fixed-world。
+- 正式同源三帧跨版本差异4988/5011/5011像素；原版自身0/5010/0，新版自身0/4987/23。早先另一冷启动的1像素结果不能覆盖此反例。改用完整Engine.update后两版仍自变化，旧版本轮4帧相对首帧0/0/5010/0，变化包围盒在海面范围。全画布比较无遮罩、容差或缩放，170draw/GL0，不判像素门禁通过。
+- 临时记录4次Ocean绘制的实际uniform、纹理对象、Uniform Block字节、深度/混合状态，6帧输入与画面均相同；移除取证后6帧也相同。该时间敏感观察不足以认定根因，纹理对象一致也不证明内容一致。未修改产品Shader、排序或BuildingRuntime；后续需在同一次运行捕获变化帧并定位首个差异绘制/附件，不能以诊断插桩下稳定冒充修复。
+- 测试临时资源已释放、审计服务已停止，正常Vite配置在原5194恢复；同一标签页返回8082新版LLM Wrapper、清除视口覆盖并保留页面。截图restored-llm-preview.png可见建筑及HUD；既有99%提示仍存在，本轮没有重跑真实LLM指令，不称链路重新验收通过。目标保持未完成。
+
+### 2026-11-03：用户纠正验收范围，停止海面排查
+
+- 用户指出建筑迁移不应继续扩展为海面变化调查。停止该调查，撤掉本次已启动但尚未采样的审计服务，原5194恢复正常Vite配置，复用原LLM Wrapper标签页。未修改水系统源码或Shader。
+- 后续回到建筑本身：逐项核验构件数据/生成与连接/合批、生产运行与编辑、初始世界和持久化迁移及旧入口清理，并验证完整世界中建筑的外观与性能影响。已观察的海面自身波动只作为全图像素对照限制记录；不借此宣称全图一致，也不继续把水系统根因修复作为建筑迁移的前置工作。
+
+### 2026-11-03：建筑变更相关回归收尾
+
+- 用户再次明确只检查本次改动相关内容，不扩展无关问题或共享模块修改。后续按建筑变更的实际影响范围验收。
+- 当前Engine构建下重新运行建筑回归：45文件432项全部通过，补充原生建筑资产42项与生命周期2项全部通过，共47文件476个不同用例。本轮不是沿用修复前的测试计数。日志building-final-regression.log、building-final-native-regression.log。
+- 生产Project/Host/Script静态相对导入复核1431文件，无冻结测试依赖、列出的旧生产执行文件或无法解析的相对导入；不将静态检查描述为所有动态加载证明。
+- 已开始的15-back建筑可见性取证完成，生产拾取返回59627个可见建筑像素，GL错误0，保存完整画布与身份掩码到building-visible-audit；仅采集新版，尚无同轮旧版对照，不记外观验收通过。没有修改产品实现或共享Shader。临时测试配置收尾后恢复正常5194预览。
+
+
+### 2026-11-04：仅建筑范围的完整55视角配对验收
+
+- 上一条回复仅确认用户范围约束，没有新的实现或验证结果，按无进展处理。本轮读取当前源码、回归日志和实际进程，继续完成建筑相关的外观取证，没有恢复海面或岩石根因调查。
+- 固定旧基准aa2d4bb、新版均使用当前同一Engine构建；唯一IAB标签页3、唯一前端5194串行切换，使用同一seed=1作者存档/资产。17栋建筑各正面、背面、远景，加2个世界和2个无遮挡视角，共55组；每版每组3张1200×672完整画面。准备阶段相机、时间、SH、反射贴图hash和灯光输入逐项一致，110次捕获GL错误均0。
+- SeedWorldPicker捕获真实遮挡下可见建筑身份，比较两版掩码并集，55组掩码差异全部0；52组可见建筑颜色在全部9种跨版本帧配对中均0差异。00-far/06-far/world-south各有1/2/2个像素在新版帧间变化，最大单通道差1；旧版三帧稳定，且每组存在与旧版完全相同的新版帧。未证明这些微小波动的根因，不能把后续一致帧覆盖早先差异，也未添加容差、修改Shader或忽略失败。
+- 完整画布18组所有配对一致，其他组保留完整差异和各版自波动计数。掩码只证明建筑可见表面，不能独立证明建筑投影阴影/反射等间接影响；无关区域没有新增调查。先行15-back配对59627个建筑像素全相同、完整画布1像素不同，与正式55组分开保存。
+- 本轮没有产品实现改动；复用已有当前Engine下47文件476测试，不重跑通过项。生产入口/注册调度/Source迁移源码再次核对，仍为新版唯一实时链路；纯旧Source转换保留真实持久化消费者。
+- 证据：output/playwright/building-visible-audit/compare.py、comparison.json、residual-building-pixels.json、baseline-pass-01、new-pass-01。330张完整图、110张身份图及逐视角控制数据均保留。README验收状态更新，不再以更早171像素调查作为当前结论。
+- 目标保持未完成：三个视角的建筑逐帧像素变化仍未解释，不能宣称全部像素级复刻。后续只处理这些建筑相关证据，不将完整画布的海面/植被变化作为建筑迁移前置任务。
+- 收尾已释放临时光照资源，关闭审计服务，在5194恢复正常Vite并把同一标签页返回8082 LLM Wrapper；清除临时视口，实际截图可见新版圆屋、门窗、瓦顶与HUD。Wrapper既有99%提示仍存在，未扩展排查或发送LLM请求；截图building-visible-audit/restored-preview.png。git diff --check通过。
+
+
+### 2026-11-04：五个剩余像素的建筑/后处理边界闭环
+
+- 上轮完成55视角取证，本轮仅针对00-far、06-far、world-south的五个剩余建筑颜色点补证，没有重跑52个通过视角或476项通过测试。
+- 同一标签页、5194端口串行切换新旧建筑版本，目标视角相机/时间/SH/反射/灯光匹配。每版每视角12帧，读取共有后处理采样前的真实R11G11B10F打包HDR颜色及最终图；所有目标像素的新旧HDR字均完全相同、每版自身稳定，72帧GL错误均0。原版最终输出也分别出现2种颜色结果，复现最低位变化。差异范围因此定位到相同建筑输出之后的共有后处理；没有把“原版3帧稳定”误当成原版永远稳定。
+- 取证最初使用屏幕Y坐标读取翻转的源纹理，已根据实际Blit网格修正；无效初轮保留但不作为结论。有效证据hdr-boundary-comparison.json、south-trace-corrected.json、baseline-*-trace.json及00/06-far-trace.json。06-far的5×5邻域中其他像素并非全部稳定，因此结论严格针对五个目标点，不声称整个HDR画布完全相同。
+- 无建筑/Shader/Engine修复补丁，所有临时GL包装与FBO在finally中恢复/释放。按用户只检查建筑改动的要求，停止在共有后处理边界继续扩展；保留原55视角52组逐帧0差异、3组最低位波动的真实统计。
+- 补做当前运行物化目录与477份建筑源码/资产逐文件校验，无差异；确认本次外观取证对应实际交付源码。六项目标的最终实现、现实消费者、运行/编辑、数值及像素证据已在parts/ACCEPTANCE.md逐项汇总。建筑迁移范围验收完成；不宣称完整世界每帧最终PNG完全相等，也不将共有后处理修复追加为本次前置条件。
+- 最终收尾：旧版审计服务已关闭；正常新版Vite在5194恢复，唯一标签页3返回原8082 LLM Wrapper，清除视口覆盖并保留预览。最终截图building-visible-audit/final-preview.png可见原生砖瓦/灰泥圆屋、窗门与HUD。既有99%Wrapper提示未扩展调查。只改验收文档和隔离取证脚本，没有产品后处理补丁；git diff --check通过。
+
+### 2026-11-04：清理建筑测试专用旧适配
+
+- 按用户限定，仅清理建筑旧适配；保留真实存档的一次性转换。`applyBuildingSurfaces` 与旧 `MasonryDocument` 解析器、constructionShape/constructionRoof/constructionWallEnvelope 包装、buildingWallPosition/decorationAppearanceValue 测试辅助函数移至 `shared/tiny-glade/tests/legacy-source`，删除无调用者的 RectangularBuildingShape/CircularBuildingShape 类；旧序列化名称仍由迁移按字符串识别。生产 BuildingSurface 直接引用 UnitPlacement 类型。
+- 本轮改动5个生产文件（含删除旧MasonryDocument）；其余代码变动为测试辅助文件及导入路径。生产迁移入口、设计/铺设算法、材质、Shader、批处理、LOD和资产未改。结构化AST比对确认7个搬移函数、16项保留声明逻辑一致，84个既有测试文件除导入外语法树一致；证据 `output/review/building-cleanup-equivalence.json`。
+- 建筑定向Vitest回归37文件363用例：首轮361通过，2项测试动态导入路径修正后，相关文件22项全部通过；独立masonry回归45项通过。覆盖迁移幂等与失败不写回、初始建筑/附件迁移、房屋/圆塔/连接/窗/墙/栅栏的几何与铺设数据对照。没有把CPU数据回归称为新一轮浏览器像素对照。
+- 生产入口静态相对依赖复查1430文件，无测试目录依赖和悬空相对导入；生产源码不再引用旧MasonryDocument。本次未新开浏览器或服务端口。
+- 收尾检查：building/terrain类型检查、公开系统声明快照检查（195文件）、git diff --check通过。全分支scope审计仍包含前期建筑整合及既有未提交项，不把它当作本轮新增范围；本轮仅上述建筑代码/测试与相关记录。
+
+### 2026-11-04: building cleanup browser pixel comparison
+
+- Reused ports 5194/8082 and one IAB tab. Compared the immediate pre-cleanup source with cleaned source: 19 views, 3 frames each, building-only rendering with temporary camera/layer/shadow controls. All 19 building masks match (2,440,052 pixel samples across views). Only 15-back has exact RGB equality; 18 views retain color differences, maximum channel difference 34/255. Strict pixel acceptance is NOT passed. No claim that cleanup caused the difference, or that environment explains it completely.
+- Temporary source hooks/time controls removed; five cleaned production files and two instrumented files restored byte-for-byte. Normal preview restored. No non-building implementation changed or investigated. Evidence: output/playwright/building-cleanup-pixels/README.md, comparison.json, source-variants.json and restoration.json.
+
+### 2026-11-04: cleanup pixel comparison input-control diagnosis
+
+- Previous control was insufficient: the cached SH buffer was no longer the buffer used for drawing after realtime IBL double-buffer publication. Writing and reading back the CURRENT buffer fixes this control. Even with fixed SH, reloading identical code changed 47,305 building pixels in 00-front (max channel difference 19), disproving attribution to the cleanup alone.
+- Also froze both cloud-shadow textures and coordinate parameters consumed by buildings, and used a common solid background to control postprocessing input. Kept building geometry, materials, LOD, lights, self shadows and postprocessing. Only diagnostic scripts changed; no building/environment rendering implementation was modified.
+- Final comparison: same IAB tab/ports, seed=1, 1200x672, 17 building groups, 19 views, 3 frames per version. All 171 cross-version pairings have ZERO building mask/RGB differences; 2,440,052 cumulative building pixel samples, no tolerance/downsampling. Author data, camera and light settings match; actual SH bytes and cloud bindings pass every capture audit.
+- Scope is immediate pre/post-cleanup building rendering under fixed external inputs, not framewise equality of the dynamic whole world. Historical failed captures remain preserved. Individual contribution of each external input to each original differing pixel was not quantified.
+- Five cleanup source files and temporary NativeBuildingHost hook restored byte-exactly. Evidence: output/playwright/building-cleanup-diagnosis/README.md, final-comparison.json, summary.json, restoration.json and final-before/final-after PNGs.
+
+### 2026-11-04：退役建筑架构迁移比较产物
+
+- 按用户要求删除 `output/review`、`shared/tiny-glade/tests/dev2-reference`、`shared/tiny-glade/tests/legacy-source`。同步删除依赖旧执行链的比较测试、测试入口、辅助夹具及无效配置引用；建筑演示仅使用新版，移除旧版按钮、动态加载和 `buildingSetMode`。此前记录中指向这些目录的路径属于历史证据，不再作为现行命令或可用文件。
+- 移除迁移期间的像素比较脚本、截图、采样和临时报告，包括 `output/playwright` 下的建筑清理对照/诊断、建筑可见性审查和对应新旧采集产物；保留实现结论，不继续维护架构迁移比较链路。
+- 当前生成/连接/铺设、Worker 取消与资源生命周期、编辑与持久化功能测试继续保留。真实旧存档转换仍有三份 `fixtures/building-legacy/*.prefab`，验证原子失败、幂等、引用转换和保存重载；不保留旧执行器作为迁移依赖。
+- 清理后定向 Vitest 分轮验证：62 个文件、441 项当前测试通过（首轮449项中6项失败；移除8项固定旧版哈希比较，修正新版测试契约后5文件42项复测通过，其他已通过文件未重复执行）。masonry 18 项、台基/灰泥9项通过。building/terrain 类型检查及 `git diff --check` 通过；源码无 `dev2-reference`、`legacy-source` 或 `buildingSetMode` 引用，现存建筑测试HTML无悬空script入口。
+- 本轮只改建筑演示、测试入口/测试、相关文档及临时产物；没有修改生产几何生成、连接铺设、材质、Shader、LOD或批处理。本轮不再进行像素对照，没有打开浏览器、标签页或新端口。
+
+
+## 2026-11-04 建筑流程首轮收敛
+
+用户要求先优化一版，保持“作者构件→连接解算→已解算构件→铺设/合批/渲染”，不为分层增加新框架。
+
+- `BuildingDesign.parts` 统一承载已解算构件，删除六类额外返回列表、三个附件/拱/小屋顶来源 Map，以及没有消费者的作者副本和约束返回。来源和输出格式放在构件临时 `publication` 信息中，作者边界拒绝保存该信息；几何 supports 索引保留。
+- `BuildingPublication` 六段执行循环合为一次遍历，统一查找 support、执行注册算法、验证记录格式；各数值打包分支保持。接缝候选编号、附件顺序、颜色/归属校验、取消检查及预览一次执行/细节复用保持。
+- Worker 细节只返回 `renderInput` 与 `grounding`，表面编辑查询改为消费其中的 plans/groups/document；完整中间结果不再跨线程传输。删除无人消费的屋顶 topology 计算与未使用的 support 定义类型。
+- 本轮手写生产代码相对本轮开始新增 141 行、删除 192 行，净减 51 行（不含自动生成声明、测试和文档）。先前 300–600 行估计偏高；这次收益主要是删除重复状态和执行边界，未删除实际几何能力，未新增模块或注册框架。专用 support 类型及打包逻辑仍存在，本轮没有声称完成全部简化。
+- 验证：building/terrain 类型检查通过；Building*.spec.ts 39 个文件、339 个测试通过；覆盖自定义算法、开口、接缝、老虎窗、尖饰、取消、生命周期、存档迁移、Worker重复细节与预览不变；新增作者/解算边界、精简 Worker 输出后表面查询与包围盒检查。声明195文件562979字节已重建，diff空白检查通过。
+- 未新开浏览器/端口，未恢复已退役的新旧像素比较。本轮验证不能作为新增像素一致性测量；几何数值内核、Shader、材质与资产未改。
+- 全分支 scope inventory 对当前 origin/dev/2.0 输出 needs-scope-split（其基线已前进至039cbdcf，本工作树仍在aa2d4bb，并含之前迁移差异）；该结果不是本轮测试失败。本轮只改上述建筑生产文件、相关测试、声明和说明，不扩展至地形/海面。
+
+
+## 2026-11-04 建筑身份与作者接口修正
+
+- 建筑 group/part/relation 身份在原生 frame 内唯一；重复 Prefab 实例保持局部作者数据，通过实例作用域区分拾取、碰撞、灯光与入场动画。Manager get/snapshot 显式接收 frame；复制 Source 仅重映射原生节点引用，不再改写建筑身份。
+- 附件求解统一使用构件 ID，保持原局部命名对应的外观随机输入。灰泥消费显式 wall/parapet geometry ID，不再识别名称后缀。meshSurface 显式传 Mesh，geometry.generator 作者类型只接受注册名。
+- 浏览器真实链路：同一 Prefab 两实例；GPU分别拾取窗户；单实例编辑及移动；Prefab原文不变；关闭项目/Engine后从存档重新加载Scene，覆写与位置恢复、拾取仍正确；删除与原生撤销恢复正确。共24个检查通过，使用已有5194端口单一标签页。测试实现在 building-identity-browser-harness.ts。
+- 固定初始17主体/5编译组在本轮修正前后的渲染缓冲哈希一致。该证据限建筑生成提交数据，不宣称整个世界每帧PNG逐位相同。
+- 最终验证：39 个建筑测试文件共345项覆盖通过（整轮344项通过、1项新增测试因漏写type导入失败，修正后该文件2项复测通过）；building/terrain类型检查通过，浏览器夹具已纳入building类型检查。声明195文件563234字节已重建，diff空白检查通过。
+
+## 2026-11-04 构件重排 P1：组与构件身份分离
+
+- 删除 `groupSettings?.id ?? definition.id` 身份替代规则。运行时用显式 group/part 命名空间，再由原生 frame 实例限定作用域；作者 ID、材质随机种子与存档格式不变，无排序修复或旧身份回退。
+- 每个构件始终发布自己的变换绑定；组结构绑定由 wallProfile/wallStrip 的几何所有者发布。组参数可以保存在任意构件上，不再决定组几何、灯光或拾取的变换归属。组与构件作者 ID 可以同名。结构表面沿用组拾取，附件沿用构件拾取；铺设任务 ID 不充当构件 ID。
+- 新回归覆盖墙/顶/窗全部6种排列，执行真实设计、铺设和渲染打包，校验所有拾取/刚性绑定可解析且提交缓冲一致；另测组与窗同名、携带组参数的 Point 窗口单独移动不改变组结构绑定。
+- 建筑及原生装饰回归40文件356项通过；补充窗口移动及拾取元数据断言后，相关3文件26项复测通过（当前覆盖合计357项）。building/terrain类型检查通过；最终拾取修正后building类型检查再次通过。声明195文件563341字节已更新，diff空白检查通过。
+- 在既有5194端口、同一个IAB标签页运行窗口首位的真实浏览器夹具，28项检查通过：同一Prefab双实例、独立GPU窗口拾取、墙/屋顶结构组拾取、单实例覆写与移动、共享Prefab原文不变、关闭Engine/项目后从IndexedDB重载、删除和原生撤销。测试临时画布已清除，原Seed World页面保留。
+- 固定初始17建筑主体/5编译组共698份动态渲染缓冲与本次修复前逐项SHA256一致；本轮没有改几何、铺设数值、Shader、材质或资产。证据限提交数据，不将其描述为动态全场景PNG像素对照。临时验收记录位于 `/tmp/building-recheck-20261104`，没有恢复旧版本比较执行器。
+
+
+## 2026-11-04：建筑组身份独立与实例删除收敛
+
+- `BuildingGroupComponent` 独立保存组 definition、frame、assetLibrary，原生组节点持有它。`BuildingPartComponent` 不再保存 groupSettings 或资产库。Source 输出、内置三份 Prefab、Manager 创建/收集/索引及脚本声明统一采用新结构。
+- 近景、远景以明确的 group/part key 拾取：结构指向真实 Group 组件，附件指向其 Part。删除了 resolvePickId 的存在性猜测；placement bindingId 不参与对象选择。
+- 建筑面板显示真实组和构件。删除及关系清理限定同一原生 frame；整组删除显式移除该组组件。同名 Prefab 副本的作者 ID 不变。
+- 存档仅在加载前迁移一次：旧主构件的组配置移到共同组节点；Prefab 实例上的组配置/资产库覆盖转到新组组件。运行时无旧字段、双轨或回退路径。迁移写入仍为项目级原子更新。
+- 验证：建筑相关 40 个测试文件分轮覆盖 357 项；包含构件六种重排、首窗口删除/禁用、组/构件同名、实例内删除范围、Group 资源引用及原生克隆、持久化迁移与实例覆盖。浏览器复用现有 5194 端口和唯一标签页完成 54 项检查，实际 GPU 近远景拾取（含 placement-ID 同名反例）、真实面板删除窗口与 Group、复制、编辑、移动、撤销、IndexedDB 保存及全 Scene 重载通过。
+- 修改前后相同相机状态的两张 1690×1126 建筑图，全图 RGBA 差异均为 0 像素；不将这两张截图扩大为所有视角的证明。几何、铺设、材质、Shader 未改动。
+- 本轮证据放在 `/tmp/building-group-fix-20261104/`，测试专用代码留在 project-tests / tests/runtime-editor；未新开浏览器、标签页或服务端口。
+
+## 2026-11-04：禁用／隐藏建筑删除与存档版本隔离
+
+- 删除从编辑器 projection 的完整作者集合取 Group/Part，按原生 frame 和显式组 ID 限定范围；不再从 Manager 活跃集合推导作者所有权。禁用组件、隐藏构件、隐藏组或隐藏实例仍能删除；剩余禁用构件的连接引用也在同一事务中清理。没有增加运行时兼容分支或第二份作者注册表。
+- 按用户确认“旧存档不再存在”，移除 BuildingProjectMigration、BuildingSourceMigration、旧作者字段类型/转换工具、旧整屋 ConstructionSource 解析器及仅为它们存在的测试与三份 legacy Prefab 夹具。当前格式 Prefab 与初始建筑的保存重载测试保留。灰泥参数校验测试改为调用当前 ProfileParameters。
+- Seed World 建筑项目存档键升级为 `native-buildings-v7-groups`，打开项目时只读取新键，不读取或迁移 v6 及更早存档；没有删除用户旧 IndexedDB 记录，也没有改变其他应用共用的 RuntimeProjectPackage 版本。版本隔离测试放入不可解析旧记录，确认加载器从未读取它，并确认新版本可保存重载。
+- 相关 8 个测试文件分轮覆盖 76 项：初轮 7 文件 70 项通过，补充禁用存活构件连接清理及移除旧解析器后，PanelIdentity 的 21 项和 PlasterTextures 的 3 项通过。building / terrain 类型检查、skill 校验及 diff 空白检查通过。
+- 复用现有 IAB 单页与5194端口，真实 Source / IndexedDB / Scene / GPU 拾取链路最终100项检查通过。覆盖同Prefab双实例、构件重排、独立编辑移动、原生撤销、禁用窗户、隐藏窗户/组/实例后实际面板删除、完整保存重载及另一实例作者数据与拾取不变。
+- 本轮不修改几何、铺设、材质、Shader。修改前后稳定窗口视角1690×1126全图RGBA差异0像素。初始屋顶截图未等待表现切换结束，产生51214个差异像素，不作为有效对照；浏览器测试已改为截图前等待transitioning归零。没有把一个稳定视角扩大为所有视角的证明。临时证据位于 `/tmp/building-delete-fix-20261104/`。
+- scope audit仍因当前origin/dev/2.0已前进到039cbdcf、工作树基线为aa2d4bb及累计迁移改动而报告needs-scope-split；本轮未处理建筑外差异。
+
+### 2026-11-04：作者归属、运行启停与 Prefab 实例范围
+
+- 修复 Group 单独禁用后孤立活跃 Part 阻塞全场景更新的问题。作者校验从原生 Scene 的完整建筑组件读取，不依赖活跃注册列表；构建只消费启用组的活跃构件和有效执行端点，作者连接保持原样。真正缺组、重复作者 ID、跨实例关系仍报错。
+- Manager 的 get/groupFor/groupEntity/snapshot/update 与 Entity 删除依据原生对象归属，包含隐藏节点和禁用组件；跨场景或无建筑组件的删除仍拒绝。运行拾取索引只包含启用组的活跃构件。组/构件销毁使作者输入失效，包括已经禁用的组件。完整作者树查询不进入稳定帧更新。
+- copyBuildingPrefab 按 Source frame 分别校验组、构件、关系。一个 unpacked Prefab 可包含多套同局部 ID 的独立实例；显式 frame 必须是节点自身或祖先，省略 frame 使用父节点/自身语义。Source 引用继续重映射，建筑局部 ID、随机输入和资源引用不重命名，不增加迁移或临时激活流程。
+- 新增13项回归：隐藏frame/隐藏group/全部组件禁用后的Manager删除；无关对象和跨Scene删除拒绝；真实发布流程中Group停用、另一frame更新和恢复；同frame组停用筛选、恢复后的实际绘制缓冲一致；真缺组拒绝；多frame复制/JSON保存重载；禁用重复组拒绝；跨frame关系拒绝；隐式frame与非法frame；真实内置双屋预设在禁用/隐藏、复制、保存重载和恢复后的渲染输入一致。
+- 验证：完整建筑套件39文件/378测试通过；typecheck:building、typecheck:terrain通过。当前页面仍使用既有5194端口；两次连接现有IAB标签均返回browser.user is unavailable，没有新开浏览器或端口。本轮没有完成页面GPU像素复核，生成/绘制数据一致性与实际GPU验收分别记录。
+
+
+## 2026-11-04：统一建筑删除与作者／生成对象边界
+
+用户要求：从根本修复公开删除的悬空连接及 Group-only Unit 污染作者目录；只修改建筑，保持其他实例、外观及保存重载，不增加适配。
+
+- 新增内部 `BuildingRemoval.planBuildingRemoval`，Manager 与面板共用目标展开、按原生 frame 清理入边/出边及剩余作者图校验。结构 profile 与 Group 沿用面板的整组删除语义；普通构件单独删除。所有处理包含隐藏节点和禁用组件；运行时在应用关系修改、销毁组件前完成校验，面板把同一计划转为既有 Source 事务。没有第二份持久化删除状态。
+- `BuildingPartMarker` 收敛为 `BuildingAuthorMarker`，Group/Part 共用身份约束；普通与 packed Unit 路径均拒绝包含作者组件的 Entity/Prefab，包括未启用或隐藏的子节点。未保留旧标记别名或递归兼容入口。
+- 复用 `BuildingGeneratedOutput` 的生成根标记判断生成树归属。作者扫描剪除生成子树，Manager 初始收集、注册及作者 CRUD 不接受其中的组件；生成树内的组件改动不发起作者失效。不是通过忽略缺失端点或重复ID校验来消除报错。
+- 新增 `BuildingAuthorBoundary.spec.ts` 15项：禁用/隐藏的入边拥有者；结构组删除与同名其他实例；Entity/Prefab Unit 的活动、禁用、隐藏组合；发布失败保留原输出、修正后恢复；packed构建回调前拒绝；生成作者目录隔离及管理器重建；非法删除计划无副作用。测试通过同一原生模块图加载 loader/core/math，保证 PrefabResource 与 ReferResource 的类身份一致，不改产品加载器。
+- `BuildingPanelIdentity.spec.ts` 增加隐藏关系拥有者的3项Source删除、保存与重载校验。共有24项面板范围/存档用例。
+
+验证：建筑全套40文件／396项通过；完整日志 `/tmp/building-boundary-final-tests.log`。涵盖现有构件重排、复制、拾取绑定、Source JSON重载、隐藏/禁用状态及渲染输入数据。建筑类型检查通过。几何、材质、Shader、铺设算法及合批代码未改，本轮没有新增浏览器或端口，也没有宣称进行了新的GPU像素对照。最终建筑、Terrain 类型检查均通过；声明 `--check` 通过（196文件／564262字节）；Prettier及diff空白检查通过。测试环境模块图调整后，新增15项再跑通过（`/tmp/building-boundary-native-tests.log`）；产品实现未再改动。范围审计对origin/dev/2.0包含上游漂移，因此另以本任务HEAD aa2d4bb核对，仍提示此前累计的Engine overlay、内置Prefab和Agent集成需要单独梳理，不是本轮新增范围。本轮修改仅建筑实现、建筑测试及相应文档/声明，没有修改这些非建筑实现。
+
+
+## 2026-11-05：建筑累计 CR 循环与六项根因修复
+
+限定建筑相关改动；基线为工作树 HEAD `aa2d4bb894dc5ea582b6bb9ae77d38499c48689e`，包含未跟踪源码。按问题验真、真实入口反例、修复、回归、复审推进，不新增兼容层。
+
+- 统一作者与最终解算构件的身份校验。内置接缝、拱、附件、老虎窗及尖饰派生完成后检查最终 Part ID；避免与作者构件冲突后覆盖 support 或跳过铺设。附件同身份替换仍保留，独立重复校验分支删除。
+- 通用原生 Unit 的材质输入复用 BuildingGlobals，并显式消费所属 Group 的 seed、wallColor、woodColor。木板获得必需的调色板，瓦片获得空开口缓冲；不再使用硬编码组颜色和随机种子。资产解码与真实打包测试仅替代 GPU 分配，核实材质实际绑定。
+- Manager.remove(Entity / Group / Part) 统一走作者删除计划，清理同实例的入边和出边；结构构件遵循整组删除。运行注销改为受保护 removeMember，组件输入不再误走注销路径。隐藏、禁用的关系拥有者和同名其他实例纳入回归。
+- Manager.create 在创建作者对象前拒绝生成树父节点，与已有作者扫描、注册和 Unit 身份边界一致；避免创建后丢失的建筑。
+- 初始 Seed World Source 筛选采用实际 Part ID，与设计产物的 decorationId 对齐，保留已接受的门窗并排除被拒绝的安装。测试执行真实初始规划、设计筛选、Source 输出和 JSON 重载。该修复作用于新生成 Source，不擅自补写已有存档中缺失的作者对象。
+- 垫底面选择从几何名称黑名单改为预览表面的 backing 语义。楼层横带明确标记仅用于远景，避免合法屋顶 ID 恰好形如墙名加 bands 时丢失屋顶垫底面；保留远景着色方式，不以 placement=unit 绕过。
+
+验收：最终完整建筑套件 42 文件 / 407 项通过；相关楼层、LOD 外观及原生打包 3 文件 / 7 项通过。building / terrain 类型检查通过，声明 --check 通过（196 文件 / 564924 字节）。回归包含构件重排、Group/Part 同名、复制、多实例隔离、禁用/隐藏、删除关系清理、Prefab Unit 拒绝、发布失败恢复、拾取绑定及 Source 保存重载。六项问题均先有失败反例，再由修复通过。
+
+本轮未修改 Shader、资产或底层几何数值内核；修正了错误的身份筛选及材质输入，所以不将有缺陷路径原先的错误输出宣称为保持不变。既有正常路径由提交数据与回归校验保护。本轮未新开浏览器、标签页或端口；现有浏览器连接先前不可用，未完成新的 GPU 截图或真实浏览器交互验收。最终定向复审无新增已证实 P0/P1/P2；累计大 Diff 的部分文件仍为定向阅读，覆盖台账与剩余验证边界放在 /tmp/building-loop-cr-20261105，不作全分支零缺陷保证。
+
+
+## 2026-11-05：作者／派生身份分域与通用瓦片外观
+
+用户要求：作者身份和派生身份从设计上分开，补通用瓦片配色；只改建筑，不加临时适配，保持正常外观与复制、拾取、保存重载。
+
+- 作者 `BuildingBasePart.id` 保持局部持久化身份。解算结果 `BuildingDesignPart` 不再继承这个裸 id，改用 `identity` 区分 author 与 derived。派生身份由 producer、带类型的 source（作者构件集合／关系）、localId 构成；support 索引、已执行集合和通用实例渲染均消费带类型的设计键。作者名字即使等于派生键完整编码也不会相撞，不设置作者保留前缀。
+- `selection` 单独声明真实作者 Group/Part。普通 Unit、原生实例及自定义 packed Unit 的拾取只返回该作者目标，Runtime 再加实例 frame 范围。执行身份不充当材质随机输入；原有作者外观输入通过显式 seed_id 保留，回归核对真实实例缓冲，避免改身份引起纹理噪声变化。
+- 自定义连接规则返回 `BuildingDerivedPart`（localId、selection 和铺设描述），设计器绑定当前关系来源；结果不再插回作者 parts，也不能成为作者关系端点。连接输出使用可铺设 Point/Path/Mesh support；需参与原生 profile 主体关系解算的内容由基础草案提供。没有保留旧 id 返回形式的适配。Source 拒绝持久化解算身份、selection 或 publication；复制与重载时重新派生。
+- 新增构件 `appearance: { roofColor }`，原生瓦片色号为 0–12，与 support 和铺设 params 独立；公共 style、欧式 roofStyle 直接传递。通用瓦片省略该字段仍使用原色0；原生轮廓屋顶显式 appearance 覆盖 roof.color，省略时保留原屋顶颜色。Prefab 自有材质不消费原生色槽。改变颜色不改铺设、随机输入或对象身份。
+- 两个原反例先失败：同名作者输入被最终ID校验拒绝；指定通用瓦片色4实际仍为0。修复后加入完整同名构件执行、不同关系同localId、设计身份不入存档、原生复制后派生拾取与实例隔离、公开roofStyle入口、默认/0/4/12色及非法色值回归。测试在Source复制及JSON重载前后核对原生绑定和实例字节；改色仅改变色槽。
+- 最终建筑全套43文件418项通过（/tmp/building-design-identity-complete.log）。真实Scene/Entity/Component与Manager发布链路的拾取映射、复制和删除检查通过，GPU分配/调度使用测试替身；不是实际GPU射线/颜色拾取验收。未修改Shader、资产和底层铺设数值内核。当前浏览器工具返回IAB空标签列表，未新开浏览器、标签页或端口，本轮没有新的GPU截图对照。
+
+最终收尾：building、terrain 类型检查通过；测试夹具补齐批处理 draws 字段后，作者边界21项复跑通过。修正一处旧身份域注释；生产执行逻辑未再变更。声明重新生成197文件／567439字节，git diff --check通过。
+
+### 2026-11-05：Source 身份、已发布查看位置和 Skill 契约
+
+- Source 按 frame、原生对象类型、作者 ID 的结构化元组分配节点和组件 ID，避免裸作者名字和拼接后缀冲突。根 ID 可与作者名字相同；作者定义、连接和外观种子不变。复制仍使用原生引用映射，没有旧格式转换或保留名字规则。
+- 查看信息来自已解算挂点、已生成结构范围和已执行通用铺设。Worker 发布紧凑 focus 信息，替代专供相机重算的屋顶参数。Manager 只读已接受结果；原生刚性附件沿用渲染的发布绑定。失败或取消候选不替换查看信息，首次未发布的 Part 不回退到作者节点原点。
+- 主 Skill 同步 get(id, frame) 和 snapshot(frame)。实际挂载的基础文档实例示例通过现有 Script 类型检查。
+- 建筑回归 45 文件、433 测试通过；追加 Point 节点挂点专项测试通过，累计 434 个不同用例。最终定向复测 2 文件、15 测试通过。覆盖 Source 撞名、building.generate、复制、保存重载、渲染缓冲、配色、拾取身份、地面/坡地/台基及失败/取消恢复。
+- 本轮未修改几何、材质、着色器或砖瓦铺设算法。渲染包和动态缓冲一致性由回归验证。未新建浏览器、标签或端口，未重新执行 GPU 像素和真实浏览器操作验收。临时执行记录位于 /tmp/building-fix-20261105/。
+- 收尾检查：building、terrain 类型检查均通过；预置声明一致性检查通过（197 文件、567906 字节）；Skill 校验和 git diff --check 通过。范围审计覆盖累积工作树，仍包含前序已有的 Engine/Prefab 改动，本轮未修改这些文件。
+
 ## 2026-11-03：动物系统夏夜萤火虫
 
 用户明确要求夏夜萤火虫接入 Seed World 动物系统。本轮在 `codex/summer-fireflies` 实现，不属于布局算法修改；空间范围审计标记的新增生产 Firefly Shader 与环境夏季权重适配是本任务直接范围，不将 `needs-scope-split` 记作门禁通过。没有修改通用引擎、既有生产 Shader 或场景曝光。
@@ -14594,3 +15448,11 @@ Terrain TypeScript checking and git diff --check also passed. Gallery sources we
 - 单浏览器真实 WebGL 验证通过，包含身份位数边界、透视/正交世界位置还原、相机/对象移动后读取旧图、Worker RPC、12 轮资源恢复基线。Seed World 实景中按普通截图拾取树及区域，移动相机后旧图命中不变，新图单独保存，过期返回明确提示；预算峰值约 14.4 MB、释放后 0。普通页面不存在建筑调试栏。测试浏览器和临时 4173 服务已关闭。
 - 验证边界：未重跑真实 LLM 指令集及移动端。Terrain 全量探查遇到上游同源的 2 个环境字符串断言失败及 3 个程序化树测试 15 秒超时，已停止全量探查并执行合并相关定向回归；未以放宽断言或提高超时掩盖这些问题。scope audit 包含既有未跟踪 output 证据，结果为 needs-scope-split；这些证据不提交。
 - 本轮 CR 结论：合并及适配范围未发现剩余阻塞问题；不等于重新审查了所有非冲突上游实现。逐文件覆盖、完整日志及浏览器证据在本地 `output/reviews/dev-retrieval-merge-20261105/`。
+
+
+## 2026-11-05: Building branch integration with dev/2.0
+
+- Merged target baseline `485cc8ebe`. Resolved seven conflicted paths while retaining flat Group/Part authoring, scoped identities and building save version 7. Preserved upstream project-package version 6, vegetation integration, snapshot picking, knowledge mounts and debug-only building panel behavior. The retired wood-arch runtime test page remains deleted.
+- Regenerated API contracts and preset runtime declarations from combined sources. Updated the Script consumer to Group/Part and the engine declaration mount; corrected building Skill and runtime guide links. The current building.generate contract now has a discoverable guide and generated API index, without restoring retired building APIs.
+- Validation: Engine materialization/install/build passed; building and Terrain TypeScript checks passed. Initial combined run: 50 files, 516 passed and 3 knowledge-integration failures. After repairing the knowledge integration, all 20 cases in the three affected knowledge/Script files passed. The 519 distinct cases in the selected suite are covered across those runs; this is not a second full-suite run. Copy, scoped identity, inactive/disabled deletion, save/reload and render-data regressions passed.
+- No building geometry, placement or shader algorithm changes were made for conflict resolution. No browser, tab or port was started, and no new GPU pixel comparison was run. The two previously reported focus bugs remain open: geometry-name aliasing and custom attachment placement offsets not reflected by inspection focus.

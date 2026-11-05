@@ -2,7 +2,7 @@ import { packUnits } from "./UnitPacking.js";
 import { bindDecorationWoodCuts, decorationWoodCutTemplate } from "./DecorationWoodCutAssets";
 import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 import type { ConstructionDrawInput } from "./ConstructionPackage";
-import type { MaterialUnit } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
 
 export type ConstructionUnitRole =

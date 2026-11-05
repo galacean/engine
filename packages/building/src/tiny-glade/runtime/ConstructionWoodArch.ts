@@ -25,7 +25,7 @@ export interface ConstructionWoodArchInput {
  * lower boundary and board cutouts. This is not native path-paint authoring.
  * Regular house walls use the original non-narrow frame/pillar parameters.
  */
-export function compileConstructionWoodArch(source: PublishedWallProfile, input: ConstructionWoodArchInput) {
+export function planConstructionWoodArch(source: PublishedWallProfile, input: ConstructionWoodArchInput) {
   const uint = (n: number) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff;
   if (!input.id || !uint(input.seed) || !uint(input.slot) || !Number.isFinite(f32(input.topY)))
     throw RangeError("Invalid construction wooden arch input");
@@ -43,6 +43,35 @@ export function compileConstructionWoodArch(source: PublishedWallProfile, input:
     referenceTop: input.topY,
     wallTop: range.wallTop
   });
+  const cut = { ...opening, indices: range.indices, startInsetFraction: 0, endInsetFraction: 1 };
+  const third = applyWallArchCuts(profile.third, [cut], true);
+  const cutouts = woodArchOpeningBounds(profile.control, profile.control.length, profile.minGround, true, [opening]);
+  let sampledTopY = -Infinity;
+  for (let i = 0; i < opening.points.length; i++)
+    sampledTopY = Math.max(sampledTopY, add(opening.points[i][1], opening.heights[i]));
+  return {
+    range,
+    cut,
+    cutouts,
+    profile: { ...profile, third },
+    requestedTopY: f32(input.topY),
+    sampledTopY,
+    placement: {
+      id: input.id,
+      seed: input.seed,
+      slot: input.slot,
+      depthScale: input.depthScale,
+      heights: opening.heights
+    }
+  };
+}
+
+export type WoodArchPlacementParameters = ReturnType<typeof planConstructionWoodArch>["placement"];
+export function placeConstructionWoodArch(
+  points: readonly (readonly [number, number, number])[],
+  input: WoodArchPlacementParameters
+) {
+  const opening = { points: points.map((p) => [...p] as [number, number, number]), heights: input.heights };
   const frames = [
     ...createWoodArchFrameParams(opening, false).map((frame, i) => ({ id: `${input.id}/lintel/${i}`, frame })),
     ...createWoodArchCornerParams(opening, false).map((frame, i) => ({ id: `${input.id}/brace/${i}`, frame }))
@@ -80,20 +109,10 @@ export function compileConstructionWoodArch(source: PublishedWallProfile, input:
       })
     });
   }
-  const cut = { ...opening, indices: range.indices, startInsetFraction: 0, endInsetFraction: 1 };
-  const third = applyWallArchCuts(profile.third, [cut], true);
-  const cutouts = woodArchOpeningBounds(profile.control, profile.control.length, profile.minGround, true, [opening]);
-  let sampledTopY = -Infinity;
-  for (let i = 0; i < opening.points.length; i++)
-    sampledTopY = Math.max(sampledTopY, add(opening.points[i][1], opening.heights[i]));
-  return {
-    range,
-    cut,
-    frames,
-    pillars,
-    cutouts,
-    profile: { ...profile, third },
-    requestedTopY: f32(input.topY),
-    sampledTopY
-  };
+  return { frames, pillars };
+}
+
+export function compileConstructionWoodArch(source: PublishedWallProfile, input: ConstructionWoodArchInput) {
+  const { placement, ...plan } = planConstructionWoodArch(source, input);
+  return { ...plan, ...placeConstructionWoodArch(plan.cut.points, placement) };
 }

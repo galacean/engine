@@ -1,6 +1,6 @@
 import { boundaryCourses } from "./BoundaryCourses";
 import { RoofRandom, randomSplits } from "./RecoveredRoofMath";
-import type { MaterialUnit } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { SupportCell } from "./PlacementSupport";
 
 /** Arrangement is independent of buildings, roof kinds, mesh assets and shaders.
@@ -24,6 +24,7 @@ export interface BoundaryBand {
   rule: BoundaryArrangement | BoundaryCourseArrangement;
 }
 export interface BoundaryPlacementGeometry {
+  variationKey?: string;
   id: string;
   length: number;
   /** Height datum of the supporting geometry; keeps row phase across clipped bands. */
@@ -136,10 +137,13 @@ export function placeBoundaryUnits(input: {
           remap(r[2]),
           courses === 1 ? r[1] : r[1] + ((r[3] - r[1]) * course) / courses,
           courses === 1 ? r[3] : r[1] + ((r[3] - r[1]) * (course + 1)) / courses,
-          courses === 1 ? pieceKey : pieceKey + "/course-" + course,
+          g.id + "/" + (courses === 1 ? pieceKey : pieceKey + "/course-" + course),
           shape?.depth ?? unit.depth
         );
         if (cell) {
+          if (g.variationKey !== undefined)
+            cell.lod_seed_id = cell.seed_id =
+              g.variationKey + "/" + (courses === 1 ? pieceKey : pieceKey + "/course-" + course);
           cell.boundaryU = [r[0], r[2]];
           if (shape) {
             const at = (x: number, y: number) => {
@@ -189,7 +193,7 @@ export function placeBoundaryUnits(input: {
         const [rawBL, rawBR, tl, tr] = p.deformation;
         const bl = mix(rawBL, tl, v0),
           br = mix(rawBR, tr, v0);
-        place(lo, hi, rowBand, `${g.id}/${p.upper ? "merlon" : "parapet"}-${side}/${p.row}-${p.column}-${p.piece}`, {
+        place(lo, hi, rowBand, `${p.upper ? "merlon" : "parapet"}-${side}/${p.row}-${p.column}-${p.piece}`, {
           ...p,
           deformation: [mix(bl, br, t0), mix(bl, br, t1), mix(tl, tr, t0), mix(tl, tr, t1)]
         });
@@ -236,7 +240,7 @@ export function placeBoundaryUnits(input: {
       for (let j = 0; j < count; j++) {
         const u0 = start + (end - start) * (splits ? splits[j] : j / count),
           u1 = start + (end - start) * (splits ? splits[j + 1] : (j + 1) / count);
-        if (rule.type === "continuous" || j % 2 === 1) place(u0, u1, band, `${g.id}/${band.id}-${side}/${j}`);
+        if (rule.type === "continuous" || j % 2 === 1) place(u0, u1, band, `${band.id}-${side}/${j}`);
         else if (band.publishOccupancy)
           occupancy.push({
             u0: g.publishedU(u0),

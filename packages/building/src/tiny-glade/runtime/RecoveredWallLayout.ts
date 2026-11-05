@@ -300,6 +300,7 @@ function generateWallCourses(
         v.setUint32(92, q.roof.kind === 2 ? (Math.abs(sub(center[1], H)) < f32(0.95) ? 20 : 4) : 4, true);
         instances.push({
           id: `${q.id}/ordinary/${instances.length}`,
+          ...(q.variationKey !== undefined ? { seed_id: `${q.variationKey}/ordinary/${instances.length}` } : {}),
           sourceId: p.id,
           row: i,
           column: j,

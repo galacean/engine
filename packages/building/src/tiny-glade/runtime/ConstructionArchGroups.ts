@@ -1,28 +1,27 @@
-import { nativeWallCells } from "./ConstructionArrangement";
-import type { PublishedConstructionOwner } from "./ConstructionContacts";
-import type { CompiledConstructionDecorations } from "./ConstructionDecorations";
-import type { ConstructionJunctionGroup } from "./ConstructionJunctionLayout";
-import type { MasonryBinding } from "./MasonryDocument";
+import type { ProfileWallGeometry } from "./ProfileWallGeometry";
+import { nativeWallCells } from "./ConstructionArrangement.ts";
+import type { CompiledConstructionDecorations } from "./ConstructionDecorations.ts";
+import type { ConstructionJunctionGroup } from "./ConstructionJunctionLayout.ts";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
 
 /** Structural trim uses the same replaceable-unit/edit-anchor path as junctions.
  * Native brick bytes remain the default, independent of the wall's row rule. */
-export function constructionArchGroups(
-  owner: PublishedConstructionOwner,
+export function profileArchGroups(
+  owner: Pick<ProfileWallGeometry, "id" | "slot" | "profile">,
   decorations: CompiledConstructionDecorations,
-  bindings: readonly MasonryBinding[]
+  binding?: MasonryBinding
 ): ConstructionJunctionGroup[] {
   const instances = decorations.archInstances;
   if (!instances?.length) return [];
-  const binding = bindings.find((b) => b.geometry_id === owner.building.id + "-wall");
   if (!binding) return [];
   return constructionArchInstanceGroups(decorations).map(([decorationId, units]) => ({
-    ownerId: owner.building.id,
+    ownerId: owner.id,
     decorationId,
     binding,
     slot: owner.slot,
     role: "wall_arch" as const,
     sourceUnit: "brick" as const,
-    sourceDrawId: "decoration-arches/" + JSON.stringify([owner.building.id, decorationId]),
+    sourceDrawId: "decoration-arches/" + JSON.stringify([owner.id, decorationId]),
     cells: nativeWallCells(binding.geometry_id, units, owner.profile),
     records: units.map((i) => i.packed64)
   }));

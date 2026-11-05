@@ -6,7 +6,7 @@ import {
   type ConstructionSurfaceFrame
 } from "./ConstructionSurfaceFrame";
 import { triangleIntersectsBounds, segmentTriangleDistanceSquared } from "./SurfaceQueryMath";
-import type { ConstructionSurfacePart } from "./ConstructionPreview";
+import type { ConstructionSurfacePart } from "./ProfilePreview";
 import { sameStructuralSurface, type StructuralMesh } from "./ConstructionSurfaceEquality";
 type V = [number, number, number];
 const sub = (a: V, b: V): V => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],

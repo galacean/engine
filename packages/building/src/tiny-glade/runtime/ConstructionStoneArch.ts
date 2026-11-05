@@ -23,6 +23,7 @@ export interface ConstructionStoneArchInput {
   /** Host depth extension; native identity remains 1. */
   depthScale?: number;
   id: string;
+  variationKey?: string;
   centerU: number;
   width: number;
   apexY: number;
@@ -35,7 +36,7 @@ export interface ConstructionStoneArchInput {
  * third-field writeback. Both brick construction and wall removal consume one
  * profile. Centre/width and a requested apex are our explicit-author adapter;
  * they do not emulate native path painting or its exponential height sampler. */
-export function compileConstructionStoneArch(profile: PublishedWallProfile, input: ConstructionStoneArchInput) {
+export function planConstructionStoneArch(profile: PublishedWallProfile, input: ConstructionStoneArchInput) {
   const uint = (n: number) => Number.isInteger(n) && n >= 0 && n <= 0xffffffff;
   if (
     !input.id ||
@@ -61,12 +62,45 @@ export function compileConstructionStoneArch(profile: PublishedWallProfile, inpu
     reference: { top: f32(input.apexY), base: sub(input.apexY, input.scale) },
     boundary: { kind: "closed", wallTop: range.wallTop }
   });
-  const steps = walkStoneArch({ ...arch, wallParameters: range.wallParameters, cyclic: true });
+  const cut = { ...arch, indices: range.indices };
+  const third = applyWallArchCuts(profile.third, [cut], true);
+  let sampledApexY = -Infinity;
+  for (let i = 0; i < arch.points.length; i++)
+    sampledApexY = Math.max(sampledApexY, add(arch.points[i][1], arch.heights[i]));
+  return {
+    range,
+    cut,
+    profile: { ...profile, third },
+    requestedApexY: f32(input.apexY),
+    sampledApexY,
+    placement: {
+      id: input.id,
+      ...(input.variationKey !== undefined ? { variationKey: input.variationKey } : {}),
+      seed: input.seed,
+      slot: input.slot,
+      depthScale: input.depthScale,
+      heights: arch.heights,
+      wallParameters: range.wallParameters,
+      indices: range.indices,
+      wallLength: profile.control.length
+    }
+  };
+}
+
+/** Per-sample rises and wall coordinates are solved layout constraints; the Path owns the base geometry. */
+export type StoneArchPlacementParameters = ReturnType<typeof planConstructionStoneArch>["placement"];
+export function placeConstructionStoneArch(
+  points: readonly (readonly [number, number, number])[],
+  input: StoneArchPlacementParameters
+) {
+  const arch = { points: points.map((p) => [...p] as [number, number, number]), heights: input.heights };
+  const steps = walkStoneArch({ ...arch, wallParameters: input.wallParameters, cyclic: true });
   const instances: WallInstance[] = steps.map((segment, index) => ({
     id: `${input.id}/arch/${index}`,
+    ...(input.variationKey !== undefined ? { seed_id: `${input.variationKey}/arch/${index}` } : {}),
     row: 0,
     column: index,
-    ...stoneArchBrick({ segment, index, baseSeed: input.seed, slot: input.slot, wallLength: profile.control.length })
+    ...stoneArchBrick({ segment, index, baseSeed: input.seed, slot: input.slot, wallLength: input.wallLength })
   }));
   // construct_arches 0x101073d..0x10107414c: endpoints over .3 request
   // pillars; the end additionally requires a path longer than .3. Direction
@@ -82,11 +116,11 @@ export function compileConstructionStoneArch(profile: PublishedWallProfile, inpu
       dz = sub(b[2], a[2]);
     const inv = div(1, sqrt(add(mul(dx, dx), mul(dz, dz))));
     proposals.push({
-      key: range.indices[i],
+      key: input.indices[i],
       direction: [mul(dx, inv), mul(dz, inv)],
       position: arch.points[i],
       height: arch.heights[i],
-      wallU: range.wallParameters[i]
+      wallU: input.wallParameters[i]
     });
   }
   const pillars = resolveStoneArchPillarProposals(proposals);
@@ -98,6 +132,7 @@ export function compileConstructionStoneArch(profile: PublishedWallProfile, inpu
       const sourceId = (input.seed + instances.length) >>> 0;
       instances.push({
         id: `${input.id}/pillar/${i}/${j}`,
+        ...(input.variationKey !== undefined ? { seed_id: `${input.variationKey}/pillar/${i}/${j}` } : {}),
         sourceId,
         row: i + 1,
         column: j,
@@ -105,7 +140,7 @@ export function compileConstructionStoneArch(profile: PublishedWallProfile, inpu
           piece: pieces[j],
           direction: pillar.direction,
           wallU: pillar.wallU,
-          wallLength: profile.control.length,
+          wallLength: input.wallLength,
           sourceId,
           slot: input.slot
         })
@@ -123,18 +158,11 @@ export function compileConstructionStoneArch(profile: PublishedWallProfile, inpu
         view.setFloat32(24 + axis * 4, view.getFloat32(24 + axis * 4, true) * depthScale, true);
       instance.packed64 = encodeBrick96(instance.domain96);
     }
-  const cut = { ...arch, indices: range.indices };
-  const third = applyWallArchCuts(profile.third, [cut], true);
-  let sampledApexY = -Infinity;
-  for (let i = 0; i < arch.points.length; i++)
-    sampledApexY = Math.max(sampledApexY, add(arch.points[i][1], arch.heights[i]));
-  return {
-    range,
-    cut,
-    instances,
-    pillars,
-    profile: { ...profile, third },
-    requestedApexY: f32(input.apexY),
-    sampledApexY
-  };
+  return { instances, pillars };
+}
+
+/** Convenience for standalone numerical callers, with the same split stages as parts. */
+export function compileConstructionStoneArch(profile: PublishedWallProfile, input: ConstructionStoneArchInput) {
+  const { placement, ...plan } = planConstructionStoneArch(profile, input);
+  return { ...plan, ...placeConstructionStoneArch(plan.cut.points, placement) };
 }

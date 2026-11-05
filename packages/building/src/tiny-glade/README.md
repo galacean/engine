@@ -215,21 +215,11 @@ The standalone sine regression runs from this directory with Node 24:
 node --experimental-transform-types --test tests/recovered-sine.test.mjs
 ```
 
-`ConstructionUnifiedRoofPath.spec.ts` and `BuildingPresets.spec.ts` exercise the
-current author → compiler → GPU package path, including stable identity, reload,
-resource resolution, roof material edits and pre-cleanup geometry hashes. The
-retired `dormers` layout/render-package harnesses and Gothic instance ABI were
-removed with their runtime consumers. `tests/gothic-generator.mjs` still compares
-live placement/blueprint/tile primitives against independent original-engine
-captures. Python native-oracle tools and their separate `masonry-lab` UI retain
-the original game's input format; they are not Scene persistence or runtime
-compatibility entry points.
-
-`tests/construction-pixels.html` is the separate readback harness. It compares
-fresh author-only TS generation on Engine against retained native packages, using
-three material variants and local hiding for current, taller, moved and no-Gothic
-constructions. The oracle server is needed only by that audit page. Browser
-acceptance also closes that server and reloads the actual Seed World project.
+The architecture migration is complete. Current generation, editing and persistence
+use the flat building-part pipeline; see [parts/README.md](parts/README.md).
+Historical dev/2.0 execution snapshots, adapter tests and comparison browser pages
+have been retired. The following numerical/pixel figures describe historical
+verification, not an available old-runtime mode.
 
 The four semantic comparisons cover 90 dynamic buffers. Counts, ordering, IDs,
 flags, half values, wall/connection/plaster buffers and roof material variants are
@@ -308,23 +298,10 @@ inside the session queue, does not persist derived geometry, and retains the old
 scene on candidate failure. Existing saved original-environment works change only
 through the explicit “适应当前地形” action; new imports/template drafts use host terrain.
 
-Terrain acceptance commands (Node 24) and browser harness:
-
-```sh
-node --experimental-transform-types tests/construction-terrain.mjs
-node --experimental-transform-types --test tests/construction-support.test.mjs
-# From the engine-next repository root:
-node world/gallery/demos/terrain/seed-world-planner/masonry/tests/run.mjs
-```
-
-`tests/construction-grounding-runtime.html` exercises real Engine/Worker generation,
-material/local reuse, movement/yaw, a six-meter terrain revision and rejection of
-an out-of-domain candidate while retaining the accepted resident scene. Normal
-readbacks remain zero. Live Seed acceptance covers round/rectangular Gothic,
-circle/circle and gable templates, edits and saved reload. CPU profile contact
-diagnostics measure sampled/interpolated boundaries, not GPU mesh watertightness.
-Reports and screenshots are retained in `resident-migration/seed-terrain` under
-the local Tiny Glade investigation.
+Current terrain-support coverage lives in the Building* project tests and the
+masonry tests (`node world/gallery/demos/terrain/seed-world-planner/masonry/tests/run.mjs`).
+The architecture-migration comparison harnesses and temporary reports have been retired.
+CPU profile contact diagnostics measure sampled/interpolated boundaries, not GPU mesh watertightness.
 
 Circle/circle intersections cover crossing, tangency, containment and separation.
 Coincident circles, including different phases, take the geometric no-crossing

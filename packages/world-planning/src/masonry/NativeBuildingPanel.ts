@@ -1,3 +1,7 @@
+import {
+  planBuildingRemoval,
+  removesBuildingGroup
+} from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingRemoval";
 import { builtinBuildingPresets } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingPresets";
 import { copyBuildingPrefab } from "@galacean/engine-building/tiny-glade/components/BuildingPrefab";
 import {
@@ -5,16 +9,13 @@ import {
   type BuildingLandQuery
 } from "@galacean/engine-building/tiny-glade/components/BuildingPlacement";
 import { mountMasonryAppearancePanel } from "./MasonryAppearancePanel";
-import { Component, Vector3, type PrefabResource } from "@galacean/engine";
+import { Vector3, type PrefabResource } from "@galacean/engine";
 import type { RuntimeNativeEditor } from "@galacean/engine-runtime-editor/runtime-editor-agent/runtime-native-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
-import {
-  BuildingSystem,
-  RoofWindowComponent,
-  MainBuildingComponent,
-  DecorationComponent,
-  BuildingSurfaceComponent
-} from "@galacean/engine-building/tiny-glade/components/BuildingComponents";
+import { BuildingManager } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingManager";
+import { partFrame } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartCollection";
+import { BuildingGroupComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingGroupComponent";
+import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent";
 /** Small native inspector; every command uses the same Scene transaction as Agent editing. */
 export function mountNativeBuildingPanel(
   project: RuntimeProjectSession,
@@ -49,6 +50,12 @@ export function mountNativeBuildingPanel(
       text.value = "";
       return;
     }
+    const part = editor.projection.component(record.id);
+    const structural =
+      (part instanceof BuildingGroupComponent || part instanceof BuildingPartComponent) && removesBuildingGroup(part);
+    panel.querySelector<HTMLButtonElement>('[data-action="delete"]')!.textContent = structural
+      ? "删除整栋建筑"
+      : "删除构件";
     const entity = editor.projection.readEntity(record.entityId);
     const { name, position, rotation, scale, isActive } = entity;
     text.value = JSON.stringify(
@@ -65,14 +72,7 @@ export function mountNativeBuildingPanel(
     select.replaceChildren();
     for (const record of editor.projection.queryComponents()) {
       const component = editor.projection.component(record.id);
-      if (
-        !(
-          component instanceof MainBuildingComponent ||
-          component instanceof DecorationComponent ||
-          component instanceof BuildingSurfaceComponent
-        )
-      )
-        continue;
+      if (!(component instanceof BuildingPartComponent) && !(component instanceof BuildingGroupComponent)) continue;
       const option = document.createElement("option");
       option.value = record.id;
       option.textContent = `${component.entity.name} · ${record.type}`;
@@ -167,10 +167,7 @@ export function mountNativeBuildingPanel(
           source.scene.rootEntities.push(prefab.root);
           source.entities.push(...prefab.entities);
           source.components.push(...prefab.components);
-          selected =
-            prefab.components.find((component) =>
-              ["HouseComponent", "WallComponent", "FenceComponent"].includes(component.type)
-            )?.id ?? "";
+          selected = prefab.components.find((component) => component.type === "BuildingGroupComponent")?.id ?? "";
           return [{ name: "asset.update", value: { path, content: JSON.stringify(source) } }];
         });
         refresh();
@@ -188,16 +185,9 @@ export function mountNativeBuildingPanel(
         const record = identity();
         if (!record) throw Error("请选择建筑组件");
         const component = editor.projection.component(record.id);
-        let entity = component?.entity;
-        let body: MainBuildingComponent | undefined;
-        while (entity && !body) {
-          body = entity
-            .getComponents(Component, [])
-            .find((item): item is MainBuildingComponent => item instanceof MainBuildingComponent);
-          entity = entity.parent ?? undefined;
-        }
-        if (!body) throw Error("所选组件没有建筑主体");
-        const group = BuildingSystem.forScene(body.entity.scene!).groupEntity(body);
+        if (!(component instanceof BuildingPartComponent) && !(component instanceof BuildingGroupComponent))
+          throw Error("所选对象不是建筑构件或组");
+        const group = BuildingManager.forScene(component.entity.scene!).groupEntity(component);
         await mutate(async (edit, signal) => {
           const groupIdentity = editor.projection.sourceIdentity(group);
           if (!groupIdentity) throw Error("建筑组没有可编辑的 Entity 身份");
@@ -225,13 +215,35 @@ export function mountNativeBuildingPanel(
     void run(async () => {
       const record = identity();
       if (!record) throw Error("请选择建筑组件");
-      const surface = editor.projection.component(record.id) instanceof BuildingSurfaceComponent;
-      await mutate([
-        {
-          name: surface ? "component.remove" : "entity.delete",
-          value: { scene: record.scene, id: surface ? record.id : record.entityId }
-        }
-      ]);
+      const component = editor.projection.component(record.id);
+      if (!(component instanceof BuildingPartComponent) && !(component instanceof BuildingGroupComponent))
+        throw Error("所选对象不是建筑构件或组");
+      if (!component.definition) throw Error("建筑对象缺少定义");
+      const frame = partFrame(component);
+      // Editing uses all authored components, including disabled components and
+      // inactive nodes. The manager's active render membership is not ownership.
+      const members = editor.projection.queryComponents().flatMap((record) => {
+        const member = editor.projection.component(record.id);
+        return (member instanceof BuildingPartComponent || member instanceof BuildingGroupComponent) &&
+          partFrame(member) === frame
+          ? [{ record, member }]
+          : [];
+      });
+      const plan = planBuildingRemoval(
+        members.map(({ member }) => member),
+        [component]
+      );
+      const commands: Command[] = [];
+      for (const { record, member } of members) {
+        if (plan.targets.has(member))
+          commands.push({ name: "component.remove", value: { scene: record.scene, id: record.id } });
+        else if (member instanceof BuildingPartComponent && plan.relations.has(member))
+          commands.push({
+            name: "component.update",
+            value: { scene: record.scene, id: record.id, props: { relations: plan.relations.get(member)! } }
+          });
+      }
+      await mutate(commands);
     });
   for (const direction of ["undo", "redo"] as const) {
     panel.querySelector<HTMLButtonElement>(`[data-action="${direction}"]`)!.onclick = () =>
@@ -255,9 +267,10 @@ export function mountNativeBuildingPanel(
       component = record && editor.projection.component(record.id);
     if (component) {
       const view =
-        component instanceof RoofWindowComponent
-          ? BuildingSystem.forScene(component.entity.scene!).roofWindowView(component)
+        component instanceof BuildingPartComponent
+          ? BuildingManager.forScene(component.entity.scene!).partView(component)
           : undefined;
+      if (component instanceof BuildingPartComponent && !view) return;
       focus(view?.position ?? component.entity.transform.worldPosition.clone(), view?.forward);
     }
   };

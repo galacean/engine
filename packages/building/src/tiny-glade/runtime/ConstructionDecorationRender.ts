@@ -1,3 +1,6 @@
+import { buildingPartKey, buildingGroupKey } from "./BuildingObjectIdentity";
+const decorationBindingKey = (part: { decorationId?: string; ownerId: string }) =>
+  part.decorationId !== undefined ? buildingPartKey(part.decorationId) : buildingGroupKey(part.ownerId);
 import {
   packDecorationMaterial,
   validDecorationMaterial,
@@ -91,13 +94,13 @@ export function appendDecorationRenderPackage(
       vertices = new Float32Array(count * vertexFloats),
       indices = new Uint32Array(group.reduce((n, p) => n + p.indices.length, 0)),
       pickIndices = new Float32Array(count),
-      pickIds = [...new Set(group.map((part) => part.decorationId ?? part.ownerId))];
+      pickIds = [...new Set(group.map((part) => decorationBindingKey(part)))];
     const pickSlots = new Map(pickIds.map((id, index) => [id, index]));
     let vertexOffset = 0,
       indexOffset = 0;
     for (const part of group) {
       pickIndices.fill(
-        pickSlots.get(part.decorationId ?? part.ownerId)!,
+        pickSlots.get(decorationBindingKey(part))!,
         vertexOffset,
         vertexOffset + part.positions.length / 3
       );
@@ -149,7 +152,7 @@ export function appendDecorationRenderPackage(
               const min = [Infinity, Infinity, Infinity],
                 max = [-Infinity, -Infinity, -Infinity];
               for (const part of group)
-                if ((part.decorationId ?? part.ownerId) === id)
+                if (decorationBindingKey(part) === id)
                   for (let i = 0; i < part.positions.length; i++) {
                     const axis = i % 3,
                       value = part.positions[i];

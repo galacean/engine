@@ -1,6 +1,6 @@
 import { Component, Matrix, Vector3, type Entity } from "@galacean/engine";
-import { MainBuildingComponent } from "./BuildingComponents";
-import type { BuildingShape } from "./BuildingShape";
+import { BuildingPartComponent } from "../parts/architecture/BuildingPartComponent";
+import { normalizeProfileFootprint, type ProfileFootprint } from "../runtime/ProfileParameters";
 
 export interface BuildingLandQuery {
   sampleHeight(x: number, z: number): number | undefined;
@@ -21,8 +21,10 @@ export function buildingPlacementFootprint(root: Entity) {
   const visit = (entity: Entity) => {
     if (!entity.isActive || entity.destroyed || entity.pendingDestroy) return;
     for (const component of entity.getComponents(Component, [])) {
-      if (!(component instanceof MainBuildingComponent) || !component.enabled) continue;
-      for (const [x, z] of footprint(component.shape)) {
+      if (!(component instanceof BuildingPartComponent) || !component.enabled) continue;
+      const definition = component.definition;
+      if (!definition || !["wallProfile", "wallStrip"].includes(definition.support.generator)) continue;
+      for (const [x, z] of footprint(normalizeProfileFootprint(definition.support.params))) {
         const point = new Vector3(x, 0, z);
         Vector3.transformCoordinate(point, entity.transform.worldMatrix, point);
         points.push([point.x - origin.x, point.z - origin.z]);
@@ -35,10 +37,10 @@ export function buildingPlacementFootprint(root: Entity) {
     throw Error("No active finite building footprint to place");
   return { points, origin, parentMatrix };
 }
-function footprint(shape: BuildingShape): [number, number][] {
+function footprint(shape: ProfileFootprint): [number, number][] {
   const points: [number, number][] = [];
-  if (shape.type === "circle") {
-    const r = shape.radius,
+  if (shape.circle) {
+    const r = shape.circle.radius,
       n = Math.max(8, Math.ceil(2 * Math.PI * r)),
       m = Math.ceil(2 * r);
     for (let i = 0; i < n; i++) points.push([r * Math.cos((i * 2 * Math.PI) / n), r * Math.sin((i * 2 * Math.PI) / n)]);
@@ -49,12 +51,17 @@ function footprint(shape: BuildingShape): [number, number][] {
         if (x * x + z * z <= r * r) points.push([x, z]);
       }
   } else {
-    const nx = Math.ceil(shape.width),
-      nz = Math.ceil(shape.depth);
+    const [width, depth] = shape.rectangle!.size;
+    const nx = Math.ceil(width),
+      nz = Math.ceil(depth);
     for (let j = 0; j <= nz; j++)
-      for (let i = 0; i <= nx; i++) points.push([shape.width * (i / nx - 0.5), shape.depth * (j / nz - 0.5)]);
+      for (let i = 0; i <= nx; i++) points.push([width * (i / nx - 0.5), depth * (j / nz - 0.5)]);
   }
-  return points;
+  const center = (shape.rectangle ?? shape.circle)!.center;
+  const angle = shape.rectangle?.rotation ?? shape.circle!.phase,
+    c = Math.cos(angle),
+    s = Math.sin(angle);
+  return points.map(([x, z]) => [center[0] + c * x - s * z, center[1] + s * x + c * z]);
 }
 
 /** Same finite land-search policy as the original explicit placement command.

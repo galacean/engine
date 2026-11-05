@@ -6,8 +6,8 @@ import { placeSurfaceUnits, type SurfaceArrangement } from "./SurfacePlacement";
 import type { MaterialFootprint } from "./MaterialFootprint";
 import { boundaryUnitDefaults } from "./MaterialPlacementDefaults";
 import type { WallConnectionShape, WallConnectionWipHole } from "./WallConnectionTypes";
-import type { MaterialUnit } from "./MasonryDocument";
-import { shapeCurve, finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles";
+import type { MaterialUnit } from "./UnitPlacementStyle";
+import { shapeCurve, finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles.ts";
 
 import { constructionSupport, type SupportCell, type SupportFace, supportCellFaces } from "./PlacementSupport";
 import { placeBoundaryUnits, type BoundaryArrangement } from "./BoundaryPlacement";
@@ -19,6 +19,7 @@ import { placeBoundaryUnits, type BoundaryArrangement } from "./BoundaryPlacemen
  */
 export function buildConstructionFlatRoof(input: {
   id: string;
+  variationKey?: string;
   shape: WallConnectionShape;
   wallEnvelope?: ConstructionWallEnvelope;
   topY: number;
@@ -108,7 +109,8 @@ export function buildConstructionFlatRoof(input: {
           : deckWidth / 2
     },
     unit: { material, footprint: input.footprint },
-    rule
+    rule,
+    variationKey: input.variationKey
   }))
     cells.push(cell);
   // The native mode-1 final course uses .69 spacing, even subdivision count,
@@ -208,6 +210,7 @@ export function buildConstructionFlatRoof(input: {
         : [0, 1];
     const geometry = {
       id,
+      variationKey: input.variationKey,
       length,
       cuts,
       publishedU,

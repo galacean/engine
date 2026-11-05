@@ -7,19 +7,19 @@ import {
 } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { fixtureModules } from "./fixture-modules";
 import { FarmingSystem } from "@galacean/engine-farming/farming/native/FarmingSystem";
-import { HouseComponent, WallComponent } from "@galacean/engine-building/tiny-glade/components/BuildingComponents";
+import { BuildingPartComponent } from "@galacean/engine-building/tiny-glade/parts/architecture/BuildingPartComponent";
 
 /** Compile in the real Worker, then execute a Script against native Engine instances. */
 export async function presetScriptBrowserFixture(id: string) {
   const source = `import { Script } from '@galacean/engine';
-import { FarmingSystem,FarmingAPI,HouseComponent,WallComponent } from '@galacean/building-demo-systems';
+import { FarmingSystem,FarmingAPI,BuildingPartComponent } from '@galacean/building-demo-systems';
 export default class Probe extends Script {
   async inspect() {
     const farm = this.entity.getComponent(FarmingSystem);
     if (!farm) throw new Error('Native farm not found');
     const result = await new FarmingAPI(farm).execute({operation:'list',input:{}});
     if (!result.ok) throw new Error(result.error.message);
-    return {farm, house:this.entity.getComponent(HouseComponent), wall:this.entity.getComponent(WallComponent), farms:result.value};
+    return {farm, house:this.entity.getComponent(BuildingPartComponent), wall:this.entity.children[0].getComponent(BuildingPartComponent), farms:result.value};
   }
 }`;
   const pack: RuntimeProjectPackage = {
@@ -64,8 +64,8 @@ export default class Probe extends Script {
     ).default;
     const root = engine.sceneManager.activeScene!.createRootEntity("Native systems");
     const farm = root.addComponent(FarmingSystem);
-    const house = root.addComponent(HouseComponent);
-    const wall = root.addComponent(WallComponent);
+    const house = root.addComponent(BuildingPartComponent);
+    const wall = root.createChild("Wall").addComponent(BuildingPartComponent);
     const probe = root.addComponent(Probe);
     const result = await probe.inspect();
     const again = await project.scriptModules(["Probe.ts"], project.scriptEnvironment.externals);

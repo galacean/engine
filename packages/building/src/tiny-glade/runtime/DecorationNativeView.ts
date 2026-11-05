@@ -1,8 +1,9 @@
+import { buildingPartKey } from "./BuildingObjectIdentity";
 import { decorationStoneBounds } from "./DecorationStoneBounds";
 import { decorationFrameBounds } from "./ConstructionDecorationFrames";
 import type { RetainedWallUnits } from "./ConstructionWallLod";
 import { packConstructionUnits, constructionSurfaceUnitDraw } from "./ConstructionUnitRender";
-import { concatenateRecords } from "./ConstructionCompiler";
+import { concatenateRecords } from "./ConstructionRecords";
 import { appendDecorationRenderPackage } from "./ConstructionDecorationRender";
 import type { ConstructionDecorationPart } from "./ConstructionDecorations";
 import {
@@ -14,10 +15,9 @@ import {
 import type { ConstructionDecorationFrame } from "./ConstructionDecorationFrames";
 import { packDecorationStoneFrameInstances } from "./DecorationStoneFrameInstance";
 import type { Camera, Engine, Entity, MeshRenderer } from "@galacean/engine";
-import type { PublishedConstructionOwner } from "./ConstructionContacts";
 import type { ConstructionDecorationStone } from "./ConstructionDecorations";
 import type { ConstructionEntranceState } from "./ConstructionEntrance";
-import { constructionOwnerGlobals } from "./ConstructionGlobals";
+import { buildingGlobals, type BuildingPaletteSlot } from "./BuildingGlobals";
 import { ConstructionPackageBuilder } from "./ConstructionPackage";
 import { buildingAssets } from "../resources/BuildingAssetKit";
 import type { PrefabResource } from "@galacean/engine";
@@ -31,7 +31,7 @@ export function createDecorationNativeView(
   engine: Engine,
   parent: Entity,
   stones: readonly ConstructionDecorationStone[],
-  owners: readonly PublishedConstructionOwner[],
+  paletteSlots: readonly BuildingPaletteSlot[],
   options: {
     assets: PrefabResource;
     retainedWallUnits?: readonly RetainedWallUnits[];
@@ -65,7 +65,7 @@ export function createDecorationNativeView(
     if (destroyed) return;
     const frame = base.frame;
     if (destroyed) return;
-    const globals = constructionOwnerGlobals(owners, frame);
+    const globals = buildingGlobals(paletteSlots, frame);
     const builder = new ConstructionPackageBuilder(base, globals);
     for (const [index, retained] of (options.retainedWallUnits ?? []).entries()) {
       const instances =
@@ -106,10 +106,10 @@ export function createDecorationNativeView(
       });
       if (options.rigidDecorations) {
         const stone = batch[0],
-          inverseBind = options.rigidDecorations.poses.get(stone.decorationId);
+          inverseBind = options.rigidDecorations.poses.get(buildingPartKey(stone.decorationId));
         if (!inverseBind) throw Error("Missing stone decoration binding " + stone.decorationId);
         draw.objectBinding = {
-          id: stone.decorationId,
+          id: buildingPartKey(stone.decorationId),
           inverseBind: [...inverseBind],
           ...decorationStoneBounds(buildingAssets(options.assets).compilation.stoneGeometry, stone)
         };
@@ -131,10 +131,10 @@ export function createDecorationNativeView(
       });
       if (options.rigidDecorations) {
         const frame = batch[0],
-          inverseBind = options.rigidDecorations.poses.get(frame.decorationId);
+          inverseBind = options.rigidDecorations.poses.get(buildingPartKey(frame.decorationId));
         if (!inverseBind) throw Error("Missing frame decoration binding " + frame.decorationId);
         draw.objectBinding = {
-          id: frame.decorationId,
+          id: buildingPartKey(frame.decorationId),
           inverseBind: [...inverseBind],
           ...decorationFrameBounds(buildingAssets(options.assets).compilation.stoneGeometry, frame)
         };

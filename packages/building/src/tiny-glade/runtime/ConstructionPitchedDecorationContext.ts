@@ -1,9 +1,8 @@
-import type { ConstructionWallEnvelope } from "./ConstructionWallEnvelope";
-import type { ConstructionUnitAssets } from "./ConstructionCompiler";
-import { constructionRoof, type ConstructionBuilding } from "./ConstructionSource";
-import { gothicHostSurface } from "./GothicHostSurface";
-import { roofBasis } from "./ConstructionRoof";
-import type { DecorationConvexOccupancy } from "./DecorationConvexOccupancy";
+import type { BuildingUnitAssets } from "./BuildingUnitAssets";
+import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
+import { gothicHostSurface } from "./GothicHostSurface.ts";
+import { roofBasis } from "./ConstructionRoof.ts";
+import type { DecorationConvexOccupancy } from "./DecorationConvexOccupancy.ts";
 
 export const decorationTransformPoints = (
   points: readonly (readonly number[])[],
@@ -21,14 +20,8 @@ export const decorationTransformPoints = (
 
 /** Shared editing-time occupancy for all pitched-roof attachment families.
  * Only successful generators append; rejected edits never reserve space. */
-export function createPitchedDecorationContext(
-  building: ConstructionBuilding,
-  baseY: number,
-  envelope?: ConstructionWallEnvelope,
-  assets?: ConstructionUnitAssets
-) {
-  const roof = constructionRoof(building, baseY, envelope),
-    support = gothicHostSurface(roof.surface, roof.footprint);
+export function createPitchedDecorationContext(roof: DecorationSurfaceOwner["roof"], assets?: BuildingUnitAssets) {
+  const support = gothicHostSurface(roof.surface, roof.footprint);
   const occupied: { id: string; volumes: DecorationConvexOccupancy[] }[] = [];
   return { roof, support, occupied, assets };
 }

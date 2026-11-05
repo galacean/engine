@@ -13,6 +13,7 @@ import {
 } from "../tools/landscape-tools.ts";
 import { SEED_WORLD_SPATIAL_CONTRACTS, SEED_WORLD_WORLD_CONTRACTS } from "../tools/spatial-tools.ts";
 import { SEED_WORLD_TIME_CONTRACTS } from "../tools/time-tools.ts";
+import { SEED_WORLD_BUILDING_CONTRACTS } from "../tools/building-tools.ts";
 
 
 export const SEED_WORLD_API_CONTRACTS = Object.freeze([
@@ -20,6 +21,7 @@ export const SEED_WORLD_API_CONTRACTS = Object.freeze([
   ...SEED_WORLD_RUNTIME_CONTRACTS,
   ...SEED_WORLD_SPATIAL_CONTRACTS,
   ...SEED_WORLD_TIME_CONTRACTS,
+  ...SEED_WORLD_BUILDING_CONTRACTS,
   ...SEED_WORLD_ATMOSPHERE_CONTRACTS,
   ...SEED_WORLD_TERRAIN_CONTRACTS,
   ...SEED_WORLD_WATER_CONTRACTS,

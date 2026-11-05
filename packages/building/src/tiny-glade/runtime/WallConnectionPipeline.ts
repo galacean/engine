@@ -22,8 +22,9 @@ import type {
   WallConnectionOwner,
   WallConnectionShape,
   WallConnectionWipHole,
-  WallStitchCandidate
-} from "./WallConnectionTypes";
+  WallStitchCandidate,
+  WallStitchPlacement
+} from "./WallConnectionTypes.ts";
 export interface WallConnectionAuthor {
   unitScale?: UnitFootprintScale;
   id: bigint;
@@ -97,7 +98,7 @@ function contains(outer: WallConnectionShape, inner: WallConnectionShape): boole
     return Math.abs(p[0]) <= mul(outer.width, 0.5) && Math.abs(p[1]) <= mul(outer.depth, 0.5);
   });
 }
-export function generateWallConnectionPair(
+export function planWallConnectionPair(
   a: PublishedConnectionOwner,
   b: PublishedConnectionOwner,
   terrain: TerrainHeight
@@ -151,16 +152,20 @@ export function generateWallConnectionPair(
     wallIds: [a.id, b.id],
     crossings,
     candidates,
-    placements: generateWallConnectionStitches(candidates),
     holes,
     finalizedHoles: holes.map((h, i) =>
       finalizeWallConnectionHoles(h, connectionShapeCurve(i ? b.shape : a.shape).length)
     )
   };
 }
+/** Compatibility entry for callers requesting both geometry and placements. */
+export function generateWallConnectionPair(...args: Parameters<typeof planWallConnectionPair>) {
+  const plan = planWallConnectionPair(...args);
+  return { ...plan, placements: generateWallConnectionStitches(plan.candidates) };
+}
 /** Rebuild all pair-derived state from current geometry; separating removes
  * derived units naturally, while author edits remain outside this pure value. */
-export function generateWallConnections(
+export function planWallConnections(
   owners: readonly PublishedConnectionOwner[],
   identityOrder: readonly bigint[],
   terrain: TerrainHeight,
@@ -174,20 +179,49 @@ export function generateWallConnections(
     identityOrder.some((id) => !byId.has(id))
   )
     throw Error("identityOrder must contain each authored wall exactly once");
-  const pairs: ReturnType<typeof generateWallConnectionPair>[] = [],
+  const pairs: ReturnType<typeof planWallConnectionPair>[] = [],
     candidates: WallStitchCandidate[] = [];
   const holes = new Map<bigint, WallConnectionWipHole[]>(identityOrder.map((id) => [id, []]));
   for (let i = 0; i < identityOrder.length; i++)
     for (let j = i + 1; j < identityOrder.length; j++) {
       const a = byId.get(identityOrder[i])!,
         b = byId.get(identityOrder[j])!,
-        pair = generateWallConnectionPair(a, b, terrain);
+        pair = planWallConnectionPair(a, b, terrain);
       if (pair.crossings.length || pair.holes.some((h) => h.length)) pairs.push(pair);
       candidates.push(...pair.candidates);
       holes.get(a.id)!.push(...pair.holes[0]);
       holes.get(b.id)!.push(...pair.holes[1]);
     }
-  const placements = generateWallConnectionStitches(candidates);
+  const finalizedHoles = new Map(
+    identityOrder.map((id) => [
+      id,
+      finalizeWallConnectionHoles(holes.get(id)!, connectionShapeCurve(byId.get(id)!.shape).length)
+    ])
+  );
+  return { pairs, candidates, holes, finalizedHoles };
+}
+
+/** Placement consumes the resolved paths/reservations; geometry is not rediscovered. */
+export function placeWallConnections(plan: ReturnType<typeof planWallConnections>, slots: ReadonlyMap<bigint, number>) {
+  return packWallConnections(plan, generateWallConnectionStitches(plan.candidates), slots);
+}
+
+/** Encode already placed units in their stable global order. Brick alternation
+ * and material hashes must not restart for each independently placed seam. */
+export function packWallConnections(
+  plan: ReturnType<typeof planWallConnections>,
+  placements: WallStitchPlacement[],
+  slots: ReadonlyMap<bigint, number>
+) {
+  const candidateIndices = new Map(plan.candidates.map((c, i) => [c, i]));
+  const byCandidate = new Map<number, WallStitchPlacement[]>();
+  for (const p of placements) {
+    if (!Number.isInteger(p.sourceCandidate) || !plan.candidates[p.sourceCandidate])
+      throw Error("Connection placement has no source candidate");
+    const entries = byCandidate.get(p.sourceCandidate) ?? [];
+    entries.push(p);
+    byCandidate.set(p.sourceCandidate, entries);
+  }
   let ordinal = 0;
   const bricks = placements
     .filter((p) => p.unit === "brick")
@@ -195,11 +229,16 @@ export function generateWallConnections(
   const beams = placements
     .filter((p) => p.unit === "wooden_plank")
     .map((p, i) => ({ placement: p, ...packWallConnectionBeam(p, i, slots) }));
-  const finalizedHoles = new Map(
-    identityOrder.map((id) => [
-      id,
-      finalizeWallConnectionHoles(holes.get(id)!, connectionShapeCurve(byId.get(id)!.shape).length)
-    ])
-  );
-  return { pairs, candidates, placements, bricks, beams, holes, finalizedHoles };
+  const pairs = plan.pairs.map((pair) => ({
+    ...pair,
+    placements: pair.candidates.flatMap((candidate, index) => {
+      const globalIndex = candidateIndices.get(candidate);
+      if (globalIndex === undefined) throw Error("Connection pair has no source candidate");
+      return (byCandidate.get(globalIndex) ?? []).map((p) => ({ ...p, sourceCandidate: index }));
+    })
+  }));
+  return { ...plan, pairs, placements, bricks, beams };
+}
+export function generateWallConnections(...args: Parameters<typeof planWallConnections>) {
+  return placeWallConnections(planWallConnections(...args), args[3]);
 }
