@@ -4,7 +4,7 @@
     {
       "timeHours": 0,
       "sunIntensity": 0.51,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 0.845,
       "sunColorG": 1.105,
       "sunColorB": 1.482,
@@ -55,7 +55,7 @@
     {
       "timeHours": 4,
       "sunIntensity": 0.51,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 0.845,
       "sunColorG": 1.105,
       "sunColorB": 1.482,
@@ -106,7 +106,7 @@
     {
       "timeHours": 4.7,
       "sunIntensity": 0.51,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 0.845,
       "sunColorG": 1.105,
       "sunColorB": 1.482,
@@ -157,7 +157,7 @@
     {
       "timeHours": 5,
       "sunIntensity": 0.75,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 0.81,
       "sunColorG": 0.792,
       "sunColorB": 0.81,
@@ -208,7 +208,7 @@
     {
       "timeHours": 6,
       "sunIntensity": 1.87,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 1.063,
       "sunColorG": 0.789,
       "sunColorB": 0.62,
@@ -259,7 +259,7 @@
     {
       "timeHours": 7,
       "sunIntensity": 1.95,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 1.111,
       "sunColorG": 0.843,
       "sunColorB": 0.676,
@@ -310,7 +310,7 @@
     {
       "timeHours": 12,
       "sunIntensity": 2.29,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 1.044,
       "sunColorG": 0.776,
       "sunColorB": 0.703,
@@ -361,7 +361,7 @@
     {
       "timeHours": 16,
       "sunIntensity": 2.18,
-      "shadowStrength": 0.9,
+      "shadowStrength": 1,
       "sunColorR": 1.507,
       "sunColorG": 0.93,
       "sunColorB": 0.673,

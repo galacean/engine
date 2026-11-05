@@ -576,7 +576,7 @@ export class TerrainRuntimeDebugInspector {
       .name("Distance / 距离")
       .onChange((distance: number) => options.lighting.setShadowCascadeTuning({ distance }));
     const shadowDistributionController = shadowCascades
-      .add(shadowCascadeState, "distribution", 1, 4, 0.05)
+      .add(shadowCascadeState, "distribution", 1, 30, 0.05)
       .name("Distribution / 分布密度")
       .onChange((distribution: number) => options.lighting.setShadowCascadeTuning({ distribution }));
     if (runtimeDebug) {

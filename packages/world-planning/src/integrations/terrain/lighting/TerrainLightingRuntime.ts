@@ -121,7 +121,8 @@ export const TERRAIN_DEFAULT_LIGHTING_CLOCK_TUNING: Readonly<TerrainLightingCloc
 /** Canonical Integrated World two-cascade shadow distribution. */
 export const TERRAIN_DEFAULT_SHADOW_CASCADE_TUNING: Readonly<TerrainShadowCascadeTuning> = Object.freeze({
   distance: 300,
-  distribution: 2
+  // Keep the first cascade near 18.75 m: split = 1 / (1 + distribution).
+  distribution: 15
 });
 
 /** Canonical Integrated World day/night evaluation cadence. */
