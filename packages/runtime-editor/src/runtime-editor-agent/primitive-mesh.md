@@ -28,4 +28,4 @@ A cuboid 2 meters wide, 3 meters high and 4 meters deep:
 { "type": "cuboid", "cuboidWidth": 2, "cuboidHeight": 3, "cuboidDepth": 4 }
 ```
 
-For default values and mesh generation semantics, see the comments on [PrimitiveMesh](../../declare/runtime/node_modules/@galacean/engine-core/types/mesh/PrimitiveMesh.d.ts). PrimitiveMeshLoader itself is registered internally, so its emitted declaration does not expose this JSON format.
+For default values and mesh generation semantics, see the comments on [PrimitiveMesh](../../../engine/node_modules/@galacean/engine-core/types/mesh/PrimitiveMesh.d.ts). PrimitiveMeshLoader itself is registered internally, so its emitted declaration does not expose this JSON format.

@@ -18,9 +18,8 @@ export function projectSeedWorldTask(snapshot: AgentSessionSnapshot): { text?: s
         { const next = commentary ?? (event.decision === "read_tool" ? "查阅相关操作说明"
           : event.decision === "list_tool" ? "查找相关资料和资源"
           : event.decision === "search_tool" ? "搜索相关文件内容"
-          : event.decision === "observe_view" ? "查看当前画面"
-          : event.decision === "read_image" ? "重新查看已保存的画面"
-          : event.decision === "pointer" ? "定位画面中的对象" : undefined);
+          : event.decision === "snapshot" ? "查看当前画面"
+          : event.decision === "pick" ? "定位画面中的对象" : undefined);
           if (next) { text = next; append(next); } }
         break;
       case "tool": {
@@ -50,7 +49,7 @@ export function projectSeedWorldTask(snapshot: AgentSessionSnapshot): { text?: s
 
 /** Product wording belongs to this application's presentation, not the system prompt. */
 function describeTool(name: string): string {
-  const direct: Record<string, string> = { read: "读取文件", glob: "查找文件", grep: "搜索文件内容", write: "写入文件", edit: "修改文件", delete: "删除文件", observe_view: "查看当前画面", read_image: "重新查看已保存的画面", pointer: "定位画面中的对象" };
+  const direct: Record<string, string> = { read: "读取文件", glob: "查找文件", grep: "搜索文件内容", write: "写入文件", edit: "修改文件", delete: "删除文件", snapshot: "查看当前画面", pick: "定位画面中的对象" };
   if (direct[name]) return direct[name];
   const parts = name.split(".");
   const method = parts.at(-1)!;

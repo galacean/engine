@@ -270,7 +270,7 @@ export class AIChatSession {
     this.#data.settleStopped();
     this.#transition({ kind: "disposed" });
     this.#active?.preparation?.controller.abort();
-    this.#agent.cancel();
+    this.#agent.dispose();
     for (const entry of [...this.#inbox]) this.removeInput(entry.input.id);
     this.#unsubscribe();
     this.#listeners.clear();

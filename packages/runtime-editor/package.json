@@ -60,7 +60,8 @@
     "./runtime-inspection/runtime-pick-preparation": "./src/runtime-inspection/runtime-pick-preparation.ts",
     "./runtime-inspection/runtime-scene-inspection": "./src/runtime-inspection/runtime-scene-inspection.ts",
     "./selection/WorldSelection": "./src/selection/WorldSelection.ts",
-    "./runtime-editor/generated/editor-source-schema": "./src/runtime-editor/generated/editor-source-schema.d.ts"
+    "./runtime-editor/generated/editor-source-schema": "./src/runtime-editor/generated/editor-source-schema.d.ts",
+    "./retrieval-agent/index": "./src/retrieval-agent/index.ts"
   },
   "scripts": {},
   "dependencies": {
@@ -74,6 +75,7 @@
     "@galacean/engine-ai-chat": "workspace:*",
     "@galacean/engine-farming": "workspace:*",
     "@galacean/engine-project": "workspace:*",
-    "@galacean/engine-modify": "workspace:*"
+    "@galacean/engine-modify": "workspace:*",
+    "@galacean/engine-retrieval": "workspace:*"
   }
 }

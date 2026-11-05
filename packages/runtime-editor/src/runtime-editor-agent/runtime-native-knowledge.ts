@@ -1,3 +1,5 @@
+import assetsAndReuse from "./assets-and-reuse.md?raw";
+import { nativeEditorSkill } from "./native-editor-skill";
 import primitiveMeshKnowledge from "./primitive-mesh.md?raw";
 import schema from "../runtime-editor/generated/editor-source-schema.d.ts?raw";
 import type { AgentScriptApiCatalog } from "@galacean/engine-ai-chat/ai-chat/agent-types";
@@ -35,12 +37,18 @@ declare global {
       redo(input: {transactionIds: string[]}): Promise<{transactionIds: string[]; status: "prepared-in-draft"}>;
     }
     interface NativeAssetApi {
-      /** Import a file or ordinary folder from a mounted source. File types come from .meta or known extensions; optional type is for a single file only. GLB must embed buffers/images; textures accept PNG/JPEG. Folders include documents, metadata and empty directories. Serialized relative references are relative to their file; Missing dependencies reject. PATH_ALREADY_EXISTS reports path/existingPath/existingKind; choose another target path and retry. Nothing is overwritten or partially published.  */
+      /** Import a file or ordinary folder from a host source. With Retrieval enabled, source accepts /oss/ plus a returned assetPaths entry, or its asset directory; the host resolves CDN files on demand. File types come from .meta or known extensions; optional type is for a single file only. GLB must embed buffers/images; textures accept PNG/JPEG. Folders include documents, metadata and empty directories. Serialized relative references are relative to their file; Missing dependencies reject. PATH_ALREADY_EXISTS reports path/existingPath/existingKind; choose another target path and retry. Nothing is overwritten or partially published.  */
       import(input: { source: string; path: string; type?: string }): Promise<{ path: string }>;
       /** Lists project virtual paths and types. */
       list(input: {}): Promise<NativeAsset[]>;
-      /** Reads text by virtual path. Binary reads reject. */
-      read(input: { path: string }): Promise<{ content: string }>;
+      /** Metadata only; does not download the asset. Empty summary/usage means no authored explanation. */
+      info(input: { path: string }): Promise<NativeAsset & {name: string; summary: string; usage: string}>;
+      /** Type-specific inspection. Models return static model-local bounds (not world instances); boundsComplete=false means missing bounds or deformation. Unsupported encodings reject explicitly. */
+      read(input: { path: string }): Promise<NativeAsset & (
+        {kind: "text"; content: string} | {kind: "structured"; data: unknown} |
+        {kind: "image"; format: string; width: number; height: number} |
+        {kind: "model"; scenes: unknown[]; nodes: unknown[]; meshes: unknown[]; materials: unknown[]; bounds: {min: number[]; max: number[]} | null; boundsComplete: boolean}
+      )>;
       /** Path is canonical, e.g. Scripts/Rotate.ts. Type must be a registered asset format; extension-specific types and their content are documented by the owning system. Unknown types reject.  */
       create(input: { path: string; type: NativeAssetType; content: string }): Promise<{ path: string }>;
       /** Replaces the entire text asset while retaining identity. */
@@ -65,7 +73,7 @@ Undo and redo are editor.history operations across all author assets, including 
 
 - [Editing APIs](../../declare/native/api.d.ts): editor.asset, editor.entity and editor.component operations in execute.
 - [Scene/Prefab source schema](../../declare/native/source.d.ts): reused from Editor v2; path-based asset references, stable entity/component IDs and serialized values.
-- [Runtime development](../runtime/README.md): Engine declarations for Script assets and native component properties.
+- [Runtime development](../../../engine/knowledge/README.md): Engine declarations for Script assets and native component properties.
 
 
 ## Project files and identity
@@ -74,9 +82,9 @@ Read project.json to find the active Scene and asset table. The read tool expose
 
 This host provides preset components and ordinary Script assets.
 
-All editing calls in one execute change its draft. Awaiting an edit does not apply it to the Engine. editor.component.read reads the draft's props; typed component methods observe the currently active runtime. To change enabled, transforms or asset bindings and verify the runtime effect, finish the execute, inspect its commit/activation receipt, then query the component again in the next execute. Setting enabled=false and then enabled=true in a single execute only commits the final value; it does not exercise a disable/enable cycle. Preparation first typechecks scripts, then builds ESM modules and validates references and hierarchies before saving. Script check/build failures return their diagnostics to the Agent and leave the saved project unchanged. Activation errors appear in the receipt after memory commit; they do not roll back accepted authoring. Background persistence is independent; a committed receipt does not mean IndexedDB has finished saving.
+All editing calls in one execute change its draft. Awaiting an edit does not apply it to the Engine. editor.component.read reads the draft's props; typed component methods observe the currently active runtime. To observe the runtime effect of changed enabled state, transforms or asset bindings, first finish the execute and inspect its receipt. If the receipt does not establish the required runtime state, query that state in a subsequent execute. Setting enabled=false and then enabled=true in a single execute only commits the final value; it does not exercise a disable/enable cycle. Preparation first typechecks scripts, then builds ESM modules and validates references and hierarchies before saving. Script check/build failures return their diagnostics to the Agent and leave the saved project unchanged. Activation errors appear in the receipt after memory commit; they do not roll back accepted authoring. Background persistence is independent; a committed receipt does not mean IndexedDB has finished saving.
 
-README, knowledge, .d.ts and .meta files are project documents, not Engine assets. Use the external write/edit tools to create/update their text and read to inspect committed content. Each mutation commits independently using a canonical project virtual path and participates in project save/undo.  Metadata is JSON with summary and usage strings; a folder or file must already exist. Updating an existing declaration changes the APIs available to subsequent Agent executions after commit.
+Project-authored README, .d.ts and asset .meta files are documents, not Engine assets. Use the external write/edit tools to create/update their text and read to inspect committed content. Each mutation commits independently using a canonical project virtual path and participates in project save/undo.  Only registered assets have .meta sidecars. Metadata is JSON with summary and optional usage strings; its asset must already exist. project.json, folders and ordinary documents have no .meta. editor/, engine/ and skills/ are managed read-only knowledge. .ai/ contains session-only artifacts, never project data. Updating an existing declaration changes the APIs available to subsequent Agent executions after commit.
 
 ## Components
 
@@ -88,7 +96,7 @@ Create linked Prefab instances with entity.create({scene,name,prefab:virtualPath
 
 ## Assets
 
-Use the glob tool to discover existing project assets. If additional material is needed, list the application's mounted library, read candidate .meta usage instructions, then use editor.asset.import({source,path}) to copy a supported file or ordinary folder into the project. Serialized references inside an ordinary folder are resolved relative to each file and remapped to the destination. Import the complete dependency folder; missing dependencies reject. Folder destinations must be vacant, including empty folders; there is no merge or overwrite. Conflict errors include the occupied path; retry with a different destination. Source access is provided by the application; an unavailable library is an error, not proof that no matching material exists.
+For asset discovery, import, placement and reuse, read the [asset workflow](../../../editor/knowledge/native/assets-and-reuse.md). The editing declarations define supported import sources, formats and conflict handling.
 
 
 PrimitiveMesh and Material retain their Engine loader JSON formats. Read [PrimitiveMesh asset format](primitive-mesh.md) for all supported shapes and their exact serialized fields. Engine PrimitiveMesh method signatures describe runtime mesh creation, not this asset JSON. A cuboid mesh is:
@@ -99,13 +107,13 @@ A solid-color Unlit material is (change r/g/b/a to choose the color):
 
     { "name": "Solid", "shader": "Unlit", "shaderData": { "material_BaseColor": { "type": "Color", "value": { "r": 1, "g": 1, "b": 1, "a": 1 } } }, "macros": [] }
 
-The format is implemented by Engine MaterialLoader and [IMaterialSchema](../../declare/runtime/node_modules/@galacean/engine-loader/types/schema/MaterialSchema.d.ts). material_BaseColor is the property used by BaseMaterial/UnlitMaterial. MaterialLoader creates a generic Material; it does not run the UnlitMaterial constructor or supply its defaults. Include shaderData values you need and the macros array, even when empty. Shader names are case-sensitive; Unlit is registered by Engine, so it needs no shader asset or UnlitShader class. Material textures use shaderData entries with type "Texture" and value { "url": "<asset virtualPath>" }. Scene/Prefab assets use the linked Editor source schema.
+The format is implemented by Engine MaterialLoader and [IMaterialSchema](../../../engine/node_modules/@galacean/engine-loader/types/schema/MaterialSchema.d.ts). material_BaseColor is the property used by BaseMaterial/UnlitMaterial. MaterialLoader creates a generic Material; it does not run the UnlitMaterial constructor or supply its defaults. Include shaderData values you need and the macros array, even when empty. Shader names are case-sensitive; Unlit is registered by Engine, so it needs no shader asset or UnlitShader class. Material textures use shaderData entries with type "Texture" and value { "url": "<asset virtualPath>" }. Scene/Prefab assets use the linked Editor source schema.
 
 For behavior, create a script asset containing a default-exported Script subclass, then add a Script component with script: { $ref: scriptVirtualPath }. Scripts use ESM imports from @galacean/engine or relative paths to other script assets. Top-level await is supported. Dynamic import targets must be string literals resolvable in the project. import.meta.url is the emitted module Blob URL, not a virtual asset path. Script lifecycle methods run in the game; execute runs in a Worker and only accesses its declared tools.
 
 Updating Script code (or an imported module) recreates affected Script components with their saved properties; transient instance fields are reset. Unchanged modules and components keep their identity during unrelated edits. Moving a component, removing serialized properties or editing explicit setter calls also recreates that component to restore loader defaults. Component construction temporarily deactivates its owner Entity; activation resumes after properties and references are bound. After a partial projection failure, the next native edit or undo resynchronizes authored components and resets their transient state.
 
-Before deleting an existing asset, call editor.asset.references with its exact virtual path. After successful deletion, use editor.asset.list to confirm absence; references requires an existing asset and rejects a deleted path. It returns incoming authoring references, including static Script imports and assetUrl calls. Inspect the returned caller paths and unlink or replace their references before calling asset.delete. Both operations support registered asset formats, including PNG/GLB; the ability to edit file contents is unrelated. asset.delete independently rechecks the current draft and rejects with caller paths while references remain. Unknown caller formats or unavailable reference data reject rather than treating the asset as unused. Declare candidate resources in component properties or JSON configuration assets using {$ref: virtualPath}; Scripts select from these references instead of constructing resource paths. Read editor/knowledge/runtime/configured-assets.md for both eager component references and lazy JSON candidates. The Editor maintains direct dependencies in project.json and queries their reverse index; missing dependency information is not an empty list. Even with no incoming references, registered Scenes and runtime-owned assets remain protected; release component ownership before deleting its assets. Successful deletion removes the asset table entry, content and .meta through the normal save/undo transaction.
+Before deleting an existing asset, call editor.asset.references with its exact virtual path. After successful deletion, use editor.asset.list to confirm absence; references requires an existing asset and rejects a deleted path. It returns incoming authoring references, including static Script imports and assetUrl calls. Inspect the returned caller paths and unlink or replace their references before calling asset.delete. Both operations support registered asset formats, including PNG/GLB; the ability to edit file contents is unrelated. asset.delete independently rechecks the current draft and rejects with caller paths while references remain. Unknown caller formats or unavailable reference data reject rather than treating the asset as unused. Declare candidate resources in component properties or JSON configuration assets using {$ref: virtualPath}; Scripts select from these references instead of constructing resource paths. Read engine/knowledge/configured-assets.md for both eager component references and lazy JSON candidates. The Editor maintains direct dependencies in project.json and queries their reverse index; missing dependency information is not an empty list. Even with no incoming references, registered Scenes and runtime-owned assets remain protected; release component ownership before deleting its assets. Successful deletion removes the asset table entry, content and .meta through the normal save/undo transaction.
 
 A subresource reference protects its containing asset. For example, a material texture value {url: "Can.glb", key: "textures[0]"} references Can.glb; query Can.glb to find the material. asset.delete rejects while this external reference remains.
 `;
@@ -114,11 +122,15 @@ A subresource reference protects its containing asset. For example, a material t
 export function withNativeEditingKnowledge(catalog: AgentScriptApiCatalog): AgentScriptApiCatalog {
   const toolNames = nativeToolNames;
   return {
-    catalog: catalog.catalog + "- [Scene 分组、灯光节点、作者层级与原生组件](knowledge/native/README.md)\n",
+    catalog:
+      catalog.catalog +
+      "- [Galacean Editor skill](../skills/galacean-editor.md): asset import, reuse and scene configuration.\n- [Scene 分组、灯光节点、作者层级与原生组件](knowledge/native/README.md)\n",
+    skills: [...(catalog.skills ?? []), nativeEditorSkill],
     documents: [
       ...(catalog.documents ?? []),
       { path: "knowledge/native/README.md", content: knowledge },
-      { path: "knowledge/native/primitive-mesh.md", content: primitiveMeshKnowledge }
+      { path: "knowledge/native/primitive-mesh.md", content: primitiveMeshKnowledge },
+      { path: "knowledge/native/assets-and-reuse.md", content: assetsAndReuse }
     ],
     entries: [
       ...catalog.entries,

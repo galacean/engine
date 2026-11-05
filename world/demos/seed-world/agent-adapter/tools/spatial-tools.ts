@@ -5,7 +5,7 @@ import type { SeedWorldAgentApplication } from "../SeedWorldAgentApplication.ts"
 import type { SeedWorldQueryInput } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
-import { kernelSpatialAnchorSchema, spatialTargetSchema, viewerAnchorDescription } from "./spatial-tool-input.ts";
+import { VIEWER_ANCHOR_DESCRIPTION, kernelSpatialAnchorSchema, spatialTargetSchema } from "./spatial-tool-input.ts";
 import {
   authoringResultSchema,
   assetDomainSchema,
@@ -27,7 +27,7 @@ const filterSchema = z.strictObject({
 }).describe("对精确 WorldAsset 属性执行的查询过滤条件");
 const selectorSpatialSchema = z.strictObject({
   anchor: z.discriminatedUnion("kind", [
-    z.strictObject({ kind: z.literal("viewer").describe(viewerAnchorDescription) }),
+    z.strictObject({ kind: z.literal("viewer").describe(VIEWER_ANCHOR_DESCRIPTION) }),
     z.strictObject({
       kind: z.literal("world-ref").describe("使用一个世界资产作为查询锚点"),
       ref: worldRefSchema.describe("world.query、world.inspect 或修改 API 返回的稳定资产引用")
@@ -181,7 +181,7 @@ export const spatialSearchInputSchema = z.strictObject({
   nearestTo: z.strictObject({
     x: z.number().describe("参照点世界 x 坐标，单位为米"),
     z: z.number().describe("参照点世界 z 坐标，单位为米")
-  }).optional().describe("nearest 排序的参照位置；省略时使用 viewer 指令参照快照。实时位置先调用 spatial.viewer 并传入返回坐标。"),
+  }).optional().describe("nearest 排序的参照位置；省略时使用 viewer 锚点（活动输入提交时的位置；无活动输入时使用实时位置）"),
   sort: z.enum(["highest", "lowest", "flattest", "steepest", "wettest", "driest", "nearest"])
     .describe("位置候选排序目标"),
   limit: z.number().int().min(1).max(32).default(1).describe("最多返回的位置数量"),

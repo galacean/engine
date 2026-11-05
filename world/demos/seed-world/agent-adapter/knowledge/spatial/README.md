@@ -2,7 +2,32 @@
 
 ## Usage Guide
 
-Resolve relative directions through spatial.resolve; do not guess coordinates. Use spatial.check for a bounded check of exact positions (up to 32); it returns matches and failedConstraints for each point. Use spatial.search only to find candidates when the user asks for terrain conditions. nearest is a ranking anchor, not an exact sample. A finite search with no_match is finished, not proof that the entire continuous world is unsuitable. Do not loop to invent stricter requirements or replace a completed check with another search. spatial.teleport moves the player to a spatial target; subjectView frames a published subject through world parameters as described below. Heading 0 faces -Z, 90 faces +X. Placement constraints belong inside target. Read `../object-management/README.md` to locate an existing anchor.
+Choose the workflow from the information you already have:
+
+- Known world position: use a position anchor with relation `at` in the editing API's `target`.
+- Position in a screenshot: use `pick` with the intended image pixel. Use its `estimatedPosition` as the captured surface position.
+- Relative destination: use `spatial.resolve` to resolve the spatial relation. Use its returned Target directly.
+- Conditions at known positions: use `spatial.check` when the user or editing contract requires a terrain check.
+- Search by terrain conditions: use `spatial.search` to find candidates that meet the user's conditions.
+
+## Position and placement
+
+Specify placement rules inside `target.placement`, according to the editing API's contract.
+For ground placement, use the intended horizontal position with `snapTo: "terrain"`. The editing API handles the final terrain height.
+A screenshot position can be on grass or another visible surface. It does not prove the current ground height or placement conditions.
+Use `spatial.check` if a required terrain condition remains unknown. It accepts up to 32 positions and returns `matches` and `failedConstraints` for each.
+
+Choosing a location and identifying an editable object are separate tasks.
+For a location, use the position workflow above. For an object edit, use the [object guide](../object-management/README.md) to resolve its identity and ownership.
+
+## Search and navigation
+
+In `spatial.search`, `nearest` ranks candidates around an anchor. It does not sample the exact anchor position.
+A finite search that returns `no_match` is complete. It does not prove that every position in the world is unsuitable.
+Further searches need a changed requirement or new evidence. Keep the user's conditions when a check or search finishes.
+
+`spatial.teleport` moves the player to a spatial target. `subjectView` frames a published subject through world parameters, as described below.
+Heading 0 faces -Z. Heading 90 faces +X.
 
 `viewer` anchors use the player pose captured when the current instruction was submitted. That reference stays fixed across execute calls, player movement and teleportation. Consuming a new supplemental instruction replaces the reference with that input's pose. Without an active instruction, the anchor uses the live pose.
 

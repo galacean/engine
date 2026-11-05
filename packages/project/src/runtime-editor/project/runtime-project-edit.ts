@@ -1,3 +1,4 @@
+import type { AssetReadValue } from "./runtime-asset-read";
 import {
   cloneRuntimeProjectPackage,
   cloneRuntimeProjectContent,
@@ -30,6 +31,8 @@ export interface RuntimeProjectUndoParticipant {
 
 /** Asset handlers own format validation and direct-reference extraction. */
 export interface RuntimeAssetFormat {
+  /** Type-owned, serializable inspection; no runtime instances. */
+  read?(content: Content): AssetReadValue;
   /** Explicit encoding for custom text assets loaded through the VFS. */
   contentEncoding?: "utf8";
   /** State belongs to a live domain owner, never to a detached native authoring draft. */
@@ -105,6 +108,29 @@ export class RuntimeProjectEdit {
         : new Uint8Array(content);
   }
 
+  info(path: string) {
+    const file = this.asset(path);
+    const metadata = this.draft.documents?.[`${path}.meta`];
+    return {
+      path,
+      ...assetMetadata(path, file.type, metadata ? JSON.parse(metadata) : undefined),
+      ...(file.params ? { params: structuredClone(file.params) } : {})
+    };
+  }
+
+  readAsset(path: string) {
+    const file = this.asset(path);
+    const reader = this.format(file).read;
+    if (!reader)
+      throw new Error(`Asset inspection unsupported for type '${file.type}'; use asset.info or raw VFS read`);
+    return {
+      path,
+      type: file.type,
+      ...(file.params ? { params: structuredClone(file.params) } : {}),
+      ...reader(this.read(path))
+    };
+  }
+
   /** Fill lazily loaded sources without replacing authored or imported draft content. */
   provideContents(contents: RuntimeProjectPackage["contents"]): void {
     for (const file of this.draft.project.files) {
@@ -131,11 +157,7 @@ export class RuntimeProjectEdit {
     }
   }
 
-  create(
-    file: AssetFile,
-    content: Content,
-    metadata = { summary: `${file.virtualPath} (${file.type})`, usage: "通过虚拟路径引用。" }
-  ): void {
+  create(file: AssetFile, content: Content, metadata = { summary: "", usage: "" }): void {
     this.assertOpen();
     if (this.format(file).runtimeOwned)
       throw new Error(`Runtime-owned asset '${file.virtualPath}' must be changed through its domain API`);
@@ -200,27 +222,6 @@ export class RuntimeProjectEdit {
         2
       );
     }
-    for (const path of directories)
-      candidate.documents[`${path}.meta`] ??= JSON.stringify(
-        assetMetadata(path, "Folder", { summary: `${path} 资产目录` })
-      );
-    for (const path of Object.keys(documents))
-      if (!path.endsWith(".meta"))
-        candidate.documents[`${path}.meta`] ??= JSON.stringify(assetMetadata(path, "Document"));
-    const paths = [
-      ...candidate.project.files.map((file) => file.virtualPath),
-      ...Object.keys(candidate.documents),
-      ...directories
-    ];
-    for (const path of paths) {
-      const parts = path.split("/");
-      for (let i = 1; i < parts.length; i++) {
-        const folder = parts.slice(0, i).join("/");
-        candidate.documents[`${folder}.meta`] ??= JSON.stringify(
-          assetMetadata(folder, "Folder", { summary: `${folder} 资产目录` })
-        );
-      }
-    }
     validateRuntimeProject(candidate);
     const metadata = projectDocuments(candidate);
     for (const path of Object.keys(candidate.documents))
@@ -236,6 +237,7 @@ export class RuntimeProjectEdit {
 
   describe(path: string, metadata: { summary: string; usage: string }): void {
     this.assertOpen();
+    this.asset(path);
     const documents = this.describeDocuments(path, metadata);
     validateRuntimeProject({ ...this.draft, documents });
     this.draft.documents = documents;
@@ -252,14 +254,7 @@ export class RuntimeProjectEdit {
   writeDocument(path: string, content: string): void {
     this.assertOpen();
     if (!path.endsWith(".meta") && !Object.hasOwn(this.draft.documents ?? {}, path)) this.assertDestination(path);
-    const documents =
-      path.endsWith(".meta") || Object.hasOwn(this.draft.documents ?? {}, `${path}.meta`)
-        ? { ...this.draft.documents }
-        : this.describeDocuments(path, {
-            summary: `${path} 项目文档`,
-            usage: "读取文档内容；使用 write 或 edit 工具修改。"
-          });
-    const candidate = { ...this.draft, documents: { ...documents, [path]: content } };
+    const candidate = { ...this.draft, documents: { ...this.draft.documents, [path]: content } };
     validateRuntimeProject(candidate);
     if (path.endsWith(".meta")) candidate.documents[path] = projectDocuments(candidate)[path];
     this.draft.documents = candidate.documents;
@@ -271,7 +266,6 @@ export class RuntimeProjectEdit {
     const candidate = { ...this.draft, documents: { ...this.draft.documents } };
     delete candidate.documents[path];
     delete candidate.documents[`${path}.meta`];
-    removeOrphanMetadata(candidate);
     validateRuntimeProject(candidate);
     this.draft.documents = candidate.documents;
   }
@@ -285,13 +279,6 @@ export class RuntimeProjectEdit {
       ...this.draft.documents,
       [`${path}.meta`]: JSON.stringify(assetMetadata(path, type, metadata), null, 2)
     };
-    const parts = path.split("/");
-    for (let i = 1; i < parts.length; i++) {
-      const folder = parts.slice(0, i).join("/");
-      documents[`${folder}.meta`] ??= JSON.stringify(
-        assetMetadata(folder, "Folder", { summary: `${folder} 资产目录` })
-      );
-    }
     return documents;
   }
 
@@ -348,7 +335,6 @@ export class RuntimeProjectEdit {
     delete this.draft.contents[file.virtualPath];
     if (this.draft.documents) {
       delete this.draft.documents[`${file.virtualPath}.meta`];
-      removeOrphanMetadata(this.draft);
     }
   }
 
@@ -454,21 +440,5 @@ export class RuntimeProjectEdit {
 
   private assertOpen(): void {
     if (this.closed) throw new Error("Project edit is closed");
-  }
-}
-
-/** Drop implicit folder sidecars only after their last child has been removed. */
-function removeOrphanMetadata(pack: RuntimeProjectPackage): void {
-  for (const path of Object.keys(pack.documents ?? {}).sort((a, b) => b.length - a.length)) {
-    if (!path.endsWith(".meta")) continue;
-    const target = path.slice(0, -5);
-    if (
-      ![
-        ...pack.project.files.map((file) => file.virtualPath),
-        ...Object.keys(pack.documents!),
-        ...(pack.project.directories ?? [])
-      ].some((file) => file === target || file.startsWith(`${target}/`))
-    )
-      delete pack.documents![path];
   }
 }

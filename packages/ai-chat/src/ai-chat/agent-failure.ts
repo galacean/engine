@@ -55,7 +55,8 @@ export function classifyFailure(value: {
   if (/PROTOCOL/.test(code)) return "protocol";
   if (/PUBLICATION|OUTCOME_UNKNOWN/.test(code)) return "publication";
   if (/LIMIT|Limit|NoProgress/.test(code)) return "budget";
-  if (/FILE_|SCRIPT_|TOOL_|IMAGE_|POINTER_|VIEW_OBSERVATION_|INVALID_ARGUMENTS|UNKNOWN_TOOL/.test(code)) return "tool";
+  if (/FILE_|SCRIPT_|TOOL_|IMAGE_|PICK_|SNAPSHOT_|VIEW_OBSERVATION_|INVALID_ARGUMENTS|UNKNOWN_TOOL/.test(code))
+    return "tool";
   // Compatibility with older hosts that only preserve an error message.
   const message = value.message ?? "";
   if (/deadline|timed? ?out|超时/i.test(message)) return "timeout";
@@ -110,10 +111,18 @@ export function describeTaskFailure(
   // Known model terminals have a concise cause; execution facts come only from the host.
   const cause =
     category === "output_limit"
-      ? "模型输出达到长度上限。"
+      ? "本次回复过长，处理已停止。"
       : category === "content_filter"
-        ? "模型响应被内容策略终止。"
-        : reason;
+        ? "本次请求无法继续处理。"
+        : category === "rate_limit" || category === "quota"
+          ? "服务暂时繁忙，请稍后重试。"
+          : category === "connection" || category === "server"
+            ? "暂时无法连接处理服务，请稍后重试。"
+            : category === "timeout"
+              ? "等待处理结果超时，请稍后重试。"
+              : category === "budget"
+                ? "本次处理已达到资源上限。"
+                : "处理过程中遇到了问题。";
   const parts = [category === "cancelled" ? "任务已停止。" : `任务未完成：${cause}`];
   const saved = summary.committed.length + summary.committedCommands.length;
   if (saved) parts.push("已完成的修改已保留。");

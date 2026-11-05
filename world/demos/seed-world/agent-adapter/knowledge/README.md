@@ -8,11 +8,11 @@ In execute, these world APIs live under `tools`, for example `await tools.world.
 
 When the scene exposes component authoring, the relevant guides include system-owned component usage knowledge for the available components. Discover exact fields, units, scope and constraints through `world.parameters.describe`, then inspect the actual target before proposing edits. System guides explain how capabilities relate; they do not supply fixed mood presets or override the current schema, authorization or runtime checks.
 
-- [Object Query and Management](object-management/README.md)
-- [Space and Placement](spatial/README.md)
-- [Time and Seasons](time/README.md)
-- [Atmosphere](atmosphere/README.md)
-- [Terrain](terrain/README.md)
-- [Water](water/README.md)
-- [Vegetation](vegetation/README.md)
-- [Animals](animals/README.md)
+- [对象：查询、检查、删除和标签](object-management/README.md)
+- [空间：位置、相对方位与导航](spatial/README.md)
+- [时间与季节](time/README.md)
+- [天气与大气](atmosphere/README.md)
+- [地形：创建与修改](terrain/README.md)
+- [水域：创建与修改](water/README.md)
+- [植被：创建单棵树、树林、灌木、草和花，调整已有植被](vegetation/README.md)
+- [动物：查询、生成与行为](animals/README.md)

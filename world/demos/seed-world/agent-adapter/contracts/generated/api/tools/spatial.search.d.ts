@@ -33,7 +33,7 @@ declare global {
           /** 到最近道路的最大水平距离，单位为米；省略时不限制。 最小值：0。 */
           maximumRoadDistanceMetres?: number;
         };
-        /** nearest 排序的参照位置；省略时使用 viewer 指令参照快照。实时位置先调用 spatial.viewer 并传入返回坐标。 */
+        /** nearest 排序的参照位置；省略时使用 viewer 锚点（活动输入提交时的位置；无活动输入时使用实时位置）。 */
         nearestTo?: {
           /** 参照点世界 x 坐标，单位为米。 */
           x: number;

@@ -160,7 +160,7 @@ export class SeedWorldAgentApplication {
   private _lastSelectedRefs: readonly SeedWorldRef[] = Object.freeze([]);
   private _lastTransactionId: string | undefined;
   private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
-  private _taskViewer: Readonly<SeedWorldLiveState["camera"]> | undefined;
+  private _taskViewer: (Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string; readonly inputId?: string }) | undefined;
   private _readPublishedViewer = (): Readonly<SeedWorldLiveState["camera"]> => this._requireState().camera;
   private readonly _assets: SeedWorldAssetManager;
   private _editorSettings: SeedWorldEditorSettings = { waterColors: [] };
@@ -498,8 +498,8 @@ export class SeedWorldAgentApplication {
   getUserSelection(): SeedWorldRef | NativeBuildingSelection | null { return this._userSelection; }
 
   /** Freezes deictic viewer expressions for one Agent task while the player remains free to move. */
-  getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> {
-    return structuredClone(this._readPublishedViewer());
+  getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> & { readonly capturedAt: string } {
+    return freezeClone({ ...this._readPublishedViewer(), capturedAt: new Date().toISOString() });
   }
 
   viewerRelationFor(target: readonly number[]) {
@@ -521,9 +521,11 @@ export class SeedWorldAgentApplication {
       headingDegrees, pitchDegrees, nearestHorizontalAxis };
   }
 
-  captureTaskViewerSnapshot(camera = this.getViewerSnapshot()): () => void {
+  captureTaskViewerSnapshot(camera = this.getViewerSnapshot(), inputId?: string): () => void {
     if (this._taskViewer) throw new Error("Seed World Agent task viewer snapshot is already active");
     const snapshot = Object.freeze({
+      capturedAt: camera.capturedAt,
+      ...(inputId ? { inputId } : {}),
       mode: camera.mode,
       position: Object.freeze([...camera.position] as [number, number, number]),
       forward: Object.freeze([...camera.forward] as [number, number, number])
@@ -575,7 +577,8 @@ export class SeedWorldAgentApplication {
   /** Bounded current-state context for every model decision. Never includes recent operations. */
   getWorldThumbnail(): unknown {
     const state = this._requireState();
-    const viewer = this._viewerCamera();
+    // Both observations are projections of their existing owners; neither updates the other.
+    const viewer = this.getViewerSnapshot();
     const authoring = this._engine.readAuthoringSnapshot();
     const { rootSeed, sizeMetres } = state.world;
     return Object.freeze({
@@ -585,9 +588,8 @@ export class SeedWorldAgentApplication {
         sizeMetres
       }),
       viewer: Object.freeze({
-        mode: viewer.mode,
-        position: viewer.position,
-        forward: viewer.forward
+        atSubmission: this._taskViewer ?? null,
+        current: viewer
       }),
       time: Object.freeze({
         hours: state.lighting.timeHours,
@@ -614,7 +616,9 @@ export class SeedWorldAgentApplication {
         poiCount: state.plan.poiCount,
         authoredFeatureCount: authoring.resources.length,
         visibleWaterBodyCount: state.water.visible ? state.water.bodyCount : 0,
-        residentVegetation: freezeClone(state.population.residentAcceptedCounts),
+        residentVegetation: { scope: "currently-resident-instances",
+          description: "当前驻留的植被实例数量；不是整个世界的总数，0 不代表项目中不存在该植被。",
+          counts: freezeClone(state.population.residentAcceptedCounts) },
         decorations: freezeClone(state.decorations)
       })
     });

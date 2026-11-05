@@ -49,7 +49,7 @@ export function createSeedWorldKnowledge(
       `### ${system.title}\n\nComponents: ${system.components.map(type => `\`${type}\``).join(", ")}\n\n${system.knowledge.join("\n\n")}`
     ).join("\n\n");
     return [{
-      path: "knowledge/world/" + relative,
+      path: relative === "runtime.md" ? "engine/knowledge/world.md" : "knowledge/world/" + relative,
       content: content
         .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index + (domain === "world" ? "\n\n### Asset Types\n\n" + types : ""))
         .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", componentKnowledge)
@@ -62,9 +62,10 @@ export function createSeedWorldKnowledge(
   }).join("\n");
   documents.find(doc => doc.path === "knowledge/world/README.md")!.content = catalog;
   return {
-    catalog: "# Runtime Project\n\n- [世界资产、动物、空间、时间与天气](knowledge/world/README.md)\n" +
-      (available.has("world.animals.catalog") ? "- [动物种类目录、场景动物与行为](knowledge/world/animals/README.md)\n" : "") +
-      (available.has("world.inspect") ? "- [Script 开发与 Engine 类型](knowledge/runtime/README.md)\n- [已发布运行时身份、节点和组件](knowledge/world/runtime.md)\n" : ""),
+    catalog: "# Runtime Project\n\n" +
+      "world_state.snapshot.viewer.atSubmission is the frozen pose and capture time for the active inputId, not the start of the chat; it is null when no input reference is active. viewer.current is sampled for this model request. The user can move or turn during execution. Resolve relative instructions from their submission reference; verify created objects by identity and intended placement. A screenshot uses its own metadata.viewer and capturedAt. An object outside the current image is not evidence of failed creation. Do not recreate it or move the user's camera merely to verify it.\n\n- [世界编辑总览](knowledge/world/README.md)\n" +
+      catalog.split("\n").filter(line => /^- \[/.test(line)).map(line => line.replace(/\]\(([^)]+)\)/g, "](knowledge/world/$1)")).join("\n") + "\n" +
+      (available.has("world.inspect") ? "- [Engine runtime development](../engine/knowledge/README.md)\n- [World runtime access](../engine/knowledge/world.md)\n" : ""),
     documents,
     ...api
   };

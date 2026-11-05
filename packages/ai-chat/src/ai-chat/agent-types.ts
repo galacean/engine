@@ -58,24 +58,10 @@ export type AgentViewImage = {
 
 export type AgentViewObservation = {
   /** Stable immutable image revision, when backed by a retained screenshot. */
-  imageId?: string;
+  imagePath?: string;
   image: AgentViewImage;
   metadata: AgentValue;
-  /** Exclusive ownership transfers to AgentImageStore; never serialized into messages or traces. */
-  pointer?: AgentViewPointer;
 };
-
-export interface AgentViewPointer {
-  /** Retained CPU storage, including identity tables; GPU capture scratch must already be released. */
-  readonly byteLength: number;
-  /**
-   * Coordinates in the returned image, top-left origin. Must not mutate user selection.
-   * Identified observations carry only the public identity (ref/type) and sampled
-   * hitPosition. Detailed properties belong to the corresponding inspection API.
-   */
-  point(x: number, y: number): AgentValue;
-  dispose(): void;
-}
 
 export type AgentTool = {
   name: string;
@@ -145,8 +131,16 @@ export type AgentApiDeclarationModule = {
   toolNames?: readonly string[];
 };
 
+/** Host-owned instructions, mounted read-only at skills/<name>.md. */
+export type AgentSkill = {
+  name: string;
+  description: string;
+  content: string;
+};
+
 export type AgentScriptApiCatalog = {
-  /** Read-only knowledge files; paths are rooted at the virtual project. */
+  skills?: readonly AgentSkill[];
+  /** Read-only knowledge files; paths are relative to editor/. */
   documents?: readonly { path: string; content: string }[];
   /** Root knowledge README used for initial navigation, without full declarations. */
   catalog: string;
@@ -156,7 +150,14 @@ export type AgentScriptApiCatalog = {
   modules: readonly AgentApiDeclarationModule[];
 };
 
+/** Host-owned, read-only capabilities exposed directly to the model, outside editor transactions. */
+export type AgentNativeReadTool = {
+  readonly definition: AgentModelToolDefinition;
+  invoke(input: Record<string, unknown>, context: AgentToolExecutionContext): Promise<unknown> | unknown;
+};
+
 export type AgentApplicationDefinition = {
+  nativeReadTools?: readonly AgentNativeReadTool[];
   editorComponents?: readonly AgentEditorComponentBinding[];
   /** Root guide, read-only documents and the registered declaration capability graph. */
   scriptApi: AgentScriptApiCatalog;
@@ -166,9 +167,7 @@ export type AgentApplicationDefinition = {
   toolNames: readonly string[];
   provideWorldThumbnail?(): Promise<unknown> | unknown;
   /** Optional visual sensor. Only invoked by an explicit model Tool Call. */
-  observeView?(signal: AbortSignal): Promise<AgentViewObservation>;
-  /** observeView supplies owned pointer snapshots when this capability is enabled. */
-  supportsViewPointer?: boolean;
+  captureSnapshot?(signal: AbortSignal): Promise<AgentViewObservation>;
   imageResources?: import("./image-resources").ConversationImageResources;
   /** Opened only after execute preflight succeeds. Its tools exclusively read/write the draft. */
   beginEdit?(executionId: string, signal: AbortSignal): Promise<AgentEditTransaction> | AgentEditTransaction;
@@ -227,12 +226,13 @@ export type AgentFinalDecision = {
   message: string;
 };
 
-export type AgentImageReadDecision = { type: "read_image"; imageId: string };
-export type AgentPointerDecision = { type: "pointer"; imageId: string; x: number; y: number };
+export type AgentPickDecision = { type: "pick"; input: import("./agent-snapshots").SnapshotPickInput };
 export type AgentFileToolName = "read" | "write" | "edit" | "delete" | "glob" | "grep";
 export type AgentFileDecision = { type: "file"; name: AgentFileToolName; input: Record<string, unknown> };
 export type AgentInvalidToolDecision = { type: "invalid_tool"; name: string; message: string };
+export type AgentNativeReadDecision = { type: "native_read"; name: string; input: Record<string, unknown> };
 export type AgentDecision =
+  | AgentNativeReadDecision
   | AgentFileDecision
   | AgentInvalidToolDecision
   | AgentReadDecision
@@ -240,9 +240,8 @@ export type AgentDecision =
   | AgentSearchDecision
   | AgentScriptDecision
   | AgentFinalDecision
-  | { type: "observe_view" }
-  | AgentImageReadDecision
-  | AgentPointerDecision;
+  | { type: "snapshot" }
+  | AgentPickDecision;
 
 export type AgentToolErrorCode = "UNKNOWN_TOOL" | "INVALID_ARGUMENTS" | "TOOL_EXECUTION_FAILED" | "INVALID_TOOL_RESULT";
 
@@ -545,11 +544,9 @@ export type AgentEvent =
       type: "image_resources";
       taskId: string;
       action: "captured" | "read" | "released";
-      imageId?: string;
+      imagePath?: string;
       storedCount: number;
       storedBytes: number;
-      pointerCount?: number;
-      pointerBytes?: number;
       offloadedCount: number;
       resources?: AgentValue;
     }
@@ -561,6 +558,7 @@ export type AgentEvent =
       step: number;
       attempt: number;
       messages: AgentMessage[];
+      tools?: AgentModelToolDefinition[];
     }
   | { type: "model_finished"; taskId: string; step: AgentStepRecord }
   | {

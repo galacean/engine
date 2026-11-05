@@ -32,8 +32,8 @@ export function createSeedWorldAgentDefinition(
 /** Application-owned composition of world and native editing declarations. */
 export function seedWorldNativeKnowledge(knowledge: typeof seedWorldKnowledge) {
   const catalog = withNativeEditingKnowledge(knowledge);
-  return { ...catalog, catalog: catalog.catalog + "\n- [Preset systems in Script assets](knowledge/runtime/preset-systems.md)\n",
-    documents: [...(catalog.documents ?? []), {path: "knowledge/runtime/preset-systems.md", content: presetRuntimeGuide}], modules: [...catalog.modules, {
+  return { ...catalog, catalog: catalog.catalog + "\n- [Preset systems in Script assets](../engine/knowledge/preset-systems.md)\n",
+    documents: [...(catalog.documents ?? []), {path: "engine/knowledge/preset-systems.md", content: presetRuntimeGuide}], modules: [...catalog.modules, {
     id: "declare/world/native.d.ts",
     source: 'import "../native/api"; export {};',
     imports: ["declare/native/api.d.ts"]

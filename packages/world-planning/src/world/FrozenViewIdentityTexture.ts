@@ -1,3 +1,5 @@
+import { snapshotEstimatedPosition, type SnapshotSurfaceProjection } from "./SnapshotSurfaceEncoding";
+import { snapshotError } from "@galacean/engine-ai-chat/ai-chat/agent-snapshots";
 import { EngineEventType, type Texture2D } from "@galacean/engine";
 import type { ViewIdentityBuffer, ViewRef } from "./SeedWorldViewSnapshot";
 
@@ -9,7 +11,7 @@ export interface FrozenViewIdentityRange {
   keys?: (string | undefined)[];
 }
 
-/** One immutable RGBA8 texture and a draw table, not a CPU pixel/object graph copy. */
+/** One immutable identity/depth RGBA8 texture, frozen camera and compact draw table. */
 export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
   readonly byteLength: number;
   private disposed = false;
@@ -20,16 +22,26 @@ export class FrozenViewIdentityTexture implements ViewIdentityBuffer {
 
   constructor(
     private readonly texture: Texture2D,
-    private readonly ranges: FrozenViewIdentityRange[]
+    private readonly ranges: FrozenViewIdentityRange[],
+    private readonly projection: SnapshotSurfaceProjection
   ) {
     this.byteLength = texture.width * texture.height * 4;
     // The texture is no longer attached to an RT; keep it alive across resource GC.
     texture.isGCIgnored = true;
     texture.engine.on(EngineEventType.DeviceLost, this.onLost);
   }
+  get identityBits(): number {
+    return this.projection.identityBits;
+  }
+  estimatedPosition(pixels: Uint8Array, offset: number, x: number, y: number): [number, number, number] | undefined {
+    return snapshotEstimatedPosition(pixels, offset, x, y, this.texture.width, this.texture.height, this.projection);
+  }
   read(x: number, y: number, width: number, height: number): Uint8Array {
     if (this.disposed || this.lost || this.texture.destroyed)
-      throw new Error("SNAPSHOT_EXPIRED: Frozen GPU contents are unavailable; capture a new screenshot");
+      throw snapshotError(
+        "SNAPSHOT_EXPIRED",
+        "SNAPSHOT_EXPIRED: Frozen GPU contents are unavailable; capture a new screenshot"
+      );
     const pixels = new Uint8Array(width * height * 4);
     this.texture.getPixelBuffer(x, y, width, height, 0, pixels);
     return pixels;

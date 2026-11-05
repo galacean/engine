@@ -14325,3 +14325,272 @@ Seed 当前采用局部视觉近似，不移植原版 TGSR2、全场景景深或
 验证：Engine 完整模块及声明构建通过；相关产品 23 文件首轮 306/307，通过修复重复植被后补跑应用 51 项全通过；AI Chat/AgentLoop/组件联合查询 58 文件首轮 734/735，通过修复长行游标后补跑 2 文件 76 项全通过（包含新增回归，与首轮有交叉）。最终 benchmark 离线 120 项、最佳路径 5 项、82+2 路径/103 文档节点/66 锁定源文件校验、Terrain noEmit、314 项 preset 声明、Agent/原生 Scene/农场声明一致性全部通过。
 
 限制：全 Terrain 扩展检查遇到未改动的 SeedWorldPopulationRuntimeResources 密集批处理测试 15 秒超时，随后中止广泛检查；保留失败，不调整超时，也不宣称全量通过。verify-isolation 仍被 manifest.baseCommit 以来上游 world/ 外变更及保留的 pnpm-workspace.yaml 阻断；相对目标 dev/2.0 的 world/ 外代码净差异为空，pnpm 文件不提交。未新增真实 LLM release-82 批次；本轮浏览器功能验证不是全平台或审美验收。
+
+
+## 2026-11-03: Shared Retrieval index and lazy storage
+
+User scope: shared/retrieval is a browser module for this project. OSS synchronization and scheduling belong to the user's separate skill. This implementation supplies three PrimitiveMesh fixtures (box, platform, pillar), an offline pure catalog builder, and a Worker client. It is not a Node query service or standalone npm package. Gallery owns dependencies and the Vite configuration.
+
+OasisBE 5f08208b tokenization and ranking are retained; storage is split into a compact global index, bounded summary blocks, and URL-backed full descriptions/resources. Search loads only candidate summary blocks; details and README are lazy; resource resolution returns a URL without downloading mesh data. Each client owns one immutable catalog version, with artifact/description integrity checks and Worker termination on cancellation, timeout or disposal. Jieba is excluded from dependency prebundling to preserve its WASM address. Gzip index bytes use a .bin object name to avoid automatic HTTP Content-Encoding decoding before integrity verification. Module README defines the synchronization input contract; UPSTREAM records provenance and portability limits.
+
+Validation: frozen-lockfile install, 8 focused tests, module noEmit and production example build passed. Real-browser development and production smoke checks verified lazy opening, one summary block for the platform query, separate on-demand description/README reads, URL-only resolution and repeat-query cache hits. Browser lifecycle checks verified cancellation, retry, disposal and timeout. Evidence: local output/retrieval-development/. Spatial scope inventory returned needs-scope-split because it includes existing untracked output plus the authorized dependency lock change; it is not recorded as passing. Product changes are limited to shared/retrieval, Gallery dependencies/Vite configuration and this record.
+
+Not delivered or claimed: LLM Tool/Editor import integration, complete source_text grep/pagination, production corpus performance, identical rankings across different ICU versions, full Seed World rendering or real LLM evaluation.
+
+
+## 2026-11-03: Retrieval keyword search replaces segmentation
+
+User decision supersedes the earlier same-day prototype: the LLM supplies short, space-separated asset keywords. Removed the copied OasisBE tokenizer/BM25 implementation, Jieba WASM, MiniSearch and their Gallery dependencies/lock entries/Vite exclusions. The exported searchAssetsToolContract and query schema now explain keyword extraction, excluding player position/count/actions, and retrying with fewer or alternate terms. This is reusable metadata, not a claim that the Tool is registered in Seed World yet.
+
+The Worker searches normalized name, overview description and string tags from the top level, overview, visualProfile, usage and technical sections. Rank prioritizes keyword coverage, exact name, name hits, tag hits, description hits, then stable key ordering. Partial matches remain candidates and require inspection. No regex, synonyms or sentence segmentation. Storage format v2 names the keyword-substring-v1 strategy and rejects the old format; no compatibility fallback. Examples were regenerated and obsolete example index bytes removed. Lazy summaries, details, resource URLs and cancellation ownership remain in the shared module.
+
+Validation: 10 focused tests, noEmit, frozen-lockfile install and production example build passed. The production browser smoke passed lazy opening, search, on-demand descriptions/README, URL-only resolution and cached repeated queries; no WASM request or WASM build artifact exists. Offline construction using all 13,690 non-blueprint descriptions from the downloaded OSS catalog produced a 501,531-byte gzip index (4,276,960 decoded bytes), with 107 lazy summary blocks. Node-only query measurements are diagnostic, not browser/mobile performance claims or recall-quality acceptance. Evidence is in local output/retrieval-keywords/.
+
+Scope inventory still reports needs-scope-split due to existing output evidence and the authorized overlay dependency lock file; not recorded as passing. No OSS synchronization, remote publication, full-corpus browser test, LLM Tool registration, Editor import or real LLM instruction test was added.
+
+
+## 2026-11-03 原生召回 Tool 触发与真实 LLM 验证
+
+目标是验证模型能从普通玩家表达自主选择 `search_assets`，而非由测试强制调用。正式名称保持 `search_assets`；没有增加 `asset_search` 别名。AI Chat 新增宿主注册的只读原生 Tool 扩展，经过名称校验、工具预算、取消信号、Trace 和 Tool Result 配对；不进入编辑事务。大结果复用现有输出文件和 `read` 分页机制，不因超过显示预算改变成功状态。Retrieval 核心仍不依赖 Agent；`shared/retrieval-agent` 负责 schema 校验与转发，Seed World 测试入口通过已有扩展组合链注入，默认生产入口未配置资产库。
+
+真实链路使用当前工作树 dev/retrieval@87450e45d8bf1986d9159a360235c69ce35e9e9a 加未提交改动、ASAP codex/seed-world-local-debug@cf03c7af5e4afbb8cf239b87d5f8016f219f4386（PID 54793，8082）、4173 Wrapper 前端和 4176 三资产静态示例库。请求 dsv41flash，响应 debug.modelName 为 aisearch_dsv41flash，telemetry 输入估算记录部署 aisearch_dsv41flash_h203e_tp4；未修改模型配置。单浏览器同一会话串行执行四条指令，未强制 Tool choice。
+
+初测平台和柱子分别发出 3/2 次近义搜索，空结果发出 7 次搜索；工具契约补充先查一组关键词、看结果后再改词、不要为了证明不存在遍历全库。最终复测：平台 3.12 秒，query=平台，1 次搜索+1 次完整描述，返回宽平台 6×1×6 米；柱子 2.29 秒，query=细长 柱子，1 次搜索+1 次完整描述，返回细立柱高 5 米；世界时间 8.81 秒，0 次召回，调用 time.get 并正确回答 12:00；直升机 5.29 秒，未编造匹配资产，但仍搜索 4 次并进行泛化扫描。最后一项说明 Prompt 指引不是确定性的调用上限，空结果效率仍有改进空间。初测回答“一米约两级台阶”没有资料依据，已记录，不把 completed 当作全部回答质量通过。
+
+验证：AI Chat 56 文件 656 测试、Retrieval 10 测试通过，ai-chat/llm/retrieval 类型检查通过；原生 Tool 覆盖未知名称、冲突、调用、错误、取消、预算和大结果继续读取。证据与原始 Trace 位于本地 output/retrieval-llm/；summary.json 记录源码指纹和请求 Trace ID。scope audit 仍为 needs-scope-split（历史 output 与依赖锁等），未宣称通过。没有验证全量 OSS 库召回质量、source_text、导入或创建实体；未提交或推送。
+
+
+### 2026-11-03 普通玩家目标与 OSS 分类核对
+
+用户纠正：主验收必须使用“我要一个直升机。”这样的目标，不提示素材库、搜索或导入。新浏览器会话直接提交该原话，模型第一步自主调用 search_assets(query=直升机)，后续换词查询仍无匹配，随后阅读编辑器声明并试图用基础几何体构造。测试等待预算 55 秒到期；之后取证时运行已约 83 秒，仍未完成，使用面板 stop 停止。只证明普通目标可自然触发召回，不证明创建成功；没有把测试等待超时归因为模型服务超时。原始证据 output/retrieval-llm/player-helicopter.json 与 player-helicopter-stopped.json。README 将显式找素材的旧用例降为底层回归，不再当作玩家目标验收。
+
+已下载 OSS catalog（20261103-202330）排除 gamedesign 后共有 13690 条，全部有 assetType 与 overview.tags，只有 38 条填有 assetSubType。目录、类型和标签是三种不同信息；model 目录有 12 条实际类型为 spine，不能把目录当成可靠类型。统计证据 output/retrieval-llm/oss-classification.json；未重新拉全量 OSS 清单。
+
+
+## 2026-11-04 Skills 对话接入与真实召回物料使用
+
+在 VFS 根目录注册 skills/galacean-editor/SKILL.md 与 references/assets-and-reuse.md，和 editor/knowledge、editor/declare 分工。每次模型请求的 agent_task.skills 只带 name、description、path；模型通过现有 read 按需加载正文与引用资料，不新增 skill Tool，不将业务知识塞进通用 System Prompt。技能目录由同一注册表生成并禁止项目修改；名称、路径穿越及重复文件在注册阶段拒绝。对照 Codex 渐进加载模式与 DSH master@8bd073392eef6f54e921a093b95076248eb08cbb 的技能目录/按需加载职责，调用机制沿用本项目的 read。
+
+Seed World 使用 shared/retrieval/catalog.json 的 manifestUrl 注册 search_assets、read_asset_descriptions、source_text（仅 read 子集）与导入来源。外部 catalog 不挂进项目 VFS；asset.import 才解析选中资源集，限量下载，经通用草稿导入、重名检查、依赖维护、提交与激活进入项目。Source 文本保持行号和分页；GLB 使用 Script 的 GLTFResource 配置引用和 instantiateSceneRoot，不宣称支持 Editor 的全部 GRP、音频或 GLTF 层级编辑 API。
+
+真实模型验收：自然指令“在我面前放一辆消防车。”经本地 ASAP cf03c7af5e4afbb8cf239b87d5f8016f219f4386 请求 dsv41flash，实际 aisearch_dsv41flash_h203e_tp4；首轮 APITimeoutError，无 Tool 调用。Trace ID c61200011793722911326195454793。实际请求中已核对 skills 元数据，但未验收模型自主加载和使用该 Skill。
+
+独立确定性验收：从真实 CDN 搜索“消防车”、读取完整描述、asset.import GLB、创建 Script 与配置引用、提交激活；真实 Seed World 画面显示红色消防车，6 个 MeshRenderer 均加载，无 runtimeDiagnostics。刷新后同一资产与脚本引用、实体、6 个网格仍恢复。该结果证明技术链路与持久化，不冒充 LLM 自主执行成功。测试入口 tests/llm/retrieval-acceptance.ts；原始模型 Trace、API 验收 JSON 与截图保存在 output/playwright/retrieval-use/。
+
+验证：Skills/协议/文件/知识相关 40 个测试、导入与技能相关 13 个测试、Retrieval 11 个测试通过，ai-chat、terrain 与 llm 类型检查通过；原生读取 Tool 8 个测试（含 source_text 分页、行号及非法请求不触发下载）通过。全量 OSS 同步使用项目外 sync-galacean-assets Skill 与 SQLite 检查点，排除 gamedesign；仅在完整校验和 catalog 发布成功后更新默认 manifestUrl。同步未完成时不宣称正式全库已可用。
+
+### 2026-11-04 真实 LLM 完整链路复验通过
+
+本地 ASAP 同一进程、同一模型未修改配置。最小 streamChat 请求返回 MODEL_OK，实际部署 aisearch_dsv41flash_h203e_tp4，Trace c61200011793724107772195954793，证明本次请求已恢复；不以 HTTP 200 代替内容核对。
+
+随后在没有已导入消防车的新浏览器工程中提交原话“在我面前放一辆消防车。”。模型自主读取 skills/galacean-editor/SKILL.md 与 references/assets-and-reuse.md，调用 search_assets 一次、read_asset_descriptions 一次，检查工程与 Engine 声明，导入 Models/firetruck.glb，创建 Scripts/Firetruck.ts 和“消防车”实体，通过组件 props.model 声明模型引用，并用 observe_view 验证画面。全程无工具失败，43 个模型步骤、127332.7 ms；其中 20 次 read、7 次 grep，阅读开销仍大，不把一次成功推广为性能或全素材质量已验收。
+
+独立验收核对：真实红色消防车位于相机前方水平距离 9 米，实体处于激活状态，6 个 MeshRenderer 有网格，runtimeDiagnostics 为空。刷新页面后模型、脚本、同一实体 ID、6 个网格与位置均恢复。验收时仅观察与读取，未使用确定性辅助函数替模型执行编辑。资产使用范围是可保存的模型外观实例，不包含驾驶玩法。
+
+Interaction ID 588d6f33-573a-434a-a322-4bbd6ecbebf2；最后模型 Trace c61200011793724358517201554793。证据：output/playwright/retrieval-use/llm-final-trace.json、llm-final-summary.json、llm-final-source.json、llm-initial-inspection.json、llm-reload-inspection.json 与 llm-firetruck-initial.png。源码基线 dev/retrieval@87450e45d8bf1986d9159a360235c69ce35e9e9a 加证据中列明的未提交文件指纹；ASAP cf03c7af5e4afbb8cf239b87d5f8016f219f4386。完整类型检查通过。
+
+此验收使用真实 OSS 消防车单资产 CDN catalog；全量 OSS 同步仍在进行，正式默认 catalog 的发布与全库浏览器检查尚未完成。
+
+### 2026-11-04 全量 OSS catalog 发布与浏览器验收
+
+使用项目外 sync-galacean-assets Skill 完成 galaceanoss/assets/ 全量快照同步，排除 assets/gamedesign/。正式入口已写入 shared/retrieval/catalog.json，corpusHash 为 291cb978ad35ae5aeded854c5bf546a24466ab73f2b9b1bf3eff21627140a7b6。成功水位为 2026-11-04 01:14:09 +08:00；资产在之后发生的变化属于下一次增量同步范围，不宣称持续镜像。
+
+发布 13,778 个资产、33,752 个物料文件：model 4,662、texture 8,113、audio 926、prefab 61、spine 14、font 2。最终续传处理 11,051 个资产、复用已成功检查点 2,727 个；无延后、无删除、无静默跳过。扫描的另外两个对象 assets/catalog.json.gz 和 assets/index.html 是源库旧索引/网页入口，不是独立物料。同步按文件流式下载、上传及 SHA-256/长度/CORS 回读验证，完成后临时目录为空；完整资产与同步 SQLite 均不进入项目。完整发布的所有来源文件、描述 URL、资源 URL、索引条目和摘要条目独立交叉核对通过。
+
+入口 manifest 22,640 字节；关键词索引 gzip 506,778 字节、解压 4,299,451 字节；108 个摘要块合计 18,383,502 字节。CDN 对 JSON 使用 HTTP gzip，独立核对按响应 Content-Encoding 解码后比对哈希；.bin 索引保留自身 gzip 文件字节。没有添加中文分词 WASM。
+
+真实浏览器使用物化后的正式 catalog 配置与 RetrievalClient：消防车 2 个候选、树 269、按钮 323、鸟 13，均扫描同一 13,778 条索引并返回相同 corpusHash。首次消防车搜索约 388 ms，后续三个查询约 103/27/128 ms，仅为本次桌面开发环境记录。网络证据共 11 次 CDN 请求：四次搜索仅请求 manifest、index 和需要的 summary blocks，读取选中完整描述时新增一次 describe.json 请求，解析物料 URL 不下载 GLB。未对所有资产格式的 Runtime 导入能力或全库召回质量作泛化声明。
+
+证据：output/playwright/retrieval-use/full-catalog-audit.json、full-catalog-browser.json 与对应只读验收脚本。首次独立 Python 回读比较到 HTTP 压缩字节，解码后哈希/长度与发布记录一致；这是验收脚本的 HTTP 解码处理，不是修改产品完整性校验或放宽标准。
+
+#### 正式默认入口的真实 LLM 复验
+
+在正常 demos/terrain/seed-world-planner/index.html 入口新建浏览器工程，不传 catalog 覆盖参数。初始检查确认无消防车资产或实体。提交原话“在我面前放一辆消防车。”，dsv41flash 实际部署仍为 aisearch_dsv41flash_h203e_tp4。模型自行读取 Skill 与资产指南，从完整 13,778 条目录中搜索一次并读取选中描述一次，导入 Models/firetruck.glb，创建 Scripts/FiretruckPlacement.ts 和消防车实体，配置资源引用，并在观察后调整位置。没有使用确定性编辑辅助函数替模型完成任务。
+
+229798.6 ms、80 个执行步骤、50 次模型请求，工具无失败；31 次 read、17 次 grep，地形与声明查找开销仍高，不将功能验收等同于效率验收。完成后的独立只读检查与截图确认消防车在玩家正前方约 10 米、6 个网格启用且已加载、无运行时诊断。刷新后资产、脚本、同一实体 ID/变换、网格状态完全一致，画面仍可见。
+
+Interaction 9f78e78b-e253-4183-b558-2853325d4c22，最后模型 Trace c61200011793735120503212254793。证据：output/playwright/retrieval-use/default-llm-trace.json、default-llm-summary.json、default-initial-inspection.json、default-reload-inspection.json、default-firetruck-initial.png、default-firetruck-reload.png。正式目录来源信息与最终源码指纹见 delivery-audit.json、delivery-source.json。本次验收仍仅证明静态模型外观放置和保存恢复；GRP 包安装、音频等未注册导入格式和驾驶玩法不在本次实现范围。
+
+## 2026-11-04 — VFS namespace and asset inspection
+
+User decision: separate execute documentation (`editor/`) from Script runtime declarations (`engine/`); flatten workflow files under `skills/`; remove project/folder/document metadata, retaining asset metadata. During implementation the user narrowed `.ai/` to long text outputs only. Screenshot ownership, task-end cleanup and the existing task-local `editor/execute.js` view remain unchanged; no execution-history store was introduced.
+
+- Runtime Skill: `skills/galacean-editor.md`, name/description parsed from frontmatter. Requests carry discovery metadata and path only; body is read on demand. The asset-use reference lives at `editor/knowledge/native/assets-and-reuse.md`.
+- Engine and host declarations: `engine/node_modules/...`; runtime guides and preset-system guidance live under `engine/knowledge/`. Script compiler declaration resolution uses the same paths. Editor editing contracts remain under `editor/declare/`.
+- Only registered assets expose `.meta`. Identity fields derive from current project records; absent summary/usage remains empty. Creation/import/document writes no longer synthesize folder/document sidecars. Import works without an optional source sidecar. Save format is now version 6; version 5 is explicitly unsupported, with no migration or automatic removal of existing saved data.
+- `editor.asset.info({path})` reads metadata without downloading content. `editor.asset.read({path})` returns discriminated text, structured JSON, PNG/JPEG dimensions, or GLB hierarchy/meshes/materials/static model-local bounds. Missing geometry bounds and deforming geometry are marked incomplete; unsupported readers/encodings report errors. Formats own readers; preset configuration assets supply their JSON reader.
+- `.ai/outputs/` is session-only and read-only. A 64 MiB budget includes text/path/bookkeeping; reads update LRU, listings do not. Streaming readers pin outputs. Oversized or pinned-capacity admissions fail without evicting unrelated entries. Known expired paths return `TEMP_FILE_EXPIRED: 临时文件已过期`; ordinals are not reused on reset. Reset/close releases outputs; late writes after disposal reject. Temporary contents are excluded from the editable-file observation cache and forbidden in persisted project paths/dependencies.
+- Added a natural-language `asset.info` LLM case and deterministic oracle; no real model evaluation was run for this refactor.
+
+Verification: 972 tests passed across ai-chat/runtime-editor/runtime-editor-agent, AgentLoop integration and Seed World knowledge links. Includes lazy public `asset.info` with zero fetches, type-specific reads, import/save/undo, metadata boundaries, output LRU/expiry/pinning, cross-task retention/reset and unchanged screenshot lifecycle. Real Chromium Worker execution spilled a 70,000-character result into `.ai/outputs/1.json` and read it back; browser document write/edit/save/reopen/delete passed. Evidence: `output/playwright/vfs-layout-20261104/`. The test browser and Vite server are closed after validation. This verifies deterministic host behavior, not a new real-LLM success rate or visual asset-placement test.
+
+
+## 2026-11-04 — Agent context sections and capability discovery
+
+Requests now separate system rules, host_environment, capability_catalog, agent_task, conversation_history and world_state before the active transcript.
+The capability catalog uses canonical editor/README.md content from the mounted VFS, including filtered world domain links and on-demand Skill metadata.
+Submission-time spatial references remain separate from the fresh timestamped world snapshot.
+The scene-composition Skill describes asset import and composition rather than serving as the universal editing entry.
+Resident vegetation counts explicitly cover only currently resident instances.
+Debug model_request events retain tool definitions alongside messages.
+
+Compaction protocol v2 carries the actual protected context boundary (currently six messages), validates replacements against the captured request, and preserves all host sections.
+The ASAP checkout codex/seed-world-local-debug implements the matching v2 protocol while retaining v1 for existing callers.
+Deploy these frontend/backend protocol changes together; no silent protocol downgrade is provided.
+Worker execution, project transactions and screenshot lifecycle remain unchanged.
+
+Validation: 720 frontend tests across ai-chat, native knowledge and Seed World knowledge/application; 64 ASAP compaction tests; ai-chat, terrain and llm TypeScript checks passed.
+Both worktrees passed git diff --check.
+ASAP was restarted from /Users/zhanyingwei/Desktop/galacean/asap-service-seed-world-debug (HEAD cf03c7af5e4afbb8cf239b87d5f8016f219f4386 plus these uncommitted changes), PID 5666, port 8082.
+Engine source is dev/retrieval HEAD 87450e45d8bf1986d9159a360235c69ce35e9e9a plus working changes; Vite PID 68405, port 4173.
+
+Real LLM acceptance used an isolated browser project, seed 202611041, exact player instruction “在我面前生成一棵树”, requested dsv41flash and actual aisearch_dsv41flash_h203e_tp4.
+The first tool read editor/knowledge/world/vegetation/README.md; seven reads discovered declarations, followed by spatial.resolve and vegetation.create.
+Exactly one authored tree was applied at 6,970.8 ms; no search_assets, grep, Script creation or tool failure occurred.
+Independent storage inspection found the same resource ID in World/Planning.json; the screenshot shows a tree in front of the central tower.
+The complete task took 62,029 ms and 16 model requests because the model continued with four observations and ten pointer checks before finishing.
+This confirms capability discovery and creation, not an overall latency improvement: the supplied earlier trace took 26,825.8 ms with 13 model requests, 15 reads, two greps and one asset search, in a different scene.
+Repeated visual verification and the verbose final response remain follow-up efficiency issues; no tree-specific prompt rule was introduced.
+
+Interaction: 878e6a25-3d40-47b8-85fb-6af52dcec46b; last provider trace: c61200011793776649533103805666.
+Evidence: output/playwright/context-v2/{trace.json,summary.json,inspection.json,tree.png,source.json}.
+The independent observer first required a fixture-only viewer pose when passed vegetation.create; it was rerun without that fixture-only option to read persisted project data without mutating the scene.
+The task browser is closed after verification; the frontend and ASAP services remain available for user testing.
+
+
+## 2026-11-04 — Prompt responsibility and verification wording
+
+Applied the user-approved seven clarity changes to general policy, host context, capability/Skill discovery and execute guidance.
+Object references identify a target without asserting existence or unchanged state; snapshot freshness applies to the same state field, preserving absent details and submission-time references.
+Known independent reads share a round; declaration files retain their import structure with no implicit dependency expansion or model-knowledge cache.
+Skill activation is owned by capability_catalog; the Skill body focuses on composition and links to the asset guide for evidence semantics.
+Execute guidance now uses separate paragraphs for syntax, API access, associated operations, commit boundaries, output and failure receipts. It retains committed/aborted/uncertain publication rules and the independent-command boundary.
+Asset and native editing guides replace mandatory post-commit queries with checks of unresolved facts. The asset guide no longer requires listing the asset table after a successful import or using image picking to prove creation.
+Simple final replies state the outcome briefly while retaining material deviations, failures and limitations.
+No auto-placement, model-instance API, transport, screenshot, VFS or transaction behavior changed.
+
+Verification: 45 existing tests passed across protocol, context assembly, Skill mounting, compaction integration, native knowledge and Seed World knowledge links. The ai-chat TypeScript check and git diff --check also passed. The readable current policy is output/prompt-clarity/prompt.md; before/change artifacts isolate this turn from prior working changes.
+This revision has not been evaluated with a new real-LLM task. Tests establish assembly and contract integrity, not lower model latency or fewer rounds.
+
+
+## 2026-11-04 — Live viewer context after navigation
+
+The trace for “送我去最高的地方” (2ee32f70-6d43-4abc-b4f8-fbb4a6795fe7) showed a committed teleport while every subsequent world_state viewer still contained the submission-time coordinates. getWorldThumbnail incorrectly read _viewerCamera, which intentionally preserves spatial references for the active task.
+Current model observations now read the camera from the same live state as the rest of the thumbnail. Submission-relative targeting still uses the frozen task viewer. No prompt, navigation or transaction semantics changed.
+The existing frozen-viewer regression now exercises the actual Agent definition thumbnail provider across two camera moves and task release. It failed before the fix on the old position/heading and passes after it, while relative targets stay fixed until release. All 60 tests across SeedWorldAgentApplication, SeedWorldAIChatIntegration and agent-context passed. This verifies state separation; real-LLM latency improvement has not been measured.
+Terrain TypeScript checking and git diff --check also passed. Gallery sources were synchronized for the existing local preview.
+
+
+### 2026-11-04 — Thumbnail submission/live viewer pair
+
+- 按用户确认，将 `world_state.snapshot.viewer` 收敛为 `atSubmission` / `current`，均带位置、朝向、模式与 ISO `capturedAt`。提交时间在 ChatPanel 接收指令时采样，不在排队消费时重打时间戳。
+- `atSubmission` 复用执行定位使用的同一冻结快照并附带 `inputId`；追加输入被消费后切换其参照，任务结束释放为 null。`current` 每轮从实时相机独立采样；玩家移动不改变原指令的相对定位。
+- Seed World 能力目录解释两个时刻与验证边界；通用 System Prompt 不增加业务规则。截图缺少某对象不能证明创建失败，也不应因此重复创建或自动转动玩家视角。
+- observe_view（含 pointer）、普通截图及附件重读携带采集帧的相机位置、朝向与时间。元信息在颜色帧回调内、异步编码之前采集；附件导出及重读不重打时间戳。
+- 验证：六个相关测试文件共 132 项，127 通过；5 项 HUD 文案/继续按钮断言失败。使用 HEAD 的 SessionActivity 与 HUD 测试作为临时对照仍为相同 5 项失败（证据 `output/diagnosis/viewer-thumbnail/hud-baseline.log`），临时文件已清理。本轮视角移动、追加输入、释放、编码中移动、附件元信息保留测试均通过。`typecheck:terrain` 通过。
+- 本轮没有发送真实 LLM 请求，未宣称模型轮次或执行耗时已改善。
+
+
+### 2026-11-04 — User communication rules
+
+- 按用户确认，将面向用户的表达规则统一合入 `shared/ai-chat/agent-protocol.ts` 的【回复标准】，覆盖过程说明与最终回复。该规则不依赖具体资产或系统，因此由通用 System Prompt 承载。
+- 默认省略内部 ID、路径、组件/API 名、工具参数、事务、原始错误和堆栈；用户明确询问或下一步确有需要时提供必要细节。工具调用、结果与 trace 保持原有技术内容。
+- 删除过程说明中重复且无例外的代码/参数禁令；“先说明实际结果”明确限定最终回复。失败或受阻时说明影响和可行下一步，完成后不主动追加无关建议；如实报告完成状态继续复用【工作原则】。
+- 既有 Agent 协议测试 16/16 通过。仅修改提示文字，未增加输出过滤或重复的 Skill 规则；未重跑真实 LLM，模型遵循效果仍需通过交互验收。
+
+
+## 2026-11-04：统一 snapshot / read / pick
+
+按用户确认，将视觉入口收敛为原生 `snapshot()`、`read({file_path})` 和 `pick({file_path,points|region})`。移除 observe_view/read_image/pointer 与 world.view.hitPoints/queryRegion 的公开接口、旧 CPU 拾取缓存及声明；不保留兼容别名。UI 拍照和 Agent 快照统一调用 SeedWorldViewSnapshots，消费同帧颜色、拍摄位姿/时间及 RuntimeMeshPickSource 的 GPU 身份纹理。
+
+所有图片版本使用 `.ai/snapshots/` 虚拟路径，可 glob 发现、read 重看；不写工程 DB。标注图共享原帧身份，首次编码后复用 Blob。只在 pick 时计算 currentScene，避免把“拍摄时场景未变”缓存成后续读取时的事实。未知路径与已释放快照分别返回 SNAPSHOT_NOT_FOUND/SNAPSHOT_EXPIRED；GPU 内容丢失也携带明确错误码。查询后通过 runtime entity/component 的公开声明确定可编辑归属，不自动删除或改变选择。
+
+会话服务持有图片和身份纹理，任务/附件持有租约。预算按访问顺序清理未占用帧；GPU 延迟释放造成的暂时预算不足由宿主等待释放后最多重试一次，仍不足则明确失败。文件搜索只取得二进制描述，不触发编码、租约或使用时间刷新。Trace 的 read 图片调用与 snapshot 均显示对应图片，不改变原调用回执的耗时与结果。面向用户的失败说明使用原因类别和实际提交结果，原始技术错误保留在诊断记录中。
+
+验证：AIChat 59 个文件共 659 项测试通过；快照/Picker/RuntimeInspection 测试通过（快照新增 LRU 与延迟释放回归后为 27 项）；8 项 LLM 拾取验收器测试通过。AIChat、Terrain、LLM 类型检查通过，契约重新生成并移除旧 world.view 声明。
+
+真实浏览器只读验证：Seed World 同一张 768×432 快照通过 pick 命中消防车 MeshRenderer、自然树木和建筑；沿消防车渲染节点上溯可取得 Scene/SeedWorld.scene 的作者身份，工程 revision 未改变。隔离页 shared/runtime-inspection/tests/index.html 返回 passed：覆盖同帧颜色与身份、普通网格、骨骼变形、PBR/BlinnPhong/Unlit 的 alpha cutoff、遮挡、旧帧身份保留及真实 Worker 查询；同一图片按路径读取复用 Blob。12 轮真实拍照/标注/撤销/释放后，GL 句柄数和 GPU 字节数回到基线，会话图片预算归零。本次没有运行新的真实 LLM 指令，不能据此声称模型轮次或响应时间已经改善。
+
+## 2026-11-04：截图身份与深度共用 RGBA8
+
+- 用户确认：截图保留深度，点查询仅返回 `estimatedPosition`，不提供声称绝对准确的坐标。
+- 捕获复用同一身份绘制的 Depth24Stencil8 深度附件（含着色器写入的表面深度），一次全屏 GPU Blit 将身份与深度打包进 RGBA8；不增加全场景绘制、不在捕获时读回像素。持有纹理仍为每像素 4 字节，原始身份/深度及合并 RT 随捕获释放；合并阶段临时预算为每像素 12 字节。
+- 身份按实际 draw slots 而非 Renderer 数量分配 14～24 位，剩余位保存对数相机深度。实景为 1,127 个 Renderer、87,453 个拾取槽位，使用 17+15 位；12 公里范围的线性深度约 37 厘米一档，因此选对数编码保留近处精度。位数边界明确检查，不截断编号。着色器逐字节打包，禁止将完整 32 位整数放入 float32；身份独占的低字节深度缩放为零，保证中间整数不超过 float32 的精确范围。
+- 冻结逆投影、逆视图矩阵与图片视口。Final Pass 照片是相机视口内容，身份绘制使用同一投影填满照片，避免重复应用屏幕视口；完成后恢复原视口及自动/自定义投影模式。点查询按像素中心还原截图时的位置，区域查询不编造代表坐标，背景/未登记对象不返回位置。`currentScene` 原有作者版本语义不变。
+- Tool 契约与 README 明确：坐标是拍摄时表面的估算值，不保证适合放置，也不是当前表面；位数、截图分辨率、原始深度和矩阵精度都会影响误差。
+- 验证：33 项快照/编码单测，45 项 AIChat 快照/会话回归通过。真实浏览器覆盖编号 10,000～65,536、透视/正交/局部视口、镂空与遮挡、骨骼形变、移动相机/编辑对象后的旧图坐标、着色器写入深度与代理三角形深度的区别；12 轮拍照/标注/清理后实际 GPU 句柄和字节占用回到基线。
+- 实景功能回归：768×432，225 个点中 179 个有效命中均返回有限坐标；同步点查询期间 Engine renderCount 增量为零。本机单次捕获等待约 15.6ms、225 点查询约 21ms，仅作此次观察，不构成帧率或延迟保证。未重跑真实 LLM 指令。
+- 证据：`output/playwright/packed-depth/runtime-verification.json`、`output/playwright/packed-depth/seed-world-verification.json`。测试浏览器单独启动，结束关闭，不修改用户工程。
+
+## 2026-11-04：按任务分支澄清视觉与植被编辑说明
+
+- 根据交互 `28c6e1a1-72dd-4682-969a-8ea4150476e3` 的真实请求与调用结果整理说明。采用 asd-ste100 的短句、明确条件和统一术语原则，不把本次绕路全部归因于 Prompt，也不承诺文字调整能保证箭头定位准确。
+- Tool 层区分 snapshot 获取当前画面、read 重看已有图片、pick 查询原帧像素。pick 分开说明位置使用和命中对象编辑，保留历史状态、精度、未命中及授权范围边界。附件元信息只描述标记与图片，操作分支以 pick 契约为准。
+- 世界指南区分已知引用与未知对象、已知位置与相对位置、位置检查与条件搜索、单株移动与共享树形修改。移除把 query 当作每次更新前置步骤的示例。read 说明按当前调用所需依赖批量读取，不自动展开所有类型。
+- vegetation.update 的说明从可执行契约源更新，再生成声明及搜索索引。说明 resolvedEffect 和最终 execute 回执的用途，缺少必要证据或结果冲突时才继续查询。本次未修改 API 参数、运行逻辑或通用 System Prompt。
+- 验证：声明生成一致性检查通过，现有知识与链接检查 12 项通过，原生工具协议检查 16 项通过。改写的英文空间指南、植被操作部分和 read 描述通过 STE lint，无硬规则告警。git diff --check 通过。已同步本地 Gallery；未重新执行真实 LLM，不宣称轮次或耗时已改善。
+
+
+### 2026-11-04：照片编辑页直接携带附件
+
+- 拍照出片并进入编辑页时即发布原图附件；每笔完成、撤销和重做同步更新待发送版本。确认按钮只收起照片。
+- 使用既有不可变附件版本与提交租约：发送固定提交时版本，后续编辑或移除不改变正在执行的任务。编辑过程不生成 JPEG，仅发送或读取版本时编码。
+- 照片快捷键限定在画布获得焦点时执行，避免 Enter、Tab、Cmd/Ctrl+Z 干扰 Trace 输入框。移除照片同时移除待发送附件。
+- 验证：terrain 类型检查通过；ViewSnapshot / AnnotationHistory 29 项、AIChatPhotoInput 13 项通过。隔离真实 WebGL 界面 `shared/runtime-inspection/tests/photo-editing.html` 验证未确认发送（phase=editing、1 张图、包含 capturedAt/viewer）、画笔/撤销/重做（实际 JPEG 青色笔迹像素 0→745→0→745）、文字框回车及撤销不影响照片、确认后附件保留、第二张照片丢弃后只保留第一张。测试页不发送模型请求、不写用户工程。
+
+
+### 2026-11-04：视觉评测契约诊断与复审修复
+
+- 诊断结论：问题在评测消费者，不是生产 `pick` 的身份/深度解码。GPU 格式已变化，但独立 LLM 夹具仍以 RGB24 解码；评估器又把普通文本 `read` 当成 JSON 成功回执。逃逸原因是旧夹具只模拟纯身份像素与 JSON 回执，没有覆盖真实混合位布局和普通说明文件读取。
+- 身份解释统一复用 `decodeViewIdentity(pixels, offset, identityBits)`；独立捕获、采样和身份表仍独立，避免复制编码规则。捕获拦截透传所有原参数，保留生产资源预算；没有改动 GPU 格式或生产拾取策略。
+- 成功状态来自 `tool_finished.result`，并核对各调用是否有对应结果。文本/图片的呈现格式不再决定工具成功；缺失、重复、失败或异常的证据不能被当作通过。
+- 复审发现调用 ID 只在当前批次内唯一，跨轮次复用时不能全局 `find` 第一条回执。`nativeFileEvidence` 按消息批次保留调用与回执的对应关系；视觉评估按调用顺序对应独立采样。红绿对照证明第二次错误命中不会再被第一次正确回执掩盖。
+- 更新上下文、资产读取和错误呈现的旧断言；上下文按语义标识读取，历史按 assistant 消息边界读取，不依赖固定消息条数。补齐测试缺失的 task_started、当前 retrySprite 与 editor.sceneSource，保留状态刷新、原始错误 Trace、场景不变及资源释放检查。
+- 验证：主 Vitest 111 文件、1175 测试全部通过；Terrain 原七文件71测试全部通过；新增 LLM 夹具入口回归1测试通过（带深度像素、预算参数透传和资源释放）；LLM Node 单测96测试全部通过。此前独立 HEAD 对照确认的三处旧世界查询测试失败也由补齐夹具解决。
+- 本轮没有新增浏览器或服务端口，没有调用真实模型；沿用上一轮同版生产 GPU 实现的真实 WebGL 证据，不能把本轮确定性评测器回归宣称为玩家任务成功率或移动端验收。
+
+
+### 2026-11-05：调用证据与视觉评测资源所有权收敛
+
+- 进一步反例推翻了上一轮“调用与结果已一一对应”的充分性：仅按工具名和调用 ID 计数，无法区分跨轮复用 ID；筛掉异常 pick 会让第一次成功掩盖第二次坏回执；在清理保护之外解析参数会遗留独立 GPU 快照。这三处均属于评测链路，不能归为生产 pick 的 GPU 解码错误。
+- `tests/llm/call-evidence.mjs` 是文件评测、视觉评测及独立采样共用的调用关联入口。以宿主 taskId、step、call 关联接纳、开始、结束和观察，以消息批次关联模型回执；缺失、重复、身份不符的证据不能补推为成功。真实 AgentLoop 回归覆盖同一 pick ID 跨轮先成功、后失败，两轮仍各自对应原结果。
+- 视觉评估逐次验证所有 pick，不过滤错误或未命中；核对参数、图片路径、采样身份、全部点结果及宿主/模型回执的一致性。文件评测也删除了独立拼接开始/结束事件的旧路径，缺少宿主执行事件时不能仅凭状态符合就通过。用例声明同步补充 completeEvidence / validPickEvidence；报告保留 assessmentErrors，原始 trace 在后置观察之前落盘。
+- 独立夹具作为唯一 owner 管理已发布和处理中快照、临时捕获拦截、取消信号。捕获串行化；失败、取消、重新准备和场景 finally 均进入幂等清理。取消不等待不可中止的图片导出；晚到结果不发布，已排队捕获不再开始。生产资源预算原样透传，独立资源自行释放。
+- 验证：主 Vitest 111 文件 / 1175 测试通过；随后补充的真实 AgentLoop 定向套件 6/6 通过；最终 LLM Node 全套 114/114、夹具生命周期 14/14 通过；最终 LLM / AI Chat 类型检查与 diff 空白检查通过。修改后续检查未再次重复完整主套件。
+- 复审追踪了事件生产者 → 公共关联器 → 文件/视觉评估 → 独立采样 → runner 清理与报告的完整链路。本轮范围内未发现未解决的 P0/P1/P2。没有新开浏览器、服务或模型请求；真实 GPU/移动设备/真实 LLM 的本轮验收未执行，不能据此宣称玩家任务成功率或性能已改善。
+
+
+### 2026-11-05：真实 LLM 截图/pick 定向复验
+
+- 使用当前 dev/retrieval 未提交改动（HEAD 87450e45d）和 ASAP codex/seed-world-local-debug 未提交工作树（HEAD cf03c7af5），8082/4173 各一服务；每次只启动一个 Chrome 主进程，前一次关闭后才运行下一次。模型配置未修改，真实请求路由为 aisearch_dsv41flash，部署 aisearch_dsv41flash_h203e_tp4。
+- 首次 `2026-11-05T00-56-40.681Z-59677`：20.2 秒 / 7 次模型请求，1 snapshot、2 pick、2 普通文本 read。两次共十点的树、草、建筑及未命中均与独立 GPU 采样一致；全部自动检查与目标身份回复复核通过。相机、选择和作者数据未变，任务图片引用释放；会话历史快照按预算保留。
+- 首次复核发现 runner 使用 getLastTrace 摘要，图片只有引用，关闭独立浏览器后不能从报告还原原图。改为已有 exportLastTrace / exportCurrentTrace 完整导出，等待附件写入并嵌入图片；未增加第二套图片存储。首轮原图从实际 ASAP 请求恢复，与原 Trace SHA-256 完全一致；不改写原始 trace。附件导出 8 项测试及 runner 语法检查通过。
+- 串行补验 `2026-11-05T01-03-01.045Z-64705`（retryOf 首次）：31.5 秒 / 11 次模型请求；1 snapshot、1 pick、8 普通文本 read、4 execute。四点全部匹配独立 GPU 身份，证据关联/无错误/无副作用/任务引用释放全部通过。导出 JPEG 为 58640 字节，SHA-256 269d4acf17041c58994ff73c51e96da48423947989956b0add4c3d2ab702ab54，原始 trace 与证据 ZIP 均含可校验原图。
+- 不将工具链通过等同于玩家回复正确：补验最终回复把距自定查询锚点 0.1448 米解释为距镜头 0.1 米（实际水平距离 8.6023 米），将最高点世界 Y=17.6546 解释为树高（包围盒高度 14.6396 米），还将邻近查询对象无依据地指认为左上角可见树。自动结果保留 passed，独立回复复核 failed，未反复重跑以覆盖失败。首次通过与补验失败均保留，不做单次性能归因。
+- 本轮未发布语雀、未提交或推送。两次浏览器均已关闭；完整证据在 output/playwright/seed-world-llm 对应目录，第二次 report.md / reviews.json 记录失败归因。
+
+## 2026-11-05：截图 / pick 评测四项根因修复
+
+- 将任务完成等待与 Trace 图片导出拆为两个错误边界。先保存对应交互的摘要，再获取完整附件；导出失败保留摘要和独立错误，不标为 LLM 超时，不用其他交互的导出结果覆盖当前任务。评测报告保留 `executionStatus` / `evidenceCollection`，不完整证据标为 `harness_error`；系统 ZIP 包含 `trace-collection.json`，检查记录和文案均明确证据不完整。
+- `viewer` 文案由同一份执行 Schema 描述生成：活动输入提交时冻结的位置和朝向；无活动输入时使用实时位姿；与图片拍摄位姿分开。同步查询、Anchor、Selector、nearest 搜索的声明和搜索注册表。未改变原本正确的冻结行为。
+- 资源验收同时检查任务图片计数、任务释放事件中的快照 leases，以及导出后的实际 leases。与任务前逐快照基线比较，允许历史纹理保留及原有 owner；拒绝新增未释放占用、丢失已有占用和缺失诊断。
+- 独立 GPU 采样同时保留该帧的 view/projection/viewport、近远裁面和命中像素的打包深度。验收将返回世界坐标正向投影，核对像素中心与量化深度，不复用产品的逆投影解码函数。树和建筑用例新增坐标验收标准。已知几何的 WebGL 用例另核对解析表面误差，避免两个采样共享编码而掩盖编码错误。
+- 反例包括：已完成但导出失败、超时同时导出失败、浏览器断开、导出交互被替换；Trace 有摘要但附件不完整时的报告与 ZIP；历史资源保留与任务 lease 泄漏、导出后泄漏、缺失诊断；正确身份配错误 / 缺失世界坐标。
+- 验证：评测与报告 Node 测试 59/59；Terrain 定向 4 文件 82/82；LLM 与 Terrain TypeScript 通过；契约生成一致性检查通过。单浏览器真实 WebGL 通过：透视/正交投影独立坐标检查及错误坐标反例通过，解析表面误差分别约 0.000105m / 0.000166m；12 轮图片资源生命周期验证后 GPU 句柄与字节恢复基线。只有 favicon 404 与 Canvas2D readback 提示，无测试失败。
+- CR 范围为以上四项修复及报告消费者，本轮未发现未解决的 P0/P1/P2；未声称覆盖所有历史未提交 diff。此次未重跑真实 LLM 或移动端。测试浏览器与临时 4173 服务均已关闭。
+- 本地证据：`output/diagnostics/snapshot-followup/fix-review.md`、`output/playwright/snapshot-followup/gpu-verification.json`。
+
+## 2026-11-05：普通页面隐藏建筑组件调试栏
+
+- 建筑组件栏仅在 `debug=1` 时挂载，与现有世界调试面板使用同一开关。普通入口及仅开启 `aiChat=1&agentTrace=1` 的页面不创建该栏及其事件订阅；建筑编辑 API 与 Agent Trace 保持可用。
+
+
+## 2026-11-05：dev/retrieval 合并最新 dev/2.0
+
+- 合并基线 `e44e84a3198bcd1de2d8d46ffdedde0ed7773263`，解决 32 个冲突文件。保留新版规划资产投影、实时 viewer 查询、推理状态续传、长行分页和 release-82 评测；保留 Retrieval、VFS/Skill 分层、输入提交位姿与统一 `snapshot/read/pick`。退役的 `world.view`/`observe_view`/`read_image` 入口不恢复。
+- 同步声明、评测最佳路径、独立 GPU 身份夹具和 API 覆盖清单；图片 read 明确拒绝文本分页的 offset/column/limit。保留普通页面隐藏建筑调试栏、`debug=1` 才挂载的行为。
+- 合并验证发现上游新增的 abort 监听会在项目发布成功后丢弃尚未激活的世界草稿。提交前仍响应取消；进入原子发布时解除该监听，由提交结果与 complete/discard 统一管理资源，发布失败主动释放世界草稿。反例覆盖提交前取消、发布失败时取消、发布成功后取消及重新激活，并保留文件写入/修改/删除的全部终止路径测试。
+- 验证：Engine 物化、依赖安装和构建通过；AI Chat、Terrain、LLM、Retrieval 类型检查通过；Agent/Editor/宿主/预置系统声明校验通过。主测试 113 文件 / 1,234 项通过；Terrain 定向 12 文件 / 198 项通过；LLM 评测单测 163 项通过；Retrieval 11 项通过；取消边界定向 69 项通过（与主测试有重叠，不累计为独立总数）。
+- 单浏览器真实 WebGL 验证通过，包含身份位数边界、透视/正交世界位置还原、相机/对象移动后读取旧图、Worker RPC、12 轮资源恢复基线。Seed World 实景中按普通截图拾取树及区域，移动相机后旧图命中不变，新图单独保存，过期返回明确提示；预算峰值约 14.4 MB、释放后 0。普通页面不存在建筑调试栏。测试浏览器和临时 4173 服务已关闭。
+- 验证边界：未重跑真实 LLM 指令集及移动端。Terrain 全量探查遇到上游同源的 2 个环境字符串断言失败及 3 个程序化树测试 15 秒超时，已停止全量探查并执行合并相关定向回归；未以放宽断言或提高超时掩盖这些问题。scope audit 包含既有未跟踪 output 证据，结果为 needs-scope-split；这些证据不提交。
+- 本轮 CR 结论：合并及适配范围未发现剩余阻塞问题；不等于重新审查了所有非冲突上游实现。逐文件覆盖、完整日志及浏览器证据在本地 `output/reviews/dev-retrieval-merge-20261105/`。

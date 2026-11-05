@@ -444,7 +444,6 @@
     "./world/SeedWorldPhotoPalette": "./src/world/SeedWorldPhotoPalette.ts",
     "./world/SeedWorldPhotoResources": "./src/world/SeedWorldPhotoResources.ts",
     "./world/SeedWorldPhotoWarmup": "./src/world/SeedWorldPhotoWarmup.ts",
-    "./world/SeedWorldPickSnapshot": "./src/world/SeedWorldPickSnapshot.ts",
     "./world/SeedWorldPicker": "./src/world/SeedWorldPicker.ts",
     "./world/SeedWorldPlanner": "./src/world/SeedWorldPlanner.ts",
     "./world/SeedWorldPlayerState": "./src/world/SeedWorldPlayerState.ts",

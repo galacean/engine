@@ -142,7 +142,6 @@ export function stripSeedWorldChatDisplayEmoji(text: string): string {
 }
 
 export interface SeedWorldChatPanelOptions {
-  readonly observeViewWithPointer?: (signal: AbortSignal) => Promise<import("@galacean/engine-ai-chat/ai-chat/agent-types").AgentViewObservation>;
   readonly editorExtensions?: readonly AgentEditorExtension[];
   readonly nativeEditor?: RuntimeNativeEditor;
   readonly projectFiles?: readonly ProjectFileProvider[];
@@ -243,10 +242,9 @@ export function mountSeedWorldChatPanel(options: SeedWorldChatPanelOptions): See
   const baseDefinition = createSeedWorldAgentDefinition(options.application, options.nativeEditor);
   const baseTools = [...createSeedWorldTools(options.application), ...(options.nativeEditor?.tools ?? [])];
   baseDefinition.projectFiles = [...(baseDefinition.projectFiles ?? []), ...(options.projectFiles ?? [])];
-  baseDefinition.supportsViewPointer = Boolean(options.observeViewWithPointer);
-  baseDefinition.observeView = async signal => {
+  baseDefinition.captureSnapshot = async signal => {
     signal.throwIfAborted();
-    return options.observeViewWithPointer ? options.observeViewWithPointer(signal) : options.application.requireViewSnapshots().observe(signal);
+    return options.application.requireViewSnapshots().snapshot(signal);
   };
   baseDefinition.imageResources = options.application.viewSnapshots;
   const configuration = composeAgentConfiguration({ definition: baseDefinition, tools: baseTools }, options.editorExtensions ?? []);

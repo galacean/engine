@@ -1,4 +1,10 @@
 import {
+  readAssetText,
+  readAssetJson,
+  readAssetImage,
+  readAssetGlb
+} from "@galacean/engine-project/runtime-editor/project/runtime-asset-read";
+import {
   visitSourceComponents,
   sourceNestedEntries
 } from "@galacean/engine-project/runtime-editor/scene/runtime-source-components";
@@ -237,5 +243,10 @@ export function nativeAssetFormats(
     const jpeg = content.length >= 4 && content[0] === 255 && content[1] === 216 && content[2] === 255;
     if (!png && !jpeg) throw new Error("Texture import requires PNG or JPEG bytes");
   };
+  for (const type of ["JSON", "Scene", "Prefab", "AnimatorController", "PrimitiveMesh", "Material", "Shader"])
+    formats.get(type)!.read = readAssetJson;
+  for (const type of ["script", "ShaderChunk"]) formats.get(type)!.read = readAssetText;
+  for (const type of ["Texture", "Texture2D"]) formats.get(type)!.read = readAssetImage;
+  formats.get("GLTF")!.read = readAssetGlb;
   return formats;
 }

@@ -1,4 +1,6 @@
-import { SeedWorldPickSnapshot, type SnapshotIdentity } from "./SeedWorldPickSnapshot";
+import surfacePackSource from "./SnapshotSurfacePack.shader?raw";
+import { snapshotIdentityBits, type SnapshotSurfaceProjection } from "./SnapshotSurfaceEncoding";
+import { destroyPhotoResources } from "./SeedWorldPhotoResources";
 import type { GpuPhoto } from "./SeedWorldPhotoImage";
 import type { ImageResourceBudget } from "@galacean/engine-ai-chat/ai-chat/image-resources";
 import { SeedWorldFrameCapture } from "./SeedWorldFrameCapture";
@@ -14,14 +16,19 @@ import {
   RenderTarget,
   Texture2D,
   TextureFormat,
+  Blitter,
+  Material,
+  Shader,
+  TextureFilterMode,
+  TextureWrapMode,
   Matrix,
   Vector3,
-  type Material
+  Vector4
 } from "@galacean/engine";
 import type { SeedWorldPickBatch, SeedWorldPickSource } from "@galacean/engine-modify/rendering/SeedWorldPickBatch";
 
 import { FrozenViewIdentityTexture } from "./FrozenViewIdentityTexture";
-import type { ViewFrame } from "./SeedWorldViewSnapshot";
+import type { ViewFrame, ViewCaptureMetadata } from "./SeedWorldViewSnapshot";
 import type { ViewRef } from "./SeedWorldViewSnapshot";
 
 import { RuntimePickOcclusion } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-occlusion";
@@ -33,6 +40,8 @@ export class SeedWorldPicker {
   /** Borrowed world-space fragment from the latest successful pick; copy before the next pick. */
   hitPosition?: Vector3;
   private texture?: Texture2D;
+  private depth?: Texture2D;
+  private surfacePack?: Material;
   private target?: RenderTarget;
   private readonly pixel = new Uint8Array(4);
 
@@ -90,14 +99,14 @@ export class SeedWorldPicker {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     await this.frameCapture.request(
       (photo) => {
-        const release = budget?.reserve("temporary", photo.width * photo.height * 8);
-        try {
-          this.render(0, 0, visit, false, { width: photo.width, height: photo.height, consume: () => {} });
-        } finally {
-          photo.dispose();
-          this.releaseTarget();
-          release?.();
-        }
+        const frame = this.captureIdentity(
+          visit,
+          () => ({ entityId: 0, componentId: 0, componentType: "warmup" }),
+          photo,
+          budget
+        );
+        frame.identities.dispose();
+        photo.dispose();
       },
       signal,
       budget
@@ -119,170 +128,40 @@ export class SeedWorldPicker {
     ready?: () => boolean
   ): Promise<ViewFrame> {
     this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
-    return this.frameCapture.request((photo) => this.captureIdentity(visit, resolveRef, photo), signal, budget, ready);
-  }
-
-  observe(signal?: AbortSignal, budget?: ImageResourceBudget) {
-    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
     return this.frameCapture.request(
-      async (photo) => {
-        try {
-          return await photo.export([], signal);
-        } finally {
-          photo.dispose();
-        }
-      },
-      signal,
-      budget
-    );
-  }
-
-  /** Task-local CPU identity/depth snapshot using the shared occlusion-aware pick pass. */
-  capturePointer(width: number, height: number, visit: SeedWorldPickSource): SeedWorldPickSnapshot {
-    if (
-      !Number.isSafeInteger(width) ||
-      !Number.isSafeInteger(height) ||
-      width < 1 ||
-      height < 1 ||
-      width * height > 1280 * 1280
-    )
-      throw new Error("Pick snapshot exceeds image dimensions");
-    const camera = this.camera;
-    let result: SeedWorldPickSnapshot | undefined;
-    try {
-      this.render(0, 0, visit, false, {
-        width,
-        height,
-        consume: () => {
-          const identities = new Uint8Array(width * height * 4);
-          this.texture!.getPixelBuffer(0, 0, width, height, 0, identities);
-          const visible = new Set<number>();
-          for (let offset = 0; offset < identities.length; offset += 4)
-            visible.add(identities[offset]! | (identities[offset + 1]! << 8) | (identities[offset + 2]! << 16));
-          visible.delete(0);
-          const objects = new Map<number, SnapshotIdentity>();
-          let bindingIndex = 0;
-          const regions = new Map<object, SnapshotIdentity | undefined>();
-          for (const id of [...visible].sort((a, b) => a - b)) {
-            while (
-              bindingIndex < this.bindingCount &&
-              id >= this.bindings[bindingIndex]!.base + this.bindings[bindingIndex]!.batch!.count
-            )
-              bindingIndex++;
-            if (bindingIndex >= this.bindingCount) break;
-            const { batch, base } = this.bindings[bindingIndex]!;
-            if (id < base) continue;
-            if (batch!.needsPosition) {
-              const key = batch!.snapshotKey ?? batch!;
-              if (!regions.has(key)) regions.set(key, batch!.snapshotResolver?.());
-              const region = regions.get(key);
-              if (region) objects.set(id, region);
-            } else {
-              const objectId = batch!.resolve(id - base);
-              if (objectId) objects.set(id, objectId);
-            }
-          }
-          for (let i = 0; i < this.bindingCount; i++)
-            this.bindings[i]!.batch!.renderer.shaderData.enableMacro("RENDERER_WORLD_PICK_DEPTH");
-          camera.render();
-          const depths = new Uint8Array(identities.length);
-          this.texture!.getPixelBuffer(0, 0, width, height, 0, depths);
-          const inverse = new Matrix();
-          Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, inverse);
-          inverse.invert();
-          const viewport = camera.viewport;
-          result = new SeedWorldPickSnapshot(width, height, identities, depths, objects, inverse, [
-            viewport.x,
-            viewport.y,
-            viewport.z,
-            viewport.w
-          ]);
-        }
-      });
-      if (!result) throw new Error("Pick snapshot is unavailable");
-      return result;
-    } finally {
-      this.releaseTarget();
-    }
-  }
-
-  /** Freeze color and pointer identity in the same normal frame; encoding may then await. */
-  observePointer(visit: SeedWorldPickSource, signal: AbortSignal, budget: ImageResourceBudget, ready?: () => boolean) {
-    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
-    return this.frameCapture.request(
-      async (photo) => {
-        let snapshot: SeedWorldPickSnapshot | undefined;
-        let release: (() => void) | undefined;
-        try {
-          signal.throwIfAborted();
-          const releaseScratch = budget.reserve("temporary", photo.width * photo.height * 16);
-          try {
-            snapshot = this.capturePointer(photo.width, photo.height, visit);
-          } finally {
-            releaseScratch();
-          }
-          release = budget.reserve("identity", snapshot.byteLength);
-          const image = await photo.export([], signal);
-          signal.throwIfAborted();
-          return { image, snapshot };
-        } catch (error) {
-          snapshot?.dispose();
-          throw error;
-        } finally {
-          release?.();
-          photo.dispose();
-        }
-      },
+      (photo) => this.captureIdentity(visit, resolveRef, photo, budget),
       signal,
       budget,
       ready
     );
   }
 
-  /** Freeze runtime identity and native authoring/depth identity without advancing the scene between passes. */
-  observeFrame(
-    visit: SeedWorldPickSource,
-    resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
-    pointerVisit: SeedWorldPickSource,
-    signal: AbortSignal,
-    budget: ImageResourceBudget,
-    ready?: () => boolean
-  ) {
-    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
-    return this.frameCapture.request(
-      (photo) => {
-        let snapshot: SeedWorldPickSnapshot | undefined;
-        let release: (() => void) | undefined;
-        try {
-          release = budget.reserve("temporary", photo.width * photo.height * 20);
-          snapshot = this.capturePointer(photo.width, photo.height, pointerVisit);
-          const frame = this.captureIdentity(visit, resolveRef, photo);
-          return { frame, snapshot };
-        } catch (error) {
-          snapshot?.dispose();
-          photo.dispose();
-          throw error;
-        } finally {
-          release?.();
-        }
-      },
-      signal,
-      budget,
-      ready
-    );
+  /** Called synchronously in the captured color frame, before asynchronous image encoding. */
+  private captureViewMetadata(): ViewCaptureMetadata {
+    const { worldPosition: p, worldForward: f } = this.camera.entity.transform;
+    return {
+      capturedAt: new Date().toISOString(),
+      viewer: {
+        position: [p.x, p.y, p.z],
+        forward: [f.x, f.y, f.z]
+      }
+    };
   }
 
   private captureIdentity(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
-    image: GpuPhoto
+    image: GpuPhoto,
+    budget?: ImageResourceBudget
   ): ViewFrame {
     const { width, height } = image;
+    const metadata = this.captureViewMetadata();
+    // Scratch ID + depth + packed output. Only the packed RGBA8 survives capture.
+    const release = budget?.reserve("temporary", width * height * 12);
     let result: ViewFrame | undefined;
-    let detachedTarget: RenderTarget | undefined;
+    let packed: Texture2D | undefined, packedTarget: RenderTarget | undefined;
     try {
-      // Runs synchronously in the normal camera's onEndRender: no simulation step
-      // can separate the frozen color from the identity pass.
+      // No simulation step can separate color, identity and depth.
       this.render(0, 0, visit, false, {
         width,
         height,
@@ -298,16 +177,85 @@ export class SeedWorldPicker {
               keys: instanced ? Array.from({ length: batch!.count }, (_, index) => batch!.resolve(index)) : undefined
             };
           });
-          result = { width, height, image, identities: new FrozenViewIdentityTexture(this.texture!, ranges) };
-          detachedTarget = this.target;
-          this.texture = undefined;
-          this.target = undefined;
+          const camera = this.camera,
+            engine = camera.engine;
+          const inverseProjection = camera.projectionMatrix.clone().invert();
+          const v = camera.viewport,
+            identityBits = snapshotIdentityBits(this.identityCount);
+          const projection: SnapshotSurfaceProjection = {
+            identityBits,
+            near: camera.nearClipPlane,
+            far: camera.farClipPlane,
+            inverseProjection: Array.from(inverseProjection.elements),
+            cameraWorld: Array.from(camera.viewMatrix.clone().invert().elements),
+            viewport: [v.x, v.y, v.z, v.w]
+          };
+          if (!(projection.near > 0) || !Number.isFinite(projection.far) || projection.far <= projection.near)
+            throw new Error("Snapshot depth requires finite clipping distances with 0 < near < far");
+          if (!this.surfacePack) {
+            this.surfacePack = new Material(
+              engine,
+              Shader.find("SeedWorld/SnapshotSurfacePack") ?? Shader.create(surfacePackSource)
+            );
+            this.surfacePack.isGCIgnored = true;
+          }
+          const data = this.surfacePack.shaderData;
+          data.setTexture("material_SurfaceDepth", this.depth!);
+          data.setMatrix("material_InverseProjection", inverseProjection);
+          data.setVector4("material_SurfaceViewport", v);
+          data.setVector4(
+            "material_SurfaceEncoding",
+            new Vector4(
+              projection.near,
+              projection.far,
+              1 / Math.log2(projection.far / projection.near),
+              2 ** (32 - identityBits) - 1
+            )
+          );
+          data.setVector4(
+            "material_DepthByteScale",
+            new Vector4(
+              0,
+              identityBits >= 16 ? 0 : 2 ** (identityBits - 8),
+              identityBits >= 24 ? 0 : 2 ** (identityBits - 16),
+              2 ** (identityBits - 24)
+            )
+          );
+          packed = new Texture2D(engine, width, height, TextureFormat.R8G8B8A8, false, false);
+          packed.filterMode = TextureFilterMode.Point;
+          packed.wrapModeU = packed.wrapModeV = TextureWrapMode.Clamp;
+          packedTarget = new RenderTarget(engine, width, height, packed, null, 1);
+          // Camera.render() clears the Engine context before returning. Blitter requires
+          // the just-rendered camera for uniform binding; restore its context afterwards.
+          const context = (engine as unknown as { _renderContext: { camera: Camera | null; flipProjection: boolean } })
+            ._renderContext;
+          const priorCamera = context.camera,
+            priorFlip = context.flipProjection;
+          try {
+            context.camera = camera;
+            Blitter.blitTexture(engine, this.texture!, packedTarget, 0, undefined, this.surfacePack);
+          } finally {
+            context.camera = priorCamera;
+            context.flipProjection = priorFlip;
+          }
+          result = {
+            width,
+            height,
+            image,
+            metadata,
+            identities: new FrozenViewIdentityTexture(packed, ranges, projection)
+          };
         }
       });
       if (!result) throw new Error("View snapshot is unavailable");
       return result;
     } finally {
-      detachedTarget?.destroy(true);
+      this.surfacePack?.shaderData.setTexture("material_SurfaceDepth", null!);
+      const scratch = [this.target, this.texture, this.depth, packedTarget, result ? undefined : packed];
+      this.target = undefined;
+      this.texture = undefined;
+      this.depth = undefined;
+      destroyPhotoResources(scratch, release);
     }
   }
 
@@ -333,6 +281,9 @@ export class SeedWorldPicker {
     const target = camera.renderTarget,
       clear = camera.clearFlags,
       mask = camera.cullingMask;
+    const capturedProjection = capture ? camera.projectionMatrix.clone() : undefined;
+    const capturedViewport = capture ? camera.viewport.clone() : undefined;
+    const customProjection = (camera as unknown as { _isCustomProjectionMatrix: boolean })._isCustomProjectionMatrix;
     const hdr = camera.enableHDR,
       post = camera.enablePostProcess,
       aa = camera.antiAliasing;
@@ -346,6 +297,12 @@ export class SeedWorldPicker {
     this.bindingCount = 0;
     this.identityCount = 0;
     try {
+      // Final Pass color contains the camera viewport, not the whole screen. Draw IDs
+      // into that same image extent without applying the screen viewport a second time.
+      if (capturedProjection) {
+        camera.projectionMatrix = capturedProjection;
+        camera.viewport.set(0, 0, 1, 1);
+      }
       camera.renderTarget = this.target!;
       camera.clearFlags = CameraClearFlags.All;
       camera.enableHDR = camera.enablePostProcess = camera.opaqueTextureEnabled = false;
@@ -437,6 +394,11 @@ export class SeedWorldPicker {
         this.materials[i] = undefined;
       }
       camera.renderTarget = target;
+      if (capturedViewport) camera.viewport.copyFrom(capturedViewport);
+      if (capturedProjection) {
+        camera.projectionMatrix = capturedProjection;
+        if (!customProjection) camera.resetProjectionMatrix();
+      }
       camera.clearFlags = clear;
       camera.cullingMask = mask;
       camera.enableHDR = hdr;
@@ -455,12 +417,16 @@ export class SeedWorldPicker {
   dispose(): void {
     this.frameCapture?.destroy();
     this.frameCapture = undefined;
+    this.surfacePack?.destroy(true);
+    this.surfacePack = undefined;
     this.releaseTarget();
   }
 
   private releaseTarget(): void {
     this.target?.destroy(true);
     this.texture?.destroy(true);
+    this.depth?.destroy(true);
+    this.depth = undefined;
     this.target = undefined;
     this.texture = undefined;
   }
@@ -469,10 +435,16 @@ export class SeedWorldPicker {
     if (this.target?.width === width && this.target.height === height) return;
     this.releaseTarget();
     const texture = new Texture2D(this.camera.engine, width, height, TextureFormat.R8G8B8A8, false, false);
+    let depth: Texture2D | undefined;
     try {
-      this.target = new RenderTarget(this.camera.engine, width, height, texture, TextureFormat.Depth24Stencil8, 1);
+      depth = new Texture2D(this.camera.engine, width, height, TextureFormat.Depth24Stencil8, false);
+      texture.filterMode = depth.filterMode = TextureFilterMode.Point;
+      texture.wrapModeU = texture.wrapModeV = depth.wrapModeU = depth.wrapModeV = TextureWrapMode.Clamp;
+      this.target = new RenderTarget(this.camera.engine, width, height, texture, depth, 1);
+      this.depth = depth;
       this.texture = texture;
     } catch (error) {
+      depth?.destroy(true);
       texture.destroy(true);
       throw error;
     }

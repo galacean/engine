@@ -23,7 +23,7 @@ Import `assetUrl` statically from `@galacean/editor-assets`, either as a named i
 
 Saved projects use format v5 and require complete direct dependency metadata. IndexedDB schema v4 stores the manifest and per-file records in separate stores. Compatible v2/v3 records are split on their first successful save; dependency metadata is not silently repaired. Storage validates graph completeness and atomically saves the complete prepared package. The last write transaction wins; there is no cross-page merge or exclusive editor lock. A later save from an older page, including an automatic simulation checkpoint, can overwrite another page's changes. The storage revision validates the differential-write cache, not permission to save.
 
-The pinned Editor compiler is bundled with the path-reference codec in `world/scripts/runtime-source-compiler/source-ref-codec.ts`. Rebuild through the generator; do not patch the generated bundle. Typechecking's internal `declare/runtime/assets/` namespace is not a user-facing file path.
+The pinned Editor compiler is bundled with the path-reference codec in `world/scripts/runtime-source-compiler/source-ref-codec.ts`. Rebuild through the generator; do not patch the generated bundle. Typechecking's internal `engine/assets/` namespace is not a user-facing file path.
 
 ## VFS discovery and import
 
