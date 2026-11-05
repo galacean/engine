@@ -2,7 +2,7 @@
 
 当前公开入口是 `architecture/index.ts`，由 `parts/index.ts` 和 `@galacean/seed-world-systems` 导出。
 
-建筑架构迁移已完成，生产与演示只运行新版。迁移期间使用的旧执行基准、测试适配及新旧比较入口已删除；历史验收结果见 [ACCEPTANCE.md](ACCEPTANCE.md)。Seed World 建筑项目使用 v7-groups 存档键，不读取旧存档，也不转换旧作者格式。当前测试验证新版功能、资源生命周期、编辑保存及版本隔离，不依赖旧执行器。
+生产与演示都运行这一流程。Seed World 建筑项目使用 v7-groups 存档键，只加载该版本。测试验证功能、资源生命周期、编辑保存及版本隔离。
 
 ```ts
 const draft = Building.European.buildHouses({
@@ -43,20 +43,20 @@ LLM 的 `execute` 通过 `tools.building.generate({generator:"European.buildTowe
 
    完整哥特式老虎窗（`dormer-gothic`）现在同样发布窗体 Point 与派生小屋面 Surface。窗体使用 `mountAttachment`，小屋面是两侧拱形截面加宿主曲面的 `profiledDormerRoof`，由注册的 `profiledDormerCourses` 铺设。设计为了保持原有精确避让，会按目标 Unit 尺寸、倾角和搭接计算瓦带占用体积，但不产生或缓存实例字节、瓦片输出数组、窗体渲染网格；实施复用数值采样内核生成真正的铺设记录。不能把这个设计阶段描述成完全不计算排列。
 
-   乡村式、哥特式、箭孔式半老虎窗也通过同一挂接/小屋面铺设流程。设计负责墙/屋顶双开口、百叶窗或石帽的成员挂点，以及精确占用；`wall-curve` 编辑坐标保留原周向投影与闭合接缝。三个旧整体生成入口已删除。屋顶尖饰由设计阶段派生 Point，明确引用 `{libraryMesh:"roofSpire"}`，通过注册的 `placeRoofSpire` 生成。屋顶构件的 `params.spireAlgorithm` 可替换该算法；发布执行一次，预览和细节消费同一份结果，不另行补造尖饰。局部隐藏仍按实际挂点与屋面开口判断。解析曲面的自定义铺设已可注册，但必须声明其原生几何约定；任意曲面仍应使用 Mesh support，而非强套欧式 profile。
-5. `renderBuilding` 消费明确的 `BuildingRenderInput`（绘制归属、颜色槽、实例、垫底面、材质面与铺设编辑数据），复用 dev/2.0 资产、着色器、实例 ABI 和屋瓦 GPU feedback。渲染器不读取旧整屋描述，也不从 geometry_id 后缀推断所属建筑。
+   乡村式、哥特式、箭孔式半老虎窗也通过同一挂接/小屋面铺设流程。设计负责墙/屋顶双开口、百叶窗或石帽的成员挂点，以及精确占用；`wall-curve` 编辑坐标保留原周向投影与闭合接缝。屋顶尖饰由设计阶段派生 Point，明确引用 `{libraryMesh:"roofSpire"}`，通过注册的 `placeRoofSpire` 生成。屋顶构件的 `params.spireAlgorithm` 可替换该算法；发布执行一次，预览和细节消费同一份结果，不另行补造尖饰。局部隐藏仍按实际挂点与屋面开口判断。解析曲面的自定义铺设已可注册，但必须声明其原生几何约定；任意曲面仍应使用 Mesh support，而非强套欧式 profile。
+5. `renderBuilding` 消费明确的 `BuildingRenderInput`（绘制归属、颜色槽、实例、垫底面、材质面与铺设编辑数据），复用 dev/2.0 资产、着色器、实例 ABI 和屋瓦 GPU feedback。渲染器不从 geometry_id 后缀推断所属建筑。
 
-新版链路已删除 `buildingKernelDocument`：`BuildingProfileSupports` 从构件参数及显式关系生成几何，设计、实施和绘制不重建旧整屋模型。Seed World 直接读取 BuildingGroupComponent 与 BuildingPartComponent。建筑存档键已升级到 v7-groups，旧版本存档不读取，不提供旧 Source 转换。
+`BuildingProfileSupports` 从构件参数及显式关系生成几何。Seed World 直接读取 BuildingGroupComponent 与 BuildingPartComponent。建筑存档键为 v7-groups。
 
-`BuildingPipeline.prepareBuilding` 对所有构件执行设计、实施和渲染，返回一个未发布候选。生成support与Unit使用同一候选资源作用域；成功统一发布，失败或取消统一释放。`BuildingInstanceRender` 只把已计算的实例布局生成合批或独立对象；原生砖瓦仍使用精确实例渲染后端。Manager只保存一份已发布候选，不再维护两套输出状态。原 `BuildingFlatPlacement` 已删除。
+`BuildingPipeline.prepareBuilding` 对所有构件执行设计、实施和渲染，返回一个未发布候选。生成support与Unit使用同一候选资源作用域；成功统一发布，失败或取消统一释放。`BuildingInstanceRender` 只把已计算的实例布局生成合批或独立对象；原生砖瓦仍使用精确实例渲染后端。Manager只保存一份已发布候选。
 
-`BuildingCpuClient` 已提供独立的新 Worker 协议：输入是扁平草案、不可变地形网格和资产快照；预览保留求解后的几何，细节生成复用该快照。每个句柄独立释放，取消立即拒绝结果，Worker 故障使原句柄失效；资产和地形按引用共享。当前 Worker 只接受原生轮廓构件与附件描述，尚未提供 Entity/Prefab/Mesh 的跨线程编解码；不支持的输入明确报错，没有回退到旧编译器或主线程。
+`BuildingCpuClient` 提供独立的 Worker 协议：输入是扁平草案、不可变地形网格和资产快照；预览保留求解后的几何，细节生成复用该快照。每个句柄独立释放，取消立即拒绝结果，Worker 故障使原句柄失效；资产和地形按引用共享。当前 Worker 只接受原生轮廓构件与附件描述，尚未提供 Entity/Prefab/Mesh 的跨线程编解码；不支持的输入明确报错，没有回退到主线程。
 
 Worker 细节返回值只包含 `{renderInput, grounding}`，供渲染、表面编辑查询和落地消费；完整解算上下文与中间几何留在 Worker。预览与细节仍分时生成，细节复用预览已铺设的派生构件。
 
 `BuildingDistanceView` 是纯远景渲染器，消费生成几何、颜色槽和拾取映射，不读取整屋作者模型。Seed World 与公共 BuildingManager 使用同一 BuildingRuntime，统一 Worker、局部重建、LOD 驻留、地形事务、拾取与灯光生命周期。 原生附件灯光从已发布的构件几何提取，Worker 与自定义算法主线程视图共用灯光池，隐藏、移动、删除和撤销均跟随构件；原生 Prefab 自带的灯仍由节点管理。
 
-**生产接入：** Host、初始世界生成、内置 Prefab、面板和 Script 导出已切到新版；历史验收记录曾覆盖 seed=1 的17栋/17组/203个构件；该数字不是每次版本的重新验证结果。多视角、多距离与性能对照的最终结果以文首和ACCEPTANCE为准；内置轮廓仍由专门几何求解器准备，连接与铺设已走共享注册入口，任意 Mesh 的连接需要对应自定义求解器；复制材质随机输入已完成下述独立验收。不能把生产启动成功当成整个目标完成。
+**生产接入：** Host、初始世界生成、内置 Prefab、面板和 Script 导出都使用此流程；内置轮廓仍由专门几何求解器准备，连接与铺设已走共享注册入口，任意 Mesh 的连接需要对应自定义求解器；复制材质随机输入已完成下述独立验收。不能把生产启动成功当成整个目标完成。
 
 `BuildingPartComponent` 保存自身 `definition`、从自己出发的 `relations`、可选祖先 `frame` 引用，；独立的 `BuildingGroupComponent` 保存组 `definition`（id/seed/颜色）、`frame` 和 `assetLibrary` 引用。没有递归 children/parts 或第二份 plan。组 Entity 负责归属与移动；Unit 可以是资产库材质单元、Entity、Prefab、明确的 `nativeAttachment` 窗门资产描述，显式的资产库网格 `{libraryMesh:"roofSpire"}`（由对应注册算法消费），或不带递归 building 的程序化几何模板。通用静态可读网格合批，行为对象保留 Entity，原生砖瓦保留实例批处理。
 
@@ -92,7 +92,7 @@ buildingPlacementAlgorithms.register(
 
 ## 原生几何与局部编辑
 
-内置资产原有的“关闭墙面铺设”仍显示原生砌体，仅不使用可编辑铺设层。新版用显式 `algorithm.type: "nativeMasonry"` 表达这个选择（wallProfile + brick），整体台基用 `foundationSurface`（foundationProfile + brick）；不再通过缺少绑定隐式选择表现。这两个算法直接调用构件级几何内核，不调用旧整屋编译器。它们不接受局部 UV 编辑。
+内置资产的“关闭墙面铺设”显示原生砌体，不使用可编辑铺设层。用显式 `algorithm.type: "nativeMasonry"` 表达这个选择（wallProfile + brick），整体台基用 `foundationSurface`（foundationProfile + brick）。这两个算法直接调用构件级几何内核。它们不接受局部 UV 编辑。
 
 可编辑轮廓构件的 `regions` 保存有稳定身份的表面 UV 区域及 `effect: {unit_id?, hidden?}`；设计统一校验并用于预览、细节和材质解析。`wallStructure` / `support.params.structureMaterial` 明确几何连接使用的砌体或木结构。欧式生成器默认由墙体 Unit 选择结构，调用者可以显式指定。
 
@@ -122,9 +122,9 @@ Surface 必须通过 `meshSurface.params.mesh` 显式引用 Mesh；不会在生�
 
 `demos/building-components/index.html` 与 `recursive.html` 统一进入 `staged.ts`，支持房屋、圆塔、围墙、栅栏、台阶、相交房屋和窗口编辑，以及原生保存、撤销和重载。演示页只运行当前建筑流程。
 
-回归测试直接调用当前生成、设计、铺设、Worker 和渲染包接口，覆盖开口/连接、算法替换、取消、身份归属、存档和资源生命周期。旧版本执行代码及迁移期间的新旧比较测试不再维护。
+回归测试直接调用生成、设计、铺设、Worker 和渲染包接口，覆盖开口/连接、算法替换、取消、身份归属、存档和资源生命周期。
 
-旧存档迁移器、旧字段转换工具及迁移夹具已删除。当前格式的内置 Prefab、初始建筑及原生实例仍验证保存重载和生成结果。编辑删除使用当前实例的完整作者组件，包含禁用组件及隐藏节点，不能用 Manager 的活跃集合替代。
+内置 Prefab、初始建筑及原生实例仍验证保存重载和生成结果。编辑删除使用当前实例的完整作者组件，包含禁用组件及隐藏节点，不能用 Manager 的活跃集合替代。
 
 窗门使用 `attachmentMount + mountAttachment + {nativeAttachment:{kind,type,rank,frameMaterial}}`。`design.diagnostics` / `manager.diagnostics()` 返回墙角冲突等未能实施的原因，与生成失败的 `errors()` 分开；调用方应处理这些结果。演示中失败编辑不会替换已发布画面。
 
@@ -139,3 +139,7 @@ Surface 必须通过 `meshSurface.params.mesh` 显式引用 Mesh；不会在生�
 Source 的 Entity/Component ID 由导出器按 frame、对象类型和作者 ID 独立分配。作者 ID 不再直接用作 Source 组件 ID；调用者通过组件 definition 和原生引用定位对象，不能拼接后缀猜节点 ID。根 ID 与任意合法作者名字允许相同。复制仍只重映射原生对象引用，作者关系、seed 与配色保持不变。
 
 `manager.partView(part)` 只读取该实例已发布结果中的查看位姿：附件使用已解算挂点，结构使用已生成几何范围，通用 Unit 使用已执行铺设的位置或批次范围。Worker 和主线程随各自生成候选一起发布这些派生信息，不存入作者 Source。首次未发布或构件已停用时返回 undefined；候选失败保留旧结果的查看位姿，禁止用未接受的作者参数推算目标。Worker 的原生刚性附件与渲染一样使用发布时的绑定坐标。
+
+## 实际边界
+
+内置欧式轮廓使用水平刚性坐标系；任意Mesh连接需要对应求解器，通用Unit没有自动远景替身或碰撞体。当前提供统一扩展流程，不宣称已实现所有建筑风格或任意Mesh自动CSG。

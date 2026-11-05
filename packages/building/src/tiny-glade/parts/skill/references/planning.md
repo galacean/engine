@@ -4,7 +4,7 @@
 
 完整参数见 [European 声明](engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/parts/architecture/European.d.ts)；屋顶、台基和楼层参数见 [ProfileParameters 声明](engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/runtime/ProfileParameters.d.ts)。
 
-buildTower 使用相同墙/屋顶能力，默认圆形、较高墙体。buildWall 生成独立墙条。buildSteps({id,width,rise,run,count}) 生成台阶 Path；台阶无旧版独立主体基准。
+buildTower 使用相同墙/屋顶能力，默认圆形、较高墙体。buildWall 生成独立墙条。buildSteps({id,width,rise,run,count}) 生成台阶 Path。
 
 基础构件字段：id、group、type、support:{generator,params}、algorithm:{type}、unit、params。组仅存 seed/调色身份。关系存 from/to 的 part 与 boundary，以及 rule。自定义生成器直接输出同一结构，不需要经过欧式入口。
 

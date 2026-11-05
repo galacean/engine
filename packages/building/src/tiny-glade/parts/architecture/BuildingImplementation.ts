@@ -26,8 +26,7 @@ import { resolvedArrangement, type UnitPlacementBinding as MasonryBinding } from
 import { packConstructionUnits, type ConstructionUnitRole } from "../../runtime/ConstructionUnitRender";
 
 /** Final supports -> unit placements and render buffers.
- * The dev/2.0 numerical kernels/ordering/precision are preserved intentionally.
- * No legacy compiler, worker, HouseComponent or recursive recipe is invoked. */
+ * The dev/2.0 numerical kernels/ordering/precision are preserved intentionally. */
 export async function implementBuilding(
   design: BuildingDesign,
   options: {

@@ -208,7 +208,7 @@ export interface ProfilePreviewOptions {
   preparedRoofs?: ReadonlyMap<string, ConstructionPreviewRoofContexts>;
 }
 /** Resolved surfaces and their explicit material/connection data -> display,
- * structure and distance geometry. No old house source or parser is consumed. */
+ * structure and distance geometry. */
 export function profilePreview(
   input: ProfilePreviewInput,
   terrain: TerrainHeight,

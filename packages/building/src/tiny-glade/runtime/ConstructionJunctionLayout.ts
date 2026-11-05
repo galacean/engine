@@ -62,7 +62,7 @@ export function profileJunctionGroups(
     const owner = byId.get(ownerId);
     if (!owner) throw Error("Junction owner is absent");
     const binding = role === "wall_junction" ? owner.wallBinding : owner.roofBinding;
-    // Legacy examples without wall author bindings keep their original static draw.
+    // Parts without author bindings keep their static draw.
     if (!binding) return;
     const key = JSON.stringify([binding.id, role, sourceUnit, sourceDrawId]);
     let group = groups.get(key);

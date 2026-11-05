@@ -8,7 +8,7 @@ declare global {
     interface BuildingApi {
       /**
        * 调用入口：await tools.building.generate(input)
-       * 调用新版建筑风格生成器，返回可持久化的平铺 BuildingPartComponent Prefab Source。不创建场景对象、不铺设或渲染。
+       * 调用建筑风格生成器，返回可持久化的平铺 BuildingPartComponent Prefab Source。不创建场景对象、不铺设或渲染。
        * @param input - generator 对应 Building.European 的同名函数；parameters 使用该函数的原有参数，必须含 id。只有 buildHouses 接受参数数组。source.id 是 Prefab 根身份；assetLibrary 使用现有 BuildingGroupComponent 的真实资产库路径。原生轮廓建筑 position.y 为 0，地形由场景宿主求解。
        * @returns content 是 Prefab JSON；在同一 execute 中交给 editor.asset.create({path,type:'Prefab',content})，再用 editor.entity.create 实例化。execute 提交后才生成渲染结果。后续修改通过组件 Source 事务，勿持久化第二份生成器参数。
        */

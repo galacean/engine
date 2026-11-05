@@ -16,7 +16,7 @@ API 从 `@galacean/seed-world-systems` 导入，真实签名见 [声明入口](e
 - 每个基础构件一个 `BuildingPartComponent`，没有递归构件配方。Unit 是原生资产库单元、Entity/Prefab 或程序化几何模板，不需要建筑身份。
 - 使用 `BuildingManager.forScene(scene)` 获取场景管理器。Seed World 已绑定相机、资产与真实地形，创建建筑时复用这些设置；独立场景的设置见公共基础。`await flushAsync()` 后检查 `errors()` 和 `metrics()`，作者数据用 `get(id, frame)` / `snapshot(frame)`（frame 是目标实例的编译根节点，同名构件必须按实例查询） 读取。Agent execute 无法调用运行时方法，应通过 `runtime.component.query/read` 读取场景 BuildingManager 的 `buildStatus`：bound=true、pending=false 且 errors 为空才能说明当前生成已完成；diagnostics 记录未实施的构件原因。原始构件不接受回写的洞口/接触缓存。
 - 连接关系需要明确部位。内置欧式求解器只支持自己的轮廓协议；其他曲面使用 `buildingConnectionRules.register` 实现具体规则，不能宣称所有 Mesh 自动相交收口。
-- 视觉复刻必须对照相同参数、相机和光照下的真实渲染。保留旧房屋未改变不等于新流程像素复刻。
+- 视觉复刻必须对照相同参数、相机和光照下的真实渲染。房屋未改变不等于像素复刻。
 
 | 工作 | 说明 |
 | --- | --- |

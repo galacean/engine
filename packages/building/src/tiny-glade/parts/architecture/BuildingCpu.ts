@@ -15,7 +15,7 @@ import type { BuildingUnitAssets } from "../../runtime/BuildingUnitAssets";
 
 /** Current Worker capability: data-only profile parts and native attachment
  * descriptors. Native Entity/Prefab/Mesh references must not cross postMessage.
- * Unsupported supports fail explicitly; no old compiler or local fallback. */
+ * Unsupported supports fail explicitly; no local fallback. */
 export function validateBuildingWorkerDraft(draft: BuildingDraft) {
   validateBuildingDraft(draft);
   for (const part of draft.parts) {

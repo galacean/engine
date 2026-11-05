@@ -21,7 +21,7 @@ type Lease = { id: number; refs: number };
 type RequestBody = BuildingWorkerRequest extends infer R ? (R extends { id: number } ? Omit<R, "id"> : never) : never;
 
 /** Scene-owned Worker service. Handles own solved geometry; cancel/reset/release
- * never publish results or reconstruct an old whole-house author document. */
+ * never publish results. */
 export class BuildingCpuClient {
   private worker?: Worker;
   private nextId = 0;
