@@ -165,13 +165,7 @@ export class AgentContextTranscript {
     if (messages[0]?.role !== "system") throw new ContextCompactionError("missing system rules");
     // Host snapshots are separate from append-only execution evidence. Determine
     // their boundary by kind, and bind every replacement to this request's boundary.
-    const kinds = new Set([
-      "host_environment",
-      "capability_catalog",
-      "agent_task",
-      "conversation_history",
-      "world_state"
-    ]);
+    const kinds = new Set(["host_environment", "skills", "agent_task", "conversation_history", "world_state"]);
     const seen = new Set<string>();
     let prefixLength = 1;
     for (const message of messages.slice(1)) {

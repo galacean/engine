@@ -3,7 +3,7 @@ export interface PlanningSystemDeclaration {
   readonly id: string;
   readonly title: string;
   /** Existing progressive-knowledge document to which this system contributes. */
-  readonly knowledgePath: string;
+  readonly skill: string;
   readonly components: readonly {
     readonly type: string;
     readonly domain: "architecture" | "lighting" | "grading" | "vegetation" | "composition";
@@ -27,7 +27,7 @@ export interface PlanningSystemDeclaration {
 export interface PlanningSystemKnowledge {
   readonly id: string;
   readonly title: string;
-  readonly knowledgePath: string;
+  readonly skill: string;
   readonly components: readonly string[];
   readonly domains: Readonly<Record<string, PlanningSystemDeclaration["components"][number]["domain"]>>;
   readonly knowledge: readonly string[];

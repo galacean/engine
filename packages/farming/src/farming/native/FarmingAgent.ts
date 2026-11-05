@@ -18,11 +18,12 @@ export function createFarmingAgentPackage(api: FarmingAPI): {
     definition: {
       toolNames: [],
       scriptApi: {
-        catalog:
-          '种植系统：先读取 farming/README.md；用 editor.component.query({type: "FarmingAreaComponent"}) 获取区域代理，通过区域方法操作。',
-        documents: FARMING_KNOWLEDGE.filter((doc) => doc.path !== "farming/system-editor.md").map((doc) => ({
+        hostNotes:
+          '种植系统：先读取 skills/farming/references/overview.md；用 editor.component.query({type: "FarmingAreaComponent"}) 获取区域代理，通过区域方法操作。',
+        documents: FARMING_KNOWLEDGE.filter((doc) => doc.path !== "skills/farming/SKILL.md").map((doc) => ({
           path: doc.path,
-          content: doc.content + (doc.path === "farming/README.md" ? `\n## API 索引\n\n${index}\n` : "")
+          content:
+            doc.content + (doc.path === "skills/farming/references/overview.md" ? `\n## API 索引\n\n${index}\n` : "")
         })),
         entries: [
           {

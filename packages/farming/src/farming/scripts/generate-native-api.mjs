@@ -122,10 +122,16 @@ if (process.argv.includes("--check")) {
   writeIfChanged(output, content);
 }
 const knowledgeDir = new URL("../native/knowledge/", import.meta.url);
-const paths = ["README.md", "operations.md", "state-and-units.md", "verification.md", "system-editor.md"];
-const docs = paths.map((path) => ({
-  path: `farming/${path}`,
-  content: readFileSync(new URL(path, knowledgeDir), "utf8")
+const paths = {
+  "system-editor.md": "skills/farming/SKILL.md",
+  "README.md": "skills/farming/references/overview.md",
+  "operations.md": "skills/farming/references/operations.md",
+  "state-and-units.md": "skills/farming/references/state-and-units.md",
+  "verification.md": "skills/farming/references/verification.md"
+};
+const docs = Object.entries(paths).map(([source, path]) => ({
+  path,
+  content: readFileSync(new URL(source, knowledgeDir), "utf8")
 }));
 const outputType = checker.getDeclaredTypeOfSymbol(checker.getExportsOfModule(checker.getSymbolAtLocation(source)).find(symbol => symbol.name === "FarmingOutputs"));
 const methodDocs = operations.map(method => {
@@ -135,7 +141,7 @@ const methodDocs = operations.map(method => {
   const types = referencedDeclarations(checker, [input, result], path => path.includes("/packages/farming/src/farming/") || path.includes("/packages/project/src/interaction/"))
     .replace(printer.printNode(ts.EmitHint.Unspecified, declarations.get("FarmingCommands"), source), "")
     .replaceAll("keyof FarmingCommands", `(${operations.map(operation => JSON.stringify(operation.name)).join(" | ")})`);
-  return { path: `farming/methods/${method.name}.md`, content: [
+  return { path: `declare/editor/farming/methods/${method.name}.md`, content: [
     `# system.${method.name}`, "",
     '入口：`const systems = await editor.component.query({type:"FarmingSystem"});` 按身份选取 system。',
     `调用：await system.${method.name}(input${method.effect === "command" ? ", options?" : ""})`,
@@ -143,12 +149,12 @@ const methodDocs = operations.map(method => {
     "成功返回 {ok:true, value, context?}；下方 Value 是 result.value 的类型。失败抛出结构化错误。", "",
     "```ts", `type Input = ${method.inputText};`, `type Value = ${typeText(checker, result)};`, "```", "",
     "## 返回与输入依赖类型", "```ts", types, "```", "",
-    "写入选项及完整类型：[完整声明](editor/farming/FarmingSystem.d.ts)。读取若返回 next，按 next.offset 续读。"
+    "写入选项及完整类型：[完整声明](declare/editor/farming/FarmingSystem.d.ts)。读取若返回 next，按 next.offset 续读。"
   ].join("\n") };
 });
-docs.push({ path: "farming/methods/README.md", content: ["# 农场方法索引", "",
+docs.push({ path: "declare/editor/farming/methods/README.md", content: ["# 农场方法索引", "",
   "先查询 FarmingSystem 代理，再选择下一步方法。每页由真实 API 契约生成，包含输入、成功 value 与依赖类型。", "",
-  ...operations.map(method => `- [system.${method.name}](editor/farming/methods/${method.name}.md) — ${method.effect}`)
+  ...operations.map(method => `- [system.${method.name}](declare/editor/farming/methods/${method.name}.md) — ${method.effect}`)
 ].join("\n") }, ...methodDocs);
 const knowledge = `// Generated from native/knowledge. Do not edit.\nexport const FARMING_KNOWLEDGE = ${JSON.stringify(docs, null, 2)} as const;\n`;
 const knowledgeOutput = fileURLToPath(new URL("../native/FarmingKnowledge.ts", import.meta.url));

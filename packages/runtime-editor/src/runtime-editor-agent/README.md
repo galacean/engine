@@ -207,15 +207,15 @@ Console and Return are separate result/debug channels. A 64 KiB display budget r
 
 ## Agent Skills（2026-11-04）
 
-运行时 Skill 源码在 `world/gallery/skills/`，通过 AgentScriptApiCatalog.skills 注册。`createAgentProjectFiles` 将正文与参考文档挂载到 VFS 根目录 skills/<name>/，与 editor/ 并列；路径不可被项目资产或文档写入覆盖。`buildAgentMessages` 在 agent_task 上下文携带名称、用途与 SKILL.md 路径，不将全文加入 System Prompt。LLM 按需通过 read 读取正文和引用。
+运行时 Skill 由各系统自行提供，通过 AgentScriptApiCatalog.skills 注册。`createAgentProjectFiles` 将正文挂载到 VFS 根目录 skills/<name>/SKILL.md，子 Skill 和参考资料通过 documents 挂载；路径不可被项目资产或文档写入覆盖。`buildAgentMessages` 在 skills 上下文携带名称、用途与 SKILL.md 路径，不将全文加入 System Prompt。LLM 按需通过 read 读取正文和引用。
 
 当前注册 galacean-editor，资产使用参考文档沿用 Editor 的职责划分，并使用当前 runtime editor 的真实 API。Skill 前言与注册元数据保持一致，链接与只读边界由 runtime-native-knowledge、files-draft 和 agent-skills 测试覆盖。Skill 不增加 Worker 权限；资产导入仍由 RuntimeEditor 事务和格式校验负责。
 
 ## Virtual roots
 
-- `editor/`: execute API declarations and editing knowledge.
-- `engine/`: Script Engine/host declarations and runtime guides.
-- `skills/<name>.md`: workflow instructions; frontmatter is the sole name/description source. Requests contain only metadata and path; bodies are read on demand.
+- `declare/editor/`: execute API declarations.
+- `declare/engine/`: Script Engine and host declarations.
+- `skills/<name>/SKILL.md`: workflow instructions, with sub-skills and `references/` beside them; frontmatter is the sole name/description source. Requests contain only metadata and path; bodies are read on demand.
 - `.ai/outputs/`: long text outputs retained for the session with a bounded LRU. No project persistence. Screenshots retain their task lifetime; the existing editor/execute.js view exposes only the current task’s latest source, without new history storage.
 - Project assets keep their virtual paths. Only registered assets expose `.meta`; project.json, folders and ordinary documents do not.
 

@@ -1,11 +1,15 @@
 ---
-name: building-parts
-description: 在 Seed World 中通过风格生成器或自定义基础构件搭建建筑，处理构件连接与开口，铺设 Unit 并检查实际渲染。
+name: building
+description: 生成或修改建筑，处理构件连接与开口、铺设 Unit 或检查建筑渲染时使用。
 ---
 
-# 建筑基础构件
+# 建筑
 
-API 从 `@galacean/seed-world-systems` 导入，真实签名见 [声明入口](engine/node_modules/@galacean/seed-world-systems/index.d.ts)。在游戏 Script 中调用，持久化编辑走原生 Scene/Prefab 事务。
+已有建筑由独立的 `BuildingGroupComponent` 与 `BuildingPartComponent` 作者组件组成。通过 Editor API 查看和编辑原生 Source，保留目标实例的 frame 和引用；生成的网格是运行时输出，不要保存成第二份作者定义。提交后检查场景 BuildingManager 的 buildStatus。
+
+接口：[tools.building.generate](declare/editor/world/tools/building.generate.d.ts)
+
+API 从 `@galacean/seed-world-systems` 导入，真实签名见 [声明入口](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts)。在游戏 Script 中调用，持久化编辑走原生 Scene/Prefab 事务。
 
 在 Agent 的 `execute` 中创建持久建筑，使用 `tools.building.generate` 调用同一风格生成器；`execute` 不能导入游戏 Script 模块。生成结果的 `content` 直接交给 `editor.asset.create` 保存为 Prefab，再通过 `editor.entity.create` 实例化。读取 `building.generate` API 声明及下方流程示例。不要为一次建造安装临时生成 Script，也不要从零手写生成器已有的构件参数。
 

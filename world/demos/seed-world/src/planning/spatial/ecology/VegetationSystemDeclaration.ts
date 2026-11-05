@@ -3,7 +3,7 @@ import { NATURAL_VEGETATION_SIZE_CONTROLS } from "@galacean/engine-world-plannin
 
 /** Ecology owns population and habitat semantics; appearance remains with the material system. */
 export const VEGETATION_SYSTEM_DECLARATION: PlanningSystemDeclaration = {
-  id: "vegetation-distribution", title: "植被分布", knowledgePath: "vegetation/README.md",
+  id: "vegetation-distribution", title: "植被分布", skill: "vegetation",
   components: [
     { type: "flowers", domain: "vegetation", knowledge: [
       "flowers.coverage 表示可种植地面中花区面积的目标比例，densityPerM2 是花区内部的花丛密度；patchSizeM 和分布偏好改变花区形状与选址。面积、密度、斑块尺度是不同控制量。",

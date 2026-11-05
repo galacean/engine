@@ -43,7 +43,7 @@ export function collectPlanningSystemKnowledge(
   return declarations.flatMap(system => {
     const components = system.components.filter(component => available.has(component.type));
     return components.length ? [{
-      id: system.id, title: system.title, knowledgePath: system.knowledgePath,
+      id: system.id, title: system.title, skill: system.skill,
       components: components.map(component => component.type),
       domains: Object.fromEntries(components.map(component => [component.type, component.domain])),
       knowledge: components.flatMap(component => component.knowledge)

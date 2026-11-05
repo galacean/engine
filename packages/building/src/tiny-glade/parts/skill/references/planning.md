@@ -2,7 +2,7 @@
 
 `Building.European.buildHouses({id,seed,height,rectangle|circle,roof,wall,roofStyle,attachments})` 返回 groups/parts/relations。roof 保留 dev/2.0 的 0..1 控制参数，不是米制 rise/pitch；rectangle/circle 使用米和弧度。
 
-完整参数见 [European 声明](engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/parts/architecture/European.d.ts)；屋顶、台基和楼层参数见 [ProfileParameters 声明](engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/runtime/ProfileParameters.d.ts)。
+完整参数见 [European 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/parts/architecture/European.d.ts)；屋顶、台基和楼层参数见 [ProfileParameters 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/runtime/ProfileParameters.d.ts)。
 
 buildTower 使用相同墙/屋顶能力，默认圆形、较高墙体。buildWall 生成独立墙条。buildSteps({id,width,rise,run,count}) 生成台阶 Path。
 

@@ -38,7 +38,7 @@ export const GRASS_APPEARANCE_COMPONENT: PlanningComponentDefinition = {
 export const GRASS_APPEARANCE_DECLARATION: PlanningSystemDeclaration = {
   id: "grass-appearance",
   title: "草地配色",
-  knowledgePath: "vegetation/README.md",
+  skill: "vegetation",
   components: [
     {
       type: "grassAppearance",

@@ -48,7 +48,7 @@ const materialDirectory = vegetationLayers
 export const PLANT_MATERIAL_DECLARATION: PlanningSystemDeclaration = {
   id: "plant-material",
   title: "植被材质",
-  knowledgePath: "vegetation/README.md",
+  skill: "vegetation",
   components: [
     {
       type: "plantMaterial",

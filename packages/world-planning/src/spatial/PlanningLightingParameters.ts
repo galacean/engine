@@ -31,7 +31,7 @@ export const PLANNING_LIGHTING_RESOURCES: readonly PlanningResourceDefinition[] 
 export const PLANNING_LIGHTING_DECLARATION: PlanningSystemDeclaration = {
   id: "lighting",
   title: "光照与后处理",
-  knowledgePath: "atmosphere/README.md",
+  skill: "environment",
   components: [
     {
       type: "lighting",

@@ -131,7 +131,7 @@ export type AgentApiDeclarationModule = {
   toolNames?: readonly string[];
 };
 
-/** Host-owned instructions, mounted read-only at skills/<name>.md. */
+/** Top-level host instructions, listed in every request and mounted read-only at skills/<name>/SKILL.md. */
 export type AgentSkill = {
   name: string;
   description: string;
@@ -140,10 +140,10 @@ export type AgentSkill = {
 
 export type AgentScriptApiCatalog = {
   skills?: readonly AgentSkill[];
-  /** Read-only knowledge files; paths are relative to editor/. */
+  /** Read-only sub-skills and references (skills/...) or API documents (declare/...), at their exact VFS paths. */
   documents?: readonly { path: string; content: string }[];
-  /** Root knowledge README used for initial navigation, without full declarations. */
-  catalog: string;
+  /** Host facts every task needs, such as how APIs are namespaced. Not a routing list; Skills route intent. */
+  hostNotes?: string;
   /** Exact model-visible entry symbols and their declaration module roots. */
   entries: readonly AgentApiSearchEntry[];
   /** Independent declaration modules resolved through their real TypeScript imports. */

@@ -7,10 +7,14 @@ import wall from "./skill/references/wall.md?raw";
 import connections from "./skill/references/connections.md?raw";
 import existingHouse from "./skill/references/existing-house.md?raw";
 
-/** Published as discoverable project knowledge, not appended to the system prompt. */
-export const buildingPartKnowledge = [
-  { path: "knowledge/building/SKILL.md", content: entry },
-  ...Object.entries({ planning, foundation, structure, roof, wall, connections, "existing-house": existingHouse }).map(
-    ([name, content]) => ({ path: `knowledge/building/references/${name}.md`, content })
-  )
-];
+/** Top-level Skill source; the application registers it so its description reaches the request. */
+export const buildingPartSkill = entry;
+export const buildingPartDocuments = Object.entries({
+  planning,
+  foundation,
+  structure,
+  roof,
+  wall,
+  connections,
+  "existing-house": existingHouse
+}).map(([name, content]) => ({ path: `skills/building/references/${name}.md`, content }));

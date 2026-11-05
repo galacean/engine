@@ -1,6 +1,11 @@
+---
+name: farming
+description: 耕种、播种、浇水、收获、管理农场道具和库存，或查询农场与作物状态时使用。
+---
+
 # 农场组件 Editor API
 
-先读 [方法索引](editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。
+先读 [方法索引](declare/editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `declare/editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。
 
 先通过 system.list() 读取农场区域；根据用户指定的位置/区域选择 farmId。不能默认第一个区域就是目标。区域未初始化时用 system.getDiagnostics() 检查 placement/access/runtime/presentation 的事实，查询诊断不会重试初始化。组件不存在时检查 Scene，不要虚构农场。
 

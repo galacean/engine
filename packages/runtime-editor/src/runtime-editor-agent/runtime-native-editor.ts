@@ -88,11 +88,7 @@ export class RuntimeNativeEditor {
     }));
     const assertDocument = (path: string) => {
       if (
-        path === "skills" ||
-        path.startsWith("skills/") ||
-        path === "editor" ||
-        path.startsWith("editor/") ||
-        ["engine", ".ai"].some((root) => path === root || path.startsWith(`${root}/`)) ||
+        ["skills", "declare", ".ai"].some((root) => path === root || path.startsWith(`${root}/`)) ||
         this.sources.some(
           (source) =>
             [...source.paths()].some(

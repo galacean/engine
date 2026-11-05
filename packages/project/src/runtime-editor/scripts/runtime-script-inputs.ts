@@ -5,7 +5,7 @@ export function projectScriptInputs(pack: RuntimeProjectPackage) {
   const declarations = Object.fromEntries(
     Object.entries(pack.documents ?? {})
       .filter(([path]) => path.endsWith(".d.ts"))
-      .map(([path, text]) => [`engine/assets/${path}`, text])
+      .map(([path, text]) => [`declare/engine/assets/${path}`, text])
   );
   return { declarations };
 }

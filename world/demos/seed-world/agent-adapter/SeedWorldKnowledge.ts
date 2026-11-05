@@ -2,7 +2,23 @@ import { SEED_WORLD_API_CONTRACTS } from "./contracts/SeedWorldContractRegistry.
 import { SEED_WORLD_API_DECLARATION_MODULES, SEED_WORLD_API_SEARCH_ENTRIES } from "./contracts/generated/SeedWorldApiSearchRegistry.ts";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import { collectPlanningSystemKnowledge } from "./SeedWorldSystemDeclarations.ts";
-const files = import.meta.glob("./knowledge/**/*.md", { eager: true, as: "raw" }) as Record<string, string>;
+import type { AgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-types";
+import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
+const files = import.meta.glob("./skills/**/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
+const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
+  "world-objects": ["world"],
+  spatial: ["spatial"],
+  environment: ["time", "atmosphere"],
+  terrain: ["terrain"],
+  water: ["water"],
+  vegetation: ["vegetation"],
+  animals: ["animals"]
+};
+const HOST_NOTES = [
+  "world_state.snapshot.viewer.atSubmission is the frozen pose and capture time for the active inputId, not the start of the chat; it is null when no input reference is active. viewer.current is sampled for this model request. The user can move or turn during execution. Resolve relative instructions from their submission reference; verify created objects by identity and intended placement. A screenshot uses its own metadata.viewer and capturedAt. An object outside the current image is not evidence of failed creation. Do not recreate it or move the user's camera merely to verify it.\n\n- [世界编辑总览](knowledge/world/README.md)\n",
+  "In execute, world APIs live under `tools`, for example `await tools.world.parameters.query(...)`. Component extensions use `await editor.component.query(...)` and the methods declared on the returned proxy. Use the complete invocation printed in each method declaration: `spatial.resolve` is `tools.spatial.resolve`, not `tools.world.spatial.resolve`. Skill directories are topics, not runtime namespaces.",
+  "Only APIs linked from a Skill's API index and present in declare/editor/ are callable on this host. A paginated read is incomplete when it returns `next`; follow that offset before relying on a return structure."
+].join("\n\n");
 export function createSeedWorldKnowledge(
   toolNames: readonly string[], componentTypes?: Iterable<string>, options: { guides?: boolean } = {}
 ) {
@@ -28,46 +44,45 @@ export function createSeedWorldKnowledge(
     modules: modules.map(module => ({ ...module, id: "declare/world/" + module.id, imports: module.imports.map(id => "declare/world/" + id) }))
   };
   if (options.guides === false) return {
-    catalog: "# Native API Reference\n\n" + api.entries.map(entry => `- [${entry.name}](${entry.moduleId})`).join("\n"),
+    hostNotes: "# Native API Reference\n\n" + api.entries.map(entry => `- [${entry.name}](${entry.moduleId})`).join("\n"),
     documents: [],
     ...api
   };
   const systems = available.has("world.parameters.describe")
     ? collectPlanningSystemKnowledge(componentTypes ?? planningRegistry.describe().map(component => component.type))
     : [];
-  const documents = Object.entries(files).flatMap(([path, content]) => {
-    const relative = path.slice("./knowledge/".length);
-    const folder = relative.split("/")[0];
-    const domain = folder === "object-management" ? "world" : folder;
-    const hasApis = SEED_WORLD_API_CONTRACTS.some(api => api.domain === domain && available.has(api.name));
-    if (relative !== "README.md" && !(relative === "runtime.md" && available.has("world.inspect")) && !hasApis && !systems.some(system => system.knowledgePath === relative)) return [];
-    const index = SEED_WORLD_API_CONTRACTS.filter(api => api.domain === domain && available.has(api.name)).map(api =>
-      `- [tools.${api.name}](../../../declare/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
-    const types = SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
-      `- [${entry.name}](../../../declare/world/${entry.moduleId}): ${entry.description}`).join("\n");
-    const componentKnowledge = systems.filter(system => system.knowledgePath === relative).map(system =>
-      `### ${system.title}\n\nComponents: ${system.components.map(type => `\`${type}\``).join(", ")}\n\n${system.knowledge.join("\n\n")}`
-    ).join("\n\n");
-    return [{
-      path: relative === "runtime.md" ? "engine/knowledge/world.md" : "knowledge/world/" + relative,
-      content: content
-        .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index + (domain === "world" ? "\n\n### Asset Types\n\n" + types : ""))
-        .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", componentKnowledge)
-    }];
-  });
-  const paths = new Set(documents.map(document => document.path));
-  const catalog = documents.find(doc => doc.path === "knowledge/world/README.md")!.content.split("\n").filter(line => {
-    const link = /^- \[[^\]]+\]\(([^)]+)\)/.exec(line);
-    return !link || paths.has("knowledge/world/" + link[1]);
-  }).join("\n");
-  documents.find(doc => doc.path === "knowledge/world/README.md")!.content = catalog;
-  return {
-    catalog: "# Runtime Project\n\n" +
-      "world_state.snapshot.viewer.atSubmission is the frozen pose and capture time for the active inputId, not the start of the chat; it is null when no input reference is active. viewer.current is sampled for this model request. The user can move or turn during execution. Resolve relative instructions from their submission reference; verify created objects by identity and intended placement. A screenshot uses its own metadata.viewer and capturedAt. An object outside the current image is not evidence of failed creation. Do not recreate it or move the user's camera merely to verify it.\n\n- [世界编辑总览](knowledge/world/README.md)\n" +
-      catalog.split("\n").filter(line => /^- \[/.test(line)).map(line => line.replace(/\]\(([^)]+)\)/g, "](knowledge/world/$1)")).join("\n") + "\n" +
-      (available.has("world.inspect") ? "- [Engine runtime development](../engine/knowledge/README.md)\n- [World runtime access](../engine/knowledge/world.md)\n" : ""),
-    documents,
-    ...api
-  };
+  const skills: AgentSkill[] = [];
+  const documents: { path: string; content: string }[] = [];
+  for (const [path, source] of Object.entries(files)) {
+    const relative = path.slice("./skills/".length);
+    const name = relative.split("/")[0];
+    if (relative !== `${name}/SKILL.md`) continue;
+    const domains = SKILL_DOMAINS[name];
+    const apis = SEED_WORLD_API_CONTRACTS.filter(api => domains.includes(api.domain) && available.has(api.name));
+    const owned = systems.filter(system => system.skill === name);
+    if (!apis.length && !owned.length) continue;
+    const index = apis.map(api => `- [tools.${api.name}](declare/editor/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
+    const componentPath = `skills/${name}/references/components.md`;
+    if (owned.length) documents.push({
+      path: componentPath,
+      content: `# 组件知识\n\n` + owned.map(system =>
+        `## ${system.title}\n\nComponents: ${system.components.map(type => `\`${type}\``).join(", ")}\n\n${system.knowledge.join("\n\n")}`).join("\n\n") + "\n"
+    });
+    skills.push(parseAgentSkill(source
+      .replace("<!-- API_INDEX: generated from executable contracts at load time. -->", index)
+      .replace("<!-- COMPONENT_KNOWLEDGE: provided by registered systems at load time. -->", owned.length ? `系统组件的用法见[组件知识](${componentPath})。` : "")));
+    if (name === "world-objects") {
+      documents.push({
+        path: "skills/world-objects/references/asset-types.md",
+        content: "# 资产类型\n\n" + SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
+          `- [${entry.name}](declare/editor/world/${entry.moduleId}): ${entry.description}`).join("\n") + "\n"
+      });
+      if (available.has("world.parameters.describe")) documents.push({
+        path: "skills/world-objects/parameters/SKILL.md",
+        content: files["./skills/world-objects/parameters/SKILL.md"]
+      });
+    }
+  }
+  return { hostNotes: HOST_NOTES, skills, documents, ...api };
 }
 export const seedWorldKnowledge = createSeedWorldKnowledge(SEED_WORLD_API_CONTRACTS.map(api => api.name));

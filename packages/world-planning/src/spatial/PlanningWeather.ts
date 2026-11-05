@@ -20,7 +20,7 @@ export const PLANNING_WEATHER_COMPONENT: PlanningComponentDefinition = {
 export const PLANNING_WEATHER_DECLARATION: PlanningSystemDeclaration = {
   id: "weather",
   title: "云与降水",
-  knowledgePath: "spatial/README.md",
+  skill: "environment",
   components: [
     {
       type: "weather",

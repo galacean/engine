@@ -1,0 +1,5 @@
+# 草稿与提交
+
+All editing calls in one execute change its draft. Awaiting an edit does not apply it to the Engine. editor.component.read reads the draft's props; typed component methods observe the currently active runtime. To observe the runtime effect of changed enabled state, transforms or asset bindings, first finish the execute and inspect its receipt. If the receipt does not establish the required runtime state, query that state in a subsequent execute. Setting enabled=false and then enabled=true in a single execute only commits the final value; it does not exercise a disable/enable cycle.
+
+Preparation first typechecks scripts, then builds ESM modules and validates references and hierarchies before saving. Script check/build failures return their diagnostics to the Agent and leave the saved project unchanged. Activation errors appear in the receipt after memory commit; they do not roll back accepted authoring. Background persistence is independent; a committed receipt does not mean IndexedDB has finished saving.
