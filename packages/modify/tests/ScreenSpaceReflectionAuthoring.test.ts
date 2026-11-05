@@ -133,7 +133,7 @@ it("presets change exactly six fields and do not serialize runtime state", () =>
   expect(camera.screenSpaceReflection.maxRoughness).toBe(0.4);
   scene.destroy();
 });
-it("Auto selects consumer requests and forced modes preserve dormant requests", () => {
+it("ForceOn preserves scoped trace budgets while ForceOff keeps requests dormant", () => {
   const scene = new Scene(engine);
   const ssr = scene.createRootEntity().addComponent(Camera).screenSpaceReflection;
   ssr._prepareSettings();
@@ -141,6 +141,9 @@ it("Auto selects consumer requests and forced modes preserve dormant requests", 
   const lease = ssr.acquireConsumer("water", {
     receiverMode: Receiver.TransparentSampleOnly,
     maxRaySteps: 12,
+    resolutionScale: 0.5,
+    maxRayDistance: 56,
+    thickness: 0.5,
     intensity: 0.2
   });
   ssr._prepareSettings();
@@ -149,7 +152,14 @@ it("Auto selects consumer requests and forced modes preserve dormant requests", 
   expect(ssr.getResolvedSettings(Receiver.TransparentSampleOnly).maxRaySteps).toBe(12);
   scene.screenSpaceReflection.activationMode = Mode.ForceOn;
   ssr._prepareSettings();
-  expect(ssr.getResolvedSettings(Receiver.TransparentSampleOnly).maxRaySteps).toBe(32);
+  expect(ssr.getResolvedSettings(Receiver.TransparentSampleOnly)).toMatchObject({
+    maxRaySteps: 12,
+    resolutionScale: 0.5,
+    maxRayDistance: 56,
+    thickness: 0.5,
+    intensity: 1
+  });
+  expect(ssr.getResolvedSettings(Receiver.OpaqueComposite).maxRayDistance).toBe(20);
   scene.screenSpaceReflection.activationMode = Mode.ForceOff;
   ssr._prepareSettings();
   expect(ssr.metrics.requested).toBe(false);
@@ -317,4 +327,19 @@ it("copies scene authors on the first Override only, including after a never-ove
   expect(ssr.intensity).toBe(0.67);
   loaded.destroy();
   scene.destroy();
+});
+
+it("round-trips absent material authorship without taking over a legacy receiver", () => {
+  const material = new PBRMaterial(engine);
+  try {
+    SSR.setMaterialReceiver(material, Receiver.OpaqueComposite, 0.5);
+    expect(material.screenSpaceReflection).toBeNull();
+    const saved = JSON.parse(JSON.stringify({ screenSpaceReflection: material.screenSpaceReflection }));
+    material.screenSpaceReflection = saved.screenSpaceReflection;
+    expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
+    expect(material.shaderData.getFloat("material_ScreenSpaceReflectionIntensity")).toBe(0.5);
+    expect(SSR.setMaterialReceiver(material, Receiver.Disabled)).toBe(true);
+  } finally {
+    material.destroy();
+  }
 });

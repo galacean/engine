@@ -4,7 +4,7 @@ import type { IColor, IVector2, IVector3 } from "./BasicSchema";
 
 export interface IMaterialSchema {
   contributeScreenSpaceReflection?: boolean;
-  screenSpaceReflection?: ScreenSpaceReflectionMaterialSettings;
+  screenSpaceReflection?: ScreenSpaceReflectionMaterialSettings | null;
   name: string;
   shader: string;
   shaderData: {

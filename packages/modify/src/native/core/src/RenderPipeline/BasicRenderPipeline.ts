@@ -583,10 +583,18 @@ export class BasicRenderPipeline {
       try {
         screenSpaceReflectionCaptured = screenSpaceReflectionPass.captureScene(context, internalColorTarget);
         if (screenSpaceReflectionCaptured && camera.screenSpaceReflection._includesTransparentContributors) {
-          const contributes = (material: Material, element: RenderElement) =>
-            material.contributeScreenSpaceReflection &&
-            ScreenSpaceReflection.supportsMaterialContribution(material) &&
-            this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
+          // Reuse capability checks across count/color/depth within this capture only.
+          // Queue state and pass tags can change before the next camera render.
+          const contributionCapabilities = new Map<Material, boolean>();
+          const contributes = (material: Material, element: RenderElement) => {
+            if (!material.contributeScreenSpaceReflection) return false;
+            let supported = contributionCapabilities.get(material);
+            if (supported === undefined) {
+              supported = ScreenSpaceReflection.supportsMaterialContribution(material);
+              contributionCapabilities.set(material, supported);
+            }
+            return supported && this._isScreenSpaceReflectionElementMaskSafe(element, RenderQueueType.Transparent);
+          };
           if (
             transparentQueue.countRenderElements(PipelineStage.ScreenSpaceReflectionContributionColor, contributes) > 0
           ) {

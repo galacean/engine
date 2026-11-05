@@ -54,15 +54,8 @@ Shader "AIWorld/HeightfieldWater{{VALUE_001_SURFACEAPPEARANCENAME}}{{VALUE_002_D
     }
     Pass "SSR Contribution Depth" {
       Tags { pipelineStage = "ScreenSpaceReflectionContributionDepth", screenSpaceReflectionContribution = "ColorDepthV1" }
-      Bool blendEnabled;
-      Bool depthWriteEnabled;
       BlendState customBlendState {
         ColorWriteMask = ColorWriteMask.None;
-        Enabled = blendEnabled;
-        SourceColorBlendFactor = BlendFactor.SourceAlpha;
-        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-        SourceAlphaBlendFactor = BlendFactor.One;
-        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
       }
       DepthState customDepthState {
         WriteEnabled = true;

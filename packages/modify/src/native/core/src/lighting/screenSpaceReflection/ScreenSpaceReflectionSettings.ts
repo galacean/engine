@@ -30,23 +30,33 @@ export interface ScreenSpaceReflectionSettingsData {
   maxRoughness: number;
   edgeFade: number;
 }
+/** Material author intent; absence preserves runtime receiver ownership. */
+export interface ScreenSpaceReflectionMaterialSettings {
+  mode: "Auto" | "Off" | "On";
+  intensity: number;
+}
+
 /** Scene author settings. Runtime construction preserves the legacy receiver policy and trace budget. */
 export class ScreenSpaceReflectionSettings implements ScreenSpaceReflectionSettingsData {
   /** @internal Scene changes are consumed once at camera render preparation. */
   _version = 0;
-  private _data: ScreenSpaceReflectionSettingsData = {
-    ...ScreenSpaceReflectionSettings.performancePreset(ScreenSpaceReflectionQuality.Medium),
-    reflectionContent: ScreenSpaceReflectionContent.OpaqueOnly,
+  /** Shared legacy defaults for scene and camera construction. */
+  static readonly defaults: Readonly<ScreenSpaceReflectionSettingsData> = Object.freeze({
     activationMode: ScreenSpaceReflectionActivationMode.Auto,
     receiverPolicy: ScreenSpaceReflectionReceiverPolicy.ExplicitOnly,
+    reflectionContent: ScreenSpaceReflectionContent.OpaqueOnly,
     resolutionScale: 1,
     upsamplingMode: ScreenSpaceReflectionUpsamplingMode.GaussianBilateral,
-    maxRayDistance: 20,
     intensity: 1,
-    rayLengthFade: ScreenSpaceReflection.getQualityPreset(ScreenSpaceReflectionQuality.Medium).rayLengthFade,
-    maxRoughness: ScreenSpaceReflection.getQualityPreset(ScreenSpaceReflectionQuality.Medium).maxRoughness,
-    edgeFade: ScreenSpaceReflection.getQualityPreset(ScreenSpaceReflectionQuality.Medium).edgeFade
-  };
+    maxRayDistance: 20,
+    rayLengthFade: 1,
+    maxRaySteps: 32,
+    hitRefinementSteps: 3,
+    thickness: 0.2,
+    maxRoughness: 0.7,
+    edgeFade: 0.1
+  });
+  private _data: ScreenSpaceReflectionSettingsData = { ...ScreenSpaceReflectionSettings.defaults };
   /** Shared whitelist and validation for partial author parameters. */
   static normalize(data: Partial<ScreenSpaceReflectionSettingsData>): Partial<ScreenSpaceReflectionSettingsData> {
     const values = { ...ScreenSpaceReflection._sanitizeConsumerRequest(data) };

@@ -742,9 +742,5 @@
   {
     "original": "packages/loader/src/schema/MaterialSchema.ts",
     "replacement": "packages/modify/src/native/loader/src/schema/MaterialSchema.ts"
-  },
-  {
-    "original": "packages/core/src/material/index.ts",
-    "replacement": "packages/modify/src/native/core/src/material/index.ts"
   }
 ]

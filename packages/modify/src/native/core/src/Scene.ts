@@ -1,4 +1,3 @@
-import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { ComponentsManager } from "./ComponentsManager";
@@ -13,6 +12,7 @@ import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { EnvironmentLighting } from "./lighting/environment";
 import { LightManager } from "./lighting/LightManager";
+import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";

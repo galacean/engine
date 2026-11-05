@@ -1,11 +1,8 @@
-import { ScreenSpaceReflection } from "../lighting/screenSpaceReflection/ScreenSpaceReflection";
-export interface ScreenSpaceReflectionMaterialSettings {
-  mode: "Auto" | "Off" | "On";
-  intensity: number;
-}
 import { IClone } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
+import { ScreenSpaceReflection } from "../lighting/screenSpaceReflection/ScreenSpaceReflection";
+import type { ScreenSpaceReflectionMaterialSettings } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { ScreenSpaceReflectionReceiverMode } from "../lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -29,15 +26,9 @@ export class Material extends ReferResource implements IClone {
     intensity: number;
     registered: boolean;
   } | null = null;
-  /** Author intent, independent of the current shader, queue and compatible material lobes. */
-  get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> {
-    return (
-      this._screenSpaceReflection ??
-      Object.freeze({
-        mode: this.shader.name === "PBR" ? "Auto" : "Off",
-        intensity: this.shader.name === "PBR" ? 1 : 0
-      })
-    );
+  /** Author intent, or null when the material is owned by legacy runtime registration. */
+  get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
+    return this._screenSpaceReflection;
   }
   /** Set null to release author ownership and restore the previous runtime receiver. */
   set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings> | null) {

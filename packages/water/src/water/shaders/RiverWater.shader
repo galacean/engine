@@ -52,14 +52,8 @@ Shader "{{VALUE_001_SHADERNAME}}" {
     }
     Pass "SSR Contribution Depth" {
       Tags { pipelineStage = "ScreenSpaceReflectionContributionDepth", screenSpaceReflectionContribution = "ColorDepthV1" }
-      Bool depthWriteEnabled;
       BlendState customBlendState {
         ColorWriteMask = ColorWriteMask.None;
-        Enabled = true;
-        SourceColorBlendFactor = BlendFactor.SourceAlpha;
-        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-        SourceAlphaBlendFactor = BlendFactor.One;
-        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
       }
       DepthState customDepthState {
         WriteEnabled = true;

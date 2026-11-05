@@ -36,14 +36,24 @@ it("CR2-001 actual picker restores following, dormant override and failure-path 
         if (state === "dormant") camera.screenSpaceReflection.settingsSource = Source.UseSceneSettings;
       }
       const saved = camera.screenSpaceReflectionSettings;
-      picker.warmup(() => {});
+      picker.warmup(() => {
+        expect(camera.screenSpaceReflectionSettings).toEqual(saved);
+        expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
+      });
       expect(camera.screenSpaceReflectionSettings).toEqual(saved);
       expect(() =>
         picker.warmup(() => {
+          expect(camera.screenSpaceReflectionSettings).toEqual(saved);
+          expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
           throw new Error("pick failure");
         })
       ).toThrow("pick failure");
       expect(camera.screenSpaceReflectionSettings).toEqual(saved);
+      expect(camera.screenSpaceReflection.renderingEnabled).toBe(true);
+      camera.screenSpaceReflection.renderingEnabled = false;
+      picker.warmup(() => {});
+      expect(camera.screenSpaceReflection.renderingEnabled).toBe(false);
+      camera.screenSpaceReflection.renderingEnabled = true;
       scene.screenSpaceReflection.intensity = 0.8;
       camera.screenSpaceReflection._prepareSettings();
       expect(camera.screenSpaceReflection.getResolvedSettings(Receiver.OpaqueComposite).intensity).toBe(
@@ -91,17 +101,15 @@ it("CR2-002 runtime Scene keeps legacy budget and does not enroll PBR during wat
 it("CR2-003 repeated authored receiver queries do not rewrite uniforms and invalidate on author, shader, queue and effects", () => {
   const material = new PBRMaterial(engine);
   const calls = vi.spyOn(material.shaderData, "setFloat");
-  const capabilities = vi.spyOn(SSR, "getMaterialReceiverCapability");
   try {
     material.screenSpaceReflection = { mode: "On", intensity: 0.6 };
     calls.mockClear();
-    capabilities.mockClear();
     for (let i = 0; i < 4; i++) expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.OpaqueComposite);
     material.screenSpaceReflection = { mode: "On", intensity: 0.6 };
     expect(calls).not.toHaveBeenCalled();
-    expect(capabilities).not.toHaveBeenCalled();
     material.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
+    expect(calls).not.toHaveBeenCalled();
     calls.mockClear();
     expect(SSR.getMaterialReceiverMode(material)).toBe(Receiver.Disabled);
     expect(calls).not.toHaveBeenCalled();
@@ -134,10 +142,8 @@ it("CR2-003 repeated authored receiver queries do not rewrite uniforms and inval
     scene.screenSpaceReflection.receiverPolicy = Policy.StandardPbrAuto;
     const ssr = scene.createRootEntity().addComponent(Camera).screenSpaceReflection;
     calls.mockClear();
-    capabilities.mockClear();
     for (let i = 0; i < 4; i++) expect(ssr._isMaterialReceiver(material, RenderQueueType.Opaque)).toBe(true);
     expect(calls).not.toHaveBeenCalled();
-    expect(capabilities).not.toHaveBeenCalled();
     scene.destroy();
     const legacy = new PBRMaterial(engine);
     legacy.cloneTo(material);
@@ -146,7 +152,6 @@ it("CR2-003 repeated authored receiver queries do not rewrite uniforms and inval
     legacy.destroy();
   } finally {
     calls.mockRestore();
-    capabilities.mockRestore();
     material.destroy();
   }
 });

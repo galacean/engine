@@ -4,6 +4,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const packages = path.join(root, ".cache/engine/packages");
+if (!fs.existsSync(packages)) {
+  throw new Error("SSR tests require a local Engine build. Run: node packages/modify/build/local-engine.mjs");
+}
 const alias = fs.readdirSync(packages).map((name) => {
   const pkg = JSON.parse(fs.readFileSync(path.join(packages, name, "package.json")));
   return { find: pkg.name, replacement: path.join(packages, name, "dist/module.js") };

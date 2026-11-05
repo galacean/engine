@@ -18,7 +18,7 @@ import {
 } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import PBRSource from "../src/native/shader/src/Shaders/PBR.shader?raw";
-import { afterAll, beforeAll, expect, it } from "vitest";
+import { afterAll, beforeAll, expect, it, vi } from "vitest";
 let engine: WebGLEngine;
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
@@ -137,7 +137,25 @@ it("renders all receive/contribute combinations with correct alpha, opaque occlu
   const baseCost = { ...camera.screenSpaceReflection.metrics };
   expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBe(0);
   red.contributeScreenSpaceReflection = true;
-  const on = render();
+  const capabilityChecks = vi.spyOn(SSR, "supportsMaterialContribution");
+  let on: Uint8Array;
+  try {
+    on = render();
+    expect(capabilityChecks.mock.calls.filter(([material]) => material === red)).toHaveLength(1);
+    const depthPass = red.shader.subShaders[0].passes.find(
+      (pass) => pass.getTagValue("pipelineStage") === "ScreenSpaceReflectionContributionDepth"
+    )!;
+    try {
+      depthPass.setTag("screenSpaceReflectionContribution", "incompatible");
+      render();
+      expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBe(0);
+    } finally {
+      depthPass.setTag("screenSpaceReflectionContribution", "ColorDepthV1");
+    }
+    render();
+  } finally {
+    capabilityChecks.mockRestore();
+  }
   expect(camera.screenSpaceReflection.metrics.contributionUnsupportedReason).toBeNull();
   expect(camera.screenSpaceReflection.metrics.contributionColorDrawCount).toBe(1);
   expect(camera.screenSpaceReflection.metrics.contributionDepthDrawCount).toBe(1);
@@ -383,6 +401,10 @@ it("verifies Heightfield and River Auto rendering, contribution and lifecycle", 
       expect(camera.screenSpaceReflection.metrics.transparentSurfacePassDrawCount).toBeGreaterThan(0);
       if (backend instanceof HeightfieldWaterBackend) backend.setRuntimeSurfaceTimeOverride("water", 0);
       const on = renderPixels();
+      const autoSettings = { ...camera.screenSpaceReflection.metrics.transparentResolvedSettings };
+      scene.screenSpaceReflection.activationMode = 1;
+      renderPixels();
+      expect(camera.screenSpaceReflection.metrics.transparentResolvedSettings).toEqual(autoSettings);
       scene.screenSpaceReflection.activationMode = 2;
       const off = renderPixels();
       // A changed fallback alone is not evidence of a reflected object. Require red chroma
