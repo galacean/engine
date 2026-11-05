@@ -53,11 +53,10 @@ describe("Joint self collider binding", function () {
   function setupEntity(
     root: Entity,
     order: ColliderOrder,
-    JointType: JointConstructor,
-    index: number
+    JointType: JointConstructor
   ): { entity: Entity; joint: FixedJoint | HingeJoint | SpringJoint; dynamicCollider: DynamicCollider } {
     const entity = root.createChild(`${order}-${JointType.name}`);
-    entity.transform.setPosition(index * 3, 5, 0);
+    entity.transform.setPosition(0, 5, 0);
 
     if (order === "static-first") {
       addBoxShape(entity.addComponent(StaticCollider), 10);
@@ -72,7 +71,9 @@ describe("Joint self collider binding", function () {
     const joint = entity.addComponent(JointType);
     const dynamicCollider = entity.getComponent(DynamicCollider);
     expect(dynamicCollider).not.toBeNull();
-    addBoxShape(dynamicCollider!);
+    if (order !== "dynamic-first") {
+      addBoxShape(dynamicCollider!);
+    }
 
     return { entity, joint, dynamicCollider: dynamicCollider! };
   }
@@ -105,7 +106,7 @@ describe("Joint self collider binding", function () {
       it(`${order} -> ${JointType.name}`, async function () {
         const engine = await createEngine();
         const root = engine.sceneManager.activeScene.createRootEntity("root");
-        const { entity, joint, dynamicCollider } = setupEntity(root, order, JointType, 0);
+        const { entity, joint, dynamicCollider } = setupEntity(root, order, JointType);
 
         expectNativeJointBoundToDynamic(joint, dynamicCollider);
         expect(() => simulate(engine, 10)).not.toThrow();
