@@ -44,9 +44,6 @@ export class BuildingGroupComponent extends Component {
   _onDisableInScene(): void {
     BuildingManager.existing(this.entity.scene!)?.unregister(this);
   }
-  _onClone(target: BuildingGroupComponent): void {
-    retainBuildingResource(target._assetLibrary, 1);
-  }
   protected override _onDestroy(): void {
     retainBuildingResource(this._assetLibrary, -1);
     this._assetLibrary = null;
