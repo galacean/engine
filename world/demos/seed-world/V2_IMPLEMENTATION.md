@@ -1,3 +1,13 @@
+## 2026-11-05 世界风格选择迁入公共包
+
+同步 engine-next 当前世界风格功能：原始 Seed World 与 15 个模板、固定主体与地貌基础种子、Seed 归档重建、地形及生态预留、原生水体和天气、独立地表与植物固有色、参考光照和主景取景。公共配方、布局、参数与 Runtime 进入 world-planning；选择面板及原生 Scene 属性适配保留在 Seed World Demo，裸地颜色驻留接口由 terrain 包拥有。原生 Engine 与 examples 没有改动。
+
+缺失主题模型仍使用无标注纯白盒；不将这次同步记为最终美术或特效验收。独立的参考树重建生成器、离线工具和生成资产不在本次提交范围。回归保留来源断言并按迁移目录适配模块、资源与夹具路径。
+
+本轮在目标仓库执行 6 文件 199 项定向回归，198 通过、1 失败；其中 WorldTemplates 的 113 项全部通过。失败为旧 TerrainRuntimeIntegration 用例仍断言 layer-01：来源 HEAD 的同一断言要求四层，而来源及迁移基线的 SEED_WORLD_SURFACE_LAYER_IDS 已为 layer-00／layer-04／layer-02 三层。本次未改变层身份或原断言，不把此项计为通过。执行命令：`pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs WorldTemplates PlanningLightingProfile PlanningSeedScenePublication SeedWorldTerrainRuntimeIntegration SpatialRoadAttachments TerrainPreparedUpdate`。
+
+公共包边界检查、World 类型检查及 Seed World 单入口生产构建通过，原生 Engine 仍有 1 条既有类型诊断、无新增。开发页通过原始入口打开 16 个风格选项，应用樱雪 Seed 1 后经「生成 3D」达到 ready，模板身份及白盒主体正确，发布 355 株树，无页面错误。没有逐一复验全部模板的原生渲染、性能、真实 LLM 或最终美术。
+
 ## 2026-11-04 同步旧工程恢复与岩石颜色修复
 
 本轮同步来源为 `engine-next/dev/2.0@e44e84a3198bcd1de2d8d46ffdedde0ed7773263` 的 17 文件修复提交，逐项映射到本仓库已拆分的系统包与 Seed World Demo；不将其父提交的整批 Agent/API 更新混入此次同步，也不改变最初的迁移来源基线。

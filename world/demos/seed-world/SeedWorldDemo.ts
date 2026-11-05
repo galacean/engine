@@ -37,7 +37,11 @@ import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/
 import { PlanningLightingProfileRuntime } from "@galacean/engine-world-planning/spatial/runtime/PlanningLightingProfileRuntime";
 import { PlanningNaturalVegetationRuntime, planningNaturalGrassDensity } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetationRuntime";
 import { planningNaturalGroundPopulation } from "@galacean/engine-world-planning/spatial/runtime/PlanningNaturalVegetation";
-import { readGrassAppearance } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
+import {
+  readGrassAppearance,
+  readSurfacePalette
+} from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
+import { applyPlanningWeather } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { readPlantMaterialParameters } from "@galacean/engine-world-planning/spatial/PlantMaterialParameters";
 import { planningPresentedSolids } from "@galacean/engine-world-planning/spatial/runtime/PlanningPresentedSolids";
 import { planningSelectionRegion } from "./src/planning/spatial/runtime/PlanningSelectionRegion.ts";
@@ -85,8 +89,16 @@ import { TerrainNavigationRuntime } from "@galacean/engine-terrain/terrain/proje
 import { TerrainPostProcessRuntime } from "@galacean/engine-terrain/terrain/project/TerrainPostProcessRuntime";
 import { TerrainWindRuntime } from "@galacean/engine-terrain/terrain/project/TerrainWindRuntime";
 import { createIntegratedWorldLightingRuntime } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldPresentation";
+import { WorldTemplateRuntime } from "@galacean/engine-world-planning/spatial/runtime/WorldTemplateRuntime";
+import {
+  resolveWorldTemplateScene,
+  resolveWorldTemplateView
+} from "@galacean/engine-world-planning/spatial/WorldTemplateView";
 import { INTEGRATED_WORLD_DAYLIGHT_REFERENCE_TIME_HOURS } from "@galacean/engine-world-planning/integrations/terrain/lighting/IntegratedWorldLightingPreset";
-import { SEED_WORLD_DEFAULT_FOG_VALUES, SEED_WORLD_DEFAULT_SHADOW_STRENGTH } from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
+import {
+  SEED_WORLD_DEFAULT_FOG_VALUES,
+  SEED_WORLD_DEFAULT_SHADOW_STRENGTH
+} from "@galacean/engine-environment/terrain/lighting/SeedWorldLightingPreset";
 import { TERRAIN_DEFAULT_CAMERA_CONFIGURATION } from "@galacean/engine-world-planning/integrations/terrain/lighting/TerrainLightingRuntime";
 import { WorldEnvironmentRuntime } from "@galacean/engine-world-planning/integrations/terrain/environment/WorldEnvironmentRuntime";
 import {
@@ -100,6 +112,7 @@ import {
 } from "@galacean/engine-terrain/terrain/debug/TerrainScreenSpaceReflectionPanel";
 import {
   SeedWorldTerrainRuntime,
+  SEED_WORLD_ROAD_COLOR_DEFAULT,
   SEED_WORLD_SURFACE_LOD_CROSS_FADE_DURATION_SECONDS
 } from "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime";
 import { SeedWorldAudioRuntime } from "@galacean/engine-world-planning/world/SeedWorldAudioRuntime";
@@ -459,6 +472,10 @@ export async function mountSeedWorldDemo(
       lighting,
       wind
     );
+    applyPlanningWeather(
+      environment,
+      source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
+    );
     audio = new SeedWorldAudioRuntime(camera, navigation, environment, wind);
     const windCenter = new Vector3();
     const driver = root.addComponent(SeedDemoFrame);
@@ -502,6 +519,16 @@ export async function mountSeedWorldDemo(
         debugSidebar?.update(); runtimeDebug?.refresh(); debugReadoutElapsed = 0;
         const current = publication?.current;
         if (current?.vegetation) canvas.dataset.vegetation = JSON.stringify(current.vegetation.getDiagnostics());
+        if (current?.template && pageUrl.searchParams.get("debug") === "1") {
+          const forward = camera.entity.transform.worldForward;
+          canvas.dataset.templateCamera = JSON.stringify({
+            eye: [position.x, position.y, position.z],
+            forward: [forward.x, forward.y, forward.z],
+            ground: sampleHeight(position.x, position.z),
+            eyeHeight: navigation.eyeHeight,
+            groundClearance: navigation.groundClearance
+          });
+        }
         if (current) canvas.dataset.grassHeight = JSON.stringify(current.world.population.grassHeightRangeMetres);
 
         if(publication?.current?.masonry)canvas.dataset.plannedMasonry=JSON.stringify(publication.current.masonry.metrics);
@@ -804,22 +831,56 @@ export async function mountSeedWorldDemo(
         }
         if (preparedPlayer?.bookmark) cameraPose = planningPlayerCameraPose(preparedPlayer.bookmark);
         const presentationPose = resolveSubjectView(readSubjectView(document), plan, camera.aspectRatio,
-          (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z), navigation.eyeHeight);
-        if (presentationPose) {
-          const position = new Vector3(...presentationPose.eye), target = new Vector3(...presentationPose.target);
-          const matrix = new Matrix(); Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix); matrix.invert();
+            (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+            navigation.eyeHeight
+          );
+          const templateScene = resolveWorldTemplateScene(plan, (x, z) =>
+            sampleSeedWorldHeight(candidateData.fields, x, z)
+          );
+          const templateView =
+            templateScene &&
+            resolveWorldTemplateView(
+              templateScene,
+              camera.aspectRatio,
+              camera.fieldOfView,
+              navigation.eyeHeight,
+              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z)
+            );
+          if (presentationPose) {
+            const position = new Vector3(...presentationPose.eye),
+              target = new Vector3(...presentationPose.target);
+            const matrix = new Matrix();
+            Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+            matrix.invert();
+            const rotation = new Quaternion();
+            matrix.getRotation(rotation);
+            cameraPose = { position, rotation, orbitTarget: target };
+          }
+          if (
+            !presentationPose &&
+            templateView &&
+            ((initial && !preparedPlayer?.bookmark) ||
+              context.previousDocument.entities.world.components.worldTemplate?.values.id !==
+                plan.parameters.worldTemplate?.id)
+          ) {
+            const position = new Vector3(...templateView.pose.eye),
+              target = new Vector3(...templateView.pose.target);
+            const matrix = new Matrix();
+            Matrix.lookAt(position, target, new Vector3(0, 1, 0), matrix);
+            matrix.invert();
           const rotation = new Quaternion(); matrix.getRotation(rotation);
           cameraPose = { position, rotation, orbitTarget: target };
         }
         progress(0.55, "创建 Seed 地形与植被");
         const runtimeFields = { ...candidateData.fields };
         let heightTransition: ReturnType<SeedWorldTerrainRuntime["prepareHeightTransition"]> | undefined;
-        let candidate: SeedWorldTerrainRuntime | undefined;
-        let candidateMasonry: NativeBuildingWorld | undefined;
-        let candidateVegetation: PlanningNaturalVegetationRuntime | undefined;
-        let candidateSolids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
-        let candidateWater: PreparedPlanningWater | undefined;
-        let candidateExposure: TerrainWindGpuExposureProvider | undefined;
+          let candidate: SeedWorldTerrainRuntime | undefined;
+          let candidateMasonry: NativeBuildingWorld | undefined;
+          let candidateVegetation: PlanningNaturalVegetationRuntime | undefined;
+          let candidateTemplate: WorldTemplateRuntime | undefined;
+          let candidateSolids: Awaited<ReturnType<typeof createPlanningSeedSolids>> | undefined;
+          let candidateWater: PreparedPlanningWater | undefined;
+          let candidateExposure: TerrainWindGpuExposureProvider | undefined;
         try {
           candidate = await SeedWorldTerrainRuntime.create(
             engine!,
@@ -882,16 +943,32 @@ export async function mountSeedWorldDemo(
             candidateData.population, { client: rockFormations, settings: readRockFormationSettings(document), signal,
               generationProfile: readRockGenerationProfile(document) },
             readPlantMaterialParameters(document), candidate,
-            presentationPose ? subjectViewLandscape(presentationPose, plan, (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z), camera.aspectRatio) : undefined,
-            heightTransition?.fields ?? candidateData.fields);
-          signal.throwIfAborted();
+            presentationPose ? subjectViewLandscape(presentationPose, plan,                     (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+                    camera.aspectRatio
+                  )
+                : templateView?.landscape,
+              heightTransition?.fields ?? candidateData.fields
+            );
+            signal.throwIfAborted();
           await candidate.population.applyAuthoringPopulationLayout(planningNaturalGroundPopulation(candidateData.population,
             planningNaturalGrassDensity(library), plan, candidateVegetation.plantAssets),
-            { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth });
-          candidate.setSurfaceColorTuning({ ...candidate.getSurfaceColorTuning(), grass: readGrassAppearance(document) });
-          if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
-          progress(0.68, "生成全部房屋与围合构件");
-          const buildingTerrain = masonryTerrainSource({ data: candidateData, revision: document.revision }, formationMeshes);
+              { minimumX: 0, minimumZ: 0, maximumX: plan.parameters.width, maximumZ: plan.parameters.depth }
+            );
+            candidate.setSurfaceColorTuning({
+              roadColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              groundColor: readSurfacePalette(document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+              grass: readGrassAppearance(document)
+            });
+            candidateTemplate = WorldTemplateRuntime.create(
+              candidate.root,
+              plan,
+              (x, z) => sampleSeedWorldHeight(candidateData.fields, x, z),
+              templateScene
+            );
+            if (!ready) progress(0.6, `生成真实建筑（${plan.buildings.length} 栋）`);
+            progress(0.68, "生成全部房屋与围合构件");
+            const buildingTerrain = masonryTerrainSource(
+{ data: candidateData, revision: document.revision }, formationMeshes);
           // Startup has no outer project transaction. Later initialization is
           // contributed during editor preparation, never from runtime publication.
           if (!ready && !context.projectTransaction)
@@ -925,12 +1002,13 @@ export async function mountSeedWorldDemo(
           }
           return {
             authoringRevision: document.revision,
-            masonry: candidateMasonry,
-            assertCurrent: () => candidateMasonry!.assertCurrent(),
-            vegetation: candidateVegetation,
-            preparedWater: candidateWater,
-            data: candidateData,
-            heightTransition,
+              masonry: candidateMasonry,
+              assertCurrent: () => candidateMasonry!.assertCurrent(),
+              vegetation: candidateVegetation,
+              template: candidateTemplate,
+              preparedWater: candidateWater,
+              data: candidateData,
+              heightTransition,
             world: candidate,
             solids: candidateSolids,
             cameraPose,
@@ -939,12 +1017,13 @@ export async function mountSeedWorldDemo(
           };
         } catch (error) {
           await candidateWater?.rollback();
-          heightTransition?.dispose();
-          await candidateMasonry?.destroy();
-          candidateVegetation?.dispose();
-          preparedPlayer?.rollback();
-          candidateExposure?.destroy();
-          try {
+            heightTransition?.dispose();
+            await candidateMasonry?.destroy();
+            candidateVegetation?.dispose();
+            candidateTemplate?.dispose();
+            preparedPlayer?.rollback();
+            candidateExposure?.destroy();
+            try {
             candidateSolids?.dispose();
           } finally {
             await candidate?.destroy();
@@ -1016,8 +1095,11 @@ export async function mountSeedWorldDemo(
       const accepted = publication!.current!;
       farmingHost?.runtime?.publish(accepted, source!.session.document.revision);
       const plan = accepted.plan;
-      animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation,
-        { surface: accepted.data.surfaceIntent });
+      accepted.template?.activate(canvas);
+      if (!accepted.template) delete canvas.dataset.worldTemplate;
+      animals!.synchronize(plan, readAnimalPopulationConfig(source!.session.document), accepted.navigation, {
+        surface: accepted.data.surfaceIntent
+      });
       if (publication!.current !== accepted || disposed) return;
       canvas.dataset.buildingPublicationRevision = String(accepted.revision);
       canvas.dataset.buildingPreparation = JSON.stringify(accepted.masonry?.metrics ?? null);
@@ -1043,7 +1125,15 @@ export async function mountSeedWorldDemo(
         if (publication!.current !== accepted || disposed) return;
         debugSidebar?.synchronize(plan);
         await applyPresentation(source!.session, lightingProfile!, post);
-        accepted.world.setSurfaceColorTuning({ ...accepted.world.getSurfaceColorTuning(), grass: readGrassAppearance(source!.session.document) });
+        applyPlanningWeather(
+          environment!,
+          source!.session.inspect("world").components.find((c) => c.type === "weather")?.values
+        );
+        accepted.world.setSurfaceColorTuning({
+          roadColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          groundColor: readSurfacePalette(source!.session.document, SEED_WORLD_ROAD_COLOR_DEFAULT),
+          grass: readGrassAppearance(source!.session.document)
+        });
         canvas.dataset.grassAppearance = JSON.stringify(accepted.world.getSurfaceColorTuning().grass);
       const actualLight = lighting!.getSnapshot();
       const actualTuning = lighting!.getVisualTuning();

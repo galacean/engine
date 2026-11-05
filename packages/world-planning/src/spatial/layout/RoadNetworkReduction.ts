@@ -154,7 +154,7 @@ export function reduceRoadNetwork(plan: IslandPlan, clear: RoadClearance): void 
     .map((s) => ({
       ...s,
       owners: [...new Set(s.owners)].sort(),
-      route: { ...s.route, id: s.owners.includes(s.route.id) ? s.route.id : s.owners[0] }
+      route: s.route
     }));
   const used = new Map<string, number>();
   for (const s of graph.sections) for (const n of [s.route.from, s.route.to]) used.set(n, (used.get(n) ?? 0) + 1);

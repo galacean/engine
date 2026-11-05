@@ -1,6 +1,8 @@
 import { planningRegistry } from "./PlanningComponents";
 import type { PlanningDocument } from "./PlanningDocument";
 import { createSeedPlanningDocument } from "./PlanningInitialization";
+import { createWorldStylePlanningDocument } from "./WorldTemplateAuthoring";
+import { worldTemplate } from "./WorldTemplateCatalog";
 import { resolveComponent } from "./SpatialDocument";
 
 /** World and tier policies describe generation; all other authoring records address layout instances. */
@@ -33,18 +35,25 @@ export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed:
     draft.passthrough.edits = structuredClone(incoming.edits);
     draft.passthrough.parameters = structuredClone(incoming.parameters!);
   } else {
-    const fresh = createSeedPlanningDocument(nextSeed);
+    const template = worldTemplate(outgoing.world.components.worldTemplate?.values.id);
+    const fresh = template
+      ? createWorldStylePlanningDocument(draft, nextSeed, template.id)
+      : createSeedPlanningDocument(nextSeed);
     draft.waterAuthoringVersion = fresh.waterAuthoringVersion;
     draft.entities = { ...fresh.entities, ...incoming?.entities };
     draft.passthrough = fresh.passthrough;
     draft.passthrough.edits = incoming?.edits ?? {};
+    draft.authoredResources = structuredClone(fresh.authoredResources);
     delete draft.placementState;
     // Lighting is presentation, never a seeded spatial variation.
-    for (const type of ["lighting", "postProcess"])
-      draft.entities.world.components[type] = outgoing.world.components[type];
+    for (const type of ["lighting", "postProcess", "weather"]) {
+      const component = outgoing.world.components[type];
+      if (component) draft.entities.world.components[type] = component;
+      else delete draft.entities.world.components[type];
+    }
   }
   if (incoming?.authoredResources !== undefined) draft.authoredResources = structuredClone(incoming.authoredResources);
-  else delete draft.authoredResources;
+  else if (incoming) delete draft.authoredResources;
   draft.entities.world.components.world.values.seed = nextSeed;
   delete archives[String(nextSeed)];
   draft.layoutOverrides = archives;

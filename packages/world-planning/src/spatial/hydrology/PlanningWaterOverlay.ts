@@ -21,6 +21,7 @@ import {
   revealLandscapeBasemap
 } from "../../semantic-study/ContextLandscape";
 import { exportPlanningRecipe, type PlanningDocument } from "../PlanningDocument";
+import { worldTemplateEcology } from "../WorldTemplateEcology";
 import { generateSpatialWorld } from "../layout/SpatialWorld";
 import { bounds, intersects } from "../layout/Volumes";
 import { poiTerritories } from "../ecology/PoiTerritories";
@@ -112,7 +113,10 @@ function applyLayer(
   for (const [key, value] of Object.entries(heightCached ? {} : (planningHeightmapWork(height)?.timings ?? {})))
     timings["waterOverlay.height." + key] = value;
   const ecologyStarted = performance.now(),
-    config = recipe.parameters.poiLayout ?? defaultPoiLayout();
+    config = worldTemplateEcology(
+      recipe.parameters.worldTemplate?.id,
+      recipe.parameters.poiLayout ?? defaultPoiLayout()
+    );
   const candidates = base.plan.spatialLayout?.landscapeBase;
   if (support.length && candidates) {
     progress?.("更新作者水体局部生态");

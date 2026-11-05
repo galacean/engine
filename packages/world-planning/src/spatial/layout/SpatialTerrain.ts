@@ -13,6 +13,8 @@ export function createSpatialWorldBase(recipe: SemanticResult["recipe"]): Island
       width: 1024,
       depth: 1024,
       seed: p.seed,
+      landformSeed: p.landformSeed,
+      worldTemplate: p.worldTemplate,
       valleyWidth: 0,
       riverWidth: 0,
       mountainHeight: 0,
@@ -45,14 +47,15 @@ export function createSpatialWorldBase(recipe: SemanticResult["recipe"]): Island
 /** Generate land and offshore islands without POI, roads or ecology. */
 export function generateSpatialLand(plan: IslandPlan, recipe: SemanticResult["recipe"], notes: string[]): void {
   const p = recipe.parameters;
+  const seed = p.landformSeed ?? p.seed;
   planWorldDomain({
     plan,
     edits: recipe.edits,
     notes,
     frame: { width: 440, length: 440, angle: 0 },
-    random: (key) => settlementRandom(p.seed, key),
+    random: (key) => settlementRandom(seed, key),
     parameters: {
-      seed: p.seed,
+      seed,
       landSize: p.landCoverage,
       landAspect: p.landAspect,
       landOrientation: p.landOrientation,
@@ -66,17 +69,18 @@ export function generateSpatialLand(plan: IslandPlan, recipe: SemanticResult["re
 /** Rebuild the base terrain bands from the same authored parameters and named Seed streams. */
 export function generateSpatialTerrain(plan: IslandPlan, recipe: SemanticResult["recipe"]): void {
   const p = recipe.parameters;
+  const seed = p.landformSeed ?? p.seed;
   const terrain = { count: 2, directionDegrees: 45, heightM: 50, widthM: 160, lengthM: 600, ...p.terrainSkeleton };
   const terrainPatches = Array.from({ length: terrain.count }, (_, i) => ({
     id: `terrain-band:${i}`,
-    x: 180 + settlementRandom(p.seed, `band:${i}:x`) * 660,
-    z: 180 + settlementRandom(p.seed, `band:${i}:z`) * 660,
-    yawDegrees: terrain.directionDegrees + (settlementRandom(p.seed, `band:${i}:angle`) - 0.5) * 40,
+    x: 180 + settlementRandom(seed, `band:${i}:x`) * 660,
+    z: 180 + settlementRandom(seed, `band:${i}:z`) * 660,
+    yawDegrees: terrain.directionDegrees + (settlementRandom(seed, `band:${i}:angle`) - 0.5) * 40,
     lengthM: terrain.lengthM ?? 600,
     leftWidthM: terrain.widthM,
-    rightWidthM: terrain.widthM * (0.7 + settlementRandom(p.seed, `band:${i}:width`) * 0.5),
+    rightWidthM: terrain.widthM * (0.7 + settlementRandom(seed, `band:${i}:width`) * 0.5),
     heightM: terrain.heightM,
-    bendM: (settlementRandom(p.seed, `band:${i}:bend`) - 0.5) * 160
+    bendM: (settlementRandom(seed, `band:${i}:bend`) - 0.5) * 160
   }));
   plan.parameters.terrainPatches = [...terrainPatches, ...(p.terrainPatches ?? [])];
 }

@@ -397,7 +397,7 @@ export function samplePlanningGround(plan: IslandPlan, p: PlanPoint): number {
       const influence = Math.exp(-Math.pow(Math.hypot(p.x - center.x, p.z - center.z) / (radius * 1.5), 2));
       uplift = Math.max(uplift, Math.max(...rocks.map((r) => r.height)) * 0.045 * influence);
     }
-    broad += (uplift + relief(plan.parameters.seed, p)) * smooth(coast / 100);
+    broad += (uplift + relief(plan.parameters.landformSeed ?? plan.parameters.seed, p)) * smooth(coast / 100);
   }
   if (land && plan.parameters.globalElevation !== undefined)
     broad = globalPlanningElevation(plan, p) * smooth(coast / 100);
@@ -954,7 +954,7 @@ function createPlanningNaturalGroundSampler(
   registerPreparation?: (prepare: (bounds: GroundBounds) => void) => void,
   baseGround?: (p: PlanPoint) => number
 ): (p: PlanPoint) => number {
-  const reliefAt = createReliefSampler(plan.parameters.seed);
+  const reliefAt = createReliefSampler(plan.parameters.landformSeed ?? plan.parameters.seed);
   const authored = plan.authoredResources?.some(isPlanningTerrainResource)
     ? authoredTerrainDisplacement(plan.authoredResources)
     : () => 0;

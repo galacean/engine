@@ -28,6 +28,7 @@ import {
   type TerrainMacroVariationOptions
 } from "./TerrainClipmapMaterial";
 import type { TerrainLayerResidencyRegionSource } from "./TerrainLayerResidency";
+import type { TerrainLayerDiffuseColorPatch } from "./TerrainClipmapMaterial";
 import type { TerrainClipmapRegionSource } from "./TerrainClipmapSource";
 import type { TerrainPuddleHydrologyField, TerrainPuddleHydrologyOptions } from "./TerrainPuddleHydrology";
 
@@ -438,6 +439,13 @@ export class TerrainClipmap {
     }
     this._layerDetilingMask = layerMask;
     this._materialBinding.setLayerDetilingMask?.(layerMask);
+  }
+
+  /** Updates resident layer colours without replacing height, alpha, texture-array or material owners. */
+  setLayerDiffuseColors(patches: readonly TerrainLayerDiffuseColorPatch[]): void {
+    this._assertAlive();
+    if (!this._materialBinding.setLayerDiffuseColors) throw Error("Terrain binding cannot edit layer colours");
+    this._materialBinding.setLayerDiffuseColors(patches);
   }
 
   /**

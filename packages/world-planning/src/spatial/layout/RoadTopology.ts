@@ -415,8 +415,9 @@ function buildConnectionGraph(plan: IslandPlan, clear: RoadClearance, keysOnly =
     } while (chain.length <= edges.size);
     const owners = [...edge.owners].sort(),
       owner = sourceById.get(owners[0])!;
+    const sectionId = `road-section:${start}|${node}|${chain[0].id}`;
     const definition = {
-      id: owner.id,
+      id: sectionId,
       label: owner.label,
       kind: owner.kind,
       from: nodeId(start),
@@ -429,7 +430,7 @@ function buildConnectionGraph(plan: IslandPlan, clear: RoadClearance, keysOnly =
     const index = graph.sections.length;
     // Parallel chains can have identical endpoints. Their first physical edge
     // distinguishes them without hashing or depending on logical journey owners.
-    graph.sections.push({ id: `road-section:${start}|${node}|${chain[0].id}`, owners, route: published });
+    graph.sections.push({ id: sectionId, owners, route: published });
     for (const e of chain) mapped.set(e.id, index);
   }
   for (const node of stops)
@@ -547,7 +548,6 @@ export function rebuildPhysicalRoadTopology(
   const compiled = new Map(plan.routes.map((r) => [r.id, r]));
   for (const section of plan.roadGraph!.sections) {
     section.owners = [...new Set(section.owners.flatMap((id) => sections.get(id)!.owners))].sort();
-    section.route = { ...section.route, id: section.owners[0] };
   }
   plan.routes = journeys.map((route) => {
     const mapped = (route.navigationLinks ?? []).map((link) => {

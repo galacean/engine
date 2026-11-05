@@ -197,6 +197,8 @@ export function planVisualGuidance(
     groupId: "groupId" in p ? p.groupId : undefined
   }));
   const protectedAreas: (ReturnType<typeof footprint> & { ownerId?: string; densityField?: boolean })[] = [
+    ...(plan.planning?.reservations.filter((area) => area.kind === "activity").map((area) => footprint(area.outline)) ??
+      []),
     ...plan.regions.filter((r) => r.kind === "village").map((r) => footprint(r.outline)),
     ...(plan.landscapes ?? []).map((p) => ({ ...footprint(p.outline), ownerId: p.id })),
     ...(plan.flowerRegions ?? []).flatMap((f) =>

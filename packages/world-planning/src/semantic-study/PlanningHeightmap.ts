@@ -445,6 +445,7 @@ function heightKey(plan: IslandPlan, resolution: number): string {
     plan.settlementLayout || plan.landformStudy || plan.canyonStudy
       ? {
           seed: plan.parameters.seed,
+          landformSeed: plan.parameters.landformSeed,
           width: plan.parameters.width,
           depth: plan.parameters.depth,
           terrainPatches: plan.parameters.terrainPatches,

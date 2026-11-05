@@ -33,8 +33,8 @@ export class PlanningLightingProfileRuntime {
       );
       if (this.disposed || request !== this.request) return false;
       // Reinstall the source before explicit overrides so reset/base and profile switches cannot retain old curves.
-      applyPlanningLightSources(this.lighting, values, data.samples);
       this.lighting.applyVisualTuning(data.visualTuning);
+      applyPlanningLightSources(this.lighting, values, data.samples);
       this.resource = asset;
       return true;
     } catch (error) {

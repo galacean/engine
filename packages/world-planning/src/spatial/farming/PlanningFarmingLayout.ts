@@ -124,7 +124,10 @@ export function preparePlanningFarmLayout(
           }))
       : groups.flatMap((group) => group.volumes)
   );
-  const paths = (plan.routes ?? []).flatMap((route) => (route.outline ? [route.outline] : []));
+  const paths = [
+    ...(plan.routes ?? []).flatMap((route) => (route.outline ? [route.outline] : [])),
+    ...(plan.planning?.reservations.filter((area) => area.kind === "activity").map((area) => area.outline) ?? [])
+  ];
   // Standalone callers may supply internal paths before the world has projected routes.
   if (!plan.routes?.length)
     for (const group of groups)

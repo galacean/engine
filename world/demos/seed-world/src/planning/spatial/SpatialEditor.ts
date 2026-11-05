@@ -9,6 +9,8 @@ import { createSeedWorldProjectClose } from "../../../SeedWorldProjectClose.ts";
 import { planningSourceDocument } from "./runtime/PlanningProjectSource.ts";
 import { exportPlanningScene, importPlanningScene } from "./PlanningSceneAsset.ts";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { createWorldStylePlanningDocument } from "@galacean/engine-world-planning/spatial/WorldTemplateAuthoring";
+import { mountWorldTemplatePicker } from "./WorldTemplatePicker.ts";
 import { wayfindingPolicy } from "@galacean/engine-world-planning/spatial/guidance/WayfindingPolicy";
 import { wayfindingHighlights } from "./guidance/WayfindingHighlights.ts";
 import { planningOverview } from "./PlanningOverview.ts";
@@ -108,6 +110,14 @@ export async function mountSpatialEditor(
   let api: WorldPlanningHandle | undefined;
   const activeEdits = new Set<Promise<unknown>>();
   const abort = new AbortController();
+  const templatePicker = mountWorldTemplatePicker(
+    root.querySelector<HTMLElement>(".ip-topbar nav")!,
+    async (id, seed) => {
+      const receipt = await edit((draft) => draft.load(createWorldStylePlanningDocument(session.document, seed, id)));
+      if (receipt?.status !== "accepted") throw new Error(receipt?.message ?? "规划未接受");
+      if (storageWarning) throw new Error(storageWarning);
+    }
+  );
   function updateGenerateControl() {
     const unavailable = disposed || generating || clearingStorage || changingProjection || session.pending ||
       root.dataset.pending === "true" || !session.result;
@@ -115,6 +125,7 @@ export async function mountSpatialEditor(
     button("director").disabled = unavailable;
     button("clear").disabled = unavailable;
     button("clear-save").disabled = unavailable;
+    templatePicker.update(session.recipe().parameters.worldTemplate?.id, session.recipe().parameters.seed, unavailable);
   }
   function currentPlan(): IslandPlan {
     if (disposed) throw new Error("空间规划已关闭");
@@ -330,6 +341,7 @@ export async function mountSpatialEditor(
     root.dataset.revision = String(session.document.revision);
 
     root.dataset.seed = String(r.recipe.parameters.seed);
+    templatePicker.update(r.recipe.parameters.worldTemplate?.id, r.recipe.parameters.seed, session.pending);
     const intentURL = new URL("../scene-visual-intent/index.html", pageUrl.url);
     intentURL.searchParams.set("seed", String(r.recipe.parameters.seed));
     ui<HTMLAnchorElement>("visual-intent").href = intentURL.href;
@@ -525,6 +537,7 @@ export async function mountSpatialEditor(
     disposed = true;
     root.inert = true;
     abort.abort();
+    templatePicker.dispose();
     await Promise.allSettled([...activeEdits]);
     director.dispose();
     client.dispose();

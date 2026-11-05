@@ -152,8 +152,7 @@ export function pruneUnservedRoadTails(plan: IslandPlan, clear: RoadClearance): 
     const owners = section.owners.filter((id) => published.has(id));
     return {
       ...section,
-      owners,
-      route: { ...section.route, id: owners.includes(section.route.id) ? section.route.id : owners[0] }
+      owners
     };
   });
   graph.nodes = graph.nodes

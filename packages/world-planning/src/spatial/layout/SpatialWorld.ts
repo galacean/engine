@@ -1,4 +1,6 @@
 import { finalizePlanningFarm } from "../farming/PlanningFarmingFinalization";
+import { planWorldTemplateSite } from "../WorldTemplatePlanning";
+import { worldTemplateEcology } from "../WorldTemplateEcology";
 import { generateLakeRegions, LAKE_DEFAULTS } from "../hydrology/LakeRegions";
 import { generateRiverRegions, RIVER_DEFAULTS } from "../hydrology/RiverRegions";
 import { RIVER_BANK_PROFILE_VERSION } from "../../semantic-study/PlanningRiverBank";
@@ -219,7 +221,10 @@ export function tryRevealSpatialWorld(
   )
     return;
   const started = performance.now(),
-    config = recipe.parameters.poiLayout ?? defaultPoiLayout();
+    config = worldTemplateEcology(
+      recipe.parameters.worldTemplate?.id,
+      recipe.parameters.poiLayout ?? defaultPoiLayout()
+    );
   const plan: IslandPlan = {
     ...previous.plan,
     landscapes: previous.plan.spatialLayout?.baselineLandscapes ?? previous.plan.landscapes,
@@ -268,7 +273,7 @@ export function generateSpatialWorld(
     if (revealed) return revealed;
   }
   progress?.("生成陆域与地势");
-  const config = p.poiLayout ?? defaultPoiLayout(),
+  const config = worldTemplateEcology(p.worldTemplate?.id, p.poiLayout ?? defaultPoiLayout()),
     checks: PlanningCheck[] = [],
     notes: string[] = [],
     timings: Record<string, number> = {};
@@ -285,6 +290,8 @@ export function generateSpatialWorld(
     POI_TERRITORY_VERSION,
     POI_DISTRIBUTION_VERSION,
     p.seed,
+    p.landformSeed,
+    p.worldTemplate,
     p.landCoverage,
     p.landAspect,
     p.landOrientation,
@@ -429,8 +436,19 @@ export function generateSpatialWorld(
     changedGroups = new Set<string>();
   plan.spatialLayout = { worldSignature, groups };
   let ground = createPlanningGroundSampler(plan, { natural: true });
+  plan.worldTemplateSite = planWorldTemplateSite(plan, ground);
+  plan.planning!.reservations = plan.planning!.reservations.filter((area) => area.ownerId !== "world-template");
+  for (const item of plan.worldTemplateSite?.footprints ?? [])
+    plan.planning!.reservations.push({
+      id: `world-template:activity:${item.id}`,
+      ownerId: "world-template",
+      kind: "activity",
+      outline: item.outline,
+      relatedIds: []
+    });
+  const templateAreas = (plan.worldTemplateSite?.footprints ?? []).map((item) => createPlanningRingQuery(item.outline));
   const inside = (outline: PlanPoint[]) => domains.some((d) => d.query.containsPolygon(outline));
-  let roadExcludedAreas: ReturnType<typeof createPlanningRingQuery>[] = [];
+  let roadExcludedAreas: ReturnType<typeof createPlanningRingQuery>[] = [...templateAreas];
   const respectsRoadAreas = (outline: PlanPoint[]) => !roadExcludedAreas.some((area) => area.overlapsPolygon(outline));
   const roadInside = (outline: PlanPoint[]) =>
     inside(outline) && respectsRoadAreas(outline) && !riverRoads.some((w) => w.ring.overlapsPolygon(outline));
@@ -636,7 +654,9 @@ export function generateSpatialWorld(
       (rock || !!domains.find((d) => d.id === site.domainId)?.query.containsPolygon(outline)) &&
       !riverRings.some((w) => w.overlapsPolygon(outline));
     const clearGeneratedFootprint = (outline: PlanPoint[]) =>
-      clear(outline) && (!terrainPlacement || footprintWithinRelief(outline, relief, terrainPlacement.maxReliefM));
+      clear(outline) &&
+      !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
+      (!terrainPlacement || footprintWithinRelief(outline, relief, terrainPlacement.maxReliefM));
     // Reconstruct the same unedited baseline for cold and incremental generation.
     // Overrides resolve against this baseline, never against edit-history-dependent positions.
     const candidateBounds = bounds(territoryOutlines.get(site.id) ?? []);
@@ -807,9 +827,10 @@ export function generateSpatialWorld(
   plan.routes = [];
   plan.spatialLayout.elementProfiles = elementProfiles;
   projectLayoutGroups(plan, groups, appearances, !reuseRoads);
-  roadExcludedAreas = plan.regions
-    .filter((region) => region.roadExcluded)
-    .map((region) => createPlanningRingQuery(region.outline));
+  roadExcludedAreas = [
+    ...templateAreas,
+    ...plan.regions.filter((region) => region.roadExcluded).map((region) => createPlanningRingQuery(region.outline))
+  ];
   if (reuseRoads) {
     plan.roadNetwork = retainedRoads!.network;
     plan.routes = retainedRoads!.routes;
