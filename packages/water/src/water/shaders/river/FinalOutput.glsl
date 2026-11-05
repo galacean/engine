@@ -112,5 +112,10 @@
         if (material_SurfaceDebugMode > {{VALUE_014_RIVERSURFACEDEBUGMODE_OFF_0_5}} && (material_SurfaceDebugMode < 13.5 || material_SurfaceDebugMode > 15.5)) {
           resolvedWaterClosure = vec4(color, 1.0);
         }
-        {{VALUE_015_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_RESOLVED}}
+        #ifdef SSR_CONTRIBUTION_CAPTURE
+          if (resolvedWaterClosure.a <= 0.0001) discard;
+        #endif
+        #ifndef SSR_CONTRIBUTION_DEPTH
+          {{VALUE_015_CREATEWATERSURFACEV2RESOLVEDOUTPUTSTATEMENT_RESOLVED}}
+        #endif
         }

@@ -12,7 +12,6 @@ import {
   DepthTextureMode,
   Renderer,
   RenderTarget,
-  ScreenSpaceReflectionActivationMode,
   Texture2D,
   TextureFormat,
   Matrix,
@@ -306,7 +305,7 @@ export class SeedWorldPicker {
       aa = camera.antiAliasing;
     const depthMode = camera.depthTextureMode,
       opaque = camera.opaqueTextureEnabled;
-    const ssr = camera.screenSpaceReflection.activationMode,
+    const ssr = camera.screenSpaceReflection.renderingEnabled,
       ao = camera.scene!.ambientOcclusion.enabled;
     const backgroundMode = background.mode;
     this.savedColor.copyFrom(background.solidColor);
@@ -319,7 +318,7 @@ export class SeedWorldPicker {
       camera.enableHDR = camera.enablePostProcess = camera.opaqueTextureEnabled = false;
       camera.antiAliasing = AntiAliasing.None;
       camera.depthTextureMode = DepthTextureMode.None;
-      camera.screenSpaceReflection.activationMode = ScreenSpaceReflectionActivationMode.ForceOff;
+      camera.screenSpaceReflection.renderingEnabled = false;
       camera.scene!.ambientOcclusion.enabled = false;
       background.mode = BackgroundMode.SolidColor;
       background.solidColor = this.black;
@@ -412,7 +411,7 @@ export class SeedWorldPicker {
       camera.antiAliasing = aa;
       camera.depthTextureMode = depthMode;
       camera.opaqueTextureEnabled = opaque;
-      camera.screenSpaceReflection.activationMode = ssr;
+      camera.screenSpaceReflection.renderingEnabled = ssr;
       camera.scene!.ambientOcclusion.enabled = ao;
       background.mode = backgroundMode;
       background.solidColor = this.savedColor;

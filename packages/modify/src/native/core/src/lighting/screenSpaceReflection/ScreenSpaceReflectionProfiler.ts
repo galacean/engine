@@ -2,6 +2,11 @@ import type { ScreenSpaceReflectionConsumerReceiverMode } from "./ScreenSpaceRef
 
 /** Non-overlapping GPU work scopes. Scene capture is shared by both receiver phases. */
 export type ScreenSpaceReflectionStage =
+  | "contribution-copy"
+  | "contribution-depth-copy"
+  | "contribution-color"
+  | "contribution-depth"
+  | "contribution-mipmap"
   | "scene-copy"
   | "scene-mipmap"
   | "surface"

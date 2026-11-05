@@ -18,3 +18,5 @@ export {
 } from "./ScreenSpaceReflection";
 /** @internal */
 export { ScreenSpaceReflectionPass } from "./ScreenSpaceReflectionPass";
+
+export * from "./ScreenSpaceReflectionSettings";

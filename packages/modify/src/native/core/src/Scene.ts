@@ -12,6 +12,7 @@ import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { EnvironmentLighting } from "./lighting/environment";
 import { LightManager } from "./lighting/LightManager";
+import { ScreenSpaceReflectionSettings } from "./lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
@@ -25,6 +26,7 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
+  readonly screenSpaceReflection = new ScreenSpaceReflectionSettings();
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
   private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");

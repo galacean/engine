@@ -28,7 +28,8 @@ export class RenderTargetPool {
     wrapMode: TextureWrapMode,
     filterMode: TextureFilterMode,
     depthFilterMode: TextureFilterMode = filterMode,
-    additionalColorFormats: readonly TextureFormat[] = []
+    additionalColorFormats: readonly TextureFormat[] = [],
+    depthMipmap: boolean = mipmap
   ): RenderTarget {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
@@ -44,7 +45,8 @@ export class RenderTargetPool {
           mipmap,
           isSRGBColorSpace,
           antiAliasing,
-          additionalColorFormats
+          additionalColorFormats,
+          depthMipmap
         )
       ) {
         freeRenderTargets[i] = freeRenderTargets[freeRenderTargets.length - 1];
@@ -82,7 +84,7 @@ export class RenderTargetPool {
       let renderTarget: RenderTarget;
       if (needDepthTexture) {
         if (depthFormat) {
-          depthTexture = new Texture2D(engine, width, height, depthFormat, mipmap, isSRGBColorSpace);
+          depthTexture = new Texture2D(engine, width, height, depthFormat, depthMipmap, isSRGBColorSpace);
           depthTexture.isGCIgnored = true;
           depthTexture.wrapModeU = depthTexture.wrapModeV = wrapMode;
           depthTexture.filterMode = depthFilterMode;
@@ -209,7 +211,8 @@ export class RenderTargetPool {
     mipmap: boolean,
     isSRGBColorSpace: boolean,
     antiAliasing: number,
-    additionalColorFormats: readonly TextureFormat[]
+    additionalColorFormats: readonly TextureFormat[],
+    depthMipmap: boolean
   ): boolean {
     if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
       return false;
@@ -233,7 +236,11 @@ export class RenderTargetPool {
     if (needDepthTexture) {
       if (depthFormat) {
         const depthTexture2D = depthTexture as Texture2D;
-        if (!depthTexture2D || depthTexture2D.format !== depthFormat || depthTexture2D.mipmapCount > 1 !== mipmap) {
+        if (
+          !depthTexture2D ||
+          depthTexture2D.format !== depthFormat ||
+          depthTexture2D.mipmapCount > 1 !== depthMipmap
+        ) {
           return false;
         }
       } else if (depthTexture || renderTarget._depthFormat !== null) {
