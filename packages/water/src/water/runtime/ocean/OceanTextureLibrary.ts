@@ -1,5 +1,4 @@
 import {
-  AssetType,
   type Engine,
   type Texture2D,
   TextureFilterMode,
@@ -8,11 +7,7 @@ import {
   TextureWrapMode
 } from "@galacean/engine-core";
 
-const SMOOTH_WAVES_URL = new URL("../../resources/ocean/textures/Normals/SmoothWaves.ktx2", import.meta.url).href;
-const ROUGH_WAVES_URL = new URL("../../resources/ocean/textures/Normals/RoughWaves.ktx2", import.meta.url).href;
-const CAUSTICS_URL = new URL("../../resources/ocean/textures/Caustics/Caustics_1.ktx2", import.meta.url).href;
-const FOAM_URL = new URL("../../resources/ocean/textures/Foam/Foam1.ktx2", import.meta.url).href;
-const INTERSECTION_NOISE_URL = new URL("../../resources/ocean/textures/IntersectionNoise.ktx2", import.meta.url).href;
+import { loadBuiltinWaterTexture } from "../../native/WaterBuiltinAssets";
 
 export interface OceanTextures {
   readonly smoothWaves: Texture2D;
@@ -27,6 +22,31 @@ export interface OceanTextures {
   readonly resourceBytes: number;
 }
 
+/** Borrow native project textures. The Material and render materials retain their own references. */
+export function describeOceanTextures(resources: readonly Texture2D[]): Readonly<OceanTextures> {
+  if (resources.length !== 5) throw new Error("Ocean requires five native Texture2D slots.");
+  for (const [index, texture] of resources.entries()) {
+    if (texture.destroyed || texture.isSRGBColorSpace !== index >= 2)
+      throw new Error(`Ocean texture slot ${index} has an invalid color space.`);
+    if (texture.mipmapCount !== Math.floor(Math.log2(Math.max(texture.width, texture.height))) + 1)
+      throw new Error(`Ocean texture slot ${index} requires a complete mip chain.`);
+  }
+  const [smoothWaves, roughWaves, caustics, foam, intersectionNoise] = resources;
+  return Object.freeze({
+    smoothWaves,
+    roughWaves,
+    caustics,
+    foam,
+    intersectionNoise,
+    textureCount: 5,
+    containerFormat: "ktx2",
+    compressedTextureCount: resources.filter((texture) => isOceanTextureCompressedFormat(texture.format)).length,
+    uncompressedFallbackTextureCount: resources.filter((texture) => !isOceanTextureCompressedFormat(texture.format))
+      .length,
+    resourceBytes: resources.reduce((bytes, texture) => bytes + computeOceanTextureResourceBytes(texture), 0)
+  });
+}
+
 async function loadTexture(
   engine: Engine,
   url: string,
@@ -36,8 +56,7 @@ async function loadTexture(
 ): Promise<Texture2D> {
   let texture: Texture2D | undefined;
   try {
-    texture = await engine.resourceManager.load<Texture2D>({ type: AssetType.KTX2, url });
-    retainTexture(texture, 1);
+    texture = await loadBuiltinWaterTexture(engine, url);
     const expectedMipmapCount = Math.floor(Math.log2(Math.max(texture.width, texture.height))) + 1;
     if (texture.isSRGBColorSpace !== isSRGBColorSpace) {
       throw new Error(
@@ -114,11 +133,11 @@ export class OceanTextureLibrary {
 
   static async create(engine: Engine): Promise<OceanTextureLibrary> {
     const requests = [
-      loadTexture(engine, SMOOTH_WAVES_URL, "Ocean SmoothWaves", false, 4),
-      loadTexture(engine, ROUGH_WAVES_URL, "Ocean RoughWaves", false, 4),
-      loadTexture(engine, CAUSTICS_URL, "Ocean Caustics_1", true, 2),
-      loadTexture(engine, FOAM_URL, "Ocean Foam1", true, 2),
-      loadTexture(engine, INTERSECTION_NOISE_URL, "Ocean IntersectionNoise", true, 2)
+      loadTexture(engine, "Water/Textures/ocean-smoothWaves.ktx2", "Ocean SmoothWaves", false, 4),
+      loadTexture(engine, "Water/Textures/ocean-roughWaves.ktx2", "Ocean RoughWaves", false, 4),
+      loadTexture(engine, "Water/Textures/ocean-caustics.ktx2", "Ocean Caustics_1", true, 2),
+      loadTexture(engine, "Water/Textures/ocean-foam.ktx2", "Ocean Foam1", true, 2),
+      loadTexture(engine, "Water/Textures/ocean-intersectionNoise.ktx2", "Ocean IntersectionNoise", true, 2)
     ] as const;
     const settled = await Promise.allSettled(requests);
     const resources = settled.flatMap((result) => (result.status === "fulfilled" ? [result.value] : []));

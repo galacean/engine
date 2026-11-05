@@ -70,9 +70,7 @@ const ENVIRONMENT_TRANSITION_GRACE_MILLISECONDS = 5_000;
 
 /** Required scene water facts; optional level controls exist only for supported backend bodies. */
 export type SeedWorldRuntimeWater = Pick<SeedWorldWaterRuntime, "queryAuthoredSurface"> & {
-  readonly colorAuthoring: Pick<SeedWorldWaterRuntime["colorAuthoring"], "read" | "update" | "snapshot"> & {
-    clear(bodyId: string, signal: AbortSignal): Promise<void>;
-  };
+  readColor(bodyId: string): SeedWorldWaterColorRgb | undefined;
 } & Partial<
     Pick<
       SeedWorldWaterRuntime,
@@ -180,7 +178,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const state = this.readWorldState();
     if (!state) throw new Error("World is not ready");
     return {
-      waterColors: [], camera: structuredClone(state.camera),
+      camera: structuredClone(state.camera),
       environment: {timeHours: state.lighting.timeHours, season: state.environment.season,
         atmosphere: {skyColorRgb: state.environment.skyColorRgb ?? null},
         weatherChannels: structuredClone(this._requireContext().environment.weatherSystem.getTargetSnapshot()),
@@ -343,40 +341,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
 
   readWaterColor(ref: Readonly<SeedWorldRef>): SeedWorldWaterColorRgb | undefined {
     const bodyId = this._waterColorBodyId(ref);
-    return bodyId ? this._requireContext().water.colorAuthoring.read(bodyId) : undefined;
-  }
-
-  async updateWaterColor(ref: Readonly<SeedWorldRef>, color: SeedWorldWaterColorRgb, signal: AbortSignal) {
-    const bodyId = this._waterColorBodyId(ref);
-    if (!bodyId) throw new Error("NOT_EDITABLE: water asset has no rendered color target");
-    const update = async () => {
-      const resolved = await this._requireContext().water.colorAuthoring.update(bodyId, color, signal);
-      await this._options.onWorldAppearanceChanged?.();
-      return resolved;
-    };
-    return this._options.runWorldAppearanceMutation ? this._options.runWorldAppearanceMutation(update) : update();
-  }
-
-  async replaceWaterColors(colors: import("@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort").SeedWorldEditorSettings["waterColors"], signal: AbortSignal): Promise<void> {
-    const desired = new Map(colors.map(({ref, color}) => {
-      const id = this._waterColorBodyId(ref);
-      if (!id) throw new Error("NOT_EDITABLE: water asset has no rendered color target");
-      return [id, color] as const;
-    }));
-    const update = async () => {
-      const authoring = this._requireContext().water.colorAuthoring;
-      let changed = false;
-      const current = new Map(authoring.snapshot().map(item => [item.bodyId, item.colorRgb]));
-      for (const bodyId of current.keys()) if (!desired.has(bodyId)) {
-        await authoring.clear(bodyId, signal); changed = true;
-      }
-      for (const [id, color] of desired) if (JSON.stringify(current.get(id)) !== JSON.stringify(color) || JSON.stringify(authoring.read(id)) !== JSON.stringify(color)) {
-        await authoring.update(id, color, signal); changed = true;
-      }
-      if (changed) await this._options.onWorldAppearanceChanged?.();
-    };
-    if (this._options.runWorldAppearanceMutation) await this._options.runWorldAppearanceMutation(update);
-    else await update();
+    return bodyId ? this._requireContext().water.readColor(bodyId) : undefined;
   }
 
   private _waterColorBodyId(ref: Readonly<SeedWorldRef>): string | undefined {
@@ -391,11 +356,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       );
       return exists ? (ref.kind === "ocean" ? SEED_WORLD_PRIMARY_OCEAN_SCENE_BODY_ID_V1 : id) : undefined;
     }
-    const resource = this._options.readAuthoringSnapshot().resources.find((item) =>
-      item.resourceId === ref.id && (item.resourceType === "water-body" || item.resourceType === "river") && item.properties.kind === ref.kind
-    );
-    if (!resource) return undefined;
-    return resource.resourceType === "river" ? `seed-world-authored-river:${ref.id}` : `seed-world-authored-water-basin:${ref.id}`;
+    return undefined;
   }
 
   readWorldState(): SeedWorldLiveState | null {
@@ -407,9 +368,6 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
     const lightingSnapshot = lighting.getSnapshot();
     const environmentSnapshot = environment.getSnapshot();
     const waterDiagnostics = water.getDiagnostics();
-    const authoredRiverCount = this._options
-      .readAuthoringSnapshot()
-      .resources.filter(({ resourceType }) => resourceType === "river").length;
     const precipitation = environmentSnapshot.weather.precipitation;
     const precipitationLabel =
       precipitation.snowRate > 0
@@ -425,7 +383,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       },
       plan: {
         summitCount: plan.summits.length,
-        riverReachCount: fields.riverCurves.length + authoredRiverCount,
+        riverReachCount: fields.riverCurves.length,
         roadCount: plan.roads.length,
         poiCount: plan.pois.length
       },
@@ -454,7 +412,7 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
       water: {
         colors: (waterDiagnostics.host?.bodies ?? []).map(({ bodyId }) => ({
           bodyId,
-          colorRgb: water.colorAuthoring.read(bodyId) ?? null
+          colorRgb: water.readColor(bodyId) ?? null
         })),
         ready: waterDiagnostics.ready,
         visible: waterDiagnostics.visible,
@@ -498,18 +456,6 @@ export class SeedWorldRuntimeEnginePort implements SeedWorldEnginePort {
 
   readAuthoringSnapshot(): SeedWorldAuthoringSnapshot {
     return this._options.readAuthoringSnapshot();
-  }
-
-  readAuthoredWaterLevel(resourceId: string) {
-    const readback = this._requireContext().water.getAuthoredWaterLevelReadback?.(resourceId);
-    return readback
-      ? Object.freeze({
-          canonicalWaterLevelMetres: readback.canonicalWaterLevelMetres,
-          minimumWaterLevelMetres: readback.minimumWaterLevelMetres,
-          maximumWaterLevelMetres: readback.maximumWaterLevelMetres,
-          waterLevelMetres: readback.effectiveWaterLevelMetres
-        })
-      : null;
   }
 
   queryWorldPoints(input: Readonly<SeedWorldPointQueryInput>): unknown {

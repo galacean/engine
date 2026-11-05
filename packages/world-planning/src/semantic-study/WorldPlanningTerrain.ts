@@ -3,7 +3,6 @@ import { planningRiverBankHeight, riverBankReach } from "./PlanningRiverBank";
 import { watercourseGeometry } from "@galacean/engine-water/water/index";
 import { fitFoundationLevels, gradeLimitedBed } from "../spatial/terrain/TerrainGrade";
 import { authoredTerrainDisplacement } from "../spatial/terrain/AuthoredTerrain";
-import { planningLakeGround } from "../spatial/hydrology/AuthoredLakes";
 import { isPlanningTerrainResource } from "../spatial/PlanningResources";
 import roadLimits from "../planning-data/road-network.json";
 import { worldElevationField } from "../spatial/terrain/WorldElevation";
@@ -368,9 +367,7 @@ export function samplePlanningGround(plan: IslandPlan, p: PlanPoint): number {
     plan.settlementLayout ||
     plan.canyonStudy ||
     plan.landformStudy ||
-    plan.authoredResources?.some(
-      (resource) => isPlanningTerrainResource(resource) || resource.resourceType === "water-body"
-    )
+    plan.authoredResources?.some(isPlanningTerrainResource)
   )
     return createPlanningGroundSampler(plan)(p);
   const lands = [plan.land, ...plan.islands],
@@ -858,52 +855,8 @@ export function createPlanningRingQuery(ring: PlanPoint[]) {
 /** Natural banks are the immutable input to bridge placement; derived fill never feeds back into compilation. */
 export function createPlanningGroundSampler(
   plan: IslandPlan,
-  options: { natural?: boolean; excludeWaterBodyId?: string } = {}
+  options: { natural?: boolean } = {}
 ): PlanningGroundSampler {
-  if (plan.authoredWaterLayer === 1) {
-    const isAuthored = (id: string) =>
-      plan.waters.some((w) => w.id === id && w.systemId?.startsWith("agent-authored-"));
-    const basePlan: IslandPlan = {
-      ...plan,
-      authoredWaterLayer: undefined,
-      authoredResources: plan.authoredResources?.filter(
-        (r) => r.resourceType !== "water-body" && r.resourceType !== "river"
-      ),
-      waters: plan.waters.filter((w) => !isAuthored(w.id)),
-      planning: plan.planning && {
-        ...plan.planning,
-        profiles: plan.planning.profiles.filter((p) => !isAuthored(p.ownerId))
-      }
-    };
-    const base = createPlanningGroundSampler(basePlan, { natural: options.natural });
-    const preparations: ((bounds: GroundBounds) => void)[] = [(b) => base.prepareBounds?.(b)];
-    const query = (ring: PlanPoint[]) => {
-      const q = createPlanningRingQuery(ring);
-      preparations.push(q.prepareBounds);
-      return q;
-    };
-    const project = (points: PlanningProfile["points"]) => {
-      const p = indexedProfileProjection(points);
-      preparations.push(p.prepareBounds);
-      return p;
-    };
-    const rivers = {
-      ...basePlan,
-      authoredResources: [],
-      waters: plan.waters.filter((w) => w.systemId === "agent-authored-rivers"),
-      planning: plan.planning
-    };
-    const riverGround = createPlanningNaturalGroundSampler(rivers, query, project, (p) => preparations.push(p), base);
-    const ground = planningLakeGround(
-      (plan.authoredResources ?? []).filter((r) => r.resourceId !== options.excludeWaterBodyId),
-      riverGround
-    );
-    return Object.assign(ground, {
-      prepareBounds: (bounds: GroundBounds) => {
-        for (const prepare of preparations) prepare(bounds);
-      }
-    });
-  }
   const preparations: ((bounds: GroundBounds) => void)[] = [];
   const query = (ring: PlanPoint[]) => {
     const q = createPlanningRingQuery(ring);
@@ -921,19 +874,7 @@ export function createPlanningGroundSampler(
         for (const prepare of preparations) prepare(bounds);
       }
     });
-  // Excluding one authored basin keeps its current carve out of a new level derivation.
-  const authored = (plan.authoredResources ?? []).filter(
-    (resource) =>
-      !(
-        options.excludeWaterBodyId &&
-        resource.resourceType === "water-body" &&
-        resource.resourceId === options.excludeWaterBodyId
-      )
-  );
-  const natural = planningLakeGround(
-    authored,
-    createPlanningNaturalGroundSampler(plan, query, project, (prepare) => preparations.push(prepare))
-  );
+  const natural = createPlanningNaturalGroundSampler(plan, query, project, (prepare) => preparations.push(prepare));
   if (options.natural || !plan.roadApproaches?.some((a) => a.approach?.grading)) return prepared(natural);
   const fill = bridgeApproachGradingSampler(plan.roadApproaches, natural);
   const waters = plan.waters.map((w) => ({ ring: query(w.outline), holes: (w.lake?.holes ?? []).map(query) }));

@@ -1,3 +1,15 @@
+## 2026-11-05 Water 公共编辑器接入（本地完成，未提交）
+
+具体河湖海形状以 Source `WaterBodyComponent.authoring` 为唯一持久表达；PlanningDocument 从 Source 投影算法 DTO，运行发布借用 Source 组件并保留 Terrain/Water 原子提交。Entity 局部形状与放置分开，一份原生 `.mat` 及其 Texture 引用持有完整外观值与策略，固定结构从 Shader 家族代码推导，移除 Look 作者资产。Quality 预算改为 Source 组件上的类型化值，运行 QualityResource 由组件派生；28 项原生资产、静态连接、公共 UI/Agent、Prefab override/revert、历史与存储已接通；删除旧语义水体 CRUD、水色缓存和第二资源加载路线。
+
+本次新增 8 文件 14 用例使用真实 Chromium/WebGL/Source/RuntimeEditor/IndexedDB。四类水的转换前后 framebuffer 最大 RGBA 差值均为 0；覆盖共享资源替换、嵌套 Prefab、取消/晚提交、多 Scene、退役及运行卸载恢复。类型、依赖边界、合同生成与两个生产入口构建通过，没有迁入旧仓库测试。
+
+最新 Seed 生产 UI：Lake 偏移 0→-0.15，undo 0 / redo -0.15；河宽 13.7976119266→14.8m。实际保存、受控关闭后新 Engine 重开仍保留数值、Source 和 waterId，且可继续修改/撤销。4 地块、7 物品和 grid/库存/储物/整地/灌溉/作物表/序号的稳定字段保存前后一致，湿度继续流逝；本次无在田作物，不外推完整种植玩法验收。
+
+受控关闭先停止并排空写入、动作与运行检查点，再保存，再按依赖释放。保存失败保留项目供重试；释放失败重试不重复保存。实际验收发现并修复 Water undo 的 detach 等待死锁，以及农场借用 presentation 的销毁顺序。
+
+本期 W-01～W-22 的适用范围完成；按用户要求不实现历史档转换。正式 editor、移动端、GPU 性能、context loss、真实模型和完整玩法后置，未 commit/push/部署。逐项状态、源码入口、命令和限制见 [Water 实施记录](../../../packages/water/EDITOR_MIGRATION_IMPLEMENTATION.md)。下方历史记录的测试数量不计入本次结果。
+
 ## 2026-11-03 全部植被接入公共编辑器
 
 按 `.agents/skills/galacean-editor-system-migration` 核对并迁移 72 项通用植被（乔木 4、小灌木 3、高草 3、草本 16、地被 6、野花 24、落叶/菌类 16），同时覆盖生产裸枝树、连续低草、三类荷花和原有 14 种农作物的接入边界。原有三项明确不用于 Seed World 的草本仍保留在独立素材库，不改变生态启用规则。没有重构生成算法、Shader、LOD 或玩家玩法，也没有修改 Engine 包。

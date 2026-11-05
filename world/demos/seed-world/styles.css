@@ -474,7 +474,8 @@ button.primary {
 .world-loading[data-state="revealing"] {
   opacity: 0;
 }
-.world-loading[data-state="fallback"] {
+.world-loading[data-state="fallback"],
+.world-loading[data-state="closed"] {
   background: #000108;
 }
 .world-loading-percent {

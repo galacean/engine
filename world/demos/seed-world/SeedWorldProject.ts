@@ -20,6 +20,7 @@ import { compileProjectResource } from "@galacean/engine-project/runtime-editor/
 import { validatePlanningProject } from "./src/planning/spatial/runtime/PlanningProjectSource.ts";
 import { registerPlantProjectAssets } from "@galacean/engine-world-planning/integrations/vegetation/PlantProjectFormats";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
+import { registerNativeWater } from "@galacean/engine-water/water/native/index";
 
 /** Open a project ready for authoring in both the runtime and the planning editor. */
 export async function openSeedWorldProject(pageUrl: URL, initial?: RuntimeProjectManifest): Promise<RuntimeProjectSession> {
@@ -35,6 +36,7 @@ export async function openSeedWorldProject(pageUrl: URL, initial?: RuntimeProjec
   const project = await RuntimeProjectSession.open(`seed-world:native-buildings-v6-assemblies:${seed}:${projectUrl}`, initial, projectUrl, {scriptModules: seedWorldScriptModules});
   try {
     registerNativeFarming();
+    registerNativeWater();
     registerPlanningFarmingAssets();
     registerBuildingAssetComponents();
     registerPlantProjectAssets();

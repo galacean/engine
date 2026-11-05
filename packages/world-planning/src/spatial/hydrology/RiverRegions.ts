@@ -13,6 +13,11 @@ import { territoryLookup } from "../ecology/PoiTerritories";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
 export interface RiverParameters {
+  speed?: number;
+  bankClearance?: number;
+  dropThreshold?: number;
+  slopeThreshold?: number;
+  probeSpacing?: number;
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
@@ -124,8 +129,17 @@ export function generateRiverRegions(
       throw new Error("INVALID_ARGUMENT: 自定义河流缺少控制点");
     if (riverConfig.enabled === false) continue;
     if (riverConfig.points !== undefined) {
-      const course = resolveWatercourse({ id, points: riverConfig.points, sections: riverConfig.sections }, (x, z) =>
-        ground({ x, z })
+      const course = resolveWatercourse(
+        {
+          id,
+          points: riverConfig.points,
+          sections: riverConfig.sections,
+          bankClearance: riverConfig.bankClearance,
+          dropThreshold: riverConfig.dropThreshold,
+          slopeThreshold: riverConfig.slopeThreshold,
+          probeSpacing: riverConfig.probeSpacing
+        },
+        (x, z) => ground({ x, z })
       );
       const derived = watercourseGeometry(course);
       const points = derived.points.map((p) => ({ x: p.x, z: p.z })),
@@ -439,8 +453,17 @@ export function generateRiverRegions(
         width: water.widths![i],
         depth: depths[i]
       }));
-      const course = resolveWatercourse({ id: water.id, points: anchors, sections: cfg.sections }, (x, z) =>
-        ground({ x, z })
+      const course = resolveWatercourse(
+        {
+          id: water.id,
+          points: anchors,
+          sections: cfg.sections,
+          bankClearance: cfg.bankClearance,
+          dropThreshold: cfg.dropThreshold,
+          slopeThreshold: cfg.slopeThreshold,
+          probeSpacing: cfg.probeSpacing
+        },
+        (x, z) => ground({ x, z })
       );
       const geometry = watercourseGeometry(course);
       water.course = course;
@@ -450,6 +473,7 @@ export function generateRiverRegions(
       depths.splice(0, depths.length, ...geometry.points.map((p) => p.depth));
       levels = geometry.points.map((p) => p.elevation);
     }
+    water.flowSpeed = { ...config, ...local[water.id] }.speed ?? 1;
     plan.waters.push(water);
     const points = water.centerline!,
       width = Math.max(...water.widths!);

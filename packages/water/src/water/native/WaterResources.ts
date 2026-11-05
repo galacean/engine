@@ -3,6 +3,7 @@ import {
   AssetPromise,
   Loader,
   ReferResource,
+  Material,
   resourceLoader,
   type Engine,
   type LoadItem,
@@ -19,6 +20,8 @@ import type { WaterLookAuthoringComponents } from "../authoring/surface/WaterLoo
 import { WaterBodyAssetRegistry } from "../runtime/body/WaterBodyAssetRegistry";
 import { hashStableValue } from "../compiler/shared/determinism";
 import { isOceanWaterCompiledTransferV1 } from "../runtime/ocean/OceanWaterCompiledResource";
+import { copyWaterTerrainSnapshot, type WaterTerrainSnapshot } from "../authoring/terrain/WaterTerrainSnapshot";
+import { resolveWaterMaterialLook, waterMaterialKey } from "./WaterMaterial";
 
 /** Native resources own immutable authoring data, never compiled or scene-owned objects. */
 abstract class WaterResource<T> extends ReferResource {
@@ -85,7 +88,7 @@ export class WaterBodyResource extends WaterResource<WaterBodyAsset> {
   }
 }
 
-/** A Look includes all referenced appearance/optics definitions, not just their IDs. */
+/** Internal immutable compiler input for runtime API callers without a native Material. */
 export class WaterLookResource extends WaterResource<WaterLookAuthoringComponents> {
   constructor(engine: Engine, data: WaterLookAuthoringComponents) {
     const registry = new WaterBodyAssetRegistry();
@@ -102,6 +105,14 @@ export class WaterQualityResource extends WaterResource<WaterQualityPlanV2> {
   }
 }
 
+/** Explicit manual bed input. Host-generated Terrain snapshots remain runtime inputs. */
+export class WaterTerrainResource extends WaterResource<WaterTerrainSnapshot> {
+  constructor(engine: Engine, data: WaterTerrainSnapshot) {
+    super(engine, copyWaterTerrainSnapshot(data));
+    this.name = data.id;
+  }
+}
+
 export function installLook(registry: WaterBodyAssetRegistry, data: WaterLookAuthoringComponents): void {
   registry.registerAppearancePreset(data.appearance);
   registry.registerOpticsPreset(data.optics);
@@ -111,9 +122,10 @@ export function installLook(registry: WaterBodyAssetRegistry, data: WaterLookAut
 }
 
 /** Namespace private revisions so editing one instance never mutates another shared Look. */
-export function scopedLook(resource: WaterLookResource): WaterLookAuthoringComponents {
-  const data = resource.data;
-  const id = `native-look:${resource.contentHash}`;
+export function scopedLook(resource?: WaterLookResource, material?: Material): WaterLookAuthoringComponents {
+  const data = material ? resolveWaterMaterialLook(material) : resource?.data;
+  if (!data) throw new TypeError("Water requires a native Material or runtime Look input.");
+  const id = `native-look:${material ? waterMaterialKey(material) : resource!.contentHash}`;
   return {
     appearance: {
       ...data.appearance,
@@ -136,14 +148,17 @@ export function scopedLook(resource: WaterLookResource): WaterLookAuthoringCompo
 
 export type WaterResourceFile =
   | { version: 1; kind: "body"; data: WaterBodyAsset }
-  | { version: 1; kind: "look"; data: WaterLookAuthoringComponents }
-  | { version: 1; kind: "quality"; data: WaterQualityPlanV2 };
+  | { version: 1; kind: "quality"; data: WaterQualityPlanV2 }
+  | { version: 1; kind: "terrain"; data: WaterTerrainSnapshot };
 
 /** Resource payload only; Entity/Component/Scene references use the engine's existing schema. */
-export function serializeWaterResource(resource: WaterBodyResource | WaterLookResource | WaterQualityResource): string {
+export function serializeWaterResource(
+  resource: WaterBodyResource | WaterQualityResource | WaterTerrainResource
+): string {
   return stringifyWaterData({
     version: 1,
-    kind: resource instanceof WaterBodyResource ? "body" : resource instanceof WaterLookResource ? "look" : "quality",
+    kind:
+      resource instanceof WaterBodyResource ? "body" : resource instanceof WaterTerrainResource ? "terrain" : "quality",
     data: resource.data
   });
 }
@@ -186,16 +201,16 @@ export function parseWaterData(text: string): unknown {
 export function parseWaterResource(
   engine: Engine,
   text: string
-): WaterBodyResource | WaterLookResource | WaterQualityResource {
+): WaterBodyResource | WaterQualityResource | WaterTerrainResource {
   const file = parseWaterData(text) as WaterResourceFile;
   if (file?.version !== 1) throw new RangeError("Unsupported Water resource version.");
   switch (file.kind) {
     case "body":
       return new WaterBodyResource(engine, file.data);
-    case "look":
-      return new WaterLookResource(engine, file.data);
     case "quality":
       return new WaterQualityResource(engine, file.data);
+    case "terrain":
+      return new WaterTerrainResource(engine, file.data);
     default:
       throw new TypeError("Unsupported Water resource kind.");
   }

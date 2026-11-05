@@ -1,0 +1,85 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "root": "lake-root",
+  "entities": [
+    {
+      "id": "lake-root",
+      "name": "Lake",
+      "components": [
+        "lake-body"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "lake-body",
+      "type": "WaterBodyComponent",
+      "props": {
+        "authoring": {
+          "shape": {
+            "kind": "lake",
+            "referenceLevel": 0.5,
+            "levelOffsetM": 0,
+            "shoreline": [
+              {
+                "id": "shore-0",
+                "ring": "shore",
+                "x": 1,
+                "z": 1
+              },
+              {
+                "id": "shore-1",
+                "ring": "shore",
+                "x": 7,
+                "z": 1
+              },
+              {
+                "id": "shore-2",
+                "ring": "shore",
+                "x": 7,
+                "z": 7
+              },
+              {
+                "id": "shore-3",
+                "ring": "shore",
+                "x": 1,
+                "z": 7
+              }
+            ]
+          },
+          "terrain": {
+            "$ref": "Water/Terrain/manual-bed.water"
+          },
+          "quality": {
+            "geometry": "high",
+            "surfaceShading": "high",
+            "sceneFields": "scene-color-depth",
+            "opaqueDownsampling": "none",
+            "reflectionBudget": {
+              "environment": true,
+              "screenSpace": true
+            },
+            "surfaceEffectBudget": {
+              "caustics": true
+            },
+            "query": "dense",
+            "spatialField": {
+              "maximumHorizontalError": 1,
+              "maximumDepthError": 0,
+              "maximumGpuDepthDecodeError": 0.02,
+              "maximumGpuShoreDecodeError": 0.1,
+              "maximumAtlasPixels": 65536
+            }
+          },
+          "material": {
+            "$ref": "Water/Materials/lake.mat"
+          },
+          "visible": true,
+          "priority": 10
+        }
+      }
+    }
+  ]
+}

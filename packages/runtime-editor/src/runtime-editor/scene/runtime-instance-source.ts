@@ -1,4 +1,5 @@
 import {
+  mergeSourceValueRecords,
   sourceNestedViews,
   type SourceAddress
 } from "@galacean/engine-project/runtime-editor/generated/editor-source-compiler";
@@ -105,7 +106,7 @@ export class RuntimeInstanceSource {
         record: {
           ...base,
           id,
-          props: Object.assign({}, base.props, ...patches.map((patch) => patch.props)),
+          props: patches.reduce((props, patch) => mergeSourceValueRecords(props, patch.props), base.props ?? {}),
           calls: patches.some((patch) => patch.calls)
             ? [...(base.calls ?? []), ...patches.flatMap((patch) => patch.calls ?? [])]
             : base.calls

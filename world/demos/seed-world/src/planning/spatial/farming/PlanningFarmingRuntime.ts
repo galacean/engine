@@ -118,13 +118,15 @@ export class PlanningFarmingRuntime {
   private task: Promise<void> = Promise.resolve();
   private controller?: AbortController;
   private disposed = false;
+  private stopping = false;
+  private stopTask?: Promise<void>;
   private disposal?: Promise<void>;
   private cleanupPending?: (() => unknown)[];
   get initializedFarmId(): string | undefined {
     return this.area?.initialized ? this.area.farmId : undefined;
   }
   get available(): boolean {
-    return !this.disposed && !this.system.destroyed && !this.system.isDisposed;
+    return !this.stopping && !this.disposed && !this.system.destroyed && !this.system.isDisposed;
   }
   private record?: FarmingFarmDiagnostics;
   private statusElapsed = 0;
@@ -274,7 +276,7 @@ export class PlanningFarmingRuntime {
   }
 
   /** Follow an accepted Water batch without restarting the farm or walking its cells. */
-  refreshWater(current: PublishedPlanningSeedScene, update: PlanningWaterUpdate): void {
+  refreshWater(current: PublishedPlanningSeedScene, update?: PlanningWaterUpdate): void {
     const previous = this.waterCurrent ?? this.current;
     if (
       this.disposed ||
@@ -291,7 +293,9 @@ export class PlanningFarmingRuntime {
     // The initialization/vegetation tasks still own the same retained world.
     this.waterCurrent = current;
     this.revision = current.revision;
-    if (update.surface && this.createGroundView && this.provider) {
+    const waterKey = `${this.options.water.system.revision}:${this.options.water.system.runtimeState.effectiveEnabled}`;
+    if ((update?.surface ?? true) && this.createGroundView && this.provider && this.acceptedWaterRevision !== waterKey) {
+      this.acceptedWaterRevision = waterKey;
       const view = this.createGroundView(this.groundRevision + 1);
       this.groundRevision++;
       this.groundedView = view;
@@ -306,6 +310,8 @@ export class PlanningFarmingRuntime {
       this.system.diagnostics.publish(this.record);
     }
   }
+
+  private acceptedWaterRevision?: string;
 
   private isCurrent(current: PublishedPlanningSeedScene): boolean {
     return this.current === current && this.options.readCurrent() === (this.waterCurrent ?? current);
@@ -494,11 +500,11 @@ export class PlanningFarmingRuntime {
     ) {
       this.interaction?.dispose();
       this.interaction = undefined;
-      this.presentation?.dispose();
-      this.presentation = undefined;
       const old = this.area;
       this.area = undefined;
       await old.dispose();
+      this.presentation?.dispose();
+      this.presentation = undefined;
       old.entity.destroy();
       this.provider?.dispose();
       this.provider = undefined;
@@ -799,6 +805,25 @@ export class PlanningFarmingRuntime {
     };
     this.system.diagnostics.publish(this.record);
   }
+  /** Stop gameplay writes before the project checkpoint; retain its Scene resources until it succeeds. */
+  stop(): Promise<void> {
+    this.stopping = true;
+    this.controller?.abort();
+    this.interaction?.dispose();
+    this.waterSupply.dispose();
+    this.unsubscribeWaterLayout?.();
+    this.unsubscribeWaterLayout = undefined;
+    return this.stopTask ??= (async () => {
+      await this.task.catch(() => {});
+      if (this.area?.initialized) {
+        await this.area.coordinator.dispose();
+        await this.area.service.checkpoint();
+        this.area.service.dispose();
+        await this.area.service.whenIdle();
+      }
+      await this.repository.whenIdle();
+    })().catch(error => { this.stopTask = undefined; throw error; });
+  }
   dispose(): Promise<void> {
     if (this.disposal) return this.disposal;
     if (!this.disposed) {
@@ -812,12 +837,12 @@ export class PlanningFarmingRuntime {
         () => this.waterSupply.dispose(),
         () => { this.unsubscribeWaterLayout?.(); this.unsubscribeWaterLayout = undefined; },
         async () => { await this.vegetation?.dispose(); this.vegetation = undefined; },
-        () => { this.land?.dispose(); this.land = undefined; },
-        () => { this.presentation?.dispose(); this.presentation = undefined; },
         () => this.task,
         () => this.area?.dispose(),
-        () => this.releaseDependencies(),
+        () => { this.presentation?.dispose(); this.presentation = undefined; },
         () => this.area?.entity.destroy(),
+        () => { this.land?.dispose(); this.land = undefined; },
+        () => this.releaseDependencies(),
         () => this.repository.whenIdle(),
         () => this.provider?.dispose(),
         () => this.repository.dispose(),

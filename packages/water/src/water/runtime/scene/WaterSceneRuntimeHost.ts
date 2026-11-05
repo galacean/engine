@@ -1064,6 +1064,19 @@ export class WaterSceneRuntimeHost {
     }
   }
 
+  /** Reverse lookup over the current publication. Safe inside a surface visitor. */
+  bodyIdForRenderer(renderer: MeshRenderer): string | undefined {
+    if (
+      renderer.destroyed ||
+      !renderer.enabled ||
+      !renderer.entity.isActiveInHierarchy ||
+      !renderer.getMaterials().some((material) => material && supportsWaterSurfacePicking(material))
+    )
+      return;
+    for (let entity: Entity | null = renderer.entity; entity; entity = entity.parent)
+      for (const [id, body] of this._activeBodies) if (body.root === entity && body.root.isActiveInHierarchy) return id;
+  }
+
   /** Retrieve the same command facade after a batch transaction, without exposing runtime ownership. */
   getBodyHandle(bodyId: string): WaterSceneBodyHandle | undefined {
     this._assertActive();

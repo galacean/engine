@@ -10,8 +10,12 @@ import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/run
 import { DEFAULT_PLANT_PROJECT_RESOURCES, type PlantProjectResources } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesResources";
 import { SEED_WORLD_DEFAULT_GROUND_WIND_TUNING, validateGroundWindTuning } from "@galacean/engine-vegetation/world/SeedWorldGroundWindTuningModel";
 import { PLANNING_VISUAL_AUTHORING, visualAuthoringProperties } from "../PlanningVisualAuthoring.ts";
+import { WATER_COMPONENT, planningWaterFrame, transformPlanningWater, planningWaterSourceId } from "../PlanningWaterSource.ts";
+import type { WaterSourceAuthoring } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { retainRemovedWater } from "./PlanningWaterInitialization.ts";
 
 const ownedProperties = new Map<string, readonly string[]>([
+  [WATER_COMPONENT, ["authoring", "enabled"]],
   ...PLANNING_VISUAL_AUTHORING.map(descriptor => [descriptor.type, [...visualAuthoringProperties(descriptor),
     ...(descriptor.type === "PlanningLighting" ? ["profileReference", "profile"] : [])]] as const),
   ["PlanningProjectAuthoring", ["metadata", "hasSeedArchives"]],
@@ -103,8 +107,14 @@ export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: strin
     const node: PlanningSceneAsset["entities"][number] = { name: entity.name ?? "", components: [], children: [] };
     file.entities.push(node);
     for (const identity of scene.queryComponents({ entityId: id })) {
-      if (!identity.type.startsWith("Planning")) continue;
+      if (!identity.type.startsWith("Planning") && identity.type !== WATER_COMPONENT) continue;
       const component = scene.readComponent(identity.id);
+      if (component.type === "PlanningEntityAuthoring") component.props = { ...component.props, planningId: planningWaterSourceId(scene, id)! };
+      if (component.type === WATER_COMPONENT && component.props?.authoring) {
+        const input = component.props.authoring as unknown as WaterSourceAuthoring, frame = planningWaterFrame(scene, id);
+        component.props = { ...component.props, enabled: component.props.enabled !== false && frame.active,
+          authoring: { ...input, shape: transformPlanningWater(input.shape, frame) } as unknown as GalaceanSourceValueRecord };
+      }
       node.components.push(file.components.length);
       file.components.push({ type: component.type, props: references(component.props ?? {}) as Record<string, unknown> });
     }
@@ -112,7 +122,7 @@ export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: strin
     return index;
   };
   append(projects[0].entityId);
-  return importPlanningScene(file);
+  return retainRemovedWater(importPlanningScene(file), draft.preview());
 }
 
 /** Update owned records in the existing Scene. Unrelated objects and stable IDs survive. */
@@ -161,7 +171,22 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
       .map(record => [record.type, record]));
     for (const componentIndex of node.components) {
       const component = desired.components[componentIndex], current = remaining.get(component.type);
-      const props = references(component.props) as GalaceanSourceValueRecord;
+      let props = references(component.props) as GalaceanSourceValueRecord;
+      if (current && component.type === "PlanningEntityAuthoring" && current.id.startsWith("@instance:"))
+        props = { ...props, planningId: scene.readComponent(current.id).props!.planningId! };
+      if (current && component.type === WATER_COMPONENT) {
+        const previous = scene.readComponent(current.id).props?.authoring as GalaceanSourceValueRecord | undefined;
+        props = { ...props, authoring: { ...previous, ...props.authoring as GalaceanSourceValueRecord,
+          ...(previous?.quality ? { quality: previous.quality } : {}),
+          ...(previous?.material ? { material: previous.material } : {}) } };
+        const input = props.authoring as unknown as WaterSourceAuthoring;
+        const frame = planningWaterFrame(scene, id), previousInput = previous as unknown as WaterSourceAuthoring;
+        const shape = JSON.stringify(transformPlanningWater(previousInput.shape, frame)) === JSON.stringify(input.shape)
+          ? previousInput.shape : transformPlanningWater(input.shape, frame, true);
+        props.authoring = { ...input, shape: shape.kind === "river" && previousInput.shape.kind === "river"
+          ? { ...shape, course: { ...shape.course, id: previousInput.shape.course.id } } : shape } as unknown as GalaceanSourceValueRecord;
+        if (!frame.active) props.enabled = scene.readComponent(current.id).props?.enabled ?? true;
+      }
       if (!current) scene.addComponent(id, { type: component.type, props });
       else {
         // Source records own complete sparse properties. Prefab members use public overrides.
@@ -182,12 +207,16 @@ export function writePlanningProjectSource(draft: RuntimeProjectEdit, path: stri
       }
       remaining.delete(component.type);
     }
-    for (const record of remaining.values()) scene.removeComponent(record.id);
+    for (const record of remaining.values()) {
+      if (record.type === WATER_COMPONENT &&
+        (scene.readComponent(record.id).props?.authoring as { shape?: { kind?: string } })?.shape?.kind === "ocean") continue;
+      scene.removeComponent(record.id);
+    }
     const children = new Map((scene.readEntity(id).children ?? []).map(child => {
       const records = scene.queryComponents({ entityId: child }).map(record => scene.readComponent(record.id));
       const identity = records.find(record => record.type === "PlanningEntityAuthoring");
       const archive = records.find(record => record.type === "PlanningSeedArchiveAuthoring");
-      return [identity?.props?.planningId ?? (archive?.props?.metadata as { seed?: string } | undefined)?.seed, child];
+      return [planningWaterSourceId(scene, child) ?? (archive?.props?.metadata as { seed?: string } | undefined)?.seed, child];
     }));
     for (const child of node.children ?? []) {
       const identity = key(child), current = children.get(identity as string);

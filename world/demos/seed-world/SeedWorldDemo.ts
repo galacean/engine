@@ -2,6 +2,14 @@ import { buildingScenePreparation, initializeBuildingScene } from "./masonry/Bui
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
+import { NativeWaterHost } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterHost";
+import { NativeWaterEditor } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterEditor";
+import { mountNativeWaterPanel } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterPanel";
+import { createNativeWaterAgentPackage } from "@galacean/engine-world-planning/spatial/runtime/NativeWaterAgent";
+import { WaterBodyComponent } from "@galacean/engine-water/water/native/WaterBodyComponent";
+import { PlanningEntityAuthoring } from "./src/planning/spatial/runtime/PlanningAuthoringComponents.ts";
+import { preparePlanningWaterSource } from "./src/planning/spatial/runtime/PlanningWaterInitialization.ts";
+import { effectivePlanningWaterId } from "./src/planning/spatial/PlanningWaterSource.ts";
 import { seedWorldViewPointer } from "./assistant/SeedWorldViewPointer.ts";
 import { RuntimePickPreparation } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-preparation";
 import { RuntimeMeshPickSource } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
@@ -199,6 +207,9 @@ export async function mountSeedWorldDemo(
   let resizeObserver: ResizeObserver | undefined;
   let nativeBuildingHost: NativeBuildingHost | undefined;
   let nativeBuildingPanel: ReturnType<typeof mountNativeBuildingPanel> | undefined;
+  let nativeWaterHost: NativeWaterHost | undefined;
+  let nativeWaterEditor: NativeWaterEditor | undefined;
+  let nativeWaterPanel: ReturnType<typeof mountNativeWaterPanel> | undefined;
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
@@ -254,63 +265,100 @@ export async function mountSeedWorldDemo(
     orb?.setProgress(value);
   };
   let disconnectEditorAssets: (() => void) | undefined;
+  // Consumers must release overlays and subscriptions while their world still exists.
+  // Advance only after success, so a release retry cannot destroy an earlier owner twice.
+  const runtimeReleaseSteps: readonly [string, () => unknown][] = [
+    ["编辑入口", () => {
+      disposed = true; ready = false; editorLifetime.abort();
+      unmountProjectSave?.(); unmountProjectSave = undefined;
+      pickPreparation?.dispose(); runtimeDebug?.destroy(); unregisterFarmingActivation?.();
+      nativeWaterHost?.dispose(); nativeWaterPanel?.destroy();
+    }],
+    ["农场宿主", () => farmingHost?.dispose()],
+    ["建筑宿主", () => nativeBuildingHost?.dispose()],
+    ["场景交互", () => {
+      lassoPanel?.dispose(); viewSnapshots?.dispose(); unbindWorldPick?.(); worldPicker?.dispose(); selection?.dispose();
+      detachWindExposure?.(); detachAnimalLightning?.();
+    }],
+    ["动物", () => animals?.dispose()],
+    ["玩家状态", () => playerState?.dispose()],
+    ["编辑器", () => {
+      lightingProfile?.dispose(); debugSidebar?.destroy(); disconnectEditorAssets?.(); tools?.dispose();
+      nativeBuildingPanel?.destroy(); nativeEditor?.dispose();
+    }],
+    ["调试对象", () => obbDebug?.destroy()],
+    ["音频", () => audio?.destroy()],
+    ["作者会话", async () => {
+      if (source) source.dispose();
+      else await sourceTask?.then(value => value.dispose(), () => {});
+      resizeObserver?.disconnect();
+    }],
+    ["已发布场景", () => publication?.destroy()],
+    ["地形任务", () => { raster.dispose(); rockFormations.dispose(); rockNavigation?.dispose(); buildingLongTasks?.disconnect(); }],
+    ["水运行", () => water?.destroy()],
+    ["环境", () => environment?.destroy()],
+    ["光照", () => lighting?.destroy()],
+    ["加载界面", () => orb?.destroy()],
+    ["Scene", () => scene?.destroy()],
+    ["Engine", () => engine?.destroy()]
+  ];
+  let runtimeReleaseIndex = 0;
+  const disposeRuntime = async () => {
+    while (runtimeReleaseIndex < runtimeReleaseSteps.length) {
+      const [name, release] = runtimeReleaseSteps[runtimeReleaseIndex];
+      try { await release(); }
+      catch (error) { throw new Error(`释放${name}失败`, { cause: error }); }
+      runtimeReleaseIndex++;
+    }
+  };
   const dispose = createSeedWorldProjectClose(async () => {
-    disposed = true;
-    editorLifetime.abort();
-    unmountProjectSave?.();
-    unmountProjectSave = undefined;
-    pickPreparation?.dispose();
-    runtimeDebug?.destroy();
-    unregisterFarmingActivation?.();
-    const nativeBuildingCleanup = nativeBuildingHost?.dispose();
-    const farmingCleanup = farmingHost?.dispose();
-    lassoPanel?.dispose();
-    viewSnapshots?.dispose();
-    unbindWorldPick?.();
-    worldPicker?.dispose();
-    selection?.dispose();
-    ready = false;
-    detachWindExposure?.();
-    detachAnimalLightning?.();
-    const animalCleanup = animals?.dispose();
-    const sceneCleanup = publication?.destroy();
-    raster.dispose();
-    rockFormations.dispose();
-    rockNavigation?.dispose();
-    buildingLongTasks?.disconnect();
-    lightingProfile?.dispose();
-    await playerState?.dispose();
-    debugSidebar?.destroy();
-    disconnectEditorAssets?.();
     tools?.dispose();
-    nativeBuildingPanel?.destroy();
-    nativeEditor?.dispose();
-    await obbDebug?.destroy();
-    audio?.destroy();
-    if (source) source.dispose();
-    else
-      void sourceTask?.then(
-        (value) => value.dispose(),
-        () => {}
-      );
-    resizeObserver?.disconnect();
-    await Promise.all([animalCleanup, sceneCleanup, farmingCleanup, nativeBuildingCleanup]);
-
-    await water?.destroy();
-    environment?.destroy();
-    lighting?.destroy();
-    orb?.destroy();
-    scene?.destroy();
-    engine?.destroy();
-  }, async () => { await runtimeProject?.save(); }, () => { runtimeProject?.dispose(); });
+    await nativeWaterEditor?.stop();
+    editorLifetime.abort();
+    nativeEditor?.editor.dispose();
+    // Runtime errors are diagnostics. Accepted authoring must still be saved.
+    await nativeWaterHost?.flush().catch(() => {});
+    ready = false;
+    engine?.pause();
+    await farmingHost?.runtime?.stop();
+    await playerState?.dispose();
+  }, async () => { await runtimeProject?.save(); }, async () => {
+    await disposeRuntime();
+    runtimeProject?.dispose();
+  });
   const closeFailure = (error: unknown) => {
+    console.error("Seed World close failed", error);
+    canvas.dataset.closeError = JSON.stringify(error, (_key, value) => value instanceof Error
+      ? { name: value.name, message: value.message, stack: value.stack, cause: value.cause,
+        ...(value instanceof AggregateError ? { errors: value.errors } : {}) } : value);
     loading.hidden = false;
     loading.dataset.state = "error";
-    progress(1, "工程保存失败：" + String(error));
+    const reason = (error: unknown): string => error instanceof AggregateError
+      ? error.errors.map(reason).join("；")
+      : error instanceof Error ? error.message + (error.cause ? "：" + reason(error.cause) : "") : String(error);
+    // The loader orb may already be retired when a later release fails.
+    canvas.dataset.bootPhase = "工程关闭失败：" + reason(error);
+    loading.setAttribute("aria-label", canvas.dataset.bootPhase);
+    percent.value = canvas.dataset.bootPhase;
     retry.hidden = false;
-    retry.textContent = "重试保存";
+    retry.textContent = "重试关闭";
     retry.style.pointerEvents = "auto";
     retry.onclick = () => { void dispose().then(() => location.reload()).catch(closeFailure); };
+  };
+  const closeProject = async () => {
+    try {
+      await dispose();
+      canvas.dataset.status = "closed";
+      canvas.dataset.bootPhase = "工程已保存并关闭";
+      loading.hidden = false;
+      loading.dataset.state = "closed";
+      loading.setAttribute("aria-label", "工程已保存并关闭");
+      percent.value = "工程已保存并关闭";
+      retry.hidden = false;
+      retry.textContent = "重新打开";
+      retry.style.pointerEvents = "auto";
+      retry.onclick = () => location.reload();
+    } catch (error) { closeFailure(error); throw error; }
   };
   window.addEventListener(
     "pagehide",
@@ -443,7 +491,22 @@ export async function mountSeedWorldDemo(
     const root = scene!.createRootEntity("Seed World Runtime");
     rockNavigation = new RockNavigation(root, navigation,
       (x, z) => publication?.current?.navigation.sampleHeightInterpolated(x, z));
-    water = new PlanningWaterRuntime({ engine, root, camera });
+    const readWaterBody = (id: string) => {
+      for (const identity of nativeEditor!.editor.projection.queryComponents({ type: "WaterBodyComponent" })) {
+        const body = nativeEditor!.editor.projection.component(identity.id);
+        if (body instanceof WaterBodyComponent && body.authoring) {
+          const planningId = body.entity.getComponent(PlanningEntityAuthoring)?.planningId;
+          if (planningId && effectivePlanningWaterId(identity.scene, identity.id, planningId, body.authoring.shape.kind) === id) return body;
+        }
+      }
+    };
+    water = new PlanningWaterRuntime({ engine, root, camera, readBody: readWaterBody,
+      pickId: id => { const body = readWaterBody(id); return body && nativeEditor!.projection.identityOf(body)?.id; } });
+    nativeWaterHost = new NativeWaterHost(runtimeProject, nativeEditor.editor, water.system, {
+      hostTerrain: true,
+      consumeHostInputs: async () => { if (source?.session.result && publication?.current) await water!.synchronize(publication.current.plan); },
+      physicalPublication: () => { if (publication?.current) farmingHost?.runtime?.refreshWater(publication.current); }
+    });
     const sampleHeight = (x: number, z: number) => {
       const current = publication?.current;
       return current && sampleSeedWorldHeight(current.heightTransition?.fields ?? current.data.fields, x, z);
@@ -474,7 +537,7 @@ export async function mountSeedWorldDemo(
     driver.lateTick = function updateSelectionFrame() {
       publication?.current?.solids.bridgesView.updateLod(camera);
       if ((selectionPublication !== publication?.current && !selectedNativeId) ||
-        (selectedNativeId && !nativeBuildingHost?.system.resolve(selectedNativeId))) {
+        (selectedNativeId && !nativeEditor!.projection.component(selectedNativeId))) {
         selectedNativeId = undefined;
         const hadSelection = selection?.hasSelection;
         selection?.clear(); tools?.application.setUserSelection(undefined); selectionPublication = publication?.current;
@@ -897,8 +960,11 @@ export async function mountSeedWorldDemo(
           // contributed during editor preparation, never from runtime publication.
           if (!ready && !context.projectTransaction)
             await initializeBuildingScene(runtimeProject!, nativeEditor!.editor, plan, buildingTerrain, signal);
+          if (!ready) progress(0.7, "准备原生建筑与水体");
           candidateMasonry = await nativeBuildingHost!.prepare({ terrain: buildingTerrain, signal });
+          canvas.dataset.waterPreparation = "preparing";
           candidateWater = await water!.prepare(plan, signal);
+          canvas.dataset.waterPreparation = "ready";
           candidate.population.setRockGrassGround(readRockFormationSettings(document));
           candidate.population.prepareRockGrass(
             rockFormationPlacements(planningPresentedSolids(plan,
@@ -906,6 +972,7 @@ export async function mountSeedWorldDemo(
             rockGrassExclusions(plan, candidateData.fields, rockGrassWaterTest(water!))).commit();
           if (precompileShaders) candidate.warmupPopulationDetails();
           const warmupRoots = [candidate.root, ...candidateWater.shaderWarmupRoots];
+          if (!ready) progress(0.78, "预编译场景渲染变体");
           const shaderWarmup = await warmupSeedWorldRendererVariants(engine!, scene!, camera, warmupRoots, {
             enabled: precompileShaders, includeGpuInstancing: true, strict: true,
             activatedLightRoots: warmupRoots, retiredLightRoots: readWorld() ? [readWorld()!.root] : [],
@@ -1069,6 +1136,7 @@ export async function mountSeedWorldDemo(
     progress(0.2, "准备原 Seed 环境光照");
     await source.initialize(preparePublication);
     const initialBuildingDocument = source.session.export();
+    nativeEditor.editor.registerPreparation(preparePlanningWaterSource(() => runtimeProject!.projectPackage));
     nativeEditor.editor.registerPreparation(validatePlanningSource);
     nativeEditor.editor.registerPreparation(buildingScenePreparation(runtimeProject.projectPackage.project.scene,
       (edit, signal) => buildingInitializationInputs(edit, signal,
@@ -1105,6 +1173,7 @@ export async function mountSeedWorldDemo(
       },
       nativeEditor,
       editorExtensions: [
+        createNativeWaterAgentPackage(),
         createFarmingComponentExtension(nativeEditor.projection)
       ],
       animals,
@@ -1277,6 +1346,9 @@ export async function mountSeedWorldDemo(
     orb.suspend();
     ready = true;
     disconnectEditorAssets = tools.application.connectProject(runtimeProject);
+    nativeWaterEditor = new NativeWaterEditor(runtimeProject, nativeEditor.editor);
+    nativeWaterPanel = mountNativeWaterPanel(nativeWaterEditor, { close: closeProject });
+    nativeWaterPanel.refresh();
     const savedEditor = runtimeProject.projectPackage.contents[SEED_WORLD_EDITOR_PATH];
     if (typeof savedEditor === "string") await tools.application.restoreEditorDocument(
       JSON.parse(savedEditor), editorLifetime.signal, { restoreCamera: false }
@@ -1380,7 +1452,8 @@ export async function mountSeedWorldDemo(
           if (objectId) runtimeDebug?.selectRockObb(objectId);
           return;
         }
-        const native = objectId && nativeBuildingHost?.system.resolve(objectId)
+        const pickedComponent = objectId && nativeEditor!.projection.component(objectId);
+        const native = objectId && (nativeBuildingHost?.system.resolve(objectId) || pickedComponent instanceof WaterBodyComponent)
           ? nativeEditor!.projection.queryComponents({ id: objectId })[0] : undefined;
         selectedNativeId = native?.id;
         const ref = objectId && !native

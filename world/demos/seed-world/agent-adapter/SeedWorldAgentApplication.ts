@@ -6,14 +6,11 @@ import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/run
 import type { RuntimeComponentIdentity } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-component-identity";
 type NativeBuildingSelection = { readonly component: RuntimeComponentIdentity };
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
-import { resolveWaterEditOptions } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
 import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
 import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
 import type { SeedWorldParameterAuthoring, SeedWorldParameterReceipts } from "./tools/parameter-tools.ts";
 import type { SeedWorldViewSnapshots } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import type { SeedWorldAnimalService } from "./ports/SeedWorldAnimalService.ts";
-import { validateSeedWorldWaterColor } from "@galacean/engine-water/world/SeedWorldWaterColor";
-import type { SeedWorldWaterColorUpdateResult } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { treeVariationKey } from "@galacean/engine-vegetation/world/SeedWorldTreeShapeControls";
 import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "./SeedWorldSpatialSemantics.ts";
 import type {
@@ -42,7 +39,6 @@ import type {
   SeedWorldQueriedAsset,
   SeedWorldRef,
   SeedWorldAssetDomain,
-  SeedWorldRiverInput,
   SeedWorldResourceMutation,
   SeedWorldWaterMutationControl,
   SeedWorldSelectionItem,
@@ -61,17 +57,12 @@ import type {
   SeedWorldVegetationKind,
   SeedWorldVegetationUpdateResult,
   SeedWorldVegetationBrushInput,
-  SeedWorldWaterBodyInput,
-  SeedWorldWaterBodyMutationPatch,
-  SeedWorldWaterFeatureCreateInput,
-  SeedWorldWaterFeaturePatch
 } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { SEED_WORLD_REMOVABLE_OBJECT_KINDS } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { SeedWorldAssetManager, type SeedWorldAssetCandidate } from "@galacean/engine-world-planning/agent-adapter/SeedWorldAssetManager";
 import { resolveSeedWorldHillAtom } from "@galacean/engine-world-planning/world/SeedWorldHillAtom";
 import { getSeedWorldAssetPlacementProfile } from "@galacean/engine-world-planning/world/SeedWorldAssetPlacementProfile";
 import { resolveSeedWorldTerrainTransitionDurationSeconds } from "@galacean/engine-terrain/world/SeedWorldTerrainTransition";
-import { resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres } from "@galacean/engine-world-planning/runtime/hydrology-v1/SeedWorldFlowingWaterLakeSurrogate";
 import { AgentToolExecutionError } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { AgentEditTransaction } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { SeedWorldEditorSettings } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
@@ -161,7 +152,7 @@ export class SeedWorldAgentApplication {
   private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
   private _taskViewer: Readonly<SeedWorldLiveState["camera"]> | undefined;
   private readonly _assets: SeedWorldAssetManager;
-  private _editorSettings: SeedWorldEditorSettings = { waterColors: [] };
+  private _editorSettings: SeedWorldEditorSettings = {};
   private _editorRevision = 0;
   private _editorProjectionDirty = false;
   private _planningProjectionDirty = false;
@@ -186,7 +177,7 @@ export class SeedWorldAgentApplication {
     signal.throwIfAborted();
     if (document?.format !== "seed-world-editor" || document.version !== 2
       || !Number.isSafeInteger(document.revision) || document.revision < 0
-      || !document.settings || !Array.isArray(document.settings.waterColors)
+      || !document.settings
       || !document.memory || !Number.isSafeInteger(document.memory.semanticSerial) || document.memory.semanticSerial < 0
       || ![document.memory.tags, document.memory.namedSelections].every(Array.isArray)) {
       throw new Error("Invalid world editor document");
@@ -234,7 +225,7 @@ export class SeedWorldAgentApplication {
 
   /** World configuration is an asset consumer, regardless of which UI authored it. */
   connectProject(project: RuntimeProjectSession): () => void {
-    const defaults = this._engine.readEditorDefaults?.() ?? {waterColors: []};
+    const defaults = this._engine.readEditorDefaults?.() ?? {};
     const initialEditor = this.getEditorDocument();
     const initialPlanning = this.planning?.document();
     const comparable = (value: unknown) => JSON.stringify(value, (key, item) => key === "revision" ? undefined
@@ -249,8 +240,7 @@ export class SeedWorldAgentApplication {
       environment: {...defaults.environment, ...settings.environment,
         weatherChannels: {...defaults.environment?.weatherChannels, ...settings.environment?.weatherChannels},
         atmosphere: {...defaults.environment?.atmosphere, ...settings.environment?.atmosphere},
-        transitionDuration: 0, waitForIbl: false},
-      waterColors: settings.waterColors
+        transitionDuration: 0, waitForIbl: false}
     });
     const unregister = project.registerRuntimeActivation({
       before: async signal => {
@@ -296,7 +286,7 @@ export class SeedWorldAgentApplication {
         };
         if (editorChanged) {
           if (!engineEdit) throw new Error("World asset consumer cannot apply editor settings");
-          if (editor.format !== "seed-world-editor" || editor.version !== 2 || !editor.memory || !Array.isArray(editor.settings?.waterColors))
+          if (editor.format !== "seed-world-editor" || editor.version !== 2 || !editor.memory || !editor.settings)
             throw new Error("Invalid world editor document");
           await engineEdit.restoreSettings(effective(editor.settings), signal, this._editorProjectionDirty);
           await engineEdit.prepare(signal);
@@ -332,6 +322,7 @@ export class SeedWorldAgentApplication {
   beginEdit(executionId: string, signal: AbortSignal): AgentEditTransaction & {
     getPreparedDocument(): ReturnType<SeedWorldAgentApplication["getEditorDocument"]>;
     getPreparedPlanningDocument(): import("@galacean/engine-world-planning/spatial/PlanningDocument").PlanningDocument | undefined;
+    getPreparedPlanningResult(): import("@galacean/engine-world-planning/semantic-study/WorldPlanningContract").SemanticResult | undefined;
     beforePlanningDocument?: import("@galacean/engine-world-planning/spatial/PlanningDocument").PlanningDocument;
     runPlanning<T>(operation: (session: import("@galacean/engine-world-planning/spatial/PlanningSession").PlanningSession) => Promise<T>): Promise<T>;
   } {
@@ -415,6 +406,10 @@ export class SeedWorldAgentApplication {
       getPreparedPlanningDocument: () => {
         if (phase !== "prepared") throw new Error("Editor transaction was not prepared");
         return planningEdit?.hasEdits() ? planningEdit.document() : undefined;
+      },
+      getPreparedPlanningResult: () => {
+        if (phase !== "prepared") throw new Error("Editor transaction was not prepared");
+        return planningEdit?.session.result;
       },
       getPreparedDocument: () => {
         if (phase !== "prepared" || !publication) throw new Error("Editor transaction was not prepared");
@@ -1126,159 +1121,6 @@ export class SeedWorldAgentApplication {
       ),
       signal,
       { ...normalizedPatch, transitionDurationSeconds }
-    );
-    return singleAssetMutationResult(result, "update");
-  }
-
-  async createWaterFeature(
-    input: Readonly<SeedWorldWaterFeatureCreateInput> & SeedWorldMutationControl,
-    signal: AbortSignal
-  ): Promise<SeedWorldAssetMutationResult> {
-    resolveWaterEditOptions(input.edit, true);
-    const defaults = waterFeatureDefaults(input.kind);
-    if (input.kind === "pond" || input.kind === "lake") {
-      const placement = this._resolveAreaPlacement(input.target, input.radiusMetres ?? defaults.radiusMetres!);
-      const value = {
-        kind: input.kind,
-        ...placement,
-        depthMetres: input.depthMetres ?? defaults.depthMetres,
-        shorelineIrregularity: input.shorelineIrregularity ?? defaults.shorelineIrregularity!,
-        seed:
-          input.seed ??
-          deriveSemanticFeatureSeed(this._requireState().world.rootSeed, input.kind, ++this._semanticFeatureSerial)
-      };
-      const result = await this._executeMutations(
-        [{ action: "create", resourceType: "water-body", value }],
-        input,
-        mutationEffect(value.x, value.z, value.radiusMetres, value.depthMetres),
-        signal,
-        value
-      );
-      return singleAssetMutationResult(result, "create");
-    }
-    const resolved = this._resolveSpatialTarget(input.target);
-    const direction = input.direction ?? { kind: "viewer-forward" as const };
-    const headingDegrees =
-      direction.kind === "heading"
-        ? normalizeHeadingDegrees(direction.degrees)
-        : headingFromForward(this._viewerCamera().forward);
-    const value = {
-      kind: input.kind,
-      x: resolved.position[0],
-      z: resolved.position[2],
-      headingDegrees,
-      lengthMetres: input.lengthMetres ?? defaults.lengthMetres!,
-      widthMetres: input.widthMetres ?? defaults.widthMetres!,
-      depthMetres: input.depthMetres ?? defaults.depthMetres,
-      flowSpeed: input.flowSpeed ?? defaults.flowSpeed!,
-      meander: input.meander ?? defaults.meander!
-    };
-    const result = await this._executeMutations(
-      [{ action: "create", resourceType: "river", value }],
-      input,
-      mutationEffect(
-        value.x,
-        value.z,
-        resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres(value.lengthMetres, value.widthMetres),
-        value.depthMetres
-      ),
-      signal,
-      value
-    );
-    return singleAssetMutationResult(result, "create");
-  }
-
-  async updateWaterFeature(
-    ref: Readonly<SeedWorldRef>,
-    patch: Readonly<SeedWorldWaterFeaturePatch>,
-    control: SeedWorldWaterMutationControl,
-    signal: AbortSignal
-  ): Promise<SeedWorldAssetMutationResult | SeedWorldWaterColorUpdateResult> {
-    if (patch.colorRgb !== undefined) {
-      resolveWaterEditOptions(control.edit, false);
-      validateSeedWorldWaterColor(patch.colorRgb);
-      if (ref.domain !== "water" || Object.keys(patch).some((key) => key !== "colorRgb")) {
-        throw new Error("INVALID_INPUT: colorRgb must be a separate water-only patch");
-      }
-      const asset = this._assets.get(ref);
-      if (!asset) throw new Error(`WorldRef '${ref.id}' no longer exists`);
-      if (!this._engine.readWaterColor?.(ref) || !this._engine.updateWaterColor) {
-        throw new Error("NOT_EDITABLE: target has no published water color authoring");
-      }
-      if (signal.aborted) throw new DOMException("Water color update aborted", "AbortError");
-      this._validateMutationControl(control, {
-        areaSquareMetres: asset.areaSquareMetres ?? (asset.bounds ? (asset.bounds.maximum[0] - asset.bounds.minimum[0]) * (asset.bounds.maximum[2] - asset.bounds.minimum[2]) : 0),
-        objectCount: 1, terrainDeltaMetres: 0, bounds: asset.bounds
-      });
-      const preview = control.executionMode === "preview";
-      const colorRgb = preview ? Object.freeze([...patch.colorRgb] as [number, number, number])
-        : control.edit ? await this._engine.updateWaterColor(ref, patch.colorRgb, signal, control.edit)
-          : await this._engine.updateWaterColor(ref, patch.colorRgb, signal);
-      return Object.freeze({ status: preview ? "preview" : "applied", assetRef: asset.ref, colorRgb, updatedCount: preview ? 0 : 1 });
-    }
-    const resource = this._requireFeatureResource(ref, "water");
-    if (resource.resourceType === "river") {
-      const riverPatch: Partial<SeedWorldRiverInput> = compactDefined({
-        lengthMetres: patch.lengthMetres,
-        widthMetres: patch.widthMetres,
-        depthMetres: patch.depthMetres,
-        flowSpeed: patch.flowSpeed,
-        meander: patch.meander,
-        headingDegrees: patch.headingDegrees === undefined ? undefined : normalizeHeadingDegrees(patch.headingDegrees)
-      });
-      if (Object.keys(riverPatch).length === 0) throw new Error("River patch contains no river properties");
-      resolveWaterEditOptions(control.edit, Object.entries(riverPatch).some(([key, value]) => value !== Reflect.get(resource.properties, key)));
-      const properties: SeedWorldRiverInput = { ...resource.properties, ...riverPatch };
-      const result = await this._executeMutations(
-        [
-          {
-            action: "update",
-            resourceType: "river",
-            resourceId: resource.resourceId,
-            expectedContentHash: resource.contentHash,
-            patch: riverPatch
-          }
-        ],
-        control,
-        mutationEffect(
-          properties.x,
-          properties.z,
-          resolveSeedWorldFlowingWaterLakeSurrogateRadiusMetres(
-            properties.lengthMetres,
-            properties.widthMetres
-          ),
-          properties.depthMetres
-        ),
-        signal,
-        riverPatch
-      );
-      return singleAssetMutationResult(result, "update");
-    }
-    const waterBodyPatch: SeedWorldWaterBodyMutationPatch = compactDefined({
-      radiusMetres: patch.radiusMetres,
-      depthMetres: patch.depthMetres,
-      shorelineIrregularity: patch.shorelineIrregularity,
-      waterLevelMetres: patch.waterLevelMetres,
-      seed: patch.seed
-    });
-    if (Object.keys(waterBodyPatch).length === 0)
-      throw new Error("Standing-water patch contains no standing-water properties");
-    resolveWaterEditOptions(control.edit, Object.entries(waterBodyPatch).some(([key, value]) => key !== "waterLevelMetres" && value !== Reflect.get(resource.properties, key)));
-    const properties: SeedWorldWaterBodyInput = { ...resource.properties, ...waterBodyPatch };
-    const result = await this._executeMutations(
-      [
-        {
-          action: "update",
-          resourceType: "water-body",
-          resourceId: resource.resourceId,
-          expectedContentHash: resource.contentHash,
-          patch: waterBodyPatch
-        }
-      ],
-      control,
-      mutationEffect(properties.x, properties.z, properties.radiusMetres, properties.depthMetres),
-      signal,
-      waterBodyPatch
     );
     return singleAssetMutationResult(result, "update");
   }
@@ -2030,10 +1872,6 @@ export class SeedWorldAgentApplication {
   ): SeedWorldAuthoringResourceOf<"terrain-feature">;
   private _requireFeatureResource(
     ref: Readonly<SeedWorldRef>,
-    expectedDomain: "water"
-  ): SeedWorldAuthoringResourceOf<"water-body" | "river">;
-  private _requireFeatureResource(
-    ref: Readonly<SeedWorldRef>,
     expectedDomain: "vegetation"
   ): SeedWorldAuthoringResourceOf<"vegetation-brush">;
   private _requireFeatureResource(
@@ -2053,9 +1891,7 @@ export class SeedWorldAgentApplication {
     const actualDomain =
       resource.resourceType === "terrain-feature"
         ? "terrain"
-        : resource.resourceType === "water-body" || resource.resourceType === "river"
-          ? "water"
-          : "vegetation";
+        : "vegetation";
     if (actualDomain !== expectedDomain) {
       throw new Error(`WorldRef '${ref.id}' resolves to ${actualDomain}, not ${expectedDomain}`);
     }
@@ -2468,10 +2304,6 @@ function deleteMutation(resource: Readonly<SeedWorldAuthoringResource>): SeedWor
   switch (resource.resourceType) {
     case "terrain-feature":
       return { ...identity, resourceType: "terrain-feature" };
-    case "water-body":
-      return { ...identity, resourceType: "water-body" };
-    case "river":
-      return { ...identity, resourceType: "river" };
     case "vegetation-brush":
       return { ...identity, resourceType: "vegetation-brush" };
     case "terrain-patch":
@@ -2695,27 +2527,6 @@ function terrainFeatureDefaults(kind: SeedWorldGenericTerrainFeatureInput["kind"
         roughness: 0.24,
         erosion: 0.3
       };
-  }
-}
-
-function waterFeatureDefaults(kind: SeedWorldWaterFeatureCreateInput["kind"]): Readonly<{
-  radiusMetres?: number;
-  lengthMetres?: number;
-  widthMetres?: number;
-  depthMetres: number;
-  flowSpeed?: number;
-  meander?: number;
-  shorelineIrregularity?: number;
-}> {
-  switch (kind) {
-    case "stream":
-      return { lengthMetres: 90, widthMetres: 3, depthMetres: 0.8, flowSpeed: 1.1, meander: 0.65 };
-    case "river":
-      return { lengthMetres: 220, widthMetres: 14, depthMetres: 3.5, flowSpeed: 2, meander: 0.42 };
-    case "pond":
-      return { radiusMetres: 14, depthMetres: 2.2, shorelineIrregularity: 0.38 };
-    case "lake":
-      return { radiusMetres: 55, depthMetres: 8, shorelineIrregularity: 0.58 };
   }
 }
 

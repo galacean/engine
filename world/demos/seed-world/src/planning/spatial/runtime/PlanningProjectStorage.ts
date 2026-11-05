@@ -6,6 +6,8 @@ import { parsePlanningDocument } from "../PlanningDocumentCodec.ts";
 import { RuntimeProjectEdit, type RuntimeAssetFormat } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { planningSourceDocument, writePlanningProjectSource } from "./PlanningProjectSource.ts";
+import { initializePlanningWater, initializePlanningOcean, installPlanningWaterDefaults, loadPlanningWaterDefaults } from "./PlanningWaterInitialization.ts";
+import type { SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
 export const PLANNING_PROJECT_PATH = "World/Planning.json";
 export const PLANNING_PROJECT_TYPE = "SeedWorldPlanning";
@@ -17,6 +19,23 @@ export class PlanningProjectStorage {
       Partial<Pick<RuntimeProjectSession, "update" | "publicationRevision">>,
     private readonly formats: ReadonlyMap<string, RuntimeAssetFormat> = new Map()
   ) {}
+
+  /** New Source authoring baseline is ready before the first Engine Scene load. */
+  async initialize(document: PlanningDocument, result: SemanticResult): Promise<PlanningDocument> {
+    const defaults = await loadPlanningWaterDefaults();
+    const build = (pack: RuntimeProjectSession["projectPackage"]) => {
+      const draft = new RuntimeProjectEdit(pack, new Map([...nativeAssetFormats(() => ({})), ...this.formats]));
+      installPlanningWaterDefaults(draft, defaults);
+      const next = initializePlanningWater(draft, document, result.plan);
+      writePlanningProjectSource(draft, pack.project.scene, next);
+      initializePlanningOcean(draft, result.plan);
+      draft.writeDocument(`${pack.project.scene}.planning-source.json`, JSON.stringify({ version: 1 }));
+      return draft.finish();
+    };
+    if (this.project.update) await this.project.update(build);
+    else await this.project.publish(build(this.project.projectPackage));
+    return planningSourceDocument(this.project.projectPackage)!;
+  }
 
   async load(seed: number): Promise<PlanningDocument | undefined> {
     const source = planningSourceDocument(this.project.projectPackage);

@@ -78,6 +78,11 @@ const localPaths = (fields: SpatialField[], prefix = "") =>
 const prefixPaths = (fields: SpatialField[], prefix: string) =>
   Object.fromEntries(fields.map((f) => [f.key, prefix + f.key]));
 const riverFields: SpatialField[] = [
+  { ...number("speed", "流速", { unit: "m/s", min: 0, default: 1 }), kinds: ["water"] },
+  { ...number("bankClearance", "岸顶预留高度", { unit: "m", min: 0, default: 0.05 }), kinds: ["water"] },
+  { ...number("dropThreshold", "落水识别高度", { unit: "m", min: 0.000001, default: 0.5 }), kinds: ["water"] },
+  { ...number("slopeThreshold", "落水识别坡度", { min: 0.000001, default: 0.2 }), kinds: ["water"] },
+  { ...number("probeSpacing", "地形采样间距", { unit: "m", min: 0.000001, default: 0.25 }), kinds: ["water"] },
   {
     key: "points",
     label: "河流控制点（米）",

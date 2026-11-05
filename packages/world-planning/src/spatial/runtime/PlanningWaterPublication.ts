@@ -22,9 +22,6 @@ function nonWaterIntent(document: PlanningDocument): string {
   delete value.waterAuthoringVersion;
   delete value.layoutOverrides;
   delete value.placementState;
-  value.authoredResources = (value.authoredResources ?? []).filter(
-    (r) => r.resourceType !== "water-body" && r.resourceType !== "river"
-  );
   for (const entity of Object.values(value.entities)) {
     delete entity.components.lakes;
     delete entity.components.rivers;

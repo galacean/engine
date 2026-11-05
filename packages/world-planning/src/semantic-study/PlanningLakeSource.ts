@@ -40,14 +40,6 @@ export function planningLakeAssets(plan: IslandPlan, ids?: ReadonlySet<string>) 
   return plan.waters
     .filter((water) => water.kind === "lake" && !water.lake && (!ids || ids.has(water.id)))
     .flatMap((water) => {
-      const resource = plan.authoredResources?.find(
-        (resource) => resource.resourceType === "water-body" && resource.resourceId === water.id
-      );
-      if (
-        resource?.resourceType === "water-body" &&
-        resource.properties.waterLevelMetres <= resource.properties.minimumWaterLevelMetres
-      )
-        return [];
       const profile = plan.planning?.profiles.find(
         (profile) => profile.ownerId === water.id && profile.kind === "water"
       );

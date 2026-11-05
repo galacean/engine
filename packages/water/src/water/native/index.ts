@@ -2,7 +2,19 @@ import { Loader } from "@galacean/engine-core";
 import { WaterBodyComponent } from "./WaterBodyComponent";
 import { WaterSystem } from "./WaterSystem";
 import { registerWaterResourceLoader } from "./WaterResources";
-export { WaterBodyComponent, type WaterBodyConfiguration } from "./WaterBodyComponent";
+export {
+  WaterBodyComponent,
+  type WaterBodyConfiguration,
+  type WaterBodyAuthoring,
+  type WaterBodyAuthoringInput
+} from "./WaterBodyComponent";
+export {
+  validateWaterShape,
+  compileWaterShape,
+  type WaterShapeAuthoring,
+  type WaterShorePoint
+} from "./WaterAuthoring";
+export { createWaterQualitySettings, type WaterQualitySettings, type WaterQualityInput } from "./WaterQualitySettings";
 export {
   WaterSystem,
   type WaterBatchUpdate,
@@ -26,6 +38,7 @@ export {
   WaterBodyResource,
   WaterLookResource,
   WaterQualityResource,
+  WaterTerrainResource,
   WaterResourceLoader,
   serializeWaterResource,
   parseWaterResource
