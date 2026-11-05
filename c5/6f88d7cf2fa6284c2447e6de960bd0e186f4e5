@@ -1,0 +1,23 @@
+world/gallery/demos/terrain/seed-world-planner/SeedWorldDemo.ts
+  s_d932b902720f7e::t_b2a6b0f7610258 1284-1307,1309-1311,1313,1315-1326
+world/gallery/demos/terrain/seed-world-planner/README.md
+  s_d932b902720f7e::t_b2a6b0f7610258 10
+world/gallery/demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md
+  s_d932b902720f7e::t_b2a6b0f7610258 14225-14228
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c56f88d7cf2fa6284c2447e6de960bd0e186f4e5",
+  "prompts": {},
+  "sessions": {
+    "s_d932b902720f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13e33-360d-7f61-a7aa-efca0f53b092",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
