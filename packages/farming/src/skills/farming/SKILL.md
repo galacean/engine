@@ -5,7 +5,7 @@ description: 耕种、播种、浇水、收获、管理农场道具和库存，�
 
 # 农场组件 Editor API
 
-先读 [方法索引](declare/editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `declare/editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。
+先读 [方法索引](declare/editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `declare/editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。各类 ID、单位和库存口径见[状态与单位](skills/farming/references/state-and-units.md)。
 
 先通过 system.list() 读取农场区域；根据用户指定的位置/区域选择 farmId。不能默认第一个区域就是目标。区域未初始化时用 system.getDiagnostics() 检查 placement/access/runtime/presentation 的事实，查询诊断不会重试初始化。组件不存在时检查 Scene，不要虚构农场。
 
@@ -64,7 +64,7 @@ return {farmId, catalog: (await system.getCatalog({farmId})).value,
 
 ## 场景与资产
 
-创建、读取、引用查询、删除资产以及修改组件引用，读取 `editor/declare/native/api.d.ts` 获取普通 Editor API 声明。此处使用 execute 的 editor.asset；Script 声明不用于这些编辑操作。
+创建、读取、引用查询、删除资产以及修改组件引用，读取 `declare/editor/native/api.d.ts` 获取普通 Editor API 声明。此处使用 execute 的 editor.asset；Script 声明不用于这些编辑操作。
 
 FarmingSystem 的 Scene 属性 `catalog`、`rules`、`state` 是资产引用（`{$ref:"虚拟路径"}`）。目录资产包含作物、种子和植物定义，植物 atlasUrl 使用项目中的贴图虚拟路径；规则资产包含土壤、环境和动作参数；state 是该系统独立管理的存档。先用通用 `editor.component.read({scene,id})` 查看当前引用，再 read 对应虚拟路径。用 `editor.asset.references({path})` 查询引用者，不能删除仍被组件或目录引用的资产。
 

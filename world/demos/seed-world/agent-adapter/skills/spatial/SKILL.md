@@ -31,7 +31,7 @@ In `spatial.search`, `nearest` ranks candidates around an anchor. It does not sa
 A finite search that returns `no_match` is complete. It does not prove that every position in the world is unsuitable.
 Further searches need a changed requirement or new evidence. Keep the user's conditions when a check or search finishes.
 
-`spatial.teleport` moves the player to a spatial target. `subjectView` frames a published subject through world parameters, as described below.
+`spatial.teleport` moves the player to a spatial target. `subjectView` 通过世界参数为已发布的主体取景，用法见本 Skill 的组件知识。
 Heading 0 faces -Z. Heading 90 faces +X.
 
 `viewer` anchors use the player pose captured when the current instruction was submitted. That reference stays fixed across execute calls, player movement and teleportation. Consuming a new supplemental instruction replaces the reference with that input's pose. Without an active instruction, the anchor uses the live pose.

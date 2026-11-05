@@ -11,7 +11,7 @@ description: 生成或修改建筑，处理构件连接与开口、铺设 Unit �
 
 API 从 `@galacean/seed-world-systems` 导入，真实签名见 [声明入口](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts)。在游戏 Script 中调用，持久化编辑走原生 Scene/Prefab 事务。
 
-在 Agent 的 `execute` 中创建持久建筑，使用 `tools.building.generate` 调用同一风格生成器；`execute` 不能导入游戏 Script 模块。生成结果的 `content` 直接交给 `editor.asset.create` 保存为 Prefab，再通过 `editor.entity.create` 实例化。读取 `building.generate` API 声明及下方流程示例。不要为一次建造安装临时生成 Script，也不要从零手写生成器已有的构件参数。
+在 Agent 的 `execute` 中创建持久建筑，使用 `tools.building.generate` 调用同一风格生成器；`execute` 不能导入游戏 Script 模块。生成结果的 `content` 直接交给 `editor.asset.create` 保存为 Prefab，再通过 `editor.entity.create` 实例化。读取 `building.generate` API 声明和[流程示例](references/planning.md)。不要为一次建造安装临时生成 Script，也不要从零手写生成器已有的构件参数。
 
 当前流程：风格生成（合并 Plan/Sketch）→ 基础构件集合与关系 → Design 连接/避让 → 铺设与渲染。
 

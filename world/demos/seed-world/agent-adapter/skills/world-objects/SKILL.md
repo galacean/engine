@@ -19,7 +19,7 @@ Use the schema's scope and the returned kinds, IDs, and components. Runtime IDs 
 Narrow queries by component or kind. Follow `nextOffset` if you need more results. Return only the fields needed for the next decision.
 Read type-specific fields from their declarations. Use tags and named selections only when the API index lists those APIs.
 
-Deletion and undo follow each capability's contract. `editor.history.query({})` lists undoable and redoable asset transactions, next actionable entry first. Pass an ordered contiguous list of IDs to `editor.history.undo` or `editor.history.redo` in a standalone execute. This restores author assets, not elapsed simulation or independently committed gameplay commands. New edits clear redo. History is session-scoped.
+删除遵循各能力的契约。撤销和重做见 [history](skills/history/SKILL.md)。
 
 Ownership and spatial containment are different relationships. A parent reference identifies an owner; `relatedTo.relation: "inside"` tests geometric containment. Reuse returned refs and follow nextOffset when paginated.
 

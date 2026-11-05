@@ -13,4 +13,6 @@ Undo and redo are editor.history operations across all author assets, including 
 
 No task grouping or automatic rollback occurs. Query summaries include up to three shortened paths, pathCount, pathsTruncated, runtime and errorCount. History is session-scoped; saved author assets survive reopening, the undo stack does not.
 
+撤销只恢复作者资产，不恢复已流逝的模拟时间，也不恢复独立提交的玩法命令。新的编辑会清空重做记录。
+
 接口：[原生编辑 API](declare/editor/native/api.d.ts)

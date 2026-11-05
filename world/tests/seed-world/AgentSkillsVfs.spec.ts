@@ -49,6 +49,16 @@ describe("Agent skills and declarations", () => {
     expect(broken).toEqual([]);
   });
 
+  it("mentions only readable paths in prose and host notes", () => {
+    const broken: string[] = [];
+    const reference = /(?:^|[\s`(（])((?:\.\.\/|skills\/|declare\/|editor\/|knowledge\/)[\w@./-]+\.(?:md|d\.ts))/g;
+    for (const [source, text] of [...markdown.map((path) => [path, files.read(path)] as const), ["hostNotes", catalog.hostNotes!] as const]) {
+      for (const match of text.matchAll(reference))
+        if (!paths.has(match[1]) && !match[1].includes("seed-world-systems")) broken.push(`${source} -> ${match[1]}`);
+    }
+    expect(broken).toEqual([]);
+  });
+
   it("keeps generated API indexes and placeholders resolved", () => {
     for (const path of markdown) expect(files.read(path)).not.toContain("<!--");
     expect(files.read("skills/vegetation/SKILL.md")).toContain("declare/editor/world/tools/vegetation.create.d.ts");
@@ -99,7 +109,7 @@ describe("farming skill", () => {
     expect(parseAgentSkill(farmingSkill).name).toBe("farming");
     for (const doc of docs) {
       expect(doc.path).toMatch(/^(skills|declare)\//);
-      for (const match of doc.content.matchAll(/\]\((declare\/editor\/farming\/methods\/[^)]+)\)/g)) expect(known.has(match[1])).toBe(true);
+      for (const match of doc.content.matchAll(/\]\(((?:declare\/editor\/farming\/methods|skills\/farming)\/[^)]+)\)/g)) expect(known.has(match[1])).toBe(true);
     }
   });
 });

@@ -33,6 +33,6 @@ await editor.asset.create({ path: "Building/NewTower.prefab", type: "Prefab", co
 
 ## 检查本次发布
 
-下一次 execute 用 `runtime.entity.children` 查询场景根节点，找到包含 `BuildingManager` 的实体，再用 `runtime.component.query` 取得真实数值ID，`runtime.component.read({id,fields:["buildStatus"]})` 读取状态。`bound`表示已绑定场景宿主，`pending`表示作者输入/地形/当前细节加载仍未完成；`generation`是已发布分组替换的累计次数；`errors`为空且pending=false才可以将当前结果视为已完成。`diagnostics`应同时检查。运行时读取会把数组序列化成 `{length,items,truncated}` 摘要，检查 `errors.length === 0`，具体错误查看 `errors.items`。不要尝试调用组件的方法，或把当前可见旧画面当成本次修改成功。
+下一次 execute 用 `runtime.entity.children` 查询场景根节点，找到包含 `BuildingManager` 的实体，再用 `runtime.component.query` 取得真实数值ID，`runtime.component.read({componentId,fields:["buildStatus"]})` 读取状态。`bound`表示已绑定场景宿主，`pending`表示作者输入/地形/当前细节加载仍未完成；`generation`是已发布分组替换的累计次数；`errors`为空且pending=false才可以将当前结果视为已完成。`diagnostics`应同时检查。运行时读取会把数组序列化成 `{length,items,truncated}` 摘要，检查 `errors.length === 0`，具体错误查看 `errors.items`。不要尝试调用组件的方法，或把当前可见旧画面当成本次修改成功。
 
 Prefab根位置与实例位置是两种不同用途：可复用Prefab通常保持局部原点，在entity.create中设置实例位置。不要把同一世界位置同时写入两处。
