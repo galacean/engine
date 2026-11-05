@@ -8,6 +8,7 @@ declare global {
   namespace AgentTools {
     interface TerrainApi {
       /**
+       * 调用入口：await tools.terrain.patch(input)
        * 抬高或降低现有局部地势，不创建独立世界资产。
        * @param input - 操作方向、空间目标、范围、改变量和可选执行控制。
        * @returns 成功时返回 applied/preview 状态、地形修改计数、范围和事务标识；执行失败通过 Tool Error 返回。

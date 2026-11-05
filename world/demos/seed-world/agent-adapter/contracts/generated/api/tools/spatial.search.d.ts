@@ -6,6 +6,7 @@ declare global {
   namespace AgentTools {
     interface SpatialApi {
       /**
+       * 调用入口：await tools.spatial.search(input)
        * 在有限网格中搜索满足用户条件的位置；检查指定坐标使用 spatial.check，不能用 nearest 搜索替代逐点检测。
        * @param input - 地表约束、排序、数量和采样间距。
        * @returns matched 表示找到候选，no_match 表示本次有限采样无匹配。读取结果后结束该次搜索；不要自行增加坡度、避水或其他要求重新搜索。候选不是资产，也不构成建筑放置许可。
@@ -27,12 +28,12 @@ declare global {
           maximumMoisture?: number;
           /** true 只搜索水面，false 只搜索陆地地形；省略时两者都可返回。验证地形高度变化时必须使用 false，水域位置的 elevationMetres 是水面而不是水底。 */
           water?: boolean;
-          /** 到最近河道的最大水平距离，单位为米；省略时不限制。 最小值：0。 */
+          /** 到内陆水体（河道、湖泊、池塘）的最大水平距离，单位为米；不包含海洋；省略时不限制。 最小值：0。 */
           maximumRiverDistanceMetres?: number;
           /** 到最近道路的最大水平距离，单位为米；省略时不限制。 最小值：0。 */
           maximumRoadDistanceMetres?: number;
         };
-        /** nearest 排序的参照位置；省略时使用当前玩家位置。 */
+        /** nearest 排序的参照位置；省略时使用 viewer 指令参照快照。实时位置先调用 spatial.viewer 并传入返回坐标。 */
         nearestTo?: {
           /** 参照点世界 x 坐标，单位为米。 */
           x: number;
@@ -46,6 +47,10 @@ declare global {
         /** 候选采样之间的最小水平间距，单位为米。 默认值：2。 取值范围：0.25 到 100。 */
         spacingMetres?: number;
       }): Promise<{
+        /** items 是本次完整有限网格中的排序候选；不是连续地表的精确极值或互相独立山峰。 */
+        coverage: "finite-grid";
+        /** 已找到请求数量的候选；若用户未另加约束，无需继续更密的全图扫描。 */
+        requestedCountSatisfied: boolean;
         /** 本次有限采样是否找到候选；no_match 不证明连续空间处处无解。 */
         status: "matched" | "no_match";
         /** 实际搜索网格间距；不是指定坐标检查。 */
@@ -64,10 +69,19 @@ declare global {
             surface: {
               /** 当前可见表面高度：water=true 时是水面高度，water=false 时是地形高度；不是水下河床或湖底高度。 */
               elevationMetres: number;
+              /** 采样点地形坡度，单位为度；不是水面倾角。 */
               slopeDegrees: number;
+              /** 世界地表湿度场的归一化值（0 到 1），不是农田土壤含水量，也不能据此判断脚下是否有水。 */
               moisture: number;
+              /** 此采样点是否被水面覆盖；只描述该点，不表示周边没有水体。 */
               water: boolean;
+              /** 兼容字段：此点到内陆水体（河道、湖泊、池塘）的水平距离，单位为米；不包含海洋，不能解释为最近水面距离。 */
               riverDistanceMetres: number;
+              /** riverDistanceMetres 的实际测量范围；名称为兼容旧调用保留。 */
+              riverDistanceScope: "inland-water-excluding-ocean";
+              /** 未计算到最近全部水体（含海洋、河流、湖泊、池塘）的距离，固定返回 null 表示未知；不是没有水或距离无限，不能用 riverDistanceMetres 代替。 */
+              nearestWaterDistanceMetres: null;
+              /** 此点到最近道路的距离，单位为米。 */
               roadDistanceMetres: number;
             };
           }>;

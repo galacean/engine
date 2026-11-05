@@ -1184,14 +1184,7 @@ export async function mountSeedWorldDemo(
     const hudCreationAt = performance.now();
 
     tools = new PlanningSeedWorldSession({
-      observeViewWithPointer: async signal => {
-        await pickPreparation!.flush(signal);
-        const revision = tools!.application.observationRevision;
-        const { image, snapshot } = await worldPicker!.observePointer(visitCurrentPickBatches, signal,
-          viewSnapshots!.budget, () => pickPreparation!.ready);
-        return { image, metadata: { capturedAt: new Date().toISOString() },
-          pointer: seedWorldViewPointer(snapshot, tools!.application, revision) };
-      },
+      observeViewWithPointer: signal => viewSnapshots!.observe(signal),
       nativeEditor,
       editorExtensions: [
         createFarmingComponentExtension(nativeEditor.projection)
@@ -1429,7 +1422,14 @@ export async function mountSeedWorldDemo(
     }, () => {
       const state = tools!.application.getViewState();
       return `${state.activeRevision}:${state.authoringStateHash}`;
-    }, { observe: (signal, budget) => worldPicker!.observe(signal, budget) });
+    }, { observe: async (signal, budget) => {
+      await pickPreparation!.flush(signal);
+      // Resolve both identity sets in the same captured frame; the application validates authoring revision on pointer use.
+      const revision = tools!.application.observationRevision;
+      const { frame, snapshot } = await worldPicker!.observeFrame(visitor => snapshotPicks.visit(visitor),
+        batch => inspection.target(batch.renderer), visitCurrentPickBatches, signal, budget, () => pickPreparation!.ready);
+      return { frame, pointer: seedWorldViewPointer(snapshot, tools!.application, revision) };
+    } });
     tools!.application.viewSnapshots = viewSnapshots;
     {
       lassoPanel = new SeedWorldLassoPanel(viewSnapshots, frozen => {

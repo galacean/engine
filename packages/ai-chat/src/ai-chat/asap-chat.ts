@@ -24,6 +24,8 @@ import {
 
 export type AsapChatResult = {
   content: string;
+  /** Provider-native assistant continuation state; never reconstructed from diagnostics. */
+  reasoningContent?: string;
   toolCalls: AgentToolCall[];
   finishReason: AgentFinishReason;
   traceId?: string;
@@ -496,8 +498,12 @@ function normalizeAsapChatResult(value: unknown): AsapChatResult {
   if (finishReason === "tool_calls" && toolCalls.length === 0) {
     throw modelProtocolError("ASAP AI 返回 tool_calls，但没有 Tool Call");
   }
+  if (value.reasoningContent !== undefined && typeof value.reasoningContent !== "string") {
+    throw modelProtocolError("ASAP AI reasoningContent 必须是字符串");
+  }
   return {
     content: value.content,
+    ...(value.reasoningContent !== undefined ? { reasoningContent: value.reasoningContent } : {}),
     toolCalls,
     finishReason: finishReason as AgentFinishReason,
     traceId: typeof value.traceId === "string" ? value.traceId : undefined,

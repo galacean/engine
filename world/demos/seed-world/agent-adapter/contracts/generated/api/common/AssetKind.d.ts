@@ -3,4 +3,4 @@
 
 /** 持久世界资产的语义种类；白桦等具体品种仍使用 tree，树林使用 forest */
 
-export type AssetKind = "building" | "mountain" | "hill" | "ridge" | "canyon" | "valley" | "slope" | "plateau" | "basin" | "ocean" | "lake" | "pond" | "river" | "stream" | "tree" | "forest" | "shrub" | "shrubland" | "grassland" | "flower-field" | "aquatic-grass-bed" | "rock" | "mushroom" | "road" | "bridge" | "poi";
+export type AssetKind = "building" | "terrain" | "mountain" | "hill" | "ridge" | "canyon" | "valley" | "slope" | "plateau" | "basin" | "ocean" | "lake" | "pond" | "river" | "stream" | "tree" | "forest" | "shrub" | "shrubland" | "grassland" | "flower-field" | "aquatic-grass-bed" | "rock" | "mushroom" | "road" | "bridge" | "poi";

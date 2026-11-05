@@ -7,6 +7,7 @@ import { AgentNativeFiles, isParallelFileTool, nativeFileTraceInput } from "./ag
 import { runToolBatch } from "./agent-tool-batch";
 import { fileToolStepResult, presentScriptOutput } from "./agent-output";
 import { AgentImageStore, AgentImageStorageLimitError } from "./agent-image-store";
+import { withoutReasoningContent } from "./agent-message-state";
 import {
   buildAgentMessages,
   buildAgentSystemPrompt,
@@ -56,6 +57,7 @@ import type {
 
 const DEFAULT_MAX_MODEL_ATTEMPTS = 3;
 const DEFAULT_MAX_SCRIPT_REPAIRS = 3;
+const DEFAULT_MAX_TOOL_FAILURE_ROUNDS = 3;
 const DEFAULT_MAX_CONSECUTIVE_NO_PROGRESS_SCRIPTS = 2;
 const DEFAULT_MAX_TOOL_CALLS_PER_SCRIPT = 50;
 const DEFAULT_MAX_TOOL_CALLS_PER_TASK = 256;
@@ -110,6 +112,7 @@ export class AgentLoop {
   readonly #scriptChecker: AgentScriptChecker;
   readonly #maxModelAttempts: number;
   readonly #maxScriptRepairs: number;
+  readonly #maxToolFailureRounds: number;
   readonly #maxConsecutiveNoProgressScripts: number;
   readonly #maxToolCallsPerScript: number;
   readonly #maxToolCallsPerTask: number;
@@ -143,6 +146,10 @@ export class AgentLoop {
     this.#maxScriptRepairs = requirePositiveInteger(
       options.maxScriptRepairs ?? DEFAULT_MAX_SCRIPT_REPAIRS,
       "maxScriptRepairs"
+    );
+    this.#maxToolFailureRounds = requirePositiveInteger(
+      options.maxToolFailureRounds ?? DEFAULT_MAX_TOOL_FAILURE_ROUNDS,
+      "maxToolFailureRounds"
     );
     this.#maxConsecutiveNoProgressScripts = requirePositiveInteger(
       options.maxConsecutiveNoProgressScripts ?? DEFAULT_MAX_CONSECUTIVE_NO_PROGRESS_SCRIPTS,
@@ -313,6 +320,7 @@ export class AgentLoop {
       (content) => outputFiles.save(`${taskId}:files:${++fileOutputOrdinal}`, content)
     );
     let consecutiveScriptFailures = 0;
+    let toolFailureRounds = 0;
     let consecutiveInvalidBatches = 0;
     let taskToolCalls = 0;
     let taskBudgetExceeded = false;
@@ -426,6 +434,9 @@ export class AgentLoop {
         const messagesByCall: AgentMessage[][] = calls.map(() => []);
         // Model call IDs may repeat across turns; admission belongs to this batch slot.
         const startedCalls = new Set<number>();
+        let batchScriptFailure: string | undefined;
+        let batchToolFailure: string | undefined;
+        let batchScriptSucceeded = false;
         const executeCall = async (
           call: (typeof calls)[number],
           callIndex: number
@@ -756,9 +767,16 @@ export class AgentLoop {
             throw new AgentTaskToolLimitError(this.#maxToolCallsPerTask);
 
           if (scriptResult.ok === true) {
-            consecutiveScriptFailures = 0;
+            batchScriptSucceeded = true;
+          } else if (
+            scriptResult.error.phase === "tool" &&
+            !["INVALID_ARGUMENTS", "UNKNOWN_TOOL"].includes(scriptResult.error.code)
+          ) {
+            // Accepted calls can fail in the host. Editing the script cannot repair
+            // an invalid Tool result; these failures have their own bounded budget.
+            batchToolFailure = scriptResult.error.message;
           } else {
-            consecutiveScriptFailures += 1;
+            batchScriptFailure = scriptResult.error.message;
           }
 
           if (scriptResult.ok === true) {
@@ -802,11 +820,18 @@ export class AgentLoop {
         );
         transcript.offloadImages();
         if (batch.error) throw batch.error;
+        // All calls in this batch came from one model response. The model has not
+        // seen their results yet, so they represent at most one repair attempt.
+        if (batchScriptFailure !== undefined) consecutiveScriptFailures += 1;
+        else if (batchScriptSucceeded) consecutiveScriptFailures = 0;
+        if (batchToolFailure !== undefined) toolFailureRounds += 1;
+        if (toolFailureRounds >= this.#maxToolFailureRounds) {
+          throw new AgentToolFailureLimitError(this.#maxToolFailureRounds, batchToolFailure!);
+        }
         if (consecutiveScriptFailures >= this.#maxScriptRepairs) {
-          const lastFailure = stageResults.at(-1);
           throw new AgentScriptRepairLimitError(
             this.#maxScriptRepairs,
-            lastFailure && !lastFailure.ok ? lastFailure.error.message : "Repeated script failures"
+            batchScriptFailure ?? "Repeated script failures"
           );
         }
         if (consecutiveNoProgressScripts >= this.#maxConsecutiveNoProgressScripts) {
@@ -941,7 +966,7 @@ export class AgentLoop {
           step: input.step,
           attempt: attemptNumber,
           // The trace store interns images; attempt diagnostics remain lightweight.
-          messages: structuredClone(messages)
+          messages: structuredClone(messages.map(withoutReasoningContent))
         });
       }
       const startedAt = performance.now();
@@ -1069,6 +1094,7 @@ export class AgentLoop {
             assistantMessage: {
               role: "assistant",
               content: result.content,
+              ...(result.reasoningContent !== undefined ? { reasoningContent: result.reasoningContent } : {}),
               toolCalls: structuredClone(result.toolCalls)
             },
             attempts: [...attempts, attempt]
@@ -1080,7 +1106,11 @@ export class AgentLoop {
         const message = parseAgentFinalMessage(result.content);
         return {
           decision: { type: "final", message },
-          assistantMessage: { role: "assistant", content: result.content },
+          assistantMessage: {
+            role: "assistant",
+            content: result.content,
+            ...(result.reasoningContent !== undefined ? { reasoningContent: result.reasoningContent } : {})
+          },
           attempts: [...attempts, attempt]
         };
       } catch (error) {
@@ -1261,8 +1291,18 @@ export class AgentCancelledError extends Error {
 
 export class AgentScriptRepairLimitError extends Error {
   constructor(maxRepairs: number, lastError: string) {
-    super(`Agent Script failed ${maxRepairs} consecutive times: ${lastError}`);
+    super(`Agent Script repair failed in ${maxRepairs} model response rounds: ${lastError}`);
     this.name = "AgentScriptRepairLimitError";
+  }
+}
+
+export class AgentToolFailureLimitError extends Error {
+  constructor(limit: number, lastError: string) {
+    super(
+      `TOOL_FAILURE_LIMIT: Tool execution or output failed in ${limit} model response rounds. ` +
+        `Stopped further calls; inspect execution receipts before retrying writes. Last Tool error: ${lastError}`
+    );
+    this.name = "AgentToolFailureLimitError";
   }
 }
 
@@ -1518,7 +1558,7 @@ function executionOutcomes(stages: readonly AgentScriptResult[]) {
 
 function redactMessageImages(messages: readonly AgentMessage[]): AgentMessage[] {
   return messages.map((message) => {
-    if (message.role !== "user" || !message.image) return structuredClone(message);
+    if (message.role !== "user" || !message.image) return structuredClone(withoutReasoningContent(message));
     return { role: "user", content: `${message.content}\n[Image omitted from trace payload]` };
   });
 }

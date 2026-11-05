@@ -4,7 +4,7 @@ Choose the relevant system below and read its README before using unfamiliar cap
 
 Only the API links in the current indexes declare this host's callable capabilities. Domain guides describe the broader system; an API mentioned in their background but absent from the current index is unavailable here. Follow exact declaration links instead of inventing file paths or repeatedly reading unavailable APIs.
 
-In execute, these world APIs live under `tools`, for example `await tools.world.parameters.query(...)`. Component extensions use `await editor.component.query(...)` and the methods declared on the returned proxy. Read the linked declarations for exact input and output fields.
+In execute, these world APIs live under `tools`, for example `await tools.world.parameters.query(...)`. Component extensions use `await editor.component.query(...)` and the methods declared on the returned proxy. Read the linked declarations for exact input and output fields. Use the complete invocation printed in each method declaration: `spatial.resolve` is `tools.spatial.resolve`, not `tools.world.spatial.resolve`. Knowledge directories are topic groups, not runtime namespaces. A paginated read is incomplete when it returns `next`; follow that offset or the linked method/type entry before relying on a return structure.
 
 When the scene exposes component authoring, the relevant guides include system-owned component usage knowledge for the available components. Discover exact fields, units, scope and constraints through `world.parameters.describe`, then inspect the actual target before proposing edits. System guides explain how capabilities relate; they do not supply fixed mood presets or override the current schema, authorization or runtime checks.
 

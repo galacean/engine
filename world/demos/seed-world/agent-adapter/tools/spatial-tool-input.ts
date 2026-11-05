@@ -3,8 +3,10 @@ import * as z from "zod";
 import { SEED_WORLD_FRONT_RELATION_DISTANCE_METRES } from "../SeedWorldSpatialSemantics.ts";
 import { worldRefSchema } from "./tool-contract.ts";
 
+export const viewerAnchorDescription = "当前指令提交时的玩家位置和朝向；同一指令内跨 execute 保持不变，传送或玩家移动不会更新此参照点。消费新的补充指令时更新。实时位置请调用 tools.spatial.viewer()；没有活动指令时使用实时位置";
+
 export const kernelSpatialAnchorSchema = z.discriminatedUnion("kind", [
-  z.strictObject({ kind: z.literal("viewer").describe("当前玩家视角；只读取 Pose，不改变玩家位置") }),
+  z.strictObject({ kind: z.literal("viewer").describe(viewerAnchorDescription) }),
   z.strictObject({
     kind: z.literal("world-ref"),
     ref: worldRefSchema.describe("world.query 或修改 API 返回的稳定世界引用")

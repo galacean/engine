@@ -7,17 +7,26 @@ declare global {
     interface RuntimeApi { readonly entity: RuntimeEntityApi; }
     interface RuntimeEntityApi {
       /**
+       * 调用入口：await tools.runtime.entity.inspect(input)
        * 按 Engine instanceId 读取节点当前名称、父节点、组件 ID、局部变换及真实作者映射。截图只冻结像素身份，不保存历史节点结构；alive 表示原对象当前是否存活。父子关系不是业务所有权，修改前依据实际组件契约确认目标。
        * @param input - 使用命中或查询实际返回的 Engine instanceId（数值）。运行时 ID 与编辑态 ID 不可互换，不从名称猜测身份。
        * @returns 主线程 Engine 的可序列化事实，Worker 不持有 Engine 对象。运行时对象销毁后 ID 不复用；alive=false 时不得对替代对象执行原指令。authoring 仅在原生投影确有映射时返回；缺失不代表应改父节点或直接销毁渲染对象。
        */
       inspect(input: {
+        entityId: number;
+        id?: never;
+      } | {
+        /** @deprecated 使用 entityId；仅兼容旧调用，不能同时传 entityId。 */
         id: number;
+        entityId?: never;
       }): Promise<{
         status: "found" | "unavailable";
         alive: boolean;
         observedAt: "live";
         entity: ({
+          /** 运行时实体 ID；直接用于 entity.inspect、entity.children 和 component.query 的 entityId 参数。 */
+          entityId: number;
+          /** @deprecated 兼容旧返回字段；与 entityId 相同，新调用使用 entityId。 */
           id: number;
           name: string;
           parentId: number | null;
@@ -31,6 +40,12 @@ declare global {
             scene: string;
             entityId: string;
             componentId?: string;
+            /** 可直接传给 editor.component.query 的作者身份选择器。含 id 时精确到该组件；不含 id 时查询此作者实体的组件。没有映射时不返回 authoring，不向父节点猜测。 */
+            componentQuery: {
+              scene: string;
+              entityId: string;
+              id?: string;
+            };
           };
         }) | null;
       }>;

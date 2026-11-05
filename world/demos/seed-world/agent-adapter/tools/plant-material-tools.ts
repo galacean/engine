@@ -23,7 +23,8 @@ export const SEED_WORLD_PLANT_MATERIAL_CONTRACTS = [
     inputDescription: "可按真实 parts、layers、assetIds 限定；省略 filter 表示全部公开世界级植被材质。",
     outputDescription: "完整分组摘要与当前事务版本；不改作者参数或植被分布。",
     input: z.strictObject({ filter: filter.optional() }),
-    output: z.object({ versionToken: text, matchedSlotCount: z.number().int().nonnegative(), groups: z.array(group) })
+    output: z.object({ scope: z.literal("shared-materials"), instanceSelectionSupported: z.literal(false),
+      affectedAssetIds: z.array(text).describe("这些素材的所有实例和LOD共用修改；不是当前画面实例集合。"), versionToken: text, matchedSlotCount: z.number().int().nonnegative(), groups: z.array(group) })
   }),
   defineSeedWorldApiContract({
     name: "world.parameters.materials.apply", domain: "vegetation",
@@ -74,7 +75,7 @@ export function createPlantMaterialTools(authoring: SeedWorldParameterAuthoring,
         }
         groups.set(key, item);
       }
-      return { versionToken: snapshot.versionToken, matchedSlotCount: selected.length, groups: [...groups.values()] };
+      return { scope: "shared-materials" as const, instanceSelectionSupported: false as const, affectedAssetIds: [...new Set(selected.map(slot=>slot.assetId))], versionToken: snapshot.versionToken, matchedSlotCount: selected.length, groups: [...groups.values()] };
     } }),
     defineSeedWorldTool(apply, { execute: async (input, context) => {
       const available = slots(), values = new Map<string, number | null>(), selectedIdentities = new Set<string>();

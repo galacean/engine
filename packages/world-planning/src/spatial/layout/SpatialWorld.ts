@@ -311,7 +311,23 @@ export function generateSpatialWorld(
     !!previous.plan.spatialLayout.siteOrigins &&
     !!previous.plan.spatialLayout.baselineGroups;
   const plan = compatible ? forkSpatialPlan(previous!.plan) : createSpatialWorldBase(recipe);
-  plan.authoredResources = structuredClone(document.authoredResources ?? []);
+  const publishedResources = structuredClone(document.authoredResources ?? []);
+  // Authored local terrain (brushes and semantic features) edits existing ground,
+  // not the procedural layout recipe. Both paths share the same preservation boundary.
+  // Solve hydrology, volume identities and road routing against the unpatched base
+  // on both cold replay and incremental edits; apply patches to published ground below.
+  plan.authoredResources = publishedResources.filter(
+    (r) => r.resourceType !== "terrain-patch" && r.resourceType !== "terrain-feature"
+  );
+  const patchChanged =
+    JSON.stringify(
+      publishedResources.filter((r) => r.resourceType === "terrain-patch" || r.resourceType === "terrain-feature")
+    ) !==
+    JSON.stringify(
+      (previous?.plan.authoredResources ?? []).filter(
+        (r) => r.resourceType === "terrain-patch" || r.resourceType === "terrain-feature"
+      )
+    );
   const saved = compatible ? previous!.plan.spatialLayout : undefined;
   // Accepted geometry is immutable. Reuse a complete publication together so roads,
   // bridges and navigation metadata retain their shared identities.
@@ -982,6 +998,8 @@ export function generateSpatialWorld(
   }
   checks.push(...finalRoadGradeChecks(plan));
   mark("roads");
+  plan.authoredResources = publishedResources;
+  ground = createPlanningGroundSampler(plan);
   let landscapeBase: LandscapeBasemap | undefined;
   // Water hosts retain road-solving dependencies, but need no ecology or guidance generation.
   if (options.environment !== false) {
@@ -995,7 +1013,7 @@ export function generateSpatialWorld(
       document,
       previous,
       compatible,
-      terrainChanged,
+      terrainChanged: terrainChanged || patchChanged,
       value,
       ground,
       timings

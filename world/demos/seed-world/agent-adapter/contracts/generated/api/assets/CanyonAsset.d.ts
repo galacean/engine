@@ -6,11 +6,12 @@ import type { Asset } from "../common/Asset";
 export type CanyonAsset = Asset<"canyon"> & {
   /** 仅 world.inspect 返回的类型专属属性。 */
   properties: {
+    planningElementId?: string;
     /** 地貌主方向长度，单位为米。 */
     lengthMetres?: number;
     /** 地貌横向宽度，单位为米。 */
     widthMetres?: number;
-    /** 相对原地形的高度变化；负值表示下切，单位为米。 */
+    /** 相对原地形的形状幅度（米），不是实际峰值增高或海拔；非对称、粗糙度和侵蚀会改变实测高度；负值表示下切，单位为米。 */
     elevationDeltaMetres?: number;
     /** 地貌主方向的世界航向角，单位为度。 */
     headingDegrees?: number;

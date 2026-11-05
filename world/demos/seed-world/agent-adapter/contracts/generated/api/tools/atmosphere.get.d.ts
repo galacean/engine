@@ -7,6 +7,7 @@ declare global {
   namespace AgentTools {
     interface AtmosphereApi {
       /**
+       * 调用入口：await tools.atmosphere.get()
        * 读取当前天空颜色、风、雨、雪、雷、云、雾和环境光状态。
        * @returns 当前天象与环境光状态。
        */
@@ -34,7 +35,7 @@ declare global {
           windSpeed: number;
           /** 风力归一化强度。 */
           windIntensity: number;
-          /** 相对世界前方的当前风向角，单位为度。 */
+          /** 当前实际风吹向的世界水平航向，度：0 为 -Z，90 为 +X，-90 为 -X。过渡中可不同于目标；静风时保留最后有效方向，不表示仍有风。 */
           windDirectionDegrees: number;
           /** 当前阵风强度。 */
           windGustiness: number;

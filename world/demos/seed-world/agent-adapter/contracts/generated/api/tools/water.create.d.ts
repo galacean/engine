@@ -10,6 +10,7 @@ declare global {
   namespace AgentTools {
     interface WaterApi {
       /**
+       * 调用入口：await tools.water.create(input)
        * 创建池塘、湖泊、溪流或河流资产，并同时生成所需湖盆或河床。
        * @param input - 水系类型、空间目标和控制形态的可选参数。pond/lake 的水位取创建时中心地表高度，湖盆只下切，不抬高周边堤岸；地形必须能围合水面，坡地下坡侧外泄会在编辑准备阶段拒绝并回滚。此时应如实说明位置约束，不通过更换种子或擅改用户位置绕过；改变地形或位置需要符合用户意图。
        * @returns assetRef 是新水系可直接复用的稳定引用；另返回事务标识和实际效果摘要。preview 仅返回影响估算，不证明水岸可闭合；最终是否提交以 execute.receipt 为准。

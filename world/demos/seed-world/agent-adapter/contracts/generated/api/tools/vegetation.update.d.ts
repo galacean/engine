@@ -10,6 +10,7 @@ declare global {
   namespace AgentTools {
     interface VegetationApi {
       /**
+       * 调用入口：await tools.vegetation.update(input)
        * 修改程序化树共享效果的大小、树干粗细、树枝形态、树叶密度/大小和颜色；也可修改玩家创建的植被分布。
        * @param input - 查询结果的 ref 可直接复用：先 const ref = item.ref，再按 ref.kind 和 ref.source 检查操作适用性；不要把已返回的引用重新拼成宽泛 string 对象，也不要用类型断言绕过来源检查。树形编辑先通过 world.inspect 读取当前值和效果，使用 treeShape 和 treeShapeScope: shared-effect 更新同配方同效果的共享参数；不创建单树覆盖，不与位置/seed 混用。其他分布编辑只支持玩家创建的植被：单体可直接修改位置或 seed，允许重叠，不执行生成约束或自动移开邻居；区域可修改位置、范围或 seed，树林和灌木丛还可修改精确株数。
        * @returns assetRef 是可复用的稳定引用；共享树形编辑的 updated.realizedPlantCount 为受影响树数，其他植被分布更新时为更新后的实际株数；preview 或没有公共单株数量时为 null。

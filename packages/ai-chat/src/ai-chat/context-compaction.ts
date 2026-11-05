@@ -1,4 +1,5 @@
 import type { AgentMessage } from "./agent-types";
+import { withoutReasoningContent } from "./agent-message-state";
 
 export type ContextCompactionBudget = { triggerTokens?: number; targetTokens?: number };
 export type ContextCompactionRequest = ContextCompactionBudget & { version: 1; protectedPrefixLength: 2 };
@@ -144,7 +145,9 @@ export class AgentContextTranscript {
     this.#canonical.push(
       ...structuredClone(
         messages.map((message) =>
-          message.role === "user" && message.image ? { role: message.role, content: message.content } : message
+          message.role === "user" && message.image
+            ? { role: message.role, content: message.content }
+            : withoutReasoningContent(message)
         )
       )
     );

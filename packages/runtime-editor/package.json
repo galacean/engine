@@ -59,7 +59,8 @@
     "./runtime-inspection/runtime-pick-occlusion": "./src/runtime-inspection/runtime-pick-occlusion.ts",
     "./runtime-inspection/runtime-pick-preparation": "./src/runtime-inspection/runtime-pick-preparation.ts",
     "./runtime-inspection/runtime-scene-inspection": "./src/runtime-inspection/runtime-scene-inspection.ts",
-    "./selection/WorldSelection": "./src/selection/WorldSelection.ts"
+    "./selection/WorldSelection": "./src/selection/WorldSelection.ts",
+    "./runtime-editor/generated/editor-source-schema": "./src/runtime-editor/generated/editor-source-schema.d.ts"
   },
   "scripts": {},
   "dependencies": {

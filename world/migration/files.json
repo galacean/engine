@@ -4397,5 +4397,15 @@
   "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.materials.inspect.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.materials.inspect.d.ts",
   "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.parameters.query.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.parameters.query.d.ts",
   "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.animals.command.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/world.animals.command.d.ts",
-  "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts"
+  "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/runtime.entity.children.d.ts",
+  "demos/terrain/seed-world-planner/HEIGHT_TARGET_COMPATIBILITY.md": "world/demos/seed-world/HEIGHT_TARGET_COMPATIBILITY.md",
+  "demos/terrain/seed-world-planner/agent-adapter/ViewerRelation.ts": "world/demos/seed-world/agent-adapter/ViewerRelation.ts",
+  "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/assets/TerrainAsset.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/assets/TerrainAsset.d.ts",
+  "demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.viewer.d.ts": "world/demos/seed-world/agent-adapter/contracts/generated/api/tools/spatial.viewer.d.ts",
+  "shared/ai-chat/agent-message-state.ts": "packages/ai-chat/src/ai-chat/agent-message-state.ts",
+  "shared/api-contract/scripts/component-query.mjs": "packages/project/src/api-contract/scripts/component-query.mjs",
+  "shared/farming/application/FarmingAgronomy.ts": "packages/farming/src/farming/application/FarmingAgronomy.ts",
+  "shared/farming/application/IrrigationEffectSummary.ts": "packages/farming/src/farming/application/IrrigationEffectSummary.ts",
+  "shared/farming/domain/FarmItemFootprint.ts": "packages/farming/src/farming/domain/FarmItemFootprint.ts",
+  "shared/farming/domain/FarmingAgronomy.ts": "packages/farming/src/farming/domain/FarmingAgronomy.ts"
 }

@@ -1,3 +1,4 @@
+import type { FarmingAgronomyReport } from "./FarmingAgronomy";
 import { freezePlantContent } from "../procedural/core/immutable";
 
 export type FarmingDiagnosticState = "pending" | "ready" | "blocked" | "failed";
@@ -26,16 +27,58 @@ export interface FarmingDiagnosticEvidence {
 /** Host supplies spatial/access evidence; Farming never infers the host's road topology. */
 export interface FarmingFarmDiagnostics {
   readonly farmId: string;
+  /** Independent lanes: candidate describes a plan attempt; published describes the active publication. Compare revisions within each lane. Candidate pending does not override published ready. */
   readonly phase: "candidate" | "published";
   readonly planningRevision: number;
   readonly publicationRevision: number;
   readonly placement: FarmingDiagnosticCheck;
   readonly access: FarmingDiagnosticCheck;
   readonly runtime: FarmingDiagnosticCheck;
+  /** Visual resources/representation readiness, NOT capabilities.interactionHostBound. */
   readonly presentation: FarmingDiagnosticCheck;
 }
+export const FARMING_DIAGNOSTIC_COVERAGE = Object.freeze({
+  kind: "publication-readiness" as const,
+  checked: ["placement", "access", "runtime", "presentation"] as const
+});
 export interface FarmingDiagnosticReport {
+  /** Current agricultural evidence, independent of publication readiness. Unavailable is not healthy. */
+  readonly agronomy: readonly FarmingAgronomyReport[];
+  /** Scope of current: publication readiness only. Agricultural evidence is reported separately in agronomy. */
+  readonly coverage: typeof FARMING_DIAGNOSTIC_COVERAGE;
+  /** Current published health per farm. Candidate checks are not current failures. null = no published evidence. */
+  readonly current: readonly {
+    farmId: string;
+    phase: "published" | "unpublished";
+    ready: boolean | null;
+    states: Partial<Record<FarmingDiagnosticDimension, FarmingDiagnosticState>>;
+    issueCount: number;
+    issues: readonly FarmingDiagnosticIssue[];
+    actionRequired: boolean | null;
+  }[];
+  readonly scope: { readonly kind: "system" | "farm"; readonly farmId: string | null };
+  /** Each entry identifies its phase and revisions. Inspect published for the current farm; retain candidate evidence separately. */
   readonly farms: readonly FarmingFarmDiagnostics[];
+}
+
+export function summarizeFarmingDiagnostics(
+  records: readonly FarmingFarmDiagnostics[]
+): FarmingDiagnosticReport["current"] {
+  return [...new Set(records.map((r) => r.farmId))].map((farmId) => {
+    const published = records.find((r) => r.farmId === farmId && r.phase === "published");
+    const dimensions = ["placement", "access", "runtime", "presentation"] as const;
+    return {
+      farmId,
+      phase: published ? ("published" as const) : ("unpublished" as const),
+      ready: published ? dimensions.every((d) => published[d].state === "ready") : null,
+      states: published ? Object.fromEntries(dimensions.map((d) => [d, published[d].state])) : {},
+      issues: published ? dimensions.flatMap((d) => published[d].issues) : [],
+      actionRequired: published
+        ? dimensions.some((d) => ["blocked", "failed"].includes(published[d].state) || published[d].issues.length > 0)
+        : null,
+      issueCount: published ? dimensions.reduce((n, d) => n + published[d].issues.length, 0) : 0
+    };
+  });
 }
 
 /** Scene-local evidence, including planned farms that have no runtime area. Not gameplay persistence. */
@@ -85,6 +128,16 @@ export class FarmingDiagnostics {
 
   get(farmId?: string): FarmingDiagnosticReport {
     return Object.freeze({
+      agronomy: [
+        ...new Set([...this.records.values()].filter((r) => !farmId || r.farmId === farmId).map((r) => r.farmId))
+      ].map((farmId) => ({
+        farmId,
+        status: "unavailable" as const,
+        reason: "No live agricultural observation supplied"
+      })),
+      coverage: FARMING_DIAGNOSTIC_COVERAGE,
+      current: summarizeFarmingDiagnostics([...this.records.values()].filter((r) => !farmId || r.farmId === farmId)),
+      scope: Object.freeze({ kind: farmId ? ("farm" as const) : ("system" as const), farmId: farmId ?? null }),
       farms: Object.freeze([...this.records.values()].filter((r) => !farmId || r.farmId === farmId))
     });
   }

@@ -58,6 +58,8 @@ declare global {
 
 const knowledge = `# Native editing
 
+Scene 作者分组、灯光节点、层级和组件属性从这里进入：先读 project.json 找活动 Scene，再用 editor.entity.list 与 editor.component.read 查询作者记录。自动生成的运行时网格不等于 Scene 作者分组，查询 Scene 结构无需递归枚举所有生成网格。
+
 Undo and redo are editor.history operations across all author assets, including Scene, Prefab, Material and configured world settings. For a request to undo an earlier edit, query editor.history.query and use transaction IDs; writing guessed old values is a new edit, not undo. One execute is one transaction. Query {direction:"undo"|"redo",limit?,cursor?}; the bounded result is {items,total,revision,nextCursor}. Default direction is undo. Follow nextCursor with the same direction; changed results reject stale cursors. Choose a contiguous prefix of items in its listed order. history.read({transactionId}) returns complete paths and runtime errors. Submit the entire chosen batch once, in an execute containing no other edits. No task grouping or automatic rollback occurs. Query summaries include up to three shortened paths, pathCount, pathsTruncated, runtime and errorCount. History is session-scoped; saved author assets survive reopening, the undo stack does not.
 
 
@@ -112,7 +114,7 @@ A subresource reference protects its containing asset. For example, a material t
 export function withNativeEditingKnowledge(catalog: AgentScriptApiCatalog): AgentScriptApiCatalog {
   const toolNames = nativeToolNames;
   return {
-    catalog: catalog.catalog + "- [Native editing](knowledge/native/README.md)\n",
+    catalog: catalog.catalog + "- [Scene 分组、灯光节点、作者层级与原生组件](knowledge/native/README.md)\n",
     documents: [
       ...(catalog.documents ?? []),
       { path: "knowledge/native/README.md", content: knowledge },

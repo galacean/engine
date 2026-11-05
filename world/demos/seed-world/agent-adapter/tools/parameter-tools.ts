@@ -54,7 +54,7 @@ const componentIndex = componentDescription.pick({ type: true, label: true, desc
 });
 const describeOutput = z.discriminatedUnion("view", [
   z.object({ ...pageOutput, view: z.literal("components"), componentTypes: z.array(text), components: z.array(componentIndex) }),
-  z.object({ ...pageOutput, view: z.literal("fields"), componentTypes: z.array(text), components: z.array(componentDescription) })
+  z.object({ ...pageOutput, view: z.literal("fields"), componentTypes: z.array(text), components: z.array(componentDescription.extend({ fieldCount: z.number().int().nonnegative().describe("该组件全部声明字段数；fields 仅含本页筛选字段") })) })
 ]);
 const queriedEntity = z.object({
   id: text, name: z.string(), kind: text, parent: text.optional(),
@@ -133,7 +133,7 @@ export function createSeedWorldParameterTools(
         components: [...new Set(page.map(row => row.index))].map(index => {
           const fields = page.filter(row => row.index === index).map(row => row.field);
           const keys = new Set(fields.map(field => field.key));
-          return { ...components[index], fields,
+          return { ...components[index], fieldCount: components[index].fields.length, fields,
             ...(components[index].ranges ? { ranges: components[index].ranges!.filter(pair => pair.some(key => keys.has(key))) } : {}) };
         })
       }));

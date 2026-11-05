@@ -239,6 +239,39 @@ export class SeedWorldPicker {
     );
   }
 
+  /** Freeze runtime identity and native authoring/depth identity without advancing the scene between passes. */
+  observeFrame(
+    visit: SeedWorldPickSource,
+    resolveRef: (batch: SeedWorldPickBatch) => ViewRef,
+    pointerVisit: SeedWorldPickSource,
+    signal: AbortSignal,
+    budget: ImageResourceBudget,
+    ready?: () => boolean
+  ) {
+    this.frameCapture ??= this.camera.entity.addComponent(SeedWorldFrameCapture);
+    return this.frameCapture.request(
+      (photo) => {
+        let snapshot: SeedWorldPickSnapshot | undefined;
+        let release: (() => void) | undefined;
+        try {
+          release = budget.reserve("temporary", photo.width * photo.height * 20);
+          snapshot = this.capturePointer(photo.width, photo.height, pointerVisit);
+          const frame = this.captureIdentity(visit, resolveRef, photo);
+          return { frame, snapshot };
+        } catch (error) {
+          snapshot?.dispose();
+          photo.dispose();
+          throw error;
+        } finally {
+          release?.();
+        }
+      },
+      signal,
+      budget,
+      ready
+    );
+  }
+
   private captureIdentity(
     visit: SeedWorldPickSource,
     resolveRef: (batch: SeedWorldPickBatch) => ViewRef,

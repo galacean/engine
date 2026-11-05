@@ -76,6 +76,20 @@ Seed World uses the next normal camera frame's Final Pass color, before Overlay 
 
 A task does not have to fit in one script. The model may execute several script stages when a result requires new semantic judgement. Data processing with predictable control flow belongs inside a script so arrays, intermediate API results, filtering, ordering, aggregation, and validation do not consume model context.
 
+## Native assistant continuation state
+
+ASAP returns provider-native `reasoning_content` as optional `reasoningContent` in its text/Tool Calling result.
+The transport validates a present value as a string and preserves it without trimming.
+AgentLoop attaches it to the matching assistant message in the active request history, alongside its content and Tool Calls, independently of debug mode.
+ASAP maps that message back to the existing `ChatMessage.reasoning_content` and provider adapter.
+No state is reconstructed from visible text, debug fields, captured logs or exported traces.
+
+The active transcript retains this state for Tool continuations and stop/continue.
+Context compaction removes it with the discarded assistant messages and preserves it on the retained suffix.
+Canonical diagnostic copies, model-request events, task results and user-visible conversation history omit the native state.
+A new task starts without the previous task's raw assistant state.
+This contract targets the new frontend and new ASAP together; it does not add a mixed-version fallback.
+
 ## Input queue, stop and continue
 
 `AIChatSession` owns a single driver and inbox. `submit(text, options, target)` returns an input ID and completion Promise; `run(...)` returns that Promise directly. `target` defaults to `next-step`:

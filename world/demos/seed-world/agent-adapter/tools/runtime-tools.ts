@@ -12,7 +12,7 @@ export const SEED_WORLD_RUNTIME_CONTRACTS = [inspect, children, query, read] as 
 export function createSeedWorldRuntimeTools(application: SeedWorldAgentApplication) {
   return [
     defineSeedWorldTool(inspect, {
-      execute: (input) => application.requireRuntimeInspection().inspectEntity(input.id)
+      execute: (input) => application.requireRuntimeInspection().inspectEntity(input.entityId ?? input.id!)
     }),
     defineSeedWorldTool(children, {
       execute: (input) =>
@@ -25,7 +25,7 @@ export function createSeedWorldRuntimeTools(application: SeedWorldAgentApplicati
         application.requireRuntimeInspection().queryComponents(input.entityId, input.type)
     }),
     defineSeedWorldTool(read, {
-      execute: (input) => application.requireRuntimeInspection().readComponent(input.id, input.fields)
+      execute: (input) => application.requireRuntimeInspection().readComponent(input.componentId ?? input.id!, input.fields)
     })
   ];
 }

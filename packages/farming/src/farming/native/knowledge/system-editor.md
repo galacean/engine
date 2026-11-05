@@ -1,6 +1,6 @@
 # 农场组件 Editor API
 
-先用 read 工具读取 `editor/farming/FarmingSystem.d.ts`。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。
+先读 [方法索引](editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。
 
 先通过 system.list() 读取农场区域；根据用户指定的位置/区域选择 farmId。不能默认第一个区域就是目标。区域未初始化时用 system.getDiagnostics() 检查 placement/access/runtime/presentation 的事实，查询诊断不会重试初始化。组件不存在时检查 Scene，不要虚构农场。
 
@@ -84,3 +84,7 @@ return await editor.asset.create({
 空存档由 FarmingSystem 初始化。需要切换时，再用 component.update 将 `state` 指向新虚拟路径；原存档保留，直到明确删除。不要手工填充作物、库存或回执。目录和规则都是 FarmingResource 文件，但内容的 kind 分别必须是 catalog 与 rules；版本必须相同，种子必须引用目录中存在的作物。非法植物定义、土壤/环境/动作参数和模拟参数会被拒绝。修改目录/规则内容或切换 state 引用时，保存前会检查已有存档与候选配置的兼容性，包括作物定义、模拟规则签名和已有网格的扩散稳定性。不兼容会拒绝整个编辑，原农场不变。需要新的模拟规则时，在同一次 execute 中创建空存档、修改规则并切换 state 引用；旧存档保留。远端状态文件应先 read，使其内容可用于校验。空存档的实际场地/网格由初始化流程检查；用 getDiagnostics 验证区域就绪后再执行业务命令。
 
 新存档初始化使用当前目录/规则。若仓储定义与规划时不同，会在原农场网格和搜索范围内重新检查初始容器，保留操作通道；是否预置容器仍由 initialContainers 配置决定。找不到合法位置时通过 getDiagnostics 报告失败，不迁移农场或修改旧存档。已有存档的容器按其兼容规则的完整占地恢复，保存的位置保持不变。
+
+诊断与能力的范围：`getDiagnostics().value.farms` 是带 `phase` 和版本的记录数组。`published` 描述当前发布，`candidate` 描述候选尝试；候选 pending 不会覆盖发布 ready，应分别解释。诊断 `presentation` 是视觉资源状态；`capabilities({farmId}).value.interactionHostBound` 是交互宿主绑定，`targetQueryAvailable` 是目标查询能力。旧 `presentation` 布尔字段只是交互宿主的兼容别名。省略 farmId 返回 scope.kind=system，不能用系统级 false 推断区域坏了。
+
+`getDiagnostics.coverage` 只检查发布就绪的 placement/access/runtime/presentation。`ready=true` 不证明全部农业正常；同一返回的 `agronomy` 提供地块、作物、土壤和库存的当前摘要。先读该摘要，有具体 finding 才查对应地块详情；外观/未来状态仍属于未检查范围。浇水回执的 `effectSummary` 区分即时灌水与结算，`distributed=0` 不排除后续土壤扩散；后续含水率以回读为准，不能无证据归因蒸发。

@@ -6,10 +6,12 @@
 
 `world.view.hitPoints({ snapshotId, pointers })` 返回截图时的 `entityId/componentId/componentType`，批量绘制额外返回 `instanceIndex` 和可选 `instanceKey`。随后可调用：
 
-- `runtime.entity.inspect({ id })`：名称、父节点、组件 ID、局部变换。
+- `runtime.entity.inspect({ entityId })`：名称、父节点、组件 ID、局部变换。entityId 原样来自拾取或实体查询，无需改名或转换。
 - `runtime.entity.children({ entityId?, offset?, limit? })`：分页遍历，省略 entityId 返回根节点。
 - `runtime.component.query({ entityId, type? })`：节点实际挂载的组件类型、属性名。
-- `runtime.component.read({ id, fields })`：显式读取当前公开字段，以可序列化值及 Entity/Component 引用返回；不调用方法、不写入状态。
+- `runtime.component.read({ componentId, fields })`：显式读取当前公开字段，以可序列化值及 Entity/Component 引用返回；不调用方法、不写入状态。
+
+实体记录返回 entityId，组件记录返回 componentId 及所属 entityId。两个 inspect/read 接口的旧 id 参数及记录中的旧 id 字段仅为兼容保留；新旧参数只能选一种，同时传入会报错。作者身份仍使用字符串，不能把运行时数字 ID 当作作者身份，也不能把实体 ID 用作组件 ID。
 
 截图同步生成最长边 768 的正常照片和编号纹理。正常照片编码为 JPEG（质量 0.8），编号纹理保留在 GPU；截图时不读回整张编号图、不保存深度或全场景节点结构。每个绘制批次保存一份 Renderer 身份，批量实例的 opaque key 在截图时复制，后续不得调用可变 producer 解析旧实例。临时 RT 的深度附件在截图完成后释放。
 
@@ -18,6 +20,8 @@
 每个截图管理器最多保留 4 张、编号纹理总计最多 8 MiB（不含照片、引用表和临时渲染资源）。最近两个未占用快照保留，编辑器/附件/执行任务 pin 的截图不会被驱逐；预算不足时报 SNAPSHOT_CAPACITY。驱逐、dispose 释放 GPU 纹理；上下文丢失后旧图查询报 SNAPSHOT_EXPIRED，不重新渲染当前场景顶替旧图。
 
 LLM 的 Agent Script 在 Worker 内运行，四个 runtime API 复用现有 Tool RPC，由主线程读取 Engine，再回传普通数据。只在原生场景投影确有映射时返回 authoring，指向现有编辑态记录；没有映射时不猜测父节点或业务所有权。原 editor.entity、editor.component 和资产编辑能力继续保留。
+
+authoring.componentQuery 可原样传给 `editor.component.query`：有组件映射时包含精确 id，只有实体映射时查询该作者实体的组件。返回的是可读身份，仍须根据实际 type 和组件声明确认编辑能力；它不授权修改父节点或其他对象。
 
 组件类型来自实际 query 结果，方法与参数通过 Engine/项目声明查询；资产仍通过现有 editor.asset.list 与文件声明发现。读取组件属性不代表该属性允许直接修改。
 

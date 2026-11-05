@@ -7,7 +7,11 @@ import {
 import { SEED_WORLD_PHOTO_CONFIG } from "./SeedWorldPhotoConfig";
 import { DEFAULT_PHOTO_INK } from "./SeedWorldPhotoPalette";
 import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
-import type { AgentViewImage, AgentViewObservation } from "@galacean/engine-ai-chat/ai-chat/agent-types";
+import type {
+  AgentViewImage,
+  AgentViewObservation,
+  AgentViewPointer
+} from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { RuntimePickIdentity } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
 
 /** Session-scoped Engine identities, never authoring or business IDs. */
@@ -165,7 +169,10 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     private readonly options: {
       maxPhotos?: number;
       memoryLimit?: number;
-      observe?: (signal: AbortSignal, budget: ImageResourceBudget) => Promise<AgentViewImage>;
+      observe?: (
+        signal: AbortSignal,
+        budget: ImageResourceBudget
+      ) => Promise<{ frame: ViewFrame; pointer: AgentViewPointer }>;
     } = {}
   ) {
     this.maxPhotos = options.maxPhotos ?? SEED_WORLD_PHOTO_CONFIG.maxPhotos;
@@ -178,6 +185,12 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     signal?.throwIfAborted();
     if (this.disposed) throw new Error("Snapshot store is disposed");
     const frame = await this.captureFrame(signal, this.budget);
+    return this.retainFrame(frame, signal);
+  }
+  private retainFrame(
+    frame: ViewFrame,
+    signal?: AbortSignal
+  ): { snapshotId: string; imageId: string; image: PhotoImage } {
     if (this.disposed || signal?.aborted) {
       frame.identities.dispose();
       frame.image.dispose();
@@ -207,13 +220,37 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
     return { snapshotId, imageId, image: frame.image };
   }
   async observe(signal: AbortSignal): Promise<AgentViewObservation> {
-    if (!this.options.observe) throw new Error("Ordinary observation is unavailable");
-    const image = await this.options.observe(signal, this.budget);
     signal.throwIfAborted();
-    return {
-      image,
-      metadata: { capturedAt: new Date().toISOString(), scope: "visual-only; no retained identity texture" }
-    };
+    if (this.disposed) throw new Error("Snapshot store is disposed");
+    const captured = this.options.observe ? await this.options.observe(signal, this.budget) : undefined;
+    let shot: Awaited<ReturnType<SeedWorldViewSnapshots["capture"]>> | undefined;
+    let unpin: (() => void) | undefined;
+    let releasePointer: (() => void) | undefined;
+    try {
+      // The frame and native pointer come from the same camera frame, but retain distinct identities.
+      shot = captured ? this.retainFrame(captured.frame, signal) : await this.capture(signal);
+      unpin = this.pin(shot.snapshotId);
+      if (captured) releasePointer = this.budget.reserve("identity", captured.pointer.byteLength);
+      const entry = this.get(shot.snapshotId),
+        version = entry.versions.get(shot.imageId)!;
+      const image = await this.exportVersion(entry, version);
+      signal.throwIfAborted();
+      entry.lastUsedTurn = this.turn;
+      version.used = true;
+      return {
+        imageId: shot.imageId,
+        image,
+        pointer: captured?.pointer,
+        metadata: this.attachmentMetadata({ snapshotId: shot.snapshotId, annotations: [] }, false)
+      };
+    } catch (error) {
+      captured?.pointer.dispose();
+      if (shot) this.drop(shot.snapshotId);
+      throw error;
+    } finally {
+      releasePointer?.();
+      unpin?.();
+    }
   }
   beginTurn(turn: number): void {
     this.turn = turn;
@@ -264,7 +301,16 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
   }
   private get(id: string) {
     const entry = this.frames.get(id);
-    if (!entry) throw new Error("SNAPSHOT_EXPIRED: Capture a new view; never reuse coordinates on another snapshot");
+    if (!entry) {
+      const ownId = id.startsWith(`view-${this.session}-`) && /^\d+$/.test(id.slice(`view-${this.session}-`.length));
+      const code = ownId ? "SNAPSHOT_EXPIRED" : "SNAPSHOT_UNKNOWN";
+      throw Object.assign(
+        new Error(
+          `${code}: Use metadata.snapshotId from observe_view or an attached photo, not imageId. Expired snapshots require a new observation and new coordinates.`
+        ),
+        { code }
+      );
+    }
     return entry;
   }
   pin(id: string): () => void {
@@ -459,9 +505,10 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       snapshotId: a.snapshotId,
       imageWidth: entry.frame.image.width,
       imageHeight: entry.frame.image.height,
-      queryApi: ["world.view.hitPoints"],
+      queryApi: ["tools.world.view.hitPoints", "tools.world.view.queryRegion"],
       queryDeclarations: [
         "editor/declare/world/tools/world.view.hitPoints.d.ts",
+        "editor/declare/world/tools/world.view.queryRegion.d.ts",
         "editor/declare/world/tools/runtime.entity.inspect.d.ts",
         "editor/declare/world/tools/runtime.component.query.d.ts",
         "editor/declare/world/tools/runtime.component.read.d.ts"
@@ -472,7 +519,7 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       currentScene: entry.state === this.currentState(),
       imageAnnotation: annotated ? "colored freehand marks; queries use original pixels, never the ink" : "none",
       scope:
-        "Marks are visual hints, not closed regions or selected objects. Interpret the screenshot, freehand marks and user text together; query world.view.hitPoints with pointers on the intended objects to obtain their captured identities. Targets may have moved; resolve returned references in the current world before editing. Never infer targets by treating every mark as a filled region."
+        "Marks are visual hints, not closed regions or selected objects. Interpret the screenshot, freehand marks and user text together; query tools.world.view.hitPoints with pointers on the intended objects to obtain their captured identities. Targets may have moved; resolve returned references in the current world before editing. Never infer targets by treating every mark as a filled region."
     });
   }
   private pruneVersions(id: string, entry: SnapshotEntry): void {

@@ -13,6 +13,7 @@ declare global {
   namespace AgentTools {
     interface WorldApi {
       /**
+       * 调用入口：await tools.world.query(input)
        * 通过资产类型、语义属性、空间关系和资产关系查询当前世界资产。
        * @param input - 至少提供一种查询条件。offset/limit 只规定当前页起点和最多条目数；若 nextOffset 存在，脚本必须继续分页并在内部完成聚合或筛选。
        * @returns 传输安全的当前页选择，包含完整 matchedCount、offset、可选 nextOffset、公共 Asset 查询投影和 selectionId。根据 item.type 在 AssetCatalog 中读取对应 /assets 详情声明，再把 item.ref 传给 world.inspect 读取类型专属 properties。pageLimitedByBytes 表示当前页因字节预算少于 limit。
@@ -39,7 +40,7 @@ declare global {
         spatial?: {
           /** 空间过滤所参照的玩家、资产、选择或明确坐标。 */
           anchor: {
-            /** 使用当前玩家位置和朝向作为查询锚点。 */
+            /** 当前指令提交时的玩家位置和朝向；同一指令内跨 execute 保持不变，传送或玩家移动不会更新此参照点。消费新的补充指令时更新。实时位置请调用 tools.spatial.viewer()；没有活动指令时使用实时位置。 */
             kind: "viewer";
           } | {
             /** 使用一个世界资产作为查询锚点。 */
@@ -97,7 +98,7 @@ declare global {
               spatial?: {
                 /** 空间过滤所参照的玩家、资产、选择或明确坐标。 */
                 anchor: {
-                  /** 使用当前玩家位置和朝向作为查询锚点。 */
+                  /** 当前指令提交时的玩家位置和朝向；同一指令内跨 execute 保持不变，传送或玩家移动不会更新此参照点。消费新的补充指令时更新。实时位置请调用 tools.spatial.viewer()；没有活动指令时使用实时位置。 */
                   kind: "viewer";
                 } | {
                   /** 使用一个世界资产作为查询锚点。 */

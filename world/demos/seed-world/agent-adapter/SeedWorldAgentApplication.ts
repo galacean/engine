@@ -6,6 +6,7 @@ import { RuntimeAssetChanges } from "@galacean/engine-runtime-editor/project/run
 import type { RuntimeComponentIdentity } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-component-identity";
 type NativeBuildingSelection = { readonly component: RuntimeComponentIdentity };
 import type { RuntimeSceneInspection } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-scene-inspection";
+import { viewerRelativePosition } from "./ViewerRelation.ts";
 import { resolveWaterEditOptions } from "@galacean/engine-world-planning/spatial/hydrology/PlanningWaterEdits";
 import type { SeedWorldPlanningService } from "./SeedWorldPlanningService.ts";
 import { planningPickAssets } from "@galacean/engine-world-planning/spatial/runtime/PlanningWorldPicking";
@@ -160,6 +161,7 @@ export class SeedWorldAgentApplication {
   private _lastTransactionId: string | undefined;
   private _userSelection: SeedWorldRef | NativeBuildingSelection | null = null;
   private _taskViewer: Readonly<SeedWorldLiveState["camera"]> | undefined;
+  private _readPublishedViewer = (): Readonly<SeedWorldLiveState["camera"]> => this._requireState().camera;
   private readonly _assets: SeedWorldAssetManager;
   private _editorSettings: SeedWorldEditorSettings = { waterColors: [] };
   private _editorRevision = 0;
@@ -358,6 +360,7 @@ export class SeedWorldAgentApplication {
     draft._restoreEditorMemory(initialMemory);
     draft._issueSelectionId = this._issueSelectionId;
     draft._taskViewer = this._taskViewer;
+    draft._readPublishedViewer = this._readPublishedViewer;
     draft.viewSnapshots = this.viewSnapshots;
     draft.runtimeInspection = this.runtimeInspection;
     draft._lastTransactionId = this._lastTransactionId;
@@ -496,7 +499,26 @@ export class SeedWorldAgentApplication {
 
   /** Freezes deictic viewer expressions for one Agent task while the player remains free to move. */
   getViewerSnapshot(): Readonly<SeedWorldLiveState["camera"]> {
-    return structuredClone(this._requireState().camera);
+    return structuredClone(this._readPublishedViewer());
+  }
+
+  viewerRelationFor(target: readonly number[]) {
+    const viewer = this._viewerCamera();
+    return viewerRelativePosition(viewer.position, viewer.forward, target, !!this._taskViewer);
+  }
+
+  /** Read the published player pose, even while an execute has an uncommitted camera draft. */
+  readViewer() {
+    const { mode, position, forward } = this.getViewerSnapshot();
+    const [x, y, z] = forward;
+    const horizontalLength = Math.hypot(x, z);
+    const headingDegrees = horizontalLength > 1e-8 ? (Math.atan2(x, -z) * 180 / Math.PI + 360) % 360 : null;
+    const pitchDegrees = Math.hypot(x, y, z) > 1e-8 ? Math.atan2(y, horizontalLength) * 180 / Math.PI : null;
+    const nearestHorizontalAxis = headingDegrees === null ? null : Math.abs(x) >= Math.abs(z)
+      ? x >= 0 ? "+X" as const : "-X" as const
+      : z >= 0 ? "+Z" as const : "-Z" as const;
+    return { source: "published" as const, mode, position, forward,
+      headingDegrees, pitchDegrees, nearestHorizontalAxis };
   }
 
   captureTaskViewerSnapshot(camera = this.getViewerSnapshot()): () => void {
@@ -789,7 +811,9 @@ export class SeedWorldAgentApplication {
       };
       const failedConstraints = (Object.keys(constraints) as (keyof typeof constraints)[])
         .filter(key => constraints[key] !== undefined && !tests[key](constraints[key]!));
-      return { position, matches: failedConstraints.length === 0, failedConstraints, surface };
+      // The engine measures inland water, excluding the ocean. Keep the all-water distance explicitly unknown.
+      return { position, matches: failedConstraints.length === 0, failedConstraints,
+        surface: { ...surface, riverDistanceScope: "inland-water-excluding-ocean" as const, nearestWaterDistanceMetres: null } };
     }) };
   }
 
@@ -860,6 +884,8 @@ export class SeedWorldAgentApplication {
             moisture: point.moisture,
             water: point.water,
             riverDistanceMetres: point.riverDistanceMetres,
+            riverDistanceScope: "inland-water-excluding-ocean" as const,
+            nearestWaterDistanceMetres: null,
             roadDistanceMetres: point.roadDistanceMetres
           })
         })
@@ -867,6 +893,8 @@ export class SeedWorldAgentApplication {
     );
     return Object.freeze({
       computedAtRevision: revision,
+      coverage: "finite-grid",
+      requestedCountSatisfied: items.length >= input.limit,
       status: items.length ? "matched" : "no_match",
       effectiveSpacingMetres: raw.effectiveSpacingMetres,
       matchedCount: raw.matchedPointCount ?? raw.inspectedPointCount ?? items.length,
@@ -1630,7 +1658,8 @@ export class SeedWorldAgentApplication {
     }
 
     filtered.sort((left, right) => compareCandidates(left, right, selector.sort));
-    return filtered;
+    return filtered.map(candidate => candidate.position ? {...candidate,
+      viewerRelation: this.viewerRelationFor(candidate.position)} : candidate);
   }
 
   /** Mutation selectors are always exhaustive; pagination belongs only to world.query. */
@@ -2182,6 +2211,7 @@ function publicSelectionSummary(candidate: Readonly<Candidate>): Readonly<SeedWo
   return Object.freeze({
     type: candidate.ref.kind as SeedWorldSelectionSummary["type"],
     ref: candidate.ref,
+    ...(candidate.viewerRelation ? {viewerRelation:candidate.viewerRelation} : {}),
     ...(candidate.position ? { position: Object.freeze([...candidate.position] as [number, number, number]) } : {}),
     ...(candidate.bounds ? { bounds: freezeClone(candidate.bounds) } : {}),
     ...(candidate.tags ? { tags: Object.freeze([...candidate.tags]) } : {}),
@@ -2258,6 +2288,7 @@ function matchesSelectorIdentity(candidate: Candidate, selector: Readonly<SeedWo
   if (selector.sources && !selector.sources.includes(candidate.ref.source)) return false;
   return true;
 }
+
 
 function isAddressableObjectRef(ref: Readonly<SeedWorldRef>): boolean {
   return ref.domain === "object" || (ref.domain === "vegetation" && (ref.kind === "tree" || ref.kind === "shrub"));

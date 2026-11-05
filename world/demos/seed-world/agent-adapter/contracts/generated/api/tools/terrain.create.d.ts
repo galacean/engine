@@ -10,6 +10,7 @@ declare global {
   namespace AgentTools {
     interface TerrainApi {
       /**
+       * 调用入口：await tools.terrain.create(input)
        * 创建山峰、单丘、山脊、峡谷、山谷、坡地、台地或盆地资产。
        * @param input - hill 使用基座抬升、整体影响半径、局部峰高和峰体半径；其他 kind 使用通用地貌参数。
        * @returns assetRef 是新地貌可直接复用的稳定引用；另返回事务标识和实际效果摘要。

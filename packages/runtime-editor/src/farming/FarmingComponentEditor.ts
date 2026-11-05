@@ -57,9 +57,11 @@ export function createFarmingComponentExtension(port: RuntimeComponentPort) {
     methods,
     scriptApi: {
       catalog:
-        "农场：读取 [使用说明](editor/farming/system-editor.md) 和 [Editor 声明](editor/farming/FarmingSystem.d.ts)。查询 FarmingSystem 场景组件；list 查询区域，按 farmId 操作地块、作物、土壤和库存。",
-      documents: FARMING_KNOWLEDGE.filter((doc) =>
-        ["farming/system-editor.md", "farming/state-and-units.md"].includes(doc.path)
+        "农场：先读 [使用说明](editor/farming/system-editor.md)，再从 [方法索引](editor/farming/methods/README.md) 读取本次所需方法的完整输入、输出与类型。总 [Editor 声明](editor/farming/FarmingSystem.d.ts) 仅作完整参考，分页读取未结束时不能据此猜字段。查询 FarmingSystem 场景组件；list 查询区域，按 farmId 操作地块、作物、土壤和库存。",
+      documents: FARMING_KNOWLEDGE.filter(
+        (doc) =>
+          doc.path.startsWith("farming/methods/") ||
+          ["farming/system-editor.md", "farming/state-and-units.md"].includes(doc.path)
       ),
       entries: [
         {

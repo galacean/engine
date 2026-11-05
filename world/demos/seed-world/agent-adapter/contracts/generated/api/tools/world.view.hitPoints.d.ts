@@ -7,9 +7,10 @@ declare global {
     interface WorldApi { readonly view: WorldViewApi; }
     interface WorldViewApi {
       /**
+       * 调用入口：await tools.world.view.hitPoints(input)
        * 根据截图、自由标记和文字判断目标位置，用 pointers 批量查询同一截图的可见运行时身份，保持输入顺序。返回 entityId/componentId，可直接用 runtime.entity.inspect/runtime.component.query 查询当前节点关系和组件，再按组件公开契约操作。instanceIndex 是该次绘制内索引，不能当作 Entity ID；instanceKey 如存在由绘制生产方提供，是不透明身份，公共层不推断其业务含义或编辑路径。自由笔迹不是闭合选区；查询原始身份图，不拾取当前场景。对象移动后身份不变；销毁后不得把旧指令施加于新对象。
-       * @param input - snapshotId 来自 observe_view 或本轮截图附件；坐标是返回图片的像素，原点左上，x 向右、y 向下，与 CSS/画布像素不同。只查询这张快照，不查询当前视角。
-       * @returns 冻结的可见表面证据。currentScene=false 表示世界作者状态已改变，修改前须重新观察/核对目标。快照释放、页面重载或 GPU 上下文丢失后报 SNAPSHOT_EXPIRED，不能把旧坐标用于新图。未命中不证明空间为空，可能是天空或未注册的表面。
+       * @param input - snapshotId 来自 observe_view 的 metadata.snapshotId 或本轮截图附件；imageId 用于 read_image，不能替代 snapshotId；原生 pointer 返回作者身份，world.view 返回运行时身份，不能互换；坐标是返回图片的像素，原点左上，x 向右、y 向下，与 CSS/画布像素不同。只查询这张快照，不查询当前视角。
+       * @returns 冻结的可见表面证据。currentScene=false 表示世界作者状态已改变，修改前须重新观察/核对目标。已释放的本会话快照报 SNAPSHOT_EXPIRED；未知 ID、imageId 或另一页面的快照报 SNAPSHOT_UNKNOWN，不能把旧坐标用于新图。未命中不证明空间为空，可能是天空或未注册的表面。
        */
       hitPoints(input: {
         /** 最少 1 个字符。 */

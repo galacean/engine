@@ -20,7 +20,7 @@ export function createSeedWorldTools(application: SeedWorldAgentApplication): re
     ...createSeedWorldCelestialTools(application),
     ...createSeedWorldLandscapeTools(application),
     ...createSeedWorldParameterTools(application, application.parameterReceipts),
-    ...createSeedWorldAnimalTools(application.animals)
+    ...createSeedWorldAnimalTools(application.animals, position => application.viewerRelationFor(position))
   ];
   return tools;
 }

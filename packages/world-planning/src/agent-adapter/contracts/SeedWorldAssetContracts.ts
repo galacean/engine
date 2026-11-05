@@ -5,6 +5,7 @@ import { treeShapeSchema } from "./SeedWorldTreeShapeContract";
 /** Every persistent semantic asset owns one public declaration module. */
 export const SEED_WORLD_ASSET_TYPE_CATALOG = Object.freeze({
   building: Object.freeze({ domain: "infrastructure", typeSymbol: "BuildingAsset" }),
+  terrain: Object.freeze({ domain: "terrain", typeSymbol: "TerrainAsset" }),
   mountain: Object.freeze({ domain: "terrain", typeSymbol: "MountainAsset" }),
   hill: Object.freeze({ domain: "terrain", typeSymbol: "HillAsset" }),
   ridge: Object.freeze({ domain: "terrain", typeSymbol: "RidgeAsset" }),
@@ -77,12 +78,15 @@ export const hillAssetPropertiesSchema = z.strictObject({
   headingDegrees: z.number().describe("峰体长轴的世界航向角，单位为度。")
 });
 const genericTerrainAssetPropertiesBaseSchema = z.strictObject({
+  planningElementId: z.string().optional(),
   assetKind: z
     .enum(["mountain", "ridge", "canyon", "valley", "slope", "plateau", "basin"])
     .describe("通用地貌语义类型。"),
   lengthMetres: metres("地貌主方向长度").optional(),
   widthMetres: metres("地貌横向宽度").optional(),
-  elevationDeltaMetres: metres("相对原地形的高度变化；负值表示下切").optional(),
+  elevationDeltaMetres: metres(
+    "相对原地形的形状幅度（米），不是实际峰值增高或海拔；非对称、粗糙度和侵蚀会改变实测高度；负值表示下切"
+  ).optional(),
   headingDegrees: z.number().describe("地貌主方向的世界航向角，单位为度。").optional(),
   sharpness: unit("峰脊或边缘的尖锐程度").optional(),
   asymmetry: unit("两侧形状的不对称程度").optional(),
@@ -113,8 +117,14 @@ export const basinAssetPropertiesSchema = genericTerrainAssetPropertiesBaseSchem
   assetKind: z.literal("basin")
 });
 
+export const baseTerrainAssetPropertiesSchema = z.strictObject({
+  assetKind: z.literal("terrain"),
+  planningElementId: z.string().optional()
+});
+
 export const terrainAssetPropertiesSchema = z
   .discriminatedUnion("assetKind", [
+    baseTerrainAssetPropertiesSchema,
     mountainAssetPropertiesSchema,
     hillAssetPropertiesSchema,
     ridgeAssetPropertiesSchema,
@@ -360,6 +370,7 @@ export const worldAssetPropertiesSchema = z.discriminatedUnion("assetKind", [
 
 const ASSET_PROPERTY_SCHEMA_BY_KIND: Readonly<Record<SeedWorldAssetKind, z.ZodType>> = Object.freeze({
   building: buildingAssetPropertiesSchema,
+  terrain: baseTerrainAssetPropertiesSchema,
   mountain: mountainAssetPropertiesSchema,
   hill: hillAssetPropertiesSchema,
   ridge: ridgeAssetPropertiesSchema,

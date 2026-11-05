@@ -11,6 +11,7 @@ import type { Vec3 } from "./Vec3";
 
 type AssetDomainByKind = {
   "building": "infrastructure";
+  "terrain": "terrain";
   "mountain": "terrain";
   "hill": "terrain";
   "ridge": "terrain";
@@ -43,11 +44,19 @@ export type Asset<T extends AssetKind = AssetKind> = T extends AssetKind ? {
   type: T;
   /** 可跨查询、inspect、更新和删除复用的稳定引用。 */
   ref: Ref & { kind: T; domain: AssetDomainByKind[T] } & ({ source: "natural" } | { source: "authored" });
+} & {
+  /** 相对玩家的水平位置事实：任务中使用提交指令时的视角，任务外用实时视角。forwardMetres正值在前，rightMetres正值在右；direction为八方位扇区，不是世界东西南北。 */
+  viewerRelation?: {
+    basis: "instruction-viewer" | "live-viewer";
+    forwardMetres: number;
+    rightMetres: number;
+    direction: "here" | "front" | "front-right" | "right" | "behind-right" | "behind" | "behind-left" | "left" | "front-left";
+  };
   /** 资产代表位置。 */
   position?: Vec3;
   /** 资产占据的世界范围。 */
   bounds?: Bounds;
-  /** 玩家为资产添加的语义标签。 */
+  /** 玩家为该资产添加的语义标签。 */
   tags?: Array<string>;
   relations?: AssetRelations;
 } : never;

@@ -9,6 +9,7 @@ declare global {
   namespace AgentTools {
     interface TerrainApi {
       /**
+       * 调用入口：await tools.terrain.update(input)
        * 修改已有语义地貌资产的形状或高度；单丘与其他地貌使用各自精确的参数集。
        * @param input - terrain.create 返回的 authored 地貌 Ref、与 Ref.kind 匹配的非空 patch 和可选执行控制；自然地貌不可通过此 API 修改。
        * @returns assetRef 是可直接复用的稳定引用；另返回事务标识和实际效果摘要。

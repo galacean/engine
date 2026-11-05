@@ -5,7 +5,7 @@ import type { SeedWorldAgentApplication } from "../SeedWorldAgentApplication.ts"
 import type { SeedWorldQueryInput } from "@galacean/engine-world-planning/agent-adapter/ports/SeedWorldEnginePort";
 import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
 import { defineSeedWorldTool } from "./define-seed-world-tool.ts";
-import { kernelSpatialAnchorSchema, spatialTargetSchema } from "./spatial-tool-input.ts";
+import { kernelSpatialAnchorSchema, spatialTargetSchema, viewerAnchorDescription } from "./spatial-tool-input.ts";
 import {
   authoringResultSchema,
   assetDomainSchema,
@@ -27,7 +27,7 @@ const filterSchema = z.strictObject({
 }).describe("对精确 WorldAsset 属性执行的查询过滤条件");
 const selectorSpatialSchema = z.strictObject({
   anchor: z.discriminatedUnion("kind", [
-    z.strictObject({ kind: z.literal("viewer").describe("使用当前玩家位置和朝向作为查询锚点") }),
+    z.strictObject({ kind: z.literal("viewer").describe(viewerAnchorDescription) }),
     z.strictObject({
       kind: z.literal("world-ref").describe("使用一个世界资产作为查询锚点"),
       ref: worldRefSchema.describe("world.query、world.inspect 或修改 API 返回的稳定资产引用")
@@ -175,13 +175,13 @@ export const spatialSearchInputSchema = z.strictObject({
     water: z.boolean().optional().describe(
       "true 只搜索水面，false 只搜索陆地地形；省略时两者都可返回。验证地形高度变化时必须使用 false，水域位置的 elevationMetres 是水面而不是水底。"
     ),
-    maximumRiverDistanceMetres: z.number().nonnegative().optional().describe("到最近河道的最大水平距离，单位为米；省略时不限制"),
+    maximumRiverDistanceMetres: z.number().nonnegative().optional().describe("到内陆水体（河道、湖泊、池塘）的最大水平距离，单位为米；不包含海洋；省略时不限制"),
     maximumRoadDistanceMetres: z.number().nonnegative().optional().describe("到最近道路的最大水平距离，单位为米；省略时不限制")
   }).optional().describe("基于当前实时地表状态的约束"),
   nearestTo: z.strictObject({
     x: z.number().describe("参照点世界 x 坐标，单位为米"),
     z: z.number().describe("参照点世界 z 坐标，单位为米")
-  }).optional().describe("nearest 排序的参照位置；省略时使用当前玩家位置"),
+  }).optional().describe("nearest 排序的参照位置；省略时使用 viewer 指令参照快照。实时位置先调用 spatial.viewer 并传入返回坐标。"),
   sort: z.enum(["highest", "lowest", "flattest", "steepest", "wettest", "driest", "nearest"])
     .describe("位置候选排序目标"),
   limit: z.number().int().min(1).max(32).default(1).describe("最多返回的位置数量"),
@@ -199,14 +199,18 @@ export const locationCandidateSchema = z.strictObject({
     elevationMetres: z.number().describe(
       "当前可见表面高度：water=true 时是水面高度，water=false 时是地形高度；不是水下河床或湖底高度。"
     ),
-    slopeDegrees: z.number().nonnegative(),
-    moisture: z.number(),
-    water: z.boolean(),
-    riverDistanceMetres: z.number().nonnegative(),
-    roadDistanceMetres: z.number().nonnegative()
+    slopeDegrees: z.number().nonnegative().describe("采样点地形坡度，单位为度；不是水面倾角。"),
+    moisture: z.number().describe("世界地表湿度场的归一化值（0 到 1），不是农田土壤含水量，也不能据此判断脚下是否有水。"),
+    water: z.boolean().describe("此采样点是否被水面覆盖；只描述该点，不表示周边没有水体。"),
+    riverDistanceMetres: z.number().nonnegative().describe("兼容字段：此点到内陆水体（河道、湖泊、池塘）的水平距离，单位为米；不包含海洋，不能解释为最近水面距离。"),
+    riverDistanceScope: z.literal("inland-water-excluding-ocean").describe("riverDistanceMetres 的实际测量范围；名称为兼容旧调用保留。"),
+    nearestWaterDistanceMetres: z.null().describe("未计算到最近全部水体（含海洋、河流、湖泊、池塘）的距离，固定返回 null 表示未知；不是没有水或距离无限，不能用 riverDistanceMetres 代替。"),
+    roadDistanceMetres: z.number().nonnegative().describe("此点到最近道路的距离，单位为米。")
   })
 });
 export const spatialSearchOutputSchema = z.strictObject({
+  coverage: z.literal("finite-grid").describe("items 是本次完整有限网格中的排序候选；不是连续地表的精确极值或互相独立山峰。"),
+  requestedCountSatisfied: z.boolean().describe("已找到请求数量的候选；若用户未另加约束，无需继续更密的全图扫描。"),
   status: z.enum(["matched", "no_match"]).describe("本次有限采样是否找到候选；no_match 不证明连续空间处处无解。"),
   effectiveSpacingMetres: z.number().positive().optional().describe("实际搜索网格间距；不是指定坐标检查。"),
   matchedCount: z.number().int().nonnegative(),
@@ -249,6 +253,22 @@ export const spatialResolveContract = defineSeedWorldApiContract({
   inputDescription: "包含锚点、关系和放置规则的 Target。",
   outputDescription: "可直接作为后续地景或导航 API target 参数的 Target；不要再包裹、拆解或改写。",
   input: spatialTargetSchema, output: spatialTargetSchema
+});
+export const spatialViewerContract = defineSeedWorldApiContract({
+  name: "spatial.viewer", effect: "read", domain: "spatial",
+  description: "读取已发布的实时玩家相机位置和朝向，不移动玩家，不使用 viewer 指令参照快照。",
+  inputDescription: "无参数。传送后验证实际位置，应在传送 execute 提交完成后的下一次 execute 调用。",
+  outputDescription: "source=published；回答当前位置和朝向可直接使用 position、headingDegrees、pitchDegrees 和 nearestHorizontalAxis。position 是眼睛的绝对世界坐标，Y 不是离地眼高；本接口不测量脚下海拔、离地高度或地理区位，不能据此推断这些信息。不会返回未提交草稿中的目标位置；需要检查脚下地表时另读 spatial.check 声明。",
+  inputMode: "optional", input: z.strictObject({}),
+  output: z.strictObject({
+    source: z.literal("published"),
+    mode: z.enum(["roam", "orbit"]),
+    position: z.tuple([z.number(), z.number(), z.number()]).describe("实时相机眼睛的绝对世界坐标 [x,y,z]，单位为米。Y 是相对世界原点的高度，不是相机离地眼高，也不是脚下地面海拔；坐标本身不提供东南西北地理区位。"),
+    forward: z.tuple([z.number(), z.number(), z.number()]).describe("实时相机朝向向量。"),
+    headingDegrees: z.number().min(0).lt(360).nullable().describe("由同一 forward 换算的水平航向角：[0,360)，0=-Z、90=+X、180=+Z、270=-X。水平分量长度≤1e-8 时为 null，方向未定义。"),
+    pitchDegrees: z.number().min(-90).max(90).nullable().describe("由同一 forward 换算的俯仰角：正数朝上、负数朝下、0 水平；向量长度≤1e-8 时为 null。"),
+    nearestHorizontalAxis: z.enum(["+X", "-X", "+Z", "-Z"]).nullable().describe("当前水平朝向最接近的世界轴向，供文字说明方向；不是精确朝向或地图方位名称。X/Z 分量绝对值相等时取 X；水平分量长度≤1e-8 时为 null。")
+  })
 });
 export const worldDeleteContract = defineSeedWorldApiContract({
   name: "world.delete", domain: "world",
@@ -301,6 +321,7 @@ export const SEED_WORLD_SPATIAL_CONTRACTS = Object.freeze([
   spatialSearchContract,
   spatialCheckContract,
   spatialResolveContract,
+  spatialViewerContract,
   navigationTeleportContract
 ]);
 
@@ -338,6 +359,9 @@ export function createSeedWorldSpatialTools(application: SeedWorldAgentApplicati
     }),
     defineSeedWorldTool(spatialResolveContract, {
       execute: (target) => application.resolveSpatialTarget(target)
+    }),
+    defineSeedWorldTool(spatialViewerContract, {
+      execute: () => application.readViewer()
     }),
     defineSeedWorldTool(navigationTeleportContract, {
       execute: (input) => application.teleport(input)

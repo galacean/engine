@@ -42,7 +42,7 @@ export function createSeedWorldKnowledge(
     const hasApis = SEED_WORLD_API_CONTRACTS.some(api => api.domain === domain && available.has(api.name));
     if (relative !== "README.md" && !(relative === "runtime.md" && available.has("world.inspect")) && !hasApis && !systems.some(system => system.knowledgePath === relative)) return [];
     const index = SEED_WORLD_API_CONTRACTS.filter(api => api.domain === domain && available.has(api.name)).map(api =>
-      `- [${api.name}](../../../declare/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
+      `- [tools.${api.name}](../../../declare/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
     const types = SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
       `- [${entry.name}](../../../declare/world/${entry.moduleId}): ${entry.description}`).join("\n");
     const componentKnowledge = systems.filter(system => system.knowledgePath === relative).map(system =>
@@ -62,8 +62,9 @@ export function createSeedWorldKnowledge(
   }).join("\n");
   documents.find(doc => doc.path === "knowledge/world/README.md")!.content = catalog;
   return {
-    catalog: "# Runtime Project\n\n- [World editing](knowledge/world/README.md)\n" +
-      (available.has("world.inspect") ? "- [Engine runtime development](knowledge/runtime/README.md)\n- [World runtime access](knowledge/world/runtime.md)\n" : ""),
+    catalog: "# Runtime Project\n\n- [世界资产、动物、空间、时间与天气](knowledge/world/README.md)\n" +
+      (available.has("world.animals.catalog") ? "- [动物种类目录、场景动物与行为](knowledge/world/animals/README.md)\n" : "") +
+      (available.has("world.inspect") ? "- [Script 开发与 Engine 类型](knowledge/runtime/README.md)\n- [已发布运行时身份、节点和组件](knowledge/world/runtime.md)\n" : ""),
     documents,
     ...api
   };

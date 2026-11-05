@@ -234,14 +234,10 @@ function renderAssetModule(dependencies: readonly string[]): string {
       "  type: T;",
       "  /** 可跨查询、inspect、更新和删除复用的稳定引用。 */",
       `  ref: Ref & { kind: T; domain: AssetDomainByKind[T] } & (${assetSourceSchema.options.map(source => `{ source: ${JSON.stringify(source)} }`).join(" | ")});`,
-      "  /** 资产代表位置。 */",
-      "  position?: Vec3;",
-      "  /** 资产占据的世界范围。 */",
-      "  bounds?: Bounds;",
-      "  /** 玩家为资产添加的语义标签。 */",
-      "  tags?: Array<string>;",
-      "  relations?: AssetRelations;",
-      "} : never;"
+      `} & ${renderSchema({ ...schemas.Asset,
+        properties: Object.fromEntries(Object.entries(schemas.Asset.properties as JsonSchema).filter(([key]) => !["type", "ref"].includes(key))),
+        required: (schemas.Asset.required as string[] ?? []).filter(key => !["type", "ref"].includes(key))
+      }, 0, false)} : never;`
     ].join("\n")
   ].filter(Boolean).join("\n\n");
 }
@@ -299,6 +295,9 @@ function concreteAssetDeclarationDependencies(name: string): string[] {
 }
 
 function renderSchema(schema: JsonSchema, depth: number, documentInputConstraints: boolean): string {
+  // Zod emits never as {not:{}}. Preserve forbidden compatibility keys instead
+  // of turning them into unknown and accepting conflicting identity selectors.
+  if (schema.not && typeof schema.not === "object" && Object.keys(schema.not).length === 0) return "never";
   if (typeof schema.$ref === "string") {
     if (schema.$ref.includes("#/$defs/")) return "JsonValue";
     const name = localRefName(schema.$ref);
@@ -444,10 +443,31 @@ function renderApiFunctionModule(
   const inputType = renderContractType(types.input, true);
   const input = contract.inputMode === "none" ? "" : `input${contract.inputMode === "optional" ? "?" : ""}: ${inputType}`;
   const output = types.outputs.map((name) => renderContractType(name, false)).join(" | ");
+  if (contract.name === "world.parameters.describe") {
+    return [
+      renderTypeImports(`tools/${contract.name}.d.ts`, dependencies),
+      `/** 调用入口：await tools.world.parameters.describe(input)\n * ${contract.description}\n * @param input ${contract.inputDescription}\n * @returns ${contract.outputDescription}\n */`,
+      `type DescribeInput = ${inputType};`,
+      `type DescribeOutput = ${output};`,
+      'type ComponentIndex = Extract<DescribeOutput, {view:"components"}>;',
+      'type FieldPage = Extract<DescribeOutput, {view:"fields"}>;',
+      'declare global { namespace AgentTools { interface WorldApi {readonly parameters:WorldParametersApi;} interface WorldParametersApi {',
+      `/** 调用入口：await tools.world.parameters.describe(input)
+ * ${contract.description}
+ */`,
+      'describe(input: DescribeInput & {view:"components"}): Promise<ComponentIndex>;',
+      'describe(input: DescribeInput & {view:"fields"}): Promise<FieldPage>;',
+      'describe(input: DescribeInput & {view?:undefined} & ({component:string}|{search:string}|{fields:string[]}|{tags:Record<string,string>})): Promise<FieldPage>;',
+      'describe(input: DescribeInput & {view?:undefined;component?:never;search?:never;fields?:never;tags?:never}): Promise<ComponentIndex>;',
+      'describe(input: DescribeInput): Promise<DescribeOutput>;',
+      '} } }', 'export {};'
+    ].join("\n");
+  }
   const path = contract.name.split(".");
   const functionName = path.pop()!;
   const method = [
     "/**",
+    ` * 调用入口：await tools.${contract.name}(${contract.inputMode === "none" ? "" : "input"})`,
     ` * ${contract.description}`,
     ...(contract.inputMode === "none" ? [] : [` * @param input - ${contract.inputDescription}`]),
     ` * @returns ${contract.outputDescription}`,
@@ -486,6 +506,7 @@ function renderInspectApiFunctionModule(
     "  namespace AgentTools {",
     "    interface WorldApi {",
     "      /**",
+    `       * 调用入口：await tools.${contract.name}(input)`,
     `       * ${contract.description}`,
     `       * @param input - ${contract.inputDescription}`,
     `       * @returns ${contract.outputDescription}`,
@@ -672,6 +693,10 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     "  void detail.properties.radiusMetres;",
     "}",
     "void verifyQueryToInspectEvidenceChain;",
+    "function verifySharedQueryFields(asset: QueriedAsset) {",
+    ' const direction=asset.viewerRelation?.direction;',
+    ' void direction;',
+    "}",
     "async function verifyQueryToUpdateEvidenceChain(): Promise<void> {",
     '  const result = await tools.world.query({ domains: ["vegetation"], kinds: ["tree"], sources: ["authored"] });',
     "  const item = result.items[0];",
@@ -691,6 +716,36 @@ function assertDeclarationModulesTypeCheck(modules: readonly GeneratedModule[]):
     '  await tools.vegetation.update({ ref, patch: { seed: 42 } });',
     "}",
     "void rejectNaturalTreeMove;",
+    "async function verifyDescribeInputRefinement() {",
+    ' const index=await tools.world.parameters.describe({});',
+    ' const count:number=index.components[0].fieldCount;',
+    ' // @ts-expect-error A component directory contains no field records.',
+    ' void index.components[0].fields;',
+    ' const fields=await tools.world.parameters.describe({component:"animals"});',
+    ' const key:string=fields.components[0].fields[0].key;',
+    ' const explicit=await tools.world.parameters.describe({view:"fields"});',
+    ' void explicit.components[0].fields; void key; void count;',
+    "}",
+    "async function verifyRuntimeIdentityChain() {",
+    ' const picked = await tools.world.view.hitPoints({snapshotId:"frame",pointers:[{x:1,y:1}]});',
+    ' const hit = picked.hits[0].hit; if (!hit) return;',
+    ' const result = await tools.runtime.entity.inspect({entityId:hit.ref.entityId});',
+    ' if (!result.entity) return;',
+    ' const components = await tools.runtime.component.query({entityId:result.entity.entityId});',
+    ' if (components.components[0]) await tools.runtime.component.read({componentId:components.components[0].componentId,fields:[]});',
+    ' await tools.runtime.entity.inspect({id:hit.ref.entityId});',
+    ' await tools.runtime.component.read({id:hit.ref.componentId,fields:[]});',
+    ' // @ts-expect-error Ambiguous new/legacy selectors must be rejected before execution.',
+    ' await tools.runtime.entity.inspect({entityId:hit.ref.entityId,id:hit.ref.entityId});',
+    ' // @ts-expect-error A component selector cannot target entity inspection.',
+    ' await tools.runtime.entity.inspect({componentId:hit.ref.componentId});',
+    ' // @ts-expect-error Author identity strings cannot target Engine objects.',
+    ' await tools.runtime.entity.inspect({entityId:"authored-entity"});',
+    ' // @ts-expect-error Ambiguous new/legacy component selectors.',
+    ' await tools.runtime.component.read({componentId:hit.ref.componentId,id:hit.ref.componentId,fields:[]});',
+    ' // @ts-expect-error Entity selector is not a component selector.',
+    ' await tools.runtime.component.read({entityId:hit.ref.entityId,fields:[]});',
+    "}",
     ""
   ].join("\n"));
   const compilerOptions: ts.CompilerOptions = {

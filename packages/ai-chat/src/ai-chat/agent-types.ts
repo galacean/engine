@@ -47,7 +47,7 @@ export type AgentModelToolDefinition = {
 export type AgentMessage =
   | { role: "system"; content: string }
   | { role: "user"; content: string; image?: AgentViewImage }
-  | { role: "assistant"; content: string; toolCalls?: AgentToolCall[] }
+  | { role: "assistant"; content: string; toolCalls?: AgentToolCall[]; reasoningContent?: string }
   | { role: "tool"; toolCallId: string; content: string };
 
 export type AgentViewImage = {
@@ -616,7 +616,10 @@ export type AgentLoopOptions = AgentConfiguration & {
   scriptChecker?: import("./agent-worker-checker").AgentScriptChecker;
   /** Maximum model responses allowed while correcting one invalid response. */
   maxModelAttempts?: number;
+  /** Consecutive model response rounds with script/argument errors; Tool execution failures do not consume this budget. */
   maxScriptRepairs?: number;
+  /** Total model response rounds with Tool execution/output failures, including rounds with other successful calls. */
+  maxToolFailureRounds?: number;
   /**
    * Maximum consecutive successful executions allowed for the exact same script
    * and exact same model-visible output. Reaching the limit means the task is no

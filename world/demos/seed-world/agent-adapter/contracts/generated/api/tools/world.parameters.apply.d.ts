@@ -7,6 +7,7 @@ declare global {
     interface WorldApi { readonly parameters: WorldParametersApi; }
     interface WorldParametersApi {
       /**
+       * 调用入口：await tools.world.parameters.apply(input)
        * 原子执行 set/reset/base，等待宿主的参数提交完成；拒绝过期、未知字段及非法作用域。返回状态、诊断统计与 receiptId，详细诊断及变化 ID 用 receipt 分页读取。accepted 仅代表参数事务成功；是否已有 3D 由宿主的生成阶段决定，不代表视觉验收。
        * @param input - 使用发现的组件、实体和字段；所有编辑由系统统一验证。
        * @returns 组件元数据、作者参数或事务结果；versionToken 用于拒绝过期编辑。完整记录供脚本计算，按 nextOffset 继续；maxBytes 可明确限制本页字节，避免完整页面直接返回时超预算。最终汇总仍须筛选并遵守 main() 总预算，不需要为每个字段单独请求模型。

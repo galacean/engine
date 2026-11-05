@@ -18,9 +18,9 @@ const common = {
   domain: "world" as const,
   effect: "read" as const,
   inputDescription:
-    "snapshotId 来自 observe_view 或本轮截图附件；坐标是返回图片的像素，原点左上，x 向右、y 向下，与 CSS/画布像素不同。只查询这张快照，不查询当前视角。",
+    "snapshotId 来自 observe_view 的 metadata.snapshotId 或本轮截图附件；imageId 用于 read_image，不能替代 snapshotId；原生 pointer 返回作者身份，world.view 返回运行时身份，不能互换；坐标是返回图片的像素，原点左上，x 向右、y 向下，与 CSS/画布像素不同。只查询这张快照，不查询当前视角。",
   outputDescription:
-    "冻结的可见表面证据。currentScene=false 表示世界作者状态已改变，修改前须重新观察/核对目标。快照释放、页面重载或 GPU 上下文丢失后报 SNAPSHOT_EXPIRED，不能把旧坐标用于新图。未命中不证明空间为空，可能是天空或未注册的表面。"
+    "冻结的可见表面证据。currentScene=false 表示世界作者状态已改变，修改前须重新观察/核对目标。已释放的本会话快照报 SNAPSHOT_EXPIRED；未知 ID、imageId 或另一页面的快照报 SNAPSHOT_UNKNOWN，不能把旧坐标用于新图。未命中不证明空间为空，可能是天空或未注册的表面。"
 };
 export const SEED_WORLD_VIEW_CONTRACTS = [
   defineSeedWorldApiContract({
