@@ -71,8 +71,8 @@ float32舍入和包围盒重算。共享 Mesh 不变，颜色/UV/整数属性不
 ## 原生几何与 Worker 边界（2026-10-28）
 
 - 原生 Mesh 的可读顶点、索引和包围盒是几何来源。当前 BufferMesh 通过 Engine `BufferUtil.getVertexElementData/getIndexData` 读取标准格式；业务层只映射算法需要的语义并累计 Prefab 变换，不再生成 `sources/buffers/fields` 文件目录或二次解码。此改造没有把现有 Mesh 资产改成 glTF；glTF 读取 CPU 数据仍须加载时保留 `keepMeshData`。
-- `ConstructionCpuClient` 统一预览、安装校验和精细编译的 Worker 消息边界。Scene/Entity/Component、资源引用及 GPU 对象留在主线程；输入为参数、地形、从原生资源派生的几何数据。
-- 每个 BuildingSystem 使用一个按需创建的 Worker。粗模、开洞后的结构几何及查询数据在 Worker 生成；精细砖瓦仍按驻留需求编译，复用同一快照的贴地、接触和装饰安装结果。算法内部曲线对象保留在 Worker，不能当成普通数组传回再试图恢复其原型方法。
+- `BuildingCpuClient` 统一预览、安装校验和精细编译的 Worker 消息边界。Scene/Entity/Component、资源引用及 GPU 对象留在主线程；输入为参数、地形、从原生资源派生的几何数据。
+- 每个 BuildingManager 使用一个按需创建的 Worker。粗模、开洞后的结构几何及查询数据在 Worker 生成；精细砖瓦仍按驻留需求编译，复用同一快照的贴地、接触和装饰安装结果。算法内部曲线对象保留在 Worker，不能当成普通数组传回再试图恢复其原型方法。
 - 视图拥有可释放的编译句柄。替换、取消、地形候选丢弃和 Scene 销毁清理对应状态；迟到结果不能提交。相同原生几何和地形采样在 Worker 内按引用共享，最后一个快照释放时清理。
 - 主线程继续绑定 Material、创建/上传渲染资源并处理运行时交互。精细支持面和粗模的表现输出仍有各自计算；不宣称全部 CPU 工作已移出主线程或全部阶段完全零重复。固定组合由上文的全部原生 Prefab 提供。
 

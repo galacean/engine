@@ -2,32 +2,26 @@
 
 ## Current entry
 
-`runtime/ConstructionRuntime.ts` is the browser entry. Seed World uses it on its
-existing Galacean Engine and canvas. Wall topology, wall intersections, plaster,
-Gothic frame/glass/roof, roof arrangement and compact instance packing are now
-TypeScript/JavaScript. CPU generation runs in a module Worker. Original function
-replay, Python, Node bridges and saved generated scenes are not runtime inputs.
-The original immutable material templates, shaders, textures and artist defaults
-remain assets, with provenance in `assets/original/library.json`.
+The public entry is `parts/architecture/index.ts`, exported through `parts/index.ts`.
+Production and demos run one pipeline: `Building.European.*` drafts, `designBuilding`,
+`implementBuilding` and `renderBuilding`, driven by `BuildingManager`. See
+[parts/README.md](parts/README.md) for the flow and API, and
+[components/README.md](components/README.md) for the editing and save boundaries.
+Seed World uses the v7-groups save key and does not load or convert older saves.
 
-This is the admitted round/rectangular-house + Gothic example domain, including
-circle/circle connections and the recovered default-style rectangular gable,
-not a claim that every Tiny Glade feature has been ported. The earlier port-8769
-laboratory is preserved separately; [LEGACY-LAB.md](LEGACY-LAB.md) describes it.
-Do not use its native server as a fallback in this runtime.
+This is the admitted round/rectangular-house + Gothic example domain, not a claim
+that every Tiny Glade feature has been ported. The earlier port-8769 laboratory is
+preserved separately; [LEGACY-LAB.md](LEGACY-LAB.md) describes it. Do not use its
+native server as a fallback in this runtime.
 
-After the normal `world/README.md` engine materialization, build and gallery sync,
-open `demos/terrain/seed-world-planner/index.html?seed=1`. The **砌造** panel offers
-an explicit example import, land placement, building view, material replacement,
-local UV hiding/restoration and complete author JSON editing. Existing projects
-are not replaced on opening. An existing masonry asset is not overwritten by the
-example import button. The original round/rectangular, circle/circle and gable
-templates first load an unsaved parameter draft, retaining current placement;
-only applying that draft replaces the saved masonry asset.
+> **Historical notes.** The sections below record recovered geometry rules, decisions
+> and evidence from the removed masonry pipeline. `ConstructionRuntime`,
+> `MasonryDocument`, `MasonrySession`, `prepareMasonry` and the paths they mention are
+> no longer entry points. Read them as background, not as current API.
 
-## Authoring and ownership
+## Removed masonry author format
 
-`MasonryDocument` is version 1 and owns only intent:
+`MasonryDocument` was the version 1 author format and owned only intent:
 
 ```ts
 {
@@ -333,7 +327,7 @@ wood producer. The existing `parallel_rows` rule remains vertical, and the curre
 `posts_and_rails` requires an enclosure strip. Recovered roof-edge/Gothic/junction
 assemblies keep their specialized construction rules and inherit their owner's
 material, target dimensions and local-edit ownership; they are not independently
-selectable arrangement bindings in `MasonryDocument`. This does not complete every
+selectable arrangement bindings in author data. This does not complete every
 generic arrangement rule from the investigation laboratory.
 
 Focused migration typechecking and comparison/UI tests pass. The whole terrain
