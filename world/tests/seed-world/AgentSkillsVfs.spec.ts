@@ -18,7 +18,7 @@ const markdown = [...paths].filter((path) => path.startsWith("skills/") && path.
 describe("Agent skills and declarations", () => {
   it("lists every top-level skill by intent", () => {
     expect(catalog.skills!.map((skill) => skill.name).sort()).toEqual(
-      ["animals", "assets", "building", "components", "environment", "history", "scene-nodes", "scripting", "spatial", "terrain", "vegetation", "water", "world-objects"].sort()
+      ["animals", "assets", "building", "components", "engine-knowledge", "environment", "history", "scene-nodes", "scripting", "spatial", "terrain", "vegetation", "water", "world-objects"].sort()
     );
     for (const skill of catalog.skills!) {
       expect(skill.description.length).toBeLessThanOrEqual(120);

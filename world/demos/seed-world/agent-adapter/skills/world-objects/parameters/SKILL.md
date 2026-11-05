@@ -5,12 +5,32 @@ description: 查询或修改规划组件参数（world.parameters）时使用，
 
 # 规划参数
 
-When `world.parameters.describe` is available, this scene uses component authoring. Discover the relevant component from its public metadata, query eligible entities when the target is unknown, then inspect the target to obtain effective values and `versionToken`. Submit one atomic `world.parameters.apply` batch using that token. `set`, `reset`, and `base` are the same operations used by the Inspector. Scope, units, field rules and material part semantics come from the component metadata; do not invent field names.
+`world.parameters.describe` 可用时，当前场景使用组件编辑方式。流程如下：
 
-Parameter reads are paginated within the Agent result budget. `componentTypes` lists the complete component index, while `components` contains only the current page of fields. Narrow `describe` with `component` and `search`; narrow `inspect` with `component` and exact `fields`. Follow `nextOffset` with the same filters when more fields or entities are needed. `matchedCount` is the total matching fields for describe/inspect, or entities for query. A field absent from one page is not evidence that it is unset. Return only the relevant summary from an execute script.
+1. 从公开元数据中找到相关组件。
+2. 目标未知时，查询符合条件的实体。
+3. 用 inspect 读取目标的有效值和 `versionToken`。
+4. 用这个 token 提交一次原子的 `world.parameters.apply`。
 
-Use the available API index to determine whether `vegetation.create/update` is exposed. When exposed, these APIs create or edit authored vegetation separately from the planning components; their contracts define the allowed operations.
+`set`、`reset`、`base` 与 Inspector 使用的操作相同。范围、单位、字段规则和材质部位语义来自组件元数据。不要编造字段名。
 
-An accepted parameter receipt waits for publication and persistence; it is not visual acceptance. Reinspect after a conflict. Scene v2 stores only author components, and definitions load as ResourceManager JSON assets. Generated geometry is rebuilt after loading.
+## 分页
 
-`apply` returns diagnostic counts and a `receiptId`. Read detailed checks or changed IDs through `world.parameters.receipt` before the next edit, using pagination as needed. An accepted transaction may still have failed or unknown planning checks; inspect the diagnostic summary before claiming the user's intent is satisfied. Never repeat an edit merely to retrieve its receipt.
+参数读取按 Agent 结果预算分页。
+
+- `componentTypes` 列出完整的组件索引，`components` 只含当前页字段。
+- 用 `component` 和 `search` 缩小 describe 的范围，用 `component` 和确切的 `fields` 缩小 inspect 的范围。
+- 需要更多字段或实体时，按 `nextOffset` 继续，过滤条件不变。
+- `matchedCount` 在 describe 和 inspect 中是匹配字段总数，在 query 中是实体总数。
+- 某一页没有某字段，不能证明它未设置。
+- execute 脚本只返回相关摘要。
+
+## 与单体植被的关系
+
+用接口索引判断 `vegetation.create/update` 是否开放。开放时，它们独立于规划组件，用于创建和编辑作者植被，允许的操作以其契约为准。
+
+## 回执
+
+参数回执 accepted 表示已等待发布和持久化完成，不代表视觉验收。发生冲突后，重新 inspect。Scene v2 只保存作者组件，定义通过 ResourceManager 加载为 JSON 资产。生成的几何在加载后重建。
+
+`apply` 返回诊断计数和 `receiptId`。下一次编辑前，通过 `world.parameters.receipt` 读取详细检查项或变更 ID，需要时分页。事务 accepted 时，规划检查仍可能失败或未知。声称满足用户意图前，先检查诊断摘要。不要为了取回执而重复编辑。

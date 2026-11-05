@@ -5,8 +5,15 @@ description: 删除项目资产或查询谁在引用某个资产时使用。
 
 # 删除资产
 
-Before deleting an existing asset, call editor.asset.references with its exact virtual path. After successful deletion, use editor.asset.list to confirm absence; references requires an existing asset and rejects a deleted path. It returns incoming authoring references, including static Script imports and assetUrl calls. Inspect the returned caller paths and unlink or replace their references before calling asset.delete. Both operations support registered asset formats, including PNG/GLB; the ability to edit file contents is unrelated. asset.delete independently rechecks the current draft and rejects with caller paths while references remain. Unknown caller formats or unavailable reference data reject rather than treating the asset as unused.
+删除已有资产前，用准确的虚拟路径调用 `editor.asset.references`。它返回指向该资产的作者引用，包括静态 Script import 和 `assetUrl` 调用。检查返回的调用方路径，先解除或替换这些引用，再调用 `asset.delete`。
 
-Declare candidate resources in component properties or JSON configuration assets using {$ref: virtualPath}; Scripts select from these references instead of constructing resource paths. See [配置资产](skills/scripting/references/configured-assets.md). The Editor maintains direct dependencies in project.json and queries their reverse index; missing dependency information is not an empty list. Even with no incoming references, registered Scenes and runtime-owned assets remain protected; release component ownership before deleting its assets. Successful deletion removes the asset table entry, content and .meta through the normal save/undo transaction.
+- 两个接口都支持已注册的资产格式，包括 PNG 和 GLB。能否编辑文件内容与此无关。
+- `asset.delete` 会重新检查当前草稿。还有引用时，它拒绝删除并返回调用方路径。
+- 调用方格式未知或引用数据不可用时，接口会拒绝，不会把资产当作未被使用。
+- 删除成功后，用 `editor.asset.list` 确认资产已不存在。`references` 要求资产存在，查询已删除的路径会被拒绝。
 
-A subresource reference protects its containing asset. For example, a material texture value {url: "Can.glb", key: "textures[0]"} references Can.glb; query Can.glb to find the material. asset.delete rejects while this external reference remains.
+候选资源用 `{$ref: virtualPath}` 声明在组件属性或 JSON 配置资产中。Script 从这些引用中选择，不自行拼接资源路径。详见[配置资产](skills/scripting/references/configured-assets.md)。
+
+Editor 在 project.json 中维护直接依赖，并按反向索引查询。依赖信息缺失不等于没有引用。即使没有引用，已注册的 Scene 和运行时持有的资产仍受保护。删除这类资产前，先释放组件的持有关系。删除成功后，资产表记录、内容和 `.meta` 通过正常的保存和撤销事务一起移除。
+
+子资源引用也会保护它所在的资产。例如材质贴图值 `{url: "Can.glb", key: "textures[0]"}` 引用了 `Can.glb`。查询 `Can.glb` 可以找到这个材质。该引用存在时，`asset.delete` 会拒绝删除。

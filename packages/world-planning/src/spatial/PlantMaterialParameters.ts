@@ -45,6 +45,11 @@ const materialDirectory = vegetationLayers
     )
   }));
 
+const PLANT_MATERIALS_FACT =
+  "# 植被材质目录\n\n来自实际生态配方和原生材质 manifest。assets 按资产 ID 索引，每项是 [部位, materialId]。对应的确切字段是 <assetId>/<部位>/<materialId>/baseColor.r、.g、.b，其中资产、部位和材质身份分别用 encodeURIComponent 编码。\n\n目录只提供身份和语义。当前颜色要读取，操作是否合法由原生 schema 校验。\n\n```json\n" +
+  JSON.stringify(materialDirectory) +
+  "\n```\n";
+
 export const PLANT_MATERIAL_DECLARATION: PlanningSystemDeclaration = {
   id: "plant-material",
   title: "植被材质",
@@ -53,15 +58,15 @@ export const PLANT_MATERIAL_DECLARATION: PlanningSystemDeclaration = {
     {
       type: "plantMaterial",
       domain: "vegetation",
+      facts: [{ path: "plant-materials.md", content: PLANT_MATERIALS_FACT }],
       knowledge: [
-        "plantMaterial 直接编辑现有程序化素材的物种/变体/材质槽线性 RGB baseColor。世界作用范围可修改乔木、灌木、草本与花瓣颜色，同一物种的所有实例和 LOD 共用该槽覆盖。它已支持树木与灌木配色，无需单株编辑能力；仅当用户要求只改某一株或局部花区时，全局物种覆盖不能满足这种更窄的范围。reset 清除覆盖并恢复默认来源，明确的 0 保留。",
-        "以下精简目录来自实际生态配方和原生材质 manifest：assets 按资产 ID 索引，每项为[部位,materialId]，字段路径中的资产、部位与材质身份分别使用 encodeURIComponent 编码，对应确切字段 <assetId>/<部位>/<materialId>/baseColor.r、.g、.b。字段单位是线性 RGB，范围0–1；用 inspect 的 fields 读取相关槽的当前值与来源。声明可用 describe 的 component=plantMaterial、tags 按真实部位筛选，query 查询作者对象而非材质槽。本组件为世界级，不需枚举每个 POI。目录：" +
-          JSON.stringify(materialDirectory),
-        "同类素材可以在一个脚本内批量读取，并按材质槽整理三个通道为 RGB 后返回模型，保留真实资产、槽和部位身份；按实际结果预算分页，不返回重复的完整字段说明或不相关的区域。首个分页不是整个目录；目录仅提供身份和语义，当前颜色仍须读取，操作合法性由原生 schema 校验。",
-        "花瓣、茎叶、树叶与树干是不同材质槽，槽标签来自真实素材。明确指定部位时只修改该部位；题材或情绪创作可根据整体配色选择相关槽，不必等用户逐个点名。多色需要不同真实花变体或材质槽，增加密度或场景饱和度不会产生新的花色。低草铺底由 grassAppearance 对接 Terrain/Grass 的共享色场，不在此组件内。",
-        "整体场景创作须为实际类别目录里的各层安排配色角色：乔木、灌木、低草、高草与杂草、匍匐地被、野花、落叶与菌类都参与主次、冷暖和饱和度层次。只改 grassAppearance 或两种树叶不代表其他素材已重新搭配。按方案相关物种发现和读取材质；首个分页不是整个目录。可以让主要植物色域与点缀形成对比，并用较低饱和度的茎叶、地被或落叶连接它们；蘑菇菌盖和菌柄、花瓣与茎叶按真实槽分别设计。保留物种与部位差异，不把所有素材统一染色。各类尺寸与轮廓需要读取 landscape 的功能层共享 plantSizes.<layerKey>.scaleMin/scaleMax、乔木 treeHeight 和低草 grassRelativeHeight；尺寸不再逐物种设置，分布和出现比例读实际生态组件。数值依当前线性 RGB、物种与方案选择，没有情绪到固定颜色的配方。",
-        "本组件只改变素材颜色，不增加植物实例、不切换物种、不移动植株。需要改变分布或花变体比例时，使用目标实际公开的生态与 flowers 组件。",
-        "Seed World 草类与地被叶片未编辑的通道跟随 grassAppearance 的草地色场；地被默认在同色相基础上仅变化 ±20% 明度，花瓣保留原色。显式通道仍按本组件覆盖（含 0）；reset 恢复草地继承。Asset Assembly 保留素材原色。"
+        "plantMaterial 直接编辑现有程序化素材的物种、变体、材质槽的线性 RGB baseColor。世界作用范围可以修改乔木、灌木、草本和花瓣的颜色，同一物种的所有实例和 LOD 共用该槽的覆盖。它已支持树木和灌木配色，不需要单株编辑能力。只有用户要求只改某一株或局部花区时，全局物种覆盖才不能满足这个更窄的范围。reset 清除覆盖并恢复默认来源，明确的 0 会保留。",
+        "字段单位是线性 RGB，范围 0–1。可用的资产、部位和字段路径见[植被材质目录](declare/editor/world/facts/plant-materials.md)。用 inspect 的 fields 读取相关槽的当前值和来源。声明可以用 describe 的 component=plantMaterial、tags 按真实部位筛选。query 查询作者对象，不查询材质槽。本组件是世界级的，不需要枚举每个 POI。",
+        "同类素材可以在一个脚本内批量读取，并按材质槽把三个通道整理成 RGB 返回给模型，保留真实的资产、槽和部位身份。按实际结果预算分页，不返回重复的完整字段说明或不相关的区域。首个分页不是整个目录。",
+        "花瓣、茎叶、树叶和树干是不同的材质槽，槽标签来自真实素材。明确指定部位时，只修改该部位。题材或情绪创作可以根据整体配色选择相关槽，不必等用户逐个点名。多色需要不同的真实花变体或材质槽，增加密度或场景饱和度不会产生新的花色。低草铺底由 grassAppearance 对接 Terrain/Grass 的共享色场，不在这个组件内。",
+        "整体场景创作要为各层安排配色角色：乔木、灌木、低草、高草与杂草、匍匐地被、野花、落叶与菌类都参与主次、冷暖和饱和度层次。只改 grassAppearance 或两种树叶，不代表其他素材已重新搭配。按方案相关的物种发现和读取材质。可以让主要植物色域和点缀形成对比，用较低饱和度的茎叶、地被或落叶连接它们。蘑菇的菌盖和菌柄、花瓣和茎叶按真实的槽分别设计。保留物种和部位的差异，不要把所有素材统一染色。尺寸和轮廓读 landscape 的功能层共享 plantSizes.<layerKey>.scaleMin/scaleMax、乔木 treeHeight 和低草 grassRelativeHeight，尺寸不逐物种设置。分布和出现比例读实际的生态组件。数值依当前线性 RGB、物种和方案选择，情绪没有固定的颜色配方。",
+        "本组件只改变素材颜色，不增加植物实例，不切换物种，也不移动植株。要改变分布或花变体比例时，使用目标实际公开的生态组件和 flowers 组件。",
+        "Seed World 草类和地被叶片未编辑的通道跟随 grassAppearance 的草地色场。地被默认在同色相基础上只变化 ±20% 明度，花瓣保留原色。显式的通道仍按本组件覆盖，包括 0。reset 恢复草地继承。Asset Assembly 保留素材原色。"
       ]
     }
   ]

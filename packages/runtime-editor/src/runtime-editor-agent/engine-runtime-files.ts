@@ -6,17 +6,17 @@ const RUNTIME_MODULES_PATH = "skills/scripting/references/runtime-modules.md";
 
 const runtimeModules = `# 运行时模块
 
-These are the declarations emitted from the Engine source used by this application. They describe APIs available to Script assets running in the game. The execute Worker uses the separately declared editing APIs.
+这些是从当前应用使用的 Engine 源码生成的声明，描述在游戏中运行的 Script 资产可用的接口。execute Worker 使用另外声明的编辑接口。
 
-- [Package entry](declare/engine/node_modules/@galacean/engine/types/index.d.ts)
-- [Script lifecycle](declare/engine/node_modules/@galacean/engine-core/types/Script.d.ts)
-- [Entity and component access](declare/engine/node_modules/@galacean/engine-core/types/Entity.d.ts)
+- [包入口](declare/engine/node_modules/@galacean/engine/types/index.d.ts)
+- [Script 生命周期](declare/engine/node_modules/@galacean/engine-core/types/Script.d.ts)
+- [Entity 和组件访问](declare/engine/node_modules/@galacean/engine-core/types/Entity.d.ts)
 - [Transform](declare/engine/node_modules/@galacean/engine-core/types/Transform.d.ts)
 - [Scene](declare/engine/node_modules/@galacean/engine-core/types/Scene.d.ts)
 - [Vector3](declare/engine/node_modules/@galacean/engine-math/types/Vector3.d.ts)
-- [Project asset path resolution](declare/engine/node_modules/@galacean/editor-assets/index.d.ts)
+- [项目资产路径解析](declare/engine/node_modules/@galacean/editor-assets/index.d.ts)
 
-Follow relative imports within each package. Bare imports resolve under declare/engine/node_modules, using each package.json types entry. API comments, units and lifecycle semantics are preserved from the engine source.
+沿各包内的相对导入继续读。裸导入按 declare/engine/node_modules 解析，使用各包 package.json 的 types 入口。接口注释、单位和生命周期语义都保留自 Engine 源码。
 `;
 
 /** Runtime declarations are readable project files, not execute Worker permissions. */
@@ -35,7 +35,7 @@ export function engineRuntimeFiles(environment?: {
   const readRuntimeModules = () =>
     runtimeModules +
     (environment
-      ? "\nHost modules available in this project:\n" +
+      ? "\n当前项目可用的宿主模块：\n" +
         Object.keys(environment.declarations)
           .filter((path) => /node_modules\/(?:@[^/]+\/)?[^/]+\/index\.d\.ts$/.test(path))
           .map((path) => `- [${path.slice("declare/engine/node_modules/".length, -"/index.d.ts".length)}](${path})`)

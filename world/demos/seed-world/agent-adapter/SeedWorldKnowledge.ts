@@ -75,8 +75,10 @@ export function createSeedWorldKnowledge(
     const apis = SEED_WORLD_API_CONTRACTS.filter(api => domains.includes(api.domain) && available.has(api.name));
     const owned = systems.filter(system => system.skill === name);
     if (!apis.length && !owned.length) continue;
-    const index = apis.map(api => `- [tools.${api.name}](declare/editor/world/tools/${api.name}.d.ts): ${api.description}`).join("\n");
+    // The declaration holds the full contract; the index only helps choose which one to read.
+    const index = apis.map(api => `- [tools.${api.name}](declare/editor/world/tools/${api.name}.d.ts): ${api.description.split(/[。；]/)[0]}`).join("\n");
     const componentPath = `skills/${name}/references/components.md`;
+    for (const fact of owned.flatMap(system => system.facts)) documents.push({ path: `declare/editor/world/facts/${fact.path}`, content: fact.content });
     if (owned.length) documents.push({
       path: componentPath,
       content: `# 组件知识\n\n` + owned.map(system =>
@@ -88,8 +90,8 @@ export function createSeedWorldKnowledge(
     if (name === "world-objects") {
       documents.push({
         path: "skills/world-objects/references/asset-types.md",
-        content: "# 资产类型\n\n" + SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
-          `- [${entry.name}](declare/editor/world/${entry.moduleId}): ${entry.description}`).join("\n") + "\n"
+        content: "# 资产类型\n\n用 inspect 读取资产后，按 type 读对应声明中的完整字段。\n\n" + SEED_WORLD_API_SEARCH_ENTRIES.filter(entry => moduleIds.has(entry.moduleId) && entry.moduleId.startsWith("assets/")).map(entry =>
+          `- [${entry.name}](declare/editor/world/${entry.moduleId})`).join("\n") + "\n"
       });
       if (available.has("world.parameters.describe")) documents.push({
         path: "skills/world-objects/parameters/SKILL.md",

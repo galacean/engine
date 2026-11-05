@@ -4460,7 +4460,6 @@
   "shared/tiny-glade/parts/native/AssetInstanceBatch.ts": "packages/building/src/tiny-glade/parts/native/AssetInstanceBatch.ts",
   "shared/tiny-glade/parts/skill/SKILL.md": "packages/building/src/skills/building/SKILL.md",
   "shared/tiny-glade/parts/skill/references/connections.md": "packages/building/src/skills/building/references/connections.md",
-  "shared/tiny-glade/parts/skill/references/existing-house.md": "packages/building/src/skills/building/references/existing-house.md",
   "shared/tiny-glade/parts/skill/references/foundation.md": "packages/building/src/skills/building/references/foundation.md",
   "shared/tiny-glade/parts/skill/references/planning.md": "packages/building/src/skills/building/references/planning.md",
   "shared/tiny-glade/parts/skill/references/roof.md": "packages/building/src/skills/building/references/roof.md",

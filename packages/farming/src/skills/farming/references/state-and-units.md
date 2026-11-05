@@ -1,30 +1,60 @@
 # 状态与单位
 
-- farmId：种植区域身份；plotId：耕地身份；cropId：作物种类；seedId：种子定义；cropInstanceId：本次种下的实例。实例 ID 不能用物种 ID 替代。
-- 地块由 groundId/cellX/cellZ 与网格定位。世界范围、位置和距离单位为米；高度来自当前宿主地形，不允许通过普通地块更新移动耕地。
-- 土壤 moistureUnits/soilMoisturePercent 为体积含水率百分点，25 表示 25%，不是饱和容量的 25%。材质使用的 0..1 湿度归一化值仅用于外观。
-- growthPermille、healthPermille、coefficientPermille 为 0..1000 千分比。factors 的 value 使用各自 unit；不要把不同因素的原始量混为百分比。
-- growthMultiplier 为当前会话的作物生长倍数，默认1；实际速度为环境成长系数乘该倍数，预计剩余时间已包含该倍数。倍数为0时 pausedReason=growth-paused；该参数不进入存档。
-- 模拟时间和剩余时间为毫秒；篮子演出时间与停留时间为秒。画面帧时间不决定作物生长速度。
+## 身份
 
-查询携带 revision、groundRevision 和 simulatedTimeMs。自动时间推进可能在持久化 revision 未增加时改变查询结果；不能仅凭 revision 判断生长诊断永远不变。
+- farmId：种植区域。plotId：耕地。cropId：作物种类。seedId：种子定义。cropInstanceId：本次种下的实例。实例 ID 不能用物种 ID 替代。
+- 地块由 groundId、cellX、cellZ 和网格定位。世界范围、位置和距离的单位是米。高度来自当前宿主地形，普通地块更新不能移动耕地。
 
-getInventory 是固定仓储设施的入库总数。getItemTotals.stored 与之相同，pending 为所有持久收获篮子中的待卸货数量，total 为两者之和。getContainers.contents 返回完整逐作物库存，quantity 为容器总量；混装马车的 cropId/itemId 为 null，必须读取 contents。马车容量 capacity=null，库存可超出 displayCapacity，只展示一车份额；仓储篮子保持单作物和硬容量。手持收获篮子统一容量20、可混装，不从网格反推数量。
+## 单位
 
-schemaVersion 10 的 FarmSnapshot 是唯一存档，包含道具稳定ID/类型/位置/种子袋作物、唯一携带关系、各篮子内容、作物土壤、固定设施及持久回执。所有道具包括种子袋均以{itemId}表示唯一携带关系并持久化；种子类型从该物品的seedId读取。拿起、放下和换拿共用同一事务与落点规则。重新载入只恢复稳定状态，不重播动画或历史收获，不自动发放道具。旧存档不兼容或迁移；Planner加载失败按当前规划重建。相机书签不受物品存档影响。
+- 土壤 moistureUnits 和 soilMoisturePercent 是体积含水率百分点，25 表示 25%，不是饱和容量的 25%。材质使用的 0..1 湿度只用于外观。
+- growthPermille、healthPermille、coefficientPermille 是 0..1000 的千分比。factors 的 value 使用各自的 unit，不要把不同因素的原始量混作百分比。
+- growthMultiplier 是当前会话的作物生长倍数，默认 1，不进入存档。实际速度是环境成长系数乘以这个倍数，预计剩余时间已包含它。倍数为 0 时，`pausedReason=growth-paused`。
+- 模拟时间和剩余时间的单位是毫秒。篮子演出时间和停留时间的单位是秒。画面帧时间不决定作物生长速度。
 
-healthStatus 从健康派生：1000 normal、1..999 damaged、0 destroyed，不保存第二套状态。伤害回执保留健康0和 destroyed；土地上的该作物立即自动移除，不产生收获物，getPlot 返回 crop=null。耕地保留已整平状态，可重新播种。旧存档中的健康0作物在恢复或结算时自动清理。
+查询携带 revision、groundRevision 和 simulatedTimeMs。时间自动推进时，持久化 revision 不增加，查询结果也可能变化。不能仅凭 revision 判断生长诊断没有变化。
 
-土壤水分只影响成长速度：最低含水率及以下为20%，饱和值及以上为100%，两者之间线性插值；不会因为过干或过湿暂停成长。该水分倍率乘以其他环境因素中的最低系数；温度、光照、pH、病虫压力和显式生长倍率0仍可暂停成长。
+## 库存
 
-getEnvironment 返回当前宿主输入、农业时间及最近结算的 settledEnvironment；静态基线会明确标记。getPlot/queryPlots 的 waterRates 是按当前输入和含水率实时计算的雨水/河湖补水/蒸发速率（百分点/模拟分钟），不是最近一步实际收支，不保存账本。作物成长解释使用最近结算气温/光照。Planner 农业时钟在重开时从 lastSystemTimeMs 续走，只累加本次页面运行时长；后台存活仍按原补算上限。独立 Demo 的时间策略由宿主决定。
+- getInventory 是固定仓储设施的入库总数。
+- getItemTotals：stored 与 getInventory 相同，pending 是所有持久收获篮子中待卸货的数量，total 是两者之和。
+- getContainers.contents 返回逐作物的完整库存，quantity 是容器总量。混装马车的 cropId 和 itemId 为 null，必须读取 contents。
+- 马车 `capacity=null`，库存可以超过 displayCapacity，只展示一车的份额。
+- 仓储篮子保持单作物和硬容量。
+- 手持收获篮子容量统一为 20，可以混装。不要从网格反推数量。
 
-nearWater 的岸距和高差单位为米，coefficient 为0..1几何系数，与天气和含水率无关；实际补水速率随含水率接近平衡目标衰减。来源哈希、几何缓存及刷新诊断仅属于宿主运行时，不进入存档或 simulationSignature。宿主未接入时 nearWater=null、补水速率0。
+## 存档
 
-Planner 河流、湖泊和作者池塘按同一已发布 Water 快照的 CPU 近岸查询计算 20m 作用范围，量到几何覆盖与正水深床面区域相交的真实湿区及最近湿侧水位，不接受干涸河段或 ring 内零水深区域，不受渲染栅格 bounds 限制；超过 20m 或高差达到 4m 时补水为0。干岸可有补水，不代表地块被判为水下。刷新仍按版本和布局变化触发；取消刷新后若保留旧缓存，refreshing 保持 true 表示待刷新，直到新的完整结果发布。
+schemaVersion 10 的 FarmSnapshot 是唯一的存档，包含道具的稳定 ID、类型、位置、种子袋作物、唯一携带关系、各篮子内容、作物土壤、固定设施和持久回执。
 
-近岸湿岸界与紧凑索引按 Water 编译版本准备并共享，湖从同版正水深格场/ring提取线段，河保留紧凑河段并对裁干区域局部提取；热查询复用线段，不逐地块重做微米级湿区搜索。返回水位由最近湿点的同版原生静态查询选源，X/Z在真实湿区内时直接读取该位置，不能以等距最高水位替代。冷准备和局部提取仍在刷新任务内按预算分片，准备期间继续读取旧完整缓存；索引准备完成后逐对创建查询任务，未完成任务继续下一帧，全部候选完成后原子发布。准备计入切片耗时，不计为地块采样，不缩小20m作用范围或截断地块。水位或地形换版同时替换对应湿区索引；普通 tick、查询和结算只读缓存。
+所有道具都用 `{itemId}` 表示唯一携带关系并持久化。种子类型从物品的 seedId 读取。拿起、放下和换拿共用同一事务和落点规则。
 
-协作查询每个地块/候选创建时计一次采样，后续延续不重复计为新查询；所有延续的CPU时间均进入切片/最大同步段诊断。不能把未完成任务的部分距离或水位用于补水。
+重新载入只恢复稳定状态，不重播动画或收获，也不自动发放道具。相机书签不受物品存档影响。其他版本的存档不兼容，也不迁移。Planner 加载失败时，按当前规划重建。
 
-耕地准备状态只有未开垦 raw（无地块记录）和已整平 leveled。锄地直接创建 leveled，可立即播种；不支持 tilled，也不迁移旧状态。所有耕地采用已整平水分交换规则；农场不再提供耙子和耙地操作。
+## 健康
+
+healthStatus 从健康值派生：1000 为 normal，1..999 为 damaged，0 为 destroyed，不保存第二套状态。
+
+健康为 0 时，伤害回执保留健康 0 和 destroyed。土地上的这株作物立即自动移除，不产生收获物，getPlot 返回 `crop=null`。耕地保持已整平，可以重新播种。
+
+## 水分与成长
+
+土壤水分只影响成长速度：最低含水率及以下为 20%，饱和值及以上为 100%，中间线性插值。过干或过湿都不会暂停成长。这个水分倍率乘以其他环境因素中的最低系数。温度、光照、pH、病虫压力和显式生长倍率为 0 时，仍可以暂停成长。
+
+## 环境与补水
+
+getEnvironment 返回当前宿主输入、农业时间和最近结算的 settledEnvironment。静态基线会明确标记。
+
+getPlot 和 queryPlots 的 waterRates 是按当前输入和含水率实时计算的雨水、河湖补水和蒸发速率（百分点/模拟分钟），不是最近一步的实际收支。作物成长解释使用最近结算的气温和光照。
+
+Planner 的农业时钟在重开时从 lastSystemTimeMs 续走，只累加本次页面运行时长。独立 Demo 的时间策略由宿主决定。
+
+nearWater 的岸距和高差单位是米。coefficient 是 0..1 的几何系数，与天气和含水率无关。实际补水速率随含水率接近平衡目标而衰减。宿主未接入时，`nearWater=null`，补水速率为 0。
+
+河流、湖泊和作者池塘的作用范围是 20 米，量到真实湿区和最近湿侧的水位。干涸河段不算。超过 20 米或高差达到 4 米时，补水为 0。干岸可以有补水，这不代表地块被判为水下。
+
+刷新期间继续读旧的完整缓存，`refreshing` 保持 true，直到新的完整结果发布。未完成的距离和水位不用于补水。
+
+## 耕地
+
+耕地准备状态只有未开垦 raw（没有地块记录）和已整平 leveled。锄地直接创建 leveled，可以立即播种。所有耕地都采用已整平的水分交换规则。农场没有耙子和耙地操作。

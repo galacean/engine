@@ -46,7 +46,8 @@ export function collectPlanningSystemKnowledge(
       id: system.id, title: system.title, skill: system.skill,
       components: components.map(component => component.type),
       domains: Object.fromEntries(components.map(component => [component.type, component.domain])),
-      knowledge: components.flatMap(component => component.knowledge)
+      knowledge: components.flatMap(component => component.knowledge),
+      facts: components.flatMap(component => component.facts ?? [])
     }] : [];
   });
 }

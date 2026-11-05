@@ -62,6 +62,22 @@ declare global {
   "\n" +
   NATIVE_SCENE_API_DECLARATION;
 
+/** The published Engine skill stays in English for package users; only its routing line is localized here. */
+const engineKnowledgeSources = import.meta.glob("../../../galacean/skills/engine-knowledge/**/*.md", {
+  eager: true,
+  as: "raw"
+}) as Record<string, string>;
+const engineKnowledgeRoot = "../../../galacean/skills/engine-knowledge/";
+const engineKnowledgeSkill = parseAgentSkill(
+  engineKnowledgeSources[engineKnowledgeRoot + "SKILL.md"].replace(
+    /^description: .*$/m,
+    "description: 编写 Script 时，需要了解坐标、生命周期、物理与碰撞、网格、资源所有权、渲染、Spine 或 XR 的运行时行为时使用。"
+  )
+);
+const engineKnowledgeDocuments = Object.entries(engineKnowledgeSources)
+  .filter(([path]) => path !== engineKnowledgeRoot + "SKILL.md")
+  .map(([path, content]) => ({ path: `skills/engine-knowledge/${path.slice(engineKnowledgeRoot.length)}`, content }));
+
 const skillSources = import.meta.glob("../skills/**/*.md", { eager: true, as: "raw" }) as Record<string, string>;
 const topLevelSkill = /^\.\.\/skills\/[^/]+\/SKILL\.md$/;
 const nativeSkills = Object.entries(skillSources)
@@ -79,8 +95,8 @@ export function withNativeEditingKnowledge(catalog: AgentScriptApiCatalog): Agen
   const toolNames = nativeToolNames;
   return {
     ...catalog,
-    skills: [...(catalog.skills ?? []), ...nativeSkills],
-    documents: [...(catalog.documents ?? []), ...nativeSkillDocuments],
+    skills: [...(catalog.skills ?? []), ...nativeSkills, engineKnowledgeSkill],
+    documents: [...(catalog.documents ?? []), ...nativeSkillDocuments, ...engineKnowledgeDocuments],
     entries: [
       ...catalog.entries,
       ...toolNames.map((name) => ({

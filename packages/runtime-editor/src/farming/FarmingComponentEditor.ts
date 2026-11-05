@@ -61,7 +61,8 @@ export function createFarmingComponentExtension(port: RuntimeComponentPort) {
       skills: [parseAgentSkill(farmingSkill)],
       documents: [
         ...FARMING_METHOD_DOCS,
-        ...farmingSkillDocuments.filter((doc) => doc.path === "skills/farming/references/state-and-units.md")
+        // overview.md describes the separate FarmingAreaComponent proxy, not this system proxy.
+        ...farmingSkillDocuments.filter((doc) => doc.path !== "skills/farming/references/overview.md")
       ],
       entries: [
         {

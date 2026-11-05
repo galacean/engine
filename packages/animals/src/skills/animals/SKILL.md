@@ -3,37 +3,76 @@ name: animals
 description: 查询世界中的动物、生成新动物，或控制动物的行为时使用。
 ---
 
-# Animals
+# 动物
 
-## Usage Guide
+## 查询
 
-Use [world.animals.query](declare/editor/world/tools/world.animals.query.d.ts) to find actual animal identities, including planned animals whose models have not loaded. Queries never load resources. `enabled=false` means this system is disabled; population settings belong to the separate `world.parameters` animals component. Do not interpret an empty visible list as lack of a registered species.
+用 `tools.world.animals.query` 查找实际的动物身份，包括模型尚未加载的计划动物。查询不会加载资源。`enabled=false` 表示动物系统已停用。可见列表为空，不代表没有注册该物种。
 
-Population distances are metres, not POI counts. Discover the current `animals` component schema through `world.parameters` before editing. Births use the entire published map, noise density and actual water/land support. Movement uses the entire map's valid habitat; no spawn-centred radius remains. `activationDistance` defaults to 256 m around the observation camera in horizontal X/Z: outside it models are hidden. Full simulation continues inside the preload buffer (25% of activationDistance, capped at 64 m); farther animals use coarse logical simulation, continue movement and behavior, and can react to thunder without native skeletal animation. Identity, state and collision footprints remain. Unvisited distant actors request no model; already loaded resources remain cached. loaded and visible describe resources and rendering, not whether an animal is active. Disabled simulation stops movement and event responses.
+实例查询结果包含 speciesId。统计物种数量时，数 speciesId 的种类，不数 typeId。
 
-`species.min`/`species.max` choose a seeded subset without replacement from all registered species, default 14–20. `species.<speciesId>.min`/`.max` control selected non-flying species totals, default 1–2. `birdCount.min/max` controls models with usable flight animations only, default 10–20 combined. Every allocated model must be canFly; flightless birds (ostrich, penguin, duck/chicken without flight clips) use the ordinary per-species 1–2 defaults. Flying species have no conflicting individual min/max fields. 0/0 excludes a species; enabled species require a positive minimum so selected-species counts remain meaningful. The requested species maximum must fit the enabled pool. Model/body variants and pack duplicates share speciesId; per-instance model and appearance selection remains seeded. `noiseScale` (default 160 m) controls patch size; `noiseStrength` (0–1, default 0.8) controls clustering. Noise is evaluated only at placement, never per frame. With the same seed, parameters, content and terrain, refresh reproduces species, counts, variants and births. Placement failure is reported rather than silently relaxed. Camera movement changes activation, never the birth layout. Old model counts migrate to species totals; old POI depths, radii and bird-pool settings are retired; old per-flight-capable-species count settings are replaced by the combined bird quota. Use current schema keys only.
+## 种群设置
 
-Read [world.animals.describe](declare/editor/world/tools/world.animals.describe.d.ts) for the selected animal's registered semantic skills and target queries. Use those returned identifiers and parameter declarations. The animal system chooses animations and their weighted sequence; no clip names, animation weights or behavior nodes belong in a command. Autonomous idle means wandering with possible rests. A specific intention such as moving to water is an explicit command, not a change to the background preference weight. World position and target availability are validated by the animal host.
+种群设置属于独立的 `world.parameters` animals 组件。修改前，先通过 `world.parameters` 查询当前 schema，只使用当前字段。
 
-Use a stable `requestId` to retry the same command, and a new ID for a new instruction or intentional replay. New explicit commands replace previous commands without cooldown. Disabled, unloaded or hidden animals may reject a command; read the returned reason instead of claiming success. `accepted` and `running` are not completion. Read [world.animals.receipt](declare/editor/world/tools/world.animals.receipt.d.ts) for the original request to observe completion or failure without repeating the command. Gameplay commands commit independently of authoring transactions and are not undone by editor rollback or `editor.history.undo`.
+- 距离单位是米。
+- 出生使用整张已发布的地图、噪声密度和实际的水陆支撑。移动使用全图的有效栖息地，没有以出生点为中心的半径限制。
+- `species.min`/`species.max` 从所有注册物种中按种子不放回抽取子集，默认 14–20。
+- `species.<speciesId>.min`/`.max` 控制所选非飞行物种的总数，默认 1–2。
+- `birdCount.min/max` 只控制有可用飞行动画的模型，默认合计 10–20。分配到这个配额的模型必须 canFly。不会飞的鸟（鸵鸟、企鹅、没有飞行动画的鸭和鸡）使用普通的每物种默认值 1–2。飞行物种没有单独的 min/max 字段。
+- 0/0 排除一个物种。启用的物种要有正的最小值。物种最大值不能超过启用的物种总数。
+- 模型变体和重复包共用 speciesId。每个实例的模型和外观按种子选择。
+- `noiseScale`（默认 160 米）控制斑块大小，`noiseStrength`（0–1，默认 0.8）控制聚集程度。噪声只在放置时计算，不会每帧计算。
 
-## API Reference Index
+种子、参数、内容和地形都相同时，刷新会复现相同的物种、数量、变体和出生位置。放置失败会被报告，不会悄悄放宽条件。相机移动只改变激活状态，不改变出生布局。
 
-- [world.animals.query](declare/editor/world/tools/world.animals.query.d.ts)
-- [world.animals.describe](declare/editor/world/tools/world.animals.describe.d.ts)
-- [world.animals.command](declare/editor/world/tools/world.animals.command.d.ts)
-- [world.animals.receipt](declare/editor/world/tools/world.animals.receipt.d.ts)
-- [world.animals.catalog](declare/editor/world/tools/world.animals.catalog.d.ts)
-- [world.animals.spawn](declare/editor/world/tools/world.animals.spawn.d.ts)
+## 距离与模拟
 
-当前Seed的简化食物目标是草地区域：有进食能力的动物通过describe返回`eat`，无需target参数，表示寻找附近可到达的草并播放一次进食动作。没有可用草或目标失效会失败，不能把accepted当作已吃到。当前Cute Zoo包的已确认进食能力暂按玩法配置吃草；不消耗草，也未实现喝水。
+`activationDistance` 默认是观察相机周围水平 256 米。
 
-## Registered content and session spawning
+| 范围 | 表现 |
+| --- | --- |
+| `activationDistance` 以内 | 显示模型，完整模拟 |
+| 外加缓冲区（`activationDistance` 的 25%，最大 64 米） | 隐藏模型，预加载，完整模拟 |
+| 更远 | 粗略逻辑模拟，继续移动和行为，可以响应雷声，没有骨骼动画 |
 
-When a user asks for a new animal (for example a dog), call [world.animals.catalog](declare/editor/world/tools/world.animals.catalog.d.ts) with the name/alias to discover registered `typeId` and optional `appearanceId`. The directory includes all 14 Cute Zoo and 100 low-poly models, grouped by speciesId. Directory membership does not imply scene presence or a fixed default count. This read works while disabled and never downloads models.
+飞行动物遵循同样的规则。这是按距离准入，不是按相机视锥暂停。身份、状态和碰撞占地都会保留。没有接近过的远处动物不请求模型，已加载的资源保留在缓存中。
 
-Call [world.animals.spawn](declare/editor/world/tools/world.animals.spawn.d.ts) with a stable requestId and the selected type. Omit appearanceId for configured weighted selection (equal weight 1 unless initialized otherwise). The runtime resolves the HTTPS model and shared texture URLs itself; never invent or pass a URL. A duplicate request is idempotent; different intent needs a new requestId. This adds one session identity without regenerating existing actors or changing initialization counts. By default it searches within 12 metres of the observer, inside the map and compatible habitat, clear of terrain obstacles and animal footprints. Failed placement is reported; it does not expand the habitat. Accepted admission is not completed loading: query the returned id, wait for loaded/visible, then use describe/command for behavior. A disabled/not_ready host rejects spawning. Runtime additions are session-only, cleared on population rebuild/refresh, and not undone by editor.history.undo. Persistent initial counts still use world.parameters.
+`loaded` 和 `visible` 描述资源和渲染，不代表动物是否活动。不要只凭它们推断运动或静止，要检查位置和行为，并考虑休息和停用状态。系统停用时，模拟的移动和事件响应都会停止。
 
-Rendering stops outside `activationDistance` (256m by default). All animals preload and simulate inside a 25% buffer capped at 64m beyond the rendering circle, then use coarse simulation outside it. Airborne animals follow the same rule. This is distance admission, not camera-frustum pausing. Coarse animals retain collision/state and update logical movement and behavior without native skeletal work. Do not infer motion or inactivity solely from loaded/visible: inspect positions and behavior, and account for rests and disabled state.
+## 控制行为
 
-For a catalog overview, `world.animals.catalog({view:"summary"})` omits resource URLs. Preserve `summary`: its total, speciesCount and appearanceCount cover all matches; returned describes only this page. An instance query includes speciesId. Count distinct speciesId, not typeId, for species totals. Do not slice serialized JSON to summarize results; select the facts and preserve their scope and pagination.
+用 `tools.world.animals.describe` 读取所选动物注册的语义技能和目标查询，使用返回的标识符和参数声明。动物系统自己选择动画及其加权序列，命令中不能写动画片段名、动画权重或行为节点。
+
+自主空闲表示漫步，可能夹杂休息。“走到水边”这样的明确意图是显式命令，不是修改后台偏好权重。世界位置和目标可用性由动物宿主校验。
+
+用 `tools.world.animals.command` 发送命令：
+
+- 重试同一命令时，使用相同的 `requestId`。新指令或有意重放时，使用新 ID。
+- 新的显式命令会替换之前的命令，没有冷却。
+- 动物停用、未加载或隐藏时，命令可能被拒绝。读取返回的原因，不要声称成功。
+- `accepted` 和 `running` 都不代表完成。用 `tools.world.animals.receipt` 查询原请求的完成或失败结果，不要重复发送命令。
+- 玩法命令独立于作者事务提交，编辑器回滚和 `editor.history.undo` 都不会撤销它。
+
+当前的简化食物目标是草地区域。有进食能力的动物，describe 会返回 `eat`，不需要 target 参数。它会寻找附近可到达的草，并播放一次进食动作。没有可用的草或目标失效时会失败，accepted 不代表已吃到。当前按玩法配置，已确认能进食的 Cute Zoo 动物都吃草。进食不消耗草，喝水尚未实现。
+
+## 生成新动物
+
+用户要一种新动物（例如狗）时，用名称或别名调用 `tools.world.animals.catalog`，取得注册的 `typeId` 和可选的 `appearanceId`。目录包含全部 14 个 Cute Zoo 模型和 100 个低多边形模型，按 speciesId 分组。在目录中不代表场景中存在，也不代表有固定默认数量。系统停用时也能读取目录，读取不会下载模型。
+
+目录概览用 `tools.world.animals.catalog({view:"summary"})`，结果不含资源 URL。`summary` 中的 total、speciesCount 和 appearanceCount 覆盖所有匹配项，`returned` 只描述当前页。总结时不要截取序列化的 JSON。选取事实，并保留它们的范围和分页信息。
+
+用稳定的 requestId 和所选类型调用 `tools.world.animals.spawn`：
+
+- 省略 appearanceId 时，按配置的权重选择，默认每种权重都是 1。
+- 运行时自行解析 HTTPS 模型和共享贴图 URL。不要编造或传入 URL。
+- 重复请求是幂等的。意图不同时使用新的 requestId。
+- 这只增加一个会话内的动物身份，不会重新生成已有动物，也不会改变初始化数量。
+- 默认在观察者 12 米内查找，要求在地图内、栖息地兼容，避开地形障碍和动物占地。放置失败会被报告，不会扩大栖息地范围。
+- accepted 不代表加载完成。查询返回的 id，等待 loaded 和 visible，再用 describe 和 command 控制行为。
+- 宿主停用或未就绪时，生成请求会被拒绝。
+- 运行时新增的动物只存在于当前会话，种群重建或刷新时会被清除，`editor.history.undo` 不会撤销。持久的初始数量仍用 `world.parameters`。
+
+## 接口索引
+
+<!-- API_INDEX: generated from executable contracts at load time. -->

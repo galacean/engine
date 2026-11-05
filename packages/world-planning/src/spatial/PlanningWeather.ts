@@ -26,7 +26,7 @@ export const PLANNING_WEATHER_DECLARATION: PlanningSystemDeclaration = {
       type: "weather",
       domain: "lighting",
       knowledge: [
-        "weather 的降雨、降雪和云覆盖率接入原生 WorldEnvironmentRuntime；降雨同时驱动已有湿润地表与涟漪。光源时刻与光照能量仍由 lighting 独立控制，不通过材质主题色推断天气。"
+        "weather 的降雨、降雪和云覆盖率接入原生 WorldEnvironmentRuntime。降雨同时驱动已有的湿润地表和涟漪。光源时刻和光照能量由 lighting 独立控制，不通过材质主题色推断天气。"
       ]
     }
   ]

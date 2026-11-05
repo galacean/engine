@@ -5,9 +5,30 @@ description: 耕种、播种、浇水、收获、管理农场道具和库存，�
 
 # 农场组件 Editor API
 
-先读 [方法索引](declare/editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型，再按需读 `declare/editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示仍有后续内容，不代表声明已经读全。`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份为 scene/entityId/id/type。代理不是 Engine 实例；所有方法都需要 await。组件删除后旧代理失效。系统内的 farmId、plotId、cropInstanceId 是业务对象身份，不是 Entity 或 Component ID。各类 ID、单位和库存口径见[状态与单位](skills/farming/references/state-and-units.md)。
+先读[方法索引](declare/editor/farming/methods/README.md)，按下一步操作进入对应方法的输入和返回类型。需要时再读 `declare/editor/farming/FarmingSystem.d.ts` 完整声明。read 返回 `next` 表示还有后续内容，声明还没读全。
 
-先通过 system.list() 读取农场区域；根据用户指定的位置/区域选择 farmId。不能默认第一个区域就是目标。区域未初始化时用 system.getDiagnostics() 检查 placement/access/runtime/presentation 的事实，查询诊断不会重试初始化。组件不存在时检查 Scene，不要虚构农场。
+| 任务 | 文档 |
+| --- | --- |
+| 各类 ID、单位、库存口径和水分规则 | [状态与单位](skills/farming/references/state-and-units.md) |
+| 播种、浇水、收获、整地、道具和卸货的流程 | [操作流程](skills/farming/references/operations.md) |
+| 结果检查和失败处理 | [验证与失败处理](skills/farming/references/verification.md) |
+| 切换目录、规则和存档，诊断范围 | [资产与存档](skills/farming/references/saves-and-assets.md) |
+
+## 组件代理
+
+`editor.component.query({type:"FarmingSystem", scene?, entityId?, id?})` 返回真实场景组件的异步代理，身份是 scene、entityId、id、type。
+
+- 代理不是 Engine 实例，所有方法都要 await。组件删除后，旧代理失效。
+- farmId、plotId、cropInstanceId 是系统内的业务身份，不是 Entity 或 Component ID。
+- 地块和容器按查询返回的 ID 定位，不能用显示名代替。
+
+## 选择目标
+
+先用 `system.list()` 读取农场区域，按用户指定的位置或区域选择 farmId。不能默认第一个区域就是目标。
+
+- 区域未初始化时，用 `system.getDiagnostics()` 查看 placement、access、runtime、presentation 的事实。查询诊断不会重试初始化。
+- 组件不存在时，检查 Scene，不要虚构农场。
+- 用户说“这里”时，用 getTarget 获取目标。缺少目标能力时不能猜测。
 
 ```js
 const systems = await editor.component.query({type:"FarmingSystem"});
@@ -18,9 +39,19 @@ return await Promise.all(systems.map(async system => ({
 })));
 ```
 
-业务方法参数保留 farmId。成功返回 `{ok:true, value, context?}`；失败抛出结构化错误，证据在捕获错误的 `result.error`。先 get/capabilities 读取状态和能力，getCatalog 读取真实种子/作物定义。用户说“这里”时用 getTarget 获取目标；缺少目标能力时不能猜测。
+## 调用约定
 
-写操作的即时回执在 `result.value.receipt`，版本字段为 `revision`；verify 的已保存回执在 `result.value.receipt`，版本字段为 `committedRevision`，未找到时为 null。两者不是同一种回执结构。处理返回值时抛异常不代表操作没执行，应先查原 commandId 的回执。下面是用户要求“给面前的地块浇一次水”时的完整执行示例：
+业务方法的参数要包含 farmId。成功返回 `{ok:true, value, context?}`。失败抛出结构化错误，证据在捕获错误的 `result.error` 中。先用 get 和 capabilities 读取状态和能力，用 getCatalog 读取真实的种子和作物定义。
+
+写操作的即时回执在 `result.value.receipt`，版本字段是 `revision`。verify 的已保存回执也在 `result.value.receipt`，版本字段是 `committedRevision`，未找到时为 null。两者结构不同。
+
+写命令独立提交。传入 `{commandId, expectedRevision?, expectedGroundRevision?}` 可以做幂等重试和版本校验。
+
+- 多个命令不构成原子事务。后续失败不会撤销之前成功的农场操作，普通 Scene 草稿撤销也不会回滚它们。
+- 处理返回值时抛出异常，不代表操作没有执行。结果未知时，先用原 commandId 查询回执，不要重放整批指令。
+- 批量操作分批执行，逐项验证，不能声称全部同时成功。
+
+## 示例：给面前的地块浇一次水
 
 ```js
 const systems = await editor.component.query({type: "FarmingSystem"});
@@ -42,54 +73,19 @@ return {plotId, commandId: receipt.commandId, revision: receipt.revision,
   savedRevision: saved.receipt?.committedRevision, moisture};
 ```
 
-播种先 queryPlots/getPlot 找到已开垦、地形可用的空地，getCatalog 找到目标作物对应的 seedId；plant 使用 seedId，不能用 cropId 替代。浇水先读取生长限制因素与可用动作；浇水可能影响相邻连通耕地，用 getFieldValues 读回。收获前取得当前成熟作物的 crop.instanceId，harvest 后验证地块腾空与 getItemTotals.pending 增量；产物进入持久收获篮子，容量为 20，容量不足整次拒绝。通过 unloadBasket 手动卸货才进入固定设施库存，放下篮子保留内容，不手动加库存。营养条件视为最佳，不提供施肥操作或肥力字段。
+## 能力范围
 
-```js
-const systems = await editor.component.query({type:"FarmingSystem"});
-if (systems.length !== 1) throw new Error("请明确目标系统");
-const system = systems[0];
-const farms = (await system.list()).value;
-if (farms.length !== 1) throw new Error("请明确目标农场");
-const farmId = farms[0].farmId;
-return {farmId, catalog: (await system.getCatalog({farmId})).value,
-  plots: (await system.queryPlots({farmId})).value};
-```
+能力都在声明中：
 
-完整能力均在声明中：list/get/capabilities/getDiagnostics；getCatalog/getTarget；queryPlots/getPlot/inspectCultivation/getAvailableActions；createPlot/updatePlot/deletePlot/hoe；plant/irrigate/harvest；getFieldValues；getInventory/getContainers/setContainerCount/withdrawInventory；queryItems/getCarry/getItemTotals/generateItems/pickupItem/placeItem/useCarriedItem/unloadBasket；verify。地块和容器以查询返回的 ID 定位，不能用显示名代替身份。
+- 读取：list、get、capabilities、getDiagnostics、getCatalog、getTarget
+- 地块：queryPlots、getPlot、inspectCultivation、getAvailableActions、createPlot、updatePlot、deletePlot、hoe
+- 种植：plant、irrigate、harvest、getFieldValues
+- 库存：getInventory、getContainers、setContainerCount、withdrawInventory
+- 道具：queryItems、getCarry、getItemTotals、generateItems、pickupItem、placeItem、useCarriedItem、unloadBasket
+- 验证：verify
 
-写命令独立提交，传入 `{commandId, expectedRevision?, expectedGroundRevision?}` 可做幂等重试与版本校验。每条命令返回 receipt；verify({farmId,commandId}) 查询是否提交。多个命令不构成原子事务；后续失败不会撤销此前成功的农场操作，也不会因普通 Scene 草稿撤销而回滚。未知执行结果先查原回执，不重放整批指令。旧篮子接口 showBasket/hideBasket/getBasket 已移除；改用 queryItems/getCarry 查询持久道具、pickupItem/placeItem 拿放篮子、unloadBasket 手动卸货。批量操作分批执行并逐项验证，不声称全部同时成功。
+当前不支持主动除虫、自动供水、原子批量操作和直接快进时间。营养条件视为最佳，没有施肥操作和肥力字段。
 
-本系统业务方法当前不支持主动除虫、自动供水、原子批量操作或直接快进时间。规则和植物形态属于目录/规则资产配置，需编辑对应资产并经加载校验，不是作物业务方法。不要用普通 component.update 写入运行时私有字段绕过业务校验。组件 enabled 控制系统启用；业务状态由系统保存，瞬时表现不保存。Script 资产使用 Engine 的真实组件与 FarmingAPI，不能引用此 Worker Editor 声明。
+规则和植物形态属于目录和规则资产的配置，要编辑对应资产并通过加载校验，不是作物业务方法。不要用普通 `component.update` 写入运行时私有字段来绕过业务校验。组件 enabled 控制系统启用。业务状态由系统保存，瞬时表现不保存。
 
-
-## 场景与资产
-
-创建、读取、引用查询、删除资产以及修改组件引用，读取 `declare/editor/native/api.d.ts` 获取普通 Editor API 声明。此处使用 execute 的 editor.asset；Script 声明不用于这些编辑操作。
-
-FarmingSystem 的 Scene 属性 `catalog`、`rules`、`state` 是资产引用（`{$ref:"虚拟路径"}`）。目录资产包含作物、种子和植物定义，植物 atlasUrl 使用项目中的贴图虚拟路径；规则资产包含土壤、环境和动作参数；state 是该系统独立管理的存档。先用通用 `editor.component.read({scene,id})` 查看当前引用，再 read 对应虚拟路径。用 `editor.asset.references({path})` 查询引用者，不能删除仍被组件或目录引用的资产。
-
-默认资产为 `World/Farming/Catalog.farming`、`World/Farming/Rules.farming`、`World/Farming.json`；这些是预置值，实际使用以组件读回的引用为准。共享目录和规则不是每个农场再复制一份，游戏状态只通过系统业务命令保存。普通 Scene 编辑不覆盖最新存档。组件切换引用后由宿主重新绑定相应的资源和仓储；资源配置必须满足种植规则与存档校验，不通过改 JSON 绕过作物操作。
-
-
-每个 Scene 只放一个 FarmingSystem，由它管理多个农场区域；禁用组件仍占据该 Scene 的系统身份。重复组件、缺失资产引用或错误资产类型会在保存前报错，不会替换已有农场。
-
-删除系统不会自动删除存档。需要清理存档时，先提交并完成组件移除（或切换 state 引用），等待旧仓储释放；再查询资产引用并删除没有引用的旧 state 文件。不要在同一未提交草稿中同时移除正在运行的组件与其状态文件，运行时所有权检查会拒绝该操作。存档内容仍只由 FarmingSystem 业务方法写入。
-
-
-新建独立存档使用普通资产创建：
-
-```js
-return await editor.asset.create({
-  path: "Saves/MyFarm.json",
-  type: "SeedWorldFarming",
-  content: JSON.stringify({version: 1, farms: {}})
-});
-```
-
-空存档由 FarmingSystem 初始化。需要切换时，再用 component.update 将 `state` 指向新虚拟路径；原存档保留，直到明确删除。不要手工填充作物、库存或回执。目录和规则都是 FarmingResource 文件，但内容的 kind 分别必须是 catalog 与 rules；版本必须相同，种子必须引用目录中存在的作物。非法植物定义、土壤/环境/动作参数和模拟参数会被拒绝。修改目录/规则内容或切换 state 引用时，保存前会检查已有存档与候选配置的兼容性，包括作物定义、模拟规则签名和已有网格的扩散稳定性。不兼容会拒绝整个编辑，原农场不变。需要新的模拟规则时，在同一次 execute 中创建空存档、修改规则并切换 state 引用；旧存档保留。远端状态文件应先 read，使其内容可用于校验。空存档的实际场地/网格由初始化流程检查；用 getDiagnostics 验证区域就绪后再执行业务命令。
-
-新存档初始化使用当前目录/规则。若仓储定义与规划时不同，会在原农场网格和搜索范围内重新检查初始容器，保留操作通道；是否预置容器仍由 initialContainers 配置决定。找不到合法位置时通过 getDiagnostics 报告失败，不迁移农场或修改旧存档。已有存档的容器按其兼容规则的完整占地恢复，保存的位置保持不变。
-
-诊断与能力的范围：`getDiagnostics().value.farms` 是带 `phase` 和版本的记录数组。`published` 描述当前发布，`candidate` 描述候选尝试；候选 pending 不会覆盖发布 ready，应分别解释。诊断 `presentation` 是视觉资源状态；`capabilities({farmId}).value.interactionHostBound` 是交互宿主绑定，`targetQueryAvailable` 是目标查询能力。旧 `presentation` 布尔字段只是交互宿主的兼容别名。省略 farmId 返回 scope.kind=system，不能用系统级 false 推断区域坏了。
-
-`getDiagnostics.coverage` 只检查发布就绪的 placement/access/runtime/presentation。`ready=true` 不证明全部农业正常；同一返回的 `agronomy` 提供地块、作物、土壤和库存的当前摘要。先读该摘要，有具体 finding 才查对应地块详情；外观/未来状态仍属于未检查范围。浇水回执的 `effectSummary` 区分即时灌水与结算，`distributed=0` 不排除后续土壤扩散；后续含水率以回读为准，不能无证据归因蒸发。
+Script 资产使用 Engine 的真实组件和 FarmingAPI，不能引用这份 Worker Editor 声明。

@@ -28,23 +28,9 @@
 | Material/AnimatorController | 使用原生布局。引用必须完整。自定义 Shader 必须有真实可用的依赖 |
 | Script/自定义类型 | 必须通过项目对应的编译或注册校验。独立准备器不提供完整 Script 编译环境，不伪造依赖结果 |
 
-## OSS 分类证据
+## OSS 分类
 
-外部同步账本记录了以下历史数量：
-
-| 分类 | 数量 |
-|---|---:|
-| texture | 8113 |
-| model | 4662 |
-| audio | 926 |
-| prefab | 61 |
-| spine | 14 |
-| font | 2 |
-
-这些数量不是当前 OSS 全量统计，也不是可用性白名单。
-2026-11-05 首次读取返回 403。用户恢复访问后，六类描述的实时抽样读取成功。
-样本包含 GLB、PNG/JPEG、OGG、TTF、Spine JSON/atlas/PNG 和 Prefab `.package`。
-来源中存在该分类，不代表当前项目可以导入其中所有资产。
+OSS 的分类包括 texture、model、audio、prefab、spine、font，只用于检索，不是可用性白名单。来源中存在某个分类，不代表当前项目可以导入其中所有资产。
 
 ## 目录与描述
 

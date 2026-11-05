@@ -1,12 +1,18 @@
-# Preset systems in Script assets
+# 在 Script 资产中使用预置系统
 
-Use this guide when writing a game Script asset. In `execute`, use the Editor APIs and asynchronous component proxies instead. Script assets run on the Engine thread; their imports below are the actual native component classes already used by Scene loading. Do not run unbounded loops or CPU-heavy computation in Script callbacks.
+编写游戏 Script 资产时读这份文档。execute 中使用 Editor 接口和异步组件代理，不使用这里的内容。
 
-Import `FarmingSystem`, `FarmingAreaComponent`, `FarmingAPI`, `Building`, `BuildingManager`, `BuildingGroupComponent`, `BuildingPartComponent` and `buildingDraftSource` from `@galacean/seed-world-systems`. The [runtime entry](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts) and its relative imports contain generated declarations from the running source. Scene loading and Script imports share these native class identities.
+Script 资产运行在 Engine 线程。下面的导入就是 Scene 加载使用的原生组件类。不要在 Script 回调中运行无界循环或大量计算。
 
-## Finding existing components
+从 `@galacean/seed-world-systems` 导入 `FarmingSystem`、`FarmingAreaComponent`、`FarmingAPI`、`Building`、`BuildingManager`、`BuildingGroupComponent`、`BuildingPartComponent` 和 `buildingDraftSource`。[运行时入口](declare/engine/node_modules/@galacean/seed-world-systems/index.d.ts)及其相对导入是从运行源码生成的声明。Scene 加载和 Script 导入共用这些原生类。
 
-Use normal Engine Entity/Scene access. `entity.getComponent(FarmingSystem)` looks on that Entity; it does not search the whole Scene. Use `getComponentsIncludeChildren` on Scene root Entities when finding managers elsewhere. Query again after a Scene reload or component replacement; do not keep a destroyed component reference. BuildingManager manages flat BuildingPartComponents in one Scene. Choose parts by their actual Source component identity or by definition.id; neither is an array index.
+## 查找已有组件
+
+使用普通的 Engine Entity/Scene 访问方式。
+
+- `entity.getComponent(FarmingSystem)` 只查找该 Entity，不搜索整个 Scene。
+- 查找其他位置的管理器时，在 Scene 根 Entity 上使用 `getComponentsIncludeChildren`。
+- Scene 重新加载或组件被替换后，重新查询，不要保留已销毁的组件引用。
 
 ```ts
 import { Script } from "@galacean/engine";
@@ -27,24 +33,21 @@ export default class FarmStatus extends Script {
 }
 ```
 
-## Readiness, commands and persistence
+## 农场
 
-- Farming: `new FarmingAPI(system).execute({operation, input, options?})` provides the typed operations used by the native farming API. Read `FarmingAPIContract.d.ts` via the entry's imports for operation-specific arguments and results. Check `result.ok`; handle `result.error` on failure. Areas may initialize after Script `onAwake`; inspect `list`/diagnostics and `initialized` before commands. Prefer this API for planting, watering, harvesting, persistent item/basket and inventory operations so validation, receipts and persistence stay in the owning system. Do not rewrite raw snapshots or call `configureRuntime`/`dispose` to operate a farm.
+`new FarmingAPI(system).execute({operation, input, options?})` 提供原生农场接口使用的带类型操作。各操作的参数和结果见入口导入的 `FarmingAPIContract.d.ts`。
 
-State belongs to each system's configured assets. Component properties select virtual-path assets through normal Editor serialization. Gameplay methods mutate domain state through the existing system session. To author persistent Scene bindings or Script components, use the [Editor APIs](declare/editor/native/api.d.ts); changing arbitrary runtime object properties does not itself author a saved Scene edit.
+- 检查 `result.ok`，失败时处理 `result.error`。
+- 农场区域可能在 Script 的 `onAwake` 之后才初始化。发送命令前，先查看 `list` 或诊断信息中的 `initialized`。
+- 种植、浇水、收获、持久道具和篮子、库存操作都优先用这个接口，这样校验、回执和持久化都留在系统内。
+- 不要改写原始快照，也不要调用 `configureRuntime` 或 `dispose` 来操作农场。
 
-- Buildings: query `BuildingPartComponent`. Its `definition` owns type, support, algorithm, Unit and placement parameters. `relations` reference explicit part identities and boundaries; `BuildingGroupComponent` independently owns the group definition and assetLibrary. The explicit `frame` Entity defines a shared compilation group. Native Entity transforms own group position/orientation. Persistent changes use Scene/Prefab transactions; direct Script assignments are runtime-only.
+## 状态归属
 
-- Attachments: a window, door or lamp is a part using `attachmentMount`, `mountAttachment`, a `nativeAttachment` Unit and an explicit host relation. A wall mount uses either normalized `spec.u` plus metre `spec.bottom`, or `support.params.point: [x,y,z]` in the host wall's canonical local coordinates. Do not store both positions. A wall Point attachment node may translate relative to its host; this displacement is resolved into the canonical mounting point before openings are computed. The initial world uses node position and a zero Point offset. Relative rotation/scale and translating a UV mount are rejected; edit their geometry/Unit or UV coordinates instead. Roof mounts use chart `spec.uv` plus metre `spec.bottom`. Dimensions and asset selection remain explicit. Design derives openings; never save a second generated opening cache.
+状态属于各系统配置的资产。组件属性通过正常的 Editor 序列化选择虚拟路径资产。玩法方法通过系统已有的会话修改领域状态。
 
-- Removing a dependent structural part requires updating its relations and remaining geometry. Removing an attachment removes its outgoing host relation as part of the same transaction. Saved old house/decoration components are converted once before Scene activation; scripts must use the new API.
+要写入持久的 Scene 绑定或 Script 组件，使用 [Editor 接口](declare/editor/native/api.d.ts)。修改任意运行时对象属性本身不会形成已保存的 Scene 编辑。
 
-In game Scripts, for new buildings use `Building.European.buildHouses/buildTower/buildWall/buildFence/buildSteps` to generate a flat `BuildingDraft {groups,parts,relations}`. Common `buildWalls/buildRoof/buildSteps` select no architectural style. Custom Mesh/Path/Point parts may bypass the European generator. See the [building skill](skills/building/SKILL.md).
+## 建筑
 
-In Agent `execute`, call `tools.building.generate({generator,parameters,source})`; imports are unavailable there. It invokes the same five European builders and returns `{content}` containing a complete native Prefab Source (`asset.version`, `root`, `entities`, `components`). Pass content unchanged to `editor.asset.create`, then instantiate through `editor.entity.create` in the existing edit transaction. Generation is read-only and does not publish or render. Use the actual project asset-library path. Later edits update the persisted component definitions, not a second generator recipe. To verify publication from execute, use runtime entity/component queries to find the actual BuildingManager instance and read its public buildStatus property. It must be bound, not pending, and have no errors; inspect diagnostics too. Runtime inspection never invokes errors()/metrics() methods.
-
-`BuildingPartComponent` stores one definition and outgoing relations; BuildingGroupComponent owns group identity, palette, seed and assets. It has no recursive parts or plan. `BuildingManager.forScene(scene)` reuses the scene manager for CRUD and atomic publication. The scene host calls it after authored Scene loading; it collects already-enabled parts once. Enabling a part only registers with an existing manager, so loading a building cannot insert a runtime root between authored Scene roots. In Seed World, retain its existing camera, asset library and published terrain binding. In a standalone scene, provide the camera and native asset library; use bind({camera, terrain}) for a transferable terrain snapshot, or explicitly set a terrain callback for main-thread execution. Call create(parent,draft), await flushAsync(), and inspect errors() before treating the new output as published. Inspect authored parts with get(id, frame)/snapshot(frame) and runtime state with metrics(); the manager has no output/design property. Preserve originals; design cuts, placements and render buffers are derived. Unknown connection rules fail; extend buildingConnectionRules for other support types. Node hierarchy owns grouping. Units cannot contain BuildingGroupComponent or BuildingPartComponent, including disabled components and inactive descendants. Invalid Units fail before output publication. Generated output never contributes author identities. Manager.remove(entityOrBuildingComponent) deletes authors; disabling a component uses its enabled state. Do not create author buildings under generated output. Manager deletion and editor deletion share the same rule: structural profile parts remove their group; ordinary parts are removed individually; incoming and outgoing relations are cleaned only in the affected native frame, including hidden/disabled owners. The remaining author graph is validated before mutation.
-
-The European design/placement kernels preserve dev/2.0 instance geometry and render ABI. Generic algorithms use buildingSupportAlgorithms/buildingPlacementAlgorithms, with native references and registered names. Custom analytic-profile placements register a geometry convention through `buildingPlacementAlgorithms.register(id, callback, {profile:{basis:"grid"}})` and return profile placement output. The convention does not replace the callback. Dynamically registered placement/connection functions run on the main thread; only bundled implementations use Worker execution. Seed World uses BuildingManager and BuildingRuntime for group scheduling, atomic publication and terrain transactions. Transferable profile parts use the new Worker and residency scheduler; native-reference Units run on the main thread in the same publication flow. Only changed frames rebuild. Use part.rebuild() after editing a referenced Mesh/Unit in place. Main-thread Units currently retain their full representation; automatic distance substitutes and structural collision for arbitrary Unit geometry are not provided. Point/Path/Mesh utility APIs remain available.
-
-Building design uses typed author/derived identities, independently from the editable `selection` (group or part). Custom connection results use `localId` and `selection`, not an author `id`; their relation supplies provenance. Persist only author drafts. Native roof-tile appearance is configured with `part.appearance.roofColor` (integer 0–12), or generator `style.appearance` / `roofStyle.appearance`. Generic tiles default to 0. A profile roof uses explicit appearance when supplied, otherwise its existing roof.color. Palette changes do not change placement or identity; Prefab materials retain their own appearance.
+在 Script 中创建和读取建筑见[建筑的运行时用法](skills/building/references/foundation.md)。在 execute 中创建持久建筑见 [building](skills/building/SKILL.md)。

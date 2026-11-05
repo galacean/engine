@@ -1,5 +1,11 @@
 # 草稿与提交
 
-All editing calls in one execute change its draft. Awaiting an edit does not apply it to the Engine. editor.component.read reads the draft's props; typed component methods observe the currently active runtime. To observe the runtime effect of changed enabled state, transforms or asset bindings, first finish the execute and inspect its receipt. If the receipt does not establish the required runtime state, query that state in a subsequent execute. Setting enabled=false and then enabled=true in a single execute only commits the final value; it does not exercise a disable/enable cycle.
+一次 execute 中的所有编辑调用都修改它的草稿。await 一次编辑不会把它应用到 Engine。`editor.component.read` 读取草稿属性。带类型的组件方法观察当前运行时。
 
-Preparation first typechecks scripts, then builds ESM modules and validates references and hierarchies before saving. Script check/build failures return their diagnostics to the Agent and leave the saved project unchanged. Activation errors appear in the receipt after memory commit; they do not roll back accepted authoring. Background persistence is independent; a committed receipt does not mean IndexedDB has finished saving.
+要观察 enabled 状态、变换或资产绑定的运行效果，先结束这次 execute，检查回执。回执不足以确认所需状态时，在下一次 execute 中查询。
+
+在一次 execute 中先设 `enabled=false` 再设 `enabled=true`，只会提交最终值，不会触发一次停用和启用。
+
+准备阶段先检查脚本类型，再构建 ESM 模块，校验引用和层级，然后保存。脚本检查或构建失败时，诊断信息返回给 Agent，已保存的项目不变。
+
+激活错误在内存提交后出现在回执中，不会回滚已接受的作者数据。后台持久化是独立的，提交回执不代表 IndexedDB 已保存完成。

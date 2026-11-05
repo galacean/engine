@@ -3,14 +3,18 @@ name: water
 description: 创建或修改池塘、湖泊、溪流和河流时使用。
 ---
 
-# Water
+# 水体
 
-## Usage Guide
+用 `water.create` 创建池塘、湖泊、溪流或河流。创建时会一并生成所需的湖盆或河床。修改前，先读取目标资产及其支持的参数。排水时遵守最低水位限制。落点见 [spatial](skills/spatial/SKILL.md)。
 
-Create ponds, lakes, streams or rivers with water.create. Read the target asset and its supported parameters before updating it. Creation includes the required basin or riverbed. Respect minimum water levels when draining. See `skills/spatial/SKILL.md` for placement.
+## 池塘和湖泊的水位
 
-Ponds and lakes take their water level from the ground at the requested center and only cut the basin downward. Surrounding terrain must enclose that level; the operation does not raise a dam or lower the requested level to hide a downhill leak. An open-shoreline error during edit preparation rejects the transaction. Report the location constraint; changing a seed does not resolve an open downhill basin. Only reshape terrain or change the location when consistent with the user's intent. A preview estimates impact and does not validate shoreline closure; check the execute receipt for the committed result.
+池塘和湖泊的水位取自请求中心处的地面高度，只向下挖湖盆。周围地形必须能围住这个水位。操作不会筑坝，也不会降低请求的水位来掩盖下坡方向的渗漏。
 
-## API Reference Index
+- 编辑准备阶段出现岸线开放错误时，事务被拒绝。报告位置限制。更换种子不能解决下坡开放的湖盆。
+- 只有符合用户意图时，才改造地形或更换位置。
+- 预览只估算影响，不验证岸线是否闭合。提交结果以 execute 回执为准。
+
+## 接口索引
 
 <!-- API_INDEX: generated from executable contracts at load time. -->

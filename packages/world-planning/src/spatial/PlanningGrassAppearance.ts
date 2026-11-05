@@ -44,15 +44,15 @@ export const GRASS_APPEARANCE_DECLARATION: PlanningSystemDeclaration = {
       type: "grassAppearance",
       domain: "vegetation",
       knowledge: [
-        "grassAppearance 修改 Terrain/Grass 已有的共享草地色场。colorA、colorB 是地表与低草叶片共同使用的线性 RGB 两个端点，受原有色场、真实光照和后处理影响。树叶、树干、花瓣由 plantMaterial 的独立槽控制。",
-        "草地、树叶、花瓣的固有色需要分别由所属颜色能力表达，不能用全局色温替代；光照和后处理用于照明与整幅调色，过强全局暖调会同时改变天空和所有对象。"
+        "grassAppearance 修改 Terrain/Grass 已有的共享草地色场。colorA、colorB 是地表和低草叶片共同使用的线性 RGB 两个端点，受原有色场、真实光照和后处理影响。树叶、树干、花瓣由 plantMaterial 的独立槽控制。",
+        "草地、树叶、花瓣的固有色要分别由所属的颜色能力表达，不能用全局色温替代。光照和后处理用于照明和整幅调色。过强的全局暖调会同时改变天空和所有对象。"
       ]
     },
     {
       type: "surfacePalette",
       domain: "vegetation",
       knowledge: [
-        "surfacePalette 的 color.r/g/b 是裸地与道路材质的线性 RGB。草地关闭后仍消费该颜色，例如冰雪地表与沙漠。它不改变照明、天空、草地或植物材质。"
+        "surfacePalette 的 color.r/g/b 是裸地和道路材质的线性 RGB。草地关闭后仍使用这个颜色，例如冰雪地表和沙漠。它不改变照明、天空、草地或植物材质。"
       ]
     }
   ]
