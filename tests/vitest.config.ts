@@ -9,6 +9,7 @@ export default defineProject({
   },
   optimizeDeps: {
     exclude: [
+      "@esotericsoftware/spine-core",
       "@galacean/engine",
       "@galacean/engine-loader",
       "@galacean/engine-rhi-webgl",

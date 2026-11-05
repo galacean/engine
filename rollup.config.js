@@ -46,7 +46,10 @@ const commonPlugins = [
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
-      exclude: /node_modules/,
+      // Transpile bundled @esotericsoftware/spine-core to es5 too, so spine core packages'
+      // es5 subclasses (e.g. SpineTexture extends Texture) can extend it without the
+      // "Class constructor cannot be invoked without 'new'" es5-extends-es6 error.
+      exclude: /node_modules\/(?!\.pnpm\/@esotericsoftware\+|@esotericsoftware\/)/,
       jsc: {
         loose: true,
         externalHelpers: true,
@@ -69,7 +72,10 @@ function config({ location, pkgJson }) {
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
 
-  const external = Object.keys(dependencies);
+  // Bundle the native Spine runtime with the ES5 adapter so SpineTexture can extend it.
+  const external = Object.keys(dependencies).filter(
+    (name) => !(pkgJson.name === "@galacean/engine-spine-core-4.2" && name === "@esotericsoftware/spine-core")
+  );
   const isExternal = (id) => external.some((dependency) => id === dependency || id.startsWith(`${dependency}/`));
   curPlugins.push(
     replace({

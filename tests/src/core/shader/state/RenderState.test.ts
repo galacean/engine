@@ -5,6 +5,8 @@ import {
   Material,
   RenderStateElementKey,
   Shader,
+  ShaderData,
+  ShaderDataGroup,
   ShaderProperty,
   StencilOperation
 } from "@galacean/engine-core";
@@ -41,6 +43,28 @@ describe("RenderState per-property priority", () => {
   const createShaderData = () => new Material(engine, Shader.find("BlinnPhong")).shaderData;
 
   describe("BlendState", () => {
+    it("resolves material and batch variables independently without leaking a prior batch into fixed states", () => {
+      const state = new BlendState();
+      const materialData = createShaderData();
+      const batchData = new ShaderData(ShaderDataGroup.RenderElement);
+      const materialProp = ShaderProperty.getByName("material_TestBlendDestination");
+      const batchProp = ShaderProperty.getByName("renderElement_TestBlendSource");
+      materialData.setInt(materialProp, BlendFactor.OneMinusSourceAlpha);
+      batchData.setInt(batchProp, BlendFactor.SourceAlpha);
+      state.targetBlendState.destinationAlphaBlendFactor = BlendFactor.Zero;
+      const dataMap = {
+        [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: batchProp,
+        [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]: materialProp
+      };
+      state._applyShaderDataValue(dataMap, materialData, batchData);
+      expect(state.targetBlendState.sourceColorBlendFactor).to.equal(BlendFactor.SourceAlpha);
+      expect(state.targetBlendState.destinationColorBlendFactor).to.equal(BlendFactor.OneMinusSourceAlpha);
+      expect(state.targetBlendState.destinationAlphaBlendFactor).to.equal(BlendFactor.Zero);
+      state._applyShaderDataValue(dataMap, materialData, new ShaderData(ShaderDataGroup.RenderElement));
+      expect(state.targetBlendState.sourceColorBlendFactor).to.equal(BlendFactor.One);
+      expect(state.targetBlendState.destinationColorBlendFactor).to.equal(BlendFactor.OneMinusSourceAlpha);
+    });
+
     it("shaderData value is used when variable is bound and value is set", () => {
       const state = new BlendState();
       const shaderData = createShaderData();

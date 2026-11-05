@@ -459,6 +459,139 @@ describe("DynamicCollider", function () {
     expect(formatValue(box.transform.position.y)).lessThan(10);
   });
 
+  it.each([
+    [true, true, false],
+    [true, false, false],
+    [false, true, false],
+    [false, false, false],
+    [true, true, true],
+    [true, false, true],
+    [false, true, true],
+    [false, false, true]
+  ])(
+    "clone preserves mass properties (automatic center: %s, automatic inertia: %s, kinematic: %s)",
+    function (automaticCenterOfMass, automaticInertiaTensor, isKinematic) {
+      const entity = rootEntity.createChild("source");
+      const collider = entity.addComponent(DynamicCollider);
+      const shape = new BoxColliderShape();
+      shape.size.set(2, 4, 6);
+      shape.position.set(1, 2, 3);
+      collider.mass = 3;
+      collider.addShape(shape);
+      collider.automaticCenterOfMass = automaticCenterOfMass;
+      collider.automaticInertiaTensor = automaticInertiaTensor;
+      if (!automaticCenterOfMass) {
+        collider.centerOfMass.set(-1, -2, -3);
+      }
+      if (!automaticInertiaTensor) {
+        collider.inertiaTensor.set(2, 3, 4);
+      }
+      const centerOfMass = collider.centerOfMass.clone();
+      const inertiaTensor = collider.inertiaTensor.clone();
+      collider.isKinematic = isKinematic;
+
+      const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+      try {
+        const clone = entity.clone();
+        rootEntity.addChild(clone);
+        const clonedCollider = clone.getComponent(DynamicCollider);
+        expect(warnSpy).not.toHaveBeenCalled();
+        expect(clonedCollider.automaticCenterOfMass).eq(automaticCenterOfMass);
+        expect(clonedCollider.automaticInertiaTensor).eq(automaticInertiaTensor);
+        expect(clonedCollider.isKinematic).eq(isKinematic);
+        expect(clonedCollider.mass).eq(3);
+        if (!automaticCenterOfMass) {
+          expect(Vector3.equals(clonedCollider.centerOfMass, centerOfMass)).true;
+        }
+        if (!automaticInertiaTensor) {
+          expect(Vector3.equals(clonedCollider.inertiaTensor, inertiaTensor)).true;
+        }
+
+        clonedCollider.isKinematic = false;
+        expect(Vector3.equals(clonedCollider.centerOfMass, centerOfMass)).true;
+        expect(Vector3.equals(clonedCollider.inertiaTensor, inertiaTensor)).true;
+
+        const clonedShape = clonedCollider.shapes[0] as BoxColliderShape;
+        clonedShape.position.set(3, 4, 5);
+        clonedShape.size.set(4, 6, 8);
+        clonedCollider.mass = 6;
+        expect(Vector3.equals(clonedCollider.centerOfMass, automaticCenterOfMass ? clonedShape.position : centerOfMass))
+          .true;
+        const expectedInertiaTensor = automaticInertiaTensor ? new Vector3(50, 40, 26) : inertiaTensor;
+        expect(clonedCollider.inertiaTensor.x).toBeCloseTo(expectedInertiaTensor.x, 5);
+        expect(clonedCollider.inertiaTensor.y).toBeCloseTo(expectedInertiaTensor.y, 5);
+        expect(clonedCollider.inertiaTensor.z).toBeCloseTo(expectedInertiaTensor.z, 5);
+        if (!automaticCenterOfMass) {
+          clonedCollider.centerOfMass.set(-4, -5, -6);
+          expect(clonedCollider.centerOfMass).to.deep.include({ x: -4, y: -5, z: -6 });
+        }
+        if (!automaticInertiaTensor) {
+          clonedCollider.inertiaTensor.set(6, 7, 8);
+          expect(Vector3.equals(clonedCollider.inertiaTensor, new Vector3(6, 7, 8))).true;
+        }
+        expect(Vector3.equals(collider.centerOfMass, centerOfMass)).true;
+        expect(Vector3.equals(collider.inertiaTensor, inertiaTensor)).true;
+        expect(warnSpy).not.toHaveBeenCalled();
+      } finally {
+        warnSpy.mockRestore();
+      }
+    }
+  );
+
+  describe.each(["new", "cloned", "reshaped", "reenabled"])("automatic mass properties on a %s collider", (state) => {
+    it.each([
+      ["centerOfMass", "automaticCenterOfMass", false],
+      ["inertiaTensor", "automaticInertiaTensor", false],
+      ["centerOfMass", "automaticCenterOfMass", true],
+      ["inertiaTensor", "automaticInertiaTensor", true]
+    ] as const)("preserves %s when disabling %s (kinematic: %s)", (property, automatic, isKinematic) => {
+      const entity = rootEntity.createChild("source");
+      const source = entity.addComponent(DynamicCollider);
+      const shape = new BoxColliderShape();
+      shape.size.set(2, 4, 6);
+      shape.position.set(1, 2, 3);
+      source.mass = 3;
+      source.addShape(shape);
+
+      let target = source;
+      if (state === "cloned" || state === "reshaped") {
+        const clone = entity.clone();
+        rootEntity.addChild(clone);
+        target = clone.getComponent(DynamicCollider);
+      }
+      if (state === "reshaped") {
+        const clonedShape = target.shapes[0] as BoxColliderShape;
+        clonedShape.size.set(4, 6, 8);
+        clonedShape.position.set(3, 4, 5);
+      } else if (state === "reenabled") {
+        target[automatic] = false;
+        target[property].set(2, 3, 4);
+        target[automatic] = true;
+      }
+
+      target.isKinematic = isKinematic;
+      // Reading the property here would hide a stale cache
+      target[automatic] = false;
+      target.mass = 6;
+      target.isKinematic = false;
+
+      const expected =
+        property === "centerOfMass"
+          ? state === "reshaped"
+            ? new Vector3(3, 4, 5)
+            : new Vector3(1, 2, 3)
+          : state === "reshaped"
+            ? new Vector3(25, 20, 13)
+            : new Vector3(13, 10, 5);
+      const actual = target[property];
+      expect(actual.x).toBeCloseTo(expected.x, 5);
+      expect(actual.y).toBeCloseTo(expected.y, 5);
+      expect(actual.z).toBeCloseTo(expected.z, 5);
+      target[property].set(6, 7, 8);
+      expect(Vector3.equals(target[property], new Vector3(6, 7, 8))).true;
+    });
+  });
+
   it("isKinematic", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 1, 0));
     const boxCollider = box.getComponent(DynamicCollider);

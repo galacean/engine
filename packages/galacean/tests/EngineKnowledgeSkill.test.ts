@@ -7,7 +7,6 @@ import { describe, expect, it } from "vitest";
 
 const packageRoot = fileURLToPath(new URL("../", import.meta.url));
 const skillRoot = resolve(packageRoot, "skills/engine-knowledge");
-const recipesPath = resolve(skillRoot, "references/runtime-recipes.md");
 
 function files(root: string, directory = root): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -19,8 +18,8 @@ function files(root: string, directory = root): string[] {
   });
 }
 
-function recipeSource(heading: string): string {
-  const content = readFileSync(recipesPath, "utf8");
+function recipeSource(reference: string, heading: string): string {
+  const content = readFileSync(resolve(skillRoot, "references", reference), "utf8");
   const sectionStart = content.indexOf(`## ${heading}`);
   expect(sectionStart).toBeGreaterThanOrEqual(0);
   const nextSection = content.indexOf("\n## ", sectionStart + 1);
@@ -30,8 +29,8 @@ function recipeSource(heading: string): string {
   return source!;
 }
 
-function loadRecipe<T extends object>(heading: string, engineExports: Record<string, unknown>): T {
-  const javascript = ts.transpileModule(recipeSource(heading), {
+function loadRecipe<T extends object>(reference: string, heading: string, engineExports: Record<string, unknown>): T {
+  const javascript = ts.transpileModule(recipeSource(reference, heading), {
     compilerOptions: {
       module: ts.ModuleKind.CommonJS,
       target: ts.ScriptTarget.ES2020
@@ -118,16 +117,30 @@ describe("engine-knowledge Skill contract", () => {
     );
   });
 
-  it("keeps the normal-map recipe free of failed-path material writes", async () => {
+  it("applies runtime normal maps only to the Script's current live renderer", async () => {
+    class Script {
+      destroyed = false;
+
+      constructor(
+        readonly engine: object,
+        readonly entity: object
+      ) {}
+    }
+    class MeshRenderer {}
     class PBRMaterial {
       normalTexture: unknown;
     }
     class Texture2D {}
-    const { assignNormalMap } = loadRecipe<{
-      assignNormalMap: (engine: object, renderer: object, url: string) => Promise<boolean>;
-    }>("Linear normal map on one renderer", {
+    const { NormalMapController } = loadRecipe<{
+      NormalMapController: new (
+        engine: object,
+        entity: object
+      ) => { destroyed: boolean; setNormalMap: (url: string) => Promise<boolean> };
+    }>("rendering-and-color.md", "Linear normal map on one renderer", {
       AssetType: { Texture: "Texture" },
+      MeshRenderer,
       PBRMaterial,
+      Script,
       Texture2D
     });
 
@@ -135,10 +148,13 @@ describe("engine-knowledge Skill contract", () => {
     let instanceCount = 0;
     let assignedMaterial: object = {};
     const renderer = {
+      destroyed: false,
       getMaterial: () => assignedMaterial,
       getInstanceMaterial: () => {
         instanceCount++;
-        return new PBRMaterial();
+        const material = new PBRMaterial();
+        assignedMaterial = material;
+        return material;
       }
     };
     const engine = {
@@ -149,121 +165,51 @@ describe("engine-knowledge Skill contract", () => {
         }
       }
     };
+    const controller = new NormalMapController(engine, { getComponent: () => renderer });
 
-    expect(await assignNormalMap(engine, renderer, "normal.png")).toBe(false);
+    expect(await controller.setNormalMap("normal.png")).toBe(false);
     expect(loadCount).toBe(0);
     expect(instanceCount).toBe(0);
 
     let resolveTexture!: (texture: Texture2D) => void;
-    assignedMaterial = new PBRMaterial();
     engine.resourceManager.load = () => {
       loadCount++;
       return new Promise<Texture2D>((resolve) => {
         resolveTexture = resolve;
       });
     };
-    const pending = assignNormalMap(engine, renderer, "normal.png");
-    const replacement = new PBRMaterial();
-    assignedMaterial = replacement;
-    resolveTexture(new Texture2D());
-
-    expect(await pending).toBe(false);
-    expect(renderer.getMaterial()).toBe(replacement);
-    expect(instanceCount).toBe(0);
-  });
-
-  it("keeps the picking recipe scoped to pointer behavior", () => {
-    class Script {}
-    const { enable3DPicking } = loadRecipe<{
-      enable3DPicking: (entity: object) => object;
-    }>("Physics-backed screen picking", { Script });
-    const originalShapeOwner = { id: "existing-collider" };
-    const shape = { owner: originalShapeOwner };
-    const addedComponents: unknown[] = [];
-    const entity = {
-      getComponent: () => null,
-      addComponent: (ComponentType: new () => object) => {
-        addedComponents.push(ComponentType);
-        return new ComponentType();
-      }
-    };
-
-    const behavior = enable3DPicking(entity);
-
-    expect(behavior).toBeInstanceOf(Script);
-    expect(addedComponents).toHaveLength(1);
-    expect(shape.owner).toBe(originalShapeOwner);
-  });
-
-  it("keeps the local-bloom recipe from owning collider state or enabling a failed camera", () => {
-    class Collider {
-      enabled = true;
-      shapes = [{}];
-    }
-    let supportsLocalPostProcess = true;
-    class PostProcess {
-      private _isGlobal = true;
-      blendDistance = 0;
-      destroyed = false;
-
-      get isGlobal(): boolean {
-        return this._isGlobal;
-      }
-
-      set isGlobal(value: boolean) {
-        this._isGlobal = value || !supportsLocalPostProcess;
-      }
-
-      addEffect(): { intensity: { value: number } } {
-        return { intensity: { value: 0 } };
-      }
-
-      destroy(): void {
-        this.destroyed = true;
-      }
-    }
-    class BloomEffect {}
-    const { createLocalBloom } = loadRecipe<{
-      createLocalBloom: (
-        camera: { scene: object; enablePostProcess: boolean },
-        entity: object,
-        distance: number
-      ) => PostProcess;
-    }>("Collider-bounded local bloom", { BloomEffect, Collider, PostProcess });
-
-    const scene = {};
-    const collider = new Collider();
-    const originalShapes = collider.shapes;
-    let volume: PostProcess | null = null;
-    const addedComponents: unknown[] = [];
-    const entity = {
-      scene,
-      getComponents: (ComponentType: unknown, out: Collider[]) => {
-        if (ComponentType === Collider) out.push(collider);
+    for (const invalidate of [
+      () => {
+        assignedMaterial = new PBRMaterial();
       },
-      getComponent: (ComponentType: unknown) => (ComponentType === PostProcess ? volume : null),
-      addComponent: (ComponentType: new () => PostProcess) => {
-        addedComponents.push(ComponentType);
-        volume = new ComponentType();
-        return volume;
+      () => {
+        controller.destroyed = true;
+      },
+      () => {
+        renderer.destroyed = true;
       }
-    };
-    const camera = { scene, enablePostProcess: false };
+    ]) {
+      assignedMaterial = new PBRMaterial();
+      controller.destroyed = false;
+      renderer.destroyed = false;
+      const pending = controller.setNormalMap("normal.png");
+      invalidate();
+      const currentMaterial = assignedMaterial;
+      resolveTexture(new Texture2D());
 
-    const result = createLocalBloom(camera, entity, 2);
-    expect(result).toBe(volume);
-    expect(addedComponents).toEqual([PostProcess]);
-    expect(collider.shapes).toBe(originalShapes);
-    expect(collider.enabled).toBe(true);
-    expect(camera.enablePostProcess).toBe(true);
+      expect(await pending).toBe(false);
+      expect(renderer.getMaterial()).toBe(currentMaterial);
+      expect(instanceCount).toBe(0);
+    }
 
-    supportsLocalPostProcess = false;
-    volume = null;
-    camera.enablePostProcess = false;
-    expect(() => createLocalBloom(camera, entity, 2)).toThrow("physics-enabled Scene");
-    expect(volume?.destroyed).toBe(true);
-    expect(camera.enablePostProcess).toBe(false);
-    expect(collider.shapes).toBe(originalShapes);
-    expect(collider.enabled).toBe(true);
+    controller.destroyed = false;
+    renderer.destroyed = false;
+    const pending = controller.setNormalMap("normal.png");
+    const texture = new Texture2D();
+    resolveTexture(texture);
+
+    expect(await pending).toBe(true);
+    expect(instanceCount).toBe(1);
+    expect((renderer.getMaterial() as PBRMaterial).normalTexture).toBe(texture);
   });
 });

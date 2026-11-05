@@ -16,18 +16,18 @@
 
     if (is3DRotation) {
         #ifdef RENDERER_ROL_ENABLED
-            vec3 startRotation = renderer_ThreeDStartRotation ? a_StartRotation0 : vec3(0.0, 0.0, a_StartRotation0.x);
+            vec3 startRotation = renderer_ThreeDStartRotation ? a_StartRotationSpeed.xyz : vec3(0.0, 0.0, a_StartRotationSpeed.x);
             vec3 rotation = radians(computeParticleRotationVec3(startRotation, age, normalizedAge));
         #else
-            vec3 rotation = radians(a_StartRotation0);
+            vec3 rotation = radians(a_StartRotationSpeed.xyz);
         #endif
         // 3D Start Rotation is same in local and world simulation space
         center += rotationByQuaternions(renderer_SizeScale * rotationByEuler(POSITION * size, rotation), worldRotation);
     } else {
         #ifdef RENDERER_ROL_ENABLED
-            float angle = radians(computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge));
+            float angle = radians(computeParticleRotationFloat(a_StartRotationSpeed.x, age, normalizedAge));
         #else
-            float angle = radians(a_StartRotation0.x);
+            float angle = radians(a_StartRotationSpeed.x);
         #endif
         #ifdef RENDERER_EMISSION_SHAPE
             // Axis is side vector of emit position look at zero

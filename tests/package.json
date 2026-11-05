@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-tests",
   "private": true,
-  "version": "2.0.0-alpha.50",
+  "version": "2.0.0-alpha.52",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -27,7 +27,10 @@
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
-    "@galacean/engine-xr": "workspace:*"
+    "@galacean/engine-spine": "workspace:*",
+    "@galacean/engine-spine-core-4.2": "workspace:*",
+    "@galacean/engine-xr": "workspace:*",
+    "@esotericsoftware/spine-core": "~4.2.66"
   },
   "devDependencies": {
     "@vitest/browser": "3.2.6"

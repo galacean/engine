@@ -88,26 +88,83 @@ describe("VelocityOverLifetimeModule", function () {
     expect(() => generator._updateShaderData(particleRenderer.shaderData)).to.not.throw();
   });
 
+  it("inactive random orbital curves do not consume particle random data", function () {
+    if (!isWebGL2) return;
+
+    const vol = particleRenderer.generator.velocityOverLifetime;
+    vol.enabled = true;
+    vol.radial = new ParticleCompositeCurve(1);
+    vol.orbitalX.mode = ParticleCurveMode.TwoConstants;
+    vol.orbitalY.mode = ParticleCurveMode.TwoConstants;
+    vol.orbitalZ.mode = ParticleCurveMode.TwoConstants;
+
+    expect(vol._isOrbitalActive()).to.eq(false);
+    expect(vol._isRadialActive()).to.eq(true);
+    expect(vol._isRandomMode()).to.eq(false);
+  });
+
   it("orbital/radial pull in transform feedback when active", function () {
     const generator = particleRenderer.generator;
     const vol = generator.velocityOverLifetime;
 
     vol.enabled = true;
     expect(vol._needTransformFeedback()).to.eq(false);
-    expect((generator as any)._useTransformFeedback).to.eq(false);
+    expect(generator._feedbackSimulator).to.not.exist;
 
     vol.orbitalY = new ParticleCompositeCurve(2);
     expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
 
     vol.orbitalY = new ParticleCompositeCurve(0);
+    expect(generator._feedbackSimulator).to.not.exist;
     vol.radial = new ParticleCompositeCurve(1);
     expect(vol._needTransformFeedback()).to.eq(isWebGL2);
-    expect((generator as any)._useTransformFeedback).to.eq(isWebGL2);
+    expect(Boolean(generator._feedbackSimulator)).to.eq(isWebGL2);
 
     vol.radial = new ParticleCompositeCurve(0);
     expect(vol._needTransformFeedback()).to.eq(false);
-    expect((generator as any)._useTransformFeedback).to.eq(false);
+    expect(generator._feedbackSimulator).to.not.exist;
+  });
+
+  it("integrates linear velocity after orbital displacement", function () {
+    if (!isWebGL2) return;
+
+    const testEntity = engine.sceneManager.activeScene.createRootEntity("orbital-linear-order");
+    const testRenderer = testEntity.addComponent(ParticleRenderer);
+    const generator = testRenderer.generator;
+    const { main, velocityOverLifetime } = generator;
+    const deltaTime = 1;
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    main.startLifetime = new ParticleCompositeCurve(10);
+    main.gravityModifier = new ParticleCompositeCurve(0);
+    velocityOverLifetime.orbitalY = new ParticleCompositeCurve(Math.PI / 2);
+    velocityOverLifetime.centerOffset.set(-1, 0, 0);
+    velocityOverLifetime.enabled = true;
+
+    const simulate = (startSpeed: number): Float32Array => {
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      main.startSpeed = new ParticleCompositeCurve(startSpeed);
+
+      const particleIndex = generator._firstFreeElement;
+      generator.emit(1);
+      generator._update(deltaTime);
+      (engine as any)._hardwareRenderer._gl.finish();
+
+      const result = new Float32Array(6);
+      const binding = generator._feedbackSimulator.readBinding;
+      binding.buffer.getData(result, particleIndex * binding.stride, 0, result.length);
+      return result;
+    };
+
+    const orbitalOnly = simulate(0);
+    const withLinearVelocity = simulate(1);
+
+    expect(withLinearVelocity[0] - orbitalOnly[0]).to.be.closeTo(withLinearVelocity[3] * deltaTime, 1e-5);
+    expect(withLinearVelocity[1] - orbitalOnly[1]).to.be.closeTo(withLinearVelocity[4] * deltaTime, 1e-5);
+    expect(withLinearVelocity[2] - orbitalOnly[2]).to.be.closeTo(withLinearVelocity[5] * deltaTime, 1e-5);
+
+    testEntity.destroy();
   });
 
   it("orbital/radial constants upload shader data", function () {
@@ -244,24 +301,24 @@ describe("VelocityOverLifetimeModule", function () {
   });
 
   it("centerOffset component changes dirty bounds after clone", function () {
-    // ParticleUpdateFlags: GeneratorVolume | TransformVolume | WorldVolume.
+    // ParticleBoundsUpdateFlags: GeneratorVolume | TransformVolume | WorldVolume.
     const dirtyBoundsFlags = 0x7;
-    // ParticleUpdateFlags.GeneratorVolume.
+    // ParticleBoundsUpdateFlags.GeneratorVolume.
     const generatorBoundsFlag = 0x4;
 
     const renderer = particleRenderer as any;
-    renderer._setDirtyFlagFalse(dirtyBoundsFlags);
+    renderer._clearDirtyFlag(dirtyBoundsFlags);
 
     particleRenderer.generator.velocityOverLifetime.centerOffset.x = 1;
 
-    expect(renderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+    expect(renderer._hasDirtyFlag(generatorBoundsFlag)).to.eq(true);
 
     const cloneEntity = entity.clone();
     const clonedRenderer = cloneEntity.getComponent(ParticleRenderer) as any;
-    clonedRenderer._setDirtyFlagFalse(dirtyBoundsFlags);
+    clonedRenderer._clearDirtyFlag(dirtyBoundsFlags);
 
     clonedRenderer.generator.velocityOverLifetime.centerOffset.set(2, 0, 0);
 
-    expect(clonedRenderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+    expect(clonedRenderer._hasDirtyFlag(generatorBoundsFlag)).to.eq(true);
   });
 });

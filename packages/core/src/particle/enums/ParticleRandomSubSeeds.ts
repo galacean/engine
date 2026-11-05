@@ -21,5 +21,6 @@ export enum ParticleRandomSubSeeds {
   LimitVelocityOverLifetime = 0xb5a21f7e,
   Noise = 0xf4b2c8a1,
   SubEmitter = 0x9c4a3b2d,
-  EmissionRate = 0x9c83f2d5
+  EmissionRate = 0x9c83f2d5,
+  InheritVelocity = 0x33e627
 }
