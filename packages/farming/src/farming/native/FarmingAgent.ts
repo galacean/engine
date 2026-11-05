@@ -4,7 +4,8 @@ import { toAgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-values";
 import { FarmingAPI, FARMING_API_CONTRACT, isFarmingReadOperation } from "./FarmingAPI";
 import type { FarmingCommands, FarmingRequest } from "./FarmingAPIContract";
 import { FARMING_API_DECLARATION } from "./FarmingAPIDeclarations";
-import { FARMING_KNOWLEDGE } from "./FarmingKnowledge";
+import { FARMING_METHOD_DOCS } from "./FarmingMethodDocs";
+import { farmingSkillDocuments } from "./FarmingSkill";
 
 /** System-owned capabilities for the existing generic Agent. No application or Prompt changes. */
 export function createFarmingAgentPackage(api: FarmingAPI): {
@@ -20,7 +21,7 @@ export function createFarmingAgentPackage(api: FarmingAPI): {
       scriptApi: {
         hostNotes:
           '种植系统：先读取 skills/farming/references/overview.md；用 editor.component.query({type: "FarmingAreaComponent"}) 获取区域代理，通过区域方法操作。',
-        documents: FARMING_KNOWLEDGE.filter((doc) => doc.path !== "skills/farming/SKILL.md").map((doc) => ({
+        documents: [...farmingSkillDocuments, ...FARMING_METHOD_DOCS].map((doc) => ({
           path: doc.path,
           content:
             doc.content + (doc.path === "skills/farming/references/overview.md" ? `\n## API 索引\n\n${index}\n` : "")

@@ -78,12 +78,26 @@ describe("Agent skills and declarations", () => {
   });
 });
 
+describe("skill sources", () => {
+  const sources = import.meta.glob("../../../packages/*/src/skills/*/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
+  it("keep each system skill in its package under a directory named after the skill", () => {
+    const names = Object.entries(sources).map(([path, source]) => {
+      const name = /\/src\/skills\/([^/]+)\/SKILL\.md$/.exec(path)![1];
+      expect(parseAgentSkill(source).name).toBe(name);
+      return name;
+    });
+    expect(names).toEqual(expect.arrayContaining(["animals", "building", "environment", "farming", "terrain", "vegetation", "water"]));
+  });
+});
+
 describe("farming skill", () => {
   it("publishes a valid top-level skill and resolvable method links", async () => {
-    const { FARMING_KNOWLEDGE } = await import("@galacean/engine-farming/farming/native/FarmingKnowledge");
-    const known = new Set<string>(FARMING_KNOWLEDGE.map((doc) => doc.path));
-    expect(parseAgentSkill(FARMING_KNOWLEDGE.find((doc) => doc.path === "skills/farming/SKILL.md")!.content).name).toBe("farming");
-    for (const doc of FARMING_KNOWLEDGE) {
+    const { FARMING_METHOD_DOCS } = await import("@galacean/engine-farming/farming/native/FarmingMethodDocs");
+    const { farmingSkill, farmingSkillDocuments } = await import("@galacean/engine-farming/farming/native/FarmingSkill");
+    const docs = [...farmingSkillDocuments, ...FARMING_METHOD_DOCS, { path: "skills/farming/SKILL.md", content: farmingSkill }];
+    const known = new Set<string>(docs.map((doc) => doc.path));
+    expect(parseAgentSkill(farmingSkill).name).toBe("farming");
+    for (const doc of docs) {
       expect(doc.path).toMatch(/^(skills|declare)\//);
       for (const match of doc.content.matchAll(/\]\((declare\/editor\/farming\/methods\/[^)]+)\)/g)) expect(known.has(match[1])).toBe(true);
     }

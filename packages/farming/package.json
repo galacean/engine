@@ -83,7 +83,8 @@
     "./farming/native/FarmingAgent": "./src/farming/native/FarmingAgent.ts",
     "./farming/native/FarmingAgentCommands": "./src/farming/native/FarmingAgentCommands.ts",
     "./farming/native/FarmingAreaComponent": "./src/farming/native/FarmingAreaComponent.ts",
-    "./farming/native/FarmingKnowledge": "./src/farming/native/FarmingKnowledge.ts",
+    "./farming/native/FarmingMethodDocs": "./src/farming/native/FarmingMethodDocs.ts",
+    "./farming/native/FarmingSkill": "./src/farming/native/FarmingSkill.ts",
     "./farming/native/FarmingResources": "./src/farming/native/FarmingResources.ts",
     "./farming/native/FarmingSceneData": "./src/farming/native/FarmingSceneData.ts",
     "./farming/native/FarmingSystem": "./src/farming/native/FarmingSystem.ts",
@@ -196,5 +197,8 @@
     "@galacean/engine-terrain": "workspace:*",
     "@galacean/engine-ai-chat": "workspace:*",
     "@galacean/engine-modify": "workspace:*"
+  },
+  "devDependencies": {
+    "prettier": "^3.0.0"
   }
 }

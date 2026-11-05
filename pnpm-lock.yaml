@@ -331,6 +331,10 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
+    devDependencies:
+      prettier:
+        specifier: ^3.0.0
+        version: 3.3.3
 
   packages/galacean:
     dependencies:

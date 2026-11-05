@@ -4,7 +4,21 @@ import { planningRegistry } from "@galacean/engine-world-planning/spatial/Planni
 import { collectPlanningSystemKnowledge } from "./SeedWorldSystemDeclarations.ts";
 import type { AgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
-const files = import.meta.glob("./skills/**/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
+import animalsSkill from "@galacean/engine-animals/skills/animals/SKILL.md?raw";
+import environmentSkill from "@galacean/engine-environment/skills/environment/SKILL.md?raw";
+import terrainSkill from "@galacean/engine-terrain/skills/terrain/SKILL.md?raw";
+import vegetationSkill from "@galacean/engine-vegetation/skills/vegetation/SKILL.md?raw";
+import waterSkill from "@galacean/engine-water/skills/water/SKILL.md?raw";
+const localFiles = import.meta.glob("./skills/**/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
+/** System-owned Skills live in their packages; this Demo adds its API index and registered components. */
+const files: Readonly<Record<string, string>> = {
+  ...localFiles,
+  "./skills/animals/SKILL.md": animalsSkill,
+  "./skills/environment/SKILL.md": environmentSkill,
+  "./skills/terrain/SKILL.md": terrainSkill,
+  "./skills/vegetation/SKILL.md": vegetationSkill,
+  "./skills/water/SKILL.md": waterSkill
+};
 const SKILL_DOMAINS: Readonly<Record<string, readonly string[]>> = {
   "world-objects": ["world"],
   spatial: ["spatial"],

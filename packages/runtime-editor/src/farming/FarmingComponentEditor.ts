@@ -18,7 +18,8 @@ import {
   executeFarmingRequest
 } from "@galacean/engine-farming/farming/native/FarmingAgentCommands";
 import { FARMING_SYSTEM_EDITOR_DECLARATION } from "@galacean/engine-farming/farming/native/FarmingAPIDeclarations";
-import { FARMING_KNOWLEDGE } from "@galacean/engine-farming/farming/native/FarmingKnowledge";
+import { FARMING_METHOD_DOCS } from "@galacean/engine-farming/farming/native/FarmingMethodDocs";
+import { farmingSkill, farmingSkillDocuments } from "@galacean/engine-farming/farming/native/FarmingSkill";
 
 /** Editor behavior belongs to the actual Scene component; regions remain domain objects. */
 export function createFarmingComponentExtension(port: RuntimeComponentPort) {
@@ -57,11 +58,11 @@ export function createFarmingComponentExtension(port: RuntimeComponentPort) {
     componentClass: FarmingSystem,
     methods,
     scriptApi: {
-      skills: [parseAgentSkill(FARMING_KNOWLEDGE.find((doc) => doc.path === "skills/farming/SKILL.md")!.content)],
-      documents: FARMING_KNOWLEDGE.filter(
-        (doc) =>
-          doc.path.startsWith("declare/editor/farming/") || doc.path === "skills/farming/references/state-and-units.md"
-      ),
+      skills: [parseAgentSkill(farmingSkill)],
+      documents: [
+        ...FARMING_METHOD_DOCS,
+        ...farmingSkillDocuments.filter((doc) => doc.path === "skills/farming/references/state-and-units.md")
+      ],
       entries: [
         {
           name: "editor.component.query",
