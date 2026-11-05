@@ -1,0 +1,21 @@
+packages/modify/src/native/shader/src/Shaders/Lighting/ScreenSpaceReflection.shader
+  s_3671db68e81360::t_6ff5881d511d31 176-179
+packages/modify/tests/ScreenSpaceReflectionContactOutline.test.ts
+  s_3671db68e81360::t_2fa775ee7a41ed 1-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "13a3cdabf7ac5c91b73310cb02f650d331ebaa82",
+  "prompts": {},
+  "sessions": {
+    "s_3671db68e81360": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "s_3671db68e81360",
+        "model": "unknown"
+      },
+      "human_author": "星翊 <sunmingming.smm@antgroup.com>"
+    }
+  }
+}
