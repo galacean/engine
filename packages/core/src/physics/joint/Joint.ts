@@ -11,7 +11,8 @@ import { DynamicCollider } from "../DynamicCollider";
 
 /**
  * A base class providing common functionality for joints.
- * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
+ * The joint's own body is the {@link DynamicCollider} on the same entity.
+ * @decorator `@dependentComponents(DynamicCollider, DependentMode.AutoAdd)`
  */
 @dependentComponents(DynamicCollider, DependentMode.AutoAdd)
 export abstract class Joint extends Component {
@@ -196,7 +197,11 @@ export abstract class Joint extends Component {
    * @internal
    */
   override _onEnableInScene(): void {
-    this._createJoint();
+    // A joint's own body must be the dependent DynamicCollider. Looking up the base Collider can pick a
+    // StaticCollider or CharacterController that was added earlier, and neither can act as the joint's rigid body.
+    const dynamicCollider = this.entity.getComponent(DynamicCollider)!;
+    this._colliderInfo.collider = dynamicCollider;
+    this._createJoint(dynamicCollider);
     this._syncNative();
     this._updateRotation();
   }
@@ -209,7 +214,7 @@ export abstract class Joint extends Component {
     this._nativeJoint = null;
   }
 
-  protected abstract _createJoint(): void;
+  protected abstract _createJoint(collider: DynamicCollider): void;
 
   protected _syncNative(): void {
     if (this._nativeJoint) {
