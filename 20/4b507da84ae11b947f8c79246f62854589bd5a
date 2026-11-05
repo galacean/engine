@@ -1,0 +1,728 @@
+world/gallery/demos/terrain/seed-world-planner/V2_IMPLEMENTATION.md
+  s_d932b902720f7e::t_2e8962ba429bc9 13993-14003
+  s_d932b902720f7e::t_b5caec87b532bd 13982-13992
+  s_d932b902720f7e::t_e654536af0bc20 14156-14166
+  s_d932b902720f7e::t_52da929b97bbfa 14102-14114,14116
+  s_d932b902720f7e::t_41d9624618c376 14143-14155
+  s_d932b902720f7e::t_7c73fab7cfe2f7 13971-13981
+  s_d932b902720f7e::t_5c1d280d260418 14048-14055
+  s_d932b902720f7e::t_48c2ef86bf8e96 14004-14010
+  s_d932b902720f7e::t_841871de744b68 14056-14068
+  s_d932b902720f7e::t_18b2e26acd5d38 14125-14134
+  s_d932b902720f7e::t_674f906336e08a 14135-14142
+  s_d932b902720f7e::t_b651cd6e439a59 14124
+  s_d932b902720f7e::t_8412152d48f39c 14204-14213
+  s_d932b902720f7e::t_a2fb3e474b6f35 14036-14047
+  s_d932b902720f7e::t_ea88ade326967e 14183-14193
+  s_d932b902720f7e::t_d330c1b9c22ea8 14214-14224
+  s_d932b902720f7e::t_814414155a30c6 14011-14022
+  s_d932b902720f7e::t_edb57f09b3e76c 14024-14035
+  s_d932b902720f7e::t_9d5ef0d27d1fa1 14167-14174
+  s_d932b902720f7e::t_01fd443de6abaf 14117-14123
+  s_d932b902720f7e::t_2cce8a6b5270a8 14175-14182
+  s_d932b902720f7e::t_8786afd16cfdee 14194-14203
+  s_d932b902720f7e::t_a8136d14502c37 14115
+  s_d932b902720f7e::t_76dcc1cc744915 14023,14069-14101
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/SeedWorldApiSearchRegistry.ts
+  s_d932b902720f7e::t_15bd2f7da126cd 985
+  s_d932b902720f7e::t_68f147fd5ae3a6 664,687,699,816
+  s_d932b902720f7e::t_da1a436a050b7c 4
+world/gallery/shared/retrieval/src/keyword-index.ts
+  s_d932b902720f7e::t_cc62d3c5af35c7 1-30,38-76
+  s_d932b902720f7e::t_a103b0ad48c886 31-37
+world/gallery/tests/llm/atomic.test.mjs
+  s_d932b902720f7e::t_6fcc94bf70957b 12-13,15,17,29
+world/gallery/shared/retrieval/examples/public/library/catalog/summaries/8d28054a3a2d07c571a0002a0a33cb66d298858c5d1e9d708be26da71cfd006a.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1
+world/gallery/tests/llm/view-pointer-oracle.mjs
+  s_d932b902720f7e::t_e20fea3ffb5de2 1,48-52,67,74
+  s_d932b902720f7e::t_a190e017444868 72-73
+  s_d932b902720f7e::t_991a01517c9e84 75-76
+  s_d932b902720f7e::t_51b396f94bc32f 3,7-47,53-57,63-66,69-71,78
+world/gallery/shared/retrieval/tsconfig.json
+  s_d932b902720f7e::t_f41cf132f6ef23 1-2,18,25
+  s_d932b902720f7e::t_bb0b2276dbd714 3-17,19-24
+world/gallery/shared/retrieval/src/Retrieval.worker.ts
+  s_d932b902720f7e::t_4506fde33121dd 1-18,20-28
+  s_d932b902720f7e::t_fc73031a7900f4 19
+world/gallery/shared/runtime-editor-agent/runtime-native-knowledge.ts
+  s_d932b902720f7e::t_d0e3c66434577d 1,71,123-124
+  s_d932b902720f7e::t_c81fe5fe13b21b 94,111,120
+  s_d932b902720f7e::t_90268577801f5b 43-50,105
+  s_d932b902720f7e::t_e9101213bcc124 39
+  s_d932b902720f7e::t_6a46817802df87 82
+  s_d932b902720f7e::t_45d97fdb647701 2,121
+  s_d932b902720f7e::t_03431067443970 80
+world/gallery/shared/retrieval/examples/vite.config.mjs
+  s_d932b902720f7e::t_e56b5e1953ff24 5
+  s_d932b902720f7e::t_7b264444deb896 7
+  s_d932b902720f7e::t_b859cd1f9a4a2d 6
+  s_d932b902720f7e::t_e087e508fa6d2c 1-4,8-9
+world/gallery/shared/retrieval/src/storage.ts
+  s_d932b902720f7e::t_c121b6d299c755 1-4,6-19,21-41,44-52
+world/gallery/shared/runtime-editor/project/runtime-asset-import.ts
+  s_d932b902720f7e::t_fc73031a7900f4 8-13,15,19-27
+  s_d932b902720f7e::t_b9105d2c090543 34,44-45,56
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/spatial.search.d.ts
+  s_d932b902720f7e::t_68f147fd5ae3a6 35
+world/gallery/shared/ai-chat/tests/AIChatSessionTrace.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 238
+world/gallery/shared/runtime-editor/scripts/runtime-script-environment.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 22
+world/gallery/shared/runtime-editor/tests/runtime-project-edit.spec.ts
+  s_d932b902720f7e::t_01720d424dfd68 59
+world/gallery/tests/runtime-editor/native-tools.integration.spec.ts
+  s_d932b902720f7e::t_7cd2d5c3622ee6 54
+  s_d932b902720f7e::t_cf4520bb66e281 49,53
+world/gallery/shared/ai-chat/context-compaction.ts
+  s_d932b902720f7e::t_8cf5b2c222b74d 4,6,13,34,40,44,56,70,124-137,139-140,143-144,158
+  s_d932b902720f7e::t_5fff1ec809fb6c 101
+world/gallery/shared/retrieval/src/library.ts
+  s_d932b902720f7e::t_fc73031a7900f4 5,100-113
+  s_d932b902720f7e::t_a103b0ad48c886 4
+  s_d932b902720f7e::t_cc62d3c5af35c7 2,23,39,45,49,51,61-62,183
+  s_d932b902720f7e::t_f787b6e5fc30d8 1,3,6-22,24-38,40-44,46-48,50,52-60,63-99,114-182,184-202
+world/gallery/tests/runtime-editor/worker-harness.ts
+  s_d932b902720f7e::t_01720d424dfd68 3,15
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/Anchor.d.ts
+  s_d932b902720f7e::t_68f147fd5ae3a6 9
+world/gallery/shared/runtime-editor/tests/runtime-project.spec.ts
+  s_d932b902720f7e::t_01720d424dfd68 44-46
+  s_d932b902720f7e::t_6fcc94bf70957b 148
+world/gallery/shared/retrieval/.gitignore
+  s_d932b902720f7e::t_a4022e4c438455 3
+  s_d932b902720f7e::t_f41cf132f6ef23 1-2
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/platform/README.md
+  s_d932b902720f7e::t_3d3e3d44927b14 1-5
+world/gallery/shared/ai-chat/agent-native-files.ts
+  s_d932b902720f7e::t_17106e46454046 50-56
+  s_d932b902720f7e::t_3b3fd595a15af7 58
+  s_d932b902720f7e::t_bc496364b520b1 136
+world/gallery/tests/llm/atomic-capabilities.json
+  s_d932b902720f7e::t_33e3898b613bb4 18-20
+  s_d932b902720f7e::t_2b2585cf8b539a 17
+world/gallery/tests/llm/render-report.mjs
+  s_d932b902720f7e::t_f06a27b6dbf0df 68,71,100-101,103
+  s_d932b902720f7e::t_112acef29aaa5c 70
+world/gallery/shared/runtime-editor/scripts/runtime-script-inputs.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 6
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldAgentDefinition.ts
+  s_d932b902720f7e::t_d0e3c66434577d 35-36
+world/gallery/tests/llm/seed-world-retrieval.html
+  s_d932b902720f7e::t_7efb9a86dfabee 1,3
+  s_d932b902720f7e::t_e62cde627eb5e7 2
+world/gallery/shared/ai-chat/tests/agent-images.spec.ts
+  s_d932b902720f7e::t_2c14738032e8b0 52,120,124,151,182,220-225,233,237,240-241
+  s_d932b902720f7e::t_62d0efc17b86e5 100
+  s_d932b902720f7e::t_e0f16f2a31492e 37-39,42-43,54-55,101,194
+  s_d932b902720f7e::t_ab586aaffbfb4f 16,33,40,46,57,61,82,109,119,121,123,134,138,141,149,158,164,178,213,217
+world/gallery/shared/runtime-editor-agent/primitive-mesh.md
+  s_d932b902720f7e::t_1f3329c2ed1d45 31
+world/gallery/shared/retrieval/examples/public/library/catalog/manifest.json
+  s_d932b902720f7e::t_56bfe766a0050f 1
+world/gallery/tests/runtime-editor/agent-loop.integration.spec.ts
+  s_d932b902720f7e::t_cf4520bb66e281 216-222,226-228,393,692,707-708
+  s_d932b902720f7e::t_ab586aaffbfb4f 32,128-129,134-136,138,155,161,164,172,177
+world/gallery/shared/ai-chat/tests/AIChatAgentProtocol.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 117-120,122
+  s_d932b902720f7e::t_ab586aaffbfb4f 131-135
+  s_d932b902720f7e::t_03431067443970 34-36,44,49,52,83
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/box/describe.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1-23
+world/gallery/shared/runtime-editor-agent/tests/engine-runtime-files.spec.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 10,17,22,27,60
+  s_d932b902720f7e::t_1f3329c2ed1d45 19
+world/gallery/shared/ai-chat/README.md
+  s_d932b902720f7e::t_062b92585968c0 620
+  s_d932b902720f7e::t_e38fa788f59e50 102,104-110,112-116,126,163,169,176,180
+  s_d932b902720f7e::t_52da929b97bbfa 118-122
+  s_d932b902720f7e::t_ce3b741a49667c 17,69,87,96,616,618,622
+  s_d932b902720f7e::t_e3ebd753600f4c 71,75
+  s_d932b902720f7e::t_c31dc33061710a 136,357
+  s_d932b902720f7e::t_cb3c7d7301482e 117
+world/gallery/shared/runtime-editor/project/runtime-native-formats.ts
+  s_d932b902720f7e::t_90268577801f5b 1,132-135
+world/gallery/shared/runtime-inspection/README.md
+  s_d932b902720f7e::t_4ae6f41db226a9 14
+  s_d932b902720f7e::t_e9fde878fc3266 18
+  s_d932b902720f7e::t_4eabe0d2276a5c 7,16
+world/gallery/demos/terrain/seed-world-planner/src/SnapshotSurfaceEncoding.ts
+  s_d932b902720f7e::t_0c660c3b44f0b3 2-35,37-46
+  s_d932b902720f7e::t_4ae6f41db226a9 1,36
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/platform/platform.mesh
+  s_d932b902720f7e::t_3d3e3d44927b14 1-6
+world/gallery/shared/runtime-editor/project/runtime-project.ts
+  s_d932b902720f7e::t_b9105d2c090543 97,112,120,125,131,159
+  s_d932b902720f7e::t_6fcc94bf70957b 17
+world/gallery/tests/runtime-editor/docs/RUNTIME_PROJECT_ACCEPTANCE.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 11
+world/gallery/shared/ai-chat/image-resources.ts
+  s_d932b902720f7e::t_2ad74ca0d4a2cc 4-5,7,35
+  s_d932b902720f7e::t_ab586aaffbfb4f 42-43
+  s_d932b902720f7e::t_782a4300502c40 6,12,18-19,27-33
+  s_d932b902720f7e::t_b4fc97f42819d5 44
+  s_d932b902720f7e::t_896b5816262892 46-47
+  s_d932b902720f7e::t_84bf1b79cd4450 34,36
+world/gallery/demos/terrain/project-tests/SeedWorldTaskPresentation.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 66
+  s_d932b902720f7e::t_7cd2d5c3622ee6 15
+world/gallery/shared/ai-chat/agent-image-store.ts
+  s_d932b902720f7e::t_b4fc97f42819d5 2,4-5,9,16,20,23,29,33-34,40-45,50-52,59,74,76,82-85,90
+  s_d932b902720f7e::t_ab586aaffbfb4f 8,31,38,56-58,61,64,68-69,71,73,75,77,79
+  s_d932b902720f7e::t_d1b1b6ad723583 19
+  s_d932b902720f7e::t_e3ebd753600f4c 46-49
+world/gallery/tests/llm/task-trace.test.mjs
+  s_d932b902720f7e::t_dbeab8d0f1a715 1-53
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/README.md
+  s_d932b902720f7e::t_8cf5b2c222b74d 11-18
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/common/Selector.d.ts
+  s_d932b902720f7e::t_68f147fd5ae3a6 34,92
+world/gallery/skills/galacean-editor.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 1-2,4-5,7,9,11-13
+  s_d932b902720f7e::t_8cf5b2c222b74d 3,6,10,14-23,25
+  s_d932b902720f7e::t_03431067443970 8,24,26
+world/gallery/demos/terrain/project-tests/ViewPointerFixture.spec.ts
+  s_d932b902720f7e::t_5db51a831d1d44 1-2,4-12,15-23,25,32-34,36,38-40,42-43,45-52,127
+  s_d932b902720f7e::t_ece87a45b5d106 3,13-14,24,26-31,35,37,41,44,53-120,122-123,126
+  s_d932b902720f7e::t_ca135b5503967a 121,124-125
+  s_d932b902720f7e::t_98c18f53282b4e 128-148
+world/gallery/shared/ai-chat/tests/agent-native-files.spec.ts
+  s_d932b902720f7e::t_3b3fd595a15af7 47,59
+world/gallery/shared/ai-chat/tests/agent-artifacts.spec.ts
+  s_d932b902720f7e::t_21c5ae76863329 14
+  s_d932b902720f7e::t_1f3329c2ed1d45 2-4,7-13,15-35
+  s_d932b902720f7e::t_c31dc33061710a 1,5-6
+  s_d932b902720f7e::t_3e852d8df27e2a 36-48
+world/gallery/demos/terrain/project-tests/SeedWorldAgentApplication.spec.ts
+  s_d932b902720f7e::t_2b53ed0db779ac 1315-1317,1325-1329,1346-1347
+  s_d932b902720f7e::t_cbc77b576f4d80 470,474-475,1312-1313,1331-1332,1337,1343,1345,1352-1360,1362,1364
+  s_d932b902720f7e::t_ddb176736b8f7a 1308,1311,1330,1333-1336,1338-1341,1348-1351
+world/gallery/tests/llm/cases/view-pointer.json
+  s_d932b902720f7e::t_f52ac793a3f5e2 5-28,30,33-43
+  s_d932b902720f7e::t_e20fea3ffb5de2 29,31-32
+world/gallery/tests/runtime-editor/docs/EXECUTE_EVALUATION.md
+  s_d932b902720f7e::t_ab586aaffbfb4f 141
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/pillar/pillar.mesh
+  s_d932b902720f7e::t_3d3e3d44927b14 1-6
+world/gallery/shared/ai-chat/ai-chat-session.ts
+  s_d932b902720f7e::t_cc80c2e03784ad 234
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/box/README.md
+  s_d932b902720f7e::t_3d3e3d44927b14 1-5
+world/gallery/shared/runtime-editor-agent/tests/runtime-native-knowledge.spec.ts
+  s_d932b902720f7e::t_79bea6514a07fa 5-6,78-97
+  s_d932b902720f7e::t_05c5ce65bb16e1 98
+world/gallery/shared/runtime-inspection/tests/photo-editing.ts
+  s_d932b902720f7e::t_e99ae52fe18174 18
+  s_d932b902720f7e::t_39869282744dec 2-17,19-20,23-77
+  s_d932b902720f7e::t_3ef307a67a7814 1,21-22
+world/gallery/shared/ai-chat/tests/context-compaction.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 14,27,35,48
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/vegetation.update.d.ts
+  s_d932b902720f7e::t_15bd2f7da126cd 14-15
+world/gallery/shared/ai-chat/agent-skills.ts
+  s_d932b902720f7e::t_d0e3c66434577d 3-22,26-30
+  s_d932b902720f7e::t_45d97fdb647701 1-2,23-25,31-33
+world/gallery/tests/llm/seed-world-observer.ts
+  s_d932b902720f7e::t_5737e4bed8f20b 16,73
+  s_d932b902720f7e::t_2ad74ca0d4a2cc 74
+  s_d932b902720f7e::t_ab586aaffbfb4f 13
+world/gallery/shared/runtime-inspection/tests/photo-editing.html
+  s_d932b902720f7e::t_39869282744dec 1-8,11-23
+  s_d932b902720f7e::t_2cce8a6b5270a8 9-10
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldLassoPanel.ts
+  s_d932b902720f7e::t_1e778fc75c3173 34-37,115
+world/gallery/shared/retrieval/examples/public/library/catalog/summaries/a74d15363cdefe66db36d9a34aedd73e561d227f06973101a752aeb7f9dd6c62.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1
+world/gallery/shared/retrieval/tests/retrieval.test.ts
+  s_d932b902720f7e::t_12de1f7583dd2b 1-6,8-48,50-67,77,109-165,179
+  s_d932b902720f7e::t_ad236f808bf2b3 7,49,68-72,74-76,78-86,89-108
+  s_d932b902720f7e::t_a103b0ad48c886 73,87-88
+  s_d932b902720f7e::t_ae09c49b29de23 166-178
+world/gallery/shared/retrieval-agent/index.ts
+  s_d932b902720f7e::t_7efb9a86dfabee 1-3,6-8,10,13-23,40-42,50
+  s_d932b902720f7e::t_e9101213bcc124 4-5,9,11-12,24-39,43-49
+world/gallery/shared/runtime-editor/tests/asset-inspection.spec.ts
+  s_d932b902720f7e::t_1f3329c2ed1d45 1-6,8-38
+  s_d932b902720f7e::t_6fcc94bf70957b 7
+world/gallery/shared/runtime-editor/tests/vfs-import.spec.ts
+  s_d932b902720f7e::t_6fcc94bf70957b 14
+  s_d932b902720f7e::t_01720d424dfd68 26,75,82,137-138,154,158,161-162,166
+world/gallery/demos/terrain/project-tests/SeedWorldViewSnapshot.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 65,69,411,415,417,419,424,436,438-439,442,444,455,460,520
+  s_d932b902720f7e::t_bb9fd5cb26df5e 185,367,372
+  s_d932b902720f7e::t_cbc77b576f4d80 474,511-519,521-522
+  s_d932b902720f7e::t_5fff1ec809fb6c 269,336,339
+  s_d932b902720f7e::t_d0c22761df8c2c 37
+  s_d932b902720f7e::t_e9fde878fc3266 427
+  s_d932b902720f7e::t_ce3b741a49667c 464,473,475-483
+  s_d932b902720f7e::t_b80230418a7b5c 268
+  s_d932b902720f7e::t_782a4300502c40 523-540
+world/gallery/shared/runtime-editor-agent/engine-runtime-files.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 10-16,19,33
+  s_d932b902720f7e::t_d0e3c66434577d 1,34-35,37-39,53
+world/gallery/tests/runtime-editor/search-performance.mjs
+  s_d932b902720f7e::t_c81fe5fe13b21b 84
+world/gallery/tests/llm/run-seed-world.mjs
+  s_d932b902720f7e::t_145db74c643122 134-135,146
+  s_d932b902720f7e::t_f2e9e61dd9f12f 1,50-51,115-121,123-128,131,138-143,149-154
+  s_d932b902720f7e::t_5737e4bed8f20b 78,88,96,148,186-189
+world/gallery/tests/llm/cases/editor-atomic.json
+  s_d932b902720f7e::t_8e103a0afacb1d 189-213
+  s_d932b902720f7e::t_59a6498d7615bd 188
+world/gallery/shared/ai-chat/tests/AgentScreenshotTrace.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 21,26,147
+world/gallery/tests/llm/native-files-oracles.test.mjs
+  s_d932b902720f7e::t_6bf20b6cae149c 5-16,30-32,37-45
+  s_d932b902720f7e::t_3e82201e7bd252 46
+world/gallery/demos/terrain/seed-world-planner/spatial/PlanningSubjectView.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 41
+world/gallery/shared/ai-chat/tests/agent-file-tools.spec.ts
+  s_d932b902720f7e::t_3e852d8df27e2a 296-310,312
+  s_d932b902720f7e::t_b600490aecad76 311
+  s_d932b902720f7e::t_3b3fd595a15af7 139
+  s_d932b902720f7e::t_6e507b0b74ceb6 9
+  s_d932b902720f7e::t_1f3329c2ed1d45 189,198
+world/gallery/shared/runtime-editor/tests/virtual-path-contract.spec.ts
+  s_d932b902720f7e::t_6fcc94bf70957b 11
+  s_d932b902720f7e::t_c81fe5fe13b21b 40,56
+  s_d932b902720f7e::t_cc80c2e03784ad 19
+world/gallery/shared/runtime-editor/project/runtime-project-edit.ts
+  s_d932b902720f7e::t_90268577801f5b 1,20-21,81-93
+  s_d932b902720f7e::t_b9105d2c090543 114,170,187
+  s_d932b902720f7e::t_60a22fe1eb314d 94
+world/gallery/shared/ai-chat/tests/agent-snapshots.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 19
+  s_d932b902720f7e::t_f00bfacb234fc4 4-5,7,10-11,13-18,20-23,25-34,36-39,41-43,45-54,59-61,84-101,103-115,117-120,122-123
+  s_d932b902720f7e::t_ece87a45b5d106 1,56-58
+  s_d932b902720f7e::t_a3f7e7106a2702 63-82
+  s_d932b902720f7e::t_e3ebd753600f4c 126-134
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldKnowledge.ts
+  s_d932b902720f7e::t_ab38eef10ca6c7 67
+  s_d932b902720f7e::t_ba0252cf219d7c 52,68
+  s_d932b902720f7e::t_cbc77b576f4d80 65-66
+world/gallery/shared/retrieval/index.ts
+  s_d932b902720f7e::t_fc73031a7900f4 4
+  s_d932b902720f7e::t_4506fde33121dd 1,3
+  s_d932b902720f7e::t_cc62d3c5af35c7 2
+world/gallery/shared/retrieval/examples/index.html
+  s_d932b902720f7e::t_e087e508fa6d2c 1-2,4-9
+  s_d932b902720f7e::t_e363b0403f7f70 3
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/pillar/describe.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1-23
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPicker.ts
+  s_d932b902720f7e::t_28933b0051f347 129,184-186,194-196,273-277
+  s_d932b902720f7e::t_4ae6f41db226a9 143
+  s_d932b902720f7e::t_cbd2ddb5399153 144-145
+  s_d932b902720f7e::t_999599679e8adf 99,101-104,110
+  s_d932b902720f7e::t_05eb3705dbbc3d 1-3,10,27-28,82-83,96,108,111-112,114,116,123-128,130-131,134-142,146-149,158,162,164-167,296,303,312,314-318,321
+  s_d932b902720f7e::t_18b2e26acd5d38 15,100
+  s_d932b902720f7e::t_e4833b26f9849a 132-133
+  s_d932b902720f7e::t_57c583490f7469 163
+  s_d932b902720f7e::t_7bb06dfa414341 150-157
+world/gallery/shared/retrieval/src/build.ts
+  s_d932b902720f7e::t_a103b0ad48c886 5,23
+  s_d932b902720f7e::t_174c9ab4bc9849 1,6-22,24-31,37-39,41-51,56-61,63-76,78-80
+  s_d932b902720f7e::t_1a943047cd1c2b 62
+  s_d932b902720f7e::t_e56b5e1953ff24 2-4,32-36,40,52-55,77
+world/gallery/tests/llm/call-evidence.mjs
+  s_d932b902720f7e::t_3de02b0440ed58 1-2,4-33,35-40,44-66
+  s_d932b902720f7e::t_cb59f5c2cdbd2f 3,34,41-43
+world/gallery/shared/ai-chat/tests/agent-extensions.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 25,33
+world/gallery/shared/runtime-editor/README.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 26
+world/gallery/shared/ai-chat/tests/TrajectoryCallGroups.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 33
+  s_d932b902720f7e::t_ab586aaffbfb4f 14,17,43,100,128,146
+  s_d932b902720f7e::t_62d0efc17b86e5 35,105,129,159
+world/gallery/tests/llm/cases/native-files.json
+  s_d932b902720f7e::t_388d7d7f65959c 25-26,28-30,42-43,56-57,70-71,86-87,89-91,113-114,116-118
+world/gallery/tests/runtime-editor/search-view-scene.mjs
+  s_d932b902720f7e::t_c81fe5fe13b21b 32,45,97
+world/gallery/demos/terrain/project-tests/BuildingAssemblyMigration.spec.ts
+  s_d932b902720f7e::t_6fcc94bf70957b 13
+world/gallery/shared/project-files/virtual-project-files.ts
+  s_d932b902720f7e::t_b9105d2c090543 59,61-62
+  s_d932b902720f7e::t_6e507b0b74ceb6 10-11,37,128,151-156,179,194,205
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/pillar/README.md
+  s_d932b902720f7e::t_3d3e3d44927b14 1-5
+world/gallery/shared/retrieval/examples/public/library/catalog/summaries/b12d8f541adba00925483cf24143f5f7431ec9997ae6471954ee42d15e2d6463.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1
+world/gallery/shared/runtime-editor-agent/tests/files-draft.spec.ts
+  s_d932b902720f7e::t_3b3fd595a15af7 46
+world/gallery/shared/ai-chat/tests/AIChatController.spec.ts
+  s_d932b902720f7e::t_bb9fd5cb26df5e 96
+world/gallery/tests/llm/pack-evidence.py
+  s_d932b902720f7e::t_f06a27b6dbf0df 25
+world/gallery/tests/llm/world-query-atomic.test.mjs
+  s_d932b902720f7e::t_7cd2d5c3622ee6 8
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/contracts/generated/api/tools/world.query.d.ts
+  s_d932b902720f7e::t_68f147fd5ae3a6 42,100
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/SeedWorldAgentApplication.ts
+  s_d932b902720f7e::t_8cf5b2c222b74d 571-573
+  s_d932b902720f7e::t_999599679e8adf 160,472-473,476,479-480,532-533,543-544
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/object-management/README.md
+  s_d932b902720f7e::t_7922fd9bd686af 5,7-13
+  s_d932b902720f7e::t_d15be645c036a7 14-15
+world/gallery/shared/ai-chat/tests/project-file-view.spec.ts
+  s_d932b902720f7e::t_33e3898b613bb4 37,49,51
+world/gallery/demos/terrain/seed-world-planner/src/FrozenViewIdentityTexture.ts
+  s_d932b902720f7e::t_b80230418a7b5c 2,33
+  s_d932b902720f7e::t_e4833b26f9849a 14
+  s_d932b902720f7e::t_05eb3705dbbc3d 1,21,27-29
+  s_d932b902720f7e::t_00690591b9a15f 30
+world/gallery/shared/ai-chat/agent-failure.ts
+  s_d932b902720f7e::t_2ad74ca0d4a2cc 36
+  s_d932b902720f7e::t_5fff1ec809fb6c 75-81
+world/gallery/tests/runtime-editor/docs/RUNTIME_PROJECT_IMPLEMENTATION.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 92
+world/gallery/tests/llm/retrieval-acceptance.ts
+  s_d932b902720f7e::t_5116d9bc46c07b 19
+  s_d932b902720f7e::t_7e243b54dc3156 42-51
+  s_d932b902720f7e::t_3c27a275ef5caf 1-18,20-41,52-54
+world/gallery/shared/ai-chat/tests/agent-failure-statistics.spec.ts
+  s_d932b902720f7e::t_bb9fd5cb26df5e 86,89,127-131
+  s_d932b902720f7e::t_2d51bef268a60c 132
+world/gallery/shared/retrieval/scripts/build-examples.ts
+  s_d932b902720f7e::t_e087e508fa6d2c 1-8,10-42
+  s_d932b902720f7e::t_1a943047cd1c2b 9
+world/gallery/tests/llm/task-trace.mjs
+  s_d932b902720f7e::t_f2e9e61dd9f12f 1-34
+world/scripts/build-runtime-declarations.mjs
+  s_d932b902720f7e::t_c81fe5fe13b21b 31
+world/gallery/tests/llm/seed-world-retrieval.ts
+  s_d932b902720f7e::t_e9101213bcc124 3-5,8
+  s_d932b902720f7e::t_7efb9a86dfabee 1-2,6-7
+world/gallery/demos/terrain/seed-world-planner/README.md
+  s_d932b902720f7e::t_4ae6f41db226a9 119
+  s_d932b902720f7e::t_2cce8a6b5270a8 96,98,102
+  s_d932b902720f7e::t_e9fde878fc3266 108,112,114,116
+  s_d932b902720f7e::t_e49efdbf891e0b 106,110
+world/gallery/shared/ai-chat/tests/TrajectoryToolReceipts.spec.ts
+  s_d932b902720f7e::t_cb66f9ae2076dc 105
+  s_d932b902720f7e::t_5fff1ec809fb6c 103
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/vegetation/README.md
+  s_d932b902720f7e::t_7922fd9bd686af 5,7-11,13,15-16,18-22,24-32
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/spatial/README.md
+  s_d932b902720f7e::t_7922fd9bd686af 5-30
+world/gallery/shared/ai-chat/tests/vfs-operations.spec.ts
+  s_d932b902720f7e::t_33e3898b613bb4 16,23,41,56-57
+world/gallery/shared/runtime-editor-agent/runtime-native-tools.ts
+  s_d932b902720f7e::t_fc73031a7900f4 2,38
+  s_d932b902720f7e::t_90268577801f5b 19,32,56-57
+  s_d932b902720f7e::t_183e1228beb468 1
+world/gallery/demos/terrain/project-tests/FrozenViewIdentityTexture.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 15
+world/gallery/shared/ai-chat/agent-project-files.ts
+  s_d932b902720f7e::t_2e241b973d1b5a 3,10,16,34,39
+  s_d932b902720f7e::t_d0e3c66434577d 12,18,35,41,45
+  s_d932b902720f7e::t_6e507b0b74ceb6 48
+world/gallery/demos/terrain/seed-world-planner/assistant/SeedWorldSessionActivity.ts
+  s_d932b902720f7e::t_999599679e8adf 37-38,76,80
+world/gallery/shared/ai-chat/agent-loop.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 228,234,263,492,495,499,503-505,535
+  s_d932b902720f7e::t_2ad74ca0d4a2cc 517
+  s_d932b902720f7e::t_b4fc97f42819d5 2-3,279,306,458-459,477-479,481,484-486,493,500,507,509-513,521
+  s_d932b902720f7e::t_cc80c2e03784ad 197
+  s_d932b902720f7e::t_6e507b0b74ceb6 8,121
+  s_d932b902720f7e::t_54e38159953cf1 336,364,813,836,857-858,883
+  s_d932b902720f7e::t_a81cd81d090822 432-443,445-449,453-457,702,956-957
+  s_d932b902720f7e::t_2e241b973d1b5a 834
+  s_d932b902720f7e::t_8cf5b2c222b74d 365,814,835
+  s_d932b902720f7e::t_41d9624618c376 1,483
+  s_d932b902720f7e::t_b80230418a7b5c 311,317,325,540,575
+  s_d932b902720f7e::t_493054e1a703c9 444,450-452
+world/gallery/shared/runtime-editor/tests/configured-assets.spec.ts
+  s_d932b902720f7e::t_9ad3529cf400b9 195-196
+  s_d932b902720f7e::t_33e3898b613bb4 211
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/platform/describe.json
+  s_d932b902720f7e::t_3d3e3d44927b14 1-23
+world/gallery/shared/ai-chat/tests/TrajectoryContextTelemetry.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 73,78
+  s_d932b902720f7e::t_62d0efc17b86e5 75,79,98
+world/gallery/demos/terrain/seed-world-planner/SeedWorldProjectFormats.ts
+  s_d932b902720f7e::t_90268577801f5b 1,15,36,48
+world/gallery/shared/runtime-editor/tests/asset-import.spec.ts
+  s_d932b902720f7e::t_cc80c2e03784ad 51,60,63
+world/gallery/shared/ai-chat/tests/context-compaction-transport.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 8,40,44
+world/gallery/shared/ai-chat/ai-chat.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 219,221-222
+world/gallery/shared/retrieval/src/client.ts
+  s_d932b902720f7e::t_a4022e4c438455 54,56,60
+  s_d932b902720f7e::t_fc73031a7900f4 1,29-31
+  s_d932b902720f7e::t_4506fde33121dd 2-28,32-53,55,57-59,61-80
+world/gallery/shared/ai-chat/tests/AIChatInbox.spec.ts
+  s_d932b902720f7e::t_bb9fd5cb26df5e 385
+  s_d932b902720f7e::t_e0f16f2a31492e 23,203-204,296
+world/gallery/shared/retrieval/examples/public/library/assets/meshes/box/box.mesh
+  s_d932b902720f7e::t_3d3e3d44927b14 1-6
+world/gallery/shared/retrieval/src/worker-protocol.ts
+  s_d932b902720f7e::t_fc73031a7900f4 8
+  s_d932b902720f7e::t_4506fde33121dd 1-7,9-10
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/landscape-tools.ts
+  s_d932b902720f7e::t_17106e46454046 723,725
+world/gallery/tests/llm/trace-export-report.test.mjs
+  s_d932b902720f7e::t_112acef29aaa5c 35-39
+  s_d932b902720f7e::t_f06a27b6dbf0df 1-34,40-41
+world/gallery/demos/terrain/project-tests/SeedWorldKnowledge.spec.ts
+  s_d932b902720f7e::t_b4a2f752246902 16-29
+  s_d932b902720f7e::t_ba0252cf219d7c 41,45,73,182
+world/gallery/shared/ai-chat/tests/AIChatPhotoInput.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 25,156-157,161,174,176,257,265,267
+  s_d932b902720f7e::t_d0c22761df8c2c 18
+  s_d932b902720f7e::t_2c14738032e8b0 27
+  s_d932b902720f7e::t_e0f16f2a31492e 178,226
+world/gallery/demos/terrain/project-tests/NativeBuildingAssets.spec.ts
+  s_d932b902720f7e::t_6fcc94bf70957b 12
+world/gallery/shared/ai-chat/tests/AIChatSession.spec.ts
+  s_d932b902720f7e::t_5fff1ec809fb6c 19,157-158,357
+  s_d932b902720f7e::t_ab586aaffbfb4f 102,107,109-110,137,144,147,150-151,153,156,170,179,353,398
+  s_d932b902720f7e::t_bb9fd5cb26df5e 313
+  s_d932b902720f7e::t_e0f16f2a31492e 48,210,241,311,360
+  s_d932b902720f7e::t_e4833b26f9849a 345
+  s_d932b902720f7e::t_d0c22761df8c2c 382
+world/gallery/demos/terrain/project-tests/PresetSystemScript.spec.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 49,52,67
+world/gallery/tests/llm/atomic-oracles.mjs
+  s_d932b902720f7e::t_8e103a0afacb1d 90
+world/gallery/tests/llm/cases/view-pointer-building.json
+  s_d932b902720f7e::t_2ad74ca0d4a2cc 20,58
+  s_d932b902720f7e::t_e20fea3ffb5de2 28,31-32,66,69-70
+  s_d932b902720f7e::t_f52ac793a3f5e2 29-30,67-68
+world/gallery/shared/ai-chat/agent-protocol.ts
+  s_d932b902720f7e::t_993ec3edb475c1 48,51,53,55-57
+  s_d932b902720f7e::t_ab586aaffbfb4f 70,73,146,205,218-220
+  s_d932b902720f7e::t_5fff1ec809fb6c 177
+  s_d932b902720f7e::t_a81cd81d090822 147-152,203-204,225
+  s_d932b902720f7e::t_b80230418a7b5c 67
+  s_d932b902720f7e::t_2e241b973d1b5a 5,158
+  s_d932b902720f7e::t_03431067443970 24,27-31,34-40,43-44,47,52,54,58,106-133,178,181,185
+  s_d932b902720f7e::t_17106e46454046 74,84-97
+  s_d932b902720f7e::t_54e38159953cf1 159-160,171-173,176,179-180,182-184,186-197
+  s_d932b902720f7e::t_896b5816262892 1-2,6,79-83,98-100,223
+world/gallery/demos/terrain/seed-world-planner/systems/runtime.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 5
+  s_d932b902720f7e::t_2340b277add594 34
+world/gallery/shared/runtime-editor/generated/engine-runtime-files.json
+  s_d932b902720f7e::t_c81fe5fe13b21b 1
+world/gallery/demos/terrain/seed-world-planner/assistant/SeedWorldTaskPresentation.ts
+  s_d932b902720f7e::t_2c14738032e8b0 22,52
+  s_d932b902720f7e::t_ab586aaffbfb4f 21
+world/gallery/demos/terrain/project-tests/SeedWorldVoiceHudController.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 864
+  s_d932b902720f7e::t_cf4520bb66e281 900,904,906,911,913
+  s_d932b902720f7e::t_cbc77b576f4d80 400
+  s_d932b902720f7e::t_7cd2d5c3622ee6 131,137,144-145,333,680,822
+world/gallery/demos/terrain/project-tests/SnapshotSurfaceEncoding.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 1,3-5,7-49,59
+  s_d932b902720f7e::t_4ae6f41db226a9 6,50-58
+  s_d932b902720f7e::t_2c4733af1b5f73 2
+world/gallery/shared/ai-chat/tests/context-compaction-loop.spec.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 16,84,90
+  s_d932b902720f7e::t_e0f16f2a31492e 20-21,37-41,44-46,62,65-67,87,98,116-118,135
+world/gallery/shared/ai-chat/agent-types.ts
+  s_d932b902720f7e::t_2e241b973d1b5a 135-140,142-143
+  s_d932b902720f7e::t_5fff1ec809fb6c 521
+  s_d932b902720f7e::t_a81cd81d090822 153-158,160,232
+  s_d932b902720f7e::t_ab586aaffbfb4f 61,170,233
+  s_d932b902720f7e::t_896b5816262892 228
+  s_d932b902720f7e::t_54e38159953cf1 530
+  s_d932b902720f7e::t_d0e3c66434577d 134
+world/gallery/tests/runtime-editor/search-scene-performance.mjs
+  s_d932b902720f7e::t_c81fe5fe13b21b 365
+world/gallery/tests/llm/call-evidence.test.mjs
+  s_d932b902720f7e::t_fb80f9580f780a 1-26
+  s_d932b902720f7e::t_cb59f5c2cdbd2f 27-32
+world/gallery/tests/llm/view-pointer-oracle.test.mjs
+  s_d932b902720f7e::t_991a01517c9e84 132,153-155
+  s_d932b902720f7e::t_fb80f9580f780a 4,12-26,28,30-32,34-36,39-41,43-50,52-79,81-114,117-120
+  s_d932b902720f7e::t_dbeab8d0f1a715 6-11,27,29,37-38,80,121-131,133-150
+  s_d932b902720f7e::t_cf4520bb66e281 51,115
+  s_d932b902720f7e::t_a143d45d1f4226 116
+world/gallery/shared/runtime-editor-agent/runtime-native-editor.ts
+  s_d932b902720f7e::t_fc73031a7900f4 1,20
+  s_d932b902720f7e::t_2e241b973d1b5a 61-62
+  s_d932b902720f7e::t_90268577801f5b 65
+world/gallery/demos/agent-trajectory/tests/fixture.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 46,55
+world/gallery/shared/runtime-editor/scripts/runtime-script-compiler.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 27
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/spatial-tools.ts
+  s_d932b902720f7e::t_f2e9e61dd9f12f 30,184
+  s_d932b902720f7e::t_f06a27b6dbf0df 8
+world/gallery/shared/ai-chat/tests/agent-context.spec.ts
+  s_d932b902720f7e::t_4e1f2ea44f139f 1-38
+world/gallery/shared/ai-chat/agent-snapshots.ts
+  s_d932b902720f7e::t_896b5816262892 1-28
+world/gallery/shared/runtime-editor/scripts/runtime-host-declarations.ts
+  s_d932b902720f7e::t_d0e3c66434577d 7
+world/gallery/shared/runtime-editor-agent/native-editor-skill.ts
+  s_d932b902720f7e::t_d0e3c66434577d 2,4-5
+  s_d932b902720f7e::t_45d97fdb647701 3
+  s_d932b902720f7e::t_c81fe5fe13b21b 1
+world/gallery/shared/runtime-editor/generated/engine-runtime-index.json
+  s_d932b902720f7e::t_c81fe5fe13b21b 34,36-738
+world/gallery/shared/runtime-editor/project/runtime-asset-read.ts
+  s_d932b902720f7e::t_1f3329c2ed1d45 1
+  s_d932b902720f7e::t_90268577801f5b 2-76
+world/gallery/shared/ai-chat/trajectory/trajectory-model.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 841,1483
+  s_d932b902720f7e::t_cb66f9ae2076dc 850,853-854,856-857,860
+  s_d932b902720f7e::t_2c14738032e8b0 929
+world/gallery/demos/terrain/seed-world-planner/src/shaders/SnapshotSurfacePack.shader
+  s_d932b902720f7e::t_cbd2ddb5399153 26,29
+  s_d932b902720f7e::t_0c660c3b44f0b3 1-10,12-13,15,17-23,30-33
+  s_d932b902720f7e::t_fee5a698c2830f 11
+  s_d932b902720f7e::t_4ae6f41db226a9 14,24-25
+  s_d932b902720f7e::t_39abb72af87fdf 16,27-28
+world/gallery/shared/retrieval/UPSTREAM.md
+  s_d932b902720f7e::t_83d45e13b3c34b 1-11
+world/gallery/demos/terrain/seed-world-planner/spatial/farming/PlanningFarmingAssets.ts
+  s_d932b902720f7e::t_90268577801f5b 1,32,58
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/tools/spatial-tool-input.ts
+  s_d932b902720f7e::t_f2e9e61dd9f12f 6-7,9
+world/gallery/shared/runtime-editor-agent/README.md
+  s_d932b902720f7e::t_6a46817802df87 142,166
+  s_d932b902720f7e::t_c31dc33061710a 219
+  s_d932b902720f7e::t_21c5ae76863329 213-218,220-222
+  s_d932b902720f7e::t_183e1228beb468 206-212
+world/gallery/shared/runtime-editor/tests/dependency-publication.spec.ts
+  s_d932b902720f7e::t_6fcc94bf70957b 10
+world/gallery/shared/tiny-glade/tests/wood-arch-runtime.ts
+  s_d932b902720f7e::t_4489b920383252 273
+world/gallery/shared/retrieval/examples/main.ts
+  s_d932b902720f7e::t_e087e508fa6d2c 1-28
+world/gallery/shared/runtime-inspection/tests/browser.ts
+  s_d932b902720f7e::t_fee5a698c2830f 98,100-111,113-116,126-131
+  s_d932b902720f7e::t_28933b0051f347 112
+  s_d932b902720f7e::t_50944e85f8789a 16,90,97,132-165,329,337
+  s_d932b902720f7e::t_2b53ed0db779ac 1,59-60,64-69,73,117-125
+  s_d932b902720f7e::t_d0c22761df8c2c 2,198
+  s_d932b902720f7e::t_e9fde878fc3266 25,246-257,259-260,267,271,291,336
+  s_d932b902720f7e::t_e2aa9823cb0f66 78-89,91-96,99,237-245,338-340
+world/gallery/package.json
+  s_d932b902720f7e::t_bb0b2276dbd714 84-87,136-137
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldPhotoWorkspace.ts
+  s_d932b902720f7e::t_1e778fc75c3173 18,96,118,265,325,350,677-678,809-817,890-894,899,919
+world/gallery/shared/ai-chat/tests/agent-output.spec.ts
+  s_d932b902720f7e::t_3b3fd595a15af7 10,28,30
+world/gallery/tests/llm/snapshot-position-oracle.mjs
+  s_d932b902720f7e::t_e20fea3ffb5de2 1-50
+world/gallery/shared/ai-chat/tests/agent-skills.spec.ts
+  s_d932b902720f7e::t_e0f16f2a31492e 17-18,21
+  s_d932b902720f7e::t_79bea6514a07fa 1-9,12-16,19-20,22-23,26-36,39,42-45,47
+  s_d932b902720f7e::t_3b3fd595a15af7 10-11,24-25,37-38,40-41,46
+world/gallery/shared/ai-chat/agent-artifacts.ts
+  s_d932b902720f7e::t_c31dc33061710a 3-4,8,10,12-13,15,17-18,21-23,28-29,38,40-42,44,47-48,50,55-56
+  s_d932b902720f7e::t_cc80c2e03784ad 9,39,53
+  s_d932b902720f7e::t_6e507b0b74ceb6 1-2,5-7,11,14,16,19-20,24-27,30-37,43,45-46,49,51-52,54,57-58
+world/gallery/shared/runtime-editor/tests/runtime-script-compiler.spec.ts
+  s_d932b902720f7e::t_c81fe5fe13b21b 69
+world/gallery/demos/terrain/seed-world-planner/assistant/SeedWorldChatPanel.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 245
+  s_d932b902720f7e::t_0315e83c7099f2 247
+world/gallery/shared/ai-chat/tests/AgentNativeReadTools.spec.ts
+  s_d932b902720f7e::t_3df6b42c9e94d1 54,64,73,95
+  s_d932b902720f7e::t_5fff1ec809fb6c 39
+  s_d932b902720f7e::t_3b3fd595a15af7 85
+  s_d932b902720f7e::t_56515d78265a76 1-4,6-38,40-53,55-63,65-72,74-75
+  s_d932b902720f7e::t_9b879cadb9828b 5,91,98-117
+  s_d932b902720f7e::t_5d4479c349d464 76-84,86-90,92-94,96-97
+world/gallery/shared/runtime-inspection/tests/photo-resource-verification.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 117,128-129,134,139-140,146,153
+world/gallery/demos/terrain/seed-world-planner/SeedWorldDemo.ts
+  s_d932b902720f7e::t_e9101213bcc124 1-2,205-206,291,381
+  s_d932b902720f7e::t_79dfbf32940b8b 140,1101
+  s_d932b902720f7e::t_7efb9a86dfabee 139,1100
+  s_d932b902720f7e::t_0315e83c7099f2 1336
+world/gallery/shared/retrieval-agent/asset-source.ts
+  s_d932b902720f7e::t_fc73031a7900f4 1-45
+world/gallery/demos/terrain/project-tests/SeedWorldPicker.spec.ts
+  s_d932b902720f7e::t_d0c22761df8c2c 7
+  s_d932b902720f7e::t_9c859a0fe08309 29
+  s_d932b902720f7e::t_cbc77b576f4d80 27
+  s_d932b902720f7e::t_6f7114792bff0e 50-51
+world/gallery/shared/runtime-editor/generated/host-runtime-files.json
+  s_d932b902720f7e::t_c81fe5fe13b21b 2-107
+world/gallery/shared/runtime-editor/scripts/generate-host-declarations.mjs
+  s_d932b902720f7e::t_c81fe5fe13b21b 10
+world/gallery/shared/retrieval/src/contracts.ts
+  s_d932b902720f7e::t_46e1df880d9e14 59,67
+  s_d932b902720f7e::t_fc73031a7900f4 56,100-106
+  s_d932b902720f7e::t_a103b0ad48c886 3-4
+  s_d932b902720f7e::t_b42ab49872de2f 1-2,5-42,44-47,50-55,57,60-63,70-99,107
+  s_d932b902720f7e::t_1a943047cd1c2b 43
+  s_d932b902720f7e::t_cc62d3c5af35c7 48-49,58,64-66,68-69
+world/gallery/shared/retrieval/README.md
+  s_d932b902720f7e::t_c81fe5fe13b21b 22
+  s_d932b902720f7e::t_2a1d5ed07d215b 104
+  s_d932b902720f7e::t_9ef096cc3ea49a 50
+  s_d932b902720f7e::t_83d45e13b3c34b 14,24-29,59,66,83
+  s_d932b902720f7e::t_a4022e4c438455 1-13,15-16,23,30-49,51-58,60-61,64-65,67-82,84-103
+  s_d932b902720f7e::t_1a943047cd1c2b 62-63
+  s_d932b902720f7e::t_1d15654e08ab4b 115
+  s_d932b902720f7e::t_183e1228beb468 17-21
+  s_d932b902720f7e::t_dea9daf65b106b 105-114
+world/gallery/tests/llm/native-files-oracles.mjs
+  s_d932b902720f7e::t_3de02b0440ed58 2
+  s_d932b902720f7e::t_6bf20b6cae149c 14-18,20,45
+world/gallery/tests/llm/view-pointer-fixture.ts
+  s_d932b902720f7e::t_a190e017444868 7,11,14,32,52,55,74,77-79,86,100,104-106,134,137,153-154
+  s_d932b902720f7e::t_ca135b5503967a 83,145-149,156
+  s_d932b902720f7e::t_5737e4bed8f20b 1,12,22,56-59,61-73,75-76,80,85,101,136,138,142-144,151-152,158-164,166,184,187-192,195,199-216,218-223
+  s_d932b902720f7e::t_e20fea3ffb5de2 8,88-95,109-114,217
+  s_d932b902720f7e::t_cf4520bb66e281 6,107
+  s_d932b902720f7e::t_4c9706c1b55725 54,60,102-103,129-133,135,167-183
+  s_d932b902720f7e::t_5db51a831d1d44 81-82
+  s_d932b902720f7e::t_a40d58469c3db4 87,96-99,108,115-128
+  s_d932b902720f7e::t_991a01517c9e84 196-198
+world/gallery/shared/runtime-inspection/tests/photo-frame-verification.ts
+  s_d932b902720f7e::t_228a1945adfb61 56
+world/gallery/demos/terrain/e2e/seed-world-view-pointer.spec.ts
+  s_d932b902720f7e::t_a40d58469c3db4 29-38
+  s_d932b902720f7e::t_75daf96a9d3e48 4-5,7-8,11-15,17-20,22-28,39-41,43-50,52-55,58-61
+world/gallery/shared/ai-chat/agent-extensions.ts
+  s_d932b902720f7e::t_a81cd81d090822 5,18-19,50
+  s_d932b902720f7e::t_2e241b973d1b5a 20-21,57
+world/gallery/demos/terrain/seed-world-planner/agent-adapter/knowledge/runtime.md
+  s_d932b902720f7e::t_ba0252cf219d7c 13
+  s_d932b902720f7e::t_c81fe5fe13b21b 5-9
+world/gallery/demos/terrain/seed-world-planner/src/SeedWorldViewSnapshot.ts
+  s_d932b902720f7e::t_ab586aaffbfb4f 153,190,192,195,200,207,240-241,243-244,247,392-393,395,428-431,451,456-457,459,467,478
+  s_d932b902720f7e::t_999599679e8adf 40
+  s_d932b902720f7e::t_bb9fd5cb26df5e 142,151,163,191,206,245,292,321
+  s_d932b902720f7e::t_48a559264431a9 34,37
+  s_d932b902720f7e::t_0315e83c7099f2 2,8,157,161-162,168-169,171,196-199,201-205,208,210-233,246,416-419
+  s_d932b902720f7e::t_17106e46454046 424
+  s_d932b902720f7e::t_18b2e26acd5d38 35-36,41,413
+  s_d932b902720f7e::t_782a4300502c40 4,164-167,170,174-177,438-439
+  s_d932b902720f7e::t_05eb3705dbbc3d 1,31-32,48-49,56,311-312,314,338
+world/gallery/shared/runtime-editor-agent/assets-and-reuse.md
+  s_d932b902720f7e::t_ab586aaffbfb4f 48
+  s_d932b902720f7e::t_03431067443970 7,15,22,30,34,46,49-52
+  s_d932b902720f7e::t_c81fe5fe13b21b 1-6,8-14,16-21,23-29,31-33,35-45,47
+  s_d932b902720f7e::t_21c5ae76863329 53-58
+world/engine/overlay/pnpm-lock.yaml
+  s_d932b902720f7e::t_ce2f60ea13757e 488-490,4700-4704,9005-9011
+world/gallery/shared/retrieval/catalog.json
+  s_d932b902720f7e::t_b00eef83b81f76 1
+world/gallery/shared/runtime-editor/tests/retrieval-import.spec.ts
+  s_d932b902720f7e::t_ea5a33c5eef64a 1-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "204b507da84ae11b947f8c79246f62854589bd5a",
+  "prompts": {},
+  "sessions": {
+    "s_d932b902720f7e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13e33-360d-7f61-a7aa-efca0f53b092",
+        "model": "gpt-6-astra"
+      },
+      "human_author": "阿霑 <zhanyingwei.zyw@antgroup.com>"
+    }
+  }
+}
