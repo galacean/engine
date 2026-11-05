@@ -162,8 +162,7 @@ export class Collider extends Component implements ICloneHook<Collider> {
     if (nativeShape && shape._isShapeAttached !== attached) {
       if (attached) {
         nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-        this._nativeCollider.addShape(nativeShape);
-        this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
+        this._nativeCollider.addShape(nativeShape, this._collisionLayerIndex);
       } else {
         this._nativeCollider.removeShape(nativeShape);
       }

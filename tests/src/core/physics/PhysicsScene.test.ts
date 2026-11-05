@@ -931,7 +931,7 @@ describe("Physics Test", () => {
       const id = 0xffffffff;
       const nativeShape = backend.createBoxColliderShape(id, new Vector3(1, 1, 1), material);
       const nativeCollider = backend.createStaticCollider(new Vector3(0, 3, 0), new Quaternion());
-      nativeCollider.addShape(nativeShape);
+      nativeCollider.addShape(nativeShape, 0);
       native.addCollider(nativeCollider);
       const hits: number[] = [];
       native.raycastAll(new Vector3(-3, 3, 0), new Vector3(1, 0, 0), 100, Layer.Everything, (shapeID) =>

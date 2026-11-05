@@ -549,7 +549,7 @@ describe("MeshColliderShape PhysX", () => {
       const shape = new BoxColliderShape();
       const material = shape.material;
       const nativeCollider = (collider as any)._nativeCollider;
-      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShape").mockReturnValue(false);
+      const attachSpy = vi.spyOn(nativeCollider._pxActor, "attachShapeWithLayer").mockReturnValue(false);
 
       try {
         expect(() => collider.addShape(shape)).toThrowError(
