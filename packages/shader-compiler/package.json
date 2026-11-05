@@ -64,5 +64,18 @@
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-shader-parser": "workspace:*"
+  },
+  "typesVersions": {
+    "*": {
+      "offline": [
+        "types/offline.d.ts"
+      ],
+      "bundler/rollup": [
+        "types/bundler/rollup.d.ts"
+      ],
+      "bundler/precompile": [
+        "types/bundler/precompile.d.ts"
+      ]
+    }
   }
 }

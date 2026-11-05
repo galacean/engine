@@ -6,7 +6,15 @@ import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 const repositoryRoot = resolve(fileURLToPath(new URL("../..", import.meta.url)));
-const packageDirectories = ["math", "design", "core", "shader-parser", "shader-analyzer", "shader-compiler"] as const;
+const packageDirectories = [
+  "math",
+  "design",
+  "core",
+  "shader-parser",
+  "shader-analyzer",
+  "shader-compiler",
+  "shader"
+] as const;
 const temporaryRoot = mkdtempSync(join(tmpdir(), "galacean-shader-packages-"));
 const tarballDirectory = join(temporaryRoot, "tarballs");
 const consumerDirectory = join(temporaryRoot, "consumer");
@@ -14,7 +22,11 @@ const consumerDirectory = join(temporaryRoot, "consumer");
 beforeAll(() => {
   mkdirSync(tarballDirectory);
   mkdirSync(consumerDirectory);
-  const dependencies: Record<string, string> = {};
+  const dependencies: Record<string, string> = {
+    "rollup-v2": "npm:rollup@^2.79.2",
+    "rollup-v3": "npm:rollup@^3.29.4",
+    "rollup-v4": "npm:rollup@^4.24.0"
+  };
   for (const directory of packageDirectories) {
     const packageDirectory = join(repositoryRoot, "packages", directory);
     const packageJson = JSON.parse(readFileSync(join(packageDirectory, "package.json"), "utf8")) as { name: string };
@@ -46,7 +58,7 @@ beforeAll(() => {
     encoding: "utf8"
   });
   if (install.status !== 0) throw new Error(install.stderr || install.stdout);
-});
+}, 120_000);
 
 afterAll(() => {
   rmSync(temporaryRoot, { recursive: true, force: true });
@@ -121,6 +133,51 @@ new ShaderCompiler().generate(pass, ShaderLanguage.GLSLES100);
         "Node16",
         "--moduleResolution",
         "Node16",
+        sourceFile
+      ],
+      { cwd: consumerDirectory, encoding: "utf8" }
+    );
+    expect(typecheck.status, typecheck.stderr || typecheck.stdout).toBe(0);
+  });
+
+  it.each([
+    ["node", "CommonJS"],
+    ["Node16", "Node16"],
+    ["Bundler", "ESNext"]
+  ])("resolves public offline and bundler entry types with %s resolution", (moduleResolution, module) => {
+    const sourceFile = join(consumerDirectory, "public-subpaths.ts");
+    writeFileSync(
+      sourceFile,
+      `
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/offline";
+import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup";
+import { precompile } from "@galacean/engine-shader-compiler/bundler/precompile";
+import * as sources from "@galacean/engine-shader/sources";
+import type { Plugin as Rollup2Plugin } from "rollup-v2";
+import type { Plugin as Rollup3Plugin } from "rollup-v3";
+import type { Plugin as Rollup4Plugin } from "rollup-v4";
+const plugins: [Rollup2Plugin, Rollup3Plugin, Rollup4Plugin] = [shaderCompiler(), shaderCompiler(), shaderCompiler()];
+void plugins;
+new ShaderCompiler();
+new ShaderPrecompiler();
+shaderCompiler();
+void precompile;
+void sources;
+`
+    );
+    const typecheck = spawnSync(
+      join(repositoryRoot, "node_modules", ".bin", "tsc"),
+      [
+        "--noEmit",
+        "--strict",
+        "--skipLibCheck",
+        "--target",
+        "ES2022",
+        "--module",
+        module,
+        "--moduleResolution",
+        moduleResolution,
         sourceFile
       ],
       { cwd: consumerDirectory, encoding: "utf8" }

@@ -1,4 +1,3 @@
-import type { Plugin } from "rollup";
 import { runFull, startWatcher, normalizePath } from "./precompile";
 
 /** Controls the offline precompile step started by the Rollup plugin. */
@@ -37,6 +36,20 @@ export interface ShaderPluginOptions {
   precompile?: ShaderPrecompileOptions;
 }
 
+/** Minimal host context shared by supported Rollup and Vite versions. */
+interface ShaderPluginContext {
+  error(message: string): never;
+  warn(message: string): void;
+  meta: { watchMode: boolean };
+}
+
+/** The implemented hooks, without unrelated hooks tied to the build's Rollup version. */
+export interface ShaderCompilerPlugin {
+  name: string;
+  buildStart(this: ShaderPluginContext): Promise<void>;
+  transform(code: string, id: string): { code: string } | null;
+}
+
 /**
  * Pure transformer: take a file's id + source and emit JS module source.
  *
@@ -61,7 +74,7 @@ function transformAsModule(code: string, id: string): { code: string; map: { map
  * @returns Rollup plugin for shader source and artifact modules.
  * @throws Error during `buildStart` when offline precompilation reports failures.
  */
-export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
+export function shaderCompiler(options: ShaderPluginOptions = {}): ShaderCompilerPlugin {
   const { filter, precompile } = options;
   const precompileOptions: ShaderPrecompileOptions | undefined = precompile && {
     clean: true,
