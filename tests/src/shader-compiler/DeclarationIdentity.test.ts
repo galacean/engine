@@ -1,6 +1,6 @@
 import { Logger, Shader, ShaderLanguage, WebGLEngine, WebGLMode } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderCompiler as VerboseShaderCompiler } from "@galacean/engine-shader-compiler/verbose";
+import { ShaderPrecompiler } from "@galacean/engine-shader-compiler/precompile";
 import { describe, expect, it } from "vitest";
 
 Logger.enable();
@@ -47,14 +47,11 @@ const cases = [
 ];
 
 describe("conditional declaration identity", () => {
-  for (const [mode, Compiler] of [
-    ["release", ShaderCompiler],
-    ["verbose", VerboseShaderCompiler]
-  ] as const) {
+  for (const mode of ["runtime", "precompiled"] as const) {
     for (const language of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
       it.each(cases)(`${mode} GLSLES${language}: $name`, async (testCase) => {
         const previousCompiler = Shader._shaderCompiler;
-        const compiler = new Compiler();
+        const compiler = new ShaderCompiler();
         const engine = await WebGLEngine.create({
           canvas: document.createElement("canvas"),
           shaderCompiler: compiler,
@@ -65,8 +62,7 @@ describe("conditional declaration identity", () => {
         let shader: Shader | undefined;
         try {
           Shader._shaderCompiler = compiler;
-          shader = Shader.create(
-            `Shader "DeclarationIdentity_${mode}_${language}_${testCase.name}" {
+          const source = `Shader "DeclarationIdentity_${mode}_${language}_${testCase.name}" {
               SubShader "Default" { Pass "Forward" {
                 VertexShader = vert;
                 FragmentShader = frag;
@@ -78,9 +74,13 @@ describe("conditional declaration identity", () => {
                 void vert() { ${testCase.vertex ?? "gl_Position = vec4(0.0);"} }
                 void frag() { ${testCase.fragment} }
               } }
-            }`,
-            language
-          );
+            }`;
+          shader =
+            mode === "runtime"
+              ? Shader.create(source, language)
+              : Shader._createFromPrecompiled(
+                  JSON.parse(JSON.stringify(new ShaderPrecompiler().precompile(source, language)))
+                );
           expect(shader).toBeDefined();
           for (const macros of [[], ["USE_VALUE"]]) {
             expect(shader!.compileVariant(engine, macros), `macros: ${macros.join(", ")}`).toBe(true);

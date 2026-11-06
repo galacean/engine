@@ -40,5 +40,12 @@
   "files": [
     "dist/**/*",
     "types/**/*"
-  ]
+  ],
+  "typesVersions": {
+    "*": {
+      "sources": [
+        "types/src/sources.d.ts"
+      ]
+    }
+  }
 }

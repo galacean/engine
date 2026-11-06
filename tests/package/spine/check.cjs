@@ -112,9 +112,22 @@ WebGLEngine.create({ canvas: "canvas", spine: new Spine${version.replace(".", ""
   });
   const { output } = await bundle.generate({ format: "es" });
   assert(!bundle.cache.modules.some((module) => module.id.includes(`engine-spine-core-${other}`)));
+  const spineModules = bundle.cache.modules.filter((module) =>
+    /node_modules[\\/]@galacean[\\/]engine-spine(?:-core-[\d.]+)?[\\/]/.test(module.id)
+  );
+  assert(spineModules.length > 0, "The packed Spine modules must participate in the bundle");
+  // Core legitimately uses design's shader macro helpers; only Spine's contracts are type-only.
   assert(
-    !bundle.cache.modules.some((module) => /node_modules[\\/]@galacean[\\/]engine-design[\\/]/.test(module.id)),
-    "Type-only contracts must not introduce engine-design runtime imports"
+    !spineModules.some((module) =>
+      module.dependencies.some((id) => /node_modules[\\/]@galacean[\\/]engine-design[\\/]/.test(id))
+    ),
+    "Type-only Spine contracts must not introduce engine-design runtime imports"
+  );
+  assert(
+    !bundle.cache.modules.some((module) =>
+      /node_modules[\\/]@galacean[\\/]engine-shader-(?:analyzer|parser|compiler)[\\/]/.test(module.id)
+    ),
+    "The engine runtime must not bundle shader analyzers, parsers, or proof code"
   );
   assert(
     !output.some((chunk) => chunk.type === "chunk" && chunk.code.includes(`Spine${other.replace(".", "")}Runtime`))
