@@ -1,0 +1,209 @@
+{
+  "status": "confirmed core assembly, apertures, lintels; optional 80byte record confirmed clothline candidate",
+  "targetSha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+  "producer": {
+    "address": "0x101140d90",
+    "evidenceId": "ev_9620582b47549e1bc0f8307519612ecd8d098f8439eb16f64031483a2ad62136",
+    "files": [
+      "cottage-corner-generator.c",
+      "cottage-corner-generator.asm",
+      "cottage-add-lintels.asm",
+      "corner-helper-oracle-results.json",
+      "collision-loader-closures.asm"
+    ]
+  },
+  "types": {
+    "subtype": 3,
+    "ranks": [
+      1,
+      2,
+      3
+    ],
+    "frame": "decorators/window_cottage_corner_{rank}x1",
+    "glass": "decorators/window_cottage_corner_{rank}x1_glass",
+    "frameProgram": "country_core/nani_solid_vertex_color_window",
+    "glassProgram": "country_core/nani_solid_vertex_color_window_glass",
+    "scale": [
+      1,
+      1,
+      1
+    ],
+    "bones": null
+  },
+  "rectangle": {
+    "basis": "X=(a,b), Z=(-b,a), center=(cx,cz), dimensions=(w,d)",
+    "cornerIds": [
+      {
+        "id": 0,
+        "localPosition": [
+          "-w/2",
+          "-d/2"
+        ],
+        "normal": [
+          "-X-Z"
+        ],
+        "edgeDirs": [
+          "+X",
+          "+Z"
+        ]
+      },
+      {
+        "id": 1,
+        "localPosition": [
+          "-w/2",
+          "d/2"
+        ],
+        "normal": [
+          "-X+Z"
+        ],
+        "edgeDirs": [
+          "-Z",
+          "+X"
+        ]
+      },
+      {
+        "id": 2,
+        "localPosition": [
+          "w/2",
+          "d/2"
+        ],
+        "normal": [
+          "X+Z"
+        ],
+        "edgeDirs": [
+          "-X",
+          "-Z"
+        ]
+      },
+      {
+        "id": 3,
+        "localPosition": [
+          "w/2",
+          "-d/2"
+        ],
+        "normal": [
+          "X-Z"
+        ],
+        "edgeDirs": [
+          "+Z",
+          "-X"
+        ]
+      }
+    ],
+    "note": "Normalize diagonal normal. Existing attachment selects corner; generator does not choose nearest."
+  },
+  "nonRectangle": {
+    "formula": "P0=wall(s,y); Pminus=wall(project_clamp(s-0.1),y); Pplus=wall(project_clamp(s+0.1),y); dA=normalize(Pminus.xz-P0.xz); dB=normalize(Pplus.xz-P0.xz); N=rotateLeft(normalize(dB-dA)); skip invalid normalization",
+    "limitation": "kernel exists for nonrectangle; upstream eligible corner attachment not recovered. Rigid authored frame is not warped to arbitrary corner angle."
+  },
+  "placement": {
+    "C": "cached attachment position at requested y",
+    "W": "raw source collision mesh maxX-minX; loaded by closure0x1011b424c -> Mesh.collision_bbx0x101a4cc0c -> Aabb3.extent0x101ff85e0; library field+0x30",
+    "L": "f32(W / sqrt2)",
+    "sqrt2": 1.4142135381698608,
+    "A": "C.xz+dA*L",
+    "B": "C.xz+dB*L",
+    "Q": "yaw(atan2(N.x,N.z)), local+Z points outward",
+    "position": "[(A.x+B.x)/2,C.y,(A.z+B.z)/2]+Q*[0,0,f32(0.35638183)]",
+    "frameAndGlass": "same transform; glass emitted only public wall shapeTag@0x258<2"
+  },
+  "masonryOpening": {
+    "center": "original decorator dst_as_wall(s,y)",
+    "width": "2*L + f32(-0.504)",
+    "height": "collision.maxY-collision.minY",
+    "flag": 0,
+    "representation": "20byte wall-space aperture crossing perimeter corner, not world-space diagonal rectangle"
+  },
+  "woodSdf": {
+    "condition": "PublicWallState byte@0x29f !=0",
+    "layer": "rank+14 (15,16,17)",
+    "center": "original dst_as_wall",
+    "forward": "(Q*[0,0,1]).xz",
+    "origin": "frame assembly world position",
+    "curvedFlag": "shapeTag@0x258>1",
+    "recordBytes": 32
+  },
+  "foundationOpening": {
+    "center": "original dst_as_wall(s,y), no extra offset",
+    "width": "W*sqrt2-0.504+rankDelta",
+    "height": 1.600000023841858,
+    "rankDelta": [
+      -0.24300000071525574,
+      -0.07500000298023224,
+      -0.06599999964237213
+    ],
+    "kind": "StoneFoundationCutoutKind::cottage_rank(rank)"
+  },
+  "lintels": {
+    "producer": "0x1011047f0",
+    "mesh": "decorators/setdressing_window_lintel",
+    "program": "country_core/nani_solid_vertex_color_window",
+    "count": 2,
+    "inputPositions": [
+      "C*0.65+A*0.35 (Y=C.y)",
+      "C*0.65+B*0.35 (Y=C.y)"
+    ],
+    "inputForward": [
+      "rotateLeft(dA)",
+      "rotateLeft(dB)"
+    ],
+    "inputScale": [
+      1,
+      1,
+      1
+    ],
+    "heightOffset": 0.7150000929832458,
+    "outputPosition": "inputPosition+[0,heightOffset,0]; for rank>=2 first -=Q*[offset,0,0], last +=Q*[offset,0,0]",
+    "offset": 0.08099999278783798,
+    "scaleX": "(rank1 ? 1 : f32(0.82)) * (L / f32(0.9))",
+    "scaleYZ": [
+      1,
+      1
+    ],
+    "color": "same incoming frame colorId",
+    "heightClipping": false,
+    "topOpening": {
+      "condition": "PublicWallState byte@0x29f == 0",
+      "center": "dst_as_wall.with_y_offset(heightOffset)",
+      "width": "W+f32(0.35999998450279236); original constant differs from f32(0.36)",
+      "height": 0.20000000298023224,
+      "flag": 0
+    },
+    "aliasCaution": "0x10121ce28 has BOTH WallMaterial::is_wood and StructureType::is_fence names due identical code folding; body is byte load. Context +0x29f also controls wood SDF. Do not infer condition from objdump chosen is_fence name."
+  },
+  "optionalAccessory": {
+    "producerRange": "0x101141f84..0x1011420c0",
+    "condition": "shapeTag<2 && rank<3 && ((u32(seed)*0x22+0x398e1) mod2^32)%3==0",
+    "output": "80byte boxed record stored blueprint+0x140; transform Q, position framePosition+Q*[0,0,0.3], scale1; remaining fields wallId, dimension fields, decorator id",
+    "consumer": "instantiate_blueprints 087 lines507-533 copies boxed record to DecoratorVisualState initial Vec; generate_clothline_visuals 0x10114ccc4 reads same Vec at0x10114ceb8..cecc with80byte stride and decoratorId@+0x40. See corner-clothline-consumer.asm.",
+    "kind": "clothline candidate endpoint, not sill instance"
+  },
+  "validation": {
+    "controlledOriginalMachineCode": "corner-helper-oracle-results.json validates all4 rectangle positions, normals, ordered edge directions, quaternions",
+    "notValidated": "Full ECS generator invocation; optional clothline geometry/rendering; arbitrary curved wall upstream corner attachment eligibility.",
+    "nativeLintelReplay": "corner-lintel-oracle-results.json:6 cases rank1/2/3 times wood/nonwood; original instructions execute all transform and aperture writing; only3external lookup calls hooked to fixture facts."
+  },
+  "openQuestions": [
+    "Optional flowerbed and clothline generation is separate and not included in core window recipe.",
+    "Upstream editing eligibility for nonrectangle corner attachments not recovered.",
+    "Shipped standalone corner1 sill mesh runtime usage unconfirmed; core corner generator does not submit it."
+  ],
+  "sill": {
+    "observed": "No independent sill instance in analyzed corner generator. Shipped window_cottage_corner_1x1_sill asset exists but exact name does not appear in this binary and usage remains unconfirmed. Do not conditionally attach it based on clothline candidate branch.",
+    "scope": "This is absence within traced generator and direct material instance list, not proof asset unused globally."
+  },
+  "sourceDigests": {
+    "cottage-corner-generator.asm": "7dc9311f542ddc641100507b6e6bb2ea4e87bf913a09d67a3065e81945dc0ae2",
+    "cottage-add-lintels.asm": "e9179d47be8afb250b25dd4491f5bb570b7d8c1c7600b65800c973e4525fa488",
+    "cottage-add-lintels.c": "c4fdee10349e01a8caed0f634382260c9ccf405493534d3462ff03c3234ae553",
+    "corner-helper-oracle-results.json": "db45a37efc8435667c59dfb1e16508062a95ec5f1cfc6ba4884b320c0cf7effe",
+    "corner-lintel-oracle-results.json": "9b5b44d70f5e8ede45f1a668d4725b64e381051ef8b212d31b8618da0489eb5c",
+    "corner-clothline-consumer.asm": "9e0e18fc23d7d4d08fe95090a165c0044a86f54d8ffa3594733e447d0a70949d"
+  },
+  "hostImplementation": {
+    "rectangleCorners": "Use explicit authored perimeter knot; never nearest-corner snap. Curved-host corner API remains unsupported until native upstream eligibility is recovered.",
+    "resizing": "Host extension: XZ scale together, Y independently, main-frame dimensions. Scale native lintels and apertures together; validate the complete reservation.",
+    "editing": "Project output positions to incident host wall faces for edit UV; material UV remains original model UV.",
+    "scope": "Window body, glass, lintels, masonry aperture and native window-cut intent. ConstructionCornerDecorations emits windowCuts; ConstructionLayout binds them to wooden wall groups and ConstructionRenderPackage supplies the SDF consumer. Clothesline candidates and flower boxes remain separate decorations outside this recipe."
+  }
+}

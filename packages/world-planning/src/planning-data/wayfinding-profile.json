@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "id": "wayfinding-study-v1",
+  "status": "data-only",
+  "basis": "Tunable initial design ranges, not prescribed by Weenie theory or measured from Unity.",
+  "actorSpeedRef": "actor.walkMps",
+  "distanceMetric": "shortest-reachable-path-between-entrances",
+  "roles": [
+    {
+      "id": "destination",
+      "label": "目的地",
+      "spacingWalkSeconds": {
+        "min": 30,
+        "max": 60
+      },
+      "intent": "形成可抵达的主要目的地"
+    },
+    {
+      "id": "landmark",
+      "label": "方向地标",
+      "spacingWalkSeconds": {
+        "min": 15,
+        "max": 30
+      },
+      "intent": "形成局部方向提示与次级目的地"
+    },
+    {
+      "id": "breadcrumb",
+      "label": "面包屑",
+      "spacingWalkSeconds": {
+        "min": 4,
+        "max": 8
+      },
+      "intent": "沿路径提供连续的局部线索"
+    }
+  ],
+  "routeCoverage": {
+    "distanceMetric": "arc-length-along-reachable-route",
+    "lateralOffsetFromRoadEdgeM": {
+      "min": 1.5,
+      "max": 4
+    },
+    "offsetMeasures": "nearest-proxy-footprint-edge-to-road-boundary",
+    "sidePolicy": "alternate-or-compose",
+    "onBlocked": "skip-and-record-uncovered-interval",
+    "intervalRole": "breadcrumb"
+  },
+  "visibility": {
+    "initialState": "unverified",
+    "distanceAloneIsEvidence": false,
+    "requiredEvidence": ["observer-pose", "camera-projection", "occlusion-query", "visible-feature"],
+    "observationAnchors": ["poi-departure", "route-fork", "reveal-point"]
+  },
+  "proxies": [
+    {
+      "id": "village-destination",
+      "unitId": "village",
+      "guidanceRoles": ["destination"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "active",
+      "guidanceStatus": "data-only",
+      "shape": "assembly",
+      "moduleProfile": "units/village.json"
+    },
+    {
+      "id": "landform-destination",
+      "unitId": "mountain",
+      "guidanceRoles": ["destination", "landmark"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "legacy-experiment",
+      "guidanceStatus": "data-only",
+      "shape": "assembly",
+      "moduleProfile": "units/mountain.json"
+    },
+    {
+      "id": "vertical-landmark",
+      "unitId": "lookout",
+      "componentUnitIds": ["rock.spire"],
+      "guidanceRoles": ["landmark", "destination"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "data-only",
+      "guidanceStatus": "data-only",
+      "shape": "vertical",
+      "moduleProfile": "units/lookout.json"
+    },
+    {
+      "id": "platform-complex",
+      "unitId": "plateau",
+      "componentUnitIds": ["rock.terrace", "lookout"],
+      "guidanceRoles": ["landmark", "destination"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "data-only",
+      "guidanceStatus": "data-only",
+      "shape": "assembly",
+      "moduleProfile": "units/plateau.json"
+    },
+    {
+      "id": "roadside-rock",
+      "unitId": "landscape.rock",
+      "guidanceRoles": ["breadcrumb", "landmark"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "active",
+      "guidanceStatus": "data-only",
+      "shape": "rock",
+      "moduleProfile": "units/landscape.rock.json"
+    },
+    {
+      "id": "roadside-tree",
+      "unitId": "landscape.tree",
+      "guidanceRoles": ["breadcrumb", "landmark"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "active",
+      "guidanceStatus": "data-only",
+      "shape": "tree",
+      "moduleProfile": "units/landscape.tree.json"
+    },
+    {
+      "id": "roadside-shrub-proxy",
+      "unitId": "landscape.shrub",
+      "guidanceRoles": ["breadcrumb"],
+      "geometrySource": "unit-module",
+      "geometryStatus": "data-only",
+      "guidanceStatus": "data-only",
+      "shape": "shrub",
+      "note": "Low vegetation envelope only; no asset binding or placement implementation.",
+      "moduleProfile": "units/landscape.shrub.json"
+    }
+  ]
+}

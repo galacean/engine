@@ -1,0 +1,14 @@
+{
+  "name": "Billboard core diagnostics Material",
+  "shader": "Terrain/Debug/Core/Billboard",
+  "shaderRef": {
+    "url": "Shader/debug/Core/Billboard.shaderc"
+  },
+  "shaderData": {
+    "material_DebugView": {
+      "type": "Float",
+      "value": 0
+    }
+  },
+  "macros": []
+}

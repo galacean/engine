@@ -1,0 +1,1023 @@
+{
+  "version": "2.0",
+  "refs": [{ "url": "/Materials/M_VFX_Snow_01_56161fad42.mat" }],
+  "root": 0,
+  "entities": [{ "name": "P_VFX_Snow_01", "layer": 1, "components": [0] }],
+  "components": [
+    {
+      "type": "ParticleRenderer",
+      "props": {
+        "enabled": true,
+        "priority": 0,
+        "velocityScale": 0,
+        "lengthScale": 2,
+        "pivot": { "x": 0, "y": 0, "z": 0 },
+        "renderMode": 0,
+        "mesh": null,
+        "generator": {
+          "main": {
+            "duration": 5,
+            "isLoop": true,
+            "startDelay": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startLifetime": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startSpeed": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startSizeX": {
+              "module": "main",
+              "mode": 1,
+              "constantMin": 0.03,
+              "constantMax": 0.05,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startSizeY": {
+              "module": "main",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startSizeZ": {
+              "module": "main",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startSize3D": false,
+            "startRotationX": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startRotationY": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startRotationZ": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": -359.9999823999061,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "startRotation3D": true,
+            "flipRotation": 0,
+            "startColor": {
+              "module": "main",
+              "mode": 0,
+              "constantMax": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 },
+              "constantMin": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }
+            },
+            "gravityModifier": {
+              "module": "main",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0.2,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "simulationSpace": 1,
+            "simulationSpeed": 0.2,
+            "scalingMode": 1,
+            "playOnEnabled": true,
+            "maxParticles": 10000
+          },
+          "emission": {
+            "enabled": true,
+            "rateOverTime": {
+              "module": "emission",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 10000,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "rateOverDistance": {
+              "module": "emission",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "shape": {
+              "$type": "HemisphereShape",
+              "radius": 12,
+              "enabled": true,
+              "randomDirectionAmount": 0,
+              "rotation": { "x": 90, "y": 0, "z": 0 }
+            }
+          },
+          "sizeOverLifetime": {
+            "enabled": false,
+            "separateAxes": false,
+            "sizeX": {
+              "module": "sizeOverLifetime",
+              "mode": 2,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 1] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.922183796875] },
+                  { "$type": "CurveKey", "$args": [0.5, 0.75098815] },
+                  { "$type": "CurveKey", "$args": [1, 0.5019763] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "sizeY": {
+              "module": "sizeOverLifetime",
+              "mode": 2,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 1] },
+                  { "$type": "CurveKey", "$args": [0.25, 1] },
+                  { "$type": "CurveKey", "$args": [0.5, 1] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "sizeZ": {
+              "module": "sizeOverLifetime",
+              "mode": 2,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 1] },
+                  { "$type": "CurveKey", "$args": [0.25, 1] },
+                  { "$type": "CurveKey", "$args": [0.5, 1] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            }
+          },
+          "rotationOverLifetime": {
+            "enabled": false,
+            "separateAxes": false,
+            "rotationX": {
+              "module": "rotationOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "rotationY": {
+              "module": "rotationOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "rotationZ": {
+              "module": "rotationOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 45.00000209717174,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            }
+          },
+          "velocityOverLifetime": {
+            "enabled": true,
+            "space": 0,
+            "velocityX": {
+              "module": "velocityOverLifetime",
+              "mode": 1,
+              "constantMin": 8,
+              "constantMax": 6,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "velocityY": {
+              "module": "velocityOverLifetime",
+              "mode": 1,
+              "constantMin": -4,
+              "constantMax": -7,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "velocityZ": {
+              "module": "velocityOverLifetime",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "orbitalX": {
+              "module": "velocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "orbitalY": {
+              "module": "velocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "orbitalZ": {
+              "module": "velocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "radial": {
+              "module": "velocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "centerOffset": { "x": 0, "y": 0, "z": 0 }
+          },
+          "limitVelocityOverLifetime": {
+            "enabled": false,
+            "separateAxes": false,
+            "speedX": {
+              "module": "limitVelocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "speedY": {
+              "module": "limitVelocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "speedZ": {
+              "module": "limitVelocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "dampen": 1,
+            "drag": {
+              "module": "limitVelocityOverLifetime",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "multiplyDragByParticleSize": true,
+            "multiplyDragByParticleVelocity": true,
+            "space": 0
+          },
+          "noise": {
+            "enabled": true,
+            "strengthX": {
+              "module": "noise",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 3,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "strengthY": {
+              "module": "noise",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "strengthZ": {
+              "module": "noise",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "separateAxes": false,
+            "frequency": 1,
+            "scrollSpeed": 0,
+            "octaveCount": 1,
+            "octaveIntensityMultiplier": 0.5,
+            "octaveFrequencyMultiplier": 2
+          },
+          "inheritVelocity": {
+            "enabled": false,
+            "mode": 1,
+            "curve": {
+              "module": "inheritVelocity",
+              "mode": 0,
+              "constantMin": 0,
+              "constantMax": 2,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            }
+          },
+          "forceOverLifetime": {
+            "enabled": false,
+            "space": 0,
+            "forceX": {
+              "module": "forceOverLifetime",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "forceY": {
+              "module": "forceOverLifetime",
+              "mode": 1,
+              "constantMin": 2,
+              "constantMax": -1,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            },
+            "forceZ": {
+              "module": "forceOverLifetime",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 0,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            }
+          },
+          "colorOverLifetime": {
+            "enabled": false,
+            "color": {
+              "module": "colorOverLifetime",
+              "mode": 2,
+              "gradientMax": {
+                "$type": "ParticleGradient",
+                "$args": [
+                  [
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }, "time": 0 },
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 0.36078432, "intensity": 1 }, "time": 1 }
+                  ],
+                  [
+                    { "alpha": 1, "time": 0 },
+                    { "alpha": 0.36078432, "time": 0.15883115892271304 },
+                    { "alpha": 1, "time": 0.9558861676966507 },
+                    { "alpha": 0, "time": 1 }
+                  ]
+                ]
+              },
+              "gradientMin": {
+                "$type": "ParticleGradient",
+                "$args": [
+                  [
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }, "time": 0 },
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }, "time": 0.3 },
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }, "time": 0.6 },
+                    { "color": { "r": 1, "g": 1, "b": 1, "a": 1, "intensity": 1 }, "time": 1 }
+                  ],
+                  [
+                    { "alpha": 0, "time": 0 },
+                    { "alpha": 0.25, "time": 0.25 },
+                    { "alpha": 0.5, "time": 0.5 },
+                    { "alpha": 1, "time": 1 }
+                  ]
+                ]
+              }
+            }
+          },
+          "textureSheetAnimation": {
+            "enabled": false,
+            "type": 0,
+            "cycleCount": 1,
+            "tiling": { "x": 1, "y": 1 },
+            "frameOverTime": {
+              "module": "textureSheetAnimation",
+              "mode": 1,
+              "constantMin": 0,
+              "constantMax": 0.75,
+              "curveMax": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              },
+              "curveMin": {
+                "$type": "ParticleCurve",
+                "$args": [
+                  { "$type": "CurveKey", "$args": [0, 0] },
+                  { "$type": "CurveKey", "$args": [0.25, 0.25] },
+                  { "$type": "CurveKey", "$args": [0.75, 0.75] },
+                  { "$type": "CurveKey", "$args": [1, 1] }
+                ]
+              }
+            }
+          },
+          "subEmitters": { "enabled": false }
+        }
+      },
+      "calls": [{ "method": "setMaterial", "args": [{ "$ref": 0 }] }]
+    }
+  ]
+}

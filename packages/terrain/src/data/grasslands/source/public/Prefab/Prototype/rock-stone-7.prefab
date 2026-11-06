@@ -1,0 +1,161 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Models/07a9df1dc7ad79f1.glb",
+      "key": "meshes[1][0]"
+    },
+    {
+      "url": "Material/Surface/stones-789.mat"
+    },
+    {
+      "url": "Models/07a9df1dc7ad79f1.glb",
+      "key": "meshes[0][0]"
+    },
+    {
+      "url": "/Script/TerrainPrototypeMetadata.ts"
+    }
+  ],
+  "entities": [
+    {
+      "name": "rock-stone-7",
+      "children": [
+        1,
+        2
+      ],
+      "components": [
+        2
+      ]
+    },
+    {
+      "name": "rock-stone-7-lod0-Stone_7",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        0
+      ]
+    },
+    {
+      "name": "rock-stone-7-lod1-Stone_7_LOD0",
+      "position": [
+        0,
+        3.814697180359872e-8,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        1,
+        1,
+        1
+      ],
+      "components": [
+        1
+      ]
+    }
+  ],
+  "components": [
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 0
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "MeshRenderer",
+      "props": {
+        "mesh": {
+          "$ref": 2
+        },
+        "castShadows": true,
+        "receiveShadows": true
+      },
+      "calls": [
+        {
+          "method": "setMaterial",
+          "args": [
+            {
+              "$ref": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "Script",
+      "script": 3,
+      "props": {
+        "geometry": {
+          "kind": "lod-group",
+          "lodGroup": {
+            "fadeMode": "CrossFade",
+            "animateCrossFading": true,
+            "localReferencePoint": [
+              -0.25580168,
+              0.5025563,
+              -0.035490632
+            ],
+            "size": 2.5370743,
+            "lods": [
+              {
+                "screenRelativeTransitionHeight": 0.15238572657108307,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      0
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              },
+              {
+                "screenRelativeTransitionHeight": 0.022732652723789215,
+                "fadeTransitionWidth": 0,
+                "renderers": [
+                  {
+                    "entityPath": [
+                      1
+                    ],
+                    "componentIndex": 0
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "root": 0
+}

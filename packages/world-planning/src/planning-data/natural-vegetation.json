@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "referenceTree": "SM_BirchTree_01",
+  "referenceAreaSideInTreeHeights": 3.2,
+  "spatialUnits": "reference-tree-height",
+  "samplingBudgetPerReferenceArea": {
+    "candidates": 180000,
+    "instances": 60000
+  },
+  "planning": {
+    "grassRelativeHeight": 0.65,
+    "grassHeightVariation": 0.45,
+    "roadsideGrassHeightRatio": 0.65,
+    "roadsideBandM": 6,
+    "roadsideDensityMultiplier": 1,
+    "solidEdgeBandM": 6,
+    "solidEdgeDensityMultiplier": 20
+  },
+  "edgePlantingLayers": [
+    "shrubs",
+    "cover",
+    "flowers"
+  ],
+  "defaults": {
+    "scale": [
+      0.65,
+      1.25
+    ],
+    "clusterRadius": 0.25,
+    "clusterStrength": 0.9,
+    "footprintRatio": 0.1,
+    "maxSlopeDegrees": 40,
+    "speciesRegions": {
+      "sizeMetres": 48,
+      "transitionMetres": 4
+    }
+  },
+  "layers": [
+    {
+      "key": "trees",
+      "id": "乔木",
+      "countPerReferenceArea": 105,
+      "density": 1,
+      "rule": {
+        "scale": [
+          0.5,
+          1.05
+        ],
+        "speciesRegions": {
+          "sizeMetres": 192,
+          "transitionMetres": 16
+        }
+      }
+    },
+    {
+      "key": "grass",
+      "id": "低草铺底",
+      "countPerReferenceArea": 0,
+      "density": 1,
+      "rule": {
+        "scale": [
+          0.45,
+          0.85
+        ]
+      }
+    },
+    {
+      "key": "shrubs",
+      "id": "小灌木",
+      "countPerReferenceArea": 220,
+      "density": 0.03,
+      "rule": {
+        "scale": [
+          0.1,
+          0.55
+        ],
+        "clusterRadius": 0.18,
+        "companionPlanting": {
+          "strength": 0.75,
+          "coverage": 0.8
+        },
+        "speciesRegions": {
+          "localMixture": {
+            "grounded-crown": 1,
+            "raised-crown": 1
+          }
+        }
+      }
+    },
+    {
+      "key": "herbs",
+      "id": "高草与杂草",
+      "countPerReferenceArea": 1400,
+      "density": 0,
+      "rule": {
+        "scale": [
+          0.55,
+          1.35
+        ],
+        "clusterRadius": 0.16,
+        "clusterStrength": 1,
+        "companionPlanting": {
+          "strength": 0.65,
+          "densityMultiplier": 2.5
+        }
+      }
+    },
+    {
+      "key": "cover",
+      "id": "匍匐地被",
+      "countPerReferenceArea": 850,
+      "density": 0,
+      "rule": {
+        "scale": [
+          0.5,
+          1.15
+        ],
+        "clusterRadius": 0.2,
+        "companionPlanting": {
+          "strength": 0.55,
+          "densityMultiplier": 2
+        }
+      }
+    },
+    {
+      "key": "flowers",
+      "id": "零星野花",
+      "countPerReferenceArea": 160,
+      "density": 0.1,
+      "rule": {
+        "scale": [
+          0.5,
+          1
+        ]
+      }
+    },
+    {
+      "key": "litter",
+      "id": "落叶与菌类",
+      "countPerReferenceArea": 240,
+      "density": 0,
+      "rule": {
+        "scale": [
+          0.6,
+          1
+        ],
+        "clusterRadius": 0.15,
+        "companionPlanting": {
+          "strength": 0.9,
+          "densityMultiplier": 3
+        }
+      }
+    }
+  ],
+  "companionPatches": {
+    "anchorLayers": [
+      "乔木",
+      "岩石"
+    ],
+    "centerRadiusRatio": 0.85,
+    "patchRadiusRatio": 0.35,
+    "coverage": 0.55,
+    "aspectRatio": [
+      1,
+      2
+    ]
+  },
+  "companionStones": {
+    "coverage": 0.35,
+    "scale": [
+      0.7,
+      1.4
+    ]
+  }
+}

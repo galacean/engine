@@ -1,0 +1,168 @@
+{
+  "binarySha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+  "function": {
+    "name": "system_decorator::decorator_visual::lantern::generate_lanterns",
+    "entry": "0x1010f42c8",
+    "endExclusive": "0x1010f617c",
+    "sha256": "451a0c24f434c32a6b04e4ed6af7a25c82aa99d649c3eea216959bb9bcdf763c"
+  },
+  "evidenceType": "shipped-arm64-instruction-and-resource-inspection",
+  "bindingPairs": [
+    {
+      "mesh": "decorators/lantern_wall",
+      "shader": "country_core/nani_uber",
+      "instructionRange": [
+        "0x1010f55c0",
+        "0x1010f55dc"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_wall_inside",
+      "shader": "country_core/nani_lantern_emissive",
+      "instructionRange": [
+        "0x1010f56d4",
+        "0x1010f56f0"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_terrain",
+      "shader": "country_core/nani_uber",
+      "instructionRange": [
+        "0x1010f4df8",
+        "0x1010f4e14"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_terrain_support",
+      "shader": "country_core/nani_uber",
+      "instructionRange": [
+        "0x1010f4ee8",
+        "0x1010f4f04"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_terrain_inside",
+      "shader": "country_core/nani_lantern_emissive",
+      "instructionRange": [
+        "0x1010f5000",
+        "0x1010f501c"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_flat_roof",
+      "shader": "country_core/nani_uber",
+      "instructionRange": [
+        "0x1010f5bf4",
+        "0x1010f5c10"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    },
+    {
+      "mesh": "decorators/lantern_flat_roof_inside",
+      "shader": "country_core/nani_lantern_emissive",
+      "instructionRange": [
+        "0x1010f5d08",
+        "0x1010f5d24"
+      ],
+      "recipeMeshSlot": "0x90 pointer + length",
+      "recipeShaderSlot": "0xa0 pointer + length"
+    }
+  ],
+  "wallFilamentCenter": {
+    "value": [
+      0,
+      0,
+      0.367000013589859
+    ],
+    "instructions": [
+      "0x1010f5714",
+      "0x1010f5724"
+    ],
+    "constantAddress": "0x10260d258",
+    "space": "source mesh; transform with shared body/inside affine, no extra world warp"
+  },
+  "shaders": [
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_uber.precomp",
+      "sha256": "ac44377b07affa4a679663b32a04e149087a22ced581c7cd9f1e24d165024858",
+      "offset": 137,
+      "size": 6372,
+      "moduleSha256": "c346807a3e674d55a41cfc1162d0cc7f9f5501b8c78fed177365332c28abf8a9"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_uber.precomp",
+      "sha256": "ac44377b07affa4a679663b32a04e149087a22ced581c7cd9f1e24d165024858",
+      "offset": 6697,
+      "size": 13476,
+      "moduleSha256": "26b7fbf6bf2a0c7e9d869720babf5e20ecea29af8f20be6bb3c39f894ea7a153"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_uber.precomp",
+      "sha256": "ac44377b07affa4a679663b32a04e149087a22ced581c7cd9f1e24d165024858",
+      "offset": 24591,
+      "size": 6372,
+      "moduleSha256": "c346807a3e674d55a41cfc1162d0cc7f9f5501b8c78fed177365332c28abf8a9"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_uber.precomp",
+      "sha256": "ac44377b07affa4a679663b32a04e149087a22ced581c7cd9f1e24d165024858",
+      "offset": 31151,
+      "size": 6032,
+      "moduleSha256": "e8fe27e761cc6a0a4c50ae0c0a7a45507d02d986ac186d52694faf48f0dd2e92"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_lantern_emissive.precomp",
+      "sha256": "fe95a859dc934e40ae49c7f068bdc2852538d3cab85b01833e858ca3cc57db93",
+      "offset": 161,
+      "size": 13928,
+      "moduleSha256": "40a5b4c1b9440fb9f6e96a0621d18191586df9d8ac71a4910f718ffdcd2c84d1"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_lantern_emissive.precomp",
+      "sha256": "fe95a859dc934e40ae49c7f068bdc2852538d3cab85b01833e858ca3cc57db93",
+      "offset": 14217,
+      "size": 9744,
+      "moduleSha256": "48f9d055342684d8d05c7320c9fb9299f111e654f421009f67dd47c10bf6a4a3"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_lantern_emissive.precomp",
+      "sha256": "fe95a859dc934e40ae49c7f068bdc2852538d3cab85b01833e858ca3cc57db93",
+      "offset": 27868,
+      "size": 13928,
+      "moduleSha256": "40a5b4c1b9440fb9f6e96a0621d18191586df9d8ac71a4910f718ffdcd2c84d1"
+    },
+    {
+      "source": "/Users/zhanyingwei/Library/Application Support/Steam/steamapps/common/Tiny Glade/compiled-shaders/country-core/compiled/nani_lantern_emissive.precomp",
+      "sha256": "fe95a859dc934e40ae49c7f068bdc2852538d3cab85b01833e858ca3cc57db93",
+      "offset": 41924,
+      "size": 188,
+      "moduleSha256": "56c0e2acb62d33b7c329152b178c7d704a4844b1cf4566ea68956c01533f1f7d"
+    }
+  ],
+  "recovered": {
+    "body": "nani_uber untextured Vertex_Color/Vertex_Normal, roughness .8; original shader does not consume soft_normal",
+    "inside": "original Vertex_Color, roughness .8, five linear-HDR colors; filament distance to eye ray, dual exp2(-50*r2) and exp2(-200*r2) kernel",
+    "warp": "both original vertex shaders apply only instance affine to position and filament center; neither applies plaster warp",
+    "nativeVariants": "wall, terrain (includes support), flat_roof; no separately evidenced hanging-wall model"
+  },
+  "hostAdaptation": {
+    "lighting": "native G-buffer output and ev_mult are replaced by the existing scene lighting/exposure",
+    "brightness": "author lightIntensity is static; native 4Hz .35..1 smooth noise flicker is not restored because current host has no shared time channel",
+    "models": "current wall-attached wall-lamp and lantern both correctly use wall variant; introducing terrain or roof mounting requires a distinct attachment contract"
+  },
+  "limitations": [
+    "Instruction inspection establishes bindings and constants, not in-game rendering observation.",
+    "Global theme-4 snow treatment in nani_uber belongs to scene seasonal state and is not implemented by this building material."
+  ]
+}

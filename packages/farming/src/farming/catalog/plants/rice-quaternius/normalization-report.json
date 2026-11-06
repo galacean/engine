@@ -1,0 +1,156 @@
+{
+  "method": "按原始 .blend 文件提取完整植株；旧 EEVEE/Cycles 专用输出替换为 ALL 输出并连接原文件中颜色一致的 Principled 节点以保留 GLB PBR 颜色；Flower/Flowers 合并为花卉，Coconut_Half 归入椰子树产物。生长阶段与采收后植株、产物分别登记，可复用成熟形态到多个阶段组。",
+  "stages": [
+    {
+      "id": "growth-1",
+      "sourceFile": "Rice_1.blend",
+      "sourceSha256": "8df4b8e6736a51f96adc4653f820419af0e87d5eb1468232f4845eb826cccd51",
+      "sourceObjects": [
+        "Rice_1"
+      ],
+      "materialColors": {
+        "Green": [
+          0.23164623975753784,
+          0.44797465205192566,
+          0.12646017968654633,
+          1.0
+        ]
+      },
+      "triangles": 88,
+      "dimensionsMeters": [
+        0.15841075778007507,
+        0.3678670823574066,
+        0.030617027543485165
+      ],
+      "originBlender": [
+        -0.00461244210600853,
+        -0.0018356081563979387,
+        0.0009490014053881168
+      ],
+      "sha256": "cbb3d66f236342ad4795b2f1fc7fc41cc585e5429a3864fcf9920fc6a0445c8e",
+      "bytes": 6032
+    },
+    {
+      "id": "growth-2",
+      "sourceFile": "Rice_2.blend",
+      "sourceSha256": "6d75ef34fa68561921166054228552b95dd48e5a2fce422303e57c1e8a2519ab",
+      "sourceObjects": [
+        "Rice_2"
+      ],
+      "materialColors": {
+        "Green": [
+          0.23164623975753784,
+          0.44797465205192566,
+          0.12646017968654633,
+          1.0
+        ]
+      },
+      "triangles": 294,
+      "dimensionsMeters": [
+        0.25466371327638626,
+        0.5647542476654053,
+        0.12721046805381775
+      ],
+      "originBlender": [
+        0.002596223959699273,
+        2.3283064365386963e-10,
+        -0.015083872713148594
+      ],
+      "sha256": "242783fab85ba50d26618ae350bccd634d3afbf56537e018b9024c1803f4084d",
+      "bytes": 17348
+    },
+    {
+      "id": "growth-3",
+      "sourceFile": "Rice_3.blend",
+      "sourceSha256": "e9561419130d8abc434302ba99c11e68d9595cb55e54a6d46234d71ea16dc7d0",
+      "sourceObjects": [
+        "Rice_3"
+      ],
+      "materialColors": {
+        "Green": [
+          0.23164623975753784,
+          0.44797465205192566,
+          0.12646017968654633,
+          1.0
+        ]
+      },
+      "triangles": 628,
+      "dimensionsMeters": [
+        0.6185909807682037,
+        0.76914381980896,
+        0.23835241794586182
+      ],
+      "originBlender": [
+        -0.0013157762587070465,
+        -0.002689976245164871,
+        -0.02307559736073017
+      ],
+      "sha256": "2c8263d55824ce94c9553c434b6f14fd6082cceca691c2ab7ff03e851ea3521b",
+      "bytes": 35724
+    },
+    {
+      "id": "growth-4",
+      "sourceFile": "Rice_4.blend",
+      "sourceSha256": "512d86c5a4fb54128956d3a0b1dd00230da801b9b6b8740e6509afba97874362",
+      "sourceObjects": [
+        "Rice_4"
+      ],
+      "materialColors": {
+        "Green": [
+          0.23164623975753784,
+          0.44797465205192566,
+          0.12646017968654633,
+          1.0
+        ],
+        "LightGreen": [
+          0.5321990847587585,
+          0.661860466003418,
+          0.20070265233516693,
+          1.0
+        ]
+      },
+      "triangles": 1940,
+      "dimensionsMeters": [
+        0.7785822451114655,
+        0.9534552693367004,
+        0.8808432221412659
+      ],
+      "originBlender": [
+        -0.0013972781598567963,
+        -0.03375159204006195,
+        -0.03752204403281212
+      ],
+      "sha256": "f798224ec0262d93379c7995bd067e3a689fc9b2afdd31c3bbfcbabe25411517",
+      "bytes": 108508
+    },
+    {
+      "id": "crop",
+      "sourceFile": "Rice_Crop.blend",
+      "sourceSha256": "340de7609993ee458295e5f7539e85850de6ba9e78be50baff577b08ecc0acfd",
+      "sourceObjects": [
+        "Rice_Crop"
+      ],
+      "materialColors": {
+        "LightGreen": [
+          0.5321990847587585,
+          0.661860466003418,
+          0.20070265233516693,
+          1.0
+        ]
+      },
+      "triangles": 370,
+      "dimensionsMeters": [
+        0.9062734693288803,
+        0.045661766082048416,
+        0.3868306279182434
+      ],
+      "originBlender": [
+        0.22454364597797394,
+        0.08090416342020035,
+        -0.05154765769839287
+      ],
+      "sha256": "79b69d90b8b0407855532e0a8f72c3c4a22d3d1554479704d4cb0ed87ee2bf7d",
+      "bytes": 21460
+    }
+  ]
+}

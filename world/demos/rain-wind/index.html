@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>雨 × 风独立验收场</title>
+  </head>
+  <body data-state="loading" data-paused="false">
+    <canvas id="canvas" aria-label="雨受风轨迹独立验收场"></canvas>
+
+    <header class="hero">
+      <p>TERRAIN / RAIN WIND RESPONSE</p>
+      <h1>雨 × 风</h1>
+      <div class="hero__state"><span></span><output data-output="state">正在加载</output></div>
+    </header>
+
+    <div class="flow" aria-hidden="true">
+      <span class="flow__label">AIR VELOCITY</span>
+      <div class="flow__arrow" data-flow-arrow><i></i></div>
+      <output data-output="flow-direction">+X / 110 m/s</output>
+    </div>
+
+    <aside class="panel" aria-label="雨与风控制">
+      <section>
+        <div class="section-title">
+          <span>WIND VELOCITY</span>
+          <small>原始空气速度直接进入逐粒子 WOL / TF</small>
+        </div>
+        <div class="preset-grid" aria-label="0 到 110 米每秒风速阶梯">
+          <button type="button" data-wind-preset="0">0</button>
+          <button type="button" data-wind-preset="12">12</button>
+          <button type="button" data-wind-preset="22">22</button>
+          <button type="button" data-wind-preset="37">37</button>
+          <button type="button" data-wind-preset="48">48</button>
+          <button type="button" data-wind-preset="60">60</button>
+          <button type="button" data-wind-preset="75">75</button>
+          <button type="button" data-wind-preset="90">90</button>
+          <button type="button" data-wind-preset="110" data-active="true">110</button>
+        </div>
+        <label class="control control--wind">
+          <span><b>连续风速</b><output data-output="wind-speed">+110.0 m/s</output></span>
+          <input data-control="wind-range" type="range" min="-110" max="110" step="0.5" value="110" />
+        </label>
+        <label class="number-control">
+          <span>物理输入</span>
+          <input data-control="wind-number" type="number" step="0.5" value="110" inputmode="decimal" />
+          <em>m/s · 不封顶</em>
+        </label>
+        <div class="actions">
+          <button type="button" data-action="reverse">110 → -110 反向</button>
+          <button type="button" data-action="pause">暂停粒子</button>
+        </div>
+      </section>
+
+      <section>
+        <div class="section-title">
+          <span>RAIN ONLY</span>
+          <small>雪量固定为 0；湍流与雨量独立</small>
+        </div>
+        <label class="control">
+          <span><b>雨量</b><output data-output="rain-rate">100%</output></span>
+          <input data-control="rain-rate" type="range" min="0" max="1" step="0.01" value="1" />
+        </label>
+        <label class="control">
+          <span><b>雨湍流</b><output data-output="turbulence">15%</output></span>
+          <input data-control="turbulence" type="range" min="0" max="1" step="0.01" value="0.15" />
+        </label>
+        <div class="camera-grid" aria-label="观察机位">
+          <button type="button" data-camera="overview" data-active="true">全景</button>
+          <button type="button" data-camera="side">侧视轨迹</button>
+          <button type="button" data-camera="ground">近地落点</button>
+        </div>
+      </section>
+
+      <section class="metrics" aria-label="雨动力学指标">
+        <div><span>AIR TARGET</span><output data-output="air-target">…</output></div>
+        <div><span>RAIN TARGET</span><output data-output="rain-target">…</output></div>
+        <div><span>EMITTER OFFSET</span><output data-output="emitter-offset">…</output></div>
+        <div><span>0.5 s DISPLACE</span><output data-output="displacement">…</output></div>
+        <div><span>0.5 s TILT</span><output data-output="tilt">…</output></div>
+        <div><span>RAIN EMISSION</span><output data-output="emission">…</output></div>
+        <div><span>GROUND IMPACTS</span><output data-output="impacts">0</output></div>
+        <div><span>SNOW EMISSION</span><output data-output="snow-emission">0 /s</output></div>
+      </section>
+    </aside>
+
+    <aside class="legend" aria-label="场景说明">
+      <strong>同一条动力学链路</strong>
+      <p>远处雨幕和近地雨线使用相同风目标；近地雨线按解析位移反推出生点，最终飞溅应落在选中的地面接触点。</p>
+      <div>
+        <span><i class="legend__line legend__line--major"></i>10 m 横向标尺</span
+        ><span><i class="legend__line"></i>5 m 标尺</span>
+      </div>
+    </aside>
+
+    <div class="loading" role="status">
+      <span></span>
+      <div>
+        <strong>正在加载雨粒子</strong>
+        <p data-loading-message>装配生产 Rain VFX、WOL / TF 与平地碰撞表面…</p>
+      </div>
+    </div>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

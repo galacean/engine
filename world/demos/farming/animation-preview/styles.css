@@ -1,0 +1,420 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+  color: #303a34;
+  background: #f6f7f3;
+  --ink: #303a34;
+  --muted: #758077;
+  --line: #dfe4dc;
+  --leaf: #356947;
+  --leaf-wash: #e8efdf;
+  --paper: #fbfcf9;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+select {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--paper);
+  color: inherit;
+  padding: 8px 12px;
+}
+button {
+  cursor: pointer;
+}
+button:hover,
+select:hover {
+  border-color: #8da991;
+  background: #f1f5ed;
+}
+button[aria-pressed="true"] {
+  color: #245437;
+  background: var(--leaf-wash);
+  border-color: #b4c8a4;
+}
+button:disabled,
+input:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #568160;
+  outline-offset: 3px;
+}
+h1 {
+  font-size: 19px;
+  margin: 9px 0 12px;
+}
+h2 {
+  font-size: 16px;
+  margin: 8px 0;
+}
+p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  margin: 0;
+}
+.eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--leaf);
+}
+.workbench {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.tools {
+  padding: 28px 22px;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.catalog-heading p {
+  max-width: 180px;
+}
+#animations {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+#animations button {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  text-align: left;
+  width: 100%;
+  padding: 15px 12px;
+}
+.tool-number {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+#animations strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+}
+#animations small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.action-note {
+  border-top: 1px solid var(--line);
+  padding-top: 20px;
+}
+.action-note h2 {
+  font-size: 14px;
+}
+.action-note dl {
+  font-size: 11px;
+  margin-top: 20px;
+}
+.action-note dl div {
+  display: flex;
+  justify-content: space-between;
+  margin: 12px 0;
+}
+.action-note dt {
+  color: var(--muted);
+}
+.action-note dd {
+  margin: 0;
+}
+.scope-note {
+  margin-top: auto;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
+  font-size: 11px;
+}
+.stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100dvh;
+}
+.stage-heading {
+  padding: 18px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  background: var(--paper);
+}
+.stage-heading h2 {
+  margin: 6px 0 0;
+  font-size: 18px;
+}
+.view-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.viewport {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+  overflow: hidden;
+}
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+#status {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  padding: 9px 13px;
+  border-radius: 6px;
+  background: rgba(251, 252, 249, 0.93);
+  font-size: 12px;
+  color: var(--muted);
+}
+#status[hidden] {
+  display: none;
+}
+.phase {
+  position: absolute;
+  left: 24px;
+  bottom: 46px;
+  font-size: 12px;
+  color: #405040;
+  pointer-events: none;
+}
+.view-hint {
+  position: absolute;
+  left: 24px;
+  bottom: 22px;
+  font-size: 10px;
+  color: #758077;
+  pointer-events: none;
+}
+.transport {
+  padding: 20px 28px 18px;
+  border-top: 1px solid var(--line);
+  background: var(--paper);
+}
+.time-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.time-label output {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+#progress {
+  width: 100%;
+  accent-color: var(--leaf);
+  margin: 0 0 16px;
+  cursor: pointer;
+}
+.transport-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+.transport-actions label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+}
+input[type="checkbox"] {
+  accent-color: var(--leaf);
+}
+.transport-actions #play {
+  min-width: 72px;
+  background: var(--leaf);
+  color: #fff;
+  border-color: var(--leaf);
+}
+.speed-control select {
+  padding: 6px 8px;
+}
+#particle-hint {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+}
+.beats {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.beats button {
+  font-size: 10px;
+  padding: 5px 9px;
+  color: var(--muted);
+}
+.soil-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 11px;
+}
+.soil-actions button {
+  padding: 6px 10px;
+}
+.soil-actions output {
+  color: var(--muted);
+}
+.soil-actions [hidden] {
+  display: none;
+}
+@media (max-width: 760px) {
+  .workbench {
+    grid-template-columns: 1fr;
+  }
+  .tools {
+    padding: 14px 18px;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    gap: 14px;
+  }
+  .catalog-heading h1 {
+    margin: 4px 0;
+    font-size: 17px;
+  }
+  .catalog-heading p,
+  .action-note,
+  .scope-note {
+    display: none;
+  }
+  #animations {
+    flex-direction: row;
+    gap: 7px;
+  }
+  #animations button {
+    padding: 9px;
+    gap: 9px;
+  }
+  #animations small {
+    font-size: 10px;
+  }
+  .stage {
+    height: calc(100dvh - 135px);
+    min-height: 490px;
+  }
+  .stage-heading,
+  .transport {
+    padding: 14px 18px;
+  }
+  .transport-actions {
+    gap: 10px;
+  }
+  .viewport {
+    min-height: 240px;
+  }
+  #particle-hint {
+    margin-left: 0;
+    width: 100%;
+  }
+  .beats {
+    gap: 5px;
+  }
+}
+
+.soil-settings {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  margin-top: 14px;
+  font-size: 11px;
+}
+.soil-settings label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.soil-settings select {
+  padding: 5px 8px;
+}
+.moisture-control {
+  flex: 1;
+  max-width: 340px;
+  min-width: 220px;
+}
+#moisture {
+  flex: 1;
+  min-width: 70px;
+  accent-color: var(--leaf);
+}
+#moisture-value {
+  min-width: 32px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#soil-state[data-plantable="true"] {
+  color: var(--leaf);
+}
+#work-hint {
+  font-size: 10px;
+  margin-top: 8px;
+}
+
+[hidden] {
+  display: none !important;
+}
+.basket-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 14px;
+}
+.basket-controls label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+}
+#harvest-quantity {
+  width: 55px;
+}
+#harvest-controls p,
+#basket-state {
+  font-size: 11px;
+  line-height: 1.5;
+}
+#basket-state {
+  color: var(--leaf);
+}
+
+body[data-preview-animation="harvest"] .phase {
+  top: 18px;
+  bottom: auto;
+}
+body[data-preview-animation="harvest"] .view-hint {
+  top: 44px;
+  bottom: auto;
+}

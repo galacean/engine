@@ -1,0 +1,554 @@
+{
+  "version": 4,
+  "codec": "official-brotli-v1.2.0",
+  "profile": {
+    "version": 1,
+    "brotli": {
+      "quality": 11,
+      "lgwin": 20
+    },
+    "resources": {
+      "region-json": "Brotli",
+      "height-r16": "BrotliHeightmap",
+      "alphamap-rgba8": "Brotli"
+    }
+  },
+  "source": {
+    "repository": "https://github.com/google/brotli",
+    "commit": "028fb5a23661f123017c060daa546b55cf4bde29",
+    "emcc": "6.0.6",
+    "decoder": {
+      "optimization": "-O3",
+      "wasmBytes": 175149,
+      "wasmSha256": "ee61890379f7e97a03e205c6a35c6db7a38966155df496d87dbcac8809a347ac"
+    },
+    "encoder": {
+      "optimization": "-O3",
+      "wasmBytes": 702104,
+      "wasmSha256": "801086e67eb7d1210d8bdb715d1b13f338bbcb3d38cb0b9e3ffc8157f424da73"
+    }
+  },
+  "summary": {
+    "replacementFiles": 28,
+    "rawBytes": 41622326,
+    "preparedBytes": 33798247,
+    "encodedBytes": 5073327,
+    "savingsRatio": 0.8781104400556566,
+    "verifiedFiles": 28
+  },
+  "entries": [
+    {
+      "virtualPath": "Payloads/region-047e97450eb5/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-047e97450eb5/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-047e97450eb5/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 18861,
+      "rawSha256": "609386bda6fd1ff83ff0730983065e30b96c9701449c0fe8449038c199c0ac64",
+      "decodedSha256": "609386bda6fd1ff83ff0730983065e30b96c9701449c0fe8449038c199c0ac64",
+      "encodedSha256": "6f68e91f89078492a08a89c04624ac1de0e51daf0af0f7843293e187e1d5a4e0",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-047e97450eb5/height.r16",
+      "sourcePath": "public/Payloads/region-047e97450eb5/height.r16",
+      "encodedPath": "public/Payloads/region-047e97450eb5/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1083481,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1083481,
+      "encodedBytes": 320280,
+      "rawSha256": "e44caa7e08a15af0c74ddf5327b1afba7c5801793c6aceeb974eeefe8a6a4831",
+      "decodedSha256": "e44caa7e08a15af0c74ddf5327b1afba7c5801793c6aceeb974eeefe8a6a4831",
+      "encodedSha256": "97952dd60eee69c68250eb9e68098ad179cc79ed6c0046ddfae6f8180bca72b1",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-15b0aa2ac559/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-15b0aa2ac559/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-15b0aa2ac559/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 27699,
+      "rawSha256": "6ebe513e0bfc78d6dbc467fff60f144751ef6cbd8b01d1744e7e76d09559c1fc",
+      "decodedSha256": "6ebe513e0bfc78d6dbc467fff60f144751ef6cbd8b01d1744e7e76d09559c1fc",
+      "encodedSha256": "609cb826c2bc6e4cc42c7bfb730131cd5fde9c458eea8a77298a33e1673e5cc5",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-15b0aa2ac559/height.r16",
+      "sourcePath": "public/Payloads/region-15b0aa2ac559/height.r16",
+      "encodedPath": "public/Payloads/region-15b0aa2ac559/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1138571,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1138571,
+      "encodedBytes": 271920,
+      "rawSha256": "921d08fd71959689fac5305f385304f090ea045363c12390bab9b6b3087efb2b",
+      "decodedSha256": "921d08fd71959689fac5305f385304f090ea045363c12390bab9b6b3087efb2b",
+      "encodedSha256": "303ea8f246a54987963b78523074ba42bc8d12c55c9338b5851856ea81823c15",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-2352ee7f50ed/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-2352ee7f50ed/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-2352ee7f50ed/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 15,
+      "rawSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "decodedSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "encodedSha256": "ba55e76967d8eb5a51fb64ba1ca8ad9bffc1eeb198fd351d70c20be901657236",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-2352ee7f50ed/height.r16",
+      "sourcePath": "public/Payloads/region-2352ee7f50ed/height.r16",
+      "encodedPath": "public/Payloads/region-2352ee7f50ed/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1068519,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1068519,
+      "encodedBytes": 445152,
+      "rawSha256": "f67aa6ce823ca91fdff488b2cd137d70a1b451938e2b384db538a7f509a8e7ab",
+      "decodedSha256": "f67aa6ce823ca91fdff488b2cd137d70a1b451938e2b384db538a7f509a8e7ab",
+      "encodedSha256": "cdf5d28d33aab82190eeae37a9542c69f951b7cbcbdae109a6ec495416193aa2",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-43283906d5e8/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-43283906d5e8/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-43283906d5e8/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 14545,
+      "rawSha256": "5720c1410e9e390b02f6e900a86d83ac7c8c6812c93a3d843c7db28d9126220e",
+      "decodedSha256": "5720c1410e9e390b02f6e900a86d83ac7c8c6812c93a3d843c7db28d9126220e",
+      "encodedSha256": "cc01fb1ef596d85ea06f0169231689a68cdd2a7fbad24c2ccbbe0fcee39c187c",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-43283906d5e8/height.r16",
+      "sourcePath": "public/Payloads/region-43283906d5e8/height.r16",
+      "encodedPath": "public/Payloads/region-43283906d5e8/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1521160,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1521160,
+      "encodedBytes": 583722,
+      "rawSha256": "d62545c16c8a9a8bc56695d84e9f17188f40fec7658ec99f06ccc22b0031bcf7",
+      "decodedSha256": "d62545c16c8a9a8bc56695d84e9f17188f40fec7658ec99f06ccc22b0031bcf7",
+      "encodedSha256": "aec37dd105e0bde4ffc222033a4a6ad9c3961a3c469298dfcd38e41a147719be",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-a6063abf98bc/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-a6063abf98bc/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-a6063abf98bc/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 4194304,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 4194304,
+      "preparedBytes": 4194304,
+      "encodedBytes": 279885,
+      "rawSha256": "5e4d617110332bc4f8a066631a76f73dee4d647a82b45591fbe649b25babe172",
+      "decodedSha256": "5e4d617110332bc4f8a066631a76f73dee4d647a82b45591fbe649b25babe172",
+      "encodedSha256": "f678a61831f4ea73e010f607ea9598c8141d843c943e136c39e2c5a1b23b48a4",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-a6063abf98bc/alphamap-01.rgba8",
+      "sourcePath": "public/Payloads/region-a6063abf98bc/alphamap-01.rgba8",
+      "encodedPath": "public/Payloads/region-a6063abf98bc/alphamap-01.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 4194304,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 4194304,
+      "preparedBytes": 4194304,
+      "encodedBytes": 353212,
+      "rawSha256": "b066bb0dab0d51e56ef15a9304f5d8574b8c45c55d4eeab6aabfa3b13ca5e79a",
+      "decodedSha256": "b066bb0dab0d51e56ef15a9304f5d8574b8c45c55d4eeab6aabfa3b13ca5e79a",
+      "encodedSha256": "a3cc7ac6444b592a71010c430d5caa718259ca7522e10e44eab51797caeeace4",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-a6063abf98bc/height.r16",
+      "sourcePath": "public/Payloads/region-a6063abf98bc/height.r16",
+      "encodedPath": "public/Payloads/region-a6063abf98bc/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1136487,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1136487,
+      "encodedBytes": 385010,
+      "rawSha256": "42bbc1c875aee9a459dd760375da907bc14b6c5dc1eacb556ae2a1512c7c7163",
+      "decodedSha256": "42bbc1c875aee9a459dd760375da907bc14b6c5dc1eacb556ae2a1512c7c7163",
+      "encodedSha256": "34ba33175a2b5327e19006139560754813bb00f851fd45a383ac346796f74aed",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-b8c5e89c4635/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-b8c5e89c4635/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-b8c5e89c4635/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 15,
+      "rawSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "decodedSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "encodedSha256": "ba55e76967d8eb5a51fb64ba1ca8ad9bffc1eeb198fd351d70c20be901657236",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-b8c5e89c4635/height.r16",
+      "sourcePath": "public/Payloads/region-b8c5e89c4635/height.r16",
+      "encodedPath": "public/Payloads/region-b8c5e89c4635/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1373251,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1373251,
+      "encodedBytes": 450749,
+      "rawSha256": "ea9bcd956442e0305b3b296f029d798d6b506df5c632b8acbc765418a8ee132c",
+      "decodedSha256": "ea9bcd956442e0305b3b296f029d798d6b506df5c632b8acbc765418a8ee132c",
+      "encodedSha256": "991d0f0095ed4e369f1bb6f3fff0491bf65a665d4ddfd03925109685df552320",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-bfb95754c4dd/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-bfb95754c4dd/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-bfb95754c4dd/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 12536,
+      "rawSha256": "de11b3ae15d1143141086e05b297bfb60fbdfe8035b5f2dda5f33f5c9638a59c",
+      "decodedSha256": "de11b3ae15d1143141086e05b297bfb60fbdfe8035b5f2dda5f33f5c9638a59c",
+      "encodedSha256": "03ded19dece53039250ea61e79e2605acf4df15ee0ef8bb36b8af1946e0da50b",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-bfb95754c4dd/height.r16",
+      "sourcePath": "public/Payloads/region-bfb95754c4dd/height.r16",
+      "encodedPath": "public/Payloads/region-bfb95754c4dd/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1149350,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1149350,
+      "encodedBytes": 294592,
+      "rawSha256": "28cc15e2ceab28bc79d4748dbfc0a6acbced495daf0329c61c29083ad121e771",
+      "decodedSha256": "28cc15e2ceab28bc79d4748dbfc0a6acbced495daf0329c61c29083ad121e771",
+      "encodedSha256": "3bc220da1b86129519398dc7158e66e168d6f25547b085a1ebee189e695820ad",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-c1c7d044d287/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-c1c7d044d287/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-c1c7d044d287/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 851,
+      "rawSha256": "e7fbcfdf31f4c2e4ac4b78598337f5f74b0da38c0403717f3526e539a2a44f95",
+      "decodedSha256": "e7fbcfdf31f4c2e4ac4b78598337f5f74b0da38c0403717f3526e539a2a44f95",
+      "encodedSha256": "b63ca3188fade82861e005c704b79efee7ed965b1b74756405d5247b112b34f0",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-c1c7d044d287/height.r16",
+      "sourcePath": "public/Payloads/region-c1c7d044d287/height.r16",
+      "encodedPath": "public/Payloads/region-c1c7d044d287/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1326865,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1326865,
+      "encodedBytes": 258358,
+      "rawSha256": "48e96f7c271ef62837f5c1b1420ca007d044c199fb0963ec98fa24071bc8990a",
+      "decodedSha256": "48e96f7c271ef62837f5c1b1420ca007d044c199fb0963ec98fa24071bc8990a",
+      "encodedSha256": "08c0750057dc87925bcb16e65dd43dca36057f354b15cbf25a05dd4b06ca0bf8",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-ec23fdbdc024/alphamap-00.rgba8",
+      "sourcePath": "public/Payloads/region-ec23fdbdc024/alphamap-00.rgba8",
+      "encodedPath": "public/Payloads/region-ec23fdbdc024/alphamap-00.rgba8.br",
+      "kind": "alphamap-rgba8",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1048576,
+        "resultType": "Buffer"
+      },
+      "rawBytes": 1048576,
+      "preparedBytes": 1048576,
+      "encodedBytes": 15,
+      "rawSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "decodedSha256": "e7158a1d13f22db77148963aeb9055c3d163171f6956c700ccfc8e2ce50f7ff4",
+      "encodedSha256": "ba55e76967d8eb5a51fb64ba1ca8ad9bffc1eeb198fd351d70c20be901657236",
+      "verified": true
+    },
+    {
+      "virtualPath": "Payloads/region-ec23fdbdc024/height.r16",
+      "sourcePath": "public/Payloads/region-ec23fdbdc024/height.r16",
+      "encodedPath": "public/Payloads/region-ec23fdbdc024/height.r16.br",
+      "kind": "height-r16",
+      "assetType": "BrotliHeightmap",
+      "params": {
+        "decodedBytes": 1289487,
+        "width": 1025,
+        "height": 1025
+      },
+      "rawBytes": 2101250,
+      "preparedBytes": 1289487,
+      "encodedBytes": 575359,
+      "rawSha256": "75f3e917ab607f16fee075e9cb077a086ff0aaaf6025a5fbacf1c18dfa77a7f1",
+      "decodedSha256": "75f3e917ab607f16fee075e9cb077a086ff0aaaf6025a5fbacf1c18dfa77a7f1",
+      "encodedSha256": "756f6846a6c02a8ab0081c6ecf4aaa2be9bca8c1393e7eb25dce01d2bc149eb8",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-047e97450eb5.region.json",
+      "sourcePath": "public/Regions/region-047e97450eb5.region.json",
+      "encodedPath": "public/Regions/region-047e97450eb5.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1180361,
+        "resultType": "JSON"
+      },
+      "rawBytes": 1180361,
+      "preparedBytes": 1180361,
+      "encodedBytes": 128854,
+      "rawSha256": "10ad23e72832a347cfc579f9778dc1b8b1a92cef69fc825fef08d3dabb066ee9",
+      "decodedSha256": "10ad23e72832a347cfc579f9778dc1b8b1a92cef69fc825fef08d3dabb066ee9",
+      "encodedSha256": "8a58c3c67228a293b43c645db2fa391b3d898193c66689c9aecca019875996a3",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-15b0aa2ac559.region.json",
+      "sourcePath": "public/Regions/region-15b0aa2ac559.region.json",
+      "encodedPath": "public/Regions/region-15b0aa2ac559.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 446640,
+        "resultType": "JSON"
+      },
+      "rawBytes": 446640,
+      "preparedBytes": 446640,
+      "encodedBytes": 51982,
+      "rawSha256": "2807cda737cda26fd40be751e3276355ce4ee6f143fb8aaceea67a757d72cf69",
+      "decodedSha256": "2807cda737cda26fd40be751e3276355ce4ee6f143fb8aaceea67a757d72cf69",
+      "encodedSha256": "797278487a80602ff4959ca0cb453e087fbedb8bc8828be02e1564924fc52157",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-2352ee7f50ed.region.json",
+      "sourcePath": "public/Regions/region-2352ee7f50ed.region.json",
+      "encodedPath": "public/Regions/region-2352ee7f50ed.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 706301,
+        "resultType": "JSON"
+      },
+      "rawBytes": 706301,
+      "preparedBytes": 706301,
+      "encodedBytes": 78527,
+      "rawSha256": "eb21663bc0837ee1db8b0efea0b0f80c7558e013ccdec47fb0d27ceafbac0d78",
+      "decodedSha256": "eb21663bc0837ee1db8b0efea0b0f80c7558e013ccdec47fb0d27ceafbac0d78",
+      "encodedSha256": "23a5b0e4d680a8fec6050c19b2f97c95d18f100fd3f1dcf176a5a836126828f8",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-43283906d5e8.region.json",
+      "sourcePath": "public/Regions/region-43283906d5e8.region.json",
+      "encodedPath": "public/Regions/region-43283906d5e8.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 883255,
+        "resultType": "JSON"
+      },
+      "rawBytes": 883255,
+      "preparedBytes": 883255,
+      "encodedBytes": 99787,
+      "rawSha256": "65c3876d10f5a785cd77b03ef684c2940ea1deb427e23761d0954225df6aafde",
+      "decodedSha256": "65c3876d10f5a785cd77b03ef684c2940ea1deb427e23761d0954225df6aafde",
+      "encodedSha256": "dfbe1a677b52ff8652ec687d720b65fdfb792d73671ab9970baeacb4baec7df6",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-a6063abf98bc.region.json",
+      "sourcePath": "public/Regions/region-a6063abf98bc.region.json",
+      "encodedPath": "public/Regions/region-a6063abf98bc.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 1314804,
+        "resultType": "JSON"
+      },
+      "rawBytes": 1314804,
+      "preparedBytes": 1314804,
+      "encodedBytes": 259533,
+      "rawSha256": "3c0bb84ce38fcea94fd3169cdc39fcc0dcb6da9a0664ab91f4f9aab94c83a9d4",
+      "decodedSha256": "3c0bb84ce38fcea94fd3169cdc39fcc0dcb6da9a0664ab91f4f9aab94c83a9d4",
+      "encodedSha256": "c14f9267bf5a74e149336c77d591d689bca37d141e23d7ed6ccba95eb1bc36eb",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-b8c5e89c4635.region.json",
+      "sourcePath": "public/Regions/region-b8c5e89c4635.region.json",
+      "encodedPath": "public/Regions/region-b8c5e89c4635.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 268600,
+        "resultType": "JSON"
+      },
+      "rawBytes": 268600,
+      "preparedBytes": 268600,
+      "encodedBytes": 32424,
+      "rawSha256": "bd82dc28b46eed83716ba0d3d30713080d8b81f03d92b9951cef7cc8d0c53650",
+      "decodedSha256": "bd82dc28b46eed83716ba0d3d30713080d8b81f03d92b9951cef7cc8d0c53650",
+      "encodedSha256": "4843d4b26923e335e3daa45f41f21dcf80fbe04d6c8a9df1a7ad9e6724f0dbae",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-bfb95754c4dd.region.json",
+      "sourcePath": "public/Regions/region-bfb95754c4dd.region.json",
+      "encodedPath": "public/Regions/region-bfb95754c4dd.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 380132,
+        "resultType": "JSON"
+      },
+      "rawBytes": 380132,
+      "preparedBytes": 380132,
+      "encodedBytes": 43983,
+      "rawSha256": "9f1523a9ee336e954242ce5d7e68e32ef9a6cd4c4aaf428a2e5367513c61d07f",
+      "decodedSha256": "9f1523a9ee336e954242ce5d7e68e32ef9a6cd4c4aaf428a2e5367513c61d07f",
+      "encodedSha256": "9d37dd1f715fee4d1a13f1c147bb8279340e6955219a85da1ced514742b43eeb",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-c1c7d044d287.region.json",
+      "sourcePath": "public/Regions/region-c1c7d044d287.region.json",
+      "encodedPath": "public/Regions/region-c1c7d044d287.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 675862,
+        "resultType": "JSON"
+      },
+      "rawBytes": 675862,
+      "preparedBytes": 675862,
+      "encodedBytes": 74877,
+      "rawSha256": "ec81e1b7aac038687f7dfece10e9ba30230b6bb11aad9e4c777019e94c9eada9",
+      "decodedSha256": "ec81e1b7aac038687f7dfece10e9ba30230b6bb11aad9e4c777019e94c9eada9",
+      "encodedSha256": "2581fff709eb61e8e039ff994654fa2cacbc5d4fef27a71babbe698ea1f65e3b",
+      "verified": true
+    },
+    {
+      "virtualPath": "Regions/region-ec23fdbdc024.region.json",
+      "sourcePath": "public/Regions/region-ec23fdbdc024.region.json",
+      "encodedPath": "public/Regions/region-ec23fdbdc024.region.json.br",
+      "kind": "region-json",
+      "assetType": "Brotli",
+      "params": {
+        "decodedBytes": 77905,
+        "resultType": "JSON"
+      },
+      "rawBytes": 77905,
+      "preparedBytes": 77905,
+      "encodedBytes": 10584,
+      "rawSha256": "f1368ad281f7cf6c5e6f2e64bc157909a2363d320dc19ff73763177991715e0c",
+      "decodedSha256": "f1368ad281f7cf6c5e6f2e64bc157909a2363d320dc19ff73763177991715e0c",
+      "encodedSha256": "3bde8e1a4a42604ec451aaaf297917376eeb0f39d6e3c43fda7ae88f74f4d9a2",
+      "verified": true
+    }
+  ]
+}

@@ -1,0 +1,5871 @@
+{
+  "version": 1,
+  "species": {
+    "penguin": {
+      "id": "penguin",
+      "habitats": [
+        {
+          "habitat": "cold",
+          "weight": 6
+        },
+        {
+          "habitat": "waterside",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "polar-bear": {
+      "id": "polar-bear",
+      "habitats": [
+        {
+          "habitat": "cold",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "gorilla": {
+      "id": "gorilla",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "elephant": {
+      "id": "elephant",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "woodland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "swan": {
+      "id": "swan",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "goat": {
+      "id": "goat",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "arid",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "zebra": {
+      "id": "zebra",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "hippopotamus": {
+      "id": "hippopotamus",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "raccoon": {
+      "id": "raccoon",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        },
+        {
+          "habitat": "settlement",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "walrus": {
+      "id": "walrus",
+      "habitats": [
+        {
+          "habitat": "cold",
+          "weight": 6
+        },
+        {
+          "habitat": "waterside",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "seal": {
+      "id": "seal",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        },
+        {
+          "habitat": "cold",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "flamingo": {
+      "id": "flamingo",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "bear": {
+      "id": "bear",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "panda": {
+      "id": "panda",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "cattle": {
+      "id": "cattle",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "settlement",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "rhinoceros": {
+      "id": "rhinoceros",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "roe-deer": {
+      "id": "roe-deer",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "fox": {
+      "id": "fox",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "dog": {
+      "id": "dog",
+      "habitats": [
+        {
+          "habitat": "settlement",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "lion": {
+      "id": "lion",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "wolf": {
+      "id": "wolf",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        },
+        {
+          "habitat": "cold",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "pig": {
+      "id": "pig",
+      "habitats": [
+        {
+          "habitat": "settlement",
+          "weight": 6
+        },
+        {
+          "habitat": "woodland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "cat": {
+      "id": "cat",
+      "habitats": [
+        {
+          "habitat": "settlement",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "monkey": {
+      "id": "monkey",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "sheep": {
+      "id": "sheep",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "settlement",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "lama": {
+      "id": "lama",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "arid",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "tiger": {
+      "id": "tiger",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "koala": {
+      "id": "koala",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "kangaroo": {
+      "id": "kangaroo",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "arid",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "bison": {
+      "id": "bison",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "giraffe": {
+      "id": "giraffe",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "woodland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "horse": {
+      "id": "horse",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "settlement",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "donkey": {
+      "id": "donkey",
+      "habitats": [
+        {
+          "habitat": "grassland",
+          "weight": 6
+        },
+        {
+          "habitat": "arid",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "moose": {
+      "id": "moose",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        },
+        {
+          "habitat": "cold",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "camel": {
+      "id": "camel",
+      "habitats": [
+        {
+          "habitat": "arid",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "crocodile": {
+      "id": "crocodile",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "chicken": {
+      "id": "chicken",
+      "habitats": [
+        {
+          "habitat": "settlement",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "duck": {
+      "id": "duck",
+      "habitats": [
+        {
+          "habitat": "waterside",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "pigeon": {
+      "id": "pigeon",
+      "habitats": [
+        {
+          "habitat": "settlement",
+          "weight": 6
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    },
+    "deer": {
+      "id": "deer",
+      "habitats": [
+        {
+          "habitat": "woodland",
+          "weight": 6
+        },
+        {
+          "habitat": "grassland",
+          "weight": 2
+        }
+      ],
+      "autonomy": [
+        {
+          "activity": "move",
+          "gait": "walk",
+          "weight": 65
+        },
+        {
+          "activity": "move",
+          "gait": "run",
+          "weight": 9
+        },
+        {
+          "activity": "move",
+          "gait": "hop",
+          "weight": 65
+        },
+        {
+          "activity": "idle",
+          "weight": 18
+        },
+        {
+          "activity": "eat",
+          "weight": 12
+        },
+        {
+          "activity": "rest",
+          "posture": "sitting",
+          "weight": 4
+        },
+        {
+          "activity": "rest",
+          "posture": "lying",
+          "weight": 4
+        },
+        {
+          "activity": "stretch",
+          "weight": 3
+        },
+        {
+          "activity": "display",
+          "weight": 0
+        }
+      ],
+      "groundGaits": [
+        "walk",
+        "run",
+        "hop"
+      ],
+      "fleeGaits": [
+        "run",
+        "walk",
+        "hop"
+      ],
+      "provenance": "人工配置的Demo玩法预设；不是动物学资料，未确认真实温湿度、营养或生态适宜范围。"
+    }
+  },
+  "models": [
+    {
+      "assetId": "pinguin-adelie-01",
+      "species": "penguin",
+      "spawnRadius": 0.268,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        },
+        "walk_2": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pinguin-cub-01",
+      "species": "penguin",
+      "spawnRadius": 0.213,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        },
+        "walk_2": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pinguin-emperor-01",
+      "species": "penguin",
+      "spawnRadius": 0.359,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        },
+        "walk_2": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "polar-bear-01",
+      "species": "polar-bear",
+      "spawnRadius": 0.663,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "polar-bear-cub-01",
+      "species": "polar-bear",
+      "spawnRadius": 0.276,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "gorilla-01",
+      "species": "gorilla",
+      "spawnRadius": 0.737,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "elephant-01",
+      "species": "elephant",
+      "spawnRadius": 1.272,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "elephant-02",
+      "species": "elephant",
+      "spawnRadius": 1.272,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "elephant-cub-01",
+      "species": "elephant",
+      "spawnRadius": 0.689,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "elephant-cub-02",
+      "species": "elephant",
+      "spawnRadius": 0.689,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "swan-01",
+      "species": "swan",
+      "spawnRadius": 0.274,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "swan-02",
+      "species": "swan",
+      "spawnRadius": 0.274,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "goat-01",
+      "species": "goat",
+      "spawnRadius": 0.311,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "goat-02",
+      "species": "goat",
+      "spawnRadius": 0.311,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "zebra-01",
+      "species": "zebra",
+      "spawnRadius": 0.531,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "hippopotamus-01",
+      "species": "hippopotamus",
+      "spawnRadius": 1.082,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "raccoon-01",
+      "species": "raccoon",
+      "spawnRadius": 0.274,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "walrus-01",
+      "species": "walrus",
+      "spawnRadius": 0.673,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "seal-01",
+      "species": "seal",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "seal-02",
+      "species": "seal",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "seal-03",
+      "species": "seal",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "flamingo-01",
+      "species": "flamingo",
+      "spawnRadius": 0.306,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "bear-01",
+      "species": "bear",
+      "spawnRadius": 0.644,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "bear-02",
+      "species": "bear",
+      "spawnRadius": 0.644,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "bear-cub-01",
+      "species": "bear",
+      "spawnRadius": 0.287,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "bear-cub-02",
+      "species": "bear",
+      "spawnRadius": 0.287,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "panda-01",
+      "species": "panda",
+      "spawnRadius": 0.7,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "static"
+        }
+      }
+    },
+    {
+      "assetId": "panda-cub-01",
+      "species": "panda",
+      "spawnRadius": 0.342,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "bull-01",
+      "species": "cattle",
+      "spawnRadius": 0.675,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cow-01",
+      "species": "cattle",
+      "spawnRadius": 0.532,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "lying": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cow-02",
+      "species": "cattle",
+      "spawnRadius": 0.532,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "lying": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "rhinoceros-01",
+      "species": "rhinoceros",
+      "spawnRadius": 0.997,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "roe-deer-01",
+      "species": "roe-deer",
+      "spawnRadius": 0.386,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "roe-deer-02",
+      "species": "roe-deer",
+      "spawnRadius": 0.386,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "fox-01",
+      "species": "fox",
+      "spawnRadius": 0.233,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-01",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-02",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-03",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-04",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-05",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "dog-06",
+      "species": "dog",
+      "spawnRadius": 0.303,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "lion-01",
+      "species": "lion",
+      "spawnRadius": 0.635,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "lion-cub-01",
+      "species": "lion",
+      "spawnRadius": 0.258,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "lion-female",
+      "species": "lion",
+      "spawnRadius": 0.469,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "wolf-01",
+      "species": "wolf",
+      "spawnRadius": 0.341,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "wolf-02",
+      "species": "wolf",
+      "spawnRadius": 0.341,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pig-01",
+      "species": "pig",
+      "spawnRadius": 0.392,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "lying": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pig-02",
+      "species": "pig",
+      "spawnRadius": 0.392,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "lying": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pig-03",
+      "species": "pig",
+      "spawnRadius": 0.392,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "lying": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "lying",
+          "evidence": "reviewed"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cat-01",
+      "species": "cat",
+      "spawnRadius": 0.182,
+      "animations": {
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "sit": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "sitting",
+          "evidence": "reviewed"
+        },
+        "stretch": {
+          "activity": "stretch",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "reviewed"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cat-02",
+      "species": "cat",
+      "spawnRadius": 0.182,
+      "animations": {
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "sit": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "sitting",
+          "evidence": "reviewed"
+        },
+        "stretch": {
+          "activity": "stretch",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "reviewed"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cat-03",
+      "species": "cat",
+      "spawnRadius": 0.182,
+      "animations": {
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "sit": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "sitting",
+          "evidence": "reviewed"
+        },
+        "stretch": {
+          "activity": "stretch",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "reviewed"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "cat-04",
+      "species": "cat",
+      "spawnRadius": 0.182,
+      "animations": {
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "sit": {
+          "activity": "rest",
+          "medium": "ground",
+          "posture": "sitting",
+          "evidence": "reviewed"
+        },
+        "stretch": {
+          "activity": "stretch",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "reviewed"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "kitty-01",
+      "species": "cat",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "kitty-02",
+      "species": "cat",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "kitty-03",
+      "species": "cat",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "kitty-04",
+      "species": "cat",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "monkey-01",
+      "species": "monkey",
+      "spawnRadius": 0.282,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "monkey-02",
+      "species": "monkey",
+      "spawnRadius": 0.282,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "ram-01",
+      "species": "sheep",
+      "spawnRadius": 0.407,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "ram-02",
+      "species": "sheep",
+      "spawnRadius": 0.407,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "sheep-01",
+      "species": "sheep",
+      "spawnRadius": 0.279,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "sheep-02",
+      "species": "sheep",
+      "spawnRadius": 0.279,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "sheep-03",
+      "species": "sheep",
+      "spawnRadius": 0.279,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "lama-01",
+      "species": "lama",
+      "spawnRadius": 0.342,
+      "animations": {
+        "gesture": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "lama-02",
+      "species": "lama",
+      "spawnRadius": 0.342,
+      "animations": {
+        "gesture": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "reviewed"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "tiger-01",
+      "species": "tiger",
+      "spawnRadius": 0.641,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "tiger-02",
+      "species": "tiger",
+      "spawnRadius": 0.641,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "tiger-cub-01",
+      "species": "tiger",
+      "spawnRadius": 0.315,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "tiger-cub-02",
+      "species": "tiger",
+      "spawnRadius": 0.315,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "koala-01",
+      "species": "koala",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "kangoroo-01",
+      "species": "kangaroo",
+      "spawnRadius": 0.613,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "hop",
+          "evidence": "reviewed"
+        }
+      }
+    },
+    {
+      "assetId": "bison-01",
+      "species": "bison",
+      "spawnRadius": 0.902,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "giraffe-01",
+      "species": "giraffe",
+      "spawnRadius": 0.953,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "horse-01",
+      "species": "horse",
+      "spawnRadius": 0.52,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "horse-02",
+      "species": "horse",
+      "spawnRadius": 0.52,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "horse-03",
+      "species": "horse",
+      "spawnRadius": 0.52,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "horse-04",
+      "species": "horse",
+      "spawnRadius": 0.52,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "horse-05",
+      "species": "horse",
+      "spawnRadius": 0.52,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "donkey-01",
+      "species": "donkey",
+      "spawnRadius": 0.437,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "donkey-02",
+      "species": "donkey",
+      "spawnRadius": 0.437,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "moose-01",
+      "species": "moose",
+      "spawnRadius": 1.16,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "moose-cub-01",
+      "species": "moose",
+      "spawnRadius": 0.356,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "moose-female",
+      "species": "moose",
+      "spawnRadius": 0.6,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "camel-01",
+      "species": "camel",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "camel-02",
+      "species": "camel",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "camel-03",
+      "species": "camel",
+      "spawnRadius": 0.569,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "crocodile-01",
+      "species": "crocodile",
+      "spawnRadius": 1.133,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "chick-01",
+      "species": "chicken",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "chicken-01",
+      "species": "chicken",
+      "spawnRadius": 0.18,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "chicken-02",
+      "species": "chicken",
+      "spawnRadius": 0.18,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "chicken-03",
+      "species": "chicken",
+      "spawnRadius": 0.18,
+      "animations": {
+        "eat": {
+          "activity": "eat",
+          "medium": "ground",
+          "evidence": "source-name"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "duck-01",
+      "species": "duck",
+      "spawnRadius": 0.18,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "swim": {
+          "activity": "move",
+          "medium": "water",
+          "gait": "swim",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "waterIdle": {
+          "activity": "idle",
+          "medium": "water",
+          "posture": "floating",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pigeon-01",
+      "species": "pigeon",
+      "spawnRadius": 0.18,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pigeon-02",
+      "species": "pigeon",
+      "spawnRadius": 0.18,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "pigeon-03",
+      "species": "pigeon",
+      "spawnRadius": 0.18,
+      "animations": {
+        "fly": {
+          "activity": "move",
+          "medium": "air",
+          "gait": "fly",
+          "posture": "airborne",
+          "evidence": "source-name"
+        },
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "jump": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "deer-01",
+      "species": "deer",
+      "spawnRadius": 0.652,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "deer-cub-01",
+      "species": "deer",
+      "spawnRadius": 0.208,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "gesture02": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "deer-cub-02",
+      "species": "deer",
+      "spawnRadius": 0.208,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "gesture02": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    },
+    {
+      "assetId": "deer-female-01",
+      "species": "deer",
+      "spawnRadius": 0.494,
+      "animations": {
+        "gesture": {
+          "activity": "unclassified",
+          "medium": "ground",
+          "evidence": "unknown"
+        },
+        "idle": {
+          "activity": "idle",
+          "medium": "ground",
+          "posture": "standing",
+          "evidence": "source-name"
+        },
+        "run": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "run",
+          "evidence": "source-name"
+        },
+        "walk": {
+          "activity": "move",
+          "medium": "ground",
+          "gait": "walk",
+          "evidence": "source-name"
+        }
+      }
+    }
+  ]
+}

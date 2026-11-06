@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>Water · Planner 水体联调</title>
+    <style>
+      :root {
+        --water-ink: #19313a;
+        --water-paper: #f4f7f2;
+        --shore-line: #c9d3cb;
+        --water-accent: #24647b;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        color: var(--water-ink);
+        font:
+          13px -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        background: #99b9c0;
+      }
+      canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        touch-action: none;
+      }
+      aside {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        width: 280px;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        background: var(--water-paper);
+        border: 1px solid var(--shore-line);
+        border-radius: 8px;
+        padding: 16px;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 17px;
+      }
+      p {
+        line-height: 1.6;
+        margin: 8px 0;
+        color: #556965;
+      }
+      label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 9px 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        border: 1px solid var(--shore-line);
+        border-radius: 4px;
+        background: #fff;
+        padding: 6px 8px;
+      }
+      select {
+        max-width: 168px;
+      }
+      input {
+        width: 100px;
+      }
+      input[type="checkbox"] {
+        width: auto;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      button:hover {
+        border-color: var(--water-accent);
+      }
+      .row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .row button {
+        flex: 1;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid var(--shore-line);
+        margin: 14px 0;
+      }
+      #status {
+        min-height: 2.6em;
+      }
+      #status[data-error="true"] {
+        color: #9d3528;
+      }
+      summary {
+        cursor: pointer;
+        padding: 8px 0;
+      }
+      fieldset {
+        min-width: 0;
+        border: 1px solid var(--shore-line);
+        margin: 8px 0;
+        padding: 8px;
+      }
+      legend {
+        font-size: 10px;
+        overflow-wrap: anywhere;
+      }
+      pre {
+        font:
+          11px ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
+      small {
+        display: block;
+        margin-top: 12px;
+        color: #647772;
+      }
+      #loading {
+        position: absolute; top: 38%; left: calc(50% + 140px); transform: translateX(-50%);
+        width: min(420px, calc(100vw - 340px)); padding: 24px; border-radius: 8px;
+        background: var(--water-paper); border: 1px solid var(--shore-line);
+        box-shadow: 0 8px 40px #19313a22;
+      }
+      #loading[hidden] { display: none; }
+      #loading progress { width: 100%; accent-color: var(--water-accent); }
+      @media (max-width: 600px) {
+        #loading { top: auto; bottom: 16px; left: 16px; transform: none; width: calc(100vw - 32px); }
+        aside {
+          top: 8px;
+          left: 8px;
+          width: 240px;
+          max-height: 55vh;
+          padding: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" aria-label="水体与地形预览"></canvas>
+    <section id="loading" aria-label="加载进度" aria-live="polite">
+      <h1>正在准备水体场景</h1>
+      <p id="loading-stage">加载渲染器与页面模块…</p>
+      <progress id="loading-progress" max="6" value="0" aria-label="已完成的准备阶段"></progress>
+      <p id="loading-detail">加载模块 → 后台生成 → 环境反射 → 地形 → 水体 → 共同发布</p>
+      <small>地形、道路、桥和水体全部准备完成后一起显示。</small>
+    </section>
+    <aside>
+      <h1>水体联调</h1>
+      <p>SeedWorld Planner · 地形、水体与跨河道路</p>
+      <p id="world-info">1024 × 1024 米 · Seed 1</p>
+      <label>光照对照<select id="lighting" aria-label="光照对照" disabled><option value="planner">原预览光照</option><option value="farmlands">Scene_Demo 光照</option></select></label>
+      <p id="lighting-status" role="status"></p>
+      <div class="row"><button id="camera-mode" aria-pressed="false">切换到 WASDQE</button></div>
+      <p id="camera-hint">拖动旋转 · 滚轮缩放 · 右键拖动平移</p>
+      <label>Seed<input id="seed" type="number" min="0" max="4294967295" step="1" value="1" /></label>
+      <div class="row"><button id="regenerate">重新生成</button><button id="overview">全景</button></div>
+      <hr />
+      <label>选中元素<select id="body" aria-label="选中元素"></select></label>
+      <div class="row">
+        <button id="focus">聚焦元素</button><button id="undo">撤销</button><button id="redo">重做</button>
+      </div>
+      <div id="parameters"></div>
+      <details id="points">
+        <summary>控制点坐标</summary>
+        <div id="records"></div>
+      </details>
+      <label>显示地形<input id="terrain" type="checkbox" checked /></label>
+      <label>显示水体<input id="water" type="checkbox" checked /></label>
+      <label>显示道路<input id="roads" type="checkbox" checked /></label>
+      <label>显示跨河连接<input id="crossings" type="checkbox" checked /></label>
+      <p id="status" role="status">正在准备地形与水体…</p>
+      <details>
+        <summary>查询与发布状态</summary>
+        <pre id="facts"></pre>
+      </details>
+      <small>全部案例共同展示。参数单位为米；修改后共同发布地形与水体。</small>
+    </aside>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+import { ignoreClone, Camera, Entity, Material, Mesh, MeshRenderer, PrefabResource, Script } from '@galacean/engine';
+import { BuildingManager, createBuildingPatch, type BuildingDraft } from '@galacean/seed-world-systems';
+
+export default class ShellAssembly extends Script {
+  height = 2;
+  camera: Camera | null = null;
+  material: Material | null = null;
+  tile: PrefabResource | null = null;
+  railingPost: PrefabResource | null = null;
+  @ignoreClone private manager?: BuildingManager;
+  @ignoreClone private generated?: Entity;
+  @ignoreClone private skinUnit?: Entity;
+  @ignoreClone private shellMesh?: Mesh;
+
+  async onAwake() {
+    if (!this.material) throw Error('Bind a shell material');
+    if (!Number.isFinite(this.height) || this.height <= 0) throw Error('Height must be positive');
+    const manager = this.manager = BuildingManager.forScene(this.entity.scene);
+    if (!manager.camera) {
+      if (!this.camera) throw Error('Bind a camera in a standalone scene');
+      manager.camera = this.camera;
+    }
+    try {
+      // The Script owns one generated template; the runtime owns all placements and batches.
+      const mesh = this.shellMesh = createBuildingPatch(this.engine, {
+        segments: [24, 16], domain: [6, 4],
+        point: (u, v) => [u - 3, 2.4 + this.height * Math.sin(Math.PI * u / 6) * (.65 + .35 * v / 4), v - 2]
+      });
+      const skin = this.skinUnit = new Entity(this.engine, 'Shell skin Unit');
+      const renderer = skin.addComponent(MeshRenderer);
+      renderer.mesh = mesh;
+      renderer.setMaterial(this.material);
+      const group = `shell-${this.instanceId}`;
+      const draft: BuildingDraft = {
+        groups: [{ id: group, seed: 17, wallColor: 0, woodColor: 0 }], relations: [],
+        parts: [{
+          id: `${group}/skin`, type: 'roof', group,
+          support: { generator: 'point', params: {} },
+          algorithm: { type: 'placeAtPoint' }, params: {}, unit: skin
+        }]
+      };
+      // Surface consumes the exact Mesh displayed by the skin Unit.
+      if (this.tile) draft.parts.push({
+        id: `${group}/tiles`, type: 'roof-covering', group,
+        support: { generator: 'meshSurface', params: { mesh } },
+        algorithm: { type: 'staggeredGrid' }, params: { step: [.32, .34], offset: .045 }, unit: this.tile
+      });
+      // A post and its cap may live inside an ordinary Prefab hierarchy.
+      if (this.railingPost) draft.parts.push({
+        id: `${group}/railing`, type: 'railing', group,
+        support: { generator: 'path', params: { points: [[-3, 0, 2.3], [3, 0, 2.3]] } },
+        algorithm: { type: 'alongPath' }, params: { spacing: .6 }, unit: this.railingPost
+      });
+      this.generated = manager.create(this.entity, draft);
+      await manager.flushAsync();
+      const errors = manager.errors();
+      if (errors.length) throw Error(errors.join('\n'));
+    } catch (error) {
+      await this.release();
+      throw error;
+    }
+  }
+  private async release() {
+    const generated = this.generated, skin = this.skinUnit, mesh = this.shellMesh;
+    this.generated = this.skinUnit = undefined; this.shellMesh = undefined;
+    generated?.destroy();
+    // Retire the compiled output before releasing its borrowed template resources.
+    const manager = this.manager;
+    if (manager && !manager.destroyed && !manager.pendingDestroy) await manager.flushAsync();
+    skin?.destroy();
+    // Engine defers node destruction until the end of an active frame.
+    if (skin?.pendingDestroy) await Promise.resolve();
+    mesh?.destroy();
+  }
+  async onDestroy() { await this.release(); }
+}

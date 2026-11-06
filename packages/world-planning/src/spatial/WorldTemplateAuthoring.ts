@@ -1,0 +1,251 @@
+import {
+  createSeedPlanningDocument,
+  createSeedPlanningInputs,
+  initializePlanningPopulation,
+  type PlanningPopulationOptions
+} from "./PlanningInitialization";
+import { exportPlanningRecipe, importPlanningDocument, type PlanningDocument } from "./PlanningDocument";
+import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParameters";
+import { settlementRandom } from "../semantic-study/SettlementGeometry";
+import { templateBaseSeed, templateLinearColor, worldTemplate, type WorldTemplate } from "./WorldTemplateCatalog";
+import { WORLD_TEMPLATE_ART } from "./WorldTemplateArtDirection";
+import { createSpatialTerrainPlan } from "./layout/SpatialTerrain";
+import { createPlanningGroundSampler } from "../semantic-study/WorldPlanningTerrain";
+import { planWorldTemplateSite } from "./WorldTemplatePlanning";
+import { planningLakeSpillLevel } from "../semantic-study/PlanningLakeBasin";
+import type { PlanningResource } from "./PlanningResources";
+import { assertSeedWorldAuthoredBasinPublicParametersV1 } from "../runtime/SeedWorldAuthoredBasinWater";
+
+/** The canonical physical recipe is common to every Seed variation. Retain only
+ * its measured author inputs, never a generated world, raster or live object. */
+const cores = new Map<string, { anchor: { x: number; z: number }; resources: PlanningResource[] }>();
+function templateCore(template: WorldTemplate) {
+  const cached = cores.get(template.id);
+  if (cached) return cached;
+  const { id, terrain } = template,
+    art = WORLD_TEMPLATE_ART[id];
+  const canonical = exportPlanningRecipe(createSeedPlanningInputs(templateBaseSeed(id)));
+  Object.assign(canonical.parameters, {
+    worldTemplate: { id },
+    landformSeed: templateBaseSeed(id),
+    landCoverage: terrain.coverage,
+    complexity: 0.6,
+    offshoreCoverage: 0.07,
+    islandRichness: 0.5,
+    terrainSkeleton: {
+      countMin: terrain.count,
+      countMax: terrain.count,
+      directionDegrees: 45,
+      lengthM: 600,
+      heightM: terrain.heightM,
+      widthM: terrain.widthM
+    },
+    rivers: { countMin: 0, countMax: 0 },
+    lakes: { countMin: 0, countMax: 0 }
+  });
+  const base = createSpatialTerrainPlan(canonical);
+  const anchor = planWorldTemplateSite(base, createPlanningGroundSampler(base, { natural: true }))!.center;
+  const resources: PlanningResource[] = (art.terrain ?? []).map((feature) => ({
+    resourceId: `template:${id}:terrain:${feature.id}`,
+    resourceType: "terrain-feature" as const,
+    properties: {
+      kind: feature.kind,
+      x: anchor.x - feature.x,
+      z: anchor.z + feature.z,
+      headingDegrees: 0 - feature.heading,
+      lengthMetres: feature.length,
+      widthMetres: feature.width,
+      elevationDeltaMetres: feature.height,
+      sharpness: 0.6,
+      asymmetry: 0.5,
+      roughness: 0.15,
+      erosion: 0.25,
+      seed: templateBaseSeed(`${id}:${feature.id}`)
+    }
+  }));
+  for (const pool of art.water ?? []) {
+    const x = anchor.x - pool.x,
+      z = anchor.z + pool.z;
+    const resourceId = `template:${id}:water:${pool.id}`;
+    const shape = {
+      kind: "lake" as const,
+      x,
+      z,
+      radiusMetres: pool.radius,
+      depthMetres: pool.depth,
+      shorelineIrregularity: 0.08,
+      seed: templateBaseSeed(`${id}:${pool.id}`)
+    };
+    assertSeedWorldAuthoredBasinPublicParametersV1(shape);
+    // A lake closes at the native terrain-derived spill level. Its depth, rather
+    // than an elevated water plane, provides the submerged scene's headroom.
+    const level = planningLakeSpillLevel(base, resourceId, shape);
+    resources.push({
+      resourceId,
+      resourceType: "water-body",
+      properties: {
+        ...shape,
+        colorRgb: pool.color,
+        canonicalWaterLevelMetres: level,
+        minimumWaterLevelMetres: level - pool.depth,
+        maximumWaterLevelMetres: level,
+        waterLevelMetres: level
+      }
+    });
+  }
+  for (const grove of art.plantings ?? [])
+    resources.push({
+      resourceType: "vegetation-brush",
+      resourceId: `template:${id}:vegetation:${grove.id}`,
+      properties: {
+        category: grove.kind,
+        plantKind: grove.kind,
+        distributionKind: "area",
+        x: anchor.x - grove.x,
+        z: anchor.z + grove.z,
+        radiusMetres: grove.radius,
+        densityScale: grove.densityScale,
+        seed: templateBaseSeed(`${id}:${grove.id}`)
+      }
+    });
+  const core = { anchor, resources };
+  cores.set(id, core);
+  return core;
+}
+
+/** Create template authoring with a one-time editable initial population.
+ * @param seed Deterministic world identity.
+ * @param id Registered template identity.
+ * @param options Initial population request, applied after template terrain and resources are installed.
+ * @returns Authoring for ordinary Session publication; later edits do not reapply the budget.
+ * @throws For invalid template/seed or an unrealizable population request.
+ */
+export function createTemplatePlanningDocument(
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): PlanningDocument {
+  const template = worldTemplate(id);
+  if (!template) throw new Error("未知世界风格：" + id);
+  const art = WORLD_TEMPLATE_ART[id];
+  if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error("Seed 须为 0–4294967295 的整数");
+  const initial = createSeedPlanningInputs(seed);
+  const recipe = exportPlanningRecipe(initial);
+  const jitter = (field: string) => settlementRandom(seed, `template:${id}:${field}`) * 2 - 1;
+  const terrain = template.terrain;
+  Object.assign(recipe.parameters, {
+    worldTemplate: { id },
+    landformSeed: templateBaseSeed(id),
+    landCoverage: terrain.coverage * (1 + jitter("coverage") * 0.02),
+    complexity: 0.6 + jitter("coast") * 0.03,
+    offshoreCoverage: 0.07,
+    islandRichness: 0.5,
+    terrainSkeleton: {
+      countMin: terrain.count,
+      countMax: terrain.count,
+      directionDegrees: 45 + jitter("direction") * 3,
+      lengthM: 600,
+      heightM: terrain.heightM * (1 + jitter("height") * 0.06),
+      widthM: terrain.widthM * (1 + jitter("width") * 0.04)
+    },
+    rivers: { countMin: 0, countMax: 0 },
+    lakes: { countMin: 0, countMax: 0 }
+  });
+  const { anchor, resources } = templateCore(template);
+  recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };
+  const document = importPlanningDocument(recipe);
+  document.samplingVersion = initial.samplingVersion;
+  document.waterAuthoringVersion = 1;
+  const components = document.entities.world.components;
+  const colorFields = (slot: string, hex: string) =>
+    Object.fromEntries(
+      (["r", "g", "b"] as const).map((channel, i) => [slot + "." + channel, templateLinearColor(hex)[i]])
+    );
+  components.rockFormation = {
+    ...components.rockFormation,
+    values: { ...components.rockFormation?.values, ...colorFields("color", art.stone) }
+  };
+  components.grassAppearance = {
+    values: { ...colorFields("colorA", art.grass[0]), ...colorFields("colorB", art.grass[1]), saturation: 1 }
+  };
+  components.surfacePalette = { values: colorFields("color", art.ground) };
+  // The user explicitly authorized reference-specific lighting on 2026-11-05.
+  // Time, light energy and material colour have independent artistic meanings.
+  components.lighting = { values: { ...art.lighting } };
+  components.postProcess = { values: { ...art.postProcess } };
+  components.weather = {
+    values: {
+      cloudCoverage: 0.45,
+      rainRate: 0,
+      snowRate: 0,
+      temperatureCelsius: 22,
+      relativeHumidity: 0.38,
+      ...art.weather
+    }
+  };
+  Object.assign(components.landscape.values, art.landscape);
+  if (art.flowerCoverage !== undefined) components.flowers.values.coverage = art.flowerCoverage;
+  components.animals = { values: { enabled: false } };
+  components.plantMaterial = {
+    values: Object.fromEntries(
+      PLANT_MATERIAL_SLOTS.flatMap((slot) => {
+        const color = templateLinearColor(
+          slot.part === "bark" ? art.bark : ["petals", "cap"].includes(slot.part) ? art.flowers : art.foliage
+        );
+        return (["r", "g", "b"] as const).map((channel, i) => [
+          plantMaterialField(slot.assetId, slot.materialId, channel),
+          color[i]
+        ]);
+      })
+    )
+  };
+  document.authoredResources = structuredClone(resources);
+  return initializePlanningPopulation(document, options);
+}
+
+/** Apply a reference recipe while retaining independently authored plant controls.
+ * Lighting presets now belong to the selected reference. New Seeds still retain
+ * subsequent manual lighting edits through the ordinary layout-scope contract.
+ * @param source Existing independent presentation and ecology authoring to retain.
+ * @param seed New deterministic world identity.
+ * @param id Template identity, or an empty string for the original procedural world.
+ * @param options One-time initialization village target and global building upper bound.
+ * @returns New authoring whose population is controlled by editable per-POI profile and spacing values.
+ * @throws For invalid initialization inputs or an unrealizable population request.
+ */
+export function createWorldStylePlanningDocument(
+  source: PlanningDocument,
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): PlanningDocument {
+  const document = id ? createTemplatePlanningDocument(seed, id, options) : createSeedPlanningDocument(seed, options);
+  const copied = new Set<string>();
+  const retain = (entityId: string, type: string) => {
+    const key = JSON.stringify([entityId, type]);
+    if (copied.has(key)) return;
+    copied.add(key);
+    const entity = source.entities[entityId],
+      component = entity?.components[type];
+    if (!component) {
+      if (document.entities[entityId]) delete document.entities[entityId].components[type];
+      return;
+    }
+    document.entities[entityId] ??= { ...structuredClone(entity), components: {} };
+    document.entities[entityId].components[type] = structuredClone(component);
+    if (component.base) retain(component.base.entity, component.base.component);
+  };
+  for (const type of [...(id ? [] : ["lighting", "postProcess"]), "landscape", "landscapePopulation", "flowers"])
+    retain("world", type);
+  if (id) {
+    const art = WORLD_TEMPLATE_ART[id],
+      components = document.entities.world.components;
+    components.landscape ??= { values: {} };
+    Object.assign(components.landscape.values, art.landscape);
+    if (art.flowerCoverage !== undefined) {
+      components.flowers ??= { values: {} };
+      components.flowers.values.coverage = art.flowerCoverage;
+    }
+  }
+  return document;
+}

@@ -1,0 +1,371 @@
+{
+  "asset": {
+    "version": "2.0"
+  },
+  "root": "entity-000000",
+  "entities": [
+    {
+      "id": "entity-000000",
+      "name": "双圆屋连接",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "children": [
+        "entity-000001",
+        "entity-000003"
+      ]
+    },
+    {
+      "id": "entity-000001",
+      "name": "房屋",
+      "position": [
+        0,
+        0,
+        0
+      ],
+      "rotation": [
+        0,
+        -11.459156073371194,
+        0
+      ],
+      "components": [
+        "component-000000",
+        "component-000001",
+        "component-000000:group-component"
+      ],
+      "children": [
+        "entity-000002"
+      ]
+    },
+    {
+      "id": "entity-000002",
+      "name": "屋顶窗",
+      "components": [
+        "component-000003"
+      ]
+    },
+    {
+      "id": "entity-000003",
+      "name": "房屋",
+      "position": [
+        3,
+        0,
+        0.4000000059604645
+      ],
+      "rotation": [
+        0,
+        -5.729578036685597,
+        0
+      ],
+      "components": [
+        "component-000004",
+        "component-000005",
+        "component-000004:group-component"
+      ]
+    }
+  ],
+  "components": [
+    {
+      "id": "component-000000",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "component-000000-wall",
+          "group": "component-000000",
+          "type": "wall",
+          "support": {
+            "generator": "wallProfile",
+            "params": {
+              "circle": {
+                "center": [
+                  0,
+                  0
+                ],
+                "radius": 2.4000000953674316,
+                "phase": 0
+              },
+              "height": 3.125,
+              "structureMaterial": "masonry"
+            }
+          },
+          "algorithm": {
+            "type": "nativeMasonry"
+          },
+          "unit": "brick",
+          "params": {
+            "footprint": {
+              "width": 0.5,
+              "height": 0.4375,
+              "depth": 0.1
+            },
+            "seed": "source"
+          }
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "relations": [
+          {
+            "id": "component-000000/roof-wall",
+            "from": {
+              "part": "component-000000-wall",
+              "boundary": "top"
+            },
+            "to": {
+              "part": "component-000000-roof",
+              "boundary": "base"
+            },
+            "rule": "wallRoofJoint"
+          }
+        ]
+      }
+    },
+    {
+      "id": "component-000001",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "component-000000-roof",
+          "group": "component-000000",
+          "type": "roof",
+          "support": {
+            "generator": "roofProfile",
+            "params": {
+              "roof": {
+                "tip": [
+                  0,
+                  0
+                ],
+                "profile": 0,
+                "height": 0.3499999940395355,
+                "ridge_length": 0.6000000238418579,
+                "eave": 0.30000001192092896,
+                "ridge_direction": 0,
+                "flat_rim": 0,
+                "color": 2
+              }
+            }
+          },
+          "algorithm": {
+            "type": "overlap_rows"
+          },
+          "unit": "roof_tile",
+          "regions": [],
+          "params": {
+            "footprint": {
+              "width": 0.5,
+              "height": 0.4375,
+              "depth": 0.1
+            },
+            "seed": "source"
+          }
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "relations": []
+      }
+    },
+    {
+      "id": "component-000003",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "component-000000/component-000003",
+          "group": "component-000000",
+          "type": "window",
+          "support": {
+            "generator": "attachmentMount",
+            "params": {
+              "spec": {
+                "id": "component-000003",
+                "host": "roof",
+                "uv": [
+                  0.012081486496702987,
+                  0.6565982408069662
+                ],
+                "bottom": 0,
+                "width": 1.2000000476837158,
+                "height": 1.1982831731438637,
+                "woodColor": 0,
+                "lightIntensity": 0
+              }
+            }
+          },
+          "algorithm": {
+            "type": "mountAttachment"
+          },
+          "unit": {
+            "nativeAttachment": {
+              "kind": "window",
+              "type": "dormer-gothic",
+              "rank": 2
+            }
+          },
+          "params": {}
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "relations": [
+          {
+            "id": "component-000000/component-000003/host",
+            "from": {
+              "part": "component-000000/component-000003",
+              "boundary": "mount"
+            },
+            "to": {
+              "part": "component-000000-roof",
+              "boundary": "surface"
+            },
+            "rule": "opening"
+          }
+        ]
+      }
+    },
+    {
+      "id": "component-000004",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "component-000004-wall",
+          "group": "component-000004",
+          "type": "wall",
+          "support": {
+            "generator": "wallProfile",
+            "params": {
+              "circle": {
+                "center": [
+                  0,
+                  0
+                ],
+                "radius": 2,
+                "phase": 0
+              },
+              "height": 3.125,
+              "structureMaterial": "masonry"
+            }
+          },
+          "algorithm": {
+            "type": "nativeMasonry"
+          },
+          "unit": "brick",
+          "params": {
+            "footprint": {
+              "width": 0.5,
+              "height": 0.4375,
+              "depth": 0.1
+            },
+            "seed": "source"
+          }
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "relations": [
+          {
+            "id": "component-000004/roof-wall",
+            "from": {
+              "part": "component-000004-wall",
+              "boundary": "top"
+            },
+            "to": {
+              "part": "component-000004-roof",
+              "boundary": "base"
+            },
+            "rule": "wallRoofJoint"
+          }
+        ]
+      }
+    },
+    {
+      "id": "component-000005",
+      "type": "BuildingPartComponent",
+      "props": {
+        "definition": {
+          "id": "component-000004-roof",
+          "group": "component-000004",
+          "type": "roof",
+          "support": {
+            "generator": "roofProfile",
+            "params": {
+              "roof": {
+                "tip": [
+                  0,
+                  0
+                ],
+                "profile": 0,
+                "height": 0.3499999940395355,
+                "ridge_length": 0.6000000238418579,
+                "eave": 0.30000001192092896,
+                "ridge_direction": 0,
+                "flat_rim": 0,
+                "color": 2
+              }
+            }
+          },
+          "algorithm": {
+            "type": "overlap_rows"
+          },
+          "unit": "roof_tile",
+          "regions": [],
+          "params": {
+            "footprint": {
+              "width": 0.5,
+              "height": 0.4375,
+              "depth": 0.1
+            },
+            "seed": "source"
+          }
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "relations": []
+      }
+    },
+    {
+      "id": "component-000000:group-component",
+      "type": "BuildingGroupComponent",
+      "props": {
+        "definition": {
+          "id": "component-000000",
+          "seed": 1,
+          "wallColor": 0,
+          "woodColor": 0
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "assetLibrary": {
+          "$ref": "Building/Units/building-kit.prefab"
+        }
+      }
+    },
+    {
+      "id": "component-000004:group-component",
+      "type": "BuildingGroupComponent",
+      "props": {
+        "definition": {
+          "id": "component-000004",
+          "seed": 2,
+          "wallColor": 0,
+          "woodColor": 0
+        },
+        "frame": {
+          "$entity": "entity-000000"
+        },
+        "assetLibrary": {
+          "$ref": "Building/Units/building-kit.prefab"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --deep-water: #041116;
+        --instrument-line: rgb(122 207 215 / 22%);
+        --foam-ink: #e2f4f3;
+        --water-muted: #83a8aa;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        color: var(--foam-ink);
+        background: var(--deep-water);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      #water-pcg-view,
+      #canvas {
+        width: 100%;
+        height: 100%;
+      }
+
+      #canvas {
+        display: block;
+      }
+
+      #case-intro {
+        position: fixed;
+        right: 16px;
+        bottom: 14px;
+        z-index: 2;
+        display: grid;
+        width: min(430px, calc(100vw - 32px));
+        box-sizing: border-box;
+        gap: 4px;
+        padding: 10px 12px;
+        border: 1px solid var(--instrument-line);
+        border-radius: 5px;
+        background: rgb(4 17 22 / 78%);
+        box-shadow: 0 12px 36px rgb(0 0 0 / 24%);
+        pointer-events: none;
+        backdrop-filter: blur(8px);
+      }
+
+      #case-intro-title {
+        color: var(--foam-ink);
+        font-size: 11px;
+        letter-spacing: 0.08em;
+      }
+
+      #case-intro-text {
+        color: var(--water-muted);
+        font-size: 9px;
+        line-height: 1.5;
+      }
+
+      #fixture-mark {
+        position: fixed;
+        bottom: 14px;
+        left: 16px;
+        z-index: 2;
+        color: rgb(190 229 228 / 64%);
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        pointer-events: none;
+        text-transform: uppercase;
+      }
+
+      html[data-water-pcg-runtime="grasslands"] #canvas {
+        background: radial-gradient(circle at 50% 78%, rgb(45 112 117 / 42%), transparent 42%),
+          linear-gradient(#17332e 0 42%, #071d25 42% 100%);
+      }
+
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #case-intro,
+      html[data-water-pcg-automation="true"][data-water-pcg-runtime="grasslands"] #fixture-mark {
+        display: none !important;
+      }
+
+      .dg.ac {
+        z-index: 4 !important;
+      }
+
+      @media (max-width: 680px) {
+        #case-intro {
+          right: 8px;
+          bottom: 8px;
+          width: min(360px, calc(100vw - 16px));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <aside id="case-intro" aria-live="polite">
+      <strong id="case-intro-title"></strong>
+      <span id="case-intro-text"></span>
+    </aside>
+    <main id="water-pcg-view"></main>
+
+    <template id="water-pcg-river-template">
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <template id="water-pcg-grasslands-template">
+      <div id="fixture-mark">Lake · 闭合样条湖岸 · 统一水位 · SeedWorld 共享 Look</div>
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <script type="module" src="./demo/router.ts"></script>
+  </body>
+</html>

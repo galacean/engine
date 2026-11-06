@@ -1,0 +1,462 @@
+{
+  "version": 1,
+  "note": "114款统一按初始Idle首帧的蒙皮脚底到头顶总高测量；这是以1.8米角色、0.55米草高为参照的游戏体型配置，不是严格动物学尺寸。成年/幼体分别配置，成年老虎1.45米、狗0.85米，幼虎0.8米；外观变体共用体型。注册时一次计算scale，碰撞、源步态位移速度同步乘scale，不改变原始动画节拍；低头、卧姿和幼体仍可能被草遮挡。",
+  "models": {
+    "bull": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 0.23347839940861484
+    },
+    "chameleon": {
+      "standingHeightMeters": 0.75,
+      "sourceHeightMeters": 0.247135861635126
+    },
+    "fox": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.2054676202170029
+    },
+    "koala": {
+      "standingHeightMeters": 1.0,
+      "sourceHeightMeters": 0.24456362818057012
+    },
+    "leopard": {
+      "standingHeightMeters": 1.25,
+      "sourceHeightMeters": 0.17738206314737337
+    },
+    "meerkat": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.100388633297189
+    },
+    "mule": {
+      "standingHeightMeters": 1.9,
+      "sourceHeightMeters": 0.20552695257897696
+    },
+    "ostrich": {
+      "standingHeightMeters": 2.3,
+      "sourceHeightMeters": 1.269405886078576
+    },
+    "platypus": {
+      "standingHeightMeters": 0.75,
+      "sourceHeightMeters": 0.07767693382892932
+    },
+    "porcupine": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.18424591469465726
+    },
+    "raccoon": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.19894217411194742
+    },
+    "skunk": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.2672472445775348
+    },
+    "squirrel": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.1478434663301558
+    },
+    "wolf": {
+      "standingHeightMeters": 1.25,
+      "sourceHeightMeters": 0.20126937364865133
+    },
+    "pinguin-adelie-01": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8165163785894759
+    },
+    "pinguin-cub-01": {
+      "standingHeightMeters": 0.6,
+      "sourceHeightMeters": 0.626589932447413
+    },
+    "pinguin-emperor-01": {
+      "standingHeightMeters": 1.2,
+      "sourceHeightMeters": 1.1891239853493711
+    },
+    "polar-bear-01": {
+      "standingHeightMeters": 1.9,
+      "sourceHeightMeters": 1.6056182312133176
+    },
+    "polar-bear-cub-01": {
+      "standingHeightMeters": 0.9,
+      "sourceHeightMeters": 0.6700262048504334
+    },
+    "gorilla-01": {
+      "standingHeightMeters": 1.9,
+      "sourceHeightMeters": 1.9217581762667628
+    },
+    "elephant-01": {
+      "standingHeightMeters": 3.4,
+      "sourceHeightMeters": 3.379565359660691
+    },
+    "elephant-02": {
+      "standingHeightMeters": 3.4,
+      "sourceHeightMeters": 3.379566071374071
+    },
+    "elephant-cub-01": {
+      "standingHeightMeters": 1.7,
+      "sourceHeightMeters": 1.692739225411866
+    },
+    "elephant-cub-02": {
+      "standingHeightMeters": 1.7,
+      "sourceHeightMeters": 1.6927394050186377
+    },
+    "swan-01": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 1.126633449141929
+    },
+    "swan-02": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 1.1266337382191172
+    },
+    "goat-01": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 0.9276350230813224
+    },
+    "goat-02": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 0.9276353381487784
+    },
+    "zebra-01": {
+      "standingHeightMeters": 2,
+      "sourceHeightMeters": 1.8815888642708662
+    },
+    "hippopotamus-01": {
+      "standingHeightMeters": 2,
+      "sourceHeightMeters": 2.033687541295534
+    },
+    "raccoon-01": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.36554131024099984
+    },
+    "walrus-01": {
+      "standingHeightMeters": 1.2,
+      "sourceHeightMeters": 0.9141119872373377
+    },
+    "seal-01": {
+      "standingHeightMeters": 0.75,
+      "sourceHeightMeters": 0.616065303979469
+    },
+    "seal-02": {
+      "standingHeightMeters": 0.75,
+      "sourceHeightMeters": 0.6160655233758147
+    },
+    "seal-03": {
+      "standingHeightMeters": 0.75,
+      "sourceHeightMeters": 0.6160655233758147
+    },
+    "flamingo-01": {
+      "standingHeightMeters": 1.6,
+      "sourceHeightMeters": 1.5985393708584954
+    },
+    "bear-01": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.5709308148077281
+    },
+    "bear-02": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.5709309658902622
+    },
+    "bear-cub-01": {
+      "standingHeightMeters": 0.9,
+      "sourceHeightMeters": 0.6176422069894362
+    },
+    "bear-cub-02": {
+      "standingHeightMeters": 0.9,
+      "sourceHeightMeters": 0.6176422901375883
+    },
+    "panda-01": {
+      "standingHeightMeters": 1.6,
+      "sourceHeightMeters": 1.9310480444395475
+    },
+    "panda-cub-01": {
+      "standingHeightMeters": 0.9,
+      "sourceHeightMeters": 0.9749569821833458
+    },
+    "bull-01": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.7581342309160968
+    },
+    "cow-01": {
+      "standingHeightMeters": 1.75,
+      "sourceHeightMeters": 1.718921366206033
+    },
+    "cow-02": {
+      "standingHeightMeters": 1.75,
+      "sourceHeightMeters": 1.7189221325978052
+    },
+    "rhinoceros-01": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 2.2773285141561597
+    },
+    "roe-deer-01": {
+      "standingHeightMeters": 1.6,
+      "sourceHeightMeters": 1.926787753752404
+    },
+    "roe-deer-02": {
+      "standingHeightMeters": 1.6,
+      "sourceHeightMeters": 1.926788183607002
+    },
+    "fox-01": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.5445619842514189
+    },
+    "dog-01": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507187884513991
+    },
+    "dog-02": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507189344371672
+    },
+    "dog-03": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507189344371672
+    },
+    "dog-04": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507189344371672
+    },
+    "dog-05": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507189344371672
+    },
+    "dog-06": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.8507189344371672
+    },
+    "lion-01": {
+      "standingHeightMeters": 1.6,
+      "sourceHeightMeters": 1.6279212794755376
+    },
+    "lion-cub-01": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.690567668693622
+    },
+    "lion-female": {
+      "standingHeightMeters": 1.35,
+      "sourceHeightMeters": 1.1188963604880318
+    },
+    "wolf-01": {
+      "standingHeightMeters": 1.25,
+      "sourceHeightMeters": 0.8300127942315865
+    },
+    "wolf-02": {
+      "standingHeightMeters": 1.25,
+      "sourceHeightMeters": 0.8300131750961404
+    },
+    "pig-01": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.89313957843813
+    },
+    "pig-02": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.8931395744848941
+    },
+    "pig-03": {
+      "standingHeightMeters": 0.95,
+      "sourceHeightMeters": 0.8931395744848941
+    },
+    "cat-01": {
+      "standingHeightMeters": 0.7,
+      "sourceHeightMeters": 0.39640424276742076
+    },
+    "cat-02": {
+      "standingHeightMeters": 0.7,
+      "sourceHeightMeters": 0.3964043360311829
+    },
+    "cat-03": {
+      "standingHeightMeters": 0.7,
+      "sourceHeightMeters": 0.3964043360311829
+    },
+    "cat-04": {
+      "standingHeightMeters": 0.7,
+      "sourceHeightMeters": 0.3964043328410561
+    },
+    "kitty-01": {
+      "standingHeightMeters": 0.4,
+      "sourceHeightMeters": 0.20820045759802042
+    },
+    "kitty-02": {
+      "standingHeightMeters": 0.4,
+      "sourceHeightMeters": 0.20820049942568566
+    },
+    "kitty-03": {
+      "standingHeightMeters": 0.4,
+      "sourceHeightMeters": 0.20820049944127575
+    },
+    "kitty-04": {
+      "standingHeightMeters": 0.4,
+      "sourceHeightMeters": 0.20820049942568566
+    },
+    "monkey-01": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.5304481998037446
+    },
+    "monkey-02": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.5304483163978888
+    },
+    "ram-01": {
+      "standingHeightMeters": 1.3,
+      "sourceHeightMeters": 1.6543162644221296
+    },
+    "ram-02": {
+      "standingHeightMeters": 1.3,
+      "sourceHeightMeters": 1.6543165621954163
+    },
+    "sheep-01": {
+      "standingHeightMeters": 1.05,
+      "sourceHeightMeters": 0.9481155980250664
+    },
+    "sheep-02": {
+      "standingHeightMeters": 1.05,
+      "sourceHeightMeters": 0.9481158969855231
+    },
+    "sheep-03": {
+      "standingHeightMeters": 1.05,
+      "sourceHeightMeters": 0.9481158969855231
+    },
+    "lama-01": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.7358588235431338
+    },
+    "lama-02": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.7358592387114984
+    },
+    "tiger-01": {
+      "standingHeightMeters": 1.45,
+      "sourceHeightMeters": 1.262792224573851
+    },
+    "tiger-02": {
+      "standingHeightMeters": 1.45,
+      "sourceHeightMeters": 1.262792430576218
+    },
+    "tiger-cub-01": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.6500031318165249
+    },
+    "tiger-cub-02": {
+      "standingHeightMeters": 0.8,
+      "sourceHeightMeters": 0.6500034288655786
+    },
+    "koala-01": {
+      "standingHeightMeters": 1,
+      "sourceHeightMeters": 0.31196849424889156
+    },
+    "kangoroo-01": {
+      "standingHeightMeters": 1.65,
+      "sourceHeightMeters": 1.4612096758137691
+    },
+    "bison-01": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 2.183225427939575
+    },
+    "giraffe-01": {
+      "standingHeightMeters": 5.2,
+      "sourceHeightMeters": 5.667347584563513
+    },
+    "horse-01": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.8560462765242531
+    },
+    "horse-02": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.8560467532062617
+    },
+    "horse-03": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.8560467532062617
+    },
+    "horse-04": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.8560467532062617
+    },
+    "horse-05": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.8560467532062617
+    },
+    "donkey-01": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.4909307930812794
+    },
+    "donkey-02": {
+      "standingHeightMeters": 1.8,
+      "sourceHeightMeters": 1.4909311314425977
+    },
+    "moose-01": {
+      "standingHeightMeters": 2.3,
+      "sourceHeightMeters": 2.1928716061445885
+    },
+    "moose-cub-01": {
+      "standingHeightMeters": 1.2,
+      "sourceHeightMeters": 1.0890993474464548
+    },
+    "moose-female": {
+      "standingHeightMeters": 2,
+      "sourceHeightMeters": 1.8028605780708842
+    },
+    "camel-01": {
+      "standingHeightMeters": 2.4,
+      "sourceHeightMeters": 2.059310247840642
+    },
+    "camel-02": {
+      "standingHeightMeters": 2.4,
+      "sourceHeightMeters": 2.0593105057992678
+    },
+    "camel-03": {
+      "standingHeightMeters": 2.4,
+      "sourceHeightMeters": 2.0593105057992678
+    },
+    "crocodile-01": {
+      "standingHeightMeters": 0.85,
+      "sourceHeightMeters": 0.7699845600210178
+    },
+    "chick-01": {
+      "standingHeightMeters": 0.3,
+      "sourceHeightMeters": 0.17017196457968786
+    },
+    "chicken-01": {
+      "standingHeightMeters": 0.65,
+      "sourceHeightMeters": 0.502110123179052
+    },
+    "chicken-02": {
+      "standingHeightMeters": 0.65,
+      "sourceHeightMeters": 0.502110123179052
+    },
+    "chicken-03": {
+      "standingHeightMeters": 0.65,
+      "sourceHeightMeters": 0.502110123179052
+    },
+    "duck-01": {
+      "standingHeightMeters": 0.65,
+      "sourceHeightMeters": 0.5669225010471896
+    },
+    "pigeon-01": {
+      "standingHeightMeters": 0.45,
+      "sourceHeightMeters": 0.2651885922345533
+    },
+    "pigeon-02": {
+      "standingHeightMeters": 0.45,
+      "sourceHeightMeters": 0.2651886664722553
+    },
+    "pigeon-03": {
+      "standingHeightMeters": 0.45,
+      "sourceHeightMeters": 0.2651886664722553
+    },
+    "deer-01": {
+      "standingHeightMeters": 2.1,
+      "sourceHeightMeters": 1.9707049024352101
+    },
+    "deer-cub-01": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 0.9590839989880453
+    },
+    "deer-cub-02": {
+      "standingHeightMeters": 1.1,
+      "sourceHeightMeters": 0.9590841982780491
+    },
+    "deer-female-01": {
+      "standingHeightMeters": 1.7,
+      "sourceHeightMeters": 1.6128990072716411
+    }
+  }
+}

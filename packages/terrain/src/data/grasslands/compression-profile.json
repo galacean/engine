@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "brotli": {
+    "quality": 11,
+    "lgwin": 20
+  },
+  "resources": {
+    "region-json": "Brotli",
+    "height-r16": "BrotliHeightmap",
+    "alphamap-rgba8": "Brotli"
+  }
+}

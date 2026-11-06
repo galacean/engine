@@ -1,0 +1,321 @@
+{
+  "targetSha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+  "recordScope": "Incremental capture history. Source hashes, original-function comparisons and limitations describe the named capture, not a whole-game or current end-to-end acceptance claim. Historical pending statements below are retained with their scope; current public capability is owned by ConstructionDecorationCatalog and its production consumers.",
+  "fullHole": {
+    "targetSha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+    "sourceAsm": "cottage-full-generator.asm",
+    "instructionRange": "0x10111332c..0x101113434",
+    "confirmedFormula": "center=position+rotate(quaternion,[.05,.05,-.05])+[0,.5,0]; normalXZ=rotate(quaternion,[0,0,1]).xz; extent=[.8,1,.2]; k=1,a=-50. Native quaternion rotation evaluated f32 per operation, all source transforms unit-scale.",
+    "packing": {
+      "0": "position float3",
+      "12": "host wall render slot uint32",
+      "16": "extent float3",
+      "28": "zero padding",
+      "32": "normalXZ float2",
+      "40": "1 float32",
+      "44": "-50 float32"
+    },
+    "oracle": {
+      "inputRenders": "/Users/zhanyingwei/.local/share/rea/investigations/tiny-glade-2026-10-12/scene-reuse/dormer/cottage-dormer-12-renders.bin",
+      "expectedHole": "/Users/zhanyingwei/.local/share/rea/investigations/tiny-glade-2026-10-12/scene-reuse/dormer/cottage-dormer-12-dormer_holes.bin",
+      "expectedSHA256": "5ce20cdc91a43d95ab1e649e76cc16d47cae4e89bb1c97968e65e5d7dd0a0f6a",
+      "formulaSHA256": "5ce20cdc91a43d95ab1e649e76cc16d47cae4e89bb1c97968e65e5d7dd0a0f6a",
+      "byteExact": true,
+      "quaternion": [0.0, -0.1764734387397766, 0.0, 0.9843054413795471],
+      "position": [-5.763064384460449, 7.440665245056152, -1.8038897514343262],
+      "formulaCenter": [-5.698808193206787, 7.990665435791016, -1.8334051370620728],
+      "formulaNormal": [-0.3474075198173523, 0.0, 0.9377143383026123]
+    },
+    "coverageLimit": "One retained whole-native rank1 baseline numerical comparison. Formula instruction chain applies identically to every repeated piece; no new game run."
+  },
+  "halfHole": {
+    "targetSha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+    "evidence": "retained native scene baseline decorator10 subtype1 rank2; source086 lines1251-1364; Rectangle3d::extent0x102007a08 ABI width+16,depth+20,minY+24,maxY+28",
+    "formulaSource": "CottageDormerHole48.ts",
+    "comparison": {
+      "p": [-1.8419005870819092, 5.8305816650390625, 0.9318143129348755],
+      "q": [0, -0.17647342383861542, 0, 0.9843054413795471],
+      "diff": [],
+      "actual": "57e301c02094ba404916b83f000000003333d33f00000040d7a3903f0000000065dfb1be0c0e703f0000803f000048c2a37102c02094ba407616bb3f0000000066661640cdcccc3f0000003f0000000065dfb1be0c0e703f0000803f000048c2",
+      "expected": "57e301c02094ba404916b83f000000003333d33f00000040d7a3903f0000000065dfb1be0c0e703f0000803f000048c2a37102c02094ba407616bb3f0000000066661640cdcccc3f0000003f0000000065dfb1be0c0e703f0000803f000048c2"
+    },
+    "recordCount": 2,
+    "actualSha256": "e9d14f4be0f535f047dcae7decee6aae2f860ebfddf1c887432122af989edfcb",
+    "source": "/Users/zhanyingwei/.local/share/rea/investigations/tiny-glade-2026-10-12/scene-reuse/native-scene/checks/baseline/cpu/dormers/deco10.holes48.bin",
+    "selection": "Later caller evidence identifies the optional second hole with the rank2 shutter branch. RecoveredHalfDormer.cottageHalfDormerHasShutters owns the seeded decision and native stone-foundation suppression; CottageHalfDormerGenerator passes the same flag to the shutters and cottageHalfDormerHoles48. HalfDormerSelection.spec.ts compares 504 controlled original selections. This does not establish complete native ECS scheduling.",
+    "nativeCollisionHeight": 1.8000000715255737
+  },
+  "strips": {
+    "targetSha256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+    "nativeFunction": "0x10114412c",
+    "closure": "0x101146e7c",
+    "evidenceId": "ev_826a60ebb5a5b65aae0c70ca4f864e0a167f041e1302967dcae1cd460e5ca712",
+    "scope": "Exact portable original loop, random consumption, transforms, clip planes, output64 packing. This initial capture supplied sampling primitive boundaries from exact original query fixtures; the later sampler section records the independent sampler port. Half scenarios here are direct inner inputs, not complete ECS half-producer replay.",
+    "port": "CottageDormerStripAssembly.ts",
+    "files": {
+      "CottageDormerStripAssembly.ts": "46807de48cbb7aac75a1ba0edc080cdfa169460edf5db0e84274b9776189dcdc",
+      "cottage-dormer-roof-assembler.c": "e34e9485a97ac049bc6b6a3ba83ca314fd692abe5f47b04dabb0b94fc5a7d4bb",
+      "cottage-dormer-roof-assembler-closure.c": "784fb8d2725ac35878a4868f7ae3b74c7981d1788a16c575c811b931de9425fd",
+      "cottage-column-window-iterator.asm": "b6ab0b3b47a4014e8f969c889026262a8a8d8e9b165fc8c1d8ee79368c633224",
+      "rotation-from-normal.asm": "a925dfec7698c5f5d9c80a6b37a0c0e42697ae259519018c1ca144b1002e26ea"
+    },
+    "oracleCases": [
+      {
+        "case": "cottage-inner-full-rank1.json",
+        "comparison": "cottage-inner-full-rank1-comparison.json",
+        "count": 19,
+        "allBytesEqual": true,
+        "sha256": "55b96ce893c217bf00f11c7c5ffc554ac466e55a1818995659d17ec8a7bb5a9c",
+        "input": {
+          "width": 1,
+          "rise": 1,
+          "expand": 0.1,
+          "rank": 1,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      },
+      {
+        "case": "cottage-inner-full-rank2.json",
+        "comparison": "cottage-inner-full-rank2-comparison.json",
+        "count": 27,
+        "allBytesEqual": true,
+        "sha256": "1b6a93015f4451e2422bea12e8c108a6f31933e9ab34689719824d95f1088684",
+        "input": {
+          "width": 1.7,
+          "rise": 1,
+          "expand": 0.1,
+          "rank": 2,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      },
+      {
+        "case": "cottage-inner-full-rank3.json",
+        "comparison": "cottage-inner-full-rank3-comparison.json",
+        "count": 47,
+        "allBytesEqual": true,
+        "sha256": "7aa67349bec411237d11ba57fdead7dde8ea686910b276394777c3d58f9037d0",
+        "input": {
+          "width": 2.4,
+          "rise": 1,
+          "expand": 0.1,
+          "rank": 3,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      },
+      {
+        "case": "cottage-inner-half-rank1.json",
+        "comparison": "cottage-inner-half-rank1-comparison.json",
+        "count": 14,
+        "allBytesEqual": true,
+        "sha256": "700924d666425d448138acbb0e70f683665e90acab1073fbe318f8a284f9f341",
+        "input": {
+          "width": 1,
+          "rise": 0.6,
+          "expand": 0.1,
+          "rank": 1,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      },
+      {
+        "case": "cottage-inner-half-rank2.json",
+        "comparison": "cottage-inner-half-rank2-comparison.json",
+        "count": 28,
+        "allBytesEqual": true,
+        "sha256": "4ad8721451901837c979b9fca26be06b2c1c31381d8111af4daf22618628ccf4",
+        "input": {
+          "width": 1.7,
+          "rise": 0.6,
+          "expand": 0.05,
+          "rank": 2,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      },
+      {
+        "case": "cottage-inner-half-rank3.json",
+        "comparison": "cottage-inner-half-rank3-comparison.json",
+        "count": 48,
+        "allBytesEqual": true,
+        "sha256": "d6dce7e547f111bab346bfd0b47283814db50871d8960b4b361797af2275ab8d",
+        "input": {
+          "width": 2.4,
+          "rise": 0.6,
+          "expand": 0.3,
+          "rank": 3,
+          "slot": 253,
+          "sidewalls": true,
+          "roof88_hex": "0600000000000000010000000e0e703f67dfb13e3a091ec05edb60c05583fc40f9dcf34000000000000000000000803f7c14ee3e0000803fcdcc4c3e0000000001000000000000000000000091cdc1400200000001a5a5a5",
+          "transform48_hex": "0000000074b534be0000000071fb7b3f066bb8c0ee19ee40dce5e6bf0000803f0000803f0000803f0000000000000000"
+        }
+      }
+    ],
+    "totalRecords": 183,
+    "samplerContract": {
+      "sectionAt": "Roof::get_roof_shape_from_pos_ws_clamped(position XYZ): returns original circular/rotated-rectangle ShapeParameters; world Y + noise clamped to roof profile.",
+      "closestU": "ShapeParameters::get_closest_u_from_pos(X,Z), exact perimeter convention",
+      "point": "ShapeParameters::get_pos_at_u(u), u in[0,1]",
+      "perimeter": "ShapeParameters::perimeter",
+      "expand": "ShapeParameters::expand(amount); cross-section expansion, NOT rise/slope; decays expand*(1-t) to0",
+      "height": "Roof::height original height; rank fractions .1/.15/.2"
+    },
+    "semantics": {
+      "inputs": "native position XYZ, rank1..3, width, rise, expansion; roof sampler, host render slot, sideWalls bool. Quaternion/scale of passed transform are not consulted by original strip core.",
+      "rng": "wyhash64 state seed = trunc(f32Length(f32(position*10))); splits consume interior draws, tile tilt consumes one, every output consumes signed[-100,99] with 200 range rejection threshold96; interleaving is mandatory.",
+      "rows": "max(2,ceil(depth/.4)) boundary count; jitter .08000000566244125/depth",
+      "columns": "max(2,floor(width*perimeter(low)/perimeter(base)/.3)) boundary count; jitter .06000000238418579/rowWidth",
+      "order": "row ascending; column ascending; row0 front; main tile; col0 left trim + optional left fill; lastcol right trim + optional right fill",
+      "tile": "x=normalize(B-A); y=normalize(mid(C,D)-mid(A,B)); z=cross(x,y); q*rotX(mix(-2,-10,rng)deg); scale[length(B-A),length(A-C)+.1,.1]",
+      "front": "row0 horizontal strip with axes[-normal.z,0,normal.x],inwardNormal,+Y; sagitta across entire row span gives height max(sagitta+.1,.3); centered midAB+inward*height/2",
+      "trim": "width.15, length+.16, thickness.2; rotation_from_normal(A-C)*rotX90",
+      "fill": "baseY=min(sourceY0,sourceY1)-.1; height B.y-baseY; width XZsegment length; shift normal±.08; side0 q*rotY180; clip cross(B-A,normal), -dot(B,clipN); no normalization",
+      "format64": "position0f32x3; pad12; clip16f16x4; scale24f16x3; pad30; quat32f16x4; slot40u32; pad44; 48f32=1;52i32ordinal;56/60zero"
+    }
+  },
+  "productionStatus": "Full Cottage rank1/2/3 is connected to public TS decoration generation, catalog/Knowledge, native clearance, original dynamic collision cloud and explicit overlap diagnostics. Original repeated frame/glass bodies, holes and settled roof units share the generic pipeline. The initial circle-rank2 capture below is not the complete acceptance matrix; subsequent browser matrix, material and full-scene acceptance records are documented in V2_IMPLEMENTATION.md. This provenance file alone does not establish final visual parity or completed code review.",
+  "sampler": {
+    "binarySHA256": "4b3c843710a5f17fdb460d3f7add420f14ec2a2718fb7ebd677c3c8ba0ac589a",
+    "scope": "Independent TS sampler and full Cottage frame assembly. No gameplay runtime claim. Controlled original CPU functions/block replay with unchanged arithmetic and shape calls.",
+    "implementation": "CottageRoofSampler.ts",
+    "sourceFunctions": {
+      "roofClamped": "0x1015955fc",
+      "roofSection": "0x101595444",
+      "rectanglePoint": "0x102004eb0",
+      "rectanglePointClosure": "0x1020050b8",
+      "rectangleClosestU": "0x10200647c",
+      "rectangleClosestEdge": "0x102006a04",
+      "circlePoint": "0x101ff6e38",
+      "circleClosestU": "0x101ff7208",
+      "shapeExpand": "0x10166f1e4",
+      "shapePerimeter": "0x10166f2b0",
+      "asCurve3": "0x10166f288",
+      "circleCurve3": "0x101ff7650",
+      "circleCurvePoints": "0x101ffb308",
+      "rectangleCurve3": "0x1020074dc",
+      "yawQuaternion": "0x101ffd3e8",
+      "fullFrameOriginalBlock": ["0x1011126ec", "0x101112f80"]
+    },
+    "verification": {
+      "rectangularInner": "Seven scenarios: full/half rank1..3 + sideWalls=false fullrank2. 750 sample queries and204 output64 records all exact.",
+      "circleInner": "Synthetic valid Roof88 using original shape ABI, real native functions. rank2:29 output64 exact, all semantic query fields exact. Circle shape28 last8 padding not shape facts and ignored.",
+      "tipOffset": "Mutate Roof88+36/+40 to[.7,-.4] for rectangle and circle: same cached anchor yields original inner output hashes unchanged; section does not consume tipOffset. Upstream UV anchor remains separately offset-aware.",
+      "curves": "Original asCurve3 output points, normalized cumulative knots, length exact on5-point rect and99-point circle. Reuses existing RoofCurve.",
+      "rotations": "Eight axis/oblique/zero-input examples exactly match native quaternion float values. SIMD signed-zero Y component retained.",
+      "fullFrames": "Original block replay6inputs (rectangle+circle × ranks1/2/3):12 transforms; all10 meaningful floats pertransform byte-exact;8 tailpadding bytes excluded."
+    },
+    "exactSemantics": {
+      "clampedY": "v=clamp((y + noise(x*.5,z*.5)*(-.3) - baseY)/((baseY+height)-baseY),0,1), everyscalar stepf32. Do not simplify denominator toheight.",
+      "section": "profile inversepower and expandedDimensions from existing recoveredmath. No tipOffset reads in section function.",
+      "rectangleClosest": "Nearest projected worldsegment Euclidean distance, strictless tie order0..3; firstdistance capped1000; projectiondenominator at least f32(1e-20). This is native behavior even for distant queries.",
+      "circleCurve": "N=max(3,ceil(perimeter/.2)), N points over u=i/(N-1). ThusN includesclosed endpoint, not N+1.",
+      "fullFrameU": "Analytic shape.closestU and shape.perimeter first. rank2 offset=f32(f32(width/perimeter)*.25);rank3=f32(f32(width/perimeter)/3). Then polyline sample/tangent at wrapped U.",
+      "fullRank1": "Preserves cached entire transform.",
+      "fullRank3Middle": "Uses curve.sample(centerU) position, cached quaternion, unit scale.",
+      "yaw": "tangent-normal n=normalize([-t.z,0,t.x]); xzProjectiveRotation renormalizesXZ, fallback+X; horizontalaxis SIMD Y signedzero preserved.",
+      "padding": "Transform48 final8bytes and shape28 circlelast8bytes are padding, not semantic geometry."
+    },
+    "unknowns": [
+      "Whole ECS scheduling and renderer visual test are parent integration scope.",
+      "The later halfHole.selection entry records the resolved shutter/secondary-hole trigger; this sampler capture did not exercise that caller branch.",
+      "Circle oracle uses controlled synthetic valid Roof88 rather than observed live-game circle construction; original source functions execute unchanged.",
+      "Platform libm vs JavaScript Math may differ by small ULPs on untested inputs; current fixtures exact."
+    ]
+  },
+  "productModules": [
+    "RecoveredCottageDormerRoof.ts",
+    "RecoveredCottageRoofSampler.ts",
+    "RecoveredCottageDormerPlacement.ts",
+    "RecoveredCottageDormerHoles.ts",
+    "CottageDormerGenerator.ts"
+  ],
+  "tests": ["CottageDormerRoof.spec.ts", "CottageRoofSampler.spec.ts", "CottageDormerHoles.spec.ts"],
+  "verificationInputs": {
+    "fixture": "demos/terrain/project-tests/fixtures/cottage-dormer-strips.json",
+    "cases": 9,
+    "originalRecords": 259,
+    "circleOriginalCallerWidth": 1.7000000476837158,
+    "circleOriginalCallerRecords": 26
+  },
+  "hostAdapter": {
+    "source": "runtime/ConstructionPitchedRoofAttachment.ts",
+    "classification": "Host editor contract, not a recovered Tiny Glade UI behavior",
+    "coordinates": "Normalized oriented footprint rectangle UV; vertical highest hit on the original GothicSupportMesh triangles. Empty circle corners and horizontal caps fail explicitly. Native UV is diagnostic derived evidence, not saved author state.",
+    "sharedFacing": "GothicPlacement.gothicRoofFacing; original arithmetic extracted without changes. Raising bottom retains surface-facing orientation.",
+    "resizing": "Host scale [XZ,Y] changes original frame arc spacing, model transforms, individual opening offsets/extents, strip width/rise/expansion together. Scale [1,1] preserves native byte parity. This extension is not evidence of arbitrary-size controls in Tiny Glade.",
+    "verification": "PitchedRoofAttachment.spec.ts: rotated rectangles/circles, nonzero circle tip, chart seam, topmost cap rejection, empty corners, bottom raise, all three resized ranks, generated Cottage cuts through ConstructionRoof context.",
+    "limits": "The existing rectangular main-roof tile producer rejects nonzero tip, axis and edge mode. Placement tests exercise axis1 and tip; complete roof generation uses supported axis0. Full Cottage public generation is connected. Placement tests alone do not establish three-material/three-LOD visual acceptance; later browser records have their own explicit scopes.",
+    "sidePlane": {
+      "classification": "Host material replacement extension following the original roof plane compensation; no claim that Tiny Glade offers arbitrary material replacement.",
+      "nativeVertexSHA256": "db0f085045d38456b66d9c9be84b93ba1bf717cd63791cba05e493569fddd31a",
+      "nativeFragmentSHA256": "b21c52b2e831c159675aed25f5a6a4ef49c4e17ca61585e7fe0e6c7b5bd06b15",
+      "nativeFormula": "plane = half4(instance64[16..24]); plane.w += dot(preWarp - renderedPosition, plane.xyz); discard when dot(vec4(fragmentPosition,1),plane) < 0.",
+      "replacementBoundaries": {
+        "brick_lod0": ["rest _551", "rendered _2839", "indirection v13", "fragment v2"],
+        "brick_sdf": [
+          "rest _591",
+          "rendered _2787",
+          "indirection v13",
+          "fragment masonrySdfHitLocal after original_main"
+        ],
+        "wood": ["rest _425", "rendered _2289", "indirection v2", "fragment v0"]
+      },
+      "sources": ["runtime/ConstructionRoofClipShader.ts", "runtime/ConstructionRoofUnitClip.ts"],
+      "verification": "RoofUnitClip.spec.ts; seven real WebGL2 original/SDF shader pairs linked; existing PlannedMasonryWorld decoration fixture passed. These do not establish full Cottage dormer visual parity."
+    },
+    "renderAdaptation": {
+      "source": "runtime/ConstructionCottageDormer.ts",
+      "sharedRoofSource": "runtime/ConstructionSettledRoof.ts",
+      "selection": "Native repeated window_cottage_1x1_dormer_frame and window_cottage_1x1_dormer_glass, not the large unsplit dormer model.",
+      "dimensions": "Public recommended width is the unfolded rank-1 visual span plus native group spacing*(rank-1)/rank; height is rank-1 frame visual span. The curved group AABB and small roof coverage are distinct.",
+      "ownership": "Native strips are immutable inputs. Cell vectors and upload buffers are independent owned copies. Gothic IDs retain the existing geometry/gothic/tile identity.",
+      "verification": "CottageDormerGeometry.spec.ts: rectangle/circle × ranks 1..3, exact native opening and strip bytes at default sizes, mesh material UVs/pivots/interior centers, material packing, coarse clipping, recolor, resize/restore and copy ownership. Existing production decoration fixture passed; no claim of complete Cottage visual acceptance."
+    }
+  },
+  "fullClearance": {
+    "function": "0x101111b1c is_out_of_roof_bounds",
+    "caller": "0x1011656f0..0x101165758: width and height of original full_dormer resource collision BBX, not visible frame dimensions",
+    "arguments": {
+      "width": [0.9775000214576721, 1.755000114440918, 2.15262508392334],
+      "height": 1.5130000114440918
+    },
+    "semantics": "f32 top height strict > rejection; rectangle corner interval inclusive at both ends, checked at anchor and top sections, periodic wrap retained; circular host checks height only here.",
+    "gable": "location_valid 0x101165a30 uses native meshUV.v<1.9 and gable_sides intervals [side*.25,(side+1)*.25); gable_sides 0x101594b34 is [axis,axis+2] for valid axis0/1 when ridge==1 and height>.1.",
+    "oracle": "demos/terrain/project-tests/fixtures/cottage-roof-clearance.json",
+    "verification": "72 controlled original-function outputs equal TS eligibility, including f32 ULP boundaries and wrapped corner spans; not live game ECS acceptance.",
+    "hostExtension": "API plan-view roof UV resolves onto original trigger triangles. Explicit body dimensions scale source installation width/height. Rejected hosts return explicit reasons without substitution."
+  },
+  "fullCollisionPoints": {
+    "function": "0x101168ed8 collision_geo::get_collision_mesh",
+    "captureBoundary": "0x1014b7abc RaycastMeshData::new_convex: original input point cloud before convex hull construction",
+    "inputs": "cached transform, rank1..3, roof, width[.8,1.5,2.2],height1,padding.2; differs from the full_dormer BBX used by installation eligibility",
+    "output": "local coordinates of cached transform;24 vertices forrank1,42 forrank2/3, includes duplicate/degenerate triangle points; never render as a closed visual mesh",
+    "oracle": "demos/terrain/project-tests/fixtures/cottage-dormer-collision.json",
+    "verification": "18 original executions /648 points /1944 f32 components bit-exact: rectangle,circle,arbitrary quaternion,nonuniform transform scale,periodic wrap. TS uses roof sampler, not captured geometry.",
+    "scope": "No port of native quantized cache or physics backend. Editor SAT permits touching. Public Cottage uses original dynamic convex clouds and individual original nonconvex Gothic collider triangles; duplicate/new-to-legacy overlap tests pass. Original legacy collision/filter scheduling is not claimed to be reproduced."
+  },
+  "farLodSkin": {
+    "classification": "Host render approximation, not an original Tiny Glade LOD mesh",
+    "cause": "The original CPU trigger surface expands circular radii by .13 and rectangular dimensions by .4 before gable-specific changes. Rendering that interaction surface could occlude full Cottage glass outside the native finite Hole48 depth.",
+    "sources": [
+      "GothicHostSurface.ts: original trigger 0x10055f670..0x100561168",
+      "RecoveredRoofPlacement.ts: original circular placement dimensions",
+      "RecoveredRectangularRoof.ts: original rectangular/gable placement dimensions",
+      "assets/original/library.json: roof fragment Hole48 predicate"
+    ],
+    "resolution": "Keep original trigger unchanged for attachment and author chart; sample coarse render skin from placement dimensions, retaining trigger metric UV scale. Recompute holes on render skin using unchanged native Hole48. Original detailed geometry and native records unchanged.",
+    "verification": "CottageRoofPreview.spec.ts: circle/rectangle x ranks1/2/3 visible glass rays, original trigger ownership and chart preservation; decoration-materials-runtime circle rank2: 173 interior samples per glass across 3 LOD, maximum channel delta 1/255."
+  }
+}

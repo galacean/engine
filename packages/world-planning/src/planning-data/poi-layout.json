@@ -1,0 +1,47 @@
+{
+  "version": 2,
+  "content": {
+    "villageLimit": 1,
+    "villageSiteSpanM": 180,
+    "villageSize": 0.55,
+    "villageDensity": 0.6,
+    "buildingSize": 0.5,
+    "buildingDirection": 0.4,
+    "roadBend": 0.45,
+    "roadWidthVariation": 0.7,
+    "landformLimit": 3,
+    "landformLengthM": 96,
+    "landformHeightM": 28,
+    "landformVariation": 0.35,
+    "canyonLimit": 1
+  },
+  "landscape": {
+    "density": 1,
+    "contexts": {
+      "road": 0,
+      "building": 2,
+      "poi": 0,
+      "landform": 0
+    },
+    "maxAltitudeM": 160,
+    "maxSlopeDegrees": 28,
+    "treeHeightMinM": 8,
+    "treeHeightMaxM": 18
+  },
+  "network": {
+    "widthM": 4,
+    "bend": 0.4,
+    "loopiness": 0.3
+  },
+  "canyon": {
+    "lengthM": 160,
+    "floorWidthM": 26,
+    "bankWidthM": 16,
+    "heightM": 36,
+    "bend": 0.45,
+    "riverWidthM": 9,
+    "widthVariation": 0.3
+  },
+  "spacingM": 210,
+  "minAreaM2": 0
+}

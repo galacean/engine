@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>种植动画预览</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="workbench">
+      <aside class="tools" aria-label="种植动作">
+        <div class="catalog-heading">
+          <span class="eyebrow">FARMING / MOTION</span>
+          <h1>种植动画预览</h1>
+          <p>查看农具动作，调整节奏，检查与土地的接触。</p>
+        </div>
+        <nav id="animations" aria-label="选择动画">
+          <button data-animation="watering" aria-pressed="true">
+            <span class="tool-number">01</span><span><strong>浇水</strong><small>水壶 · 2.0 秒</small></span>
+          </button>
+          <button data-animation="hoe" aria-pressed="false">
+            <span class="tool-number">02</span><span><strong>锄地</strong><small>锄头 · 3.6 秒</small></span>
+          </button>
+          <button data-animation="rake" aria-pressed="false">
+            <span class="tool-number">03</span><span><strong>耙地</strong><small>硬齿耙 · 4.0 秒</small></span>
+          </button>
+          <button data-animation="harvest" aria-pressed="false">
+            <span class="tool-number">04</span><span><strong>收获</strong><small>手提篮 · 混装 / 消融</small></span>
+          </button>
+        </nav>
+        <section class="action-note">
+          <h2 id="action-name">浇水</h2>
+          <p id="description"></p>
+          <dl>
+            <div>
+              <dt>农具</dt>
+              <dd id="tool-name">水壶</dd>
+            </div>
+            <div>
+              <dt>动作时长</dt>
+              <dd id="duration">2.0 秒</dd>
+            </div>
+          </dl>
+        </section>
+        <p class="scope-note">这里仅预览动作，不改变农场土地或作物状态。</p>
+      </aside>
+      <section class="stage" aria-label="动画预览">
+        <header class="stage-heading">
+          <div>
+            <span class="eyebrow">动作观察</span>
+            <h2 id="stage-title">浇水</h2>
+          </div>
+          <label class="view-control"
+            >视角<select id="view" aria-label="预览视角">
+              <option value="first">第一人称</option>
+              <option value="side">侧面检查</option>
+              <option value="orbit">自由观察</option>
+            </select></label
+          >
+        </header>
+        <div class="viewport">
+          <canvas id="canvas" aria-label="种植动画三维预览"></canvas>
+          <div id="status" role="status">正在加载动画…</div>
+          <div id="phase" class="phase" aria-live="off">准备</div>
+          <div id="view-hint" class="view-hint">第一人称 · 从身前观察工具与土地</div>
+        </div>
+        <section class="transport" aria-label="播放控制">
+          <div class="time-label"><label for="progress">动作进度</label><output id="time">0.00 / 2.00 秒</output></div>
+          <input id="progress" type="range" min="0" max="2" step="0.001" value="0" disabled aria-label="动作进度" />
+          <div class="transport-actions">
+            <button id="play" disabled>播放</button><button id="restart" disabled>重新播放</button
+            ><label><input id="loop" type="checkbox" />循环播放</label
+            ><label class="speed-control"
+              >速度<select id="speed" aria-label="播放速度">
+                <option value="0.25">0.25×</option>
+                <option value="0.5">0.5×</option>
+                <option value="1" selected>1×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+              </select></label
+            ><span id="particle-hint">拖动进度查看姿态，播放时显示水流。</span>
+          </div>
+          <div id="beats" class="beats" aria-label="动作阶段"></div>
+          <div id="harvest-controls" hidden>
+            <div class="basket-controls">
+              <label
+                >演示<select id="basket-scenario">
+                  <option value="mixed">混装与收起 · 14.2 秒</option>
+                  <option value="lifecycle">60 秒停留与刷新 · 68 秒</option>
+                </select></label
+              >
+              <label>作物<select id="crop-select"></select></label>
+              <label>收获数量<input id="harvest-quantity" type="number" min="1" max="999" step="1" value="1" /></label>
+              <button id="basket-add">模拟成功收获</button><button id="basket-show">唤出空篮 / 续期</button
+              ><button id="basket-hide">收起</button>
+            </div>
+            <p id="basket-mode">时间轴演示 · 模拟成功收获</p>
+            <output id="basket-state" role="status"></output>
+            <p>篮内最多 8 组代表物；大果实缩放，数量以库存为准。收起后清空展示，再次唤出为空篮。</p>
+          </div>
+          <div class="soil-settings" aria-label="土地形态与湿度">
+            <label
+              >形态预设<select id="soil-shape" aria-label="土地形态预设" disabled>
+                <option value="raw">未开垦</option>
+                <option value="leveled">已整平</option>
+              </select></label
+            >
+            <label class="moisture-control" for="moisture"
+              >土壤湿度
+              <input
+                id="moisture"
+                aria-label="土壤湿度"
+                type="range"
+                min="0"
+                max="100"
+                step="1"
+                value="25"
+                disabled
+              /><output id="moisture-value">25%</output></label
+            >
+          </div>
+          <div class="soil-actions" aria-label="土地预览控制">
+            <button id="soil-reset" disabled>重置为未开垦</button>
+            <button id="sequence" disabled>开垦演示</button>
+            <output id="soil-state" role="status">未开垦 · 不可种植</output>
+          </div>
+          <p id="work-hint">形态固定；湿度只改变土色，不改变形状。</p>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

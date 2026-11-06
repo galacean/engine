@@ -1,0 +1,75 @@
+{
+  "version": "2.0",
+  "refs": [
+    {
+      "url": "Farming/Props/Watering/watering-can.glb"
+    },
+    {
+      "url": "Farming/Props/Watering/watering.animCtrl"
+    }
+  ],
+  "entities": [
+    {
+      "instance": {
+        "asset": 0,
+        "overrides": {
+          "entityProps": [
+            {
+              "path": [],
+              "name": "FarmingWateringTool",
+              "isActive": false
+            }
+          ],
+          "componentProps": [
+            {
+              "path": [],
+              "selector": {
+                "type": "Animator",
+                "index": 0
+              },
+              "props": {
+                "animatorController": {
+                  "$ref": 1
+                },
+                "enabled": false,
+                "cullingMode": 0
+              }
+            },
+            {
+              "path": [
+                0,
+                0,
+                0
+              ],
+              "selector": {
+                "type": "MeshRenderer",
+                "index": 0
+              },
+              "props": {
+                "castShadows": true,
+                "receiveShadows": true
+              }
+            },
+            {
+              "path": [
+                0,
+                0,
+                2
+              ],
+              "selector": {
+                "type": "SkinnedMeshRenderer",
+                "index": 0
+              },
+              "props": {
+                "castShadows": true,
+                "receiveShadows": true
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "components": [],
+  "root": 0
+}

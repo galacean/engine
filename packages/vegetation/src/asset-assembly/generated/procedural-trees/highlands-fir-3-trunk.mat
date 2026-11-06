@@ -1,0 +1,21 @@
+{
+  "name": "Highlands Fir Bark",
+  "shader": "Terrain/Surface",
+  "shaderRef": { "url": "Shader/Surface.shaderc" },
+  "shaderData": {
+    "material_LodDitherTexture": { "type": "Texture", "value": { "url": "Texture/140c55bd97c21b9b.ktx2" } },
+    "material_LodDitherTextureInvSize": { "type": "Float", "value": 0.015625 },
+    "material_BaseColor": { "type": "Color", "value": { "r": 1, "g": 1, "b": 1, "a": 1 } },
+    "material_Tiling": { "type": "Float", "value": 1 },
+    "material_Metallic": { "type": "Float", "value": 0 },
+    "material_Smoothness": { "type": "Float", "value": 0.35 },
+    "material_NormalScale": { "type": "Float", "value": 1 },
+    "material_BaseTexture": { "type": "Texture", "value": { "url": "highlands-fir-3-bark-albedo.png" } },
+    "material_NormalTexture": { "type": "Texture", "value": { "url": "highlands-fir-3-bark-normal.png" } }
+  },
+  "macros": [
+    { "name": "MATERIAL_HAS_BASETEXTURE" },
+    { "name": "MATERIAL_HAS_NORMALTEXTURE" },
+    { "name": "MATERIAL_SEASON_SPECIES", "value": "TERRAIN_PROJECT_SEASON_SPECIES_TREE_BARK" }
+  ]
+}

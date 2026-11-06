@@ -1,0 +1,578 @@
+{
+  "textures": {
+    "stone_floor/stone_floor_normal": {
+      "width": 1024,
+      "height": 1024,
+      "layers": 1,
+      "srgb": false,
+      "levels": [
+        "ce5a4417785a68e809644e94e4618ed05eb0b2456417ccf6d3d6f71a1141da6a.bin",
+        "f5c3122821bf927c9f64cfd3f88f99547a7e0330cfb95da312574a9fdda3e860.bin",
+        "670cddcc02a02b5d7b7c9d470f7615569d7f9be09f7ae4da3fbc86d65c75c5a4.bin",
+        "8426871307767911314dea3d28acd4d80bf8bffb98062e4585de5adcf481dd14.bin",
+        "9f3f458a2c0b047626af1d21b9864bd5a09e73e82ba1d30de05ea24213306a94.bin",
+        "0d84dca59f4bafac4f9976b0f854f9476dee6c3d362842a2bfd3be9c4a209f71.bin",
+        "f44e34589b1ffebeedca79367b988c5a06366f843d3d8608342886a3973ba33d.bin",
+        "038538b7245eeb67ac0c79a6923cfdd20d67f78d0077ad1db255fed129e33fa4.bin",
+        "93c07805753f58b920d31b20a86fba9c095e6a941ba5f27e3eeb5341d56f0866.bin",
+        "5c10a96af9e5e377f14250e163bd613dfdf24bd0d2175465389e9c79c2311f20.bin",
+        "569d3ceabf65e41f93910d2aaa1abfd506101f405ccb0416ec7844c68f91dea8.bin"
+      ],
+      "compressed": [
+        "d247a490c8d7f8d63e65ad24a4b79397cff2ceb23403a639f4d43d0d390d2385.bin",
+        "6ca20173fa488b888a6332d03bab3f99739de69a4a8cea4073e558e9e3e0f988.bin",
+        "cbc2ffab14fe45e9beee18baee97c82efe758f2f1e082b3be1cea1f933c78f85.bin",
+        "7f34c2004c5cc62b1d1f65fdd80fd7ad5d9ba66f3754784edc3a3c9c7d80d01d.bin",
+        "2632bb242c30ed2e5312bff4604902e666505bdb6fe57cb7f22be3e55b847181.bin",
+        "5a8948c5aa2ab6b8c4c42ec174ce7e0f7ba5b8b16c18b77e4d719c47ba1f2d02.bin",
+        "65688d405091b3229429c8bbcbfe89442a1fff159e033211ef0b7dcafbf9ffe4.bin",
+        "6ab43e645e066a6e3bac211986526370bc7da3cbd069ff569f2b18cded162e1a.bin",
+        "10e1671276c398df52f6dd19b591cf39ffca073f21bf42ad90daa028887488b2.bin",
+        "2dfbd7dc4ee69e25c11939065d815e84a1275c1f3bbfafaf88f7b633e0656cbf.bin",
+        "0d588291f62b7c7e350bb0adb9674570a1282a06bd75c03d39778d67ab036776.bin"
+      ],
+      "vkFormat": 145
+    },
+    "stone_floor/stone_floor_seed": {
+      "width": 1024,
+      "height": 1024,
+      "layers": 1,
+      "srgb": true,
+      "levels": [
+        "01a788993a5c50ee7d51f60bd430cfd62434f1e4d66d56ced19f36457b448eeb.bin",
+        "679e0a635196118f9af4fd1e4fe03dbaf9aa0a62bcb74477da8e3ddc5e354130.bin",
+        "643642c209ff569367448fb2a2aead64b3c1fd8532ff33580fc3e5d921c06e8f.bin",
+        "33413203b4e3c364e0025889b0a8f04b458accd64b09177bb6bfad3fc5fced32.bin",
+        "779441428e7386dbdcf235844e4683277ef2aea6bd9f1615b43247c2dfb08136.bin",
+        "ea1986feba9b62015b68e730693ce0f162a14be9c8b26a72d726fb07b6805b1c.bin",
+        "7c1d957b1f7fe61b74cef18b9a3f9d0204231719688e32006ab75449d7d7248d.bin",
+        "547198e8b8cb5329e6d386b6dcd703a8dbd69934c98c84d3a8816cf9db041f07.bin",
+        "2656592fe926e9f3cb05b6392e55c56662a80f4a58eeeb5f2bf3aec9aa7decf5.bin",
+        "9914ba3c8bdaf141a5f385e31adedfb3630e65f098191d9f3e6df080eefe7235.bin",
+        "d8c6bbc035d9b49c6c56621e0ff4d77ab138b243aa036538a24108488b5e81c7.bin"
+      ],
+      "compressed": [
+        "581cd819e5497cf42b05d3e987f3bcaa03a6f9a8039cc909c6a44e25d1fe7474.bin",
+        "4ddd0167536ef35d3bafaa8bac86d458fc2d4ada95ecb65c0ad7de722c2e223e.bin",
+        "06cf4e68e27bda617847c392afacf95da1b89807ef509c9558afd2ddb0be07af.bin",
+        "f8bae2b588cfc8c66bc3a273a935c745defb777da7b3e73cd23aa852faa9c596.bin",
+        "287f9d864417e2ef9b545b680447fafe851cf4d902493a9b20de7c03283a3bcb.bin",
+        "9caadad8b694e96778518d7d38cd06b09047501e380dd0a730099261f8f8280a.bin",
+        "7f2b5bdfd53940095ad680bdc9cf94ba848f29e1b23cef4a5e4b9f9103786cbb.bin",
+        "8fba6ae059c0ba5e64a515236c28934a693919871415f27667666eeef409e6c4.bin",
+        "5f85d99fdd4a14dac7bcc1c9dda720b7ddd0d25a0ced84a9a80653816117701a.bin",
+        "d54e75dcefa4377fb955cc641d850af10699ac6cff187b3c564beae1a578862b.bin",
+        "287ee4ada5411406a3209c7a094b02be23a85948cb7d7127986bff9ae1198798.bin"
+      ],
+      "vkFormat": 146
+    },
+    "stone_floor/stone_floor_height": {
+      "width": 1024,
+      "height": 1024,
+      "layers": 1,
+      "srgb": false,
+      "levels": [
+        "e7a9c5cc6bc176bda341a64e1517f8213e2dd59e80e282abd183c88554dd8bc9.bin",
+        "983040e29dfab4a3c43b0b4549febc6ecd4b96dd11c511b9aadca7ebeddde174.bin",
+        "6240240210ce09ee850174c0c670d01b82d3643a8e61efacecc4a993a36076fd.bin",
+        "6e69f7915e9c31b3ec159f2b1c9e8849cbcb08af23744c096e3f9788c0fc320a.bin",
+        "87ab1398ebe7ca787ab25f64b993a44431b42a5b20b0303d1bb6ad69b207136d.bin",
+        "079d738641a01c19384636c8d1d349cd60972f159d28ca529c8d05fc29380935.bin",
+        "81a112adccf0360bcea4a4c68dcb4772e0689cee33f00eae37fbf1af19f8d0a2.bin",
+        "fe9f53cc8f25e89930adea3cfdfa824504805d38d935f68405fc67aab1c18091.bin",
+        "abeb9362db74aa51fc30ff17dedc500c5443f09fb2add155e10ca49f68baaed0.bin",
+        "b0d9b3a6a3c675e528d18f1800a8ba288b0e63c396995726e86343d6d57a0d5a.bin",
+        "01aa7c1a1cf58b43f0b2cd46b12f274f426c61cdb919c3fa89ae25e0fa3c32b1.bin"
+      ],
+      "compressed": [
+        "39af60b5287df6b0198c70bad11e88caa9b3b0062f7f4a65c21ef0351643a870.bin",
+        "e33f457c70af8eaca1394ab0c0f75f5a6a6b8fbcd2bdb058b8cb9bafc6956534.bin",
+        "c89b092aeff0403d0345d291cc73cd0e18bdf6adcb05c6c88f27706b18438e8b.bin",
+        "29cacd8a1d1a5bd64bd8be7ea3ff7ebb9ff60e9ef7af67f6289a009b69ed1bf0.bin",
+        "433775b4755ba9803a549b2c213b08fc3594472a0b9544aa73d00ba91f33eb4b.bin",
+        "28df69ad0b5c47a6767653b5b3e52de297d05f797dec944a42efff9c77619bd0.bin",
+        "1d8ac250ebb985a86d1482abf8b7c4ba18c252cc24202599e8d3a83d38a6e99a.bin",
+        "79b552f7072fc4840ab2bdf0dba263997c2e75aeebab74ce33b621a39bd0b1af.bin",
+        "db9d729468a7456b75b420b151bc6547b4e39f5965ebb7f2bab88322ca36e688.bin",
+        "920bfa947261a478025fac079e3ea360891b77c89fb56d8e2de058bee5d9d5ff.bin",
+        "bdca9fb6e44b30800bc80511cae84c3a70d3fab200fe31ca6857c147a7960650.bin"
+      ],
+      "vkFormat": 139
+    },
+    "stone_floor/stone_floor_roughness": {
+      "width": 1024,
+      "height": 1024,
+      "layers": 1,
+      "srgb": false,
+      "levels": [
+        "b3b5ecc6b5791ee7d8112413a2a836ded2e21415a7130d541bc118856b86d7db.bin",
+        "feab148bbabc8ae944b674c8bf91eb4443e3b21369fde8683c9ccb5602d3182a.bin",
+        "db0262836b9297d7363d2f5839050aa9d8fdd58092744e698d004dfc916b61c6.bin",
+        "ae380b1bb24b36ce2b3fd04a8a5cc7e162c1b0e3e1aca141acdcff92b09daf43.bin",
+        "e6b994f17455faaecac9fa3ea28c24408dd77a0fe53a39f51ad84ca55a9aab4d.bin",
+        "bba5bc24b226ceb62b2325654cf27e7feb48aaf9494bfc95ffaa4bc0f67ffd12.bin",
+        "07098077d59d1700e41ec702da40e61cfb3bfbd56bcad3ae17bcfccb3ad0ade5.bin",
+        "36cf8f9ad0b6c1f78c652e4d59e3233137e7f9e5d5c490316b78d434a33a285c.bin",
+        "c2521366c656ec36f5eae0afdf83a01ad7224e3eadce519b04e1c428065e34ea.bin",
+        "fc308ddd4a7ae0560c584d14b2a07bfc7b3e9a114abd1a55d7523e55dcbdaf32.bin",
+        "8a65b09d36586541c661b43551bb76c14cfa032d0610061e6b6bc67f3c0afa3d.bin"
+      ],
+      "compressed": [
+        "d929626b0222e20594dc02f493b830097e35e3bc052737446376cb3d7b6cbed4.bin",
+        "070f011806f746944db80fb58489458e9d6bb3f66cd1e5b683ff2e1d6847fa75.bin",
+        "a01df114c1dad64cc6adf847c2a93725f380d5c2e969a2c6d522aafa6fc1e065.bin",
+        "070713c2b9d78667642e6fa9f8c2c38cfb4d546cccaf00462126fb968e909dad.bin",
+        "bffff3cd540095b4ac4f6b084a83f8b972093451f3ab32ad1da55a3b9993cc19.bin",
+        "08352380b6efd3fafd55f505cb378925a4194ff47eeb30e9fa640516f5cc3668.bin",
+        "0db66eeae794615959fca363dfa7b66bdd151408d68ba7eb8d76755f9397cdf5.bin",
+        "e6f77df2a915d462c3d7b23953b3e3b52dd614e738aff2f47aeef6b5d2726e88.bin",
+        "b02979de765dfa4f1d571310822e34d8601c3302c44538a75f10c3a15e1a1491.bin",
+        "6708fd5b775d177d0638557568a3675b357f6976e7d2f37fd465de9d13fd0af6.bin",
+        "4578a9360020886b2382b66672c7be62a69cd0896df9a2a46eefa1d4b040b9a5.bin"
+      ],
+      "vkFormat": 139
+    }
+  },
+  "files": {
+    "ce5a4417785a68e809644e94e4618ed05eb0b2456417ccf6d3d6f71a1141da6a.bin": {
+      "sha256": "ce5a4417785a68e809644e94e4618ed05eb0b2456417ccf6d3d6f71a1141da6a",
+      "byteLength": 4194304,
+      "role": "original-decoded-texture"
+    },
+    "d247a490c8d7f8d63e65ad24a4b79397cff2ceb23403a639f4d43d0d390d2385.bin": {
+      "sha256": "d247a490c8d7f8d63e65ad24a4b79397cff2ceb23403a639f4d43d0d390d2385",
+      "byteLength": 1048576,
+      "role": "original-compressed-texture"
+    },
+    "f5c3122821bf927c9f64cfd3f88f99547a7e0330cfb95da312574a9fdda3e860.bin": {
+      "sha256": "f5c3122821bf927c9f64cfd3f88f99547a7e0330cfb95da312574a9fdda3e860",
+      "byteLength": 1048576,
+      "role": "original-decoded-texture"
+    },
+    "6ca20173fa488b888a6332d03bab3f99739de69a4a8cea4073e558e9e3e0f988.bin": {
+      "sha256": "6ca20173fa488b888a6332d03bab3f99739de69a4a8cea4073e558e9e3e0f988",
+      "byteLength": 262144,
+      "role": "original-compressed-texture"
+    },
+    "670cddcc02a02b5d7b7c9d470f7615569d7f9be09f7ae4da3fbc86d65c75c5a4.bin": {
+      "sha256": "670cddcc02a02b5d7b7c9d470f7615569d7f9be09f7ae4da3fbc86d65c75c5a4",
+      "byteLength": 262144,
+      "role": "original-decoded-texture"
+    },
+    "cbc2ffab14fe45e9beee18baee97c82efe758f2f1e082b3be1cea1f933c78f85.bin": {
+      "sha256": "cbc2ffab14fe45e9beee18baee97c82efe758f2f1e082b3be1cea1f933c78f85",
+      "byteLength": 65536,
+      "role": "original-compressed-texture"
+    },
+    "8426871307767911314dea3d28acd4d80bf8bffb98062e4585de5adcf481dd14.bin": {
+      "sha256": "8426871307767911314dea3d28acd4d80bf8bffb98062e4585de5adcf481dd14",
+      "byteLength": 65536,
+      "role": "original-decoded-texture"
+    },
+    "7f34c2004c5cc62b1d1f65fdd80fd7ad5d9ba66f3754784edc3a3c9c7d80d01d.bin": {
+      "sha256": "7f34c2004c5cc62b1d1f65fdd80fd7ad5d9ba66f3754784edc3a3c9c7d80d01d",
+      "byteLength": 16384,
+      "role": "original-compressed-texture"
+    },
+    "9f3f458a2c0b047626af1d21b9864bd5a09e73e82ba1d30de05ea24213306a94.bin": {
+      "sha256": "9f3f458a2c0b047626af1d21b9864bd5a09e73e82ba1d30de05ea24213306a94",
+      "byteLength": 16384,
+      "role": "original-decoded-texture"
+    },
+    "2632bb242c30ed2e5312bff4604902e666505bdb6fe57cb7f22be3e55b847181.bin": {
+      "sha256": "2632bb242c30ed2e5312bff4604902e666505bdb6fe57cb7f22be3e55b847181",
+      "byteLength": 4096,
+      "role": "original-compressed-texture"
+    },
+    "0d84dca59f4bafac4f9976b0f854f9476dee6c3d362842a2bfd3be9c4a209f71.bin": {
+      "sha256": "0d84dca59f4bafac4f9976b0f854f9476dee6c3d362842a2bfd3be9c4a209f71",
+      "byteLength": 4096,
+      "role": "original-decoded-texture"
+    },
+    "5a8948c5aa2ab6b8c4c42ec174ce7e0f7ba5b8b16c18b77e4d719c47ba1f2d02.bin": {
+      "sha256": "5a8948c5aa2ab6b8c4c42ec174ce7e0f7ba5b8b16c18b77e4d719c47ba1f2d02",
+      "byteLength": 1024,
+      "role": "original-compressed-texture"
+    },
+    "f44e34589b1ffebeedca79367b988c5a06366f843d3d8608342886a3973ba33d.bin": {
+      "sha256": "f44e34589b1ffebeedca79367b988c5a06366f843d3d8608342886a3973ba33d",
+      "byteLength": 1024,
+      "role": "original-decoded-texture"
+    },
+    "65688d405091b3229429c8bbcbfe89442a1fff159e033211ef0b7dcafbf9ffe4.bin": {
+      "sha256": "65688d405091b3229429c8bbcbfe89442a1fff159e033211ef0b7dcafbf9ffe4",
+      "byteLength": 256,
+      "role": "original-compressed-texture"
+    },
+    "038538b7245eeb67ac0c79a6923cfdd20d67f78d0077ad1db255fed129e33fa4.bin": {
+      "sha256": "038538b7245eeb67ac0c79a6923cfdd20d67f78d0077ad1db255fed129e33fa4",
+      "byteLength": 256,
+      "role": "original-decoded-texture"
+    },
+    "6ab43e645e066a6e3bac211986526370bc7da3cbd069ff569f2b18cded162e1a.bin": {
+      "sha256": "6ab43e645e066a6e3bac211986526370bc7da3cbd069ff569f2b18cded162e1a",
+      "byteLength": 64,
+      "role": "original-compressed-texture"
+    },
+    "93c07805753f58b920d31b20a86fba9c095e6a941ba5f27e3eeb5341d56f0866.bin": {
+      "sha256": "93c07805753f58b920d31b20a86fba9c095e6a941ba5f27e3eeb5341d56f0866",
+      "byteLength": 64,
+      "role": "original-decoded-texture"
+    },
+    "10e1671276c398df52f6dd19b591cf39ffca073f21bf42ad90daa028887488b2.bin": {
+      "sha256": "10e1671276c398df52f6dd19b591cf39ffca073f21bf42ad90daa028887488b2",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "5c10a96af9e5e377f14250e163bd613dfdf24bd0d2175465389e9c79c2311f20.bin": {
+      "sha256": "5c10a96af9e5e377f14250e163bd613dfdf24bd0d2175465389e9c79c2311f20",
+      "byteLength": 16,
+      "role": "original-decoded-texture"
+    },
+    "2dfbd7dc4ee69e25c11939065d815e84a1275c1f3bbfafaf88f7b633e0656cbf.bin": {
+      "sha256": "2dfbd7dc4ee69e25c11939065d815e84a1275c1f3bbfafaf88f7b633e0656cbf",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "569d3ceabf65e41f93910d2aaa1abfd506101f405ccb0416ec7844c68f91dea8.bin": {
+      "sha256": "569d3ceabf65e41f93910d2aaa1abfd506101f405ccb0416ec7844c68f91dea8",
+      "byteLength": 4,
+      "role": "original-decoded-texture"
+    },
+    "0d588291f62b7c7e350bb0adb9674570a1282a06bd75c03d39778d67ab036776.bin": {
+      "sha256": "0d588291f62b7c7e350bb0adb9674570a1282a06bd75c03d39778d67ab036776",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "01a788993a5c50ee7d51f60bd430cfd62434f1e4d66d56ced19f36457b448eeb.bin": {
+      "sha256": "01a788993a5c50ee7d51f60bd430cfd62434f1e4d66d56ced19f36457b448eeb",
+      "byteLength": 4194304,
+      "role": "original-decoded-texture"
+    },
+    "581cd819e5497cf42b05d3e987f3bcaa03a6f9a8039cc909c6a44e25d1fe7474.bin": {
+      "sha256": "581cd819e5497cf42b05d3e987f3bcaa03a6f9a8039cc909c6a44e25d1fe7474",
+      "byteLength": 1048576,
+      "role": "original-compressed-texture"
+    },
+    "679e0a635196118f9af4fd1e4fe03dbaf9aa0a62bcb74477da8e3ddc5e354130.bin": {
+      "sha256": "679e0a635196118f9af4fd1e4fe03dbaf9aa0a62bcb74477da8e3ddc5e354130",
+      "byteLength": 1048576,
+      "role": "original-decoded-texture"
+    },
+    "4ddd0167536ef35d3bafaa8bac86d458fc2d4ada95ecb65c0ad7de722c2e223e.bin": {
+      "sha256": "4ddd0167536ef35d3bafaa8bac86d458fc2d4ada95ecb65c0ad7de722c2e223e",
+      "byteLength": 262144,
+      "role": "original-compressed-texture"
+    },
+    "643642c209ff569367448fb2a2aead64b3c1fd8532ff33580fc3e5d921c06e8f.bin": {
+      "sha256": "643642c209ff569367448fb2a2aead64b3c1fd8532ff33580fc3e5d921c06e8f",
+      "byteLength": 262144,
+      "role": "original-decoded-texture"
+    },
+    "06cf4e68e27bda617847c392afacf95da1b89807ef509c9558afd2ddb0be07af.bin": {
+      "sha256": "06cf4e68e27bda617847c392afacf95da1b89807ef509c9558afd2ddb0be07af",
+      "byteLength": 65536,
+      "role": "original-compressed-texture"
+    },
+    "33413203b4e3c364e0025889b0a8f04b458accd64b09177bb6bfad3fc5fced32.bin": {
+      "sha256": "33413203b4e3c364e0025889b0a8f04b458accd64b09177bb6bfad3fc5fced32",
+      "byteLength": 65536,
+      "role": "original-decoded-texture"
+    },
+    "f8bae2b588cfc8c66bc3a273a935c745defb777da7b3e73cd23aa852faa9c596.bin": {
+      "sha256": "f8bae2b588cfc8c66bc3a273a935c745defb777da7b3e73cd23aa852faa9c596",
+      "byteLength": 16384,
+      "role": "original-compressed-texture"
+    },
+    "779441428e7386dbdcf235844e4683277ef2aea6bd9f1615b43247c2dfb08136.bin": {
+      "sha256": "779441428e7386dbdcf235844e4683277ef2aea6bd9f1615b43247c2dfb08136",
+      "byteLength": 16384,
+      "role": "original-decoded-texture"
+    },
+    "287f9d864417e2ef9b545b680447fafe851cf4d902493a9b20de7c03283a3bcb.bin": {
+      "sha256": "287f9d864417e2ef9b545b680447fafe851cf4d902493a9b20de7c03283a3bcb",
+      "byteLength": 4096,
+      "role": "original-compressed-texture"
+    },
+    "ea1986feba9b62015b68e730693ce0f162a14be9c8b26a72d726fb07b6805b1c.bin": {
+      "sha256": "ea1986feba9b62015b68e730693ce0f162a14be9c8b26a72d726fb07b6805b1c",
+      "byteLength": 4096,
+      "role": "original-decoded-texture"
+    },
+    "9caadad8b694e96778518d7d38cd06b09047501e380dd0a730099261f8f8280a.bin": {
+      "sha256": "9caadad8b694e96778518d7d38cd06b09047501e380dd0a730099261f8f8280a",
+      "byteLength": 1024,
+      "role": "original-compressed-texture"
+    },
+    "7c1d957b1f7fe61b74cef18b9a3f9d0204231719688e32006ab75449d7d7248d.bin": {
+      "sha256": "7c1d957b1f7fe61b74cef18b9a3f9d0204231719688e32006ab75449d7d7248d",
+      "byteLength": 1024,
+      "role": "original-decoded-texture"
+    },
+    "7f2b5bdfd53940095ad680bdc9cf94ba848f29e1b23cef4a5e4b9f9103786cbb.bin": {
+      "sha256": "7f2b5bdfd53940095ad680bdc9cf94ba848f29e1b23cef4a5e4b9f9103786cbb",
+      "byteLength": 256,
+      "role": "original-compressed-texture"
+    },
+    "547198e8b8cb5329e6d386b6dcd703a8dbd69934c98c84d3a8816cf9db041f07.bin": {
+      "sha256": "547198e8b8cb5329e6d386b6dcd703a8dbd69934c98c84d3a8816cf9db041f07",
+      "byteLength": 256,
+      "role": "original-decoded-texture"
+    },
+    "8fba6ae059c0ba5e64a515236c28934a693919871415f27667666eeef409e6c4.bin": {
+      "sha256": "8fba6ae059c0ba5e64a515236c28934a693919871415f27667666eeef409e6c4",
+      "byteLength": 64,
+      "role": "original-compressed-texture"
+    },
+    "2656592fe926e9f3cb05b6392e55c56662a80f4a58eeeb5f2bf3aec9aa7decf5.bin": {
+      "sha256": "2656592fe926e9f3cb05b6392e55c56662a80f4a58eeeb5f2bf3aec9aa7decf5",
+      "byteLength": 64,
+      "role": "original-decoded-texture"
+    },
+    "5f85d99fdd4a14dac7bcc1c9dda720b7ddd0d25a0ced84a9a80653816117701a.bin": {
+      "sha256": "5f85d99fdd4a14dac7bcc1c9dda720b7ddd0d25a0ced84a9a80653816117701a",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "9914ba3c8bdaf141a5f385e31adedfb3630e65f098191d9f3e6df080eefe7235.bin": {
+      "sha256": "9914ba3c8bdaf141a5f385e31adedfb3630e65f098191d9f3e6df080eefe7235",
+      "byteLength": 16,
+      "role": "original-decoded-texture"
+    },
+    "d54e75dcefa4377fb955cc641d850af10699ac6cff187b3c564beae1a578862b.bin": {
+      "sha256": "d54e75dcefa4377fb955cc641d850af10699ac6cff187b3c564beae1a578862b",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "d8c6bbc035d9b49c6c56621e0ff4d77ab138b243aa036538a24108488b5e81c7.bin": {
+      "sha256": "d8c6bbc035d9b49c6c56621e0ff4d77ab138b243aa036538a24108488b5e81c7",
+      "byteLength": 4,
+      "role": "original-decoded-texture"
+    },
+    "287ee4ada5411406a3209c7a094b02be23a85948cb7d7127986bff9ae1198798.bin": {
+      "sha256": "287ee4ada5411406a3209c7a094b02be23a85948cb7d7127986bff9ae1198798",
+      "byteLength": 16,
+      "role": "original-compressed-texture"
+    },
+    "e7a9c5cc6bc176bda341a64e1517f8213e2dd59e80e282abd183c88554dd8bc9.bin": {
+      "sha256": "e7a9c5cc6bc176bda341a64e1517f8213e2dd59e80e282abd183c88554dd8bc9",
+      "byteLength": 4194304,
+      "role": "original-decoded-texture"
+    },
+    "39af60b5287df6b0198c70bad11e88caa9b3b0062f7f4a65c21ef0351643a870.bin": {
+      "sha256": "39af60b5287df6b0198c70bad11e88caa9b3b0062f7f4a65c21ef0351643a870",
+      "byteLength": 524288,
+      "role": "original-compressed-texture"
+    },
+    "983040e29dfab4a3c43b0b4549febc6ecd4b96dd11c511b9aadca7ebeddde174.bin": {
+      "sha256": "983040e29dfab4a3c43b0b4549febc6ecd4b96dd11c511b9aadca7ebeddde174",
+      "byteLength": 1048576,
+      "role": "original-decoded-texture"
+    },
+    "e33f457c70af8eaca1394ab0c0f75f5a6a6b8fbcd2bdb058b8cb9bafc6956534.bin": {
+      "sha256": "e33f457c70af8eaca1394ab0c0f75f5a6a6b8fbcd2bdb058b8cb9bafc6956534",
+      "byteLength": 131072,
+      "role": "original-compressed-texture"
+    },
+    "6240240210ce09ee850174c0c670d01b82d3643a8e61efacecc4a993a36076fd.bin": {
+      "sha256": "6240240210ce09ee850174c0c670d01b82d3643a8e61efacecc4a993a36076fd",
+      "byteLength": 262144,
+      "role": "original-decoded-texture"
+    },
+    "c89b092aeff0403d0345d291cc73cd0e18bdf6adcb05c6c88f27706b18438e8b.bin": {
+      "sha256": "c89b092aeff0403d0345d291cc73cd0e18bdf6adcb05c6c88f27706b18438e8b",
+      "byteLength": 32768,
+      "role": "original-compressed-texture"
+    },
+    "6e69f7915e9c31b3ec159f2b1c9e8849cbcb08af23744c096e3f9788c0fc320a.bin": {
+      "sha256": "6e69f7915e9c31b3ec159f2b1c9e8849cbcb08af23744c096e3f9788c0fc320a",
+      "byteLength": 65536,
+      "role": "original-decoded-texture"
+    },
+    "29cacd8a1d1a5bd64bd8be7ea3ff7ebb9ff60e9ef7af67f6289a009b69ed1bf0.bin": {
+      "sha256": "29cacd8a1d1a5bd64bd8be7ea3ff7ebb9ff60e9ef7af67f6289a009b69ed1bf0",
+      "byteLength": 8192,
+      "role": "original-compressed-texture"
+    },
+    "87ab1398ebe7ca787ab25f64b993a44431b42a5b20b0303d1bb6ad69b207136d.bin": {
+      "sha256": "87ab1398ebe7ca787ab25f64b993a44431b42a5b20b0303d1bb6ad69b207136d",
+      "byteLength": 16384,
+      "role": "original-decoded-texture"
+    },
+    "433775b4755ba9803a549b2c213b08fc3594472a0b9544aa73d00ba91f33eb4b.bin": {
+      "sha256": "433775b4755ba9803a549b2c213b08fc3594472a0b9544aa73d00ba91f33eb4b",
+      "byteLength": 2048,
+      "role": "original-compressed-texture"
+    },
+    "079d738641a01c19384636c8d1d349cd60972f159d28ca529c8d05fc29380935.bin": {
+      "sha256": "079d738641a01c19384636c8d1d349cd60972f159d28ca529c8d05fc29380935",
+      "byteLength": 4096,
+      "role": "original-decoded-texture"
+    },
+    "28df69ad0b5c47a6767653b5b3e52de297d05f797dec944a42efff9c77619bd0.bin": {
+      "sha256": "28df69ad0b5c47a6767653b5b3e52de297d05f797dec944a42efff9c77619bd0",
+      "byteLength": 512,
+      "role": "original-compressed-texture"
+    },
+    "81a112adccf0360bcea4a4c68dcb4772e0689cee33f00eae37fbf1af19f8d0a2.bin": {
+      "sha256": "81a112adccf0360bcea4a4c68dcb4772e0689cee33f00eae37fbf1af19f8d0a2",
+      "byteLength": 1024,
+      "role": "original-decoded-texture"
+    },
+    "1d8ac250ebb985a86d1482abf8b7c4ba18c252cc24202599e8d3a83d38a6e99a.bin": {
+      "sha256": "1d8ac250ebb985a86d1482abf8b7c4ba18c252cc24202599e8d3a83d38a6e99a",
+      "byteLength": 128,
+      "role": "original-compressed-texture"
+    },
+    "fe9f53cc8f25e89930adea3cfdfa824504805d38d935f68405fc67aab1c18091.bin": {
+      "sha256": "fe9f53cc8f25e89930adea3cfdfa824504805d38d935f68405fc67aab1c18091",
+      "byteLength": 256,
+      "role": "original-decoded-texture"
+    },
+    "79b552f7072fc4840ab2bdf0dba263997c2e75aeebab74ce33b621a39bd0b1af.bin": {
+      "sha256": "79b552f7072fc4840ab2bdf0dba263997c2e75aeebab74ce33b621a39bd0b1af",
+      "byteLength": 32,
+      "role": "original-compressed-texture"
+    },
+    "abeb9362db74aa51fc30ff17dedc500c5443f09fb2add155e10ca49f68baaed0.bin": {
+      "sha256": "abeb9362db74aa51fc30ff17dedc500c5443f09fb2add155e10ca49f68baaed0",
+      "byteLength": 64,
+      "role": "original-decoded-texture"
+    },
+    "db9d729468a7456b75b420b151bc6547b4e39f5965ebb7f2bab88322ca36e688.bin": {
+      "sha256": "db9d729468a7456b75b420b151bc6547b4e39f5965ebb7f2bab88322ca36e688",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    },
+    "b0d9b3a6a3c675e528d18f1800a8ba288b0e63c396995726e86343d6d57a0d5a.bin": {
+      "sha256": "b0d9b3a6a3c675e528d18f1800a8ba288b0e63c396995726e86343d6d57a0d5a",
+      "byteLength": 16,
+      "role": "original-decoded-texture"
+    },
+    "920bfa947261a478025fac079e3ea360891b77c89fb56d8e2de058bee5d9d5ff.bin": {
+      "sha256": "920bfa947261a478025fac079e3ea360891b77c89fb56d8e2de058bee5d9d5ff",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    },
+    "01aa7c1a1cf58b43f0b2cd46b12f274f426c61cdb919c3fa89ae25e0fa3c32b1.bin": {
+      "sha256": "01aa7c1a1cf58b43f0b2cd46b12f274f426c61cdb919c3fa89ae25e0fa3c32b1",
+      "byteLength": 4,
+      "role": "original-decoded-texture"
+    },
+    "bdca9fb6e44b30800bc80511cae84c3a70d3fab200fe31ca6857c147a7960650.bin": {
+      "sha256": "bdca9fb6e44b30800bc80511cae84c3a70d3fab200fe31ca6857c147a7960650",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    },
+    "b3b5ecc6b5791ee7d8112413a2a836ded2e21415a7130d541bc118856b86d7db.bin": {
+      "sha256": "b3b5ecc6b5791ee7d8112413a2a836ded2e21415a7130d541bc118856b86d7db",
+      "byteLength": 4194304,
+      "role": "original-decoded-texture"
+    },
+    "d929626b0222e20594dc02f493b830097e35e3bc052737446376cb3d7b6cbed4.bin": {
+      "sha256": "d929626b0222e20594dc02f493b830097e35e3bc052737446376cb3d7b6cbed4",
+      "byteLength": 524288,
+      "role": "original-compressed-texture"
+    },
+    "feab148bbabc8ae944b674c8bf91eb4443e3b21369fde8683c9ccb5602d3182a.bin": {
+      "sha256": "feab148bbabc8ae944b674c8bf91eb4443e3b21369fde8683c9ccb5602d3182a",
+      "byteLength": 1048576,
+      "role": "original-decoded-texture"
+    },
+    "070f011806f746944db80fb58489458e9d6bb3f66cd1e5b683ff2e1d6847fa75.bin": {
+      "sha256": "070f011806f746944db80fb58489458e9d6bb3f66cd1e5b683ff2e1d6847fa75",
+      "byteLength": 131072,
+      "role": "original-compressed-texture"
+    },
+    "db0262836b9297d7363d2f5839050aa9d8fdd58092744e698d004dfc916b61c6.bin": {
+      "sha256": "db0262836b9297d7363d2f5839050aa9d8fdd58092744e698d004dfc916b61c6",
+      "byteLength": 262144,
+      "role": "original-decoded-texture"
+    },
+    "a01df114c1dad64cc6adf847c2a93725f380d5c2e969a2c6d522aafa6fc1e065.bin": {
+      "sha256": "a01df114c1dad64cc6adf847c2a93725f380d5c2e969a2c6d522aafa6fc1e065",
+      "byteLength": 32768,
+      "role": "original-compressed-texture"
+    },
+    "ae380b1bb24b36ce2b3fd04a8a5cc7e162c1b0e3e1aca141acdcff92b09daf43.bin": {
+      "sha256": "ae380b1bb24b36ce2b3fd04a8a5cc7e162c1b0e3e1aca141acdcff92b09daf43",
+      "byteLength": 65536,
+      "role": "original-decoded-texture"
+    },
+    "070713c2b9d78667642e6fa9f8c2c38cfb4d546cccaf00462126fb968e909dad.bin": {
+      "sha256": "070713c2b9d78667642e6fa9f8c2c38cfb4d546cccaf00462126fb968e909dad",
+      "byteLength": 8192,
+      "role": "original-compressed-texture"
+    },
+    "e6b994f17455faaecac9fa3ea28c24408dd77a0fe53a39f51ad84ca55a9aab4d.bin": {
+      "sha256": "e6b994f17455faaecac9fa3ea28c24408dd77a0fe53a39f51ad84ca55a9aab4d",
+      "byteLength": 16384,
+      "role": "original-decoded-texture"
+    },
+    "bffff3cd540095b4ac4f6b084a83f8b972093451f3ab32ad1da55a3b9993cc19.bin": {
+      "sha256": "bffff3cd540095b4ac4f6b084a83f8b972093451f3ab32ad1da55a3b9993cc19",
+      "byteLength": 2048,
+      "role": "original-compressed-texture"
+    },
+    "bba5bc24b226ceb62b2325654cf27e7feb48aaf9494bfc95ffaa4bc0f67ffd12.bin": {
+      "sha256": "bba5bc24b226ceb62b2325654cf27e7feb48aaf9494bfc95ffaa4bc0f67ffd12",
+      "byteLength": 4096,
+      "role": "original-decoded-texture"
+    },
+    "08352380b6efd3fafd55f505cb378925a4194ff47eeb30e9fa640516f5cc3668.bin": {
+      "sha256": "08352380b6efd3fafd55f505cb378925a4194ff47eeb30e9fa640516f5cc3668",
+      "byteLength": 512,
+      "role": "original-compressed-texture"
+    },
+    "07098077d59d1700e41ec702da40e61cfb3bfbd56bcad3ae17bcfccb3ad0ade5.bin": {
+      "sha256": "07098077d59d1700e41ec702da40e61cfb3bfbd56bcad3ae17bcfccb3ad0ade5",
+      "byteLength": 1024,
+      "role": "original-decoded-texture"
+    },
+    "0db66eeae794615959fca363dfa7b66bdd151408d68ba7eb8d76755f9397cdf5.bin": {
+      "sha256": "0db66eeae794615959fca363dfa7b66bdd151408d68ba7eb8d76755f9397cdf5",
+      "byteLength": 128,
+      "role": "original-compressed-texture"
+    },
+    "36cf8f9ad0b6c1f78c652e4d59e3233137e7f9e5d5c490316b78d434a33a285c.bin": {
+      "sha256": "36cf8f9ad0b6c1f78c652e4d59e3233137e7f9e5d5c490316b78d434a33a285c",
+      "byteLength": 256,
+      "role": "original-decoded-texture"
+    },
+    "e6f77df2a915d462c3d7b23953b3e3b52dd614e738aff2f47aeef6b5d2726e88.bin": {
+      "sha256": "e6f77df2a915d462c3d7b23953b3e3b52dd614e738aff2f47aeef6b5d2726e88",
+      "byteLength": 32,
+      "role": "original-compressed-texture"
+    },
+    "c2521366c656ec36f5eae0afdf83a01ad7224e3eadce519b04e1c428065e34ea.bin": {
+      "sha256": "c2521366c656ec36f5eae0afdf83a01ad7224e3eadce519b04e1c428065e34ea",
+      "byteLength": 64,
+      "role": "original-decoded-texture"
+    },
+    "b02979de765dfa4f1d571310822e34d8601c3302c44538a75f10c3a15e1a1491.bin": {
+      "sha256": "b02979de765dfa4f1d571310822e34d8601c3302c44538a75f10c3a15e1a1491",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    },
+    "fc308ddd4a7ae0560c584d14b2a07bfc7b3e9a114abd1a55d7523e55dcbdaf32.bin": {
+      "sha256": "fc308ddd4a7ae0560c584d14b2a07bfc7b3e9a114abd1a55d7523e55dcbdaf32",
+      "byteLength": 16,
+      "role": "original-decoded-texture"
+    },
+    "6708fd5b775d177d0638557568a3675b357f6976e7d2f37fd465de9d13fd0af6.bin": {
+      "sha256": "6708fd5b775d177d0638557568a3675b357f6976e7d2f37fd465de9d13fd0af6",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    },
+    "8a65b09d36586541c661b43551bb76c14cfa032d0610061e6b6bc67f3c0afa3d.bin": {
+      "sha256": "8a65b09d36586541c661b43551bb76c14cfa032d0610061e6b6bc67f3c0afa3d",
+      "byteLength": 4,
+      "role": "original-decoded-texture"
+    },
+    "4578a9360020886b2382b66672c7be62a69cd0896df9a2a46eefa1d4b040b9a5.bin": {
+      "sha256": "4578a9360020886b2382b66672c7be62a69cd0896df9a2a46eefa1d4b040b9a5",
+      "byteLength": 8,
+      "role": "original-compressed-texture"
+    }
+  }
+}

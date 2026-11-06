@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="icon" href="data:," />
+    <title>岚湾岛 · Water Island</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #a9c1c9;
+        color: #f4f7f3;
+        font-family: system-ui, sans-serif;
+      }
+      #canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        outline: none;
+      }
+      #status {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-content: center;
+        background: #18353beb;
+        z-index: 20;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+      }
+      #status[hidden] {
+        display: none;
+      }
+      .caption {
+        position: fixed;
+        bottom: 22px;
+        left: 26px;
+        pointer-events: none;
+        text-shadow: 0 1px 6px #173330;
+      }
+      .caption strong {
+        font-weight: 500;
+        font-size: 23px;
+        letter-spacing: 0.16em;
+      }
+      .caption small {
+        display: block;
+        margin-top: 7px;
+        opacity: 0.8;
+        font-size: 11px;
+        letter-spacing: 0.08em;
+      }
+      .ocean-editor {
+        position: fixed;
+        left: 18px;
+        top: 18px;
+        width: 246px;
+        padding: 16px;
+        background: #18353be8;
+        border: 1px solid #86b5b56b;
+        border-radius: 10px;
+        font-size: 13px;
+      }
+      .ocean-editor strong,
+      .ocean-editor output {
+        display: block;
+      }
+      .ocean-editor label {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 12px 0;
+      }
+      .ocean-editor input {
+        width: 62px;
+        padding: 5px;
+      }
+      .ocean-editor div {
+        display: flex;
+        gap: 6px;
+        margin: 7px 0;
+      }
+      .ocean-editor button {
+        flex: 1;
+        padding: 7px 3px;
+        border: 1px solid #9cc4c478;
+        border-radius: 5px;
+        background: #31555c;
+        color: inherit;
+        cursor: pointer;
+      }
+      .ocean-editor button:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+      .ocean-editor output {
+        margin-top: 10px;
+        color: #c1e5e1;
+        line-height: 1.5;
+      }
+      @media (max-width: 600px) {
+        .ocean-editor {
+          width: 218px;
+          padding: 10px;
+          left: 10px;
+          top: 10px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas" tabindex="0" aria-label="岚湾岛联合水体场景"></canvas>
+    <div id="status" role="status">正在生成岚湾岛…</div>
+    <div class="caption">
+      <strong>岚湾岛 · 联合水体</strong><small>WATER ISLAND · WASD 移动 · Q/E 升降 · 拖动环视</small>
+    </div>
+    <script type="module" src="../demo/island/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,70 @@
+/* Only the bootstrap/error screen is HTML. Player HUD and labels render in Galacean UI. */
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", sans-serif;
+  color: #f4efdf;
+  background: #26351f;
+  --straw: #d8c994;
+  --paper: #f4efdf;
+  --muted: #acae9b;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body,
+.farm-app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+[hidden] {
+  display: none !important;
+}
+#canvas {
+  --farm-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+  outline: none;
+}
+.loading {
+  z-index: 100;
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  background: #25331f;
+  color: var(--paper);
+}
+.loading-mark {
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(216, 201, 148, 0.25);
+  border-top-color: var(--straw);
+  border-radius: 50%;
+  animation: turn 900ms linear infinite;
+}
+.loading strong {
+  margin-top: 7px;
+  font-size: 15px;
+}
+.loading span {
+  color: var(--muted);
+  font-size: 10px;
+}
+@keyframes turn {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-mark {
+    animation: none;
+  }
+}

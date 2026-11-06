@@ -1,0 +1,813 @@
+{
+  "sourcePackage": "StylizedNatureVol2",
+  "encoder": "KTX-Software v4.4.2",
+  "textures": [
+    {
+      "id": "ground-dirt",
+      "file": "ground-dirt.ktx2",
+      "source": "textures/Environment/Landscape/Textures/T_Dirt1_BC.png",
+      "sourceSha256": "8668f80c160fd01feae9e1e43cc585cce95d6c77a97d430db16437f237045977",
+      "sourceBytes": 10790311,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/ground-dirt.png",
+      "preparedBytes": 296080,
+      "preparedSha256": "487833225f22fad78927ea25191e08cbd51a9ed1eaca180271e3f14dc5d48c0d",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 57254,
+      "sha256": "0fa0ca47e47bd329c120d97ba1c7c6a9f797a53b9c7c73c277240bce35d79abe"
+    },
+    {
+      "id": "ground-sand",
+      "file": "ground-sand.ktx2",
+      "source": "textures/Environment/Landscape/Textures/T_Sand_BC.png",
+      "sourceSha256": "18c3fa97603e7a5ba33f0e317915c89aa1ec85a286f5ea3bedeb92a4f8c066bb",
+      "sourceBytes": 10948624,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/ground-sand.png",
+      "preparedBytes": 288841,
+      "preparedSha256": "01013662471fdc756a857bc07128f1700bbf47cb92633ca0f66c40aa3b12f42d",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 47659,
+      "sha256": "97cf06cb1bc5a85c6d5d54724b53433d656f08a46ba300efabff7cbe15f9d6ac"
+    },
+    {
+      "id": "ground-grass",
+      "file": "ground-grass.ktx2",
+      "source": "textures/Environment/Landscape/Textures/T_Grass1_BC.png",
+      "sourceSha256": "0a543ac27eb9697cc30152a49d3997994b6e5f5a9f2eb25e514872b717472512",
+      "sourceBytes": 19351505,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/ground-grass.png",
+      "preparedBytes": 327762,
+      "preparedSha256": "1120a3d5c48732a9d0b32a2e4007c7ddf95f2845699dce841a6122fa528501d2",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 67434,
+      "sha256": "044aba35270f5a08292c53fdab8560764c4aeeffd71b6edef554236c2b75d797"
+    },
+    {
+      "id": "ground-normal",
+      "file": "ground-normal.ktx2",
+      "source": "textures/Environment/Landscape/Textures/T_Dirt1_N.png",
+      "sourceSha256": "c9a3fb4f935607facd463615780a8efb3742a729872e1c8eb52a038b75dfb58e",
+      "sourceBytes": 3327432,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/ground-normal.png",
+      "preparedBytes": 129770,
+      "preparedSha256": "707383a1ea3fba3bba70bcce6a5a556d2c000f0438fd88284182e11cdcd7fab1",
+      "size": 512,
+      "colorSpace": "linear",
+      "role": "normal",
+      "codec": "uastc",
+      "format": "R8G8B8_UNORM",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_UNORM",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "linear",
+        "--assign-primaries",
+        "none",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 220632,
+      "sha256": "2b9ebd3dfc53f6b7cf3d2ec4533bf51c7888d07d87d249b387e8462c8ebfaa94"
+    },
+    {
+      "id": "rock-color",
+      "file": "rock-color.ktx2",
+      "source": "textures/Environment/Rocks/Textures/Spire/T_RockSpire_BC.png",
+      "sourceSha256": "d3869cfd065d2540774026c535a0130ba274e932b59453c7e734175f26aafb48",
+      "sourceBytes": 12448040,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/rock-color.png",
+      "preparedBytes": 238314,
+      "preparedSha256": "9864027b11602b7619fd3fa67aa12f619d738447f86dfd9ebea041c67ee63b12",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 54134,
+      "sha256": "d5f96832243edcc802be7bd7dee63e6a3ddec3e1312a0786c0c38ab39d5c7790"
+    },
+    {
+      "id": "rock-normal",
+      "file": "rock-normal.ktx2",
+      "source": "textures/Environment/Rocks/Textures/Spire/T_RockSpire_Rocks_N.png",
+      "sourceSha256": "3ab3323547b848392b14cb7c591d27fb7e8bfca4aeaa37c781f80492c6aa7be7",
+      "sourceBytes": 7442329,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/rock-normal.png",
+      "preparedBytes": 253557,
+      "preparedSha256": "5cf60d3f20059d1cfb094332671179da27e3e895a07fa9949d3830d94e0a5d06",
+      "size": 512,
+      "colorSpace": "linear",
+      "role": "normal",
+      "codec": "uastc",
+      "format": "R8G8B8_UNORM",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_UNORM",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "linear",
+        "--assign-primaries",
+        "none",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 269708,
+      "sha256": "ccb06ccc7191258d5c83941279a72eb6ff5eb7f90157a90bbbd9e7ead9a01a9d"
+    },
+    {
+      "id": "pine-bark",
+      "file": "pine-bark.ktx2",
+      "source": "textures/Environment/Trees/Textures/T_ChinaPina_BC.png",
+      "sourceSha256": "d743300f3c8f1ff4660aae9867fcd9a8dd5958033c571f46d88dcf558ac7e0df",
+      "sourceBytes": 16943199,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/pine-bark.png",
+      "preparedBytes": 293804,
+      "preparedSha256": "1cd3096a0acff2a9002e87e21bc8ee208c18838010810127deb5cc08c7c63fcd",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 66575,
+      "sha256": "5836af6613852d38cf39b75d8906f5cb8891bd0fe89838b50c196390dc3b98af"
+    },
+    {
+      "id": "bark-normal",
+      "file": "bark-normal.ktx2",
+      "source": "textures/Environment/Trees/Textures/T_FirBark_N.png",
+      "sourceSha256": "6d632a9efd5167a267de4812f20d71d9251bc56ecc4d2c524020f1a6e2afea1f",
+      "sourceBytes": 18053438,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/bark-normal.png",
+      "preparedBytes": 432924,
+      "preparedSha256": "8072bf42a3bf2b3b862fcb5bed8b58c888a331f4a215851926f28d1d2423315a",
+      "size": 512,
+      "colorSpace": "linear",
+      "role": "normal",
+      "codec": "uastc",
+      "format": "R8G8B8_UNORM",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_UNORM",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "linear",
+        "--assign-primaries",
+        "none",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 310007,
+      "sha256": "f22f875eab8c69c11dbe9c725286614ed435c8ebfa846a64009f177d496877c3"
+    },
+    {
+      "id": "maple-bark",
+      "file": "maple-bark.ktx2",
+      "source": "textures/Environment/Trees/Textures/T_RedMapleBark_BC.png",
+      "sourceSha256": "2c18f0bb556b2e481a5e821196d0661055abca2af1ac92a8f3025cc5c08a7449",
+      "sourceBytes": 9405629,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/maple-bark.png",
+      "preparedBytes": 270261,
+      "preparedSha256": "7068a95a2892fa1fbcba5eaa7203bd2d6c8a53201104bb106740b6ee52e8dac2",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "color",
+      "codec": "etc1s",
+      "format": "R8G8B8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8_SRGB",
+        "--encode",
+        "basis-lz",
+        "--clevel",
+        "4",
+        "--qlevel",
+        "255",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 62603,
+      "sha256": "00b8866ba881c7863813dd8111a859be7c9b724883abbc26591fd89bac621ca0"
+    },
+    {
+      "id": "pine-leaves",
+      "file": "pine-leaves.ktx2",
+      "source": "textures/Environment/Trees/Textures/T_Leaf_ChinaPine.png",
+      "sourceSha256": "14ae0a0cb3c781e2fe52b48271c9d595cd00ec76614338b0ac60ea584cf2db82",
+      "sourceBytes": 9725,
+      "sourceSize": [
+        512,
+        512
+      ],
+      "preparedSource": "../source/pine-leaves.png",
+      "preparedBytes": 19771,
+      "preparedSha256": "90e3c4704c07224e4947cfdccd4bc8155141d63572329beadc3fadf6b58d7dfe",
+      "size": 256,
+      "colorSpace": "linear",
+      "role": "leaf",
+      "codec": "uastc",
+      "format": "R8G8B8A8_UNORM",
+      "mipLevels": 9,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8A8_UNORM",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "linear",
+        "--assign-primaries",
+        "none",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 22988,
+      "sha256": "5d904f35d7439452e263dd155fd0937e170936840a8539405951fb1f2dd5e961"
+    },
+    {
+      "id": "maple-leaves",
+      "file": "maple-leaves.ktx2",
+      "source": "textures/Environment/Trees/Textures/T_Leaf_Maple.png",
+      "sourceSha256": "ce3e0380cdea4b6e8d2b300ed3a1425cfb2c7e6cddba633beb31a38e8b16dada",
+      "sourceBytes": 59891,
+      "sourceSize": [
+        1024,
+        1024
+      ],
+      "preparedSource": "../source/maple-leaves.png",
+      "preparedBytes": 23407,
+      "preparedSha256": "7a9dbd59c1c0433bdcfbacfcf1b8e8e1f67338d29e9d54f6b2c7d149a8ad690d",
+      "size": 256,
+      "colorSpace": "linear",
+      "role": "leaf",
+      "codec": "uastc",
+      "format": "R8G8B8A8_UNORM",
+      "mipLevels": 9,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8A8_UNORM",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "linear",
+        "--assign-primaries",
+        "none",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 23222,
+      "sha256": "f7eb4983be3085db96eac90e3ef8cd9efae11c4720b98dc0ef924d91142b616e"
+    },
+    {
+      "id": "foliage",
+      "file": "foliage.ktx2",
+      "source": "textures/Environment/Foliage/Textures/T_FoliageSheet_BC.png",
+      "sourceSha256": "872ca0165f4bd82fbcaf63e785e3e2b53068823b6193c5a5f16ad2f5b295e5dd",
+      "sourceBytes": 4217109,
+      "sourceSize": [
+        4096,
+        4096
+      ],
+      "preparedSource": "../source/foliage.png",
+      "preparedBytes": 140996,
+      "preparedSha256": "d5918e7f15d24ac50320b2192ebf71ff579a659a8e3533f6b0cfd255eeabd2c9",
+      "size": 512,
+      "colorSpace": "srgb",
+      "role": "cutout",
+      "codec": "uastc",
+      "format": "R8G8B8A8_SRGB",
+      "mipLevels": 10,
+      "encodingArguments": [
+        "--format",
+        "R8G8B8A8_SRGB",
+        "--encode",
+        "uastc",
+        "--uastc-quality",
+        "4",
+        "--zstd",
+        "18",
+        "--assign-tf",
+        "srgb",
+        "--assign-primaries",
+        "srgb",
+        "--generate-mipmap",
+        "--mipmap-filter",
+        "lanczos4",
+        "--mipmap-wrap",
+        "wrap",
+        "--assign-texcoord-origin",
+        "top-left",
+        "--threads",
+        "1",
+        "--testrun",
+        "--compare-ssim",
+        "--compare-psnr"
+      ],
+      "bytes": 93368,
+      "sha256": "a381596620c4bf42072c9f176082e0cf7fcaba6254cec02a1d9dd4468a8d2744"
+    }
+  ],
+  "models": [
+    {
+      "id": "shore-boulder",
+      "file": "shore-boulder.glb",
+      "source": "models/Environment/Rocks/Spire/SM_RockSpire_RockClump03.glb",
+      "sourceSha256": "bd54506453e1e0eceec3fb2121bab4a419a5738be1f042fe608ebe812d7bd2ab",
+      "bytes": 33312,
+      "sha256": "e3aeac82c53683aa8eecc47ef6b65d47cc1942a70c5a625ab9f777c9086f485f",
+      "bounds": {
+        "minimum": [
+          -3.56769705,
+          -2.36690402,
+          -3.24100852
+        ],
+        "maximum": [
+          3.61781669,
+          0.616116762,
+          2.80597615
+        ]
+      },
+      "triangles": 432,
+      "materialSlots": [
+        "MI_RockSpire_Rocks"
+      ],
+      "meshCount": 1
+    },
+    {
+      "id": "shore-shelf",
+      "file": "shore-shelf.glb",
+      "source": "models/Environment/Rocks/Spire/SM_RockSpire_Shelf01.glb",
+      "sourceSha256": "ed9c7ddbe6829789a1ce3027abfdc018e1a88541b58538966ab0a41043ab0071",
+      "bytes": 37496,
+      "sha256": "c4a3dfe5376a1c0e12266a5df88efef651013ed72e0b85fb64460fcd9f0f5f02",
+      "bounds": {
+        "minimum": [
+          -16.4255333,
+          -4.98533106,
+          -13.7864132
+        ],
+        "maximum": [
+          17.5906048,
+          18.2486706,
+          13.9989519
+        ]
+      },
+      "triangles": 560,
+      "materialSlots": [
+        "MI_RockSpire_Shelves"
+      ],
+      "meshCount": 1
+    },
+    {
+      "id": "bed-rock",
+      "file": "bed-rock.glb",
+      "source": "models/Environment/Rocks/Spire/SM_RockSpire_Rock01.glb",
+      "sourceSha256": "79e36f8fdda4da0cfc0cb867cd57d98bf661fc492f9ffa3e737729e9c07a9848",
+      "bytes": 6404,
+      "sha256": "f41bd577d3480941e9ff85ad88b98001bc9d8cf50860e9052e7be1680152073e",
+      "bounds": {
+        "minimum": [
+          -0.942401886,
+          -0.378239542,
+          -0.793629289
+        ],
+        "maximum": [
+          0.925704956,
+          0.726447582,
+          0.582211494
+        ]
+      },
+      "triangles": 70,
+      "materialSlots": [
+        "MI_RockSpire_Rocks"
+      ],
+      "meshCount": 1
+    },
+    {
+      "id": "bed-clump",
+      "file": "bed-clump.glb",
+      "source": "models/Environment/Rocks/Spire/SM_RockSpire_RockClump01.glb",
+      "sourceSha256": "a13cdaa26cc7c31661bd552059b7cc0a5f35a91764d8f864b8e170ce315f2e84",
+      "bytes": 23904,
+      "sha256": "4466eb05f0ad7bd642b0f274fa33661752699003383f4cdc56cc99493abd58b3",
+      "bounds": {
+        "minimum": [
+          -1.50644529,
+          -0.840059817,
+          -1.51071727
+        ],
+        "maximum": [
+          2.14143181,
+          0.521331847,
+          1.67438126
+        ]
+      },
+      "triangles": 304,
+      "materialSlots": [
+        "MI_RockSpire_Rocks"
+      ],
+      "meshCount": 1
+    },
+    {
+      "id": "bed-pebble",
+      "file": "bed-pebble.glb",
+      "source": "models/Environment/Rocks/Spire/SM_RockSpire_Rock03.glb",
+      "sourceSha256": "5e653a294436488354b6925d1d7ac0284aad50375e95a4fb1514e05a248a8e87",
+      "bytes": 6044,
+      "sha256": "56436d02689b61d1fe6dc3c002595a5cf952611aece617711ed7aa6041ae6632",
+      "bounds": {
+        "minimum": [
+          -1.41690445,
+          -0.796574295,
+          -1.25962806
+        ],
+        "maximum": [
+          1.380867,
+          1.30109215,
+          1.35540712
+        ]
+      },
+      "triangles": 60,
+      "materialSlots": [
+        "MI_RockSpire_Rocks"
+      ],
+      "meshCount": 1
+    },
+    {
+      "id": "china-pine",
+      "file": "china-pine.glb",
+      "source": "models/Environment/Trees/China/SM_ChinaPineB01.glb",
+      "sourceSha256": "50b2e14ce1c7db242740e9a0ad90ed12e360ecba5a96a3b1295b862685922e80",
+      "bytes": 241724,
+      "sha256": "83281f42db6ab61e0938d83bbd1b9557861fbcdf3cc08ed30d796798c4d7df5f",
+      "bounds": {
+        "minimum": [
+          -4.8840518,
+          -1.08249843,
+          -4.79303169
+        ],
+        "maximum": [
+          10.3661861,
+          10.1641712,
+          5.73976755
+        ]
+      },
+      "triangles": 1716,
+      "materialSlots": [
+        "MI_ChinaPineBark",
+        "MI_ChinaPineLeaves"
+      ],
+      "meshCount": 2
+    },
+    {
+      "id": "greeting-pine",
+      "file": "greeting-pine.glb",
+      "source": "models/Environment/Trees/China/SM_TheGreetingPine.glb",
+      "sourceSha256": "f8f3c3a3c8df345053fd383c5983c5771b03394205405ca1a8046a02f9d5d087",
+      "bytes": 303700,
+      "sha256": "469f7e0afe08fdb3dc911283efedd6ff265a975f3ff4b74a110158643e45528e",
+      "bounds": {
+        "minimum": [
+          -4.67487431,
+          -1.25532258,
+          -6.48404026
+        ],
+        "maximum": [
+          10.3810816,
+          16.2042637,
+          5.00433254
+        ]
+      },
+      "triangles": 2062,
+      "materialSlots": [
+        "MI_ChinaPineBark",
+        "MI_ChinaPineLeaves"
+      ],
+      "meshCount": 2
+    },
+    {
+      "id": "maple",
+      "file": "maple.glb",
+      "source": "models/Environment/Trees/China/SM_RedMaple01.glb",
+      "sourceSha256": "65876302fd68884b0ee5a8aa138d272ce3e581a5a667e974cddd375a168f11dc",
+      "bytes": 162020,
+      "sha256": "1a5c1d93b7ab8b3484d3e05c13a2b52ceefbee9a05db527c9dea641d4ebc5d14",
+      "bounds": {
+        "minimum": [
+          -6.37745237,
+          -1.14758945,
+          -7.55200291
+        ],
+        "maximum": [
+          9.08873558,
+          13.8244734,
+          4.60923576
+        ]
+      },
+      "triangles": 1242,
+      "materialSlots": [
+        "MI_RedMapleBark",
+        "MI_RedMapleLeaves"
+      ],
+      "meshCount": 2
+    },
+    {
+      "id": "fern",
+      "file": "fern.glb",
+      "source": "models/Environment/Foliage/SM_Fern1.glb",
+      "sourceSha256": "48580190bc92a033786e223898d3113f83c9ae84f40ccf64a00fe1d1e435dc5c",
+      "bytes": 11528,
+      "sha256": "fcd240e3f283f25505a2022704409a09e576f67d79622777a295ac1802f7fe63",
+      "bounds": {
+        "minimum": [
+          -1.39628851,
+          -0.109076962,
+          -1.35004222
+        ],
+        "maximum": [
+          1.33624351,
+          0.849572718,
+          1.45313776
+        ]
+      },
+      "triangles": 120,
+      "materialSlots": [
+        "MI_Ferns"
+      ],
+      "meshCount": 1
+    }
+  ],
+  "sha256": "e880ba2cda11efb81fb163ed71885495e71cbf9c1a769a218297d60bfb1e4f6e"
+}

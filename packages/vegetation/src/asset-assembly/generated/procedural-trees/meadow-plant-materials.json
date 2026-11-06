@@ -1,0 +1,1686 @@
+{
+  "version": 4,
+  "layout": "standalone",
+  "maxTextureSize": 256,
+  "textures": {
+    "meadow-coverplants_01_summer-part-03-packed-256.png": {
+      "url": "meadow-coverplants_01_summer-part-03-packed-256.png?v=30841ca72b784c04",
+      "width": 256,
+      "height": 247,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "431c9ee4ddb29dc7"
+    },
+    "meadow-coverplants_01_summer-part-07-packed-256.png": {
+      "url": "meadow-coverplants_01_summer-part-07-packed-256.png?v=2b8cca69a99c2b10",
+      "width": 256,
+      "height": 253,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "d7b4b46b60c4bf96"
+    },
+    "meadow-coverplants_01_summer-part-06-256.png": {
+      "url": "meadow-coverplants_01_summer-part-06-256.png?v=feebbc2d4643cba9",
+      "width": 220,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "08d0eab76fd32806"
+    },
+    "meadow-flowers_01-part-02-256.png": {
+      "url": "meadow-flowers_01-part-02-256.png?v=dddd9b039e85e852",
+      "width": 241,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "eb44be0ac845d755"
+    },
+    "meadow-flowers_02-part-01-256.png": {
+      "url": "meadow-flowers_02-part-01-256.png?v=396a891e0cb8c5b3",
+      "width": 241,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "563ad5a7ba16bfc0"
+    },
+    "meadow-flowers_01-part-01-256.png": {
+      "url": "meadow-flowers_01-part-01-256.png?v=a243e4472e8224af",
+      "width": 256,
+      "height": 250,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "0a1a709a8430a585"
+    },
+    "meadow-flowers_02-part-05-256.png": {
+      "url": "meadow-flowers_02-part-05-256.png?v=2eacc361bad9a7d6",
+      "width": 251,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "e7bfcdb9301d4d83"
+    },
+    "meadow-flowers_03-part-01-256.png": {
+      "url": "meadow-flowers_03-part-01-256.png?v=55d7b21a33e7e4f2",
+      "width": 118,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "0010c785aa488add"
+    },
+    "meadow-flowers_03-part-02-256.png": {
+      "url": "meadow-flowers_03-part-02-256.png?v=9e62fba59f0266bf",
+      "width": 118,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "3112a338e0f7980b"
+    },
+    "meadow-grass_01_summer-part-01-256.png": {
+      "url": "meadow-grass_01_summer-part-01-256.png?v=e0da0509080a4d4d",
+      "width": 256,
+      "height": 235,
+      "wrapU": "repeat",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "9b1bd032d285a99e"
+    },
+    "meadow-grass_02_summer-part-01-256.png": {
+      "url": "meadow-grass_02_summer-part-01-256.png?v=4d240b87c805e830",
+      "width": 196,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "ffaac020774ea6cf"
+    },
+    "meadow-grass_03_summer-part-01-256.png": {
+      "url": "meadow-grass_03_summer-part-01-256.png?v=14807b6220213716",
+      "width": 256,
+      "height": 238,
+      "wrapU": "repeat",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "5d0a262148829337"
+    },
+    "meadow-leaves_birchtree_01_summer-part-02-256.png": {
+      "url": "meadow-leaves_birchtree_01_summer-part-02-256.png?v=2caad947334d5dd1",
+      "width": 127,
+      "height": 232,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "aff746d81614d820"
+    },
+    "meadow-leaves_oaktree_01_summer-part-02-256.png": {
+      "url": "meadow-leaves_oaktree_01_summer-part-02-256.png?v=8ddb3efc506a8552",
+      "width": 150,
+      "height": 233,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "aab0e54f34799f17"
+    },
+    "meadow-mushroom-cap-packed-256.png": {
+      "url": "meadow-mushroom-cap-packed-256.png?v=7122219f88b5a197",
+      "width": 256,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "7122219f88b5a197"
+    },
+    "meadow-plants_01_summer-part-02-256.png": {
+      "url": "meadow-plants_01_summer-part-02-256.png?v=f774cf56034155d9",
+      "width": 89,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "2aa4112a3d9a4612"
+    },
+    "meadow-plants_01_summer-part-01-256.png": {
+      "url": "meadow-plants_01_summer-part-01-256.png?v=0288f98638dbd9ec",
+      "width": 80,
+      "height": 256,
+      "wrapU": "clamp",
+      "wrapV": "clamp",
+      "colourSpace": "sRGB",
+      "appearanceId": "45b8596edc9ade48"
+    },
+    "meadow-birch-bark-256.png": {
+      "url": "meadow-birch-bark-256.png?v=3f517792bc4c3ecb",
+      "width": 256,
+      "height": 256,
+      "wrapU": "repeat",
+      "wrapV": "repeat",
+      "colourSpace": "sRGB",
+      "appearanceId": "3890c53c84c68427"
+    },
+    "meadow-birchtree_leaf_01_summer-part-01-256.png": {
+      "url": "meadow-birchtree_leaf_01_summer-part-01-256.png?v=f2752deaf6d87279",
+      "width": 256,
+      "height": 256,
+      "wrapU": "repeat",
+      "wrapV": "repeat",
+      "colourSpace": "sRGB",
+      "appearanceId": "e832df91cc4eb1a2"
+    }
+  },
+  "assets": {
+    "SM_CoverPlant_01": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      }
+    },
+    "SM_CoverPlant_02": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      },
+      "appearance-08d0eab76fd32806": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-06-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.7630640262812775,
+          0.999987647617105,
+          0.17953285852864886
+        ]
+      }
+    },
+    "SM_CoverPlant_03": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      },
+      "appearance-3a987417f82977ec": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.09769372954017023,
+          0.28973039274093576,
+          0.991942728862979
+        ]
+      }
+    },
+    "SM_CoverPlant_04": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      },
+      "appearance-422c846728a6ffb8": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.9957695667215696,
+          0.07726660903964162,
+          0.48483017214009305
+        ]
+      }
+    },
+    "SM_CoverPlant_05": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      },
+      "appearance-766e889459101a72": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.8549925538600063,
+          0.14866015164843324,
+          0.04507100021237306
+        ]
+      }
+    },
+    "SM_CoverPlant_06": {
+      "appearance-431c9ee4ddb29dc7": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-03-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17882613858724447,
+          0.24620132670798298,
+          0.03843989316065528
+        ]
+      },
+      "appearance-d7b4b46b60c4bf96": {
+        "role": "shrub",
+        "albedo": "meadow-coverplants_01_summer-part-07-packed-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.17946787858533786,
+          0.25818285292184934,
+          0.040643237492551866
+        ]
+      },
+      "appearance-7ca0164a73db63b7": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_CoverPlants_01_Summer",
+        "baseColor": [
+          0.8227857144394577,
+          0.39968620868743104,
+          0.05282132352765607
+        ]
+      }
+    },
+    "SM_Flower_01_01": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-0a1a709a8430a585": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999999160094019,
+          0.14829795261175108,
+          0.10363616464713975
+        ]
+      }
+    },
+    "SM_Flower_01_02": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-0a1a709a8430a585": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999999160094019,
+          0.14829795261175108,
+          0.10363616464713975
+        ]
+      }
+    },
+    "SM_Flower_01_03": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-0a1a709a8430a585": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999999160094019,
+          0.14829795261175108,
+          0.10363616464713975
+        ]
+      }
+    },
+    "SM_Flower_02_01": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-9cf14061c8c19809": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.5128192785909185,
+          0.17146337569504277,
+          0.9999974550070697
+        ]
+      }
+    },
+    "SM_Flower_02_02": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-9cf14061c8c19809": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.5128192785909185,
+          0.17146337569504277,
+          0.9999974550070697
+        ]
+      }
+    },
+    "SM_Flower_02_03": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-9cf14061c8c19809": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.5128192785909185,
+          0.17146337569504277,
+          0.9999974550070697
+        ]
+      }
+    },
+    "SM_Flower_03_01": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-eb44be0ac845d755": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.09792455680787517,
+          0.28997146413355335,
+          0.991899414617574
+        ]
+      }
+    },
+    "SM_Flower_03_02": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-eb44be0ac845d755": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.09792455680787517,
+          0.28997146413355335,
+          0.991899414617574
+        ]
+      }
+    },
+    "SM_Flower_03_03": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-eb44be0ac845d755": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.09792455680787517,
+          0.28997146413355335,
+          0.991899414617574
+        ]
+      }
+    },
+    "SM_Flower_04_01": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-dd6247d87a68b58a": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999937525210142,
+          0.6136847408384327,
+          0.05663951298105992
+        ]
+      }
+    },
+    "SM_Flower_04_02": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-dd6247d87a68b58a": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999937525210142,
+          0.6136847408384327,
+          0.05663951298105992
+        ]
+      }
+    },
+    "SM_Flower_04_03": {
+      "appearance-17e805592568db8b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-dd6247d87a68b58a": {
+        "role": "flower",
+        "albedo": "meadow-flowers_01-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_01",
+        "baseColor": [
+          0.9999937525210142,
+          0.6136847408384327,
+          0.05663951298105992
+        ]
+      }
+    },
+    "SM_Flower_05_01": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-4562c9de114262cb": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9464638090961488,
+          0.757680955278038,
+          0.8126517817631626
+        ]
+      }
+    },
+    "SM_Flower_05_02": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-4562c9de114262cb": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9464638090961488,
+          0.757680955278038,
+          0.8126517817631626
+        ]
+      }
+    },
+    "SM_Flower_05_03": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-4562c9de114262cb": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9464638090961488,
+          0.757680955278038,
+          0.8126517817631626
+        ]
+      }
+    },
+    "SM_Flower_06_01": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-e7bfcdb9301d4d83": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9805020781782335,
+          0.2716439238689877,
+          0.7811169067964908
+        ]
+      }
+    },
+    "SM_Flower_06_02": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-e7bfcdb9301d4d83": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9805020781782335,
+          0.2716439238689877,
+          0.7811169067964908
+        ]
+      }
+    },
+    "SM_Flower_06_03": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-e7bfcdb9301d4d83": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-05-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9805020781782335,
+          0.2716439238689877,
+          0.7811169067964908
+        ]
+      }
+    },
+    "SM_Flower_07_01": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-563ad5a7ba16bfc0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.999998881034807,
+          0.48574554603930603,
+          0.06441535475970464
+        ]
+      }
+    },
+    "SM_Flower_07_02": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-563ad5a7ba16bfc0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.999998881034807,
+          0.48574554603930603,
+          0.06441535475970464
+        ]
+      }
+    },
+    "SM_Flower_07_03": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-563ad5a7ba16bfc0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.999998881034807,
+          0.48574554603930603,
+          0.06441535475970464
+        ]
+      }
+    },
+    "SM_Flower_08_01": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-540a4c6f542dc7f0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9999998602347625,
+          0.17304914009267386,
+          0.052174725617472315
+        ]
+      }
+    },
+    "SM_Flower_08_02": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-540a4c6f542dc7f0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9999998602347625,
+          0.17304914009267386,
+          0.052174725617472315
+        ]
+      }
+    },
+    "SM_Flower_08_03": {
+      "appearance-4beb28479ab0679b": {
+        "role": "flower",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.0802198201417923,
+          0.1946178376674652,
+          0.045186202973127365
+        ],
+        "component": "stem"
+      },
+      "appearance-540a4c6f542dc7f0": {
+        "role": "flower",
+        "albedo": "meadow-flowers_02-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_02",
+        "baseColor": [
+          0.9999998602347625,
+          0.17304914009267386,
+          0.052174725617472315
+        ]
+      }
+    },
+    "SM_Flower_09_01": {
+      "appearance-0010c785aa488add": {
+        "role": "flower",
+        "albedo": "meadow-flowers_03-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_03",
+        "baseColor": [
+          0.5729556026151245,
+          0.8263065045947584,
+          0.6824428442708551
+        ]
+      }
+    },
+    "SM_Flower_09_02": {
+      "appearance-0010c785aa488add": {
+        "role": "flower",
+        "albedo": "meadow-flowers_03-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_03",
+        "baseColor": [
+          0.5729556026151245,
+          0.8263065045947584,
+          0.6824428442708551
+        ]
+      }
+    },
+    "SM_Flower_09_03": {
+      "appearance-0010c785aa488add": {
+        "role": "flower",
+        "albedo": "meadow-flowers_03-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_03",
+        "baseColor": [
+          0.5729556026151245,
+          0.8263065045947584,
+          0.6824428442708551
+        ]
+      }
+    },
+    "SM_Flower_10_01": {
+      "appearance-3112a338e0f7980b": {
+        "role": "flower",
+        "albedo": "meadow-flowers_03-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Flowers_03",
+        "baseColor": [
+          0.6463640663604749,
+          0.5564731363319589,
+          0.5991045743369162
+        ]
+      }
+    },
+    "SM_Grass_01_01": {
+      "appearance-9b1bd032d285a99e": {
+        "role": "grass",
+        "albedo": "meadow-grass_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_01_Summer",
+        "baseColor": [
+          0.2528637167605903,
+          0.5906188409192596,
+          0.04154280295860366
+        ]
+      }
+    },
+    "SM_Grass_01_02": {
+      "appearance-9b1bd032d285a99e": {
+        "role": "grass",
+        "albedo": "meadow-grass_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_01_Summer",
+        "baseColor": [
+          0.2528637167605903,
+          0.5906188409192596,
+          0.04154280295860366
+        ]
+      }
+    },
+    "SM_Grass_01_03": {
+      "appearance-9b1bd032d285a99e": {
+        "role": "grass",
+        "albedo": "meadow-grass_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_01_Summer",
+        "baseColor": [
+          0.2528637167605903,
+          0.5906188409192596,
+          0.04154280295860366
+        ]
+      }
+    },
+    "SM_Grass_02_01": {
+      "appearance-ffaac020774ea6cf": {
+        "role": "grass",
+        "albedo": "meadow-grass_02_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_02_Summer",
+        "baseColor": [
+          0.19299430414991844,
+          0.4452011945162583,
+          0.09783622323981447
+        ]
+      }
+    },
+    "SM_Grass_02_02": {
+      "appearance-ffaac020774ea6cf": {
+        "role": "grass",
+        "albedo": "meadow-grass_02_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_02_Summer",
+        "baseColor": [
+          0.19299430414991844,
+          0.4452011945162583,
+          0.09783622323981447
+        ]
+      }
+    },
+    "SM_Grass_02_03": {
+      "appearance-ffaac020774ea6cf": {
+        "role": "grass",
+        "albedo": "meadow-grass_02_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_02_Summer",
+        "baseColor": [
+          0.19299430414991844,
+          0.4452011945162583,
+          0.09783622323981447
+        ]
+      }
+    },
+    "SM_Grass_03_01": {
+      "appearance-5d0a262148829337": {
+        "role": "grass",
+        "albedo": "meadow-grass_03_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_03_Summer",
+        "baseColor": [
+          0.0967004552282542,
+          0.43415363617479413,
+          0.15520504854754968
+        ]
+      }
+    },
+    "SM_Grass_03_02": {
+      "appearance-5d0a262148829337": {
+        "role": "grass",
+        "albedo": "meadow-grass_03_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_03_Summer",
+        "baseColor": [
+          0.0967004552282542,
+          0.43415363617479413,
+          0.15520504854754968
+        ]
+      }
+    },
+    "SM_Grass_03_03": {
+      "appearance-5d0a262148829337": {
+        "role": "grass",
+        "albedo": "meadow-grass_03_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Grass_03_Summer",
+        "baseColor": [
+          0.0967004552282542,
+          0.43415363617479413,
+          0.15520504854754968
+        ]
+      }
+    },
+    "SM_Leaves_BirchTree_01": {
+      "appearance-7d64bfee294a050b": {
+        "role": "shrub",
+        "albedo": "meadow-leaves_birchtree_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Leaves_BirchTree_01_Summer",
+        "baseColor": [
+          0.10253520397007206,
+          0.3094689228175205,
+          0.060390050946680825
+        ]
+      }
+    },
+    "SM_Leaves_BirchTree_02": {
+      "appearance-7d64bfee294a050b": {
+        "role": "shrub",
+        "albedo": "meadow-leaves_birchtree_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Leaves_BirchTree_01_Summer",
+        "baseColor": [
+          0.10253520397007206,
+          0.3094689228175205,
+          0.060390050946680825
+        ]
+      }
+    },
+    "SM_Leaves_OakTree_01": {
+      "appearance-4bd720a6a0bd16b7": {
+        "role": "shrub",
+        "albedo": "meadow-leaves_oaktree_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Leaves_OakTree_01_Summer",
+        "baseColor": [
+          0.09167425758413214,
+          0.2050787363903345,
+          0.06940080652995179
+        ]
+      }
+    },
+    "SM_Leaves_OakTree_02": {
+      "appearance-4bd720a6a0bd16b7": {
+        "role": "shrub",
+        "albedo": "meadow-leaves_oaktree_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Leaves_OakTree_01_Summer",
+        "baseColor": [
+          0.09167425758413214,
+          0.2050787363903345,
+          0.06940080652995179
+        ]
+      }
+    },
+    "SM_Mushroom_01": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16047528945559117,
+          0.025186871425326933
+        ]
+      }
+    },
+    "SM_Mushroom_02": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16233690063760964,
+          0.0256246943239232
+        ]
+      }
+    },
+    "SM_Mushroom_03": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.7379103899002075,
+          0.17579378187656403,
+          0.04781300574541092
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.9999993412287219,
+          0.1533487524471921,
+          0.021427943503970925
+        ]
+      }
+    },
+    "SM_Mushroom_04": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.7379103899002075,
+          0.17579378187656403,
+          0.04781300574541092
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.9999993412287219,
+          0.1533487524471921,
+          0.021427943503970925
+        ]
+      }
+    },
+    "SM_Mushroom_05": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16233690063760964,
+          0.0256246943239232
+        ]
+      }
+    },
+    "SM_Mushroom_06": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16047528945559117,
+          0.025186871425326933
+        ]
+      }
+    },
+    "SM_Mushroom_07": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16047528945559117,
+          0.025186871425326933
+        ]
+      }
+    },
+    "SM_Mushroom_08": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16233690063760964,
+          0.0256246943239232
+        ]
+      }
+    },
+    "SM_Mushroom_09": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16233690063760964,
+          0.0256246943239232
+        ]
+      }
+    },
+    "SM_Mushroom_10": {
+      "stem": {
+        "role": "mushroom",
+        "albedo": null,
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.24145503342151642,
+          0.06602660566568375
+        ],
+        "component": "stem"
+      },
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          1,
+          0.16233690063760964,
+          0.0256246943239232
+        ]
+      }
+    },
+    "SM_Mushroom_11": {
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.9999998538948014,
+          0.1485708460111518,
+          0.02069636115318035
+        ]
+      }
+    },
+    "SM_Mushroom_12": {
+      "cap": {
+        "role": "mushroom",
+        "albedo": "meadow-mushroom-cap-packed-256.png",
+        "alphaCutoff": 0,
+        "baseColor": [
+          0.9999998538948014,
+          0.1485708460111518,
+          0.02069636115318035
+        ]
+      }
+    },
+    "SM_Plant_01_01": {
+      "appearance-2aa4112a3d9a4612": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.19994492886865614,
+          0.5394771464542624,
+          0.153846564748643
+        ]
+      }
+    },
+    "SM_Plant_01_02": {
+      "appearance-2aa4112a3d9a4612": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.19994492886865614,
+          0.5394771464542624,
+          0.153846564748643
+        ]
+      }
+    },
+    "SM_Plant_01_03": {
+      "appearance-2aa4112a3d9a4612": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-02-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.19994492886865614,
+          0.5394771464542624,
+          0.153846564748643
+        ]
+      }
+    },
+    "SM_Plant_02_01": {
+      "appearance-45b8596edc9ade48": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.06614726028506442,
+          0.47351787413975516,
+          0.18073364585556112
+        ]
+      }
+    },
+    "SM_Plant_02_02": {
+      "appearance-45b8596edc9ade48": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.06614726028506442,
+          0.47351787413975516,
+          0.18073364585556112
+        ]
+      }
+    },
+    "SM_Plant_02_03": {
+      "appearance-45b8596edc9ade48": {
+        "role": "shrub",
+        "albedo": "meadow-plants_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_Plants_01_Summer",
+        "baseColor": [
+          0.06614726028506442,
+          0.47351787413975516,
+          0.18073364585556112
+        ]
+      }
+    },
+    "SM_BirchBush_03": {
+      "appearance-60463a2042d1d2fe": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_01_Summer",
+        "baseColor": [
+          0.9386722982861151,
+          0.8709651249835813,
+          0.8367232620407075
+        ]
+      },
+      "appearance-e832df91cc4eb1a2": {
+        "role": "leaf",
+        "albedo": "meadow-birchtree_leaf_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_BirchTree_Leaf_01_Summer",
+        "baseColor": [
+          0.26089810207233416,
+          0.45078578283823345,
+          0.09252973314333746
+        ]
+      }
+    },
+    "SM_BirchBush_04": {
+      "appearance-60463a2042d1d2fe": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_01_Summer",
+        "baseColor": [
+          0.9386722982861151,
+          0.8709651249835813,
+          0.8367232620407075
+        ]
+      },
+      "appearance-e832df91cc4eb1a2": {
+        "role": "leaf",
+        "albedo": "meadow-birchtree_leaf_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_BirchTree_Leaf_01_Summer",
+        "baseColor": [
+          0.26089810207233416,
+          0.45078578283823345,
+          0.09252973314333746
+        ]
+      }
+    },
+    "SM_BirchTree_01": {
+      "appearance-58da25ba7b394497": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_02_Summer",
+        "baseColor": [
+          0.9999883754549685,
+          0.9281868770092164,
+          0.8912428417842578
+        ]
+      },
+      "appearance-a8b3441a505dd0f2": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_02_Summer",
+        "baseColor": [
+          0.9999883754549685,
+          0.9281868770092164,
+          0.8912428417842578
+        ]
+      },
+      "appearance-e832df91cc4eb1a2": {
+        "role": "leaf",
+        "albedo": "meadow-birchtree_leaf_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_BirchTree_Leaf_01_Summer",
+        "baseColor": [
+          0.26089810207233416,
+          0.45078578283823345,
+          0.09252973314333746
+        ]
+      }
+    },
+    "SM_BirchTree_02": {
+      "appearance-296c00a2f4125733": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_01_Summer",
+        "baseColor": [
+          0.9386722982861151,
+          0.8709651249835813,
+          0.8367232620407075
+        ]
+      },
+      "appearance-60463a2042d1d2fe": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_01_Summer",
+        "baseColor": [
+          0.9386722982861151,
+          0.8709651249835813,
+          0.8367232620407075
+        ]
+      },
+      "appearance-e832df91cc4eb1a2": {
+        "role": "leaf",
+        "albedo": "meadow-birchtree_leaf_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_BirchTree_Leaf_01_Summer",
+        "baseColor": [
+          0.26089810207233416,
+          0.45078578283823345,
+          0.09252973314333746
+        ]
+      }
+    },
+    "SM_BirchTree_07": {
+      "appearance-58da25ba7b394497": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_02_Summer",
+        "baseColor": [
+          0.9999883754549685,
+          0.9281868770092164,
+          0.8912428417842578
+        ]
+      },
+      "appearance-a8b3441a505dd0f2": {
+        "role": "bark",
+        "albedo": "meadow-birch-bark-256.png",
+        "alphaCutoff": 0,
+        "sourceMaterial": "M_BirchTree_Bark_02_Summer",
+        "baseColor": [
+          0.9999883754549685,
+          0.9281868770092164,
+          0.8912428417842578
+        ]
+      },
+      "appearance-e832df91cc4eb1a2": {
+        "role": "leaf",
+        "albedo": "meadow-birchtree_leaf_01_summer-part-01-256.png",
+        "alphaCutoff": 0.5,
+        "sourceMaterial": "M_BirchTree_Leaf_01_Summer",
+        "baseColor": [
+          0.26089810207233416,
+          0.45078578283823345,
+          0.09252973314333746
+        ]
+      }
+    }
+  },
+  "colourMode": "grayscale-tint"
+}

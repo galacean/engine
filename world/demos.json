@@ -1,0 +1,224 @@
+[
+  {
+    "entry": "demos/agent-trajectory/index.html",
+    "title": "Agent Trajectory",
+    "mode": "static",
+    "owner": "ai-chat"
+  },
+  {
+    "entry": "demos/animals/cute-zoo/index.html",
+    "title": "Cute Zoo 3 · 行为观察场",
+    "mode": "static",
+    "owner": "animals"
+  },
+  {
+    "entry": "demos/animals/roaming/index.html",
+    "title": "100款动物 · 行为观察场",
+    "mode": "static",
+    "owner": "animals"
+  },
+  {
+    "entry": "demos/building-components/index.html",
+    "title": "建筑组件编辑",
+    "mode": "static",
+    "owner": "building"
+  },
+  {
+    "entry": "demos/building-components/recursive.html",
+    "title": "建筑构件 · 欧式生成",
+    "mode": "static",
+    "owner": "building"
+  },
+  {
+    "entry": "demos/canyon-shape-study/index.html",
+    "title": "峡谷轮廓 · OBB 覆盖实验",
+    "mode": "static",
+    "owner": "world-planning / terrain"
+  },
+  {
+    "entry": "demos/day-night-system/index.html",
+    "title": "Day / Night System",
+    "mode": "static",
+    "owner": "environment"
+  },
+  {
+    "entry": "demos/farming/animation-preview/index.html",
+    "title": "种植动画预览",
+    "mode": "static",
+    "owner": "farming"
+  },
+  {
+    "entry": "demos/farming/asset-preview/index.html",
+    "title": "程序化植物生长预览",
+    "mode": "static",
+    "owner": "farming"
+  },
+  {
+    "entry": "demos/farming/first-person-farm/index.html",
+    "title": "农场案例",
+    "mode": "static",
+    "owner": "farming"
+  },
+  {
+    "entry": "demos/farming/native-preview/index.html",
+    "title": "种植原生接入预览",
+    "mode": "static",
+    "owner": "farming"
+  },
+  {
+    "entry": "demos/farming/standalone-host/index.html",
+    "title": "独立植物宿主",
+    "mode": "static",
+    "owner": "farming"
+  },
+  {
+    "entry": "demos/free-control-pitch-repro/index.html",
+    "title": "FreeControl 山谷 Pitch 最小复现",
+    "mode": "static",
+    "owner": "terrain"
+  },
+  {
+    "entry": "demos/global-illumination/index.html",
+    "title": "Global Illumination",
+    "mode": "static",
+    "owner": "environment"
+  },
+  {
+    "entry": "demos/integrated-world/index.html",
+    "title": "Integrated World",
+    "mode": "static",
+    "owner": "world-planning（综合业务 Demo）"
+  },
+  {
+    "entry": "demos/landform-study/index.html",
+    "title": "地貌白盒图集 · 五种结构",
+    "mode": "static",
+    "owner": "world-planning / terrain"
+  },
+  {
+    "entry": "demos/masonry-lab/index.html",
+    "title": "砌造实验室 · Geometry × Rule × Unit",
+    "mode": "service",
+    "owner": "building"
+  },
+  {
+    "entry": "demos/metrics-zoo/index.html",
+    "title": "米制白盒测试场",
+    "mode": "static",
+    "owner": "world-planning"
+  },
+  {
+    "entry": "demos/prompt-noise-world/index.html",
+    "title": "World PCG Pure Noise Terrain",
+    "mode": "static",
+    "owner": "world-planning / terrain"
+  },
+  {
+    "entry": "demos/rain-wind/index.html",
+    "title": "雨 × 风独立验收场",
+    "mode": "static",
+    "owner": "environment"
+  },
+  {
+    "entry": "demos/screen-space-reflection/index.html",
+    "title": "Meadow Lake · Screen Space Reflection",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
+    "entry": "demos/seed-world/dev/loading-preview.html",
+    "title": "World Bubble Loading Preview",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/dev/planning/index.html",
+    "title": "空间布局规划",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/dev/scene-visual-intent/index.html",
+    "title": "场景视觉意图 · World Engine",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/seed-world/index.html",
+    "title": "Seed World",
+    "mode": "static",
+    "owner": "world-planning（Seed World 业务）"
+  },
+  {
+    "entry": "demos/snow-wind/index.html",
+    "title": "Snow × Wind Lab",
+    "mode": "static",
+    "owner": "environment"
+  },
+  {
+    "entry": "demos/terrain-editor/index.html",
+    "title": "Terrain Editor",
+    "mode": "static",
+    "owner": "terrain / runtime-editor"
+  },
+  {
+    "entry": "demos/tiny-glade-resident/index.html",
+    "title": "Tiny Glade · 常驻渲染验收",
+    "mode": "service",
+    "owner": "building"
+  },
+  {
+    "entry": "demos/tree-reconstruction/index.html",
+    "title": "Unity 树木程序化还原",
+    "mode": "static",
+    "owner": "vegetation"
+  },
+  {
+    "entry": "demos/vegetation/index.html",
+    "title": "地形地表素材校验",
+    "mode": "static",
+    "owner": "vegetation"
+  },
+  {
+    "entry": "demos/volumetric-clouds/index.html",
+    "title": "Procedural Sky",
+    "mode": "static",
+    "owner": "environment"
+  },
+  {
+    "entry": "demos/water/index.html",
+    "title": "Water",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
+    "entry": "demos/water/island/index.html",
+    "title": "岚湾岛 · Water Island",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
+    "entry": "demos/water/ocean/index.html",
+    "title": "Ocean · 环岛海洋",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
+    "entry": "demos/water/planner/index.html",
+    "title": "Water · Planner 水体联调",
+    "mode": "static",
+    "owner": "water"
+  },
+  {
+    "entry": "demos/wind-tree/index.html",
+    "title": "P3 风 × 树木与植被验收场",
+    "mode": "static",
+    "owner": "vegetation / environment"
+  },
+  {
+    "entry": "demos/wind-tree/benchmark.html",
+    "title": "P3 Tree 千树风增量与资产性能门禁",
+    "mode": "static",
+    "owner": "vegetation / environment"
+  }
+]

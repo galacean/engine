@@ -1,0 +1,110 @@
+{
+  "version": "2.0",
+  "refs": [
+    { "url": "/Script/TerrainNavigationRuntime.ts" },
+    { "url": "/Script/TerrainWindRuntime.ts" },
+    { "url": "/Script/TerrainPostProcessRuntime.ts" }
+  ],
+  "entities": [
+    {
+      "name": "Seed World camera",
+      "position": [0, 26.538000106811523, 265.5899963378906],
+      "rotation": [0, 10.65999829585219, 0],
+      "components": [0, 1]
+    },
+    {
+      "name": "Seed World direct light",
+      "position": [142.70375061035156, 79.81114959716797, 112.4339599609375],
+      "rotation": [-51.89999756178264, -18.099994759419424, -3.298626850899161e-7],
+      "components": [2]
+    },
+    { "name": "Seed World wind", "rotation": [0, 52.056, 0], "components": [3] },
+    { "name": "Seed World post process", "components": [4] },
+    { "name": "建筑", "components": [5] }
+  ],
+  "components": [
+    {
+      "type": "Camera",
+      "props": {
+        "fieldOfView": 50,
+        "nearClipPlane": 0.10000000149011612,
+        "farClipPlane": 12000,
+        "enableHDR": true,
+        "msaaSamples": 1,
+        "clearFlags": 7
+      }
+    },
+    {
+      "type": "Script",
+      "script": 0,
+      "props": { "movementSpeed": 30, "floorMock": false }
+    },
+    {
+      "type": "DirectLight",
+      "props": {
+        "color": { "r": 1, "g": 0.854792, "b": 0.7028302, "a": 1 },
+        "cullingMask": 4294967295,
+        "shadowType": 3,
+        "shadowStrength": 1,
+        "shadowBias": 0.25,
+        "shadowNormalBias": 0.25,
+        "shadowNearPlaneOffset": 0.1
+      }
+    },
+    {
+      "type": "Script",
+      "script": 1,
+      "props": { "enabled": true },
+      "calls": [{ "method": "initialize", "args": [{ "speedMps": 5 }] }]
+    },
+    {
+      "type": "Script",
+      "script": 2,
+      "calls": [
+        {
+          "method": "initialize",
+          "args": [
+            {
+              "camera": { "$component": { "entity": [0], "type": "Camera", "index": 0 } },
+              "postExposure": 1,
+              "temperature": 10,
+              "tint": 0,
+              "contrast": 35,
+              "saturation": 12,
+              "lift": [0.7612549662590027, 0.8959007263183594, 1, 0.03448275849223137],
+              "gamma": [1, 1, 1, -0.051724135875701904],
+              "gain": [1, 0.8780161738395691, 0.7695698738098145, -2.9802322387695312e-8],
+              "bloomThreshold": 0.5,
+              "bloomIntensity": 0.35,
+              "bloomScatter": 0.6,
+              "vignetteCenter": [0.5, 0.5],
+              "vignetteIntensity": 0.35,
+              "vignetteSmoothness": 0.2
+            }
+          ]
+        }
+      ]
+    },
+    { "type": "BuildingGeneratorComponent", "props": { "initialized": false } }
+  ],
+  "scene": {
+    "name": "Seed World environment",
+    "rootEntities": [0, 1, 2, 3, 4],
+    "background": { "mode": 0, "color": [0.08649037064451762, 0.4410819427509584, 1, 1] },
+    "ambient": { "diffuseMode": 1, "diffuseIntensity": 1, "specularIntensity": 1, "specularMode": 0 },
+    "shadow": {
+      "castShadows": true,
+      "shadowResolution": 1,
+      "shadowDistance": 150,
+      "shadowCascades": 2,
+      "shadowFadeBorder": 0.20000000298023224
+    },
+    "fog": {
+      "fogMode": 2,
+      "fogStart": 0,
+      "fogEnd": 4000,
+      "fogDensity": 0.00039999998989515007,
+      "fogColor": [0.3254716992378235, 0.6951282024383545, 1, 1]
+    }
+  }
+}

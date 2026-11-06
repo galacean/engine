@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>种植原生接入预览</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #182d29;
+        color: #eef4e9;
+        font: 14px system-ui;
+      }
+      canvas {
+        position: fixed;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+      aside {
+        position: fixed;
+        left: 20px;
+        top: 20px;
+        width: 340px;
+        max-height: 92vh;
+        overflow: auto;
+        padding: 20px;
+        background: #152920eb;
+        border: 1px solid #7c997b55;
+        border-radius: 16px;
+      }
+      h1 {
+        font-size: 21px;
+        margin: 0 0 10px;
+      }
+      p {
+        line-height: 1.6;
+        color: #b8cdb8;
+      }
+      label {
+        display: block;
+        margin: 12px 0;
+      }
+      select,
+      button {
+        font: inherit;
+        padding: 9px;
+        border: 1px solid #6d886f;
+        border-radius: 7px;
+        background: #2e4837;
+        color: #f0f5e8;
+      }
+      select {
+        width: 100%;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+      button {
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      pre {
+        font-size: 12px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      #error {
+        color: #ffba93;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <aside>
+      <h1>种植原生接入</h1>
+      <p>
+        独立区域 · 程序化作物 · Scene / Prefab<br />播种、浇水后推进模拟时间，再收获。收获进入容量20的持久篮子，再整篮卸货。
+      </p>
+      <label>耕地<select id="plot"></select></label><label>种子<select id="seed"></select></label>
+      <div class="actions">
+        <button data-action="plant">播种</button><button data-action="irrigate">浇水</button
+        ><button data-action="harvest">收获</button><button data-action="unloadBasket">整篮卸货</button
+        ><button id="advance">推进 30 秒</button><button id="save">保存 Scene</button
+        ><button id="restore" disabled>恢复 Scene</button>
+      </div>
+      <p id="error" role="status">加载中…</p>
+      <pre id="state"></pre>
+    </aside>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

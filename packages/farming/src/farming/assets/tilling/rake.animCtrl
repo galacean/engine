@@ -1,0 +1,31 @@
+{
+  "layers": [
+    {
+      "name": "Rake_Level",
+      "weight": 1,
+      "blendingMode": 0,
+      "stateMachine": {
+        "states": [
+          {
+            "id": "rake",
+            "name": "Rake_Level",
+            "speed": 1,
+            "wrapMode": 0,
+            "clipStartNormalizedTime": 0,
+            "clipEndNormalizedTime": 1,
+            "clip": {
+              "url": "Farming/Props/Tilling/rake.glb",
+              "key": "animations[0]"
+            },
+            "transitions": [],
+            "scripts": []
+          }
+        ],
+        "transitions": [],
+        "entryTransitions": [],
+        "anyTransitions": []
+      }
+    }
+  ],
+  "parameters": []
+}

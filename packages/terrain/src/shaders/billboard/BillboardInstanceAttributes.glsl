@@ -1,0 +1,25 @@
+#ifndef TERRAIN_PROJECT_BILLBOARD_INSTANCE_ATTRIBUTES_INCLUDED
+#define TERRAIN_PROJECT_BILLBOARD_INSTANCE_ATTRIBUTES_INCLUDED
+
+struct Attributes {
+  vec3 POSITION;
+  #ifdef RENDERER_HAS_UV
+    vec2 TEXCOORD_0;
+  #endif
+  #ifdef RENDERER_HAS_UV1
+    vec2 TEXCOORD_1;
+  #endif
+  #ifdef RENDERER_ENABLE_VERTEXCOLOR
+    vec4 COLOR_0;
+  #endif
+  #ifdef RENDERER_HAS_NORMAL
+    vec3 NORMAL;
+  #endif
+  #ifdef RENDERER_HAS_TANGENT
+    vec4 TANGENT;
+  #endif
+  vec4 BILLBOARD_ORIGIN_SCALE_X;
+  vec2 BILLBOARD_SCALE_YZ;
+};
+
+#endif
