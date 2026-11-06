@@ -52,7 +52,7 @@ export function bindTerrainGroundSurface(
     const value = source.getColor(`material_Terrain${name}`);
     if (value !== undefined) target.setColor(`${prefix}_Terrain${name}`, value);
   }
-  for (const name of ["MacroAngle", "MacroScaleA", "MacroScaleB", "FarCompositeLod"]) {
+  for (const name of ["MacroAngle", "MacroScaleA", "MacroScaleB"]) {
     const value = source.getFloat(`material_Terrain${name}`);
     if (value !== undefined) target.setFloat(`${prefix}_Terrain${name}`, value);
   }

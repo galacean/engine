@@ -197,15 +197,6 @@
     int material_TerrainDetilingLayerMask;
     #define GROUND_TerrainDetilingLayerMask material_TerrainDetilingLayerMask
     #endif
-  #ifdef MATERIAL_TERRAIN_SEED_FAR_TRANSITION
-    #ifdef TERRAIN_GROUND_RENDERER
-    float renderer_TerrainFarCompositeLod;
-    #define GROUND_TerrainFarCompositeLod renderer_TerrainFarCompositeLod
-    #else
-    float material_TerrainFarCompositeLod;
-    #define GROUND_TerrainFarCompositeLod material_TerrainFarCompositeLod
-    #endif
-  #endif
   #ifdef MATERIAL_TERRAIN_GRASS_SHADING
     #ifdef TERRAIN_GROUND_RENDERER
     vec4 renderer_TerrainRoadColor;

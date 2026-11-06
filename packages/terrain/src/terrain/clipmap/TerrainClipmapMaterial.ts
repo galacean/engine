@@ -470,7 +470,7 @@ export function createTerrainClipmapMaterialBinding(
         material.shaderData.enableMacro(farMaterialOptions.nearTransitionMacro);
       }
       farMaterial = material.clone();
-      farMaterial.name = `${sourceMaterial.name} runtime terrain far composite`;
+      farMaterial.name = `${sourceMaterial.name} runtime terrain far`;
       if (farMaterialOptions.nearTransitionMacro) {
         farMaterial.shaderData.disableMacro(farMaterialOptions.nearTransitionMacro);
       }

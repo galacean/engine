@@ -55,11 +55,41 @@ cp world/.materialized/engine/world-gallery/demos/terrain/data/seed-world/public
 
 ## 地表渲染权重与草根颜色
 
-世界数据保留草地、湿地/海底、裸地和道路的原始 RGBA 分类，以及独立河床覆盖；导航、水域、动物与植被分布继续读取这些数据。`SeedWorldRenderWeights.ts` 在发布时投影出一张 1024² RGBA8 渲染权重图：R 草地、G 岩坡/裸地、B 道路式地表、A 为 0。道路、湿地、海底和河床合并到 B，使用同样的颜色和天气响应，河床不再有不积雪特例。每个通道都显式存权重，不在 shader 中通过减法补最后一层。
+世界数据保留草地、湿地/海底、裸地和道路的原始 RGBA 分类，以及独立河床覆盖；导航、水域、动物与植被分布继续读取这些数据。`SeedWorldRenderWeights.ts` 在发布时投影出一张 1024² RGBA8 渲染权重图：R 草地、G 岩坡/裸地、B 道路式地表、A 为可选自然土壤覆盖（没有土壤时为 0）。道路、湿地、海底和河床合并到 B，使用同样的颜色和天气响应，河床不再有不积雪特例。每个通道都显式存权重，不在 shader 中通过减法补最后一层。
 
 地形、原生草与草卡片共用 `TerrainLayerEvaluation.glsl`。当前三层均为色块，不创建地表颜色/法线/材质数组，也不加载河沙图片；纯色单图宏保留一次权重采样。以后添加地表纹理时，通过独立的逻辑层号和紧密图片数组索引恢复采样；纯色层不占白色占位图，多 Region、多张 RGBA 权重图继续走通用路径。纯色草根的顶点求值独立于带导数的片元纹理求值。
 
 权重投影按不可变 surface revision 缓存，初次创建和水域编辑共用结果；不新增逐帧 CPU 栅格处理。这里不改变 relief 遮罩、固定起伏法线、24 小时光照与季节/天气系统。
+
+Seed 地形从 LOD 2 起使用远景材质；仅有两圈时从 LOD 1 起。近远景共用通用层求值、色板、土壤贴图、湿润底色、积雪、光照和雾。远景编译时裁掉独立水膜光照及其 SSR 接收、雨滴法线、地表起伏法线；湿润光泽合并进地表现有 BRDF，以湿润度、水面可见度和坡度调整粗糙度与高光强度，不增加纹理采样或光照求值，目标粗糙度下限为 0.24，积雪在其后覆盖。最后一圈近景按 Clipmap morph 渐隐完整水膜和起伏，同时渐入简化光泽，Forward 与 SSR 共用同一覆盖权重。旧固定四通道 Shader 分支及其颜色/积雪 uniform 已移除。几何 LOD、地形阴影和道路权重不变。
+
+修改共享 Shader 后，使用仓库已有的 `shader-compiler-precompile` CLI（`packages/shader-compiler/bundler/cli.js`）更新资源。Grass、Vegetation 也引用共享的地形配色与层求值代码，修改这些 include 时需要同步重建对应的 `.shaderc`；远景材质与简化湿润光泽只接入 Terrain。
+
+在仓库根目录执行以下命令。先准备 World 修改版 ShaderLibrary，再把输入放到仓库外的临时目录：现有 CLI 会优先解析输入目录可见的 `@galacean/engine-shader/sources`，找不到时读取相邻的 `ShaderLibrary`。临时目录用于确保本次读取的是 World 修改版库，避免误用原生引擎的发布库。编译和 include 收集均由已有 CLI 完成；最后只同步已存在的资源副本。
+
+```sh
+pnpm --dir world prepare:engine
+(
+  set -eu
+  terrain_shader_stage=$(mktemp -d "${TMPDIR:-/tmp}/terrain-shader-build.XXXXXX")
+  trap 'rm -rf "$terrain_shader_stage"' EXIT
+  cp -R packages/terrain/src/shaders "$terrain_shader_stage/Shaders"
+  cp -R packages/modify/.cache/shader-src/ShaderLibrary "$terrain_shader_stage/ShaderLibrary"
+  for terrain_shader_name in Terrain Grass Vegetation debug/Core/Terrain debug/Core/Vegetation; do
+    node packages/shader-compiler/bundler/cli.js \
+      "$terrain_shader_stage/Shaders" "$terrain_shader_stage/compiled" \
+      --only "$terrain_shader_stage/Shaders/$terrain_shader_name.shader"
+    for terrain_asset_root in seed-world/public grasslands/public grasslands/source/public; do
+      terrain_shader_output="packages/terrain/src/data/$terrain_asset_root/Shader/$terrain_shader_name.shaderc"
+      if [ -f "$terrain_shader_output" ]; then
+        cp "$terrain_shader_stage/compiled/$terrain_shader_name.shaderc" "$terrain_shader_output"
+      fi
+    done
+  done
+)
+```
+
+运行 `pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
 
 ## 作者、存档与发布
 

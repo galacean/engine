@@ -11,7 +11,7 @@ float renderer_WorldPickBase;
 #include "ShaderLibrary/Common/Attributes.glsl"
 #include "ShaderLibrary/Shadow/Shadow.glsl"
 
-#ifndef MATERIAL_TERRAIN_SEED_FAR_COMPOSITE
+#ifndef MATERIAL_TERRAIN_FAR
   #ifndef TERRAIN_PROJECT_WATER_LAYER
     #define TERRAIN_PROJECT_WATER_LAYER
   #endif
@@ -118,31 +118,6 @@ void TerrainFragment(Varyings varyings) {
   #endif
   vec3 geometryNormal = normalize(varyings.normalWS);
   vec3 color = vec3(0.0);
-  #ifdef MATERIAL_TERRAIN_SEED_FAR_COMPOSITE
-    SurfaceData surfaceData = evaluateTerrainSeedFarCompositeSurface(varyings, geometryNormal);
-    color = terrainProjectFinalLighting(evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation));
-  #elif defined(MATERIAL_TERRAIN_SEED_FIXED_LAYERS)
-    TerrainProjectLayerBlend layerBlend = terrainProjectEvaluateSeedFixedLayerBlend(varyings.positionWS.xz);
-    TerrainProjectWaterFilm waterFilm;
-    SurfaceData surfaceData = evaluateTerrainLayerSurface(
-      varyings,
-      geometryNormal,
-      layerBlend,
-      waterFilm
-    );
-    TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
-    terrainProjectAccumulateLighting(
-      lighting,
-      evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation),
-      layerBlend.weight
-    );
-    waterFilm.coverage *= layerBlend.weight;
-    #ifdef MATERIAL_TERRAIN_SEED_FAR_TRANSITION
-      waterFilm.coverage *= terrainProjectFarDetailVisibility(varyings);
-    #endif
-    terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
-    color = terrainProjectFinalLighting(lighting);
-  #else
   #ifdef MATERIAL_TERRAIN_LAYERS
     int regionIndex;
     int alphamapOffset;
@@ -154,8 +129,10 @@ void TerrainFragment(Varyings varyings) {
       alphamapCount
       )) {
       TerrainProjectLightingResult lighting = terrainProjectCreateLightingResult();
-      TerrainProjectWaterFilmAccumulator waterFilmAccumulator = terrainProjectCreateWaterFilmAccumulator();
-      SurfaceData waterFilmSubstrate;
+      #ifdef TERRAIN_PROJECT_WATER_LAYER
+        TerrainProjectWaterFilmAccumulator waterFilmAccumulator = terrainProjectCreateWaterFilmAccumulator();
+        SurfaceData waterFilmSubstrate;
+      #endif
       bool hasSurface = false;
       for (int groupIndex = 0; groupIndex < TERRAIN_PROJECT_MAX_ALPHAMAPS_PER_REGION; groupIndex++) {
         if (groupIndex >= alphamapCount) break;
@@ -168,15 +145,21 @@ void TerrainFragment(Varyings varyings) {
         )) {
           float groupWeight = layerBlend.weight;
           if (groupWeight > 0.0 && (groupIndex == 0 || groupWeight > TERRAIN_PROJECT_MIN_ADDITIVE_GROUP_WEIGHT)) {
-            TerrainProjectWaterFilm waterFilm;
+            #ifdef TERRAIN_PROJECT_WATER_LAYER
+              TerrainProjectWaterFilm waterFilm;
+            #endif
             SurfaceData surfaceData = evaluateTerrainLayerSurface(
               varyings,
               geometryNormal,
-              layerBlend,
-              waterFilm
+              layerBlend
+              #ifdef TERRAIN_PROJECT_WATER_LAYER
+                , waterFilm
+              #endif
             );
             if (!hasSurface) {
-              waterFilmSubstrate = surfaceData;
+              #ifdef TERRAIN_PROJECT_WATER_LAYER
+                waterFilmSubstrate = surfaceData;
+              #endif
               hasSurface = true;
             }
             terrainProjectAccumulateLighting(
@@ -184,37 +167,53 @@ void TerrainFragment(Varyings varyings) {
               evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation),
               groupWeight
             );
-            terrainProjectAccumulateWaterFilm(waterFilmAccumulator, waterFilm, groupWeight);
+            #ifdef TERRAIN_PROJECT_WATER_LAYER
+              terrainProjectAccumulateWaterFilm(waterFilmAccumulator, waterFilm, groupWeight);
+            #endif
           }
         }
       }
       if (hasSurface) {
-        TerrainProjectWaterFilm waterFilm = terrainProjectResolveWaterFilm(
-          waterFilmAccumulator,
-          geometryNormal,
-          waterFilmSubstrate.viewDir,
-          waterFilmSubstrate.ambientOcclusion
-        );
-        #ifdef MATERIAL_TERRAIN_SEED_FAR_TRANSITION
-          waterFilm.coverage *= terrainProjectFarDetailVisibility(varyings);
+        #ifdef TERRAIN_PROJECT_WATER_LAYER
+          TerrainProjectWaterFilm waterFilm = terrainProjectResolveWaterFilm(
+            waterFilmAccumulator,
+            geometryNormal,
+            waterFilmSubstrate.viewDir,
+            waterFilmSubstrate.ambientOcclusion
+          );
+          terrainProjectApplyWaterFilmLighting(varyings, waterFilmSubstrate, waterFilm, lighting);
         #endif
-        terrainProjectApplyWaterFilmLighting(varyings, waterFilmSubstrate, waterFilm, lighting);
         color = terrainProjectFinalLighting(lighting);
       }
     } else {
-      TerrainProjectWaterFilm waterFilm;
-      SurfaceData surfaceData = evaluateTerrainFallbackSurface(varyings, geometryNormal, waterFilm);
+      #ifdef TERRAIN_PROJECT_WATER_LAYER
+        TerrainProjectWaterFilm waterFilm;
+      #endif
+      SurfaceData surfaceData = evaluateTerrainFallbackSurface(varyings, geometryNormal
+        #ifdef TERRAIN_PROJECT_WATER_LAYER
+          , waterFilm
+        #endif
+      );
       TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation);
-      terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+      #ifdef TERRAIN_PROJECT_WATER_LAYER
+        terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+      #endif
       color = terrainProjectFinalLighting(lighting);
     }
   #else
-    TerrainProjectWaterFilm waterFilm;
-    SurfaceData surfaceData = evaluateTerrainFallbackSurface(varyings, geometryNormal, waterFilm);
+    #ifdef TERRAIN_PROJECT_WATER_LAYER
+      TerrainProjectWaterFilm waterFilm;
+    #endif
+    SurfaceData surfaceData = evaluateTerrainFallbackSurface(varyings, geometryNormal
+      #ifdef TERRAIN_PROJECT_WATER_LAYER
+        , waterFilm
+      #endif
+    );
     TerrainProjectLightingResult lighting = evaluateTerrainProjectLightingWithShadow(varyings, surfaceData, shadowAttenuation);
-    terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+    #ifdef TERRAIN_PROJECT_WATER_LAYER
+      terrainProjectApplyWaterFilmLighting(varyings, surfaceData, waterFilm, lighting);
+    #endif
     color = terrainProjectFinalLighting(lighting);
-  #endif
   #endif
   #ifdef TERRAIN_PROJECT_ENTRANCE_WAVE
     color = applyTerrainProjectEntranceWave(color, varyings.positionWS);

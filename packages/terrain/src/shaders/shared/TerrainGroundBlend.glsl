@@ -39,14 +39,4 @@ vec3 terrainProjectBlendGroundBedColor(vec3 baseColor, float baseWeight, vec2 wo
   return mix(bedColor, baseColor, clamp(baseWeight, 0.0, 1.0));
 }
 
-vec3 terrainProjectBlendGroundLayerColor(
-  vec4 weights,
-  vec3 grassColor,
-  vec3 layerColor1,
-  vec3 layerColor2,
-  vec3 roadColor
-) {
-  return grassColor * weights.r + layerColor1 * weights.g + layerColor2 * weights.b + roadColor * weights.a;
-}
-
 #endif
