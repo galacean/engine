@@ -31,6 +31,6 @@ description: 查询或修改规划组件参数（world.parameters）时使用，
 
 ## 回执
 
-参数回执 accepted 表示已等待发布和持久化完成，不代表视觉验收。发生冲突后，重新 inspect。Scene v2 只保存作者组件，定义通过 ResourceManager 加载为 JSON 资产。生成的几何在加载后重建。
+参数回执 accepted 表示草稿已接受，不表示已发布或已持久化，也不代表视觉验收。作者数据是否提交，以外层 execute 的 receipt 为准。发生冲突后，重新 inspect。Scene v2 只保存作者组件，定义通过 ResourceManager 加载为 JSON 资产。生成的几何在加载后重建。
 
 `apply` 返回诊断计数和 `receiptId`。下一次编辑前，通过 `world.parameters.receipt` 读取详细检查项或变更 ID，需要时分页。事务 accepted 时，规划检查仍可能失败或未知。声称满足用户意图前，先检查诊断摘要。不要为了取回执而重复编辑。
