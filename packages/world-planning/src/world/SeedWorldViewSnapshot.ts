@@ -556,9 +556,9 @@ export class SeedWorldViewSnapshots implements ConversationImageResources {
       imageHeight: entry.frame.image.height,
       queryTool: "pick",
       queryDeclarations: [
-        "editor/declare/world/tools/runtime.entity.inspect.d.ts",
-        "editor/declare/world/tools/runtime.component.query.d.ts",
-        "editor/declare/world/tools/runtime.component.read.d.ts"
+        "declare/editor/world/tools/runtime.entity.inspect.d.ts",
+        "declare/editor/world/tools/runtime.component.query.d.ts",
+        "declare/editor/world/tools/runtime.component.read.d.ts"
       ],
       queryInput: "Use this image path as pick.file_path. Provide points or region in image pixels, origin top-left.",
       capturedWorldState: entry.state,

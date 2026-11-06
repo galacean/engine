@@ -88,16 +88,16 @@ export const SUBJECT_VIEW_COMPONENT: PlanningComponentDefinition = {
 export const SUBJECT_VIEW_DECLARATION: PlanningSystemDeclaration = {
   id: "subject-view",
   title: "主体展示",
-  knowledgePath: "spatial/README.md",
+  skill: "spatial",
   components: [
     {
       type: "subjectView",
       domain: "composition",
       knowledge: [
-        "当前规划建筑已经是有屋顶、墙面和装饰的真实建筑。subjectView 只调整相机，不改变建筑或布局；它是 world 对象的公开参数组件，不是同名工具或同名文件。",
-        "先读取 editor/declare/world/tools/world.parameters.describe.d.ts、world.parameters.inspect.d.ts、world.parameters.apply.d.ts（同目录）。通过 tools.world.parameters.describe({component:'subjectView'}) 读取字段；用 tools.world.parameters.inspect({id:'world',component:'subjectView'}) 获取当前值与 versionToken，再按 apply 声明提交 subjectId 等字段。不要在文件目录里反复搜索 subjectView。",
-        "查看建筑时通过原生 Scene/Entity/Component 查询实际对象与位置，并使用空间定位与 spatial.teleport；subjectView 只覆盖当前规划发布的主体，不包含之后在 Scene 中创建的建筑。",
-        "用户说看看时允许必要的取景；拿到目标后只补取景需要的信息。应用后仍可漫游。包络取景不保证无遮挡；可用 snapshot 检查实际画面，不要把查询正确当作已经展示，也不要为了查询材质或数量而移动相机。"
+        "当前规划建筑已经是有屋顶、墙面和装饰的真实建筑。subjectView 只调整相机，不改变建筑或布局。它是 world 对象的公开参数组件，不是同名工具或同名文件。",
+        "先读取 declare/editor/world/tools/ 下的 world.parameters.describe.d.ts、world.parameters.inspect.d.ts 和 world.parameters.apply.d.ts。通过 tools.world.parameters.describe({component:'subjectView'}) 读取字段。用 tools.world.parameters.inspect({id:'world',component:'subjectView'}) 获取当前值和 versionToken，再按 apply 声明提交 subjectId 等字段。不要在文件目录里反复搜索 subjectView。",
+        "查看建筑时，通过原生 Scene、Entity、Component 查询实际对象和位置，并使用空间定位和 spatial.teleport。subjectView 只覆盖当前规划发布的主体，不包含之后在 Scene 中创建的建筑。",
+        "用户说“看看”时，允许必要的取景。拿到目标后，只补取景需要的信息。应用后仍可以漫游。包络取景不保证无遮挡，可以用 snapshot 检查实际画面。不要把查询正确当作已经展示，也不要为了查询材质或数量而移动相机。"
       ]
     }
   ]

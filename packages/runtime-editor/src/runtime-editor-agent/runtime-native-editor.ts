@@ -1,6 +1,10 @@
 import type { RuntimeAssetSource } from "../project/runtime-asset-import";
 import { RuntimeSceneInspection } from "../runtime-inspection/runtime-scene-inspection";
-import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
+import {
+  assertProjectPathWritable,
+  ProjectPathReadOnlyError,
+  type ProjectFileProvider
+} from "@galacean/engine-project/project-files/virtual-project-files";
 import type { Scene } from "@galacean/engine";
 import type { AgentEditTransaction, AgentTool } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import {
@@ -87,12 +91,8 @@ export class RuntimeNativeEditor {
       }
     }));
     const assertDocument = (path: string) => {
+      assertProjectPathWritable(path);
       if (
-        path === "skills" ||
-        path.startsWith("skills/") ||
-        path === "editor" ||
-        path.startsWith("editor/") ||
-        ["engine", ".ai"].some((root) => path === root || path.startsWith(`${root}/`)) ||
         this.sources.some(
           (source) =>
             [...source.paths()].some(
@@ -100,7 +100,7 @@ export class RuntimeNativeEditor {
             ) || [...(source.directories?.() ?? [])].some((dir) => dir === path || path.startsWith(dir + "/"))
         )
       ) {
-        throw new Error(`Read-only file namespace: '${path}'`);
+        throw new ProjectPathReadOnlyError(path);
       }
     };
     const documentOperation = <T>(

@@ -19,7 +19,7 @@ Seed World 默认消费 `catalog.json` 的 manifestUrl；未发布 catalog 时�
 
 `createRetrievalAssetSource` 将来源解析接到 Editor 的 `asset.import`：只在导入时解析一个选中资产的文件清单，按需下载；导入范围内的临时文件视图随操作释放。整个外部库不挂进项目 VFS，只有成功导入后才写入 project.json、内容和 .meta。单文件读取上限 64 MiB，一次导入 256 MiB。当前支持宿主已有资产格式，不实现 GRP 包安装或新的音频导入格式。
 
-Agent 对话携带 `galacean-editor` 的 Skill 摘要，正文位于根目录 `skills/galacean-editor.md`，资产操作指南位于 `references/assets-and-reuse.md`。Skill 按需读取，API 声明继续由 editor/ 提供。
+Agent 对话携带 `assets` 的 Skill 摘要，检索流程位于子 Skill `skills/assets/search-cloud/SKILL.md`。Skill 按需读取，API 声明由 `declare/editor/` 提供。
 
 ## search_assets 的调用约定
 

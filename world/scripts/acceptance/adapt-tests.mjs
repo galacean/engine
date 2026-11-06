@@ -229,4 +229,10 @@ edit(
   'from "./TerrainLightingRuntime.ts"',
   "Accept the explicit extension while verifying the same exported lighting default."
 );
+edit(
+  "shared/farming/tests/native/FarmingEditor.spec.ts",
+  "../../native/knowledge/operations.md",
+  "../../native/knowledge/README.md",
+  "operations.md now documents FarmingSystem. The FarmingAreaComponent examples this test checks moved to overview.md."
+);
 fs.writeFileSync(path.join(root, "world/.acceptance/test-adaptations.json"), JSON.stringify(changes, null, 2));

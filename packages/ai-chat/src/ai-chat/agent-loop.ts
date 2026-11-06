@@ -311,8 +311,8 @@ export class AgentLoop {
         outputFiles.provider,
         images.provider,
         {
-          paths: () => ["editor/execute.js"],
-          read: (path) => (path === "editor/execute.js" ? executeSource : undefined)
+          paths: () => [".ai/execute.js"],
+          read: (path) => (path === ".ai/execute.js" ? executeSource : undefined)
         }
       ]);
     let projectFiles = makeProjectFiles();
@@ -374,8 +374,7 @@ export class AgentLoop {
             role: "user",
             content: JSON.stringify({
               contextKind: "capabilities_changed",
-              message:
-                "项目的可用接口已更新。之前读取的声明仅代表历史版本；请重新 read editor/README.md 和相关声明后继续。"
+              message: "项目的可用接口已更新。之前读取的声明仅代表历史版本；请重新读取相关 Skill 和声明后继续。"
             })
           });
         }
@@ -409,7 +408,7 @@ export class AgentLoop {
             conversationHistory,
             worldThumbnail,
             observedAt,
-            capabilityCatalog: projectFiles.read("editor/README.md"),
+            hostNotes: this.#definition.scriptApi.hostNotes,
             transcript,
             images,
             contextCompaction,
@@ -982,7 +981,7 @@ export class AgentLoop {
     conversationHistory: ConversationHistorySnapshot;
     worldThumbnail: AgentValue;
     observedAt: string;
-    capabilityCatalog: string;
+    hostNotes?: string;
     taskContext?: AgentValue;
     inputs: AgentUserInput[];
     transcript: AgentContextTranscript;
@@ -1003,7 +1002,7 @@ export class AgentLoop {
       const messages = buildAgentMessages({
         systemPrompt: input.systemPrompt,
         skills: this.#definition.scriptApi.skills,
-        capabilityCatalog: input.capabilityCatalog,
+        hostNotes: input.hostNotes,
         observedAt: input.observedAt,
         taskId: input.taskId,
         userInput: input.userInput,

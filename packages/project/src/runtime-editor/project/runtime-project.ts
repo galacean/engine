@@ -1,5 +1,6 @@
 import { validateProjectDependencies } from "./runtime-project-dependencies";
 import {
+  isProjectPathReadOnly,
   parentDirectories,
   ProjectPathConflictError,
   type ProjectFileProvider
@@ -23,7 +24,7 @@ export interface RuntimeProjectManifest {
 }
 
 /** Bump for incompatible saved-project changes, including embedded asset schemas. */
-export const RUNTIME_PROJECT_SAVE_VERSION = 6 as const;
+export const RUNTIME_PROJECT_SAVE_VERSION = 7 as const;
 
 /** Binary files remain binary; only authored/overridden content needs to be embedded. */
 export interface RuntimeProjectPackage {
@@ -140,7 +141,8 @@ export function assertAssetPath(path: string): void {
     /^[A-Za-z][A-Za-z0-9+.-]*:/.test(path) ||
     path.includes("?") ||
     path.includes("#") ||
-    ["project.json", "editor", "engine", "skills", ".ai", "remote"].some(
+    isProjectPathReadOnly(path) ||
+    ["editor", "engine"].some(
       (reserved) => path === reserved || path === `${reserved}.meta` || path.startsWith(`${reserved}/`)
     ) ||
     path.split("/").some((part) => !part || part === "." || part === "..")

@@ -8,6 +8,8 @@
     "build": "vite build --config vite.config.mjs",
     "typecheck": "node scripts/typecheck.mjs",
     "check:boundaries": "node scripts/check-boundaries.mjs",
+    "farming:native-api:generate": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs",
+    "farming:native-api:check": "node ../packages/farming/src/farming/scripts/generate-native-api.mjs --check",
     "prepare:engine": "pnpm --filter @galacean/engine-shader-compiler build && node ../packages/modify/build/prepare.mjs",
     "build:all": "WORLD_DEMO=all vite build --config vite.config.mjs"
   },

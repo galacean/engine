@@ -1,6 +1,6 @@
 import type { AgentSkill } from "./agent-types";
 
-export const agentSkillPath = (name: string) => `skills/${name}.md`;
+export const agentSkillPath = (name: string) => `skills/${name}/SKILL.md`;
 
 /** Deliberately small frontmatter contract: plain, single-line name and description. */
 export function parseAgentSkill(content: string): AgentSkill {
@@ -25,7 +25,10 @@ export function parseAgentSkill(content: string): AgentSkill {
   return { name, description, content };
 }
 
-/** Flat read-only workflow files; reference material is owned by editor/ or engine/. */
+/**
+ * Top-level Skills only. Requests list these, so intent routes here first; each
+ * SKILL.md then links its sub-skills and references, which stay out of the list.
+ */
 export function agentSkillFiles(skills: readonly AgentSkill[]): Map<string, string> {
   const files = new Map<string, string>();
   for (const skill of skills) {
