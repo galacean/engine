@@ -208,7 +208,10 @@ export class PhysicsScene {
    * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
    * @returns Whether any hit was found
    *
-   * @remarks Existing entries are overwritten. Copy hit values to retain them.
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
    */
   raycastAll(ray: Ray, outHitResults: HitResult[]): boolean;
 
@@ -219,7 +222,10 @@ export class PhysicsScene {
    * @param outHitResults - Receives the hits, reusing existing objects; resized to the hit count
    * @returns Whether any hit was found
    *
-   * @remarks Existing entries are overwritten. Copy hit values to retain them.
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
    */
   raycastAll(ray: Ray, distance: number, outHitResults: HitResult[]): boolean;
 
@@ -231,10 +237,10 @@ export class PhysicsScene {
    * @param outHitResults - Receives the hits; resized to the hit count. Omit to test for a hit only
    * @returns Whether any hit was found
    *
-   * @remarks Overwrites existing entries and fills missing slots; clears and pools unused objects once.
-   * Duplicate entries keep their references and share the last write. Do not share objects across output arrays.
-   * Copy values to retain them; reuse the array without clearing it.
-   * Manually removed entries are not pooled. Resource GC and scene destruction release idle pooled objects.
+   * @remarks All result objects, including caller-supplied ones, are borrowed and overwritten on reuse.
+   * Copy values to retain them. Unused objects are cleared and recycled for other queries.
+   * Reuse the array without clearing it; manually removed objects are not pooled.
+   * Do not share objects across output arrays or resubmit recycled objects. Duplicate entries share the last write.
    * Non-positive distances or directions that cannot be normalized clear the output; hits at distance 0 are ignored.
    */
   raycastAll(ray: Ray, distance?: number, layerMask?: Layer, outHitResults?: HitResult[]): boolean;
@@ -274,7 +280,7 @@ export class PhysicsScene {
     }
     const length = outHitResults.length;
     if (hitCount < length) {
-      // outHitResults may reuse the same HitResult; register [0, hitCount) before pooling tail slots.
+      // Preserve active aliases and recycle each unused object only once
       const seenHits = PhysicsScene._raycastSeenHits;
       for (let i = 0; i < hitCount; i++) {
         seenHits.add(outHitResults[i]);
