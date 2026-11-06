@@ -13,7 +13,6 @@ export type StructRole = "varying" | "attribute" | "mrt";
 
 /** @internal */
 export class VisitorContext {
-  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _singleton: VisitorContext;
   static get context() {
     return this._singleton;
@@ -39,7 +38,7 @@ export class VisitorContext {
   _referencedAttributeList: Record<string, StructProp[]>;
   _referencedVaryingList: Record<string, StructProp[]>;
   _referencedMRTList: Record<string, StructProp[]>;
-  _referencedGlobals: Record<string, SymbolInfo[]>;
+  _referencedGlobals: Set<SymbolInfo> = new Set();
   _referencedGlobalMacroASTs: TreeNode[] = [];
   /**
    * Maps variable names (function params, locals, and globals whose type is a
@@ -64,7 +63,7 @@ export class VisitorContext {
     this._referencedAttributeList = Object.create(null);
     this._referencedVaryingList = Object.create(null);
     this._referencedMRTList = Object.create(null);
-    this._referencedGlobals = Object.create(null);
+    this._referencedGlobals.clear();
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
       // Struct-var bindings are pass-scoped, not stage-scoped — global `#define`
@@ -118,15 +117,16 @@ export class VisitorContext {
 
   referenceGlobal(ident: string, type: ESymbolType): void {
     if (type === ESymbolType.STRUCT && this.getStructRole(ident)) return;
-    if (this._referencedGlobals[ident]) return;
+    const symbols = this._passSymbolTable.getSymbolsByName(ident);
+    if (!symbols) return;
 
-    this._referencedGlobals[ident] = [];
-
-    const lookupSymbol = VisitorContext._lookupSymbol;
-    lookupSymbol.set(ident, type);
-    const symbols = this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
-    for (const symbol of symbols) {
-      this._referenceTypeDependencies(symbol.astNode!);
+    const referencedGlobals = this._referencedGlobals;
+    for (let i = symbols.length - 1; i >= 0; i--) {
+      const symbol = symbols[i];
+      if ((type === ESymbolType.Any || symbol.type === type) && !referencedGlobals.has(symbol)) {
+        referencedGlobals.add(symbol);
+        this._referenceTypeDependencies(symbol.astNode!);
+      }
     }
   }
 

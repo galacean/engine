@@ -16,12 +16,10 @@ import { StructRole, VisitorContext } from "./VisitorContext";
 export abstract class GLESVisitor extends CodeGenVisitor {
   private _globalCodeArray: ICodeSegment[] = [];
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
-  private static _serializedGlobalKey = new Set();
 
   reset(): void {
     const { _globalCodeArray: globalCodeArray } = this;
     globalCodeArray.length = 0;
-    GLESVisitor._serializedGlobalKey.clear();
   }
 
   getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
@@ -318,32 +316,15 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const context = VisitorContext.context;
-    const { _referencedGlobals } = context;
-    const lastLength = Object.keys(_referencedGlobals).length;
-    if (lastLength === 0) return;
-
-    for (const ident in _referencedGlobals) {
-      if (GLESVisitor._serializedGlobalKey.has(ident)) continue;
-      GLESVisitor._serializedGlobalKey.add(ident);
-
-      const symbols = _referencedGlobals[ident];
-      for (let i = 0, n = symbols.length; i < n; i++) {
-        const sm = symbols[i];
-        const codeGenResult = sm.astNode!.codeGen(this);
-        if (!codeGenResult) continue;
-        const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
-        if (!sm.isInMacroBranch) {
-          out.push({
-            text,
-            index: sm.astNode!.location.start.index
-          });
-        }
+    // Set iteration also visits dependencies discovered during code generation
+    for (const symbol of VisitorContext.context._referencedGlobals) {
+      const code = symbol.astNode!.codeGen(this);
+      if (code && !symbol.isInMacroBranch) {
+        out.push({
+          text: code + (symbol.type === ESymbolType.VAR ? ";" : ""),
+          index: symbol.astNode!.location.start.index
+        });
       }
-    }
-
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
-      this._getGlobalSymbol(out);
     }
   }
 
@@ -363,11 +344,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const referencedGlobalMacroASTs = context._referencedGlobalMacroASTs;
     referencedGlobalMacroASTs.length = 0;
 
-    for (const symbols of Object.values(referencedGlobals)) {
-      for (const symbol of symbols) {
-        if (symbol.isInMacroBranch) {
-          referencedGlobalMacroASTs.push(symbol.astNode!);
-        }
+    for (const symbol of referencedGlobals) {
+      if (symbol.isInMacroBranch) {
+        referencedGlobalMacroASTs.push(symbol.astNode!);
       }
     }
 
