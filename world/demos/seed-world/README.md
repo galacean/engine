@@ -63,7 +63,33 @@ cp world/.materialized/engine/world-gallery/demos/terrain/data/seed-world/public
 
 Seed 地形从 LOD 2 起使用远景材质；仅有两圈时从 LOD 1 起。近远景共用通用层求值、色板、土壤贴图、湿润底色、积雪、光照和雾。远景编译时裁掉独立水膜光照及其 SSR 接收、雨滴法线、地表起伏法线；湿润光泽合并进地表现有 BRDF，以湿润度、水面可见度和坡度调整粗糙度与高光强度，不增加纹理采样或光照求值，目标粗糙度下限为 0.24，积雪在其后覆盖。最后一圈近景按 Clipmap morph 渐隐完整水膜和起伏，同时渐入简化光泽，Forward 与 SSR 共用同一覆盖权重。旧固定四通道 Shader 分支及其颜色/积雪 uniform 已移除。几何 LOD、地形阴影和道路权重不变。
 
-修改共享 Shader 后，先执行 `pnpm --dir world prepare:engine`，再执行 `node world/scripts/build-terrain-shaders.mjs` 更新生产和调试资源。运行 `pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
+修改共享 Shader 后，使用仓库已有的 `shader-compiler-precompile` CLI（`packages/shader-compiler/bundler/cli.js`）更新资源。Grass、Vegetation 也引用共享的地形配色与层求值代码，修改这些 include 时需要同步重建对应的 `.shaderc`；远景材质与简化湿润光泽只接入 Terrain。
+
+在仓库根目录执行以下命令。先准备 World 修改版 ShaderLibrary，再把输入放到仓库外的临时目录：现有 CLI 会优先解析输入目录可见的 `@galacean/engine-shader/sources`，找不到时读取相邻的 `ShaderLibrary`。临时目录用于确保本次读取的是 World 修改版库，避免误用原生引擎的发布库。编译和 include 收集均由已有 CLI 完成；最后只同步已存在的资源副本。
+
+```sh
+pnpm --dir world prepare:engine
+(
+  set -eu
+  terrain_shader_stage=$(mktemp -d "${TMPDIR:-/tmp}/terrain-shader-build.XXXXXX")
+  trap 'rm -rf "$terrain_shader_stage"' EXIT
+  cp -R packages/terrain/src/shaders "$terrain_shader_stage/Shaders"
+  cp -R packages/modify/.cache/shader-src/ShaderLibrary "$terrain_shader_stage/ShaderLibrary"
+  for terrain_shader_name in Terrain Grass Vegetation debug/Core/Terrain debug/Core/Vegetation; do
+    node packages/shader-compiler/bundler/cli.js \
+      "$terrain_shader_stage/Shaders" "$terrain_shader_stage/compiled" \
+      --only "$terrain_shader_stage/Shaders/$terrain_shader_name.shader"
+    for terrain_asset_root in seed-world/public grasslands/public grasslands/source/public; do
+      terrain_shader_output="packages/terrain/src/data/$terrain_asset_root/Shader/$terrain_shader_name.shaderc"
+      if [ -f "$terrain_shader_output" ]; then
+        cp "$terrain_shader_stage/compiled/$terrain_shader_name.shaderc" "$terrain_shader_output"
+      fi
+    done
+  done
+)
+```
+
+运行 `pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs SeedWorldTerrainRuntimeIntegration TerrainFarShader` 检查接入及远景编译后的采样器裁减。
 
 ## 作者、存档与发布
 
