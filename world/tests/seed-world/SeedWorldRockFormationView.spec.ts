@@ -414,8 +414,8 @@ it.each(["vertex-slabs", "cellular-curvature"] as const)(
     const profile = { ...ROCK_GENERATION_DEFAULTS, platformShare: 1 };
     (await runtime.prepareRocks(client, settings, signal, profile)).commit();
     expect(prepareJobs.mock.calls[0][0].map((job) => job.guides[0])).toMatchObject([
-      { size: [4, 2, 2], heightMode: "random-ascent", slopeMode: "manual", slopeRate: 12, heightVariation: 0.05 },
-      { size: [4, 2, 2], heightMode: "perlin-ascent", slopeMode: "auto", heightVariation: 0.2 }
+      { size: [4, 2, 2], heightMode: "random-ascent", slopeMode: "manual", slopeRate: 12, heightVariation: 0 },
+      { size: [4, 2, 2], heightMode: "perlin-ascent", slopeMode: "auto", heightVariation: 0 }
     ]);
     const originalMesh = gpu.meshes[0],
       originalMaterial = gpu.materials[0],

@@ -15456,3 +15456,10 @@ Terrain TypeScript checking and git diff --check also passed. Gallery sources we
 - Regenerated API contracts and preset runtime declarations from combined sources. Updated the Script consumer to Group/Part and the engine declaration mount; corrected building Skill and runtime guide links. The current building.generate contract now has a discoverable guide and generated API index, without restoring retired building APIs.
 - Validation: Engine materialization/install/build passed; building and Terrain TypeScript checks passed. Initial combined run: 50 files, 516 passed and 3 knowledge-integration failures. After repairing the knowledge integration, all 20 cases in the three affected knowledge/Script files passed. The 519 distinct cases in the selected suite are covered across those runs; this is not a second full-suite run. Copy, scoped identity, inactive/disabled deletion, save/reload and render-data regressions passed.
 - No building geometry, placement or shader algorithm changes were made for conflict resolution. No browser, tab or port was started, and no new GPU pixel comparison was run. The two previously reported focus bugs remain open: geometry-name aliasing and custom attachment placement offsets not reflected by inspection focus.
+
+
+## 2026-11-07 已提交岩石工作迁入 galacean/engine
+
+以 `experimental/engine-next@fd89c13ad` 为基线，对照旧仓库 `codex/seedworld-rock-runtime@2406bcf49` 的已提交工作。现有包迁移已包含草覆盖平滑、debug 拾取、WASD 箭头转向、minimap 视角、接地边缘闭合、阴影接收修正及共用材质/生成 profile，保留目标的新路径与后续实现；补齐逐 OBB 和共享 profile 上层高度百分比控件、0% 默认、稀疏作者数据和 runtime 类型声明。用户另明确确认保留已撤回的全占地抬升：只将局部接地量限制在作者高度预算内，允许上坡埋藏。
+
+其他未提交的 6 m/m 上限、lab 默认恢复、法线/细分及编辑修正留在旧工作树。8 文件 / 159 测试、World 类型检查、包依赖边界和 Seed World 生产构建通过；无新浏览器/GPU验收。逐提交覆盖与限制见 [迁移记录](../../migration/seedworld-rock-committed-port-2026-11-07.md)。

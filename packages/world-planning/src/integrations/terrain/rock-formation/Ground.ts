@@ -52,10 +52,13 @@ export function sampleRockGround(ground: RockGround, x: number, z: number): numb
   return interpolateGridTriangle(h[k], h[k + 1], h[k + ground.columns], h[k + ground.columns + 1], a, b);
 }
 
-/** Correct the foot, fading to zero at the existing peak; never translate the whole OBB. */
+/** Embed the foot locally without raising the authored crest; uphill burial is allowed. */
 export function rockGroundHeight(y: number, terrain: number, floor: number, peak: number): number {
   const height = Math.max(0, y - floor),
-    weight = (1 - Math.min(1, height / Math.max(1e-6, peak - floor))) ** 2;
+    budget = Math.max(0, peak - floor),
+    weight = (1 - Math.min(1, height / Math.max(1e-6, budget))) ** 2;
   // A 5 cm buried contact avoids two competing surfaces at the terrain seam.
-  return y + (terrain - floor - ROCK_GROUND_BURIAL) * weight;
+  // Cap the local lift too: otherwise uphill contact points can rise above the
+  // crest and their interpolated/deformed triangles can poke through terrain.
+  return y + Math.min(terrain - floor - ROCK_GROUND_BURIAL, budget) * weight;
 }

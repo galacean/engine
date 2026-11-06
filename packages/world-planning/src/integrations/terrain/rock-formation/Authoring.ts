@@ -3,7 +3,7 @@ import type { PlanningDocument } from "../../../spatial/PlanningDocument.ts";
 import { resolveComponent } from "../../../spatial/SpatialDocument.ts";
 import { envelope } from "../../../semantic-study/IslandPlanAtoms.ts";
 import { rockFormationRegistry } from "./Settings.ts";
-import { DEFAULT_ROCK_HEIGHT_MODE } from "@galacean/engine-terrain/rock-formation/types";
+import { DEFAULT_ROCK_HEIGHT_MODE, DEFAULT_ROCK_HEIGHT_VARIATION } from "@galacean/engine-terrain/rock-formation/types";
 import { readRockGenerationProfile, rockGenerationKind, rockGenerationShape } from "./GenerationProfile.ts";
 import { planningRegistry } from "../../../spatial/PlanningComponents.ts";
 import { DEFAULT_ROCK_SLOPE_VARIATION } from "@galacean/engine-terrain/rock-formation/Slope";
@@ -82,7 +82,7 @@ export function applyRockObbSizes(plan: IslandPlan, document: PlanningDocument):
       const topVariation = shape.heightVariation;
       const heightVariation = read(
         "heightVariation",
-        box.heightVariation ?? (topVariation === 0.2 ? undefined : topVariation)
+        box.heightVariation ?? (topVariation === DEFAULT_ROCK_HEIGHT_VARIATION ? undefined : topVariation)
       );
       validateSlope(id, slopeMode, slopeRate, slopeVariation);
       if (

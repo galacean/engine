@@ -4,6 +4,8 @@ export type RockHeightMode = "random-ascent" | "perlin-ascent";
 export type RockSurfaceMode = "vertex-slabs" | "cellular-curvature";
 export type RockSlopeMode = "auto" | "manual";
 export const DEFAULT_ROCK_HEIGHT_MODE: RockHeightMode = "random-ascent";
+/** Upper-vertex Y offset amplitude as a fraction of the OBB height. */
+export const DEFAULT_ROCK_HEIGHT_VARIATION = 0;
 export interface RockObb {
   id: string;
   ownerId: string;
@@ -20,7 +22,7 @@ export interface RockObb {
   slopeRate?: number;
   /** Variation in [0, 1]: auto varies whole-box and face rates, manual only face rates. */
   slopeVariation?: number;
-  /** Upper-vertex Y offset amplitude as a fraction of the OBB height. */
+  /** Upper-vertex Y offset amplitude in [0, 1] of the OBB height; omission uses zero. */
   heightVariation?: number;
 }
 export interface OutlineVertex {

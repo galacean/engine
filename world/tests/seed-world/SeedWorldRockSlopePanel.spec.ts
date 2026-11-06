@@ -212,6 +212,61 @@ it("exposes the default generation profile and submits only edited profile field
   f.panel.destroy();
 });
 
+it("shows upper-height variation in percent, preserves saved fractions and submits only the selected OBB", async () => {
+  const f = fixture(),
+    input = f.control("obb-height-variation");
+  expect(input.value).toBe("0");
+  expect([input.min, input.max, input.step]).toEqual(["0", "100", "1"]);
+  expect(input.attributes["aria-label"]).toBe("Upper height variation / 上层高度变化 (%)");
+  f.actions.get("Apply OBB settings / 应用包围盒设置")!.click();
+  expect(f.apply).not.toHaveBeenCalled();
+  f.box.heightVariation = 0.2;
+  f.panel.synchronize(f.plan, f.document);
+  expect(input.value).toBe("20");
+  f.input("obb-height-variation", "35");
+  f.actions.get("Apply OBB settings / 应用包围盒设置")!.click();
+  expect(f.apply).toHaveBeenCalledExactlyOnceWith([
+    { op: "set", entity: rockObbId("rock", "box"), component: "rockObb", values: { heightVariation: 0.35 } }
+  ]);
+  await settled();
+  f.panel.destroy();
+});
+
+it("converts platform and peak upper-height percentages without rewriting untouched saved values", async () => {
+  const f = fixture();
+  for (const key of ["platformHeightVariation", "peakHeightVariation"]) {
+    const input = f.control(`generation-field="${key}"`);
+    expect(input.value).toBe("0");
+    expect([input.min, input.max, input.step]).toEqual(["0", "100", "1"]);
+    expect(input.attributes["aria-label"]).toContain("上层高度变化 (%)");
+  }
+  f.document.entities.world.components.rockGeneration = {
+    values: {
+      platformHeightVariation: 0.29,
+      peakHeightVariation: 0.1234567890123456
+    }
+  };
+  f.panel.synchronize(f.plan, f.document);
+  expect(f.control('generation-field="platformHeightVariation"').value).toBe("29");
+  f.actions.get("Apply generation profile / 应用生成配置")!.click();
+  expect(f.apply).not.toHaveBeenCalled();
+  f.input('generation-field="platformHeightVariation"', "0");
+  f.actions.get("Apply generation profile / 应用生成配置")!.click();
+  expect(f.apply).toHaveBeenCalledExactlyOnceWith([
+    { op: "set", entity: "world", component: "rockGeneration", values: { platformHeightVariation: 0 } }
+  ]);
+  await settled();
+  f.apply.mockClear();
+  f.panel.synchronize(f.plan, f.document);
+  f.input('generation-field="peakHeightVariation"', "20");
+  f.actions.get("Apply generation profile / 应用生成配置")!.click();
+  expect(f.apply).toHaveBeenCalledExactlyOnceWith([
+    { op: "set", entity: "world", component: "rockGeneration", values: { peakHeightVariation: 0.2 } }
+  ]);
+  await settled();
+  f.panel.destroy();
+});
+
 it("restores height-mode inheritance without pinning effective defaults or losing other OBB overrides", async () => {
   const f = fixture({ heightMode: "random-ascent", slopeMode: "manual", slopeRate: 3, heightVariation: 0.05 });
   const id = rockObbId("rock", "box");
@@ -222,7 +277,7 @@ it("restores height-mode inheritance without pinning effective defaults or losin
   };
   f.panel.synchronize(f.plan, f.document);
   expect(f.control("obb-height-mode").value).toBe("perlin-ascent");
-  expect(f.control("obb-height-variation").value).toBe("0.05");
+  expect(f.control("obb-height-variation").value).toBe("5");
   f.input("obb-height-mode", "inherit");
   f.input("obb-height-variation", "0");
   f.actions.get("Apply OBB settings / 应用包围盒设置")!.click();

@@ -3,9 +3,10 @@
 The native Seed World renderer projects a baked cellular network onto each OBB's
 Random ascent or Perlin noise ascent mask, then applies vertex-defined slabs or
 cellular curvature. Vertex-defined slabs with Original painted rock are the default.
-All runtime code and the required network asset live in this directory.
+Deformation code and the required network asset live in this package; authoring,
+grounding and world integration live in `packages/world-planning/src/integrations/terrain/rock-formation`.
 
-Open `/demos/terrain/seed-world-planner/index.html?seed=1&debug=1`, click **生成 3D**,
+Open `/world/demos/seed-world/index.html?seed=1&debug=1`, click **生成 3D**,
 then expand **05 Rocks / 岩石 → Rock formation / 岩石形态**. Labels, options and
 buttons follow the native **English / 中文** format. Picking a rock selects its OBB.
 Edits use `PlanningSession`, native project persistence and undo/redo.
@@ -22,15 +23,15 @@ Edits use `PlanningSession`, native project persistence and undo/redo.
   dimensions do not reroll it. Changing the probability moves only OBBs whose
   stable sample crosses the threshold.
 - Platforms use Random ascent, **1× the original height**, a **12 m/m**
-  manual base slope, **0.2** slope variation and **0.05** upper-height variation.
+  manual base slope, **0.2** slope variation and **0%** upper-height variation.
   Peaks retain **1× tier height**, Perlin ascent, automatic OBB-derived slopes,
-  **0.8** slope variation and **0.2** upper-height variation. These profile values
+  **0.8** slope variation and **0%** upper-height variation. These profile values
   are editable in the debug panel and through `PlanningSession`; no lab resource
   or generated recipe is saved.
 - The height and slope defaults preserve the broad cap of the earlier 0.25×
   height / 3 m/m profile: multiplying both by four restores the source height
-  without changing the slope's horizontal run. Top variation still gives each
-  stone a faceted, nonuniform crown.
+  without changing the slope's horizontal run. Explicit upper-height variation can
+  still give each stone a faceted, nonuniform crown.
 - Scattered landscape rocks inherit this profile in the authoring projection,
   before worker jobs, picking and collision consume their published volumes.
   Their stable landscape IDs select the shape. Initial generation, local profile
@@ -67,6 +68,12 @@ Edits use `PlanningSession`, native project persistence and undo/redo.
 - Automatic slope uses `2 × height / min(width, depth)` in m/m. Variation defaults
   to 0.2. Disable automatic mode to set a finite positive manual rate. Only authored
   overrides are saved; size-derived rates are recalculated after resize.
+- **Upper height variation / 上层高度变化 (%)** is independently editable per OBB,
+  with shared platform/peak fallbacks. The panel uses 0–100%; authoring and saved
+  documents retain 0–1. Missing values default to 0%, while explicit values,
+  including zero and inherited overrides, retain their meaning. It changes upper
+  vertex heights without rerolling outlines, slope rates, seeds or neighboring
+  OBBs. Reset/undo/redo and native project replay use the same authoring path.
 - Shared painted-rock texture scale defaults to **60 m per repeat**. Saved positive
   values survive native Scene export/import. A texture-only edit updates material
   uniforms on main and companion rocks without regenerating geometry or grass.
@@ -162,6 +169,12 @@ and diagonal crossings along each edge, so long edges cannot bridge a terrain
 dip. Only perimeter Y values are lowered; X/Z, connectivity, OBB ownership and
 interior vertices stay fixed. Final normals, grass support and collision consume
 the corrected geometry.
+
+Grounding does not lift the whole upper body above the highest terrain under its
+footprint. The local foot offset fades quadratically to zero at the authored
+crest and is capped by the height budget. Uphill terrain can therefore bury part
+or all of a low rock. Normal surface relief still applies; the bound is on the
+grounding guide, not an exact clip of every deformed vertex to the OBB.
 
 Painted cellular faces retain flat interiors and blend continuously toward shared
 area-weighted vertex normals and symmetric edge bisectors. Signed triangle
