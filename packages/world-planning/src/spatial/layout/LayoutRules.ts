@@ -32,6 +32,12 @@ export interface LayoutRule {
   heightMinM: number;
   heightMaxM: number;
   orientationVariation: number;
+  /** Preferred minimum automatic members; insufficient feasible space is reported without adding filler. */
+  memberMin?: number;
+  /** Maximum accepted automatic members; absent imposes no authored count ceiling. */
+  memberMax?: number;
+  /** Element width-axis orientation in degrees, relative to the curve tangent for curved arrangements. */
+  headingDegrees?: number;
   /** Local random stream; never changes authored ranges, profile or POI anchors. */
   variationSeed?: number;
   /** Radial displacement of ring members, independent of along-ring spacing. */
@@ -83,7 +89,7 @@ export interface LayoutRulePlugin {
   allowContentTermini?: boolean;
   defaults?: Partial<LayoutRule>;
   connections: "none" | "tree";
-  /** Construct the region once. Member count is the result of size and spacing. */
+  /** Construct region candidates once; the shared kernel applies count ranges and geometric acceptance. */
   build(context: LayoutBuildContext): LayoutConstruction;
   relations?(owners: readonly { id: string; volumeIds: string[]; group?: string }[]): VolumeExclusion[];
   /** Connect accepted members to the original skeleton, independent of discarded candidates. */
@@ -138,10 +144,11 @@ registerLayoutRule({
 
 registerLayoutRule({
   id: "connected",
-  version: 15,
+  version: 16,
   label: "分支连接布局",
   allowContentTermini: true,
   parameterKeys: [
+    "headingDegrees",
     "pathWidthM",
     "roadMode",
     "branchShape",
@@ -160,14 +167,14 @@ registerLayoutRule({
 
 registerLayoutRule({
   id: "courtyard",
-  version: 8,
+  version: 9,
   centerClearing: true,
   allowContentTermini: true,
   defaults: { openRadiusM: 12 },
   label: "围绕中心留白",
   exclusionGroup: "independent",
   connections: "tree",
-  parameterKeys: ["pathWidthM", "roadMode", "openRadiusM", "radialVariationM"],
+  parameterKeys: ["headingDegrees", "pathWidthM", "roadMode", "openRadiusM", "radialVariationM"],
   build: buildRadialLayout
 });
 

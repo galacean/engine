@@ -80,10 +80,14 @@ export function readSemanticParameters(search: string): SemanticParameters {
     try {
       const saved = JSON.parse(encoded),
         defaults = parameters.poiLayout;
+      // Legacy project authoring is migrated by PlanningDocument, not by this URL-control reader.
+      if (saved.version !== 2) throw new Error("Unsupported POI URL recipe version");
       const restored = {
         ...defaults,
-        ...saved,
-        spacing: { ...defaults.spacing, ...saved.spacing },
+        version: saved.version,
+        spacingM: saved.spacingM ?? defaults.spacingM,
+        minAreaM2: saved.minAreaM2 ?? defaults.minAreaM2,
+        ...(saved.candidates ? { candidates: saved.candidates } : {}),
         content: { ...defaults.content, ...saved.content },
         network: { ...defaults.network, ...saved.network },
         canyon: { ...defaults.canyon, ...saved.canyon },
@@ -99,10 +103,10 @@ export function readSemanticParameters(search: string): SemanticParameters {
       /* Invalid saved settings fall back to the editable defaults. */
     }
   }
-  for (const tier of ["large", "medium", "small"] as const) {
-    const raw = query.get(`poi-${tier}-minM`);
+  for (const [key, minimum] of [["spacingM", 8], ["minAreaM2", 0]] as const) {
+    const raw = query.get(`poi-${key}`);
     if (raw !== null && raw.trim() && Number.isFinite(Number(raw)))
-      parameters.poiLayout!.spacing[tier].minM = Math.max(0, Number(raw));
+      parameters.poiLayout![key] = Math.max(minimum, Number(raw));
   }
   return parameters;
 }

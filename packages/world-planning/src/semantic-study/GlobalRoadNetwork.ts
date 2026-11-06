@@ -339,12 +339,12 @@ export function planGlobalRoadNetwork(
     const sites = roadInputs.sites
       .filter(
         (p) =>
-          !plan.spatialLayout && p.domainId === domain.id && p.tier !== "small" && !nodes.some((n) => n.poiId === p.id)
+          !plan.spatialLayout && p.active !== false && p.domainId === domain.id && !nodes.some((n) => n.poiId === p.id)
       )
       .sort(
         (a, b) =>
           Number(b.memberIds.length > 0) - Number(a.memberIds.length > 0) ||
-          Number(b.tier === "large") - Number(a.tier === "large") ||
+          (b.sizeWeight ?? 1) - (a.sizeWeight ?? 1) ||
           a.id.localeCompare(b.id)
       );
     for (const site of sites) {

@@ -3,7 +3,7 @@ import type { RuntimeProjectPackage } from "@galacean/engine-project/runtime-edi
 import { nativeAssetFormats } from "@galacean/engine-runtime-editor/project/runtime-native-formats";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
 import { exportPlanningScene, importPlanningScene, PLANNING_PROJECT_COMPONENT, type PlanningSceneAsset } from "../PlanningSceneAsset.ts";
-import { exportPlanningAuthoring, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningAuthoring, upgradePlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import type { RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
@@ -112,7 +112,7 @@ export function readPlanningProjectSource(draft: RuntimeProjectEdit, path: strin
     return index;
   };
   append(projects[0].entityId);
-  return importPlanningScene(file);
+  return upgradePlanningDocument(importPlanningScene(file));
 }
 
 /** Update owned records in the existing Scene. Unrelated objects and stable IDs survive. */

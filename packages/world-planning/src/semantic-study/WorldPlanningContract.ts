@@ -106,11 +106,17 @@ export interface SemanticParameters {
   landformSeed?: number;
 }
 export interface SemanticParameters {
+  population?: import("../spatial/PlanningPopulationInitialization").PlanningPopulationOptions;
   farming?: Partial<import("../spatial/farming/PlanningFarmingComponent").PlanningFarmingOptions>;
   suspensionBridge?: import("@galacean/engine-water/bridges/SuspensionBridge").SuspensionBridgeOverrides;
   lakes?: Partial<import("../spatial/hydrology/LakeRegions").LakeParameters>;
   rivers?: Partial<import("../spatial/hydrology/RiverRegions").RiverParameters>;
-  terrainSkeleton?: { count: number; directionDegrees: number; lengthM?: number; heightM: number; widthM: number };
+  terrainSkeleton?: import("../spatial/PlanningCountRange").PlanningCountRange & {
+    directionDegrees: number;
+    lengthM?: number;
+    heightM: number;
+    widthM: number;
+  };
   buildingPolicy?: Partial<import("../planning-data/BuildingSizing").BuildingPolicy>;
   regionElevation?: Partial<import("../spatial/terrain/PoiRegionElevation").PoiRegionElevationConfig>;
   wayfinding?: Partial<import("../spatial/guidance/WayfindingPolicy").WayfindingPolicy>;
@@ -147,8 +153,8 @@ export interface SemanticEdit {
   wayfinding?: Partial<import("../spatial/guidance/WayfindingPolicy").WayfindingPolicy>;
   flowerInfluence?: Partial<import("../spatial/ecology/FlowerInfluences").FlowerInfluence>;
   flowers?: import("../spatial/ecology/FlowerRegions").FlowerInput;
-  poi?: { radiusM?: number };
-  road?: { widthM?: number; bend?: number };
+  poi?: { radiusM?: number; sizeWeight?: number };
+  road?: { widthM?: number; bend?: number; keypoints?: { id: string; x: number; z: number }[] };
   landscape?: import("./ParameterScopes").ParameterPatch<import("./ContextLandscape").LandscapeConfig>;
   canyon?: Partial<import("./PoiCanyon").CanyonConfig>;
   transform?: { offsetX?: number; offsetZ?: number; rotationDegrees?: number; scale?: number };

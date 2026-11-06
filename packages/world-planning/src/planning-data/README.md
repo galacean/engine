@@ -4,7 +4,7 @@
 
 | 配置 | 拥有的规则 | 消费者 |
 | --- | --- | --- |
-| [poi-layout.json](poi-layout.json) | 当前全局 POI 间距与区域面积权重初值；全局规划通过 distribution 组件编辑 | [PoiDistribution](../semantic-study/PoiDistribution.ts) / [PoiTerritories](../spatial/ecology/PoiTerritories.ts) |
+| [poi-layout.json](poi-layout.json) | 统一布点间距 spacingM、最小有效管理面积 minAreaM2；单 POI 的 sizeWeight 由作者组件保存 | [PoiDistribution](../semantic-study/PoiDistribution.ts) / [PoiTerritories](../spatial/ecology/PoiTerritories.ts) |
 | [poi-content-catalog.json](poi-content-catalog.json) | 历史 study 的素材语义 POI 变体；当前布局入口不使用 | [PoiContentCatalog](../semantic-study/PoiContentCatalog.ts) / [PoiPopulation](../semantic-study/PoiPopulation.ts) |
 | [animal-appearances.json](animal-appearances.json) | 可选的动物初始化外观候选与权重覆盖，可选外观权重；Cute Zoo 同体型 A/B 外观等权随机 | 按需导入的 `PlanningAnimalRuntime` / 共享 `AnimalAssetLibrary` / `AnimalPopulation` |
 | [natural-vegetation.json](natural-vegetation.json) | 新植被七层素材、密度、斑块、接缝和林下关联 | `NaturalVegetationLayers`；面板七项密度比例经现有 `landscape` schema、Session 保存和发布 |
@@ -14,9 +14,9 @@
 | [flower-regions.json](flower-regions.json) / [flower-influences.json](flower-influences.json) | 花区实际覆盖率、区内丛/㎡密度、形状策略及道路/公共区域选址偏好 | [FlowerRegions](../spatial/ecology/FlowerRegions.ts) / [FlowerInfluences](../spatial/ecology/FlowerInfluences.ts) |
 | [visual-guidance.json](visual-guidance.json) / [wayfinding.json](wayfinding.json) | 沿途引导体量、可行适配与道路关系默认值 | [VisualGuidance](../spatial/guidance/VisualGuidance.ts) / [WayfindingPolicy](../spatial/guidance/WayfindingPolicy.ts) |
 
-首次工程的大/中/小 POI 最小中心间距初值为 650/420/210 米，通过全局规划的 distribution 组件编辑；数量由真实陆域与间距共同产生，不是精确数量配额。较少锚点共享同一陆域，使管理区域自然变大，面积权重仍为 4/2/1。主岛与离岛使用相同元素高度配置，已移除离岛专用高度策略。各等级使用 `../spatial/layout/space-rules.json` 的 `tiers.*.rules` 抽样池。成员数量输入及抽样范围已删除，由 POI 实际区域、空间组织、OBB 尺寸与间距生成，面板只显示结果；显式新增一个对象属于独立实例操作，不是初始化数量参数。
+首次工程使用统一 POI 候选与管理分区。`poi-layout.json` 的 `spacingM` 初值为 210 米，`minAreaM2` 为 0；`distribution` 组件编辑这两个世界参数。单 POI 的 `poi.sizeWeight` 默认 1，是相对管理区偏好，不是面积或建筑尺寸倍数。候选保留稳定 ID 与原始位置，求解产生当前中心、有效面积和 active 状态；休眠候选仍可选择并调整恢复。成员数量由实际区域、空间组织、OBB 尺寸和间距产生。
 
-2026-10-28 的稀疏布局初值：非曲线组织的大/中/小成员间距分别为 36–60/30–50/30–55 米，建筑沿用 8–12 米长宽，通过间距减少区域扩张后的建筑数量。曲线岩组独立使用 -28–8 米间距（负值搭接）、8–20 米弯曲、12–32 米侧向变化和 0.1–0.3 朝向变化。岩体大/中/小宽深高范围分别为 90–160 × 50–100 × 32–120、64–112 × 36–72 × 12–48、42–80 × 24–44 × 4–16 米。这些均为现有参数的初始化范围，沿用 Seed 随机抽样、实际区域裁剪与显式互斥，不保证每个区域都能放下大岩体。这里的堆叠指接地岩体搭接与高低错落，不新增悬空或逐层垂直堆放算法。已有工程的明确参数覆盖继续保留。
+当前统一组织抽样来自 `space-rules.json.defaults.rules`：建筑分支 42%、岩体分支 18%、曲线岩组 40%。普通成员间距初值 36–60 米；建筑长宽 8–12 米，岩体宽深高 64–112 × 36–72 × 12–48 米。曲线仍有独立的间距、弯曲与侧向变化参数。所有范围均是 Seed 初始化输入，不保证每个区域都放得下内容；显式 POI 或单体覆盖保持优先。旧等级的作者尺寸与生态策略由 `spatial/migration/LegacyPoiAuthoring.ts` 转为具体 POI 的局部输入，运行时不再按等级选配方。
 
 种类、材质和 LOD 接入留在原 Asset Assembly/Seed 素材系统；[population-presentation.json](../spatial/runtime/population-presentation.json) 只选择当前映射，不允许凭名字改换 prefab/shader。湿度与每 POI 的素材分布规则尚未全部接入，不应添加没有消费者的配置项。
 
@@ -50,7 +50,7 @@ Unity提取应保留：源场景/Prefab标识、层级与变换、单位换算�
 
 地表默认草地，仅道路和广场泥土。2D 使用同源矢量轮廓，白盒进入时才生成 1024 alphamap。建筑 OBB、门、围栏、树石通过同一 snapshot 渲染与导出；白盒使用米制网格与 FBM 地面，并加入树干、石块和围栏碰撞。
 
-空间组织与元素的初始化组合位于 `spatial/layout/space-rules.json.tiers`，按 Seed + POI 稳定 ID 抽样。上层配置提供表现绑定；规划面板只编辑组织及通用 OBB 参数，切换组织不重选表现。曲线参数及作用域见空间框架 README。
+空间组织与元素的初始化组合位于 `spatial/layout/space-rules.json.defaults`，按 Seed + POI 稳定 ID 抽样。元素米制范围来自 `elementProfiles`；上层配置提供表现绑定，切换组织不重选表现。曲线参数及作用域见空间框架 README。
 
 ### 内部道路模式（2026-10-12）
 
@@ -118,6 +118,6 @@ Seed 注册 Cute Zoo 3 的14个体型（默认各1只，21个确定性外观）�
 
 这些配置是所有 Seed 的生成参数，不包含任何 Seed 的单体 ID、位置或宽高快照。`natural-vegetation.json` 保留乔木和低草密度 1，灌木 0.03、野花 0.1，高草、匍匐地被和落叶菌类为 0；墙脚/岩石伴生带 6m、倍率 20，路边倍率 1。`poi-layout.json` 的景观密度为 1，building 环境带系数 2，其余环境带 0；`landscape-contexts.json` 的空地及远端保留密度为 0。`space-rules.json.initial.landscape` 同步使用密度 1，避免首次抽样覆盖配方。现有道路、入口、实体和水域避让继续生效。墙脚伴生参数同时作用于岩石边缘，不能解释为只沿建筑生长的保证。
 
-`space-rules.json.elementProfiles.outcrop` 沿用已实现的 tiers 尺寸初值：小型宽 42–80m、深 24–44m、高 4–12m；中型宽 54–96m、深 30–60m、高 8–26m；大型宽 72–128m、深 40–80m、高 48–108m。大型占地是原范围的 2 倍宽深，中型为 1.5 倍，具体位置与尺寸仍由 Seed、区域和现有组织生成。范围不是放置保证，超出区域或碰撞的候选仍被拒绝；不扩大生成域、不挪动单体。用户确认海岸分类暂不实现，因此这些等级不等于近景/海岸分类，也未引入不同等级的高度模式或坡率规则。
+`space-rules.json.elementProfiles.outcrop` 使用统一宽深高初值；不再声明 tiers 或按 POI 等级放大岩体。具体位置与尺寸仍由 Seed、有效管理区和空间组织生成；范围不是放置保证，越界或碰撞的自动候选仍可被拒绝。旧等级仅由兼容迁移读取，不代表近景、海岸或高度模式。
 
 共用岩面初值由 `rock-formation/Settings.ts` 提供：蜂窝尺寸 24m、内缩 0.35、深度倍率 0.6、细节倍率 0.2、覆盖 1。旧工程已有显式覆盖继续保留；新建工程使用这些生成初值。现有 Seed 1 的手工摆放与单体高度模式不是通用默认值的一部分。

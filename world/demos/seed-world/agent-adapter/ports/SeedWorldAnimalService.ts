@@ -85,7 +85,7 @@ export interface SeedWorldAnimalCatalogEntry {
   appearances: readonly { id: string; label: string; modelUrl: string }[];
 }
 
-/** One session-only addition. Replaying requestId cannot create a duplicate animal. */
+/** One persistent explicit addition. Replaying requestId cannot create a duplicate animal. */
 export interface SeedWorldAnimalSpawn {
   requestId: string;
   typeId: string;
@@ -112,7 +112,7 @@ export interface SeedWorldAnimalService {
     offset: number;
     nextOffset?: number;
   };
-  spawn(input: SeedWorldAnimalSpawn): SeedWorldAnimalSpawnReceipt;
+  spawn(input: SeedWorldAnimalSpawn): SeedWorldAnimalSpawnReceipt | Promise<SeedWorldAnimalSpawnReceipt>;
   query(input: SeedWorldAnimalQuery): {
     enabled: boolean;
     animals: readonly SeedWorldAnimalSummary[];

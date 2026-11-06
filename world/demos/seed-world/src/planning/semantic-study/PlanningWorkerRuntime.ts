@@ -7,12 +7,14 @@ import {
 } from "./PlanningWaterPatch.ts";
 import { planningDerivedPatch, type PlanningDerivedPatch } from "@galacean/engine-world-planning/semantic-study/PlanningDerivedPatch";
 import { generatePlanningDocument, assertPlanningRuntimeSignature } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
-import { importPlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { prepareSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
+import { exportPlanningAuthoring, importPlanningDocument, type PlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import type { SemanticEdit, SemanticParameters, SemanticResult } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 import { cachedPlanningHeightmap, planningHeightmap, type PlanningHeightmap } from "@galacean/engine-world-planning/semantic-study/PlanningHeightmap";
 
 /** Subsequent input references a worker-owned snapshot instead of cloning the world back. */
-export interface PlanningWorkerRequest {
+export interface PlanningGenerationRequest {
+  type?: "generate";
   requestId: number;
   runtimeSignature: string;
   document?: PlanningDocument;
@@ -22,7 +24,18 @@ export interface PlanningWorkerRequest {
   previousRequestId?: number;
   previousHeightToken?: string;
 }
+/** Author-only initialization executes inside the same cancellable worker as generation. */
+export interface PlanningInitializationRequest {
+  type: "initialize";
+  requestId: number;
+  runtimeSignature: string;
+  /** Deterministic identity for a fresh default world. */
+  seed: number;
+}
+/** Requests accepted by the isolated planning worker. */
+export type PlanningWorkerRequest = PlanningGenerationRequest | PlanningInitializationRequest;
 export type PlanningWorkerResponse =
+  | { type: "initialized"; requestId: number; document: PlanningDocument; elapsedMs: number }
   | { type: "progress"; requestId: number; stage: string }
   | {
       type: "result";
@@ -56,13 +69,25 @@ export type PlanningWorkerResponse =
 export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorkerResponse) => void) {
   const snapshots = new Map<number, SemanticResult>();
   const sharedHeights = new Map<number, PlanningHeightmap>();
+  let initialized: { authoring: string; result: SemanticResult } | undefined;
+  const authoringKey = (document: PlanningDocument) => JSON.stringify({ ...exportPlanningAuthoring(document), revision: 0 });
   return (request: PlanningWorkerRequest): void => {
     const start = performance.now();
     try {
       assertPlanningRuntimeSignature(request.runtimeSignature);
-      const previous =
-        request.previousSnapshot ??
+      if (request.type === "initialize") {
+        postMessage({ type: "progress", requestId: request.requestId, stage: "初始化布局参数" });
+        initialized = undefined;
+        const { document, result } = prepareSeedPlanningDocument(request.seed);
+        initialized = { authoring: authoringKey(document), result };
+        postMessage({ type: "initialized", requestId: request.requestId, document, elapsedMs: performance.now() - start });
+        return;
+      }
+      const prepared = request.document && initialized?.authoring === authoringKey(request.document)
+        ? initialized.result : undefined;
+      const previous = prepared ?? request.previousSnapshot ??
         (request.previousRequestId === undefined ? undefined : snapshots.get(request.previousRequestId));
+      initialized = undefined;
       if (request.previousRequestId !== undefined && !previous) throw new Error("规划基准快照已失效");
       const result = request.document
         ? generatePlanningDocument(request.document, previous, [], (stage) =>
@@ -83,12 +108,12 @@ export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorke
       // instead of evaluating all terrain samples again in its independent worker.
       const compiledHeight = cachedPlanningHeightmap(result.plan);
       const previousHeight =
-        request.previousRequestId === undefined
+        prepared || request.previousRequestId === undefined
           ? undefined
           : (sharedHeights.get(request.previousRequestId) ??
             (request.previousHeightToken && previous ? planningHeightmap(previous.plan) : undefined));
       if (
-        request.previousHeightToken &&
+        !prepared && request.previousHeightToken &&
         previousHeight &&
         planningHeightToken(previousHeight) !== request.previousHeightToken
       )
@@ -100,7 +125,7 @@ export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorke
       }
       if (compiledHeight) sharedHeights.set(request.requestId, compiledHeight);
       if (
-        result.execution === "water-overlay" &&
+        !prepared && result.execution === "water-overlay" &&
         result.accepted &&
         previous &&
         compiledHeight &&
@@ -125,7 +150,10 @@ export function createPlanningWorkerRuntime(postMessage: (message: PlanningWorke
           ]),
           elapsedMs: performance.now() - start
         });
-      } else if ((result.execution === "landscape" || result.execution === "guidance") && result.accepted && previous) {
+      } else if (
+        !prepared && (result.execution === "landscape" || result.execution === "guidance") && result.accepted && previous &&
+        (request.previousSnapshot || request.previousRequestId !== undefined)
+      ) {
         const { plan, ...metadata } = result;
         postMessage({
           type: "landscape",

@@ -41,7 +41,7 @@ export function elementLabel(plan: IslandPlan, id: string): string {
   return index.get(id) ?? id;
 }
 const object = (id: string) => `object:${id}`;
-/** Only actual published instances enter this hierarchy. Display state cannot generate content. */
+/** Published instances and retained authoring remain selectable independently of geometry validity. */
 export function planningLayerTree(plan: IslandPlan, scene: PlanningScene = buildPlanningScene(plan)): LayerNode[] {
   const sites = plan.poiDistribution?.sites ?? [];
   const owned = new Map<string, SceneEntity[]>();
@@ -120,24 +120,22 @@ export function planningLayerTree(plan: IslandPlan, scene: PlanningScene = build
         { id: "ocean", label: "海洋", layers: ["ocean"] }
       ]
     },
-    ...(["large", "medium", "small"] as const).map((tier, i) => ({
-      id: `poi-${tier}`,
-      label: ["大型 POI", "中型 POI", "小型 POI"][i],
-      focusId: `policy:${tier}`,
-      layers: [`poi-${tier}`],
+    {
+      id: "poi-sites",
+      label: "POI",
+      layers: ["poi-sites"],
       children: sites
-        .filter((s) => s.tier === tier)
-        .map((site, j) => {
+        .map((site) => {
           const members = topLevel(owned.get(site.id) ?? []);
           return {
             id: site.id,
-            label: poiContentLabel(plan, site) + (site.tier === "small" ? ` ${j + 1}` : ""),
+            label: poiContentLabel(plan, site) + (site.active ? "" : " · 未显示"),
             focusId: site.id,
             layers: [...(masks.get(site.id) ?? [object(site.id)]), "territory:" + site.id],
             children: groupNodes(members, site.id)
           };
         })
-    })),
+    },
     {
       id: "roads",
       label: "全局道路",
@@ -162,7 +160,7 @@ export function planningLayerTree(plan: IslandPlan, scene: PlanningScene = build
         { id: "labels", label: "名称", layers: ["labels"] },
         { id: "outlines", label: "内容轮廓", layers: ["group", "village", "open"], initial: false },
         { id: "boundary", label: "世界边界", layers: ["boundary"] },
-        { id: "empty", label: "未填充 POI 位置", layers: ["empty-poi"], initial: false },
+        { id: "poi-anchors", label: "POI 锚点", layers: ["poi-anchors"], initial: true },
         { id: "entrance", label: "门口与接入点", layers: ["entrance", "road-access"], initial: false },
         { id: "spawn", label: "出生点", layers: ["spawn"] },
         { id: "components", label: "构造矩形", layers: ["components", "obb"], initial: false }
@@ -281,7 +279,7 @@ export function mountPlanningLayerTree(
         refresh();
         highlight(selectedNodeId);
       };
-      setOpen(opened[node.id] ?? (depth === 0 && node.id !== "poi-small"));
+      setOpen(opened[node.id] ?? depth === 0);
     } else disclosure.setAttribute("aria-hidden", "true");
   }
   /** Map selection reveals its leaf; hierarchy selection preserves the clicked row and disclosure state. */
@@ -317,12 +315,13 @@ export function mountPlanningLayerTree(
       const rename = (items: LayerNode[]) => {
         for (const node of items) {
           if (
-            !node.focusId?.startsWith("policy:") &&
             node.focusId &&
             names[node.focusId] &&
-            names[node.focusId] !== node.focusId
+            names[node.focusId] !== node.focusId &&
+            !(names[node.focusId].trim() === "POI" && plan.poiDistribution?.sites.some(site => site.id === node.focusId))
           )
-            node.label = names[node.focusId];
+            node.label = names[node.focusId] +
+              (plan.poiDistribution?.sites.some(site => site.id === node.focusId && !site.active) ? " · 未显示" : "");
           rename(node.children ?? []);
         }
       };

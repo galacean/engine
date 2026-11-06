@@ -1,7 +1,11 @@
 import { WORLD_TEMPLATES, worldTemplate } from "@galacean/engine-world-planning/spatial/WorldTemplateCatalog";
 import { SEMANTIC_DEFAULTS } from "@galacean/engine-world-planning/semantic-study/WorldPlanningContract";
 
-/** UI only selects an author recipe; callers own Session transactions and persistence. */
+/** Select a world style and Seed.
+ * @param host Toolbar that owns the entry button.
+ * @param apply Publish and persist the fully initialized document.
+ * @returns Controls for synchronizing and disposing the picker.
+ */
 export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, seed: number) => Promise<void>) {
   const entry = document.createElement("button");
   entry.type = "button";
@@ -74,11 +78,12 @@ export function mountWorldTemplatePicker(host: HTMLElement, apply: (id: string, 
     input.value = String(crypto.getRandomValues(new Uint32Array(1))[0]);
   };
   submit.onclick = async () => {
-    if (pending || !input.reportValidity() || !Number.isSafeInteger(input.valueAsNumber)) return;
+    if (pending || (!input.reportValidity() || !Number.isSafeInteger(input.valueAsNumber))) return;
     pending = true;
     refresh();
     state.textContent = "正在应用风格与 Seed…";
     try {
+      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       await apply(selected, input.valueAsNumber);
       dialog.close();
     } catch (error) {

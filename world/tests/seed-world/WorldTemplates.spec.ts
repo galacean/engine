@@ -73,7 +73,6 @@ describe("authored world templates", () => {
         values: { multiplier: 1.2, samplingDensityPer1000M2: 12 }
       };
       source.entities.world.components.flowers = { values: { coverage: 0.3, densityPerM2: 0.25 } };
-      source.entities["policy:small"].components.landscape = { values: { "vegetation.shrubs": 0.07 } };
       const before = structuredClone(source);
       const styled = createWorldStylePlanningDocument(source, 8, id);
       const ice = createWorldStylePlanningDocument(styled, 9, "aurora-glacier");
@@ -92,9 +91,7 @@ describe("authored world templates", () => {
           expect(landscape.values[key]).toEqual(source.entities.world.components.landscape.values[key]);
         expect(doc.entities.world.components.flowers.values.densityPerM2).toBe(0.25);
         expect(doc.entities["plant-controls"]).toEqual(source.entities["plant-controls"]);
-        expect(doc.entities["policy:small"].components.landscape).toEqual(
-          source.entities["policy:small"].components.landscape
-        );
+        expect(doc.entities.world.components.landscape.base?.entity).toBe("plant-controls");
         expect(exportPlanningRecipe(doc).parameters.poiLayout!.landscape.vegetation?.litter).toBe(0.12);
       }
       expect(source).toEqual(before);

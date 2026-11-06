@@ -44,7 +44,7 @@ import {
 import { createSpatialWorldBase, generateSpatialLand, generateSpatialTerrain } from "./SpatialTerrain";
 import {
   POI_DISTRIBUTION_VERSION,
-  poiTerritoryWeights,
+  solvePoiDistribution,
   distributePois,
   defaultPoiLayout,
   type PoiSite
@@ -64,7 +64,12 @@ import { exportPlanningRecipe, type PlanningDocument } from "../PlanningDocument
 import { resolveComponent } from "../SpatialDocument";
 import { planningRegistry, PLANNING_COMPONENTS, planningFieldEditEffect } from "../PlanningComponents";
 import { publishNaturalVegetation } from "../../planning-data/NaturalVegetationProfile";
-import { applySpatialInstanceEdits, tryEditSpatialInstances } from "./SpatialInstanceEdits";
+import {
+  applySpatialInstanceEdits,
+  applySpatialStructureEdits,
+  applySpatialSceneryEdits,
+  tryEditSpatialInstances
+} from "./SpatialInstanceEdits";
 import { spatialRevealInputSignature } from "./SpatialEditInputs";
 import { layoutExtent, layoutRule, layoutRandom, layoutExclusions, type LayoutRule } from "./LayoutRules";
 import { VolumeIndex, boxOutline, bounds, intersects, sameVolumeFootprint, type VolumeExclusion } from "./Volumes";
@@ -80,9 +85,7 @@ import {
 import { projectLayoutGroups, type LayoutAppearance } from "./LayoutPlanAdapter";
 import profile from "./space-rules.json";
 import { changedSpatialOutputs } from "./DerivedEdits";
-import { assignLayoutOrganizations, initialLayoutConfiguration } from "./LayoutProfiles";
-import { reliefField } from "../terrain/ReliefField";
-import { footprintWithinRelief, sampleRegionRelief } from "../terrain/RegionRelief";
+import { initialLayoutConfiguration } from "./LayoutProfiles";
 import { compileRoadGraphSplines } from "./RoadGraphSplines";
 import { pruneUnusedAccessPaths, resolveRoadTopology } from "./RoadTopology";
 import { ROAD_GEOMETRY_VERSION } from "./RoadGeometry";
@@ -100,7 +103,7 @@ export interface SpatialLayoutState {
   riverSignature?: string;
   hydrologyInputSignature?: string;
   /** Seed-generated anchors before local overrides; reset must not reuse a previously edited centre. */
-  siteOrigins?: Record<string, Pick<PoiSite, "center" | "tier" | "domainId">>;
+  siteOrigins?: Record<string, Pick<PoiSite, "center" | "domainId">>;
   groups: LayoutGroup[];
   /** Generated, unedited volumes are the only inputs to generation constraints. */
   baselineGroups?: LayoutGroup[];
@@ -113,10 +116,11 @@ export interface SpatialLayoutState {
   instanceInputSignature?: string;
   revealInputSignature?: string;
   instanceEdits?: Record<string, VolumeEdit>;
+  instanceConnections?: import("./SpatialInstanceConnections").InstanceConnectionBaseline;
+  instanceConnectionChecks?: PlanningCheck[];
+  authoredRoadPaths?: Record<string, { id: string; x: number; z: number }[]>;
   /** Upper-level element bindings; the geometry kernel does not interpret their names. */
   elementProfiles?: Record<string, string>;
-  /** Terrain-derived upper-level choices; never persisted as author data. */
-  terrainAssignment?: { signature: string; organizations: ReturnType<typeof assignLayoutOrganizations> };
   /** Search inputs exclude ambient trees; the final facility check still runs on every planned publication. */
   farmSearch?: { signature: string; result: ReturnType<typeof preparePlanningFarmLayout> };
   exclusions?: VolumeExclusion[];
@@ -181,11 +185,6 @@ function recipeEditInputs(recipe: SemanticRecipe): { planning: string; reveal: s
         local = definition.local?.[field.key];
       if (global) take(input.parameters, global, "world", isReveal);
       if (local) for (const [id, edit] of Object.entries(input.edits)) take(edit, local, id, isReveal);
-      if (isReveal && definition.type === "landscape") {
-        if (field.key === "density") take(input.parameters, "poiLayout.landscape.tierDensity", "world");
-        for (const tier of ["large", "medium", "small"])
-          take(input.parameters, `poiLayout.landscape.tierOverrides.${tier}.${field.key}`, "world");
-      }
     }
   const canonical = (value: unknown): unknown => {
     if (Array.isArray(value)) return value.map(canonical);
@@ -253,8 +252,19 @@ export function tryRevealSpatialWorld(
   };
 }
 
-/** Compile only material-independent spatial parameters; rendering identities are assigned in LayoutPlanAdapter.
- * @param previous Accepted output used as a local repair baseline, never relocated by unrelated edits.
+/** Placement capacities before connection and environment generation. */
+export interface SpatialPlacementProbe {
+  candidates: NonNullable<IslandPlan["poiDistribution"]>["candidates"];
+  groups: LayoutGroup[];
+  elementProfiles: Record<string, string>;
+}
+
+/** Compile material-independent spatial parameters and validate the complete publication.
+ * @param document Authored spatial parameters.
+ * @param previous Accepted output used as a local repair baseline.
+ * @param progress Optional stage notifications.
+ * @param options Optional environment generation.
+ * @returns Complete generated world and its validation results.
  */
 export function generateSpatialWorld(
   document: PlanningDocument,
@@ -262,6 +272,29 @@ export function generateSpatialWorld(
   progress?: (stage: string) => void,
   options: { environment?: boolean } = {}
 ): SemanticResult {
+  const stages = spatialWorldStages(document, previous, progress, options);
+  let step = stages.next();
+  while (!step.done) step = stages.next();
+  return step.value;
+}
+
+/** Evaluate placement capacities using the same solver, without compiling roads or publishing a world.
+ * @param document Inputs without authored resource or solid-instance overrides.
+ * @returns Full, uncapped member capacities and their POI identities.
+ */
+export function probeSpatialPlacement(document: PlanningDocument): SpatialPlacementProbe {
+  const stages = spatialWorldStages(document, undefined, undefined, { environment: false });
+  const step = stages.next();
+  if (step.done) throw Error("Placement probe did not reach the placement stage");
+  return step.value;
+}
+
+function* spatialWorldStages(
+  document: PlanningDocument,
+  previous?: SemanticResult,
+  progress?: (stage: string) => void,
+  options: { environment?: boolean } = {}
+): Generator<SpatialPlacementProbe, SemanticResult, void> {
   const started = performance.now(),
     recipe = exportPlanningRecipe(document),
     p = { ...SEMANTIC_DEFAULTS, ...recipe.parameters };
@@ -298,9 +331,8 @@ export function generateSpatialWorld(
     p.complexity,
     p.offshoreCoverage,
     p.islandRichness,
-    config.spacing,
-    config.candidateStepM,
-    config.maxSitesPerTier,
+    config.spacingM,
+    config.candidates,
     Object.entries(recipe.edits)
       .filter(([id]) => id.startsWith("offshore-") || id === "land-main")
       .map(([id, e]) => [id, { size: e.size, complexity: e.complexity, placement: e.placement }])
@@ -320,7 +352,7 @@ export function generateSpatialWorld(
     ? {
         routes: crossingBaseline?.routes ?? plan.routes,
         graph: crossingBaseline?.graph ?? plan.roadGraph,
-        network: plan.roadNetwork,
+        network: saved?.instanceConnections?.network ?? plan.roadNetwork,
         bridges: crossingBaseline?.bridges ?? plan.bridges,
         approaches: crossingBaseline?.approaches ?? plan.roadApproaches,
         junctions: plan.planning!.ports.filter((p) => p.id.startsWith("road-junction:")),
@@ -353,21 +385,27 @@ export function generateSpatialWorld(
       config
     );
   }
-  plan.poiDistribution!.territoryWeights = poiTerritoryWeights(config);
-  const siteOrigins =
-    saved?.siteOrigins ??
+  plan.poiDistribution = solvePoiDistribution(
+    { ...plan.poiDistribution!, minAreaM2: config.minAreaM2 },
     Object.fromEntries(
-      plan.poiDistribution!.sites.map((s) => [s.id, { center: { ...s.center }, tier: s.tier, domainId: s.domainId }])
-    );
+      plan.poiDistribution!.candidates.map((candidate) => {
+        const anchor = value(candidate.id, "anchor"),
+          poi = value(candidate.id, "poi");
+        return [
+          candidate.id,
+          {
+            ...(anchor.x === undefined ? {} : { x: Number(anchor.x) }),
+            ...(anchor.z === undefined ? {} : { z: Number(anchor.z) }),
+            ...(poi.sizeWeight === undefined ? {} : { sizeWeight: Number(poi.sizeWeight) })
+          }
+        ];
+      })
+    )
+  );
+  const siteOrigins = Object.fromEntries(
+    plan.poiDistribution.candidates.map((c) => [c.id, { center: { ...c.origin }, domainId: c.domainId }])
+  );
   const domains = plan.poiDistribution!.domains.map((d) => ({ ...d, query: createPlanningRingQuery(d.outline) }));
-  // Hydrology uses POI ownership too. Apply final anchors before both cold and incremental sampling.
-  for (const site of plan.poiDistribution!.sites) {
-    const anchor = value(site.id, "anchor");
-    const origin = siteOrigins[site.id];
-    site.center = { x: Number(anchor.x ?? origin.center.x), z: Number(anchor.z ?? origin.center.z) };
-    site.tier = (value(site.id, "poi").tier ?? origin.tier) as PoiSite["tier"];
-    site.domainId = domains.find((d) => d.query.inside(site.center))?.id ?? origin.domainId;
-  }
   const riverConfig = { ...RIVER_DEFAULTS, ...p.rivers };
   const localRivers = Object.fromEntries(
     Object.entries(recipe.edits)
@@ -389,13 +427,13 @@ export function generateSpatialWorld(
     terrainInputs,
     lakeConfig,
     localLakes,
-    plan.poiDistribution!.territoryWeights,
+    plan.poiDistribution!.minAreaM2,
     plan.parameters,
     plan.land,
     plan.islands,
     { ...riverConfig, waterY: riverConfig.automaticLevel ? undefined : riverConfig.waterY },
     localRivers,
-    plan.poiDistribution!.sites.map((s) => [s.id, s.tier, s.center, s.domainId])
+    plan.poiDistribution!.sites.map((s) => [s.id, s.center, s.domainId, s.weightM2, s.active])
   ]);
   progress?.("生成河流与河床");
   if (hydrologyInputSignature === saved?.hydrologyInputSignature)
@@ -476,95 +514,65 @@ export function generateSpatialWorld(
     ]);
   // Farming consumes final world/spawn geometry; it never reserves or rerolls a POI.
   delete plan.farming;
-  const terrainAssignmentStarted = performance.now();
-  const relief = reliefField(
-    (plan.parameters.terrainPatches ?? []).map((patch) => ({
-      ...patch,
-      heightM: Math.abs(patch.heightM)
-    }))
-  );
-  const assignmentSignature = JSON.stringify([
-    "region-relief-v1",
-    profile.tiers,
-    profile.elementProfiles,
-    worldSignature,
-    terrainSignature,
-    riverSignature,
-    plan.poiDistribution!.territoryWeights,
-    plan.poiDistribution!.sites.map((s) => [s.id, s.tier, s.center, s.domainId]),
-    "farm-after-spawn-v1"
-  ]);
-  progress?.("评估地势并分配区域用途");
-  const terrainAssignment =
-    saved?.terrainAssignment?.signature === assignmentSignature
-      ? saved.terrainAssignment
-      : {
-          signature: assignmentSignature,
-          organizations: assignLayoutOrganizations(
-            p.seed,
-            plan.poiDistribution!.sites,
-            sampleRegionRelief(territoryOutlines, relief, (point) => !riverRings.some((ring) => ring.inside(point)))
-          )
-        };
-  timings["terrain.placement"] = performance.now() - terrainAssignmentStarted;
-  const specifications = plan.poiDistribution!.sites.map((site) => {
-    const authored = { ...value("policy:" + site.tier, "layout"), ...value(site.id, "layout") },
-      configuration = initialLayoutConfiguration(
-        p.seed,
-        site,
-        authored.pattern as string | undefined,
-        undefined,
-        terrainAssignment.organizations[site.id]
+  const specifications = plan
+    .poiDistribution!.sites.filter((site) => site.active)
+    .map((site) => {
+      const { elementProfile, ...authored } = { ...value("world", "layout"), ...value(site.id, "layout") },
+        configuration = initialLayoutConfiguration(
+          p.seed,
+          site,
+          authored.pattern as string | undefined,
+          elementProfile as string | undefined
+        );
+      const rule = {
+        ...configuration.rule,
+        ...authored,
+        pattern: authored.pattern ?? configuration.rule.pattern,
+        roadAccess: true
+      } as LayoutRule;
+      if (!layoutRule(rule.pattern).parameterKeys?.includes("openRadiusM")) rule.openRadiusM = 0;
+      elementProfiles[site.id] = configuration.elementProfile;
+      appearances[site.id] = configuration.presentation as LayoutAppearance;
+      if (configuration.presentation === "rock") territoryOutlines.set(site.id, rockRegions.get(site.id) ?? []);
+      rule.radiusM = layoutExtent(site.center, territoryOutlines.get(site.id) ?? []);
+      const { radiusM: derivedExtent, roadAccess: implicitAccess, spacingM: legacySpacing, ...authoredRule } = rule;
+      planningRegistry.validate("layout", authoredRule);
+      for (const [low, high] of planningRegistry.get("layout").ranges ?? [])
+        if (Number(rule[low as keyof LayoutRule]) > Number(rule[high as keyof LayoutRule]))
+          throw new Error("空间规则尺寸范围倒置");
+      const components = Object.fromEntries(
+        Object.keys(document.entities[site.id]?.components ?? {})
+          .filter((type) => !["layout", "landscape", "flowers", "anchor", "poi", "solid"].includes(type))
+          .map((type) => [type, value(site.id, type)])
       );
-    const rule = {
-      ...configuration.rule,
-      ...authored,
-      pattern: authored.pattern ?? configuration.rule.pattern,
-      roadAccess: true
-    } as LayoutRule;
-    if (!layoutRule(rule.pattern).parameterKeys?.includes("openRadiusM")) rule.openRadiusM = 0;
-    elementProfiles[site.id] = configuration.elementProfile;
-    appearances[site.id] = configuration.presentation as LayoutAppearance;
-    if (configuration.presentation === "rock") territoryOutlines.set(site.id, rockRegions.get(site.id) ?? []);
-    rule.radiusM = layoutExtent(site.center, territoryOutlines.get(site.id) ?? []);
-    const { radiusM: derivedExtent, roadAccess: implicitAccess, spacingM: legacySpacing, ...authoredRule } = rule;
-    planningRegistry.validate("layout", authoredRule);
-    for (const [low, high] of planningRegistry.get("layout").ranges ?? [])
-      if (Number(rule[low as keyof LayoutRule]) > Number(rule[high as keyof LayoutRule]))
-        throw new Error("空间规则尺寸范围倒置");
-    const components = Object.fromEntries(
-      Object.keys(document.entities[site.id]?.components ?? {})
-        .filter((type) => !["layout", "landscape", "flowers", "anchor", "poi", "solid"].includes(type))
-        .map((type) => [type, value(site.id, type)])
-    );
-    const inputSignature = JSON.stringify([
-      "rock-boundaries-removed-v1",
-      layoutInputSignature(site.center, site.id, rule, {}, components),
-      configuration.terrainPlacement
-    ]);
-    const region = territoryOutlines.get(site.id) ?? [];
-    const old = previousGroups.get(site.id);
-    const construction =
-      old?.inputSignature === inputSignature && old.construction
-        ? old.construction
-        : layoutRule(rule.pattern).build({
-            owner: site.id,
-            center: { ...site.center },
-            region: structuredClone(region),
-            parameters: Object.freeze({ ...rule }),
-            components: structuredClone(components),
-            random: layoutRandom(p.seed, site.id, 0, 0, rule.variationSeed)
-          });
-    return {
-      site,
-      rule,
-      inputSignature,
-      components,
-      construction,
-      terrainPlacement: configuration.terrainPlacement,
-      exclusions: configuration.exclusions
-    };
-  });
+      const inputSignature = JSON.stringify([
+        "content-binding-slope-v3",
+        configuration.elementProfile,
+        configuration.presentation,
+        layoutInputSignature(site.center, site.id, rule, {}, components)
+      ]);
+      const region = territoryOutlines.get(site.id) ?? [];
+      const old = previousGroups.get(site.id);
+      const construction =
+        old?.inputSignature === inputSignature && old.construction
+          ? old.construction
+          : layoutRule(rule.pattern).build({
+              owner: site.id,
+              center: { ...site.center },
+              region: structuredClone(region),
+              parameters: Object.freeze({ ...rule }),
+              components: structuredClone(components),
+              random: layoutRandom(p.seed, site.id, 0, 0, rule.variationSeed)
+            });
+      return {
+        site,
+        rule,
+        inputSignature,
+        components,
+        construction,
+        exclusions: configuration.exclusions
+      };
+    });
   const territories = new Map([...territoryOutlines].map(([id, outline]) => [id, createPlanningRingQuery(outline)]));
   const relations = layoutExclusions(
     specifications.map(({ site, rule, exclusions, construction }) => ({
@@ -629,7 +637,7 @@ export function generateSpatialWorld(
   }
   mark("domain");
   progress?.("更新空间体量");
-  for (const { site, rule, inputSignature, components, construction, terrainPlacement } of specifications) {
+  for (const { site, rule, inputSignature, components, construction } of specifications) {
     const old = previousGroups.get(site.id);
     if (
       old?.inputSignature === inputSignature &&
@@ -654,9 +662,7 @@ export function generateSpatialWorld(
       (rock || !!domains.find((d) => d.id === site.domainId)?.query.containsPolygon(outline)) &&
       !riverRings.some((w) => w.overlapsPolygon(outline));
     const clearGeneratedFootprint = (outline: PlanPoint[]) =>
-      clear(outline) &&
-      !templateAreas.some((area) => area.overlapsPolygon(outline)) &&
-      (!terrainPlacement || footprintWithinRelief(outline, relief, terrainPlacement.maxReliefM));
+      clear(outline) && !templateAreas.some((area) => area.overlapsPolygon(outline));
     // Reconstruct the same unedited baseline for cold and incremental generation.
     // Overrides resolve against this baseline, never against edit-history-dependent positions.
     const candidateBounds = bounds(territoryOutlines.get(site.id) ?? []);
@@ -678,6 +684,7 @@ export function generateSpatialWorld(
     );
     groups.push(baseline);
   }
+  yield { candidates: plan.poiDistribution!.candidates, groups, elementProfiles };
   const oldVolumes = new Map(
     (saved?.baselineGroups ?? saved?.groups)?.flatMap((g) => g.volumes.map((v) => [v.id, v] as const))
   );
@@ -741,7 +748,7 @@ export function generateSpatialWorld(
       });
   }
   for (const group of groups)
-    if (group.construction?.limited)
+    if (group.construction?.limited && group.volumes.length < (group.rule.memberMax ?? Infinity))
       checks.push({
         id: `budget:${group.id}`,
         rule: "generation-budget",
@@ -753,6 +760,17 @@ export function generateSpatialWorld(
         limit: group.construction.members.length
       });
   for (const group of groups) {
+    if (group.volumes.length < (group.rule.memberMin ?? 0))
+      checks.push({
+        id: `member-count:${group.id}`,
+        rule: "layout-member-count",
+        owners: [group.id],
+        status: "fail",
+        required: false,
+        message: `期望至少 ${group.rule.memberMin} 个成员，实际生成 ${group.volumes.length} 个；请检查尺寸、实际坡度、陆域和显式互斥，参数未缩小且没有强制填充`,
+        measured: group.volumes.length,
+        limit: group.rule.memberMin
+      });
     if (group.rule.roadMode === "none" || layoutRule(group.rule.pattern).connections !== "tree") continue;
     const reached = new Set(
       group.ports
@@ -929,11 +947,14 @@ export function generateSpatialWorld(
   if (reuseRoads && bridgeInput(recipe) === bridgeInput(previous!.recipe)) {
     // Unchanged authoring reuses the complete publication, including object identity.
     const prior = previous!.plan;
-    plan.routes = prior.routes;
-    plan.roadGraph = prior.roadGraph;
+    plan.routes = prior.spatialLayout?.instanceConnections?.routes ?? prior.routes;
+    plan.roadGraph = prior.spatialLayout?.instanceConnections?.graph ?? prior.roadGraph;
+    plan.roadNetwork = prior.spatialLayout?.instanceConnections?.network ?? prior.roadNetwork;
     plan.bridges = prior.bridges;
     plan.roadApproaches = prior.roadApproaches;
-    const ports = new Map(prior.planning!.ports.map((port) => [port.id, port.position]));
+    const ports = new Map(
+      (prior.spatialLayout?.instanceConnections?.ports ?? prior.planning!.ports).map((port) => [port.id, port.position])
+    );
     plan.planning!.ports = plan.planning!.ports.map((port) => {
       const position = ports.get(port.id);
       return position ? { ...port, position } : port;
@@ -971,7 +992,6 @@ export function generateSpatialWorld(
       });
   }
   ground = createPlanningGroundSampler(plan);
-  checks.push(...auditRoadTermini(plan));
   let roadSupport: ReturnType<typeof bridgeGround> | undefined;
   for (const node of reuseRoads ? [] : (plan.roadGraph?.nodes ?? [])) {
     const port = plan.planning!.ports.find((p) => p.id === node.id);
@@ -980,8 +1000,19 @@ export function generateSpatialWorld(
       port.surfaceId = "ground";
     }
   }
-  checks.push(...finalRoadGradeChecks(plan));
   mark("roads");
+  const automaticRoads = {
+    crossingBaseline: naturalCrossings,
+    signature: roadSignature(),
+    routes: plan.routes,
+    graph: plan.roadGraph,
+    junctions: plan.planning!.ports.filter((p) => p.id.startsWith("road-junction:")),
+    network: plan.roadNetwork
+  };
+  plan.spatialLayout = { ...plan.spatialLayout!, baselineGroups: groups, exclusions: relations };
+  applySpatialStructureEdits(plan, document, ground);
+  checks.push(...auditRoadTermini(plan), ...finalRoadGradeChecks(plan));
+  const publishedGroups = plan.spatialLayout.groups;
   let landscapeBase: LandscapeBasemap | undefined;
   // Water hosts retain road-solving dependencies, but need no ecology or guidance generation.
   if (options.environment !== false) {
@@ -1000,7 +1031,19 @@ export function generateSpatialWorld(
       ground,
       timings
     };
-    const area = updateSpatialEcology(environment, changedVolumes, removedVolumes);
+    const priorVolumes = new Map(
+      previous?.plan.spatialLayout?.groups.flatMap((group) =>
+        group.volumes.map((volume) => [volume.id, volume] as const)
+      )
+    );
+    const finalVolumes = new Map(
+      publishedGroups.flatMap((group) => group.volumes.map((volume) => [volume.id, volume] as const))
+    );
+    const area = updateSpatialEcology(
+      environment,
+      [...finalVolumes.values()].filter((volume) => !sameVolumeFootprint(volume, priorVolumes.get(volume.id))),
+      [...priorVolumes.values()].filter((volume) => !finalVolumes.has(volume.id))
+    );
     const sampling = landscapeSampling(plan, config.landscape);
     if (sampling.limited)
       checks.push({
@@ -1019,8 +1062,8 @@ export function generateSpatialWorld(
   }
   // Spawn belongs to a populated village when one exists; layout order also includes rock POIs.
   const first =
-    groups.find((g) => appearances[g.id] === "building" && g.volumes.length && g.ports.length) ??
-    groups.find((g) => g.ports.length);
+    publishedGroups.find((g) => appearances[g.id] === "building" && g.volumes.length && g.ports.length) ??
+    publishedGroups.find((g) => g.ports.length);
   if (first) {
     const entrance = plan.roadNetwork?.nodes.find(
       (n) => n.poiId === first.id && plan.roadNetwork!.edges.some((e) => e.a === n.id || e.b === n.id)
@@ -1033,26 +1076,19 @@ export function generateSpatialWorld(
   }
   const guidanceIds = new Set(plan.visualGuidance?.flatMap((g) => g.memberIds));
   plan.spatialLayout = {
+    ...plan.spatialLayout,
     worldSignature,
     terrainSignature,
     riverSignature,
     hydrologyInputSignature,
     siteOrigins,
-    groups,
+    groups: publishedGroups,
     baselineGroups: groups,
     baselineGuidanceRocks: plan.rocks.filter((rock) => guidanceIds.has(rock.id)),
     landscapeBase,
     elementProfiles,
-    terrainAssignment,
     exclusions: relations,
-    roads: {
-      crossingBaseline: naturalCrossings,
-      signature: roadSignature(),
-      routes: plan.routes,
-      graph: plan.roadGraph,
-      junctions: plan.planning!.ports.filter((p) => p.id.startsWith("road-junction:")),
-      network: plan.roadNetwork
-    }
+    roads: automaticRoads
   };
   const farmSearchStarted = performance.now();
   const farmSignature = JSON.stringify([
@@ -1078,7 +1114,7 @@ export function generateSpatialWorld(
   const farmResult =
     saved?.farmSearch?.signature === farmSignature
       ? { ...saved.farmSearch.result, planningRevision: document.revision }
-      : preparePlanningFarmLayout(plan, groups, document.revision, p.farming ?? {});
+      : preparePlanningFarmLayout(plan, publishedGroups, document.revision, p.farming ?? {});
   plan.spatialLayout.farmSearch = { signature: farmSignature, result: farmResult };
   plan.farming = farmResult;
   timings["farming.initialSearch"] = performance.now() - farmSearchStarted;
@@ -1137,11 +1173,12 @@ export function generateSpatialWorld(
       });
   }
   const accepted = !checks.some((c) => c.required && c.status === "fail");
-  applySpatialInstanceEdits(
+  applySpatialSceneryEdits(
     plan,
     document,
     cachedPlanningHeightmap(plan)?.sample ?? ((point) => planningGroundSurface(plan).sample(point))
   );
+  checks.push(...(plan.spatialLayout?.instanceConnectionChecks ?? []));
   const changedIds = changedSpatialOutputs(previous?.plan, plan);
   plan.planning!.checks = checks;
   plan.planning!.status = accepted ? "valid" : "invalid";

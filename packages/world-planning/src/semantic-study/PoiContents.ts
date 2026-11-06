@@ -47,8 +47,7 @@ export function poiForElement(plan: IslandPlan, id: string | null): PoiSite | un
   return id ? compositionIndex(plan).owners.get(id) : undefined;
 }
 export function poiContentLabel(plan: IslandPlan, site: PoiSite): string {
-  if (plan.spatialLayout)
-    return `${{ large: "大", medium: "中", small: "小" }[site.tier]}型 POI ${Number(site.id.split("-").at(-1)) + 1}`;
+  if (plan.spatialLayout) return `POI ${(plan.poiDistribution?.sites.indexOf(site) ?? -1) + 1}`;
   return (
     site.memberIds
       .map(

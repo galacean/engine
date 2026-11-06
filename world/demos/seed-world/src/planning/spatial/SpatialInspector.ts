@@ -3,6 +3,7 @@ import { formatSpatialFieldValue } from "./SpatialFieldValue.ts";
 import type { PlanningSession, EditReceipt } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { planningRegistry, PLANNING_COMPONENTS } from "@galacean/engine-world-planning/spatial/PlanningComponents";
 import type { SpatialCommand } from "@galacean/engine-world-planning/spatial/SpatialDocument";
+import { mountPoiSizeEditor, type PoiSizePreviewHost } from "./PoiSizeEditor.ts";
 type InspectorTab = "world" | "ecology" | "roads" | "lighting" | "wayfinding";
 /** Resolve the selected entity only. Parameter bases supply values, never additional edit targets. */
 export function inspectSpatialSelection(session: PlanningSession, id: string, tab?: InspectorTab) {
@@ -27,9 +28,9 @@ export function inspectSpatialSelection(session: PlanningSession, id: string, ta
         ...planningRegistry.get(c.type),
         fields: planningRegistry
           .get(c.type)
-          .fields.filter((field) => {
+          .fields.filter((field) => !field.readonly).filter((field) => {
             const binding = PLANNING_COMPONENTS.find((d) => d.type === c.type)?.global;
-            return own.id !== "world" || !binding || !!binding[field.key] || !!field.readonly;
+            return own.id !== "world" || !binding || !!binding[field.key];
           })
           .filter(
             (f) =>
@@ -44,6 +45,7 @@ export function inspectSpatialSelection(session: PlanningSession, id: string, ta
           )
       }
     }))
+    .filter(group => group.definition.fields.length > 0)
     .sort(
       (a, b) =>
         (PLANNING_COMPONENTS.find((d) => d.type === a.c.type)?.inspectorOrder ?? 100) -
@@ -55,8 +57,10 @@ export function inspectSpatialSelection(session: PlanningSession, id: string, ta
 export function mountSpatialInspector(
   host: HTMLElement,
   session: PlanningSession,
-  commit: (commands: SpatialCommand[]) => Promise<EditReceipt>
+  commit: (commands: SpatialCommand[]) => Promise<EditReceipt>,
+  poiPreview?: PoiSizePreviewHost
 ) {
+  let poiEditor: ReturnType<typeof mountPoiSizeEditor> | undefined;
   const recordEditors = new Map<string, ReturnType<typeof spatialRecordEditor>>();
   let structure = "";
   const inputs = new Map<
@@ -75,6 +79,7 @@ export function mountSpatialInspector(
   return {
     update(id: string | null, tab?: InspectorTab) {
       if (!id) {
+        poiEditor?.dispose(); poiEditor = undefined;
         host.textContent = "在地图或 Hierarchy 中选择对象";
         structure = "";
         return;
@@ -87,6 +92,7 @@ export function mountSpatialInspector(
         groups.map((g) => [g.item.id, g.c.type, g.definition.fields.map((f) => f.key)])
       ]);
       if (key !== structure) {
+        poiEditor?.dispose(); poiEditor = undefined;
         recordEditors.clear();
         for (const d of host.querySelectorAll<HTMLDetailsElement>("details[data-component]"))
           expanded.set(d.dataset.component!, d.open);
@@ -105,6 +111,8 @@ export function mountSpatialInspector(
           name.textContent = own.name;
           host.append(name);
         }
+        if (own.kind === "poi" && poiPreview && (!tab || tab === "world"))
+          poiEditor = mountPoiSizeEditor(host, session, id, commit, poiPreview);
         const categories = new Map<string, HTMLDetailsElement>();
         for (const { item, c, definition } of groups) {
           const group = document.createElement("details"),
@@ -124,6 +132,7 @@ export function mountSpatialInspector(
             group.append(help);
           }
           for (const field of definition.fields) {
+            if (poiEditor && c.type === "poi" && field.key === "sizeWeight") continue;
             if (field.hidden || (item.id !== "world" && field.kinds && !field.kinds.includes(item.kind ?? "")))
               continue;
             const row = document.createElement("label");
@@ -177,7 +186,7 @@ export function mountSpatialInspector(
                 const raw = editors.map((ui) => ui.input.value.trim());
                 const numbers = raw.map((v, i) => Number(v) / (fields[i].unit === "%" ? 100 : 1));
                 const valid = raw.every((v) => v !== "") && numbers.every(Number.isFinite) && numbers[0] <= numbers[1];
-                const message = valid ? "" : "区间尚未生效：请填写下限 ≤ 上限，然后按 Enter 或离开输入框。";
+                const message = valid ? "" : "请填写下限 ≤ 上限";
                 const note = rangeRows.get(rangeKey!)!.querySelector("small")!;
                 note.textContent = message;
                 for (const ui of editors) ui.input.setAttribute("aria-invalid", String(!valid));
@@ -212,7 +221,7 @@ export function mountSpatialInspector(
               };
             } else input.oninput = submit;
             row.append(input);
-            const reset = field.readonly ? undefined : document.createElement("button");
+            const reset = field.readonly || pair ? undefined : document.createElement("button");
             if (reset) {
               reset.type = "button";
               reset.textContent = "恢复默认";
@@ -275,15 +284,28 @@ export function mountSpatialInspector(
               let range = rangeRows.get(rangeKey!);
               if (!range) {
                 range = document.createElement("fieldset");
-                range.style.cssText =
-                  "border:0;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;min-width:0";
-                range.setAttribute("aria-label", field.label.replace(/下限|上限/g, "范围"));
+                range.className = "sp-parameter-range";
+                const title = /下限|上限/.test(field.label)
+                  ? field.label.replace(/下限|上限/g, "范围")
+                  : field.label.replace(/最少|最多/g, "") + "范围";
+                range.setAttribute("aria-label", title);
+                const legend = document.createElement("legend");
+                legend.textContent = title + (field.unit ? `（${field.unit}）` : "");
+                range.append(legend);
                 const note = document.createElement("small");
                 note.setAttribute("role", "status");
-                note.style.cssText = "grid-column:1/-1;padding:0 12px;color:#85502c";
+
                 range.append(note);
                 rangeRows.set(rangeKey!, range);
                 group.append(range);
+              }
+              row.classList.add("sp-range-endpoint");
+              if (field.key === pair[1]) {
+                const separator = document.createElement("span");
+                separator.className = "sp-range-separator";
+                separator.setAttribute("aria-hidden", "true");
+                separator.textContent = "–";
+                range.insertBefore(separator, range.querySelector("small"));
               }
               range.insertBefore(row, range.querySelector("small"));
             } else group.append(row);
@@ -315,6 +337,7 @@ export function mountSpatialInspector(
           } else host.append(group);
         }
       }
+      poiEditor?.update();
       for (const { item, c, definition } of groups)
         for (const field of definition.fields) {
           const key = item.id + ":" + c.type + ":" + field.key;
@@ -342,6 +365,8 @@ export function mountSpatialInspector(
           ui.output.textContent = unset ?? formatSpatialFieldValue(field, value);
           if (ui.reset) ui.reset.hidden = !c.sources[field.key]?.includes(item.id);
         }
-    }
+    },
+    cancelPreview() { poiEditor?.cancelPreview(); },
+    dispose() { poiEditor?.dispose(); poiEditor = undefined; }
   };
 }

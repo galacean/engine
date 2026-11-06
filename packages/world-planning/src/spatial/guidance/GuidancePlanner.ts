@@ -24,8 +24,8 @@ export interface GuidanceAttempt {
 export async function applyGuidanceStudy(session: PlanningSession): Promise<GuidanceAttempt[]> {
   const initial = session.result!.plan,
     links = studyLinks(initial),
-    hill = links.find((l) => l.from.tier === "large");
-  if (!hill) throw new Error("当前布局没有村庄与中型建筑的直接接路关系，不能执行该样本");
+    hill = links.find((l) => l.targetIds.some((id) => initial.buildings.some((building) => building.id === id)));
+  if (!hill) throw new Error("当前布局没有两个房屋组的直接接路关系，不能执行该样本");
   const points = linkPoints(initial, hill),
     start = points[0],
     center = hill.to.center;
@@ -60,7 +60,7 @@ export async function applyGuidanceStudy(session: PlanningSession): Promise<Guid
   const cue = routeCue(initial, points),
     tree = initial.landscapes?.find((p) => p.poiId === cue?.id && p.role === "poi");
   if (tree)
-    await apply("保留小型POI身份，强化途中高树线索", [
+    await apply("保留POI身份，强化途中高树线索", [
       { op: "set", entity: tree.id, component: "solid", values: { height: policy.cueHeightM } }
     ]);
   const sign = settlementRandom(initial.parameters.seed, hill.id + ":shoulder-side") > 0.5 ? 1 : -1;

@@ -1,3 +1,4 @@
+import { planningCandidateCount } from "../PlanningCountRange";
 import type { IslandPlan } from "../../semantic-study/IslandPlanModel";
 import { createPlanningData, type SemanticResult } from "../../semantic-study/WorldPlanningContract";
 import { planWorldDomain } from "../../semantic-study/WorldLandDomain";
@@ -70,8 +71,8 @@ export function generateSpatialLand(plan: IslandPlan, recipe: SemanticResult["re
 export function generateSpatialTerrain(plan: IslandPlan, recipe: SemanticResult["recipe"]): void {
   const p = recipe.parameters;
   const seed = p.landformSeed ?? p.seed;
-  const terrain = { count: 2, directionDegrees: 45, heightM: 50, widthM: 160, lengthM: 600, ...p.terrainSkeleton };
-  const terrainPatches = Array.from({ length: terrain.count }, (_, i) => ({
+  const terrain = { count: 2, directionDegrees: 45, heightM: 10, widthM: 160, lengthM: 600, ...p.terrainSkeleton };
+  const terrainPatches = Array.from({ length: planningCandidateCount(seed, "terrain:count", terrain, 2) }, (_, i) => ({
     id: `terrain-band:${i}`,
     x: 180 + settlementRandom(seed, `band:${i}:x`) * 660,
     z: 180 + settlementRandom(seed, `band:${i}:z`) * 660,

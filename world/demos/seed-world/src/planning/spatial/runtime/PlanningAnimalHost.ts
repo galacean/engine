@@ -244,5 +244,6 @@ export class PlanningAnimalHost implements SeedWorldAnimalService {
     this.advance = undefined;
     this.release();
     await Promise.allSettled([...this.cleanups]);
+    this.interactions.authoring?.dispose();
   }
 }

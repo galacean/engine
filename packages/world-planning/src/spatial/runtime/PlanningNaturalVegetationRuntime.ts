@@ -54,7 +54,11 @@ import {
   resolveSeedWorldSurfaceDetailTransitionHeights,
   resolveSeedWorldTreeTransitionHeights
 } from "../../world/SeedWorldRuntimeLodProfile";
-import { SEED_WORLD_NATURAL_VEGETATION_ASSET_IDS } from "../../runtime/NaturalVegetationLayers.ts";
+import {
+  SEED_WORLD_NATURAL_VEGETATION_ASSET_IDS,
+  NATURAL_VEGETATION_COMPANION_PATCHES
+} from "../../runtime/NaturalVegetationLayers.ts";
+import { companionAnchorReach } from "@galacean/engine-vegetation/world/VegetationCompanionPatches";
 import type {
   LandscapePlantInstance,
   VegetationLandscapePlan
@@ -143,6 +147,7 @@ export class PlanningNaturalVegetationRuntime {
   private materials?: Awaited<ReturnType<typeof loadProceduralPlantMaterialBindings>>;
   private sources: ReadonlyMap<string, Source>[] = [];
   private planner!: PlanningNaturalVegetation;
+  private population!: SeedWorldPopulationPreview;
   plantAssets: readonly PlanningPlantAsset[] = [];
   private readonly trees: Plant[] = [];
   private readonly treePool = new Map<string, Plant>();
@@ -318,6 +323,7 @@ export class PlanningNaturalVegetationRuntime {
         };
       });
       runtime.planner = new PlanningNaturalVegetation(plan, height, fields, population, assets, presentation);
+      runtime.population = population;
       runtime.height = height;
       runtime.plantAssets = assets;
       const editablePlants = planningEditablePlants(plan, height, assets);
@@ -416,16 +422,16 @@ export class PlanningNaturalVegetationRuntime {
 
   /** Project a reveal or explicit instance edit onto resident trees.
    * Retained objects keep their renderers; hidden objects can be revealed again without allocation.
-   * Understory keeps its fixed baseline associations and is not replanned around edited trees.
+   * Associated understory is regenerated only in cells touched by changed anchors.
    */
-  prepareTrees(
+  async prepareTrees(
     plan: IslandPlan,
     signal?: AbortSignal
-  ): {
+  ): Promise<{
     commit(): void;
     discard(): void;
     metrics: { created: number; retained: number; hidden: number; transformed: number };
-  } {
+  }> {
     if (this.disposed) throw new Error("Native vegetation is disposed");
     signal?.throwIfAborted();
     const instances = planningEditablePlants(plan, this.height, this.plantAssets);
@@ -438,6 +444,29 @@ export class PlanningNaturalVegetationRuntime {
       return stagedRoot;
     };
     const created: Plant[] = [];
+    const nextPlanner = new PlanningNaturalVegetation(
+      plan,
+      this.height,
+      this.groundingFields,
+      this.population,
+      this.plantAssets,
+      this.presentation
+    );
+    nextPlanner.setGroundExclusions([...this.groundExclusions.values()].flat());
+    const oldAnchors = new Map(this.planner.anchors.map((anchor) => [anchor.id, anchor]));
+    const newAnchors = new Map(nextPlanner.anchors.map((anchor) => [anchor.id, anchor]));
+    const affected = [...new Set([...oldAnchors.keys(), ...newAnchors.keys()])].flatMap((id) => {
+      const before = oldAnchors.get(id),
+        after = newAnchors.get(id);
+      if (JSON.stringify(before) === JSON.stringify(after)) return [];
+      return [before, after]
+        .filter((anchor) => !!anchor)
+        .map((anchor) => {
+          const reach = companionAnchorReach(anchor.radius, NATURAL_VEGETATION_COMPANION_PATCHES);
+          return { x: anchor.position[0], z: anchor.position[2], reach };
+        });
+    });
+    const replacements = new Map<string, Cell>();
     const updates: {
       plant: Plant;
       instance: LandscapePlantInstance;
@@ -479,6 +508,32 @@ export class PlanningNaturalVegetationRuntime {
                 }))
             : undefined;
         updates.push({ plant, instance, transformed, ground, appearance });
+      }
+      const size = SEED_WORLD_POPULATION_RUNTIME_PROFILE.cellMetres;
+      for (const key of this.cells.keys()) {
+        const [x, z] = key.split("/").map(Number);
+        if (
+          !affected.some(
+            (a) =>
+              a.x + a.reach >= x * size &&
+              a.x - a.reach <= (x + 1) * size &&
+              a.z + a.reach >= z * size &&
+              a.z - a.reach <= (z + 1) * size
+          )
+        )
+          continue;
+        signal?.throwIfAborted();
+        const result = nextPlanner.compileCell(x, z),
+          root = stage().createChild(`Natural cell ${key}`);
+        replacements.set(key, {
+          root,
+          plants: result.instances.map((instance) => this.plant(root, instance, false)),
+          counts: result.diagnostics.layers,
+          populations: result.diagnostics.populations,
+          decorations: result.diagnostics.decorations,
+          visibilityRejected: result.diagnostics.rejected.visibility ?? 0
+        });
+        await new Promise<void>((resolve) => setTimeout(resolve, 0));
       }
       signal?.throwIfAborted();
     } catch (error) {
@@ -527,6 +582,13 @@ export class PlanningNaturalVegetationRuntime {
         this.trees.length = 0;
         for (const { plant } of updates) this.trees.push(plant);
         this.plan = plan;
+        this.planner = nextPlanner;
+        for (const [key, cell] of replacements) {
+          const previous = this.cells.get(key);
+          this.detailRoot.addChild(cell.root);
+          this.cells.set(key, cell);
+          if (previous) destroyTree(previous.root);
+        }
         this.treeRegions = undefined;
         this.foliageColors = undefined;
         this.barkColors = undefined;
@@ -834,6 +896,7 @@ export class PlanningNaturalVegetationRuntime {
       plan: this.plan,
       height: this.height,
       fields: this.groundingFields,
+      population: this.population,
       planner: this.planner,
       trees: [...this.trees],
       pool: new Map(this.treePool),
@@ -950,6 +1013,7 @@ export class PlanningNaturalVegetationRuntime {
       this.plan = previous.plan;
       this.height = previous.height;
       this.groundingFields = previous.fields;
+      this.population = previous.population;
       this.planner = previous.planner;
       resetDiagnostics();
       state = "prepared";
@@ -986,6 +1050,7 @@ export class PlanningNaturalVegetationRuntime {
           this.plan = plan;
           this.height = height;
           this.groundingFields = fields;
+          this.population = population;
           this.planner = nextPlanner;
           resetDiagnostics();
         } catch (error) {

@@ -11,6 +11,7 @@ import {
 import type { AnimalPopulationConfig } from "@galacean/engine-animals/gameplay/animal/AnimalPopulation";
 import type { PlanningComponentDefinition } from "./PlanningComponents";
 import type { PlanningDocument } from "./PlanningDocument";
+import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 import { ComponentRegistry, resolveComponent, type SpatialField } from "./SpatialDocument";
 
 /** Lightweight registration metadata; inspecting configuration never imports GLBs or animation runtimes. */
@@ -36,7 +37,8 @@ export const SEED_ANIMAL_SPECIES = [...new Set(animalTypes.map((t) => t.speciesI
 const count = (key: string, label: string, value: number, unit: string): SpatialField => ({
   key,
   label,
-  description: "按 seed 确定性抽样；最少 ≤ 最多。启用物种最少为 1，0/0 排除该物种；未抽中物种不会请求模型。",
+  description:
+    "按 seed 确定性抽样；最少 ≤ 最多，允许 0～N；0/0 排除该物种。仅指导初始化，运行时新增不受此数量范围限制。",
   type: "number",
   unit,
   integer: true,
@@ -56,6 +58,23 @@ const number = (key: string, label: string, value: number, description: string, 
 });
 const defaultCounts: Readonly<Record<string, { min: number; max: number }>> = populationDefaults;
 
+/** Animal initialization and explicit-addition guidance for the public parameter tools. */
+export const ANIMAL_POPULATION_DECLARATION: PlanningSystemDeclaration = {
+  id: "animals",
+  title: "Animal population and explicit additions",
+  knowledgePath: "spatial/README.md",
+  components: [
+    {
+      type: "animals",
+      domain: "composition",
+      knowledge: [
+        "Animal species and count ranges guide initialization only. Zero-to-positive ranges are valid; set birdCount.min and birdCount.max to 0 for no birds. For a lifeless world such as Mars, set species.min/species.max and birdCount.min/birdCount.max to 0 and fireflies.enabled:false; fireflies are an independent population. Keep enabled:true when later runtime additions should remain available; enabled:false disables the animal system itself. Submit both endpoints together when necessary to keep min <= max. Defaults are not mandatory minimums. Candidate scarcity or an unmet minimumEatingAnimals preference never rejects otherwise valid initialization parameters.",
+        "Use world.animals.catalog to discover registered content and world.animals.spawn to explicitly add an animal. Initialization species selection and count ranges never cap these additions. A successful spawn saves stable identity, appearance and birth pose to the current project's database, isolated by seed; refresh and population rebuild restore it. Autonomous movement and animation clocks are not saved as author edits. Reusing the same requestId and input is idempotent across refresh. These additions do not participate in editor.history.undo. An accepted receipt confirms storage, not completion of asynchronous model loading; inspect the returned identity for loading status."
+      ]
+    }
+  ]
+};
+
 /** Whole-map population intent. Counts and density are evaluated only during initialization/publication. */
 export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
   type: "animals",
@@ -66,6 +85,13 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
   runtime: true,
   strict: true,
   kinds: ["world"],
+  ranges: [
+    ["species.min", "species.max"],
+    ["birdCount.min", "birdCount.max"],
+    ...SEED_ANIMAL_SPECIES.filter((s) => !s.canFly).map(
+      (s) => [`species.${s.speciesId}.min`, `species.${s.speciesId}.max`] as [string, string]
+    )
+  ],
   fields: [
     { key: "enabled", label: "启用动物", type: "boolean", default: true, combine: "override" },
     { key: "fireflies.enabled", label: "夏夜萤火虫", type: "boolean", default: true, combine: "override" },
@@ -100,8 +126,7 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
     })),
     {
       ...count("minimumEatingAnimals", "可进食动物最少数量", 2, "只"),
-      description:
-        "在物种数量及各物种数量范围内保留具有真实进食动画的可进食模型；0 关闭保底。禁用动物或物种总数为0时不生成。"
+      description: "在物种数量及各物种数量范围内优先选择具有真实进食动画的模型；条件不足时保留可实现数量，0 关闭偏好。"
     },
     count("species.min", "最少物种数", 14, "种"),
     count("species.max", "最多物种数", 20, "种"),
@@ -194,37 +219,8 @@ export const ANIMAL_POPULATION_COMPONENT: PlanningComponentDefinition = {
       for (const value of [min, max])
         if (value !== undefined && (!Number.isSafeInteger(value) || Number(value) < 0))
           throw new Error(`${prefix} 数量必须为非负整数`);
-      if (prefix !== "species" && min === 0 && Number(max) > 0)
-        throw new Error("启用物种的最少数量须为 1；0/0 用于排除物种");
       if (min !== undefined && max !== undefined && Number(min) > Number(max))
         throw new Error(`${prefix} 最少数量不得超过最多数量`);
-    }
-    if (Number(values["birdCount.min"]) < 1) throw new Error("可飞行动物最少总数须为 1 或以上");
-    if (
-      values.enabled !== false &&
-      Number(values["species.max"]) > 0 &&
-      Number(values.minimumEatingAnimals) > 0 &&
-      SEED_ANIMAL_SPECIES.every((s) => s.canFly || values[`species.${s.speciesId}.max`] !== undefined)
-    ) {
-      const capacity = SEED_ANIMAL_SPECIES.filter((s) => s.eatingTypeIds.length && !s.canFly)
-        .map((s) => Number(values[`species.${s.speciesId}.max`]))
-        .sort((a, b) => b - a)
-        .slice(0, Math.max(0, Number(values["species.min"]) - 1))
-        .reduce((sum, count) => sum + count, 0);
-      if (capacity < Number(values.minimumEatingAnimals))
-        throw new Error(
-          "物种数量或已启用进食物种的数量上限不足以满足可进食动物保底；请调整数量或将minimumEatingAnimals设为0"
-        );
-    }
-    // Requesting more species than the enabled pool is a configuration error, never silent truncation.
-    if (
-      values["species.max"] !== undefined &&
-      SEED_ANIMAL_SPECIES.every((s) => s.canFly || values[`species.${s.speciesId}.max`] !== undefined)
-    ) {
-      const available =
-        SEED_ANIMAL_SPECIES.filter((s) => !s.canFly && Number(values[`species.${s.speciesId}.max`]) > 0).length +
-        Math.min(SEED_ANIMAL_SPECIES.filter((s) => s.canFly).length, Number(values["birdCount.min"] ?? 10));
-      if (Number(values["species.max"]) > available) throw new Error(`最多物种数不能超过候选池 ${available} 种`);
     }
   }
 };
@@ -265,11 +261,11 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     Math.floor(sample(key) * (Number(values[`${prefix}.max`]) - Number(values[`${prefix}.min`]) + 1));
   const totalSpecies = integer("species", "count");
   const birdTotal = integer("birdCount", "bird-count");
-  const ranked = SEED_ANIMAL_SPECIES.filter((s) => s.canFly || Number(values[`species.${s.speciesId}.max`]) > 0).sort(
-    (a, b) => sample(a.speciesId) - sample(b.speciesId) || a.speciesId.localeCompare(b.speciesId)
-  );
-  const flying = ranked.find((s) => s.flyingTypeIds.length)!;
-  const selected = totalSpecies ? [flying] : [];
+  const ranked = SEED_ANIMAL_SPECIES.filter((s) =>
+    s.canFly ? birdTotal > 0 : Number(values[`species.${s.speciesId}.max`]) > 0
+  ).sort((a, b) => sample(a.speciesId) - sample(b.speciesId) || a.speciesId.localeCompare(b.speciesId));
+  const flying = ranked.find((s) => s.flyingTypeIds.length);
+  const selected = totalSpecies && flying ? [flying] : [];
   const requiredFeeders = new Map<string, number>();
   let unallocatedFeeders = totalSpecies && values.enabled !== false ? Number(values.minimumEatingAnimals) : 0;
   const feederCandidates = ranked
@@ -282,15 +278,12 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
     requiredFeeders.set(species.speciesId, count);
     unallocatedFeeders -= count;
   }
-  if (unallocatedFeeders > 0) throw new Error("动物配置无法在当前物种及数量范围内满足可进食动物保底");
   for (const species of ranked) {
     if (selected.length >= totalSpecies) break;
     if (selected.includes(species) || (species.canFly && selected.filter((s) => s.canFly).length >= birdTotal))
       continue;
     selected.push(species);
   }
-  if (selected.length !== totalSpecies)
-    throw new Error("可飞行动物总数不足以覆盖请求的物种数，请增加可飞行动物总数或减少物种数");
   const birdSpecies = selected.filter((s) => s.canFly);
   const allocations = new Map(
     selected.map((s) => [
@@ -300,7 +293,7 @@ export function readAnimalPopulationConfig(document: PlanningDocument): AnimalPo
         : Math.max(requiredFeeders.get(s.speciesId) ?? 0, integer(`species.${s.speciesId}`, `count:${s.speciesId}`))
     ])
   );
-  for (let i = birdSpecies.length; totalSpecies && i < birdTotal; i++) {
+  for (let i = birdSpecies.length; birdSpecies.length && i < birdTotal; i++) {
     const s = birdSpecies[Math.floor(sample(`bird:${i}`) * birdSpecies.length)];
     allocations.set(s.speciesId, allocations.get(s.speciesId)! + 1);
   }

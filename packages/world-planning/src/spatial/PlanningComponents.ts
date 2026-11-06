@@ -18,6 +18,7 @@ import { ROCK_GENERATION_COMPONENT } from "../integrations/terrain/rock-formatio
 import { RELIEF_COMPONENT } from "./terrain/ReliefComponent";
 import { INTEGRATED_WORLD_POST_PROCESS_PROFILE as POST } from "@galacean/engine-terrain/terrain/project/IntegratedWorldPostProcessPreset";
 import poiLayoutDefaults from "../planning-data/poi-layout.json";
+import layoutProfile from "./layout/space-rules.json";
 import roadProfile from "../planning-data/units/road.json";
 import { ComponentRegistry, type ComponentDefinition, type SpatialField } from "./SpatialDocument";
 import { SUBJECT_VIEW_COMPONENT } from "./PlanningSubjectView";
@@ -116,7 +117,14 @@ const riverFields: SpatialField[] = [
     ]
   },
   { key: "enabled", label: "生成此河流", type: "boolean", default: true, kinds: ["water"], combine: "override" },
-  number("count", "河流数量", { unit: "个", min: 0, default: RIVER_DEFAULTS.count, kinds: ["world"] }),
+  number("countMin", "河流数量下限", {
+    description: "按 Seed 在范围内采样候选数；空间不足时允许少于下限，不补造。",
+    unit: "个",
+    min: 0,
+    default: RIVER_DEFAULTS.count,
+    kinds: ["world"]
+  }),
+  number("countMax", "河流数量上限", { unit: "个", min: 0, default: RIVER_DEFAULTS.count, kinds: ["world"] }),
   {
     key: "automaticLevel",
     label: "按地形生成逐段高程",
@@ -166,7 +174,14 @@ const lakeFields: SpatialField[] = [
       { key: "z", label: "Z", type: "number", default: 0 }
     ]
   },
-  number("count", "湖泊数量", { unit: "个", min: 0, default: LAKE_DEFAULTS.count, kinds: ["world"] }),
+  number("countMin", "湖泊数量下限", {
+    description: "按 Seed 在范围内采样候选数；空间不足时允许少于下限，不补造。",
+    unit: "个",
+    min: 0,
+    default: LAKE_DEFAULTS.count,
+    kinds: ["world"]
+  }),
+  number("countMax", "湖泊数量上限", { unit: "个", min: 0, default: LAKE_DEFAULTS.count, kinds: ["world"] }),
   number("radiusM", "湖区半径", { unit: "m", min: 0.5, default: LAKE_DEFAULTS.radiusM }),
   number("depthM", "湖盆目标深度", { unit: "m", min: 0.01, default: LAKE_DEFAULTS.depthM }),
   number("bankWidthM", "岸外过渡宽度", { unit: "m", min: 0.05, default: LAKE_DEFAULTS.bankWidthM }),
@@ -395,37 +410,25 @@ const globals = [
   number("offshoreCoverage", "离岸陆地占比", { unit: "%", step: 0.01, min: 0, max: 1 }),
   number("islandRichness", "离岸岛丰富度", { unit: "%", step: 0.01, min: 0, max: 1 })
 ];
-const poiTiers = ["large", "medium", "small"] as const;
-const spacing = poiTiers.map((tier, i) =>
-  number(tier + ".minM", ["大型", "中型", "小型"][i] + " POI 最小中心间距", {
+const distributionFields = [
+  number("spacingM", "POI 基准间距", {
     unit: "m",
     step: 1,
+    min: 8,
+    default: 210,
+    description:
+      "控制初始布点密度及自动补入的面积基准，参考面积为间距的平方。实际数量还受陆地形状、单点权重和最小面积影响；这不是两个锚点之间的硬性最小距离。"
+  }),
+  number("minAreaM2", "活跃区域最小面积", {
+    unit: "㎡",
+    step: 1,
     min: 0,
-    default: poiLayoutDefaults.spacing[tier].minM,
-    description:
-      [
-        "大型先布点：仅控制大型之间的中心距离；不排斥后续中小型进入附近。",
-        "中型随后填空：与已有大型及中型的中心距离至少为此值，使用中型自己的间距。",
-        "小型最后填空：与已有大型、中型及小型的中心距离至少为此值，使用小型自己的间距。"
-      ][i] + "最远候选也不满足时结束，不随机重试；区域边界可以相邻；0表示不设置中心间距下限，仍使用有限候选和点数预算。"
-  })
-);
-const areaWeights = poiTiers.map((tier, i) =>
-  number("areaWeight." + tier, ["大型", "中型", "小型"][i] + " POI 区域面积权重", {
-    unit: "",
-    step: 0.1,
-    min: 0.001,
-    default: poiLayoutDefaults.territoryWeights[tier],
-    description:
-      "与其他等级共同决定边界：1没有固定平方米含义；全部为1时按最近锚点分区，全部同比放大不改变边界。提高某一级的相对权重偏向扩张该级管理区，但面积不严格按权重比例分配。只改变边界及依赖内容，不移动锚点或缩放成员。"
-  })
-);
-const distributionFields = poiTiers.flatMap((tier, i) => [
-  spacing[i],
-  areaWeights[i],
-  number(tier + ".count", ["大型", "中型", "小型"][i] + " POI 实际数量", { unit: "个", readonly: true }),
-  number(tier + ".averageAreaM2", ["大型", "中型", "小型"][i] + " POI 平均管理面积", { unit: "㎡", readonly: true })
-]);
+    default: 0,
+    description: "小于此实际陆域面积的候选休眠，保留身份和作者参数；后续变化可重新激活。0 不另设面积门槛。"
+  }),
+  number("count", "实际 POI 数量", { unit: "个", readonly: true }),
+  number("averageAreaM2", "平均管理面积", { unit: "㎡", readonly: true })
+];
 const network = [
   number("widthM", "全局道路宽度", { unit: "m", step: 0.5, min: 0.001 }),
   number("bend", "全局道路弯曲", { unit: "%", step: 0.01, min: 0, max: 1 }),
@@ -457,6 +460,30 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       })
     ],
     global: { id: "worldTemplate.id", centerX: "worldTemplate.centerX", centerZ: "worldTemplate.centerZ" }
+  },
+  {
+    type: "population",
+    label: "村庄规划",
+    description: "按数量范围规划，实际结果取决于可用空间与布局；不强制补足，不限制手动新增建筑。",
+    version: 2,
+    tab: "world",
+    inspectorOrder: 9,
+    fields: [
+      number("villageMin", "村庄数量下限", { unit: "个", min: 0, default: 1, kinds: ["world"] }),
+      number("villageMax", "村庄数量上限", { unit: "个", min: 0, default: 10, kinds: ["world"] }),
+      number("buildingMin", "建筑数量下限", { unit: "个", min: 0, default: 0, kinds: ["world"] }),
+      number("buildingMax", "建筑数量上限", { unit: "个", min: 0, default: 20, kinds: ["world"] })
+    ],
+    ranges: [
+      ["villageMin", "villageMax"],
+      ["buildingMin", "buildingMax"]
+    ],
+    global: {
+      villageMin: "population.villageMin",
+      villageMax: "population.villageMax",
+      buildingMin: "population.buildingMin",
+      buildingMax: "population.buildingMax"
+    }
   },
   ROCK_GENERATION_COMPONENT,
   ROCK_FORMATION_COMPONENT,
@@ -502,18 +529,28 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     type: "layout",
     inspectorOrder: 10,
     label: "POI 内部布局",
-    description:
-      "按 POI 区域、组织、尺寸和间距生成独立 OBB，数量仅显示结果。空间形状、道路模式与上层表现绑定相互独立；不提供素材类型、断裂或表面编辑。",
-    version: 2,
+    description: "按区域用途、组织、尺寸和间距生成 OBB。",
+    version: 3,
+    sparseGlobal: true,
     tab: "world",
     kinds: ["poi"],
     fields: [
+      {
+        key: "elementProfile",
+        label: "区域用途",
+        type: "string",
+        options: Object.keys(layoutProfile.elementProfiles),
+        optionLabels: Object.fromEntries(
+          Object.entries(layoutProfile.elementProfiles).map(([id, profile]) => [id, profile.label])
+        ),
+        description: "建筑、岩体等用途独立于 POI 权重和空间组织。"
+      },
       {
         key: "pattern",
         label: "空间组织",
         type: "string",
         description:
-          "只改变 OBB 的空间组织；connected 支持分支展开和曲线两侧排列，courtyard 围绕中心留白。道路模式、尺寸和上层表现绑定不随组织切换。",
+          "只改变 OBB 的空间组织；connected 支持分支展开和曲线两侧排列，courtyard 围绕中心留白。数量范围、尺寸和用途独立配置；OBB 内部内容由上层定义。",
         options: layoutRuleManifest().map((r) => r.id),
         optionLabels: Object.fromEntries(layoutRuleManifest().map((r) => [r.id, r.label]))
       },
@@ -521,17 +558,32 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
         unit: "个",
         readonly: true,
         kinds: ["poi"],
-        description: "由所属区域、空间组织、体量尺寸和间距生成，只显示实际结果。"
+        description: "数量范围、所属区域、空间组织、尺寸与间距共同决定的实际生成结果，只读。"
+      }),
+      number("memberMin", "成员数量下限", {
+        unit: "个",
+        step: 1,
+        min: 0,
+        default: 0,
+        description: "自动布局的期望下限；空间、坡度或互斥不允许时只报告不足，不强制填充。"
+      }),
+      number("memberMax", "成员数量上限", {
+        unit: "个",
+        step: 1,
+        min: 0,
+        description: "自动布局接受的成员上限；未设置时由空间决定。仅影响规划生成，不限制运行时手动新增。"
       }),
       number("spacingMinM", "沿排列间距下限", {
         unit: "m",
         step: 0.1,
+        hiddenWhen: { field: "pattern", values: ["region"] },
         description:
           "沿排列方向的 OBB 目标间距；曲线仅控制同侧，环形沿圆周排列。正值留空，负值允许搭接，仍遵守上层显式互斥关系。"
       }),
       number("spacingMaxM", "沿排列间距上限", {
         unit: "m",
         step: 0.1,
+        hiddenWhen: { field: "pattern", values: ["region"] },
         description: "与下限共同决定相邻 OBB 的稳定随机间距，不是所有成员两两距离的上界。"
       }),
       number("widthMinM", "体量宽度下限", { unit: "m", step: 0.1, min: 0.001 }),
@@ -551,7 +603,19 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
         min: 0,
         description: "从基础排列向外增加 0～该值的径向错落，中心留白保持。"
       }),
-      number("orientationVariation", "朝向变化", { unit: "%", step: 0.01, min: 0, max: 1 }),
+      number("orientationVariation", "朝向变化", {
+        unit: "%",
+        step: 0.01,
+        min: 0,
+        max: 1,
+        hiddenWhen: { field: "pattern", values: ["region"] }
+      }),
+      number("headingDegrees", "元素朝向", {
+        unit: "°",
+        step: 1,
+        default: 0,
+        description: "元素宽轴方向；分支或围绕中心布局相对世界 X 轴，曲线布局相对当地切线，朝向变化在此基础上扰动。"
+      }),
       number("maxGroundSlopeDegrees", "占地坡度上限", { unit: "°", step: 1, min: 0, max: 90 }),
       number("pathWidthM", "内部通道宽度", {
         unit: "m",
@@ -593,6 +657,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       })
     ],
     ranges: [
+      ["memberMin", "memberMax"],
       ["spacingMinM", "spacingMaxM"],
       ["widthMinM", "widthMaxM"],
       ["depthMinM", "depthMaxM"],
@@ -615,7 +680,8 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     local: prefixPaths(
       lakeFields.filter((f) => !f.kinds || f.kinds.includes("lake")),
       "lakes."
-    )
+    ),
+    ranges: [["countMin", "countMax"]]
   },
   {
     type: "rivers",
@@ -635,6 +701,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
       "rivers."
     ),
     ranges: [
+      ["countMin", "countMax"],
       ["widthMinM", "widthMaxM"],
       ["depthMinM", "depthMaxM"]
     ]
@@ -656,20 +723,29 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
         description:
           "可选的海岸、底层起伏及隆起位置随机源；未设置时跟随世界 Seed。风格模板固定此值，仅在作者参数范围内微调地貌。"
       }),
-      number("count", "隆起带数量", { unit: "个", step: 1, min: 0, default: 2 }),
+      number("countMin", "隆起带数量下限", {
+        description: "按地貌 Seed 在范围内确定性采样隆起带数量。",
+        unit: "个",
+        step: 1,
+        min: 0,
+        default: 2
+      }),
+      number("countMax", "隆起带数量上限", { unit: "个", step: 1, min: 0, default: 2 }),
       number("directionDegrees", "主方向", { unit: "°", step: 1, min: 0, default: 45 }),
       number("lengthM", "隆起带长度", { unit: "m", step: 1, min: 0.001, default: 600 }),
-      number("heightM", "抬升高度", { unit: "m", step: 1, min: 0, default: 50 }),
+      number("heightM", "抬升高度", { unit: "m", step: 1, min: 0, default: 10 }),
       number("widthM", "两侧过渡宽度", { unit: "m", step: 1, min: 0.001, default: 160 })
     ],
     global: {
       baseSeed: "landformSeed",
-      count: "terrainSkeleton.count",
+      countMin: "terrainSkeleton.countMin",
+      countMax: "terrainSkeleton.countMax",
       directionDegrees: "terrainSkeleton.directionDegrees",
       lengthM: "terrainSkeleton.lengthM",
       heightM: "terrainSkeleton.heightM",
       widthM: "terrainSkeleton.widthM"
-    }
+    },
+    ranges: [["countMin", "countMax"]]
   },
 
   {
@@ -770,8 +846,8 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     tab: "world",
     fields: distributionFields,
     global: {
-      ...prefixPaths(spacing, "poiLayout.spacing."),
-      ...Object.fromEntries(poiTiers.map((tier) => ["areaWeight." + tier, "poiLayout.territoryWeights." + tier]))
+      spacingM: "poiLayout.spacingM",
+      minAreaM2: "poiLayout.minAreaM2"
     }
   },
 
@@ -824,6 +900,38 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
   },
 
   {
+    type: "roadPath",
+    label: "道路必经点",
+    description:
+      "按记录顺序经过中间点，坐标单位为米；起终点跟随真实入口。空数组或 reset 恢复自动路径。无可行路径时保留参数并报告，不移动必经点或强制移动体量，不自动创建新桥。",
+    version: 1,
+    tab: "roads",
+    kinds: ["route", "globalRoute"],
+    strict: true,
+    fields: [
+      {
+        key: "keypoints",
+        label: "中间必经点",
+        type: "records",
+        combine: "override",
+        columns: [
+          { key: "x", label: "X（米）", type: "number", default: 0 },
+          { key: "z", label: "Z（米）", type: "number", default: 0 }
+        ]
+      }
+    ],
+    local: { keypoints: "road.keypoints" },
+    validate: (values) => {
+      if (
+        values.keypoints !== undefined &&
+        (!Array.isArray(values.keypoints) ||
+          values.keypoints.some((point) => !Number.isFinite(point?.x) || !Number.isFinite(point?.z)))
+      )
+        throw new Error("道路必经点需要有限数值 x、z");
+    }
+  },
+
+  {
     type: "flowers",
     label: "花区分布与花型出现权重",
     description:
@@ -859,6 +967,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     version: 1,
     tab: "ecology",
     kinds: ["volume", "route", "globalRoute"],
+    ranges: [["treeHeightMinM", "treeHeightMaxM"]],
     fieldLimits: (values) => ({
       treeHeightMinM: values.treeHeightMaxM === undefined ? {} : { max: Number(values.treeHeightMaxM) },
       treeHeightMaxM: { min: Number(values.treeHeightMinM ?? 0.001) }
@@ -940,20 +1049,7 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
     scopePresentation: {
       world: {
         label: "自然植被与景观 · 全局默认",
-        description: "设置各类植被密度和生长条件。下方按地点分组的配置默认沿用这里。"
-      },
-      "policy:large": {
-        label: "大型地点周边植被",
-        description:
-          "应用于大型地点的周边区域。未修改的项沿用全局配置；单个地点可以继续覆盖。大中小指地点等级，与植物大小无关。"
-      },
-      "policy:medium": {
-        label: "中型地点周边植被",
-        description: "应用于中型地点的周边区域。未修改的项沿用全局配置；单个地点可以继续覆盖。"
-      },
-      "policy:small": {
-        label: "小型地点周边植被",
-        description: "应用于小型地点的周边区域。未修改的项沿用全局配置；单个地点可以继续覆盖。"
+        description: "设置各类植被密度和生长条件。单个地点的未覆盖项默认沿用这里。"
       }
     },
     version: 1,
@@ -1042,32 +1138,53 @@ export const PLANNING_COMPONENTS: PlanningComponentDefinition[] = [
   {
     type: "anchor",
     inspectorOrder: 20,
-    label: "空间位置",
+    label: "POI 位置",
     version: 1,
     tab: "world",
     fields: [
-      number("x", "X 位置", { unit: "m", step: 0.5, min: 0 }),
-      number("z", "Z 位置", { unit: "m", step: 0.5, min: 0 })
+      number("x", "X 位置", {
+        unit: "m",
+        step: 0.5,
+        min: 0,
+        description: "未覆盖时显示候选起点；显式设置任一坐标会固定此 POI 的位置，重置坐标覆盖后恢复自动求解。"
+      }),
+      number("z", "Z 位置", {
+        unit: "m",
+        step: 0.5,
+        min: 0,
+        description: "未覆盖时显示候选起点；显式设置任一坐标会固定此 POI 的位置，重置坐标覆盖后恢复自动求解。"
+      })
     ],
     kinds: ["poi"]
   },
   {
     type: "poi",
-    legacy: true,
     inspectorOrder: 30,
     label: "兴趣点",
     version: 1,
     tab: "world",
     kinds: ["poi"],
+    local: { sizeWeight: "poi.sizeWeight" },
     fields: [
       {
-        key: "tier",
-        label: "POI 级别",
-        type: "string",
-        options: ["large", "medium", "small"],
-        optionLabels: { large: "大型", medium: "中型", small: "小型" },
-        description: "决定初始空间规则分布及景观基础配置；已设置的局部参数继续保留。"
-      }
+        key: "active",
+        label: "当前活跃",
+        type: "boolean",
+        readonly: true,
+        description: "是否拥有有效管理区域；休眠候选仍保留稳定身份和作者参数，可通过后续编辑恢复。"
+      },
+      number("sizeWeight", "区域大小权重", {
+        min: 0.001,
+        step: 0.05,
+        default: 1,
+        description:
+          "仅调整此 POI 的管理区大小偏好：1 使用统一默认，增大向外扩张、减小收缩；不是面积或建筑尺寸倍数，会重新求解锚点和轮廓。邻接区域会让出或获得空间，允许管理区缩至零面积；POI 身份和作者参数保留，可再次调整权重恢复区域。只预览分区时不重建世界，提交后更新依赖布局。"
+      }),
+      number("actualAreaM2", "实际管理面积", {
+        unit: "㎡",
+        readonly: true,
+        description: "当前已接受分区与陆域相交后的面积；由权重和邻居共同决定，不是建筑占地面积。"
+      })
     ]
   },
   {
@@ -1115,6 +1232,13 @@ function declarePlanningEditEffects(definition: PlanningComponentDefinition): vo
   if (definition.presentation || definition.type === "solid") return;
   for (const field of definition.fields) field.editEffect ??= "replan";
 }
+const layoutDefaultsDefinition = PLANNING_COMPONENTS.find((definition) => definition.type === "layout")!;
+layoutDefaultsDefinition.global = Object.fromEntries(
+  layoutDefaultsDefinition.fields
+    .filter((field) => !field.readonly)
+    .map((field) => [field.key, "poiLayout.layoutDefaults." + field.key])
+);
+
 for (const definition of PLANNING_COMPONENTS) {
   declarePlanningEditEffects(definition);
   planningRegistry.register(definition);
@@ -1142,6 +1266,7 @@ export function refreshLayoutRuleChoices(): void {
   field.options = rules.map((r) => r.id);
   field.optionLabels = Object.fromEntries(rules.map((r) => [r.id, r.label]));
   for (const key of [
+    "headingDegrees",
     "pathWidthM",
     "roadMode",
     "openRadiusM",

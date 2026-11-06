@@ -5,119 +5,12 @@
     "radialVariationM": 4,
     "curveVariationScaleM": 80
   },
-  "tiers": {
-    "large": {
-      "width": [8, 12],
-      "depth": [8, 12],
-      "height": [8, 24],
-      "rules": [
-        {
-          "id": "connected",
-          "weight": 0.42,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.18,
-          "elementProfile": "outcrop",
-          "roadMode": "none",
-          "branchShape": "radial"
-        },
-        {
-          "id": "courtyard",
-          "weight": 0,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.4,
-          "elementProfile": "outcrop",
-          "branchShape": "curve",
-          "roadMode": "backbone"
-        }
-      ],
-      "roadAccess": true,
-      "spacingM": [36, 60]
-    },
-    "medium": {
-      "width": [7, 14],
-      "depth": [7, 16],
-      "height": [12, 30],
-      "rules": [
-        {
-          "id": "connected",
-          "weight": 0.15,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.45,
-          "elementProfile": "outcrop",
-          "roadMode": "none",
-          "branchShape": "radial"
-        },
-        {
-          "id": "courtyard",
-          "weight": 0,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.4,
-          "elementProfile": "outcrop",
-          "branchShape": "curve",
-          "roadMode": "backbone"
-        }
-      ],
-      "roadAccess": true,
-      "spacingM": [30, 50]
-    },
-    "small": {
-      "width": [2, 6],
-      "depth": [2, 6],
-      "height": [1, 4],
-      "rules": [
-        {
-          "id": "connected",
-          "weight": 0,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.6,
-          "elementProfile": "outcrop",
-          "roadMode": "none",
-          "branchShape": "radial"
-        },
-        {
-          "id": "courtyard",
-          "weight": 0,
-          "elementProfile": "habitable",
-          "roadMode": "members"
-        },
-        {
-          "id": "connected",
-          "weight": 0.4,
-          "elementProfile": "outcrop",
-          "branchShape": "curve",
-          "roadMode": "backbone"
-        }
-      ],
-      "roadAccess": true,
-      "spacingM": [30, 55]
-    }
-  },
   "initial": {
     "terrain": {
       "count": [2, 3],
       "directionDegrees": [0, 180],
       "lengthM": [600, 600],
-      "heightM": [30, 70],
+      "heightM": [8, 12],
       "widthM": [120, 220]
     },
     "landscape": {
@@ -138,11 +31,11 @@
   },
   "elementProfiles": {
     "habitable": {
-      "version": 3,
+      "version": 4,
       "label": "建筑体量",
       "presentation": "building",
       "maxGroundSlopeDegrees": 12,
-      "terrainPlacement": { "maxReliefM": 1 },
+      "spacingM": [4, 8],
       "width": [8, 12],
       "depth": [8, 12],
       "height": [4, 8],
@@ -159,18 +52,6 @@
       "width": [64, 112],
       "depth": [36, 72],
       "height": [12, 48],
-      "tiers": {
-        "large": {
-          "width": [90, 160],
-          "depth": [50, 100],
-          "height": [32, 120]
-        },
-        "small": {
-          "width": [42, 80],
-          "depth": [24, 44],
-          "height": [4, 16]
-        }
-      },
       "exclusions": {
         "group": "overlap",
         "against": ["solid"]
@@ -193,5 +74,40 @@
     "gapM": [10, 16],
     "lateralM": [12, 32],
     "orientationVariation": [0.1, 0.3]
+  },
+  "defaults": {
+    "width": [8, 12],
+    "depth": [8, 12],
+    "height": [8, 24],
+    "rules": [
+      {
+        "id": "connected",
+        "weight": 0.42,
+        "elementProfile": "habitable",
+        "roadMode": "members"
+      },
+      {
+        "id": "connected",
+        "weight": 0.18,
+        "elementProfile": "outcrop",
+        "roadMode": "none",
+        "branchShape": "radial"
+      },
+      {
+        "id": "courtyard",
+        "weight": 0,
+        "elementProfile": "habitable",
+        "roadMode": "members"
+      },
+      {
+        "id": "connected",
+        "weight": 0.4,
+        "elementProfile": "outcrop",
+        "branchShape": "curve",
+        "roadMode": "backbone"
+      }
+    ],
+    "roadAccess": true,
+    "spacingM": [36, 60]
   }
 }

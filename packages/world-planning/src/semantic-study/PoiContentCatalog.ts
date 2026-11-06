@@ -1,6 +1,6 @@
 import { naturalTreeDimensions } from "../planning-data/NaturalVegetationProfile";
 import type { IslandPlan, PlanLandscape, PlanRock, PlanPoint } from "./IslandPlanModel";
-import type { PoiSite, PoiTier } from "./PoiDistribution";
+import type { PoiSite } from "./PoiDistribution";
 import type { PlanningModule, SemanticEdit } from "./WorldPlanningContract";
 import { composeRockGroup } from "../landforms/RockComposition";
 import { ROCK_ATOMS, type AtomKind } from "../landforms/RockAtoms";
@@ -13,7 +13,6 @@ export interface PoiContentRecipe {
   id: string;
   label: string;
   algorithm: string;
-  tiers: string[];
   weight: number;
   parameters: Record<string, unknown>;
 }
@@ -66,7 +65,7 @@ export function contentAlgorithm(id: string): PoiContentAlgorithm {
 /** Stable weighted race: recipe array order has no effect, and adding a variant does not reseed other geometry. */
 export function rankedPoiRecipes(config: PoiPopulationConfig, seed: number, site: PoiSite): PoiContentRecipe[] {
   return config.recipes
-    .filter((r) => r.tiers.includes(site.tier) && r.weight > 0)
+    .filter((r) => r.weight > 0)
     .sort((a, b) => {
       const score = (r: PoiContentRecipe) =>
         -Math.log(Math.max(1e-10, random(seed, `${site.id}:recipe:${r.id}`))) / r.weight;
@@ -185,7 +184,7 @@ registerPoiContentAlgorithm("rock-group", {
       {
         id,
         semanticKind: "peaks",
-        label: `${{ large: "大", medium: "中", small: "小" }[c.site.tier]}${c.recipe.label} ${Number(c.site.id.split("-").at(-1)) + 1}`,
+        label: `${c.recipe.label} · ${c.site.id}`,
         outline: outlines[0],
         outlines,
         semanticOutlines: outlines,
@@ -218,7 +217,7 @@ registerPoiContentAlgorithm("rock-group", {
 function landmarkTreeDimensions(c: PoiContentContext) {
   const id = `tree-${c.site.id}`,
     q = c.recipe.parameters;
-  const height = poiTreeHeight(c.plan.parameters.seed, id, c.site.id, c.landscape, c.edits, c.site.tier, {
+  const height = poiTreeHeight(c.plan.parameters.seed, id, c.site.id, c.landscape, c.edits, {
     heightMultiplier: Number(q.heightMultiplier),
     minimumAboveAmbientM: Number(q.minimumAboveAmbientM)
   });
@@ -299,6 +298,5 @@ export function validatePoiCatalog(c: PoiPopulationConfig) {
     ids.add(r.id);
     contentAlgorithm(r.algorithm).validate(r.parameters);
   }
-  for (const tier of ["large", "medium", "small"] as PoiTier[])
-    if (!c.recipes.some((r) => r.tiers.includes(tier) && r.weight > 0)) throw new Error(`${tier}没有可用POI配方`);
+  if (!c.recipes.some((r) => r.weight > 0)) throw new Error("没有可用 POI 配方");
 }

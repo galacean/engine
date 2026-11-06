@@ -1,3 +1,4 @@
+import { isGlobalRoadId } from "./RoadIdentity";
 import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { compileRoadGraphSplines } from "./RoadGraphSplines";
 import { reduceRoadNetwork } from "./RoadNetworkReduction";
@@ -508,6 +509,15 @@ export function roadSurfaces(plan: IslandPlan): PlanRoute[] {
 /** All logical connections owning a physical road surface; selection never duplicates pavement. */
 export function roadSurfaceOwners(plan: IslandPlan, route: PlanRoute): string[] {
   return plan.roadGraph?.sections.find((s) => s.route === route)?.owners ?? [route.id];
+}
+
+/** Classify shared pavement by its logical owners, including through-roads inside POIs.
+ * @param plan Published plan containing physical road ownership.
+ * @param route Physical surface or an unsplit logical road.
+ * @returns Whether the surface belongs to the global road layer.
+ */
+export function isGlobalRoadSurface(plan: IslandPlan, route: PlanRoute): boolean {
+  return roadSurfaceOwners(plan, route).some(isGlobalRoadId);
 }
 
 /** Split accepted pavement at new joins without resmoothing or reducing required connections. */

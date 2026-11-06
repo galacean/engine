@@ -84,7 +84,8 @@ function applyLayer(
   signature: string,
   previous: SemanticResult | undefined,
   progress?: (stage: string) => void,
-  baseReused = true
+  baseReused = true,
+  options: { environment?: boolean } = {}
 ): SemanticResult {
   const started = performance.now(),
     recipe = exportPlanningRecipe(document);
@@ -118,7 +119,7 @@ function applyLayer(
       recipe.parameters.poiLayout ?? defaultPoiLayout()
     );
   const candidates = base.plan.spatialLayout?.landscapeBase;
-  if (support.length && candidates) {
+  if (options.environment !== false && support.length && candidates) {
     progress?.("更新作者水体局部生态");
     const halo = landscapeWaterInfluence(plan, config.landscape, recipe.edits);
     const area = bounds(
@@ -258,22 +259,31 @@ function difference(legacy: SemanticResult, overlay: SemanticResult): string | u
     return "canonical-float32-bed";
   return undefined;
 }
-/** Resolve the independent global plan once; author-only changes never enter its solver. */
+/** Resolve the independent global plan once; author-only changes never enter its solver.
+ * @param document World authoring and native water resources.
+ * @param previous Optional result with compatible water-overlay provenance.
+ * @param progress Optional stage notifications.
+ * @param runtimeSignature Registry/version identity for derived-cache invalidation.
+ * @param options Optional environment stage; cache identity separates full and environment-free results.
+ * @returns The independent layout with the canonical authored-water layer applied.
+ * @throws For an unsupported water authoring version or invalid native water resources.
+ */
 export function generateWaterOverlay(
   document: PlanningDocument,
   previous?: SemanticResult,
   progress?: (stage: string) => void,
-  runtimeSignature = ""
+  runtimeSignature = "",
+  options: { environment?: boolean } = {}
 ): SemanticResult {
   if (document.waterAuthoringVersion !== undefined && document.waterAuthoringVersion !== 1)
     throw Error("Unsupported water authoring version");
   const input = baseDocument(document),
-    signature = JSON.stringify([runtimeSignature, canonical(input)]);
+    signature = JSON.stringify([runtimeSignature, options.environment !== false, canonical(input)]);
   const authored = document.authoredResources?.some(
     (r) => r.resourceType === "water-body" || r.resourceType === "river"
   );
   if (!document.waterAuthoringVersion && previous?.waterOverlay?.mode === "legacy") {
-    const legacy = generateSpatialWorld(document, previous, progress);
+    const legacy = generateSpatialWorld(document, previous, progress, options);
     legacy.waterOverlay = {
       mode: "legacy",
       baseSignature: signature,
@@ -293,10 +303,13 @@ export function generateWaterOverlay(
     base = generateSpatialWorld(
       input,
       previous?.waterOverlay?.mode === "overlay" ? bases.get(previous.waterOverlay.baseSignature) : undefined,
-      progress
+      progress,
+      options
     );
-    bases.set(signature, base);
-    if (bases.size > 2) bases.delete(bases.keys().next().value!);
+    if (base.accepted) {
+      bases.set(signature, base);
+      if (bases.size > 2) bases.delete(bases.keys().next().value!);
+    }
   }
   if (
     !authored &&
@@ -326,12 +339,15 @@ export function generateWaterOverlay(
       }
     };
   }
-  const overlay = applyLayer(document, base, signature, previous, progress, baseReused);
+  const overlay = applyLayer(document, base, signature, previous, progress, baseReused, options);
   if (document.waterAuthoringVersion || !authored) return overlay;
-  const legacy = generateSpatialWorld(document, previous, progress);
+  const legacy = generateSpatialWorld(document, previous, progress, options);
   const mismatch =
     difference(legacy, overlay) ??
-    difference(generateSpatialWorld(document), applyLayer(document, base, signature, undefined));
+    difference(
+      generateSpatialWorld(document, undefined, undefined, options),
+      applyLayer(document, base, signature, undefined, undefined, true, options)
+    );
   if (!mismatch) return overlay;
   legacy.waterOverlay = {
     mode: "legacy",

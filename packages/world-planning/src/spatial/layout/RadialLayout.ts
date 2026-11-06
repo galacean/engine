@@ -60,7 +60,9 @@ export function buildRadialLayout(c: LayoutBuildContext): LayoutConstruction {
           width,
           depth,
           height: sample(i, "height", q.heightMinM, q.heightMaxM),
-          yaw: q.orientationVariation ? sample(i, "yaw", -0.5, 0.5) * Math.PI * q.orientationVariation : 0,
+          yaw:
+            ((q.headingDegrees ?? 0) * Math.PI) / 180 +
+            (q.orientationVariation ? sample(i, "yaw", -0.5, 0.5) * Math.PI * q.orientationVariation : 0),
           elevation: 0
         }
       ]);

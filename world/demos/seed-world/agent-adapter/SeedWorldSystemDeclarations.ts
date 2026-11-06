@@ -1,4 +1,6 @@
 import { SUBJECT_VIEW_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningSubjectView";
+import { ANIMAL_POPULATION_DECLARATION } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
+import { PLANNING_POI_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningPoiKnowledge";
 import { GRASS_APPEARANCE_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningGrassAppearance";
 import { PLANNING_WEATHER_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningWeather";
 import { PLANNING_LIGHTING_DECLARATION } from "@galacean/engine-world-planning/spatial/PlanningLightingParameters";
@@ -8,6 +10,8 @@ import type { PlanningSystemDeclaration, PlanningSystemKnowledge } from "@galace
 
 /** App composition only: each system owns its knowledge beside its public parameters. */
 export const PLANNING_SYSTEM_DECLARATIONS: readonly PlanningSystemDeclaration[] = [
+  ANIMAL_POPULATION_DECLARATION,
+  PLANNING_POI_DECLARATION,
   PLANNING_LIGHTING_DECLARATION,
   VEGETATION_SYSTEM_DECLARATION,
   PLANT_MATERIAL_DECLARATION,

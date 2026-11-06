@@ -5,9 +5,9 @@ import { createWorldStylePlanningDocument } from "./WorldTemplateAuthoring";
 import { worldTemplate } from "./WorldTemplateCatalog";
 import { resolveComponent } from "./SpatialDocument";
 
-/** World and tier policies describe generation; all other authoring records address layout instances. */
+/** World defaults describe generation; all other authoring records address layout instances. */
 export function isGlobalPlanningScope(id: string): boolean {
-  return id === "world" || id.startsWith("policy:");
+  return id === "world";
 }
 
 export function planningSeed(document: PlanningDocument): number {
@@ -23,6 +23,9 @@ export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed:
   outgoing.world.components.world.values.seed = previousSeed;
   archives[String(previousSeed)] = {
     ...(draft.waterAuthoringVersion === undefined ? {} : { waterAuthoringVersion: draft.waterAuthoringVersion }),
+    ...(draft.populationInitialization === undefined
+      ? {}
+      : { populationInitialization: structuredClone(draft.populationInitialization) }),
     entities: outgoing,
     edits: structuredClone(draft.passthrough.edits),
     parameters: { ...structuredClone(draft.passthrough.parameters), seed: previousSeed },
@@ -31,6 +34,7 @@ export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed:
   const incoming = archives[String(nextSeed)];
   if (incoming?.entities.world) {
     draft.waterAuthoringVersion = incoming.waterAuthoringVersion;
+    draft.populationInitialization = structuredClone(incoming.populationInitialization);
     draft.entities = structuredClone(incoming.entities);
     draft.passthrough.edits = structuredClone(incoming.edits);
     draft.passthrough.parameters = structuredClone(incoming.parameters!);
@@ -40,6 +44,7 @@ export function switchPlanningLayoutScope(draft: PlanningDocument, previousSeed:
       ? createWorldStylePlanningDocument(draft, nextSeed, template.id)
       : createSeedPlanningDocument(nextSeed);
     draft.waterAuthoringVersion = fresh.waterAuthoringVersion;
+    draft.populationInitialization = structuredClone(fresh.populationInitialization);
     draft.entities = { ...fresh.entities, ...incoming?.entities };
     draft.passthrough = fresh.passthrough;
     draft.passthrough.edits = incoming?.edits ?? {};

@@ -1,4 +1,3 @@
-import { poiTerritoryWeights } from "./PoiDistribution";
 import { prepareLandscapeFalloff } from "../spatial/ecology/LandscapeFalloff";
 import { footprintLookup } from "../spatial/layout/FootprintLookup";
 import { boxGroundBottom } from "../spatial/layout/VolumeTerrain";
@@ -7,7 +6,7 @@ import { createNaturalTreeDimensions, naturalVegetationDensity } from "../planni
 import { PLANT_TREE_SPECIES } from "@galacean/engine-vegetation/asset-assembly/PlantSpeciesCatalog";
 import { landscapeInfluenceLookup, landscapeInfluenceHeightRange } from "../spatial/ecology/LandscapeInfluences";
 import { territoryLookup } from "../spatial/ecology/PoiTerritories";
-import { resolveParameters, type ParameterPatch } from "./ParameterScopes";
+import { resolveParameters } from "./ParameterScopes";
 import type { SemanticEdit } from "./WorldPlanningContract";
 import rules from "../planning-data/landscape-contexts.json";
 import { SETTLEMENT_PROFILE as profile } from "../planning-data/SettlementProfile";
@@ -42,12 +41,6 @@ export interface LandscapeConfig
   multiplier?: number;
   /** Candidate points per 1000 square metres before footprint and habitat rejection. */
   samplingDensityPer1000M2?: number;
-  /** Optional tier override; missing means inherit world abundance. Applies only to surroundings. */
-  tierDensity?: Partial<Record<import("./PoiDistribution").PoiTier, number>>;
-  /** Component scope adapter: all landscape fields may be overridden per tier. */
-  tierOverrides?: Partial<
-    Record<import("./PoiDistribution").PoiTier, ParameterPatch<Omit<LandscapeConfig, "tierDensity" | "tierOverrides">>>
-  >;
   maxAltitudeM: number;
   maxSlopeDegrees: number;
   contexts: Record<Exclude<LandscapeContext, "openland">, number> & { openland?: number };
@@ -117,7 +110,7 @@ function prepareSourceLookup(plan: IslandPlan, query = createPlanningRingQuery) 
               ? plan.buildings
               : context === "landform"
                 ? plan.rocks
-                : (plan.poiDistribution?.sites ?? []);
+                : (plan.poiDistribution?.sites ?? []).filter((site) => site.active);
       // Expanded AABBs are conservative only. Insert in original source order so
       // equidistant sources keep exactly the same first-source tie as the linear scan.
       for (const owner of owners) {
@@ -290,7 +283,6 @@ export function prepareLandscapeBasemap(
     plan.planning?.ports.filter((p) => p.id.endsWith("-door")),
     plan.poiDistribution?.domains,
     plan.poiDistribution?.sites,
-    poiTerritoryWeights(plan.poiDistribution ?? {}),
     plan.landscapes?.filter((p) => p.role === "poi").map((p) => p.outline)
   ]);
   const cached = slotCache.get(key);
@@ -745,20 +737,20 @@ export function landscapeOccupancyValid(plan: IslandPlan, previous?: IslandPlan)
   });
 }
 
-/** Shared world → tier → instance precedence for UI and generation. */
+/** Shared world → domain → POI precedence for UI and generation.
+ * @param config World landscape defaults.
+ * @param site Owning POI identity, retained for caller compatibility; no tier policy is applied.
+ * @param edit Local POI overrides.
+ * @param region Owning land-domain overrides.
+ * @returns Effective landscape settings without mutating any authored input.
+ */
 export function poiLandscapeConfig(
   config: LandscapeConfig,
   site: import("./PoiDistribution").PoiSite,
   edit?: SemanticEdit,
   region?: SemanticEdit
 ): LandscapeConfig {
-  return resolveParameters(
-    config,
-    { density: config.tierDensity?.[site.tier] },
-    config.tierOverrides?.[site.tier],
-    region?.landscape,
-    edit?.landscape
-  );
+  return resolveParameters(config, region?.landscape, edit?.landscape);
 }
 function landscapeRegionLookup(plan: IslandPlan, config: LandscapeConfig, edits: Record<string, SemanticEdit>) {
   const regions = (plan.poiDistribution?.domains ?? [])
@@ -774,14 +766,14 @@ function resolveLandscapeConfigs(plan: IslandPlan, config: LandscapeConfig, edit
     throw new Error("全局景观倍率须为有限非负数");
   const sampling = config.samplingDensityPer1000M2 ?? 1000 / rules.sampleSpacingM ** 2;
   if (!Number.isFinite(sampling) || sampling <= 0) throw new Error("景观候选密度须为有限正数");
-  for (const n of [config.density, ...Object.values(config.contexts), ...Object.values(config.tierDensity ?? {})])
+  for (const n of [config.density, ...Object.values(config.contexts)])
     if (!Number.isFinite(n) || n < 0) throw new Error("景观密度须为有限非负数");
   if (
     ![config.maxAltitudeM, config.maxSlopeDegrees].every((v) => Number.isFinite(v) && v >= 0) ||
     config.maxSlopeDegrees > 90
   )
     throw new Error("景观海拔与坡度上限无效");
-  const occupied = plan.poiDistribution?.sites ?? [];
+  const occupied = (plan.poiDistribution?.sites ?? []).filter((site) => site.active);
   const locals = new Map(occupied.map((p) => [p.id, poiLandscapeConfig(config, p, edits[p.id], edits[p.domainId])]));
   for (const q of [config, ...locals.values()])
     if (

@@ -634,6 +634,7 @@ export class WorldPlanning3DView {
         ) &&
         layers[e.part.layer] !== false &&
         layers[`object:${e.part.id}`] !== false &&
+        (!e.part.owners?.length || e.part.owners.some((owner) => this.layers[`object:${owner}`] !== false)) &&
         (!e.part.selectionOnly ||
           e.part.id === this.selectedId ||
           !!e.part.owners?.includes(this.selectedId ?? "") ||
@@ -677,6 +678,7 @@ export class WorldPlanning3DView {
             !!e.part.owners?.some((owner) => this.contextPaths.has(owner))) &&
           this.layers[e.part.layer] !== false &&
           this.layers[`object:${e.part.id}`] !== false &&
+          (!e.part.owners?.length || e.part.owners.some((owner) => this.layers[`object:${owner}`] !== false)) &&
           !(this.walking && ["spawn", "entrance", "ports", "teleport", "sight"].includes(e.part.layer));
       const highlighted =
         e.part.id === id ||

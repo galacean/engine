@@ -1,3 +1,4 @@
+import { planningCandidateCount, type PlanningCountRange } from "../PlanningCountRange";
 import {
   watercourseGeometry,
   resolveWatercourse,
@@ -12,7 +13,7 @@ import { ribbonOutline } from "../../semantic-study/WorldRibbon";
 import { territoryLookup } from "../ecology/PoiTerritories";
 
 /** World hydrology preferences. All lengths and levels are metres. Each river publishes its own longitudinal profile. */
-export interface RiverParameters {
+export interface RiverParameters extends PlanningCountRange {
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
@@ -75,6 +76,7 @@ export function generateRiverRegions(
   config: RiverParameters,
   local: Record<string, Partial<RiverParameters>>
 ): PlanningCheck[] {
+  const candidateCount = planningCandidateCount(plan.parameters.seed, "rivers:count", config, 1);
   // This stage rebuilds the complete water set. Retire profiles by the actual
   // previous owner identities, including authored basins/rivers with custom IDs.
   // A prefix-only reset leaves stale profiles that would precede their new copy.
@@ -113,7 +115,7 @@ export function generateRiverRegions(
     .slice()
     .sort((a, b) => extent(b.outline) - extent(a.outline) || a.id.localeCompare(b.id));
   const requested = [
-    ...Array.from({ length: config.count }, (_, i) => `river:${i}`),
+    ...Array.from({ length: candidateCount }, (_, i) => `river:${i}`),
     ...Object.keys(local)
       .filter((id) => id.startsWith("river:authored:"))
       .sort()
@@ -472,16 +474,16 @@ export function generateRiverRegions(
       }
     );
   }
-  if (plan.waters.length < config.count)
+  if (plan.waters.length < candidateCount)
     checks.push({
       id: "river:count",
       owners: ["world"],
       rule: "river-generation",
       required: false,
       status: "unknown",
-      message: `请求 ${config.count} 条河流，本次生成 ${plan.waters.length} 条；部分走廊无法容纳当前形状与岸线，保留请求参数`,
+      message: `请求 ${candidateCount} 条河流，本次生成 ${plan.waters.length} 条；部分走廊无法容纳当前形状与岸线，保留请求参数`,
       measured: plan.waters.length,
-      limit: config.count
+      limit: candidateCount
     });
   return checks;
 }

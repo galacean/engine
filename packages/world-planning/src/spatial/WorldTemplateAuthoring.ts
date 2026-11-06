@@ -1,4 +1,9 @@
-import { createSeedPlanningDocument } from "./PlanningInitialization";
+import {
+  createSeedPlanningDocument,
+  createSeedPlanningInputs,
+  initializePlanningPopulation,
+  type PlanningPopulationOptions
+} from "./PlanningInitialization";
 import { exportPlanningRecipe, importPlanningDocument, type PlanningDocument } from "./PlanningDocument";
 import { PLANT_MATERIAL_SLOTS, plantMaterialField } from "./PlantMaterialParameters";
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
@@ -19,7 +24,7 @@ function templateCore(template: WorldTemplate) {
   if (cached) return cached;
   const { id, terrain } = template,
     art = WORLD_TEMPLATE_ART[id];
-  const canonical = exportPlanningRecipe(createSeedPlanningDocument(templateBaseSeed(id)));
+  const canonical = exportPlanningRecipe(createSeedPlanningInputs(templateBaseSeed(id)));
   Object.assign(canonical.parameters, {
     worldTemplate: { id },
     landformSeed: templateBaseSeed(id),
@@ -107,13 +112,23 @@ function templateCore(template: WorldTemplate) {
   return core;
 }
 
-/** Build author inputs only. Geometry is solved and published by the ordinary Session transaction. */
-export function createTemplatePlanningDocument(seed: number, id: string): PlanningDocument {
+/** Create template authoring with a one-time editable initial population.
+ * @param seed Deterministic world identity.
+ * @param id Registered template identity.
+ * @param options Initial population request, applied after template terrain and resources are installed.
+ * @returns Authoring for ordinary Session publication; later edits do not reapply the budget.
+ * @throws For invalid template/seed or an unrealizable population request.
+ */
+export function createTemplatePlanningDocument(
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): PlanningDocument {
   const template = worldTemplate(id);
   if (!template) throw new Error("未知世界风格：" + id);
   const art = WORLD_TEMPLATE_ART[id];
   if (!Number.isSafeInteger(seed) || seed < 0 || seed > 0xffffffff) throw new Error("Seed 须为 0–4294967295 的整数");
-  const initial = createSeedPlanningDocument(seed);
+  const initial = createSeedPlanningInputs(seed);
   const recipe = exportPlanningRecipe(initial);
   const jitter = (field: string) => settlementRandom(seed, `template:${id}:${field}`) * 2 - 1;
   const terrain = template.terrain;
@@ -183,14 +198,26 @@ export function createTemplatePlanningDocument(seed: number, id: string): Planni
     )
   };
   document.authoredResources = structuredClone(resources);
-  return document;
+  return initializePlanningPopulation(document, options);
 }
 
 /** Apply a reference recipe while retaining independently authored plant controls.
  * Lighting presets now belong to the selected reference. New Seeds still retain
- * subsequent manual lighting edits through the ordinary layout-scope contract. */
-export function createWorldStylePlanningDocument(source: PlanningDocument, seed: number, id: string): PlanningDocument {
-  const document = id ? createTemplatePlanningDocument(seed, id) : createSeedPlanningDocument(seed);
+ * subsequent manual lighting edits through the ordinary layout-scope contract.
+ * @param source Existing independent presentation and ecology authoring to retain.
+ * @param seed New deterministic world identity.
+ * @param id Template identity, or an empty string for the original procedural world.
+ * @param options One-time initialization village target and global building upper bound.
+ * @returns New authoring whose population is controlled by editable per-POI profile and spacing values.
+ * @throws For invalid initialization inputs or an unrealizable population request.
+ */
+export function createWorldStylePlanningDocument(
+  source: PlanningDocument,
+  seed: number,
+  id: string,
+  options?: PlanningPopulationOptions
+): PlanningDocument {
+  const document = id ? createTemplatePlanningDocument(seed, id, options) : createSeedPlanningDocument(seed, options);
   const copied = new Set<string>();
   const retain = (entityId: string, type: string) => {
     const key = JSON.stringify([entityId, type]);
@@ -208,10 +235,6 @@ export function createWorldStylePlanningDocument(source: PlanningDocument, seed:
   };
   for (const type of [...(id ? [] : ["lighting", "postProcess"]), "landscape", "landscapePopulation", "flowers"])
     retain("world", type);
-  for (const entityId of Object.keys(source.entities).filter((id) => id.startsWith("policy:"))) {
-    if (!document.entities[entityId]) continue;
-    for (const type of ["landscape", "flowers"]) retain(entityId, type);
-  }
   if (id) {
     const art = WORLD_TEMPLATE_ART[id],
       components = document.entities.world.components;

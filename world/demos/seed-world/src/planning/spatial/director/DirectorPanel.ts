@@ -518,7 +518,7 @@ export function mountDirectorPanel(
       terminate();
       plan = next;
 
-      const sites = (plan.poiDistribution?.sites ?? []).filter((p) => p.memberIds.length > 0);
+      const sites = (plan.poiDistribution?.sites ?? []).filter((p) => p.active && p.memberIds.length > 0);
       for (const select of [from, to]) {
         const old = select.value;
         select.replaceChildren(
@@ -527,10 +527,10 @@ export function mountDirectorPanel(
             ["__pick", "在预览中选点"],
             ["__point", "输入地表坐标"]
           ].map(([value, label]) => new Option(label, value)),
-          ...sites.map((p, index) => {
+          ...sites.map((p) => {
             const o = document.createElement("option");
             o.value = p.id;
-            o.textContent = `${{ large: "大", medium: "中", small: "小" }[p.tier]} · ${poiContentLabel(next, p)}${p.tier === "small" ? `（${index + 1}）` : ""}`;
+            o.textContent = poiContentLabel(next, p);
             return o;
           })
         );
