@@ -237,7 +237,8 @@ export function applyPlanningLightSources(
     "setTimeOfDayLightingProfile" | "setTuning" | "setVisibility" | "applyVisualTuning"
   >,
   values: Record<string, unknown>,
-  sourceProfile: readonly TerrainTimeOfDayLightingSample[]
+  sourceProfile: readonly TerrainTimeOfDayLightingSample[],
+  applyTime = true
 ): void {
   const visual: Partial<TerrainLightingVisualTuning> = {};
   const overrideKeys = [
@@ -254,7 +255,7 @@ export function applyPlanningLightSources(
     Object.assign(visual, { [key]: value });
   }
   lighting.setTimeOfDayLightingProfile(sourceProfile);
-  lighting.setTuning({ playing: false, timeHours: Number(values.timeHours) });
+  if (applyTime) lighting.setTuning({ playing: false, timeHours: Number(values.timeHours) });
   lighting.setVisibility({
     direct: Boolean(values.direct),
     environment: Boolean(values.environment),
