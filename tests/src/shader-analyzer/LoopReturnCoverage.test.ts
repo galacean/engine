@@ -27,6 +27,8 @@ describe("loop return coverage", () => {
         for (const [index, body] of [
           "for (int i = 0; i < 1; i++) { return 1.0; }",
           "while (true) { return 1.0; }",
+          "if (1 == 1) return 1.0;",
+          "while (1 < 2) { if (true) return 1.0; break; }",
           "while (flag) { return 1.0; } return 0.0;",
           "for (int i = 0; i < 0; i++) { return 1.0; } return 0.0;",
           "for (int i = 0; i < 1; i++) { if (flag) break; return 1.0; } return 0.0;"
@@ -48,6 +50,64 @@ describe("loop return coverage", () => {
 
   it("does not infer a guaranteed return from a loop whose condition is unknown", () => {
     const code = source("unknown-loop-return", "while (flag) { return 1.0; }");
+    expect(ShaderAnalyzer.analyze(code).diagnostics).toEqual([]);
+  });
+
+  it.each([
+    "while (false) { return 1.0; }",
+    "while (!true) { return 1.0; }",
+    "while (1 > 2) { return 1.0; }",
+    "for (int i = 0; i < 0; i++) { return 1.0; }",
+    "for (int i = 1; 0 > i; i++) { return 1.0; }",
+    "for (int i = 0; false; i++) { return 1.0; }",
+    "while (true) { break; }",
+    "while (true) { break; return 1.0; }",
+    "while (true) { if (false) return 1.0; break; }",
+    "while (true) { if (flag) break; else break; }",
+    "while (flag) { break; }",
+    "while (true) { while (false) { return 1.0; } break; }"
+  ])("diagnoses proven fallthrough: %s", (body) => {
+    expect(
+      ShaderAnalyzer.analyze(source("loop-fallthrough", body)).diagnostics.map((diagnostic) => diagnostic.code)
+    ).toEqual([DiagnosticType.MissingReturn]);
+  });
+
+  it.each([
+    "while (true) { return 1.0; break; }",
+    "while (true) { continue; break; }",
+    "while (true) { while (true) { break; } return 1.0; }",
+    "while (true) { while (true) { break; } continue; }",
+    "while (true) { if (true) return 1.0; break; }",
+    "while (true) { if (flag) break; return 1.0; } if (flag) return 0.0;",
+    "for (int i = 0, j = i++; i < 1; i++) { return 1.0; }",
+    "for (int i = 0; (i++ < 0) || (i < 1); i++) { return 1.0; }",
+    "int i = 1; for (int i = 0; i < 1; i++) { return 1.0; }",
+    "for (uint i = uint(-1); i > uint(0); i++) { return 1.0; }"
+  ])("preserves terminating or unresolved paths: %s", (body) => {
+    expect(ShaderAnalyzer.analyze(source("loop-exits", body)).diagnostics).toEqual([]);
+  });
+
+  it("retains macro-specific fallthrough after a loop break", () => {
+    const body = "while (true) {\n#ifdef BREAK\nbreak;\n#else\nreturn 1.0;\n#endif\n}";
+    expect(
+      ShaderAnalyzer.analyze(source("macro-break", body)).diagnostics.map((diagnostic) => diagnostic.code)
+    ).toEqual([DiagnosticType.MissingReturn]);
+    expect(
+      ShaderAnalyzer.analyze(source("macro-break-return", `${body}\n#ifdef BREAK\nreturn 0.0;\n#endif\n`)).diagnostics
+    ).toEqual([]);
+  });
+
+  it("keeps return and continue paths inside an invariant loop from reaching the function end", () => {
+    const body = "while (true) {\n#ifdef RETURN\nreturn 1.0;\n#else\ncontinue;\n#endif\n}";
+    expect(ShaderAnalyzer.analyze(source("macro-continue", body)).diagnostics).toEqual([]);
+  });
+
+  it.each([
+    "!".repeat(8192) + "false",
+    Array(8192).fill("true").join(" && "),
+    Array(8192).fill("1").join(" + ") + " < 0"
+  ])("leaves deep constant proofs unresolved without overflowing the stack", (condition) => {
+    const code = source("deep-loop-condition", `while (${condition}) { return 1.0; }`);
     expect(ShaderAnalyzer.analyze(code).diagnostics).toEqual([]);
   });
 
