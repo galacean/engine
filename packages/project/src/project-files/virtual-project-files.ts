@@ -41,10 +41,14 @@ export class ProjectPathReadOnlyError extends Error {
   }
 }
 
+export function isProjectPathReadOnly(path: string): boolean {
+  return READ_ONLY_PROJECT_ROOTS.some(
+    (root) => path === root || path === `${root}.meta` || path.startsWith(`${root}/`)
+  );
+}
+
 export function assertProjectPathWritable(path: string): void {
-  if (READ_ONLY_PROJECT_ROOTS.some((root) => path === root || path === `${root}.meta` || path.startsWith(`${root}/`))) {
-    throw new ProjectPathReadOnlyError(path);
-  }
+  if (isProjectPathReadOnly(path)) throw new ProjectPathReadOnlyError(path);
 }
 
 export function parentDirectories(path: string): string[] {

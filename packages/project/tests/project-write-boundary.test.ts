@@ -3,6 +3,7 @@ import { assertProjectPathWritable, ProjectPathReadOnlyError } from "../src/proj
 import { RuntimeProjectEdit } from "../src/runtime-editor/project/runtime-project-edit";
 import {
   RUNTIME_PROJECT_SAVE_VERSION,
+  validateRuntimeProject,
   type RuntimeProjectPackage
 } from "../src/runtime-editor/project/runtime-project";
 
@@ -46,8 +47,17 @@ describe("project write boundary", () => {
     expect(() => draft.writeDocument("notes.md", "x")).not.toThrow();
   });
 
-  it("still opens a saved project that already has a file under declare/", () => {
-    const draft = new RuntimeProjectEdit(project({ "declare/old.md": "kept" }), new Map());
-    expect(draft.readDocument("declare/old.md")).toBe("kept");
+  it.each(["declare/old.md", "declare/native/api.d.ts", "declare/editor/native/api.d.ts"])(
+    "rejects a project package containing %s",
+    (path) => {
+      expect(() => new RuntimeProjectEdit(project({ [path]: "export {};" }), new Map())).toThrow(
+        "Invalid runtime asset path"
+      );
+    }
+  );
+
+  it("rejects a package saved with the previous version", () => {
+    const previous = { ...project(), version: RUNTIME_PROJECT_SAVE_VERSION - 1 } as unknown as RuntimeProjectPackage;
+    expect(() => validateRuntimeProject(previous)).toThrow();
   });
 });
