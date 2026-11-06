@@ -42,15 +42,15 @@ export function prepareSeedPlanningDocument(
  */
 export function createSeedPlanningInputs(seed: number): PlanningDocument {
   const poiLayout = defaultPoiLayout();
-  const sample = (component: string, ranges: Record<string, number[]>) =>
+  const sample = <T extends Record<string, number[]>>(component: string, ranges: T) =>
     Object.fromEntries(
       Object.entries(ranges).map(([key, [a, b]]) => [
         key,
         a + (b - a) * settlementRandom(seed, `initial:${profile.version}:${component}:${key}`)
       ])
-    );
-  const terrain = sample("terrain", profile.initial.terrain);
-  terrain.count = Math.round(terrain.count);
+    ) as { [K in keyof T]: number };
+  const { count, ...terrain } = sample("terrain", profile.initial.terrain);
+  const terrainCount = Math.round(count);
   Object.assign(poiLayout.network, sample("network", profile.initial.network));
   Object.assign(poiLayout.landscape, sample("landscape", profile.initial.landscape));
   const document = importPlanningDocument({
@@ -59,7 +59,7 @@ export function createSeedPlanningInputs(seed: number): PlanningDocument {
       ...SEMANTIC_DEFAULTS,
       seed,
       poiLayout,
-      terrainSkeleton: terrain as unknown as NonNullable<typeof SEMANTIC_DEFAULTS.terrainSkeleton>
+      terrainSkeleton: { ...terrain, countMin: terrainCount, countMax: terrainCount }
     },
     edits: {}
   });

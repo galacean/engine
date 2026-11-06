@@ -52,8 +52,8 @@ export function compileWaterPreview(document: WaterPreviewDocument, previous?: S
       .map(([id, e]) => [id, e.lakes!])
   );
   const checks = [
-    ...generateRiverRegions(plan, { ...RIVER_DEFAULTS, ...recipe.parameters.rivers, count: 0 }, rivers),
-    ...generateLakeRegions(plan, { ...LAKE_DEFAULTS, ...recipe.parameters.lakes, count: 0 }, lakes)
+    ...generateRiverRegions(plan, { ...RIVER_DEFAULTS, ...recipe.parameters.rivers, countMin: 0, countMax: 0 }, rivers),
+    ...generateLakeRegions(plan, { ...LAKE_DEFAULTS, ...recipe.parameters.lakes, countMin: 0, countMax: 0 }, lakes)
   ];
   return {
     recipe,

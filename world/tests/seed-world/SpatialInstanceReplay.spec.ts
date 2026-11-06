@@ -9,8 +9,8 @@ import { PlanningSession } from "@galacean/engine-world-planning/spatial/Plannin
 it("replays and resets a real village member edit with identical roads and navigation", async () => {
   const document = createSeedPlanningDocument(17);
   document.entities.world.components.world.values.offshoreCoverage = 0;
-  document.entities.world.components.rivers.values.count = 0;
-  document.entities.world.components.lakes.values.count = 0;
+  Object.assign(document.entities.world.components.rivers.values, { countMin: 0, countMax: 0 });
+  Object.assign(document.entities.world.components.lakes.values, { countMin: 0, countMax: 0 });
   const session = new PlanningSession(exportPlanningRecipe(document), undefined, document);
   await session.initialize();
   const baseline = session.result!.plan;

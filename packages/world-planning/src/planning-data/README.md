@@ -16,7 +16,7 @@
 
 首次工程使用统一 POI 候选与管理分区。`poi-layout.json` 的 `spacingM` 初值为 210 米，`minAreaM2` 为 0；`distribution` 组件编辑这两个世界参数。单 POI 的 `poi.sizeWeight` 默认 1，是相对管理区偏好，不是面积或建筑尺寸倍数。候选保留稳定 ID 与原始位置，求解产生当前中心、有效面积和 active 状态；休眠候选仍可选择并调整恢复。成员数量由实际区域、空间组织、OBB 尺寸和间距产生。
 
-当前统一组织抽样来自 `space-rules.json.defaults.rules`：建筑分支 42%、岩体分支 18%、曲线岩组 40%。普通成员间距初值 36–60 米；建筑长宽 8–12 米，岩体宽深高 64–112 × 36–72 × 12–48 米。曲线仍有独立的间距、弯曲与侧向变化参数。所有范围均是 Seed 初始化输入，不保证每个区域都放得下内容；显式 POI 或单体覆盖保持优先。旧等级的作者尺寸与生态策略由 `spatial/migration/LegacyPoiAuthoring.ts` 转为具体 POI 的局部输入，运行时不再按等级选配方。
+当前统一组织抽样来自 `space-rules.json.defaults.rules`：建筑分支 42%、岩体分支 18%、曲线岩组 40%。普通成员间距初值 36–60 米；建筑长宽 8–12 米，岩体宽深高 64–112 × 36–72 × 12–48 米。曲线仍有独立的间距、弯曲与侧向变化参数。所有范围均是 Seed 初始化输入，不保证每个区域都放得下内容；显式 POI 或单体覆盖保持优先。
 
 种类、材质和 LOD 接入留在原 Asset Assembly/Seed 素材系统；[population-presentation.json](../spatial/runtime/population-presentation.json) 只选择当前映射，不允许凭名字改换 prefab/shader。湿度与每 POI 的素材分布规则尚未全部接入，不应添加没有消费者的配置项。
 
@@ -118,6 +118,6 @@ Seed 注册 Cute Zoo 3 的14个体型（默认各1只，21个确定性外观）�
 
 这些配置是所有 Seed 的生成参数，不包含任何 Seed 的单体 ID、位置或宽高快照。`natural-vegetation.json` 保留乔木和低草密度 1，灌木 0.03、野花 0.1，高草、匍匐地被和落叶菌类为 0；墙脚/岩石伴生带 6m、倍率 20，路边倍率 1。`poi-layout.json` 的景观密度为 1，building 环境带系数 2，其余环境带 0；`landscape-contexts.json` 的空地及远端保留密度为 0。`space-rules.json.initial.landscape` 同步使用密度 1，避免首次抽样覆盖配方。现有道路、入口、实体和水域避让继续生效。墙脚伴生参数同时作用于岩石边缘，不能解释为只沿建筑生长的保证。
 
-`space-rules.json.elementProfiles.outcrop` 使用统一宽深高初值；不再声明 tiers 或按 POI 等级放大岩体。具体位置与尺寸仍由 Seed、有效管理区和空间组织生成；范围不是放置保证，越界或碰撞的自动候选仍可被拒绝。旧等级仅由兼容迁移读取，不代表近景、海岸或高度模式。
+`space-rules.json.elementProfiles.outcrop` 使用统一宽深高初值；不再声明 tiers 或按 POI 等级放大岩体。具体位置与尺寸仍由 Seed、有效管理区和空间组织生成；范围不是放置保证，越界或碰撞的自动候选仍可被拒绝。
 
 共用岩面初值由 `rock-formation/Settings.ts` 提供：蜂窝尺寸 24m、内缩 0.35、深度倍率 0.6、细节倍率 0.2、覆盖 1。旧工程已有显式覆盖继续保留；新建工程使用这些生成初值。现有 Seed 1 的手工摆放与单体高度模式不是通用默认值的一部分。

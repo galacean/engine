@@ -1,14 +1,5 @@
-import { migratePlanningDocumentCounts, migratePlanningRecipeCounts } from "./PlanningCountRange";
-import { migratePopulationRanges } from "./PlanningPopulationParameters";
 import animalTypes from "../planning-data/animal-types.json";
 import { defaultPoiLayout } from "../semantic-study/PoiDistribution";
-import { migrateSingleLayoutAuthoring } from "./migration/SingleLayoutAuthoring";
-import { upgradeLegacyLayouts } from "./migration/LegacyLayoutAuthoring";
-import {
-  migrateLegacyPoiAuthoring,
-  retireLegacyPoiSpacing,
-  legacyLandscapeScopes
-} from "./migration/LegacyPoiAuthoring";
 import { isGlobalRoadId } from "./layout/RoadIdentity";
 import type { SemanticRecipe, SemanticEdit } from "../semantic-study/WorldPlanningContract";
 import type { IslandPlan } from "../semantic-study/IslandPlanModel";
@@ -37,10 +28,6 @@ export interface PlanningDocument extends SpatialDocument {
   samplingVersion?: number;
   /** Historical initialization receipt; ordinary layout fields are authoritative after creation. */
   populationInitialization?: import("./PlanningPopulationInitialization").PlanningPopulationReceipt;
-  /** Independent migration marker for identity-based POI authoring. */
-  poiAuthoringVersion?: 1 | 2;
-  /** Authoring migration marker for independent organization and internal-road choices. */
-  layoutVersion?: 2;
   /** Inactive layouts retain instance edits; only entities for the active Seed enter the solver. */
   layoutOverrides?: Record<
     string,
@@ -126,7 +113,6 @@ export function exportPlanningAuthoring(document: PlanningDocument): PlanningDoc
   const { placementState: _cache, layoutOverrides, ...authoring } = document;
   const result: PlanningDocument = structuredClone({
     ...authoring,
-    layoutVersion: 2,
     ...(layoutOverrides
       ? {
           layoutOverrides: Object.fromEntries(
@@ -138,30 +124,19 @@ export function exportPlanningAuthoring(document: PlanningDocument): PlanningDoc
         }
       : {})
   });
-  retireLegacyPoiSpacing(result.passthrough.parameters);
   retireOffshoreContents(result.passthrough);
   retireTerrainSampling(result.passthrough);
   for (const scope of [result, ...Object.values(result.layoutOverrides ?? {})]) retireSpeciesSizeFields(scope.entities);
-  for (const [seed, scope] of [[undefined, result], ...Object.entries(result.layoutOverrides ?? {})] as const) {
-    if (!document.poiAuthoringVersion || document.layoutVersion !== 2)
-      upgradeLegacyLayouts(
-        scope.entities,
-        Number(seed ?? result.entities.world.components.world?.values.seed ?? result.passthrough.parameters.seed),
-        document.layoutVersion !== 2,
-        seed === undefined ? document.placementState : document.layoutOverrides?.[seed]?.placementState
-      );
+  for (const scope of [result, ...Object.values(result.layoutOverrides ?? {})]) {
     for (const entity of Object.values(scope.entities)) {
       delete entity.components.offshoreContents;
       delete entity.components.terrainSampling;
     }
     if ("edits" in scope) {
-      retireLegacyPoiSpacing(scope.parameters);
       retireOffshoreContents(scope);
       retireTerrainSampling(scope);
     }
   }
-  migrateSingleLayoutAuthoring(result);
-  migrateLegacyPoiAuthoring(result);
   return result;
 }
 
@@ -209,7 +184,6 @@ export function componentKind(id: string, edit: SemanticEdit, plan?: IslandPlan)
 function upgradeLandscapeFalloff(recipe: SemanticRecipe): void {
   const configs = [
     recipe.parameters.poiLayout?.landscape,
-    ...legacyLandscapeScopes(recipe.parameters.poiLayout?.landscape),
     ...Object.values(recipe.edits).map((edit) => edit.landscape)
   ];
   for (const config of configs)
@@ -314,20 +288,16 @@ function upgradeFlowerContext(
 /** Lossless migration of current URLs. GUI and tools subsequently edit components, not recipe paths. */
 export function importPlanningDocument(recipe: SemanticRecipe, plan?: IslandPlan): PlanningDocument {
   recipe = structuredClone(recipe);
-  if (recipe.parameters.population) migratePopulationRanges(recipe.parameters.population as Record<string, unknown>);
   if (recipe.parameters.farming) {
     delete (recipe.parameters.farming as { riverPreference?: unknown }).riverPreference;
     delete (recipe.parameters.farming as { roadWidthM?: unknown }).roadWidthM;
   }
-  retireLegacyPoiSpacing(recipe.parameters);
   retireOffshoreContents(recipe);
   upgradeLandscapeFalloff(recipe);
-  migratePlanningRecipeCounts(recipe.parameters);
   const passthrough = structuredClone(recipe);
   const document: PlanningDocument = {
     version: 1,
     revision: 0,
-    layoutVersion: 2,
     entities: { world: { id: "world", name: "世界", components: {} } },
     passthrough
   };
@@ -403,22 +373,10 @@ function usesImplicitBase(_document: PlanningDocument, entity: SpatialEntity, ty
 }
 /** Compile authoring components to the private inputs of the existing geometry operators. */
 export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe {
-  if (
-    Object.values(document.entities).some((entity) => entity.components.layout?.values.pattern === "single") ||
-    document.passthrough.parameters.poiLayout?.layoutDefaults?.pattern === "single" ||
-    ["terrain", "rivers", "lakes"].some(
-      (type) => document.entities.world.components[type]?.values.count !== undefined
-    ) ||
-    PLANNING_COMPONENTS.some(
-      (d) => (d.global || (d.presentation && !d.kinds) || d.runtime) && !document.entities.world.components[d.type]
-    )
-  )
-    document = upgradePlanningDocument(document);
   const recipe = structuredClone(document.passthrough);
   // Legacy recipes may omit POI configuration. Restore unexposed solver defaults
   // only in the compiled input; authoring components below retain precedence.
   recipe.parameters.poiLayout = { ...defaultPoiLayout(), ...recipe.parameters.poiLayout };
-  retireLegacyPoiSpacing(recipe.parameters);
   retireOffshoreContents(recipe);
   const patches = Object.values(document.entities)
     .filter((e) => e.components.relief)
@@ -465,7 +423,6 @@ export function exportPlanningRecipe(document: PlanningDocument): SemanticRecipe
 /** Remove retired authoring contracts once, while retaining registered extension components and current overrides. */
 export function upgradePlanningDocument(input: PlanningDocument): PlanningDocument {
   const document = exportPlanningAuthoring(input);
-  migratePlanningDocumentCounts(document);
   for (const scope of [document, ...Object.values(document.layoutOverrides ?? {})])
     for (const entity of Object.values(scope.entities)) {
       const rock = entity.components.rockFormation;
@@ -481,24 +438,6 @@ export function upgradePlanningDocument(input: PlanningDocument): PlanningDocume
     // A saved Seed may predate animals entirely. Add the authoring slot before
     // archive activation, so its defaults remain editable through UI and tools.
     if (scope.entities.world) scope.entities.world.components.animals ??= { values: {} };
-    if (scope.entities.world) {
-      const receipt = scope.populationInitialization;
-      const population = (scope.entities.world.components.population ??= {
-        values: receipt
-          ? receipt.version === 1
-            ? { villageTarget: receipt.villageTarget, buildingLimit: receipt.buildingLimit }
-            : {
-                villageMin: receipt.villageMin,
-                villageMax: receipt.villageMax,
-                buildingMin: receipt.buildingMin,
-                buildingMax: receipt.buildingMax
-              }
-          : {}
-      });
-      migratePopulationRanges(population.values);
-    }
-    const parameters = "passthrough" in scope ? scope.passthrough.parameters : scope.parameters;
-    if (parameters?.population) migratePopulationRanges(parameters.population as Record<string, unknown>);
     const components = Object.values(scope.entities).flatMap((entity) =>
       entity.components.animals ? [entity.components.animals] : []
     );

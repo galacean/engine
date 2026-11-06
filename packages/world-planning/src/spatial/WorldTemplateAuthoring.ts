@@ -33,14 +33,15 @@ function templateCore(template: WorldTemplate) {
     offshoreCoverage: 0.07,
     islandRichness: 0.5,
     terrainSkeleton: {
-      count: terrain.count,
+      countMin: terrain.count,
+      countMax: terrain.count,
       directionDegrees: 45,
       lengthM: 600,
       heightM: terrain.heightM,
       widthM: terrain.widthM
     },
-    rivers: { count: 0 },
-    lakes: { count: 0 }
+    rivers: { countMin: 0, countMax: 0 },
+    lakes: { countMin: 0, countMax: 0 }
   });
   const base = createSpatialTerrainPlan(canonical);
   const anchor = planWorldTemplateSite(base, createPlanningGroundSampler(base, { natural: true }))!.center;
@@ -140,14 +141,15 @@ export function createTemplatePlanningDocument(
     offshoreCoverage: 0.07,
     islandRichness: 0.5,
     terrainSkeleton: {
-      count: terrain.count,
+      countMin: terrain.count,
+      countMax: terrain.count,
       directionDegrees: 45 + jitter("direction") * 3,
       lengthM: 600,
       heightM: terrain.heightM * (1 + jitter("height") * 0.06),
       widthM: terrain.widthM * (1 + jitter("width") * 0.04)
     },
-    rivers: { count: 0 },
-    lakes: { count: 0 }
+    rivers: { countMin: 0, countMax: 0 },
+    lakes: { countMin: 0, countMax: 0 }
   });
   const { anchor, resources } = templateCore(template);
   recipe.parameters.worldTemplate = { id, centerX: anchor.x, centerZ: anchor.z };

@@ -4,7 +4,6 @@ import { generatePlanningDocument } from "./PlanningRuntime";
 import type { LayoutGroup } from "./layout/LayoutKernel";
 import { settlementRandom } from "../semantic-study/SettlementGeometry";
 import {
-  migratePopulationRanges,
   resolvePopulationRanges,
   type PlanningPopulationOptions,
   type PlanningPopulationRanges
@@ -27,8 +26,7 @@ interface PopulationOutcome {
   >;
 }
 /** Historical result of an explicit population planning operation, not runtime restrictions. */
-export type PlanningPopulationReceipt = PopulationOutcome &
-  (({ version: 2 } & PlanningPopulationRanges) | { version: 1; villageTarget: number; buildingLimit: number });
+export type PlanningPopulationReceipt = PopulationOutcome & { version: 2 } & PlanningPopulationRanges;
 
 // Site combinations share a finite search budget; ordinary regeneration does not consume it.
 const INITIALIZATION_EVALUATION_BUDGET = 24;
@@ -82,7 +80,6 @@ export function preparePlanningPopulation(
   const document = upgradePlanningDocument(input);
   const authored = exportPlanningRecipe(document).parameters.population;
   const overrides = { ...options };
-  migratePopulationRanges(overrides);
   const ranges = resolvePopulationRanges({ ...authored, ...overrides });
   const { villageMin, villageMax, buildingMin, buildingMax } = ranges;
   document.entities.world.components.population = { values: { ...ranges } };

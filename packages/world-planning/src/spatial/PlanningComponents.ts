@@ -121,10 +121,10 @@ const riverFields: SpatialField[] = [
     description: "按 Seed 在范围内采样候选数；空间不足时允许少于下限，不补造。",
     unit: "个",
     min: 0,
-    default: RIVER_DEFAULTS.count,
+    default: RIVER_DEFAULTS.countMin,
     kinds: ["world"]
   }),
-  number("countMax", "河流数量上限", { unit: "个", min: 0, default: RIVER_DEFAULTS.count, kinds: ["world"] }),
+  number("countMax", "河流数量上限", { unit: "个", min: 0, default: RIVER_DEFAULTS.countMax, kinds: ["world"] }),
   {
     key: "automaticLevel",
     label: "按地形生成逐段高程",
@@ -178,10 +178,10 @@ const lakeFields: SpatialField[] = [
     description: "按 Seed 在范围内采样候选数；空间不足时允许少于下限，不补造。",
     unit: "个",
     min: 0,
-    default: LAKE_DEFAULTS.count,
+    default: LAKE_DEFAULTS.countMin,
     kinds: ["world"]
   }),
-  number("countMax", "湖泊数量上限", { unit: "个", min: 0, default: LAKE_DEFAULTS.count, kinds: ["world"] }),
+  number("countMax", "湖泊数量上限", { unit: "个", min: 0, default: LAKE_DEFAULTS.countMax, kinds: ["world"] }),
   number("radiusM", "湖区半径", { unit: "m", min: 0.5, default: LAKE_DEFAULTS.radiusM }),
   number("depthM", "湖盆目标深度", { unit: "m", min: 0.01, default: LAKE_DEFAULTS.depthM }),
   number("bankWidthM", "岸外过渡宽度", { unit: "m", min: 0.05, default: LAKE_DEFAULTS.bankWidthM }),

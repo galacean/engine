@@ -1,14 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createSeedPlanningInputs } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
 import { initializePlanningPopulation } from "@galacean/engine-world-planning/spatial/PlanningPopulationInitialization";
-import { exportPlanningRecipe, importPlanningDocument, upgradePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningRecipe } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { generatePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningRuntime";
 import { exportPlanningScene, importPlanningScene } from "../../demos/seed-world/src/planning/spatial/PlanningSceneAsset.ts";
-
-import { importRuntimeHierarchy } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-hierarchy-source";
-import { RUNTIME_PROJECT_SAVE_VERSION, type RuntimeProjectPackage } from "@galacean/engine-project/runtime-editor/project/runtime-project";
-import { planningSourceDocument, validatePlanningProject } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningProjectSource.ts";
 
 const generate = (document: Parameters<typeof generatePlanningDocument>[0]) =>
   generatePlanningDocument(document, undefined, [], undefined, { environment: false });
@@ -20,7 +16,7 @@ function source() {
 
 describe("world population parameters", () => {
   it("uses public parameter edits, persists values and realized layout, and does not cap later local edits", async () => {
-    const document = initializePlanningPopulation(source(), { villageTarget: 1, buildingLimit: 20 });
+    const document = initializePlanningPopulation(source(), { villageMin: 1, villageMax: 1, buildingMin: 0, buildingMax: 20 });
     const session = new PlanningSession(exportPlanningRecipe(document), async document => generate(document), document);
     await session.initialize();
     const definition = session.describe().find(component => component.type === "population")!;
@@ -56,40 +52,6 @@ describe("world population parameters", () => {
     expect(sameValue.status, sameValue.message).toBe("accepted");
     expect(session.result!.plan.buildings).toEqual(cold.plan.buildings);
   }, 120000);
-
-  it("migrates historical targets without rewriting existing layouts", () => {
-    const document = source();
-    delete document.entities.world.components.population;
-    document.populationInitialization = { version: 1, seed: 1, villageTarget: 2, buildingLimit: 40, villages: 2, buildings: 30, selectedPoiIds: [], diagnostics: [] };
-    const before = JSON.stringify(document.entities.world.components.layout);
-    const migrated = upgradePlanningDocument(document);
-    expect(exportPlanningRecipe(migrated).parameters.population).toEqual({ villageMin: 2, villageMax: 2, buildingMin: 0, buildingMax: 40 });
-    expect(JSON.stringify(migrated.entities.world.components.layout)).toBe(before);
-    const recipe = exportPlanningRecipe(source());
-    recipe.parameters.population = { villageTarget: 3, buildingLimit: 12 };
-    expect(exportPlanningRecipe(importPlanningDocument(recipe)).parameters.population).toEqual({ villageMin: 3, villageMax: 3, buildingMin: 0, buildingMax: 12 });
-    document.layoutOverrides = { "7": { entities: structuredClone(document.entities), edits: {}, parameters: { ...recipe.parameters, seed: 7 }, populationInitialization: document.populationInitialization } };
-    document.layoutOverrides["7"].entities.world.components.population = { values: { villageTarget: 4, buildingLimit: 10 } };
-    const archive = upgradePlanningDocument(document).layoutOverrides!["7"];
-    expect(archive.entities.world.components.population.values).toEqual({ villageMin: 4, villageMax: 4, buildingMin: 0, buildingMax: 10 });
-    expect(archive.parameters!.population).toEqual({ villageMin: 3, villageMax: 3, buildingMin: 0, buildingMax: 12 });
-    document.entities.world.components.population = { values: { villageTarget: 2, buildingLimit: 40 } };
-    for (const type of ["terrain", "rivers", "lakes"]) {
-      document.entities.world.components[type].values.count = 0;
-      delete document.entities.world.components[type].values.countMin;
-      delete document.entities.world.components[type].values.countMax;
-    }
-    const path = "World.scene", files = [{ virtualPath: path, path, type: "Scene" }];
-    const pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: path, files },
-      contents: { [path]: JSON.stringify(importRuntimeHierarchy(exportPlanningScene(document), path, files, () => true)) } };
-    expect(() => validatePlanningProject(pack)).not.toThrow();
-    const native = planningSourceDocument(pack)!;
-    expect(native.entities.world.components.population.values).toEqual({ villageMin: 2, villageMax: 2, buildingMin: 0, buildingMax: 40 });
-    for (const type of ["terrain", "rivers", "lakes"]) {
-      expect(native.entities.world.components[type].values).toMatchObject({ countMin: 0, countMax: 0 });
-      expect(native.entities.world.components[type].values).not.toHaveProperty("count");
-    }
-  });
 
   it("accepts cross-range scarcity and rejects inverted ranges atomically", async () => {
     const input = source();

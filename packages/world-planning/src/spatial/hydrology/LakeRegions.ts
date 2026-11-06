@@ -9,7 +9,6 @@ import { settlementRandom } from "../../semantic-study/SettlementGeometry";
 export interface LakeParameters extends PlanningCountRange {
   referenceLevel?: number;
   shoreline?: { id: string; ring: string; x: number; z: number }[];
-  count: number;
   radiusM: number;
   depthM: number;
   bankWidthM: number;
@@ -29,7 +28,8 @@ export interface PlanningLakeShape {
   readonly carved: boolean;
 }
 export const LAKE_DEFAULTS: Readonly<LakeParameters> = Object.freeze({
-  count: 1,
+  countMin: 1,
+  countMax: 1,
   radiusM: 25,
   depthM: 4,
   bankWidthM: 4,

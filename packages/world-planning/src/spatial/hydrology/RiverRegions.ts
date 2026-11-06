@@ -17,7 +17,6 @@ export interface RiverParameters extends PlanningCountRange {
   points?: WatercoursePoint[];
   sections?: WatercourseSection[];
   enabled?: boolean;
-  count: number;
   lengthM: number;
   automaticLevel: boolean;
   waterY: number;
@@ -31,7 +30,8 @@ export interface RiverParameters extends PlanningCountRange {
   preference: number;
 }
 export const RIVER_DEFAULTS: RiverParameters = {
-  count: 1,
+  countMin: 1,
+  countMax: 1,
   lengthM: 1000,
   automaticLevel: true,
   waterY: 3,

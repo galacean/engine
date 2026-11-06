@@ -69,7 +69,7 @@ describe("building terrain acceptance", () => {
     const config = defaultPoiLayout();
     config.candidates = [{ id: site.id, origin: site.origin, domainId: site.domainId }];
     const document = importPlanningDocument({ version: 2, parameters: { ...SEMANTIC_DEFAULTS, seed: 7, poiLayout: config,
-      rivers: { count: 0 }, lakes: { count: 0 }, terrainSkeleton: { count: 0, directionDegrees: 0, heightM: 50, widthM: 160 }, terrainPatches: [patch] }, edits: {} });
+      rivers: { countMin: 0, countMax: 0 }, lakes: { countMin: 0, countMax: 0 }, terrainSkeleton: { countMin: 0, countMax: 0, directionDegrees: 0, heightM: 50, widthM: 160 }, terrainPatches: [patch] }, edits: {} });
     document.entities.world.components.layout.values = { elementProfile: "habitable", spacingMinM: 25, spacingMaxM: 25 };
     const result = generate(document);
     const ground = createPlanningGroundSampler(result.plan, { natural: true });
@@ -104,13 +104,13 @@ describe("first-visit population authoring", () => {
 
   it("accepts custom initialization targets without changing the source authoring", () => {
     const source = flatInputs(), before = structuredClone(source);
-    const populated = initializePlanningPopulation(source, { villageTarget: 2, buildingLimit: 40 });
+    const populated = initializePlanningPopulation(source, { villageMin: 2, villageMax: 2, buildingMin: 0, buildingMax: 40 });
     expect(source).toEqual(before);
     const result = generate(populated);
     expect(villages(result).size).toBe(2);
     expect(result.plan.buildings.length).toBeGreaterThan(0);
     expect(result.plan.buildings.length).toBeLessThanOrEqual(40);
-    const empty = generate(initializePlanningPopulation(source, { villageTarget: 0, buildingLimit: 0 }));
+    const empty = generate(initializePlanningPopulation(source, { villageMin: 0, villageMax: 0, buildingMin: 0, buildingMax: 0 }));
     expect(empty.plan.buildings).toHaveLength(0);
   }, 60000);
 
@@ -122,7 +122,7 @@ describe("first-visit population authoring", () => {
     };
     const probe = generate(source);
     expect(probe.plan.buildings.length).toBeGreaterThan(20);
-    const initialized = initializePlanningPopulation(source, { villageTarget: 1, buildingLimit: 5 });
+    const initialized = initializePlanningPopulation(source, { villageMin: 1, villageMax: 1, buildingMin: 0, buildingMax: 5 });
     const id = initialized.populationInitialization!.selectedPoiIds[0];
     expect(probe.plan.buildings.filter(building => building.regionId === id).length).toBeGreaterThan(5);
     const saved = initialized.entities[id].components.layout.values;

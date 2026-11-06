@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createSeedPlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningInitialization";
-import { exportPlanningAuthoring, exportPlanningRecipe, importPlanningDocument, upgradePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
+import { exportPlanningAuthoring, exportPlanningRecipe, upgradePlanningDocument } from "@galacean/engine-world-planning/spatial/PlanningDocument";
 import { switchPlanningLayoutScope } from "@galacean/engine-world-planning/spatial/PlanningLayoutScope";
 import { applySpatialCommands } from "@galacean/engine-world-planning/spatial/SpatialDocument";
 import { planningRegistry } from "@galacean/engine-world-planning/spatial/PlanningComponents";
@@ -12,7 +12,6 @@ import { RUNTIME_PROJECT_SAVE_VERSION, type RuntimeProjectPackage } from "@galac
 import { PlanningSession } from "@galacean/engine-world-planning/spatial/PlanningSession";
 import { createSeedWorldParameterTools } from "../../demos/seed-world/agent-adapter/tools/parameter-tools.ts";
 import type { AgentValue } from "@galacean/engine-ai-chat/ai-chat/agent-types";
-import { legacyDefaultPoiLayout } from "@galacean/engine-world-planning/spatial/migration/LegacyPoiDistribution";
 import { createSeedWorldKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge.ts";
 
 const poiId = "poi-authored-fixture";
@@ -40,7 +39,7 @@ describe("single POI size weight authoring persistence", () => {
     } });
     const componentTypes = session.describe().map(component => component.type);
     const knowledge = createSeedWorldKnowledge(tools.map(tool => tool.name), componentTypes);
-    const spatialGuide = knowledge.documents.find(document => document.path === "knowledge/world/spatial/README.md");
+    const spatialGuide = knowledge.documents.find(document => document.path === "skills/spatial/references/components.md");
     expect(spatialGuide).toBeDefined();
     expect(spatialGuide!.content).toContain("poi.sizeWeight");
     expect(spatialGuide!.content).toContain("actualAreaM2");
@@ -49,7 +48,7 @@ describe("single POI size weight authoring persistence", () => {
     expect(spatialGuide!.content).toContain("versionToken");
     expect(knowledge.modules.some(module => module.id === "declare/world/tools/world.parameters.apply.d.ts")).toBe(true);
     const unavailable = createSeedWorldKnowledge(tools.map(tool => tool.name), componentTypes.filter(type => type !== "poi"));
-    expect(unavailable.documents.find(document => document.path === "knowledge/world/spatial/README.md")?.content ?? "")
+    expect(unavailable.documents.find(document => document.path === "skills/spatial/references/components.md")?.content ?? "")
       .not.toContain("poi.sizeWeight");
     const call = async (name: string, input: AgentValue) => {
       const tool = tools.find(tool => tool.name === `world.parameters.${name}`)!;
@@ -103,75 +102,6 @@ describe("single POI size weight authoring persistence", () => {
     switchPlanningLayoutScope(restored, seed + 1);
     expect(restored.entities[poiId].components.poi.values).toEqual({ sizeWeight: 1.75 });
     expect(exportPlanningRecipe(restored).edits[poiId].poi).toEqual({ sizeWeight: 1.75 });
-  });
-
-  it("writes the POI migration into an existing version 2 native Source without replacing file or unrelated identities", async () => {
-    const path = "World.scene";
-    const files = [{ virtualPath: path, path: "runtime-world:scene", type: "Scene" }];
-    const oldScene = exportPlanningScene(authoring());
-    const metadata = oldScene.components.find(component => component.type === "PlanningProjectAuthoring")!.props.metadata as any;
-    delete metadata.poiAuthoringVersion;
-    metadata.passthrough.parameters.poiLayout = legacyDefaultPoiLayout();
-    const unrelatedIndex = oldScene.entities.push({ name: "Unrelated retained object", components: [] }) - 1;
-    oldScene.scene.rootEntities.push(unrelatedIndex);
-    let pack: RuntimeProjectPackage = {
-      version: RUNTIME_PROJECT_SAVE_VERSION,
-      project: { scene: path, files },
-      contents: { [path]: JSON.stringify(importRuntimeHierarchy(oldScene, path, files, () => true)) },
-      documents: { [`${path}.planning-source.json`]: '{"version":2}' }
-    };
-    const original = JSON.parse(pack.contents[path] as string);
-    const unrelated = original.entities.find((entity: any) => entity.name === "Unrelated retained object");
-    const project = { get projectPackage() { return pack; },
-      async publish(next: RuntimeProjectPackage) { pack = structuredClone(next); } };
-    const storage = new PlanningProjectStorage(project);
-    const loaded = await storage.load(seed);
-    await storage.migrateToSource(loaded!);
-    const persisted = JSON.parse(pack.contents[path] as string);
-    expect(persisted.components.find((component: any) => component.type === "PlanningProjectAuthoring").props.metadata.poiAuthoringVersion).toBe(2);
-    expect(JSON.parse(pack.documents![`${path}.planning-source.json`])).toEqual({ version: 2, poiAuthoringVersion: 2, layoutControlsVersion: 1 });
-    expect(persisted.entities.find((entity: any) => entity.name === "Unrelated retained object")).toEqual(unrelated);
-    expect(pack.project.files.map(file => ({ virtualPath: file.virtualPath, path: file.path, type: file.type }))).toEqual(files);
-    expect(planningSourceDocument(pack)!.entities[poiId].components.poi.values.sizeWeight).toBe(1.75);
-    const once = structuredClone(pack);
-    await storage.migrateToSource((await storage.load(seed))!);
-    expect(pack).toEqual(once);
-  });
-
-  it("persists repaired content bindings in a version 1 POI Source and keeps manual size and weight edits", async () => {
-    const path = "World.scene", files = [{ virtualPath: path, path: "runtime-world:scene", type: "Scene" }];
-    const recipe = exportPlanningRecipe(createSeedPlanningDocument(1));
-    recipe.parameters.poiLayout = legacyDefaultPoiLayout() as unknown as typeof recipe.parameters.poiLayout;
-    const original = importPlanningDocument(recipe);
-    const id = "poi-large-1";
-    expect(original.entities[id].components.layout.values.elementProfile).toBe("habitable");
-    const oldScene = exportPlanningScene(original);
-    for (const record of oldScene.components) {
-      if (record.type === "PlanningProjectAuthoring") (record.props.metadata as any).poiAuthoringVersion = 1;
-      if (record.type !== "PlanningEntityAuthoring") continue;
-      const components = record.props.spatialComponents as any;
-      if (components.layout) delete components.layout.values.elementProfile;
-      if (record.props.planningId === id) {
-        components.poi.values.sizeWeight = 3;
-        components.layout.values.widthMinM = 15;
-        components.layout.values.widthMaxM = 28;
-      }
-    }
-    let pack: RuntimeProjectPackage = { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: path, files },
-      contents: { [path]: JSON.stringify(importRuntimeHierarchy(oldScene, path, files, () => true)) },
-      documents: { [`${path}.planning-source.json`]: JSON.stringify({ version: 2, poiAuthoringVersion: 1 }) } };
-    const project = { get projectPackage() { return pack; }, async publish(next: RuntimeProjectPackage) { pack = structuredClone(next); } };
-    const storage = new PlanningProjectStorage(project);
-    await storage.migrateToSource((await storage.load(1))!);
-    const persisted = JSON.parse(pack.contents[path] as string);
-    expect(persisted.components.find((record: any) => record.type === "PlanningProjectAuthoring").props.metadata.poiAuthoringVersion).toBe(2);
-    const native = persisted.components.find((record: any) => record.type === "PlanningEntityAuthoring" && record.props.planningId === id).props.spatialComponents;
-    expect(native.layout.values).toMatchObject({ elementProfile: "habitable", widthMinM: 15, widthMaxM: 28 });
-    expect(native.poi.values.sizeWeight).toBe(3);
-    expect(JSON.parse(pack.documents![`${path}.planning-source.json`])).toEqual({ version: 2, poiAuthoringVersion: 2, layoutControlsVersion: 1 });
-    const once = structuredClone(pack);
-    await storage.migrateToSource((await storage.load(1))!);
-    expect(pack).toEqual(once);
   });
 
   it("saves the native Source and reloads the same sparse override without a legacy Planning.json asset", async () => {

@@ -98,7 +98,7 @@ describe("production vegetation native asset closure", () => {
       await new PlanningProjectStorage(session, seedWorldProjectFormats).migrateToSource(createSeedPlanningDocument(2));
       expect(JSON.parse(session.projectPackage.documents![marker])).toEqual({ version: 2 });
       expect(JSON.parse(session.projectPackage.documents![`${project.scene}.planning-source.json`])).toEqual({
-        version: 2, poiAuthoringVersion: 2, layoutControlsVersion: 1
+        version: 2
       });
       expect(planningSourceDocument(session.projectPackage)).toEqual(authoring);
       const migrated = new RuntimeSceneEdit(new RuntimeProjectEdit(session.projectPackage, formats), project.scene);

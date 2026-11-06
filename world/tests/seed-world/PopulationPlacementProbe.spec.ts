@@ -58,11 +58,11 @@ function geometry(plan: ReturnType<typeof generatePlanningDocument>["plan"]) {
 }
 const digest = (value: unknown) => createHash("sha256").update(JSON.stringify(value)).digest("hex");
 // Captured from complete capacity evaluation before placement-only optimization.
-// Keep authoring, all published geometry and diagnostics independently observable.
+// Authoring omits retired poiAuthoringVersion/layoutVersion metadata; geometry and diagnostics are unchanged.
 const baseline = {
-  1: ["a363ef250ba4f6505a8f9cd306b309d9e8ec73b9d540eedd5da5a169e0568a30", "597855894af022468425f88975c8aaf2ad98a3aa7eda06babb801cef0514dc2a", "f00d8712e25a8c4b0a1096502591c3c1a5bff71be1ee8b66a491aee2df091c6f"],
-  7: ["cd1946e8cf463ca305d4cd1fec5ee3679415a5dbc8b58999064be05b8a3d2938", "37446db8c8863b12cc07051e3e542fee6c6e8ebed4b8c785b63ae1121ff7745a", "c05d1bdaa51216596d5137da578eb5ebd122f626cc9a86000ced3068089f84d6"],
-  110513: ["26adb584172074da50b12face8d89c29db3e5d3def739d391f8e2f350cfb5cc0", "cab8b24b456b21f4b05e08a390501cab8ee2e2e04b783f27d92c2e306442f0a1", "c0aa67b6d90e9843fd7065d6b6a024b3783bf56a851efd8400cf84e6f35337ef"]
+  1: ["04b9cd17ad6c3c260fbfc74a8fb381423d55eb96df95b472879035a15673cfc1", "597855894af022468425f88975c8aaf2ad98a3aa7eda06babb801cef0514dc2a", "f00d8712e25a8c4b0a1096502591c3c1a5bff71be1ee8b66a491aee2df091c6f"],
+  7: ["01163c8c857041bd1fc64532a09131093b9285478b653b96de9622e87e87daa7", "37446db8c8863b12cc07051e3e542fee6c6e8ebed4b8c785b63ae1121ff7745a", "c05d1bdaa51216596d5137da578eb5ebd122f626cc9a86000ced3068089f84d6"],
+  110513: ["7927b1359eb7e2a71e11287d6f681e62d7c59bfdd3e81c6fbd14cf8fe109702d", "cab8b24b456b21f4b05e08a390501cab8ee2e2e04b783f27d92c2e306442f0a1", "c0aa67b6d90e9843fd7065d6b6a024b3783bf56a851efd8400cf84e6f35337ef"]
 };
 it("keeps reset authoring, final geometry and checks identical to the complete-solve baseline", () => {
   for (const seed of [1, 7, 110513] as const) {
