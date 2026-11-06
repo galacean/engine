@@ -96,12 +96,6 @@
     "owner": "world-planning / terrain"
   },
   {
-    "entry": "demos/masonry-lab/index.html",
-    "title": "砌造实验室 · Geometry × Rule × Unit",
-    "mode": "service",
-    "owner": "building"
-  },
-  {
     "entry": "demos/metrics-zoo/index.html",
     "title": "米制白盒测试场",
     "mode": "static",
@@ -160,12 +154,6 @@
     "title": "Terrain Editor",
     "mode": "static",
     "owner": "terrain / runtime-editor"
-  },
-  {
-    "entry": "demos/tiny-glade-resident/index.html",
-    "title": "Tiny Glade · 常驻渲染验收",
-    "mode": "service",
-    "owner": "building"
   },
   {
     "entry": "demos/tree-reconstruction/index.html",

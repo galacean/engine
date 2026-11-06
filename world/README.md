@@ -101,7 +101,6 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 | `demos/global-illumination/` | environment |
 | `demos/integrated-world/` | world-planning（综合业务 Demo） |
 | `demos/landform-study/` | world-planning / terrain |
-| `demos/masonry-lab/` | building |
 | `demos/metrics-zoo/` | world-planning |
 | `demos/prompt-noise-world/` | world-planning / terrain |
 | `demos/rain-wind/` | environment |
@@ -109,7 +108,6 @@ AI Chat 的真实模型请求沿用业务配置，需要配置可用的 provider
 | `demos/seed-world/` | world-planning（Seed World 业务） |
 | `demos/snow-wind/` | environment |
 | `demos/terrain-editor/` | terrain / runtime-editor |
-| `demos/tiny-glade-resident/` | building |
 | `demos/tree-reconstruction/` | vegetation |
 | `demos/vegetation/` | vegetation |
 | `demos/volumetric-clouds/` | environment |
