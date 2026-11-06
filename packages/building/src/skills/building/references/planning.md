@@ -2,7 +2,21 @@
 
 ## 生成器参数
 
-`Building.European.buildHouses({id,seed,height,rectangle|circle,roof,wall,roofStyle,attachments})` 返回 groups、parts、relations。roof 是 0..1 的控制参数，不是米制的 rise 或 pitch。rectangle 和 circle 使用米和弧度。
+`Building.European.buildHouses({id,seed,height,rectangle|circle,roof,wall,roofStyle,attachments})` 返回 groups、parts、relations。`height` 是墙高，单位是米。rectangle 和 circle 使用米和弧度。
+
+`roof` 必须是对象。下面的字段都可选，前四个是 0..1 的控制量，不是米，也不是角度。超出范围时，报错 `Roof control must be in [0,1]`。
+
+| 字段 | 范围 | 默认值 |
+| --- | --- | --- |
+| `height` | 0..1 | 0.35 |
+| `ridge_length` | 0..1 | 0.6 |
+| `eave` | 0..1 | 0.3 |
+| `profile` | 0..1 | 0 |
+| `tip` | 两个数的数组 | [0, 0] |
+| `ridge_direction`、`flat_rim` | 开关 | 0 |
+| `color` | 整数 0..12 | 2 |
+
+不传 roof 时使用默认值。不要传其他字段，否则会报 `Unsupported roof field`。
 
 完整参数见 [European 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/parts/architecture/European.d.ts)。屋顶、台基和楼层参数见 [ProfileParameters 声明](declare/engine/node_modules/@galacean/seed-world-systems/shared/tiny-glade/runtime/ProfileParameters.d.ts)。
 
@@ -16,21 +30,27 @@
 
 `tools.building.generate` 内部调用上述生成器和 `buildingDraftSource`，返回 Prefab JSON。
 
-先查询一个现有的 BuildingGroupComponent，读取 `props.assetLibrary.$ref`，复用真实的资产库路径。这里只复用路径，不是把那个建筑的几何复制成模板。
+下面一次 execute 就能建好一栋房子。先用 `tools.spatial.resolve` 解析落点，取它的水平坐标。Y 写 0，地形由场景宿主求解，不需要查询现有建筑的高度。
 
-```ts
+```js
+const scene = "<project.json 的 scene 字段>";
+// 复用真实的资产库路径。这里只复用路径，不是把那个建筑的几何复制成模板。
+const groups = await editor.component.query({ scene, type: "BuildingGroupComponent" });
+const { props } = await editor.component.read({ scene, id: groups[0].id });
+const library = props?.assetLibrary;
+if (!library || typeof library !== "object" || !("$ref" in library)) throw new Error("没有找到资产库");
+
 const generated = await tools.building.generate({
-  generator: "European.buildTower",
+  generator: "European.buildHouses",
   parameters: {
-    id: "new-tower", seed: 17, height: 9,
-    circle: { center: [0, 0], radius: 2.5, phase: 0 },
-    roof: { height: 0.8, ridge_length: 0 }
+    id: "small-house-1", seed: 17, height: 3.2,
+    rectangle: { center: [0, 0], size: [6, 5], rotation: 0 },
+    roof: { height: 0.5 }
   },
-  source: { id: "new-tower-frame", name: "圆塔", assetLibrary: libraryPath }
+  source: { id: "small-house-frame", name: "小房子", assetLibrary: library.$ref }
 });
-await editor.asset.create({ path: "Building/NewTower.prefab", type: "Prefab", content: generated.content });
-// 随后用 editor.entity.create 的 prefab 字段引用该路径，并设置水平位置。
-// 读取当前 Editor 声明，确定 scene、parentId 和 transform 字段。
+const asset = await editor.asset.create({ path: "Building/SmallHouse.prefab", type: "Prefab", content: generated.content });
+return await editor.entity.create({ scene, name: "小房子", prefab: asset.path, position: [x, 0, z], rotation: [0, 0, 0] });
 ```
 
 - 生成接口是纯计算，不修改场景，也不发布或渲染。
@@ -41,11 +61,17 @@ await editor.asset.create({ path: "Building/NewTower.prefab", type: "Prefab", co
 
 ## 检查本次发布
 
-在下一次 execute 中：
+在下一次 execute 中读取场景 BuildingManager 的 `buildStatus`：
 
-1. 用 `runtime.entity.children` 查询场景根节点，找到包含 `BuildingManager` 的实体。
-2. 用 `runtime.component.query` 取得真实的数值 ID。
-3. 用 `runtime.component.read({componentId,fields:["buildStatus"]})` 读取状态。
+```js
+const roots = await tools.runtime.entity.children({ limit: 100 });
+for (const item of roots.entities) {
+  if (!item.entity) continue;
+  const found = await tools.runtime.component.query({ entityId: item.entity.entityId, type: "BuildingManager" });
+  if (!found.components.length) continue;
+  return (await tools.runtime.component.read({ componentId: found.components[0].componentId, fields: ["buildStatus"] })).values;
+}
+```
 
 | 字段 | 含义 |
 | --- | --- |

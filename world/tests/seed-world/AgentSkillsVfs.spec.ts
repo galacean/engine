@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-project-files";
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
 import { buildAgentMessages } from "@galacean/engine-ai-chat/ai-chat/agent-protocol";
+import { AgentContextTranscript } from "@galacean/engine-ai-chat/ai-chat/context-compaction";
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files";
 import { seedWorldNativeKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts";
 import { createSeedWorldKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldKnowledge.ts";
@@ -85,6 +86,22 @@ describe("Agent skills and declarations", () => {
     expect(listed.find((skill: { name: string }) => skill.name === "assets").path).toBe("skills/assets/SKILL.md");
     expect(JSON.stringify(listed)).not.toContain("## ");
     expect(contexts[0].notes).toContain("tools.spatial.resolve");
+  });
+});
+
+describe("world state position", () => {
+  const request = (transcript: Parameters<typeof buildAgentMessages>[0]["transcript"]) =>
+    buildAgentMessages({ systemPrompt: "system", taskId: "task", userInput: "x", inputSource: "text", worldThumbnail: {}, transcript });
+
+  it("follows the execution it observes and stays out of the transcript", () => {
+    const transcript = new AgentContextTranscript();
+    expect(transcript.captureRequest(request([])).prefixLength).toBe(6);
+    const step = { role: "assistant" as const, content: "done" };
+    transcript.push(step);
+    const messages = request(transcript.active);
+    expect(JSON.parse(messages.at(-1)!.content as string).contextKind).toBe("world_state");
+    expect(messages.at(-2)).toEqual(step);
+    expect(transcript.captureRequest(messages).prefixLength).toBe(5);
   });
 });
 

@@ -13,7 +13,7 @@ description: 生成或修改建筑，处理构件连接与开口、铺设 Unit �
 
 execute 不能导入游戏 Script 模块，也不能调用运行时方法。
 
-- **新建：** 用 [tools.building.generate](declare/editor/world/tools/building.generate.d.ts) 生成，把结果的 `content` 交给 `editor.asset.create` 保存为 Prefab，再用 `editor.entity.create` 实例化。完整示例见[流程](references/planning.md)。不要为一次建造安装临时生成 Script，也不要从零手写生成器已有的构件参数。
+- **新建：** 用 [tools.building.generate](declare/editor/world/tools/building.generate.d.ts) 生成，把结果的 `content` 交给 `editor.asset.create` 保存为 Prefab，再用 `editor.entity.create` 实例化。完整示例和 roof 参数见[流程](references/planning.md)，读完可以直接动手。不要为一次建造安装临时生成 Script，也不要从零手写生成器已有的构件参数。
 - **修改已有建筑：** 通过 Editor API 查看和编辑原生 Source，保留目标实例的 frame 和引用。
 - **检查结果：** 提交后，用运行时查询读取场景 BuildingManager 的 `buildStatus`，方法见[流程](references/planning.md)。
 

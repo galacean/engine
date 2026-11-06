@@ -208,6 +208,8 @@ export type AgentExecutionReceipt = Readonly<{
   commands?: readonly AgentCommandReceipt[];
   transactionId?: string;
   revision?: number;
+  /** Compare with a screenshot's capturedAt to tell whether the image includes this commit. */
+  committedAt?: string;
   runtimeErrors?: readonly string[];
 }>;
 
