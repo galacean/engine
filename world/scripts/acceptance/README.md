@@ -6,7 +6,7 @@
 pnpm --dir world exec vitest run --config scripts/acceptance/seed-world-fixes.config.mjs
 ```
 
-该入口执行 `world/tests/seed-world` 的用例，其中依赖 Demo 的测试留在这里，其他测试放在对应包的 `packages/<name>/tests`。根目录 `vitest` 统一运行这些测试。这里原有的 6 个来源用例仅调整迁移后的模块和资源地址，覆盖旧工程保存重开、植被闭包、主岩体与小石头调色隔离、颜色面板和项目关闭。它不替代下述全量迁移验收。
+该入口执行 `world/tests/seed-world` 的用例，其中依赖 Demo 的测试留在这里，其他测试放在对应包的 `packages/<name>/tests`。根目录 `vitest` 统一运行这些测试。首次运行前先执行 `pnpm --dir world prepare:engine`，它生成测试依赖的 shader 缓存；修改 shader 替换文件后要重跑。这里原有的 6 个来源用例仅调整迁移后的模块和资源地址，覆盖旧工程保存重开、植被闭包、主岩体与小石头调色隔离、颜色面板和项目关闭。它不替代下述全量迁移验收。
 
 原项目默认位于相邻的 `engine-next`；原始源码为 `world/gallery`，可运行基线为 `world/.materialized/engine/world-gallery`。证据写入已忽略的 `world/.acceptance`，不发布到 Demo。
 

@@ -16,6 +16,9 @@ export function packageTestConfig(directory, name) {
       setupFiles: [path.join(root, "world/scripts/acceptance/unit-setup.mjs")],
       fileParallelism: false,
       maxWorkers: 1,
+      // The root entry ignores maxWorkers in a project. A single fork keeps these files serial there too.
+      pool: "forks",
+      poolOptions: { forks: { singleFork: true } },
       testTimeout: 30000,
       hookTimeout: 30000
     }

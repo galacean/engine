@@ -17,6 +17,9 @@ export default {
     ],
     fileParallelism: false,
     maxWorkers: 1,
+    // The root entry ignores maxWorkers in a project. A single fork keeps these files serial there too.
+    pool: "forks",
+    poolOptions: { forks: { singleFork: true } },
     testTimeout: 15000
   }
 };

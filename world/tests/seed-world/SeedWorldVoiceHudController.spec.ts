@@ -5,7 +5,7 @@ import { SeedWorldSessionActivity } from "../../demos/seed-world/assistant/SeedW
 import { SessionData, type AgentSessionSnapshot } from "@galacean/engine-ai-chat/ai-chat/session-data.ts";
 import { AIChatSession } from "@galacean/engine-ai-chat/ai-chat/ai-chat-session.ts";
 import { SeedWorldTurnGesture, turnDragIntent, turnAnchorOffset, turnThrow } from "../../demos/seed-world/assistant/SeedWorldTurnGesture";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   AgentTraceStore,
@@ -126,6 +126,11 @@ class ControlledAsrClient implements AsrClient {
     this._activeSession = undefined;
   }
 }
+
+// The first import compiles most of Seed World. Keep it out of the behavior timeouts.
+beforeAll(async () => {
+  await import("../../demos/seed-world/assistant/SeedWorldChatPanel");
+}, 120000);
 
 describe("SeedWorldVoiceHudController lifecycle", () => {
   it("shows current model progress and retains the submitted requirement in details", async () => {
