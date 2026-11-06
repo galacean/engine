@@ -31,7 +31,10 @@ describe("loop return coverage", () => {
           "while (1 < 2) { if (true) return 1.0; break; }",
           "while (flag) { return 1.0; } return 0.0;",
           "for (int i = 0; i < 0; i++) { return 1.0; } return 0.0;",
-          "for (int i = 0; i < 1; i++) { if (flag) break; return 1.0; } return 0.0;"
+          "for (int i = 0; i < 1; i++) { if (flag) break; return 1.0; } return 0.0;",
+          ...(target === ShaderLanguage.GLSLES300
+            ? ["while (2147483648u > 0u) { return 1.0; }", "for (uint i = 2147483648U; i > 0U; i++) { return 1.0; }"]
+            : [])
         ].entries()) {
           const code = source(`loop-return-${target}-${index}`, body);
           expect(ShaderAnalyzer.analyze(code).diagnostics, body).toEqual([]);
@@ -60,6 +63,8 @@ describe("loop return coverage", () => {
     "for (int i = 0; i < 0; i++) { return 1.0; }",
     "for (int i = 1; 0 > i; i++) { return 1.0; }",
     "for (int i = 0; false; i++) { return 1.0; }",
+    "while (2147483648u < 1u) { return 1.0; }",
+    "for (uint i = 2147483648U; i < 1U; i++) { return 1.0; }",
     "while (true) { break; }",
     "while (true) { break; return 1.0; }",
     "while (true) { if (false) return 1.0; break; }",
