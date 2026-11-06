@@ -289,15 +289,15 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     runtimeState.bufferDestroyCount = 0;
   });
 
-  it("keeps the far composite inside every supported Clipmap LOD range", async () => {
-    const { resolveSeedWorldTerrainFarCompositeLod } = await import(
+  it("keeps the far material inside every supported Clipmap LOD range", async () => {
+    const { resolveSeedWorldTerrainFarLod } = await import(
       "@galacean/engine-world-planning/runtime/SeedWorldTerrainRuntime"
     );
 
-    expect(resolveSeedWorldTerrainFarCompositeLod(2)).toBe(1);
-    expect(resolveSeedWorldTerrainFarCompositeLod(3)).toBe(2);
-    expect(resolveSeedWorldTerrainFarCompositeLod(4)).toBe(2);
-    expect(() => resolveSeedWorldTerrainFarCompositeLod(1)).toThrow(/at least two Clipmap LODs/u);
+    expect(resolveSeedWorldTerrainFarLod(2)).toBe(1);
+    expect(resolveSeedWorldTerrainFarLod(3)).toBe(2);
+    expect(resolveSeedWorldTerrainFarLod(4)).toBe(2);
+    expect(() => resolveSeedWorldTerrainFarLod(1)).toThrow(/at least two Clipmap LODs/u);
   });
 
   it("publishes independent bare-ground colours to near/far Terrain and restores source layers on reset", async () => {
@@ -363,11 +363,6 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
         { regionId: "seed-world", layerId: "layer-02", color: [0, 0.7, 0.9, 1] }
       ]);
       for (const target of [material, runtimeState.clipmapFarMaterials[0]]) {
-        for (const layer of [1, 2])
-          expect(target.shaderData.setColor).toHaveBeenCalledWith(
-            `material_TerrainSeedLayerColor${layer}`,
-            expect.objectContaining({ r: 0, g: 0.7, b: 0.9, a: 1 })
-          );
         expect(target.shaderData.setColor).toHaveBeenCalledWith(
           "material_TerrainRoadColor",
           expect.objectContaining({ r: 0.6, g: 0.4, b: 0.2, a: 1 })
@@ -375,18 +370,10 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       }
       runtime.resetSurfaceColorTuning();
       expect(runtime.getSurfaceColorTuning()).toEqual(initial);
-      for (const target of [material, runtimeState.clipmapFarMaterials[0]])
-        for (const layer of [1, 2]) {
-          const writes = target.shaderData.setColor.mock.calls.filter(
-            ([name]) => name === `material_TerrainSeedLayerColor${layer}`
-          );
-          expect(writes.at(-1)![1]).toMatchObject({
-            r: SEED_WORLD_ROAD_COLOR_DEFAULT[0],
-            g: SEED_WORLD_ROAD_COLOR_DEFAULT[1],
-            b: SEED_WORLD_ROAD_COLOR_DEFAULT[2],
-            a: 1
-          });
-        }
+      expect(runtimeState.layerDiffuseColors.at(-1)).toEqual([
+        { regionId: "seed-world", layerId: "layer-04", color: undefined },
+        { regionId: "seed-world", layerId: "layer-02", color: undefined }
+      ]);
     } finally {
       await runtime.destroy();
     }
@@ -525,20 +512,20 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       }[];
       readonly alphamaps: readonly { readonly layers: readonly string[] }[];
     }>;
-    expect(layerSources[0].layers.map((layer) => layer.id)).toEqual(["layer-00", "layer-01", "layer-04", "layer-02"]);
-    expect(layerSources[0].alphamaps[0].layers).toEqual(["layer-00", "layer-01", "layer-04", "layer-02"]);
+    expect(layerSources[0].layers.map((layer) => layer.id)).toEqual(["layer-00", "layer-04", "layer-02"]);
+    expect(layerSources[0].alphamaps[0].layers).toEqual(["layer-00", "layer-04", "layer-02", null]);
     expect(layerSources[0].layers.map((layer) => layer.tileSize)).toEqual([
-      [2, 2],
       [2, 2],
       [2, 2],
       [2, 2]
     ]);
     expect(layerSources[0].layers[2].diffuse).toBe(layerSources[0].layers[1].diffuse);
-    expect(layerSources[0].layers[3].diffuse).toBe(layerSources[0].layers[1].diffuse);
     expect(layerSources).toHaveLength(1);
-    expect(layerSources[0].alphamaps[0]).toEqual(
-      expect.objectContaining({ sampleSize: [384, 384], weights: surfaceIntent.materialWeights })
-    );
+    const renderWeights = (layerSources[0].alphamaps[0] as unknown as { weights: Uint8Array }).weights;
+    expect(renderWeights).not.toBe(surfaceIntent.materialWeights);
+    expect(Array.from(renderWeights.slice(0, 4))).toEqual([0, 0, 255, 0]);
+    expect(renderWeights.length).toBe(384 * 384 * 4);
+    expect(layerSources[0].alphamaps[0]).toMatchObject({ sampleSize: [384, 384] });
     const clipmapDescriptor = runtimeState.clipmapCreates[0][3] as {
       readonly vertexSpacing: number;
       readonly sources: readonly { readonly normalSamples?: Uint8Array; readonly holes?: Uint8Array }[];
@@ -644,42 +631,19 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     expect(runtimeState.clipmapCreates[0][10]).toEqual(
       expect.objectContaining({
         firstLod: 2,
-        sharedMacros: ["MATERIAL_TERRAIN_SEED_FIXED_LAYERS"],
-        nearTransitionMacro: "MATERIAL_TERRAIN_SEED_FAR_TRANSITION",
-        farMacro: "MATERIAL_TERRAIN_SEED_FAR_COMPOSITE",
+        nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",
+        farMacro: "MATERIAL_TERRAIN_FAR",
         configureMaterial: expect.any(Function)
       })
     );
     const farTerrainMaterial = runtimeState.clipmapFarMaterials[0];
     for (const material of [terrainMaterial, farTerrainMaterial]) {
-      expect(material.shaderData.setFloat).toHaveBeenCalledWith("material_TerrainFarCompositeLod", 2);
+      expect(material.shaderData.setFloat).toHaveBeenCalledWith("material_TerrainFarLod", 2);
       expect(material.shaderData.setVector2).toHaveBeenCalledWith(
         "material_GrassColorFieldVistaBlend",
         expect.objectContaining({ x: 0, y: 169 })
       );
-      expect(material.shaderData.setVector4).toHaveBeenCalledWith(
-        "material_TerrainSeedLayerSnowResponse",
-        expect.objectContaining({ x: 0.72, y: 0.36, z: 0.36, w: 0.18 })
-      );
     }
-    expect(farTerrainMaterial.shaderData.setColor).toHaveBeenCalledWith(
-      "material_TerrainSeedLayerColor1",
-      expect.objectContaining({
-        r: SEED_WORLD_ROAD_COLOR_DEFAULT[0],
-        g: SEED_WORLD_ROAD_COLOR_DEFAULT[1],
-        b: SEED_WORLD_ROAD_COLOR_DEFAULT[2],
-        a: 1
-      })
-    );
-    expect(farTerrainMaterial.shaderData.setColor).toHaveBeenCalledWith(
-      "material_TerrainSeedLayerColor2",
-      expect.objectContaining({
-        r: SEED_WORLD_ROAD_COLOR_DEFAULT[0],
-        g: SEED_WORLD_ROAD_COLOR_DEFAULT[1],
-        b: SEED_WORLD_ROAD_COLOR_DEFAULT[2],
-        a: 1
-      })
-    );
     const initialSurfaceTuning = runtime.getSurfaceColorTuning();
     const lastUniform = (setter: ReturnType<typeof vi.fn>, property: string) =>
       setter.mock.calls.filter(([name]) => name === property).at(-1)?.[1];
@@ -688,10 +652,16 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
       getVector2: (name: string) => lastUniform(terrainMaterial.shaderData.setVector2, name),
       getVector4: (name: string) => lastUniform(terrainMaterial.shaderData.setVector4, name),
       getColor: (name: string) => lastUniform(terrainMaterial.shaderData.setColor, name),
+      getInt: () => undefined,
+      getFloat: (name: string) => lastUniform(terrainMaterial.shaderData.setFloat, name),
+      getVector3: () => undefined,
+      getMacros: () => [],
       getFloatArray: () => [0, 0, fields.sizeMetres, fields.sizeMetres]
     });
     const sharedGrass = {
       shaderData: {
+        setFloat: vi.fn(),
+        setFloatArray: vi.fn(),
         enableMacro: vi.fn(),
         disableMacro: vi.fn(),
         setTexture: vi.fn(),
@@ -703,6 +673,8 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     const releaseSharedGrass = runtime.registerGrassAppearanceMaterial(sharedGrass as never);
     const groundCover = {
       shaderData: {
+        setFloat: vi.fn(),
+        setFloatArray: vi.fn(),
         enableMacro: vi.fn(),
         disableMacro: vi.fn(),
         setTexture: vi.fn(),
@@ -792,7 +764,7 @@ describe("SeedWorldTerrainRuntime production ownership integration", () => {
     );
     expect(runtimeState.populationGrassRoadColors).toEqual([SEED_WORLD_ROAD_COLOR_DEFAULT, [0.1, 0.2, 0.3]]);
     expect(sharedGrass.shaderData.setColor).toHaveBeenCalledWith(
-      "material_GrassTerrainRoadColor",
+      "material_TerrainRoadColor",
       expect.objectContaining({ r: 0.1, g: 0.2, b: 0.3 })
     );
     releaseSharedGrass();

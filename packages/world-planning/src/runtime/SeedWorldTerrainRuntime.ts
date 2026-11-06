@@ -105,11 +105,8 @@ const MATERIAL_GRASS_COLOR_FIELD_OFFSET = ShaderProperty.getByName("material_Gra
 const MATERIAL_GRASS_COLOR_FIELD_PARAMS = ShaderProperty.getByName("material_GrassColorFieldParams");
 const MATERIAL_GRASS_COLOR_FIELD_VISTA_BLEND = ShaderProperty.getByName("material_GrassColorFieldVistaBlend");
 const MATERIAL_TERRAIN_ROAD_COLOR = ShaderProperty.getByName("material_TerrainRoadColor");
-const MATERIAL_TERRAIN_FAR_COMPOSITE_LOD = ShaderProperty.getByName("material_TerrainFarCompositeLod");
-const MATERIAL_TERRAIN_SEED_LAYER_COLOR_1 = ShaderProperty.getByName("material_TerrainSeedLayerColor1");
-const MATERIAL_TERRAIN_SEED_LAYER_COLOR_2 = ShaderProperty.getByName("material_TerrainSeedLayerColor2");
-const MATERIAL_TERRAIN_SEED_LAYER_SNOW_RESPONSE = ShaderProperty.getByName("material_TerrainSeedLayerSnowResponse");
-const SEED_WORLD_TERRAIN_PREFERRED_FAR_COMPOSITE_LOD = 2;
+const MATERIAL_TERRAIN_FAR_LOD = ShaderProperty.getByName("material_TerrainFarLod");
+const SEED_WORLD_TERRAIN_PREFERRED_FAR_LOD = 2;
 /** Default linear road colour used by the Seed surface palette. */
 export const SEED_WORLD_ROAD_COLOR_DEFAULT = Object.freeze([
   0.5520114015120001, 0.44520119451622786, 0.2831487404299921
@@ -150,19 +147,22 @@ interface SeedWorldTerrainMaterialState {
   grassTuning: SeedWorldGrassColorFieldTuning;
   roadColor: readonly [red: number, green: number, blue: number];
   groundColor?: readonly [red: number, green: number, blue: number];
-  readonly farCompositeLod: number;
+  readonly farLod: number;
 }
 
 /**
  * Selects the first simplified terrain ring while retaining one complete near ring.
  * The lowest supported mobile Heightmap has only LOD0/1, so its outer ring becomes
- * the far composite instead of requesting a non-existent LOD2.
+ * the far material instead of requesting a non-existent LOD2.
+ * @param clipmapLodCount Number of active Clipmap rings.
+ * @returns First ring using simplified surface shading.
+ * @throws If fewer than two rings are available.
  */
-export function resolveSeedWorldTerrainFarCompositeLod(clipmapLodCount: number): number {
+export function resolveSeedWorldTerrainFarLod(clipmapLodCount: number): number {
   if (!Number.isInteger(clipmapLodCount) || clipmapLodCount < 2) {
     throw new RangeError("Seed World far terrain requires at least two Clipmap LODs");
   }
-  return Math.min(SEED_WORLD_TERRAIN_PREFERRED_FAR_COMPOSITE_LOD, clipmapLodCount - 1);
+  return Math.min(SEED_WORLD_TERRAIN_PREFERRED_FAR_LOD, clipmapLodCount - 1);
 }
 
 /** Runtime-owned generated terrain and discrete decorations for one immutable Root Seed field set. */
@@ -286,7 +286,6 @@ export class SeedWorldTerrainRuntime {
     );
     this._setGrassColorFieldTuning(nextGrass);
     for (const material of this.clipmap.renderMaterials) {
-      bindTerrainGroundColor(material, nextGroundColor);
       bindTerrainRoadColor(material, nextRoadColor);
     }
     this.population.setGrassRoadColor(nextRoadColor);
@@ -378,14 +377,14 @@ export class SeedWorldTerrainRuntime {
       const soilTexture = surfaceIntent.soilCoverage ? await loadPlanningFarmDirtTexture(engine) : undefined;
       signal?.throwIfAborted();
       const layers = buildLayerSources(fields, surfaceIntent, soilTexture);
-      const farCompositeLod = resolveSeedWorldTerrainFarCompositeLod(terrainSettings.clipmapLodCount);
+      const farLod = resolveSeedWorldTerrainFarLod(terrainSettings.clipmapLodCount);
       const terrainMaterialState: SeedWorldTerrainMaterialState = {
         grassTexture: grassColorFieldTexture,
         soilTexture,
         vistaFromDetail: true,
         grassTuning: SEED_WORLD_GRASS_COLOR_FIELD_DEFAULTS,
         roadColor: SEED_WORLD_ROAD_COLOR_DEFAULT,
-        farCompositeLod
+        farLod
       };
       const grassColorField: SeedWorldGrassColorFieldBinding = Object.freeze({
         texture: grassColorFieldTexture,
@@ -411,9 +410,13 @@ export class SeedWorldTerrainRuntime {
         layers,
         undefined,
         undefined,
-        undefined
+        {
+          firstLod: farLod,
+          nearTransitionMacro: "MATERIAL_TERRAIN_DETAIL_TRANSITION",
+          farMacro: "MATERIAL_TERRAIN_FAR",
+          configureMaterial: (material) => bindSeedTerrainMaterialState(material, terrainMaterialState)
+        }
       );
-      for (const material of clipmap.renderMaterials) bindSeedTerrainMaterialState(material, terrainMaterialState);
       const decorationsRoot = root.createChild("Decorations");
       const activeDecorations = inspectionTile ? filterDecorationsToTile(decorations, inspectionTile) : decorations;
       const terrainOcclusion = new SeedWorldTerrainOcclusionCuller(fields);
@@ -1027,17 +1030,6 @@ function bindTerrainRoadColor(material: Material, color: readonly [number, numbe
   material.shaderData.setColor(MATERIAL_TERRAIN_ROAD_COLOR, new Color(...color, 1));
 }
 
-function bindTerrainGroundColor(material: Material, color?: readonly [number, number, number]): void {
-  material.shaderData.setColor(
-    MATERIAL_TERRAIN_SEED_LAYER_COLOR_1,
-    color ? new Color(...color, 1) : new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[1].color)
-  );
-  material.shaderData.setColor(
-    MATERIAL_TERRAIN_SEED_LAYER_COLOR_2,
-    color ? new Color(...color, 1) : new Color(...SEED_WORLD_SURFACE_LAYER_PROFILES[2].color)
-  );
-}
-
 /** Apply Seed's authored ground appearance to a terrain owned by another world planner.
  * @param material Terrain material instance owned by the caller.
  * @param field Shared grass colour field used by both ground and vegetation.
@@ -1049,7 +1041,7 @@ export function applySeedWorldTerrainAppearance(material: Material, field: SeedW
     vistaFromDetail: field.vistaFromDetail,
     grassTuning: field.tuning,
     roadColor: SEED_WORLD_ROAD_COLOR_DEFAULT,
-    farCompositeLod: 2
+    farLod: 2
   });
 }
 
@@ -1060,17 +1052,7 @@ function bindSeedTerrainMaterialState(material: Material, state: SeedWorldTerrai
     tuning: state.grassTuning
   });
   bindTerrainRoadColor(material, state.roadColor);
-  material.shaderData.setFloat(MATERIAL_TERRAIN_FAR_COMPOSITE_LOD, state.farCompositeLod);
-  bindTerrainGroundColor(material, state.groundColor);
-  material.shaderData.setVector4(
-    MATERIAL_TERRAIN_SEED_LAYER_SNOW_RESPONSE,
-    new Vector4(
-      SEED_WORLD_SURFACE_LAYER_PROFILES[0].snowResponse,
-      SEED_WORLD_SURFACE_LAYER_PROFILES[1].snowResponse,
-      SEED_WORLD_SURFACE_LAYER_PROFILES[2].snowResponse,
-      0
-    )
-  );
+  material.shaderData.setFloat(MATERIAL_TERRAIN_FAR_LOD, state.farLod);
 }
 
 function freezeSeedWorldRoadColor(color: readonly [number, number, number]): readonly [number, number, number] {

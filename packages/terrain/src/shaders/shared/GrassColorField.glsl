@@ -85,7 +85,7 @@
   #define GRASS_FIELD_PREPARED renderer_GrassColorFieldPrepared
   #define GRASS_PREPARED_A renderer_GrassColorPreparedA
   #define GRASS_PREPARED_B renderer_GrassColorPreparedB
-#elif defined(MATERIAL_TERRAIN_SEED_FIXED_LAYERS) || defined(MATERIAL_GRASS_SHARED_COLOR_FIELD)
+#elif defined(MATERIAL_GRASS_SHARED_COLOR_FIELD)
   #define GRASS_COLOR_FIELD_PREPARED
   vec4 material_GrassColorFieldPrepared;
   vec4 material_GrassColorPreparedA;
@@ -249,10 +249,6 @@ vec3 roadDetailColorFromField(float field, vec3 nativeColor, float vistaWeight) 
   float midpoint = ROAD_COLOR_FIELD_REMAP.x > 0.0 ? ROAD_COLOR_FIELD_REMAP.y : 0.5;
   float detail = clamp((field - midpoint) * contrast + 0.5, 0.0, 1.0);
   return roadColorFromField(mix(detail, field, vistaWeight), nativeColor);
-}
-
-vec3 evaluateRoadFarBaseColor(vec2 worldXZ, vec3 nativeColor) {
-  return roadColorFromField(sampleGrassVistaColorField(worldXZ), nativeColor);
 }
 
 #undef ROAD_COLOR_FIELD_REMAP
