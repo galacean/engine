@@ -521,7 +521,7 @@ class ShaderSourceParserSession {
           return subShaderSource;
         case Keyword.GSPass: {
           this._addPendingContents(start, token.lexeme.length, subShaderSource.pendingContents);
-          const pass = this._parsePass();
+          const pass = this._parsePass(this._retainRange(token.location));
           subShaderSource.passes.push(pass);
           start = lexer.getShaderPosition(0);
           break;
@@ -574,10 +574,9 @@ class ShaderSourceParserSession {
     }
   }
 
-  private _parsePass(): IShaderPassSource {
+  private _parsePass(passLocation: ShaderRange): IShaderPassSource {
     this._pushScope();
     const lexer = this._lexer;
-    const passStart = lexer.getShaderPosition(0);
 
     const name = lexer.scanPairedChar('"', '"', false, false);
     const passSource = ShaderSourceFactory.createShaderPassSource(name);
@@ -631,7 +630,7 @@ class ShaderSourceParserSession {
             if (!passSource.vertexEntry || !passSource.fragmentEntry) {
               this._createCompileError(
                 "Pass must bind both VertexShader and FragmentShader entries.",
-                passStart,
+                passLocation,
                 "MissingEntry"
               );
             }

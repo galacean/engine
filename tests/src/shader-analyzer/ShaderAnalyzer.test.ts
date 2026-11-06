@@ -316,10 +316,12 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics, "a valid shader must stay clean even after a prior parse failure").to.be.empty;
   });
 
-  it("flags a Pass that does not bind both vertex and fragment entries (MissingEntry)", () => {
-    const source = `Shader "x" {
+  it.each([" ", "\n      /* entry binding omitted */ "])(
+    "flags the Pass keyword when a fragment entry is missing (separator %j)",
+    (separator) => {
+      const source = `Shader "x" {
   SubShader "Default" {
-    Pass "test" {
+    Pass${separator}"test" {
       mat4 renderer_MVPMat;
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
@@ -328,12 +330,16 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
-    expect(diag, "a Pass missing FragmentShader must report MissingEntry").to.be.ok;
-    expect(diag!.severity).to.equal("error");
-    expect(diag!.range.start.line, "diagnostic points at the Pass").to.equal(3);
-    expect(diag!.range.start.column).to.equal(9);
-  });
+      const diag = ShaderAnalyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
+      expect(diag, "a Pass missing FragmentShader must report MissingEntry").to.be.ok;
+      expect(diag!.severity).to.equal("error");
+      expect(diag!.range.start.line, "diagnostic points at the Pass").to.equal(3);
+      expect(diag!.range.start.column).to.equal(5);
+      expect(diag!.range.end.line).to.equal(3);
+      expect(diag!.range.end.column).to.equal(9);
+      expect(source.slice(diag!.range.start.offset, diag!.range.end.offset)).to.equal("Pass");
+    }
+  );
 
   it("does not silently accept a bound pass with no shader body", () => {
     const source = `Shader "empty" { SubShader "Default" { Pass "p" {
