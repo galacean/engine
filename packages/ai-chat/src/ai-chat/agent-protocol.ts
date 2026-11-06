@@ -131,7 +131,7 @@ export function buildAgentToolDefinitions(definition: AgentApplicationDefinition
         "receipt 说明最终执行状态。中间 API 调用成功不等于草稿已提交。",
         "- rejected：未执行。",
         "- aborted：草稿已丢弃，其中新建引用不可复用。",
-        "- committed：已提交。committedAt 是提交时间，execute 返回时激活已结束。capturedAt 晚于 committedAt 的截图已包含这次提交。runtimeErrors 报告提交后的运行失败；不能因此重复创建。",
+        "- committed：作者数据已提交。committedAt 是提交时间，不是运行生效时间。execute 返回时激活已结束。没有 runtimeErrors 时，execute 返回后拍的截图已包含这次提交。有 runtimeErrors 时，运行效果待确认，截图可能仍是旧状态；不能因此重复创建。",
         "- publication_failed：发布状态不确定，先检查现状。",
         "独立命令使用 completed/interrupted。commands 保留有界提交事实。unknown 表示命令可能已提交；本次代码停止后续写入但允许查询验证，Agent Loop 停止自动执行。确定未执行的拒绝可捕获后查询并重试。"
       ].join("\n"),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createAgentProjectFiles } from "@galacean/engine-ai-chat/ai-chat/agent-project-files";
 import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
-import { buildAgentMessages } from "@galacean/engine-ai-chat/ai-chat/agent-protocol";
+import { buildAgentMessages, buildAgentToolDefinitions } from "@galacean/engine-ai-chat/ai-chat/agent-protocol";
 import { AgentContextTranscript } from "@galacean/engine-ai-chat/ai-chat/context-compaction";
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files";
 import { seedWorldNativeKnowledge } from "../../demos/seed-world/agent-adapter/SeedWorldAgentDefinition.ts";
@@ -11,7 +11,10 @@ import { SEED_WORLD_API_NAMES } from "../../demos/seed-world/agent-adapter/contr
 import searchCloudSkill from "../../../packages/runtime-editor/src/retrieval-agent/search-cloud.md?raw";
 
 const base = seedWorldNativeKnowledge(createSeedWorldKnowledge([...SEED_WORLD_API_NAMES]));
-const catalog = { ...base, documents: [...(base.documents ?? []), { path: "skills/assets/search-cloud/SKILL.md", content: searchCloudSkill }] };
+const catalog = {
+  ...base,
+  documents: [...(base.documents ?? []), { path: "skills/assets/search-cloud/SKILL.md", content: searchCloudSkill }]
+};
 const files = createAgentProjectFiles(catalog, [engineRuntimeFiles()]);
 const paths = new Set(files.list());
 const markdown = [...paths].filter((path) => path.startsWith("skills/") && path.endsWith(".md"));
@@ -19,7 +22,22 @@ const markdown = [...paths].filter((path) => path.startsWith("skills/") && path.
 describe("Agent skills and declarations", () => {
   it("lists every top-level skill by intent", () => {
     expect(catalog.skills!.map((skill) => skill.name).sort()).toEqual(
-      ["animals", "assets", "building", "components", "engine-knowledge", "environment", "history", "scene-nodes", "scripting", "spatial", "terrain", "vegetation", "water", "world-objects"].sort()
+      [
+        "animals",
+        "assets",
+        "building",
+        "components",
+        "engine-knowledge",
+        "environment",
+        "history",
+        "scene-nodes",
+        "scripting",
+        "spatial",
+        "terrain",
+        "vegetation",
+        "water",
+        "world-objects"
+      ].sort()
     );
     for (const skill of catalog.skills!) {
       expect(skill.description.length).toBeLessThanOrEqual(120);
@@ -30,11 +48,16 @@ describe("Agent skills and declarations", () => {
   it("mounts knowledge only under skills/ and declare/", () => {
     const roots = new Set([...paths].map((path) => path.split("/")[0]));
     expect([...roots].sort()).toEqual(["declare", "skills"]);
-    expect([...paths].filter((path) => /^declare\/[^/]+\//.test(path)).every((path) => /^declare\/(editor|engine)\//.test(path))).toBe(true);
+    expect(
+      [...paths]
+        .filter((path) => /^declare\/[^/]+\//.test(path))
+        .every((path) => /^declare\/(editor|engine)\//.test(path))
+    ).toBe(true);
   });
 
   it("gives every sub-skill valid frontmatter", () => {
-    for (const path of markdown) if (path.endsWith("/SKILL.md")) expect(() => parseAgentSkill(files.read(path))).not.toThrow();
+    for (const path of markdown)
+      if (path.endsWith("/SKILL.md")) expect(() => parseAgentSkill(files.read(path))).not.toThrow();
   });
 
   it("resolves every skill link", () => {
@@ -53,7 +76,10 @@ describe("Agent skills and declarations", () => {
   it("mentions only readable paths in prose and host notes", () => {
     const broken: string[] = [];
     const reference = /(?:^|[\s`(（])((?:\.\.\/|skills\/|declare\/|editor\/|knowledge\/)[\w@./-]+\.(?:md|d\.ts))/g;
-    for (const [source, text] of [...markdown.map((path) => [path, files.read(path)] as const), ["hostNotes", catalog.hostNotes!] as const]) {
+    for (const [source, text] of [
+      ...markdown.map((path) => [path, files.read(path)] as const),
+      ["hostNotes", catalog.hostNotes!] as const
+    ]) {
       for (const match of text.matchAll(reference))
         if (!paths.has(match[1]) && !match[1].includes("seed-world-systems")) broken.push(`${source} -> ${match[1]}`);
     }
@@ -81,7 +107,13 @@ describe("Agent skills and declarations", () => {
       worldThumbnail: {}
     });
     const contexts = messages.slice(1).map((message) => JSON.parse(message.content as string));
-    expect(contexts.map((context) => context.contextKind)).toEqual(["host_environment", "skills", "agent_task", "conversation_history", "world_state"]);
+    expect(contexts.map((context) => context.contextKind)).toEqual([
+      "host_environment",
+      "skills",
+      "agent_task",
+      "conversation_history",
+      "world_state"
+    ]);
     const listed = contexts[1].skills;
     expect(listed.find((skill: { name: string }) => skill.name === "assets").path).toBe("skills/assets/SKILL.md");
     expect(JSON.stringify(listed)).not.toContain("## ");
@@ -91,7 +123,14 @@ describe("Agent skills and declarations", () => {
 
 describe("world state position", () => {
   const request = (transcript: Parameters<typeof buildAgentMessages>[0]["transcript"]) =>
-    buildAgentMessages({ systemPrompt: "system", taskId: "task", userInput: "x", inputSource: "text", worldThumbnail: {}, transcript });
+    buildAgentMessages({
+      systemPrompt: "system",
+      taskId: "task",
+      userInput: "x",
+      inputSource: "text",
+      worldThumbnail: {},
+      transcript
+    });
 
   it("follows the execution it observes and stays out of the transcript", () => {
     const transcript = new AgentContextTranscript();
@@ -105,28 +144,53 @@ describe("world state position", () => {
   });
 });
 
+describe("committed receipt wording", () => {
+  it("does not treat the commit time as proof that a screenshot shows the edit", () => {
+    const execute = buildAgentToolDefinitions({
+      toolNames: [],
+      scriptApi: { hostNotes: "", entries: [], modules: [] }
+    }).find((tool) => tool.function.name === "execute")!;
+    const description = execute.function.description;
+    expect(description).toContain("committedAt 是提交时间，不是运行生效时间");
+    expect(description).toContain("有 runtimeErrors 时，运行效果待确认");
+    expect(description).not.toContain("capturedAt 晚于 committedAt");
+  });
+});
+
 describe("skill sources", () => {
-  const sources = import.meta.glob("../../../packages/*/src/skills/*/SKILL.md", { eager: true, as: "raw" }) as Record<string, string>;
+  const sources = import.meta.glob("../../../packages/*/src/skills/*/SKILL.md", { eager: true, as: "raw" }) as Record<
+    string,
+    string
+  >;
   it("keep each system skill in its package under a directory named after the skill", () => {
     const names = Object.entries(sources).map(([path, source]) => {
       const name = /\/src\/skills\/([^/]+)\/SKILL\.md$/.exec(path)![1];
       expect(parseAgentSkill(source).name).toBe(name);
       return name;
     });
-    expect(names).toEqual(expect.arrayContaining(["animals", "building", "environment", "farming", "terrain", "vegetation", "water"]));
+    expect(names).toEqual(
+      expect.arrayContaining(["animals", "building", "environment", "farming", "terrain", "vegetation", "water"])
+    );
   });
 });
 
 describe("farming skill", () => {
   it("publishes a valid top-level skill and resolvable method links", async () => {
     const { FARMING_METHOD_DOCS } = await import("@galacean/engine-farming/farming/native/FarmingMethodDocs");
-    const { farmingSkill, farmingSkillDocuments } = await import("@galacean/engine-farming/farming/native/FarmingSkill");
-    const docs = [...farmingSkillDocuments, ...FARMING_METHOD_DOCS, { path: "skills/farming/SKILL.md", content: farmingSkill }];
+    const { farmingSkill, farmingSkillDocuments } = await import(
+      "@galacean/engine-farming/farming/native/FarmingSkill"
+    );
+    const docs = [
+      ...farmingSkillDocuments,
+      ...FARMING_METHOD_DOCS,
+      { path: "skills/farming/SKILL.md", content: farmingSkill }
+    ];
     const known = new Set<string>(docs.map((doc) => doc.path));
     expect(parseAgentSkill(farmingSkill).name).toBe("farming");
     for (const doc of docs) {
       expect(doc.path).toMatch(/^(skills|declare)\//);
-      for (const match of doc.content.matchAll(/\]\(((?:declare\/editor\/farming\/methods|skills\/farming)\/[^)]+)\)/g)) expect(known.has(match[1])).toBe(true);
+      for (const match of doc.content.matchAll(/\]\(((?:declare\/editor\/farming\/methods|skills\/farming)\/[^)]+)\)/g))
+        expect(known.has(match[1])).toBe(true);
     }
   });
 });
