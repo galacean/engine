@@ -24,7 +24,7 @@ export function checkRuntimeScripts(
 ): CheckedRuntimeScripts {
   const files = new Map(Object.entries(libraries));
   for (const [path, content] of Object.entries(declarations)) {
-    files.set("/project/" + path.slice("declare/runtime/".length), content);
+    files.set("/project/" + path.slice("declare/engine/".length), content);
   }
   for (const [path, content] of Object.entries(sources)) {
     if (

@@ -4,7 +4,7 @@ import type { PlanningSystemDeclaration } from "./PlanningSystemDeclaration";
 export const PLANNING_POI_DECLARATION: PlanningSystemDeclaration = {
   id: "poi",
   title: "POI layout and authoring",
-  knowledgePath: "spatial/README.md",
+  skill: "spatial",
   components: [
     {
       type: "population",

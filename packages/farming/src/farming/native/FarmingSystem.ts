@@ -1,7 +1,14 @@
+import { inspectFarmingAgronomy } from "../application/FarmingAgronomy";
+import type { FarmingAgronomyReport } from "../domain/FarmingAgronomy";
 import { FarmingCatalogResource, FarmingRulesResource, retainFarmingResource } from "./FarmingResources";
 import { Script, ignoreClone, type Scene, type JSONAsset } from "@galacean/engine-core";
 import { FarmingDebugMode } from "../application/FarmingDebugMode";
-import { FarmingDiagnostics, type FarmingDiagnosticReport } from "../domain/FarmingDiagnostics";
+import {
+  FARMING_DIAGNOSTIC_COVERAGE,
+  FarmingDiagnostics,
+  summarizeFarmingDiagnostics,
+  type FarmingDiagnosticReport
+} from "../domain/FarmingDiagnostics";
 import {
   FarmingAreaComponent,
   nativeFarmingOwners,
@@ -67,7 +74,26 @@ export class FarmingSystem extends Script implements NativeFarmingOwner {
       if (index < 0) records.push(record);
       else records[index] = record;
     }
-    return { farms: records };
+    const ids = [
+      ...new Set([...records.map((r) => r.farmId), ...[...this._areas.keys()].filter((id) => !farmId || id === farmId)])
+    ];
+    const agronomy: FarmingAgronomyReport[] = ids.map((id) => {
+      const area = this._areas.get(id);
+      if (!area || area.destroyed || area.isDisposed || !area.initialized)
+        return { farmId: id, status: "unavailable", reason: "Farm area is absent or not initialized" };
+      try {
+        return { farmId: id, status: "observed", evidence: inspectFarmingAgronomy(area.service) };
+      } catch (error) {
+        return { farmId: id, status: "unavailable", reason: String(error) };
+      }
+    });
+    return {
+      agronomy,
+      coverage: FARMING_DIAGNOSTIC_COVERAGE,
+      current: summarizeFarmingDiagnostics(records),
+      scope: { kind: farmId ? "farm" : "system", farmId: farmId ?? null },
+      farms: records
+    };
   }
   /** Scene-local UI switch; defaults to false and is not part of a farm snapshot. */
   get debugMode(): boolean {

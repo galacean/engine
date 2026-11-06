@@ -1,9 +1,10 @@
+import type { ProfileWallGeometry } from "./ProfileWallGeometry";
 import type { buildDecorationWindowCutBuffer } from "./DecorationWindowCutBuffer";
 import type { ConstructionDrawInput } from "./ConstructionPackage";
-import { concatenateRecords } from "./ConstructionCompiler";
-import type { PublishedConstructionOwner } from "./ConstructionContacts";
+import { concatenateRecords } from "./ConstructionRecords";
 import type { SupportCell } from "./PlacementSupport";
-import type { MaterialUnit, MasonryBinding, MasonryOverride } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
+import type { UnitPlacementBinding as MasonryBinding, UnitPlacementOverride as MasonryOverride } from "./UnitPlacement";
 import { contains } from "./PlacementDocument.js";
 
 /** A distance facade cannot flatten units that protrude through the finish
@@ -19,13 +20,16 @@ export interface RetainedWallUnits {
   brickRecords?: Uint8Array[];
   windowCuts?: ReturnType<typeof buildDecorationWindowCutBuffer>;
   sourceDraw?: Pick<ConstructionDrawInput, "template" | "instances" | "bindings">;
-  wallRoofJoint?: PublishedConstructionOwner["wallRoofJoint"];
+  wallRoofJoint?: ProfileWallGeometry["wallRoofJoint"];
 }
 
 /** Conservative containment in the finished wall volume, in the producer's
  * unwarped frame. Both plaster and native masonry apply the shared spatial warp.
  * This tests geometry, not corner IDs or a particular arrangement/house type. */
-export function wallUnitNeedsVolume(cell: SupportCell, owner: PublishedConstructionOwner): boolean {
+export function wallUnitNeedsVolume(
+  cell: SupportCell,
+  owner: Pick<ProfileWallGeometry, "shape" | "wallEnvelope">
+): boolean {
   const { shape, wallEnvelope } = owner;
   for (const x of [-0.5, 0.5])
     for (const y of [-0.5, 0.5])
@@ -56,8 +60,8 @@ export function wallUnitNeedsVolume(cell: SupportCell, owner: PublishedConstruct
   return false;
 }
 
-export function retainWallUnits(
-  owner: PublishedConstructionOwner,
+export function retainProfileWallUnits(
+  owner: Pick<ProfileWallGeometry, "id" | "slot" | "shape" | "wallEnvelope" | "wallRoofJoint">,
   binding: MasonryBinding,
   overrides: readonly MasonryOverride[],
   cells: readonly SupportCell[],
@@ -77,7 +81,7 @@ export function retainWallUnits(
   });
   if (!retained.length) return;
   return {
-    ownerId: owner.building.id,
+    ownerId: owner.id,
     slot: owner.slot,
     material,
     cells: retained,

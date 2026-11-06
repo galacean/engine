@@ -7,6 +7,7 @@ declare global {
     interface WorldParametersApi { readonly materials: WorldParametersMaterialsApi; }
     interface WorldParametersMaterialsApi {
       /**
+       * 调用入口：await tools.world.parameters.materials.inspect(input)
        * 读取全部公开世界级植被材质的原生部位/生态层分组、槽数、当前线性 RGB 参数范围与事务版本。filter 各维度取交集，同一维度取并集。颜色范围包含作者继承与原生槽默认值；未覆盖的草材质实际跟随 grassAppearance。返回参数不代表最终像素。
        * @param input - 可按真实 parts、layers、assetIds 限定；省略 filter 表示全部公开世界级植被材质。
        * @returns 完整分组摘要与当前事务版本；不改作者参数或植被分布。
@@ -21,6 +22,10 @@ declare global {
           assetIds?: Array<string>;
         };
       }): Promise<{
+        scope: "shared-materials";
+        instanceSelectionSupported: false;
+        /** 这些素材的所有实例和LOD共用修改；不是当前画面实例集合。 */
+        affectedAssetIds: Array<string>;
         versionToken: string;
         matchedSlotCount: number;
         groups: Array<{

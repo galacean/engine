@@ -2,35 +2,40 @@ import {
   createPitchedDecorationContext,
   decorationTransformPoints,
   type PitchedDecorationContext
-} from "./ConstructionPitchedDecorationContext";
-import { type ConstructionBuilding } from "./ConstructionSource";
-import { cottageRoofInstallation } from "./ConstructionCottageRoofInstallation";
-import { constructionDecorationRecipe } from "./ConstructionDecorationRecipe";
-import { cottageDormerWidth } from "./RecoveredCottageDormerPlacement";
-import { cottageDormerCollisionPoints } from "./RecoveredCottageDormerCollision";
-import { RecoveredCottageRoofSampler } from "./RecoveredCottageRoofSampler";
-import { decorationConvexOccupancy, decorationVolumesOverlap } from "./DecorationConvexOccupancy";
-import { buildRoofContext } from "./RecoveredRoofContext";
-import { cottageDormerGeometry } from "./ConstructionCottageDormer";
-import { SurfaceProjector } from "./SurfaceProjector.js";
-import { unitFootprintScale } from "./MaterialFootprint";
-import { mul } from "./RecoveredRoofMath";
-import type { MasonryBinding } from "./MasonryDocument";
-import type { ResolvedConstructionDecorationSpec, CompiledConstructionDecorations } from "./ConstructionDecorations";
+} from "./ConstructionPitchedDecorationContext.ts";
+import type { DecorationSurfaceOwner } from "./DecorationSurfaceOwner";
+import { cottageRoofInstallation } from "./ConstructionCottageRoofInstallation.ts";
+import { constructionDecorationRecipe } from "./ConstructionDecorationRecipe.ts";
+import { cottageDormerWidth } from "./RecoveredCottageDormerPlacement.ts";
+import { cottageDormerCollisionPoints } from "./RecoveredCottageDormerCollision.ts";
+import { RecoveredCottageRoofSampler } from "./RecoveredCottageRoofSampler.ts";
+import { decorationConvexOccupancy, decorationVolumesOverlap } from "./DecorationConvexOccupancy.ts";
+import { buildRoofContext } from "./RecoveredRoofContext.ts";
+import { planCottageDormerSupport, type PlannedCottageDormerRoof } from "./CottageDormerSupport";
+import { constructionDecorationAssembly } from "./ConstructionDecorationAssembly";
+import { roofBasis } from "./ConstructionRoof";
+import type { PlannedDecorationAssembly } from "./DecorationAssemblyPlacement";
+import type { DecorationMountFrame } from "./DecorationMountGeometry";
+import { unitFootprintScale } from "./MaterialFootprint.ts";
+import { mul } from "./RecoveredRoofMath.ts";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
+import type { ResolvedConstructionDecorationSpec, CompiledConstructionDecorations } from "./ConstructionDecorations.ts";
 
 /** One immutable compiler invocation owns the support, metric chart and occupancy.
  * No render-frame work, global cache, readback or author-state mutation. */
-export function createCottageRoofDecorationCompiler(
-  building: ConstructionBuilding,
-  baseY: number,
+export function createCottageRoofDecorationPlanner(
+  building: DecorationSurfaceOwner,
   slot: number,
   binding?: MasonryBinding,
-  context: PitchedDecorationContext = createPitchedDecorationContext(building, baseY)
+  context: PitchedDecorationContext = createPitchedDecorationContext(building.roof)
 ) {
   const { roof, support, occupied } = context;
   const sampler = new RecoveredCottageRoofSampler(roof.surface, roof.footprint);
-  let geometry: any, projector: SurfaceProjector | undefined;
-  return (spec: ResolvedConstructionDecorationSpec, result: CompiledConstructionDecorations) => {
+  let geometry: any;
+  return (
+    spec: ResolvedConstructionDecorationSpec,
+    result: CompiledConstructionDecorations
+  ): { mount: PlannedDecorationAssembly; roof: PlannedCottageDormerRoof } | undefined => {
     const installation = cottageRoofInstallation(
       context.assets?.decorations,
       spec,
@@ -75,26 +80,55 @@ export function createCottageRoofDecorationCompiler(
         { preparedSupport: support }
       ).geometry;
       geometry.id = binding?.geometry_id ?? building.id + "-roof";
-      projector = new SurfaceProjector(geometry);
     }
-    const produced = cottageDormerGeometry(
-      context.assets?.decorations,
-      building,
-      spec,
-      {
-        ...roof,
-        renderSlot: slot,
-        tileScale: unitFootprintScale(binding?.footprint),
-        tileSeed: binding && binding.seed !== "source" ? BigInt(binding.seed) : undefined
-      },
-      transform,
-      geometry,
-      projector
+    const plan = planCottageDormerSupport(
+      { id: spec.id, hostId: building.id, rank, transform, scale: [sx, sy] },
+      { ...roof, renderSlot: slot }
     );
-    // All validation and generation finish before any related outputs publish.
-    for (const part of produced.parts) result.parts.push(part);
-    for (const unit of produced.roofUnits) result.roofUnits.push({ ...unit, decorationId: spec.id });
-    for (const opening of produced.roofOpenings) result.roofOpenings.push(opening);
+    const sourceAssembly = constructionDecorationAssembly(context.assets?.decorations, "dormer-cottage", rank)!;
+    const partMounts: Record<string, DecorationMountFrame> = {};
+    const assembly = {
+      bounds: sourceAssembly.bounds,
+      parts: plan.frames.flatMap((frame, i) => {
+        const axes = roofBasis(frame.quaternion).map((axis, j) => axis.map((v) => v * frame.scale[j])) as [
+          number[],
+          number[],
+          number[]
+        ];
+        return sourceAssembly.parts.map((source) => {
+          const suffix = `${source.suffix}/${i}`;
+          partMounts[suffix] = { origin: frame.position, axes };
+          return { ...source, suffix };
+        });
+      })
+    };
+    const mainMount = Object.values(partMounts)[0];
+    if (!mainMount) throw Error("Cottage dormer has no installation frames");
+    for (const [i, raw48] of plan.holes48.entries())
+      result.roofOpenings.push({ id: spec.id + "/" + i, raw48, polygon: [] });
     occupied.push({ id: spec.id, volumes: [volume] });
+    return {
+      mount: {
+        decorationId: spec.id,
+        mount: { ...mainMount, partMounts, stones: [], chart: { kind: "mesh", geometry } },
+        placement: { building: { id: building.id, woodColor: building.woodColor }, spec, assembly, kind: "window" }
+      },
+      roof: {
+        decorationId: spec.id,
+        support: plan.roof,
+        placement: {
+          id: "cottage/" + plan.id,
+          slot,
+          ...(building.variationKey !== undefined || spec.variationKey !== undefined
+            ? {
+                variationKey:
+                  "cottage/" + JSON.stringify([building.variationKey ?? building.id, spec.variationKey ?? spec.id])
+              }
+            : {}),
+          unitScale: unitFootprintScale(binding?.footprint),
+          seed: binding && binding.seed !== "source" ? BigInt(binding.seed) : undefined
+        }
+      }
+    };
   };
 }

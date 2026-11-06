@@ -19,7 +19,7 @@ export function createRuntimeScriptEnvironment(
     if (Object.hasOwn(externals, module.name)) throw new Error(`Duplicate runtime module '${module.name}'`);
     if (!Object.hasOwn(module.declarations, "index.d.ts"))
       throw new Error(`Missing runtime declaration entry for '${module.name}'`);
-    const prefix = `declare/runtime/node_modules/${module.name}/`;
+    const prefix = `declare/engine/node_modules/${module.name}/`;
     declarations[prefix + "package.json"] = JSON.stringify({ name: module.name, types: "index.d.ts" });
     for (const [path, text] of Object.entries(module.declarations)) {
       if (

@@ -1,8 +1,9 @@
+import retrievalCatalog from "@galacean/engine-retrieval/retrieval/catalog.json";
+import { createRetrievalIntegration } from "@galacean/engine-runtime-editor/retrieval-agent/index";
 import { buildingScenePreparation, initializeBuildingScene } from "./masonry/BuildingSceneInitialization.ts";
 import { buildingInitializationInputs } from "./masonry/BuildingInitializationInputs.ts";
 import { planningFarmInitializationRequest } from "@galacean/engine-world-planning/spatial/farming/PlanningFarmInitialization";
 import { mountNativeBuildingPanel } from "@galacean/engine-world-planning/masonry/NativeBuildingPanel";
-import { seedWorldViewPointer } from "./assistant/SeedWorldViewPointer.ts";
 import { RuntimePickPreparation } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-pick-preparation";
 import { RuntimeMeshPickSource } from "@galacean/engine-runtime-editor/runtime-inspection/runtime-mesh-picking";
 import { mountProjectSaveControl } from "@galacean/engine-runtime-editor/project/project-save-control";
@@ -151,7 +152,8 @@ import { readRockFormationSettings, rockGeometrySettings } from "@galacean/engin
 /** Original Seed scene/HUD/gameplay host. The spatial planner supplies data, never its preview camera. */
 export async function mountSeedWorldDemo(
   handoff?: PlanningWorldHandoff,
-  options: { showAssistant?: boolean; persistPlayerState?: boolean; assetSources?: readonly ProjectFileProvider[] } = {}
+  options: { showAssistant?: boolean; persistPlayerState?: boolean; assetSources?: readonly ProjectFileProvider[];
+    retrievalManifestUrl?: string } = {}
 ): Promise<void> {
   const pageUrl = planningPageUrl().url;
   // Explicit diagnostic comparison only; never persists or changes shared defaults.
@@ -216,6 +218,8 @@ export async function mountSeedWorldDemo(
   let runtimeProject: RuntimeProjectSession | undefined;
   let unmountProjectSave: (() => void) | undefined;
   let nativeEditor: RuntimeNativeEditor | undefined;
+  const retrievalManifestUrl = options.retrievalManifestUrl ?? retrievalCatalog.manifestUrl;
+  const retrieval = retrievalManifestUrl ? createRetrievalIntegration(retrievalManifestUrl) : undefined;
   let worldPicker: SeedWorldPicker | undefined;
   let viewSnapshots: SeedWorldViewSnapshots | undefined;
   let lassoPanel: SeedWorldLassoPanel | undefined;
@@ -299,6 +303,7 @@ export async function mountSeedWorldDemo(
     tools?.dispose();
     nativeBuildingPanel?.destroy();
     nativeEditor?.dispose();
+    retrieval?.dispose();
     await obbDebug?.destroy();
     audio?.destroy();
     if (source) source.dispose();
@@ -397,7 +402,7 @@ export async function mountSeedWorldDemo(
     if (disposed) throw new Error("Seed page disposed during startup");
     unmountProjectSave = mountProjectSaveControl(runtimeProject, scene!, canvas);
     source = await sourceTask!;
-    nativeEditor = new RuntimeNativeEditor(runtimeProject, scene!, seedWorldProjectFormats, options.assetSources);
+    nativeEditor = new RuntimeNativeEditor(runtimeProject, scene!, seedWorldProjectFormats, [...(options.assetSources ?? []), ...(retrieval ? [retrieval.source] : [])]);
     source.session.setFarmingStatePathReader(() => planningFarmingProjectStatePath(runtimeProject!));
     const camera = requiredComponent(scene!.rootEntities, Camera, "Camera");
     nativeBuildingHost = new NativeBuildingHost(runtimeProject, nativeEditor.editor, scene!, camera);
@@ -1188,17 +1193,10 @@ export async function mountSeedWorldDemo(
     const hudCreationAt = performance.now();
 
     tools = new PlanningSeedWorldSession({
-      observeViewWithPointer: async signal => {
-        await pickPreparation!.flush(signal);
-        const revision = tools!.application.observationRevision;
-        const { image, snapshot } = await worldPicker!.observePointer(visitCurrentPickBatches, signal,
-          viewSnapshots!.budget, () => pickPreparation!.ready);
-        return { image, metadata: { capturedAt: new Date().toISOString() },
-          pointer: seedWorldViewPointer(snapshot, tools!.application, revision) };
-      },
       nativeEditor,
       editorExtensions: [
-        createFarmingComponentExtension(nativeEditor.projection)
+        createFarmingComponentExtension(nativeEditor.projection),
+        ...(retrieval ? [retrieval.extension] : [])
       ],
       animals,
       planning: source!.session,
@@ -1381,47 +1379,49 @@ export async function mountSeedWorldDemo(
       navigation.setInputEnabled(true);
     }
     navigation.setGroundCollision(true);
-    const captureMasonryView = () => {
-        if(!restoreMasonryView){
-          const position=camera.entity.transform.worldPosition.clone(),rotation=camera.entity.transform.worldRotationQuaternion.clone();
-          const orthographic=camera.isOrthographic,size=camera.orthographicSize;
-          restoreMasonryView=()=>{
-            orbit.enabled=false;camera.isOrthographic=orthographic;camera.orthographicSize=size;
-            camera.entity.transform.worldPosition=position;camera.entity.transform.worldRotationQuaternion=rotation;
-            debugSidebar?.restoreCameraMode("roam");navigation.enabled=ready&&!disposed;
-            navigation.setInputEnabled(ready&&!disposed);navigation.setGroundCollision(true);navigation.synchronizeView();
-          };
+    if (pageUrl.searchParams.get("debug") === "1") {
+      const captureMasonryView = () => {
+          if(!restoreMasonryView){
+            const position=camera.entity.transform.worldPosition.clone(),rotation=camera.entity.transform.worldRotationQuaternion.clone();
+            const orthographic=camera.isOrthographic,size=camera.orthographicSize;
+            restoreMasonryView=()=>{
+              orbit.enabled=false;camera.isOrthographic=orthographic;camera.orthographicSize=size;
+              camera.entity.transform.worldPosition=position;camera.entity.transform.worldRotationQuaternion=rotation;
+              debugSidebar?.restoreCameraMode("roam");navigation.enabled=ready&&!disposed;
+              navigation.setInputEnabled(ready&&!disposed);navigation.setGroundCollision(true);navigation.synchronizeView();
+            };
+          }
+      };
+      const buildingWaterSample=createWaterSurfaceSample();
+      nativeBuildingPanel = mountNativeBuildingPanel(runtimeProject, nativeEditor, (position, forward) => {
+        captureMasonryView();
+        navigation.enabled=false;navigation.setInputEnabled(false);navigation.setGroundCollision(false);
+        camera.isOrthographic=false;
+        if(forward) {
+          camera.entity.transform.setWorldPosition(position.x+forward.x*8,position.y+3,position.z+forward.z*8);
+          orbit.target.copyFrom(position);
+        } else {
+          camera.entity.transform.setWorldPosition(position.x+12,Math.max(position.y,sampleHeight(position.x,position.z)??0)+9,position.z+15);
+          orbit.target.set(position.x,Math.max(position.y,sampleHeight(position.x,position.z)??0)+3,position.z);
         }
-    };
-    const buildingWaterSample=createWaterSurfaceSample();
-    nativeBuildingPanel = mountNativeBuildingPanel(runtimeProject, nativeEditor, (position, forward) => {
-      captureMasonryView();
-      navigation.enabled=false;navigation.setInputEnabled(false);navigation.setGroundCollision(false);
-      camera.isOrthographic=false;
-      if(forward) {
-        camera.entity.transform.setWorldPosition(position.x+forward.x*8,position.y+3,position.z+forward.z*8);
-        orbit.target.copyFrom(position);
-      } else {
-        camera.entity.transform.setWorldPosition(position.x+12,Math.max(position.y,sampleHeight(position.x,position.z)??0)+9,position.z+15);
-        orbit.target.set(position.x,Math.max(position.y,sampleHeight(position.x,position.z)??0)+3,position.z);
-      }
-      camera.entity.transform.lookAt(orbit.target);debugSidebar?.restoreCameraMode("orbit");orbit.enabled=true;
-    }, returnFromMasonry, {
-      anchors: () => {
-        const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
-        return masonryPlacementAnchors(current,camera.entity.transform.worldPosition);
-      },
-      land: {
-        sampleHeight: (x,z) => {
+        camera.entity.transform.lookAt(orbit.target);debugSidebar?.restoreCameraMode("orbit");orbit.enabled=true;
+      }, returnFromMasonry, {
+        anchors: () => {
           const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
-          return sampleSeedWorldHeight(current.data.fields,x,z);
+          return masonryPlacementAnchors(current,camera.entity.transform.worldPosition);
         },
-        isWater: (x,z) => {
-          return !!water?.sampleSurface(x,z,buildingWaterSample)&&buildingWaterSample.waterDepth>0;
-        }
-      },
-      appearanceEngine: engine
-    });
+        land: {
+          sampleHeight: (x,z) => {
+            const current=publication?.current;if(!current)throw Error("Seed 地形尚未发布");
+            return sampleSeedWorldHeight(current.data.fields,x,z);
+          },
+          isWater: (x,z) => {
+            return !!water?.sampleSurface(x,z,buildingWaterSample)&&buildingWaterSample.waterDepth>0;
+          }
+        },
+        appearanceEngine: engine
+      });
+    }
     applySubjectView();
     worldPicker ??= new SeedWorldPicker(camera);
     const inspection = nativeEditor!.inspection;
@@ -1433,7 +1433,7 @@ export async function mountSeedWorldDemo(
     }, () => {
       const state = tools!.application.getViewState();
       return `${state.activeRevision}:${state.authoringStateHash}`;
-    }, { observe: (signal, budget) => worldPicker!.observe(signal, budget) });
+    });
     tools!.application.viewSnapshots = viewSnapshots;
     {
       lassoPanel = new SeedWorldLassoPanel(viewSnapshots, frozen => {

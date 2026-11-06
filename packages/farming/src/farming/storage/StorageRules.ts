@@ -1,3 +1,5 @@
+import { farmItemGroundBounds } from "../domain/FarmItemFootprint";
+import type { FarmItemsState } from "../domain/FarmItems";
 import type { FarmingDefinitionSet } from "../domain/FarmDefinitions";
 import type { FarmSnapshot } from "../domain/FarmState";
 import { FarmSnapshotCompatibilityError } from "../domain/FarmSnapshotCompatibilityError";
@@ -200,7 +202,8 @@ function createContainer(
   containers: readonly StorageContainerState[],
   view?: FarmingGroundView,
   diagnostics?: ContainerPlacementDiagnostics,
-  maximumPlacementAttempts?: number
+  maximumPlacementAttempts?: number,
+  items?: FarmItemsState
 ): StorageContainerState | null {
   if (!view || storage.sequence >= Number.MAX_SAFE_INTEGER) return null;
   const type = rules.containers.find((t) => t.id === typeId)!;
@@ -213,7 +216,10 @@ function createContainer(
     rules.containers,
     containers,
     diagnostics,
-    maximumPlacementAttempts
+    maximumPlacementAttempts,
+    (items?.instances ?? [])
+      .filter((item) => item.id !== items?.carried?.itemId && item.groundId === storage.layout.groundId)
+      .map((item) => farmItemGroundBounds(item.type, item.position, item.yaw))
   );
   if (!placement) return null;
   const order = storage.sequence + 1;
@@ -277,7 +283,10 @@ export function storeHarvest(
       rules,
       rule.containerTypeId,
       containers,
-      view
+      view,
+      undefined,
+      undefined,
+      snapshot.items
     );
     if (!c) return fail("NO_STORAGE_SPACE", "仓储空间不足，作物仍留在农田");
     const amount = Math.min(remaining, rule.capacity);
@@ -374,7 +383,10 @@ export function applyStorageWrite(
           rules,
           input.typeId,
           containers,
-          view
+          view,
+          undefined,
+          undefined,
+          snapshot.items
         );
         if (!c) return fail("NO_STORAGE_SPACE", "附近没有足够的合法位置放置容器");
         containers.push({ ...c });

@@ -1,11 +1,11 @@
 import type { ConstructionWindowCutAsset } from "./ConstructionWindowCutAsset";
-import type { PublishedConstructionOwner } from "./ConstructionContacts";
-import type { MasonryBinding } from "./MasonryDocument";
-import type { WallConnectionWipHole } from "./WallConnectionTypes";
-import type { DecorationWindowCut } from "./DecorationWindowCutBuffer";
-import { RecoveredCottageRoofSection } from "./RecoveredCottageRoofSampler";
-import { createBoardWallSpace } from "./RecoveredBoardWallSpace";
-import { finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles";
+import type { ProfileWallGeometry } from "./ProfileWallGeometry";
+import type { UnitPlacementBinding as MasonryBinding } from "./UnitPlacement";
+import type { WallConnectionWipHole } from "./WallConnectionTypes.ts";
+import type { DecorationWindowCut } from "./DecorationWindowCutBuffer.ts";
+import { RecoveredCottageRoofSection } from "./RecoveredCottageRoofSampler.ts";
+import { createBoardWallSpace } from "./RecoveredBoardWallSpace.ts";
+import { finalizeWallConnectionHoles } from "./RecoveredWallConnectionHoles.ts";
 import {
   compileHorizontalRectangularWoodWall,
   horizontalWoodSourceFromPublishedWall
@@ -21,7 +21,7 @@ import type { WoodArchOpening } from "./RecoveredWoodArchCutouts";
  */
 export function constructionHorizontalWoodWall(
   asset: ConstructionWindowCutAsset | undefined,
-  owner: PublishedConstructionOwner,
+  owner: Pick<ProfileWallGeometry, "shape" | "profile" | "roof" | "wallSeed" | "slot" | "unitScale">,
   binding: MasonryBinding,
   holes: readonly WallConnectionWipHole[],
   cuts: readonly { id: string; cut: DecorationWindowCut }[],
@@ -56,6 +56,7 @@ export function constructionHorizontalWoodWall(
   });
   return constructionWoodPlacements(compileHorizontalRectangularWoodWall(asset, source), {
     geometryId: binding.geometry_id,
+    variationKey: binding.variationKey,
     curve: profile.control,
     length: profile.control.length,
     minimumY: profile.minGround

@@ -28,7 +28,7 @@ export async function readAgentFile(files: VirtualProjectFiles, read: AgentFileR
   const file = await snapshot.open(read.file_path, signal);
   signal?.throwIfAborted();
   if (file.kind === "binary") {
-    if (read.offset !== 1) throw new Error("Binary files do not support text windows");
+    if (read.offset !== 1 || (read.column ?? 1) !== 1) throw new Error("Binary files do not support text windows");
     return {
       result: {
         path: read.file_path,

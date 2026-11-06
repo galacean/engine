@@ -21,10 +21,11 @@ export function compileWallInFrame(
   height: number,
   holes: WallConnectionWipHole[],
   host: boolean,
-  unitScale?: UnitFootprintScale
+  unitScale?: UnitFootprintScale,
+  variationKey?: string
 ) {
   const { originY, local, localHoles } = prepareWallFrame(world, holes, host);
-  const masonry = generateMasonry(id, nativeId, slot, shape, local, height, localHoles, true, unitScale);
+  const masonry = generateMasonry(id, nativeId, slot, shape, local, height, localHoles, true, unitScale, variationKey);
   const plaster = generateWallPlaster(shape, local, {
     holes: finalizeWallConnectionHoles(localHoles, local.control.length, true)
   });
@@ -53,10 +54,11 @@ export function compileWallMasonryInFrame(
   height: number,
   holes: WallConnectionWipHole[],
   host: boolean,
-  unitScale?: UnitFootprintScale
+  unitScale?: UnitFootprintScale,
+  variationKey?: string
 ) {
   const { originY, local, localHoles } = prepareWallFrame(world, holes, host);
-  const masonry = generateMasonry(id, nativeId, slot, shape, local, height, localHoles, true, unitScale);
+  const masonry = generateMasonry(id, nativeId, slot, shape, local, height, localHoles, true, unitScale, variationKey);
   if (originY !== 0) translateMasonry(masonry, originY);
   return masonry;
 }

@@ -1,5 +1,5 @@
 import { unitFootprintScale, type MaterialFootprint } from "./MaterialFootprint";
-import type { MaterialUnit } from "./MasonryDocument";
+import type { MaterialUnit } from "./UnitPlacementStyle";
 import type { BoundaryCourseArrangement, BoundaryPlacementUnit } from "./BoundaryPlacement";
 /** Target-size adaptation belongs to the material specification, not to the
  * shape producer. The preset selects the recovered random-course rule; its placements can

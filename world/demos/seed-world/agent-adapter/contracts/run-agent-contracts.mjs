@@ -5,7 +5,8 @@ import { fileURLToPath } from "node:url";
 // Use Vite's existing loader rather than interpreting those modules as CommonJS.
 const root = fileURLToPath(new URL("../../../../../", import.meta.url));
 process.env.WORLD_GALLERY_SOURCE_ROOT ??= root;
-const server = await createServer({ root, configFile: false, logLevel: "error",
+// SSR declaration generation must not replace the running preview's dependency optimizer cache.
+const server = await createServer({ root, cacheDir: fileURLToPath(new URL("node_modules/.vite-agent-contracts/", new URL("../../../../../", import.meta.url))), configFile: false, logLevel: "error",
   server: { middlewareMode: true }, appType: "custom" });
 try {
   await server.ssrLoadModule("/world/demos/seed-world/agent-adapter/contracts/generate-agent-contracts.ts");

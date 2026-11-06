@@ -3,6 +3,7 @@ import { createSeedPlanningInputs } from "@galacean/engine-world-planning/spatia
 import { readAnimalPopulationConfig, SEED_ANIMAL_TYPES, SEED_ANIMAL_SPECIES } from "@galacean/engine-world-planning/spatial/AnimalPopulationComponent";
 import { AnimalAssetLibrary } from "@galacean/engine-animals/gameplay/animal/AnimalAssetLibrary";
 import { PlanningAnimalProjectAuthoring } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalAuthoring.ts";
+import { RUNTIME_PROJECT_SAVE_VERSION } from "@galacean/engine-project/runtime-editor/project/runtime-project";
 import { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { PlanningAnimalRuntime } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalRuntime.ts";
 import { seedAnimalCatalog, seedAnimalRegistrations } from "../../demos/seed-world/src/planning/spatial/runtime/PlanningAnimalContent.ts";
@@ -173,7 +174,7 @@ describe("persistent explicit animal additions", () => {
 
   it("uses real runtime-owned publication without creating history or losing state to a stale editor package", async () => {
     const scene = JSON.stringify({ version: "2.0", refs: [], entities: [], components: [], scene: { name: "Animal test", rootEntities: [] } });
-    const pack = { version: 5, project: { scene: "Main.scene", files: [{ virtualPath: "Main.scene", type: "Scene", path: "runtime:scene", dependencies: [] }] }, contents: { "Main.scene": scene } };
+    const pack = { version: RUNTIME_PROJECT_SAVE_VERSION, project: { scene: "Main.scene", files: [{ virtualPath: "Main.scene", type: "Scene", path: "runtime:scene", dependencies: [] }] }, contents: { "Main.scene": scene } };
     let checkpoint: unknown;
     const storage = { save: vi.fn(async (_id: string, saved: unknown) => { checkpoint = JSON.parse(JSON.stringify(saved)); }), close() {} };
     const session: RuntimeProjectSession = new (RuntimeProjectSession as any)("animal-test", structuredClone(pack), storage);

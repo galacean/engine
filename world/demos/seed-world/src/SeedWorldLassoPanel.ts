@@ -31,6 +31,10 @@ export class SeedWorldLassoPanel {
         void this.open(photo);
       },
       remove: (id) => this.views.removeAttachment(id),
+      updateAttachment: (id, annotations) => {
+        const attachment = this.views.setAttachment(id, annotations);
+        document.dispatchEvent(new CustomEvent("seed-world-screenshot-attached", { detail: attachment }));
+      },
       apply: () => {
         void this.confirm();
       },
@@ -104,16 +108,11 @@ export class SeedWorldLassoPanel {
     try {
       const photo = await this.workspace.confirm(signal);
       signal.throwIfAborted();
-      const attachment = this.views.setAttachment(
-        photo.snapshotId,
-        photo.history.annotations
-      );
       this.workspace.commit(photo);
-      document.dispatchEvent(new CustomEvent("seed-world-screenshot-attached", { detail: attachment }));
       this.close();
     } catch (error) {
       if (!signal.aborted)
-        this.workspace.recover(`无法附加截图：${error instanceof Error ? error.message : String(error)}`);
+        this.workspace.recover(`无法收起照片：${error instanceof Error ? error.message : String(error)}`);
     } finally {
       this.confirming = false;
     }

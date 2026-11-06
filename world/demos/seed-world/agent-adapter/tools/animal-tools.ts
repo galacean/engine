@@ -1,4 +1,5 @@
 import * as z from "zod";
+import { viewerRelationSchema, type ViewerRelation } from "../ViewerRelation.ts";
 import type { AgentTool } from "@galacean/engine-ai-chat/ai-chat/index";
 import type { SeedWorldAnimalService } from "../ports/SeedWorldAnimalService.ts";
 import { defineSeedWorldApiContract } from "../contracts/SeedWorldApiContract.ts";
@@ -34,10 +35,10 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     domain: "animals",
     effect: "read",
     description:
-      "分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示不能立即执行行为。数量和分布配置仍通过 world.parameters 的 animals 组件修改。",
+      "分页查询当前动物实例，包括尚未加载模型的规划身份；可按 typeId 和 visible 筛选。只读，不触发模型下载。enabled=false 表示动物系统关闭并返回空列表；loaded=false 表示模型资源尚未就绪，不能立即执行显式行为命令；不代表逻辑模拟停止。远处动物可在 coarse 模式移动和响应事件，visible 只说明渲染可见性。数量和分布配置仍通过 world.parameters 的 animals 组件修改。",
     inputDescription: "使用返回的真实 id、typeId；省略筛选查询全部。offset 默认 0，limit 默认 50，最大 100。",
     outputDescription:
-      "当前启用状态、动物身份、米制世界位置、加载与显示状态。matchedCount 为全部匹配数，nextOffset 缺省表示读完。",
+      "当前启用状态、动物身份、米制世界位置、加载与显示状态。viewerRelation直接给出本次动物位置相对玩家的方向；动物自主移动后须重新查询。matchedCount 为全部匹配数，nextOffset 缺省表示读完。",
     input: z.strictObject({
       typeId: identity.optional(),
       visible: z.boolean().optional(),
@@ -46,14 +47,18 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
     }),
     output: z.object({
       enabled: z.boolean(),
+      pageSummary: z.object({scope:z.literal("returned-page"), returnedCount:z.number().int().nonnegative(), loadedCount:z.number().int().nonnegative(), renderActiveCount:z.number().int().nonnegative()})
+        .describe("仅本页统计；不是全部 matchedCount 的加载状态。renderActive 不证明当前相机画面可见。"),
       animals: z.array(
         z.object({
           id: identity,
           typeId: identity,
+          speciesId: identity.describe("物种身份；多个模型 typeId 可以属于同一物种"),
           label: text,
-          loaded: z.boolean(),
-          visible: z.boolean(),
-          position: z.tuple([z.number(), z.number(), z.number()])
+          loaded: z.boolean().describe("模型资源是否已加载；false 不代表没有移动或逻辑活动"),
+          visible: z.boolean().describe("模型当前是否显示；隐藏动物仍可参与粗粒度模拟"),
+          position: z.tuple([z.number(), z.number(), z.number()]),
+          viewerRelation: viewerRelationSchema.optional()
         })
       ),
       matchedCount: z.number().int().nonnegative(),
@@ -136,14 +141,16 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
       "分页搜索可召唤的动物素材目录，包括默认不展示的备选动物；按中文或英文名称/别名搜索。系统关闭时也可查询，不下载模型或启动模拟。需要新增动物时先选目录中的 typeId 和可选 appearanceId，再调用 spawn；URL 由运行时从配置解析，不允许传入任意 URL。",
     inputDescription:
       "search 是名称/别名片段；pack 可限定 cute-zoo 或 low-poly-100。offset 默认 0，limit 默认 50，最大 100。",
-    outputDescription: "匹配总数、分页、种类/外观身份、资源 URL 和物种分组 speciesId。目录存在不代表场景已经有该动物。",
+    outputDescription: "summary 是全部匹配目录统计，明确模型条目总数、物种数、外观数及本页长度；entries.length 只是本页。默认保留资源 URL；view=summary 省略资源 URL 用于轻量介绍和选择。目录存在不代表场景已经有该动物。",
     input: z.strictObject({
+      view: z.enum(["summary", "resources"]).optional().describe("summary 省略资源 URL；resources（兼容默认值）包含 URL。两者统计范围一致"),
       search: z.string().min(1).optional(),
       pack: z.enum(["cute-zoo", "low-poly-100"]).optional(),
       offset: z.number().int().nonnegative().optional(),
       limit: z.number().int().min(1).max(100).optional()
     }),
     output: z.object({
+      summary: z.object({scope:z.literal("all-matches"),unit:z.literal("model-type"),total:z.number().int().nonnegative(),speciesCount:z.number().int().nonnegative(),appearanceCount:z.number().int().nonnegative(),returned:z.number().int().nonnegative(),hasMore:z.boolean()}),
       entries: z.array(
         z.object({
           typeId: identity,
@@ -151,8 +158,8 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
           aliases: z.array(text),
           pack: z.enum(["cute-zoo", "low-poly-100"]),
           speciesId: identity,
-          modelUrl: z.url(),
-          appearances: z.array(z.object({ id: identity, label: text, modelUrl: z.url() }))
+          modelUrl: z.url().optional(),
+          appearances: z.array(z.object({ id: identity, label: text, modelUrl: z.url().optional() }))
         })
       ),
       matchedCount: z.number().int().nonnegative(),
@@ -188,14 +195,17 @@ export const SEED_WORLD_ANIMAL_CONTRACTS = [
 ] as const;
 
 /** Bind the host's live service without importing its simulation or asset registration. */
-export function createSeedWorldAnimalTools(service?: SeedWorldAnimalService): readonly AgentTool[] {
+export function createSeedWorldAnimalTools(service?: SeedWorldAnimalService, relate?: (position: readonly number[]) => ViewerRelation): readonly AgentTool[] {
   if (!service) return [];
   const [query, describe, command, readReceipt, catalog, spawn] = SEED_WORLD_ANIMAL_CONTRACTS;
   return [
     defineSeedWorldTool(query, {
-      execute: (input, { signal }) => {
+      execute: async (input, { signal }) => {
         signal.throwIfAborted();
-        return service.query(input);
+        const result = await service.query(input);
+        return {...result, animals: result.animals.map(animal => ({...animal, ...(relate ? {viewerRelation: relate(animal.position)} : {})})),
+          pageSummary: {scope:"returned-page" as const, returnedCount:result.animals.length,
+          loadedCount:result.animals.filter(a=>a.loaded).length, renderActiveCount:result.animals.filter(a=>a.visible).length}};
       }
     }),
     defineSeedWorldTool(describe, {
@@ -225,7 +235,10 @@ export function createSeedWorldAnimalTools(service?: SeedWorldAnimalService): re
     defineSeedWorldTool(catalog, {
       execute: (input, { signal }) => {
         signal.throwIfAborted();
-        return service.catalog(input);
+        const result = service.catalog(input);
+        return {summary: result.summary, matchedCount: result.matchedCount, offset: result.offset, nextOffset: result.nextOffset,
+          entries: result.entries.map(entry => input.view === "summary"
+            ? {...entry, modelUrl: undefined, appearances: entry.appearances.map(({id,label}) => ({id,label}))} : entry)};
       }
     }),
     {

@@ -7,6 +7,7 @@ declare global {
     interface RuntimeApi { readonly component: RuntimeComponentApi; }
     interface RuntimeComponentApi {
       /**
+       * 调用入口：await tools.runtime.component.query(input)
        * 读取一个运行时节点实际挂载的组件，type 可按真实返回的类型名精确筛选。返回属性名和已有作者映射，不执行组件方法；组件职责和可调用方法通过对应 Engine/项目声明发现。资产种类和项目资源通过原有 editor.asset.list 与文件声明发现。
        * @param input - 使用命中或查询实际返回的 Engine instanceId（数值）。运行时 ID 与编辑态 ID 不可互换，不从名称猜测身份。
        * @returns 主线程 Engine 的可序列化事实，Worker 不持有 Engine 对象。运行时对象销毁后 ID 不复用；alive=false 时不得对替代对象执行原指令。authoring 仅在原生投影确有映射时返回；缺失不代表应改父节点或直接销毁渲染对象。
@@ -20,6 +21,9 @@ declare global {
         alive: boolean;
         observedAt: "live";
         components: Array<{
+            /** 运行时组件 ID；直接用于 component.read 的 componentId 参数，不是所属实体的 entityId。 */
+            componentId: number;
+            /** @deprecated 兼容旧返回字段；与 componentId 相同，新调用使用 componentId。 */
             id: number;
             entityId: number;
             type: string;
@@ -29,6 +33,12 @@ declare global {
               scene: string;
               entityId: string;
               componentId?: string;
+              /** 可直接传给 editor.component.query 的作者身份选择器。含 id 时精确到该组件；不含 id 时查询此作者实体的组件。没有映射时不返回 authoring，不向父节点猜测。 */
+              componentQuery: {
+                scene: string;
+                entityId: string;
+                id?: string;
+              };
             };
           }>;
       }>;

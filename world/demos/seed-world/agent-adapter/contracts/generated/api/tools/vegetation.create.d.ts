@@ -10,6 +10,7 @@ declare global {
   namespace AgentTools {
     interface VegetationApi {
       /**
+       * 调用入口：await tools.vegetation.create(input)
        * 创建单棵树、树林、单株灌木、灌木丛、草地、花地或水草区资产。
        * @param input - 树和灌木支持 single 或 area；single 在解析出的目标位置直接创建，允许重叠或移出生成区域，不执行生成布局的避让、坡度或适生性约束。area 可选精确 count 和范围；成片树仍使用自然布局约束。玩家创建的草、花和灌木按指定范围直接生成，允许与岩石、道路、水域和已有植被重叠，不按海拔、坡度或自然适生性过滤。草、花和水草的最小资产单位是 area。
        * @returns 返回新植被资产和可复用稳定引用；created.realizedPlantCount 是树或灌木实际创建的株数，也是对外反馈数量的唯一事实来源。明确提供灌木 count 时会完整创建该数量并允许重叠。草地和花地的 realizedPlantCount 为 null，因为它们是区域覆盖资产；相同位置的重复笔刷会叠加覆盖。地形高度只用于最终落地。

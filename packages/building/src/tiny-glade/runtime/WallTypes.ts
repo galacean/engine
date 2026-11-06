@@ -10,7 +10,8 @@ export interface WallCurve {
   length: number;
 }
 export interface WallProfile {
-  unitScale?: import("./MaterialFootprint").UnitFootprintScale;
+  variationKey?: string;
+  unitScale?: import("./MaterialFootprint.ts").UnitFootprintScale;
   id: string;
   slot: number;
   curve: WallCurve;
@@ -46,6 +47,7 @@ export interface WallRow {
 }
 export interface WallInstance {
   id: string;
+  seed_id?: string;
   sourceId: number;
   row: number;
   column: number;

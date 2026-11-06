@@ -17,6 +17,7 @@ export interface ConstructionRoofInput {
   /** Every attachment uses the same oriented opening volumes, irrespective of style. */
   holes?: RoofHostInput["holes"];
   geometryId?: string;
+  variationKey?: string;
   seed?: bigint;
   unitMetrics?: UnitMetrics;
 }
@@ -82,7 +83,8 @@ export function roofGravityTimeline(surface: RoofSurface, count: number) {
 export function roofLogicalPlacements(
   geometry: any,
   pivot: number,
-  raw: { observed_native_emits: RoofEmission[]; native_entry: string }
+  raw: { observed_native_emits: RoofEmission[]; native_entry: string },
+  variationKey?: string
 ) {
   const projector = new SurfaceProjector(geometry),
     cells: any[] = [],
@@ -114,6 +116,9 @@ export function roofLogicalPlacements(
       cell = {
         id,
         logical_id: id,
+        ...(variationKey !== undefined
+          ? { seed_id: variationKey + "/" + key + "/" + ordinal, lod_seed_id: variationKey + "/" + key + "/" + ordinal }
+          : {}),
         surface_id: geometry.id,
         surface_piece: anchor.triangle,
         anchor_uv: uv,
@@ -211,7 +216,7 @@ export function buildConstructionRoof(input: ConstructionRoofInput) {
   const metrics = input.unitMetrics ?? { width: 0.5, height: 0.4375, depth: 0.1 },
     seed = input.seed ?? 0n,
     raw = generateConstructionRoofUnits(surface, footprint, seed, metrics, slot),
-    plan = roofLogicalPlacements(context.geometry, surface.base_height, raw),
+    plan = roofLogicalPlacements(context.geometry, surface.base_height, raw, input.variationKey),
     initial64 = new Uint8Array(raw.observed_native_emits.length * 64);
   raw.observed_native_emits.forEach((e, i) => initial64.set(roofBytes(e.initial64_hex), i * 64));
   const gravity = roofGravityTimeline(surface, raw.observed_native_emits.length);

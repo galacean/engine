@@ -1,5 +1,4 @@
 import { SEED_WORLD_RUNTIME_CONTRACTS } from "../tools/runtime-tools.ts";
-import { SEED_WORLD_VIEW_CONTRACTS } from "../tools/view-tools.ts";
 import { SEED_WORLD_PARAMETER_CONTRACTS } from "../tools/parameter-tools.ts";
 import { SEED_WORLD_ANIMAL_CONTRACTS } from "../tools/animal-tools.ts";
 import { SEED_WORLD_PLANT_MATERIAL_CONTRACTS } from "../tools/plant-material-tools.ts";
@@ -14,14 +13,15 @@ import {
 } from "../tools/landscape-tools.ts";
 import { SEED_WORLD_SPATIAL_CONTRACTS, SEED_WORLD_WORLD_CONTRACTS } from "../tools/spatial-tools.ts";
 import { SEED_WORLD_TIME_CONTRACTS } from "../tools/time-tools.ts";
+import { SEED_WORLD_BUILDING_CONTRACTS } from "../tools/building-tools.ts";
 
 
 export const SEED_WORLD_API_CONTRACTS = Object.freeze([
   ...SEED_WORLD_WORLD_CONTRACTS,
-  ...SEED_WORLD_VIEW_CONTRACTS,
   ...SEED_WORLD_RUNTIME_CONTRACTS,
   ...SEED_WORLD_SPATIAL_CONTRACTS,
   ...SEED_WORLD_TIME_CONTRACTS,
+  ...SEED_WORLD_BUILDING_CONTRACTS,
   ...SEED_WORLD_ATMOSPHERE_CONTRACTS,
   ...SEED_WORLD_TERRAIN_CONTRACTS,
   ...SEED_WORLD_WATER_CONTRACTS,

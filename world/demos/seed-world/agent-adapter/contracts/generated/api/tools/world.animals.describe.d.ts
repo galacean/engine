@@ -7,6 +7,7 @@ declare global {
     interface WorldApi { readonly animals: WorldAnimalsApi; }
     interface WorldAnimalsApi {
       /**
+       * 调用入口：await tools.world.animals.describe(input)
        * 读取一个真实动物当前可用的语义技能和目标查询参数，不加载资源。只选择返回的 skillId 与 target.query；动画列表、权重和状态切换由动物系统管理。available=false 时以 reason 判断 disabled、not_found 或 not_ready 等实际限制。
        * @param input - id 来自 world.animals.query。
        * @returns 技能名称、是否持续/自主背景、是否必须指定目标，以及宿主支持的目标查询与参数类型；不包含动画片段。

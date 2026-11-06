@@ -9,6 +9,8 @@ export interface ConstructionLodAppearance {
 }
 export interface ConstructionLodCell {
   id: string;
+  seed_id?: string;
+  lod_seed_id?: string;
   anchor_uv: number[];
   size: number[];
   polygon?: number[][];
@@ -45,7 +47,8 @@ export function constructionLodAppearance(
   }
   for (const cell of cells) {
     let hash = 2166136261;
-    for (let i = 0; i < cell.id.length; i++) hash = Math.imul(hash ^ cell.id.charCodeAt(i), 16777619);
+    const variation = cell.lod_seed_id ?? cell.id;
+    for (let i = 0; i < variation.length; i++) hash = Math.imul(hash ^ variation.charCodeAt(i), 16777619);
     const value = 0.94 + ((hash >>> 0) / 4294967296) * 0.12;
     for (const shift of period > 0 ? [-period, 0, period] : [0]) {
       const poly = cell.polygon?.map(([u, v]) => [(u + shift - minU) * su, (v - minV) * sv]);
@@ -125,6 +128,13 @@ export function constructionLodSurfaceCells(
       [1, 1],
       [-1, 1]
     ].map(([x, y]) => cell.anchor_uv.map((p, i) => p + (x * cell.size[0] * u[i]) / 2 + (y * cell.size[1] * v[i]) / 2));
-    return { id: cell.id, anchor_uv: cell.anchor_uv, size: cell.size, polygon };
+    return {
+      id: cell.id,
+      ...(cell.seed_id !== undefined ? { seed_id: cell.seed_id } : {}),
+      ...(cell.lod_seed_id !== undefined ? { lod_seed_id: cell.lod_seed_id } : {}),
+      anchor_uv: cell.anchor_uv,
+      size: cell.size,
+      polygon
+    };
   });
 }

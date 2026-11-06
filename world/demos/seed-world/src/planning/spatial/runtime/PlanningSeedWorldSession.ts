@@ -53,7 +53,6 @@ export interface PlanningSeedWorldPublished {
   readonly sourcePlan?: IslandPlan;
 }
 export interface PlanningSeedWorldSessionOptions {
-  readonly observeViewWithPointer?: import("../../../../assistant/SeedWorldChatPanel.ts").SeedWorldChatPanelOptions["observeViewWithPointer"];
   readonly animals?: SeedWorldAnimalService;
   readonly editorExtensions?: readonly AgentEditorExtension[];
   readonly nativeEditor?: RuntimeNativeEditor;
@@ -209,7 +208,6 @@ export class PlanningSeedWorldSession {
     if (this.disposed) throw new Error("Seed World session has been disposed");
     if (!this.options.readPublished() || !this.options.isActive()) throw new Error("Seed World is not published");
     this.panel ??= mountSeedWorldChatPanel({
-      observeViewWithPointer: this.options.observeViewWithPointer,
       nativeEditor: this.options.nativeEditor, projectFiles: this.options.projectFiles,
       application: this.application,
       editorExtensions: this.options.editorExtensions,

@@ -1,3 +1,4 @@
+import { SEED_WORLD_GRASS_SNOW_RESPONSE } from "@galacean/engine-terrain/world/SeedWorldSurfaceSnow";
 import { Color, type Engine, type Entity, Material, Renderer, type Shader } from "@galacean/engine";
 import type {
   AssetAssemblySourceLibrary,
@@ -367,7 +368,7 @@ export function synchronizeSeedWorldRockGroundAppearance(engine: Engine, terrain
   for (const property of ["material_GrassColorA", "material_GrassColorB"]) {
     target.setColor(property, source.getColor(property));
   }
-  target.setFloat("material_SurfaceGrassSnowResponse", source.getVector4("material_TerrainSeedLayerSnowResponse").x);
+  target.setFloat("material_SurfaceGrassSnowResponse", SEED_WORLD_GRASS_SNOW_RESPONSE);
 }
 
 function resolveToonMaterialLibrary(engine: Engine): SeedWorldRockToonMaterialLibrary {

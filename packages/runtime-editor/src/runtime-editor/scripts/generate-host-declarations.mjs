@@ -7,7 +7,7 @@ import { createRequire } from "node:module";
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const entry = resolve(root, "shared/runtime-editor/scripts/project-assets.ts");
 const files = {};
-const prefix = "declare/runtime/node_modules/";
+const prefix = "declare/engine/node_modules/";
 const program = ts.createProgram([entry], {
   target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext,
   moduleResolution: ts.ModuleResolutionKind.Bundler, strict: true,

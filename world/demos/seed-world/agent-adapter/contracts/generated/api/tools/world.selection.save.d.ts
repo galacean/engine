@@ -8,6 +8,7 @@ declare global {
     interface WorldApi { readonly selection: WorldSelectionApi; }
     interface WorldSelectionApi {
       /**
+       * 调用入口：await tools.world.selection.save(input)
        * 将一次临时查询明确命名并保存到工程；普通 world.query 只保存在当前会话，不保存工程。
        * @param input - world.query 返回的 selectionId 和名称。
        * @returns 保存名称、选择标识和稳定引用列表。

@@ -1,4 +1,4 @@
-import type { ConstructionPreviewPart } from "./ConstructionPreview";
+import type { ConstructionPreviewPart } from "./ProfilePreview";
 import type { ConstructionRenderResult } from "./ConstructionDecorationRender";
 import { stoneFloorTextureBindings } from "./ConstructionStoneFloorAssets";
 import { constructionStoneFloorGLSL } from "./ConstructionStoneFloorShader";

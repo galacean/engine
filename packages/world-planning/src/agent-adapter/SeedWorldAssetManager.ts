@@ -60,10 +60,25 @@ export class SeedWorldAssetManager {
         (asset) =>
           publishedVegetation === undefined || asset.ref.domain !== "vegetation" || asset.ref.kind === "grassland"
       ),
-      ...(publishedVegetation ?? []),
-      ...this._additionalAssets().filter((asset) => requestedDomains.has(asset.ref.domain))
+      ...this._additionalAssets().filter((asset) => requestedDomains.has(asset.ref.domain)),
+      ...(publishedVegetation ?? [])
     ];
-    return Object.freeze(this._connectWaterAssets(assets));
+    const unique = new Map<string, SeedWorldAssetCandidate>();
+    for (const asset of assets) {
+      const key = JSON.stringify([asset.ref.domain, asset.ref.kind, asset.ref.source, asset.ref.id]);
+      const prior = unique.get(key);
+      unique.set(
+        key,
+        prior
+          ? Object.freeze({
+              ...prior,
+              ...asset,
+              properties: Object.freeze({ ...prior.properties, ...asset.properties })
+            })
+          : asset
+      );
+    }
+    return Object.freeze(this._connectWaterAssets([...unique.values()]));
   }
 
   get(ref: Readonly<SeedWorldRef>): SeedWorldAssetCandidate | undefined {

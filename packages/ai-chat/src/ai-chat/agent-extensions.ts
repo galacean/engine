@@ -4,7 +4,7 @@ import type { AgentApplicationDefinition, AgentConfiguration, AgentTool } from "
 export interface AgentEditorExtension {
   readonly definition: Pick<
     AgentApplicationDefinition,
-    "toolNames" | "scriptApi" | "editorComponents" | "projectFiles"
+    "toolNames" | "scriptApi" | "editorComponents" | "projectFiles" | "nativeReadTools"
   >;
   readonly tools: readonly AgentTool[];
 }
@@ -18,6 +18,16 @@ export function composeAgentConfiguration(
   const tools = [base.tools, ...extensions.map((extension) => extension.tools)].flat();
   const toolNames = definitions.flatMap((definition) => definition.toolNames);
   const components = definitions.flatMap((definition) => definition.editorComponents ?? []);
+  const nativeReadTools = definitions.flatMap((definition) => definition.nativeReadTools ?? []);
+  unique(
+    nativeReadTools.map((tool) => tool.definition.function.name),
+    "native read tool"
+  );
+  const skills = definitions.flatMap((definition) => definition.scriptApi.skills ?? []);
+  unique(
+    skills.map((skill) => skill.name),
+    "skill"
+  );
   const documents = definitions.flatMap((definition) => definition.scriptApi.documents ?? []);
   const modules = definitions.flatMap((definition) => definition.scriptApi.modules);
   unique(
@@ -58,15 +68,17 @@ export function composeAgentConfiguration(
     tools,
     definition: {
       ...base.definition,
+      nativeReadTools,
       toolNames,
       editorComponents: components,
       projectFiles: definitions.flatMap((definition) => definition.projectFiles ?? []),
       scriptApi: {
-        catalog: definitions
-          .map((definition) => definition.scriptApi.catalog)
+        hostNotes: definitions
+          .map((definition) => definition.scriptApi.hostNotes)
           .filter(Boolean)
           .join("\n\n"),
         documents,
+        skills,
         entries: definitions.flatMap((definition) => definition.scriptApi.entries),
         modules
       }

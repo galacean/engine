@@ -7,6 +7,7 @@ declare global {
   namespace AgentTools {
     interface AtmosphereApi {
       /**
+       * 调用入口：await tools.atmosphere.update(input)
        * 修改天空颜色或一个或多个天象通道。
        * @param input - 天空改色使用 atmosphere.skyColorRgb，null 恢复默认；无需修改时间、云雾或天气预设。至少包含一个天象字段；预设先应用，显式通道随后覆盖。天空颜色也参与环境光烘焙。
        * @returns 规范化请求和草稿目标状态。execute 提交后才激活天象与环境光过渡；运行失败记录在 execute.receipt.runtimeErrors，不撤销已提交的编辑数据。
@@ -17,7 +18,7 @@ declare global {
         wind?: {
           /** 持续风速，单位为米每秒。 取值范围：0 到 60。 */
           speedMetresPerSecond?: number;
-          /** 相对世界前方的风向角，单位为度。 取值范围：-180 到 180。 */
+          /** 风吹向的世界水平航向，度：0 为 -Z，90 为 +X，-90 为 -X；不是风的来向或内部偏转角。过渡完成后生效；不修改基础风向。 取值范围：-180 到 180。 */
           directionDegrees?: number;
           /** 阵风强度。 取值范围：0 到 1。 */
           gustiness?: number;

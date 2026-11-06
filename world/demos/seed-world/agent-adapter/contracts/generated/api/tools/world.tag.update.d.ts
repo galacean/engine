@@ -8,6 +8,7 @@ declare global {
     interface WorldApi { readonly tag: WorldTagApi; }
     interface WorldTagApi {
       /**
+       * 调用入口：await tools.world.tag.update(input)
        * 为稳定世界资产增加或移除标签。
        * @param input - 1 到 64 个 refs，以及至少一个 add 或 remove 标签。
        * @returns 每个资产修改后的稳定引用和完整标签。

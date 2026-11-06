@@ -129,8 +129,12 @@ export function deriveRoofContact(a: RoofMapping, b: RoofMapping, tolerance = 1e
         continue;
       }
       direction = unit(direction);
-      const sa = section(ta, bn, tb[0], tolerance),
-        sb = section(tb, an, ta[0], tolerance);
+      // Broad contact tolerance is for classification, not for constructing an
+      // intersection line: admitting a nearby off-plane vertex shifts that line
+      // outside slender triangles. Interpolate the actual plane crossing here.
+      const planeEpsilon = Math.min(tolerance, 1e-10),
+        sa = section(ta, bn, tb[0], planeEpsilon),
+        sb = section(tb, an, ta[0], planeEpsilon);
       if (!sa.length || !sb.length) continue;
       const ia = sa.map((p) => dot(p, direction)),
         ib = sb.map((p) => dot(p, direction)),

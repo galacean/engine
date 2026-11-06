@@ -9,15 +9,33 @@ import { rewriteAssetReferences } from "@galacean/engine-project/runtime-editor/
 import { prepareImportedEntries } from "./runtime-import-entries.ts";
 import type { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
 
+/** A source can resolve a selected external locator to an operation-scoped file view.
+ * The view and downloaded content are released with the import operation. */
+export interface RuntimeAssetSource extends ProjectFileProvider {
+  resolveImport?(
+    source: string,
+    signal: AbortSignal
+  ): Promise<{ source: string; files: ProjectFileProvider } | undefined>;
+}
+
 /** Import bytes and documentation through one editor transaction; sources remain read-only. */
 export async function importRuntimeAsset(
   draft: RuntimeProjectEdit,
-  providers: readonly ProjectFileProvider[],
+  providers: readonly RuntimeAssetSource[],
   input: { source: string; path: string; type?: string },
   signal: AbortSignal
 ) {
   signal.throwIfAborted();
   draft.assertDestination(input.path);
+  for (const provider of providers) {
+    const resolved = await provider.resolveImport?.(input.source, signal);
+    signal.throwIfAborted();
+    if (resolved) {
+      providers = [resolved.files];
+      input = { ...input, source: resolved.source };
+      break;
+    }
+  }
   const files = new VirtualProjectFiles(providers).snapshot();
   const checkpoint = projectWorkCheckpoint(signal);
   const kind = files.kind(input.source);
@@ -26,8 +44,7 @@ export async function importRuntimeAsset(
   if (folder && input.type) throw new Error("Folder imports determine each file type; omit type");
   const sources = folder
     ? files.list().filter((path) => path.startsWith(`${input.source}/`))
-    : [input.source, `${input.source}.meta`];
-  if (folder && files.kind(`${input.source}.meta`)) sources.push(`${input.source}.meta`);
+    : [input.source, ...(files.kind(`${input.source}.meta`) ? [`${input.source}.meta`] : [])];
   await files.prepare(sources, signal);
   const target = (path: string) => input.path + path.slice(input.source.length);
   const documents: Record<string, string> = {};
@@ -39,7 +56,9 @@ export async function importRuntimeAsset(
         metadata = JSON.parse(content);
       if (!metadata || typeof metadata.summary !== "string")
         throw new Error(`Metadata requires a summary: '${source}'`);
-      documents[target(source)] = content;
+      const asset = source.slice(0, -5);
+      if (files.kind(asset) === "file" && projectFileType(asset, metadata.type) !== "Document")
+        documents[target(source)] = content;
       continue;
     }
     const metadata = files.kind(`${source}.meta`) ? JSON.parse(files.read(`${source}.meta`)) : undefined;
@@ -54,7 +73,7 @@ export async function importRuntimeAsset(
       entries.push({
         file: { virtualPath: path, path: `runtime-asset:${path}`, type },
         content,
-        metadata: metadata ?? { summary: `${source} (${type})` }
+        metadata: metadata ?? { summary: "" }
       });
     }
   }

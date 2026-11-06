@@ -9,7 +9,10 @@ import { roadSurfaces, roadSurfaceOwners } from "../layout/RoadTopology";
 import { pointInPolygon } from "../../geometry/V2Geometry";
 import type { SeedWorldAssetCandidate } from "../../agent-adapter/SeedWorldAssetManager";
 import type { SeedWorldAssetDomain } from "../../agent-adapter/ports/SeedWorldEnginePort";
-import { SEED_WORLD_ASSET_TYPE_CATALOG } from "../../agent-adapter/contracts/SeedWorldAssetContracts";
+import {
+  SEED_WORLD_ASSET_TYPE_CATALOG,
+  type SeedWorldAssetKind
+} from "../../agent-adapter/contracts/SeedWorldAssetContracts";
 import { planningRemovedObjectIds } from "../PlanningResources";
 
 export const PLANNING_GRASSLAND_ID = "planning:grassland";
@@ -20,12 +23,19 @@ export function planningPickAssets(plan: IslandPlan): readonly SeedWorldAssetCan
   const assets: SeedWorldAssetCandidate[] = [];
   const ids = new Set<string>();
   const removed = planningRemovedObjectIds(plan.authoredResources ?? []);
-  function add(id: string, domain: SeedWorldAssetDomain, kind: string, elementId: string = id): void {
+  function add(id: string, domain: SeedWorldAssetDomain, kind: SeedWorldAssetKind, elementId: string = id): void {
     if (ids.has(id) || removed.has(id)) return;
     ids.add(id);
     assets.push({
       ref: { id, domain, kind, source: "natural" },
-      properties: { assetKind: kind, planningElementId: elementId }
+      properties:
+        domain === "vegetation"
+          ? {
+              assetKind: kind,
+              planningEntityId: elementId,
+              ...(["grassland", "flower-field"].includes(kind) ? { distribution: "habitat-fill" } : {})
+            }
+          : { assetKind: kind, planningElementId: elementId }
     });
   }
   add(PLANNING_GRASSLAND_ID, "vegetation", "grassland", "world");
@@ -34,7 +44,20 @@ export function planningPickAssets(plan: IslandPlan): readonly SeedWorldAssetCan
   if (plan.naturalVegetation)
     for (const tree of plan.landscapes ?? []) if (tree.kind === "tree") add(tree.id, "vegetation", "tree", tree.id);
   for (const region of plan.flowerRegions ?? []) add(region.id, "vegetation", "flower-field", region.id);
-  for (const mountain of plan.mountains) add(mountain.id, "terrain", mountain.semanticKind ?? "mountain");
+  for (const mountain of plan.mountains)
+    add(
+      mountain.id,
+      "terrain",
+      mountain.semanticKind === "canyon"
+        ? "canyon"
+        : mountain.semanticKind === "plateau"
+          ? "plateau"
+          : mountain.semanticKind === "pass"
+            ? "valley"
+            : mountain.semanticKind === "cliff"
+              ? "slope"
+              : "mountain"
+    );
   for (const patch of plan.parameters.terrainPatches ?? []) add(patch.id, "terrain", "slope");
   // Rocks already belong to the runtime object catalog, which applies author removals.
   // Adding plan IDs here would bypass that ownership and revive deleted objects.

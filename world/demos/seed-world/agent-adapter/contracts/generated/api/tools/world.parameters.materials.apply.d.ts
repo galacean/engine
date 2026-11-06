@@ -7,6 +7,7 @@ declare global {
     interface WorldParametersApi { readonly materials: WorldParametersMaterialsApi; }
     interface WorldParametersMaterialsApi {
       /**
+       * 调用入口：await tools.world.parameters.materials.apply(input)
        * 原子设置所选原生植被材质集合的线性 RGB [r,g,b]；null 清除三个通道覆盖，恢复来源。filter 各维度取交集、同一维度取并集，省略表示全部公开槽。空集合或矛盾重叠拒绝；同物种所有实例和 LOD 共用。沿用参数 schema、版本、继承与保存机制；仅编辑材质，不改变草地色场、种植、取景或光照。
        * @param input - 使用 inspect 返回的真实部位/生态层和版本，明确本次集合的线性 RGB；没有风格或颜色预设。
        * @returns 原生事务状态、版本、回执与匹配槽数；详细诊断用 world.parameters.receipt。accepted 仅代表作者事务接受，scene.generate 负责首次画面。

@@ -7,6 +7,7 @@ declare global {
     interface RuntimeApi { readonly entity: RuntimeEntityApi; }
     interface RuntimeEntityApi {
       /**
+       * 调用入口：await tools.runtime.entity.children(input)
        * 分页读取运行时子节点；省略 entityId 返回场景根节点。返回当前运行时关系。按需向上或向下探索，不必返回整个场景。
        * @param input - 使用命中或查询实际返回的 Engine instanceId（数值）。运行时 ID 与编辑态 ID 不可互换，不从名称猜测身份。
        * @returns 主线程 Engine 的可序列化事实，Worker 不持有 Engine 对象。运行时对象销毁后 ID 不复用；alive=false 时不得对替代对象执行原指令。authoring 仅在原生投影确有映射时返回；缺失不代表应改父节点或直接销毁渲染对象。
@@ -25,6 +26,9 @@ declare global {
             alive: boolean;
             observedAt: "live";
             entity: ({
+              /** 运行时实体 ID；直接用于 entity.inspect、entity.children 和 component.query 的 entityId 参数。 */
+              entityId: number;
+              /** @deprecated 兼容旧返回字段；与 entityId 相同，新调用使用 entityId。 */
               id: number;
               name: string;
               parentId: number | null;
@@ -38,6 +42,12 @@ declare global {
                 scene: string;
                 entityId: string;
                 componentId?: string;
+                /** 可直接传给 editor.component.query 的作者身份选择器。含 id 时精确到该组件；不含 id 时查询此作者实体的组件。没有映射时不返回 authoring，不向父节点猜测。 */
+                componentQuery: {
+                  scene: string;
+                  entityId: string;
+                  id?: string;
+                };
               };
             }) | null;
           }>;

@@ -3,21 +3,29 @@ import {
   type ProjectFileProvider
 } from "@galacean/engine-project/project-files/virtual-project-files";
 import type { AgentApiDeclarationModule, AgentScriptApiCatalog } from "./agent-types";
+import { agentSkillFiles } from "./agent-skills";
 import { canonicalKnowledgePaths } from "./agent-knowledge-paths";
 import { contentView, resolveProjectFile } from "@galacean/engine-project/project-files/project-file-view";
 
 export { AgentProjectFiles };
 
+/** execute contracts live under declare/editor/; Script declarations use declare/engine/. */
+const declarationPath = (id: string) => `declare/editor/${id.replace(/^declare\//, "")}`;
+
 export function createAgentProjectFiles(
   catalog: AgentScriptApiCatalog,
   providers: readonly ProjectFileProvider[] = []
 ): AgentProjectFiles {
+  const skillFiles = agentSkillFiles(catalog.skills ?? []);
   const externalPaths = new Set(providers.flatMap((provider) => [...provider.paths()]));
-  const modulePath = (id: string) => (id.startsWith("declare/") || !externalPaths.has(id) ? `editor/${id}` : id);
+  const modulePath = (id: string) => (externalPaths.has(id) ? id : declarationPath(id));
+  for (const document of catalog.documents ?? [])
+    if (!/^(?:skills|declare)\//.test(document.path))
+      throw new Error(`Knowledge must live under skills/ or declare/: '${document.path}'`);
   const paths = new Set([
     ...externalPaths,
-    "editor/README.md",
-    ...(catalog.documents ?? []).map((document) => `editor/${document.path}`),
+    ...skillFiles.keys(),
+    ...(catalog.documents ?? []).map((document) => document.path),
     ...catalog.modules.map((module) => modulePath(module.id))
   ]);
   // Cache only derived host knowledge, keyed by its current source. Project
@@ -32,23 +40,24 @@ export function createAgentProjectFiles(
   };
   const provider: ProjectFileProvider = {
     *paths() {
-      yield "editor/README.md";
-      for (const document of catalog.documents ?? [])
-        if (document.path !== "README.md") yield `editor/${document.path}`;
+      yield* skillFiles.keys();
+      for (const document of catalog.documents ?? []) yield document.path;
       for (const module of catalog.modules) if (!externalPaths.has(modulePath(module.id))) yield modulePath(module.id);
     },
     read(path) {
-      if (path === "editor/README.md") return catalog.catalog;
+      if (skillFiles.has(path)) return skillFiles.get(path);
       return (
-        catalog.documents?.find((document) => `editor/${document.path}` === path)?.content ??
+        catalog.documents?.find((document) => document.path === path)?.content ??
         (externalPaths.has(path) ? undefined : catalog.modules.find((module) => modulePath(module.id) === path)?.source)
       );
     }
   };
-  const isKnowledge = (path: string) => path.startsWith("editor/") && path.endsWith(".md");
+  const isKnowledge = (path: string) =>
+    (path.startsWith("skills/") || path.startsWith("declare/")) && path.endsWith(".md");
   const mounted = [provider, ...providers].map(
     (source): ProjectFileProvider => ({
       paths: () => source.paths(),
+      missing: (path) => source.missing?.(path),
       directories: source.directories ? () => source.directories!() : undefined,
       prepare: source.prepare ? (path, signal) => source.prepare!(path, signal) : undefined,
       read(path) {
@@ -84,6 +93,6 @@ export function projectDeclarationModules(
   const snapshot = files.snapshot();
   return modules.map((module) => ({
     ...module,
-    source: snapshot.read(snapshot.kind(`editor/${module.id}`) === "file" ? `editor/${module.id}` : module.id)
+    source: snapshot.read(snapshot.kind(declarationPath(module.id)) === "file" ? declarationPath(module.id) : module.id)
   }));
 }

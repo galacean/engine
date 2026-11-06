@@ -6,14 +6,14 @@ import {
   type ConstructionSurfaceFrame
 } from "./ConstructionSurfaceFrame";
 import { triangleIntersectsBounds, segmentTriangleDistanceSquared } from "./SurfaceQueryMath";
-import type { ConstructionSurfacePart } from "./ConstructionPreview";
+import type { ConstructionSurfacePart } from "./ProfilePreview";
 import { sameStructuralSurface, type StructuralMesh } from "./ConstructionSurfaceEquality";
 type V = [number, number, number];
 const sub = (a: V, b: V): V => [a[0] - b[0], a[1] - b[1], a[2] - b[2]],
   dot = (a: V, b: V) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
   cross = (a: V, b: V): V => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
 /** Structural collision uses actual generated surfaces, not the original planning box.
- * Reuses only the shared segment/triangle math; no legacy asset or generator dependency.
+ * Reuses only the shared segment/triangle math.
  * Includes generated openings and decoration geometry, but not individual brick roughness.
  * Does not prove swept locomotion. */
 export class ConstructionSurfaceQuery {

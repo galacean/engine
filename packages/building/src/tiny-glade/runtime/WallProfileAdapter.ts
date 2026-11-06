@@ -15,7 +15,8 @@ export function ordinaryWallProfile(
   height: number,
   holes: WallConnectionFinalHole[],
   followTerrain = true,
-  unitScale?: UnitFootprintScale
+  unitScale?: UnitFootprintScale,
+  variationKey?: string
 ): WallProfile {
   const clamp = (v: number) => Math.min(1, Math.max(0, v));
   const fit = (a: number, b: number, x: number) => div(sub(x, a), sub(b, a));
@@ -27,6 +28,7 @@ export function ordinaryWallProfile(
   const thickness = circle ? add(thicknessT, mul(sub(1, thicknessT), 0.9)) : 0;
   return {
     ...(unitScale ? { unitScale } : {}),
+    ...(variationKey !== undefined ? { variationKey } : {}),
     id,
     slot,
     curve: {
@@ -65,10 +67,12 @@ export function generateMasonry(
   height: number,
   sharedHoles: WallConnectionWipHole[] = [],
   followTerrain = true,
-  unitScale?: UnitFootprintScale
+  unitScale?: UnitFootprintScale,
+  variationKey?: string
 ) {
   const corners = generateWallCorners({
     unitScale,
+    variationKey,
     id,
     slot,
     control: published.control,
@@ -91,7 +95,8 @@ export function generateMasonry(
     height,
     finalized,
     followTerrain,
-    unitScale
+    unitScale,
+    variationKey
   );
   const ordinary = generateOrdinaryWall(profile);
   return {

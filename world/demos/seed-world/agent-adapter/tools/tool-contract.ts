@@ -1,8 +1,10 @@
 import * as z from "zod";
+import { viewerRelationSchema } from "../ViewerRelation.ts";
 import { skyColorRgbSchema } from "../contracts/SeedWorldSkyColorContract.ts";
 import {
   aquaticGrassBedAssetPropertiesSchema,
   basinAssetPropertiesSchema,
+  baseTerrainAssetPropertiesSchema,
   bridgeAssetPropertiesSchema,
   buildingAssetPropertiesSchema,
   canyonAssetPropertiesSchema,
@@ -155,6 +157,7 @@ export const assetRelationsSchema = z.strictObject({
   connectedTo: z.array(worldRefSchema).optional().describe("与该资产直接相连的其他资产")
 });
 const worldAssetBaseShape = {
+  viewerRelation: viewerRelationSchema.optional(),
   type: assetKindSchema.describe("资产的公开类型判别字段；与 ref.kind 完全一致"),
   ref: worldRefSchema.describe("资产稳定引用"),
   position: worldPositionTupleSchema.optional().describe("资产代表位置"),
@@ -215,6 +218,7 @@ function concreteAssetSchema(
   }).describe(description);
 }
 
+export const baseTerrainAssetSchema = concreteAssetSchema("terrain", "terrain", baseTerrainAssetPropertiesSchema, "完整基础地形；不是一座山或坡地。");
 export const mountainAssetSchema = concreteAssetSchema("terrain", "mountain", mountainAssetPropertiesSchema, "山峰资产。");
 export const hillAssetSchema = concreteAssetSchema("terrain", "hill", hillAssetPropertiesSchema, "单丘资产。");
 export const ridgeAssetSchema = concreteAssetSchema("terrain", "ridge", ridgeAssetPropertiesSchema, "山脊资产。");
@@ -272,6 +276,7 @@ export const bridgeAssetSchema = concreteAssetSchema(
 export const poiAssetSchema = concreteAssetSchema("poi", "poi", poiAssetPropertiesSchema, "规划兴趣点资产。");
 
 export const terrainAssetSchema = z.union([
+  baseTerrainAssetSchema,
   mountainAssetSchema,
   hillAssetSchema,
   ridgeAssetSchema,
@@ -305,6 +310,7 @@ export const infrastructureAssetSchema = z.union([roadAssetSchema, bridgeAssetSc
 
 export const inspectedWorldAssetSchema = z.union([
   buildingAssetSchema,
+  baseTerrainAssetSchema,
   mountainAssetSchema,
   hillAssetSchema,
   ridgeAssetSchema,
@@ -334,6 +340,7 @@ export const inspectedWorldAssetSchema = z.union([
 
 export const worldAssetSchemaByKind = Object.freeze({
   building: buildingAssetSchema,
+  terrain: baseTerrainAssetSchema,
   mountain: mountainAssetSchema,
   hill: hillAssetSchema,
   ridge: ridgeAssetSchema,
@@ -384,7 +391,7 @@ export const environmentStateSchema = z.strictObject({
   fogIntensity: z.number().min(0).max(1).describe("当前雾强度"),
   windSpeed: z.number().nonnegative().describe("当前配置的持续风速，单位为米每秒；不包含瞬时阵风波动"),
   windIntensity: z.number().min(0).max(1).describe("风力归一化强度"),
-  windDirectionDegrees: z.number().describe("相对世界前方的当前风向角，单位为度"),
+  windDirectionDegrees: z.number().describe("当前实际风吹向的世界水平航向，度：0 为 -Z，90 为 +X，-90 为 -X。过渡中可不同于目标；静风时保留最后有效方向，不表示仍有风"),
   windGustiness: z.number().min(0).max(1).describe("当前阵风强度"),
   windTurbulence: z.number().min(0).max(1).describe("当前乱流程度"),
   lightningFrequency: z.number().min(0).max(1).describe("当前闪电频率"),

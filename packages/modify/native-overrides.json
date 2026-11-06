@@ -726,5 +726,21 @@
   {
     "original": "packages/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl",
     "replacement": "packages/modify/src/native/shader/src/ShaderLibrary/Particle/Billboard/HorizontalBillboard.glsl"
+  },
+  {
+    "original": "packages/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts",
+    "replacement": "packages/modify/src/native/core/src/lighting/screenSpaceReflection/ScreenSpaceReflectionSettings.ts"
+  },
+  {
+    "original": "packages/loader/src/SceneLoader.ts",
+    "replacement": "packages/modify/src/native/loader/src/SceneLoader.ts"
+  },
+  {
+    "original": "packages/loader/src/schema/SceneSchema.ts",
+    "replacement": "packages/modify/src/native/loader/src/schema/SceneSchema.ts"
+  },
+  {
+    "original": "packages/loader/src/schema/MaterialSchema.ts",
+    "replacement": "packages/modify/src/native/loader/src/schema/MaterialSchema.ts"
   }
 ]

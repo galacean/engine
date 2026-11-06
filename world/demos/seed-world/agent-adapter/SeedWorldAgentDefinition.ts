@@ -1,4 +1,7 @@
-import presetRuntimeGuide from "../systems/runtime.md?raw";
+import { buildingPartDocuments, buildingPartSkill } from "@galacean/engine-building/tiny-glade/parts/BuildingKnowledge";
+import { parseAgentSkill } from "@galacean/engine-ai-chat/ai-chat/agent-skills";
+import presetSystemsGuide from "./skills/scripting/preset-systems.md?raw";
+import worldRuntimeGuide from "./skills/scripting/world-runtime.md?raw";
 import { engineRuntimeFiles } from "@galacean/engine-runtime-editor/runtime-editor-agent/engine-runtime-files";
 import type { AgentApplicationDefinition } from "@galacean/engine-ai-chat/ai-chat/index";
 import type { SeedWorldAgentApplication } from "./SeedWorldAgentApplication.ts";
@@ -32,8 +35,13 @@ export function createSeedWorldAgentDefinition(
 /** Application-owned composition of world and native editing declarations. */
 export function seedWorldNativeKnowledge(knowledge: typeof seedWorldKnowledge) {
   const catalog = withNativeEditingKnowledge(knowledge);
-  return { ...catalog, catalog: catalog.catalog + "\n- [Preset systems in Script assets](knowledge/runtime/preset-systems.md)\n",
-    documents: [...(catalog.documents ?? []), {path: "knowledge/runtime/preset-systems.md", content: presetRuntimeGuide}], modules: [...catalog.modules, {
+  const seedWorldReferences = "\n\n## Seed World\n\n- 脚本中使用预置系统：[预置系统](skills/scripting/references/preset-systems.md)\n- 日夜、天气、风等世界运行时模块：[世界运行时](skills/scripting/references/world-runtime.md)\n";
+  return { ...catalog,
+    skills: [...(catalog.skills ?? []).map(skill => skill.name === "scripting" ? { ...skill, content: skill.content + seedWorldReferences } : skill), parseAgentSkill(buildingPartSkill)],
+    documents: [...(catalog.documents ?? []), ...buildingPartDocuments,
+      { path: "skills/scripting/references/preset-systems.md", content: presetSystemsGuide },
+      { path: "skills/scripting/references/world-runtime.md", content: worldRuntimeGuide }],
+    modules: [...catalog.modules, {
     id: "declare/world/native.d.ts",
     source: 'import "../native/api"; export {};',
     imports: ["declare/native/api.d.ts"]

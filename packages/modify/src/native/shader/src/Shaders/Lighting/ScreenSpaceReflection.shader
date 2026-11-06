@@ -173,7 +173,10 @@ Shader "Lighting/ScreenSpaceReflection" {
             float rawSceneDepth = texture2D(material_SSRSceneDepthTexture, candidateUV).r;
             if (rawSceneDepth < 0.999999) {
               float sceneEyeDepth = remapDepthBufferEyeDepth(rawSceneDepth);
-              float occlusionTolerance = max(material_SSRThickness, sceneEyeDepth * 0.001);
+              // Occlusion must not reuse the hit thickness: near a contact edge the hidden receiver
+              // lies only a few centimetres behind the occluder, and a thickness-sized tolerance
+              // would treat it as visible and composite its reflection onto the occluder pixel.
+              float occlusionTolerance = sceneEyeDepth * 0.001;
               if (candidateEyeDepth > sceneEyeDepth + occlusionTolerance) continue;
             }
             vec2 pixelOffset = surfacePixel - preferredSurfacePixel;

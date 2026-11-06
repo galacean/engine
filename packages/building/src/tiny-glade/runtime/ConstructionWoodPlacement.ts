@@ -8,6 +8,7 @@ import { bindDecorationWoodCuts, decorationGableDraws, decorationWoodCutTemplate
  * use an expanded chart for their geometry; that expansion must not move paint. */
 export interface WoodPlacementChart {
   geometryId: string;
+  variationKey?: string;
   curve: RoofCurve;
   length: number;
   minimumY: number;
@@ -29,6 +30,9 @@ function woodCell(piece: HorizontalAffineWoodPiece, chart: WoodPlacementChart) {
   return {
     id,
     logical_id: id,
+    ...(chart.variationKey !== undefined
+      ? { seed_id: chart.variationKey + "/wood/" + piece.id, lod_seed_id: chart.variationKey + "/wood/" + piece.id }
+      : {}),
     surface_id: chart.geometryId,
     anchor_uv: [
       wallArclengthFromWorld(chart.curve, chart.length, [center[0], center[2]]),

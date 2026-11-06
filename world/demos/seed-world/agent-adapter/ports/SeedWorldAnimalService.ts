@@ -8,6 +8,7 @@ export interface SeedWorldAnimalQuery {
 
 /** A planned identity remains discoverable while its presentation is unloaded. */
 export interface SeedWorldAnimalSummary {
+  speciesId: string;
   id: string;
   typeId: string;
   label: string;
@@ -107,6 +108,7 @@ export interface SeedWorldAnimalSpawnReceipt {
 /** One host service shared by UI and Agent. Query/describe/receipt must not trigger resource loading. */
 export interface SeedWorldAnimalService {
   catalog(input: SeedWorldAnimalCatalogQuery): {
+    summary: { scope: "all-matches"; unit: "model-type"; total: number; speciesCount: number; appearanceCount: number; returned: number; hasMore: boolean };
     entries: readonly SeedWorldAnimalCatalogEntry[];
     matchedCount: number;
     offset: number;

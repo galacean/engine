@@ -7,6 +7,7 @@ declare global {
     interface WorldApi { readonly animals: WorldAnimalsApi; }
     interface WorldAnimalsApi {
       /**
+       * 调用入口：await tools.world.animals.receipt(input)
        * 只读查询该动物 requestId 的最新语义指令状态，不重新执行指令、不加载资源。not_found 表示该身份或回执当前不存在，不能推断执行成功；系统关闭或实例重建后旧回执可能不可用。
        * @param input - 沿用原命令的 id 和 requestId；重试查询不产生新的行为。
        * @returns accepted、running、completed、cancelled、failed、rejected 或 not_found 及原因；completed 才代表该指令目标完成，自主背景切换完成不意味着动物静止。

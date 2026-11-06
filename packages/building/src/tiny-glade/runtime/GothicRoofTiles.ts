@@ -151,6 +151,24 @@ export interface GothicTile {
   row: number;
   column: number;
 }
+/** The architectural arch profile, before unit subdivision or material packing. */
+export function gothicRoofProfiles(rank: 1 | 2 | 3, t: GothicTransform): [number[][], number[][]] {
+  return [1, -1].map((sign) => PROFILES[rank - 1].map(([x, y]) => transform([mul(x, sign), f32(y), 0], t))) as [
+    number[][],
+    number[][]
+  ];
+}
+export interface GothicRoofSample {
+  role: "ridge" | "tile";
+  position: number[];
+  rotation: number[];
+  scale: number[];
+  side: number;
+  row: number;
+  column: number;
+  ordinal: number;
+}
+
 export function gothicRoofTiles(
   id: string,
   rank: 1 | 2 | 3,
@@ -161,9 +179,7 @@ export function gothicRoofTiles(
   unitScale: UnitFootprintScale = IDENTITY_UNIT_SCALE,
   tileSeed?: bigint
 ): GothicTile[] {
-  const profiles = [1, -1].map(
-    (sign) => new RoofCurve(PROFILES[rank - 1].map(([x, y]) => transform([mul(x, sign), f32(y), 0], t)))
-  );
+  const profiles = gothicRoofProfiles(rank, t).map((points) => new RoofCurve(points));
   return gothicRoofTilesFromProfiles(id, profiles as [RoofCurve, RoofCurve], t, s, f, slot, unitScale, tileSeed);
 }
 
@@ -179,15 +195,41 @@ export function gothicRoofTilesFromProfiles(
   unitScale: UnitFootprintScale = IDENTITY_UNIT_SCALE,
   tileSeed?: bigint
 ): GothicTile[] {
+  const out: GothicTile[] = [];
+  visitGothicRoofLayout(profiles, t, s, f, unitScale, tileSeed, (sample) => {
+    let hex = packRoof(sample.position, sample.rotation, sample.scale, 0, slot, sample.ordinal >>> 0, 0);
+    hex = hex.slice(0, 96) + "0000803f" + hex.slice(104);
+    const { ordinal: _ordinal, ...geometry } = sample;
+    out.push({
+      id: `${id}/${sample.role}/${sample.side}/${sample.row}/${sample.column}`,
+      ...geometry,
+      initial64_hex: hex
+    });
+  });
+  return out;
+}
+
+/** Shared numerical sampling for exact occupied volumes and final placement.
+ * The occupancy caller stores only collision volumes; this visitor allocates no
+ * material records, render meshes or retained tile arrays. Random draws remain
+ * in native order because tilt/overlap affect the physical occupied volume. */
+export function visitGothicRoofLayout(
+  profiles: readonly [RoofCurve, RoofCurve],
+  t: GothicTransform,
+  s: RoofSurface,
+  f: RoofFootprint,
+  unitScale: UnitFootprintScale,
+  tileSeed: bigint | undefined,
+  visit: (sample: GothicRoofSample) => void
+): boolean {
   const peak = profiles[0].points[0],
     back = gothicRoofIntersection(s, f, peak[1], peak);
-  if (!back) return [];
+  if (!back) return false;
   const delta = peak.map((v, i) => sub(v, back[i])),
     depth = length(delta),
     extended = peak.map((v, i) => add(v, mul(delta[i], 0.05)));
   const seed = tileSeed ?? BigInt(Math.trunc(length(t.translation.map((v) => mul(v, 10))))),
-    rng = new Random(seed),
-    out: GothicTile[] = [];
+    rng = new Random(seed);
   const emit = (
     role: "ridge" | "tile",
     p: number[],
@@ -197,20 +239,7 @@ export function gothicRoofTilesFromProfiles(
     row: number,
     column: number
   ) => {
-    const ordinal = rng.signed();
-    let hex = packRoof(p, q, scale, 0, slot, ordinal >>> 0, 0);
-    hex = hex.slice(0, 96) + "0000803f" + hex.slice(104);
-    out.push({
-      id: `${id}/${role}/${side}/${row}/${column}`,
-      role,
-      position: p,
-      rotation: q,
-      scale,
-      initial64_hex: hex,
-      side,
-      row,
-      column
-    });
+    visit({ role, position: p, rotation: q, scale, side, row, column, ordinal: rng.signed() });
   };
   // Host target specifications change native strip subdivision, leaving the
   // authored arch profile, body transform and opening in their original space.
@@ -288,5 +317,5 @@ export function gothicRoofTilesFromProfiles(
       }
     }
   }
-  return out;
+  return true;
 }

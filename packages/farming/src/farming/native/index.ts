@@ -22,7 +22,8 @@ export type { FarmingCatalogData, FarmingRulesData } from "./FarmingResources";
 export { farmingAreaComponentData } from "./FarmingSceneData";
 export { createFarmingAgentPackage } from "./FarmingAgent";
 export { FARMING_API_DECLARATION } from "./FarmingAPIDeclarations";
-export { FARMING_KNOWLEDGE } from "./FarmingKnowledge";
+export { FARMING_METHOD_DOCS } from "./FarmingMethodDocs";
+export { farmingSkill, farmingSkillDocuments } from "./FarmingSkill";
 /** Call before loading a Scene/Prefab containing farming components. */
 export function registerNativeFarming(): void {
   Loader.registerClass("FarmingSystem", FarmingSystem);

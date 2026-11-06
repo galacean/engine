@@ -109,6 +109,21 @@ export interface SeedWorldQueryInput extends SeedWorldSelector {
 }
 
 export interface SeedWorldSelectionSummary {
+  readonly viewerRelation?: {
+    readonly basis: "instruction-viewer" | "live-viewer";
+    readonly forwardMetres: number;
+    readonly rightMetres: number;
+    readonly direction:
+      | "here"
+      | "front"
+      | "front-right"
+      | "right"
+      | "behind-right"
+      | "behind"
+      | "behind-left"
+      | "left"
+      | "front-left";
+  };
   /** Public discriminant used to choose the matching /assets declaration file. */
   readonly type: SeedWorldAssetKind;
   readonly ref: SeedWorldRef;

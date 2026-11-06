@@ -38,7 +38,8 @@ export interface InterRoofOwner {
   slot: number;
   shape: WallConnectionShape;
   roof: { surface: RoofSurface; footprint: RoofFootprint };
-  building: { id: string; kind?: string; material: number };
+  /** Material selected by the connection rule, independent of any house schema. */
+  material: number;
   profile?: { projected: RoofCurve };
 }
 export interface InterRoofMerlonCandidate {
@@ -184,11 +185,39 @@ function lineInterval(a: number[], b: number[], shape: WallConnectionShape): [nu
   return hi >= lo ? [lo, hi] : null;
 }
 
+/** Exact sampled contact path; geometry planning owns its shape and endpoints. */
+export function interRoofMerlonPath(candidate: InterRoofMerlonCandidate) {
+  return slice(candidate.shape, candidate.start, candidate.end);
+}
+
+export interface InterRoofMerlonStyle {
+  unitScale?: UnitFootprintScale;
+  seed?: bigint;
+  appearanceSeed: bigint;
+  slot: number;
+  material: number;
+  edgeMode: number;
+}
+
 export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCandidate, flat: InterRoofOwner) {
-  const curve = slice(candidate.shape, candidate.start, candidate.end),
-    length = curve.length;
-  const target = flat.roofUnitScale ?? IDENTITY_UNIT_SCALE;
-  const rng = new RoofRandom(flat.roofSeed ?? BigInt(Math.trunc(mul(length, 1000))));
+  return {
+    candidate,
+    ...placeInterRoofMerlonPath(interRoofMerlonPath(candidate), candidate.y, {
+      unitScale: flat.roofUnitScale,
+      seed: flat.roofSeed,
+      appearanceSeed: flat.roofSeed ?? flat.seed ?? flat.nativeId,
+      slot: flat.slot,
+      material: flat.material,
+      edgeMode: flat.roof.surface.edge_mode
+    })
+  };
+}
+
+/** Numerical placement kernel consumes a path and material/layout settings only. */
+export function placeInterRoofMerlonPath(curve: RoofCurve, elevation: number, style: InterRoofMerlonStyle) {
+  const length = curve.length;
+  const target = style.unitScale ?? IDENTITY_UNIT_SCALE;
+  const rng = new RoofRandom(style.seed ?? BigInt(Math.trunc(mul(length, 1000))));
   const split = randomSplits(
     Math.max(2, Math.ceil(div(length, mul(0.46, target.width))) + 1),
     div(mul(0.32, target.width), length),
@@ -207,7 +236,7 @@ export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCand
   // The recovered chained windows iterator repeats its first lower-row segment
   // before traversing alternate upper-row segments. Preserve its RNG/order.
   const segments = [...split.slice(0, -1).map((_, i) => ({ i, row: 0 })), { i: 0, row: 0 }];
-  if (flat.roof.surface.edge_mode !== 1)
+  if (style.edgeMode !== 1)
     for (let i = split.length % 2 ? 1 : 2; i + 1 < split.length; i += 2) segments.push({ i, row: 1 });
   let nativeOrdinal = 0;
   for (const { i, row } of segments) {
@@ -219,7 +248,7 @@ export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCand
     if (!(width > 0)) continue;
     const height = row ? add(mul(mul(sub(rng.next(), 0.5), 0.21), 0.8), 0.368) : f32(0.23);
     const depth = mul(add(mul(sub(rng.next(), 0.5), 0.07), 0.28), target.depth);
-    const y = row ? add(add(candidate.y, 0.23), mul(height, 0.5)) : add(candidate.y, 0.115);
+    const y = row ? add(add(elevation, 0.23), mul(height, 0.5)) : add(elevation, 0.115);
     // A merlon's height is a structural silhouette, not a unit specification.
     // Subdivide its original envelope without consuming more native randomness.
     const subdivisions = Math.max(1, Math.ceil(div(height, mul(row ? 0.46 : 0.23, target.height))));
@@ -235,7 +264,7 @@ export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCand
         [-div(dz, width), 0, div(dx, width)]
       ];
       const scale = [width, pieceHeight, depth];
-      const unit = flat.building.material === 1 ? "wooden_plank" : "brick";
+      const unit = style.material === 1 ? "wooden_plank" : "brick";
       placements.push({ position, scale, basis, row, u: split[i], unit });
       if (unit === "brick") {
         const domain96 = new Uint8Array(96),
@@ -244,7 +273,7 @@ export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCand
           v.setFloat32(k * 4, n, true)
         );
         [64, 68, 72].forEach((k) => v.setFloat32(k, -100, true));
-        v.setUint32(80, flat.slot, true);
+        v.setUint32(80, style.slot, true);
         v.setFloat32(84, mul(length, split[i]), true);
         v.setFloat32(88, mul(length, split[i]), true);
         v.setUint32(92, 4, true);
@@ -262,22 +291,22 @@ export function constructInterRoofMerlonCandidate(candidate: InterRoofMerlonCand
             add(n, mul(axes[1][k], -0.5)) - (k === 1 ? 0.08 * (subdivisions === 1 ? 1 : pieceHeight / height) : 0)
         );
         [...axes.flat(), ...origin].forEach((n, k) => v.setFloat32(k * 4, n, true));
-        v.setUint32(48, Number((flat.roofSeed ?? flat.seed ?? flat.nativeId) & 0xffffffffn), true);
+        v.setUint32(48, Number(style.appearanceSeed & 0xffffffffn), true);
         v.setUint32(52, ordinal + subdivision * segments.length, true);
-        v.setUint32(56, flat.slot, true);
+        v.setUint32(56, style.slot, true);
         v.setUint32(60, 225, true);
         beams.push({ packed80 });
       }
     }
   }
-  return { candidate, placements, bricks, beams };
+  return { placements, bricks, beams };
 }
 
-export function generateInterRoofMerlons(owners: readonly InterRoofOwner[]) {
+export function planInterRoofMerlons(owners: readonly InterRoofOwner[]) {
   const candidates: InterRoofMerlonCandidate[] = [];
   const holes = new Map<bigint, WallConnectionWipHole[]>();
-  const flatOwners = owners.filter((o) => !o.building.kind && o.roof.surface.height_parameter <= f32(0.1));
-  const pitchedOwners = owners.filter((o) => !o.building.kind && o.roof.surface.height_parameter > f32(0.1));
+  const flatOwners = owners.filter((o) => o.roof.surface.height_parameter <= f32(0.1));
+  const pitchedOwners = owners.filter((o) => o.roof.surface.height_parameter > f32(0.1));
   for (const flat of flatOwners)
     for (const pitched of pitchedOwners) {
       const y = sub(flat.roof.surface.base_height, 0.67);
@@ -343,7 +372,16 @@ export function generateInterRoofMerlons(owners: readonly InterRoofOwner[]) {
         });
       }
     }
+  return { candidates, holes };
+}
+export function placeInterRoofMerlons(
+  plan: ReturnType<typeof planInterRoofMerlons>,
+  owners: readonly InterRoofOwner[]
+) {
   const byId = new Map(owners.map((o) => [o.nativeId, o]));
-  const groups = candidates.map((c) => constructInterRoofMerlonCandidate(c, byId.get(c.flatId)!));
-  return { candidates, holes, groups, bricks: groups.flatMap((g) => g.bricks), beams: groups.flatMap((g) => g.beams) };
+  const groups = plan.candidates.map((c) => constructInterRoofMerlonCandidate(c, byId.get(c.flatId)!));
+  return { ...plan, groups, bricks: groups.flatMap((g) => g.bricks), beams: groups.flatMap((g) => g.beams) };
+}
+export function generateInterRoofMerlons(owners: readonly InterRoofOwner[]) {
+  return placeInterRoofMerlons(planInterRoofMerlons(owners), owners);
 }

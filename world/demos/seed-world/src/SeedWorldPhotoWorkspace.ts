@@ -15,7 +15,7 @@ import {
 import type { PhotoImage } from "@galacean/engine-world-planning/world/SeedWorldPhotoImage";
 import { SeedWorldAnnotationHistory } from "./SeedWorldAnnotationHistory.ts";
 import { SEED_WORLD_PHOTO_CONFIG as config } from "@galacean/engine-world-planning/world/SeedWorldPhotoConfig";
-import { createViewAnnotation, type ViewPoint } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
+import { createViewAnnotation, type ViewAnnotation, type ViewPoint } from "@galacean/engine-world-planning/world/SeedWorldViewSnapshot";
 import { PhotoGraphics, PhotoSurface, PAPER_HEIGHT } from "@galacean/engine-world-planning/world/SeedWorldPhotoGraphics";
 import type { SeedWorldInstantCamera } from "./SeedWorldInstantCamera.ts";
 
@@ -93,6 +93,7 @@ export class SeedWorldPhotoWorkspace {
     private readonly actions: {
       edit: (photo: PhotoDocument) => void;
       remove: (id: string) => void;
+      updateAttachment: (id: string, annotations: readonly ViewAnnotation[]) => void;
       apply: () => void;
       cancel: () => void;
       freeze: (frozen: boolean) => void;
@@ -114,7 +115,7 @@ export class SeedWorldPhotoWorkspace {
       "keydown",
       (event) => {
         if (
-          this.active &&
+          this.active && document.activeElement === this.camera.canvas &&
           (event.key === "Tab" ||
             event.key === "Escape" ||
             event.key === "Enter" ||
@@ -261,6 +262,7 @@ export class SeedWorldPhotoWorkspace {
         this.shade = config.backdropOpacity * e;
       });
     }
+    this.actions.updateAttachment(photo.snapshotId, this.editing.history.annotations);
     this.mode = "editing";
     entry.opacity = entry.opacityTarget = 1;
     this.render(entry);
@@ -320,6 +322,7 @@ export class SeedWorldPhotoWorkspace {
     this.editing = undefined;
     if (editing) {
       if (editing.existing) {
+        this.actions.updateAttachment(editing.entry.photo.snapshotId, editing.entry.photo.history.annotations);
         editing.entry.surface.paint(editing.entry.photo.history.annotations);
         editing.entry.pose = { ...editing.entry.target };
         editing.entry.liftTarget = 0;
@@ -344,6 +347,7 @@ export class SeedWorldPhotoWorkspace {
   remove(id: string): void {
     const entry = this.entries.get(id);
     if (!entry) return;
+    this.actions.remove(id);
     entry.surface.dispose();
     entry.release();
     this.input.remove(id);
@@ -670,9 +674,8 @@ export class SeedWorldPhotoWorkspace {
           const point = this.imagePoint(p);
           if (point) this.drawing.points.push(point);
           try {
-            this.editing!.history.add(
-              createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color)
-            );
+            const annotation = createViewAnnotation(this.drawing.points, this.drawing.scale, this.drawing.color);
+            this.updateHistory(history => history.add(annotation));
           } catch (error) {
             this.trace.record("history-error", { error: String(error) });
             this.notify(String(error));
@@ -803,6 +806,15 @@ export class SeedWorldPhotoWorkspace {
     }
     this.refreshToolbar();
   }
+  private updateHistory(change: (history: SeedWorldAnnotationHistory) => void): void {
+    const editing = this.editing;
+    if (!editing) return;
+    const next = editing.history.clone();
+    change(next);
+    // Publish only completed gestures. A rejected attachment leaves the visible history unchanged.
+    this.actions.updateAttachment(editing.entry.photo.snapshotId, next.annotations);
+    editing.history = next;
+  }
   private refreshToolbar(): void {
     const history = this.editing?.history;
     this.graphics.icons.forEach((icon, i) => {
@@ -875,13 +887,16 @@ export class SeedWorldPhotoWorkspace {
     } else if (index === 4) this.actions.apply();
     else if (index === 3) this.graphics.palette.isActive = !this.graphics.palette.isActive;
     else {
-      if (index === 1) this.editing?.history.undo();
-      else this.editing?.history.redo();
+      try {
+        this.updateHistory(history => index === 1 ? history.undo() : history.redo());
+      } catch (error) {
+        this.notify(`无法更新照片标记：${error instanceof Error ? error.message : String(error)}`);
+      }
       this.paint();
     }
   }
   private key(): void {
-    if (!this.active) return;
+    if (!this.active || document.activeElement !== this.camera.canvas) return;
     const input = this.camera.engine.inputManager;
     // A quick shortcut can press and release its modifier within one Engine frame.
     const pressed = (key: Keys) => input.isKeyHeldDown(key) || input.isKeyDown(key);
@@ -901,7 +916,7 @@ export class SeedWorldPhotoWorkspace {
     else if (input.isKeyDown(Keys.Enter)) this.tool(this.focused);
     else if (input.isKeyDown(Keys.Tab)) {
       this.focused = (this.focused + (shift ? 4 : 1)) % 5;
-      this.notify(["丢弃当前照片及附件", "撤销上一笔", "重做上一笔", "选择画笔颜色", "确认并附加截图"][this.focused]);
+      this.notify(["丢弃当前照片及附件", "撤销上一笔", "重做上一笔", "选择画笔颜色", "收起照片，保留附件"][this.focused]);
     }
   }
   dispose(): void {

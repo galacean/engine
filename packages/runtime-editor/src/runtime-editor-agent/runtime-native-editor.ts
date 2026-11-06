@@ -1,5 +1,10 @@
+import type { RuntimeAssetSource } from "../project/runtime-asset-import";
 import { RuntimeSceneInspection } from "../runtime-inspection/runtime-scene-inspection";
-import type { ProjectFileProvider } from "@galacean/engine-project/project-files/virtual-project-files";
+import {
+  assertProjectPathWritable,
+  ProjectPathReadOnlyError,
+  type ProjectFileProvider
+} from "@galacean/engine-project/project-files/virtual-project-files";
 import type { Scene } from "@galacean/engine";
 import type { AgentEditTransaction, AgentTool } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import {
@@ -27,7 +32,7 @@ export class RuntimeNativeEditor {
     private readonly project: RuntimeProjectSession,
     readonly scene: Scene,
     formats: ReadonlyMap<string, RuntimeAssetFormat> = new Map(),
-    private readonly sources: readonly ProjectFileProvider[] = []
+    private readonly sources: readonly RuntimeAssetSource[] = []
   ) {
     this.editor = new RuntimeEditor(project, scene, formats);
     this.inspection = new RuntimeSceneInspection(scene, (object) => this.editor.projection.sourceIdentity(object));
@@ -86,11 +91,8 @@ export class RuntimeNativeEditor {
       }
     }));
     const assertDocument = (path: string) => {
+      assertProjectPathWritable(path);
       if (
-        path === "editor" ||
-        path.startsWith("editor/") ||
-        path === "execution-output" ||
-        path.startsWith("execution-output/") ||
         this.sources.some(
           (source) =>
             [...source.paths()].some(
@@ -98,7 +100,7 @@ export class RuntimeNativeEditor {
             ) || [...(source.directories?.() ?? [])].some((dir) => dir === path || path.startsWith(dir + "/"))
         )
       ) {
-        throw new Error(`Read-only file namespace: '${path}'`);
+        throw new ProjectPathReadOnlyError(path);
       }
     };
     const documentOperation = <T>(

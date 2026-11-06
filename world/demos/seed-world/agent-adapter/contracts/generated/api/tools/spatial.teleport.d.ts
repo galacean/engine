@@ -9,6 +9,7 @@ declare global {
   namespace AgentTools {
     interface SpatialApi {
       /**
+       * 调用入口：await tools.spatial.teleport(input)
        * 将玩家传送到目标位置；这是唯一会修改玩家 Pose 的 API。
        * @param input - 空间目标和 0.5 到 100 米的相机高度偏移。
        * @returns 草稿中预期的相机位置及附加状态；实际传送在 execute 提交后执行。

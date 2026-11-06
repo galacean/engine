@@ -81,6 +81,7 @@ export function referencedDeclarations(checker, roots, includeFile) {
       declarations.set(name, node);
       const visit = child => {
         if (ts.isTypeReferenceNode(child)) collectSymbol(checker.getSymbolAtLocation(child.typeName));
+        if (ts.isExpressionWithTypeArguments(child)) collectSymbol(checker.getSymbolAtLocation(child.expression));
         ts.forEachChild(child, visit);
       };
       visit(node);

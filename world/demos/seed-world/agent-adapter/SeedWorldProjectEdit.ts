@@ -63,7 +63,14 @@ export function beginSeedWorldProjectEdit(
       });
       await native.prepare(prepareSignal);
     },
-    commit: async () => native.commit(),
+    commit: async () => {
+      signal.throwIfAborted();
+      // Publication is atomic and may finish after cancellation. Its prepared
+      // world projection must survive until activation or terminal cleanup.
+      signal.removeEventListener("abort", abort);
+      try { return await native.commit(); }
+      catch (error) { world.discard(); throw error; }
+    },
     activate: async (activationSignal) => {
       activationSignal.throwIfAborted();
       const release = world.hasChanges() && !suppliedProjection ? application.stageProjectEdit(world) : () => {};

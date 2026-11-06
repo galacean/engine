@@ -1,6 +1,8 @@
 import { IClone } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
+import { ScreenSpaceReflection } from "../lighting/screenSpaceReflection/ScreenSpaceReflection";
+import type { ScreenSpaceReflectionMaterialSettings } from "../lighting/screenSpaceReflection/ScreenSpaceReflectionSettings";
 import { ScreenSpaceReflectionReceiverMode } from "../lighting/screenSpaceReflection/enums/ScreenSpaceReflectionReceiverMode";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -17,6 +19,51 @@ export class Material extends ReferResource implements IClone {
   private static readonly _screenSpaceReflectionIntensityProperty = ShaderProperty.getByName(
     "material_ScreenSpaceReflectionIntensity"
   );
+
+  private _screenSpaceReflection: Readonly<ScreenSpaceReflectionMaterialSettings> | null = null;
+  private _screenSpaceReflectionRuntimeReceiver: {
+    mode: ScreenSpaceReflectionReceiverMode;
+    intensity: number;
+    registered: boolean;
+  } | null = null;
+  /** Author intent, or null when the material is owned by legacy runtime registration. */
+  get screenSpaceReflection(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
+    return this._screenSpaceReflection;
+  }
+  /** Set null to release author ownership and restore the previous runtime receiver. */
+  set screenSpaceReflection(value: Readonly<ScreenSpaceReflectionMaterialSettings> | null) {
+    if (value == null) {
+      if (!this._screenSpaceReflection) return;
+      const receiver = this._screenSpaceReflectionRuntimeReceiver;
+      this._screenSpaceReflection = null;
+      this._screenSpaceReflectionRuntimeReceiver = null;
+      ScreenSpaceReflection.resolveMaterialReceiver(this);
+      if (receiver) {
+        this.shaderData.setFloat(Material._screenSpaceReflectionModeProperty, receiver.mode);
+        this.shaderData.setFloat(Material._screenSpaceReflectionIntensityProperty, receiver.intensity);
+        this._screenSpaceReflectionReceiverRegistered = receiver.registered;
+      }
+      return;
+    }
+    if (!this._screenSpaceReflection) {
+      this._screenSpaceReflectionRuntimeReceiver = {
+        mode: this.shaderData.getFloat(Material._screenSpaceReflectionModeProperty),
+        intensity: this.shaderData.getFloat(Material._screenSpaceReflectionIntensityProperty),
+        registered: this._screenSpaceReflectionReceiverRegistered
+      };
+    }
+    this._screenSpaceReflection = Object.freeze({
+      mode: value.mode === "On" || value.mode === "Auto" ? value.mode : "Off",
+      intensity: Math.max(0, Math.min(1, Number.isFinite(value.intensity) ? value.intensity : 1))
+    });
+    ScreenSpaceReflection.resolveMaterialReceiver(this);
+  }
+  /** @internal Null preserves legacy explicit runtime registration until an author API is used. */
+  get _screenSpaceReflectionAuthorSettings(): Readonly<ScreenSpaceReflectionMaterialSettings> | null {
+    return this._screenSpaceReflection;
+  }
+  /** Allow this transparent material to supply SSR hit color/depth. Independent of receiver ownership. */
+  contributeScreenSpaceReflection = false;
 
   /** Name. */
   name: string;
@@ -96,7 +143,14 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
+    target.contributeScreenSpaceReflection = this.contributeScreenSpaceReflection;
     target._screenSpaceReflectionReceiverRegistered = this._screenSpaceReflectionReceiverRegistered;
+    target._screenSpaceReflection = this._screenSpaceReflection
+      ? Object.freeze({ ...this._screenSpaceReflection })
+      : null;
+    target._screenSpaceReflectionRuntimeReceiver = this._screenSpaceReflectionRuntimeReceiver
+      ? { ...this._screenSpaceReflectionRuntimeReceiver }
+      : null;
   }
 
   /**

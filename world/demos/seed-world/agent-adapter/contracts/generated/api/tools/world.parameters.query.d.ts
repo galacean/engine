@@ -7,6 +7,7 @@ declare global {
     interface WorldApi { readonly parameters: WorldParametersApi; }
     interface WorldParametersApi {
       /**
+       * 调用入口：await tools.world.parameters.query(input)
        * 分页查询真实规划对象的身份与适用的公开作者组件。检查全局参数是否有局部覆盖时，用 component + authoredOnly=true 查询作者文档中明确配置了字段或来源的对象，authoredFields/authoredBases 索引不含生成的有效值；只需 inspect 这些真实覆盖，不能逐个读取全部默认继承对象。components 只包含 describe.componentTypes 已公开的组件，kind 是规划对象类别，不是可切换的素材或造型；内部求解输出不会作为可编辑组件返回。name 是规划对象的显示名称，通常是类别和编号，不是题材或素材目录；查全名称不能判断是否支持某种视觉造型，造型能力以宿主表现及组件声明为准。仅当下一步操作需要真实对象 ID 时，用 component/kind/name/parent 定向定位目标；无需逐个读取所有候选，使用宿主可自动选取目标的 API 时不需要先列举对象。matchedCount 为完整匹配数量，entities 仅含本页；只使用存在的 nextOffset 继续，缺省表示该筛选已经读完，不要换 offset 重读重叠页或读取 matchedCount 之后的空页。生成的花草按区域参数控制。
        * @param input - 使用发现的组件、实体和字段；所有编辑由系统统一验证。
        * @returns 组件元数据、作者参数或事务结果；versionToken 用于拒绝过期编辑。完整记录供脚本计算，按 nextOffset 继续；maxBytes 可明确限制本页字节，避免完整页面直接返回时超预算。最终汇总仍须筛选并遵守 main() 总预算，不需要为每个字段单独请求模型。

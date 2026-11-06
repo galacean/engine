@@ -1,1 +1,1 @@
-export * from "./tiny-glade/components/BuildingComponents";
+export * from "./tiny-glade/parts/index";

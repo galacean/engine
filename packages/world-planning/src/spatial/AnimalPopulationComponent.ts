@@ -62,7 +62,7 @@ const defaultCounts: Readonly<Record<string, { min: number; max: number }>> = po
 export const ANIMAL_POPULATION_DECLARATION: PlanningSystemDeclaration = {
   id: "animals",
   title: "Animal population and explicit additions",
-  knowledgePath: "spatial/README.md",
+  skill: "animals",
   components: [
     {
       type: "animals",

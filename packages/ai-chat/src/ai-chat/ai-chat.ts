@@ -223,10 +223,10 @@ function renderDebugTrace(container: HTMLElement, displayContent: string, trace:
               ? `第 ${step.step} 步 · List ${step.decision.path || "/"}`
               : step.decision.type === "search_tool"
                 ? `第 ${step.step} 步 · Search ${step.decision.path || "/"}`
-                : step.decision.type === "observe_view"
+                : step.decision.type === "snapshot"
                   ? `第 ${step.step} 步 · 观察当前画面`
-                  : step.decision.type === "read_image"
-                    ? `第 ${step.step} 步 · 重读截图 ${step.decision.imageId}`
+                  : step.decision.type === "pick"
+                    ? `第 ${step.step} 步 · 查询快照 ${step.decision.input.file_path}`
                     : `第 ${step.step} 步 · 任务完成`;
     details.appendChild(summary);
 

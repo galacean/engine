@@ -9,6 +9,7 @@ declare global {
   namespace AgentTools {
     interface WorldApi {
       /**
+       * 调用入口：await tools.world.delete(input)
        * 精确删除可编辑资产，或穷尽删除 Selector 匹配的可编辑资产。自然树、灌木、岩石和蘑菇可通过对象 tombstone 删除；没有局部删除原子能力的自然地貌、水系和基础设施会以 NOT_EDITABLE Tool Error 失败。
        * @param input - refs 与 selector 二选一；全部语义使用不带 limit 的 selector。Ref.source 表示来源，但是否可删除由运行时原子能力决定。
        * @returns 成功时返回 applied/unchanged 状态、真实删除计数、引用摘要和事务标识；执行失败不混入成功返回值。

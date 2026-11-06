@@ -52,7 +52,7 @@ it("lets the public Agent discover and author one large element with ordinary me
   expect(group.ports.some(port => session.result!.plan.routes.some(route => route.points.some(point =>
     Math.hypot(point.x - port.position.x, point.z - port.position.z) < 1e-4)))).toBe(true);
   const knowledge = createSeedWorldKnowledge(tools.map(tool => tool.name), session.describe().map(c => c.type));
-  const guide = knowledge.documents.find(document => document.path === "knowledge/world/spatial/README.md")!.content;
+  const guide = knowledge.documents.find(document => document.path === "skills/spatial/references/components.md")!.content;
   expect(guide).toContain("layout.memberMin/memberMax");
   expect(guide).not.toContain("layout.pattern to single");
 }, 60000);

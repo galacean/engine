@@ -9,6 +9,7 @@ declare global {
   namespace AgentTools {
     interface WaterApi {
       /**
+       * 调用入口：await tools.water.update(input)
        * 修改目标水体颜色，或修改玩家水系的尺寸、水位、流速、方向与岸线；抽干或排空池塘/湖泊也属于水位更新。
        * @param input - 颜色使用 world.query/inspect 的 Ref 和 patch.colorRgb，支持自然湖泊、海洋及玩家水体，只影响该水体。颜色与几何参数不能混用；edit 的 simple 只更新水体及查询，不更新地形、植被和农场；水位/颜色默认 simple，深度/形态默认 complex，创建默认 complex；simple 下需要改床的输入明确拒绝。颜色先写入编辑草稿，提交后同步个人世界存档，支持整次 execute 的 editor.history.undo。几何修改只接受 authored Ref。抽干湖泊时先读取资产的 minimumWaterLevelMetres，再将 waterLevelMetres 更新为该值。
        * @returns 颜色返回 assetRef、status 和草稿 colorRgb；preview 不修改世界。以 execute.receipt 判断提交，提交后的运行失败进入 runtimeErrors。几何修改另返回操作事务标识。

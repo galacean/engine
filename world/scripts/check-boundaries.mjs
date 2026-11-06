@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import ts from "typescript";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const names = ["terrain", "water", "animals", "building", "farming", "vegetation", "environment", "ai-chat", "project", "runtime-editor", "world-planning", "modify"];
+const names = ["terrain", "water", "animals", "building", "farming", "vegetation", "environment", "ai-chat", "project", "retrieval", "runtime-editor", "world-planning", "modify"];
 const packages = new Map(names.map(name => [`@galacean/engine-${name}`, path.join(root, "packages", name)]));
 const errors = [];
 const manifests = new Map([...packages].map(([name, directory]) => [name, JSON.parse(fs.readFileSync(path.join(directory, "package.json"), "utf8"))]));

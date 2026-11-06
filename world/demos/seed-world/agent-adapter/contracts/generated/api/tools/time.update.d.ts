@@ -8,7 +8,8 @@ declare global {
   namespace AgentTools {
     interface TimeApi {
       /**
-       * 修改世界时间、季节或二者，默认平滑过渡；时间由引擎逐帧向前推进，不需要脚本循环。
+       * 调用入口：await tools.time.update(input)
+       * 修改世界时间、季节，或同时修改两者。默认平滑过渡。只需调用一次，不需要用脚本循环推进。
        * @param input - 至少包含 timeHours 或 season，可配置过渡和环境光等待。
        * @returns 返回规范化请求和草稿目标状态，并未开始过渡。execute 提交后才执行过渡；waitForIbl 控制额外等待环境光。以 execute.receipt 判断提交，提交后的过渡失败记录在 runtimeErrors，不撤销编辑数据。
        */

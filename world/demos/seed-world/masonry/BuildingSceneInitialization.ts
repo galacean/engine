@@ -2,13 +2,11 @@ import type { PrefabResource } from "@galacean/engine";
 import type { RuntimeEditor, RuntimeEditorEdit, RuntimeEditPreparation } from "@galacean/engine-runtime-editor/runtime-editor/runtime-editor";
 import type { RuntimeProjectSession } from "@galacean/engine-runtime-editor/project/runtime-project-session";
 import { RuntimeSceneEdit } from "@galacean/engine-runtime-editor/runtime-editor/scene/runtime-scene-edit";
-import { prepareConstructionTerrain, type ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/ConstructionTerrain";
+import type { ConstructionTerrainSource } from "@galacean/engine-building/tiny-glade/runtime/TerrainField";
 import type { IslandPlan } from "@galacean/engine-world-planning/semantic-study/IslandPlanModel";
-import { generateBuildingScene } from "@galacean/engine-building/tiny-glade/components/BuildingSceneGeneration";
 import { BUILTIN_BUILDING_ASSETS } from "@galacean/engine-building/tiny-glade/resources/BuiltinBuildingAssets";
 import { buildingAssets } from "@galacean/engine-building/tiny-glade/resources/BuildingAssetKit";
-import { constructionPreview } from "@galacean/engine-building/tiny-glade/runtime/ConstructionPreview";
-import { initialBuildingGroups } from "@galacean/engine-world-planning/integrations/building/InitialBuildingRecipe";
+import { initialBuildingSource } from "@galacean/engine-world-planning/masonry/BuildingInitialSource";
 
 type AuthoringEdit = Pick<RuntimeEditorEdit, "run" | "withAsset">;
 type Inputs = { plan: IslandPlan; terrain: ConstructionTerrainSource };
@@ -39,17 +37,9 @@ export function buildingScenePreparation(scenePath: string,
     if (!identity) return;
     const { plan, terrain } = await inputs(edit, signal);
     signal.throwIfAborted();
-    const fragment = await edit.withAsset<PrefabResource, ReturnType<typeof generateBuildingScene>>(BUILTIN_BUILDING_ASSETS, async assets => {
+    const fragment = await edit.withAsset<PrefabResource, Awaited<ReturnType<typeof initialBuildingSource>>>(BUILTIN_BUILDING_ASSETS, async assets => {
       const compilation = buildingAssets(assets.resource).compilation;
-      const groups: Parameters<typeof generateBuildingScene>[0][number][] = [];
-      for (const { document } of initialBuildingGroups(plan, compilation)) {
-        signal.throwIfAborted();
-        groups.push({ document, geometry: constructionPreview(document, prepareConstructionTerrain(document, terrain.grid).height, undefined,
-          { assets: compilation, includeAppearance: true, retainDecorationParts: true }) });
-        await new Promise<void>(resolve => setTimeout(resolve, 0));
-      }
-      signal.throwIfAborted();
-      return generateBuildingScene(groups, BUILTIN_BUILDING_ASSETS);
+      return initialBuildingSource(plan, terrain.grid, compilation, BUILTIN_BUILDING_ASSETS, signal);
     });
     await edit.run(({ draft, edited }) => {
       signal.throwIfAborted();

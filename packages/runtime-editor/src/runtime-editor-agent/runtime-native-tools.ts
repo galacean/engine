@@ -1,8 +1,8 @@
 import {
   ProjectPathConflictError,
-  type ProjectFileProvider
+  ProjectPathReadOnlyError
 } from "@galacean/engine-project/project-files/virtual-project-files";
-import { importRuntimeAsset } from "../project/runtime-asset-import.ts";
+import { importRuntimeAsset, type RuntimeAssetSource } from "../project/runtime-asset-import.ts";
 import * as z from "zod";
 import { AgentToolExecutionError, defineTool, type AgentTool } from "@galacean/engine-ai-chat/ai-chat/agent-types";
 import type { RuntimeProjectEdit } from "@galacean/engine-project/runtime-editor/project/runtime-project-edit";
@@ -24,6 +24,7 @@ const assetDocumentSchemas = {
   "history.redo": z.object({ transactionIds: z.array(id).min(1) }).strict(),
   "asset.import": z.object({ source: id, path: id, type: z.string().min(1).optional() }).strict(),
   "asset.list": z.object({}).strict(),
+  "asset.info": z.object({ path: id }).strict(),
   "asset.read": z.object({ path: id }).strict(),
   "asset.create": z.object({ path: id, type: id, content: z.string() }).strict(),
   "asset.update": z.object({ path: id, content: z.string() }).strict(),
@@ -47,7 +48,7 @@ export function nativeProjectTools(
       name,
       input,
       output: z.unknown(),
-      effect: sceneMethods[name]?.effect ?? (/\.(list|read|references|query)$/.test(name) ? "read" : "edit"),
+      effect: sceneMethods[name]?.effect ?? (/\.(list|info|read|references|query)$/.test(name) ? "read" : "edit"),
       execute: (value, { signal }) => executeNativeProjectTool(name, value, getDraft(), analyzeImports, onEdit, signal)
     })
   );
@@ -60,7 +61,7 @@ export async function executeNativeProjectTool(
   analyzeImports: (signal: AbortSignal) => Promise<void>,
   onEdit: () => void,
   signal: AbortSignal,
-  sources: readonly ProjectFileProvider[] = []
+  sources: readonly RuntimeAssetSource[] = []
 ): Promise<unknown> {
   try {
     signal.throwIfAborted();
@@ -82,20 +83,15 @@ export async function executeNativeProjectTool(
           result = await importRuntimeAsset(draft, sources, args as any, signal);
           break;
         case "asset.list":
-          return draft
-            .list()
-            .map((file) => ({
-              path: file.virtualPath,
-              type: file.type,
-              ...(file.params ? { params: file.params } : {})
-            }));
-        case "asset.read": {
-          const file = find(args.path);
-          const content = draft.read(file.virtualPath);
-          if (typeof content !== "string")
-            throw new Error(`Asset '${file.virtualPath}' is binary; asset.read supports text assets`);
-          return { content };
-        }
+          return draft.list().map((file) => ({
+            path: file.virtualPath,
+            type: file.type,
+            ...(file.params ? { params: file.params } : {})
+          }));
+        case "asset.info":
+          return draft.info(args.path);
+        case "asset.read":
+          return draft.readAsset(args.path);
         case "asset.references":
           await analyzeImports(signal);
           return { references: draft.references(find(args.path).virtualPath) };
@@ -121,6 +117,13 @@ export async function executeNativeProjectTool(
         message: error.message,
         executed: false,
         details: { path: error.path, existingPath: error.existingPath, existingKind: error.existingKind }
+      });
+    if (error instanceof ProjectPathReadOnlyError)
+      throw new AgentToolExecutionError({
+        code: error.code,
+        message: error.message,
+        executed: false,
+        details: { path: error.path }
       });
     throw error;
   }
