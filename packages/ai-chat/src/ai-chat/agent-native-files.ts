@@ -59,7 +59,7 @@ const descriptions: Record<AgentFileToolName, string> = {
     "Other binary files return descriptors."
   ].join("\n"),
   write:
-    "Create or completely replace a project-owned plain-text file. Provide file_path and full content. Existing files must have been read and remain unchanged. Registered assets use editor.asset in execute. skills/, declare/, .ai/ and mounted libraries are read-only. .meta requires a registered asset target and JSON summary/optional usage. Each successful call commits independently and participates in save/undo.",
+    "Create or completely replace a project-owned plain-text file. skills/, declare/, .ai/, remote/ and project.json are read-only. Provide file_path and full content. Existing files must have been read and remain unchanged. Registered assets use editor.asset in execute. skills/, declare/, .ai/ and mounted libraries are read-only. .meta requires a registered asset target and JSON summary/optional usage. Each successful call commits independently and participates in save/undo.",
   edit: "Replace literal old_string with new_string in a project document. Defaults to one unique match; replace_all=true replaces every non-overlapping match. Empty new_string deletes matched text. Read the file first; stale or ambiguous edits fail without changing it. Same file boundaries and independent commit as write.",
   delete:
     "Delete one project-owned ordinary file and its metadata. Missing files fail. Does not recursively delete directories, registered assets, mounted libraries or host knowledge. Registered assets use editor.asset.delete in execute. Commits independently and participates in save/undo.",

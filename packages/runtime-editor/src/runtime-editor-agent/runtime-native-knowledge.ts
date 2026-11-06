@@ -47,7 +47,7 @@ declare global {
         {kind: "image"; format: string; width: number; height: number} |
         {kind: "model"; scenes: unknown[]; nodes: unknown[]; meshes: unknown[]; materials: unknown[]; bounds: {min: number[]; max: number[]} | null; boundsComplete: boolean}
       )>;
-      /** Path is canonical, e.g. Scripts/Rotate.ts. Type must be a registered asset format; extension-specific types and their content are documented by the owning system. Unknown types reject.  */
+      /** Path is canonical, e.g. Scripts/Rotate.ts. skills/, declare/, .ai/, remote/ and project.json are read-only. Type must be a registered asset format; extension-specific types and their content are documented by the owning system. Unknown types reject.  */
       create(input: { path: string; type: NativeAssetType; content: string }): Promise<{ path: string }>;
       /** Replaces the entire text asset while retaining identity. */
       update(input: { path: string; content: string }): Promise<{ updated: true }>;

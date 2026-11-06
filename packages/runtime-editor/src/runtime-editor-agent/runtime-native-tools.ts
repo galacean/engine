@@ -1,4 +1,7 @@
-import { ProjectPathConflictError } from "@galacean/engine-project/project-files/virtual-project-files";
+import {
+  ProjectPathConflictError,
+  ProjectPathReadOnlyError
+} from "@galacean/engine-project/project-files/virtual-project-files";
 import { importRuntimeAsset, type RuntimeAssetSource } from "../project/runtime-asset-import.ts";
 import * as z from "zod";
 import { AgentToolExecutionError, defineTool, type AgentTool } from "@galacean/engine-ai-chat/ai-chat/agent-types";
@@ -114,6 +117,13 @@ export async function executeNativeProjectTool(
         message: error.message,
         executed: false,
         details: { path: error.path, existingPath: error.existingPath, existingKind: error.existingKind }
+      });
+    if (error instanceof ProjectPathReadOnlyError)
+      throw new AgentToolExecutionError({
+        code: error.code,
+        message: error.message,
+        executed: false,
+        details: { path: error.path }
       });
     throw error;
   }
